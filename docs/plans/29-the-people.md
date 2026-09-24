@@ -56,6 +56,20 @@ This document.
 - **The Faculty tab and the candidate list** show a quirk as a chip with
   its line.
 
+**As implemented:**
+
+- **All forty of v2's quirks,** ported as data.
+- **About three candidates in five** have one. It is picked by hashing the
+  id, which is drawn at the same point in the stream as before, so the
+  candidate's other draws are the ones they always were.
+- **Effects:**
+  - teaching and research move the rolled potentials, clamped to 0–100;
+  - salary multiplies pay, both at generation and every week's recompute;
+  - morale, summed across the roster, moves academic satisfaction by a
+    tenth of a point a unit, capped at three either way, and shows in its
+    breakdown as "The faculty's characters".
+- **The founding five** have none.
+
 ## PR 29C — Retirement
 
 - **Every professor has a career length,** rolled from their id: 25 to 40
@@ -63,17 +77,33 @@ This document.
   retire, and their courses wait for a new instructor.
 - **The retiring professor's year** is a chance to hire before they go.
 
+**As implemented:** `careerWeeks(id)` takes another slice of the same hash,
+giving 25 to 40 whole years. `tickRetirements` runs after the faculty grow
+each week: notice at a year out, then retirement, which leaves the courses
+unstaffed exactly as a dismissal does. Seats' holders left the roster when
+appointed (Plan 28), so they do not retire.
+
 ## PR 29D — The Faculty tab, scanned
 
 - **Only the fields the college has developed are shown:** those with a
   course offered, a professor on the roster or a program housed. "Show
   every field" opens the rest.
 
+**As implemented:** "developed" means a course offered or revealed in the
+field, or somebody on the roster. A department the Curriculum tab links to
+is always shown. The toggle sits with Expand and Collapse all, and counts
+the fields it hides.
+
 ## PR 29E — The admissions projection
 
 - **The summer's admissions panel** gets one line: the expected entering
   class against the beds and dining seats it will need, and last year's
   class.
+
+**As implemented:** under the Freshman class and Incoming quality figures:
+"A class of N against M last year: T students next year, for B beds and
+dining for D." T is the projection's own whole body (the three continuing
+classes plus the incoming one).
 
 ## PR 29F — Expectations
 
@@ -82,6 +112,17 @@ This document.
   climbs.
 - **Diminishing returns above 80:** satisfaction above 80 counts half.
 
+**As implemented:**
+
+- **Each point of prestige over 50 raises the library, social and housing
+  targets by 0.1%,** so a college at 150 needs a tenth more of each.
+- **Dining and health are needs, not expectations,** and do not rise. A
+  tenth more dining would have cut a well-fed elite college's basic needs
+  from 100 to about 81 on the steep curve that attribute uses.
+- **Diminishing returns apply to the headline target,** which therefore
+  tops out at 90. Word of mouth (neutral at 70) and welfare prestige
+  (paid in full at 80) both read that headline.
+
 ## PR 29G — The Students tab
 
 - **Student Life and Enrollment become one tab, Students,** with sections
@@ -89,8 +130,29 @@ This document.
   (satisfaction and demands), and their societies (clubs and Greek life).
   The gates of both tabs carry over.
 
+**As implemented:** `tabs/StudentsTab.tsx` stacks the two old tabs:
+
+- **what students think comes first**, since it explains the headline:
+  satisfaction, the active demand, clubs and chapters;
+- **then who enrolled** and the funnel that drew them.
+
+The tab keeps the Student Life icon and the `l` key. It opens at the first
+commencement, and the petition toast points at it. `TabId` loses
+`enrollment` and `studentlife`, and the Enrollment icon goes with them.
+
 ## PR 29H — Demands in the panel
 
 - **A demand arrives as a note that does not stop the clock,** with its
   deadline and what happens if it is missed. The Students tab keeps it in
   view until it is met or lapses.
+
+**As implemented:**
+
+- **`raiseDemand` sets `events.demandUnread`** in place of the interrupt,
+  and `DemandNote.tsx` shows the ask, the weeks left, progress, and the
+  stakes met and missed.
+- **One note at a time:** it waits behind a milestone's note and the
+  board's letters.
+- **"Noted"** (`READ_DEMAND`) puts it away.
+- **Old saves:** the `'demand'` interrupt still resolves for a save taken
+  with the old modal open.

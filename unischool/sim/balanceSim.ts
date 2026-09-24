@@ -20,6 +20,7 @@
 //   npm run sim -- --compare last.json    # print what moved against them
 // ---------------------------------------------------------------------
 
+import { careerWeeks } from '../src/systems/faculty/facultySystem';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
@@ -169,7 +170,11 @@ function canCommitCapital(s: GameState, strategy: Strategy): boolean {
 
 // Courses orphaned by a dismissal or an initiative get restaffed, as a player
 // would, or the harness reports its own neglect as a satisfaction collapse.
-function restaffOrphans(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+// A retiree's replacement is not new spending (Plan 29): the salary replaces
+// the one that just left, so a player makes it even in the red. `retired`
+// counts, by field, the retirements not yet replaced; a hire against one
+// skips the affordability gate below.
+function restaffOrphans(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy, retired: Map<string, number>): void {
   for (const course of unstaffedCourses(get())) {
     const s = get();
     const replacement = eligibleInstructors(s, course, course.id)[0];
@@ -182,8 +187,10 @@ function restaffOrphans(get: () => GameState, dispatch: (a: Action) => void, str
     const candidate = s.candidates.find((c) => c.field === course.requiresFaculty);
     // Same affordability gate as the ordinary hiring loop, or the harness
     // ends a run with three times the faculty a school that size would carry.
-    if (candidate && s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)) {
+    const replacing = (retired.get(course.requiresFaculty ?? '') ?? 0) > 0;
+    if (candidate && (replacing || (s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)))) {
       dispatch({ type: 'HIRE_FACULTY', facultyId: candidate.id });
+      if (replacing) retired.set(candidate.field, retired.get(candidate.field)! - 1);
     }
   }
 }
@@ -541,9 +548,10 @@ function decide(
   strategy: Strategy,
   weeksInTheRed: number,
   dispatch: (a: Action) => void,
+  retired: Map<string, number>,
 ): void {
   commissionScholarship(get, dispatch, strategy);
-  restaffOrphans(get, dispatch, strategy);
+  restaffOrphans(get, dispatch, strategy, retired);
   balanceTeaching(get, dispatch, strategy);
   cutPayrollIfStalled(get, weeksInTheRed, dispatch, strategy);
   staffTheDepartment(get, dispatch, strategy);
@@ -926,6 +934,8 @@ export function play(
   let year = newYear();
   const rows: Row[] = [];
   let weeksInTheRed = 0;
+  // Retirements not yet replaced, by field (restaffOrphans).
+  const retired = new Map<string, number>();
   let minCash = s.finance.cash;
   const liveInitiatives = new Set<string>();
 
@@ -1028,12 +1038,16 @@ export function play(
     if (offered.facultyBlocked) year.facultyBlockedWeeks += 1;
     else if (!offered.startable) year.idleWeeks += 1;
     else if (!offered.affordable) year.blockedWeeks += 1;
-    decide(() => s, strategy, weeksInTheRed, dispatchCounted);
+    decide(() => s, strategy, weeksInTheRed, dispatchCounted, retired);
     // A demand resolves silently inside a tick (meeting one is finishing a
     // building), so its outcome is read from the transition. Safe against
     // the post-tick state because neither reading it is measured on can fall.
     const demandBefore = s.events.activeDemand;
+    const retiring = s.faculty.filter((f) => f.tenureWeeks + 1 >= careerWeeks(f.id));
     dispatch({ type: 'TICK' });
+    for (const f of retiring) {
+      if (!s.faculty.some((x) => x.id === f.id)) retired.set(f.field, (retired.get(f.field) ?? 0) + 1);
+    }
     if (demandBefore && !s.events.activeDemand) {
       if (demandProgress(s, demandBefore).met) tally.demandsMet += 1;
       else tally.demandsFailed += 1;
