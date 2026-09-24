@@ -21,10 +21,9 @@ import {
   initiativeOffers, initiativeWeeklyOutput, isBreakthroughRollWeek, labEquippedFields, researchableFields,
 } from '../src/data/researchData';
 import type { Faculty, GameState, InitiativeDepth } from '../src/state/types';
+import { bindScriptStream, overrideDraws } from '../src/engine/random';
 
-let seed = 4242;
-const seededRandom = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-Math.random = seededRandom;
+bindScriptStream(4242);
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
@@ -76,7 +75,7 @@ console.log('research output tests');
 
 // ---- publications are banked off output, deterministically ----
 {
-  Math.random = never;
+  overrideDraws(never);
   const { s, labId, team } = running('project');
   const weekly = initiativeWeeklyOutput(s, team, initiativeDepth('project'));
   assert(weekly > 0, `the team produces (${weekly.toFixed(2)} a week)`);
@@ -88,12 +87,12 @@ console.log('research output tests');
   assert(s.research.initiatives[labId].publications === 1, 'the first paper lands the week the bank fills');
   assert(s.research.publications === 1, 'and counts for the school');
   assert(s.research.initiatives[labId].banked < PUBLICATION_POINTS, 'with the remainder carried');
-  Math.random = seededRandom;
+  overrideDraws(null);
 }
 
 // ---- the offer's expected publications are what the run delivers ----
 {
-  Math.random = never;
+  overrideDraws(never);
   const { s, labId, team } = running('project');
   const odds = initiativeOdds(s, initiativeDepth('project'), team);
   const initiative = s.research.initiatives[labId];
@@ -104,12 +103,12 @@ console.log('research output tests');
     `a project delivers about the publications the offer promised (promised ${odds.publications.toFixed(1)}, delivered ${delivered})`,
   );
   assert(initiative.weeksTotal === 78, 'over its full run');
-  Math.random = seededRandom;
+  overrideDraws(null);
 }
 
 // ---- a Funded Project always publishes something; a pilot publishes what it earned ----
 {
-  Math.random = never;
+  overrideDraws(never);
   const thin = running('project', 1);
   while (thin.s.research.initiatives[thin.labId]) tickResearch(thin.s);
   assert(thin.s.research.completedInitiatives[0].publications >= 1, 'the weakest team still concludes a project with a paper');
@@ -119,19 +118,19 @@ console.log('research output tests');
   assert(pilot.s.research.completedInitiatives[0].publications === 0, 'a pilot with nothing banked publishes nothing');
   assert(pilot.s.research.pendingCompletions.length === 0, 'and queues no report');
   assert(pilot.s.log.some((l) => l.message.includes('has concluded')), 'but logs its ending');
-  Math.random = seededRandom;
+  overrideDraws(null);
 }
 
 // ---- a run with papers alone logs and never stops the clock ----
 {
-  Math.random = never;
+  overrideDraws(never);
   const { s, labId } = running('program');
   while (s.research.initiatives[labId]) tickResearch(s);
   const done = s.research.completedInitiatives[0];
   assert(done.publications > 1 && done.breakthroughs === 0, `a program that only published (${done.publications} papers, no breakthrough)`);
   assert(s.research.pendingCompletions.length === 0, 'does not report — the review\'s cut');
   assert(s.log.some((l) => l.message.includes('has concluded') && l.message.includes('publications')), 'it logs what it produced');
-  Math.random = seededRandom;
+  overrideDraws(null);
 }
 
 // ---- a breakthrough is rolled once a year, and a run that lands one reports ----
@@ -140,7 +139,7 @@ console.log('research output tests');
   assert(isBreakthroughRollWeek(78, 26) && !isBreakthroughRollWeek(78, 25) && isBreakthroughRollWeek(78, 0), 'at each anniversary and at the end');
 
   // Always lands: every roll is a breakthrough, so the count is the rolls.
-  Math.random = () => 0;
+  overrideDraws(() => 0);
   const { s, labId } = running('program');
   let rolls = 0;
   while (s.research.initiatives[labId]) {
@@ -151,7 +150,7 @@ console.log('research output tests');
   }
   assert(rolls === 3, `a three-year program rolls three times (${rolls})`);
   assert(s.research.pendingCompletions.length === 1, 'and a run with a breakthrough reports');
-  Math.random = seededRandom;
+  overrideDraws(null);
 }
 
 // ---- the odds: stated before the commitment, off the same functions ----
@@ -176,14 +175,14 @@ console.log('research output tests');
 
 // ---- output reaches somewhere: the market, and the pool ----
 {
-  Math.random = () => 0;
+  overrideDraws(() => 0);
   const { s, labId } = running('project');
   const before = s.candidates.length;
   // The first tick of the run is not a roll week; the anniversary is.
   while (s.research.initiatives[labId] && s.research.initiatives[labId].breakthroughs === 0) tickResearch(s);
   assert(s.candidates.length > before, 'a breakthrough brings a scholar in the field onto the market');
   assert(s.log.some((l) => l.message.includes('is on the market')), 'and says so');
-  Math.random = seededRandom;
+  overrideDraws(null);
 
   const signals = deriveCohortSignals(s);
   assert(signals.researchOutput > 0, 'the applicant funnel reads what the labs produced');

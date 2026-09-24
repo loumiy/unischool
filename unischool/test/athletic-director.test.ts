@@ -23,9 +23,15 @@ import { findDecisionEvent } from '../src/data/eventData';
 import { tickEvents } from '../src/systems/events/eventSystem';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { Coach, GameState, StudentClub } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 20260917;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+// Read through a call so TypeScript does not narrow the interrupt to what
+// the test last assigned: the system under test sets it.
+function interruptType(g: GameState): string | undefined {
+  return g.pendingInterrupt?.type;
+}
+
+bindScriptStream(20260917);
 
 let checks = 0;
 let failures = 0;
@@ -99,7 +105,7 @@ function testOfferIsPutOnce(): void {
     s.clock.week = (s.clock.week % WEEKS_PER_YEAR) + 1;
     if (s.clock.week === 1) s.clock.year += 1;
     tickEvents(s);
-    if (s.pendingInterrupt?.type === 'athletic-director') refires += 1;
+    if (interruptType(s) === 'athletic-director') refires += 1;
     s.pendingInterrupt = null;
   }
   assert(refires === 0, `the offer does not re-fire for two years after being put (re-fired ${refires} times)`);
@@ -107,7 +113,7 @@ function testOfferIsPutOnce(): void {
   // But it DOES come back — the position is not lost for the run.
   s.clock.year += 4;
   tickEvents(s);
-  assert(s.pendingInterrupt?.type === 'athletic-director',
+  assert(interruptType(s) === 'athletic-director',
     'and it does come back once the cooldown is past — declining never closes the position');
 }
 

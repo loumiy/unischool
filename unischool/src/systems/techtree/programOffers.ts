@@ -4,53 +4,27 @@ import { makeRivalRng } from '../../data/rivalData';
 import { WEEKS_PER_YEAR } from '../../state/types';
 
 // ---------------------------------------------------------------------
-// THE OFFER QUEUE (Plan 14). The player is never shown forty-two doors.
-// They are shown THREE — s.programOffers — drawn from what remains, and
-// founding one draws a replacement, so the offer is always three and the
-// catalogue is discovered rather than enumerated. The first three are
-// drawn at founding (Plan 19: the college opens with three rooms free),
-// with a one-time guarantee described at refillOffers. See types.ts's
-// HallSlot block and docs/design/curriculum.md.
+// The offer queue: the player sees three programs (s.programOffers) drawn
+// from what remains, and founding one draws a replacement, so the catalogue
+// is discovered rather than enumerated (docs/design/curriculum.md). No
+// reroll, no decline. Two rules pull against each other on purpose:
 //
-// Two rules shape the draw, and they pull against each other on purpose:
+//   - Programs from started schools are STARTED_SCHOOL_WEIGHT times likelier,
+//     so a school the player has begun converges on being founded.
+//   - At least one offer comes from an unstarted school whenever one exists,
+//     so discovery never dries up.
 //
-//   - WEIGHTED TOWARD STARTED SCHOOLS. A school with a program already
-//     housed somewhere is STARTED_SCHOOL_WEIGHT times likelier to offer
-//     another, so a school the player has begun converges — six programs
-//     in one hall is the whole game, and a school that dribbles out over
-//     forty years can never be founded.
-//   - AT LEAST ONE OFFER FROM A SCHOOL NOT YET STARTED, whenever such a
-//     program exists. Without this the weighting eats itself: the last two
-//     schools are never seen, and the player is locked into finishing what
-//     they opened first. Discovery never dries up.
-//
-// There is no reroll and no decline. The three stand until one is taken.
-//
-// WHAT IS OFFERABLE: a program that is revealed and not yet housed. A
-// major is revealed when its entry course's prereqs are done — an entry
-// course has none, so every major is revealed from founding — and a
-// graduate program when its own gate opens (graduateGateMet, unchanged).
-// The three founding programs are housed at founding and never offered.
-//
-// THE DICE. A local PRNG (rivalData.ts's makeRivalRng) seeded from the
-// STATE — the school's name, the week, and how many programs are housed —
-// and NO draw on the global Math.random stream at all. This is the one
-// place the game deliberately does not roll: the first attempt took one
-// global draw per refill, the discipline rivalsSystem.ts's annual drift
-// keeps, and that single extra draw shifted every
-// faculty potential and candidate listing after it enough to send the
-// balance sim's overbuilder into a distress it never climbed out of. The
-// offer is not what the regression bands measure, so it must not move
-// them. What the seed loses in surprise it keeps in variety: two schools
-// with different names, or the same school founding a week apart, draw
-// differently, and a save reloaded draws exactly what it would have drawn.
+// Offerable: revealed and not yet housed. The dice are a local PRNG seeded
+// from the state (name, week, housed count), with no draw on the game's
+// random stream, so the offer never shifts the rest of a seeded run; a
+// reloaded save draws exactly what it would have drawn.
 // ---------------------------------------------------------------------
 
 export const PROGRAM_OFFER_COUNT = 3;
 export const STARTED_SCHOOL_WEIGHT = 3;
 
-// FNV-1a with a finalizer, the same shape rivalData.ts hashes a rival's id
-// through: a one-character difference in the key is an unrelated seed.
+// FNV-1a with a finalizer, as rivalData.ts hashes a rival's id: a
+// one-character difference in the key is an unrelated seed.
 function offerSeed(key: string): number {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < key.length; i++) {
@@ -86,8 +60,8 @@ export function slotOf(s: GameState, programId: string): { hallId: string; slot:
   return undefined;
 }
 
-// Weeks a program has left in transit (see types.ts's HallSlot), or 0 when
-// it is settled — which is also what an unhoused program reads as.
+// Weeks a program has left in transit (types.ts's HallSlot); 0 when settled
+// or unhoused.
 export function transitWeeks(s: GameState, programId: string): number {
   const where = slotOf(s, programId);
   return where ? (s.halls[where.hallId][where.slot].transitWeeks ?? 0) : 0;
@@ -97,10 +71,7 @@ export function isInTransit(s: GameState, programId: string): boolean {
   return transitWeeks(s, programId) > 0;
 }
 
-// The schools with at least one program housed. The three founding
-// programs are Social Sciences & Humanities, so that school is started
-// from founding (Plan 19): the weighting below pulls the first draws
-// toward finishing it, and the discovery rule keeps one door open.
+// The schools with at least one program housed.
 export function startedSchools(s: GameState): Set<string> {
   const started = new Set<string>();
   for (const program of programs()) {
@@ -113,45 +84,26 @@ function isRevealed(s: GameState, program: ProgramInfo): boolean {
   const entry = s.tech.find((t) => t.id === program.entryCourseId);
   if (!entry) return false;
   if (program.kind === 'graduate') {
-    // Its own gate, unchanged — plus, until Plan 14's PR E retires them,
-    // Medicine's and Law's own buildings: the entry course names its
-    // building as a prereq, so a program whose hall is not yet built
-    // cannot be founded and must not be offered.
+    // Its own gate, plus the entry course's prereqs: some name the program's
+    // own building, and it cannot be founded before that stands.
     return graduateGateMet(s, program.id) && entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
   }
-  // A major is revealed when its entry course's prereqs are done — and an
-  // entry course has none, so this is every major from founding. (The
-  // course's own status stays 'locked' until the program is housed — see
-  // techSystem.ts's meetsUnlockGates — which is exactly why this reads the
-  // prereqs and not the status.)
+  // Entry courses have no prereqs, so every major is revealed from founding.
+  // Reads prereqs, not status: the course stays 'locked' until housed.
   return entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
 }
 
-// Everything that could be offered right now, offered or not: revealed
-// and unhoused, in seed order.
+// Everything that could be offered now: revealed and unhoused, in seed order.
 export function offerablePrograms(s: GameState): ProgramInfo[] {
   return programs().filter((program) => isRevealed(s, program) && !isHoused(s, program.id));
 }
 
-// Tops the offer back up to PROGRAM_OFFER_COUNT. Called at founding (the
-// first three — actions.ts's createInitialState), whenever a program is
-// founded (its replacement — the reducer's FOUND_PROGRAM), and after any
-// week that finishes something, where it is a no-op unless a graduate
-// gate has just opened (techSystem.ts). Idempotent: an offer already
-// full, or a pool already empty, is left exactly as it is, and draws
-// nothing.
+// Tops the offer back up to PROGRAM_OFFER_COUNT: at founding, after each
+// FOUND_PROGRAM, and after weeks that finish something (when a graduate gate
+// may open). Idempotent. Offers that became unofferable are dropped first.
 //
-// THE FOUNDING GUARANTEE (Plan 19), a one-time preference and not a
-// standing rule: `guarantee` names majors of which at least one must be
-// on the table after this refill, so that the first founding decision the
-// game asks never requires a hire the college cannot afford. The first
-// draw is confined to them — one of the two, by the same dice — and every
-// draw after it is ordinary, discovery rule included. Passed only by
-// createInitialState; nothing else ever rigs a draw.
-//
-// An offered program that has since become unofferable (housed by some
-// other path, or — defensively — no longer in the seed) is dropped first,
-// so the record never offers what cannot be taken.
+// `guarantee` (founding only) names majors of which at least one must be on
+// the table; the first draw is confined to them, the rest are ordinary.
 export function refillOffers(s: GameState, guarantee: readonly string[] = []): void {
   const offerable = offerablePrograms(s);
   const byId = new Map(offerable.map((program) => [program.id, program]));
@@ -173,9 +125,8 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
   }
 
   while (s.programOffers.length < PROGRAM_OFFER_COUNT && pool.length > 0) {
-    // The discovery rule first: if nothing on the table is from a school
-    // the player has not started, and something could be, this draw is
-    // confined to those. Every later draw in the same refill is free.
+    // The discovery rule: if nothing offered is from an unstarted school and
+    // something could be, this draw is confined to those.
     const offeredUnstarted = s.programOffers.some((id) => {
       const program = byId.get(id);
       return program !== undefined && isUnstarted(program);

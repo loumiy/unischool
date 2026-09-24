@@ -5,49 +5,31 @@ import { findDecisionEvent } from '../data/eventData';
 import type { DecisionEventContext } from '../data/eventData';
 
 // ---------------------------------------------------------------------
-// HOW A MODAL IS ANSWERED WHEN NOBODY IS LOOKING.
+// How a modal is answered when nobody is looking. The balance harness
+// (sim/balanceSim.ts) and the debug panel's Jump (DebugPanel.tsx) both
+// fast-forward through a run, and both ask here so their runs match.
+// Returns an action rather than mutating: the reducer stays the one
+// interpreter.
 //
-// Two callers fast-forward through a run without a player: the balance
-// harness (sim/balanceSim.ts, forty years in a few seconds) and the debug
-// panel's Jump (see components/DebugPanel.tsx, "advance five years"). Both
-// have to answer whatever stops the clock on the way, and before this
-// module they answered differently — which would have made the panel's
-// five-year jump a different run from the harness's five years, and a
-// trajectory the developer was looking at one the sim had never measured.
-//
-// So the default answer to every interrupt lives here, once, and both ask
-// for it. It returns an ACTION rather than mutating anything: the reducer
-// stays the one interpreter, and the caller keeps whatever bookkeeping it
-// does around the dispatch (the harness's tallies, the panel's count).
-//
-// The policy, and every entry is deliberate:
-//
-//   - summer          read the review and the standing, keep last year's
-//                     price and admit rate, recognise every petition — the
-//                     most expensive answer available, which makes the
-//                     harness's opex figures an upper bound. One beat per
-//                     call, four calls a summer.
-//   - decision-event  the first AFFORDABLE choice, which in every authored
-//                     entry is the "deal with it properly, and pay" option;
-//                     a free one if the money isn't there
-//   - athletic dir.   the middle candidate, the neutral reading of three
-//                     that differ only in salary
-//   - charter         accept; it costs nothing and renames the school
+// The policy:
+//   - summer          keep last year's price and admit rate, recognise every
+//                     petition (the most expensive answer, so the harness's
+//                     opex is an upper bound). One beat per call.
+//   - decision-event  the first affordable choice (in every authored entry,
+//                     "deal with it properly, and pay"); else a free one
+//   - athletic dir.   the middle candidate of three that differ only in salary
+//   - charter         accept
 //   - letter          read it and carry on; never "I know the way"
 //   - everything else read and dismiss
 //
-// A NEW INTERRUPT TYPE lands in the `default` branch, which dismisses it
-// with RESOLVE_REPORT. That is a real hazard and worth naming: the athletic
-// director's offer spent a release being silently dismissed that way by a
-// harness that did not know it existed, so the feature never ran at all in
-// any measured trajectory. Add the case here when you add the interrupt.
+// A new interrupt type falls into `default` and is silently dismissed, so
+// the harness never exercises it. Add the case here when you add the
+// interrupt.
 // ---------------------------------------------------------------------
 
-// The summer decision is the one interrupt whose answer is a STRATEGY
-// rather than a default: what to charge and how much of the pool to take
-// is the whole game. A caller that has a policy passes it; one that
-// doesn't gets last year's numbers back, unchanged, which is what the
-// interrupt's own payload offers as its opening position.
+// The summer's answer is a strategy, not a default: a caller with a policy
+// passes it; one without gets last year's numbers, the payload's opening
+// position.
 export interface AdmissionsPolicy {
   tuition: number;
   admitRate: number;
@@ -58,13 +40,9 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
   if (!pending) return null;
 
   switch (pending.type) {
-    // THE SUMMER, beat by beat (see types.ts's SummerPayload). Review and
-    // Standing are read and continued; the Admissions beat is left with the
-    // policy as its decision; the Students beat commits the policy and
-    // recognises every petition. Walked one beat per call rather than
-    // answered in one action, so a fast-forward exercises the same four
-    // steps a player takes — including the payload carrying the decision
-    // from the third beat to the fourth.
+    // The summer, beat by beat (see types.ts's SummerPayload): walked one
+    // beat per call, like a player, so the third beat's decision rides the
+    // payload into the fourth, which commits it and recognises every petition.
     case 'summer': {
       const payload = pending.payload as Partial<SummerPayload> | undefined;
       const beat = payload?.beat ?? 0;
@@ -88,7 +66,6 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
       return { type: 'RESOLVE_MILESTONE' };
 
     case 'research-complete':
-      // The completion report, which carries the award if the work won one.
       return { type: 'RESOLVE_RESEARCH_REPORT' };
 
     case 'demand':
@@ -108,7 +85,7 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
       return { type: 'RESOLVE_LETTER', skipAll: false };
 
     case 'first-sport-club': {
-      // The suggestion the beat itself rolled (Plan 21's PR O).
+      // The suggestion the beat itself rolled.
       const payload = pending.payload as { mascotSuggestion?: string } | undefined;
       return { type: 'RESOLVE_MASCOT', mascot: payload?.mascotSuggestion ?? '' };
     }

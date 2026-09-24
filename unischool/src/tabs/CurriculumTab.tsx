@@ -23,60 +23,27 @@ import HelpHint from '../components/HelpHint';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
+import { money, moneyShort, surnameOf } from '../format';
 
-// ---------------------------------------------------------------------
-// Progressive discovery: the curriculum is not laid out whole. What's
-// visible is derived purely from existing unlock/milestone state — no new
-// gating, just a different read of it:
-//   - Programs are FOUNDED from an academic hall on the campus map, three
-//     on offer at a time (Plan 14 — see systems/techtree/programOffers.ts
-//     and BuildingInfoPanel.tsx). Nothing about that happens here: the tab
-//     shows what has a home. At founding that is the three programs of
-//     the founding college (Plan 19 — actions.ts's FOUNDING_PROGRAMS), so
-//     the tab opens on one school section with three rows already filled
-//     in, which is the first screen that says what kind of college this is.
-//   - Once one of a school's programs is housed, the school forms a
-//     section: its housed majors' tier-1s + tier-2s, shared across majors
-//     that haven't completed their tier-2 quartet yet. The section is
-//     drawn as ONE ROW PER PROGRAM (PR G): nine cells in tier order, the
-//     unrevealed ones drawn empty so every row is the same width and
-//     position carries tier, grouped under the school's colour and mark
-//     — and its name only once the school is founded.
-//   - Once a major's tier-2 quartet is complete (the existing
-//     `program-established:<prefix>` milestone), that major splits into its
-//     own labeled sub-group within the section, and its tier-3s appear
-//     there — the same event, per the task.
-//   - Once a GRADUATE PROGRAM's parent-school gate opens (see
-//     techData.ts's graduateGateMet — five of six majors complete for a
-//     professional school, a finished lab for a doctorate), the MBA and
-//     each PhD doctorate appear as one more labeled sub-group inside their
-//     home school's section, marked as the higher tier they are and
-//     captioned with the gate they just cleared — unchanged from before.
-//   - Medicine and Law are different: they award an external professional
-//     degree rather than building on their parent school's own subject
-//     matter, so each stands as its OWN top-level section (own heading, own
-//     completion ring, own building), structurally parallel to an
-//     undergraduate school rather than a sub-group inside one. Their
-//     section reveals once their OWN building is done — the same boolean
-//     an undergraduate school section reveals on — not merely once the
-//     academic gate that makes the building buildable is met. Reveal, not
-//     scarcity: before the building is done there is no Med/Law section on
-//     screen at all, in the same way there is no wall of tier-3 courses
-//     before a major completes.
-// A course, once revealed, is never hidden again — only its cell state
-// (locked/available/developing/done) changes as the underlying Buildable
-// status does. "Locked" here means revealed-but-blocked (a faculty gate or
-// a cross-major prereq bridge still unmet), never "not yet discovered".
-// ---------------------------------------------------------------------
+// Progressive discovery: what the tab shows is derived from existing
+// unlock/milestone state, with no gating of its own.
+//   - Programs are founded from an academic hall on the map (see
+//     programOffers.ts and BuildingInfoPanel.tsx); this tab shows only
+//     programs that have a home.
+//   - A school forms a section once one of its programs is housed, drawn one
+//     row per program (nine cells in tier order, unrevealed ones empty),
+//     under the school's colour and mark, and its name once founded.
+//   - A major whose tier-2 quartet is complete (`program-established:<prefix>`)
+//     becomes its own sub-group and reveals its tier-3s.
+//   - A housed graduate program appears as a sub-group of its home school.
+// A revealed course is never hidden again; "locked" means revealed but
+// blocked (a faculty gate or cross-major prereq), never "undiscovered".
 
 // The catalogue's own completion is the panel's headline figure.
 const CATALOG_RING_SIZE = 46;
 
-// A sub-group inside a school section: a completed major (its own tier-3
-// catalogue now visible) or a revealed graduate program. `graduate` is set
-// only for the latter, and carries the two things a graduate group has to
-// say that a major does not — which credential it awards, and which gate
-// it cleared to appear at all.
+// A sub-group inside a school section: a completed major or a revealed
+// graduate program (`graduate` carries its degree and the gate it cleared).
 export interface DiscoverySubgroup {
   key: string;
   label: string;
@@ -87,25 +54,18 @@ export interface DiscoverySubgroup {
 export interface DiscoverySection {
   key: string;
   label: string;
-  // The section head's full title. "School of {label}" for every school
-  // that hasn't sold its naming rights; the donor's full display text
-  // verbatim once it has (see buildSections below and eventData.ts's
-  // 'naming-rights' event).
+  // "School of {label}", or the donor's display text verbatim once naming
+  // rights are sold (eventData.ts's 'naming-rights').
   heading: string;
   courseIds: string[];
   subgroups: DiscoverySubgroup[];
-  // Every course id this school will ever own (all tiers of all its
-  // majors), whether revealed yet or not — the denominator of the
-  // section head's completion ring.
+  // Every course id this school will ever own, revealed or not: the
+  // denominator of the section's completion ring.
   schoolCourseIds: string[];
 }
 
-// Which graduate programs are currently revealed — the one reading the
-// whole graduate half of this view runs on. A program is revealed once it
-// is HOUSED (Plan 14): its gate (techData.ts's graduateGateMet) is what
-// puts it on offer, and taking a hall slot is what puts it in the
-// curriculum — the same rule an undergraduate major follows, so the tab
-// can never show a program the engine has not opened, or hide one it has.
+// Graduate programs revealed on this tab: those that are housed, the same
+// rule an undergraduate major follows.
 function revealedGraduatePrograms(s: GameState): Set<string> {
   const revealed = new Set<string>();
   for (const program of graduatePrograms()) {
@@ -118,13 +78,8 @@ function buildSections(s: GameState, revealedGrad: Set<string>): DiscoverySectio
   const sections: DiscoverySection[] = [];
 
   for (const school of discoverySchools()) {
-    // A SCHOOL APPEARS ONCE ONE OF ITS PROGRAMS IS HOUSED (Plan 14). There
-    // is no school building any more: a program is founded by taking a
-    // slot in an academic hall on the map, and a school is what the player
-    // makes by housing six of its programs together. A major that has not
-    // been founded is simply not here yet — its entry course is 'locked'
-    // behind the housed gate (techSystem.ts's meetsUnlockGates) and the
-    // hall panel is where it is founded from, not this tab.
+    // A school appears once one of its programs is housed; unfounded majors
+    // are founded from the hall panel, not here.
     const housedMajors = school.majors.filter((major) => isHoused(s, major.prefix));
     if (housedMajors.length === 0) continue;
 
@@ -142,8 +97,7 @@ function buildSections(s: GameState, revealedGrad: Set<string>): DiscoverySectio
         sharedIds.push(major.tier1Id, ...major.tier2Ids);
       }
     }
-    // Graduate programs come last inside the section, after every major,
-    // because that is where they sit in the climb.
+    // Graduate programs come last in the section, where they sit in the climb.
     const gradIds: string[] = [];
     for (const program of school.graduate) {
       if (!revealedGrad.has(program.id)) continue;
@@ -156,15 +110,9 @@ function buildSections(s: GameState, revealedGrad: Set<string>): DiscoverySectio
       });
     }
 
-    // COLOUR, NOT LABEL (Plan 14's PR E). A school's NAME is revealed on
-    // founding — six of its programs housed in one hall — and until then
-    // its programs sit under its colour and mark with no name, so "three
-    // of this colour already, and a hall with three slots free" is a
-    // conclusion the player reaches by looking. Once founded, the heading
-    // is the school's name, or the donor's full display text verbatim if
-    // its dedicated hall's naming rights were sold (see eventData.ts's
-    // 'naming-rights' — a `donorSurname` on the hall is what marks its
-    // `name` as donor text rather than the seeded catalogue name).
+    // A school's name is revealed on founding (six programs housed in one
+    // hall); until then it shows only its colour and mark. A hall with a
+    // `donorSurname` carries donor text as its `name`, used verbatim.
     const founded = isSchoolFounded(s, school.name);
     const mark = schoolMark(school.name);
     const namedHall = founded
@@ -179,43 +127,26 @@ function buildSections(s: GameState, revealedGrad: Set<string>): DiscoverySectio
       heading: namedHall ? namedHall.name : founded ? `School of ${school.name}` : `${mark.motif} An unfounded school`,
       courseIds: sharedIds,
       subgroups,
-      // A school's completion ring counts its graduate programs only once
-      // they are revealed. Counting them earlier would put a medical
-      // school in the denominator of a Health Science ring years before
-      // the player has any way of knowing one exists.
+      // Graduate programs count toward the ring only once revealed, so the
+      // ring never hints at programs the player cannot know about yet.
       schoolCourseIds: [...school.majors.flatMap((m) => [m.tier1Id, ...m.tier2Ids, ...m.tier3Ids]), ...gradIds],
     });
   }
 
-  // There is no ungrouped pool. It used to hold the gen-ed core (retired
-  // by Plan 19), and before that every major's tier-1 course once the
-  // core was done — forty-two alphabetical cards, "not yet organised by
-  // school", which is the wall Plan 14 exists to take down. A course is
-  // founded from a hall slot on the map (three programs on offer at a
-  // time), and appears here only once it has a home.
+  // There is no ungrouped pool: a course appears only once its program has a home.
   return sections;
 }
 
-// The same section list buildSections computes for this tab's own render,
-// exposed for anything else that needs a school/professional-school's
-// completion without re-deriving revealedGrad itself — the campus map's
-// building info popover, in particular (see CampusMap.tsx). Each section's
-// `key` is the school's name, so a caller holding a program's school can
-// find its section with a plain lookup.
+// The section list, for callers outside this tab such as the campus map's
+// building popover. Each section's `key` is the school's name.
 export function discoverySections(s: GameState): DiscoverySection[] {
   const revealedGrad = revealedGraduatePrograms(s);
   return buildSections(s, revealedGrad);
 }
 
-// Every course id currently rendered somewhere on this tab — every school
-// section, and every subgroup inside one — regardless of that course's
-// own status. This is the curriculum alert badge's definition of
-// "visible" (see types.ts's SeenState): a course counts as new the instant
-// it's REVEALED, whether it arrives already 'available' (a freshly-founded
-// program's entry course) or still 'locked' pending its own prereqs (a
-// tier-2 sharing a brand-new school section with a tier-1 that isn't done
-// yet) — both are a cell appearing on screen where there was none before,
-// which is the moment there's something new to notice.
+// Every course id rendered on this tab, whatever its status: the curriculum
+// alert badge's definition of "visible" (see types.ts's SeenState). A course
+// counts as new the moment its cell appears.
 export function visibleCourseIds(s: GameState): string[] {
   const ids: string[] = [];
   for (const section of discoverySections(s)) {
@@ -225,36 +156,13 @@ export function visibleCourseIds(s: GameState): string[] {
   return ids;
 }
 
-// =====================================================================
-// THE MAP'S OWN SHAPE: schools, and the lanes inside them.
-//
-// A second reading of the SAME revealed set the sections above compute —
-// never a second set of reveal rules. `visibleCourseIds` stays the one
-// answer to "has the player met this course yet"; all this does is regroup
-// what it returns from flat pools into the structure the catalogue
-// actually has: school -> major -> tier.
-//
-// WHY LANES RATHER THAN A GRAPH. The curriculum is a total hierarchy with
-// a sparse graph laid over it. 42 majors of exactly nine courses in a
-// fixed 1/4/4 shape means the tier chain is ~336 edges every one of which
-// says the same thing, while the ~50 authored CROSS_MAJOR_BRIDGES are the
-// only interesting ones. Drawing them all spends the whole visual budget
-// on the boring 336 and buries the 50 — and shrinks the node to a dot,
-// which is what undid full course names last time. So the regular
-// structure is carried by POSITION (three bands, left to right, with a
-// chevron between) and drawn with zero lines, and an edge is only ever
-// drawn for a bridge, on demand.
-// =====================================================================
-
-// ONE ROW PER PROGRAM (Plan 14's PR G). The view the progression actually
-// has: a housed program is a row of its courses in tier order — one entry
-// course, four tier-2, four tier-3 — with unrevealed courses drawn as
-// empty cells so every row is the same width and position carries tier.
-// Rows group under their school, so clusters form on their own; a school
-// is labelled by colour and mark until it is founded, and by name after.
+// Schools and program rows: a regrouping of the same revealed set, never a
+// second set of reveal rules. The fixed 1/4/4 tier shape is carried by
+// position (three bands per row) rather than by drawn prereq edges; only
+// cross-major bridges are called out, on demand.
 interface ProgramRow {
   program: ProgramInfo;
-  revealed: Set<string>; // which of its courses this tab shows as cells (the rest are placeholders)
+  revealed: Set<string>; // courses shown as cells; the rest are placeholders
 }
 
 interface SchoolGroup {
@@ -278,8 +186,7 @@ function schoolGroups(s: GameState, sections: DiscoverySection[]): SchoolGroup[]
       const program = programById(major.prefix);
       if (program) rows.push({ program, revealed });
     }
-    // Graduate programs come last inside a school, where they sit in the
-    // climb.
+    // Graduate programs come last inside a school.
     for (const grad of school.graduate) {
       const program = programById(grad.id);
       if (program && isHoused(s, grad.id)) rows.push({ program, revealed });
@@ -296,9 +203,7 @@ function schoolGroups(s: GameState, sections: DiscoverySection[]): SchoolGroup[]
   return groups;
 }
 
-// Which school a course belongs to, so search results and a bridge badge
-// can say where a course lives and navigate straight to it. Derived from
-// the seed, memoized — the catalogue is static.
+// Which school each course belongs to (static catalogue, memoized).
 let courseSchoolMap: Map<string, { key: string; school: string }> | null = null;
 function courseSchools(): Map<string, { key: string; school: string }> {
   if (courseSchoolMap) return courseSchoolMap;
@@ -316,18 +221,10 @@ function courseSchools(): Map<string, { key: string; school: string }> {
   return map;
 }
 
-// The cross-major prereqs of a course: prereqs that are THEMSELVES COURSES
-// and come from a different major. Read off the course's own prereqs rather
-// than CROSS_MAJOR_BRIDGES directly, so a bridge authored anywhere still
-// shows up.
-//
-// The course check is not defensive tidying — prereqs cross KINDS as well
-// as majors (docs/architecture/buildables.md), so a tier-3 course
-// routinely requires its major's LAB. `LAB-CHEM` trivially has a different
-// id prefix from `CHEM230`, so a prefix test alone calls a building a
-// cross-listed course and offers to navigate to it, which the map cannot
-// do and the player would not want: the lab is something you BUILD, not
-// somewhere you go in the catalogue.
+// The cross-major prereqs of a course: prereqs that are themselves courses
+// from a different major. The kind check matters: tier-3 courses require
+// their major's lab (e.g. LAB-CHEM for CHEM230), which a prefix test alone
+// would call a cross-listed course.
 function crossMajorPrereqs(t: Buildable, lookup: Map<string, Buildable>): string[] {
   const prefix = t.id.replace(/[0-9]+$/, '');
   return t.prereqs.filter((id) => {
@@ -345,14 +242,8 @@ function cellState(s: GameState, t: Buildable): CellState {
   return canStartDevelopment(s, t) ? 'available' : 'blocked';
 }
 
-// The grade chip. One component for a course's own grade and for an
-// aggregate (a major's, a school's), because they are the same claim at
-// different scales and must read identically — a school showing "B" means
-// its courses average a B, not something else that happens to look alike.
-//
-// The letter carries the meaning and the tint is only a cue: colour alone
-// would be unreadable to a colour-blind player, and unreadable at the
-// zoomed-out sizes the curriculum map will want, so the letter never drops.
+// The grade chip, for a course's own grade and for aggregates alike. The
+// letter always shows; the tint is only a cue (colour-blind players, small sizes).
 export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
   return (
     <span className={`grade-chip grade-${grade.toLowerCase()} ${size}`} title={title}>
@@ -361,49 +252,22 @@ export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?:
   );
 }
 
-// An aggregate grade across a set of courses, or nothing when none of them
-// are graded yet. What a school section head and a major subgroup show —
-// and, once the curriculum map lands, what its university-level view is
-// built from.
+// An aggregate grade across a set of courses, or nothing when none are graded.
 function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
   const avg = averageCourseQuality(s, ids, loads);
   if (avg === null) return null;
   return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${Math.round(avg)} / 100 across its developed courses`} />;
 }
 
-// One course cell: its code (e.g. "FINA 101") over its title, filling
-// brass when done and pulsing while developing. Clicking it opens the
-// course drawer (see CourseDrawer below). The code is split into
-// department and number so a wall of forty-odd codes reads as a column of
-// departments with a number attached, rather than eight undifferentiated
-// characters.
+// One course cell: code over title, filled when done, with a progress bar
+// while developing. Clicking opens the course drawer; there is deliberately
+// no hover card. The cell shows only what must read at a glance: state,
+// progress, an unstaffed marker, and a neutral gate dot (not the field's
+// initial, which would hint at school membership).
 //
-// THERE IS NO HOVER CARD. There used to be, and it carried everything a
-// course had to say — description, prereqs, the faculty gate, cost,
-// instructor — because hovering was the only way to learn any of it. The
-// drawer is that now, and better: it holds the same facts plus the
-// decision they are there to inform, it stays put while you read it, and
-// it does not cover the neighbouring cells you are scanning. A hover card
-// repeating a strict subset of an open panel is not a shortcut, it is a
-// second answer to the same question.
-//
-// So the cell carries only what has to be legible WITHOUT clicking, at a
-// glance, across a whole screen of cells: state (by fill), progress (the
-// bar on a developing course), an unstaffed marker, and a dot for a
-// course whose field has no free slot (see the legend under the panel
-// head). Everything else is one click away.
-//
-// The dot is a neutral marker, NOT the field's initial: same-field cells
-// lighting up together with a letter on them would draw the eye to
-// clusters that correlate with school membership the pool is not meant to
-// reveal yet.
-// THE FACULTY CHIP (PR G). A compact instructor sits with each developed
-// course — portrait, surname, grade — and chips DRAG between courses to
-// swap instructors, with a live grade delta on both courses while
-// dragging, which is the entire reason the mechanic is worth building. A
-// drop that is not a legal swap (see techSystem.ts's canSwapInstructors:
-// wrong department, someone full, a program in transit) is a no-op and
-// both professors stay where they were.
+// Developed courses carry an instructor chip that drags onto another course
+// to swap instructors, previewing both grades. An illegal drop (see
+// techSystem.ts's canSwapInstructors) is a no-op.
 export interface DragState {
   courseId: string;   // the course whose chip is being dragged
   facultyId: string;  // who is on it
@@ -415,18 +279,6 @@ export interface DragHandlers {
   onDragOver: (courseId: string) => void;
   onDragEnd: () => void;
   onDrop: (courseId: string) => void;
-}
-
-// Money at the grain a scan needs: "$180k", "$4.0M". The drawer keeps the
-// full figure; a cell and a row button have room for four characters.
-export function moneyShort(n: number): string {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
-  return `$${Math.round(n / 1000)}k`;
-}
-
-function surnameOf(name: string): string {
-  const parts = name.replace(/^(Dr|Prof|Professor)\.?\s+/, '').split(' ');
-  return parts[parts.length - 1];
 }
 
 function InstructorChip({ f, grade, draggable, onDragStart, onDragEnd }: {
@@ -450,52 +302,35 @@ function InstructorChip({ f, grade, draggable, onDragStart, onDragEnd }: {
 
 export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
   s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void; loads: FacultyLoads;
-  // Present only inside the rows, where a chip can be dragged and a cell
-  // can be dropped on; the worklist's cells carry none.
+  // Only inside the rows; the worklist's cells carry none.
   dnd?: DragHandlers;
 }) {
   const state = cellState(s, t);
-  // Cost and duration are the drawer's business; the cell carries what a
-  // scan across a row needs — the code, the title, and what the school can
-  // offer at a glance.
   const [code, titleFromName] = t.name.split(' · ');
   const title = titleFromName ?? code;
-  // Not just "is the field full" but "would waiting help" — see
-  // techSystem.ts's facultyGate.
+  // "Would waiting help", not just "is the field full" (techSystem.ts's facultyGate).
   const gate = t.requiresFaculty ? facultyGate(s, t.requiresFaculty) : 'open';
-  // An offered course whose instructor has left (see types.ts's
-  // CourseFaculty) — marked on the cell because it is a thing the player
-  // must fix, and they should not have to open a course to discover it.
+  // An offered course whose instructor has left (types.ts's CourseFaculty).
   const unstaffed = isUnstaffed(s, t);
-  // Only an offered, staffed course carries a grade: an undeveloped one is
-  // an empty slot in the catalogue rather than a failing course, and an
-  // unstaffed one is not being taught at all (see courseQuality).
+  // Only an offered, staffed course has a grade (see courseQuality).
   const quality = courseQuality(s, t, loads);
   const instructor = assignedInstructor(s, t);
-  // The gate is only news while the course is still ahead of the player:
-  // a developing or finished course already holds its slot.
+  // The gate matters only for a course not yet started.
   const showGateDot = gate !== 'open' && state !== 'developing' && state !== 'done';
 
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
-  // WHAT STARTING IT WOULD MEAN, on the cell itself: its cost and the
-  // strongest teacher free to take it with the grade they would earn — or
-  // why nobody can. The two facts a scan across a row needs before
-  // choosing which course to open, and the two the drawer used to be the
-  // only way to learn. Only on a course still ahead of the player.
+  // For a course still ahead: its cost and the strongest free teacher with
+  // the grade they would earn.
   const ahead = state === 'available' || state === 'blocked';
   const best = ahead && t.requiresFaculty ? eligibleInstructors(s, t)[0] : undefined;
   const bestGrade = best ? projectedQuality(s, t, best, loads).grade : null;
-  // Its program is between halls (Plan 14's PR F): not taught, not
-  // advancing, and marked so the player does not have to open the course
-  // to learn why its grade is gone.
+  // A program between halls is not taught or advancing.
   const programId = programOfCourse(t.id);
   const transit = programId !== undefined && isInTransit(s, programId);
 
-  // THE SWAP PREVIEW. While a chip is held over a cell it can legally be
-  // dropped on, both cells show what their grade would become: the target
-  // with the dragged professor, the source with the target's. Computed
-  // here per cell from the drag state rather than stored anywhere.
+  // Swap preview: while a chip is over a legal target, both cells show their
+  // would-be grade. Derived from the drag state, not stored.
   const dragging = dnd?.drag ?? null;
   const isSource = dragging?.courseId === t.id;
   const isTarget = !!dragging && dnd?.over === t.id && !isSource;
@@ -531,9 +366,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
             : t.requiresFaculty ? ' · no free slot' : ''}
         </span>
       )}
-      {/* The chip replaces the done-tick: a staffed course is self-evidently
-          developed, and two marks in one corner competing for the same
-          glance is one mark too many. */}
+      {/* The chip replaces the done-tick on a staffed course. */}
       {instructor && (state === 'developing' || state === 'done') && (
         <InstructorChip
           f={instructor}
@@ -551,9 +384,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
       {state === 'done' && !instructor && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
       {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
       {transit && !unstaffed && <span className="cell-stamp transit" title="Its program is moving halls — dark until it settles">⇄</span>}
-      {/* Two colours, two actions. Yellow: the department is full but
-          somebody is listed, so this is one appointment away. Red: full and
-          nobody to appoint, so only time fixes it. */}
+      {/* Yellow: one appointment away. Red: nobody to appoint, only time fixes it. */}
       {showGateDot && (
         <span
           className={`cell-gate-dot ${gate}`}
@@ -572,60 +403,21 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
   );
 }
 
+// The course drawer: facts, the itemized grade, prereqs as links, and the
+// choice of instructor, which is stored (types.ts's CourseFaculty) and
+// editable for the life of the course. Cases: several eligible (choose),
+// exactly one (pre-selected), department full (list who and their loads),
+// nobody in the field (hire here from the market, or say it is empty).
 
-// ---------------------------------------------------------------------
-// THE COURSE DRAWER, and the decision it exists for.
-//
-// Clicking a course no longer starts it. It opens this, and the drawer
-// leads with the question the old build never asked: WHO TEACHES IT.
-// Before, development auto-assigned nobody in particular — the engine
-// tracked only per-field slot capacity, and the name under a cell was a
-// round-robin computed on read. Now the player picks, the pick is stored
-// (see types.ts's CourseFaculty), and it is editable for the life of the
-// course.
-//
-// Four cases, and the last two are the reason this is a panel rather than
-// a confirm dialog:
-//
-//   1. SEVERAL eligible. A list, strongest teacher first, each a real
-//      person — portrait, rank, teaching, current load. The player chooses.
-//   2. EXACTLY ONE eligible. Pre-selected, one button. Frictionless, as it
-//      should be — but never silent: the player still learns who it is,
-//      because they will want to know in five years when the grade is bad.
-//   3. NOBODY free, but the department EXISTS. The old build showed a dot
-//      on a cell and left the player to work out what to do. Here the
-//      people who are full are listed by name with their loads, because
-//      "Dr. Iyer is teaching 2 of 2" is the actual information — it says
-//      reassign, or hire, rather than just "no".
-//   4. NOBODY at all. The hire happens HERE, from the standing market, in
-//      the course's own field. And when the market is empty in that field
-//      this says so plainly, because that is real information too (a
-//      thin-market specialist turns up only every few months — see
-//      facultyData.ts's churn block), and it tells the player to wait and
-//      watch rather than hunt for a button that does not exist.
-// ---------------------------------------------------------------------
-
-// One selectable person. Deliberately the same furniture the Faculty tab
-// uses for a roster card — portrait, name, rank badge — so a professor
-// reads as the same professor in both places, plus the two things that
-// matter HERE and nowhere else: how good a teacher they are, and how
-// loaded they already are.
+// One selectable person, styled like the Faculty tab's roster card, plus
+// teaching and current load.
 export function InstructorOption(
   { s, f, selected, disabled = false, projectedFor, onPick }:
   { s: GameState; f: Faculty; selected: boolean; disabled?: boolean; projectedFor?: Buildable; onPick?: () => void },
 ) {
   const load = facultyLoad(s, f.id);
-  // WHAT THIS COURSE WOULD BE GRADED if they took it — the single most
-  // useful thing on the card, and the reason the picker is a list of
-  // people rather than a dropdown of names. Comparing "teaching 71" with
-  // "teaching 64" is abstract; comparing a B with a C is the actual
-  // consequence, and it already folds in what their existing load and this
-  // course's tier will do to it.
-  //
-  // Costs nothing to compute speculatively: qualityOf is pure arithmetic
-  // on four numbers (see data/courseQuality.ts). The load passed is what
-  // theirs WOULD become — their current count plus this course, unless
-  // they already teach it.
+  // The grade this course would get with them. The load used is what theirs
+  // would become (current plus this course, unless they already teach it).
   const projected = projectedFor
     ? qualityOf({
       teaching: f.teaching,
@@ -676,11 +468,8 @@ export function InstructorOption(
   );
 }
 
-// THE SEARCH, offered where the shortage is felt (Plan 14's PR H): when
-// nobody in a department can take a course, the picker offers to pay for
-// a search rather than a dead end — see systems/faculty/facultySearch.ts.
-// Exported for the hall panel's course strip and the Faculty board, which
-// offer the same thing in the same words.
+// The search offer, where a shortage is felt (see facultySearch.ts). Shared
+// with the hall panel's course strip and the Faculty board.
 export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) => void; field: string }) {
   const left = searchWeeksLeft(s, field);
   if (left > 0) {
@@ -699,18 +488,14 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
       onClick={() => act({ type: 'POST_SEARCH', field })}
       title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}: a much better chance every week that a ${field} candidate is listed.`}
     >
-      Post a search in {field} · ${cost.toLocaleString()}
+      Post a search in {field} · {money(cost)}
     </button>
   );
 }
 const SEARCH_WEEKS_LABEL = 'half a year';
 
-// THE MARKET, WHERE THE COURSE IS. Every candidate listed in a field, each
-// with an Appoint button, and the search offered beside them — so a player
-// who needs more faculty for THIS course hires from this course, and sees
-// what a posted search has turned up without going to the Faculty board.
-// Shared by the drawer and the hall panel's course strip and founding
-// picker, so all three say the same thing.
+// Every candidate listed in a field, with Appoint buttons and the search
+// offer. Shared by the drawer and the hall panel's course strip and picker.
 export function MarketInField({ s, act, field, projectedFor }: {
   s: GameState; act: (a: Action) => void; field: string; projectedFor?: Buildable;
 }) {
@@ -733,7 +518,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
               onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
               title={`Appoint ${c.name} to the ${field} department`}
             >
-              Appoint · ${Math.round(c.salary).toLocaleString()}/yr
+              Appoint · {money(c.salary)}/yr
             </button>
           </div>
         ))
@@ -758,17 +543,13 @@ function CourseDrawer(
   const quality = courseQuality(s, t, loads);
   const bridges = crossMajorPrereqs(t, lookup);
 
-  // For an offered course the current instructor must stay eligible for
-  // their own course (see techSystem.ts's eligibleInstructors `except`),
-  // or a full professor would read as unable to go on teaching what they
-  // already teach.
+  // An offered course's current instructor stays eligible for it (see
+  // eligibleInstructors' `except`), even when full.
   const eligible = eligibleInstructors(s, t, offered ? t.id : undefined);
   const inField = t.requiresFaculty ? s.faculty.filter((f) => f.field === t.requiresFaculty) : [];
 
-  // The pick resets whenever the course changes, and defaults to the
-  // current instructor for an offered course or the strongest eligible
-  // teacher for a new one — which is what makes the one-candidate case a
-  // single click rather than a click to choose and a click to confirm.
+  // The pick resets with the course and defaults to the current instructor
+  // or the strongest eligible, so the one-candidate case is a single click.
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => { setPicked(null); }, [t.id]);
   const chosen = picked ?? instructor?.id ?? eligible[0]?.id ?? null;
@@ -799,7 +580,7 @@ function CourseDrawer(
         <p className="course-drawer-desc">{t.description}</p>
 
         <dl className="course-drawer-facts">
-          <div><dt>Cost</dt><dd>${t.cost.toLocaleString()}</dd></div>
+          <div><dt>Cost</dt><dd>{money(t.cost)}</dd></div>
           <div><dt>Duration</dt><dd>{t.duration} weeks</dd></div>
           <div><dt>Department</dt><dd>{t.requiresFaculty ?? '—'}</dd></div>
           {(() => {
@@ -810,10 +591,7 @@ function CourseDrawer(
           {state === 'developing' && <div><dt>Remaining</dt><dd>{weeksLeft} weeks</dd></div>}
         </dl>
 
-        {/* THE GRADE, ITEMIZED. A letter on its own tells the player
-            nothing they can act on; the factors tell them exactly what to
-            do — move a course off this professor, or put a stronger one on
-            the capstone. Every line names something they decided. */}
+        {/* The grade itemized, so the player sees what to change. */}
         {quality && (
           <section className="course-drawer-section">
             <h4>Quality</h4>
@@ -837,28 +615,14 @@ function CourseDrawer(
         {t.prereqs.length > 0 && (
           <section className="course-drawer-section">
             <h4>Prerequisites</h4>
-            {/* EVERY PREREQUISITE IS A DOOR. Clicking one goes there —
-                opens its school, selects it, and clears any filter in the
-                way. This is the map's most useful move and the reason
-                cross-major bridges are not drawn as lines: the prerequisite
-                that matters is almost always one the player cannot
-                currently see, and a line to an offscreen node is worth
-                nothing next to arriving at it.
-
-                A bridge (a prereq from another major — see
-                crossMajorPrereqs) is marked, because "this course needs
-                something from another school" is the genuinely surprising
-                fact in a catalogue whose other 336 prereq edges all say
-                the same thing. */}
+            {/* Each prereq links to its course (opens its school, selects it,
+                clears filters). Cross-major bridges are marked. */}
             <ul className="course-drawer-prereqs">
               {t.prereqs.map((id) => {
                 const p = lookup.get(id);
                 const met = p?.status === 'done';
                 const bridge = bridges.includes(id);
-                // Only a course is somewhere to go. A prereq of another
-                // kind — a school building, a lab — is something to build,
-                // so it is stated rather than offered as a door that leads
-                // nowhere this view can show.
+                // Only a course is somewhere to go; other prereqs (a lab) are built.
                 if (p?.kind !== 'course') {
                   return (
                     <li key={id} className={met ? 'met' : 'unmet'}>
@@ -893,7 +657,7 @@ function CourseDrawer(
               </p>
             )}
 
-            {/* CASE 1 & 2: somebody can take it. */}
+            {/* Cases 1 and 2: somebody can take it. */}
             {eligible.length > 0 && (
               <>
                 <div className="instructor-options">
@@ -924,9 +688,7 @@ function CourseDrawer(
               </>
             )}
 
-            {/* CASE 3: the department exists but everyone is full. Naming
-                who, and how loaded, is what turns a refusal into a choice
-                between reassigning and hiring. */}
+            {/* Case 3: everyone in the department is full; name them and their loads. */}
             {eligible.length === 0 && inField.length > 0 && (
               <>
                 <p className="course-drawer-note">
@@ -939,18 +701,15 @@ function CourseDrawer(
               </>
             )}
 
-            {/* CASE 4: nobody in the department at all. The hire happens
-                here rather than in a separate explanation of the problem. */}
+            {/* Case 4: nobody in the department at all. */}
             {eligible.length === 0 && inField.length === 0 && (
               <p className="course-drawer-note">
                 The university has no {t.requiresFaculty} faculty. Appoint someone to open this course.
               </p>
             )}
 
-            {/* HIRING FROM THE COURSE. When nobody can take it the market is
-                the whole answer; when somebody can, it is one click away
-                behind "appoint someone new" — the player who needs more
-                faculty for this course hires from this course. */}
+            {/* Hiring from the course: the whole answer when nobody can take
+                it, otherwise tucked behind "appoint someone new". */}
             {eligible.length === 0
               ? (
                 <>
@@ -972,7 +731,7 @@ function CourseDrawer(
         )}
 
         {state === 'blocked' && shortfall > 0 && (
-          <p className="course-drawer-warning">${Math.ceil(shortfall).toLocaleString()} short of the development cost.</p>
+          <p className="course-drawer-warning">{money(Math.ceil(shortfall))} short of the development cost.</p>
         )}
         {state === 'locked' && (
           <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
@@ -988,38 +747,13 @@ function CourseDrawer(
   );
 }
 
-// =====================================================================
-// THE ROWS. One per program, grouped under its school.
-//
-// A row is nine cells in tier order — the entry course, the tier-2
-// quartet, the tier-3 quartet — with a rule between the bands standing in
-// for the sixteen prereq lines a major would otherwise need. A course
-// this tab has not revealed (a capstone before the program is
-// established) is drawn as an EMPTY cell rather than omitted, so every
-// row is the same width, position carries tier, and the eye can compare
-// programs down the column. Rows compress to fit; the container scrolls
-// sideways only as a narrow-viewport fallback.
-// =====================================================================
-// =====================================================================
-// THE ROW'S OWN ACTION. Every course used to cost the same three clicks
-// through the same form whether or not there was anything to decide, and
-// in play the strongest free teacher took the whole quartet four times
-// over. So the row leads with what its next start would be — the course,
-// the strongest eligible teacher, the grade they would earn, the cost and
-// the weeks — and a Develop button that does exactly that. "choose…" opens
-// the drawer for the case where the default is wrong. Beside it, what the
-// start is worth: how many courses to the next milestone, and the seats
-// it adds. Meaning comes from visible consequence, not from the form.
-//
-// AND THE QUARTET. When the next course's tier band has several courses
-// ready and the same teacher has the slots for them, one more button
-// starts the lot with them — with the grades previewed as their load
-// climbs, which is where "one person on all four" stops being obviously
-// right and the interesting choice surfaces on its own. Each start is its
-// own START_DEVELOPMENT through the reducer's own gate, applied in
-// sequence, so a start that stops being legal part way is refused rather
-// than forced.
-// =====================================================================
+// The row's own action: the next start (course, strongest eligible teacher,
+// projected grade, cost) with a Develop button, "choose…" for the drawer,
+// and what the start is worth toward the next milestone. When several
+// courses in the same tier band are ready and the teacher has the slots, a
+// batch button starts them all with grades previewed as the load climbs.
+// Each start is its own START_DEVELOPMENT, so one that becomes illegal
+// mid-batch is refused.
 function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
   s: GameState; act: (a: Action) => void; program: ProgramInfo; progress: ProgramProgress;
   lookup: Map<string, Buildable>; loads: FacultyLoads; onSelect: (id: string) => void;
@@ -1076,8 +810,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
   const projected = projectedQuality(s, next, best, loads);
   const canStart = canStartDevelopment(s, next, best.id);
 
-  // The quartet: the other ready courses in the same tier band, in order,
-  // as many as this teacher has slots for and the school has cash for.
+  // The batch: other ready courses in the same band, up to the teacher's free slots.
   const bands = tierBands(program);
   const band = bands ? [bands.tier2, bands.tier3].find((ids) => ids.includes(next.id)) : undefined;
   const ready = (band ?? []).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
@@ -1097,8 +830,8 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         className="row-action-develop"
         disabled={!canStart}
         title={canStart
-          ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, $${next.cost.toLocaleString()}`
-          : shortfall > 0 ? `$${Math.ceil(shortfall).toLocaleString()} short of the development cost` : 'Cannot start this course right now'}
+          ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, ${money(next.cost)}`
+          : shortfall > 0 ? `${money(Math.ceil(shortfall))} short of the development cost` : 'Cannot start this course right now'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: next.id, facultyId: best.id })}
       >
         Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
@@ -1110,7 +843,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         <button
           type="button"
           className="row-action-secondary batch"
-          title={`Start all ${batch.length} with ${best.name}: $${batchCost.toLocaleString()} — grades ${batchGrades.join(' ')} as their load climbs`}
+          title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)} — grades ${batchGrades.join(' ')} as their load climbs`}
           onClick={() => { for (const t of batch) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: best.id }); }}
         >
           all {batch.length} with {surnameOf(best.name)} → {batchGrades.join(' ')}
@@ -1149,9 +882,8 @@ function ProgramRowView(
       <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
         {program.courseIds.map((id, i) => {
           const t = lookup.get(id);
-          // The rules between the tier bands are their own grid tracks (see
-          // .program-row-cells), so every one of the nine cells is exactly
-          // the same width — a margin inside a cell would have narrowed it.
+          // The rules between tier bands are their own grid tracks, so all
+          // nine cells stay the same width.
           const rule = !graduate && (i === 1 || i === 5) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
           const cell = !t || !row.revealed.has(id)
             ? <span key={id} className="course-cell placeholder" aria-hidden="true" />
@@ -1163,10 +895,8 @@ function ProgramRowView(
   );
 }
 
-// A school's group: its heading — the name once founded, the colour and
-// mark alone before, which is the one place the game deliberately breaks
-// the parchment/navy/brass register (see data/schoolPalette.ts) — its
-// grade, and its rows.
+// A school's group: heading (name once founded, colour and mark before; see
+// data/schoolPalette.ts), grade and rows.
 function SchoolGroupView(
   { s, act, group, lookup, selectedId, onSelect, loads, dnd }:
   {
@@ -1198,21 +928,8 @@ function SchoolGroupView(
   );
 }
 
-// =====================================================================
-// FINDING THINGS IN 421 COURSES.
-//
-// Progressive discovery already does the heavy lifting — a player only
-// ever sees what they have unlocked — but a mature catalogue is still
-// hundreds of cards across eight schools, and the two questions that get
-// hard are "where is X" and "what needs my attention".
-//
-// Both are answered by the same mechanism: a filter turns the map into a
-// WORKLIST — one flat, cross-school list of exactly what matched. That is
-// deliberately not a dimming pass over the lanes. "Show me everything at D
-// or below" is a to-do list, and a to-do list spread across eight screens
-// with the irrelevant items greyed out is not one. When nothing is
-// filtered, the map is the map.
-// =====================================================================
+// Filters turn the map into a worklist: one flat cross-school list of what
+// matched, rather than dimming the rows.
 
 type StatusFilter = 'all' | 'available' | 'developing' | 'done' | 'unstaffed';
 type GradeFilter = 'all' | 'weak';
@@ -1223,9 +940,8 @@ interface Filters {
   query: string;
   status: StatusFilter;
   grade: GradeFilter;
-  // A department, set from the strip's "wall" item: every revealed course
-  // still ahead of the player that asks for this field — the courses a
-  // short department is holding up.
+  // A department (from the strip's "wall" item): revealed courses still
+  // ahead of the player that need this field.
   field: string | null;
 }
 
@@ -1249,10 +965,7 @@ function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: FacultyLo
 
   if (f.grade === 'weak') {
     const q = courseQuality(s, t, loads);
-    // An unstaffed course belongs in the improvement worklist too: it is
-    // the most broken thing a course can be, and it has no grade to match
-    // on, so it is admitted explicitly rather than filtered out for
-    // lacking the very letter that would qualify it.
+    // An unstaffed course has no grade but belongs in the weak worklist.
     if (!q) return isUnstaffed(s, t);
     if (!WEAK_GRADES.has(q.grade)) return false;
   }
@@ -1318,17 +1031,9 @@ function FilterBar(
   );
 }
 
-// =====================================================================
-// NEXT UP. The strip at the head of the tab that answers "what should I
-// do now, and why" — the one question forty-two rows of state cannot.
-// Four readings, each a door: the programs on offer and where a slot is
-// free for them; the programs one or two courses from a milestone; how
-// many courses are ready and affordable this week; and the department
-// that is the wall. Nothing here is new state — every item is read off
-// the same functions the rows and the hall panel use — and an empty
-// reading is left out rather than shown empty, so in year one the strip
-// says nothing at all.
-// =====================================================================
+// Next up: the strip answering "what now". Each item is a door: programs on
+// offer and halls with room, programs near a milestone, courses ready this
+// week, and the short department ("the wall"). Empty items are omitted.
 const NEAR_MILESTONE = 2;
 
 function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onOpenFaculty }: {
@@ -1338,30 +1043,25 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
   onInspectHall?: (hallId: string) => void;
   onOpenFaculty?: (field: string) => void;
 }) {
-  // THE OFFER. Global — the same three at any free slot — so it is stated
-  // once, with every hall that has room. "Found in…" hands the hall to the
-  // map, whose panel is where the founding happens (the decision is what
-  // goes in that building, and it needs the building on screen).
+  // The offer is global, so it is stated once with every hall that has room;
+  // founding happens in the hall's panel on the map.
   const offers = s.programOffers.map((id) => programById(id)).filter((p): p is ProgramInfo => p !== undefined);
   const hallsWithRoom = Object.entries(s.halls)
     .map(([hallId, slots]) => ({ hall: lookup.get(hallId), free: slots.filter((slot) => slot.programId === null).length }))
     .filter((h): h is { hall: Buildable; free: number } => !!h.hall && h.free > 0);
 
-  // NEAR A MILESTONE. Programs a course or two from Established or
-  // Distinguished, nearest first — the starts worth making before any other.
+  // Programs a course or two from a milestone, nearest first.
   const near = groups
     .flatMap((g) => g.rows.map((row) => ({ row, progress: programProgress(s, row.program, lookup) })))
     .filter(({ progress }) => progress.toMilestone > 0 && progress.toMilestone <= NEAR_MILESTONE && !progress.inTransit && (progress.next || progress.developing > 0))
     .sort((a, b) => a.progress.toMilestone - b.progress.toMilestone);
 
-  // READY NOW. Every revealed course that could start this week — cash and
-  // a free slot both in hand — and what it would cost to start them all.
+  // Revealed courses that could start this week (cash and a free slot).
   const revealed = visibleCourseIds(s).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
   const ready = revealed.filter((t) => canStartDevelopment(s, t));
   const readyCost = ready.reduce((sum, t) => sum + t.cost, 0);
 
-  // THE WALL. Departments with a course revealed and no slot to start it
-  // in, by how many courses each one is holding up.
+  // Departments holding up revealed courses, by how many.
   const wallCounts = new Map<string, number>();
   for (const field of neededFacultyFields(s)) {
     wallCounts.set(field, revealed.filter((t) => t.requiresFaculty === field).length);
@@ -1380,7 +1080,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
               const mark = schoolMark(p.school);
               const entry = lookup.get(p.entryCourseId);
               return (
-                <span key={p.id} className="next-up-offer" style={{ ['--school-hue' as string]: mark.hue }} title={`${p.name} — ${entry ? `$${entry.cost.toLocaleString()} · ${entry.requiresFaculty ?? ''}` : ''}`}>
+                <span key={p.id} className="next-up-offer" style={{ ['--school-hue' as string]: mark.hue }} title={`${p.name} — ${entry ? `${money(entry.cost)} · ${entry.requiresFaculty ?? ''}` : ''}`}>
                   {i > 0 && <span className="next-up-sep"> · </span>}
                   <span className="next-up-mark" aria-hidden="true">{mark.motif}</span> {p.name}
                 </span>
@@ -1457,11 +1157,8 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
   );
 }
 
-// Completion of an arbitrary set of course ids. Used for the catalogue as
-// a whole and for one school's own curriculum. Exported so anything else
-// showing a school's completion (the campus map's building info popover)
-// computes it the exact same way this tab's own rings do, rather than
-// re-deriving the done/total logic a second time.
+// Completion of a set of course ids. Exported so other views (the campus
+// map's popover) compute it the same way.
 export function completion(s: GameState, ids: string[]): { done: number; total: number; fraction: number } {
   const done = ids.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done').length;
   return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
@@ -1471,27 +1168,19 @@ export default function CurriculumTab(
   { s, act, target, onTargetConsumed, onInspectHall, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void;
-    // Somewhere to be on arrival, when the tab was opened FROM something:
-    // a school's name (Founders Hall's panel on the map), or "program:<id>"
-    // for one program's row (a hall panel's program tile — see
-    // BuildingInfoPanel.tsx). Consumed on arrival and cleared by the
-    // caller, so clicking the same hall twice arrives twice.
+    // Where to go on arrival: a school's name, "program:<id>", "field:<name>"
+    // or "unstaffed". Consumed and cleared by the caller.
     target?: string;
     onTargetConsumed?: () => void;
-    // The way back to the map: closes this tab and opens a hall's panel,
-    // which is where a program on offer is founded (see NextUp).
+    // Back to the map, opening a hall's panel (where founding happens).
     onInspectHall?: (hallId: string) => void;
-    // The way to a department: the Faculty board opened on it, for the
-    // wall's items and a drawer's dead end.
+    // To the Faculty board, opened on a department.
     onOpenFaculty?: (field: string) => void;
   },
 ) {
   const revealedGrad = revealedGraduatePrograms(s);
-  // The headline ring counts the undergraduate catalogue plus whatever
-  // graduate work has been revealed — never the whole seed. A "0 / 421"
-  // in year one would announce that thirty-seven courses exist somewhere
-  // the player has no way to see, which is precisely what progressive
-  // discovery is for.
+  // The headline ring counts undergraduate courses plus revealed graduate
+  // work, never the whole seed.
   const courses = s.tech.filter(
     (t) => t.kind === 'course' && (!t.graduateProgram || revealedGrad.has(t.graduateProgram)),
   );
@@ -1500,24 +1189,16 @@ export default function CurriculumTab(
   const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
-  // Built ONCE per render and threaded to every cell, every heading and
-  // the drawer. Grading is cheap; counting a professor's load is not (see
-  // facultyLoads), and a screen of four hundred cells each counting it for
-  // itself is the same quadratic that would stall the weekly tick.
+  // Built once per render and shared: counting loads per cell would be quadratic.
   const loads = facultyLoads(s);
   const sections = buildSections(s, revealedGrad);
   const groups = schoolGroups(s, sections);
 
-  // The course drawer rides on top of the rows, so selecting a course
-  // never costs the player their place.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
 
-  // THE DRAG. Which chip is in the air and which cell it is over — the
-  // whole of the drag-and-drop's state, held here so both the source and
-  // the target cell can draw the same preview from it. A drop dispatches
-  // SWAP_COURSE_FACULTY, whose own gate decides; an illegal drop never
-  // reaches it because the cell refuses the drop event.
+  // Drag-and-drop state, shared so source and target draw the same preview.
+  // A drop dispatches SWAP_COURSE_FACULTY; illegal targets refuse the drop.
   const [drag, setDrag] = useState<DragState | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const dnd: DragHandlers = {
@@ -1537,21 +1218,14 @@ export default function CurriculumTab(
     setSelectedId((cur) => (cur === id ? null : id));
   }, []);
 
-  // Jumping to a course from anywhere: a search result, or a bridge badge
-  // naming a prerequisite in another school. This is the single most
-  // useful thing the map does — the prerequisite you care about is almost
-  // always one you cannot currently see, and a line drawn to an offscreen
-  // node is worth nothing next to actually going there.
+  // Jump to a course from a search result or a prereq link.
   const goToCourse = useCallback((id: string) => {
     setSelectedId(id);
     setFilters(NO_FILTERS);
-    // Every row is on one screen now, so "going there" is scrolling there.
     window.setTimeout(() => document.getElementById(`course-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0);
   }, []);
 
-  // Arriving with somewhere to be: a school's group or a program's row
-  // scrolled into view, no course selected, no filters left over from last
-  // time — the same act of navigation goToCourse performs, one level up.
+  // Scroll to a program's row, clearing selection and filters.
   const goToProgram = useCallback((id: string) => {
     setSelectedId(null);
     setFilters(NO_FILTERS);
@@ -1562,7 +1236,6 @@ export default function CurriculumTab(
     if (target.startsWith('program:')) {
       goToProgram(target.slice('program:'.length));
     } else if (target.startsWith('field:')) {
-      // From the Faculty board: the courses waiting on one department.
       setSelectedId(null);
       setFilters({ ...NO_FILTERS, field: target.slice('field:'.length) });
     } else if (target === 'unstaffed') {
@@ -1596,10 +1269,7 @@ export default function CurriculumTab(
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            {/* A filter searches the WHOLE catalogue, so while one is on
-                the crumb says so. Otherwise the title is the title: every
-                row is on this one screen, and there is no level to be
-                inside of. */}
+            {/* While filtering, the crumb shows the whole-catalogue search. */}
             {filtering ? (
               <h2 className="curriculum-crumbs">
                 <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>The Curriculum</button>
@@ -1647,8 +1317,7 @@ export default function CurriculumTab(
         )}
 
         <div className="curriculum-scroll">
-          {/* A filter replaces the map with its results, across every
-              school at once (see the worklist note above). */}
+          {/* A filter replaces the map with a cross-school worklist. */}
           {filtering ? (
             matches.length === 0 ? (
               <p className="empty-note">Nothing matches those filters.</p>

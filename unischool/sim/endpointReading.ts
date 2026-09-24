@@ -1,11 +1,7 @@
-// ---------------------------------------------------------------------
-// One fifty-year run, read the way Plan 17's balance target reads it (PR
-// E). Shared by the probe (sim/endpoint.ts) and the gate
-// (test/endpoint.test.ts) so the two cannot disagree about what "finishes
-// the catalogue" or "holds first place" means.
-//
-// Not part of the game: nothing in src/ imports this.
-// ---------------------------------------------------------------------
+// One fifty-year run read against the balance target, shared by the probe
+// (sim/endpoint.ts) and the gate (test/endpoint.test.ts) so they agree on
+// what "finishes the catalogue" or "holds first place" means. Not part of
+// the game: nothing in src/ imports this.
 
 import type { play } from './balanceSim';
 import type { Legacy, LegacyAxisKey, LegacyGrade } from '../src/state/types';

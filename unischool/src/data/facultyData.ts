@@ -1,51 +1,22 @@
 import type { Faculty } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { initialTech } from './techData';
+import { random, newId } from '../engine/random';
 
 // ---------------------------------------------------------------------
-// Name generation. Each pool is tagged with a shared cultural origin so
-// first/last pairing can be weighted toward same-origin pairs (SAME_ORIGIN
-// NAME_WEIGHT below) — mismatched pairs (e.g. a first name from one pool
-// with a last name from an unrelated one) still happen, deliberately, just
-// as the minority case rather than the systematic result of two uniform,
-// unrelated picks. WHICH pool supplies the first name is itself weighted,
-// not uniform (see pickPool()/ANGLO_POOL_WEIGHT below), so this reads as a
-// typical American university's faculty roster rather than as one-in-N
-// name origins.
+// Name generation. Each pool has a cultural origin; the first-name pool is
+// a weighted draw (pickPool), and the surname comes from the same pool
+// SAME_ORIGIN_NAME_WEIGHT of the time, so mixed-origin names occur as the
+// minority case. The Anglo/Western European pool is the deepest because it
+// is drawn most (half of faculty, more of coaches) and its depth decides
+// whether names repeat across a coach market that churns ~78 candidates a
+// year. Chinese/Korean/Japanese and West/East African are separate pools
+// because their names don't mix; each split pool keeps only its share of
+// the region's weight.
 //
-// Ten pools, deliberately deep and not evenly sized. The Anglo/Western
-// European pool is the largest — eighty first names a gender and a hundred
-// surnames — because it is drawn the most often (half of faculty draws,
-// see ANGLO_POOL_WEIGHT below, and more of coach draws, see
-// COACH_POOL_WEIGHTS) and then paired same-origin 85% of the time, so it
-// is the pool whose depth decides whether names repeat; every other pool
-// carries twenty-five to forty-four first names a gender and twenty-five
-// to sixty surnames, drawn correspondingly less often. The pools were once
-// seven first names a gender and fourteen surnames each — 98 combinations
-// for the pool drawn half the time — which passed while only faculty were
-// named from them (a run hires a few dozen) and became the repetition Plan
-// 21's Finding 9 measured once the coach market churned ~78 candidates a
-// year off the same lists: an Anglo first name recurred about five times
-// a year, and rollFullName's dedupe loop was working hard for faculty
-// too. Chinese/Korean/Japanese split what used to be one combined "East
-// Asian" pool, and West African/East African split what used to be one
-// "West/East African" pool — see the git history for why: three languages
-// with zero surname overlap (a "Zhang" is never Korean or Japanese)
-// rolling a shared nationality was a real bug, an ocean and a language
-// family apart, not variety, and the same objection applied a
-// continent-length-scale down to lumping Nigeria/Ghana/Senegal in with
-// Kenya. Each split pool keeps its share of the ORIGINAL pool's selection
-// weight (see OTHER_POOL_WEIGHT below) rather than each claiming a full
-// share of its own — splitting a pool for accuracy should not also triple
-// how often that region's names come up relative to every other one. This
-// same data is also where donor/alumni surnames come from (see
-// eventData.ts's rollSurname()), so `last` needs to stay generic enough
-// for a name to plausibly belong to a professor OR a decades-graduated
-// alumnus — but `firstMale`/`firstFemale` are read against Faculty.gender
-// (see below and types.ts), so a first name IS tied to a gender,
-// deliberately: gender drives FacultyPortrait.tsx's hairstyle/garment, and
-// a portrait presenting differently from the name beside it would read as
-// a bug, not variety.
+// `last` doubles as the donor/alumni surname source (rollSurname), so keep
+// it generic. First names are tied to Faculty.gender because gender drives
+// FacultyPortrait.tsx's presentation.
 // ---------------------------------------------------------------------
 interface NamePool {
   origin: string;
@@ -59,37 +30,18 @@ function firstNamesFor(pool: NamePool, gender: 'male' | 'female'): string[] {
   return gender === 'male' ? pool.firstMale : pool.firstFemale;
 }
 
-// Relative weight for pool SELECTION (see pickPool() below) — not pool
-// size (the split pools below are smaller; see the module comment above).
-// Anglo/Western European carries ANGLO_POOL_WEIGHT against the other six
-// ORIGINAL regions' shared OTHER_POOL_WEIGHT each, which (with equal weight
-// per non-Anglo region) works out to a 6-in-12 = 50% share for Anglo/
-// Western European and a 1-in-12 = ~8.3% share for each of the other six —
-// a majority-to-large-plurality English/American name pool, matched to a
-// real American university's demographics, while every other region still
-// surfaces regularly rather than as a rare/token draw. Chinese/Korean/
-// Japanese each carry OTHER_POOL_WEIGHT / 3, and West African/East African
-// each carry OTHER_POOL_WEIGHT / 2, so splitting a region for naming
-// accuracy leaves that region's TOTAL ~8.3% share exactly where it was —
-// this only decides how a region's own share is drawn internally, not how
-// often the region as a whole comes up against Anglo/South Asian/Hispanic/
-// Arabic/Slavic.
+// Relative weight for pool selection, not pool size. Anglo/Western European
+// gets 6 of 12 shares (50%); each other original region gets 1 (~8.3%).
+// Split regions divide their region's single share (Chinese/Korean/Japanese
+// at 1/3 each, West/East African at 1/2), keeping the region's total.
 const ANGLO_POOL_WEIGHT = 6;
 const OTHER_POOL_WEIGHT = 1;
 
-// Exported for test/coach-names.test.ts's content checks (pool depth, no
-// name on both sides of a pool); nothing in the game reads it directly —
-// every draw goes through pickPool below.
+// Exported for test/coach-names.test.ts's content checks; every draw goes
+// through pickPool.
 export const NAME_POOLS: readonly NamePool[] = [
-  // Formerly one combined "East Asian" pool. Split because the three
-  // languages share no surnames at all (a "Zhang" is never a plausible
-  // Korean or Japanese name) — rolling first/last/nationality independently
-  // across all three, as the combined pool did, could hand a distinctly
-  // Chinese name a Japanese nationality on the same draw, which reads as a
-  // bug the moment a player notices it, not as multicultural variety.
-  // Within each pool a name is EITHER a given name or a surname, never both
-  // (Chinese in particular has many words that serve as either), so a draw
-  // cannot produce "Liang Liang".
+  // Within each pool a name is either a given name or a surname, never
+  // both, so a draw can't produce "Liang Liang".
   {
     origin: 'Chinese',
     firstMale: [
@@ -174,10 +126,6 @@ export const NAME_POOLS: readonly NamePool[] = [
     ],
     weight: OTHER_POOL_WEIGHT,
   },
-  // The pool drawn most often (see ANGLO_POOL_WEIGHT above, and the heavier
-  // coach weighting in COACH_POOL_WEIGHTS below), so it is also the deepest:
-  // it has to stay believably varied across a faculty roster AND a coach
-  // market that churns ~78 candidates a year, half of them from here.
   {
     origin: 'Anglo/Western European',
     firstMale: [
@@ -283,15 +231,9 @@ export const NAME_POOLS: readonly NamePool[] = [
     ],
     weight: OTHER_POOL_WEIGHT,
   },
-  // Formerly one combined "West/East African" pool — two real regions an
-  // ocean-scale distance apart on the same continent, not a natural single
-  // origin the way, say, "Slavic/Eastern European" is one contiguous
-  // cultural-linguistic area. West African is Nigerian (Igbo/Yoruba),
-  // Ghanaian (Akan) and Senegalese/Malian (Wolof/Mandinka) names; East
-  // African is Kikuyu, Luo, Kalenjin, Luhya, Swahili and Ugandan (Baganda)
-  // ones. Several East African names serve as either a given name or a
-  // surname in real use (a Luo Otieno, a Kalenjin Kiptoo); each is filed on
-  // one side here only, so a draw never doubles it.
+  // West African: Nigerian, Ghanaian and Senegalese/Malian names. East
+  // African: Kenyan, Tanzanian and Ugandan. Names used as either given name
+  // or surname are filed on one side only.
   {
     origin: 'West African',
     firstMale: [
@@ -343,62 +285,28 @@ export const NAME_POOLS: readonly NamePool[] = [
   },
 ];
 
-// Chance a rolled last name is drawn from the same origin pool as the
-// first name. Kept high, not 1, so cross-origin/multi-heritage names still
-// occur — just as the minority case, not the systematic default.
+// Chance the surname comes from the first name's pool. Below 1 so
+// mixed-heritage names still occur.
 const SAME_ORIGIN_NAME_WEIGHT = 0.85;
 
 // ---------------------------------------------------------------------
-// Faculty fields = the university's DEPARTMENTS. This is the taxonomy the
-// whole recruiting side hangs off: a hire belongs to exactly one field, a
-// job posting is opened for exactly one field, and a course's
-// requiresFaculty names exactly one field (techData.ts gives every major
-// one `field`, shared by all nine of its courses; a graduate course names
-// its own).
+// Faculty fields = the university's departments. A hire, a listing and a
+// course's requiresFaculty each name exactly one field (techData.ts gives
+// every major one `field`; a graduate course names its own). The set is
+// shaped like a real catalog's department list and chosen so demand lands
+// evenly: every field carries roughly 8-20 courses.
 //
-// The set below is deliberately shaped like a real course catalog's
-// department list rather than like a list of broad subject areas, and it
-// is chosen so demand lands EVENLY across it: with 42 majors, one field
-// per major would be a 42-entry dropdown, and the old 13 broad fields put
-// 54 courses behind 'Business' and 45 each behind 'CompSci'/'Arts'/
-// 'Biology' while 'Economics' and 'Psychology' had 9 apiece. 28 fields at
-// one-to-three majors each keeps every field between 9 and 20 courses —
-// no field is dead, none dominates, and each is still a department a real
-// university would actually have (several are real combined-department
-// names: Accounting & Finance, Operations Research, Art & Design).
+// This order is the order the Faculty tab lists departments in (see
+// FacultyTab.tsx).
 //
-// The School of Science added exactly TWO of those 28 (Neuroscience and
-// Kinesiology) and removed none. Its other four majors reuse departments
-// that already existed and were already teaching in other schools —
-// Mathematics, Physics, Chemistry, Biology and Psychology — which is what
-// keeps the reorg from being a taxonomy rewrite: the fields did not move,
-// the majors did. The two Health Science majors that DO need somewhere new
-// to sit are the two whose real-world departments the 26-field set simply
-// lacked; Pharmacy, by contrast, fits Clinical Health exactly, and taking
-// it there is what re-partners Nursing after Dentistry's retirement.
+// Adding or renaming a field is a save-compatibility event: a saved faculty
+// member stores their field as a plain string. Bump SAVE_VERSION
+// (persistence.ts).
 //
-// Ordered by division, the way a catalog lists departments, because this
-// order IS the order the Faculty tab lists departments in (see
-// FacultyTab.tsx, which renders every one of them whether or not anybody
-// is in it) — and the divisions themselves are now data, below.
-//
-// Adding/renaming an entry here is a save-compatibility event: a saved
-// faculty member stores their field as a plain string, so a field that
-// stops existing strands that hire. Bump SAVE_VERSION (persistence.ts)
-// and let the save drop.
+// Divisions group departments for display. They are not schools: a field
+// can teach in several schools (techData's researchSchools()), but belongs
+// to exactly one division.
 // ---------------------------------------------------------------------
-// The eight divisions, as DATA rather than as comments between rows of a
-// flat array. They were comments until the Faculty tab started rendering
-// every department whether or not anybody is in it: a list of 29 rows with
-// no divisions in it is a list you scan rather than read, and the only
-// grouping the game already had was this one, written where no code could
-// reach it.
-//
-// Note what this is NOT grouped by: SCHOOL. techData's researchSchools()
-// maps a field to the schools it teaches in, and that is not a partition —
-// Biology teaches in Science and Health Science, Mathematics in three
-// schools, Operations Research in Business and Engineering. A department
-// belongs to exactly one division; it teaches wherever it is asked to.
 export interface FacultyFieldGroup {
   name: string;
   fields: string[];
@@ -412,37 +320,23 @@ export const FACULTY_FIELD_GROUPS: FacultyFieldGroup[] = [
   { name: 'Computing', fields: ['Computer Science', 'Artificial Intelligence', 'Information Systems'] },
   { name: 'Engineering', fields: ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Operations Research'] },
   { name: 'Business', fields: ['Accounting & Finance', 'Marketing', 'Management'] },
-  // Law. The one field the graduate-program pass added, and it was a
-  // finding rather than a convenience: every other graduate course in the
-  // catalogue is taught by a department that already exists (medicine by
-  // Clinical Health, Biology, Neuroscience and Public Health; the MBA by
-  // the four business departments; each doctorate by its own school's), so
-  // Law is the only discipline the 28-field taxonomy genuinely did not
-  // cover. The alternative was to hang the law school off Political
-  // Science, which is wrong in the way that matters here: a hire made to
-  // teach Comparative Politics would then have been able to staff
-  // Constitutional Law, and the law school would have cost no new
-  // recruiting at all. It is also the only field whose demand is entirely
-  // graduate — five courses, all of them in the law school — which is
-  // exactly why it needs its own market-supply entry below.
+  // Law is the one field no existing department could cover; hanging the
+  // law school off Political Science would let a politics hire staff law
+  // courses. Its demand is entirely graduate, hence its own market-supply
+  // entry below.
   { name: 'Law', fields: ['Law'] },
 ];
 
-// Every field, in division order — the flat list the rest of the game uses.
-// DERIVED from the groups above rather than written out beside them, so the
-// two cannot drift: a department added to a division is in the taxonomy,
-// and a department in the taxonomy is in exactly one division.
+// Every field, in division order, derived from the groups so the two can't
+// drift.
 export const FACULTY_FIELDS = FACULTY_FIELD_GROUPS.flatMap((group) => group.fields);
 
 function pick<T>(pool: T[]): T {
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[Math.floor(random() * pool.length)];
 }
 
 // A weighting over NAME_POOLS: one weight per pool, in NAME_POOLS order,
-// plus their sum. Two exist — the faculty one is the pools' own `weight`,
-// and the coach one (below) leans harder on the Anglo/Western European
-// pool — and pickPool takes one, so a caller's origin mix is a choice made
-// at the call site, never a change to the pools themselves.
+// plus their sum. The origin mix is chosen at the call site.
 interface PoolWeighting {
   weights: readonly number[];
   total: number;
@@ -454,32 +348,19 @@ function weighting(weights: readonly number[]): PoolWeighting {
 
 const FACULTY_POOL_WEIGHTS: PoolWeighting = weighting(NAME_POOLS.map((pool) => pool.weight));
 
-// COACHES ARE DRAWN MORE ANGLO/AMERICAN THAN FACULTY, and this is an
-// override at the coach call site rather than a change to ANGLO_POOL_WEIGHT:
-// the faculty weighting above carries its own rationale about a real
-// university's demographics and is correct as it stands. A real American
-// athletic department is a different roster — coaching careers are mostly
-// domestic, where faculty are recruited worldwide — so a coach's first name
-// is drawn Anglo/Western European 14-in-20 = 70% of the time against
-// faculty's 50%, with every other region keeping its OTHER_POOL_WEIGHT
-// share of the remainder (5% each of the six original regions, the split
-// pools dividing theirs as before).
+// Coaches are drawn more Anglo/American than faculty (70% vs 50%): American
+// coaching careers are mostly domestic, where faculty are recruited
+// worldwide. Every other region keeps its OTHER_POOL_WEIGHT share of the
+// remainder.
 const COACH_ANGLO_POOL_WEIGHT = 14;
 const ANGLO_ORIGIN = 'Anglo/Western European';
 const COACH_POOL_WEIGHTS: PoolWeighting = weighting(
   NAME_POOLS.map((pool) => (pool.origin === ANGLO_ORIGIN ? COACH_ANGLO_POOL_WEIGHT : pool.weight)),
 );
 
-// Weighted draw over NAME_POOLS by a PoolWeighting (see ANGLO_POOL_WEIGHT/
-// OTHER_POOL_WEIGHT above, and COACH_POOL_WEIGHTS). Unlike pick(), which is
-// a uniform draw over whatever array it's given, this is the one place a
-// NAME POOL itself gets picked — every rollSurname/rollCoachName/
-// rollFullName call site below routes through here rather than calling
-// pick(NAME_POOLS) directly, so the origin weighting applies everywhere a
-// name is rolled. ONE draw on Math.random whatever the weighting, which is
-// what lets the coach weighting differ from faculty's without either
-// changing how many dice the game rolls.
-function pickPool(by: PoolWeighting, roll: () => number = Math.random): NamePool {
+// Weighted draw over NAME_POOLS. Every name roller goes through here. Always
+// exactly one random() draw, whatever the weighting.
+function pickPool(by: PoolWeighting, roll: () => number = random): NamePool {
   let r = roll() * by.total;
   for (let i = 0; i < NAME_POOLS.length; i++) {
     r -= by.weights[i];
@@ -488,29 +369,17 @@ function pickPool(by: PoolWeighting, roll: () => number = Math.random): NamePool
   return NAME_POOLS[NAME_POOLS.length - 1];
 }
 
-// A bare surname drawn from the same pools faculty and candidates are
-// named from — for decision events that need a plausible donor/alumni
-// name without generating a full person (see eventData.ts's
-// 'naming-rights' event). Surnames aren't gendered, so this needs no
-// gender input the way firstNamesFor's callers do.
+// A bare surname for events that need a plausible donor/alumni name (see
+// eventData.ts's 'naming-rights').
 export function rollSurname(): string {
   return pick(pickPool(FACULTY_POOL_WEIGHTS).last);
 }
 
-// The dedupe both name rollers share. Given the pair the dice landed on
-// (`firstAt`, `lastAt`) and the set of names already in use, walks forward
-// — the next surname in the same pool, then the next first name — until
-// `format` of the pair is free, and hands back that name. Takes NO dice:
-// the walk is deterministic off the pair the dice chose, so a roller that
-// calls it makes exactly the same number of Math.random draws whether or
-// not the first pair was taken. That is the property the seeded balance
-// harness (sim/balanceSim.ts) needs from a generator that runs thousands
-// of times a run: a collision can change a name, never a trajectory, and
-// — the reason this replaced rollFullName's old re-roll loop — how MANY
-// names a pool holds cannot move the stream either, so a pool can be
-// widened without a forty-year run landing somewhere new. If every pair in
-// the pool is taken (it cannot happen at these sizes; see NAME_POOLS) the
-// repeat is accepted rather than looping forever.
+// The dedupe both name rollers share. From the pair the dice chose, walks
+// forward (next surname, then next first name) until `format` of the pair
+// is free. Takes no dice, so a collision can change a name but never the
+// seeded stream, and pool size can't move a run either. If every pair is
+// taken the repeat is accepted.
 function stepToFree(
   firsts: readonly string[],
   lasts: readonly string[],
@@ -528,39 +397,17 @@ function stepToFree(
   return format(firsts[firstAt], lasts[lastAt]);
 }
 
-// A full "First Last" name, no "Dr." prefix and no nationality/bio — for a
-// varsity coach, a coach candidate on the standing market, or the athletic
-// director (see data/studentLifeData.ts's generateCoachCandidate and
-// rollAthleticDirectorCandidates). Coaches are deliberately the LIGHT
-// faculty model: one stat, no bio. But they are named from the SAME pools,
-// and since Athletics V2 they are minted by a weekly-churning market — ~78
-// candidates a year, ~3,900 over a run, against faculty's few dozen — so
-// they need the dedupe rollFullName has always had, checked against the
-// same kind of set: every coach in a chair, everyone on the market and the
-// director (see studentLifeData.ts's coachNamesInUse).
+// A full "First Last" name with no "Dr." prefix, for a coach, a coach
+// candidate or the athletic director (see studentLifeData.ts's
+// generateCoachCandidate). Deduped against coachNamesInUse via stepToFree,
+// so the draw count never depends on name clashes.
 //
-// THE DEDUPE TAKES NO EXTRA DICE (stepToFree above). The market rolls
-// thousands of these a run, and sim/balanceSim.ts seeds Math.random so a
-// forty-year run is reproducible — a generator whose draw count depended on
-// which names happened to be taken would move that whole stream on the
-// luck of a name clash (the discipline rivalData.ts's makeRivalRng exists
-// for). So a collision steps instead of re-rolling: the same draws whether
-// the first pair was taken or not.
-//
-// Takes the TEAM's own gender (its sport is already men's or women's — see
-// studentLifeData.ts's SportGender) rather than rolling one fresh: a men's
-// team's coach reads oddly with a name from the women's pool and vice
-// versa. Returns the ORIGIN alongside the name — it is what Coach stores as
-// `heritage` and what FacultyPortrait.tsx weights skin tone by, so a
-// coach's face agrees with the name beside it, exactly as a professor's
-// does. Drawn by COACH_POOL_WEIGHTS, not the faculty weighting; see there.
-//
-// `roll` is the generator to draw from — the coach market's own local one
-// (Plan 21's PR J; see studentLifeData.ts's tickCoachCandidatePool) rather
-// than the global stream, so the SIZE of the market cannot decide how many
-// dice the game rolls. Defaults to Math.random for the callers that mint a
-// coach at event time.
-export function rollCoachName(gender: 'male' | 'female', existingNames: ReadonlySet<string>, roll: () => number = Math.random): RolledName {
+// Takes the team's gender rather than rolling one. Returns the origin,
+// which Coach stores as `heritage` for FacultyPortrait.tsx's skin tone.
+// `roll` is the coach market's local generator (see studentLifeData.ts's
+// tickCoachCandidatePool), so the market's size can't move the global
+// stream; defaults to random() for event-time callers.
+export function rollCoachName(gender: 'male' | 'female', existingNames: ReadonlySet<string>, roll: () => number = random): RolledName {
   const firstPool = pickPool(COACH_POOL_WEIGHTS, roll);
   const lastPool = roll() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(COACH_POOL_WEIGHTS, roll);
   const firsts = firstNamesFor(firstPool, gender);
@@ -573,38 +420,20 @@ export function rollCoachName(gender: 'male' | 'female', existingNames: Readonly
   };
 }
 
-// A heritage for a coach saved before the field existed. Deterministic off
-// the id rather than rolled, so a resumed run's coaches do not change face on
-// every reload — and honest about what it is: the name is already written and
-// cannot be un-rolled, so this is a plausible reading of a person the game
-// has forgotten the origin of, not a recovery of one.
-export function heritageForId(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 1_000_003;
-  return NAME_POOLS[h % NAME_POOLS.length].origin;
-}
-
 interface RolledName {
   name: string;
   origin: string; // the first-name pool's origin — what nationality AND skin tone are tied to (see rollNationality/FacultyPortrait.tsx)
 }
 
-// `gender` is rolled by the caller (generateCandidate) BEFORE this runs,
-// not here — the first name has to be drawn from the matching
-// firstMale/firstFemale list, so gender is an input to naming, not an
-// independent roll of its own. Deduped against `existingNames` (the roster
-// and the market, see facultySystem.ts) by stepping rather than
-// re-rolling — see stepToFree, and the reason it replaced the bounded
-// retry loop that used to live here: that loop's draw count depended on
-// how often a pair was taken, which depended on how many names the pools
-// held, so widening a pool moved the seeded balance stream. Four draws
-// now, always (five when the surname comes from a second pool).
+// `gender` is rolled by the caller first, because the first name must come
+// from the matching list. Deduped by stepping (see stepToFree): four draws
+// always, five when the surname comes from a second pool.
 function rollFullName(existingNames: ReadonlySet<string>, gender: 'male' | 'female'): RolledName {
   const firstPool = pickPool(FACULTY_POOL_WEIGHTS);
-  const lastPool = Math.random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(FACULTY_POOL_WEIGHTS);
+  const lastPool = random() < SAME_ORIGIN_NAME_WEIGHT ? firstPool : pickPool(FACULTY_POOL_WEIGHTS);
   const firsts = firstNamesFor(firstPool, gender);
-  const firstAt = Math.floor(Math.random() * firsts.length);
-  const lastAt = Math.floor(Math.random() * lastPool.last.length);
+  const firstAt = Math.floor(random() * firsts.length);
+  const lastAt = Math.floor(random() * lastPool.last.length);
   return {
     name: stepToFree(firsts, lastPool.last, firstAt, lastAt, existingNames, (first, last) => `Dr. ${first} ${last}`),
     origin: firstPool.origin,
@@ -612,29 +441,16 @@ function rollFullName(existingNames: ReadonlySet<string>, gender: 'male' | 'fema
 }
 
 // ---------------------------------------------------------------------
-// Nationality: shown as an expanded country name in each faculty member's
-// expanded detail (see FacultyTab.tsx). The paired `flag` emoji is kept as
-// authored data but is no longer rendered anywhere — the glyphs failed to
-// display in some browsers, so the inline flag was dropped. Deliberately
-// disproportionately American — most of any real American university's
-// faculty, whatever their heritage, hold US citizenship — with the
-// remainder tied to the SAME origin pool the name itself was drawn from
-// (rollFullName's `origin` above), never rolled independently of the name.
+// Nationality, shown in a faculty member's expanded row (FacultyTab.tsx).
+// `flag` is authored data but not rendered (the glyphs failed in some
+// browsers). Mostly American; otherwise tied to the name's origin pool.
 // ---------------------------------------------------------------------
 const AMERICAN_NATIONALITY_CHANCE = 0.72;
 const AMERICAN_NATIONALITY = { nationality: 'United States', flag: '🇺🇸' };
 
-// Exported so persistence.ts's v26 -> v27 migration can reverse-map an
-// existing faculty member's stored `nationality` back to a plausible
-// `heritage` where the mapping is unambiguous (a saved "Nigeria" can only
-// have come from the West African pool) — better than a blind random guess
-// for the ~28% of faculty whose nationality isn't the generic American
-// default (see AMERICAN_NATIONALITY_CHANCE), which carries no such signal.
-// One nationality per pool for Chinese/Korean/Japanese, unlike every other
-// entry here: that's the whole point of having split them off a combined
-// "East Asian" pool (see NAME_POOLS above) — a Chinese name now always
-// carries Chinese nationality when it isn't the American default, never a
-// plausible-sounding but wrong South Korea/Japan.
+// Non-American nationalities by origin pool. Chinese, Korean and Japanese
+// each map to one country so a name never gets a wrong neighbouring
+// nationality.
 export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: string }>> = {
   'Chinese': [
     { nationality: 'China', flag: '🇨🇳' },
@@ -685,23 +501,18 @@ export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; f
 };
 
 function rollNationality(origin: string): { nationality: string; flag: string } {
-  if (Math.random() < AMERICAN_NATIONALITY_CHANCE) return AMERICAN_NATIONALITY;
+  if (random() < AMERICAN_NATIONALITY_CHANCE) return AMERICAN_NATIONALITY;
   return pick(ORIGIN_NATIONALITIES[origin] ?? [AMERICAN_NATIONALITY]);
 }
 
-// A flat coin flip, deliberately independent of the name pool above — the
-// names themselves are gender-neutral by design (see rollFullName), so this
-// is a fresh roll rather than a lookup keyed off one.
+// A flat coin flip, independent of the name pool.
 function rollGender(): 'male' | 'female' {
-  return Math.random() < 0.5 ? 'male' : 'female';
+  return random() < 0.5 ? 'male' : 'female';
 }
 
 // ---------------------------------------------------------------------
-// Biography: a one-line flavor sentence shown only when a roster row is
-// expanded (see FacultyTab.tsx) — not a mechanic, just depth. Composed from
-// a small set of fictional-sounding institutions and per-field research
-// interests rather than 300+ hand-written bios; deliberately avoids
-// gendered pronouns since nothing here rolls a gender.
+// Biography: a one-line flavor sentence shown when a roster row is expanded
+// (FacultyTab.tsx). No gendered pronouns.
 // ---------------------------------------------------------------------
 const BIO_INSTITUTIONS = [
   'Ashcombe University', 'Kestrel Bay Institute of Technology', 'University of Calderwood',
@@ -748,19 +559,12 @@ function rollBio(field: string): string {
 }
 
 // ---------------------------------------------------------------------
-// Faculty are an appreciating asset, not a one-time purchase: a hire's
-// teaching/research stats start below their rolled "potential" ceiling and
-// rise toward it with tenure, then plateau. Salary rises on its own,
-// slower-to-plateau curve on top of the skill-linked base, so a
-// long-retained star costs substantially more than the day they were
-// hired — the reward for keeping (and the cost of keeping) a great cheap
-// early hire. Both curves are the same shape — exponential approach to a
-// ceiling, parameterized by an explicit "years to reach near-plateau"
-// constant — so tuning either pace never means hunting for magic numbers.
-// Applied by facultySystem.ts's weekly tick (which owns the mutation);
-// the formulas live here so generateCandidate below can also use them,
-// at tenureWeeks 0, to show a freshly rolled candidate's real starting
-// numbers rather than a separately hand-tuned one-off.
+// Faculty appreciate: teaching/research start below a rolled potential and
+// rise toward it with tenure, and salary climbs on its own slower curve, so
+// a long-retained star costs much more than the day they were hired. Both
+// are exponential approaches to a ceiling, parameterised by "years to near
+// plateau". facultySystem.ts's weekly tick applies them; generateCandidate
+// uses them at tenure 0.
 // ---------------------------------------------------------------------
 const FACULTY_POTENTIAL_MIN = 45;
 const FACULTY_POTENTIAL_RANGE = 55; // potential (the ceiling) rolls in [45, 100]
@@ -771,41 +575,13 @@ const FACULTY_GROWTH_PLATEAU_FRACTION = 0.95;
 const FACULTY_GROWTH_RATE_PER_WEEK =
   1 - (1 - FACULTY_GROWTH_PLATEAU_FRACTION) ** (1 / (FACULTY_GROWTH_PLATEAU_YEARS * WEEKS_PER_YEAR));
 
-// Current teaching/research value for a faculty member with the given
-// ceiling ("potential") and tenure. Exponential approach to the ceiling:
-// starts at FACULTY_STARTING_POTENTIAL_FRACTION of potential and closes
-// the remaining gap a fixed fraction at a time each week, so growth is
-// fast early and flattens into a real plateau by FACULTY_GROWTH_PLATEAU_
-// YEARS rather than a hard cliff.
-// How long the five founding professors are taken to have already been
-// teaching when the university opens (see actions.ts's roster).
-//
-// A founding school is not five people fresh out of their doctorates — it
-// is a faculty someone assembled to open the place. Tenure is how that is
-// said in this model, because teaching, research and salary are all
-// DERIVED from potential plus tenure on every tick (see growFaculty), so
-// tenure is the only input that can make somebody established. Authoring
-// their stats directly cannot: the first tick overwrites whatever was
-// written with the fresh-candidate figures.
-//
-// 78 weeks — a year and a half — puts the five at a mean teaching of 66,
-// which on this file's own ladder (QUALITY_TIER_THRESHOLDS) is ASSOCIATE.
-// That is the deliberate reading, and it is not quite the figures they
-// used to be authored with: those put the mean at 73, i.e. five FULL
-// professors at an institution that did not exist until this week, which
-// is a stretch on its face. Mid-career people who took a chance on a new
-// college is the more honest founding roster, and it is still a
-// transformation of what the bug actually produced — a mean of 46, five
-// brand-new assistant professors.
-//
-// The tenure also carries a salary premium, and that premium is the point
-// rather than a side effect: +38% on founding payroll is what hiring
-// people who are already good actually costs, and the school now gets
-// what it is paying for (their teaching feeds course grades, which feed
-// academic satisfaction and the prestige breadth multiplier). Raising it
-// further buys better professors at a steeper price — 2.5 years would be
-// +55% — and the balance sim's thinnest strategy, the low-tuition
-// discount build, is the one that cannot carry it.
+// How long the five founding professors are taken to have been teaching
+// when the university opens (see actions.ts's roster). Stats are derived
+// from potential plus tenure every tick, so tenure is the only way to make
+// them established. 78 weeks puts their mean teaching at 66 (Associate on
+// QUALITY_TIER_THRESHOLDS). The +38% founding payroll that comes with it
+// is intended; raising it further is what the low-tuition discount build
+// can't carry.
 export const FOUNDING_TENURE_WEEKS = 78;
 
 export function grownStat(potential: number, tenureWeeks: number): number {
@@ -814,13 +590,10 @@ export function grownStat(potential: number, tenureWeeks: number): number {
   return Math.round(start + (potential - start) * grownFraction);
 }
 
-// --- Salary curve. Payroll is the largest single line on a young
-// school's expense sheet and the one that compounds without anybody
-// clicking anything: a hire made in year 3 to unlock a tier-1 course
-// costs half again as much by the time that major is finished. That is
-// deliberate — faculty are the growth loop's most front-loaded cost, paid
-// years before the curriculum they unlock earns any prestige. See
-// financeSystem.ts's cost-driver block.
+// --- Salary curve. Payroll compounds without anyone clicking anything:
+// faculty are the growth loop's most front-loaded cost, paid years before
+// the curriculum they unlock earns prestige. See financeSystem.ts's
+// cost-driver block.
 const SALARY_BASE = 45_000;
 const SALARY_PER_SKILL_POINT = 320;      // applied to *current* (grown) stats, so a maturing hire gets more expensive on both curves at once
 const SALARY_TENURE_PREMIUM_MAX = 0.5;   // seniority premium on top of the skill-linked base, at full maturity: up to +50%
@@ -829,38 +602,18 @@ const SALARY_GROWTH_PLATEAU_FRACTION = 0.95;
 const SALARY_GROWTH_RATE_PER_WEEK =
   1 - (1 - SALARY_GROWTH_PLATEAU_FRACTION) ** (1 / (SALARY_GROWTH_PLATEAU_YEARS * WEEKS_PER_YEAR));
 // What one research prize (see researchData.ts) permanently adds to its
-// winner's salary, on top of both curves above. A laureate becomes the
-// most expensive person on the payroll the week they win and stays that
-// way — the cost side of an award whose other effects are all upside.
-// It lives HERE, with the rest of the salary curve, rather than with the
-// research tuning, so there is exactly one file to read to understand
-// what a hire costs.
+// winner's salary. Kept with the salary curve so one file explains what a
+// hire costs.
 export const ACCLAIM_SALARY_PREMIUM = 0.35;
 
-// Current annual salary for a faculty member with the given current stats
-// and tenure. The skill-linked base tracks current teaching/research (so
-// it rises as they grow); a seniority premium — its own, slower curve —
-// compounds on top, so two faculty with identical current stats still
-// cost differently if one has been retained far longer. This is the
-// "expensive to keep a star forever" half of the appreciating-asset
-// design, and the money-side half of the scarcity that forces a player to
-// choose where to concentrate excellence rather than staffing every
-// school at the top of the market.
+// Current annual salary: a skill-linked base on current stats, a seniority
+// premium on its own slower curve, and a flat premium per research prize.
+// `acclaim` is a parameter rather than written into `salary` because this
+// is recomputed every week. Defaults to 0 (candidates and new hires).
 //
-// `acclaim` — research prizes won (see types.ts's Faculty and
-// researchData.ts) — adds a further flat premium per prize. It is a
-// PARAMETER rather than something a prize writes into the stored salary
-// precisely because this function is re-run on every hire every week: a
-// figure written once would be overwritten the following tick, so the
-// award has to be an input to the curve instead. Defaults to 0, which is
-// what a candidate on the market and a newly generated hire both have.
-// SALARIES AT MARKET RATE (Plan 15's PR D). What a school pays is the
-// roster's salary times the rate its standing commands: 1.0 at prestige 50
-// and 2.2 at 130, linear between, floored at 1 and capped a little above
-// the top of the band — a top-20 school pays what top-20 schools pay.
-// Applied at the payroll (financeSystem.ts's facultyPay), never written
-// into `salary`, so the figure on a listing is the person's price and the
-// figure in the Treasury is what this school pays for them.
+// Market rate: what a school pays is salary times a multiplier from its
+// prestige (1.0 at 50, rising linearly, capped). Applied at the payroll
+// (financeSystem.ts's facultyPay), never written into `salary`.
 const MARKET_RATE_AT_PRESTIGE_50 = 1.0;
 const MARKET_RATE_AT_PRESTIGE_130 = 3.4;
 const MARKET_RATE_CAP = 4.0;
@@ -879,42 +632,26 @@ export function facultySalary(teaching: number, research: number, tenureWeeks: n
 
 // ---------------------------------------------------------------------
 // Course slots: how many `requiresFaculty`-gated courses in `field` this
-// hire can keep staffed at once (see techSystem.ts's canStartDevelopment/
-// usedFacultySlots/totalFacultySlots). Rolled once at hire, like teaching/
-// research potential — but unlike those, slots have no per-hire ceiling to
-// roll toward; every retained hire grows at the same flat rate, a further
-// reason (on top of growing stats and rising salary) to retain rather than
-// churn faculty. facultySystem.ts's growFaculty mutates courseSlots
-// directly on tenure milestones rather than recomputing it from a stored
-// base each week, since there's no ceiling variance to reconstruct.
+// hire can staff at once (see techSystem.ts's usedFacultySlots/
+// totalFacultySlots). Rolled at hire, then growFaculty adds one every
+// SLOT_GROWTH_INTERVAL_WEEKS of tenure.
+//
+// 4-6 base slots keeps early payroll heavy but survivable (at 2-4 a
+// founding school needed about one professor per course and couldn't save
+// for a dorm). Slots are occupied forever, so a full catalogue still needs
+// a roster in the dozens.
 // ---------------------------------------------------------------------
-// How many courses one hire can carry. Raised as part of the growth-loop
-// tuning pass: at 2-4 slots, opening a school's tier-1 courses meant
-// hiring roughly one professor per course, and a 350-student founding
-// school ended up carrying a 23-person payroll — around half its entire
-// tuition income — which left no surplus at all to grow the campus with
-// and turned the tier-1 loop into a permanent plateau instead of a pinch.
-// At 4-6 slots the same build-out needs a third of the hires, so payroll
-// is a heavy but survivable early cost and the school can still save
-// toward its first dorm. The pressure comes back on its own terms: slots
-// are occupied FOREVER (see techSystem.ts's usedFacultySlots), so a
-// 330-course catalogue still ends up needing a roster in the dozens.
 const FACULTY_BASE_SLOTS_MIN = 4;
 const FACULTY_BASE_SLOTS_RANGE = 2; // rolls 4..6 course slots at hire
 export const SLOT_GROWTH_INTERVAL_WEEKS = 104; // +1 slot every 2 years of tenure retained
 export const MAX_FACULTY_SLOTS = 10;
 
 function rollBaseCourseSlots(): number {
-  return FACULTY_BASE_SLOTS_MIN + Math.floor(Math.random() * (FACULTY_BASE_SLOTS_RANGE + 1));
+  return FACULTY_BASE_SLOTS_MIN + Math.floor(random() * (FACULTY_BASE_SLOTS_RANGE + 1));
 }
 
-// A display-only bucketing of a hire's current (teaching+research)/2 into a
-// familiar academic-rank ladder — so "hire more" (headcount, gating course
-// slots) and "hire better" (this tier, which the continuous teaching/
-// research stats already drive) read as visibly separate levers rather
-// than the same number twice. Not a new independent stat: it's derived
-// from the same current stats that already feed prestige's faculty-quality
-// input (see prestigeSystem.ts) and the roster's average field strength.
+// A display-only academic-rank ladder over (teaching+research)/2, so "hire
+// better" reads as a separate lever from "hire more".
 export type FacultyQualityTier = 'Adjunct' | 'Assistant' | 'Associate' | 'Full' | 'Distinguished';
 const QUALITY_TIER_THRESHOLDS: Array<[number, FacultyQualityTier]> = [
   [85, 'Distinguished'],
@@ -932,69 +669,31 @@ export function facultyQualityTier(f: Faculty): FacultyQualityTier {
 }
 
 // ---------------------------------------------------------------------
-// HIRING: a standing, churning candidate market.
-//
-// There are no job postings and no waiting. `s.candidates` is a long,
-// always-refreshing list of people currently on the academic job market;
-// the player appoints straight off it, immediately (HIRE_FACULTY in the
-// reducer), and facultySystem.ts's tickCandidatePool keeps it turning
-// over: every week the listings age, the ones that have been up too long
-// withdraw, and new ones arrive to bring the pool back to target.
-//
-// The point of the churn is to keep the SCARCITY interesting and drop the
-// boring part. Under the old post-and-wait model every hire cost a fee and
-// 4-10 idle weeks, which with 28 specialised fields (see FACULTY_FIELDS
-// above) meant 26 separate post-and-wait errands. Now a common field is
-// almost always sitting there to be pulled, and what is genuinely scarce
-// is the thin-market specialist: they show up intermittently, so filling
-// that niche means either waiting for one or developing a different
-// major's courses first. Availability is the constraint; the money
-// constraint is payroll, which is unchanged.
+// Hiring: a standing, churning candidate market. The player appoints
+// straight off `s.candidates` (HIRE_FACULTY); facultySystem.ts's
+// tickCandidatePool ages listings, withdraws stale ones and tops the pool
+// back up. Common fields are almost always available; thin-market
+// specialists show up intermittently.
 // ---------------------------------------------------------------------
 
-// --- Churn tuning. These five knobs ARE the recruiting feel; expect to
-// hand-tune them after playtest, and read them together:
+// --- Churn tuning; read these together:
 //
-//   pool size  ~= CANDIDATE_POOL_TARGET (the top-up loop below holds it there)
+//   pool size  ~= CANDIDATE_POOL_TARGET
 //   turnover   ~= CANDIDATE_POOL_TARGET / CANDIDATE_LISTING_WEEKS per week
 //   a field's share of the pool = its listing weight / the total (below)
 //
-// At the values below that is a 30-name pool turning over ~2.5 names a
-// week, so a listing the player passes on is gone within three months and
-// the list never looks the same twice.
-//
-// Coverage, which is the number that actually matters: with a 30-name pool
-// the expected number of any one field on the list is 30 x its weight
-// share, and the chance it is represented at all is ~1 - e^-that. The
-// weights below put the biggest fields around 6-7% (≈2 listed, present
-// ~85-88% of weeks — pull one whenever you want one), the mid fields
-// around 3-4% (present ~60-70%), and the thin markets at 1-2% (present
-// ~28-48%, arriving roughly every 18-36 weeks — the specialist you wait
-// for). Shortening CANDIDATE_POOL_TARGET tightens every one of those at
-// once, which is the fastest single dial if recruiting feels too easy.
+// A field's chance of being listed in a given week is ~1 - e^-(30 x share):
+// big fields (6-7%) ~85-88% of weeks, mid fields (3-4%) ~60-70%, thin
+// markets (1-2%) ~28-48%. CANDIDATE_POOL_TARGET is the fastest single dial.
 export const CANDIDATE_POOL_TARGET = 30;   // how many listings the market holds
 export const CANDIDATE_LISTING_WEEKS = 12; // weeks an unhired listing stays up before it withdraws
 const CANDIDATE_ARRIVALS_PER_WEEK_MAX = 4; // ceiling on new listings per week, so a hiring spree refills over a few weeks rather than instantly
 
-// How thin the academic market is in a field, as a multiplier on that
-// field's curriculum demand (below). 1.0 = an ordinary market; below 1 =
-// more courses want this field than there are people to teach them, which
-// is what makes a niche genuinely niche rather than just small. Every
-// field not listed here is 1.0.
-//
-// This is the second half of the weighting on purpose. Demand alone can't
-// produce the common/rare split the churn is for: after the field
-// re-specialisation every field carries between 9 and 20 courses, a
-// spread of barely 2x, so weighting by course count alone would make all
-// 28 fields equally intermittent. Real hiring markets are not flat — an
-// English department picks from hundreds of applicants while nursing and
-// pharmacy departments run chronically unfilled lines — and that is the
-// axis that makes a clinical hire feel like a find.
-//
-// A field added to FACULTY_FIELDS gets an entry here even when the answer
-// is "ordinary". An explicit 1.0 is an authored decision that this market
-// is unremarkable; a field left OUT of the table is one nobody has thought
-// about yet, and the two should not look the same in the source.
+// How thin the academic market is in a field, as a multiplier on its
+// curriculum demand. 1.0 = ordinary; below 1 = scarce. Demand alone spreads
+// fields only ~2x, so this is what makes a niche genuinely rare. Every field
+// gets an explicit entry, even an ordinary one, so an unconsidered field
+// looks different from a deliberate 1.0.
 const DEFAULT_MARKET_SUPPLY = 1;
 const FIELD_MARKET_SUPPLY: Record<string, number> = {
   'Clinical Health': 0.35,          // nursing and pharmacy faculty are the thinnest academic market there is: clinical practice pays far more than teaching it
@@ -1009,34 +708,15 @@ const FIELD_MARKET_SUPPLY: Record<string, number> = {
   'Public Health': 0.9,
   'Information Systems': 0.9,
   Kinesiology: 1,                   // deliberately ordinary: exercise-science doctorates are plentiful relative to the number of lines, so this is the easy end of the Health Science roster and the counterweight to Clinical Health's 0.35
-  // Law is the one field with a plentiful market and almost no demand: the
-  // JD supply is enormous, but only five courses in the whole catalogue
-  // ask for it and all five are in the law school. Demand x supply alone
-  // would leave it the rarest listing on the board, which is the wrong
-  // reading — a legal academic is EASY to find and simply has nowhere to
-  // teach until the school gets far enough to found a law school. Above 1
-  // on purpose, and the only entry that is; read it as "this market is
-  // oversupplied", which is the honest description of legal academia.
-  //
-  // 1.5 rather than something larger is the whole tuning question here.
-  // The pool is a fixed thirty listings, so a field's share is taken FROM
-  // the others: at 3.0 Law was 4.1% of every pool — more than half the
-  // departments — for the four decades before a law school is reachable,
-  // which is thirty listings the player cannot use. At 1.5 it sits around
-  // 2%, present roughly half of weeks, which is a hire you can get inside
-  // a month or two when you finally want two of them.
+  // Law: plentiful supply, almost no demand (only law-school courses), so
+  // above 1 to keep it findable. 1.5 keeps it ~2% of the pool; larger values
+  // crowd out usable listings for the decades before a law school exists.
   Law: 1.5,
 };
 
-// A field's listing weight = how many courses in the whole curriculum need
-// it x how available its market is. The demand half is READ OFF the
-// curriculum rather than restated here, so it can never drift from
-// techData.ts: retiring a major or moving it to another field re-weights
-// the hiring pool automatically.
-//
-// Memoized because rolling a field happens several times a week and the
-// curriculum is a fixed seed — this is a derived constant, not state, and
-// nothing mutates it after the first roll.
+// A field's listing weight = courses in the curriculum that need it x its
+// market supply. Demand is read off the curriculum so it can't drift from
+// techData.ts. Memoized: the curriculum is a fixed seed.
 let listingWeights: Array<{ field: string; weight: number }> | null = null;
 let listingWeightTotal = 0;
 
@@ -1052,24 +732,17 @@ function candidateListingWeights(): Array<{ field: string; weight: number }> {
         field,
         weight: (courseCounts.get(field) ?? 0) * (FIELD_MARKET_SUPPLY[field] ?? DEFAULT_MARKET_SUPPLY),
       }))
-      // A field no course asks for has nothing to hire it FOR, so it is
-      // never listed. Can't happen with the current curriculum — every
-      // field carries at least eight courses; Law's eight are all in the
-      // law school, every other field has a major's nine or more — this is
-      // the guard that keeps that true if one is ever added ahead of its
-      // courses.
+      // A field no course asks for is never listed.
       .filter((entry) => entry.weight > 0);
     listingWeightTotal = listingWeights.reduce((sum, entry) => sum + entry.weight, 0);
   }
   return listingWeights;
 }
 
-// The field a new listing turns up in: a weighted draw, so the pool's mix
-// roughly tracks what the curriculum actually needs, thinned by how hard
-// each field is to hire into.
+// The field a new listing turns up in: a weighted draw.
 export function rollCandidateField(): string {
   const weights = candidateListingWeights();
-  let roll = Math.random() * listingWeightTotal;
+  let roll = random() * listingWeightTotal;
   for (const entry of weights) {
     roll -= entry.weight;
     if (roll <= 0) return entry.field;
@@ -1077,20 +750,19 @@ export function rollCandidateField(): string {
   return weights[weights.length - 1].field;
 }
 
-// One freshly-rolled hireable candidate IN THE GIVEN FIELD, fresh
-// (tenureWeeks 0, weeksListed 0). Pass the full+last names already in play
-// (roster + candidate pool) so the new name can't collide with one of them.
+// One freshly rolled candidate in the given field. Pass the names already in
+// play so the new name can't collide.
 export function generateCandidate(field: string, existingNames: Iterable<string> = []): Faculty {
   const used = new Set(existingNames);
-  const teachingPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
-  const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(Math.random() * FACULTY_POTENTIAL_RANGE);
+  const teachingPotential = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
+  const researchPotential = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
   const teaching = grownStat(teachingPotential, 0);
   const research = grownStat(researchPotential, 0);
   const gender = rollGender();
   const { name, origin } = rollFullName(used, gender);
   const { nationality, flag } = rollNationality(origin);
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     name,
     field,
     teaching,
@@ -1101,8 +773,7 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     weeksListed: 0,
     salary: facultySalary(teaching, research, 0),
     courseSlots: rollBaseCourseSlots(),
-    // Nobody arrives decorated: a prize is won on this university's
-    // payroll, in this university's labs, or not at all.
+    // Nobody arrives decorated: prizes are won here.
     acclaim: 0,
     nationality,
     flag,
@@ -1112,31 +783,22 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
   };
 }
 
-// The market as it stands the week the university is founded: a full pool,
-// not an empty one filling up. Recruiting is meant to be immediate from
-// the first week, and a founder looking at two names would read the
-// mechanic backwards.
-//
-// weeksListed is STAGGERED across the listing window rather than starting
-// everyone at 0, which matters more than it looks: a pool seeded flat
-// would age out as one synchronized wave every CANDIDATE_LISTING_WEEKS
-// and the list would empty and refill in waves instead of churning.
+// The market the week the university is founded: a full pool. weeksListed
+// is staggered so the pool doesn't age out in one synchronised wave.
 export function initialCandidatePool(): Faculty[] {
   const pool: Faculty[] = [];
   const names: string[] = [];
   for (let i = 0; i < CANDIDATE_POOL_TARGET; i += 1) {
     const candidate = generateCandidate(rollCandidateField(), names);
-    candidate.weeksListed = Math.floor(Math.random() * CANDIDATE_LISTING_WEEKS);
+    candidate.weeksListed = Math.floor(random() * CANDIDATE_LISTING_WEEKS);
     pool.push(candidate);
     names.push(candidate.name);
   }
   return pool;
 }
 
-// How many new listings to add THIS week: enough to close the gap back to
-// target, capped so a big hiring week refills over a few weeks instead of
-// snapping back the same tick. Lives here with the constants it reads
-// rather than in the system, so all the churn tuning is in one file.
+// How many new listings to add this week: enough to close the gap to
+// target, capped so a big hiring week refills gradually.
 export function candidateArrivalsThisWeek(poolSize: number): number {
   return Math.max(0, Math.min(CANDIDATE_POOL_TARGET - poolSize, CANDIDATE_ARRIVALS_PER_WEEK_MAX));
 }

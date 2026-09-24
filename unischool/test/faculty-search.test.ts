@@ -16,11 +16,10 @@ import {
 } from '../src/systems/faculty/facultySearch';
 import { loadGame, saveGame, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import type { GameState } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 2718;
 function seedRandom(n: number): void {
-  seed = n;
-  Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  bindScriptStream(n);
 }
 seedRandom(2718);
 const store = new Map<string, string>();

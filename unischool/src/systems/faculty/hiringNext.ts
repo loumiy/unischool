@@ -9,24 +9,14 @@ import { neededFacultyFields, unstaffedCourses } from '../techtree/techSystem';
 import { projectedQuality } from './facultyAssignment';
 import type { FieldCapacity } from './facultyCapacity';
 
-// ---------------------------------------------------------------------
-// WHAT TO DO ABOUT HIRING, this week. The Faculty board is twenty-nine
-// rows of capacity, which answers "how big is each department" and not
-// "what should I do" — and the interesting scarcity in hiring is TEMPORAL:
-// a thin-field listing is a window of a few weeks, and the board showed
-// it as a card inside a row inside a division. These readings turn the
-// market back into what the churn model was built to be, a stream of
-// events with a deadline and a price, and give each department the one
-// action its state calls for. Every figure comes off functions the rest
-// of the game already runs on (neededFacultyFields, facultyGate's
-// halves, projectedQuality, facultyPay, searchCost); nothing here is new
-// state.
-// ---------------------------------------------------------------------
+// Hiring readings for this week: listings as time-limited appointments
+// with a price, and one action per department. Derived entirely from
+// existing functions (neededFacultyFields, projectedQuality, facultyPay,
+// searchCost); nothing here is stored.
 
-// The courses a department is holding up: every revealed, unstarted
-// course that asks for the field, plus the entry course of a program on
-// offer in it (still locked, but the founding is what the player is
-// being asked to make — the same rule neededFacultyFields applies).
+// Every revealed, unstarted course that asks for the field, plus the
+// (still locked) entry course of a program on offer in it — the same rule
+// neededFacultyFields applies.
 export function waitingCourses(s: GameState, field: string): Buildable[] {
   const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
   return s.tech.filter((t) => t.kind === 'course' && t.requiresFaculty === field
@@ -37,14 +27,12 @@ export interface Listing {
   candidate: Faculty;
   field: string;
   weeksLeft: number;
-  // The first course waiting on the field, and the grade this person
-  // would earn on it — the two facts that decide an appointment.
+  // The first course waiting on the field, and this person's grade on it.
   course: Buildable | undefined;
   grade: Grade | null;
   // Salary at this school's market rate, a year.
   pay: number;
-  // The waiting courses their slots would open, by code — what the
-  // appointment is WORTH, the way a course start is worth "+80 seats".
+  // Codes of the waiting courses their slots would open.
   unblocks: string[];
 }
 
@@ -61,8 +49,7 @@ function listingFor(s: GameState, candidate: Faculty, waiting: Buildable[]): Lis
   };
 }
 
-// Listings in a department that is short: the appointments worth making
-// this week, soonest to withdraw first, strongest teacher next.
+// Listings in short departments, soonest to withdraw first, strongest teacher next.
 export function worthTaking(s: GameState): Listing[] {
   const needed = neededFacultyFields(s);
   const out: Listing[] = [];
@@ -75,16 +62,14 @@ export function worthTaking(s: GameState): Listing[] {
   return out.sort((a, b) => a.weeksLeft - b.weeksLeft || b.candidate.teaching - a.candidate.teaching);
 }
 
-// One department's listing, for its row: the strongest listed teacher in
-// the field, read the same way.
+// The strongest listed teacher in one field, for its row.
 export function bestListing(s: GameState, field: string): Listing | undefined {
   const listed = s.candidates.filter((c) => c.field === field).sort((a, b) => b.teaching - a.teaching);
   if (listed.length === 0) return undefined;
   return listingFor(s, listed[0], waitingCourses(s, field));
 }
 
-// THE ONE THING TO DO about a department, chosen by its state — the
-// row's action, the way a program row leads with its next start.
+// The one action a department's row offers, chosen by its state.
 export type DeptAction =
   | { kind: 'appoint'; listing: Listing }
   | { kind: 'search'; cost: number; canPost: boolean }
@@ -107,8 +92,7 @@ export function deptAction(s: GameState, c: FieldCapacity): DeptAction {
   return { kind: 'none' };
 }
 
-// Departments short with nobody listed — where only a search or time
-// helps — and whether one is running.
+// Short departments with nobody listed, and whether a search is running.
 export function searchable(s: GameState, fields: FieldCapacity[]): Array<{ field: string; waiting: number; running: number }> {
   return fields
     .filter((c) => (c.state === 'short' || c.state === 'over') && c.listed === 0)

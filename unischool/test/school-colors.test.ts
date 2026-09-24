@@ -14,9 +14,9 @@ import {
 } from '../src/data/schoolColors';
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 4242;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(4242);
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
@@ -84,14 +84,10 @@ assert(worn.size >= SCHOOL_COLOR_PAIRS.length - 2, `the field wears most of the 
 // ---- Presentation only ----
 // Two foundings that differ only in their pair are the same school in
 // every number: the pair is read by the stylesheet and nothing else.
-seed = 4242;
-const a = reducer(createPreStartState(), { type: 'START_GAME', name: 'Same', vernacular: 'georgian', colors: schoolColorsOf(SCHOOL_COLOR_PAIRS[0]) });
-seed = 4242;
-const b = reducer(createPreStartState(), { type: 'START_GAME', name: 'Same', vernacular: 'georgian', colors: schoolColorsOf(SCHOOL_COLOR_PAIRS[7]) });
-// Candidate and coach ids are minted with randomUUID, which the seeded
-// Math.random above does not reach, so they are masked before comparing.
-const strip = (s: typeof a) => JSON.stringify({ ...s, self: { ...s.self, colors: null } })
-  .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, 'id');
+const a = reducer(createPreStartState(), { type: 'START_GAME', name: 'Same', vernacular: 'georgian', colors: schoolColorsOf(SCHOOL_COLOR_PAIRS[0]), seed: 4242 });
+const b = reducer(createPreStartState(), { type: 'START_GAME', name: 'Same', vernacular: 'georgian', colors: schoolColorsOf(SCHOOL_COLOR_PAIRS[7]), seed: 4242 });
+// Every id comes from the seeded stream, so the two compare whole.
+const strip = (s: typeof a) => JSON.stringify({ ...s, self: { ...s.self, colors: null } });
 assert(strip(a) === strip(b), 'a founding in a different pair is the same school in every other field');
 
 if (failures > 0) {

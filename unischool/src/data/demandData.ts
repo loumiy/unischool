@@ -1,127 +1,57 @@
 import type { SatisfactionAttributes, StudentDemand } from '../state/types';
 
 // ---------------------------------------------------------------------
-// STUDENT DEMANDS, AS DATA (see docs/design/student-life.md's "Student
-// demands: the inverse of clubs"). Clubs are what students give the
-// institution when they are happy; a demand is what they ask of it when
-// they are not. Same discipline as the student-organisation layer:
-// everything tunable is a named constant in this file, everything authored
-// is a sentence in this file, and the one tick function that reads them
-// (systems/demands/demandSystem.ts) contains only cadence and target logic.
+// Student demands as data (see docs/design/student-life.md). A demand is
+// one concrete, buildable ask derived from the campus's worst shortfall,
+// with a target and a deadline; demandSystem.ts holds only cadence and
+// target logic. Both outcomes are transient nudges to the satisfaction
+// stock, which drifts back toward its target, so timing relative to the
+// summer funnel (word of mouth) is what bites. Demands never touch prestige.
 //
-// WHAT A DEMAND IS. One concrete, buildable ask — "somewhere to eat",
-// "somewhere to study" — DERIVED from an actual shortfall rather than picked
-// at random, with a target condition and a deadline. Meeting it is
-// something the player DOES (they build the thing and the target reading
-// crosses its threshold), never something they click past: there is no
-// acknowledge button on the resolution side at all, only on the modal that
-// raises it.
-//
-// WHAT IT IS WORTH, BOTH WAYS. Both halves are transient nudges to the
-// satisfaction STOCK, exactly like the decision-event table's dents and the
-// student-life digest's: the stock drifts back toward its facilities-derived
-// target at SATISFACTION_DRIFT_RATE a week, so a hit taken in week 10 has
-// mostly healed by week 40 while one taken near the summer funnel costs real
-// applicants through word of mouth (see admissionsSystem.ts's
-// WORD_OF_MOUTH_STRENGTH). Timing is the teeth; permanence is not — and the
-// durable half of meeting a demand is the facility the school now owns,
-// which raises the satisfaction TARGET on its own, forever, without this
-// system doing anything.
-//
-// WHAT IT MAY NOT TOUCH. Prestige, for the same reason the decision events
-// and student life leave it alone: s.self.reputation is a slow-moving stock
-// that drifts toward a computed target once a year (see prestigeSystem.ts),
-// and a demand is not one of that target's inputs. Demands move
-// satisfaction and, through the summer funnel, admissions. Nothing else.
-//
-// NO SPIRAL, BY CONSTRUCTION. Three separate properties, none of them a
-// special case:
-//   1. DEMAND_COOLDOWN_WEEKS after ANY resolution, met or failed, so a
-//      failed demand can never be followed by an immediate second one.
-//   2. At most one demand open at a time (see EventState.activeDemand).
-//   3. satisfactionSystem.ts's ATTRIBUTE_SCORE_FLOOR, untouched here: no
-//      attribute reaches zero, so the satisfaction target bottoms out well
-//      above it and word of mouth bottoms out around 0.63x rather than at
-//      nothing. A school that ignores every demand it is ever given still
-//      stalls rather than dies — the same "stall, don't die" property the
-//      economy already guarantees.
+// No spiral, by construction: a cooldown after any resolution, at most one
+// demand open at a time, and satisfactionSystem.ts's ATTRIBUTE_SCORE_FLOOR
+// keeps a school that ignores every demand stalling rather than dying.
 // ---------------------------------------------------------------------
 
-// =====================================================================
-// TUNING — CADENCE. Together with DEMAND_SATISFACTION_THRESHOLD these are
-// the two dials the PR's cadence question is answered with: the threshold
-// decides HOW UNHAPPY a school has to be before students ask for anything
-// at all, and the cooldown decides how often they may ask again.
-// =====================================================================
+// --- Cadence: the threshold decides how unhappy a school must be before
+// students ask, the cooldown how often they may ask again.
 
-// Nothing is demanded during the founding ramp, for the same reason no
-// decision event fires then (see eventData.ts's DECISION_EVENT_FIRST_YEAR):
-// year 1-2 is the tutorial-by-design stretch.
+// Nothing is demanded during the founding ramp (cf. eventData.ts's
+// DECISION_EVENT_FIRST_YEAR).
 export const DEMAND_FIRST_YEAR = 3;
 
-// The trigger. Satisfaction below this and the student body organises;
-// above it, nothing is ever demanded. Sized well under the founding value
-// of 70 (which is also WORD_OF_MOUTH_NEUTRAL, the satisfaction that neither
-// helps nor hurts demand) so a school that is merely imperfect never sees a
-// demand at all, and only one that is genuinely being neglected does.
-// Raised from 45 by Plan 15's PR F: demands come earlier, and failing one
-// dents welfare, which dents prestige — the chain the docs have always
-// described and the code has never run.
+// The trigger: satisfaction below this and the student body organises.
+// Under the founding value of 70 (WORD_OF_MOUTH_NEUTRAL), so a merely
+// imperfect school never sees a demand.
 export const DEMAND_SATISFACTION_THRESHOLD = 60;
 
-// How long the school has, once the demand is announced. A year and a half:
-// long enough to save for and build any single rung of the facility chains
-// at the stage a school is likely to be short of them, and long enough that
-// the deadline spans two summer admissions decisions, so the player has a
-// pricing lever as well as a building one.
+// Once announced: a year and a half, enough to build any single rung of a
+// facility chain and spanning two summer admissions decisions.
 export const DEMAND_DEADLINE_WEEKS = 78;
 
-// The floor between one demand resolving and the next being rolled — two
-// years, whichever way the first one went. This is the anti-spiral dial:
-// a school pinned under the threshold sees a demand roughly every three
-// years rather than a rolling queue of them.
+// The floor between one demand resolving and the next being rolled, met or
+// failed. The anti-spiral dial.
 export const DEMAND_COOLDOWN_WEEKS = 104;
 
-// Display only, and the one constant here that is not a mechanic: how
-// close the deadline has to be before the Student Life tab's countdown
-// reads as urgent. Nothing changes when it is crossed — a demand's
-// consequences all land at the deadline itself.
+// Display only: when the Student Life tab's countdown reads as urgent.
 export const DEMAND_URGENT_WEEKS = 13;
 
-// =====================================================================
-// TUNING — SATISFACTION. Both are nudges to the drifting stock (see the
-// header). Failing costs noticeably more than meeting pays, because
-// meeting one already carries its own durable reward: the facility the
-// school built to meet it raises the satisfaction target every week from
-// then on. This number is only the moment.
-// =====================================================================
+// --- Satisfaction nudges. Failing costs more than meeting pays, because
+// the facility built to meet a demand already raises the satisfaction
+// target for good.
 export const DEMAND_MET_SATISFACTION_REWARD = 5;
-// Sized against the heaviest existing dent in the decision-event table
-// (the deferred dining remediation, at 8) — a year and a half of being
-// ignored should land like the worst single thing a school can shrug off.
+// Matches the heaviest dent in the decision-event table.
 export const DEMAND_FAILED_SATISFACTION_PENALTY = 8;
 
-// =====================================================================
-// TUNING — WHICH SHORTFALL. A demand is derived, not drawn: the system
-// scores every candidate shortfall and asks for the worst one (see
-// demandSystem.ts's rollShortfallDemand). Housing is scored the same way
-// as every other shortfall now — off satisfactionSystem.ts's own
-// attributeCoverage — so there is no separate gate constant for it here.
-// =====================================================================
-// THE COPY. One entry per shortfall a demand can be about, keyed by the
-// satisfaction attribute it is measured against (plus 'housing', the one
-// measured against capacity). Derived at RENDER time from the demand's
-// metric/attribute rather than captured when the demand was rolled — the
-// same rule describeMilestone follows, so a demand that waited three weeks
-// for a quiet slot still says exactly what it would have said on the day.
-// =====================================================================
+// --- The copy: one entry per subject, keyed by satisfaction attribute plus
+// 'housing' and 'instruction'. Read at render time from the demand's
+// metric/attribute, so a queued demand still says what it would have said
+// on the day.
 export type DemandSubject = keyof SatisfactionAttributes | 'housing' | 'instruction';
 
 export interface DemandCopy {
   headline: string;   // the modal's title
-  // The grievance: why the students are asking. Takes the name of the
-  // Buildable the ask resolved to, so the sentence is about the actual next
-  // rung of the actual chain rather than a generic noun.
+  // The grievance, naming the Buildable the ask resolved to.
   grievance(askName: string): string;
   ask(askName: string): string;      // the one-line ask, as the tab lists it
   unit: string;                      // what `target` counts, for the progress line
@@ -163,9 +93,8 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
     ask: (ask) => `Build ${ask}`,
     unit: 'beds of campus housing',
   },
-  // The instruction shortfall (Plan 15's PR F): classes are full. Measured
-  // against the catalogue's seats (instructionCapacity.ts), and the ask is
-  // a course — the thing that adds them.
+  // Measured against the catalogue's seats (instructionCapacity.ts); the ask
+  // is a course.
   instruction: {
     headline: 'Students demand a seat in class',
     grievance: (ask) =>
@@ -175,9 +104,8 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
   },
 };
 
-// Which entry of the table above a demand reads from. The one place the
-// metric/attribute pair is turned back into a subject, so no caller has to
-// know that 'capacity' means housing.
+// Which copy entry a demand reads from, so no caller has to know that
+// 'capacity' means housing.
 export function demandSubject(demand: StudentDemand): DemandSubject {
   if (demand.metric === 'capacity') return 'housing';
   if (demand.metric === 'seats') return 'instruction';

@@ -23,9 +23,15 @@ import { computeSocialTarget } from '../src/systems/prestige/prestigeSystem';
 import { sportRankedList } from '../src/systems/rivals/rivalsSystem';
 import { makeRivalRng } from '../src/data/rivalData';
 import type { Coach, GameState, StudentClub } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
-let seed = 5150;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+// Read through a call so TypeScript does not narrow the interrupt to what
+// the test last assigned: the system under test sets it.
+function interruptType(g: GameState): string | undefined {
+  return g.pendingInterrupt?.type;
+}
+
+bindScriptStream(5150);
 
 let checks = 0;
 let failures = 0;
@@ -153,7 +159,7 @@ function testTitleQueues(): void {
 
   s.pendingInterrupt = null;
   tickEvents(s);
-  assert(s.pendingInterrupt?.type === 'championship', 'the next quiet week reports it');
+  assert(interruptType(s) === 'championship', 'the next quiet week reports it');
   assert(s.orgs.pendingTitles.length === 0, 'and drains the queue');
 }
 

@@ -18,11 +18,11 @@ import {
   rollClubPetition, sportById, sportClubsAwaitingVarsity, venueForCategory,
 } from '../src/data/studentLifeData';
 import type { GameState, StudentClub } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
 // Deterministic PRNG, same construction as test/invariants.test.ts, so the
 // formation-roll sweep below is reproducible.
-let seed = 987654;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(987654);
 
 let checks = 0;
 let failures = 0;

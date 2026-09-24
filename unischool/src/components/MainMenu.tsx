@@ -2,18 +2,10 @@ import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { MenuIcon } from './icons';
 
-// The top-right hamburger overlay: what used to be the topbar's Save/New
-// Game buttons, now joined by Credits, collapsed into one menu now that
-// there's no control bar left to hold them inline (see StatusHeader.tsx's
-// module comment — C3 moved everything else in that old control bar down
-// into the bottom toolbar). Sits directly above the map's zoom/'?' pill in
-// that same corner (see styles.css's --corner-menu-height).
-//
-// New Game's confirm is the same inline second-click pattern the old
-// control bar used: the armed state times out on nothing and clears on
-// Cancel, so the only way through is a deliberate second click, never a
-// browser confirm() dialog that would look nothing like the rest of the
-// chrome.
+// The top-right hamburger menu: Save, New Game and Credits. Sits directly
+// above the map's zoom/'?' pill (see styles.css's --corner-menu-height).
+// New Game confirms with an inline second click rather than a browser
+// confirm() dialog, so it matches the rest of the chrome.
 export default function MainMenu({ act }: { act: (a: Action) => void }) {
   const [open, setOpen] = useState(false);
   const [confirmingNewGame, setConfirmingNewGame] = useState(false);

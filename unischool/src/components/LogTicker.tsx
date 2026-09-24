@@ -4,35 +4,16 @@ import LogStrip from './LogStrip';
 import { LogIcon } from './icons';
 import { nextStep, type NextStep } from '../systems/guidance/nextStep';
 
-// One line, always on screen, directly above the toolbar (see styles.css's
-// .log-ticker): the single newest entry in s.log (newest first — see
-// types.ts's LogEntry), which used to be generated every week — an
-// admissions summary, a grant awarded, a demand met or missed — and simply
-// thrown away, since nothing rendered it after C3's toolbar consolidation
-// dropped its old slot (see Toolbar.tsx and LogStrip.tsx's own module
-// comment). Only the small icon on the left is a button — the text itself
-// is plain, un-clickable content, same as the toolbar's own funds/stats
-// readouts below it: a whole wide strip acting as one giant click target
-// read as a mis-click waiting to happen, not an affordance. LogIcon
-// (icons.tsx) is the toolbar's own pre-C2 log glyph, otherwise unused
-// since that refactor — the same glyph, just relocated rather than
-// invented fresh. Clicking it expands into the fuller scrollable feed
-// LogStrip.tsx already renders correctly, in the same ToolbarPopup shape
-// the build menu uses (see styles.css's .log-popup, sized and positioned
-// for exactly this since before this ticker existed).
-// The popup's open/closed state is App's, not this component's: it is the
-// innermost rung of the shell's one Escape ladder, and the ladder can only
-// be one handler if the handler can see every rung (see App.tsx).
+// One line, always on screen above the toolbar (styles.css's .log-ticker):
+// the newest entry in s.log (newest first). Only the icon on the left is a
+// button; a whole-strip click target read as a mis-click waiting to happen.
+// Clicking it opens LogStrip.tsx's full feed in a ToolbarPopup (.log-popup).
+// The popup's open state is App's, since it is the innermost rung of the
+// shell's one Escape ladder (see App.tsx).
 //
-// THE NEXT STEP RIDES HERE TOO (Plan 16's PR F — see systems/guidance/
-// nextStep.ts), at the strip's right end: a reading of the highest-value
-// thing on offer, or nothing, a button when it names somewhere to go. It
-// used to run across the top of the toolbar as a fourth, full-width zone,
-// which made the dock two rows tall whenever it had something to say; this
-// strip was already one line of the same shape of text, and the two share
-// it — the log on the left says what just happened, the step on the right
-// says what to do about it. Suppressed while an interrupt is up: the modal
-// is the one thing to do then.
+// The next step (systems/guidance/nextStep.ts) rides at the strip's right
+// end: the log says what just happened, the step says what to do about it.
+// Suppressed while an interrupt is up.
 export default function LogTicker({ s, open, onSetOpen, onGo }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   onGo: (go: NonNullable<NextStep['go']>) => void;

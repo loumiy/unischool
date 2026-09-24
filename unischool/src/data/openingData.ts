@@ -3,13 +3,11 @@ import { programById } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
 
 // ---------------------------------------------------------------------
-// THE OPENING WALKTHROUGH'S COPY, one card per stage (see state/opening.ts
-// for the stages and components/OpeningCoach.tsx for the card). `next`
-// is the button's label where the step ends on a click; a step that ends
-// on a reading has no button, only the instruction. `door` names what the
-// coach offers to open if the player has not, or closed it — the build
-// menu, or Founders Hall's panel on the map — so a wander off the step is
-// never a dead end.
+// The opening walkthrough's copy, one card per stage (state/opening.ts,
+// components/OpeningCoach.tsx). `next` labels the button where a step ends
+// on a click; a step that ends on a reading has none. `door` names what the
+// coach offers to reopen (the build menu or Founders Hall's panel) if the
+// player wanders off the step.
 // ---------------------------------------------------------------------
 export interface OpeningStep {
   eyebrow: string;

@@ -1,35 +1,16 @@
-// ---------------------------------------------------------------------
-// Plain-SVG line geometry for the Institutional History view's charts (see
-// HistoryTab.tsx). No charting library and no new dependency: a polyline
-// over a normalized series is the whole of it.
-//
-// This was shared with a pair of header sparklines until those were
-// removed from the top bar — the trend belongs on the History view, which
-// draws it at a size worth reading. What's left is the geometry itself,
-// which is a chart's business either way.
-//
-// Every series the game plots is a YearSnapshot field (see
-// state/types.ts) — one point per in-game year, oldest first.
-// ---------------------------------------------------------------------
+// Plain-SVG line geometry for the History view's charts (HistoryTab.tsx).
+// Every series is a YearSnapshot field, one point per year, oldest first.
 
-// A line needs two points to have a direction; one year of history draws
-// nothing rather than a misleading flat line.
+// One year of history draws nothing rather than a misleading flat line.
 export const MIN_SERIES_POINTS = 2;
 
-// Vertical breathing room so a peak or a trough doesn't sit exactly on the
-// edge of the box and get clipped by the stroke's own width.
+// Keeps peaks and troughs from being clipped by the stroke width.
 const DEFAULT_PAD_Y = 1.5;
 
-// Maps a series onto an SVG `points` string, with the value range
-// stretched to fill the height. A flat series (every value identical, e.g.
-// prestige that hasn't moved) is drawn as a centered horizontal line rather
-// than dividing by a zero range.
-//
-// The x-axis spans the full width by default — the last point sits at the
-// right edge. `xAt`, when given, places point i at that share (0..1) of the
-// width instead, which is how the History tab fixes its axis at fifty years
-// (Plan 17's PR F): a run in year 23 draws its curve across the left half
-// and leaves the right half for the years to come.
+// Maps a series onto an SVG `points` string, stretched to fill the height; a
+// flat series is a centred horizontal line. `xAt` places point i at that
+// share (0..1) of the width, which is how the History tab fixes its axis at
+// fifty years.
 export function linePoints(
   values: number[], width: number, height: number, padY = DEFAULT_PAD_Y,
   xAt: (i: number) => number = (i) => i / (values.length - 1),
@@ -49,8 +30,7 @@ export function linePoints(
     .join(' ');
 }
 
-// Keeps the emitted path strings short and stable rather than carrying
-// full float precision into the DOM.
+// Keeps the path strings short and stable.
 function round(n: number): number {
   return Math.round(n * 100) / 100;
 }

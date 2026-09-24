@@ -122,7 +122,7 @@ console.log('legacy tests');
       rich.history.push({
         year: y, prestige: 150, rank: 1, enrolled: 20_000, cash: 1e9, coursesDone: 421, programsEstablished: 42,
         satisfaction: 85, net: 0, applicants: 200_000, admitRate: 0.08, incomingQuality: 90, satisfactionAverage: 85,
-        coursesFinished: 0, attrition: 0,
+        coursesFinished: 0, attrition: 0, graduated: 5_000,
       });
     }
     rich.clock.year = 50;

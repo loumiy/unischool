@@ -7,30 +7,13 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
 import { tickSeason } from './season';
 
-// ---------------------------------------------------------------------
-// The coaching-staff system for Athletics V2 (see data/studentLifeData.ts's
-// "COACHING STAFF" block) — mirrors facultySystem.ts's own tickFaculty
-// exactly: a standing candidate market that churns every week
-// (tickCoachCandidatePool, below) plus tenure growth for every hire
-// actually retained (growAssignedCoaches, below). Kept as its own system
-// file, alongside its own data module, rather than folded into
-// studentLifeSystem.ts — Athletics V2's whole premise is a hiring pool that
-// mirrors faculty's, and faculty gets its own system file too.
-// ---------------------------------------------------------------------
+// The coaching-staff system, mirroring facultySystem.ts: a weekly candidate
+// market plus tenure growth for hired coaches.
 
-// The market side: age every listing a week, drop anyone who's been up for
-// COACH_CANDIDATE_LISTING_WEEKS (they took another job), then top back up
-// toward COACH_CANDIDATE_POOL_TARGET. No churn logging, unlike faculty's one
-// "nobody in this field" exception — athletics has no roster-coverage
-// concept a listing could be the first to fill (a team either has a coach
-// in a role or it doesn't, and that's already visible on the Athletics tab
-// itself), so there is nothing here worth interrupting the log for.
-//
-// ONE DRAW ON THE GLOBAL STREAM A WEEK (Plan 21's PR J), however many
-// candidates the week mints: the market's size must not decide how many
-// times the game rolls a die, which is what kept COACH_CANDIDATE_POOL_TARGET
-// at 18 through two plans. Then the floor: every open chair on an active
-// team gets a journeyman listed if nobody in its field is.
+// The market: age listings, drop expired ones, top up toward
+// COACH_CANDIDATE_POOL_TARGET, then list a journeyman for every open chair
+// with no listing in its field. One draw on the global stream a week, so the
+// market's size never changes how many times the game rolls.
 function tickCoachCandidatePool(s: GameState): void {
   for (const c of s.orgs.coachCandidates) c.weeksListed += 1;
   s.orgs.coachCandidates = s.orgs.coachCandidates.filter((c) => c.weeksListed < COACH_CANDIDATE_LISTING_WEEKS);
@@ -41,9 +24,7 @@ function tickCoachCandidatePool(s: GameState): void {
   const adQuality = s.orgs.athleticDirector?.quality ?? 0;
   for (let i = 0; i < arrivals; i += 1) {
     const field = rollCoachField(roll);
-    // The top of the market wants a program with a reputation (PR L): an
-    // elite draw for a fielded sport nobody has heard of lists as a solid
-    // one instead.
+    // An elite draw for a fielded sport without a reputation lists as solid.
     let band = rollCoachBand(roll);
     if (band === 'elite' && !eliteWouldList(s, field)) band = 'solid';
     const candidate = generateCoachCandidate(field, used, roll, band, adQuality);
@@ -57,25 +38,18 @@ function tickCoachCandidatePool(s: GameState): void {
   }
 }
 
-// The roster side: every coach actually assigned to a team (any of the
-// three staff roles, across every team) grows one week of tenure, exactly
-// like growFaculty — quality climbs toward qualityPotential, and salary is
-// recomputed from the new current quality plus the tenure premium. A
-// candidate still on the market does NOT grow, the same "only retained
-// time counts" rule facultySystem.ts's growFaculty uses.
+// Hired coaches grow one week of tenure (like growFaculty): quality climbs
+// toward potential and salary is recomputed. Listed candidates do not grow.
 function growCoach(c: Coach): void {
   c.tenureWeeks += 1;
-  // A year older every year of tenure (PR K); a coach who was listed at 34
-  // is 40 six years in, and a veteran hired at 58 reaches the retirement
-  // age in seven.
+  // A year older per year of tenure.
   if (c.tenureWeeks % WEEKS_PER_YEAR === 0 && c.age !== undefined) c.age += 1;
   c.quality = grownQualityOf(c);
   c.salary = coachSalaryFor(c.quality, c.tenureWeeks, c.field);
 }
 
-// COACHES AGE OUT (PR K): at COACH_RETIREMENT_AGE a coach retires, the chair
-// is vacated, and the log says so — the market's floor lists a journeyman
-// for it the next week. This is what stops tenure being free money.
+// At COACH_RETIREMENT_AGE a coach retires and the chair is vacated, so tenure
+// is not free money.
 const CHAIRS = ['headCoach', 'assistantCoach', 'trainer'] as const;
 function retireCoaches(s: GameState): void {
   for (const t of s.orgs.teams) {
@@ -94,11 +68,7 @@ function retireCoaches(s: GameState): void {
 
 export function tickAthletics(s: GameState): void {
   tickCoachCandidatePool(s);
-  // The postseason, once a year. Silent — it writes results and queues any
-  // titles; the report that stops the clock is drained on a quiet week by
-  // eventSystem.ts, exactly as a milestone is (see playoffs.ts).
-  // The season's dated occasions (season.ts), then the postseason on its
-  // own week.
+  // The season's dated occasions (season.ts), then the postseason on its week.
   tickSeason(s);
   if (s.clock.week === PLAYOFF_WEEK) runPlayoffs(s);
   for (const t of s.orgs.teams) {

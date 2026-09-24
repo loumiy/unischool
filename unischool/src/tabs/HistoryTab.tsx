@@ -1,7 +1,8 @@
 import type { GameState, YearSnapshot } from '../state/types';
 import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
-import { HistoryChart, formatMoney } from '../components/HistoryChart';
+import { HistoryChart } from '../components/HistoryChart';
+import { moneyShort } from '../format';
 import { ambitionEntries } from '../data/ambitionsData';
 import { legacy } from '../state/legacy';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
@@ -11,44 +12,26 @@ import {
   type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
 
-// ---------------------------------------------------------------------
-// Institutional History: the long arc, made visible. Every other screen in
-// the game is a "right now" reading — this is the only one that shows the
-// decades. It reads s.history (see state/history.ts) and nothing else, and
-// derives everything it displays; no state of its own, no numbers stored
-// for its benefit.
-//
-// Plain SVG polylines, deliberately: no charting library, no new
-// dependency, and the same parchment/gold visual language as every other
-// panel. A chart here is a line, a baseline, and two end labels — anything
-// more would be a different game's UI.
-// ---------------------------------------------------------------------
+// Institutional History: the one screen that shows the decades. It reads
+// s.history (state/history.ts) and live readings, and stores nothing of its
+// own.
 
-// How many rows of the year-by-year table to show at once before it
-// scrolls. A 50-year run would otherwise push the charts off the screen.
+// Rows of the year-by-year table shown before it scrolls.
 const TABLE_VISIBLE_ROWS = 12;
 
 // ---------------------------------------------------------------------
-// STANDING: the headline number, explained.
+// Standing: the headline numbers, explained. Every figure comes from
+// prestigeSystem.ts's breakdown, the object its target function sums, so
+// this panel cannot disagree with the tick; nothing here names a row.
 //
-// Every figure here is read off prestigeSystem.ts's own breakdown, which is
-// the object its target function sums — so this panel cannot disagree with
-// the tick that produced the number, and Plan 15 changing the inputs
-// changes that file alone. Nothing below names a row: the rows are data,
-// and this renders whatever the breakdown contains.
-//
-// THE BAR IS TWO LAYERS, and that is the whole reason a bar is here rather
-// than a number. The pale layer is what the input's own score reaches —
-// weight × score — and the solid one is what it is actually WORTH after its
-// multiplier. The gap between them is what a short library or a small
-// student body is costing the school, which is the single most-asked
-// question about this model and the one no screen could answer.
+// Each bar has two layers: pale is what the input's score reaches (weight
+// x score), solid is what it is worth after its multiplier. The gap is what
+// a shortfall (a small library, a small student body) is costing.
 // ---------------------------------------------------------------------
 
-// A PENALTY row (crowding) draws the same bar in the penalty colour and
-// reads as a subtraction; a row's GRADE, when the standing has a report
-// card, is what this input was worth the morning of last summer's report
-// (see prestigeSystem.ts's gradeYear), shown beside what it is worth now.
+// A penalty row (crowding) is drawn in the penalty colour as a subtraction.
+// `grade`, when present, is what the input was worth at last summer's report
+// card (prestigeSystem.ts's gradeYear), shown beside its worth now.
 function StandingRow({ input, max, grade }: { input: StandingInput; max: number; grade?: number }) {
   const reach = input.weight * input.score;
   const worth = Math.abs(input.contribution);
@@ -84,13 +67,9 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
   );
 }
 
-// A READING is an input that does not count yet (see prestigeSystem.ts's
-// StandingReading): the same label, bar and line of prose, with only the
-// pale layer drawn — what it would reach at its proposed weight — and no
-// solid one, because it is worth nothing today. Plan 15's PR A puts four of
-// these on the academic standing so the year of play before PR B counts
-// them is a year of reading them. A reading with no weight is a ratio, not
-// a future input, and is shown as the figure it is.
+// A reading is an input that does not count yet (prestigeSystem.ts's
+// StandingReading): only the pale layer, at its proposed weight. A reading
+// with no weight is a ratio and is shown as a percentage.
 function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
   const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   return (
@@ -127,9 +106,8 @@ function summerNote(breakdown: StandingBreakdown, gap: number): string {
 }
 
 function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
-  // Every bar is drawn against the SAME scale — the largest weight in this
-  // standing — so a 90-weight term and a 12-weight one are comparable at a
-  // glance instead of each filling its own box.
+  // All bars share one scale, the largest weight in this standing, so terms
+  // are comparable at a glance.
   const max = Math.max(...breakdown.inputs.map((i) => i.weight));
   const gap = breakdown.target - breakdown.current;
   return (
@@ -193,11 +171,9 @@ function StandingPanel({ s }: { s: GameState }) {
 }
 
 // ---------------------------------------------------------------------
-// AMBITIONS (Plan 17's PR A): the named achievements, greyed until
-// reached, with the year each landed. A checklist and nothing more — the
-// record gates nothing and is read off s.ambitions, which
-// systems/ambitions/ambitionsSystem.ts writes once per entry. The list is
-// data (data/ambitionsData.ts); nothing here names one.
+// Ambitions: the named achievements, greyed until reached, with the year
+// each landed. A record that gates nothing, read off s.ambitions
+// (ambitionsSystem.ts); the list itself is data/ambitionsData.ts.
 // ---------------------------------------------------------------------
 function AmbitionsPanel({ s }: { s: GameState }) {
   const entries = ambitionEntries(s);
@@ -231,11 +207,8 @@ function AmbitionsPanel({ s }: { s: GameState }) {
 }
 
 // ---------------------------------------------------------------------
-// THE LEGACY (Plan 17's PRs B and C): six graded axes and a name. Sealed
-// — read once at the fiftieth summer onto s.self.legacy and never written
-// again — once the run has reached it; until then the same reading taken
-// live, labelled as what the run would be called today, the way the
-// Standing panel shows what the year is grading toward.
+// The legacy: six graded axes and a name. Sealed onto s.self.legacy at the
+// fiftieth summer; until then the same reading, taken live.
 // ---------------------------------------------------------------------
 function LegacyPanel({ s }: { s: GameState }) {
   const sealed = s.self.legacy;
@@ -262,9 +235,8 @@ function LegacyPanel({ s }: { s: GameState }) {
   );
 }
 
-// The header's count, up and down at once (Plan 17's PR F): "Year 23 of
-// 50" while the run is inside its fifty years, and the sealed year once it
-// has played past them — the clock keeps running, the record does not.
+// "Year 23 of 50" within the fifty years; past them, the year the record was
+// sealed (the clock keeps running, the record does not).
 function yearOfFifty(s: GameState): string {
   if (s.clock.year <= SEMICENTENNIAL_YEAR) return `Year ${s.clock.year} of ${SEMICENTENNIAL_YEAR}`;
   return `Year ${s.clock.year} · the record sealed in year ${s.self.legacy?.year ?? SEMICENTENNIAL_YEAR}`;
@@ -288,20 +260,12 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
             <tr key={h.year}>
               <td>{h.year}</td>
               <td>{Math.round(h.prestige)}</td>
-              {/* No longer withheld until the top-50 reveal fires. The
-                  record always kept every year's rank; the view hid it
-                  because a 56-school field made an unranked school's only
-                  possible answer "last". See components/StatusHeader.tsx
-                  for the same change and the reason the reveal itself is
-                  unaffected. */}
               <td>#{h.rank}</td>
               <td>{h.enrolled.toLocaleString()}</td>
-              <td>{formatMoney(h.cash)}</td>
-              {/* The year's own figures (Plan 16's PR B): the net, the
-                  pool, the share taken, and who did not return — the same
-                  numbers the summer's review beat reads off, kept so the
-                  table can say what a year DID and not only what it was. */}
-              <td className={h.net < 0 ? 'bad' : ''}>{h.net >= 0 ? '+' : ''}{formatMoney(h.net)}</td>
+              <td>{moneyShort(h.cash)}</td>
+              {/* The year's own figures, as the summer's review beat reads
+                  them: what the year did, not only what it was. */}
+              <td className={h.net < 0 ? 'bad' : ''}>{h.net >= 0 ? '+' : ''}{moneyShort(h.net)}</td>
               <td>{h.applicants.toLocaleString()}</td>
               <td>{Math.round(h.admitRate * 100)}%</td>
               <td>{h.coursesDone}<span className="history-delta"> +{h.coursesFinished}</span></td>
@@ -323,9 +287,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
   if (history.length < MIN_SERIES_POINTS) {
     return (
       <div className="tab-content">
-        {/* Standing needs no history at all — it is a reading of right now —
-            so it is here as well as below, and a school in its first year
-            has something on this tab besides an apology. */}
+        {/* Standing needs no history, so a first-year school still sees it. */}
         <StandingPanel s={s} />
         <LegacyPanel s={s} />
         <AmbitionsPanel s={s} />
@@ -393,7 +355,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
             span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.cash)}
-            format={formatMoney}
+            format={moneyShort}
             note="Cash on hand each summer. Troughs are the years the school committed to something expensive."
           />
           <HistoryChart

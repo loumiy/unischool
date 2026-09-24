@@ -1,40 +1,15 @@
-// ---------------------------------------------------------------------
-// WHAT EACH COURSE IS. One authored sentence per undergraduate course,
-// keyed by course id, read by techData.ts's initialTech() when it expands
-// the seed into Buildables. The course drawer is where a player goes to
-// decide what a course IS, and for 336 of the 378 courses the answer used
-// to be eight rotating templates with the title swapped in — every
-// major's first tier-2 course got the same sentence as every other
-// major's first tier-2 course (Plan 20's PR D). This table replaced them,
-// filled school by school (PRs E and F) behind the templates as a
-// fallback, and the templates were deleted once it was complete (PR G):
-// test/course-descriptions.test.ts asserts that every undergraduate
-// course in the catalogue has a row here, so a course added without one
-// cannot land.
+// One authored sentence per undergraduate course, keyed by course id and
+// read by techData.ts's initialTech(). test/course-descriptions.test.ts
+// requires a row for every undergraduate course. Graduate courses keep their
+// generated line in techData.ts.
 //
-// TWO RULES, so the table stays a catalogue and does not become 336
-// essays:
+// Rules: one present-tense sentence, no course code, no "this course", and
+// it must say something the title does not.
 //
-//   - ONE SENTENCE, present tense, no course code, no "this course". The
-//     entry courses are the reference register: "Covers the accounting
-//     cycle, financial statements, and the language of business
-//     record-keeping."
-//   - IT MUST SAY SOMETHING THE TITLE DOES NOT. If the sentence is the
-//     title with "a study of" in front, the course has not been described
-//     — that is the whole failure being fixed, and the one thing to check
-//     in review.
-//
-// Grouped by school, then by major in seed order, then by course number,
-// so a reader with one major open in techData.ts's SCHOOLS finds its nine
-// sentences together. Graduate courses are NOT here: they keep their
-// generated line in techData.ts (a much more uniform register, 37 courses)
-// and are the obvious next increment.
-// ---------------------------------------------------------------------
+// Grouped by school, then major in seed order, then course number.
 
 export const COURSE_DESCRIPTIONS: Record<string, string> = {
-  // ===================================================================
-  // Business
-  // ===================================================================
+  // === Business ===
 
   // --- Finance ---
   FINA101: 'Introduces time value of money, risk, and the core tools of personal and corporate finance.',
@@ -102,9 +77,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   SPCO230: 'Applies optimisation, simulation, and forecasting models to routing, scheduling, and stock decisions, using real operational data.',
   SPCO240: 'Plans carrier selection, fleet routing, and freight contracts across road, rail, sea, and air, under regulation and fuel cost.',
 
-  // ===================================================================
-  // Engineering
-  // ===================================================================
+  // === Engineering ===
 
   // --- Mechanical Engineering ---
   MECH101: 'Introduces the design process, sketching, and basic mechanical systems.',
@@ -172,9 +145,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   AERO230: 'Takes an aircraft from mission requirements through sizing, configuration, and trade studies to a preliminary design review.',
   AERO240: 'Designs and operates drones — airframes, autopilots, sensors — and the regulations that govern where they can fly.',
 
-  // ===================================================================
-  // Arts & Media
-  // ===================================================================
+  // === Arts & Media ===
 
   // --- Media Studies ---
   MDIA101: 'Surveys how mass media shapes public opinion, culture, and information flow.',
@@ -242,9 +213,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   SART230: 'Shoots, develops, and prints in the darkroom and the digital lab, with the history of the medium alongside the technique.',
   SART240: 'Makes work in generative code, 3D modelling, video, and interactive media, exhibited on screens rather than paper.',
 
-  // ===================================================================
-  // Social Sciences & Humanities
-  // ===================================================================
+  // === Social Sciences & Humanities ===
 
   // --- English ---
   ENGL101: 'Introduces close reading and literary analysis across poetry, fiction, and drama.',
@@ -312,9 +281,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PHIL230: 'Asks what art is, what makes a judgement of beauty more than a preference, and how a work can mean anything.',
   PHIL240: 'Develops propositional and first-order logic with proofs and models, up to the completeness and the limits of the systems.',
 
-  // ===================================================================
-  // Science
-  // ===================================================================
+  // === Science ===
 
   // --- Mathematics ---
   MATH101: 'Covers limits, derivatives, and integrals, the mathematical toolkit for science and engineering coursework.',
@@ -382,9 +349,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PSYC230: 'Applies psychology to selection, motivation, leadership, and team performance in the workplace.',
   PSYC240: 'Examines how stress, behaviour, and belief affect illness and recovery, and the interventions that change them.',
 
-  // ===================================================================
-  // Health Science
-  // ===================================================================
+  // === Health Science ===
 
   // --- Public Health ---
   PHLT101: 'Surveys how populations, policy, and environment shape community health outcomes.',
@@ -452,9 +417,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   NEUR230: 'Models neurons and networks mathematically, from the Hodgkin-Huxley equations to learning rules and neural coding.',
   NEUR240: 'Examines stroke, epilepsy, Parkinson\'s, Alzheimer\'s, and psychiatric illness at the level of mechanism and treatment.',
 
-  // ===================================================================
-  // Computer Science
-  // ===================================================================
+  // === Computer Science ===
 
   // --- Computer Science ---
   COMP101: 'Teaches programming fundamentals — variables, control flow, and functions — through hands-on projects.',

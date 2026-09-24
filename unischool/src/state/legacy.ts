@@ -8,43 +8,24 @@ import {
   socialStandingBreakdown,
 } from '../systems/prestige/prestigeSystem';
 import { isSchoolFounded } from '../systems/techtree/schools';
+import { money } from '../format';
+import { clamp01 } from '../math';
 
 // ---------------------------------------------------------------------
-// THE LEGACY (Plan 17's PR B): what the run adds up to, as seven graded
-// axes and a name. A pure reading of the state as it stands — the same
-// shape as yearInReview.ts: nothing here is a system, nothing is stored
-// by this file, and every figure is one the game already keeps. The
-// fiftieth summer (PR C) calls this once and writes the result onto
-// s.self.legacy, and from then on the record is sealed; until then the
-// History tab can show what the run WOULD be called today, the way the
-// Standing panel shows what the year is grading toward.
+// The legacy: what the run adds up to, as seven graded axes and a name. A
+// pure reading of the state (like yearInReview.ts). The fiftieth summer
+// writes the result onto s.self.legacy and seals it; until then the History
+// tab shows what the run would be called today.
 //
-// WHY SEVEN GRADES AND NOT A SCORE. A single number ranks runs, and a
-// ranking has one right answer — which is precisely the "build everything"
-// the September review found had turned the game into a checklist. Seven
-// axes let a small selective college and a broad state university both
-// finish with something to be proud of and something they gave up, and be
-// *called* something for the shape of it. The name is flavour; the seven
-// grades are the record.
+// Seven grades rather than a score, because a single number ranks runs and
+// rewards building everything; axes let a small selective college and a
+// broad state university each finish with strengths and trade-offs. The
+// name is flavour; the grades are the record. Breadth, concentration and
+// research are the standing's own inputs (prestigeSystem.ts); teaching,
+// reach, stewardship and campus life are graded here.
 //
-// WHAT THE AXES READ. Each is a 0..1 reading built from the same pure
-// functions prestigeSystem.ts sums — breadth, concentration and research
-// are exactly the standing's inputs — plus three the standing does not
-// grade this way: teaching as the campus grade AND the share of courses
-// taught well, reach as the greater of how selective the school is and
-// how far past its standing it draws, and stewardship as solvency, wealth
-// per student and the students' own fifty-year average. Campus life was
-// left out by Plan 17 (its §B) because it could not yet be earned, and an
-// axis every run grades the same is not a record of anything; Plan 21's PR
-// B made it earnable — venues carry a contribution, programs and titles
-// feed it — and added it as the seventh, read off the same inputs
-// campus-life standing composes. Stewardship is about RUNNING a school;
-// campus life is a thing the school IS, which is why it is its own axis
-// rather than folded into that one.
-//
-// THE BANDS are the calibration Plan 17's PR E fits: an A in breadth is
-// what the earnest completionist reaches at fifty, a C is what a balanced
-// school reaches. They are one table so a re-fit moves one place.
+// The bands are calibrated so an A in breadth is what an earnest
+// completionist reaches at fifty and a C is a balanced school.
 // ---------------------------------------------------------------------
 
 // Score at or above which each grade is earned, best first.
@@ -64,24 +45,12 @@ export function gradeOf(score: number): LegacyGrade {
 // A grade as a number, for "at least a B" comparisons in the names table.
 const GRADE_RANK: Record<LegacyGrade, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 };
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
-
 // --- teaching -----------------------------------------------------------
-// Half the campus average grade, read on the COURSE GRADE'S OWN SCALE — an
-// average at the A line (courseQuality.ts's GRADE_A) scores the whole half,
-// one at the C line scores nothing, so "an A campus" means what a player
-// reading the Curriculum tab's chips would expect: the average course is an
-// A. Half the share of graded courses at A or B. The second half is what
-// tells a school that teaches everything adequately from one that teaches
-// most things well: two campuses can average 62 with very different
-// rosters.
-//
-// Not the prestige term's own teachingQualityScore, which maps 35..85: that
-// floor is where prestige starts paying for teaching at all, and on it every
-// big school in the harness reads the same mid-C whatever it does about its
-// grades. The legacy grades what the player did about them.
+// Half the campus average grade on the course grade's own scale (GRADE_C
+// scores nothing, GRADE_A the full half), half the share of courses at A or
+// B, which separates teaching everything adequately from most things well.
+// Not prestige's teachingQualityScore, whose 35..85 range reads every big
+// school as the same mid-C.
 const TEACHING_AVERAGE_SHARE = 0.5;
 
 function teachingReading(s: GameState): { score: number; detail: string } {
@@ -109,20 +78,11 @@ function teachingReading(s: GameState): { score: number; detail: string } {
 }
 
 // --- selectivity and reach -------------------------------------------------
-// The greater of two readings, because the axis is "how much is this school
-// wanted", and there are two honest answers: only the best get in, or far
-// more apply than its standing alone would draw. A selective college earns
-// it one way and a regional engine the other; a school that is neither
-// selective nor sought after earns neither.
-//
-// Selectivity: half the class's average quality, half how far below
-// REACH_ADMIT_OPEN the admit rate sits (REACH_ADMIT_SELECTIVE or under
-// scores the whole half). Reach: the greater of the realised pool against
-// the pool prestige alone would draw (lastFunnel.factors.prestigePool — a
-// cheap, well-regarded school drawing most of what its standing could ever
-// draw reads high, an expensive one low) and the body the school actually
-// serves against REACH_BODY_FOR_FULL — an engine of the region is one that
-// teaches tens of thousands. Null before the first summer.
+// "How much is this school wanted": the greater of selectivity (half class
+// quality, half how far the admit rate sits below REACH_ADMIT_OPEN) and
+// reach (the greater of applicants against the pool prestige alone would
+// draw, and enrollment against REACH_BODY_FOR_FULL). Zero before the first
+// summer.
 const REACH_ADMIT_SELECTIVE = 0.10;
 const REACH_ADMIT_OPEN = 0.50;
 const REACH_POOL_RATIO_FOR_FULL = 0.8;
@@ -146,11 +106,9 @@ function reachReading(s: GameState): { score: number; detail: string } {
 }
 
 // --- stewardship -------------------------------------------------------------
-// Three readings of equal weight: the share of the run's weeks the account
-// closed above zero, the endowment per enrolled student against a
-// reference a well-run school reaches by fifty, and the students' own
-// average satisfaction across every year on the books, scored on
-// welfare's floor and ceiling (40 earns nothing, 80 pays in full).
+// Three equal readings: the share of weeks solvent, endowment per student
+// against a reference a well-run school reaches by fifty, and average
+// satisfaction across the run (40 earns nothing, 80 pays in full).
 const STEWARDSHIP_ENDOWMENT_PER_STUDENT_FOR_FULL = 80_000;
 const STEWARDSHIP_SATISFACTION_FLOOR = 40;
 const STEWARDSHIP_SATISFACTION_FULL = 80;
@@ -169,7 +127,7 @@ function stewardshipReading(s: GameState): { score: number; detail: string } {
   return {
     score: (solvent + wealth + welfare) / 3,
     detail: `${s.finance.weeksInTheRed === 0 ? 'Never a week in the red' : `${s.finance.weeksInTheRed.toLocaleString()} weeks in the red`}; `
-      + `$${Math.round(perStudent).toLocaleString()} of endowment per student; `
+      + `${money(perStudent)} of endowment per student; `
       + `students averaged ${average.toFixed(0)} satisfaction over ${years === 0 ? 'the year so far' : `${years} year${years === 1 ? '' : 's'}`}.`,
   };
 }
@@ -201,12 +159,9 @@ function concentrationDetail(s: GameState): string {
 }
 
 // --- campus life ---------------------------------------------------------------
-// The same inputs campus-life standing composes (prestigeSystem.ts's
-// socialStandingBreakdown): the places built for it, the organisations, the
-// varsity programs, what students report, and the titles — each weighted as
-// the standing weights it, read as a share of what they could sum to. A run
-// that won twenty national titles and a run that never fielded a team are no
-// longer graded on the same axes.
+// The inputs campus-life standing composes (prestigeSystem.ts's
+// socialStandingBreakdown), weighted as the standing weights them, read as
+// a share of their maximum.
 function campusLifeReading(s: GameState): { score: number; detail: string } {
   const inputs = socialStandingBreakdown(s).inputs;
   const possible = inputs.reduce((sum, input) => sum + input.weight, 0);
@@ -244,12 +199,10 @@ export const AXES: readonly AxisSpec[] = [
 ];
 
 // ---------------------------------------------------------------------
-// THE NAMES. An authored table keyed on the pattern of grades: each entry
-// is a sentence and the shape of run it describes, tested in order, the
-// first match wins, and the last three catch everything. `table` says
-// which of three families the name belongs to — great, sound or troubled
-// — which is what Plan 17's PR E asserts against ("a legacy name from the
-// sound table") and what the report's tone follows.
+// The names: an authored table keyed on the pattern of grades, tested in
+// order, first match wins, the last entry catches everything. `table`
+// (great, sound or troubled) sets the report's tone and is asserted by
+// tests.
 // ---------------------------------------------------------------------
 type Grades = Record<LegacyAxisKey, LegacyGrade>;
 
@@ -280,9 +233,8 @@ export const LEGACY_NAMES: readonly NameEntry[] = [
   { name: 'a place students never leave', table: 'great', when: (g) => g.stewardship === 'A' && g.teaching === 'A' && atLeast(g, 'reach', 'B') },
   { name: "a specialist's school", table: 'great', when: (g) => g.concentration === 'A' && atLeast(g, 'research', 'B') && atMost(g, 'breadth', 'C') },
   { name: "the country's teaching college", table: 'great', when: (g) => g.teaching === 'A' && atMost(g, 'breadth', 'C') && atMost(g, 'research', 'C') },
-  // The athletic entries (Plan 21's PR B): a run whose leading axis is campus
-  // life can be named for it. After the academic names, so a great research
-  // university with a football team is still a great research university.
+  // After the academic names, so a great research university with a
+  // football team is still a great research university.
   { name: 'the university the whole state cheers for', table: 'great', when: (g) => g.campusLife === 'A' && atLeast(g, 'reach', 'B') && atLeast(g, 'breadth', 'B') },
   { name: 'a college with a great Saturday', table: 'great', when: (g) => g.campusLife === 'A' && atLeast(g, 'teaching', 'B') && atLeast(g, 'stewardship', 'B') },
   // --- sound: a good school, one way or another --------------------------------

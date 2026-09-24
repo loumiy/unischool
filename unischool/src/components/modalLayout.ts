@@ -2,25 +2,13 @@ import type { PendingInterrupt, SummerPayload } from '../state/types';
 import type { MilestonePayload } from '../data/eventData';
 
 // ---------------------------------------------------------------------
-// HOW WIDE AN INTERRUPT IS (Plan 16's PR E). One modal width used to serve
-// every interrupt — 440px, sized for a decision event's three choices —
-// and the September review found the summer decision and the fifty-row
-// report jammed into it. Three widths now, chosen by what the interrupt
-// IS rather than by how much it happens to contain:
-//
-//   narrow  a question with a short answer: a decision event, the charter,
-//           a student demand, a research report, a single milestone
-//   wide    a decision with a panel's worth of consequences beside it: the
-//           summer's review, admissions and students beats, the athletic
-//           director's three cards, a championship bracket, a burst of
-//           milestones laid out as cards
-//   page    a table to read: the summer's Standing beat and the first
-//           rankings entry, where the top 50 is a real table with a
-//           column for last year's rank
-//
+// How wide an interrupt is, chosen by what it is rather than how much it
+// contains:
+//   narrow  a question with a short answer (decision event, charter, demand)
+//   wide    a decision with a panel of consequences beside it
+//   page    a table to read (the Standing beat, the rankings)
 // A pure function of the interrupt, so the summer can change width between
-// beats without the component knowing why, and so the rule is testable
-// without a DOM (see test/modal-layout.test.ts).
+// beats and the rule is testable without a DOM (test/modal-layout.test.ts).
 // ---------------------------------------------------------------------
 
 export type ModalWidth = 'narrow' | 'wide' | 'page';
@@ -30,9 +18,7 @@ export function modalWidth(interrupt: PendingInterrupt): ModalWidth {
     case 'summer': {
       const payload = interrupt.payload as SummerPayload | undefined;
       const beat = payload?.beat ?? 0;
-      // The fiftieth summer's first beat is the final report (Plan 17's
-      // PR C): six graded axes, the ambitions, the founder's numbers and
-      // the fifty-year curves — a page to read, like the Standing beat.
+      // The fiftieth summer's first beat is the final report: a page.
       if (beat === 0 && payload?.final) return 'page';
       return beat === 1 ? 'page' : 'wide';
     }

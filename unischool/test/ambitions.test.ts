@@ -71,7 +71,7 @@ console.log('ambitions tests');
   s.milestones['program-distinguished:MECH'] = true;
   s.milestones['school-distinguished:Engineering'] = true;
   s.research.prizes = 1;
-  s.research.completedInitiatives.push({ depth: 'landmark', cancelled: false } as GameState['research']['completedInitiatives'][number]);
+  s.research.completedInitiatives.push({ depth: 'landmark' } as GameState['research']['completedInitiatives'][number]);
   s.finance.endowment = 1_000_000_000;
   s.students.classes.freshman = 10_000;
   s.self.suffix = 'University';

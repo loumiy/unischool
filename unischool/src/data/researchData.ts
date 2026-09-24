@@ -2,90 +2,33 @@ import type { Faculty, GameState, InitiativeDepth } from '../state/types';
 import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './researchTopics';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { hostableFields, researchSchools } from './techData';
+import { random } from '../engine/random';
 
-// ---------------------------------------------------------------------
-// RESEARCH, AS AUTHORED DATA — the tuning and the output table.
-// systems/research/researchSystem.ts is one ordinary pure tick function
-// that reads what is here; the same split eventData.ts/eventSystem.ts
-// already use.
-//
-// WHAT RESEARCH IS. Faculty in a school that has finished a lab produce
-// research points every week, weighted by how good and how senior they
-// are. Those points accumulate into a stock, and every so often the stock
-// converts into one of three outputs:
-//
-//   GRANT        -> cash, sized in weeks of opex so it scales across a run
-//                   spanning four orders of magnitude of budget.
-//   BREAKTHROUGH -> a durable count that feeds ONE CAPPED PRESTIGE INPUT
-//                   (prestigeSystem.ts's researchScore). Never a direct
-//                   nudge to s.self.reputation — see below.
-//   PRIZE        -> the momentous one: a named faculty member gains a
-//                   permanent honor, a permanent research and salary
-//                   premium, and a heavier share of that same prestige
-//                   input.
-//
-// WHAT RESEARCH IS NOT. It is deliberately NOT a second stream of
-// approve/deny decisions on top of the authored decision events. Grants
-// and breakthroughs resolve SILENTLY — a log line, and the effect lands
-// in a system that already exists (cash in financeSystem's balance, a
-// prestige input in prestigeSystem's target). Only a prize stops the
-// clock, and a prize costs years of accumulated research to reach. The
-// mid-game stays a build-and-price game with research running quietly
-// underneath it.
-//
-// WHAT AN OUTPUT MAY AND MAY NOT TOUCH — the same rule the decision-event
-// table lives under, and the load-bearing one here:
-//   - Prestige is NEVER written directly. s.self.reputation is a
-//     slow-moving stock that drifts toward a computed target once a year
-//     (see prestigeSystem.ts), and a breakthrough that added a point to
-//     it would be exactly the completion-bonus flow that model exists to
-//     forbid. A breakthrough therefore increments a COUNT, and that count
-//     is one clamped input to the target, weighted like every other one:
-//     it can contribute at most its own share and can never substitute
-//     for curriculum breadth.
-//   - Cash is fair game, because cash is a stock the player spends: a
-//     grant is the same kind of thing an estate gift already is.
-//   - A prize writes ONE new field on ONE Faculty (acclaim), which the
-//     salary and research-output formulas read. It does not write
-//     teaching, research or salary, because facultySystem.ts recomputes
-//     all three from potential + tenure every single tick and would erase
-//     the award the following week.
-// ---------------------------------------------------------------------
+// Research tuning and tables; systems/research/researchSystem.ts applies
+// them each tick. Outputs never write prestige directly: breakthroughs,
+// prizes and completions are counts feeding one capped input
+// (prestigeSystem.ts's researchScore). Grants are cash. A prize writes only
+// Faculty.acclaim, because facultySystem.ts recomputes teaching, research
+// and salary every tick and would erase anything else.
 
-// =====================================================================
-// PRODUCTION — who researches, and how much
-// =====================================================================
+// === Production ===
 
-// Points a faculty member with a research stat of 100, no tenure and no
-// honors produces in a week. The whole scale is arbitrary and internal;
-// what matters is its ratio to the output costs below. Set so a mature
-// lab-equipped department of ~12 produces roughly 500-700 points between
-// outputs, i.e. a grant is regularly affordable, a breakthrough often is,
-// and a prize takes years of banking.
+// Weekly points at research stat 100, no tenure, no honors. The scale is
+// internal; what matters is its ratio to PUBLICATION_POINTS.
 const RESEARCH_POINTS_PER_WEEK_AT_MAX = 1.0;
 
-// Seniority premium. "Senior faculty produce more" is the point of the
-// weighting, and tenure is the game's only measure of seniority (faculty
-// are ageless — see docs/design/faculty.md). Same exponential-approach
-// shape as every other tenure curve in the game, deliberately slower than
-// the stat curve: a professor's research OUTPUT keeps climbing on
-// reputation, students and standing collaborations long after their
-// research STAT has plateaued.
+// Seniority premium on tenure (faculty are ageless), slower than the stat
+// curve: output keeps climbing after the research stat plateaus.
 const RESEARCH_SENIORITY_PREMIUM_MAX = 0.8;   // at full maturity, a senior produces 1.8x what the same stats produce on day one
 const RESEARCH_SENIORITY_PLATEAU_YEARS = 12;
 const RESEARCH_SENIORITY_PLATEAU_FRACTION = 0.95;
 const RESEARCH_SENIORITY_RATE_PER_WEEK =
   1 - (1 - RESEARCH_SENIORITY_PLATEAU_FRACTION) ** (1 / (RESEARCH_SENIORITY_PLATEAU_YEARS * WEEKS_PER_YEAR));
 
-// What one prize is permanently worth to its winner's own output. Reads
-// Faculty.acclaim, which is the only reason that field exists on the type
-// (see types.ts).
+// What one prize (Faculty.acclaim) is permanently worth to its winner's output.
 export const ACCLAIM_RESEARCH_BONUS = 0.5;
 
-// The quality half of the weighting: the research stat itself, normalized.
-// Teaching is deliberately absent — a great lecturer who publishes nothing
-// contributes nothing here, which is what makes the two stats mean
-// different things when the player is choosing between two candidates.
+// Teaching is deliberately absent, so the two stats mean different things.
 export function facultyResearchOutput(f: Faculty): number {
   const seniority = 1 - (1 - RESEARCH_SENIORITY_RATE_PER_WEEK) ** f.tenureWeeks;
   return (
@@ -96,16 +39,8 @@ export function facultyResearchOutput(f: Faculty): number {
   );
 }
 
-// Every faculty field that currently has a lab to work in: a field
-// belonging to at least one school with at least one FINISHED lab (see
-// techData.ts's researchSchools). This is the gate the whole feature
-// hangs off, and it is the one invariant that must survive any later
-// refactor: no lab, no research.
-//
-// Labs are themselves gated on their school's building (authored in
-// techData.ts's lab prereqs), so the full chain is school building ->
-// lab -> research, and a school that has built nothing contributes
-// exactly zero however many professors it employs.
+// Fields belonging to a school with at least one finished lab
+// (techData.ts's researchSchools). The invariant: no lab, no research.
 export function labEquippedFields(s: GameState): Set<string> {
   const fields = new Set<string>();
   for (const school of researchSchools()) {
@@ -118,17 +53,9 @@ export function labEquippedFields(s: GameState): Set<string> {
   return fields;
 }
 
-// The campus-wide multiplier on output: 1 plus the sum of
-// effects.researchRateBonus across every FINISHED Buildable that carries
-// one (today the labs themselves and the research library). Live-read off
-// s.tech, the same contract satisfactionSystem/financeSystem use for
-// their own effect reads — nothing is ever mutated into state when a lab
-// finishes.
-//
-// It is campus-wide rather than per-school on purpose: a research library
-// serves whoever is using it, and an initiative is already tied to its own
-// facility and its own team, which is what keeps schools distinct. This is
-// shared equipment on top of that.
+// 1 plus effects.researchRateBonus across finished Buildables, read live
+// off s.tech. Campus-wide on purpose: shared equipment on top of each
+// initiative's own facility and team.
 export function researchRateMultiplier(s: GameState): number {
   const bonus = s.tech
     .filter((t) => t.status === 'done')
@@ -136,14 +63,9 @@ export function researchRateMultiplier(s: GameState): number {
   return 1 + bonus;
 }
 
-// The campus's research CAPACITY: what the equipped roster could be
-// producing, if it were all committed. Nothing banks this any more — the
-// stock it used to feed is gone (see docs/design/research.md), and what a
-// run actually produces is initiativeWeeklyOutput on the initiatives that
-// are actually running. This survives as a SIGNAL: the admissions funnel
-// reads it for applicant appeal (cohorts.ts), and the balance sim prints it
-// as its rsch/wk column. Keep it a pure read of the roster and the
-// facilities, not of what happens to be commissioned this week.
+// What the equipped roster could produce if fully committed. Not banked
+// anywhere; a signal for cohorts.ts and the balance sim's rsch/wk column.
+// Keep it a pure read of roster and facilities, not of running initiatives.
 export function weeklyResearchPoints(s: GameState): number {
   const equipped = labEquippedFields(s);
   if (equipped.size === 0) return 0;
@@ -153,123 +75,26 @@ export function weeklyResearchPoints(s: GameState): number {
   return raw * researchRateMultiplier(s);
 }
 
-// =====================================================================
-// CADENCE — how often an output lands
-//
-// Deliberately the same two-dial trigger model as the authored decision
-// events (see eventData.ts): a per-week probability floored by a global
-// cooldown, then a weighted draw across whatever is eligible. No second
-// scheduler, and the frequency stays a one-line dial.
-//
-// The weekly chance is not flat: it scales with the BANKED STOCK, between
-// the two bounds below. That is the second half of "weighted by
-// accumulated research" — the first half is which outputs the stock can
-// afford at all (see pointCost below). A school that has just built its
-// first lab produces something roughly every 47 weeks and it is always a
-// grant; a mature research university with a deep bank produces every ~21
-// weeks and can draw the whole table. Without the scaling, frequency
-// would be constant the moment the cheapest output became affordable and
-// only the MIX would respond to investment, which reads as "research
-// happens at a fixed rate regardless of how much you put into it".
-//
-// Both bounds are deliberately low. Even at full tilt that is ~2.5 outputs
-// a year against two fixed annual interrupts and roughly one decision
-// event — and two of the three are SILENT, so what the player is actually
-// stopped for is a prize roughly once every seven years at maximum
-// research output, and never at all before the labs are deep.
-// =====================================================================
-
-export const RESEARCH_OUTPUT_COOLDOWN_WEEKS = 14;         // minimum quiet stretch between ANY two research outputs
-const RESEARCH_OUTPUT_WEEKLY_CHANCE_MIN = 0.03;           // a school scraping past the cheapest output
-const RESEARCH_OUTPUT_WEEKLY_CHANCE_MAX = 0.15;           // a school with a deep bank
-const RESEARCH_POINTS_FOR_MAX_CHANCE = 3_500;
-
-export function researchOutputWeeklyChance(points: number): number {
-  const depth = Math.max(0, Math.min(1, points / RESEARCH_POINTS_FOR_MAX_CHANCE));
-  return RESEARCH_OUTPUT_WEEKLY_CHANCE_MIN +
-    (RESEARCH_OUTPUT_WEEKLY_CHANCE_MAX - RESEARCH_OUTPUT_WEEKLY_CHANCE_MIN) * depth;
-}
-
-// The three outputs. `pointCost` is the accumulated research an output
-// SPENDS when it fires — which is how "weighted by accumulated research"
-// is expressed: a school with a thin research base can only ever afford
-// grants, one that has been investing for a decade unlocks breakthroughs,
-// and a prize needs years of banked work on top of that. `weight` sets
-// the mix among whatever is currently affordable.
-export type ResearchOutputKind = 'publication' | 'grant' | 'breakthrough' | 'prize';
-
-export interface ResearchOutputDef {
-  kind: ResearchOutputKind;
-  pointCost: number;
-  weight: number;
-}
-
-export const RESEARCH_OUTPUTS: readonly ResearchOutputDef[] = [
-  // The bottom rung, and the reason it exists: the other three all cost
-  // enough that a young department's first decade of research was a
-  // long silence broken by a grant. A cheap, frequent output gives a
-  // school something to show from its first year of having a facility at
-  // all — and gives the humanities an output that reads right, since a
-  // monograph is what that work actually produces and "a breakthrough" is
-  // not (see DISCIPLINE_VOCAB).
-  { kind: 'publication', pointCost: 90, weight: 26 },
-  { kind: 'grant', pointCost: 300, weight: 6 },
-  // Weighted against the award gate as much as against the log. A run
-  // that banks no breakthrough can never end in a prize however strong its
-  // team (see awardChance), so pushing this too low does not make awards
-  // rare — it makes them impossible, which is a different and worse thing.
-  { kind: 'breakthrough', pointCost: 750, weight: 5 },
-  // Rare twice over: it is the most expensive output AND the least likely
-  // of the three even once affordable. Both dials matter — the cost keeps
-  // it out of the early game entirely, the weight keeps it from becoming
-  // routine in the late game, when points are plentiful.
-  { kind: 'prize', pointCost: 4_000, weight: 1 },
-];
-
-export const CHEAPEST_OUTPUT_COST = Math.min(...RESEARCH_OUTPUTS.map((o) => o.pointCost));
-
-// =====================================================================
-// GRANTS — cash, sized in weeks of operating cost
-//
-// The same scaling device the decision-event table uses, and for the same
-// reason: a flat dollar figure would be a crisis in year 3 and a rounding
-// error in year 40. Sized at the low end of the event table's gift range
-// (an estate gift is 2-5 weeks) so grants read as a real but ordinary
-// income line rather than a second economy — see the PR notes for what
-// they actually came to as a share of income across the sim runs.
-// =====================================================================
+// === Grants ===
+// Sized in weeks of opex, like the decision events, so a grant is neither a
+// crisis in year 3 nor a rounding error in year 40.
 const MIN_OPEX_SCALE = 45_000; // floor, matching eventData.ts, so a young school still produces sane figures
-// Sized DOWN from the 1.2-3.0 the single-stock model used, for the same
-// reason the output odds came down: grants used to be rare campus-wide
-// because one bank fed them, and are now drawn by every running project
-// independently. A grant is a welcome cheque, not a funding round.
+// Every running project draws grants independently, so each is small: a
+// welcome cheque, not a funding round.
 const GRANT_MIN_WEEKS = 0.4;
 const GRANT_MAX_WEEKS = 1.2;
 
 export function rollGrantAmount(s: GameState): number {
-  const weeks = GRANT_MIN_WEEKS + Math.random() * (GRANT_MAX_WEEKS - GRANT_MIN_WEEKS);
+  const weeks = GRANT_MIN_WEEKS + random() * (GRANT_MAX_WEEKS - GRANT_MIN_WEEKS);
   return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * weeks);
 }
 
-// Grant funders and prize names are FLAVOR ONLY — nothing branches on
-// which one is drawn — but a log line that names a body reads as an event
-// rather than as a number appearing in the balance, and naming the WRONG
-// body reads as a bug. Both tables are authored per discipline; see "What
-// the work is called" below.
-
-// What a prize permanently buys its winner, beyond the badge:
-//   - research output: ACCLAIM_RESEARCH_BONUS, above.
-//   - salary: facultyData.ts's ACCLAIM_SALARY_PREMIUM, which lives with
-//     the rest of the salary curve so there is one file to read to know
-//     what a hire costs. A laureate is instantly the most expensive
-//     person on the payroll and stays that way — the cost side of an
-//     award whose other effects are all upside.
-//   - prestige: a heavier share of the same capped research input a
-//     breakthrough feeds (see prestigeSystem.ts's researchScore). Never a
-//     direct write.
+// Grant funders and prize names are flavor only, authored per discipline
+// (below). A prize's salary premium is facultyData.ts's
+// ACCLAIM_SALARY_PREMIUM.
 
 export function pick<T>(items: readonly T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
+  return items[Math.floor(random() * items.length)];
 }
 
 export function rollGrantFunder(vocab: DisciplineVocab): string {
@@ -280,31 +105,9 @@ export function rollPrizeName(vocab: DisciplineVocab): string {
   return pick([...SHARED_PRIZES, ...vocab.prizes]);
 }
 
-// =====================================================================
-// WHAT THE WORK IS CALLED, by the discipline that did it.
-//
-// One shared table over one shared mechanism — the same rule the graduate
-// programs follow. Nothing branches on these: a publication costs the same
-// points and moves the same counter whoever produced it. What changes is
-// the WORDS, because "a breakthrough out of the university's labs" is
-// simply the wrong sentence about a history department, and a system that
-// can only describe research as laboratory science is one that quietly
-// tells four schools their work does not count.
-//
-// Three things are named, not one. The first pass did only the outputs,
-// which left a monograph out of the Humanities Research Institute funded
-// by a defense research agency and rewarded with an award for Scientific
-// Achievement — the sentence around the word was still wrong. Funders and
-// prize names are authored per discipline for the same reason the output
-// nouns are.
-//
-// Each discipline's funders and prizes are drawn from a SHARED neutral
-// pool plus its own additions, rather than a complete list each. A trust
-// or a federal research council funds anybody; the National Science
-// Foundation does not fund a film. That keeps the authored content to the
-// part that actually differs, and means a new school needs a couple of
-// lines rather than a full table.
-// =====================================================================
+// === What the work is called, by discipline ===
+// Words only; nothing branches on them. Each discipline adds its own
+// funders and prizes to shared neutral pools.
 
 // Fictional, like every other institution the game names (see
 // facultyData.ts's universities).
@@ -315,8 +118,7 @@ const SHARED_FUNDERS: readonly string[] = [
   'the Halvorsen Endowment',
 ];
 
-// Discipline-neutral prize names. One is drawn per award purely so two
-// prizes in one run don't read as the same trophy handed out twice.
+// Discipline-neutral prize names.
 const SHARED_PRIZES: readonly string[] = [
   'the Halvorsen Prize',
   'the Marchmont Medal',
@@ -327,25 +129,19 @@ const SHARED_PRIZES: readonly string[] = [
 export interface DisciplineVocab {
   publication: string;             // the cheap, frequent output
   breakthrough: string;            // the rare, prestigious one
-  /** How the rare one reached the world, finishing the sentence
-   *  "<An> <breakthrough> out of <topic> has been ___." A film is not
-   *  published and a monograph is not screened, so the VERB is authored
-   *  per discipline exactly as the noun is — getting the noun right and
-   *  then publishing it anyway only moves where the sentence is wrong. */
+  /** Finishes "<An> <breakthrough> out of <topic> has been ___." Authored
+   *  per discipline: a film is not published. */
   breakthroughTail: string;
   funders: readonly string[];      // added to SHARED_FUNDERS for this discipline
   prizes: readonly string[];       // added to SHARED_PRIZES for this discipline
 }
 
-// "A acclaimed work" is what authoring the noun alone gets you. The
-// article has to follow whatever word the table happens to supply, so it
-// is computed rather than baked into the log template.
+// "An acclaimed work", not "A acclaimed work".
 export function article(noun: string): string {
   return /^[aeiou]/i.test(noun) ? 'An' : 'A';
 }
 
-// The lab sciences, engineering and health — the schools whose work the
-// original single vocabulary was written for, so this is what it says.
+// The lab sciences' vocabulary, used when no discipline entry applies.
 const DEFAULT_VOCAB: DisciplineVocab = {
   publication: 'paper',
   breakthrough: 'breakthrough',
@@ -354,13 +150,8 @@ const DEFAULT_VOCAB: DisciplineVocab = {
   prizes: ['the Kellner Award for Scientific Achievement'],
 };
 
-// The one place the word "scholarship" survives outside admissions (see
-// the naming sweep: the research system is called research everywhere a
-// player can read it). Here it is not the system's name — it is the
-// Humanities' own word for the work, chosen by this table for exactly the
-// reason the table exists: "a breakthrough" is the wrong sentence about a
-// history department, and so is "a landmark work of research". Renaming it
-// would be the sweep overruling the thing the sweep is for.
+// "Scholarship" here is deliberate: it is the Humanities' own word for the
+// work, not a name for the research system.
 const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
   'Social Sciences & Humanities': {
     publication: 'monograph',
@@ -410,22 +201,9 @@ export function disciplineVocab(schoolName: string | null): DisciplineVocab {
   return (schoolName && DISCIPLINE_VOCAB[schoolName]) || DEFAULT_VOCAB;
 }
 
-// WHICH SCHOOL AN OUTPUT CAME OUT OF: the one whose facility the work is
-// running in. Nothing else would be right — an initiative IS a topic, a
-// team and a facility, and the facility is the half of that with a school.
-//
-// This replaced a campus-wide weighted draw across everyone producing
-// research. That was the correct reading under the old model, where
-// production genuinely was the whole equipped roster trickling into one
-// pool and no output belonged to anybody in particular. Against
-// initiatives it is simply wrong, and visibly so: a project in the
-// Humanities Research Institute logged "a new paper" whenever the campus
-// also ran physics labs, because the draw landed on a physicist who had
-// nothing to do with it.
-//
-// Returns null for a facility that belongs to no school, which cannot
-// happen with the seeded catalogue but keeps this total — the caller
-// falls back to DEFAULT_VOCAB.
+// The school whose facility the work runs in. Null for a facility in no
+// school (not possible in the seeded catalogue); callers fall back to
+// DEFAULT_VOCAB.
 export function facilitySchool(labId: string): string | null {
   for (const school of researchSchools()) {
     if (school.labIds.includes(labId)) return school.schoolName;
@@ -433,37 +211,17 @@ export function facilitySchool(labId: string): string | null {
   return null;
 }
 
-// =====================================================================
-// INITIATIVES — player-directed research.
-//
-// THE LAB IS THE SLOT. Each research facility hosts one initiative at a
-// time, and the record is keyed by the facility's own id, so "one per
-// lab" is an invariant of the data shape rather than a rule some system
-// has to remember. A facility is vacant exactly when it has no key.
-//
-// That constraint is doing real work. Before it, research was something a
-// campus did because it owned a building; now the number of things a
-// university can pursue at once is the number of places it has built to
-// pursue them in, which makes "should we build another facility" a
-// question with an obvious, countable answer. It also scales itself:
-// thirteen facilities exist across the catalogue, so a young school runs
-// one project and a mature one runs a dozen, with no separate tuning.
-//
-// WHAT THE RANDOMNESS DOES NOW. All of it is kept — grants, breakthroughs
-// and publications still arrive on a weighted draw behind a cooldown, the
-// same two-dial machinery the decision events use. What changed is which
-// end the player touches: they choose the area, the people and the depth,
-// and the dice resolve that rather than resolving everything.
-// =====================================================================
+// === Initiatives: player-directed research ===
+// The lab is the slot: initiatives are keyed by facility id, so "one per
+// facility" is a property of the data shape, and the number of concurrent
+// projects is the number of facilities built.
 
 export interface InitiativeDepthDef {
   key: InitiativeDepth;
   name: string;
   participants: number;
   weeks: number;
-  /** Up-front funding, in weeks of operating cost — the same scaling device
-   *  grants and the decision-event table use, so the figure stays sane
-   *  across four orders of magnitude of budget. */
+  /** Up-front funding, in weeks of operating cost. */
   fundingWeeks: number;
   /** Multiplier on weekly output, and on how often an output lands. */
   intensity: number;
@@ -472,11 +230,8 @@ export interface InitiativeDepthDef {
   blurb: string;
 }
 
-// Durations against WEEKS_PER_YEAR: six months, a year and a half, three
-// years, five. A Landmark Program costs four people two course slots each
-// for five years (see techSystem.ts's RESEARCH_COMMITMENT_SLOTS), which is
-// a real institutional commitment on top of the money — eight courses that
-// have to be covered by somebody else, or not offered.
+// Six months, eighteen months, three years, five. Each participant also
+// gives up course slots (techSystem.ts's RESEARCH_COMMITMENT_SLOTS).
 export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
   {
     key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.4, intensity: 1,
@@ -505,19 +260,12 @@ export function initiativeFundingCost(s: GameState, depth: InitiativeDepthDef): 
   return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * depth.fundingWeeks);
 }
 
-// A team's combined strength, 0..1-ish: mean research stat plus the
-// acclaim its members already carry. What drives both how much the work
-// produces and how likely it is to end in an award.
+// A team's strength, 0..1.4: mean research stat plus acclaim. Drives grant
+// size, breakthrough and award odds.
 export function teamStrength(participants: readonly Faculty[]): number {
   if (participants.length === 0) return 0;
-  // The RESEARCH STAT, not facultyResearchOutput. They are different
-  // scales and confusing them is silent: output is points per week (a
-  // small number, ~1-4), so dividing it by 100 produced a "strength" of
-  // about 0.02 for every team ever assembled — which made the grant
-  // scaling and the award roll into constants and quietly deleted the
-  // one thing the brief asked for, that stronger faculty get better
-  // outcomes. The stat is already 0..100 and is what "how good are these
-  // scholars" means.
+  // The research stat (0..100), not facultyResearchOutput, which is points
+  // per week (~1-4) and would make every team's strength about 0.02.
   const mean = participants.reduce((sum, f) => sum + f.research, 0) / participants.length;
   const acclaim = participants.reduce((sum, f) => sum + f.acclaim, 0);
   return Math.min(1.4, mean / 100 + ACCLAIM_TEAM_STRENGTH_BONUS * acclaim);
@@ -526,10 +274,8 @@ export function teamStrength(participants: readonly Faculty[]): number {
 // A prize already won makes its winner better at winning the next one.
 const ACCLAIM_TEAM_STRENGTH_BONUS = 0.08;
 
-// THE INTERDISCIPLINARY BONUS, and the reason breadth pays off twice. A
-// team drawn from several departments produces meaningfully more than the
-// same people would apart — which is what makes a wide university worth
-// building, rather than a deep one worth drilling.
+// A team drawn from several fields produces more than the same people
+// apart, rewarding a broad university.
 const INTERDISCIPLINARY_BONUS_PER_EXTRA_FIELD = 0.18;
 
 export function interdisciplinaryBonus(participants: readonly Faculty[]): number {
@@ -537,9 +283,7 @@ export function interdisciplinaryBonus(participants: readonly Faculty[]): number
   return 1 + INTERDISCIPLINARY_BONUS_PER_EXTRA_FIELD * Math.max(0, fields.size - 1);
 }
 
-// One week of an initiative's output. Everything that shapes it is
-// something the player chose: who is on it, how deep they committed, what
-// the campus has built.
+// One week of an initiative's output.
 export function initiativeWeeklyOutput(
   s: GameState, participants: readonly Faculty[], depth: InitiativeDepthDef,
 ): number {
@@ -547,54 +291,16 @@ export function initiativeWeeklyOutput(
   return raw * depth.intensity * interdisciplinaryBonus(participants) * researchRateMultiplier(s);
 }
 
-// How likely an output lands this week. Rises with what the project is
-// actually producing, floored by the same global cooldown the decision
-// events use, so a deep well-staffed program is eventful and a lone pilot
-// study is quiet without either needing a schedule of its own. TUNED
-// AGAINST THE WHOLE CAMPUS, not one project. These read as modest
-// per-initiative odds and they have to: a mature university runs a dozen
-// facilities at once for decades, so the campus-wide rate is this number
-// times thirteen times two thousand weeks. The first pass used a rate that
-// felt right for a single project and produced grant income worth a fifth
-// of the university's lifetime operating cost — a second economy, which is
-// exactly what docs/design/research.md says grants must never become.
-const INITIATIVE_OUTPUT_CHANCE_MIN = 0.005;
-const INITIATIVE_OUTPUT_CHANCE_MAX = 0.034;
-const INITIATIVE_OUTPUT_FULL_RATE = 40; // weekly output at which the chance tops out
-
-export function initiativeOutputChance(weeklyOutput: number): number {
-  const t = Math.min(1, weeklyOutput / INITIATIVE_OUTPUT_FULL_RATE);
-  return INITIATIVE_OUTPUT_CHANCE_MIN + (INITIATIVE_OUTPUT_CHANCE_MAX - INITIATIVE_OUTPUT_CHANCE_MIN) * t;
-}
-
-// THE AWARD, at conclusion and nowhere else.
-//
-// Moved out of the output table entirely: a prize is no longer a weighted
-// draw against a bank, it is what a finished piece of work is judged to
-// have been. Gated on the run having produced at least one breakthrough —
-// no breakthrough, no award, however strong the team — then rolled on team
-// strength and depth with real noise on top, so a Landmark Program with a
-// distinguished team has a genuine chance and a pilot study essentially
-// never does.
-//
-// The point of the move is the story: a Nobel now arrives attached to a
-// named topic, a named team and five years, rather than to a counter
-// crossing a threshold.
-// Tuned for roughly three to five awards across a forty-year run at a
-// strong school. The sim reads lower than that (one or two) and is
-// expected to: its heuristic refuses to thin a department, so it almost
-// never commissions the Landmark Programs that are where awards actually
-// come from. A player chasing prestige commissions them deliberately, so
-// the honest target sits above what the harness measures — which is why
-// these are nudged rather than fitted to the sim's own number.
+// The award, rolled only at conclusion and only if the run produced a
+// breakthrough, on depth and team strength. Tuned for three to five awards
+// in forty years at a strong school. The sim reads lower (one or two)
+// because it rarely commissions Landmark Programs, so these are not fitted
+// to the sim's number.
 const AWARD_BASE_BY_DEPTH: Record<InitiativeDepth, number> = {
   pilot: 0.015, project: 0.07, program: 0.2, landmark: 0.45,
 };
-// How much of the roll the TEAM accounts for. The offset is deliberately
-// small: at 0.45 the depth tier swamped everybody, and a mediocre landmark
-// team came out barely behind a distinguished one, which makes the choice
-// of who to commit not matter. At 0.15 a strong team roughly doubles a
-// weak one's odds at the same depth, which is the point.
+// Kept small so team matters: at 0.15 a strong team roughly doubles a weak
+// one's odds at the same depth.
 const AWARD_TEAM_FLOOR = 0.15;
 
 export function awardChance(depth: InitiativeDepth, strength: number, breakthroughs: number): number {
@@ -605,50 +311,23 @@ export function awardChance(depth: InitiativeDepth, strength: number, breakthrou
   return Math.min(0.85, depthBase * (AWARD_TEAM_FLOOR + strength) * breakthroughFactor);
 }
 
-// What finishing one is worth to the school's standing, in the same
-// credits researchScore counts breakthroughs and prizes in (see
-// prestigeSystem.ts). Finishing a five-year program is an achievement in
-// itself, separate from whatever it happened to produce along the way.
+// Completion credit in researchScore's units (prestigeSystem.ts), separate
+// from whatever the run produced.
 export const INITIATIVE_COMPLETION_CREDIT: Record<InitiativeDepth, number> = {
   pilot: 0.3, project: 1, program: 2.5, landmark: 6,
 };
 
-// =====================================================================
-// GUARANTEED OUTPUT (Plan 15's PR C) — research that produces something.
-//
-// The September 2026 review counted the most frequent interrupt in the
-// game: a project concluding with "the work produced nothing publishable",
-// 61-74 of ~223 modals in a forty-year run, while forty years of
-// continuous research at a top-ranked school produced nine breakthroughs.
-// The during-run draw was a 0.5-3.4%-a-week silent lottery. It is gone,
-// and three legible rules replace it (see researchSystem.ts):
-//
-//   - PUBLICATIONS ARE BANKED, not rolled. Every week the team's output is
-//     banked toward the next paper, and every PUBLICATION_POINTS of it
-//     publishes one. A run's expected publications are therefore a plain
-//     product of its weekly output and its length, which is what the offer
-//     shows before the commitment. A Funded Project or deeper always
-//     publishes at least once — the concluding paper — however thin the
-//     team; a pilot publishes what it earned.
-//   - A BREAKTHROUGH ROLL ONCE A YEAR, at a stated probability. Every
-//     initiative rolls at each anniversary of its start and once more at
-//     its conclusion, at annualBreakthroughChance — depth times team
-//     strength. A three-year program at a strong school has three real
-//     chances, and the offer names the odds over the whole run.
-//   - GRANTS RIDE ON PUBLICATIONS. Each paper has GRANT_PER_PUBLICATION_
-//     CHANCE of bringing a grant with it, so a grant is a thing the work
-//     did rather than a thing that happened, and a strong team pulls in
-//     more money because it publishes more.
-//
-// The award at conclusion is unchanged (awardChance above) — still gated
-// on a breakthrough — and is now shown on the offer at the run's odds.
-// =====================================================================
-export const PUBLICATION_POINTS = 90;            // banked output per paper — the old publication pointCost
+// === Guaranteed output (applied in researchSystem.ts) ===
+// Publications are banked: every PUBLICATION_POINTS of output publishes
+// one, so the offer's expected count is output times length. A breakthrough
+// is rolled at each anniversary and at conclusion. Grants ride on
+// publications.
+export const PUBLICATION_POINTS = 90;            // banked output per paper
 export const GRANT_PER_PUBLICATION_CHANCE = 0.2; // a grant rides on roughly one paper in five
 
 // Per-roll breakthrough chance by depth, before team strength. Sized so a
 // Funded Project with an ordinary team lands one roughly every other run,
-// a Major Program most runs, and a pilot study rarely. PR G fits these.
+// a Major Program most runs, and a pilot study rarely.
 const BREAKTHROUGH_BASE_BY_DEPTH: Record<InitiativeDepth, number> = {
   pilot: 0.04, project: 0.14, program: 0.26, landmark: 0.36,
 };
@@ -670,9 +349,8 @@ export function isBreakthroughRollWeek(weeksTotal: number, weeksRemaining: numbe
   return weeksRemaining <= 0 || (elapsed > 0 && elapsed % WEEKS_PER_YEAR === 0);
 }
 
-// The bet, stated: what this team at this depth should expect. Pure, off
-// the same functions the tick applies, so the offer cannot promise odds
-// the run does not give.
+// What this team at this depth should expect, from the same functions the
+// tick applies, so the offer cannot promise odds the run does not give.
 export interface InitiativeOdds {
   publications: number;        // expected papers over the run
   annualBreakthroughChance: number;
@@ -701,32 +379,17 @@ export function initiativeOdds(
   };
 }
 
-// Every field the university could ever research in — the union across
-// the schools that can hold a lab. The denominator research standing's
-// breadth term reads (prestigeSystem.ts): equipped fields over THIS, which
-// is what the sentence beside it always claimed it measured.
+// Every field any lab-holding school covers: the denominator of
+// prestigeSystem.ts's research breadth term.
 export function researchableFields(): string[] {
   const fields = new Set<string>();
   for (const school of researchSchools()) for (const field of school.fields) fields.add(field);
   return [...fields];
 }
 
-// =====================================================================
-// WHAT IS ON OFFER AT A VACANT FACILITY.
-//
-// Derived, never stored. Offers are a deterministic function of the
-// facility's id and a slowly-turning epoch, so they are STABLE across
-// renders (a list that reshuffled every repaint would be unusable) and
-// they TURN OVER every few months, which is what makes "what came up this
-// time" a small piece of texture rather than a fixed menu. No state, no
-// migration, nothing to keep in sync.
-//
-// A topic is eligible when the university can actually staff it: somebody
-// free in every field it names, and at least one of those fields hosted
-// by the facility — its own field, or a field its school teaches that has
-// no facility of its own (techData.ts's hostableFields). A physics lab
-// does not host a monograph on Shakespeare; the humanities institute does.
-// =====================================================================
+// === Offers at a vacant facility ===
+// Derived, never stored: a deterministic function of facility id and a
+// quarterly epoch, so offers are stable across renders and turn over.
 
 const OFFER_EPOCH_WEEKS = 13; // offers turn over each quarter
 
@@ -752,10 +415,8 @@ export interface InitiativeOffer {
   blockedReason?: string;
 }
 
-// Everyone who could join an initiative right now: on the roster, in the
-// field, and not already committed elsewhere. Deliberately NOT filtered on
-// teaching load — joining costs them two course slots, it does not require
-// them to be free of any first.
+// Rostered faculty in the field not already on an initiative. Not filtered
+// on teaching load: joining costs course slots but does not require free ones.
 export function availableScholars(s: GameState, field: string): Faculty[] {
   return s.faculty
     .filter((f) => f.field === field)
@@ -763,37 +424,12 @@ export function availableScholars(s: GameState, field: string): Faculty[] {
     .sort((a, b) => facultyResearchOutput(b) - facultyResearchOutput(a) || a.id.localeCompare(b.id));
 }
 
-// The offer set for one vacant facility: one option per depth tier, each
-// carrying a topic THIS FACILITY could actually run.
-//
-// The pool is the facility's own, derived here from its id rather than
-// passed in — the bug this fixes was precisely a caller handing over the
-// wrong set of fields (the whole school's), and a function that cannot be
-// told the wrong pool cannot have that bug again.
-//
-// "Could run" means a field the facility HOSTS is among the topic's
-// fields, not merely overlapping some school-wide set. A facility hosts
-// its own field and, since Plan 20's PR B, the fields its school teaches
-// that have no facility of their own (techData.ts's hostableFields) —
-// which is how the Computing Research Center runs an AI project and the
-// Humanities Research Institute one in English. A single-field topic is
-// offered in the lab its field belongs to, or in the building of each
-// school that teaches an unequipped field; a cross-disciplinary topic is
-// offered in each of the facilities hosting a field it names, and in no
-// others — so a project always belongs to a place its department works,
-// while a physicist can still be on a Materials + Chemistry project
-// running out of either lab.
-//
-// A topic may also name the facilities it belongs in (ResearchTopic.labs),
-// which is how the two pairs of facilities that SHARE a field are kept
-// apart — a plant-scale synthesis project belongs in the chemical
-// engineering labs and not the chemistry ones, and "Acoustics of
-// Performance Spaces" is physics but it is not aerospace. Unset, the
-// common case, means any facility whose field it names.
-//
-// A facility id that names no research facility (or one whose field the
-// catalogue no longer has) yields an empty pool and four blocked tiers,
-// which is the honest answer rather than a crash.
+// One option per depth tier, each with a topic this facility can run: one
+// naming a field the facility hosts (its own, or its school's unequipped
+// fields: techData.ts's hostableFields), and, if the topic names facilities
+// (ResearchTopic.labs), this one among them. The pool is derived from the
+// id so a caller cannot pass the wrong fields. An unknown id yields four
+// blocked tiers.
 export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[] {
   const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
   const fieldSet = new Set(hostableFields(labId));

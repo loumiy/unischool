@@ -3,28 +3,15 @@ import { totalEnrolled } from '../state/types';
 import { COHORTS, baseShareCohortCounts } from '../systems/admissions/cohorts';
 
 // ---------------------------------------------------------------------
-// The Enrollment tab: who attends this university, and what the funnel
-// that produced them is doing.
-//
-// The standing body is the half that needed new state to exist at all. A
-// class's cohort composition is recorded when it is ADMITTED and carried to
-// graduation (see types.ts's ClassCohorts) — so the four bars below are
-// four different schools stacked on top of each other: the seniors are a
-// reading of what this university pulled in four years ago, the freshmen
-// are what it pulls in now. That comparison IS the content. Deriving the
-// mix instead would have made every bar a reading of today's campus and
-// left nothing to compare.
-//
-// Tuition is only ever set once a year, at the summer admissions interrupt
-// (see InterruptModal.tsx) — this tab is the read-only picture of where
-// things stand between those decisions.
+// The Enrollment tab: who attends, and what the funnel is doing. Each
+// class's cohort mix is recorded at admission and carried to graduation
+// (types.ts's ClassCohorts), so the four bars compare what the school drew
+// four years ago with what it draws now. Read-only: tuition is set only at
+// the summer.
 // ---------------------------------------------------------------------
 
-// Youngest first, top to bottom. Two readings agree on this order, which is
-// why it is not a toss-up: it is the order Treasury lists classes in and the
-// order reducer.ts advances them, AND it puts the most recently admitted
-// class at the top with the oldest at the bottom, so the four bars read as
-// strata laid down in sequence.
+// Youngest first, so the bars read as strata laid down in sequence; also
+// the order Treasury lists classes and reducer.ts advances them.
 const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]> = [
   ['freshman', 'Freshmen'],
   ['sophomore', 'Sophomores'],
@@ -32,16 +19,8 @@ const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]
   ['senior', 'Seniors'],
 ];
 
-// SEVEN CATEGORICAL COLOURS ON PARCHMENT, which is the one genuinely new
-// thing this screen asks of the palette — every chart in the game until now
-// (see HistoryTab.tsx) has been a single line needing no hues at all.
-//
-// They are pigments rather than a spectrum: brass, ink-blue, moss, oxblood,
-// terracotta, plum, ochre — the range a printed almanac of this era could
-// actually be tinted in. All are desaturated and mid-dark so they sit ON
-// parchment rather than glowing against it, and so white segment labels
-// stay legible on every one of them. A bright categorical palette would
-// read at a glance and would look like a different game's UI.
+// Categorical colours as muted, mid-dark pigments so they sit on parchment
+// and white segment labels stay legible on each.
 const COHORT_COLOR: Record<CohortId, string> = {
   highAchievers: '#8a6d14',    // brass — the same finished-work tone as --brass-deep
   preProfessional: '#3c4d6b',  // ink blue
@@ -53,28 +32,17 @@ const COHORT_COLOR: Record<CohortId, string> = {
   gradBound: '#33706a',        // verdigris — aged copper, the eighth pigment
 };
 
-// A class whose mix carries NO PULL from anything the school had built —
-// exactly the base shares, apportioned to its own head count.
-//
-// Derived rather than flagged in state, and the label is written to be true
-// of every case that produces it rather than guessing between them. Two
-// do: the founding body (four classes that arrived before the player had
-// built anything) and a class genuinely admitted while the school had built
-// nothing and priced at what its standing supported. Both mean the same
-// thing about the bar, which is why the note says "no cohort signal" rather
-// than claiming to know which it was.
+// A class whose mix is exactly the base shares: no cohort pull from anything
+// built. Both the founding classes and a class admitted with nothing built
+// produce it, so the note says "no cohort signal" rather than guessing.
 function hasNoCohortSignal(counts: CohortCounts, total: number): boolean {
   const prior = baseShareCohortCounts(total);
   return COHORTS.every((c) => counts[c.id] === prior[c.id]);
 }
 
-// One figure of the funnel, with what drives it underneath. Same shape and
-// the same classes as TreasuryTab's StatementLine, deliberately: these two
-// screens are doing the identical job of explaining a model the player only
-// ever sees the output of, and a second visual idiom for it would be a
-// second thing to learn. The value is a preformatted string here rather than
-// a number — these are people, percentages and a score out of 100, not one
-// unit the way an income statement is.
+// One funnel figure with its drivers underneath, in the same shape as
+// TreasuryTab's StatementLine. The value is preformatted: the figures are in
+// different units.
 function FunnelLine({ label, note, value, net }: {
   label: string;
   note: string;
@@ -105,14 +73,8 @@ function ClassBar({ label, total, counts, unsignalled, widest }: {
         <span className="body-row-label">{label}{unsignalled && <span className="body-row-mark" aria-hidden="true">†</span>}</span>
         <span className="body-row-total">{total.toLocaleString()}</span>
       </div>
-      {/* The bar's LENGTH is the class's size, against the largest class —
-          not a normalised 100% row. Normalising reads better for comparing
-          proportions alone, and is the wrong trade here: class sizes vary by
-          half again across four years, and a row that hides that shows four
-          bars of identical length whose mixes differ by a few percent, which
-          looks like four copies of one bar. Length carries the size, the
-          segments carry the mix, and the two together are what makes one
-          class visibly a different school from the one below it. */}
+      {/* Bar length is the class's size against the largest class, not a
+          normalised row, so size differences stay visible beside the mix. */}
       <div
         className="body-bar"
         style={{ width: widest > 0 ? `${Math.max((total / widest) * 100, 2)}%` : '100%' }}
@@ -140,9 +102,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
   const { classes, cohortsByClass } = s.students;
   const enrolled = totalEnrolled(s.students);
 
-  // The whole body, cohort by cohort: the four classes summed. Derived here
-  // rather than stored, for the reason totalEnrolled is — a second copy of a
-  // sum is a second thing that can drift from what it sums.
+  // The whole body by cohort, derived rather than stored.
   const bodyTotals = COHORTS.map((c) => ({
     ...c,
     count: CLASS_ROWS.reduce((t, [k]) => t + cohortsByClass[k][c.id], 0),

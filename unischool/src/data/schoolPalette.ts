@@ -1,21 +1,10 @@
 // ---------------------------------------------------------------------
-// THE SCHOOL PALETTE (Plan 14). One hue and one motif per degree-granting
-// school, read wherever a program is drawn as belonging to a school before
-// the school has a name: the hall panel's offer tiles and program tiles,
-// and — from PR G — the Curriculum tab's forty-two rows.
-//
-// This is the one place the game deliberately breaks the parchment / navy
-// / brass register. Seven mid-saturation, mid-luminance hues, colourful
-// without being bright, chosen to sit on parchment and to stay distinct at
-// row height: "three of this colour already, and I have a hall with three
-// slots free" is a conclusion the player reaches by looking, and it only
-// works if the colours are told apart at a glance. The MOTIF beside each
-// hue is what keeps the grouping legible for a colour-blind player, and
-// what a tile too small for a colour swatch can still carry.
-//
-// Colour, not label: a school's NAME appears only once it is founded (six
-// programs of it in one hall — see docs/design/curriculum.md). Until then
-// its programs share a hue and a mark and nothing else.
+// The school palette: one hue and one motif per degree-granting school, used
+// wherever a program is drawn as belonging to a school before the school has
+// a name (hall panel tiles, Curriculum rows). Mid-saturation hues that sit
+// on parchment and stay distinct at row height; the motif keeps the grouping
+// legible for colour-blind players and on tiles too small for a swatch. A
+// school's name appears only once it is founded (docs/design/curriculum.md).
 // ---------------------------------------------------------------------
 
 export interface SchoolMark {

@@ -20,20 +20,17 @@ import { reducer } from '../src/engine/reducer';
 import { tickRivals, ELITE_CLOSE_ABOVE_PRESTIGE, ELITE_CLOSE_GAP, ELITE_NO_LEAPFROG_GAP, eliteClosingStep, buildReportPayload, playerRank } from '../src/systems/rivals/rivalsSystem';
 import { ELITE_RIVAL_IDS, initialRivals } from '../src/data/rivalData';
 import { tickEvents } from '../src/systems/events/eventSystem';
-import { DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR, findDecisionEvent } from '../src/data/eventData';
+import { DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR, findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { buildYearInReview } from '../src/state/yearInReview';
 import { captureYearSnapshot } from '../src/state/history';
 import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
 // The field's drift rolls dice; pinned to one stream (the sim's own LCG,
 // sim/balanceSim.ts) so the claims below are about the model and not the
 // weather. A claim that only holds on some streams is not pinned here.
-let seed = 12345;
-Math.random = () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
+bindScriptStream(12345);
 
 let checks = 0;
 let failures = 0;
@@ -143,7 +140,7 @@ console.log('closing field tests');
   assert(s.clock.year >= DECISION_EVENT_FIRST_YEAR, 'past the founding ramp');
   tickEvents(s);
   assert(s.pendingInterrupt?.type === 'decision-event', 'a decision event fires');
-  const payload = s.pendingInterrupt!.payload as { eventId: string; ctx: { subjectId?: string; amount?: number; candidate?: unknown } };
+  const payload = s.pendingInterrupt!.payload as { eventId: string; ctx: DecisionEventContext };
   assert(payload.eventId === 'rival-passed', 'it is the board wanting a response');
   assert(payload.ctx.subjectId === rival.id, 'about the rival that passed');
   assert((payload.ctx.amount ?? 0) > 0 && payload.ctx.candidate !== undefined, 'with a price and a person rolled');

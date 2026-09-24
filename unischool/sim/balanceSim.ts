@@ -1,27 +1,19 @@
 // ---------------------------------------------------------------------
-// The balance harness: a headless fast-forward through the REAL reducer.
+// The balance harness: a headless fast-forward through the real reducer.
 //
-// Every pacing decision in this game is a claim about a trajectory —
-// "cash pinches at tier-1", "the tier-2 loop forces dorms before the
-// tuition that pays for them" — and none of those claims can be checked by
-// reading constants. So this drives the actual game loop (the same
-// reducer, the same systems, the same Buildable data the app ships) for
-// N in-game years under a handful of scripted player strategies, and
-// prints the year-by-year cash / enrolled / prestige / opex table the
-// tuning constants were fitted against.
+// Pacing claims are claims about trajectories and cannot be checked by
+// reading constants, so this drives the actual game loop for N years under
+// scripted strategies and prints the year-by-year cash / enrolled /
+// prestige / opex table the tuning constants were fitted against.
 //
-// It is NOT part of the game: no system imports it, it ships nothing into
-// the bundle, and it may only ever READ the shared state and dispatch the
-// same actions the UI dispatches. If it ever needs a hook the UI doesn't
-// have, that is a signal the harness is wrong, not the engine.
+// Not part of the game: nothing imports it, and it only reads state and
+// dispatches the actions the UI dispatches.
 //
 //   npm run sim            # 40 years, every 2nd year, all strategies
 //   npm run sim -- 60 5    # 60 years, every 5th year
 //   npm run sim -- 40 2 public   # only strategies matching "public"
 //
-// Every table is followed by its SCORECARD: the figures that have left the
-// bands sim/reference.ts records for that strategy (see there for what a
-// band is and is not). Two more flags go with it:
+// Each table is followed by its scorecard against sim/reference.ts's bands.
 //
 //   npm run sim -- --write-reference      # re-record the bands from this run
 //   npm run sim -- --save last.json       # keep this run's sampled rows
@@ -62,31 +54,16 @@ import { demandSubject } from '../src/data/demandData';
 import { discoverySchools } from '../src/data/techData';
 import { TRAINER_FIELD, hasStudentCenter, varsityTeamUpkeep } from '../src/data/studentLifeData';
 import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../src/data/facilitiesData';
+import { bindScriptStream } from '../src/engine/random';
 
 // ---------------------------------------------------------------------
-// Deterministic environment. The game rolls dice (faculty potentials,
-// rival drift, posting timelines) and saves to localStorage; a harness
-// wants the same run every time and no browser, so Math.random is seeded
-// and localStorage is stubbed here rather than either being made optional
-// anywhere in the game code. (crypto.randomUUID is left alone — Node has
-// it, and faculty ids never affect a trajectory.)
-// ---------------------------------------------------------------------
-// One fixed seed by default, so `npm run sim` is the same run every time
-// and a trajectory can be diffed against the last one. SIM_SEED overrides
-// it, which is what makes a balance claim checkable rather than anecdotal:
-// any content change that alters how many times Math.random is called —
-// adding a faculty field, adding courses, anything that shifts the
-// candidate-market draw — moves the whole stream, so a single seed cannot
-// tell "this rebalanced the game" from "this reshuffled the dice". Run a
-// few seeds before believing either.
+// Deterministic environment: a run carries its own seeded random stream
+// (engine/random.ts); localStorage is stubbed. SIM_SEED overrides the fixed
+// default. Any change to the number of draws reshuffles the whole stream, so
+// run a few seeds before believing a balance claim.
 //   SIM_SEED=7 npm run sim -- 60 5
+// ---------------------------------------------------------------------
 export const DEFAULT_SIM_SEED = Number(process.env.SIM_SEED ?? 12345);
-const INITIAL_SEED = DEFAULT_SIM_SEED;
-let seed = INITIAL_SEED;
-Math.random = () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
 const fakeStorage = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
   getItem: (k: string) => fakeStorage.get(k) ?? null,
@@ -95,27 +72,19 @@ const fakeStorage = new Map<string, string>();
 };
 
 // ---------------------------------------------------------------------
-// A strategy is a scripted player: a policy for the one annual lever
-// (tuition) plus rules for what it commits cash to during the year.
-// These are deliberately crude — they are not meant to play well, they
-// are meant to be REPRODUCIBLE and to span the space of things a real
-// player does (build breadth first, build enrollment first, overreach,
-// sit still).
+// A strategy is a scripted player: a tuition policy plus rules for what it
+// commits cash to. Deliberately crude: reproducible, and spanning what real
+// players do (breadth first, enrolment first, overreach, sit still).
 // ---------------------------------------------------------------------
 export interface Strategy {
   name: string;
   tuition(s: GameState): number;
-  // The share of the applicant pool to take. Optional: omitted means "take
-  // the slider's own opening position for this standing", which is what
-  // every archetype above does and what the harness measured before the
-  // rate was a decision at all. The probes below are the only strategies
-  // that set it, because they exist to ask what the lever does.
+  // The share of the applicant pool to take. Omitted means the slider's own
+  // opening position for this standing; only the probes set it.
   admitRate?(s: GameState): number;
   buffer(s: GameState): number;   // cash held back before any discretionary start
-  // The flow gate: a player who watches the Treasury does not take on a
-  // new recurring commitment while this week's net is thin. Expressed as a
-  // fraction of weekly opex the net has to clear — 0 means "spend to the
-  // wire", which is what the overreach strategy does.
+  // The flow gate: no new recurring commitment unless this week's net clears
+  // this fraction of weekly opex (see hasHeadroom). 0 spends to the wire.
   netMargin: number;
   buildsCourses: boolean;
   buildsDorms: boolean;
@@ -123,84 +92,41 @@ export interface Strategy {
   dormFillThreshold: number;      // start the next dorm once enrolled/capacity passes this
   facilityThreshold: number;      // build for any satisfaction attribute scoring under this
   campaigns: boolean;             // run endowment campaigns with the late-game surplus
-  // Whether this strategy projects a course's RECURRING cost before
-  // committing to it, rather than only checking the one-time build cost
-  // against cash (canStartDevelopment's own gate). Optional, defaulting to
-  // off (false/undefined) for every strategy this was tuned against
-  // (market-rate private pricing comfortably outruns instruction cost —
-  // see financeSystem.ts's own "an extra student is never a loss" claim).
-  // Turned on for the one strategy whose thin, heavily-discounted margin
-  // does NOT hold that claim: without it, a strategy that saves for years
-  // then finally clears its cash buffer will happily start every available
-  // course in one summer, and once they finish, their combined recurring
-  // instruction cost can exceed what that strategy's OWN net tuition per
-  // student brings in — a real, catastrophic emergent collapse this
-  // harness caught (see the audit finding this field closes). A player
-  // watching their own margin would not make that mistake twice; this is
-  // that same ordinary caution, not a game-balance change.
+  // Project a course's recurring cost before committing, not just its build
+  // cost (see courseStaysSustainable). For thin-margin strategies, whose
+  // saved-up buffer would otherwise buy courses they cannot run.
   courseAffordabilityAware?: boolean;
-  // Whether this strategy staffs its varsity department: hires a head
-  // coach, an assistant and a trainer for every active team off the
-  // standing coach market, and raises the athletics budget once it is
-  // comfortably flush. Optional and off for every archetype that predates
-  // it, which is why they have never won a national title between them —
-  // teamQuality is what seeds a bracket (see systems/athletics/playoffs.ts)
-  // and an unstaffed team never reaches its sport's strongest eight.
+  // Staff the varsity department and raise the athletics budget once flush.
+  // Without coaches no team seeds high enough to win a title.
   playsCoachingMarket?: boolean;
-  // Whether this strategy keeps every faculty CHAIR filled — hires into any
-  // field with a course it cannot currently staff, rather than only into one
-  // holding up a course it could afford to start this week (see decide()'s
-  // hiring block). The completionist's own "fill every chair" policy.
+  // Keep every faculty chair filled: hire into any field with a course it
+  // cannot staff, not only one blocking an affordable start (see decide()).
   fillsEveryChair?: boolean;
-  // HOW THIS STRATEGY FOUNDS PROGRAMS (Plan 14's PR I — see foundPrograms):
-  //   'cheapest'      the default: the cheapest affordable offer it can
-  //                   staff, into a hall already holding that school if
-  //                   one has room, else anywhere free.
-  //   'school-first'  the earnest completionist: prefers offers from
-  //                   schools it has started, and keeps every hall PURE —
-  //                   founds only into an empty hall or one of the same
-  //                   school, siting a new hall rather than mixing.
-  //   'scatter'       the control: whatever is offered first, wherever it
-  //                   fits. Should visibly under-perform on schools founded.
+  // How this strategy founds programs (see foundPrograms):
+  //   'cheapest'      default: cheapest affordable offer it can staff, into a
+  //                   same-school hall with room, else an empty one
+  //   'school-first'  prefers schools it has started; keeps every hall pure
+  //   'scatter'       the control: first offer, first free slot
   founding?: 'cheapest' | 'school-first' | 'scatter';
-  // Whether this strategy posts a faculty SEARCH (Plan 14's PR H) when a
-  // course it could afford is blocked on a department with no free slot
-  // and nobody on the market. Off for the archetypes it predates.
+  // Post a faculty search when an affordable course is blocked on a
+  // department with no free slot and nobody on the market.
   postsSearches?: boolean;
-  // HOW DEEP THIS STRATEGY GOES IN A LAB (Plan 17's PR E). 'deep' — the
-  // default, and what every strategy above does — commits the deepest
-  // affordable initiative in every idle lab; 'shallow' commits only the
-  // cheapest depth, a school that keeps its labs ticking over and no more;
-  // 'none' never commissions anything, and its labs stand for the courses
-  // they gate. The regional engine is 'shallow': broad, big, cheap, and
-  // not a research university.
+  // How deep it goes in a lab: 'deep' (default) commits the deepest
+  // affordable initiative in every idle lab; 'shallow' only the cheapest
+  // depth; 'none' never commissions, so labs only gate courses.
   research?: 'deep' | 'shallow' | 'none';
-  // AT MOST THIS MANY SCHOOLS (Plan 17's PR E — see foundPrograms): once
-  // this many schools have a program housed, an offer from another school
-  // is taken only when every offer on the table is from another school —
-  // the three stand until one is taken, so a player who wants depth takes
-  // a stray only when forced, and into a hall of its own. The selective
-  // college founds two or three schools and finishes them rather than
-  // seven. Off (unlimited) for everybody else.
+  // At most this many schools (see foundPrograms): past it, an offer from
+  // another school is taken only when every offer is from another school,
+  // and into a hall of its own. Unlimited by default.
   maxSchools?: number;
-  // Whether this strategy PLAYS TEACHING (Plan 17's PR E): every few weeks
-  // it moves each course to the eligible instructor who would grade it
-  // best, where that beats the current grade by REBALANCE_MIN_GAIN — the
-  // drag-and-drop the Curriculum tab offers, done by a player who watches
-  // the grades. Off for every archetype that predates it, which is why
-  // their campus averages sit in the low sixties whatever they build: the
-  // first eligible instructor is who teaches a course forever. The
-  // selective college is the school that cares.
+  // Play teaching: move each course to the eligible instructor who would
+  // grade it best (see balanceTeaching).
   balancesTeaching?: boolean;
 }
 
-// The course's tier, recovered from its id (101 / 1x0 / 2x0) purely so the
-// harness can develop cheap things first. The engine has no notion of
-// tier (see techData.ts) — this is a harness-local reading of the data.
-// Graduate courses (5xx / 7xx) fall into the same bucket as tier-3 and are
-// then ordered behind them by cost, which is the right reading with no
-// special case: they are the most expensive thing on the board, so a
-// cheapest-first player reaches them last.
+// The course's tier from its id (101 / 1x0 / 2x0), so the harness can
+// develop cheap things first; the engine has no notion of tier. Graduate
+// courses (5xx / 7xx) land in tier 3 and sort last by cost.
 function tierOf(t: Buildable): number {
   const m = /(\d{3})$/.exec(t.id);
   if (!m) return 0;
@@ -212,45 +138,23 @@ function affordable(s: GameState, cost: number, strategy: Strategy): boolean {
   return s.finance.cash - cost >= strategy.buffer(s);
 }
 
-// Whether adding one more course to the catalogue would still leave THIS
-// strategy's own current net tuition per student covering instruction cost
-// — see Strategy.courseAffordabilityAware. Instruction cost rises by
-// exactly INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED (1.00/wk) per course
-// OFFERED, and a course counts as offered the moment it is 'developing',
-// not only once it is 'done' (see techData.ts) — but instructionCostPerStudent
-// itself only reads 'done' nodes (financeSystem.ts), since that is the only
-// state that actually charges the cost today. A strategy deciding whether
-// to start ANOTHER course has to count every course already 'developing'
-// too, or a whole week's worth of course starts (none of which have
-// finished yet, so none show up in instructionCostPerStudent) would each
-// individually look affordable while their COMBINED future cost is not —
-// exactly the binge-then-collapse pattern this field exists to prevent.
+// Whether one more course would leave this strategy's net tuition per student
+// covering instruction (see Strategy.courseAffordabilityAware). Developing
+// courses are counted too, or a week of starts would each look affordable.
 function courseStaysSustainable(s: GameState, strategy: Strategy): boolean {
   if (!strategy.courseAffordabilityAware) return true;
   const netTuitionPerStudentPerWeek = strategy.tuition(s) / WEEKS_PER_YEAR;
   const developingCourses = s.tech.filter((t) => t.kind === 'course' && t.status === 'developing').length;
-  // Instruction is charged per SECTION since Plan 15's PR D, so "one more
-  // course" is read off the same model with the developing ones counted
-  // in — and the services line every student carries sits beside it.
+  // Instruction is charged per section, so "one more course" is read off the
+  // same model with the developing ones counted in, plus per-student services.
   const projectedPerStudent = instructionCostPerStudentWith(s, developingCourses + 1) + SERVICES_PER_STUDENT_PER_WEEK;
   return netTuitionPerStudentPerWeek >= projectedPerStudent;
 }
 
-// Whether this week's cash flow leaves room to take on a new RECURRING
-// commitment — a hire, or a course that will need running forever.
-//
-// READ AGAINST THE FIRST MILLION A WEEK OF OPERATING COST (Plan 19's PR
-// F). The margin is a share of opex, and a commitment is not: a course's
-// upkeep and a salary are the same few thousand a week whether the school
-// spends a hundred thousand a week or twenty million. Read as a pure share
-// the rule froze every mature school — at the top of the scale costs
-// follow standing and the net compresses to a few percent of a very large
-// opex, so a balanced builder netting three hundred thousand a week with
-// seventy million in the bank refused a single course for thirty years,
-// at one seed with a third of the catalogue never built. Capping the opex
-// the margin is read against keeps the rule exactly as it was for a school
-// under a million a week and turns it into "nets a hundred-odd thousand a
-// week" past that, which is what "room for one more course" means there.
+// Whether this week's cash flow leaves room for a new recurring commitment
+// (a hire, or a course). The margin is read against opex capped at a million
+// a week: a commitment costs the same few thousand at any size, and a pure
+// share froze mature schools whose net is a few percent of a huge opex.
 const HEADROOM_OPEX_CAP = 1_000_000;
 function hasHeadroom(s: GameState, strategy: Strategy): boolean {
   return weeklyNet(s) >= strategy.netMargin * Math.min(s.finance.weeklyOpEx, HEADROOM_OPEX_CAP);
@@ -263,11 +167,8 @@ function canCommitCapital(s: GameState, strategy: Strategy): boolean {
   return strategy.buildsDorms && weeklyNet(s) >= 0;
 }
 
-// Courses lose their instructor two ways now — a dismissal, and a scholar
-// being committed to an initiative — and a player faced with an unstaffed
-// course reassigns somebody or hires. The harness has to do the same, or
-// it models a university that lets its curriculum quietly go dark and then
-// reports the resulting satisfaction collapse as a balance finding.
+// Courses orphaned by a dismissal or an initiative get restaffed, as a player
+// would, or the harness reports its own neglect as a satisfaction collapse.
 function restaffOrphans(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
   for (const course of unstaffedCourses(get())) {
     const s = get();
@@ -279,27 +180,17 @@ function restaffOrphans(get: () => GameState, dispatch: (a: Action) => void, str
     // Nobody free: appoint someone from the standing market if the field
     // has anyone listed and the school can carry the salary.
     const candidate = s.candidates.find((c) => c.field === course.requiresFaculty);
-    // Same affordability gate the ordinary hiring loop uses — without it
-    // the harness hires on any positive balance and ends a run with three
-    // times the faculty a school that size would carry.
+    // Same affordability gate as the ordinary hiring loop, or the harness
+    // ends a run with three times the faculty a school that size would carry.
     if (candidate && s.finance.cash > strategy.buffer(s) && hasHeadroom(s, strategy)) {
       dispatch({ type: 'HIRE_FACULTY', facultyId: candidate.id });
     }
   }
 }
 
-// Scholarship is now something a player COMMISSIONS, so the harness has to
-// commission it or it models a university that simply never does research
-// (see systems/research/researchSystem.ts). Without this the sim lost every
-// grant and the whole research prestige input overnight, which is a stale
-// harness reporting a regression rather than a regression.
-//
-// The heuristic is a cautious player's: fill a vacant facility with the
-// deepest option it can afford, but ONLY using scholars who are teaching
-// nothing right now. Committing someone mid-course orphans it (decision
-// 2's cost), and a model that ignored that would happily strip the
-// faculty to run projects and then report the teaching collapse as a
-// balance finding.
+// Commission research as a cautious player would: fill a vacant facility
+// with the deepest option affordable, without gutting a thin department.
+// Orphaned courses are covered by restaffOrphans.
 function commissionScholarship(
   get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy,
 ): void {
@@ -314,12 +205,7 @@ function commissionScholarship(
       if (!lab || lab.status !== 'done' || s.research.initiatives[labId]) continue;
 
       const offers = initiativeOffers(s, labId);
-      // Deepest first: a player with cash and a department deep enough to
-      // spare the people commits them. Committing DOES orphan whatever
-      // they teach — that is decision 2's cost, and restaffOrphans below
-      // is the other half of modelling it, exactly as a player would
-      // reassign or hire to cover the hole. A 'shallow' strategy (see
-      // Strategy.research) looks only at the cheapest depth on offer.
+      // Deepest first ('shallow' looks only at the cheapest depth).
       const considered = strategy.research === 'shallow' ? offers.slice(0, 1) : [...offers].reverse();
       for (const offer of considered) {
         if (offer.blockedReason) continue;
@@ -346,21 +232,15 @@ function commissionScholarship(
   }
 }
 
-// PLAYING TEACHING (see Strategy.balancesTeaching): every REBALANCE_EVERY_WEEKS
-// weeks, each staffed course goes to the eligible instructor who would grade
-// it best, where the gain clears REBALANCE_MIN_GAIN — the Curriculum tab's
-// drag-and-drop, done by a player who watches the grades. Reads the same
-// projectedQuality the tab's chips show, and dispatches the same action.
+// Playing teaching (Strategy.balancesTeaching): the Curriculum tab's
+// drag-and-drop, using the same projectedQuality and the same action.
 const REBALANCE_EVERY_WEEKS = 1;
 const REBALANCE_MIN_GAIN = 1;
-// And SMALL CLASSES: the same strategy hires the best teacher on the market
-// into any field whose people carry more than this share of their slots,
-// so no course is taught by somebody at a full load. What a selective
-// college's money is for.
+// Small classes: the same strategy hires the best teacher on the market into
+// any field whose people carry more than this share of their slots.
 const LIGHT_LOAD_SHARE = 0.6;
-// A teaching hire is a luxury: made only with twice the reserve in hand, so
-// a school that plays teaching does not spend itself into the red doing it
-// (measured at half-loads and one reserve: 1,800 weeks in the red).
+// Teaching hires need twice the reserve, or playing teaching spends the
+// school into the red (at one reserve: 1,800 weeks in the red).
 const LIGHT_LOAD_RESERVE_MULTIPLE = 2;
 
 function balanceTeaching(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
@@ -375,11 +255,9 @@ function balanceTeaching(get: () => GameState, dispatch: (a: Action) => void, st
     if (!current) continue;
     const now = projectedQuality(s, course, current, loads).score;
     let best: { id: string; score: number } | null = null;
-    // Walked in ROSTER order, not eligibleInstructors' own: that list breaks
-    // a tie on teaching by id, and faculty ids are random UUIDs, so two
-    // equal professors would be picked between by the dice — measured as a
-    // run that came out differently every time it was played. Roster order
-    // is hire order, which is deterministic.
+    // Walked in roster (hire) order, not eligibleInstructors' own: that list
+    // breaks ties by id, and faculty ids are random UUIDs, so ties made runs
+    // nondeterministic.
     const eligible = new Set(eligibleInstructors(s, course, course.id).map((f) => f.id));
     for (const f of s.faculty) {
       if (!eligible.has(f.id) || f.id === current.id) continue;
@@ -388,8 +266,8 @@ function balanceTeaching(get: () => GameState, dispatch: (a: Action) => void, st
     }
     if (best) dispatch({ type: 'REASSIGN_COURSE_FACULTY', courseId: course.id, facultyId: best.id });
   }
-  // Small classes: a field whose roster is more than half loaded gets the
-  // best teacher on the market, cash and flow permitting.
+  // Small classes: a field more than LIGHT_LOAD_SHARE loaded gets the best
+  // teacher on the market, cash and flow permitting.
   const s1 = get();
   const loads = facultyLoads(s1);
   const fields = new Set(s1.faculty.map((f) => f.field));
@@ -407,57 +285,24 @@ function balanceTeaching(get: () => GameState, dispatch: (a: Action) => void, st
   }
 }
 
-// The recovery lever every stalled player has and no Buildable can take
-// away: payroll. This is the harness's test of "stall, don't die" — a
-// school that overreached has to be able to climb back out without any
-// special-case rescue in the engine.
+// The payroll lever: the harness's test of "stall, don't die". An overreached
+// school must climb back out with no special-case rescue in the engine. A
+// dismissal orphans courses, so the lever is limited, or it strips a school
+// to zero faculty.
 //
-// It used to be one line: fire the single most expensive hire, every week,
-// until the bleeding stopped. That was a fair model of payroll when
-// faculty were interchangeable salary, and course quality is what made it
-// false. A dismissal now orphans whatever that person taught, so the
-// unbounded version walked a stalled run straight off a cliff — the
-// discount-volume strategy ended a forty-year run at ZERO faculty and 91
-// courses still on offer, a school with a full catalogue and nobody to
-// teach any of it, reporting a prestige and an enrolment that no longer
-// described anything. The runs it printed were measuring the harness.
+// Order: price before people. If the strategy would charge more than the
+// school charges now, a raise is already waiting for an admissions round.
 //
-// So the lever gets the two limits a real administration has.
-//
-// ORDER. Price before people. If this strategy would charge more than the
-// school is currently charging — which underwater it will, since
-// rampTuition reaches for the ceiling and trimAidWhenUnderwater pulls the
-// discount back — then a decision to raise revenue is already made and
-// simply hasn't reached an admissions round yet. Firing somebody this week
-// pre-empts it. Strategies priced flat by design (the low-tuition stress
-// case) are unaffected: what they charge already equals what they would
-// charge, so the lever is free to fire immediately, and the stress test
-// they exist to apply is untouched.
-//
-// FLOOR. A school may shed people it is not using; it may not dismantle
-// the capacity to teach what it already offers. Candidates are taken in
-// this order:
-//
-//   1. Nobody committed to an initiative. The funding was paid in full up
-//      front, and a team that loses everybody has its work abandoned
-//      outright (see researchSystem.ts's tickResearch) — writing off a
-//      five-year programme to save one salary is not a saving.
-//   2. Priciest of those teaching nothing. This is the honest cut and
-//      usually the only one needed: an over-hired department carries
-//      people no course depends on.
-//   3. Failing that, the priciest whose department can still cover its own
-//      offered courses without them. usedFacultySlots counts unstaffed
-//      courses too, so this cannot be gamed by orphaning first.
-//
-// If nothing passes, the lever does not fire, and the run has to recover on
-// price alone — which is the true position of a school whose every
-// professor is in front of a class.
+// Floor: never dismantle the capacity to teach what is offered. Candidates:
+//   1. never anyone committed to an initiative (funding was paid up front);
+//   2. the priciest teaching nothing;
+//   3. the priciest whose department still covers its offered courses
+//      without them (usedFacultySlots counts unstaffed courses too).
+// If nothing passes, the run recovers on price alone.
 export const STALL_WEEKS_BEFORE_CUTS = 26;
 //
-// Exported for test/balance-regression.test.ts. The collapse this guards
-// against took a stalled run about thirty years to complete, so a 20-year
-// sweep cannot see it — the gate has to call the lever directly, on a
-// state built to put it in the position the floor exists for.
+// Exported for test/balance-regression.test.ts, which calls it directly:
+// the collapse it guards against took about thirty years.
 export function cutPayrollIfStalled(
   get: () => GameState, weeksInTheRed: number, dispatch: (a: Action) => void, strategy: Strategy,
 ): void {
@@ -483,18 +328,8 @@ export function cutPayrollIfStalled(
   dispatch({ type: 'FIRE_FACULTY', facultyId: sparable.id });
 }
 
-// Placeable kinds (dorm/building/facility, including labs) now start
-// through PLACE_BUILDABLE instead of START_DEVELOPMENT: it combines the
-// same canStartDevelopment gate with siting a location in one step (see
-// reducer.ts). The harness has no player to click a tile, so it picks the
-// same location a fresh game or a migrated save would when nobody chose one
-// (campusMap.ts's firstFreeSpot — a plain top-left scan), with no rotation.
-// The full catalogue covers well under a third of the grid (see
-// types.ts's CAMPUS_GRID_WIDTH/HEIGHT comment), so this is expected to
-// always find room; if it somehow doesn't, the dispatch is simply skipped —
-// exactly as an unaffordable or ungated start already is at every call
-// site below, so a dry run of room never changes the shape of a decision,
-// only whether it goes through this week.
+// PLACE_BUILDABLE needs a site: the harness takes campusMap.ts's
+// firstFreeSpot, unrotated, and skips the start if there is no room.
 function dispatchPlaceable(get: () => GameState, dispatch: (a: Action) => void, nodeId: string): void {
   const s = get();
   const node = s.tech.find((t) => t.id === nodeId);
@@ -505,30 +340,14 @@ function dispatchPlaceable(get: () => GameState, dispatch: (a: Action) => void, 
   dispatch({ type: 'PLACE_BUILDABLE', buildableId: nodeId, row: spot.row, col: spot.col, rotated: false });
 }
 
-// THE COACHING MARKET, for the one strategy that plays it (see
-// Strategy.playsCoachingMarket). Three roles per active team, hired off the
-// same standing pool the Athletics tab lists, plus the budget dial once the
-// school is comfortably flush.
-//
-// This exists because of a finding rather than for completeness: across all
-// six archetypes over forty years, the harness had never won a single
-// national title — not even the Completionist, which finishes every venue
-// and fields all ten teams. Nobody hired a coach, and teamQuality is what
-// seeds a bracket (see systems/athletics/playoffs.ts), so no scripted school
-// ever reached its sport's strongest eight. A whole authored feature — the
-// postseason, the championship modal, the titles term in campus-life
-// standing — was invisible to every measured trajectory.
-//
-// A coach's salary is a recurring line, not an up-front cost (see the
-// reducer's HIRE_COACH), so the gate is the same flow gate a faculty hire
-// answers to: headroom on the week's net, and cash above the buffer.
+// The coaching market (Strategy.playsCoachingMarket): three roles per active
+// team from the pool the Athletics tab lists, under the faculty-hire flow
+// gate since salaries recur; plus the budget dial once comfortably flush.
 function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
   if (!strategy.playsCoachingMarket) return;
 
-  // The budget dial is free and reversible, so the only question is whether
-  // the school can carry the upkeep multiplier it applies. Raised once the
-  // school is running well clear of its own buffer, which is the "budget
-  // high once flush" half of the review's policy.
+  // The budget dial is free and reversible: raised to high once the school
+  // runs well clear of its buffer.
   const s0 = get();
   const flush = s0.finance.cash > strategy.buffer(s0) * 3 && weeklyNet(s0) > 0;
   const wanted: AthleticsBudgetTier = flush ? 'high' : 'medium';
@@ -543,9 +362,7 @@ function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void,
       if (team[slot] !== null) continue;
       if (s.finance.cash <= strategy.buffer(s) || !hasHeadroom(s, strategy)) continue;
       const field = role === 'trainer' ? TRAINER_FIELD : team.sport;
-      // The best of whoever is listed in the field this role needs — a
-      // program that hires the strongest available coach is what "plays the
-      // coaching market" means, and it is what a player does.
+      // The strongest coach listed in the field this role needs.
       const candidate = [...s.orgs.coachCandidates]
         .filter((c) => c.field === field)
         .sort((a, b) => b.quality - a.quality)[0];
@@ -555,33 +372,12 @@ function staffTheDepartment(get: () => GameState, dispatch: (a: Action) => void,
   }
 }
 
-// One week of player decisions, dispatched through exactly the actions the
-// UI dispatches.
+// Founding: FOUND_PROGRAM takes a hall slot and starts the entry course with
+// an instructor; the only way to start a tier-1 course.
 //
-// Every block re-reads the state through `get()` rather than closing over
-// one snapshot: each dispatch produces a NEW state (the reducer clones),
-// so a stale local would let the scripted player spend the same cash
-// twice in a week — the harness would then be measuring an economy the
-// game doesn't have.
-// FOUNDING (Plan 14). A program enters the curriculum by taking a slot in
-// a standing hall (FOUND_PROGRAM), which starts its entry course with an
-// instructor in the same step — there is no other way to start a tier-1
-// course. Which offer, and which slot, is the strategy's founding policy
-// (see Strategy.founding): cheapest-first into a same-school hall where
-// one has room; school-first and pure for the earnest completionist,
-// whose whole game is dedicating halls; and scatter for the control that
-// founds anything anywhere and should visibly under-perform.
-// THE CHOSEN SCHOOLS (see Strategy.maxSchools): the N schools this strategy
-// is building, read off the halls as the N with the most programs housed —
-// once N schools have any program housed, the quota is met. Null for a
-// strategy with no quota. A program of any other school is a STRAY.
-// THE CHOSEN SCHOOLS (see Strategy.maxSchools): the first N schools to get
-// a hall, read off the halls in the order they were built — halls are a
-// chain, so the lowest hall id holding a school's program is the year it
-// arrived. Stable, which counting housed programs was not: strays arrive
-// one at a time and a count tied at one flipped the set every few years,
-// scattering every school across two halls and founding none. Null for a
-// strategy with no quota, and while fewer than N schools have a hall.
+// The chosen schools (Strategy.maxSchools): the first N schools to get a
+// hall, by hall-chain order, which is stable where counts flip on ties. Null
+// with no quota, and while fewer than N schools have a hall.
 function chosenSchools(s: GameState, strategy: Strategy): Set<string> | null {
   if (strategy.maxSchools === undefined) return null;
   const firstHall = new Map<string, string>();
@@ -598,14 +394,10 @@ function chosenSchools(s: GameState, strategy: Strategy): Set<string> | null {
   return new Set([...firstHall.entries()].sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0])).slice(0, strategy.maxSchools).map(([school]) => school));
 }
 
-// The offers this strategy will take: every offer while it is still
-// choosing its schools; inside the chosen ones once it has; and, when every
-// offer on the table is a stray, all of them — the three stand until one is
-// taken (Plan 14: no reroll, no decline), so a player who wants depth is
-// FORCED to take a stray now and then to see their own schools' programs
-// come round. The stray goes into a hall of strays (see slotForProgram) and
-// its courses are never developed past the one founding started (see the
-// curriculum block), so it costs a slot and nothing else.
+// The offers this strategy will take: all until its schools are chosen, then
+// the chosen ones, or all when every offer is a stray (offers stand until
+// one is taken). A stray costs a slot and nothing else: it is never
+// developed past its entry course.
 function allowedOffers(s: GameState, strategy: Strategy): string[] {
   const chosen = chosenSchools(s, strategy);
   if (chosen === null) return s.programOffers;
@@ -667,9 +459,7 @@ function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, stra
   }
 }
 
-// Where a program of this school goes, under a founding policy. The
-// school of a hall is whatever its housed programs belong to; a hall with
-// programs of more than one school is mixed.
+// The schools a hall's housed programs belong to; more than one means mixed.
 function hallSchools(s: GameState, hallId: string): Set<string> {
   const schools = new Set<string>();
   for (const slot of s.halls[hallId]) {
@@ -687,14 +477,11 @@ function slotFor(s: GameState, school: string, policy: NonNullable<Strategy['fou
   // A hall already holding this school, with room.
   const sameSchool = halls.find((hallId) => { const sc = hallSchools(s, hallId); return sc.size === 1 && sc.has(school); });
   if (sameSchool) return firstFree(sameSchool);
-  // An empty hall.
   const empty = halls.find((hallId) => hallSchools(s, hallId).size === 0);
   if (empty) return firstFree(empty);
-  // Nobody prudent mixes a hall (Plan 15's PR G): a hall of one school is
-  // what founds it, and concentration is thirty points of standing, so
-  // the cheapest-first and school-first policies both wait for a hall
-  // rather than fill a slot with a stranger. Only the scatterer control
-  // mixes, which is what it is for.
+  // Nobody prudent mixes a hall: a single-school hall is what founds a
+  // school, and concentration is worth thirty points of standing. Only the
+  // scatter control mixes.
   return null;
 }
 
@@ -706,29 +493,11 @@ function freeSlot(s: GameState): { hallId: string; slot: number } | null {
   return null;
 }
 
-// A hall is sited when programs are on offer and there is nowhere to put
-// them: no free slot standing and no hall already going up. The next rung
-// of the chain is the only one ever 'available' (techData.ts), so this is
-// one capital decision with the same gate the dorm block uses.
-//
-// THE TWO SPEND-TO-THE-WIRE ARCHETYPES SITE HALLS AHEAD OF NEED. A
-// strategy with no margin to keep (netMargin <= 0: the Overbuilder, who
-// builds beds ahead of demand, and the Curriculum rush, who builds
-// everything affordable every week) does not wait for its slots to fill
-// before buying the next building — that is the whole of what those two
-// archetypes are. Without this, the offer's own pacing (three programs at
-// a time, six to a hall) would quietly make the Overbuilder prudent about
-// the one capital line it is supposed to overreach on, and the
-// "stall, don't die" checks in test/balance-regression.test.ts would be
-// measuring a player who no longer exists.
-// Whether the catalogue's seats, not beds, are what stops the school
-// growing: little room left for next summer's class, and something a
-// strategy could do about it — a program on offer with a slot to take, or
-// a hall to site.
+// Whether seats, not beds, stop the school growing: little room left for
+// next summer's class, and a program to found or a hall to site about it.
 function seatsAreTheConstraint(s: GameState): boolean {
-  // Tight means the catalogue holds little more than the body it has: in
-  // steady state the room left each summer is exactly the class that just
-  // graduated, so the test is seats against the whole body, not the room.
+  // Tight means the catalogue holds little more than the body it has (in
+  // steady state the room left each summer is the class that just graduated).
   const enrolled = totalEnrolled(s.students);
   const tight = intakeCeiling(s).capacity - enrolled < Math.max(60, 0.15 * enrolled);
   if (!tight) return false;
@@ -737,25 +506,25 @@ function seatsAreTheConstraint(s: GameState): boolean {
   return canFound || canSite;
 }
 
+// A hall is sited when programs are on offer and there is nowhere to put
+// them, with no hall already going up; one capital decision under the dorm
+// block's gate. The two spend-to-the-wire strategies (netMargin <= 0) site
+// ahead of need, since overreaching is what they model and the "stall, don't
+// die" checks in test/balance-regression.test.ts depend on it.
 function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
   const s = get();
   const eager = strategy.netMargin <= 0;
-  // "Nowhere to put them" is policy-shaped: the school-first player with
-  // only mixed halls free has nowhere PURE to put an offer, and sites the
-  // next hall rather than mixing one.
-  // Nowhere to found: no free slot at all, or — for the two policies that
-  // keep halls pure — none of the three offers may take the slots there
-  // are, since the offer stands until one is taken and a pure hall with
-  // room only for one school is a deadlock without a second hall.
+  // Nowhere to found: no free slot, or (for the pure-hall policies) none of
+  // the standing offers may take the slots there are, a deadlock without a
+  // second hall.
   const policy = strategy.founding ?? 'cheapest';
   const offers = allowedOffers(s, strategy);
   const nowhere = !freeSlot(s) || (
     policy !== 'scatter' &&
     !offers.some((id) => { const p = programById(id); return p && slotForProgram(s, strategy, p.school) !== null; })
   );
-  // A prudent strategy also sites a hall when its seats are the constraint
-  // and every slot it has is taken (Plan 15's PR G) — that is what "seats
-  // before beds" means for the one capital line that adds seats.
+  // A prudent strategy also sites a hall when seats are the constraint and
+  // every slot is taken: "seats before beds" for the one line that adds seats.
   const seatsShort = strategy.netMargin > 0 && seatsAreTheConstraint(s) && !freeSlot(s);
   if (!eager && !seatsShort && (offers.length === 0 || !nowhere)) return;
   if (s.tech.some((t) => isAcademicHall(t) && t.status === 'developing')) return;
@@ -764,6 +533,9 @@ function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, s
   if (canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) dispatchPlaceable(get, dispatch, next.id);
 }
 
+// One week of player decisions, through the actions the UI dispatches. Every
+// block re-reads state through `get()`: each dispatch produces a new state,
+// and a stale snapshot would spend the same cash twice.
 function decide(
   get: () => GameState,
   strategy: Strategy,
@@ -776,46 +548,15 @@ function decide(
   cutPayrollIfStalled(get, weeksInTheRed, dispatch, strategy);
   staffTheDepartment(get, dispatch, strategy);
 
-  // Faculty: appoint straight off the standing candidate market when a
-  // field is blocking a course this strategy could actually start today.
-  // There is nothing to post for and nothing to wait on any more — the
-  // scripted player just takes whoever the churn happens to be offering
-  // in a field that is holding them up, which is exactly the decision the
-  // real player makes.
-  //
-  // The "could actually start today" half is new, and it is the harness
-  // catching up with the model rather than a policy change. Under
-  // post-and-wait, a fee plus a 4-10 week countdown per field meant a
-  // strategy hired at most a trickle however loose its rule was, so
-  // hiring for a course it had no cash to develop barely showed up.
-  // Against a standing market that same loose rule fires every single
-  // week, and a strategy that keeps its cash near its buffer ends up
-  // carrying professors for courses it will not start for years — an
-  // economy no player would run, which would make these runs measure the
-  // harness rather than the game. Requiring the blocked course to be
-  // AFFORDABLE is the smallest gate that puts hiring back in step with
-  // developing.
-  //
-  // Deliberately not tightened past that. Gating on savingForDorm as well
-  // (the curriculum block's other condition) reads as the same idea and
-  // is not: dorm-saving is a state a growing school sits in for years at
-  // a stretch, so it starves hiring outright — tried, and the balanced
-  // builder ends a 40-year run with an empty roster, no curriculum and
-  // 563 weeks in the red.
+  // Faculty: hire off the market when a field blocks a course this strategy
+  // could afford to start today; otherwise it carries professors for years.
+  // Don't also gate on savingForDorm: that starves hiring outright.
   if (strategy.buildsCourses) for (const candidate of get().candidates.map((c) => c.id)) {
     const s = get();
     const c = s.candidates.find((x) => x.id === candidate);
     if (!c) continue;
-    // `fillsEveryChair` drops the affordability half of this test: the
-    // earnest completionist hires into any field that has a course it
-    // cannot currently staff, whether or not it could start that course
-    // this week, which is what "fill every chair" means and what a player
-    // aiming at the whole catalogue actually does. The cash buffer and the
-    // flow gate below still apply, so it is a wider rule, not a free one.
-    // A program ON OFFER counts as a course this strategy could start:
-    // its entry course is 'locked' until it is founded (Plan 14), but the
-    // founding needs an instructor in its field, and a school that never
-    // hires for an offered program never founds anything.
+    // `fillsEveryChair` drops the affordability half. A program on offer
+    // counts: founding it needs an instructor in the field.
     const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
     const needed = s.tech.some(
       (t) => t.requiresFaculty === c.field && (t.status === 'available' || offeredEntryIds.has(t.id)) &&
@@ -827,10 +568,9 @@ function decide(
     }
   }
 
-  // A SEARCH, when a department is the wall (Plan 14's PR H): a course this
-  // strategy could afford — or a program on offer — needs a field with no
-  // free slot and nobody on the market, and no search is running there.
-  // The same affordability and flow gates the hiring loop uses.
+  // A search, when a department is the wall: an affordable course or offered
+  // program needs a field with no free slot and nobody on the market. Same
+  // gates as hiring.
   if (strategy.postsSearches) {
     const s = get();
     const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
@@ -849,28 +589,16 @@ function decide(
     }
   }
 
-  // Housing FIRST, when the campus is full: a player watching a waitlist
-  // build up buys beds before they buy more curriculum, because beds are
-  // the only thing that turns demand into revenue. Ordering matters in
-  // this harness for the same reason it matters in play — whatever comes
-  // first in the week gets the cash.
-  // SEATS BEFORE BEDS (Plan 15's PR G). Since PR E the freshman class is
-  // capped by the catalogue's seats, so a dorm bought while the catalogue
-  // is the binding constraint houses students the school cannot admit.
-  // A prudent strategy founds programs and sites halls first, and saves
-  // for those rather than for the dorm; the spend-to-the-wire archetypes
-  // (netMargin <= 0) keep overreaching on beds, which is what they are.
+  // Housing first when full (whatever comes first gets the week's cash), but
+  // seats before beds: the freshman class is capped by the catalogue, so while
+  // seats bind a prudent strategy founds and sites halls first.
   const seatsBound = strategy.netMargin > 0 && seatsAreTheConstraint(get());
 
   if (strategy.buildsDorms && !seatsBound) {
     const s = get();
     const next = s.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
-    // The founding campus now opens with NO beds (see state/actions.ts), so
-    // "the campus is full" can't be the only trigger — with capacity 0 the
-    // fill ratio is undefined and no dorm would ever be the answer. A school
-    // that has students and nowhere to house them plainly builds the founding
-    // hall, so treat zero beds as its own reason to build the next (first)
-    // dorm, on top of the ordinary full-campus trigger.
+    // The founding campus opens with no beds, so zero beds with students
+    // enrolled is its own trigger for the first dorm.
     const needsFoundingBeds = s.students.capacity === 0 && totalEnrolled(s.students) > 0;
     const full = s.students.capacity > 0 &&
       totalEnrolled(s.students) / s.students.capacity >= strategy.dormFillThreshold;
@@ -879,17 +607,13 @@ function decide(
     }
   }
 
-  // Saving up. A full campus with a waitlist means the next dorm is the
-  // best thing cash can buy, so a disciplined player stops committing to
-  // anything else until it is paid for. Without this the harness dribbles
-  // every surplus week into another cheap course and never accumulates
-  // the lump a capital project needs — which is a real failure mode in
-  // play too, just not the one these runs are meant to measure.
+  // Saving up: with a full campus the next dorm is the best buy, so stop
+  // committing elsewhere until it is paid for, or every surplus week
+  // dribbles into cheap courses and the lump never accumulates.
   const beforeCurriculum = get();
   const nextDorm = beforeCurriculum.tech.find((t) => t.kind === 'dorm' && t.status === 'available');
   const wantsDorm = !seatsBound && nextDorm !== undefined && (
-    // No beds yet but students to house — the founding hall (see the dorm
-    // block above), or a full campus past the fill threshold.
+    // No beds yet but students to house, or a campus past the fill threshold.
     (beforeCurriculum.students.capacity === 0 && totalEnrolled(beforeCurriculum.students) > 0) ||
     (beforeCurriculum.students.capacity > 0 &&
       totalEnrolled(beforeCurriculum.students) / beforeCurriculum.students.capacity >= strategy.dormFillThreshold)
@@ -897,25 +621,10 @@ function decide(
   const savingForDorm = strategy.buildsDorms && wantsDorm &&
     !affordable(beforeCurriculum, nextDorm!.cost, strategy);
 
-  // CAMPUS LIFE BEFORE CURRICULUM (Plan 19's PR E). The founding college
-  // opens with three programs housed and nine tier-2 courses ready to
-  // start at $180,000 each, where it used to open with six $80,000 gen-ed
-  // courses and nothing else to buy until the first hall — so a harness
-  // that took the curriculum first and the campus-life facilities with
-  // whatever was left never accumulated the dining hall: the balanced
-  // builder was measured two years in with basic needs at 17 and every
-  // surplus week spent on a course. A player follows the week-nine letter
-  // ("site a residence hall and a dining hall") the way this now does:
-  // the facility the students are shortest of comes before the next
-  // course, and a prudent strategy SAVES for it the way it saves for a
-  // dorm — for the facility the toolbar's next-step line would name, an
-  // attribute under ATTRIBUTE_SHORTFALL, and not for every rung its own
-  // threshold would eventually buy: a strategy that builds everything
-  // (facilityThreshold Infinity) was measured saving for a $5M dining hall
-  // it did not need at a hundred thousand a week of opex, and growing
-  // nothing for a decade. The spend-to-the-wire archetypes buy it the week
-  // they can, in this order, and save for nothing — which is what they
-  // are.
+  // Campus life before curriculum: the facility students are shortest of (an
+  // attribute under ATTRIBUTE_SHORTFALL) comes before the next course, and a
+  // prudent strategy saves for it. Only that one, not every rung its
+  // threshold would buy, or a build-everything strategy saves for years.
   let shortFacility: Buildable | undefined;
   if (strategy.buildsFacilities) {
     let worst = ATTRIBUTE_SHORTFALL;
@@ -941,15 +650,9 @@ function decide(
       const f = s.tech.find((t) => t.id === id);
       const attr = f?.effects?.satisfactionAttribute;
       if (!f || f.status !== 'available' || !attr) continue;
-      // A VENUE IS WANTED BY THE TEAM WAITING FOR IT, not by the social
-      // attribute it also carries (Plan 19's PR F). A venue is revealed
-      // only once a varsity petition was granted (facilitiesData.ts's
-      // athleticsVenueReveal), so a team is awaiting it by construction;
-      // read as a social facility it was built only while social was
-      // under the threshold, which the campus-life-first ordering above
-      // now keeps at a hundred — and the earnest completionist, which
-      // "finishes every venue", was measured with fourteen teams awaiting
-      // one at the fiftieth summer and no title ever won.
+      // A venue is wanted by the team waiting for it (revealed only after a
+      // varsity petition, so one is awaiting it), not by its social
+      // attribute, which campus-life-first keeps high.
       const wanted = f.athleticsVenueReveal
         ? s.orgs.teams.some((team) => team.status === 'awaitingVenue' && team.venueCategory === f.facilityType)
         : s.students.satisfactionBreakdown[attr] < strategy.facilityThreshold;
@@ -960,12 +663,8 @@ function decide(
     }
   }
 
-  // The tier-1 library's own renovations (facilitiesData.ts's
-  // nextLibraryFloor) aren't a normal 'available' Buildable — the SAME
-  // node stays 'done' between renovations — so the generic "build whatever
-  // the satisfaction breakdown says is short" loop above never sees them.
-  // This is the one extra decision rule RENOVATE_LIBRARY needs, mirroring
-  // that loop's own threshold/affordability checks.
+  // The tier-1 library's renovations (nextLibraryFloor) keep the node 'done',
+  // so the loop above never sees them; same threshold and affordability.
   if (strategy.buildsFacilities && !savingForDorm) {
     const s = get();
     const lib = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
@@ -979,13 +678,9 @@ function decide(
     }
   }
 
-  // Founding and halls (Plan 14) come before the rest of the curriculum,
-  // since every course after the founding six sits behind a founding. The
-  // two spend-to-the-wire archetypes (see siteHallIfNeeded) do this even
-  // while "saving" for a dorm or a facility: a player with no buffer and
-  // no margin to keep is not saving for anything, and gating their halls
-  // on a dorm they cannot afford would make the one capital line they are
-  // meant to overreach on the one they are prudent about.
+  // Founding and halls come before the rest of the curriculum, since every
+  // later course sits behind a founding. The spend-to-the-wire strategies do
+  // this even while "saving": with no margin to keep they save for nothing.
   if (strategy.buildsCourses && (!saving || strategy.netMargin <= 0)) {
     foundPrograms(get, dispatch, strategy);
     siteHallIfNeeded(get, dispatch, strategy);
@@ -1035,100 +730,53 @@ function decide(
 // ---------------------------------------------------------------------
 export interface Row {
   year: number; cash: number; enrolled: number; capacity: number; prestige: number;
-  rank: number; // national rank at the boundary (rivalsSystem.ts's playerRank) — Plan 15's PR G reads it on the scorecard
+  rank: number; // national rank at the boundary (rivalsSystem.ts's playerRank)
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
   faculty: number; tuition: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
-  // The `social` and `academic` attributes alone, as the year closed (see
-  // satisfactionSystem.ts's computeSatisfactionBreakdown) — the headline
-  // `satisfaction` above is a weighted blend of four attributes, which
-  // hides whether a facility pass aimed at ONE of them (see
-  // TARGET_RATIO.social's harshening pass, and the recreational/arts
-  // facilities that followed it) actually moved that attribute. `academic`
-  // is tracked for the same reason since faculty quality started feeding it
-  // alongside the library ratio — this is the column that shows whether a
-  // well-staffed roster measurably lifts it without a free ride to 100.
+  // `social` and `academic` alone: the headline blends four attributes.
   social: number;
   academic: number;
-  // Student life as the year closed: how many organisations are live, what
-  // they cost a week, and what they are actually adding to the
-  // satisfaction TARGET (read off the model, never a parallel tally).
+  // Student life as the year closed: live organisations, their weekly cost,
+  // and their contribution to the satisfaction target (read off the model).
   clubs: number; chapters: number; orgUpkeep: number; orgSatisfaction: number;
-  // Varsity athletics (see src/data/studentLifeData.ts), as the year closed.
-  // `sportClubs` is clubs still waiting to petition (or never asked);
-  // `athleticsUpkeep` is teams-only (coaches + program fees), split out from
-  // `orgUpkeep` above so a balance pass can see athletics' own share rather
-  // than reading it blended into clubs/chapters.
+  // Varsity athletics as the year closed. `sportClubs` are clubs yet to
+  // petition; `athleticsUpkeep` is teams only (coaches + program fees), split
+  // from `orgUpkeep`.
   sportClubs: number; varsityActive: number; varsityAwaiting: number; athleticsUpkeep: number;
-  // Research, as the year closed: what it is producing a week, and the two
-  // durable counts its outputs have accumulated. `grantIncome` is the
-  // cumulative cash side — the figure that says whether grants are
-  // trivialising the cash throttle.
+  // Research as the year closed. `grantIncome` is cumulative: whether grants
+  // trivialise the cash throttle.
   researchRate: number; breakthroughs: number; grantIncome: number;
-  // Graduate programs, as the year closed (see
-  // docs/design/graduate-programs.md). These are the numbers the feature's
-  // whole balance claim rests on: WHEN a strategy reaches them, whether it
-  // can afford them without going into the red, and what they cost to run
-  // once founded. The harness needs no new decision rule to buy them — a
-  // graduate course is a `course` Buildable, so the curriculum block below
-  // already picks them up, sorted last because their ids end in 5xx/7xx.
+  // Graduate programs (docs/design/graduate-programs.md). Graduate courses
+  // are `course` Buildables, sorted last by their 5xx/7xx ids.
   gradCourses: number; gradPrograms: number; gradUpkeep: number;
-  // WHAT A YEAR ACTUALLY CONTAINED, for the player rather than the school.
-  // Every other column here describes the institution; these three describe
-  // the person playing it, and they are the measurements Plans 12 and 13
-  // are checked against — the September review's run averaged 25 actions a
-  // year and fell to between 4 and 14 after year 22, which is the finding
-  // "half the playtime is dead" is made of.
-  //
-  //   actions       discretionary dispatches that year: every start, hire,
-  //                 placement, commission and campaign the scripted player
-  //                 made. NOT modal answers — those are counted by type in
-  //                 the tally, since being asked something is not the same
-  //                 as finding something to do.
-  //   idleWeeks     weeks when the game offered NOTHING startable: no
-  //                 available Buildable whose non-cash gates were met.
-  //                 A week with nothing to decide even in principle.
-  //   blockedWeeks  weeks when something was startable and nothing was
-  //                 affordable — the cash throttle actually throttling.
-  //   facultyBlockedWeeks
-  //                 weeks when nothing was startable ONLY because no
-  //                 department had a free slot for it — an available
-  //                 course, or a program on offer, whose field has nobody
-  //                 to teach it (Plan 14's PR H: the market as a gate). The
-  //                 column that says whether a run stalls on money or on
-  //                 people, which is what a search is for.
-  //
-  // The two week counts read AFFORDABILITY against raw cash rather than
-  // against the strategy's own buffer, deliberately: "the game offered me
-  // nothing I could buy" is a fact about the game, where "nothing that
-  // cleared my eight-week reserve" is a fact about the policy, and the Idle
-  // control (buffer: MAX_SAFE_INTEGER) would otherwise report every week of
-  // forty years as money-blocked.
+  // What a year contained for the player:
+  //   actions       discretionary dispatches (not modal answers)
+  //   idleWeeks     nothing startable even in principle
+  //   blockedWeeks  something startable, nothing affordable
+  //   facultyBlockedWeeks  nothing startable only for want of a free slot
+  // Week counts read raw cash, not the strategy's buffer: facts about the
+  // game, not the policy.
   actions: number; idleWeeks: number; blockedWeeks: number; facultyBlockedWeeks: number;
 }
 
-// What the WEEK offered, regardless of what the strategy did about it (see
-// Row's idleWeeks/blockedWeeks). `startable` ignores cash and reads only the
-// gates a Buildable cannot buy its way past — status, and a free faculty
-// slot for a course. `affordable` then asks whether the school could pay
-// for any of them out of raw cash.
+// What the week offered, whatever the strategy did (see Row's idleWeeks /
+// blockedWeeks). `startable` reads only the gates cash cannot buy past
+// (status, a free faculty slot); `affordable` asks whether raw cash covers any.
 function weekOffered(s: GameState): { startable: boolean; affordable: boolean; facultyBlocked: boolean } {
   let startable = false;
   let affordable = false;
   let facultyBlocked = false;
   const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
   for (const node of s.tech) {
-    // A program on offer is something the week offered too: its entry
-    // course is 'locked' until it is founded, and founding needs a free
-    // slot in its field exactly as starting a course does.
+    // A program on offer counts: founding it needs a free slot in its field,
+    // like starting a course.
     if (node.status !== 'available' && !offeredEntryIds.has(node.id)) continue;
     if (node.requiresFaculty && !hasFreeFacultySlot(s, node.requiresFaculty)) { facultyBlocked = true; continue; }
     startable = true;
     if (s.finance.cash >= node.cost) { affordable = true; break; }
   }
-  // Blocked on people only when nothing at all was startable for any
-  // other reason: a week with a startable, affordable course is not a
-  // stall, whatever else it could not staff.
+  // Blocked on people only when nothing at all was startable otherwise.
   return { startable, affordable, facultyBlocked: facultyBlocked && !startable };
 }
 
@@ -1180,61 +828,36 @@ function snapshot(
   };
 }
 
-// The three player-facing counts, accumulated across a year and reset at
-// each snapshot — they describe one year, not the run to date.
+// The player-facing counts for one year, reset at each snapshot.
 interface YearActivity { actions: number; idleWeeks: number; blockedWeeks: number; facultyBlockedWeeks: number }
 function newYear(): YearActivity { return { actions: 0, idleWeeks: 0, blockedWeeks: 0, facultyBlockedWeeks: 0 }; }
 
-// What the authored decision events (see src/data/eventData.ts) did over a
-// run. Reported under the table so a balance pass can see at a glance
-// whether the events are a rounding error against the growth loop or a
-// second economy — they are meant to be the former.
-interface EventTally {
+// What the authored decision events did over a run: meant to be a rounding
+// error against the growth loop, not a second economy.
+export interface EventTally {
   milestones: number;   // stop-the-clock celebrations shown
   decisions: number;    // authored decision events resolved
   cash: number;         // net cash effect of every choice the scripted player took
-  // Student life (see src/data/studentLifeData.ts). Reported for the same
-  // reason as the two above: so a balance pass can see whether recognising
-  // student organisations is a texture line or a second economy. Note the
-  // asymmetry — NONE of these stop the clock. Clubs and new chapters are
-  // answered in a digest folded into the summer admissions interrupt the
-  // run already pays for, and the Greek decisions that DO stop the clock
-  // are entries in the shared decision-event table, so they are already
-  // counted in `decisions` rather than added on top of it.
+  // Student life. None of these stop the clock; Greek decisions that do are
+  // already in `decisions`.
   petitionsApproved: number;
   greekEventsSeen: number; // of `decisions`, how many were Greek-life ones
-  // Research (see src/systems/research/researchSystem.ts). Reported
-  // alongside the events for the same reason: so a balance pass can see at
-  // a glance whether research is a quiet second income line or a second
-  // economy. Prizes are the only one of the three that stops the clock.
+  // Research (researchSystem.ts): a quiet second income or a second economy?
+  // Prizes are the only one that stops the clock.
   prizes: number;
-  // Research initiatives, which the funding ladder is tuned against (see
-  // researchData.ts's INITIATIVE_DEPTHS). "How many projects can a school
-  // afford to be running at once" is the question a funding change moves,
-  // and it is invisible in the outputs — a school running eight cheap
-  // projects and one running two expensive ones can bank the same number of
-  // breakthroughs. Counted by watching the keys of s.research.initiatives
-  // week to week, so a start is a transition rather than something the
-  // harness has to be told about.
+  // Research initiatives, counted from transitions in s.research.initiatives:
+  // the funding ladder (INITIATIVE_DEPTHS) is tuned against concurrency.
   initiativesStarted: number;
   peakConcurrent: number;
   reports: number;           // completions that stopped the clock (see researchSystem.ts)
   initiativeSpend: number;   // cumulative up-front funding, against lifetime opex below
-  // Student demands (see src/systems/demands/demandSystem.ts). The
-  // question these answer is the one the feature's whole cadence argument
-  // rests on: a well-run school should almost never be asked for anything,
-  // and a school pinned at the satisfaction floor should be asked
-  // repeatedly and STILL only stall. `demandsRaised` also feeds the
-  // combined modal count below — demands share the decision events'
-  // cooldown, so they redistribute that budget rather than adding to it.
+  // Student demands: a well-run school should almost never be asked. They
+  // share the decision events' cooldown.
   demandsRaised: number;
   demandsMet: number;
   demandsFailed: number;
   demandSubjects: Record<string, number>; // which shortfall each demand was about
-  // The three student-life/event cadences this tuning pass targets (see
-  // eventData.ts / studentLifeData.ts). Reported separately from the
-  // generic decision-event tally because "how many decision events fired"
-  // says nothing about whether they were the RIGHT ones.
+  // The tuned student-life/event cadences.
   schoolsNamed: number;             // naming-rights fired with the 'sign' choice
   chaptersFormed: number;           // chapter petitions approved over the run
   chaptersAskedForHousing: number;  // greek-housing fired (built or refused) — bounded by chaptersFormed
@@ -1242,102 +865,63 @@ interface EventTally {
   hellenicCouncilEligibleYear: number | null; // year the club-count gate first cleared
   studentCenterYear: number | null;        // year a student center first stood
   eventFireCounts: Record<string, number>; // every decision-event id, by how many times it fired
-  // Varsity athletics (see src/data/eventData.ts's 'varsity-petition' and
-  // src/data/studentLifeData.ts). Unlike Greek life's events, this one no
-  // longer shares the fixed decision-event budget — it fires on its own
-  // deterministic five-year-tenure schedule — so `varsityPetitions` counts
-  // how many of `decisions` were this event without implying it competed
-  // for a slot the way `greekEventsSeen` does.
+  // Varsity petitions fire on their own schedule, outside the shared
+  // decision-event budget.
   varsityPetitions: number;
   varsityGranted: number;
   titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
-  // THE SEALED RECORD (Plan 17's PR C): what the fiftieth summer wrote onto
-  // s.self.legacy, or null on a run that never got there. The thing PR E's
-  // four assertions are about — a legacy is the run's whole shape as six
-  // grades and a name, and "four archetypes finish differently" is a claim
-  // about these.
+  // The sealed record from the fiftieth summer, or null.
   legacy: Legacy | null;
-  // Every interrupt the run answered, by type. The review counted these by
-  // hand — 223 modals over forty years, 61 of them research reports — and
-  // "which modal is the player actually seeing" is a different question from
-  // "how much texture is there", which the texture line below answers.
+  // Every interrupt the run answered, by type: which modals the player
+  // actually sees, as distinct from the texture line below.
   modals: Record<string, number>;
 }
 
-// The scripted player's event policy — take the first affordable choice,
-// fall back to a free one — moved to src/engine/defaultAnswers.ts when the
-// debug panel's Jump needed to answer a modal the same way this does. The
-// tally below is still an upper bound on what events cost a run, because
-// that policy is still the most expensive reasonable one.
-// The Greek-life entries of the shared decision-event table (see
-// src/data/eventData.ts). Named here only so the report can say how much of
-// the run's FIXED event budget student life took — they do not get a budget
-// of their own, which is the whole point of authoring them into that table.
+// The Greek-life entries of the shared decision-event table, named only so
+// the report can say how much of the fixed event budget student life took.
 const GREEK_EVENT_IDS = ['hellenic-council', 'greek-scandal', 'greek-housing'];
 
-// The five athletics venue ids (facilitiesData.ts), named here rather than
-// imported — the same self-contained-defensive-check spirit persistence.ts's
-// own VENUE_CATEGORIES list follows — purely so play() can report which ones
-// a run actually finished building.
+// The athletics venue ids (facilitiesData.ts), named here so play() can
+// report which ones a run finished.
 const VENUE_IDS = ['ATH-FIELD', 'ATH-ARENA', 'ATH-DIAMOND', 'ATH-NATATORIUM', 'ATH-STADIUM'];
 
-// Resets the two pieces of shared, mutable module state a run depends on
-// for reproducibility (the seeded RNG and the fake localStorage) so `play`
-// is self-contained and deterministic regardless of what ran before it in
-// the same process — the CLI loop below relies on this, and so does
-// test/balance-regression.test.ts, which calls `play` for several
-// strategies in one process and would otherwise have each run inherit
-// RNG/storage state left over by whichever ran first.
-function resetSimEnvironment(seedOverride?: number): void {
-  seed = seedOverride ?? INITIAL_SEED;
+// Resets seed and fake storage so each `play` is deterministic within one
+// process.
+function resetSimEnvironment(seedOverride?: number): number {
+  const seed = seedOverride ?? DEFAULT_SIM_SEED;
+  bindScriptStream(seed); // for the harness's own direct calls into game code
   fakeStorage.clear();
+  return seed;
 }
 
-// `onWeek`, when given, is called with the post-TICK state after every
-// simulated week — finer-grained than `rows` (one snapshot a YEAR, at the
-// admissions boundary). Optional and a no-op by default so every existing
-// caller (the CLI report below, test/balance-regression.test.ts) is
-// unaffected; sim/milestones.ts is the one caller that needs week-level
-// resolution, to say which week a one-time completion milestone (a
-// building, a full catalogue) first became true rather than which YEAR it
-// fell in.
+// `onWeek`, when given, is called with the post-tick state every week, finer
+// than `rows` (one a year); sim/milestones.ts uses it.
 export function play(
   strategy: Strategy,
   years: number,
   onWeek?: (s: GameState) => void,
-  // Runs this strategy on a DIFFERENT stream. Optional, and unused by the
-  // CLI report — it exists so test/balance-regression.test.ts can ask
-  // whether a claim that just failed fails everywhere or only here (see that
-  // file's `holds`).
+  // Runs on a different stream, so test/balance-regression.test.ts can ask
+  // whether a failed claim fails everywhere or only here (its `holds`).
   seedOverride?: number,
-  // Halts the run early, at the TOP of a week and BEFORE any pending
-  // interrupt is answered — so a run stopped this way hands back a state
-  // with its modal still on screen. That is the whole point: a scenario
-  // (see tools/scenarios.ts) wants "the week a championship modal is
-  // pending", which is a state that only exists between a system raising
-  // the interrupt and the scripted player dismissing it, and no year
-  // boundary will ever land on it. Optional; today's callers pass nothing
-  // and run to `years` exactly as they did.
+  // Halts at the top of a week, before any pending interrupt is answered,
+  // so the state comes back with its modal still on screen: what a scenario
+  // (tools/scenarios.ts) wants, and no year boundary lands on.
   stopWhen?: (s: GameState) => boolean,
-  // Continue from a state another run left off at, instead of founding
-  // (Plan 15's PR G): the recovery scenario stands a school up in crisis
-  // under one strategy and asks whether another gets it out. Deep-cloned,
-  // so the run it came from is untouched.
+  // Continue from another run's state instead of founding (the recovery
+  // scenario). Deep-cloned, so the source is untouched.
   from?: GameState,
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[]; state: GameState } {
-  resetSimEnvironment(seedOverride);
+  const seed = resetSimEnvironment(seedOverride);
   let s: GameState;
   if (from) {
     s = structuredClone(from);
   } else {
     s = createPreStartState();
-    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS) });
+    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), seed });
   }
   const dispatch = (a: Action) => { s = reducer(s, a); };
-  // The same dispatch, counted. Handed to decide() alone, so what it
-  // measures is DISCRETIONARY play — the starts, hires, placements,
-  // commissions and campaigns a player would have clicked — and never the
-  // modal answers, which are counted by type in the tally instead.
+  // The same dispatch, counted. Handed to decide() alone, so it measures
+  // discretionary play, never modal answers (tallied by type).
   const dispatchCounted = (a: Action) => { year.actions += 1; dispatch(a); };
   let year = newYear();
   const rows: Row[] = [];
@@ -1364,67 +948,37 @@ export function play(
       tally.hellenicCouncilEligibleYear = s.clock.year;
     }
     if (s.pendingInterrupt) {
-      // ANSWERED BY THE SHARED DEFAULTS (see src/engine/defaultAnswers.ts),
-      // never by a policy of this file's own. The debug panel's Jump
-      // fast-forwards through the same modals, and two fast-forwards that
-      // answered a championship differently would be two different games —
-      // so the answer lives in one module and both ask it for one.
-      //
-      // What stays here is the BOOKKEEPING, which is this harness's own
-      // business: the tallies below are read off the interrupt (and off the
-      // action that answers it) before the dispatch clears either.
+      // Answered by the shared defaults (engine/defaultAnswers.ts) so the
+      // debug panel's Jump plays the same game; tallies are read first.
       const type = s.pendingInterrupt.type;
-      // THE SUMMER IS FOUR BEATS OF ONE MODAL (Plan 16's PR A — see
-      // types.ts's SummerPayload), answered one beat per pass through this
-      // loop. It counts as ONE modal, on its opening beat; the digest and
-      // the row are read on the last, where the year actually turns over.
+      // The summer is four beats of one modal (types.ts's SummerPayload),
+      // one per pass through this loop. It counts as one modal, on its
+      // opening beat; the digest and the row are read on the last.
       const summerBeat = type === 'summer' ? (s.pendingInterrupt.payload as SummerPayload).beat : null;
       const summerCloses = summerBeat === SUMMER_LAST_BEAT;
       if (summerBeat === null || summerBeat === 0) tally.modals[type] = (tally.modals[type] ?? 0) + 1;
       const answer = defaultAnswer(s, {
         tuition: strategy.tuition(s),
-        // Every strategy takes the slider's own opening position for its
-        // CURRENT standing — what a school like this would normally take
-        // (see admissionsSystem.ts's admitRate). Deliberately recomputed
-        // each summer rather than read back off s.students.admitRate:
-        // that field is sticky by design, so a scripted player echoing it
-        // would freeze on its founding rate and go on taking a founding
-        // school's share of the pool at top-50 prestige. No strategy here
-        // plays the lever deliberately, so the harness measures what the
-        // DEFAULT policy does — which is what it measured before PR C
-        // made the rate a decision at all.
+        // Unless the strategy sets it, the slider's opening position for the
+        // current standing: s.students.admitRate is sticky by design.
         admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
       });
 
       if (summerCloses) {
-        // The student-life digest is the summer's last beat (see the
-        // reducer's RESOLVE_ADMISSIONS). The default answer recognises
-        // EVERY petition, which is the most expensive answer available —
-        // it is the only one that takes on recurring cost — so the opex
-        // and satisfaction figures these runs print are the upper bound on
-        // what student life does to a trajectory, exactly as the event
-        // policy is an upper bound on what events cost.
+        // The digest is the summer's last beat. Recognising every petition
+        // makes these runs an upper bound on student life's cost.
         tally.petitionsApproved += s.orgs.pendingPetitions.length;
         tally.chaptersFormed += s.orgs.pendingPetitions.filter((p) => p.kind === 'chapter').length;
       } else if (type === 'milestone') {
         tally.milestones += 1;
       } else if (type === 'research-complete') {
-        // The completion report carries the award if the work won one — so
-        // the prize tally is read off the payload rather than off an
-        // interrupt of its own (see researchSystem.ts).
+        // The completion report carries the award if the work won one.
         const { report } = s.pendingInterrupt.payload as { report: InitiativeReport };
         tally.reports += 1;
         if (report.award) tally.prizes += 1;
       } else if (type === 'demand') {
-        // A student demand (see src/systems/demands/demandSystem.ts). The
-        // default answer acknowledges it and does nothing else — there is
-        // nothing else to do: a demand is answered by BUILDING the thing
-        // before the deadline, which every strategy's ordinary
-        // facility/dorm rules either will or won't do on their own. That
-        // is exactly the property worth measuring: the strategies that
-        // build campus life meet their demands, and the ones that don't
-        // (the overbuilder, which builds beds and nothing else) fail them
-        // and must still stall rather than die.
+        // A demand is answered by building before the deadline; the default
+        // answer only acknowledges it.
         const demand = s.events.activeDemand;
         tally.demandsRaised += 1;
         if (demand) {
@@ -1441,14 +995,11 @@ export function play(
       if (summerCloses) {
         rows.push(snapshot(s, weeksInTheRed, minCash, year));
         year = newYear();
-        // The record, the summer it is sealed (see the reducer's
-        // RESOLVE_ADMISSIONS). Read off the state rather than recomputed,
-        // so the harness asserts against exactly what a player was shown.
+        // The record, the summer it is sealed, read off the state so the
+        // harness asserts against what a player was shown.
         if (tally.legacy === null && s.self.legacy) tally.legacy = s.self.legacy;
       }
       if (type === 'decision-event') {
-        // Which event, and which way it went, read off the answer the
-        // shared defaults produced rather than re-derived here.
         const taken = answer?.type === 'RESOLVE_DECISION_EVENT' && answer.eventId !== ''
           ? { eventId: answer.eventId, choiceId: answer.choiceId }
           : null;
@@ -1463,9 +1014,8 @@ export function play(
             if (taken.choiceId === 'establish') tally.varsityGranted += 1;
           }
           if (taken.eventId === 'hellenic-council' && tally.hellenicCouncilYear === null) {
-            // s.clock.year is the post-dispatch year; a decision event never
-            // falls on the week the clock turns over, so this is the year it
-            // fired in.
+            // A decision event never falls on the week the clock turns over,
+            // so the post-dispatch year is the year it fired.
             tally.hellenicCouncilYear = s.clock.year;
           }
         }
@@ -1473,19 +1023,15 @@ export function play(
       }
       continue;
     }
-    // Read BEFORE the week's decisions, so "was there anything to do" is a
-    // question about the week the player woke up to rather than about what
-    // is left once they have done it.
+    // Read before the week's decisions: the week the player woke up to.
     const offered = weekOffered(s);
     if (offered.facultyBlocked) year.facultyBlockedWeeks += 1;
     else if (!offered.startable) year.idleWeeks += 1;
     else if (!offered.affordable) year.blockedWeeks += 1;
     decide(() => s, strategy, weeksInTheRed, dispatchCounted);
-    // A demand resolves inside a TICK, silently and with no interrupt (see
-    // demandSystem.ts) — meeting one is finishing a building, not clicking
-    // anything — so which way it went is read from the transition rather
-    // than from a modal. Safe against the post-tick state because neither
-    // reading a demand's target is measured against can fall.
+    // A demand resolves silently inside a tick (meeting one is finishing a
+    // building), so its outcome is read from the transition. Safe against
+    // the post-tick state because neither reading it is measured on can fall.
     const demandBefore = s.events.activeDemand;
     dispatch({ type: 'TICK' });
     if (demandBefore && !s.events.activeDemand) {
@@ -1494,8 +1040,6 @@ export function play(
     }
     if (s.finance.cash < 0) weeksInTheRed += 1;
     minCash = Math.min(minCash, s.finance.cash);
-    // Research initiatives, read as a transition: any facility key that was
-    // not running one last week and is now started one.
     const running = Object.keys(s.research.initiatives);
     for (const labId of running) {
       if (!liveInitiatives.has(labId)) {
@@ -1509,12 +1053,8 @@ export function play(
     onWeek?.(s);
   }
   const venuesBuilt = VENUE_IDS.filter((id) => s.tech.find((t) => t.id === id)?.status === 'done');
-  // The final state rides along with the tables. tools/makeSave.ts used to
-  // capture it through `onWeek` — the only hook there was — which a run
-  // halted by `stopWhen` cannot use: it stops BETWEEN weeks, so the last
-  // post-TICK state `onWeek` saw is a week older than the one the scenario
-  // is about. Returning it costs nothing (it is the same object the loop
-  // just finished with) and is what tools/scenario.ts writes out.
+  // The final state rides along: a run halted by `stopWhen` stops between
+  // weeks, so `onWeek` never sees it. tools/scenario.ts writes it out.
   return { rows, tally, venuesBuilt, state: s };
 }
 
@@ -1541,28 +1081,20 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
       `${String(r.courses).padStart(3)} | ${String(r.majors).padStart(3)} | ${String(r.faculty).padStart(3)} | ${fmt(r.tuition).padStart(8)} | ` +
       `${fmt(r.applicants).padStart(7)} | ${(r.admitRate * 100).toFixed(0).padStart(6)} | ${fmt(r.endowment).padStart(6)} | ` +
       `${r.researchRate.toFixed(1).padStart(7)} | ${String(r.breakthroughs).padStart(3)} | ` +
-      // clubs/chapters live at the close of that year — the column that
-      // says WHEN student life actually starts for a given strategy, which
-      // is the whole question the opex share below can't answer.
+      // clubs/chapters live at year end: when student life starts.
       `${String(r.clubs).padStart(2)}/${String(r.chapters).padEnd(2)} | ` +
-      // graduate courses developed / programs founded, at the close of
-      // that year — the column that answers "when does a strategy reach
-      // the graduate tier, and does it finish anything".
+      // graduate courses developed / programs founded at year end.
       `${String(r.gradCourses).padStart(2)}/${r.gradPrograms} | ` +
-      // What the YEAR contained for the player: how many discretionary
-      // things they did, how many weeks offered nothing startable at all,
-      // and how many offered something they could not pay for.
+      // The year for the player: actions, idle weeks, money-blocked weeks,
+      // faculty-blocked weeks.
       `${String(r.actions).padStart(3)} | ${String(r.idleWeeks).padStart(4)} | ${String(r.blockedWeeks).padStart(4)} | ${String(r.facultyBlockedWeeks).padStart(4)}`,
     );
   }
   console.log(`   weeks in the red: ${last.weeksInTheRed} of ${rows.length * 52}, min cash: ${fmt(last.minCash)}`);
   console.log(`   milestone celebrations: ${tally.milestones}, decision events: ${tally.decisions}, net event cash: ${fmt(tally.cash)}`);
-  // The cadence question, answered directly: how often is the clock
-  // stopped by something that is NOT the one fixed annual
-  // interrupt (the summer — the U.S. News report is a beat of it now). Demands are in
-  // this total rather than beside it because they spend the same cooldown
-  // the decision events do — the point of the line is that adding them
-  // moves it very little.
+  // How often the clock is stopped by something other than the summer.
+  // Demands are in the total because they spend the decision events'
+  // cooldown, so adding them moves it very little.
   const years = rows.length;
   const texture = tally.milestones + tally.decisions + tally.reports + tally.demandsRaised;
   const subjects = Object.entries(tally.demandSubjects)
@@ -1577,9 +1109,6 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `   texture modals (milestones + events + research reports + demands): ${texture} over ${years} years ` +
     `= ${(texture / Math.max(years, 1)).toFixed(2)}/yr, on top of the ${years} summers`,
   );
-  // Every modal by type, and the total — the review's own count (223 over
-  // forty years, 5.6 a year, 61 of them research reports) restated as
-  // something the harness prints rather than something a person tallies.
   const modalTotal = Object.values(tally.modals).reduce((sum, n) => sum + n, 0);
   const modalMix = Object.entries(tally.modals)
     .sort((a, b) => b[1] - a[1])
@@ -1588,11 +1117,8 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   console.log(
     `   modals answered: ${modalTotal} over ${years} years = ${(modalTotal / Math.max(years, 1)).toFixed(1)}/yr — ${modalMix}`,
   );
-  // And what the PLAYER had to do, which is the other half of the same
-  // question: a year of five modals and four actions is a quiet year; a
-  // year of five modals and forty actions is a busy one. Reported as an
-  // average and as the last decade's average, because the review's finding
-  // was about the SHAPE — 25 actions a year, falling to 4-14 after year 22.
+  // And what the player had to do: reported as a run average and as the
+  // last decade's, because the shape over time is the finding.
   const decade = rows.slice(-10);
   const mean = (list: Row[], pick: (r: Row) => number) =>
     list.reduce((sum, r) => sum + pick(r), 0) / Math.max(list.length, 1);
@@ -1606,31 +1132,25 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `${mean(rows, (r) => r.facultyBlockedWeeks).toFixed(1)} faculty-blocked weeks/yr ` +
     `(last decade ${mean(decade, (r) => r.facultyBlockedWeeks).toFixed(1)})`,
   );
-  // Grant income is compared against the run's total operating cost rather
-  // than reported bare: "$40M of grants" means nothing on its own, "1.4% of
-  // what the school spent" is the answer to whether grants trivialise the
-  // cash throttle.
+  // Grants as a share of lifetime opex: whether they trivialise the cash
+  // throttle.
   const lifetimeOpEx = rows.reduce((sum, r) => sum + r.opex * 52, 0);
   const grantShare = lifetimeOpEx > 0 ? (last.grantIncome / lifetimeOpEx) * 100 : 0;
   console.log(
     `   research: ${last.researchRate.toFixed(1)} pts/wk at close, ${last.breakthroughs} breakthroughs, ` +
     `${tally.prizes} prizes, ${fmt(last.grantIncome)} in grants (${grantShare.toFixed(1)}% of lifetime opex)`,
   );
-  // The funding ladder's own line. Two or three projects at once in a
-  // mature school is the target; eight would mean the money came down too
-  // far, and none would mean it never came down at all.
+  // The funding ladder's line: two or three projects at once in a mature
+  // school is the target; eight means funding is too cheap, none too dear.
   const spendShare = lifetimeOpEx > 0 ? (tally.initiativeSpend / lifetimeOpEx) * 100 : 0;
   console.log(
     `   initiatives: ${tally.initiativesStarted} started, ${tally.peakConcurrent} running at once at the peak, ` +
     `${fmt(tally.initiativeSpend)} of funding (${spendShare.toFixed(1)}% of lifetime opex), ` +
     `${tally.reports} concluded with a report`,
   );
-  // Graduate programs, judged the same way grants and student life are:
-  // the bare figure means nothing, WHEN it arrives and what share of the
-  // school's spending it takes is the answer to whether it is a late-game
-  // sink or a mid-game tax. `firstGrad` is the year the first graduate
-  // COURSE was finished, which is the moment the tier actually starts
-  // costing money.
+  // Graduate programs: when they arrive and their share of opex (a late-game
+  // sink or a mid-game tax?). `firstGrad` is the year the first graduate
+  // course finished, when the tier starts costing money.
   const firstGrad = rows.find((r) => r.gradCourses > 0);
   const firstProgram = rows.find((r) => r.gradPrograms > 0);
   const gradShare = last.opex > 0 ? (last.gradUpkeep / last.opex) * 100 : 0;
@@ -1639,9 +1159,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `first course yr ${firstGrad ? firstGrad.year : '-'}, first program yr ${firstProgram ? firstProgram.year : '-'}; ` +
     `${fmt(last.gradUpkeep)}/wk upkeep (${gradShare.toFixed(2)}% of opex)`,
   );
-  // Student life is judged against opex the same way grants are judged
-  // against it: the bare weekly figure means nothing, the share of the
-  // school's spending is the answer to whether it moved the throttle.
+  // Student life as a share of opex: did it move the throttle?
   const orgShare = last.opex > 0 ? (last.orgUpkeep / last.opex) * 100 : 0;
   console.log(
     `   student life: ${last.clubs} clubs, ${last.chapters} chapters at close ` +
@@ -1649,13 +1167,8 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `(${orgShare.toFixed(2)}% of opex), +${last.orgSatisfaction.toFixed(2)} on the satisfaction target; ` +
     `${tally.greekEventsSeen} of ${tally.decisions} decision events were Greek-life ones`,
   );
-  // Varsity athletics (see src/data/studentLifeData.ts). Judged the same way
-  // student life and grants are: bare figures mean nothing, share of opex
-  // is the answer to whether this crowds out anything else. The petition
-  // itself no longer draws on the fixed decision-event budget (it fires on
-  // its own deterministic five-year-tenure schedule), so its share of
-  // `decisions` below is a read on how much of the MODAL traffic it is,
-  // not on how much of a scarce random slot it took.
+  // Varsity athletics as a share of opex. The petition fires on its own
+  // schedule, so its share of `decisions` is a read on modal traffic only.
   const athleticsShare = last.opex > 0 ? (last.athleticsUpkeep / last.opex) * 100 : 0;
   console.log(
     `   varsity athletics: ${last.sportClubs} sport clubs, ${last.varsityActive} active teams, ` +
@@ -1665,9 +1178,8 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `${tally.varsityPetitions} of ${tally.decisions} decision events were varsity petitions; ` +
     `venues built: ${run.venuesBuilt.length > 0 ? run.venuesBuilt.join(', ') : 'none'}`,
   );
-  // The three tuned cadences (see eventData.ts / studentLifeData.ts), each
-  // measured against what the concern was actually about — not "did the
-  // event fire" but "did it reach the outcome a long run should show".
+  // The tuned cadences, each measured against the outcome a long run should
+  // show, not just whether the event fired.
   const totalSchools = discoverySchools().length;
   const housingFraction = tally.chaptersFormed > 0
     ? (tally.chaptersAskedForHousing / tally.chaptersFormed) * 100 : 0;
@@ -1683,9 +1195,6 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `greek housing ${tally.chaptersAskedForHousing}/${tally.chaptersFormed} chapters asked (${housingFraction.toFixed(0)}%); ` +
     `hellenic council ${councilLine}`,
   );
-  // The sealed record (Plan 17's PR C), when the run reached the fiftieth
-  // summer: the name and the six grades, which is what "how did this run
-  // finish" means now.
   if (tally.legacy) {
     console.log(
       `   legacy (sealed year ${tally.legacy.year}): ${tally.legacy.name} — `
@@ -1700,80 +1209,36 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 }
 
 // ---------------------------------------------------------------------
-// The strategies. Tuition ramps with prestige because that is what a real
-// player does — the point of the sweep is that no strategy should ever be
-// unable to recover, and that each one should show the tier-shaped
-// cost-leads-revenue pinch.
+// The strategies. Tuition ramps with prestige; no strategy should ever be
+// unable to recover.
 // ---------------------------------------------------------------------
 //
-// Underwater, it charges a notch more instead. That is the other half of
-// cutPayrollIfStalled's "price before people": a school running a deficit
-// raises its own price before it starts dismissing professors, and the
-// payroll lever defers to it while the raise is still waiting on an
-// admissions round. It is a reach, not a rescue — the surcharge is 15% of
-// a price that is itself pinned to prestige, so a school whose costs have
-// outrun its standing cannot price its way back out.
-//
-// The clamp below is TUITION_SLIDER_MAX and is purely defensive. It used
-// to be the per-school-type ceiling, and for the Public flagship strategy
-// it was load-bearing rather than defensive — that strategy sat at exactly
-// 22,000 from year 16 to year 40. Plan 07's PR A retired the ceiling and
-// PR C retired the strategy along with the fork that defined it, so no
-// strategy here comes within 60k of this number.
-//
-// Strategies priced FLAT are deliberately left out of this: their whole
-// purpose is to hold a price still while costs climb (see the low-tuition
-// stress case below), and giving them an escape hatch would delete the
-// pressure they exist to apply.
-//
-// The size of the surcharge is the whole question, and 15% is small on
-// purpose. Reaching straight for the ceiling was tried first and is an
-// exploit, not a recovery: enrolment is a four-class stock, so a school
-// can charge the cap for one year and collect from students who applied
-// under the old price long before the applicant pool reacts. In the
-// discount-volume run that single year printed +11.09M a week and an
-// endowment that went from 4.43M to 466M — a harness teaching itself to
-// play a trick no balance figure should be fitted against. A notch above
-// list price, repeated for as long as the deficit lasts, is the lever a
-// real administration actually has.
+// Underwater, rampTuition charges 15% more ("price before people"). Small on
+// purpose: enrolment is a four-class stock, so a jump to the cap collects
+// from students who applied at the old price before the pool reacts.
+// The clamp to TUITION_SLIDER_MAX is purely defensive.
 const DEFICIT_SURCHARGE = 1.15;
-// `base` moved from a hardcoded 4,000 to a parameter when scholarships
-// were retired (Plan 05's PR B). Each strategy's identity was its NET
-// price — what it actually charged after its own discount — so converting
-// it to a single price means folding that discount into both halves of the
-// ramp, not just dropping the `scholarships` line and leaving the sticker
-// where it was. A strategy that charged 4,000 + 300/point at 25% off is
-// the same school as one charging 3,000 + 225/point at no discount, and
-// this is how that is written.
 const rampTuition = (perPrestigePoint: number, base = 4_000) => (s: GameState) => {
   const ramped = Math.round((base + s.self.reputation * perPrestigePoint) / 500) * 500;
   const surcharged = s.finance.cash < 0 ? Math.round(ramped * DEFICIT_SURCHARGE / 500) * 500 : ramped;
   return Math.min(TUITION_SLIDER_MAX, surcharged);
 };
 
-// NOTE: `trimAidWhenUnderwater` used to live here — a strategy tapering
-// its own discount while underwater, the cheap non-destructive lever
-// financeSystem.ts's "stall, don't die" note points at. Scholarships are
-// gone (Plan 05's PR B) and the discount with them. The lever that
-// survives is the DEFICIT_SURCHARGE inside rampTuition above: a school in
-// the red raises its price before it touches anybody's job, which is the
-// same ordering expressed with the one dial that is left.
-
-// The selective college's policy (Plan 17's PR E): the body it holds
-// itself to, and the band its admit rate lives in.
+// The selective college's policy: the body it holds itself to, and the band
+// its admit rate lives in.
 const SELECTIVE_COLLEGE_BODY = 4_000;
 const SELECTIVE_COLLEGE_ADMIT_CEILING = 0.15;
 const SELECTIVE_COLLEGE_ADMIT_FLOOR = 0.005; // a pool of a quarter million against a class of a thousand
 const SELECTIVE_COLLEGE_PRICE_OVER_TOLERANCE = 1.2;
 // The regional engine's: take most of what applies.
-const REGIONAL_ENGINE_ADMIT_RATE = 0.6; // three quarters was measured to crowd the campus faster than it could build for it
+const REGIONAL_ENGINE_ADMIT_RATE = 0.6; // three quarters crowded the campus faster than it could build
 
 export const STRATEGIES: Strategy[] = [
   {
     // The intended line of play: grow one thing at a time, never take on a
     // commitment the current cash flow can't carry.
     name: 'Balanced builder',
-    tuition: rampTuition(225, 3_000), // was rampTuition(300) at 25% off
+    tuition: rampTuition(225, 3_000),
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -1783,7 +1248,7 @@ export const STRATEGIES: Strategy[] = [
     // Deliberate overreach: buys everything the moment cash allows,
     // ignoring the flow. Should stall hard, then claw back out — never die.
     name: 'Curriculum rush (overreach)',
-    tuition: rampTuition(240, 3_200), // was rampTuition(300) at 20% off
+    tuition: rampTuition(240, 3_200),
     buffer: () => 20_000,
     netMargin: 0,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
@@ -1792,190 +1257,60 @@ export const STRATEGIES: Strategy[] = [
   {
     // The volume archetype: the cheapest school here, beds first. Tests
     // that a big low-selectivity school is a viable, different shape.
-    //
-    // RE-BASELINED at Plan 05's PR B. It was rampTuition(150) at 50% off,
-    // tapering to 30% while underwater. The underwater taper is gone with
-    // scholarships, but the school is not left without a response:
-    // rampTuition's own DEFICIT_SURCHARGE raises its price 15% for as long
-    // as it is in the red, the same "price before people" ordering the
-    // taper existed to express.
-    //
-    // The price itself is NOT the old net price, and that is the honest
-    // part. Halving the ramp to 2,000 + 75/point preserves what students
-    // paid — but a sticker and a net price were doing two different jobs,
-    // and one number cannot do both. The old 4,000 + 150/point STICKER was
-    // also throttling this school's own pool, through sticker shock and
-    // qualityMix's tuition shift; drop the sticker to the net price and
-    // both throttles come off, and the school grew to 23k students it could
-    // not fund and ended the run insolvent. 3,000 + 110/point sits between
-    // the two prices it used to carry at once, which is the only place a
-    // single number can sit: still far and away the cheapest school here
-    // (~11k at the prestige it settles at, against ~35k for Balanced
-    // builder) and still the volume archetype at ~26k enrolled and a ~67%
-    // admit rate, but now carrying what it grows.
     name: 'Discount volume (beds first)',
-    // A discount, not a giveaway (Plan 15's PR G): a sixth to a fifth under
-    // the balanced ramp. At the old ramp — $9k at founding, $15k at prestige
-    // 85 — a school whose per-student costs rise with its standing lost
-    // money on every student forever, and an archetype that dies of its
-    // price is not testing volume bought with aid.
+    // A discount, not a giveaway: a sixth to a fifth under the balanced
+    // ramp. Cheaper, and per-student costs that rise with standing lose
+    // money on every student forever.
     tuition: rampTuition(180, 2_500),
     buffer: (s) => Math.max(200_000, s.finance.weeklyOpEx * 8),
     netMargin: 0.08,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.7, facilityThreshold: 80, campaigns: true,
-    // See Strategy.courseAffordabilityAware — its very low net
-    // tuition does not clear instruction cost at a full catalogue, so
-    // without this it eventually binges on years of saved-up cash and
-    // collapses once the new courses' recurring cost lands.
+    // Its low net tuition does not clear instruction cost at a full
+    // catalogue (see Strategy.courseAffordabilityAware).
     courseAffordabilityAware: true,
   },
   {
-    // Same discipline as Balanced builder — nothing about finishing the
-    // catalogue requires being reckless — with the one thing that stops
-    // Balanced builder short of it removed. decide()'s facility rule only
-    // builds "whatever satisfaction currently says is short", which
-    // naturally settles once a handful of cheap facilities clear the
-    // threshold: a second dining hall, the Arts Center (and the four
-    // Music courses gated behind it), and every athletics venue (so no
-    // varsity team this strategy ever forms actually fields, stuck
-    // 'awaitingVenue' forever) are left permanently unbuilt — see
-    // sim/milestones.ts, which this strategy exists to answer.
-    // facilityThreshold: Infinity means "satisfaction is never high enough
-    // to skip a facility", i.e. build every available one regardless —
-    // the only strategy here that ever reaches 100% of the catalogue.
+    // Balanced builder's discipline, with facilityThreshold Infinity: every
+    // available facility is built regardless of satisfaction. The only
+    // strategy that reaches the whole catalogue (see sim/milestones.ts).
     name: 'Completionist (build everything)',
-    tuition: rampTuition(225, 3_000), // was rampTuition(300) at 25% off
+    tuition: rampTuition(225, 3_000),
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.85, facilityThreshold: Infinity, campaigns: true,
   },
   {
-    // The stall test: beds far ahead of demand, priced too CHEAPLY to carry
-    // them. Every mistake the pacing model is supposed to punish, made at
-    // once. It must go deep into the red and CLIMB BACK OUT — that is the
-    // whole content of "stall, don't die".
-    //
-    // Flat low tuition, not high, is what actually stresses this economy —
-    // see the audit finding this replaced: a flat HIGH tuition (near the
-    // ceiling) survives overbuilding comfortably, because net tuition per
-    // enrolled student so vastly exceeds UPKEEP_PER_SEAT_PER_WEEK that even
-    // a campus at a fraction of capacity nets positive. A flat LOW tuition
-    // that never scales with prestige, paired with dorms built the moment
-    // the campus is even nominally full (dormFillThreshold: 0) and a
-    // growing course catalogue's rising per-student instruction cost (see
-    // financeSystem.ts's INSTRUCTION_PER_STUDENT_PER_COURSE_OFFERED), is
-    // the naive real mistake this strategy is supposed to model: "more
-    // beds means I should charge less to fill them" — thin margin per
-    // student, an ever-growing empty-seat bill from building ahead of
-    // demand every single year, and instruction cost that outgrows a
-    // stagnant tuition line as the curriculum matures.
-    // RE-BASELINED at Plan 05's PR B, from 8,000. Nothing about the
-    // strategy's intent changed; what changed underneath it is that
-    // admissionsSystem.ts's YIELD_BASE absorbed the retired scholarship
-    // term, so this school — which never discounted, and so never got the
-    // old scholarship yield bonus — now enrolls far more students at the
-    // same price. At 8,000 it stopped being a stress case at all: it
-    // filled its own beds and never went into the red once across forty
-    // years, which is precisely the audit finding the comment above says
-    // this strategy was rewritten to fix. 5,500 restores the archetype at
-    // BOTH horizons the harness reads: a real trough (~-190k, 157 weeks in
-    // the red) inside the 20-year window, then a recovery that holds to
-    // year 40 with no further red weeks.
-    //
-    // Picked by sweeping, not derived, and the sweep is worth recording:
-    // the response is not monotone. This economy is a threshold system — a
-    // strategy builds when cash clears a buffer — so small changes move
-    // WHICH WEEK a dorm goes up and forty years compounds the difference.
-    // Read a single price here as one sample of a noisy function, never as
-    // a tuned optimum.
-    //
-    // KNOWN RESIDUAL, as of Plan 05's PR C: this holds at the 20-year
-    // horizon balance-regression.test.ts actually asserts, but the 40-year
-    // `npm run sim` display now ends deeply underwater where it used to end
-    // solvent. That is not a price that wants nudging — a sweep from 5,500
-    // to 11,000 finds no value that satisfies both horizons, because what
-    // changed is upstream of price. Deleting yield let a selective school
-    // keep the whole top band, so incoming quality (and through it,
-    // prestige, and through that, the applicant pool) runs higher for
-    // everyone; this strategy builds a dorm unconditionally, so a bigger
-    // pool is a bigger bill every single year. See PR C's own note.
-    // RE-SWEPT at 5,250 (Plan 08's PR 1A). Not a rebalance: nothing about
-    // this strategy or the economy changed. Growing the rival field from 56
-    // schools to 100 moved the seeded Math.random stream once — the draw is
-    // pinned at one a year now, so it cannot move again from that direction —
-    // and 5,500 landed the DEFAULT seed on the wrong side of a knife-edge,
-    // bottoming out at +12,073 instead of going red at all.
-    //
-    // That the archetype could flip on a reshuffle is the real finding. At
-    // 5,500 this strategy's trough was typically -100k to -200k against a
-    // ~$12M/yr opex — about 1% of a year's spending — so `minCash < 0` was
-    // riding a coin flip whichever stream it ran on, and the gate that asserts
-    // it was not measuring a robust property. Re-swept the way the 5,500 above
-    // it was ("picked by sweeping, not derived"), but against FOURTEEN seeds
-    // rather than one, which is what the non-monotonicity below has always
-    // implied you have to do:
-    //
-    //   5,500  9/10 seeds    4,750  8/10      4,500  7/10      4,250  5/10
-    //   5,250  14/14 seeds
-    //
-    // The failures at the other prices are not all the same failure, and the
-    // shape is why 5,250 is the answer rather than the nearest passing value:
-    // above it the trough is too shallow to reliably go red, below it the
-    // school stops RECOVERING and ends the run underwater, which would
-    // falsify "stall, don't die" from the other direction. 5,250 clears both
-    // at every seed tried, with troughs from -65k to -19M and a positive
-    // weekly net at the horizon in all fourteen.
-    //
-    // At the default seed it reads -219,980 over 110 weeks in the red, which
-    // is within noise of the -209,657 over 71 weeks that 5,500 produced on the
-    // old stream — the same archetype, restated at a price that does not
-    // depend on the dice.
+    // The stall test: beds far ahead of demand, priced too cheaply to carry
+    // them, no buffer or margin. It must go deep into the red and climb back
+    // out. Tune it across many seeds: the response to price is not monotone.
     name: 'Overbuilder (beds ahead of demand)',
-    // Priced a fifth under the balanced ramp rather than at a flat $5,250
-    // (Plan 15's PR G): under the section-and-services cost model a school
-    // charging less than it costs to teach a student cannot exist, and an
-    // archetype that dies of its price is not testing beds ahead of demand.
     tuition: rampTuition(150, 2_000),
     buffer: () => 0,
     netMargin: -1,
-    // It builds the barest facilities — only when an attribute is dire —
-    // rather than none (Plan 15's PR G): with welfare and attrition in the
-    // model a campus that never feeds its students cannot recover from
-    // anything, and "stall, don't die" is a claim about beds, not hunger.
+    // The barest facilities, only when an attribute is dire: with welfare
+    // and attrition modelled, a campus that never feeds its students cannot
+    // recover, and "stall, don't die" is a claim about beds, not hunger.
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0, facilityThreshold: 40, campaigns: false,
   },
   {
-    // THE EARNEST COMPLETIONIST: the September 2026 review's own policy,
-    // written down (see docs/reviews/2026-09-design-review.md, Appendix A).
-    // Every other strategy here is an ARCHETYPE — a crude, reproducible
-    // corner of the space a player might occupy. This one is a PLAYER: a
-    // genre-literate person who intends to develop every course, build every
-    // asset, keep the school solvent and see everything the game has.
+    // The earnest completionist: the September 2026 review's policy
+    // (docs/reviews/2026-09-design-review.md, Appendix A). The others are
+    // archetypes; this is a player who intends to develop every course, build
+    // every asset, stay solvent and see everything the game has.
     //
-    // That makes it the most important row in the table for Plans 10 through
-    // 13, because it is the run those plans are about. The review's finding
-    // was not that some corner of the strategy space is degenerate; it was
-    // that playing well, earnestly, for forty years produces rank #1 by year
-    // 18, a finished catalogue by year 22, zero weeks in the red, and two
-    // decades of nothing left to decide.
-    //
-    // The policy, item by item:
-    //   price      90% of what the school's prestige makes tolerable, which
-    //              is what a careful player converges on — it is the highest
-    //              price that does not start driving the pool away
+    //   price      90% of what prestige makes tolerable: the highest price
+    //              that does not start driving the pool away
     //   admit      clamp(1.35 - prestige/100, 0.08, 0.65): broad while
     //              small, narrowing hard as standing builds
     //   build      cheapest tier first, on a four-week-opex buffer
     //   facilities every rung whose attribute is under 80
-    //   beds       35% of the enrolled body (the dorm rule reads
-    //              enrolled/capacity, so 1/0.35 is the same statement)
+    //   beds       35% of the enrolled body
     //   research   deepest affordable in every idle lab, without gutting a
-    //              department (decide()'s own commission rule)
-    //   people     every chair filled, and the varsity department staffed —
-    //              the first strategy here to hire a coach at all
+    //              department
+    //   people     every chair filled, and the varsity department staffed
     //   money      campaigns with the surplus, athletics budget high once
     //              flush
     name: 'Earnest completionist',
@@ -1984,9 +1319,8 @@ export const STRATEGIES: Strategy[] = [
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.1,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
-    // Beds at 35% of enrolled, expressed in the units decide()'s dorm rule
-    // reads: it builds once enrolled/capacity passes this, and capacity
-    // being 35% of enrolled is enrolled/capacity ≈ 2.86.
+    // Beds at 35% of enrolled, in the units the dorm rule reads
+    // (enrolled/capacity ≈ 2.86).
     dormFillThreshold: 1 / 0.35,
     facilityThreshold: 80,
     campaigns: true,
@@ -1996,13 +1330,10 @@ export const STRATEGIES: Strategy[] = [
     postsSearches: true,
   },
   {
-    // THE SCATTERER: a control, not a player. The same school as the
-    // Balanced builder in every respect but one — it founds whatever is
-    // offered first, into whatever slot is free first, and never thinks
-    // about which building a program goes in. Plan 14's claim is that the
-    // slot is a decision; this is the run that does not make it, and it
-    // should visibly under-perform on schools founded (see
-    // test/balance-regression.test.ts's Plan 14 check).
+    // The scatterer: a control, not a player. The Balanced builder, except it
+    // founds whatever is offered first into whatever slot is free first. It
+    // should visibly under-perform on schools founded
+    // (test/balance-regression.test.ts).
     name: 'Scatterer (founds anything anywhere)',
     tuition: rampTuition(225, 3_000),
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
@@ -2012,29 +1343,16 @@ export const STRATEGIES: Strategy[] = [
     founding: 'scatter',
   },
   {
-    // THE SELECTIVE COLLEGE (Plan 17's PR E): the run that is not the
-    // completionist's and should still finish with something to be proud
-    // of. Small on purpose — the admit rate never passes 15% and is pulled
-    // down further to hold the body near SELECTIVE_COLLEGE_BODY — priced at
-    // what its standing tolerates, deep in two or three schools rather than
-    // wide across seven, every facility built, every idle lab running the
-    // deepest project it can afford. The assertion that matters in Plan
-    // 17's balance target is this one: an A in teaching, concentration and
-    // selectivity, and a prestige within reach of the completionist's,
-    // which is the claim that Plan 15's concentration term is pulling its
-    // weight. If this cannot be met by tuning, the finding belongs in the
-    // prestige model, not here.
+    // The selective college: small, deep in two or three schools. Target: an
+    // A in teaching, concentration and selectivity, and prestige near the
+    // completionist's; if tuning cannot meet it, fix the prestige model.
     name: 'Selective college',
-    // A notch above what its standing tolerates: the one school here that
-    // can, since it takes one applicant in a hundred and the pool is what
-    // the price thins. At tolerance exactly it ran break-even from year 25
-    // on a four-thousand-student line and could not fund the teaching
+    // A notch above what its standing tolerates: it takes one applicant in a
+    // hundred, so it can. At tolerance exactly it could not fund the teaching
     // hires it exists to make.
     tuition: (s) => Math.min(TUITION_SLIDER_MAX, Math.round(priceTolerance(s.self.reputation) * SELECTIVE_COLLEGE_PRICE_OVER_TOLERANCE / 500) * 500),
-    // The body is held by the class: a school of four classes holds near
-    // SELECTIVE_COLLEGE_BODY when each summer's class is a quarter of it,
-    // and the pool it is taken from is last summer's, the best estimate
-    // the policy has before the funnel runs.
+    // Held by the class: each summer's class is a quarter of the body, taken
+    // from last summer's pool (the best estimate before the funnel runs).
     admitRate: (s) => Math.max(
       SELECTIVE_COLLEGE_ADMIT_FLOOR,
       Math.min(SELECTIVE_COLLEGE_ADMIT_CEILING, (SELECTIVE_COLLEGE_BODY / 4) / Math.max(1, s.students.applicantPool)),
@@ -2043,79 +1361,50 @@ export const STRATEGIES: Strategy[] = [
     netMargin: 0.1,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 1 / 0.5, // beds for half the body — a residential college
-    // Every facility its students want, not every facility in the game: at
-    // Infinity (the completionist's "build everything") a four-thousand-
-    // student tuition line was carrying five venues and a hospital and
-    // could not finish its own three schools' capstones — break-even from
-    // year 25, the last six programs never distinguished. 85 is every
-    // rung whose attribute is short of excellent.
+    // Every rung whose attribute is short of excellent, not every facility
+    // in the game: at Infinity its tuition line could not also finish its
+    // own schools' capstones.
     facilityThreshold: 85,
     campaigns: true,
-    // No coaching market and no fill-every-chair: both are the
-    // completionist's, and on a four-thousand-student tuition line they
-    // were measured to put the school in the red for thirty years. The
-    // teaching hire (balancesTeaching) is where its people money goes.
+    // No coaching market and no fill-every-chair: on this tuition line they
+    // put the school in the red for decades. Its people money goes to
+    // teaching hires (balancesTeaching).
     founding: 'school-first',
     maxSchools: 3,
     postsSearches: true,
     balancesTeaching: true,
   },
   {
-    // THE REGIONAL ENGINE (Plan 17's PR E): cheap, broad, big, and not a
-    // research university. Priced well under the balanced ramp, admitting
-    // most of what applies, founding whatever is offered into pure halls,
-    // building for the students it has, and keeping its labs ticking over
-    // on the cheapest project rather than the deepest. Plan 17's target for
-    // it is an A in reach, a C in research, solvency, and a legacy of its
-    // own — the state university that is a good school without being the
-    // completionist's.
+    // The regional engine: cheap, broad, big, and not a research university.
+    // Target: an A in reach, a C in research, solvency, and a legacy of its
+    // own.
     name: 'Regional engine',
-    // Cheap LATER, not at founding: the founding price with a flatter ramp
-    // than anybody's, so the school opens at what the founding body can
-    // carry and is a quarter under the balanced builder by the time
-    // standing is in the hundreds. Priced under the founding line — the
-    // discount archetype's 2,500 + 180/point, or 3,000 + 170 — the
-    // founding body cannot carry the founding curriculum, the net goes
-    // negative in year two, the first hall is never sited, and the school
-    // sits at a few hundred students for fifty years; measured, twice
-    // (against the gen-ed core, before Plan 19).
-    // ...and not much cheaper than that. Plan 15 prices every section,
-    // service and salary at the market rate for the school's STANDING, and a
-    // big school's breadth carries its standing to the top of the scale
-    // whatever it charges — so at a quarter under the balanced ramp this
-    // school's costs outran a four-year price lock by 60% between years 20
-    // and 25 and it never climbed out (−846M at fifty). A tenth under is
-    // what "cheap" can mean for a school this size in this economy.
+    // Cheap later, not at founding: under the founding line it cannot carry
+    // its first curriculum; a quarter under the balanced ramp late, its
+    // standing-driven costs outrun it.
     tuition: rampTuition(200, 5_500),
     admitRate: () => REGIONAL_ENGINE_ADMIT_RATE,
-    // The balanced builder's own reserve and flow gate: a big cheap school
-    // is not a careless one.
+    // The balanced builder's reserve and flow gate: big and cheap, not careless.
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.08,
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
-    // Builds for its students sooner than the balanced builder does: a big
-    // school's whole standing is its welfare and its crowding.
+    // Builds for its students sooner: a big school's standing is its
+    // welfare and its crowding.
     dormFillThreshold: 0.7, facilityThreshold: 80, campaigns: true,
-    // Hires only for a course it can afford to start, like the archetypes:
-    // filling every chair on a founding budget was measured to kill it in
-    // year two — eight salaries against a 480-student tuition line, the
-    // net negative before the first hall, and a school that never sites
-    // its first hall never grows.
+    // Hires only for a course it can afford to start: filling every chair on
+    // a founding budget sinks it in year two.
     //
-    // NO RESEARCH, as the plan says — not 'shallow': a big school's labs
-    // ticking over on pilot projects publish enough over thirty years to
-    // read as an A in research (measured: 246 points a week, ten
-    // breakthroughs), which is not a school that does no research.
+    // No research, not 'shallow': a big school's pilot projects still add up
+    // to an A in research over thirty years.
     research: 'none',
-    // Its thin margin does not hold "an extra student is never a loss" at a
-    // full catalogue any more than the discount archetype's does.
+    // Its thin margin needs the same caution as the discount archetype's.
     courseAffordabilityAware: true,
   },
   {
     // The control: builds nothing, ever. Prestige and cash here are the
     // floor the whole loop has to beat, or growth is optional.
     name: 'Idle (builds nothing)',
-    tuition: () => 9_600, // was 12,000 at 20% off
+    tuition: () => 9_600,
     buffer: () => Number.MAX_SAFE_INTEGER,
     netMargin: Number.MAX_SAFE_INTEGER,
     buildsCourses: false, buildsDorms: false, buildsFacilities: false,
@@ -2123,65 +1412,20 @@ export const STRATEGIES: Strategy[] = [
   },
 ];
 
-// Guarded so `npm run sim` (which invokes this file directly as the
-// compiled entry point — process.argv[1] is then that entry's own path)
-// prints the CLI report, while test/balance-regression.test.ts can import
-// STRATEGIES/play/Strategy/Row above without also triggering a full,
-// unwanted 40-year print run as a side effect of the import.
 // ---------------------------------------------------------------------
-// ADMIT-RATE PROBES. Not archetypes — experiments. Every one of these is
-// "Balanced builder, with one thing changed": the same prices, buffers,
-// build rules and thresholds, differing ONLY in what share of the pool it
-// takes. Holding the rest constant is the whole point; a probe that also
-// priced differently would not answer the question.
+// Admit-rate probes: experiments, not archetypes. Each is the Balanced
+// builder with only the share of the pool changed.
 //
-// Deliberately NOT in STRATEGIES. balance-regression.test.ts sweeps that
-// array and asserts every member stalls rather than dies, which is a
-// promise the game makes about strategies a player might reasonably adopt.
-// These exist to find out whether the admit lever is broken, and a probe
-// that dies is a FINDING here rather than a failing build. If one of them
-// turns out to be a line of play worth supporting, promoting it into
-// STRATEGIES is how that gets said.
+// Deliberately not in STRATEGIES: balance-regression.test.ts asserts every
+// strategy stalls rather than dies, a promise about reasonable lines of
+// play. A probe that dies is a finding here; promote one into STRATEGIES to
+// support it.
 //
-// WHAT THEY FOUND, on the 40-year run at the time they were written. Kept
-// here rather than in BACKLOG.md, which is for work that has not happened:
-// this is a record of a measurement, and here is where the next person to
-// re-run it will be standing.
-//
-//   broad then narrow   prestige 145.7   76k enrolled   794M cash
-//   default curve               140.2    65k            836M
-//   open door (100%)            106.3   273k            1.5B
-//   ivory tower (8%)            101.6    18k           22.6M
-//   band skimmer                 87.4    23k            6.1M
-//
-// 1. THE INTENDED ARC WINS, and beats simply accepting the slider's
-//    default — with MORE students, not fewer. The gap is an early-game
-//    one: broad-then-narrow has 218 courses by year 8 against the
-//    default's 117, because a bigger opening class pays for the buildout.
-//    That gap is the backlog's "admit-rate curve's early slope".
-//
-// 2. OPEN DOOR IS NOT AN EXPLOIT, and its ceiling is not where it looks.
-//    It ends rich and mediocre — a plausible big-state-school shape. What
-//    caps it is prestigeSystem.ts's libraryAdequacyScore, a seats-to-
-//    enrolled ratio floored at 0.4 that MULTIPLIES the 90-weight breadth
-//    term: at 273k students it sits on that floor, costing ~47 points of
-//    prestige target, against only ~9 from the incoming-quality term.
-//    Overcrowding capping academic prestige is exactly what that
-//    multiplier was built to do. Note what is NOT in that chain:
-//    satisfaction is not a prestige input at all (see computePrestigeTarget
-//    — breadth, teaching, quality, research, campus life, endowment, and
-//    nothing else). Satisfaction bites through word of mouth instead, and
-//    hard: open door's applicant POOL is 69k against broad-then-narrow's
-//    190k despite carrying four times the students.
-//
-// 3. PURE TOP-BAND SKIMMING IS A TRAP, NOT AN EXPLOIT, which is the
-//    opposite of what the arithmetic suggested before this was run. The
-//    quality dead zone is real — the skim runs best band first, so once
-//    the rate is under the top band's share, further selectivity buys no
-//    quality at all — but the top band is only ~5% of the pool at founding
-//    prestige, and skimming it starves the school of the tuition that buys
-//    the breadth that widens the band. The dead zone is only reachable by
-//    a school that already grew broad.
+// What they found on the 40-year run when written: broad-then-narrow beat
+// the default curve; open door ended rich and mediocre (capped by
+// libraryAdequacyScore, and by word of mouth shrinking its pool); ivory
+// tower and band skimming starved the school of the tuition that buys
+// breadth.
 // ---------------------------------------------------------------------
 const balancedBase = STRATEGIES.find((s) => s.name.startsWith('Balanced builder'))!;
 
@@ -2213,11 +1457,9 @@ export const ADMIT_PROBES: Strategy[] = [
 ];
 
 // ---------------------------------------------------------------------
-// THE SCORECARD (see sim/reference.ts). Printed under each strategy's
-// table: one line per figure that has left the band the last committed
-// measurement recorded for it. Silence means the trajectory is the one the
-// reference describes — which is not the same as the one it SHOULD be, and
-// reference.ts's own header is careful about the difference.
+// The scorecard (sim/reference.ts): one line per figure outside the band
+// the last committed measurement recorded. Silence means the trajectory
+// matches the reference, not that it is right.
 // ---------------------------------------------------------------------
 function reportScorecard(strategy: Strategy, rows: Row[]): void {
   if (!bandsFor(strategy.name)) {
@@ -2234,11 +1476,9 @@ function reportScorecard(strategy: Strategy, rows: Row[]): void {
 }
 
 // ---------------------------------------------------------------------
-// RUN-TO-RUN COMPARISON. `--save last.json` writes every sampled row;
-// `--compare last.json` prints what moved by more than COMPARE_THRESHOLD
-// against it. The point is that a PR summary can quote what the sim said
-// as a DIFF — "year 20 cash -14.8M -> -2.1M" — rather than as the same
-// eighty-line table pasted twice and left to the reader to subtract.
+// Run-to-run comparison: `--save last.json` writes every sampled row;
+// `--compare last.json` prints what moved by more than COMPARE_THRESHOLD, so
+// a PR can quote the sim as a diff.
 // ---------------------------------------------------------------------
 const COMPARE_THRESHOLD = 0.05;
 
@@ -2259,9 +1499,8 @@ function reportComparison(previous: SavedRun, current: Record<string, Row[]>): v
       for (const metric of METRICS) {
         const then = metricOf(was, metric);
         const now = metricOf(row, metric);
-        // Against the LARGER magnitude, so a figure moving away from zero
-        // (0 weeks in the red to 40) reads as the change it is rather than
-        // as a division by nothing.
+        // Against the larger magnitude, so a move away from zero reads as a
+        // change rather than a division by nothing.
         const scale = Math.max(Math.abs(then), Math.abs(now));
         if (scale === 0) continue;
         if (Math.abs(now - then) / scale <= COMPARE_THRESHOLD) continue;
@@ -2277,21 +1516,16 @@ function fmtMetric(value: number, metric: Metric): string {
   if (metric === 'netMargin') return `${(value * 100).toFixed(1)}%`;
   if (metric === 'weeksInTheRed') return value.toFixed(0);
   if (metric === 'prestige') return value.toFixed(1);
-  // Enrolment prints in full rather than through fmt's k/M shortening: a
-  // diff line reading "5k -> 5k" is worse than no line at all, and the
-  // whole point of a diff is that both sides are legible.
+  // Enrolment prints in full: "5k -> 5k" is worse than no line.
   if (metric === 'enrolled') return Math.round(value).toLocaleString();
   return fmt(value);
 }
 
-// Rewrites the generated block of sim/reference.ts in place, leaving every
-// hand-written line above it alone. Relative to the working directory,
-// which is the package root under `npm run sim`.
+// Rewrites the generated block of sim/reference.ts in place, leaving the
+// hand-written lines above it alone. Relative to the package root.
 const REFERENCE_PATH = 'sim/reference.ts';
-// The comment lines the generated block sits between. They live here, in
-// the writer, rather than as constants in the file being written: a
-// constant declaring the marker contains the marker, so the writer would
-// find its own declaration and eat it.
+// The marker lines live here, not as constants in the file being written:
+// a constant declaring the marker contains it, so the writer would eat it.
 const GENERATED_START = '// --- GENERATED by `npm run sim -- --write-reference`. Do not hand-edit lightly. ---';
 const GENERATED_END = '// --- END GENERATED ---';
 
@@ -2314,6 +1548,8 @@ function writeReference(runs: Record<string, Row[][]>): void {
   );
 }
 
+// Guarded so `npm run sim` prints the report while tests can import
+// STRATEGIES and play without triggering a run.
 const isCliEntry = process.argv[1]?.includes('balanceSim') ?? false;
 if (isCliEntry) {
   const argv = process.argv.slice(2);
@@ -2322,9 +1558,8 @@ if (isCliEntry) {
     const at = argv.indexOf(`--${name}`);
     return at === -1 ? undefined : argv[at + 1];
   };
-  // Positionals are whatever is left once the flags and their values are
-  // taken out, so `npm run sim -- 40 2 --compare last.json` still means
-  // forty years every second year.
+  // Positionals are what is left once flags and their values are taken
+  // out, so `npm run sim -- 40 2 --compare last.json` still works.
   const consumed = new Set<string>();
   for (const name of ['compare', 'save']) {
     const value = flagValue(name);
@@ -2333,8 +1568,7 @@ if (isCliEntry) {
   const positional = argv.filter((a) => !a.startsWith('--') && !consumed.has(a));
 
   const writingReference = flag('write-reference');
-  // The reference describes the full horizon, so writing it ignores a
-  // shorter one rather than recording bands for years it never reached.
+  // The reference covers the full horizon, so writing it ignores a shorter one.
   const years = writingReference ? REFERENCE_HORIZON : Number(positional[0] ?? 40);
   const every = Number(positional[1] ?? 2);
   const filter = writingReference ? undefined : positional[2];
@@ -2343,17 +1577,12 @@ if (isCliEntry) {
   const seedRuns: Record<string, Row[][]> = {};
   for (const strategy of STRATEGIES) {
     if (filter && !strategy.name.toLowerCase().includes(filter.toLowerCase())) continue;
-    // play() resets seed/fakeStorage itself (see resetSimEnvironment) — no
-    // reset needed here.
     const run = play(strategy, years);
     runs[strategy.name] = run.rows;
     report(strategy, run, every);
     if (!writingReference) reportScorecard(strategy, run.rows);
-    // THREE-SEED BANDS (Plan 15's PR G). A band fitted to one seed is a
-    // claim about that seed: Plan 09's PR E found the earnest completionist
-    // reproducing the review exactly at seed 4242 and running 144 weeks in
-    // the red at seed 12345. So the reference is written from three
-    // streams, and each band is the envelope of the three.
+    // Three-seed bands: a band fitted to one seed is a claim about that
+    // seed, so each band is the envelope of three streams.
     if (writingReference) {
       seedRuns[strategy.name] = [run.rows, ...REFERENCE_EXTRA_SEEDS.map((seed) => play(strategy, years, undefined, seed).rows)];
     }

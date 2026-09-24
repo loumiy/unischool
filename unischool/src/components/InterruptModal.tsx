@@ -8,7 +8,7 @@ import { buildYearInReview } from '../state/yearInReview';
 import { legacy } from '../state/legacy';
 import { founderFigures } from '../state/finalReport';
 import { ambitionEntries } from '../data/ambitionsData';
-import { HistoryChart, formatMoney } from './HistoryChart';
+import { HistoryChart } from './HistoryChart';
 import { LegacyAxes } from './LegacyAxes';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
@@ -17,7 +17,7 @@ import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction,
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { pct, poolChange } from '../systems/admissions/yearOverYear';
+import { poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS, offeredChoices } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
@@ -30,13 +30,10 @@ import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivals
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
+import { money, moneyShort, ordinal, signedPct } from '../format';
 
-// Placeholder modal content for an interrupt type with no dedicated view
-// (see SummerView below for 'summer', and every other
-// named branch in the component below it). Only reachable if a system ever
-// sets pendingInterrupt to a type nothing here recognises — content drift
-// between an authored table and this switch, never a path the game takes
-// on its own.
+// Fallback content for an interrupt type with no dedicated view; reachable
+// only if content and this switch drift apart.
 function interruptBody(interrupt: PendingInterrupt): { title: string; body: string } {
   return { title: interrupt.type, body: 'No content registered for this interrupt type.' };
 }
@@ -46,17 +43,9 @@ interface AdmissionsDraft {
   admitRate: number;
 }
 
-function money(v: number): string {
-  return `$${Math.round(v).toLocaleString()}`;
-}
-
-// The reveal ticks slower than any other number in the game, deliberately
-// (Plan 05's PR F): every other animated figure here is a consequence of a
-// slider the player is still holding, and wants to keep up with them. This
-// one is the payoff for a price they have already committed to and cannot
-// take back, so it is the one number worth waiting on. The pool and the
-// seven cohort rows share the duration so the panel fills as one reveal
-// rather than seven races.
+// The reveal ticks slower than any other number: it is the payoff for a price
+// already committed, so it is worth waiting on. The pool and the cohort cards
+// share the duration so the panel fills as one reveal.
 const REVEAL_MS = 2_600;
 
 const NEED_LABEL: Record<'housing' | 'basicNeeds', string> = {
@@ -64,11 +53,9 @@ const NEED_LABEL: Record<'housing' | 'basicNeeds', string> = {
   basicNeeds: 'Dining & health',
 };
 
-// The capacity row's value. Coverage is served-over-needed clamped to 1,
-// so a school with room to spare reads a flat 100% however many students
-// it takes — which is a fact, not a decision. So a covered school gets the
-// word "adequate" and no delta, and the percentage only appears once the
-// class would actually leave the campus short.
+// Coverage is clamped to 1, so a covered school reads "adequate" with no
+// delta; a percentage appears only once the class would leave the campus
+// short.
 function CoverageValue({ now, next }: { now: number; next: number }) {
   if (next >= 1) return <span className="coverage-adequate">adequate</span>;
   const delta = Math.round(next * 100) - Math.round(now * 100);
@@ -85,18 +72,11 @@ function CoverageValue({ now, next }: { now: number; next: number }) {
 }
 
 // ---------------------------------------------------------------------
-// THE STUDENT-LIFE DIGEST (see data/studentLifeData.ts). Clubs and new
-// Greek chapters form quietly during the year and queue as petitions;
-// this is where a whole year's worth is answered, as the fourth BEAT of
-// the summer sequence rather than a modal of its own. That is the point of
-// the shape: student life is the lightest beat in the game and must not
-// stop the clock, and the summer is a stop the player is already making.
-//
-// Every petition defaults to approved — recognising a society is the
-// ordinary answer, and a player who confirms without reading has done the
-// harmless thing rather than taken a satisfaction hit they never chose.
-// Anything unticked is declined when the interrupt resolves; the queue
-// drains either way, so the digest can never grow across years.
+// The student-life digest (data/studentLifeData.ts): a year's club and
+// chapter petitions, answered together as the summer's fourth beat so student
+// life never stops the clock on its own. Every petition defaults to approved,
+// the harmless answer; anything unticked is declined, and the queue drains
+// either way.
 // ---------------------------------------------------------------------
 function StudentLifeDigest({ petitions, approved, onToggle }: {
   petitions: OrgPetition[];
@@ -136,10 +116,7 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
   );
 }
 
-// Label/tone for each PriceTier (see admissionsSystem.ts) — one place
-// mapping the model's four bands to what a player actually reads, reused
-// for both the raw sticker (step 1) and the resulting net price (step 2)
-// so the same visual language covers both.
+// Label and tone for each PriceTier (admissionsSystem.ts).
 const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> = {
   bargain: { label: 'a bargain for your prestige', className: 'price-tier-bargain' },
   fair: { label: 'in line with your prestige', className: 'price-tier-fair' },
@@ -152,13 +129,9 @@ function PriceTierTag({ tier }: { tier: PriceTier }) {
   return <span className={`price-tier-tag ${copy.className}`}>{copy.label}</span>;
 }
 
-// Steps measured against the card, not guessed: the mono figure runs about
-// 12px per character at the default 20px, so seven characters need ~17px,
-// nine need ~14px and ten need ~12px to stay inside a card's 78px of usable
-// width. The last step is past anything the game produces — a ten-character
-// cohort is twelve million applicants in one audience, against ~300k for
-// the whole pool at the top of a forty-year run — but a step costs a line
-// and reasoning about whether a number is reachable costs more.
+// Font steps measured against the card: the mono figure runs ~12px per
+// character at 20px, so 7, 9 and 10 characters each need a smaller size to
+// fit the card's 78px of usable width.
 function SIZE_FOR_LENGTH(length: number): string {
   if (length >= 10) return 'count-xxs';
   if (length >= 9) return 'count-xs';
@@ -166,40 +139,23 @@ function SIZE_FOR_LENGTH(length: number): string {
   return '';
 }
 
-// One cohort's card in the reveal below. A square: the audience's name
-// small at the top, the head count big in the middle, because the count is
-// what the beat is for and the name is only how you find the one you care
-// about. Seven of these read as a board at a glance, which seven labelled
-// rows did not.
-//
-// The driver — what the player actually built that pulls this audience —
-// is the explanation, not the reading, so it waits on hover rather than
-// sitting under every card. It is a plain `title` as well as a styled
-// tooltip: the styled one is what you see, the native one is what a
-// keyboard or touch device gets, and neither is the only copy of the text.
-//
-// The count keeps its tone colour: whether this audience is above or below
-// neutral is what says which of the player's choices is working, in the
-// same bright good/bad pair the log ticker uses on this dark background.
+// One cohort's card: the audience's name small, the head count big. The
+// driver (what pulls this audience) waits on hover, as both a styled tooltip
+// and a native `title` for keyboard and touch. The count's tone says whether
+// the audience is above or below neutral.
 function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, note }: {
   label: string; driverLabel: string; pull: number; applicants: number;
-  // The cause named, where a cohort has one to name (Plan 21's PR C): the
-  // title in men's basketball is worth so many of these. Shown in the
-  // tooltip beneath the driver line, so the card itself stays a figure.
+  // The cause named, where a cohort has one (e.g. a title); shown in the
+  // tooltip.
   note?: string;
-  // Last summer's count for this audience (students.lastFunnel), shown small
-  // beneath this year's (Plan 16's PR C) so the board reads as a change and
-  // not only as a reading. Null at the first summer.
+  // Last summer's count (students.lastFunnel), so the card reads as a
+  // change. Null at the first summer.
   lastYear: number | null;
   revealMs: number;
 }) {
   const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
-  // A card is a fixed square, so the figure has to give way rather than the
-  // box: at the default size 78px of card holds six characters ("13,097")
-  // and a seventh spills. A big late-game school reaches six digits in a
-  // single cohort, so the size steps down by the FINAL value's own length —
-  // final rather than currently-displayed, so the reveal's climb from zero
-  // does not resize the text under the player as it counts up.
+  // The figure shrinks, not the card. Sized by the final value's length, not
+  // the displayed one, so the reveal's count-up does not resize the text.
   const sizeClass = SIZE_FOR_LENGTH(applicants.toLocaleString().length);
   return (
     <div className="cohort-card" title={note ? `${driverLabel}. ${note}` : driverLabel}>
@@ -215,57 +171,31 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, 
   );
 }
 
-// The once-a-year summer admissions decision (see
-// docs/design/admissions.md). The player sets exactly one lever — tuition
-// — and the distribution funnel resolves the rest (see
-// admissionsSystem.ts), with current student satisfaction and cohort
-// demand (see cohorts.ts) feeding the applicant pool alongside prestige
-// and price. Selectivity and enrollment are NOT inputs: they are emergent
-// outcomes, previewed live below so the player can see the consequences
-// before confirming. This is the only place tuition is ever set; there is
-// no live, adjustable tuition control.
-//
-// ONE step, not two. The form used to stage tuition and scholarships
-// apart, holding the downstream numbers behind a "Continue" so each
-// lever's consequence read on its own beat. With scholarships retired
-// (Plan 05's PR B) there is one lever, and gating one slider behind a
-// button that reveals the rest of its own consequences is ceremony. The
-// staging returns in PR E for a different reason — the tuition decision
-// becomes blind and LOCKS, so the reveal has something to reveal.
-//
-// Since Plan 16's PR A this is the summer's THIRD beat (see SummerView
-// below), not the whole summer: the review and the standing come before
-// it, and the student digest after.
+// The summer's third beat (docs/design/admissions.md): the player sets
+// tuition blind and it locks, then sets the admit rate with every consequence
+// previewed. Selectivity and enrollment are emergent outcomes of the funnel
+// (admissionsSystem.ts). This is the only place tuition is ever set.
 function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction, cohortSignals, onCommit }: {
   payload: AdmissionsDraft;
-  // The whole state, for the consequence projection alone (see
-  // consequences.ts): it advances a COPY of the classes and reads the real
-  // finance and satisfaction functions over it. The individual props above
-  // are kept as they are — this form reads them far more often than it
-  // reads `s`, and threading nine fields through one object would make the
-  // cheap reads look as expensive as the projection.
+  // For the consequence projection alone (consequences.ts), which advances a
+  // copy of the classes through the real finance and satisfaction functions.
   s: GameState;
   prestige: number;
   capacity: number;
   satisfaction: number;
   cohortSignals: CohortSignals;
-  // The two levers, set. This is the summer's third beat (see types.ts's
-  // SummerPayload): committing here carries the decision into the payload
-  // and moves on to the Students beat, which is where the year actually
-  // turns over. The digest used to ride inside this form; it is its own
-  // beat now.
+  // Carries the decision into the payload (types.ts's SummerPayload) and
+  // moves on to the Students beat, where the year turns over.
   onCommit: (decision: SummerDecision) => void;
 }) {
   const [tuition, setTuition] = useState(payload.tuition);
   const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
-  // The price is set blind and then LOCKED. There is no way back: the pool
-  // is revealed next, and a slider you can return to after seeing what it
-  // bought is not a gamble, it is a lookup table.
+  // Set blind, then locked with no way back: a price you could revise after
+  // seeing the pool would be a lookup table, not a decision.
   const [tuitionLocked, setTuitionLocked] = useState(false);
 
-  // THE CEILING (Plan 15's PR E): the seats the catalogue has left after
-  // graduation, read off the same function the reducer clips with. The
-  // slider's range shrinks to what fits, and the reveal says so.
+  // Seats the catalogue has left after graduation, from the same function
+  // the reducer clips with. The admit-rate slider shrinks to fit.
   const ceiling = intakeCeiling(s);
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
@@ -275,24 +205,19 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   const maxAdmitRate = outcome.applicants > 0
     ? Math.max(0.01, Math.min(1, ceiling.seatsLeft / outcome.applicants))
     : 1;
-  // What committing THIS pair of decisions would do to the school: the
-  // money and the mood, at the body it would actually produce — the three
-  // classes still enrolled plus the incoming one. Same advance the reducer
-  // commits with, same readings the Treasury and Student Life show.
+  // What committing this pair would do to money and mood, for the three
+  // continuing classes plus the incoming one; the same advance the reducer
+  // commits with.
   const consequence = projectConsequences(s, outcome.enrolled, tuition);
   const netDelta = consequence.weeklyNet - consequence.weeklyNetNow;
   const moodDelta = consequence.satisfactionTarget - consequence.satisfactionTargetNow;
-  // What this school's prestige lets it charge before demand starts
-  // falling away (see admissionsSystem.ts's price tolerance). Shown
-  // because it is the single most consequential curve behind this
-  // decision: without it, a player pricing above their standing just
-  // watches the applicant pool shrink with no idea why.
+  // What prestige lets the school charge before demand falls away, shown so
+  // a player pricing above their standing can see why the pool shrinks.
   const tolerance = priceTolerance(prestige);
   const priceTierNow = priceTier(tuition, tolerance);
   const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
-  // Why the pool moved (Plan 16's PR C): this year's six factors against
-  // the six last summer recorded, each one's share of the change. Null at
-  // the first summer, which has nothing to be read against.
+  // Why the pool moved: each factor's share of the change against last
+  // summer. Null at the first summer.
   const change = poolChange(outcome, s.students.lastFunnel);
 
   return (
@@ -304,12 +229,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
         </p>
       )}
 
-      {/* THE PRICE, set blind. The only feedback is the tier: are
-          you in line with your own standing, or not. No applicant count, no
-          sticker-shock line, no cap printed — and since Plan 07's PR A
-          there is no cap to print: the slider simply ends somewhere no
-          school sensibly reaches (see foundingData.ts's
-          TUITION_SLIDER_MAX). */}
+      {/* The price, set blind: the only feedback is the tier. The slider
+          ends at TUITION_SLIDER_MAX (foundingData.ts). */}
       <label className="admissions-field">
         <span>
           Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>${tuition.toLocaleString()}/yr</strong>
@@ -335,7 +256,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               <dd className="reveal-figure">
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
                 {change && (
-                  <span className={`consequence-delta ${change.change >= 0 ? 'good' : 'bad'}`}>{pct(change.change)}</span>
+                  <span className={`consequence-delta ${change.change >= 0 ? 'good' : 'bad'}`}>{signedPct(change.change)}</span>
                 )}
               </dd>
             </div>
@@ -346,7 +267,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                   {change.parts.length === 0
                     ? 'nothing moved'
                     : change.parts.map((p) => (
-                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label} {pct(p.change)}</span>
+                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label} {signedPct(p.change)}</span>
                     ))}
                 </dd>
               </div>
@@ -400,11 +321,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             <div><dt>Incoming quality</dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
           </dl>
 
-          {/* What committing does to the school, not just to the intake — the
-              decision's consequences, before it is taken (Plan 05's PR D).
-              Projected against the body this commit produces, which includes
-              the three older classes who are still here and still paying the
-              price they were admitted under. */}
+          {/* What committing does to the whole school, including the three
+              older classes still paying their locked price. */}
           <div className="consequence-panel">
             <h3>Projections</h3>
             <dl className="admissions-outcomes">
@@ -449,12 +367,9 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
 }
 
 // ---------------------------------------------------------------------
-// THE SUMMER (Plan 16's PR A): one modal, four beats, one stop a year. The
-// header carries the four steps with the current one lit, so the player
-// always knows where in the summer they are; each beat is one of the views
-// below, and one action per beat moves on (see types.ts's SummerPayload
-// and reducer.ts's RESOLVE_SUMMER_BEAT). Only the last beat turns the
-// calendar page.
+// The summer: one modal, four beats, one stop a year. The header lights the
+// current beat; one action per beat moves on (types.ts's SummerPayload,
+// reducer.ts's RESOLVE_SUMMER_BEAT). Only the last beat turns the calendar.
 // ---------------------------------------------------------------------
 function SummerSteps({ beat }: { beat: SummerBeat }) {
   return (
@@ -472,12 +387,8 @@ function SummerSteps({ beat }: { beat: SummerBeat }) {
   );
 }
 
-// Beat one. The year the school just lived through, in facts — generated
-// from the year's log and the state against last summer's row (see
-// state/yearInReview.ts). Read-and-continue: nothing here is a question,
-// and everything here already happened; the two forward-looking lines
-// (who will not return, what the year graded) are the same pure readings
-// the last beat commits.
+// Beat one: the year just lived, in facts (state/yearInReview.ts).
+// Read-and-continue.
 function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
   const review = buildYearInReview(s);
   return (
@@ -508,13 +419,10 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void })
   );
 }
 
-// THE FINAL REPORT (Plan 17's PR C): the fiftieth summer's first beat, in
-// place of the year in review. Everything on it is a pure reading — the
-// legacy (state/legacy.ts), the ambitions with their years, the founder's
-// four numbers (state/finalReport.ts) and the fifty-year curves off the
-// history record — read here exactly as the last beat's RESOLVE_ADMISSIONS
-// will seal it, so the report cannot show a record the boundary does not
-// write. Read-and-continue: the run goes on into its fifty-first year.
+// The final report: the fiftieth summer's first beat, in place of the year in
+// review. Pure readings (state/legacy.ts, state/finalReport.ts, the history
+// record), taken exactly as RESOLVE_ADMISSIONS will seal them.
+// Read-and-continue: the run goes on.
 function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
   const record = legacy(s);
   const figures = founderFigures(s);
@@ -561,7 +469,7 @@ function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => vo
         <div className="history-charts final-report-charts">
           <HistoryChart label="Prestige" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.prestige)} format={(v) => `${Math.round(v)}`} />
           <HistoryChart label="Enrollment" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.enrolled)} format={(v) => Math.round(v).toLocaleString()} />
-          <HistoryChart label="Operating funds" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.cash)} format={formatMoney} />
+          <HistoryChart label="Operating funds" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.cash)} format={moneyShort} />
           <HistoryChart label="Rank" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => -h.rank)} format={(v) => `#${Math.round(-v)}`} />
         </div>
       )}
@@ -570,10 +478,8 @@ function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => vo
   );
 }
 
-// Beat four. The student-life digest — a whole year's petitions, answered
-// together — and the summer's last word: what the school is about to
-// commit, then the year turns over. Every petition defaults to approved
-// (see StudentLifeDigest above).
+// Beat four: the student-life digest, and what the school is about to commit
+// before the year turns over.
 function StudentsBeat({ s, decision, petitions, onResolve }: {
   s: GameState;
   decision: SummerDecision;
@@ -650,7 +556,6 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
   );
 }
 
-
 // A single place-movement badge: a climb, a slide, or a year holding
 // still. Rank numbers run the wrong way round (smaller is better), so
 // `delta` is pre-normalized by the report builder to "places gained".
@@ -663,27 +568,16 @@ function RankMovement({ delta }: { delta: number }) {
   );
 }
 
-// Renders both rankings-related interrupts: the one-time "you've entered
-// the top 50" reveal and the recurring annual report (see
-// docs/design/progression.md's "Rankings: the U.S. News report").
-// Standing is otherwise never shown outside the persistent header's rank
-// stat and this modal.
-//
-// The standings list alone is a table of names; what makes a ranking
-// FELT is motion — where you moved, who you passed, who is surging up
-// behind you. All of that is computed by buildReportPayload (see
-// rivalsSystem.ts) from data the game already had: the rivals' momentum
-// and the history record's prior-year rank. This view just renders it,
-// and renders the movement section only when there is a prior year to
-// compare against (never on the first reveal, and never in the first two
-// years of a run).
+// Renders both rankings interrupts: the one-time top-50 reveal and the
+// annual report (docs/design/progression.md). Movement, crossings and movers
+// come from buildReportPayload (rivalsSystem.ts); the movement line appears
+// only when there is a prior year to compare against.
 function RankingsReportView({ payload, isFirstReveal, published = true, onDismiss }: {
   payload: ReportPayload;
   isFirstReveal: boolean;
   // Whether the U.S. News list carries the school yet (s.hasEnteredRankings).
-  // The summer's Standing beat renders this for every school from year one
-  // — the rank is knowable from the first week (see StatusHeader.tsx) — but
-  // the published top-50 table is only shown once being on it is a fact.
+  // The Standing beat renders for every school; the top-50 table only once
+  // the school is on it.
   published?: boolean;
   onDismiss: () => void;
 }) {
@@ -740,10 +634,8 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
         </div>
       )}
 
-      {/* The other two standings, one line each. The report's subject is the
-          academic table below; these say, in passing, that the school is
-          three different things on three different lists — which is the
-          point of having three (see systems/prestige/prestigeSystem.ts). */}
+      {/* The other two standings, one line each (see
+          systems/prestige/prestigeSystem.ts). */}
       {others.length > 0 && (
         <ul className="report-others">
           {others.map((o) => (
@@ -763,10 +655,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
       {published && (
         <>
           <h3 className="report-standings-head">Top {standings.length}</h3>
-          {/* A real table (Plan 16's PR E), with a column for where each
-              school stood a year ago, because the report is a page now and
-              a page can afford the column that makes a list of names read
-              as motion. */}
+          {/* With last year's position, so the list reads as motion. */}
           <table className="report-table">
             <thead>
               <tr><th>#</th><th>School</th><th>Score</th><th>Last year</th></tr>
@@ -798,21 +687,11 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
   );
 }
 
-
 // ---------------------------------------------------------------------
-// The milestone celebration: the stop-the-clock moment for the handful of
-// accomplishments worth stopping the clock for (see data/eventData.ts's
-// MILESTONE_INTERRUPT_KINDS — an established program, a distinguished
-// program, a distinguished school; never a routine course completion). It grants nothing
-// and asks nothing: everything it reports already happened. What it adds
-// is the one thing the log ticker cannot — the size of what just changed,
-// in the currency the whole long arc is denominated in.
-//
-// The prestige figures are computed here, live, with the very functions
-// prestigeSystem.ts drifts reputation by: the target as it stands now,
-// against what it would be if these milestones had never been awarded.
-// So "+5.4 to the prestige target" is a real reading of the model, not a
-// number authored into a congratulation message.
+// The milestone celebration (data/eventData.ts's MILESTONE_INTERRUPT_KINDS).
+// It grants and asks nothing. The prestige figures are computed live with
+// prestigeSystem.ts's own functions (the target now vs. without these
+// milestones), so the contribution shown is a real reading of the model.
 // ---------------------------------------------------------------------
 function MilestoneCelebrationView({ s, payload, onDismiss }: {
   s: GameState;
@@ -833,11 +712,8 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
         <p>The catalogue has crossed several milestones at once.</p>
       )}
 
-      {/* ONE MILESTONE reads as a paragraph with its unlocks listed. A BURST
-          — the review's year-12 modal carried ten — reads as cards in a
-          wrapping grid (Plan 16's PR E), each with its "now open" list
-          collapsed behind a count, instead of a scroll of identical
-          paragraphs. */}
+      {/* One milestone reads as a paragraph with its unlocks; a burst reads
+          as cards, each with its unlocks folded behind a count. */}
       {single ? (
         single.unlocks.length > 0 && (
           <div className="milestone-entry">
@@ -887,27 +763,11 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
 }
 
 // ---------------------------------------------------------------------
-// A RESEARCH PROJECT HAS CONCLUDED (see systems/research/researchSystem.ts).
-//
-// THE COMPLETION IS THE EVENT. This used to be a prize celebration, which
-// meant the modal that stopped the clock was the one for the trophy while
-// the work itself — three or five years of a team not teaching — passed as
-// a single line in the log. The playtest asked for the inverse and is
-// right: the report is what the player wants at the end of a long
-// commitment, and the award is one of its results rather than a separate
-// occasion.
-//
-// It grants nothing and asks nothing. Everything here already happened as
-// it landed: publications and breakthroughs counted into the prestige
-// target, grant money into cash the week it arrived, and — if the work won
-// an award — the winner's permanent acclaim, with the higher salary and
-// research output acclaim buys. This is the same contract the milestone
-// celebration follows.
-//
-// Everything displayed comes from the PAYLOAD rather than from live state,
-// so the report still says something true if a professor on it has since
-// been dismissed, or the facility has been renamed, in the weeks between
-// the project ending and the quiet week this finally fired on.
+// A research project has concluded (systems/research/researchSystem.ts). The
+// completion is the event; an award is one of its results. It grants and asks
+// nothing: everything shown has already landed. It reads the payload, not
+// live state, so it stays true if a professor has since left or the facility
+// been renamed.
 // ---------------------------------------------------------------------
 function ResearchReportView({ s, report, onDismiss }: {
   s: GameState;
@@ -942,7 +802,7 @@ function ResearchReportView({ s, report, onDismiss }: {
         </div>
         <div>
           <dt>Grant income <span className="outcome-note">(already banked)</span></dt>
-          <dd>${report.grantIncome.toLocaleString()}</dd>
+          <dd>{money(report.grantIncome)}</dd>
         </div>
         {report.award && (
           <>
@@ -968,27 +828,12 @@ function ResearchReportView({ s, report, onDismiss }: {
 }
 
 // ---------------------------------------------------------------------
-// A STUDENT DEMAND (see systems/demands/demandSystem.ts). The one
-// stop-the-clock moment student life gets on its own — raised only when
-// satisfaction has sat below DEMAND_SATISFACTION_THRESHOLD, so a
-// well-run school never sees it at all.
-//
-// It asks for nothing and offers nothing to choose: the only answer is to
-// BUILD the thing before the deadline, and the demand system detects that
-// off the campus itself. So this is an acknowledgement, dismissable in one
-// click, exactly as the fairness rule requires — what it must do in that
-// one click is be honest about the stakes.
-//
-// And those stakes are READ, not written. The satisfaction figures are the
-// nudges the system would actually apply; the applicant figures come from
-// running the shipped admissions funnel (projectAdmissions — the same pure
-// function the summer modal previews with) at today's policy against each
-// of them, so "failing this costs you N applicants" is word of mouth
-// measured, not a threat someone typed. Note what that honesty buys at the
-// bottom end: at a school already floored on satisfaction the two numbers
-// are close together, which is the satisfaction floor
-// (ATTRIBUTE_SCORE_FLOOR) visible in the modal — failing a demand you
-// cannot afford to meet is survivable, and the modal says so in figures.
+// A student demand (systems/demands/demandSystem.ts), raised only when
+// satisfaction has sat below DEMAND_SATISFACTION_THRESHOLD. There is nothing
+// to choose: the answer is to build the ask before the deadline, which the
+// demand system detects. The stakes are read, not written: satisfaction
+// figures are the nudges the system would apply, and applicant figures come
+// from running projectAdmissions at today's policy.
 // ---------------------------------------------------------------------
 function DemandView({ s, onDismiss }: { s: GameState; onDismiss: () => void }) {
   const demand = s.events.activeDemand;
@@ -1062,29 +907,10 @@ function DemandView({ s, onDismiss }: { s: GameState; onDismiss: () => void }) {
 }
 
 // ---------------------------------------------------------------------
-// The College -> University charter: a one-time question, asked the first
-// quiet week after any laboratory finishes (see
-// systems/events/eventSystem.ts). Cosmetic in full — what changes is the
-// fixed half of the school's name and nothing else. It is asked rather
-// than applied because a school that wants to stay a college is a real
-// thing a player might want, and because the moment is worth marking.
-// Either answer closes the question for good.
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// THE ATHLETIC DIRECTOR'S OFFER — the one interrupt athletics raises of its
-// own, fired the first quiet week after the school fields a varsity team.
-//
-// Two decisions in one modal, and they belong together: the department gets
-// somebody to run it, and the teams get a name to play under. The mascot is
-// asked HERE rather than at founding because this is the first moment the
-// question has an answer — there is now something that wears the name.
-//
-// THE CARDS ARE HONEST ABOUT WHAT THEY OFFER. A faculty hire trades teaching
-// against research; an athletic director has one stat, so the only question
-// three cards can pose is how much of the department's budget goes to the
-// person running it. The modal says that in a line rather than implying a
-// second axis — an interface that hints at a tradeoff it does not have is
-// worse than one that admits the choice is about money.
+// The athletic director's offer, fired the first quiet week after the school
+// fields a varsity team. A director has one stat, so the three cards differ
+// only in quality and salary, and the copy says the choice is about money. It
+// also asks for the mascot if none has been named yet.
 // ---------------------------------------------------------------------
 interface AthleticDirectorPayload {
   candidates: Coach[];
@@ -1092,23 +918,15 @@ interface AthleticDirectorPayload {
 }
 
 // ---------------------------------------------------------------------
-// A CHAMPIONSHIP. The one thing athletics has ever produced that stops the
-// clock, and the payoff the whole plan was written around.
-//
-// It reads the model rather than inventing a display number: what the title
-// did to campus-life standing is computed by running the target WITHOUT this
-// title and reporting the difference — the same honesty the milestone modal
-// uses for prestige, and the same the Student Life panel uses when it reports
-// that the clubs are adding nothing because nothing is what they add.
+// A championship. What the title did to campus-life standing is computed by
+// running the target without it and reporting the difference.
 // ---------------------------------------------------------------------
 function ChampionshipView({ s, result, onDismiss }: {
   s: GameState; result: SeasonResult; onDismiss: () => void;
 }) {
   const sport = sportById(result.sport)?.teamName ?? result.sport;
-  // The bare sport, for the label below. `teamName` carries a trailing
-  // "Team" — right in a sentence ("the Men's Soccer Team finished"), wrong in
-  // a label that already says what it is counting ("Titles in Men's Soccer
-  // Team"), where it also pushed the heading onto two lines.
+  // The bare sport for the label: `teamName` ends in "Team", which reads
+  // wrong in "Titles in Men's Soccer Team".
   const sportShort = sport.replace(/ Team$/, '');
   const ad = s.orgs.athleticDirector;
   const titlesInSport = s.orgs.titles.filter((t) => t.sport === result.sport).length;
@@ -1153,9 +971,8 @@ function ChampionshipView({ s, result, onDismiss }: {
         </div>
         <div>
           <dt>Campus-life standing</dt>
-          {/* A banner is a slow gift: standing is a stock that drifts toward
-              its target, so this says what the TARGET moved by, not what the
-              school's rank did this week. */}
+          {/* Standing drifts toward its target, so this is what the target
+              moved by. */}
           <dd>{worth >= 0.05 ? `+${worth.toFixed(1)} to the target` : 'already at its ceiling'}</dd>
         </div>
       </dl>
@@ -1165,14 +982,8 @@ function ChampionshipView({ s, result, onDismiss }: {
   );
 }
 
-function ordinal(n: number): string {
-  const suffix = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
-  return `${n}${suffix}`;
-}
-
-// THE FIRST SPORT CLUB (Plan 21's PR O): a small modal with one question.
-// The identity arrives years before the department does, which is what
-// turns a decade of silence into a decade of anticipation.
+// The first sport club: a small modal that names the teams, years before
+// there is a department.
 interface FirstSportClubPayload { clubName: string; sportId: string | null; mascotSuggestion: string; }
 
 function FirstSportClubView({ s, payload, onResolve }: {
@@ -1199,7 +1010,7 @@ function FirstSportClubView({ s, payload, onResolve }: {
           onChange={(e) => setMascot(e.target.value)}
           aria-label="Mascot"
         />
-        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+        <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion(Math.random))}>
           another
         </button>
       </label>
@@ -1243,9 +1054,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
         ))}
       </div>
 
-      {/* The mascot is named at the first sport club now (PR O); this modal
-          asks only when nothing has answered, so it stays about the
-          director. */}
+      {/* Asked only if the first sport club did not already name them. */}
       {!s.self.mascot && (
         <label className="ad-mascot">
           <span className="ad-mascot-label">The teams will play as the</span>
@@ -1256,7 +1065,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
             onChange={(e) => setMascot(e.target.value)}
             aria-label="Mascot"
           />
-          <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion())}>
+          <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion(Math.random))}>
             another
           </button>
         </label>
@@ -1270,12 +1079,9 @@ function AthleticDirectorView({ s, payload, onResolve }: {
 }
 
 // ---------------------------------------------------------------------
-// A LETTER FROM THE BOARD (Plan 16's PR F — see data/eventData.ts's
-// OPENING_LETTERS): the first year's script, one thing to do per letter,
-// with the ask carried to the toolbar's next-step line until it is done.
-// The first letter alone offers "I know the way", which stands the rest of
-// the script down for the run. A letter whose id is no longer in the table
-// (a save from before a rewrite) is put down with nothing said.
+// A letter from the board (data/eventData.ts's OPENING_LETTERS). Only the
+// first letter offers "I know the way", which skips the rest of the script.
+// A letter no longer in the table (an old save) is put down quietly.
 // ---------------------------------------------------------------------
 function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve: (skipAll: boolean) => void }) {
   const letter = findOpeningLetter(id);
@@ -1308,6 +1114,9 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
   );
 }
 
+// The College -> University charter, asked once, the first quiet week after
+// any lab finishes (systems/events/eventSystem.ts). Cosmetic: only the name
+// changes. Either answer closes the question.
 function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: boolean) => void }) {
   return (
     <>
@@ -1342,17 +1151,10 @@ function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: 
 }
 
 // ---------------------------------------------------------------------
-// An authored decision event (see data/eventData.ts). The modal renders
-// the definition looked up by id from the data table, and the reducer
-// applies the choice by looking up the same definition the same way — so
-// there is one authored description of what a choice does, shown and
-// applied, never two that can disagree.
-//
-// A choice the school cannot pay for is shown DISABLED rather than
-// hidden: seeing the option you can't afford is the point of a money
-// bottleneck. Every event is guaranteed to carry at least one option that
-// costs nothing (eventSystem.ts refuses to fire one that doesn't), so
-// there is always a way out of the modal.
+// An authored decision event (data/eventData.ts). The modal and the reducer
+// look up the same definition by id, so what is shown is what is applied. An
+// unaffordable choice is shown disabled, not hidden; every event has a free
+// choice, so there is always a way out.
 // ---------------------------------------------------------------------
 function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
   s: GameState;
@@ -1381,10 +1183,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
       <div className="event-choices">
         {offeredChoices(s, event, ctx).map((choice) => {
           const cost = choice.cost(s, ctx);
-          // A free choice must stay pickable even with cash already
-          // negative — `cost <= s.finance.cash` alone would disable every
-          // choice, including the guaranteed no-cost one, and strand the
-          // player behind the modal with no way out.
+          // A free choice stays pickable even with negative cash.
           const affordable = cost === 0 || cost <= s.finance.cash;
           return (
             <button
@@ -1396,7 +1195,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
               <span className="event-choice-label">
                 {choice.label}
                 <span className="event-choice-cost">
-                  {cost > 0 ? `-$${cost.toLocaleString()}` : 'no cost'}
+                  {cost > 0 ? money(-cost) : 'no cost'}
                 </span>
               </span>
               <span className="event-choice-detail">
@@ -1411,10 +1210,8 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
   );
 }
 
-// The generic pause-the-clock decision-event system (see
-// docs/architecture/interrupts.md): renders whichever modal
-// s.pendingInterrupt calls for, on top of every tab. Nothing to render
-// when no interrupt is pending.
+// Renders whichever modal s.pendingInterrupt calls for, on top of every tab
+// (docs/architecture/interrupts.md).
 export default function InterruptModal({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const interrupt = s.pendingInterrupt;
 
@@ -1424,44 +1221,12 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
     ? interrupt.payload as { eventId: string; ctx: DecisionEventContext }
     : null;
 
-  // Enter dismisses whichever modal is open, for every interrupt type that
-  // has a plain "continue" to press — the report, a milestone, a research
-  // prize, a student demand, and an authored decision event (Enter there
-  // means CONTINUE: resolve with no choice picked, the same escape hatch the
-  // dismiss button below uses for a content-table miss, never one specific
-  // paid choice, so there is never an affordability check to get wrong).
-  // These are the interrupts a long run throws most often and that the
-  // player reads and waves through, so making them answer the key the
-  // keyboard already puts under that hand is most of what stops a
-  // fast-forwarded decade being a click hunt.
-  //
-  // Each type is wired to its OWN dedicated action, never a fallthrough to
-  // generic RESOLVE_INTERRUPT — milestone, research-complete and demand are
-  // mechanically just clear-and-advance today (see reducer.ts), same as the
-  // generic action itself, but keeping them separate is what makes that stay
-  // correct if one of them ever grows real work of its own to do on resolve.
-  //
-  // Three types are deliberately left out, for three reasons. Charter
-  // is a real either/or — accepting or declining sets
-  // `universityCharterOffered`/`suffix` — so there is no neutral "continue"
-  // for a key to stand for, and picking one silently would be picking for
-  // the player. The summer's two decision beats are left out because the
-  // tuition value lives in AdmissionsInterruptForm's own local
-  // state, not reachable from here without lifting that state up just for a
-  // hotkey, so they stay click-to-confirm (its two read-and-continue beats
-  // do answer Enter). The athletic director's offer is
-  // left out for BOTH reasons at once: it is a choice among three people with
-  // no neutral answer, and the mascot the player is typing lives in that
-  // view's own state — and it is the one interrupt with a real text field, so
-  // the focused-input guard below is what stops Enter doing anything at all
-  // while they are still naming the teams.
-  //
-  // Guarded against a focused button/input so a Tab-focused decision-event
-  // choice (or, if a future interrupt ever grows a text field) keeps
-  // handling its own Enter natively instead of racing this handler. The
-  // typing guard and the window listener itself come from useHotkeys (see
-  // hotkeys.ts), which also keeps the handler reading the CURRENT interrupt
-  // rather than one from an earlier render.
+  // Enter continues the read-and-continue interrupts, each through its own
+  // dedicated action; for a decision event it resolves with no choice
+  // picked, never a paid one. Left out: the charter (a real either/or), the
+  // summer's decision beats (their values live in local state), and the
+  // athletic director (both). useHotkeys ignores Enter on a focused button
+  // or input, so those keep their native behaviour.
   useHotkeys((e) => {
     if (e.key !== 'Enter' || !interrupt) return;
     if (isActivationTarget(e.target)) return;
@@ -1472,10 +1237,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
         act({ type: 'RESOLVE_REPORT' });
         break;
       case 'summer': {
-        // The two read-and-continue beats answer Enter; the decision and
-        // the digest do not (see types.ts's SUMMER_BEATS) — a key that
-        // committed a price, or declined a year's petitions, would be
-        // choosing for the player.
+        // Only the read-and-continue beats: a key must not commit a price or
+        // decline a year's petitions.
         const beat = (interrupt.payload as SummerPayload).beat;
         if (beat < 2) act({ type: 'RESOLVE_SUMMER_BEAT' });
         break;
@@ -1563,9 +1326,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
               choiceId,
               ctx: decision.ctx,
             })}
-            // No choice id matches, so the reducer applies nothing and
-            // simply clears the interrupt — the escape hatch for an event
-            // whose definition has gone from the content table.
+            // No choice id matches, so the reducer only clears the
+            // interrupt: the escape hatch for an event gone from the table.
             onDismiss={() => act({
               type: 'RESOLVE_DECISION_EVENT',
               eventId: decision.eventId,
@@ -1580,11 +1342,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             onDismiss={() => act({ type: 'RESOLVE_REPORT' })}
           />
         ) : (
-          // See interruptBody's own comment above: reachable only on
-          // content drift, never in real play. RESOLVE_INTERRUPT advances
-          // the clock exactly like every named branch's own dedicated
-          // action (see reducer.ts) rather than silently holding the week
-          // open forever.
+          // Content drift only (see interruptBody). RESOLVE_INTERRUPT
+          // advances the clock rather than holding the week open.
           <>
             <h2>{interruptBody(interrupt).title}</h2>
             <p>{interruptBody(interrupt).body}</p>

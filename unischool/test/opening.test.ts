@@ -33,7 +33,7 @@ import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
-import { centredPlacement, footprintOf, RETROACTIVE_SITING_COST, sitingFeeOf } from '../src/state/campusMap';
+import { awaitsSite, centredPlacement, footprintOf } from '../src/state/campusMap';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { loadGame, saveGame } from '../src/state/persistence';
@@ -151,7 +151,7 @@ console.log('opening script tests');
   assert(nextStep(s) === null, 'a quiet campus with nothing on offer has no next step — the line is a reading, not a queue');
 
   s.students.satisfactionBreakdown.basicNeeds = 32;
-  assert(nextStep(s)?.text.startsWith('Basic needs is at 32') && nextStep(s)?.go === 'build', `a shortfall under 50 is named with its figure (${nextStep(s)?.text})`);
+  assert(nextStep(s)?.text.startsWith('Basic needs is at 32') === true && nextStep(s)?.go === 'build', `a shortfall under 50 is named with its figure (${nextStep(s)?.text})`);
 
   // A standing hall with a free slot outranks a shortfall: founding is the
   // most valuable click there is — and at founding that hall is Founders
@@ -207,8 +207,7 @@ console.log('opening script tests');
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'site-hall', 'Next does nothing on a step that ends on something done');
   const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
-  assert(sitingFeeOf(hall) === 0, 'Founders Hall sites for nothing');
-  assert(sitingFeeOf(s.tech.find((t) => t.id === 'DORM-T1' || t.kind === 'dorm')!) === RETROACTIVE_SITING_COST, 'everything else pays the flat fee');
+  assert(awaitsSite(s, hall), 'Founders Hall is built and awaits a site');
   const cash = s.finance.cash;
   const spot = centredPlacement(footprintOf(hall));
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, rotated: false });

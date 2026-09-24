@@ -1,37 +1,24 @@
 import type { Buildable, GameState } from '../../state/types';
 import { programById } from '../../data/techData';
 
-// ---------------------------------------------------------------------
-// SCHOOLS ARE FOUNDED, NOT UNLOCKED (Plan 14's PR E). Nothing is called
-// "the School of Engineering" until six Engineering programs sit in one
-// hall. A hall is DEDICATED when every one of its slots is housed and
-// every program in it belongs to one school; a graduate program belongs
-// to its homeSchool (techData.ts), so an MD in a second Health Science
-// hall counts as Health Science for dedication and that hall is dedicated
-// on its own terms.
-//
-// Dedication is a READING over s.halls, computed here and nowhere else —
-// not a flag written beside it. The milestone it earns
-// (`school-founded:<School>`, awarded by techSystem.ts's checkMilestones)
-// is written once and never revoked, because a school that existed
-// existed and the History tab should not have to un-write itself. Any
-// LIVE bonus that reads purity reads this function, so moving a program
-// out costs the bonus and not the school.
-// ---------------------------------------------------------------------
+// Schools are founded, not unlocked. A hall is dedicated when every slot is
+// housed and every program in it belongs to one school (a graduate program
+// counts as its homeSchool). Dedication is a live reading over s.halls,
+// computed only here; the `school-founded:<School>` milestone it earns
+// (techSystem.ts's checkMilestones) is never revoked, while live bonuses
+// read this function, so moving a program out costs the bonus, not the
+// school.
 
-// The school a hall is dedicated to, or null: partly filled, empty, or
-// mixed. Founders Hall is an ordinary hall here (Plan 19): it opens with
-// three Social Sciences & Humanities programs in it, and the three that
-// would fill it dedicate it like any other.
+// The school a hall is dedicated to, or null if it is partly filled, empty,
+// or mixed. Founders Hall is an ordinary hall here.
 export function dedicatedSchool(s: GameState, hallId: string): string | null {
   const slots = s.halls[hallId];
   if (!slots || slots.length === 0) return null;
   let school: string | null = null;
   for (const slot of slots) {
     if (slot.programId === null) return null;
-    // A program still in transit has not arrived: six programs of one
-    // school found it the week the sixth is teaching there, not the week
-    // the move was ordered (see types.ts's HallSlot.transitWeeks).
+    // A program in transit has not arrived yet (types.ts's
+    // HallSlot.transitWeeks).
     if ((slot.transitWeeks ?? 0) > 0) return null;
     const program = programById(slot.programId);
     if (!program) return null;
@@ -61,12 +48,10 @@ export function isSchoolFounded(s: GameState, school: string): boolean {
   return !!s.milestones[schoolFoundedKey(school)];
 }
 
-// What a hall is called on the map and in its panel: its donor's name if
-// its naming rights were sold (a permanent, stored overwrite of `name` —
-// see eventData.ts's 'naming-rights'), "<School> Hall" while it is
-// dedicated, and its seeded name otherwise. A live reading, so a hall
-// that loses its purity goes back to being Elm Hall until it
-// is pure again — the milestone stays, the label follows the building.
+// A hall's display name: its donor's name if naming rights were sold (a
+// stored overwrite of `name`, see eventData.ts's 'naming-rights'),
+// "<School> Hall" while dedicated, its seeded name otherwise. Live, so the
+// label follows the hall's purity while the milestone stays.
 export function hallDisplayName(s: GameState, t: Buildable): string {
   if (t.donorSurname) return t.name;
   const school = t.slots !== undefined ? dedicatedSchool(s, t.id) : null;

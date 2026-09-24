@@ -3,24 +3,12 @@ import type { ProgramInfo } from '../../data/techData';
 import { SEATS_PER_COURSE } from './instructionCapacity';
 import { isInTransit } from './programOffers';
 
-// ---------------------------------------------------------------------
-// WHERE A PROGRAM STANDS, and what it is one course away from.
-//
-// Both surfaces that show a program — the hall panel on the map and the
-// Curriculum tab's row — need the same four answers: how much of it
-// exists, which course comes next, which milestone that course moves
-// toward and how far off it is, and how many seats it is teaching. One
-// reading here, so a "3 to Established" on a hall tile and a "3 to
-// Established" on a row can never disagree.
-//
-// The milestone ladder is the one docs/design/curriculum.md describes: a
-// major is ESTABLISHED when its tier-2 quartet is done (the tier-3
-// catalogue opens) and DISTINGUISHED when its four capstones are. The core
-// and a graduate program have no tiers to climb and are simply complete.
-// The counts here are read off course status directly rather than off
-// s.milestones, because the question is "how many more", which the
-// milestone record cannot answer once it is written.
-// ---------------------------------------------------------------------
+// Where a program stands and what it is one course away from, shared by the
+// map's hall panel and the Curriculum tab so the two can never disagree.
+// A major is Established when its tier-2 quartet is done and Distinguished
+// when its four capstones are (docs/design/curriculum.md); the core and
+// graduate programs are simply complete. Counts come from course status, not
+// s.milestones, because the question is "how many more".
 
 export type ProgramMilestone = 'established' | 'distinguished' | 'complete';
 
@@ -28,27 +16,21 @@ export interface ProgramProgress {
   done: number;
   total: number;
   developing: number;
-  // The next course a player could start: the first in tier order that is
-  // 'available' (revealed and not yet started). Undefined when nothing is
-  // startable — everything is done, developing, or still locked.
+  // The first 'available' course in tier order, if any.
   next: Buildable | undefined;
-  // When nothing is startable, the first course still locked — the thing
-  // the program is waiting on.
+  // When nothing is startable, the first course still locked.
   waiting: Buildable | undefined;
-  // The milestone the next course moves toward, and how many courses
-  // (not yet done, developing ones included) stand between here and it.
-  // `toMilestone` is 0 once the last milestone is reached.
+  // The next milestone and how many not-done courses (developing included)
+  // stand before it; 0 once the last milestone is reached.
   milestone: ProgramMilestone;
   toMilestone: number;
-  // Seats the program's developed courses teach today (Plan 15's ceiling):
-  // nothing while it is in transit.
+  // Seats the developed courses teach today; 0 while in transit.
   seats: number;
   inTransit: boolean;
 }
 
-// The tier bands of a major's nine course ids, by position: the entry
-// course, the tier-2 quartet, the tier-3 quartet (techData.ts lays them out
-// in exactly this order — see ProgramInfo.courseIds).
+// A major's nine course ids by position: entry, tier-2 quartet, tier-3
+// quartet (techData.ts's ProgramInfo.courseIds order).
 export function tierBands(program: ProgramInfo): { entry: string[]; tier2: string[]; tier3: string[] } | null {
   if (program.kind !== 'major' || program.courseIds.length !== 9) return null;
   return {
@@ -95,10 +77,8 @@ export function programProgress(s: GameState, program: ProgramInfo, lookup?: Map
   };
 }
 
-// What a locked course is waiting on, by name: its unmet prerequisites,
-// a course's short code or a building's name — "needs the Biology
-// Laboratory" is what a player can act on; "locked until its
-// prerequisites are done" is not.
+// A locked course's unmet prerequisites by name: a course's short code or a
+// building's name, so the player knows what to act on.
 export function unmetPrereqNames(s: GameState, t: Buildable, lookup?: Map<string, Buildable>): string[] {
   const find = lookup ? (id: string) => lookup.get(id) : (id: string) => s.tech.find((x) => x.id === id);
   return t.prereqs

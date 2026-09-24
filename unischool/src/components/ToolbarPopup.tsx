@@ -1,23 +1,10 @@
 import { type ReactNode } from 'react';
 
-// The compact card a toolbar icon pops open (see Toolbar.tsx's build and
-// log buttons) — deliberately NOT TabOverlay: TabOverlay's whole point is a
-// dimmed, click-to-dismiss backdrop covering the map, which is exactly
-// wrong here. The build popup in particular has to leave the campus map
-// visible and clickable everywhere outside its own box, since the point of
-// popping it up from the toolbar rather than reusing the old side rail is
-// choosing a building while still seeing where it'll go — see B2's one-step
-// placement flow. So this renders NO backdrop at all: just a positioned
-// parchment card (position is the caller's job, via `className` — see
-// styles.css's .build-popup / .log-popup), floating above the toolbar the
-// same way the old build rail / log strip floated over the map.
-//
-// It binds no keys. Escape used to be a raw window listener right here,
-// which made this the third component guessing about a key three components
-// were binding; App.tsx now owns one Escape ladder for the whole shell (log
-// popup, then build popup, then an open tab, then the map's own back-out),
-// and both of this component's callers have their open/closed state up
-// there for that reason. See App.tsx's module comment.
+// The compact card a toolbar icon pops open (see Toolbar.tsx's build and log
+// buttons). Deliberately not TabOverlay: it renders no backdrop, so the campus
+// map stays visible and clickable outside the card while choosing a building.
+// Position is the caller's job via `className` (styles.css's .build-popup /
+// .log-popup). It binds no keys: App.tsx owns the one Escape ladder.
 export default function ToolbarPopup({ title, headExtra, onClose, className, children }: {
   title: string;
   headExtra?: ReactNode;

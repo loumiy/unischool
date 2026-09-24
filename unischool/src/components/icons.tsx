@@ -1,26 +1,11 @@
-// Hand-rolled inline SVG icons for the bottom toolbar (see Toolbar.tsx).
-//
-// No vector icon library (Lucide, game-icons.net, ...) is installed in this
-// project, and CampusMap.tsx already draws everything in plain SVG on
-// purpose ("no canvas, no game library, no new deps" — see its own module
-// comment). Adding a dependency for a dozen small glyphs would cut against
-// that precedent, so these follow the same convention instead: a 24x24
-// viewBox, stroke=currentColor so every icon inherits the toolbar button's
-// own text colour (including its `.active` gold state) for free, and simple
-// primitives (lines, rects, circles, short polylines) rather than hand-fit
-// bezier curves, which are easy to get subtly wrong without a design tool.
-//
-// One icon per TabId (see TabNav.tsx) plus the toolbar's own build/log/path
-// tools. Each is a fixed-size glyph — sizing lives in styles.css
-// (.toolbar-icon-btn svg), not here — so a caller never has to pass width/
-// height props.
+// Hand-rolled inline SVG icons (no icon library, like CampusMap.tsx's plain
+// SVG). Convention: a 24x24 viewBox, stroke=currentColor so each icon takes
+// its button's text colour (including the `.active` state), and simple
+// primitives rather than hand-fit curves. Sizing lives in styles.css
+// (.toolbar-icon-btn svg), so callers pass no width/height.
 const STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
-// Home: back to the campus map, which is the one screen the player always
-// returns to (see App.tsx). A house rather than an arrow — an arrow says
-// "back", which is only sometimes what this does; the map is a PLACE, and
-// this button goes to it whether one tab is open, the build menu is, or
-// nothing at all.
+// Home: back to the campus map. A house, not an arrow: the map is a place.
 export function HomeIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
@@ -42,9 +27,7 @@ export function FacultyIcon() {
   );
 }
 
-// The grad cap FacultyIcon used to wear (mortarboard + tassel) — reassigned
-// here per the icon pass: curriculum is the degree itself, faculty are the
-// people (see FacultyIcon above).
+// Curriculum: a mortarboard and tassel, the degree itself.
 export function CurriculumIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
@@ -55,18 +38,9 @@ export function CurriculumIcon() {
   );
 }
 
-// Research. This was a lamp, on the reasoning that a flask reads as "lab"
-// and four of the university's research facilities are not labs — an
-// institute, a studio, a computing centre. Overruled by playtest: a lamp
-// beside eight other glyphs reads as "lighting", or as a hint, and not as
-// the one thing the university is here to do. A microscope is the glyph
-// everyone already knows means research, and the tab it marks is where the
-// player commissions work, so being read instantly beats being read
-// precisely.
-//
-// Drawn as a real instrument rather than a symbol: eyepiece and canted
-// body tube, the limb curving back to the base, and the stage the tube
-// looks down at meeting that limb.
+// Research: a microscope, the glyph everyone reads as research. Drawn as an
+// instrument: eyepiece and canted tube, the limb curving to the base, and
+// the stage the tube looks down at.
 export function ResearchIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
@@ -76,15 +50,6 @@ export function ResearchIcon() {
       <path d="M13.2 6.2c4 2.4 4.4 9.8 0.8 13.4" />
       <path d="M7.2 12.4h9.2" />
       <path d="M6 19.6h12" />
-    </svg>
-  );
-}
-
-export function TreasuryIcon() {
-  return (
-    <svg viewBox="0 0 24 24" {...STROKE}>
-      <circle cx="12" cy="12" r="9" />
-      <text x="12" y="16.5" textAnchor="middle" fontSize="11" fontFamily="Georgia, serif" stroke="none" fill="currentColor">$</text>
     </svg>
   );
 }
@@ -99,9 +64,8 @@ export function EnrollmentIcon() {
   );
 }
 
-// A symmetric heart (mirrored exactly around x=12, unlike the old
-// hand-tuned one, which drifted lopsided at this glyph's small rendered
-// size) built from two matched cubic curves rather than freehand points.
+// A heart mirrored exactly around x=12, from two matched cubic curves, so
+// it stays symmetric at small sizes.
 export function StudentLifeIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
@@ -120,10 +84,8 @@ export function HistoryIcon() {
   );
 }
 
-// A basketball, not a soccer ball: the pentagon-panel pattern the earlier
-// attempt used only reads at large sizes — at this glyph's actual rendered
-// size (20px) it collapsed into an illegible flower/badge. A plain circle
-// with a cross and two bowed seams reads as "a ball" clearly even tiny.
+// A basketball: a circle with a cross and two bowed seams reads as a ball
+// even at 20px, where a panelled soccer ball collapses.
 export function AthleticsIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
@@ -136,10 +98,8 @@ export function AthleticsIcon() {
   );
 }
 
-// A bulldozer in side profile: tracks, body, cab, and a front blade on its
-// arm. Two crane attempts before this both read as a flag on a pole at
-// this glyph's small rendered size — a bulldozer's boxy, wide silhouette
-// holds up better that small than a crane's tall, thin one.
+// A bulldozer in side profile: its boxy silhouette holds up at small sizes
+// where a crane reads as a flag on a pole.
 export function BuildIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
@@ -182,11 +142,8 @@ export function EraseIcon() {
 }
 
 // ---------- build-mode category / facility glyphs ----------
-// Same 24x24, stroke=currentColor convention as the toolbar icons above.
-// One per build-popup category (see BuildPopup.tsx's SECTION_ICON) so the
-// horizontal build menu reads as a row of distinct "menu icons" — a type
-// is recognisable by its glyph before its label, the way the reference's
-// build bar tabs its categories by picture.
+// Same convention as the toolbar icons. One per build-popup category
+// (BuildPopup.tsx's SECTION_ICON), so a category is recognisable by glyph.
 
 export function HousingIcon() {
   return (
@@ -309,12 +266,10 @@ export function ToolsIcon() {
 }
 
 // ---------------------------------------------------------------------
-// THE DOCK'S FIGURES AND GEARS (Plan 18's PR A follow-up). The four
-// headline stats wear a glyph instead of a word — the word survives as the
-// chip's title and as visually-hidden text (see StatusHeader.tsx) — and the
-// speed control is four glyphs instead of four words. Same 24x24 stroke
-// convention as everything above; a stat glyph is drawn at 16px, so nothing
-// here is finer than a 1.6 stroke can carry at that size.
+// The dock's figures and gears. The four headline stats wear a glyph (the
+// word survives as title and visually-hidden text, see StatusHeader.tsx),
+// and the speed control is four glyphs. Stat glyphs render at 16px, so
+// nothing is finer than a 1.6 stroke can carry.
 // ---------------------------------------------------------------------
 
 // Rank: a rosette — a medal's disc with two ribbon tails.
@@ -348,9 +303,8 @@ export function PrestigeIcon() {
   );
 }
 
-// Satisfaction: a face, smiling. The mouth is the one thing that could
-// change with the figure and deliberately does not — the number beside it
-// is the reading, the glyph only says which number this is.
+// Satisfaction: a smiling face. It deliberately does not change with the
+// figure; the number beside it is the reading.
 export function SatisfactionIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>

@@ -1,51 +1,37 @@
 // ---------------------------------------------------------------------
-// THE SCENARIO INDEX: the dozen-odd states a playtest keeps returning to,
-// each named so it can be asked for by name.
+// The scenario index: the states a playtest keeps returning to, each named.
 //
-// A scenario is a RECIPE, never a file. Committing generated saves would
-// mean a few hundred KiB per state, every one of them stale the next time
-// the save shape changes — so what is written down here is the strategy,
-// the year, and the moment to stop at, and `npm run scenario -- <name>`
-// builds the save on demand by playing the real reducer forward (see
-// tools/scenario.ts). The recipe survives a SAVE_VERSION bump; a file
-// would not.
-//
-// Nothing in src/ imports this, and none of it ships.
+// A scenario is a recipe, never a file: `npm run scenario -- <name>` builds
+// the save on demand by playing the real reducer forward (tools/scenario.ts),
+// so it survives a SAVE_VERSION bump where a committed save would go stale.
+// Nothing in src/ imports this.
 // ---------------------------------------------------------------------
 
 import type { GameState } from '../src/state/types';
 
 export interface Scenario {
   name: string;
-  // One line, printed by `--list`. What this state is FOR, not what it
-  // contains — "the week a title is won" rather than "year 24".
+  // One line, printed by `--list`: what this state is for, not what it
+  // contains.
   what: string;
-  // A STRATEGIES name (see sim/balanceSim.ts). Matched case-insensitively
-  // on a prefix, so 'Balanced' finds 'Balanced builder'.
+  // A STRATEGIES name (sim/balanceSim.ts), matched case-insensitively on a
+  // prefix, so 'Balanced' finds 'Balanced builder'.
   strategy: string;
-  // How many years to play. The run stops at the START of the year after
-  // this one, so `year: 8` is the state a school is in having just lived
-  // through its eighth. With `stopWhen` it is a CUTOFF — the run halts at
-  // whichever comes first — so a scenario that waits on a modal can never
-  // turn into an unbounded search.
+  // Years to play; the run stops at the start of the year after this one.
+  // With `stopWhen` it is a cutoff, so a scenario waiting on a modal can
+  // never become an unbounded search.
   year: number;
-  // Where to stop inside a year, if not at its boundary. See play()'s own
-  // stopWhen: it is checked at the top of a week, before the scripted
-  // player answers anything, so a run stopped here hands back a state with
-  // its modal still pending.
+  // Where to stop inside a year. Checked at the top of a week, before the
+  // scripted player answers anything, so the modal is still pending.
   stopWhen?: (s: GameState) => boolean;
-  // Break the state after the run, before it is written (Plan 15's PR G):
-  // the crisis scenario stands a healthy school up and then puts it in
-  // the hole, because no scripted strategy digs one deep enough on its
-  // own now that a school in trouble shrinks rather than growing.
+  // Break the state after the run, before it is written: no scripted
+  // strategy digs a hole deep enough on its own.
   mutate?: (s: GameState) => void;
 }
 
-// A school in crisis: satisfaction in the thirties, a body half again
-// too big for what it has built, and the year's accumulators saying so —
-// the state the recovery assertion in test/balance-regression.test.ts
-// starts from. Exported so the scenario and the test break the same
-// school the same way.
+// A school in crisis: satisfaction in the thirties, a body half again too
+// big, and the year's accumulators saying so. Shared by the crisis scenario
+// and test/balance-regression.test.ts so both break the school the same way.
 export function intoCrisis(s: GameState): void {
   s.students.satisfaction = 35;
   s.students.satisfactionYearSum = 35 * s.students.satisfactionYearWeeks;
@@ -57,12 +43,8 @@ export function intoCrisis(s: GameState): void {
   s.self.reputation = Math.max(5, s.self.reputation - 15);
 }
 
-// Stops the week a modal of this type is on screen. The one predicate
-// nearly every scenario below wants, and the one `--modal <type>` builds.
-// The interrupt types are the ones the systems raise (see
-// docs/architecture/interrupts.md): summer, milestone, rankings-entry,
-// research-complete, decision-event, demand, charter, championship,
-// athletic-director.
+// Stops the week a modal of this type is on screen; what `--modal <type>`
+// builds. Interrupt types: see docs/architecture/interrupts.md.
 export function atModal(type: string): (s: GameState) => boolean {
   return (s) => s.pendingInterrupt?.type === type;
 }
@@ -80,8 +62,7 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'year-3-first-hall',
     // The balanced builder fills Founders Hall's three rooms first and buys
-    // its first hall in year two (Plan 19's PR B measured week 120), so by
-    // the end of year three the purchased hall stands beside a full one.
+    // its first hall in year two.
     what: 'the first purchased hall standing beside a full Founders Hall, the campus still small',
     strategy: 'Balanced builder',
     year: 3,
@@ -133,24 +114,20 @@ export const SCENARIOS: Scenario[] = [
     stopWhen: atModal('rankings-entry'),
   },
   {
-    // Plan 16's PR A folded the annual U.S. News report into the summer as
-    // its Standing beat, so the summer scenario is the report scenario too:
-    // stopped on the review, the report is one Continue away.
+    // The annual report is the summer's Standing beat, so this is the report
+    // scenario too.
     name: 'summer',
     what: 'the summer sequence — review, standing (the U.S. News report), the blind price, the digest',
     strategy: 'Balanced builder',
     year: 12,
-    // Any summer will do, but not the FIRST one: the interesting version of
-    // this screen is the one with a prior year to be read against.
+    // Not the first summer: the screen is interesting with a prior year to
+    // read against.
     stopWhen: (s) => s.pendingInterrupt?.type === 'summer' && s.clock.year >= 6,
   },
   {
-    // THE FINAL REPORT (Plan 17's PR C): the fiftieth summer, stopped on its
-    // first beat, which is the report in place of the review — the legacy,
-    // the ambitions, the founder's numbers, the fifty-year curves. Fifty
-    // years is the run's whole length, so this is the slowest scenario here
-    // (about half a minute); the completionist because its report has the
-    // most on it.
+    // The final report: the fiftieth summer, stopped on its first beat. The
+    // slowest scenario (about half a minute); the completionist because its
+    // report has the most on it.
     name: 'final-report',
     what: 'the fiftieth summer — the final report as its first beat, the record about to be sealed',
     strategy: 'Earnest completionist',
@@ -160,12 +137,9 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'championship',
     what: 'the week a national title is won',
-    // THE ONLY STRATEGY THAT CAN REACH THIS, and the reason is the finding
-    // Plan 09's PR A recorded: none of the other six ever hires a coach, and
-    // teamQuality is what seeds a bracket (see systems/athletics/playoffs.ts),
-    // so none of them has ever won a title in forty years. The earnest
-    // completionist plays the coaching market, and wins its first around
-    // year 24.
+    // The only strategy that can reach this: the others never hire a coach,
+    // and teamQuality seeds a bracket (systems/athletics/playoffs.ts). The
+    // earnest completionist wins its first title around year 24.
     strategy: 'Earnest completionist',
     year: 40,
     stopWhen: atModal('championship'),
@@ -192,13 +166,9 @@ export const SCENARIOS: Scenario[] = [
     stopWhen: atModal('decision-event'),
   },
   {
-    // Plan 15's PR G: the recovery scenario. A balanced school's fifteenth
-    // year, broken (see intoCrisis above) — the state
-    // test/balance-regression.test.ts hands back to the Balanced builder
-    // and asks whether correct play gets it out (satisfaction back above 60
-    // and prestige climbing by year 25). The review's failure mode was that
-    // nothing pushes back; the opposite failure is a run that is over at
-    // year 12 and does not end.
+    // The recovery scenario: a balanced school's fifteenth year, broken (see
+    // intoCrisis). test/balance-regression.test.ts asks whether correct play
+    // gets it out: satisfaction back above 60 and prestige climbing by year 25.
     name: 'crisis',
     what: 'year 15 in the hole — satisfaction in the thirties, a body it cannot serve, cash gone, standing falling',
     strategy: 'Balanced builder',
@@ -208,9 +178,8 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'demand',
     what: 'a student demand on the clock — the strategy that earns them',
-    // The overbuilder builds beds and nothing else, so it is the strategy
-    // whose satisfaction actually falls far enough to be asked for
-    // something (see STRATEGIES' own note on it failing demands).
+    // The overbuilder builds only beds, so its satisfaction falls far enough
+    // to raise demands.
     strategy: 'Overbuilder',
     year: 40,
     stopWhen: atModal('demand'),

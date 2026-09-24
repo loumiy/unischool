@@ -24,10 +24,10 @@ import { SPORTS, promoteToVarsityTeam, teamQuality } from '../src/data/studentLi
 import { tickRivals, sportRankedList, sportRank, athleticRank, playerTeamIn } from '../src/systems/rivals/rivalsSystem';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState, StudentClub } from '../src/state/types';
+import { bindScriptStream } from '../src/engine/random';
 
 // Deterministic PRNG, same construction as the other suites.
-let seed = 424242;
-Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+bindScriptStream(424242);
 
 let checks = 0;
 let failures = 0;
@@ -40,7 +40,7 @@ function assert(cond: boolean, msg: string): void {
 }
 
 function fresh(): GameState {
-  return createInitialState('Standings Test', 'private');
+  return createInitialState('Standings Test');
 }
 
 // A varsity team in a sport, promoted through the real path rather than
@@ -106,7 +106,7 @@ function testSportsDisagree(): void {
   for (const sp of SPORTS) {
     const vals = rivals.map((rival) => sportStrengthFor(rival, sp.id)).sort((a, b) => b - a);
     const tied = vals.filter((v) => v === vals[0]).length;
-    assert(tied <= 2, `${sp.name}'s table does not open with a pile-up at the ceiling (${tied} schools tied at ${vals[0]})`);
+    assert(tied <= 2, `${sp.teamName}'s table does not open with a pile-up at the ceiling (${tied} schools tied at ${vals[0]})`);
   }
 
   // And each sport has its own FIELD, not the same one reordered — the

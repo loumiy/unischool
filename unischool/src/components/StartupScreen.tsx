@@ -6,83 +6,34 @@ import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorCh
 import { applySchoolColors } from './theme';
 import type { SchoolColors, Vernacular } from '../state/types';
 
-// Shown once, before play begins: name the school. That is the whole of
-// it — every founding condition comes from FOUNDING_PRESET and is the same
-// for every school (see data/foundingData.ts).
+// Shown once, before play begins: name the school, and choose its
+// architecture and colours. Every other founding condition comes from
+// FOUNDING_PRESET (data/foundingData.ts).
 //
-// It used to ask a second question, private vs. public, which set starting
-// cash, prestige, the applicant pool, a tuition ceiling and a state
-// appropriation. Plan 07 retired that fork; docs/design/progression.md has
-// always said "archetypes emerge, they are not chosen", and a structural
-// question asked before the player has seen a single screen of the game was
-// the one place that was not true. What is left is the one input that is
-// genuinely the player's to give.
-//
-// The player writes only HALF the name. Every school opens as a College,
-// and the word after the name is fixed rather than typed, because it is
-// the thing the game later offers to change: completing the first lab
-// offers a one-time promotion to University (see systems/events/
-// eventSystem.ts). That used to be spelled out as a fixed chip beside the
-// input plus a paragraph of prose underneath; it is now the SchoolFacade
-// below, which engraves the whole name — typed half and fixed half
-// together — across a building's entablature. Carved stone reads as
-// permanent without a caption saying so, and a facade with no "University"
-// anywhere on it makes the absence of that option legible the same way.
-//
-// The field starts EMPTY with a placeholder rather than prefilled: the
-// facade already has a graceful empty-state ("COLLEGE" alone, see
-// SchoolFacade below), so leaving the input blank no longer means an
-// unfinished-looking screen, and an empty field reads unambiguously as
-// "type here" the moment the building beside it is doing the explaining.
+// The player writes only half the name: every school opens as a College,
+// and the suffix is fixed because the game later offers to change it (the
+// University charter, see eventSystem.ts). The facade shows the whole name
+// carved in stone, so no caption is needed; the field starts empty.
 
-// ---------------------------------------------------------------------
-// THE FACADE — and since Plan 07's PR J it is FOUNDERS HALL, seen head-on,
-// drawn in whichever vernacular the campus will be built in.
-//
-// Two things make that worth the work. It is the building the player is
-// about to own: Founders Hall opens pre-built (see actions.ts), so the
-// picture on the founding screen is the first thing they will actually see
-// on the map rather than a generic campus building. And it is a live
-// PREVIEW — every colour and every part below is read from
-// buildingSpec.ts's VERNACULARS, so a set cannot be added to the game
-// without this screen showing it, and this screen cannot drift from the
-// map by being hand-tinted to match.
-//
-// It stays a FLAT ELEVATION rather than reusing the isometric BuildingMotif.
-// The engraved name is the whole reason this screen has a building on it —
-// carved stone reads as permanent without a caption saying so, and a facade
-// with no "University" anywhere on it makes the absence of that option
-// legible the same way — and a 7x5 iso mass cannot carry the player's own
-// name at this size. So the two agree about vocabulary and palette rather
-// than about projection, which is what "the same building" means for a
-// picture taken from a different angle.
-//
-// SEVEN BAYS, because Founders Hall is seven tiles across (Plan 04's 4A).
-// The backlog flagged the old facade's seven columns as "out of step" with
-// PORTICO_COLUMNS' four; they were never in conflict — four is the engaged
-// centre bay, seven is the whole front.
-// ---------------------------------------------------------------------
+// The facade: Founders Hall seen head-on, in the chosen vernacular. Every
+// colour and part is read from buildingSpec.ts's VERNACULARS, so this preview
+// cannot drift from the map. It is a flat elevation rather than the isometric
+// motif because an iso mass cannot carry the name at this size. Seven bays
+// because Founders Hall is seven tiles across.
 const FACADE_BAYS = 7;
 const FACADE_VIEW_WIDTH = 440;
 const FACADE_VIEW_HEIGHT = 214;
-// The spire and the campanile rise past the top of the frame on purpose —
-// the same crop the columns have at the bottom. viewBox clips them, which
-// is what a photograph of a tall building from close up does too.
+// The spire and campanile rise past the top of the frame on purpose; the
+// viewBox crops them, as it crops the columns at the bottom.
 const FACADE_BAND_LEFT = 18;
 const FACADE_BAND_WIDTH = 404; // shared span for the cornice/frieze/architrave
-// The engraved text's available width before it must compress rather than
-// overflow the frieze — see bannerFontSize/needsCompression below. Kept a
-// little narrower than FACADE_BAND_WIDTH for a visible margin on each side.
+// The engraved text's width before it must compress (see bannerFontSize and
+// needsCompression), a little inside FACADE_BAND_WIDTH.
 const FACADE_TEXT_WIDTH = 360;
-// The colonnade sits tighter than the building's full width — real fronts
-// read as a tight rank, not columns spread to the corners — anchored on the
-// same centre (220) as the crown's apex.
+// The colonnade sits tighter than the full width, centred on the apex (220).
 const FACADE_COLUMN_SPAN = 320;
 
-// Stepped rather than continuously computed: a handful of readable sizes,
-// chosen so a short name (the common case) gets a genuinely large,
-// banner-scale font instead of always rendering at whatever size fits the
-// longest name the input allows.
+// Stepped sizes, so a short name gets a large banner font.
 function bannerFontSize(len: number): number {
   if (len <= 16) return 25;
   if (len <= 24) return 20;
@@ -91,16 +42,11 @@ function bannerFontSize(len: number): number {
   return 11;
 }
 
-// A rough average glyph width for this uppercase serif banner, in units of
-// its own font-size — enough to catch names long enough to overflow even
-// the smallest stepped size above, so `textLength` below is only ever
-// applied as a last-resort compression, never on ordinary names.
+// Rough average glyph width in em for this uppercase serif, so `textLength`
+// compression applies only to names that overflow the smallest size.
 const AVG_GLYPH_WIDTH_EM = 0.62;
 
-// The map derives its shades from one material at runtime (see
-// buildingMotifs' paletteFrom); this needs the same trick for the same
-// reason — four vernaculars times five tones is twenty values nobody should
-// be keeping in sync by hand.
+// Shades derived from one material, as buildingMotifs' paletteFrom does on the map.
 function tint(hex: string, factor: number): string {
   const n = parseInt(hex.slice(1), 16);
   if (Number.isNaN(n)) return hex;
@@ -109,13 +55,9 @@ function tint(hex: string, factor: number): string {
   return `#${ch.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
-// The two banners that hang from the band, one at each end of the wall,
-// in the school's colours (Plan 18's PR B): the primary as the cloth, the
-// secondary as its stripe, a swallowtail at the foot. Outside the
-// colonnade's span and clear of the first and last windows, so they read
-// as hung on the building rather than as part of it — which is also why
-// they are the one thing on the facade that is not read from the
-// vernacular: cloth is not architecture.
+// The two banners hung from the band in the school's colours (primary cloth,
+// secondary stripe), outside the colonnade. The one thing on the facade not
+// read from the vernacular.
 const BANNER_WIDTH = 18;
 const BANNER_HEIGHT = 58;
 const BANNER_INSET = 4; // from the band's edge
@@ -143,15 +85,11 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
   const fontSize = bannerFontSize(bannerText.length);
   const compress = bannerText.length * fontSize * AVG_GLYPH_WIDTH_EM > FACADE_TEXT_WIDTH;
 
-  // Straight off the map's own tables. A hall is `brickRed` in every set —
-  // that is the material name, not a colour — so this is literally the wall
-  // Founders Hall will be built in.
+  // Straight off the map's tables: a hall's wall is `brickRed` in every set.
   const spec = VERNACULARS[vernacular];
   const wall = spec.materials.brickRed.wall;
   const roof = spec.materials.brickRed.roof;
-  // A vernacular with no trim (Modern) has nothing to cut a band from, so
-  // the band becomes the wall a shade lighter — a panel joint rather than a
-  // stone course.
+  // A vernacular with no trim (Modern) gets a band a shade lighter than the wall.
   const trim = spec.stone.trim === 'none' ? tint(wall, 1.1) : spec.stone.trim;
   const glass = spec.stone.glass;
   const gilt = spec.stone.gilt === 'none' ? null : spec.stone.gilt;
@@ -160,11 +98,7 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
 
   const cx = FACADE_VIEW_WIDTH / 2;
   const bandY = 92;          // head of the engraved band
-  // Every crown below is drawn DOWN TO bandY, not to its own idea of where
-  // the roof ends: the pediment's base, the gable's foot, the slab's edge
-  // and the eaves' shadow all sit on the band. The first pass stopped each
-  // of them a few units short, which read as a strip of sky between roof
-  // and wall in all four sets — a building with its lid lifted.
+  // Every crown is drawn down to bandY so no sky shows between roof and wall.
   const bandH = 32;
   const wallTop = bandY + bandH;
   const baseY = 152;         // where the ground-storey order begins
@@ -177,8 +111,7 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
   // --- THE CROWN: what the building does above its own name band. --------
   const crown = () => {
     if (apex === 'core') {
-      // Modern: a slab edge, stepped back once. No pediment, no gable,
-      // nothing applied — the top of the building is its flat roof.
+      // Modern: a slab edge, stepped back once.
       return (
         <>
           <rect fill={tint(roof, 1.0)} x={FACADE_BAND_LEFT} y="78" width={FACADE_BAND_WIDTH} height={bandY - 78} />
@@ -196,8 +129,7 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
       );
     }
     if (apex === 'campanile') {
-      // Mission: a shallow tile roof with a deep overhang, and the eaves
-      // shadow under it that the set is half made of.
+      // Mission: a shallow tile roof with a deep overhang and its eaves shadow.
       return (
         <>
           <polygon fill={roof} points={`${cx},54 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH + 8},86 ${FACADE_BAND_LEFT - 8},86`} />
@@ -205,8 +137,7 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
         </>
       );
     }
-    // Georgian: the pediment, with the inset raking moulding a real one
-    // reads as from a distance.
+    // Georgian: the pediment, with an inset raking moulding.
     return (
       <>
         <polygon fill={trim} stroke={tint(trim, 0.72)} strokeWidth="1.2" strokeLinejoin="round" points={`24,${bandY} ${cx},36 416,${bandY}`} />
@@ -256,15 +187,14 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
         </>
       );
     }
-    // Modern: a blind stair core, and deliberately not a landmark.
+    // Modern: a blind stair core.
     return <rect fill={tint(wall, 1.02)} x={x - 2} y="16" width={w + 4} height="56" />;
   };
 
   // --- THE ORDER: what stands along the ground storey. -------------------
   const order = () => {
     if (entrance === 'arcade') {
-      // Mission: a run of round arches, the walk you arrive out of the sun
-      // into.
+      // Mission: a run of round arches.
       return bayXs.slice(0, FACADE_BAYS - 1).map((x, i) => {
         const w = bayXs[1] - bayXs[0];
         return (
@@ -332,9 +262,7 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
         </>
       );
     }
-    // Georgian: the colonnade, cropped at the bottom of the frame. The
-    // columns keep going; the picture just doesn't — the same crop a photo
-    // of a real portico would have.
+    // Georgian: the colonnade, cropped at the bottom of the frame.
     return bayXs.map((x, i) => (
       <g key={i}>
         <rect fill={trim} x={x - 16} y={baseY} width="32" height="6" />
@@ -354,10 +282,7 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
       role="img"
       aria-label={`${bannerText}, carved across the front of its founding hall`}
     >
-      {/* A SKY. Without it a pale trim is drawn cream-on-cream against the
-          parchment card and the pediment simply vanishes — which is exactly
-          what the first pass did. It also gives the crown something to be a
-          silhouette against, which is most of how a roofline reads. */}
+      {/* A sky, so pale trim and the roofline read against the parchment card. */}
       <rect className="facade-sky" x="0" y="0" width={FACADE_VIEW_WIDTH} height={FACADE_VIEW_HEIGHT} />
       {landmark()}
       {crown()}
@@ -378,8 +303,7 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
         {bannerText}
       </text>
 
-      {/* One rank of the vernacular's own windows between the band and the
-          order, so the opening shape is previewed too. */}
+      {/* One rank of the vernacular's own windows, previewing the opening shape. */}
       {entrance !== 'recess' && bayXs.map((x, i) => (
         <rect key={i} fill={glass} x={x - 9} y={wallTop + 8} width="18" height="18" />
       ))}
@@ -396,26 +320,19 @@ function SchoolFacade({ name, vernacular, colors }: { name: string; vernacular: 
 export default function StartupScreen({ onStart }: { onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void }) {
   const [name, setName] = useState('');
   const [vernacular, setVernacular] = useState<Vernacular>(FOUNDING_VERNACULAR);
-  // The third and last question (Plan 18's PR B): which pair the school
-  // wears. Held as the table's choice so the picker can show its name; the
-  // save takes only the two colours (see schoolColorsOf).
+  // Held as the table's choice so the picker can show its name; the save
+  // takes only the two colours (see schoolColorsOf).
   const [choice, setChoice] = useState<SchoolColorChoice>(FOUNDING_COLORS);
   const colors = schoolColorsOf(choice);
 
-  // The card previews the theme it is choosing: the pick is written to the
-  // stylesheet's root properties as it changes, so the begin button, the
-  // active picker chip and the banners on the facade all take the pair
-  // before it is confirmed. App.tsx writes the same pair again once the
-  // run exists, which is a no-op after this.
+  // Preview the theme live: the pick is written to the root properties as
+  // it changes (App.tsx writes it again once the run exists).
   useEffect(() => { applySchoolColors(colors); }, [colors.primary, colors.secondary]);
 
   return (
     <div className="startup">
       <div className="startup-card">
-        {/* What the game is, in one line (Plan 17's PR F): a run has a length
-            now — the fiftieth summer files the final report and seals the
-            record — and the founding screen is where a player should first
-            hear it. */}
+        {/* What the game is, in one line. */}
         <div className="eyebrow">Fifty years to build a university.</div>
         <h1>Name your school</h1>
         <input
@@ -429,20 +346,8 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         <div className="startup-facade">
           <SchoolFacade name={name} vernacular={vernacular} colors={colors} />
         </div>
-        {/* The second question. The facade above redraws as the player
-            moves between them, which is what PR J was for: this screen
-            already had a preview surface, it just was not previewing
-            anything yet.
-
-            ONE ROW OF FIVE, names only. The blurbs were cut from the button
-            (they survive as its tooltip): the facade IS the description,
-            drawn live, and five cards of prose in a 2x2 grid left a fifth
-            card alone on its own row — which reads as a sixth one missing
-            rather than as five on offer.
-
-            PERMANENT, and not said in so many words because the drawing says
-            it — a campus's architecture is what it was built as, so nothing
-            offers to change it later. */}
+        {/* The architecture: one row of five names (blurbs are tooltips);
+            the facade redraws as the player moves between them. Permanent. */}
         <div className="startup-vernaculars" role="radiogroup" aria-label="Architecture">
           {VERNACULAR_CHOICES.map((choice) => (
             <button
@@ -458,11 +363,8 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
             </button>
           ))}
         </div>
-        {/* The colours, beside the vernacular and permanent the same way.
-            One even row of two-tone chips (eight — see schoolColors.ts for
-            why that number) with the pair's name under the active one; the
-            facade's banners and the card's own chrome redraw as the player
-            moves between them, which is the preview. */}
+        {/* The colours: one row of two-tone chips (see schoolColors.ts),
+            previewed on the facade's banners and the card's chrome. */}
         <div className="startup-colors" role="radiogroup" aria-label="School colours">
           {SCHOOL_COLOR_PAIRS.map((pair) => (
             <button

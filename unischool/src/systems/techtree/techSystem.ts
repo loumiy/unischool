@@ -8,90 +8,43 @@ import { hallOf, isHoused, isInTransit, refillOffers, slotOf } from './programOf
 import { dedicatedHalls, schoolFoundedKey } from './schools';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 
-// ---------------------------------------------------------------------
-// The milestone chain (see docs/design/curriculum.md's "The milestone chain").
-// Unlocking itself (founding -> tier-1 -> tier-2 -> tier-3) is pure authored prereq data
-// resolved generically by unlockAvailable() below
-// — nothing special needed for that. What's left for dedicated logic is the
-// BONUS side: "program established" and "further" bonuses aren't a single
-// course's own completion effect, they're a reward for an aggregate condition
-// (every tier-2, or every tier-3, in a major being done), plus a school-wide
-// capstone bonus once every program in a school is distinguished. This is
-// deliberately the one place technSystem.ts is course/curriculum-aware rather
-// than fully kind-agnostic — milestones are inherently a school/major concept,
-// which buildings/dorms/facilities don't have.
-// ---------------------------------------------------------------------
-// Milestones no longer grant reputation directly — establishing or
-// distinguishing a program, or distinguishing a school, raises
-// curriculumBreadthScore() in prestigeSystem.ts instead, which lifts the
-// prestige *target* that reputation slowly drifts toward. A one-time
-// applicant bump for "program established" remains a flow effect on the
-// applicant pool, which is not the stock-vs-flow concern this rework
-// addresses.
+// Milestone bonuses reward aggregate conditions (docs/design/curriculum.md).
+// They grant no reputation directly (prestigeSystem.ts reads s.milestones);
+// the applicant bonuses are one-time flow effects on the pool.
 const PROGRAM_ESTABLISHED_APPLICANT_BONUS = 30;
-// The same one-time applicant bump an established program gets, and nothing
-// else. Larger than a program's because a professional school is a
-// genuinely new draw on the pool, but still a FLOW effect on applicants
-// (which the summer funnel overwrites wholesale each year anyway), never
-// a nudge to prestige — that stays a stock, and a graduate program's real
-// payoff is the capped breadth input it lifts (see prestigeSystem.ts).
+// Larger than a program's: a professional school is a new draw on the pool.
 const GRAD_PROGRAM_COMPLETE_APPLICANT_BONUS = 60;
-// Founding a school (Plan 14): the applicant bump of an established
-// program, doubled — a named school is the first thing a prospective
-// student can point at. Provisional, like every number in Plan 14; fitted
-// in Plan 15's PR G.
+// A named school is the first thing a prospective student can point at.
 const SCHOOL_FOUNDED_APPLICANT_BONUS = 60;
 
-// Is this Buildable currently OFFERED — i.e. does it hold a faculty course
-// slot? Development is the commitment, not completion: a course never
-// "retires" once offered (there's no course-removal in this model), so from
-// the week it starts it occupies a slot forever, which is what makes
-// offering more courses in a subject an ongoing faculty-capacity cost
-// rather than a one-time hiring gate.
+// Does this course hold a faculty slot? From the week development starts,
+// forever: courses are never retired, so offering more courses is an ongoing
+// faculty-capacity cost.
 function isOffered(t: Buildable): boolean {
   return t.status === 'developing' || t.status === 'done';
 }
 
-// Who is actually teaching this course right now: the faculty member the
-// player assigned, if they are still on the roster. undefined for a course
-// that is not offered, has no faculty field, or whose instructor has left
-// (see isUnstaffed below).
-//
-// This is the ONE place a `courseFaculty` id is resolved against the
-// roster, so "the assignment names someone who no longer works here" can
-// never be answered two different ways by two different callers.
+// The live instructor of a course, or undefined if none is assigned or the
+// assigned person has left. The one place courseFaculty ids are resolved.
 export function assignedInstructor(s: GameState, t: Buildable): Faculty | undefined {
   const facultyId = s.courseFaculty[t.id];
   if (!facultyId) return undefined;
   return s.faculty.find((f) => f.id === facultyId);
 }
 
-// An offered course with a faculty field and nobody live teaching it —
-// the state a dismissal leaves behind (see the reducer's FIRE_FACULTY).
-// The course is still offered and still counts toward the catalogue; what
-// it has lost is its teacher, which is a thing the player must fix rather
-// than an error the engine should paper over.
+// An offered course with a faculty field and no live instructor, as a
+// dismissal leaves it. It still counts toward the catalogue.
 export function isUnstaffed(s: GameState, t: Buildable): boolean {
   return isOffered(t) && !!t.requiresFaculty && assignedInstructor(s, t) === undefined;
 }
 
-// Every offered course currently without a live instructor, in s.tech
-// order. The UI's worklist, and the count a dismissal reports.
 export function unstaffedCourses(s: GameState): Buildable[] {
   return s.tech.filter((t) => isUnstaffed(s, t));
 }
 
-// Is this person committed to a running research initiative?
-//
-// THE KEYSTONE CONSTRAINT, and the one place teaching and research
-// actually compete. A committed scholar teaches a reduced load for the
-// duration — six months to five years — so every initiative is paid for
-// twice: once in money, and once in the courses those people are no longer
-// holding (see RESEARCH_COMMITMENT_SLOTS below for how much that is, and
-// why it is no longer all of them).
-// That is what makes a hire an allocation decision rather than a number
-// going up, and it is why a Landmark Program is a genuine institutional
-// sacrifice rather than something to switch on for whoever is idle.
+// Is this person on a running research initiative? Committed scholars teach a
+// reduced load (RESEARCH_COMMITMENT_SLOTS fewer courses), so an initiative
+// costs teaching as well as money.
 export function isCommitted(s: GameState, facultyId: string): boolean {
   for (const initiative of Object.values(s.research.initiatives)) {
     if (initiative.participantIds.includes(facultyId)) return true;
@@ -99,44 +52,21 @@ export function isCommitted(s: GameState, facultyId: string): boolean {
   return false;
 }
 
-// WHAT A COMMITMENT COSTS IN TEACHING: two course slots, not the career.
-//
-// This used to be all of them — a committed scholar taught nothing for the
-// duration, which for a five-year Landmark Program meant four professors'
-// entire capacity and every course they held. The playtest overruled that:
-// the constraint is right, the price was not. A funded project is a
-// reduced teaching load, which is what it is at a real university, and at
-// two slots it is still the thing that makes a hire an allocation decision
-// rather than a number going up.
-//
-// Note where the floor bites: somebody with two slots or fewer still
-// teaches nothing while committed, so a junior hire is a genuinely
-// expensive person to commit and a senior one (whose slots have grown with
-// tenure — see facultyData.ts's grownSlots) is the cheaper choice. That is
-// the same shape the old rule had, just no longer applied to everybody.
+// A commitment costs two course slots, not the whole load. Anyone with two
+// slots or fewer teaches nothing while committed, so senior faculty (whose
+// slots grow with tenure, facultyData.ts's grownSlots) are cheaper to commit.
 export const RESEARCH_COMMITMENT_SLOTS = 2;
 
-// The course slots this person actually offers the school right now: their
-// own count, less the commitment if they are on a project. Every capacity
-// read goes through this rather than f.courseSlots directly, so the
-// commitment cannot be forgotten in one place and honoured in another.
+// Slots this person offers now, net of any commitment. Every capacity read
+// goes through this so the commitment is never forgotten in one place.
 export function effectiveCourseSlots(s: GameState, f: Faculty): number {
   return isCommitted(s, f.id) ? Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS) : f.courseSlots;
 }
 
-// Which courses a team would have to give up by committing — the ONE
-// answer, so the warning the player reads before clicking and the
-// reassignment the reducer performs after cannot disagree.
-//
-// Only the EXCESS moves. Each member keeps as many courses as their
-// reduced load allows and sheds the rest, and which ones they shed is
-// decided here rather than left to s.tech order: lowest tier first, so a
-// professor committed to a five-year programme keeps the capstone and
-// hands away the survey course. Ties break on course id, so the same
-// commitment always sheds the same courses.
-//
-// Callers: START_INITIATIVE (reducer.ts), which re-homes what it can and
-// orphans the rest, and ResearchTab's pre-commitment warning.
+// Courses a team would give up by committing: the one answer shared by
+// ResearchTab's warning and START_INITIATIVE (reducer.ts). Each member keeps
+// as many as the reduced load allows and sheds the lowest tier first; ties
+// break on course id for determinism.
 const TIER_RANK: Record<string, number> = { '1': 1, '2': 2, '3': 3, graduate: 4 };
 function tierRank(tier: CourseTier): number {
   return TIER_RANK[String(tier)] ?? 0;
@@ -147,9 +77,8 @@ export function coursesShedByCommitment(s: GameState, facultyIds: readonly strin
   for (const id of facultyIds) {
     const f = s.faculty.find((person) => person.id === id);
     if (!f) continue;
-    // Their load under the commitment, computed from courseSlots directly:
-    // effectiveCourseSlots reads the CURRENT state, where they are not
-    // committed yet, so it would answer about the wrong world.
+    // Computed from courseSlots: effectiveCourseSlots reads the current state,
+    // where they are not committed yet.
     const keeps = Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS);
     const theirs = s.tech
       .filter((t) => isOffered(t) && s.courseFaculty[t.id] === id)
@@ -159,34 +88,10 @@ export function coursesShedByCommitment(s: GameState, facultyIds: readonly strin
   return shed;
 }
 
-// WHAT ACTUALLY HAPPENS TO THE SHED COURSES: the whole plan, worked out
-// before anything is changed, so the Research tab can show it and the
-// reducer can apply it from the same arithmetic.
-//
-// The rule the playtest asked for: when committing a team leaves a course
-// without a professor, and another professor in that field is on the
-// roster with room, they take it. This is not a second assignment rule —
-// it is the same eligibleInstructors list the Curriculum tab's assignment
-// panel offers, already sorted strongest-teacher-first and already
-// filtered on free capacity, so a re-homed course lands with whoever the
-// player would most likely have picked.
-//
-// Two details that are choices rather than mechanics:
-//
-//   - Courses are re-homed HIGHEST TIER FIRST. When there is not enough
-//     free capacity for all of them, the capstone finds cover and the
-//     survey course is the one left open, which is the same priority the
-//     shedding order takes from the other end.
-//   - A member of the committing team can be the one who takes it. They
-//     are committed, not gone: somebody with five slots teaching one still
-//     has room for two more after losing two to the project, and refusing
-//     that would be inventing a rule the capacity arithmetic does not have.
-//
-// Capacity is computed here rather than read through effectiveCourseSlots
-// because this answers a question about a world that does not exist yet:
-// the team is not committed at the moment the tab asks. Anyone ALREADY
-// committed elsewhere is read normally, so the two kinds of commitment
-// compose.
+// The full re-homing plan for a commitment, shared by the Research tab and
+// the reducer. Shed courses go highest tier first to the strongest teacher in
+// the field with room (committing members included, at their reduced load).
+// Capacity is computed for the hypothetical committed world.
 export interface CommitmentCoverage {
   /** Courses the team can no longer hold. */
   shed: Buildable[];
@@ -207,8 +112,7 @@ export function planCommitmentCoverage(s: GameState, facultyIds: readonly string
       : effectiveCourseSlots(s, f));
     load.set(f.id, facultyLoad(s, f.id));
   }
-  // The shed courses are off their old instructor's plate before anybody
-  // else is asked to take one.
+  // Shed courses leave their old instructor's load before anyone takes one.
   for (const course of shed) {
     const previous = s.courseFaculty[course.id];
     if (previous) load.set(previous, (load.get(previous) ?? 1) - 1);
@@ -234,113 +138,54 @@ export function planCommitmentCoverage(s: GameState, facultyIds: readonly string
   return { shed, covered, orphaned };
 }
 
-// How many courses this specific person is currently teaching — their
-// personal load against their own `courseSlots`.
-//
-// The per-PERSON half of the capacity rule. Before assignments were real
-// state there was only the per-FIELD aggregate below, because there was no
-// answer to "whose slot is this": the round-robin spread a field's courses
-// across its faculty on read. Now that the player picks, load is a fact
-// about a person, and it is what decides whether THEY can take one more.
+// How many courses this person teaches now, against their own courseSlots.
 export function facultyLoad(s: GameState, facultyId: string): number {
   return s.tech.filter((t) => isOffered(t) && s.courseFaculty[t.id] === facultyId).length;
 }
 
-// Can this person take on one more course?
 export function hasFreeSlot(s: GameState, f: Faculty): boolean {
   return facultyLoad(s, f.id) < effectiveCourseSlots(s, f);
 }
 
-// Everyone who could be assigned to this course right now: on the roster,
-// in its field, and not already at their own slot ceiling. Sorted
-// strongest-teacher first, so the list the player is offered leads with
-// the answer they most likely want and the engine's own auto-pick (see
-// startDevelopment) is simply its first entry.
-//
-// `except` is the course being REASSIGNED away from, if any: its current
-// instructor keeps the slot that course occupies, so without this they
-// would appear ineligible to go on teaching a course they already teach
-// whenever they are otherwise full.
+// Who could be assigned to this course: in its field and under their slot
+// ceiling, strongest teacher first (startDevelopment's auto-pick takes the
+// first). `except` is a course being reassigned away from: its current
+// instructor keeps that course's slot and stays eligible.
 export function eligibleInstructors(s: GameState, node: Buildable, except?: string): Faculty[] {
   if (!node.requiresFaculty) return [];
-  // Best teacher first; a tie goes to whoever joined the roster first.
-  // Faculty ids are random UUIDs, so a tie broken on id was broken by the
-  // dice — invisible in play, but a fast-forward that picks the first
-  // eligible instructor for every course (the sim's default, the reducer's
-  // START_DEVELOPMENT without a choice) came out differently every time it
-  // was run once a department had two equal professors in it. Roster
-  // order is hire order, and a sort over a filtered copy keeps it.
+  // Ties keep roster (hire) order. Never break ties on id: ids are random, and
+  // the sim's first-eligible auto-pick would stop being reproducible.
   return s.faculty
     .filter((f) => f.field === node.requiresFaculty)
     .filter((f) => hasFreeSlot(s, f) || (except !== undefined && s.courseFaculty[except] === f.id))
     .sort((a, b) => b.teaching - a.teaching);
 }
 
-// How many faculty course-slots in `field` are spoken for: every OFFERED
-// course in it, whether or not somebody is currently teaching it.
-//
-// UNSTAFFED COURSES STILL COUNT, and that is the whole subtlety. The
-// tempting reading is that a course nobody teaches holds nobody's slot, so
-// a dismissal should hand its capacity back — losing the teacher, not the
-// teacher and the capacity both. That is wrong, and the balance sim is
-// what proved it: an unstaffed course has not gone away. It is still in
-// the catalogue, still owed to students, and still needs somebody to teach
-// it. The capacity to teach it is precisely what the school just lost.
-//
-// Counting only staffed courses made dismissal a way to BUY capacity:
-// fire a professor, their courses go quiet, the department reads as having
-// room again, and the school opens more courses it equally cannot staff.
-// Run to its conclusion in the sim, a school reached 421 offered courses
-// on 68 faculty — a catalogue five times larger than anyone could teach,
-// which looked healthy only because nothing yet read the silence.
-//
-// Note what this does NOT block. Re-staffing an orphan is a PER-PERSON
-// check (eligibleInstructors -> hasFreeSlot), not this field-level one, so
-// a replacement hire can always take over the courses their predecessor
-// left — what an over-committed department cannot do is open NEW ones
-// until it has the people for the ones it already offers. That is the
-// right pressure, and the right order: staff what you promised before
-// promising more.
-//
-// Only the curated set of courses with a requiresFaculty field are
-// slot-gated at all (see techData.ts's REQUIRES_FACULTY).
+// Faculty slots in `field` spoken for: every offered course, staffed or not.
+// Unstaffed courses must count, or dismissing a professor would free capacity
+// to open courses nobody can teach. Re-staffing an orphan is a per-person
+// check (hasFreeSlot), so a replacement can always take it over.
 export function usedFacultySlots(s: GameState, field: string): number {
   return s.tech.filter((t) => t.requiresFaculty === field && isOffered(t)).length;
 }
 
-// Total course-slot capacity the roster offers in `field` — the sum of
-// courseSlots across every hired faculty member with that field (see
-// facultyData.ts's grownSlots: an individual's slot count grows slowly with
-// tenure, on top of the base rolled at hire).
+// Total slot capacity in `field` across the roster (slots grow with tenure,
+// see facultyData.ts's grownSlots).
 export function totalFacultySlots(s: GameState, field: string): number {
   return s.faculty
     .filter((f) => f.field === field)
     .reduce((sum, f) => sum + effectiveCourseSlots(s, f), 0);
 }
 
-// UI-facing helper (CurriculumTab.tsx, CampusTab.tsx) so "is there a free
-// slot" is computed the one same way everywhere canStartDevelopment itself
-// checks it, rather than each screen re-deriving its own boolean.
+// Shared by CurriculumTab.tsx, CampusTab.tsx and canStartDevelopment.
 export function hasFreeFacultySlot(s: GameState, field: string): boolean {
   return totalFacultySlots(s, field) > usedFacultySlots(s, field);
 }
 
-// CAN WAITING HELP? The three states a field-gated course can be in, and
-// the reason the curriculum draws two different dots rather than one.
-//
-// A course blocked on faculty capacity used to get one mark whatever the
-// reason, which collapsed two situations that call for opposite actions:
-//
-//   'open'     — there is a free slot. Nothing is in the way.
-//   'hireable' — no free slot, but somebody in that field is on the market.
-//                Go and appoint them; the block lifts today.
-//   'blocked'  — no free slot and nobody listed. Nothing to do but grow the
-//                department and wait for the market to turn over.
-//
-// Both halves were already computed elsewhere (slot arithmetic here, the
-// market on s.candidates); this is only the one place that says what the
-// pair of them MEANS, so the cell, its tooltip and any future caller cannot
-// disagree about it.
+// The three states a field-gated course can be in:
+//   'open'     free slot.
+//   'hireable' no free slot, but a candidate in the field is on the market.
+//   'blocked'  no free slot and nobody listed: grow the department and wait.
 export type FacultyGate = 'open' | 'hireable' | 'blocked';
 
 export function facultyGate(s: GameState, field: string): FacultyGate {
@@ -348,17 +193,9 @@ export function facultyGate(s: GameState, field: string): FacultyGate {
   return s.candidates.some((c) => c.field === field) ? 'hireable' : 'blocked';
 }
 
-// Every field the school is actually short on right now: a course sits
-// 'available' needing it and there's no free slot to start it. The single
-// definition of "needed", shared by the Faculty tab (which flags these
-// candidates and sorts them to the top) and the faculty alert badge (which
-// fires the moment a needed candidate the player hasn't seen enters the
-// pool — see types.ts's SeenState).
-//
-// A program ON OFFER counts too: its entry course is still 'locked' (it
-// opens the moment the program is founded — see foundProgram), but the
-// field it needs is exactly as short as one holding up an available
-// course, and the founding is what the player is being asked to make.
+// Fields the school is short on: a course is 'available' (or is the entry
+// course of a program on offer) and needs a field with no free slot. Shared
+// by the Faculty tab and the faculty alert badge (types.ts's SeenState).
 export function neededFacultyFields(s: GameState): Set<string> {
   const offeredEntryIds = new Set(s.programOffers.map((id) => programById(id)?.entryCourseId));
   return new Set(
@@ -369,45 +206,12 @@ export function neededFacultyFields(s: GameState): Set<string> {
   );
 }
 
-// The single definition of "what it takes to start" a Buildable, shared by
-// the reducer's START_DEVELOPMENT case and every UI screen that has to
-// decide whether to offer the affordance. There is deliberately NO cap on
-// how many Buildables can develop at once: money is the sole pacing
-// resource (see docs/design/economy.md), so cash is the only throttle
-// here. The rule is simply that you cannot commit to what you cannot pay
-// for — the cost is charged in full, up front, so the school must actually
-// have it.
-//
-// This used to be a cash>=0 check instead, which let a player buy anything
-// at all while solvent and land in the red, where EVERY start was then
-// blocked regardless of price. That punished a single over-reach by
-// locking the whole build menu — including things the school could plainly
-// afford — and made the throttle read as a penalty rather than a budget.
-// Now an unaffordable item is simply not startable, and nothing else is
-// affected: expansion still stalls when money runs out ("stall, don't
-// die"), it just stalls item by item, at the moment of the decision.
-//
-// Debt is still possible — the weekly operating deficit can carry cash
-// below zero (see financeSystem.ts) — and while it is negative nothing
-// with a cost can be started, because no cost is ever <= a negative
-// balance. That is the same bottleneck as before, arrived at honestly.
-//
-// This covers manual starts and any future build-initiation path that goes
-// through this function. The faculty course-slot gate is a
-// separate, per-field capacity rule on the curated requiresFaculty
-// courses, not a throttle on development volume.
-//
-// `facultyId` is the instructor the player CHOSE (see the Curriculum tab).
-// Supplying it narrows the faculty half of the gate from "this department
-// has a free slot somewhere" to "this specific person can take it" —
-// they are on the roster, in the right field, and not already full.
-// Omitting it keeps the old department-level question, which is what a
-// placeable Buildable's PLACE_BUILDABLE still asks (a building is not
-// taught by anyone) and what the UI asks when it only needs to know
-// whether a course is startable AT ALL before offering the picker.
+// What it takes to start a Buildable, shared by START_DEVELOPMENT and the UI.
+// Cash is the only throttle (docs/design/economy.md): the cost is charged up
+// front, so nothing with a cost starts on negative cash. `facultyId` narrows
+// the faculty gate to that person; omitted, any free slot in the field will do.
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string): boolean {
-  // A course of a program in transit (Plan 14's PR F) cannot be started:
-  // its program is between buildings.
+  // A course of a program in transit cannot be started.
   if (node.kind === 'course') {
     const programId = programOfCourse(node.id);
     if (programId !== undefined && isInTransit(s, programId)) return false;
@@ -423,49 +227,28 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
 export function startDevelopment(s: GameState, node: Buildable, facultyId?: string): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
-  // Charged in full, up front. Never takes cash below zero: only
-  // canStartDevelopment admits a start, and it requires the cash to be
-  // there first.
+  // Never takes cash below zero: canStartDevelopment requires the cash.
   s.finance.cash -= node.cost;
 
-  // Record who teaches it. The assignment is written in the SAME
-  // transaction as the start, for the same reason PLACE_BUILDABLE writes a
-  // placement in the same transaction as its start: a developing course is
-  // never without an instructor, exactly as a developing building is never
-  // without a location.
-  //
-  // An omitted facultyId auto-picks the strongest eligible teacher rather
-  // than leaving the course unstaffed. That path is deliberately NOT the
-  // player's: the UI always passes an explicit choice, because the choice
-  // is the feature. It exists for the one caller that is not a player
-  // making one — the headless balance sim — where a forced pick would be
-  // noise, and for a course with no faculty field at all, which simply
-  // records nothing.
+  // The instructor is recorded in the same transaction as the start, so a
+  // developing course always has one. An omitted facultyId auto-picks the
+  // strongest eligible teacher; only the headless sim relies on that, since
+  // the UI always passes an explicit choice.
   if (node.requiresFaculty) {
     const chosen = facultyId ?? eligibleInstructors(s, node)[0]?.id;
     if (chosen) s.courseFaculty[node.id] = chosen;
   }
 }
 
-// Applies only the "apply-once, at completion" effect fields (see the split
-// documented on BuildableEffects in state/types.ts). servesPopulation,
-// satisfactionAttribute, flatSatisfactionBonus,
-// prestigeContribution, researchRateBonus and upkeepPerWeek are
-// deliberately NOT handled
-// here — they're read live, every tick, straight off `s.tech`'s 'done'
-// entries by satisfactionSystem.ts / prestigeSystem.ts / financeSystem.ts /
-// researchSystem.ts,
-// so a facility's contribution never needs "applying" and can't drift out
-// of sync with which facilities are actually still built.
+// Applies the apply-once completion effects (see BuildableEffects in
+// types.ts). Live effects (servesPopulation, satisfaction, prestige,
+// research rate, upkeep) are read every tick off s.tech's 'done' entries by
+// their systems, so they can never drift from what is built.
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
-  // Raises the LISTED price only — the price the next class will be quoted
-  // — never a class already enrolled. A Buildable that repriced the four
-  // classes on the books would be the retroactive-hike exploit wearing a
-  // building's clothes (see types.ts's tuitionByClass). Nothing in
-  // src/data/ sets tuitionBonus today; this is the effect's contract for
-  // whenever something does.
+  // Raises only the listed price for future classes, never enrolled ones
+  // (see types.ts's tuitionByClass).
   if (e.tuitionBonus) s.finance.listedTuition += e.tuitionBonus;
   if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
   if (e.unlockIds) {
@@ -476,76 +259,39 @@ function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   }
 }
 
-// A hall that has just finished gets its slots, all empty — the entry in
-// s.halls that every later read of "what is in this building" is over
-// (see types.ts's HallSlot). Written here, at completion, and nowhere
-// else: a hall under construction has no room to house anything, and a
-// hall that already has an entry (Founders Hall, seeded at founding with
-// the founding programs in it) keeps it. Not an `effects` field, deliberately — a slot
-// is not a bonus applied once, it is the building's floor plan.
+// A finished hall gets its slots, all empty (types.ts's HallSlot). A hall
+// that already has an entry (Founders Hall, seeded at founding) keeps it.
 function openHall(s: GameState, node: Buildable): void {
   if (node.slots === undefined || s.halls[node.id] !== undefined) return;
   s.halls[node.id] = Array.from({ length: node.slots }, (): HallSlot => ({ programId: null }));
 }
 
-// Beyond prereqs, some Buildables also gate on the school's current state
-// rather than another Buildable's status — a population size (the health
-// center: only large campuses need one; read against total ENROLLED
-// students, not bed capacity, despite the field's name — see
-// minCapacityToUnlock in state/types.ts) or a prestige level (a research
-// library / athletics complex tier). Both are ADDITIONAL to prereqs, never
-// a replacement, and — unlike prereqs — can change in either direction
-// (enrollment can shrink year to year same as prestige can drift down), so
-// this is checked fresh every tick rather than only right after something
-// finishes. Once something clears the gate and goes 'available' it stays
-// available even if enrollment or prestige later dips back below the
-// threshold — same as everything else here, nothing ever re-locks.
-//
-// A graduate course is the third such gate, and the reason it belongs
-// here rather than in a pass of its own: "five of Health Science's six
-// majors are complete" and "the Engineering school has a finished lab"
-// are exactly the shape the two gates above already are — a reading of
-// the school's current state that no single Buildable id can express.
-// Routing it through meetsUnlockGates means the generic resolver still
-// does all the opening, and a graduate program REVEALS the same way a
-// tier-3 course does: hidden while locked, available the tick its gate
-// and its own prereqs are both satisfied. graduateGateMet is the single
-// predicate (see techData.ts) — this only asks it.
+// Gates beyond prereqs that read the school's current state. Checked every
+// tick since they can cross either way, but nothing available ever re-locks.
+// minCapacityToUnlock reads total enrolled, not beds.
 function meetsUnlockGates(s: GameState, t: Buildable): boolean {
-  // THE HOUSED GATE (Plan 14). Every course of a major or a graduate
-  // program waits on its program having a home — a slot in a standing
-  // hall (see types.ts's HallSlot). Tier 1 included: founding a program
-  // from a hall panel is what writes the slot, and the entry course opens
-  // in the same transaction (see foundProgram), so there is no other way
-  // in. The three founding programs are housed in Founders Hall from
-  // founding (actions.ts), which is what opens their next courses.
+  // Every course of a major or graduate program waits on its program being
+  // housed in a hall slot. Founding writes the slot and opens the entry course
+  // in one step (foundProgram); the founding programs start housed in Founders
+  // Hall.
   if (t.kind === 'course') {
     const programId = programOfCourse(t.id);
     if (programId !== undefined && !isHoused(s, programId)) return false;
   }
-  // THE SCHOOL GATE (Plan 14's PR E): a lab waits on its school having
-  // been founded — the milestone, not the live reading, since a school
-  // that was founded stays founded (see schools.ts).
+  // A lab waits on its school's founding milestone (never revoked).
   if (t.schoolGate !== undefined && !s.milestones[schoolFoundedKey(t.schoolGate)]) return false;
   if (t.minCapacityToUnlock !== undefined && totalEnrolled(s.students) < t.minCapacityToUnlock) return false;
   if (t.minPrestigeToUnlock !== undefined && s.self.reputation < t.minPrestigeToUnlock) return false;
-  // THE DEVELOPED-COURSE GATE (Plan 19's PR B): the first purchased hall
-  // waits on the college teaching enough to justify it.
+  // The first purchased hall waits on enough developed courses.
   if (t.minCoursesToUnlock !== undefined && developedCourseCount(s) < t.minCoursesToUnlock) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
-  // The fourth gate: a varsity athletics venue (facilitiesData.ts) stays
-  // hidden until a team needing its facilityType category has been granted
-  // (see data/eventData.ts's 'varsity-petition'). No separate "revealed"
-  // flag anywhere in state — a team's existence on s.orgs.teams IS the
-  // reveal signal, the same way graduateGateMet reads milestones rather
-  // than a bespoke flag of its own.
+  // An athletics venue stays hidden until a team needing its category exists
+  // (eventData.ts's 'varsity-petition'); s.orgs.teams is the reveal signal.
   if (t.athleticsVenueReveal && !s.orgs.teams.some((team) => team.venueCategory === t.facilityType)) return false;
   if (t.athleticsDepartmentReveal && s.orgs.teams.length === 0) return false;
   return true;
 }
 
-// Courses developed, in any program — what Buildable.minCoursesToUnlock
-// reads.
 export function developedCourseCount(s: GameState): number {
   return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
 }
@@ -566,21 +312,11 @@ function isDone(s: GameState, id: string): boolean {
   return s.tech.find((t) => t.id === id)?.status === 'done';
 }
 
-// ---------------------------------------------------------------------
-// FOUNDING A PROGRAM (Plan 14). The one way a major or a graduate program
-// enters the curriculum: it takes an empty slot in a standing hall, and
-// its entry course starts in the same transaction with the instructor the
-// player chose. Everything after that — tier 2, tier 3 — is an ordinary
-// START_DEVELOPMENT from the hall panel or the Curriculum tab, because
-// the decision "what goes in this building" has been made.
-//
-// The gate is the sum of what each half already asks: the program must be
-// on offer (s.programOffers — no founding off the table), the slot must
-// exist and be empty, the entry course's own prereqs must be done, the
-// cash must be there, and the chosen instructor must be eligible for the
-// entry course — the same eligibleInstructors the drawer's picker reads,
-// so the person who is checked is the person who is recorded.
-// ---------------------------------------------------------------------
+// Founding a program: the one way a major or graduate program enters the
+// curriculum. It takes an empty hall slot and its entry course starts in the
+// same transaction with the chosen instructor. The program must be on offer,
+// the slot empty, the entry prereqs done, the cash there, and the instructor
+// eligible (the same eligibleInstructors the picker reads).
 export interface Founding {
   programId: string;
   hallId: string;
@@ -606,17 +342,14 @@ export function foundProgram(s: GameState, f: Founding): void {
   if (!canFoundProgram(s, f)) return;
   const program = programById(f.programId)!;
   s.halls[f.hallId][f.slot] = { programId: f.programId };
-  // The slot is what the entry course was waiting on (meetsUnlockGates);
-  // resolving unlocks now is what turns 'locked' into 'available' so the
-  // ordinary start can run, with the ordinary gate, in this same step.
+  // Housing the program unlocks its entry course, so the ordinary start can
+  // run in this same step.
   unlockAvailable(s);
   const entry = s.tech.find((t) => t.id === program.entryCourseId)!;
   if (canStartDevelopment(s, entry, f.facultyId)) startDevelopment(s, entry, f.facultyId);
   s.programOffers = s.programOffers.filter((id) => id !== f.programId);
   refillOffers(s);
-  // The sixth program of a school in one hall founds the school, and a
-  // lab whose school has just been founded opens — both readings change
-  // here and not on a tick, so they are resolved here.
+  // Founding can found a school and open its lab, so resolve both now.
   checkMilestones(s);
   unlockAvailable(s);
   const hall = s.tech.find((t) => t.id === f.hallId);
@@ -629,22 +362,11 @@ export function foundProgram(s: GameState, f: Founding): void {
   });
 }
 
-// ---------------------------------------------------------------------
-// RELOCATION (Plan 14's PR F). A housed program moves to any empty slot
-// in any standing hall — free in money, expensive in time. The program
-// goes dark for RELOCATION_WEEKS: its courses contribute no teaching
-// quality (facultyAssignment.ts reads isInTransit), cannot be started
-// (canStartDevelopment) and do not advance (tickTech), and it does not
-// count toward its new hall's dedication until it arrives (schools.ts).
-// Its courses and their instructors are untouched throughout, so it
-// resumes exactly as it left.
-//
-// The natural brake is structural — you can only move INTO a free slot,
-// so reorganising six programs into one hall needs the spare capacity to
-// shuffle through — and the dark term is what stops a free, instant,
-// end-of-run tidy-up from defusing every slot decision the player made
-// along the way. Provisional, like every number in Plan 14.
-// ---------------------------------------------------------------------
+// Relocation: a housed program moves to any empty slot in a standing hall,
+// free in money but dark for RELOCATION_WEEKS. In transit its courses give no
+// teaching quality (facultyAssignment.ts), cannot start or advance, and do
+// not count toward the new hall's dedication (schools.ts). The dark term stops
+// a free end-of-run reshuffle from defusing earlier slot decisions.
 export const RELOCATION_WEEKS = 12;
 
 export interface Relocation {
@@ -654,8 +376,7 @@ export interface Relocation {
 }
 
 export function canRelocateProgram(s: GameState, r: Relocation): boolean {
-  // A real program, and nothing else. The founding programs move like any
-  // other: Founders Hall is an ordinary hall (Plan 19).
+  // The founding programs move like any other.
   if (programById(r.programId) === undefined) return false;
   const from = slotOf(s, r.programId);
   if (!from || isInTransit(s, r.programId)) return false;
@@ -681,9 +402,8 @@ export function relocateProgram(s: GameState, r: Relocation): void {
   });
 }
 
-// One week of every transit, and the arrivals it produces. A hall whose
-// last program has just arrived may now be dedicated, which the
-// milestone pass after this call picks up.
+// One week of every transit. An arrival may complete a hall's dedication,
+// which the milestone pass after this call picks up.
 function tickTransit(s: GameState): void {
   for (const slots of Object.values(s.halls)) {
     for (const slot of slots) {
@@ -703,16 +423,10 @@ function tickTransit(s: GameState): void {
   }
 }
 
-// ---------------------------------------------------------------------
-// SWAPPING INSTRUCTORS (Plan 14's PR G). The Curriculum tab's faculty
-// chips drag between courses; a drop swaps who teaches what. A swap is
-// legal when both courses are offered and staffed by different people in
-// the same department, each of whom could teach the other's course
-// (eligibleInstructors, with their own course excepted — a swap changes
-// nobody's load), and neither program is in transit. Anything else is a
-// no-op and both professors stay where they were: nothing is ever
-// displaced to unassigned behind the player's back.
-// ---------------------------------------------------------------------
+// Swapping instructors (the Curriculum tab's drag and drop). Legal when both
+// courses are offered, staffed by different people in the same field, each
+// eligible for the other's course, and neither program is in transit.
+// Otherwise a no-op: nobody is ever silently displaced.
 export function canSwapInstructors(s: GameState, courseA: string, courseB: string): boolean {
   if (courseA === courseB) return false;
   const a = s.tech.find((t) => t.id === courseA);
@@ -726,9 +440,8 @@ export function canSwapInstructors(s: GameState, courseA: string, courseB: strin
     const programId = programOfCourse(id);
     if (programId !== undefined && isInTransit(s, programId)) return false;
   }
-  // Each professor keeps the slot their own course holds — a swap changes
-  // nobody's load — so each is judged for the other's course with their
-  // own course excepted (see eligibleInstructors's `except`).
+  // A swap changes nobody's load, so each is judged with their own course
+  // excepted.
   return eligibleInstructors(s, b, courseA).some((f) => f.id === fa)
     && eligibleInstructors(s, a, courseB).some((f) => f.id === fb);
 }
@@ -740,40 +453,27 @@ export function swapInstructors(s: GameState, courseA: string, courseB: string):
   s.courseFaculty[courseB] = fa;
 }
 
-// The hall a course's program lives in, for anything that wants to say
-// "taught in Elm Hall" — undefined for a course of an unhoused
-// program.
 export function hallOfCourse(s: GameState, courseId: string): string | undefined {
   const programId = programOfCourse(courseId);
   return programId === undefined ? undefined : hallOf(s, programId);
 }
 
-// Awards a milestone bonus exactly once, guarded by s.milestones. Setting
-// s.milestones[key] is itself the durable "curriculum breadth" signal
-// prestigeSystem.ts's curriculumBreadthScore() reads — no reputation is
-// granted here directly (see that file for why).
+// Awards a milestone once. s.milestones[key] is itself the curriculum-breadth
+// signal prestigeSystem.ts reads.
 function awardMilestone(s: GameState, key: string, applicantBonus: number, message: string): void {
   if (s.milestones[key]) return;
   s.milestones[key] = true;
   s.students.applicantPool += applicantBonus;
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good', topic: 'milestone', subject: key });
-  // The handful of milestones special enough to stop the clock get queued
-  // for a celebration (see data/eventData.ts's MILESTONE_INTERRUPT_KINDS
-  // for which, and systems/events/eventSystem.ts for when it fires). This
-  // system does NOT raise the interrupt itself: the week a milestone lands
-  // may already belong to the admissions or U.S. News interrupt, and
-  // queueing is what makes a celebration delayable rather than droppable.
-  // Everything else about a milestone — the applicant bump above, the
-  // durable curriculum-breadth signal prestige reads — is unchanged.
+  // Celebrated milestones are queued, not raised as interrupts: the week may
+  // already belong to another interrupt (see eventData.ts's
+  // MILESTONE_INTERRUPT_KINDS and eventSystem.ts).
   if (isCelebratedMilestone(key)) s.events.pendingMilestones.push(key);
 }
 
 function checkMilestones(s: GameState): void {
-  // SCHOOLS ARE FOUNDED (Plan 14's PR E): a hall with all six slots housed
-  // by one school's programs dedicates, and the first dedication founds
-  // the school — awarded once, celebrated, never revoked (see
-  // schools.ts). The celebration is the naming: until now the Curriculum
-  // tab showed the school's programs in its colour with no label.
+  // A hall housing six programs of one school dedicates, and the first
+  // dedication founds the school (schools.ts). Never revoked.
   for (const { school } of dedicatedHalls(s)) {
     awardMilestone(
       s,
@@ -820,13 +520,9 @@ function checkMilestones(s: GameState): void {
     }
   }
 
-  // Graduate programs complete the same way a major does: an aggregate
-  // condition (every course in the program finished) rather than any one
-  // course's own effect. The milestone key is the whole payoff — it is
-  // what prestigeSystem.ts's graduate-breadth term (and, for a doctorate,
-  // its research term) reads, and what the celebration modal prices with
-  // prestigeTargetWithout. There is no completion bonus of any kind here,
-  // for exactly the reason there is none on a major.
+  // A graduate program completes when every course is done. The milestone key
+  // is what prestigeSystem.ts's graduate-breadth (and doctoral research)
+  // terms read.
   for (const program of graduatePrograms()) {
     if (!graduateCourseIds(program).every((id) => isDone(s, id))) continue;
     awardMilestone(
@@ -840,14 +536,12 @@ function checkMilestones(s: GameState): void {
 
 export function tickTech(s: GameState): void {
   const finished: Buildable[] = [];
-  // Arrivals first, so a program that settles this week develops this
-  // week — a twelve-week move costs twelve weeks, not thirteen.
+  // Arrivals first, so a twelve-week move costs twelve weeks, not thirteen.
   const arrived = Object.values(s.halls).some((slots) => slots.some((slot) => slot.transitWeeks !== undefined && slot.transitWeeks <= 1));
   tickTransit(s);
 
   for (const id of Object.keys(s.developing)) {
-    // A course of a program in transit does not advance (see RELOCATION
-    // above): the countdown holds where it is until the program settles.
+    // A course of a program in transit holds its countdown.
     const programId = programOfCourse(id);
     if (programId !== undefined && isInTransit(s, programId)) continue;
     const weeksLeft = s.developing[id] - 1;
@@ -862,9 +556,7 @@ export function tickTech(s: GameState): void {
 
   for (const node of finished) {
     node.status = 'done';
-    // An in-place renovation is over: the node is serving its new figure
-    // outright, so the pre-renovation reading it was standing in for has
-    // nothing left to describe (see types.ts's servingPopulation).
+    // A finished renovation serves its new figure (types.ts's servingPopulation).
     delete node.renovatingFrom;
     applyEffects(s, node.effects);
     openHall(s, node);
@@ -873,25 +565,18 @@ export function tickTech(s: GameState): void {
       week: s.clock.week,
       message: `Developed: ${node.name}.`,
       kind: 'good',
-      // Tagged by kind so the year in review can file a course under its
-      // school and a building under what was built (see types.ts's LogTopic).
+      // Tagged so the year in review can file it (types.ts's LogTopic).
       topic: node.kind === 'course' ? 'course' : 'building',
       subject: node.id,
     });
   }
 
-  // Re-checked every tick, not just after a finish: a locked Buildable's
-  // prereqs only ever change when something finishes, but its dynamic gates
-  // (population, prestige — see meetsUnlockGates) can cross their threshold
-  // on any week even with nothing currently developing.
+  // Every tick: the dynamic gates in meetsUnlockGates can cross any week.
   unlockAvailable(s);
   if (finished.length > 0 || arrived) {
     checkMilestones(s);
-    // The first three offers are drawn at founding (actions.ts); here
-    // refillOffers is a no-op on any week that reveals nothing new, and
-    // draws only when a graduate gate has just opened with the offer short
-    // (a founding tops the offer up itself — see the reducer's
-    // FOUND_PROGRAM).
+    // Draws only when a graduate gate has just opened with the offer short;
+    // otherwise a no-op.
     refillOffers(s);
   }
 }

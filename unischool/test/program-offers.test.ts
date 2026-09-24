@@ -28,11 +28,10 @@ import {
   isHoused, offerablePrograms, PROGRAM_OFFER_COUNT, refillOffers, startedSchools,
 } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
+import { bindScriptStream, drawsSoFar } from '../src/engine/random';
 
-let seed = 1;
 function seedRandom(n: number): void {
-  seed = n;
-  Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  bindScriptStream(n);
 }
 seedRandom(12345);
 const store = new Map<string, string>();
@@ -214,15 +213,13 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   refillOffers(s);
   assert(JSON.stringify(s.programOffers) === JSON.stringify(before), 'a full offer is left exactly as it is');
 
-  // The draw never touches Math.random: the balance sim's seeded stream
-  // must not move by one because a program was offered. Counted on a
-  // refill that really draws — one offer removed, so one is drawn back.
-  let draws = 0;
-  const real = Math.random;
-  Math.random = () => { draws += 1; return real(); };
+  // The draw never touches the game's stream: a run's dice must not move
+  // by one because a program was offered. Counted on a refill that really
+  // draws — one offer removed, so one is drawn back.
+  const drawsBefore = drawsSoFar();
   s.programOffers = s.programOffers.slice(1);
   refillOffers(s);
-  Math.random = real;
+  const draws = drawsSoFar() - drawsBefore;
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, 'a short offer is topped back up');
   assert(draws === 0, `and drawing consumed no global dice (${draws})`);
   const again = foundedState('Fairhaven');

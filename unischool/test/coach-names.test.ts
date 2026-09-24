@@ -9,7 +9,7 @@
 //   - a coach's name is kept clear of every name the department is using,
 //     and the market never lists two people with one name;
 //   - the dedupe takes NO extra dice: the same seed rolls the same number
-//     of Math.random draws whether or not the first pair was taken, so a
+//     of draws whether or not the first pair was taken, so a
 //     name clash can change a name but never a balance trajectory;
 //   - coaches are drawn more Anglo/American than faculty, by an override at
 //     the coach call site, with faculty's own weighting untouched;
@@ -24,16 +24,12 @@ import {
 } from '../src/data/studentLifeData';
 import { createInitialState } from '../src/state/actions';
 import { tickAthletics } from '../src/systems/athletics/athleticsSystem';
+import { bindScriptStream, drawsSoFar } from '../src/engine/random';
 
 const INITIAL_SEED = 20260920;
-let seed = INITIAL_SEED;
-let draws = 0;
-Math.random = () => {
-  draws += 1;
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
-function reseed(): void { seed = INITIAL_SEED; draws = 0; }
+let drawBase = 0;
+function reseed(): void { bindScriptStream(INITIAL_SEED); drawBase = drawsSoFar(); }
+reseed();
 
 let checks = 0;
 let failures = 0;
@@ -73,7 +69,7 @@ function testDedupeWithoutExtraDice(): void {
   reseed();
   const free: string[] = [];
   for (let i = 0; i < ROLLS; i++) free.push(rollCoachName(i % 2 ? 'male' : 'female', new Set()).name);
-  const freeDraws = draws;
+  const freeDraws = (drawsSoFar() - drawBase);
 
   // Second pass, same dice: every name the first pass produced is taken, so
   // the very first pair of every roll collides and the dedupe has to step.
@@ -85,7 +81,7 @@ function testDedupeWithoutExtraDice(): void {
     stepped.push(name);
     taken.add(name);
   }
-  assert(draws === freeDraws, `a collision costs no extra Math.random draws (${draws} against ${freeDraws} for ${ROLLS} rolls)`);
+  assert((drawsSoFar() - drawBase) === freeDraws, `a collision costs no extra Math.random (drawsSoFar() - drawBase) (${(drawsSoFar() - drawBase)} against ${freeDraws} for ${ROLLS} rolls)`);
   assert(stepped.every((n) => !free.includes(n)), 'and every stepped name is clear of the set it was checked against');
   assert(distinct(stepped), 'and clear of the others rolled after it');
 
@@ -103,11 +99,11 @@ function testDedupeWithoutExtraDice(): void {
   reseed();
   const facultyFree: string[] = [];
   for (let i = 0; i < FACULTY; i++) facultyFree.push(generateCandidate('History').name);
-  const facultyFreeDraws = draws;
+  const facultyFreeDraws = (drawsSoFar() - drawBase);
   reseed();
   const facultyStepped: string[] = [];
   for (let i = 0; i < FACULTY; i++) facultyStepped.push(generateCandidate('History', facultyFree).name);
-  assert(draws === facultyFreeDraws, `a faculty name clash costs no extra draws either (${draws} against ${facultyFreeDraws})`);
+  assert((drawsSoFar() - drawBase) === facultyFreeDraws, `a faculty name clash costs no extra (drawsSoFar() - drawBase) either (${(drawsSoFar() - drawBase)} against ${facultyFreeDraws})`);
   assert(facultyStepped.every((n) => !facultyFree.includes(n)), 'and every faculty name is clear of the set it was checked against');
 }
 

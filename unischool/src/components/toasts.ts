@@ -2,22 +2,14 @@ import type { LogEntry, LogTopic } from '../state/types';
 import type { TabId } from './TabNav';
 
 // ---------------------------------------------------------------------
-// WHICH LOG LINES BECOME TOASTS (Plan 16's PR G), and the rules of the
-// stack — the pure half of Toasts.tsx, kept apart so it can be tested
-// without a DOM.
+// Which log lines become toasts, and the rules of the stack: the pure half
+// of Toasts.tsx, kept apart so it can be tested without a DOM.
 //
-// A toast is for what never stops the clock and is still worth a glance:
-// the things that happen inside the quiet stretches of a year, which the
-// review found the player had no way to notice at speed. Everything an
-// interrupt already announces stays out — a milestone gets its modal, a
-// research project with a breakthrough gets its report — and so does
-// anything the summer's review beat sums up better than a card could
-// (money, admissions). The list is the plan's: a course or building
-// finished, a program founded, a petition filed, a publication, a
-// candidate listed in a field that is short, and a research project that
-// concluded without an output — that last one being what Plan 15's PR C
-// demoted from a modal and the single biggest cut in modal volume in the
-// sequence, so the line it left behind needs somewhere to be seen.
+// A toast is for what never stops the clock and is still worth a glance.
+// Anything an interrupt already announces stays out (a milestone, a research
+// breakthrough), and so does anything the summer review sums up better
+// (money, admissions). A research project concluding without an output has
+// no modal, so its line needs somewhere to be seen.
 // ---------------------------------------------------------------------
 
 export const TOAST_TOPICS: ReadonlySet<LogTopic> = new Set<LogTopic>([

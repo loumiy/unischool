@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
 import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
-import { money, rollAmount, weeksOfOpEx } from './moneyScale';
+import { rollAmount, weeksOfOpEx } from './moneyScale';
 import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
@@ -12,124 +12,81 @@ import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHa
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
+import { money } from '../format';
+import { clamp } from '../math';
+import { random } from '../engine/random';
 
 // ---------------------------------------------------------------------
-// WEEK-TO-WEEK TEXTURE, AS AUTHORED DATA.
+// Week-to-week texture, as authored data. Both halves ride the existing
+// interrupt system (docs/architecture/interrupts.md): eventSystem.ts is an
+// ordinary pure tick that reads these tables and sets s.pendingInterrupt.
 //
-// Two things live here, and both ride entirely on the existing interrupt
-// system (see docs/architecture/interrupts.md). Neither is new core
-// machinery: systems/events/eventSystem.ts is one ordinary pure tick
-// function that reads this table and sets s.pendingInterrupt, exactly
-// the way admissions and the U.S. News report already do.
+//  1. Milestone celebrations: a stop-the-clock moment for aggregate
+//     accomplishments only (MILESTONE_INTERRUPT_KINDS), spaced at least
+//     MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN apart.
+//  2. Authored decision events: a trigger condition, a prompt, and choices
+//     whose effects go through existing hooks (cash, endowment,
+//     satisfaction, the faculty roster).
 //
-//  1. MILESTONE CELEBRATIONS — a stop-the-clock moment for the handful of
-//     genuinely special accomplishments (a program established, a program
-//     distinguished, a school fully distinguished). Routine course completions
-//     never qualify: which milestone kinds stop the clock is one named
-//     constant (MILESTONE_INTERRUPT_KINDS) and how close together two
-//     celebrations may land is another (MILESTONE_INTERRUPT_MIN_WEEKS
-//     _BETWEEN), so the frequency is a one-line dial.
+// What a choice may touch:
+//   - Never prestige directly: s.self.reputation is a stock that drifts
+//     toward a computed target (prestigeSystem.ts). Prestige-flavoured
+//     events pay into the endowment, a capped input to that target.
+//   - Never s.students.applicantPool: the summer funnel overwrites it.
+//   - Satisfaction hits are transient (the stock drifts back at
+//     SATISFACTION_DRIFT_RATE); their teeth are in landing before summer.
 //
-//  2. AUTHORED DECISION EVENTS — the donor offers, faculty departures and
-//     facility failures that give the quiet weeks between milestones
-//     something to react to. Content, not mechanism: each entry below is a
-//     trigger condition, a prompt, and two or three choices whose effects
-//     are routed through hooks that already exist — cash and endowment
-//     (financeSystem.ts), student satisfaction (satisfactionSystem.ts's
-//     drifting stock), the faculty roster and the hiring pool
-//     (facultySystem.ts). Nothing here reaches for a new subsystem.
-//
-// WHAT A CHOICE MAY AND MAY NOT TOUCH:
-//   - Prestige is deliberately never written directly. s.self.reputation
-//     is a slow-moving STOCK that only ever drifts toward a computed
-//     target once a year (see prestigeSystem.ts), and an event that
-//     nudged it would be exactly the completion-bonus flow that model
-//     exists to forbid. Events that are thematically "about" prestige
-//     therefore pay into the ENDOWMENT, which is a real, capped input to
-//     the prestige target — money buys standing slowly and expensively,
-//     the same way an endowment campaign does.
-//   - s.students.applicantPool is not used as a payoff either: the summer
-//     funnel overwrites it wholesale every year (see the reducer's
-//     RESOLVE_ADMISSIONS), so a bonus there is a number on a panel rather
-//     than a consequence.
-//   - Satisfaction hits are real but TRANSIENT by construction: the
-//     headline number drifts back toward its facilities-derived target at
-//     SATISFACTION_DRIFT_RATE a week, so a hit taken in week 10 has
-//     mostly healed by week 40 — while a hit taken just before the summer
-//     funnel costs real applicants through word of mouth. Timing is the
-//     teeth; permanence is not.
-//
-// NO-SOFT-LOCK INVARIANT: every event must offer at least one choice that
-// costs nothing, so a school with no cash always has a way out of every
-// event it is shown. eventSystem.ts enforces this at fire time rather
-// than trusting the table (see hasFreeChoice below) — a paid-only event
-// simply never fires.
+// No-soft-lock invariant: every event must offer a choice that costs
+// nothing. eventSystem.ts checks it at fire time (hasFreeChoice), so a
+// paid-only event never fires.
 // ---------------------------------------------------------------------
 
-// Weeks since founding, counting from 1. The one place the two-field
-// clock is flattened into a single comparable number, so "how long since
-// the last event" is subtraction rather than calendar arithmetic.
+// Weeks since founding, counting from 1: the clock flattened into one
+// comparable number.
 export function absoluteWeek(s: GameState): number {
   return (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
 }
 
 function pick<T>(items: readonly T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
+  return items[Math.floor(random() * items.length)];
 }
 
 // =====================================================================
 // MILESTONE CELEBRATIONS — which accomplishments stop the clock
 // =====================================================================
 
-// The milestone keys techSystem.ts awards are `<kind>:<subject>`. Only
-// these kinds are special enough to interrupt play. Every one of them is
-// an aggregate accomplishment — a whole major, or a whole school — never
-// a single course finishing, which is what keeps this from becoming the
-// pop-up-every-few-weeks failure mode. Dial it down by removing entries
-// (leaving only 'school-distinguished' fires roughly seven times in a full
-// 330-course run); dial it up by adding kinds as they are invented.
+// Milestone keys are `<kind>:<subject>`. Only these kinds interrupt play,
+// all aggregate accomplishments (a whole major or school), never a single
+// course. This list is the frequency dial.
 export const MILESTONE_INTERRUPT_KINDS: readonly string[] = [
-  // Founding a school (Plan 14): six programs of one school in one hall.
-  // Seven in a run at most, each the naming of a school — the celebration
-  // IS the reveal of the name.
+  // Six programs of one school in one hall; the celebration reveals the
+  // school's name.
   'school-founded',
   'program-established',
   'program-distinguished',
   'school-distinguished',
-  // Founding a graduate program (see docs/design/graduate-programs.md). It
-  // qualifies on the same test the other three do — an aggregate
-  // accomplishment, never a single course — and there are only six of them
-  // in a whole run, all of them late, so this adds a handful of
-  // celebrations to the very end of the arc rather than to its middle.
+  // Founding a graduate program (docs/design/graduate-programs.md): a few
+  // per run, all late.
   'grad-program-complete',
 ];
 
-// The floor on how close together two celebrations may land. Milestones
-// that arrive inside the window are NOT dropped — they queue on
-// s.events.pendingMilestones and are folded into the next celebration, so
-// a burst of four majors finishing in the same month is one modal listing
-// four accomplishments rather than four modals.
+// Minimum weeks between celebrations. Milestones inside the window queue on
+// s.events.pendingMilestones and fold into the next one, so a burst is one
+// modal.
 export const MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN = 12;
 
 export function milestoneKind(key: string): string {
   return key.split(':')[0];
 }
 
-// Does this milestone deserve a stop-the-clock moment? Called by
-// techSystem.ts as it awards, so the queue only ever holds keys that will
-// actually be celebrated.
+// Called by techSystem.ts as it awards, so the queue only holds keys that
+// will be celebrated.
 export function isCelebratedMilestone(key: string): boolean {
   return MILESTONE_INTERRUPT_KINDS.includes(milestoneKind(key));
 }
 
-// One line of the celebration modal. Derived from the milestone key at
-// CELEBRATION time rather than captured when the milestone was awarded,
-// so a queued celebration says the same true thing whether it fires the
-// same week or six weeks later.
+// One line of the celebration modal, derived from the key at celebration
+// time so a queued celebration is still accurate when it fires.
 export interface MilestoneEntry {
   key: string;
   headline: string;
@@ -208,22 +165,12 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
 }
 
 // =====================================================================
-// AUTHORED DECISION EVENTS — the trigger model
+// Authored decision events: the trigger model
 // =====================================================================
-//
-// WEIGHTED RANDOM, GATED BY GAME STATE. Every week that no other
-// interrupt is pending, the system rolls DECISION_EVENT_WEEKLY_CHANCE. On
-// a hit it collects every event whose `eligible` condition the current
-// state satisfies (and whose per-event cooldown and fire cap have
-// cleared), then draws one weighted by `weight`. The weights set the mix;
-// the conditions set what can appear at all at this stage of the run.
-//
-// The two global constants below are the frequency dial. At the values
-// shipped here the expected gap between events is the cooldown plus
-// 1/chance — about 33 weeks, so a bit over one event a year, against two
-// fixed annual interrupts (summer admissions, the U.S. News report). Rare
-// enough to read as an event; frequent enough that a decade of play has
-// texture.
+// Each quiet week (no other interrupt pending) rolls
+// DECISION_EVENT_WEEKLY_CHANCE. On a hit, one event is drawn by `weight`
+// from those whose `eligible` holds and whose cooldown and fire cap have
+// cleared. The expected gap is the cooldown plus 1/chance, about 33 weeks.
 // =====================================================================
 
 export const DECISION_EVENT_FIRST_YEAR = 3;             // nothing fires during the founding ramp — year 1-2 is the tutorial-by-design stretch
@@ -231,19 +178,11 @@ export const DECISION_EVENT_WEEKLY_CHANCE = 0.03;      // per quiet week, once t
 export const DECISION_EVENT_COOLDOWN_WEEKS = 20;        // minimum quiet stretch between ANY two decision events
 export const DECISION_EVENT_REPEAT_COOLDOWN_WEEKS = 156; // the same event may not return inside three years
 
-// Money in this table is expressed in WEEKS OF OPERATING COST rather than
-// dollars, so every figure scales itself across a run that spans four
-// orders of magnitude of budget (see financeSystem.ts's stage table: ~$45k
-// a week at founding, ~$7.5M a week late). A repair worth "1.5 weeks of
-// opex" is a real but survivable bill at every stage; a flat $200k would
-// be a crisis in year 3 and a rounding error in year 40. The conversion
-// itself lives in moneyScale.ts, because the student-organisation layer
-// sizes itself the same way and neither file may import the other.
-//
-// A rolled figure is fixed at FIRE time and carried in the interrupt
-// payload (see DecisionEventContext.amount), never re-rolled at resolve
-// time — the number in the modal is the number that is applied, the same
-// contract the admissions preview and the endowment campaign follow.
+// Money here is in weeks of operating cost (moneyScale.ts), so each figure
+// scales across a run whose budget spans four orders of magnitude. A rolled
+// figure is fixed at fire time and carried in the payload
+// (DecisionEventContext.amount), never re-rolled: the number in the modal is
+// the number applied.
 
 // Whatever the event rolled about itself when it fired. Plain JSON: it
 // rides in s.pendingInterrupt.payload and therefore through save/load.
@@ -254,36 +193,25 @@ export interface DecisionEventContext {
   amount?: number;       // a rolled sum of money, fixed at fire time
   donorName?: string;    // a rolled person surname, for events framed as a named gift (see 'naming-rights')
   newName?: string;      // the new display name a choice would apply, fixed at fire time (see 'naming-rights')
-  // A whole person, rolled at fire time (see 'visiting-scholar'). Plain
-  // JSON like everything else in a context, because a context is saved
-  // inside the pending interrupt. Rolled HERE rather than in apply() so the
-  // modal can name them and quote their salary, and so the person described
-  // is exactly the person appointed — two rolls would be two different
-  // people, one of them fictional.
+  // A whole person, rolled at fire time (see 'visiting-scholar') so the
+  // modal names and prices exactly the person appointed.
   candidate?: Faculty;
-  // A whole COACH, rolled at fire time for the same reason `candidate` is
-  // (see 'ad-shortage'): the modal quotes their name, quality and salary,
-  // and the only way that quote is honest is if the person described is the
-  // person seated.
+  // A whole coach, rolled at fire time for the same reason (see
+  // 'ad-shortage').
   coach?: Coach;
 }
 
 export interface DecisionChoice {
   id: string;
   label: string;
-  // Not offered at all against this context (Plan 21's PR E: the capital
-  // match's venue choice, when nothing is revealed to aim at). Omitted =
-  // always offered. A hidden choice is never the free one an event relies
-  // on for hasFreeChoice below.
+  // Not offered against this context when true (omitted = always offered).
+  // A hidden choice never counts as the event's free choice.
   hidden?(s: GameState, ctx: DecisionEventContext): boolean;
-  // What taking this choice does, in numbers, given the state it was
-  // offered against. Rendered in the modal and never recomputed after —
-  // apply() below does exactly what this says.
+  // What taking this choice does, in numbers. Rendered in the modal;
+  // apply() does exactly what this says.
   describe(s: GameState, ctx: DecisionEventContext): string;
-  // Cash charged up front. 0 for a free choice; every event must have one
-  // (see the no-soft-lock invariant at the top of this file). A choice the
-  // school cannot afford is offered disabled and refused by the reducer,
-  // the same way an unaffordable Buildable is simply not startable.
+  // Cash charged up front, by the reducer; 0 for a free choice. An
+  // unaffordable choice is shown disabled and refused by the reducer.
   cost(s: GameState, ctx: DecisionEventContext): number;
   // Mutates shared state through existing hooks only, and returns the log
   // line. The cash cost above is charged by the reducer, not here.
@@ -294,19 +222,15 @@ export interface DecisionEvent {
   id: string;
   title: string;
   weight: number;                     // relative draw weight among everything eligible this week
-  // A multiplier on that weight, read at draw time against the state — for
-  // an event whose likelihood a moment should lift without rewriting its
-  // weight (Plan 21's PR E: the donor events draw more often in a title
+  // A multiplier on weight, read at draw time (e.g. donor events in a title
   // year). Omitted = 1.
   boost?(s: GameState): number;
   maxFires?: number;                  // omitted = unlimited (subject to DECISION_EVENT_REPEAT_COOLDOWN_WEEKS)
   prompt(s: GameState, ctx: DecisionEventContext): string;
   // Can this event happen at all right now? Pure, reads state only.
   eligible(s: GameState): boolean;
-  // Rolls whatever this event needs to know about itself. Returning null
-  // means "not actually possible this week" — the draw simply moves on, so
-  // an event can express a condition that is easier to check while picking
-  // a subject than in eligible() above.
+  // Rolls what the event needs to know about itself. Null means "not
+  // possible this week" and the draw moves on.
   rollContext?(s: GameState): DecisionEventContext | null;
   choices: DecisionChoice[];
 }
@@ -315,9 +239,8 @@ function entry(s: GameState, message: string, kind: LogEntry['kind'], topic?: Lo
   return { year: s.clock.year, week: s.clock.week, message, kind, topic, subject };
 }
 
-// Satisfaction is a drifting stock, so a hit here is a morale dent that
-// heals over the following weeks rather than a permanent tax — see the
-// note at the top of this file.
+// Satisfaction is a drifting stock, so this dent heals over the following
+// weeks.
 function dentSatisfaction(s: GameState, points: number): void {
   s.students.satisfaction = clamp(s.students.satisfaction - points, 0, 100);
 }
@@ -326,14 +249,9 @@ function doneBuildings(s: GameState) {
   return s.tech.filter((t) => t.kind === 'building' && t.status === 'done');
 }
 
-// The buildings a naming-rights offer may be made on: a DEDICATED hall —
-// six programs of one school (see systems/techtree/schools.ts) — whose
-// rights have not been sold. A school is only ever named once, so a hall
-// already carrying a `donorSurname` leaves the pool; the pool empties the
-// same way once every founded school is named. Founders Hall is on offer
-// like any other once the opening school fills it (Plan 19). Read live, so
-// a hall that has lost its purity is not on offer this week — a donor
-// names a school, and there has to be one standing in the building.
+// Buildings a naming-rights offer may target: dedicated halls
+// (systems/techtree/schools.ts) not yet carrying a `donorSurname`. Read live,
+// so a hall that has lost its purity is not on offer: a donor names a school.
 function unnamedSchoolBuildings(s: GameState): Buildable[] {
   return dedicatedHalls(s)
     .map(({ hallId }) => s.tech.find((t) => t.id === hallId))
@@ -344,14 +262,8 @@ function doneDiningHalls(s: GameState) {
   return s.tech.filter((t) => t.facilityType === 'diningHall' && t.status === 'done');
 }
 
-// A faculty member may only be put at risk by an event when their field
-// has depth behind them. This is the whole reason no departure or
-// dismissal can strand the curriculum: losing the only Economics hire
-// would leave every Economics course unstartable until the job market
-// happened to offer another one — which, in a thin-market field, can be
-// months (see facultyData.ts's churn block) — so events never offer that.
-// Losing one of two is a real cost — a course slot and a mature stat
-// line — that the player can absorb or buy off.
+// Only faculty with a colleague in the same field may be put at risk, so no
+// departure or dismissal can leave a field's courses unstartable.
 const EVENT_MIN_FIELD_DEPTH = 2;
 
 function facultyAtRisk(s: GameState): Faculty[] {
@@ -368,25 +280,20 @@ function findChapter(s: GameState, id: string | undefined): GreekChapter | undef
   return s.orgs.chapters.find((c) => c.id === id);
 }
 
-// Chapters that have never been asked about housing. A chapter is asked at
-// most once, whatever the answer was, so the school is never nagged about
-// the same house twice and the petition can never become a modal spiral —
-// the supply of asks is bounded by the number of chapters that exist.
+// Chapters never asked about housing. Each is asked at most once, so the
+// petition can never become a modal spiral.
 function chaptersAwaitingHousing(s: GameState): GreekChapter[] {
   return s.orgs.chapters.filter((c) => !c.housed && !c.housingAsked);
 }
 
-// The chapter house's own Buildable id, deterministic from the chapter it
-// belongs to — one house per chapter, and the pairing survives save/load
-// without a separate lookup table (see 'greek-housing' below).
+// One house per chapter, derived from its id, so the pairing survives
+// save/load.
 export function chapterHouseId(chapterId: string): string {
   return `chapter-house:${chapterId}`;
 }
 
-// Chapters are dissolvable (see 'greek-scandal's "disband" choice) whether
-// or not they are housed, so a housed chapter's house must be torn down
-// with it — otherwise a disbanded chapter would leave an ownerless building
-// sitting in the siting tray, or on the map, forever.
+// A disbanded chapter's house must be torn down with it, or it would sit
+// ownerless in the siting tray or on the map.
 function removeChapterHouse(s: GameState, chapterId: string): void {
   const id = chapterHouseId(chapterId);
   s.tech = s.tech.filter((t) => t.id !== id);
@@ -402,15 +309,12 @@ const NAMING_RIGHTS_MIN_WEEKS = 4;
 const NAMING_RIGHTS_MAX_WEEKS = 8;
 const NAMING_RIGHTS_PRESTIGE_GATE = 40;   // nobody buys naming rights at a school nobody has heard of
 const NAMING_RIGHTS_SATISFACTION_HIT = 5;
-// A title year lifts the donor events' draw weight (Plan 21's PR E — see
-// studentLifeData.ts's inTitleYear): a championship is the moment an
-// alumnus's cheque book opens.
+// A title year (studentLifeData.ts's inTitleYear) lifts the donor events'
+// draw weight.
 const TITLE_YEAR_DONOR_BOOST = 1.6;
 
-// What a donor's name goes on when the naming-rights offer aims at a venue
-// (Plan 21's PR E): the building's own kind, not "Whitfield Multi-Sport
-// Field". Only the five athletics venues are named this way; a school
-// building keeps the "X School of Y" form above.
+// What a donor's name goes on for an athletics venue ("Whitfield Field");
+// school halls use the "X School of Y" form.
 const VENUE_NAMING: Partial<Record<FacilityType, string>> = {
   athleticsField: 'Field',
   athleticsArena: 'Arena',
@@ -424,9 +328,8 @@ function unnamedVenues(s: GameState): Buildable[] {
   return s.tech.filter((t) => t.status === 'done' && !t.donorSurname && t.facilityType !== undefined && VENUE_NAMING[t.facilityType] !== undefined);
 }
 
-// A venue revealed for construction and not yet built — what the state
-// capital match can aim at (Plan 21's PR E). The priciest first: a match
-// against a stadium is the one worth asking about.
+// Revealed, unbuilt venues the state capital match can aim at, priciest
+// first.
 function unbuiltVenues(s: GameState): Buildable[] {
   return s.tech
     .filter((t) => t.athleticsVenueReveal && t.status === 'available')
@@ -434,11 +337,9 @@ function unbuiltVenues(s: GameState): Buildable[] {
 }
 const STATE_MATCH_VENUE_SHARE_CAP = 0.6; // the state will not pay for more than this share of a building
 
-// How exposed the department is (Plan 21's PR P): a multiplier on the
-// scandal's weight that rises with the pot (a million and a half of pot is a
-// point), with every program above the funded line, and with how far the
-// department's standing has outrun the school's — a football power at an
-// unranked college is the one the papers watch.
+// Recruiting-scandal exposure: a multiplier on its weight that rises with
+// the pot (a point per $1.5M), with flagship programs, and with how far
+// athletic standing has outrun the school's reputation.
 const SCANDAL_LEGAL_COST_WEEKS = 2;
 const SCANDAL_SATISFACTION_HIT = 3;
 const SCANDAL_FOUGHT_SATISFACTION_HIT = 5;
@@ -451,9 +352,8 @@ function scandalExposure(s: GameState): number {
   return Math.min(6, 0.5 + pot.pot / 1_500_000 + 0.4 * flagships + outrun);
 }
 
-// Who a bigger program would come for (Plan 21's PR L): a head coach at
-// COACH_POACH_QUALITY or better with COACH_POACH_MIN_TENURE_YEARS behind
-// them. Head coaches only — an assistant's departure is a Tuesday.
+// Head coaches a bigger program would come for: quality of at least
+// COACH_POACH_QUALITY, with COACH_POACH_MIN_TENURE_YEARS behind them.
 const COACH_POACH_QUALITY = 75;
 const COACH_POACH_MIN_TENURE_YEARS = 2;
 const COACH_RETENTION_PACKAGE_SALARY_SHARE = 0.6;
@@ -477,41 +377,27 @@ function venueMatchDiscount(venueCost: number, commitment: number): number {
 
 const RETENTION_PACKAGE_SALARY_SHARE = 0.6; // a lump sum, as a share of the hire's current annual salary
 
-// THE TRUSTEES' RESPONSE (Plan 17's PR D, 'rival-passed'): what a board
-// offers the year a rival passes the school. Both paid choices are priced
-// as a serious commitment — several weeks of operating cost — because a
-// response that cost nothing would not be one. The chair is the visiting
-// scholar's own best-of-N roll, in a field the school already teaches; the
-// campaign converts cash into endowment at a match the ordinary campaign
-// never reaches, which is what a board rallying behind a school can do
-// once. Nothing here writes prestige (see the module note).
+// The trustees' response ('rival-passed'). Paid choices cost several weeks
+// of opex, because a free response would not be one. The chair is a best-of-N
+// roll in a field the school already teaches; the campaign endows at a match
+// the ordinary campaign never reaches. Neither writes prestige.
 const TRUSTEE_RESPONSE_COST_WEEKS = 3;
 const TRUSTEE_CHAIR_CANDIDATE_ROLLS = 5;
 const TRUSTEE_CAMPAIGN_MULTIPLIER = 2.2;
 
 const VISITING_SCHOLAR_PRESTIGE_GATE = 55;
-// Down from 3 weeks of opex, because what the choice costs changed. Funding
-// a chair used to buy a NAME ON A LIST: the money bought access to a strong
-// candidate the player could then hire, or not. It now buys the
-// appointment itself, so the salary — every week, for as long as they stay
-// — is part of the price, and the up-front gift is the smaller half of a
-// commitment rather than the whole of it.
+// The up-front gift; the appointed scholar's salary is the rest of the price.
 const VISITING_SCHOLAR_COST_WEEKS = 1.5;
-// The AD's own shortage ask (see 'ad-shortage'). Cheaper than a visiting
-// scholar and a shallower roll: a coach is a smaller commitment than a
-// chaired professor, and the event should read as the director doing their
-// job rather than as a once-a-decade coup.
+// The AD's shortage ask ('ad-shortage'): cheaper, with a shallower roll,
+// than a visiting scholar, since a coach is a smaller commitment.
 const AD_SHORTAGE_COST_WEEKS = 0.8;
 const AD_SHORTAGE_COACH_ROLLS = 3;
 const VISITING_SCHOLAR_CANDIDATE_ROLLS = 4; // best of N rolls — a genuinely strong hire, not just a free one
 
-// CAPITAL EVENTS SCALE TO WHAT BROKE (Plan 15's PR D), not to opex. The
-// September 2026 review found the late-game boiler costing $10M against
-// $21M a week of income because these four amounts were sized in weeks of
-// operating cost; a roof is a share of the building under it, a kitchen a
-// share of the dining hall, the boiler a share of the residence halls on
-// its loop, a storm a share of everything standing. Floored at the small
-// end so a founding campus's first roof is still a bill.
+// Capital events scale to what broke, not to opex: a roof is a share of its
+// building, a kitchen of its dining hall, the boiler of the dorms on its
+// loop, a storm of everything standing. Floored so a founding campus's first
+// roof is still a bill.
 const ROOF_REPAIR_SHARE = 0.25;             // of the building's own cost
 const ROOF_DEFERRAL_SATISFACTION_HIT = 5;
 
@@ -545,33 +431,15 @@ const SCANDAL_DISMISSAL_SATISFACTION_GAIN = 2;
 
 // --- student organisations (see data/studentLifeData.ts) ---------------
 //
-// WHY THE GREEK BEATS ARE IN THIS TABLE AT ALL. Clubs and new chapters are
-// the light half of student life and never stop the clock — they raise a
-// petition and are answered in a batch at the summer admissions boundary
-// (see systems/studentlife/studentLifeSystem.ts). What is left is the
-// consequential half — the one-time question of whether the school has
-// Greek life at all, a chapter in disgrace, and a chapter asking for a
-// house — and every one of those is a prompt with choices and a cash cost,
-// which is exactly what this table is. Authoring them here rather than
-// giving student life a second interrupt stream means they SHARE the
-// existing event budget (DECISION_EVENT_WEEKLY_CHANCE and its cooldown)
-// rather than adding to it: the number of stop-the-clock modals a year does
-// not move, only the mix of what they are about. The weights below are
-// therefore the dial for how much of that fixed budget Greek life takes.
+// Clubs and new chapters never stop the clock (they are answered in a batch
+// at summer admissions). The consequential Greek beats are authored here so
+// they share the decision-event budget rather than adding to it: the weights
+// set Greek life's share of the mix, not the number of modals.
 //
-// THE GREEK GATE. Every Greek entry's eligible() reads
-// s.orgs.hellenicCouncilApproved, so no scandal and no housing petition can
-// fire at a school that never approved a council — and the council question
-// itself is maxFires: 1, so declining closes Greek life for the whole run.
-// Lowered from 5: the council should arrive within 3-5 years of the
-// student center that seeds the club scene, and a 60-year playtest at 5
-// clubs saw eligibility itself not clear until year 7-10 — before the
-// weight below even gets a chance to draw. 2 clubs is still a real
-// delegation (the flavour text's "joint delegation"), just one a
-// fast-building school reaches a couple of years after its student center
-// rather than most of a decade later, which is what leaves the weight
-// below room to land the question inside the 3-5 year window instead of
-// racing it from further back.
+// Every Greek entry's eligible() reads s.orgs.hellenicCouncilApproved, and
+// the council question is maxFires: 1, so declining closes Greek life for
+// the run. HELLENIC_COUNCIL_MIN_CLUBS is tuned so the question lands within
+// 3-5 years of the student center that seeds the club scene.
 export const HELLENIC_COUNCIL_MIN_CLUBS = 2;
 const GREEK_SCANDAL_PR_COST_WEEKS = 1.8;
 const GREEK_SCANDAL_PR_SATISFACTION_HIT = 3; // standing behind the chapter costs goodwill, as standing behind a professor does
@@ -581,43 +449,26 @@ const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
 
 // --- varsity athletics (see data/studentLifeData.ts) -------------------
 //
-// Like the Greek house grant above, going varsity does not manufacture an
-// already-'done', already-sited Buildable: the required venue is only
-// REVEALED here (see techSystem.ts's meetsUnlockGates, which flips it
-// 'locked' -> 'available' the moment promoteToVarsityTeam below pushes a
-// team referencing its category) and still has to be placed — player-
-// chosen — through the ordinary build-rail PLACE_BUILDABLE cycle, like a
-// gym or a pool. A football stadium (or any shared venue) reads as a
-// genuine construction project the player commits capacity to, not a line
-// item this event's own cost quietly pre-pays. VARSITY_ESTABLISH_COST
-// below therefore prices the PROGRAM (a coach, uniforms, a conference's
-// dues) — never the building. The coaching staff itself is no longer
-// costed here at all: a head coach, assistant coach, and trainer are hired
-// separately from the Athletics tab's own candidate pool, each drawing
-// their own salary the same way a faculty hire does (see
-// studentLifeData.ts's coachSalaryFor) — VARSITY_ESTABLISH_COST_WEEKS below
-// prices only the program's launch (uniforms, a conference's dues).
+// Going varsity only reveals the required venue (techSystem.ts's
+// meetsUnlockGates makes it 'available' once a team references its
+// category); the player still places and builds it. So
+// VARSITY_ESTABLISH_COST_WEEKS prices only the program's launch (uniforms,
+// conference dues): never the building, and never the coaching staff, who
+// are hired separately and draw their own salaries (studentLifeData.ts's
+// coachSalaryFor).
 const VARSITY_ESTABLISH_COST_WEEKS = 2.5;
 const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of its coaching staff — travel, equipment, officiating
 const VARSITY_DECLINE_SATISFACTION_HIT = 2;             // same weight as a chapter's housing refusal — the club stays exactly as it was, just told no
 
-// The week a club's five-year mark (studentLifeData.ts's VARSITY_PETITION_
-// MIN_TENURE_YEARS) actually turns into an interrupt — see eventSystem.ts's
-// fireVarsityPetition. Deliberately NOT WEEKS_PER_YEAR (summer admissions,
-// the moment a club is typically founded, so "5 years later" would
-// otherwise land on the same summer week every time) and NOT REPORT_WEEK's
-// WEEKS_PER_YEAR/2 (the U.S. News report) — three-quarters through the
-// year sits an even 13 weeks from each, so a varsity ask reads as its own
-// moment rather than another summer or midyear thing.
+// The week of the year a club's varsity petition fires (eventSystem.ts's
+// fireVarsityPetition): three-quarters through, 13 weeks from both summer
+// admissions and the midyear U.S. News report, so it reads as its own moment.
 export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
 
 // =====================================================================
-// THE TABLE. Fourteen authored events. Trigger conditions are deliberately
-// state-driven rather than calendar-driven: a donor shows up once the
-// school is worth donating to, a heating plant fails once there is a
-// campus big enough to have one. That is the same "reveal on thresholds
-// the loop already produces" rule the docs/design/economy.mdapplies to
-// buildings.
+// The table. Triggers are state-driven, not calendar-driven: a donor shows
+// up once the school is worth donating to, a heating plant fails once the
+// campus is big enough to have one.
 // =====================================================================
 export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
@@ -659,26 +510,15 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'naming-rights',
     title: 'A naming-rights offer',
-    // Raised from 8: a 60-year playtest saw only 4-5 of the ~8 undergraduate
-    // schools ever get named, even though the prestige gate below clears in
-    // year 1 for most strategies — the bottleneck was purely this weight
-    // losing the draw to the rest of the table, not the gate. At this
-    // weight most runs sell naming rights on every unnamed school well
-    // before year 60; eligible() below still empties the donor pool once
-    // they're all named, so the extra weight is never wasted, only retired.
+    // Tuned so most runs name every school before year 60; eligible()
+    // retires the offer once the pool is empty.
     weight: 18,
     boost: (s) => (inTitleYear(s) ? TITLE_YEAR_DONOR_BOOST : 1),
     eligible: (s) => s.self.reputation >= NAMING_RIGHTS_PRESTIGE_GATE && (unnamedSchoolBuildings(s).length > 0 || unnamedVenues(s).length > 0),
-    // Rolls the donor's surname and the resulting name TOGETHER, at fire
-    // time, like the amount below — the modal shows exactly the name that
-    // apply() will set, never a re-roll (see the comment at the top of
-    // this file on why cost/effects are fixed at roll time).
-    //
-    // AIMS AT VENUES TOO (Plan 21's PR E): a done athletics venue without a
-    // donor's name is on the list beside the unnamed schools, and a venue
-    // offer is marked by subjectField 'venue' so the prompt and the rename
-    // can read it. The one pool, so a school with both gets one or the
-    // other, never a second stream of offers.
+    // Rolls the donor and the resulting name together at fire time, so the
+    // modal shows exactly what apply() sets. Athletics venues share the pool
+    // with unnamed schools (marked by subjectField 'venue'), so there is one
+    // stream of offers.
     rollContext: (s) => {
       const buildings = [...unnamedSchoolBuildings(s), ...unnamedVenues(s)];
       if (buildings.length === 0) return null;
@@ -719,15 +559,10 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         apply: (s, ctx) => {
           s.finance.cash += ctx.amount ?? 0;
           dentSatisfaction(s, NAMING_RIGHTS_SATISFACTION_HIT);
-          // The rename IS the building's own `name` field — already a
-          // stored, mutable, per-save property (see types.ts's Buildable)
-          // — so every existing reader of it (the campus map label, its
-          // tooltip, the build tray) picks the new name up with no changes
-          // of its own. `donorSurname` is the one addition: it marks the
-          // name as donor text rather than the seeded catalogue name, which
-          // is what tells the Curriculum tab's section heading (see
-          // CurriculumTab.tsx's buildSections) to show it verbatim instead
-          // of re-wrapping it as "School of X".
+          // Renaming sets the Buildable's stored `name`, so every reader
+          // picks it up. `donorSurname` marks it as donor text, which the
+          // Curriculum tab (CurriculumTab.tsx's buildSections) shows
+          // verbatim rather than as "School of X".
           const building = s.tech.find((t) => t.id === ctx.subjectId);
           if (building && ctx.newName && ctx.donorName) {
             building.name = ctx.newName;
@@ -796,17 +631,9 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     title: 'A distinguished visitor',
     weight: 6,
     eligible: (s) => s.self.reputation >= VISITING_SCHOLAR_PRESTIGE_GATE,
-    // The person is rolled HERE, at fire time, rather than inside the
-    // choice's apply: the modal quotes their name and their salary, and
-    // the only way that quote can be honest is if the person described is
-    // the person appointed.
-    //
-    // Best of N rolls: what the player is buying is QUALITY, not access.
-    // Against the old post-and-wait model this event also saved a fee and
-    // a countdown; against a standing candidate market that half is
-    // worthless — anyone can appoint off the list any week — so the
-    // best-of-N roll is the entire proposition, and the one thing the
-    // market itself never offers on demand.
+    // Rolled at fire time so the modal's name and salary describe the
+    // person appointed. Best of N: what the player buys is quality, since
+    // anyone can appoint off the market any week.
     rollContext: (s) => {
       const field = pick(FACULTY_FIELDS);
       const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
@@ -827,26 +654,19 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         // gift is once, the salary is every week for as long as they stay.
         describe: (_s, ctx) => {
           const c = ctx.candidate;
-          return `${money(ctx.amount ?? 0)} up front, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+          return `${money(ctx.amount ?? 0)} up front, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
             + `${ctx.subjectName} joins the faculty this week${c ? `, teaching ${c.teaching} · researching ${c.research}` : ''} — better than the job market normally turns up.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
-          // Appointed outright rather than added to the candidate pool.
-          // There was no decision left in that second step — the money was
-          // already spent, so "find them in the market and hire them" was
-          // an errand, not a choice. Same path an ordinary hire takes (see
-          // facultySystem.ts's appointFaculty), so nothing about an
-          // appointed visitor differs from anyone else on the roster.
-          //
-          // The fallback roll is for a save written before the person was
-          // part of the context: an interrupt frozen mid-flight must still
-          // resolve into somebody.
+          // Appointed outright through the ordinary hire path
+          // (appointFaculty). The fallback roll resolves an interrupt saved
+          // before the candidate was part of the context.
           const field = ctx.subjectField ?? pick(FACULTY_FIELDS);
           const person = ctx.candidate
             ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
           appointFaculty(s, person);
-          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at $${person.salary.toLocaleString()}/yr.`, 'good', 'appointment', person.id);
+          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at ${money(person.salary)}/yr.`, 'good', 'appointment', person.id);
         },
       },
       {
@@ -962,20 +782,10 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     id: 'state-capital-match',
     title: 'A legislative capital match',
     weight: 7,
-    // EVERY school, since Plan 07's PR C. This used to be the one authored
-    // event that read the private/public fork, and it was gated to public
-    // schools only. The fork is gone, so the gate had to go somewhere — and
-    // widening it is better than deleting it: a state capital-matching
-    // programme is something private universities really do win, and
-    // keeping it leaves a little of the public-money flavour in the game as
-    // something that HAPPENS to a school rather than something it was
-    // founded as. Which is what progression.md's "archetypes emerge, they
-    // are not chosen" asks for in the first place.
     eligible: (s) => s.clock.year >= STATE_MATCH_FIRST_YEAR,
-    // AIMS AT A VENUE when one is revealed and unbuilt (Plan 21's PR E): the
-    // same commitment can go toward the building instead of the endowment,
-    // and the state's match comes off its price. Carried in the context so
-    // the choice below names the building it would help pay for.
+    // Aims at a revealed, unbuilt venue when there is one: the state's
+    // match can then come off the building's price instead of going to the
+    // endowment.
     rollContext: (s) => {
       const venue = unbuiltVenues(s)[0];
       return {
@@ -1007,10 +817,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         cost: () => 0,
         apply: (s) => entry(s, 'The state capital match lapsed unclaimed.', 'info'),
       },
-      // Offered only when the context found a venue; a choice whose describe
-      // says "there is no building" is not a choice, so it is hidden rather
-      // than disabled (see InterruptModal.tsx's decision choices, which skip
-      // a choice whose `hidden` reads true).
+      // Offered only when the context found a venue: hidden rather than
+      // disabled (InterruptModal.tsx skips a choice whose `hidden` is true).
       {
         id: 'venue',
         label: 'Put it toward the venue',
@@ -1118,23 +926,15 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   },
 
   // ---------------------------------------------------------------------
-  // GREEK LIFE. Three entries, all gated on student organisations the
-  // player already has (see data/studentLifeData.ts). The first is the
-  // opt-in; the other two can only ever fire once it has been taken.
+  // Greek life: the council opt-in, then two events that can fire only
+  // once it has been taken.
   // ---------------------------------------------------------------------
 
   {
     id: 'hellenic-council',
     title: 'A petition for a Hellenic Council',
-    // Weighted heavily and capped at one firing: it is a one-shot question
-    // that a run should actually get ASKED rather than one that might
-    // never come up, and once answered it can never return. Raised from 16
-    // to 45 because "heavily" wasn't heavy enough in practice — a 60-year
-    // playtest at weight 16 still lost the draw to the rest of the table
-    // for several years after eligibility, landing around year 13. At 45 it
-    // dominates the pool it competes in (nothing else is eligible before
-    // Greek life is chartered — see the eligible() gate below), so once the
-    // club-count gate clears it wins within a year or two on most runs.
+    // A one-shot question a run should actually be asked: weighted to
+    // dominate its pool once the club gate clears, and capped at one firing.
     weight: 45,
     maxFires: 1,
     eligible: (s) => !s.orgs.hellenicCouncilOffered && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS,
@@ -1170,9 +970,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'greek-scandal',
     title: 'A chapter in disgrace',
-    // The dial the cadence note in the PR summary refers to: raising this
-    // takes a bigger share of the fixed decision-event budget for
-    // scandals, lowering it makes them rarer against everything else.
+    // Greek life's share of the decision-event budget for scandals.
     weight: 7,
     eligible: (s) => s.orgs.hellenicCouncilApproved && s.orgs.chapters.length > 0,
     rollContext: (s) => {
@@ -1203,11 +1001,9 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         },
       },
       {
-        // The zero-cost path, which is what satisfies the no-soft-lock
-        // invariant for this event — and it is also the DURABLE one. What
-        // disbanding costs is not a dent that heals: it is the permanent
-        // removal of an ongoing contribution to the satisfaction target
-        // and of the chapter's line on the weekly statement.
+        // The free choice (the no-soft-lock invariant), and the durable
+        // one: it removes the chapter's satisfaction contribution and its
+        // weekly cost for good.
         id: 'disband',
         label: 'Pull the charter',
         describe: (s, ctx) => {
@@ -1230,20 +1026,12 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'greek-housing',
     title: 'A chapter asks for a house',
-    // Raised from 6: each chapter only ever asks once (see the housingAsked
-    // guard below), so the supply is already bounded by chapter count — a
-    // 60-year playtest still only saw 3 of 10 chapters get around to
-    // petitioning before the run ended, because the event kept losing the
-    // draw to the rest of the table. This is the dial that share of the
-    // fixed event budget takes; the at-most-once-per-chapter guard is
-    // unchanged.
+    // Each chapter asks at most once, so supply is bounded; the weight is
+    // tuned so most chapters get to ask within a run.
     weight: 14,
     eligible: (s) => s.orgs.hellenicCouncilApproved && chaptersAwaitingHousing(s).length > 0,
-    // ONE GROUP AT A TIME, and each chapter at most once: the draw picks a
-    // single chapter that has never been asked, and BOTH answers set
-    // housingAsked, so a chapter whose house was refused does not come
-    // back around and a chapter whose house was built has nothing left to
-    // ask for.
+    // One chapter at a time, never asked before; both answers set
+    // housingAsked.
     rollContext: (s) => {
       const waiting = chaptersAwaitingHousing(s);
       if (waiting.length === 0) return null;
@@ -1271,33 +1059,18 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           if (chapter) {
             chapter.housed = true;
             chapter.housingAsked = true;
-            // Folded into the chapter's own line rather than kept
-            // separately, so disbanding the chapter takes the house's
-            // running cost with it — there is exactly one place a Greek
-            // organisation's cost lives.
+            // Folded into the chapter's own line, so disbanding takes the
+            // house's cost with it.
             chapter.upkeepPerWeek += weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX);
-            // Real student housing, the same as a dorm's capacityBonus
-            // effect would grant on completion (see
-            // studentLifeData.ts's CHAPTER_HOUSE_CAPACITY_BONUS) — applied
-            // directly here since a chapter house isn't a Buildable with
-            // effects of its own.
+            // Real beds, applied directly because a chapter house is not a
+            // Buildable with effects of its own.
             s.students.capacity += CHAPTER_HOUSE_CAPACITY_BONUS;
-            // Revealed in the build menu instead of manufactured already
-            // 'done' and auto-placed — the same fork away from the old
-            // pattern varsity athletics venues already took (see the note
-            // above VARSITY_ESTABLISH_COST_WEEKS). `cost: 0` and
-            // `duration: 0` because the school's share was already charged
-            // above and there is no construction left to decide, only a
-            // spot to choose — canStartDevelopment (the ordinary
-            // PLACE_BUILDABLE gate) admits it unconditionally the instant
-            // the player clicks an empty tile. `chapterHouse: true` is what
-            // BuildPopup.tsx groups it under Housing (alongside, but never
-            // interleaved with, the sequential dorm chain) by, and what
-            // gives it a beds figure on its tile despite carrying no
-            // `effects` of its own — the satisfaction bonus and upkeep it
-            // represents are already live-read off
-            // `chapter.housed`/`upkeepPerWeek` above, and giving the
-            // Buildable its own effects would double them.
+            // Revealed for the player to place rather than auto-placed.
+            // Cost and duration are 0: the school's share was charged
+            // above, so only siting remains. `chapterHouse: true` groups it
+            // under Housing in BuildPopup.tsx and gives its tile a beds
+            // figure. No `effects`: its satisfaction and upkeep are already
+            // read off the chapter and would be doubled.
             const house: Buildable = {
               id: chapterHouseId(chapter.id),
               kind: 'facility',
@@ -1331,38 +1104,20 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   },
 
   // ---------------------------------------------------------------------
-  // VARSITY ATHLETICS. A sport club's ONE petition to go varsity — modeled
-  // on 'greek-housing' immediately above (an authored event, gated on a
-  // per-organisation "already asked" guard, drawing one waiting candidate
-  // at a time), with the one deliberate fork noted on the constants above.
-  //
-  // TRIGGER: DETERMINISTIC, NOT THE SHARED LOTTERY. Unlike every other
-  // entry in this table, this one is never drawn by rollDecisionEvent's
-  // weighted random pick — `eligible` below always reads false there, and
-  // `weight` is unused. A club's petition instead fires on a fixed
-  // schedule (five years after founding — see studentLifeData.ts's
-  // VARSITY_PETITION_MIN_TENURE_YEARS — from VARSITY_PETITION_WEEK
-  // onward) via eventSystem.ts's fireVarsityPetition, which calls this
-  // entry's own rollContext/choices/apply directly. Still the SAME
-  // 'decision-event' interrupt shape, so nothing downstream (the modal,
-  // the reducer, save/load) needs to know the trigger differs.
+  // Varsity athletics. 'varsity-petition' (below) is never drawn by the
+  // weighted lottery: its eligible() is always false, and it fires on a
+  // fixed schedule (VARSITY_PETITION_MIN_TENURE_YEARS after a club's
+  // founding, from VARSITY_PETITION_WEEK) via eventSystem.ts's
+  // fireVarsityPetition, as the same 'decision-event' interrupt.
   // ---------------------------------------------------------------------
   {
     id: 'ad-shortage',
     title: 'The director wants a chair filled',
-    // IN THE LOTTERY, not on a cadence of its own — deliberately, and against
-    // the plan, which put it in the varsity petition's guaranteed slot.
-    //
-    // PR 2A measured what that slot already does: on one strategy, 61 of 96
-    // decision events across forty years were varsity petitions. A second
-    // athletics beat with its own guarantee would compound exactly that, and
-    // docs/architecture/interrupts.md states the rule this table lives
-    // under — a decision event changes the MIX of what stops the clock, never
-    // how often it stops. A weight does that; a cadence does not.
+    // In the weighted lottery rather than on a cadence of its own: a
+    // decision event changes the mix of what stops the clock, never how
+    // often (docs/architecture/interrupts.md).
     weight: 7,
-    // The director is the voice, so there has to be one. A department with
-    // nobody running it has nobody to raise the shortage — which is also the
-    // honest reading: the AD offer is the thing to answer first.
+    // The director is the one raising it, so there has to be one.
     eligible: (s) => s.orgs.athleticDirector !== null && vacantChairs(s).length > 0,
     rollContext: (s) => {
       const chairs = vacantChairs(s);
@@ -1372,15 +1127,12 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const chair = chairs.find((c) => c.role === 'head') ?? pick(chairs);
       const field = fieldForChair(chair);
 
-      // Best of N, exactly as 'visiting-scholar' rolls its scholar and for
-      // the same reason: what the money buys is QUALITY. Anyone can hire off
-      // the market any week, so access is worth nothing — a better coach than
-      // the market usually turns up is the whole proposition.
+      // Best of N, as 'visiting-scholar': what the money buys is quality.
       const used = coachNamesInUse(s);
       const adQuality = s.orgs.athleticDirector?.quality ?? 0;
-      let best = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
+      let best = generateCoachCandidate(field, used, random, undefined, adQuality);
       for (let i = 1; i < AD_SHORTAGE_COACH_ROLLS; i += 1) {
-        const next = generateCoachCandidate(field, used, Math.random, undefined, adQuality);
+        const next = generateCoachCandidate(field, used, random, undefined, adQuality);
         if (next.qualityPotential > best.qualityPotential) best = next;
       }
       return {
@@ -1404,7 +1156,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         describe: (_s, ctx) => {
           const c = ctx.coach;
           const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
-          return `${money(ctx.amount ?? 0)} to get it done, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+          return `${money(ctx.amount ?? 0)} to get it done, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
             + `${c ? `${c.name} takes the ${role}'s chair at quality ${c.quality}` : `The chair is filled`} — better than the market usually turns up.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -1412,12 +1164,11 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
           const role = (ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer';
           if (!team) return entry(s, 'The appointment could not be made.', 'info');
-          // The fallback roll is for a save written before the coach was part
-          // of the context: an interrupt frozen mid-flight must still resolve
-          // into somebody. Same guard 'visiting-scholar' carries.
+          // The fallback roll resolves an interrupt saved before the coach
+          // was part of the context.
           const coach = ctx.coach ?? generateCoachCandidate(fieldForChair({ team, role }), coachNamesInUse(s));
           seatCoach(team, role, coach);
-          return entry(s, `${coach.name} joins ${team.name} as ${role === 'head' ? 'head coach' : CHAIR_LABEL[role]} at $${coach.salary.toLocaleString()}/yr.`, 'good');
+          return entry(s, `${coach.name} joins ${team.name} as ${role === 'head' ? 'head coach' : CHAIR_LABEL[role]} at ${money(coach.salary)}/yr.`, 'good');
         },
       },
       {
@@ -1430,15 +1181,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     ],
   },
   {
-    // THE SCANDAL (Plan 21's PR P). "Nothing can go wrong that the player
-    // can't ignore" was the review's finding about the whole game, and
-    // athletics is the right place to answer it first, because the exposure
-    // is something the player CHOSE: the probability rises with the pot,
-    // with how many programs sit above the funded line, and with how far
-    // athletics has outrun the academic school. The penalty is a postseason
-    // ban for a season or two, not a cash cost. Authored into the shared
-    // table, taking weight from the existing budget rather than adding a
-    // stream.
+    // The recruiting scandal. Its likelihood rises with exposure the player
+    // chose (scandalExposure); the penalty is a postseason ban, not cash.
     id: 'recruiting-scandal',
     title: 'A recruiting scandal',
     weight: 4,
@@ -1479,7 +1223,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
-          if (Math.random() < SCANDAL_FIGHT_SUCCESS) {
+          if (random() < SCANDAL_FIGHT_SUCCESS) {
             return entry(s, `The inquiry into ${ctx.subjectName} found nothing it could act on. No ban.`, 'good');
           }
           const through = (s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year) + 1;
@@ -1492,12 +1236,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   },
 
   {
-    // A COACH WHO SUCCEEDS GETS POACHED (Plan 21's PR L) — the leak in the
-    // loop the market's reputation gate opens, on the shape
-    // 'faculty-outside-offer' already uses. A head coach at the top of the
-    // market with a couple of seasons behind them gets an offer; match it
-    // with a retention package or let them go and hire again. This is what
-    // turns "wait six years" into "keep what you built".
+    // A successful head coach gets an offer (coachesAtRisk): match it with a
+    // retention package or hire again. Same shape as 'faculty-outside-offer'.
     id: 'coach-poached',
     title: 'A coach with an offer',
     weight: 9,
@@ -1538,14 +1278,9 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   },
 
   {
-    // THE TOP HAS TO BE HELD (Plan 17's PR D). A rival that passes the
-    // school fires this once, for that rival, on the first quiet week the
-    // shared cadence allows (eventSystem.ts's fireTrusteeResponse): a
-    // trustee proposes a response at a real cost. Fired directly rather
-    // than drawn, like the varsity petition, because being passed is a
-    // moment and not a mood — but it spends the same decision-event
-    // budget, so the defend era's years are not busier than the build
-    // era's, only about something else.
+    // Fired once per rival that passes the school, on the first quiet week
+    // the shared cadence allows (eventSystem.ts's fireTrusteeResponse),
+    // rather than drawn; it still spends the decision-event budget.
     id: 'rival-passed',
     title: 'The board wants a response',
     weight: 0, // never drawn by the weighted lottery — fired by eventSystem.ts's fireTrusteeResponse
@@ -1559,8 +1294,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       });
       const rival = name ? s.rivals.find((r) => r.name === name) : undefined;
       if (!rival) return null;
-      // A chair in a field the school already teaches — a department to
-      // deepen rather than a new one to open — rolled best of N exactly as
+      // A chair in a field the school already teaches, rolled best of N as
       // the visiting scholar is.
       const fields = [...new Set(s.faculty.map((f) => f.field))];
       const field = fields.length > 0 ? pick(fields) : pick(FACULTY_FIELDS);
@@ -1588,7 +1322,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         label: `Endow the chair`,
         describe: (_s, ctx) => {
           const c = ctx.candidate;
-          return `${money(ctx.amount ?? 0)} up front, and ${c ? `$${c.salary.toLocaleString()}/yr` : 'a salary'} thereafter. `
+          return `${money(ctx.amount ?? 0)} up front, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
             + `${c ? `${c.name} takes the chair in ${ctx.subjectField}, teaching ${c.teaching} · researching ${c.research}` : 'A scholar takes the chair'} — the best the board could find.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -1597,7 +1331,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const person = ctx.candidate
             ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
           appointFaculty(s, person);
-          return entry(s, `${person.name} (${field}) takes the trustees' chair, endowed in answer to ${ctx.subjectName}, at $${person.salary.toLocaleString()}/yr.`, 'good', 'appointment', person.id);
+          return entry(s, `${person.name} (${field}) takes the trustees' chair, endowed in answer to ${ctx.subjectName}, at ${money(person.salary)}/yr.`, 'good', 'appointment', person.id);
         },
       },
       {
@@ -1717,24 +1451,12 @@ export function offeredChoices(s: GameState, event: DecisionEvent, ctx: Decision
 }
 
 // =====================================================================
-// THE FIRST YEAR (Plan 16's PR F) — a scripted opening, as letters from
-// the board's chair.
-//
-// The September review found the first year was one click and a wait: a
-// new player develops the core, then has nothing to do and no idea what
-// comes next, and the first year is the one that decides whether anyone
-// sees the tenth. So the opening is scripted — four letters, each with ONE
-// thing to do and a "Done" that reads state — and the toolbar carries the
-// letter's ask as a next-step line until it is done (see
-// systems/guidance/nextStep.ts).
-//
-// Data, not mechanism: each letter fires through the ordinary interrupt
-// system (eventSystem.ts's fireOpeningLetter) on the first quiet week at or
-// after its week of year one, exactly as a milestone or a charter does, and
-// is skippable from the first letter ("I know the way") for the second
-// run. Nothing here grants anything or gates anything: the letters point at
-// things the game already offers, and `done` is a reading of the same state
-// the build menu and the Curriculum tab read.
+// The first year: a scripted opening of four letters from the board's
+// chair, each with one thing to do and a `done` that reads state. The
+// toolbar carries the ask until it is done (systems/guidance/nextStep.ts).
+// Each fires through the interrupt system (eventSystem.ts's
+// fireOpeningLetter) on the first quiet week at or after its week of year
+// one, and the set is skippable. Letters grant and gate nothing.
 // =====================================================================
 
 export interface OpeningLetter {
@@ -1759,11 +1481,8 @@ function housedProgramCount(s: GameState): number {
   return Object.values(s.halls).reduce((n, slots) => n + slots.filter((slot) => slot.programId !== null).length, 0);
 }
 
-// The opening school's story, read live for letter two (Plan 19): which
-// of its majors are still to be founded, and which of those the roster
-// could teach today. Named rather than gestured at, because the
-// dedication goal is countable — three rooms, three programs — and a
-// letter that says "hire in general" is a letter that says nothing.
+// The opening school's majors still to be founded, split by whether the
+// roster can teach them today, so letter two can name them.
 function openingSchoolGap(s: GameState): { school: string; staffable: string[]; unstaffed: string[] } {
   const school = programById(FOUNDING_PROGRAMS[0])?.school ?? '';
   const missing = programs().filter((p) => p.kind === 'major' && p.school === school && !FOUNDING_PROGRAMS.includes(p.id));
