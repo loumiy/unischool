@@ -156,4 +156,8 @@ thing.
   spending the late game lacks, and Phase N owns the number (V1-25).
 - **The Overbuilder slides further at the default seed,** and is still
   judged across seeds: at 4242 every figure is inside its bands.
-
+- **One regression claim moves a year, with a note:** the Overbuilder was
+  underwater by year 5, and is now by year 6. Its year-5 cash had always
+  sat within a few hundred thousand of zero, and the retired events were
+  early costs. Year-5 cash now reads $0.2M to $0.6M at all five seeds, and
+  year 6 is below zero at four of them, the default among them.
