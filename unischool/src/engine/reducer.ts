@@ -1,3 +1,4 @@
+import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
 import {
   EXTENSION_WEEKS, RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, renovationCost, tickEstate,
 } from '../systems/estate/estate';
@@ -257,6 +258,16 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'SET_MAINTENANCE_FUNDING': {
       s.finance.maintenanceFunding = clampFunding(action.level);
+      return s;
+    }
+
+    case 'SET_DRAW_RATE': {
+      s.finance.drawRate = clampDrawRate(action.rate);
+      return s;
+    }
+
+    case 'MOVE_TO_ENDOWMENT': {
+      moveToEndowment(s, action.amount);
       return s;
     }
 

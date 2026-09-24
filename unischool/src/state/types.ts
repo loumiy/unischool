@@ -6,6 +6,15 @@ export interface GameClock {
   week: number;      // 1..WEEKS_PER_YEAR
 }
 
+// One building's loan: what is still owed, the weekly payment that clears
+// it, and the weeks left to pay.
+export interface Loan {
+  buildingId: string;
+  balance: number;
+  payment: number;
+  weeksLeft: number;
+}
+
 export interface Finance {
   cash: number;          // liquid funds
   endowment: number;     // long-term reserve; pays a fixed share into income yearly (financeSystem.ts)
@@ -20,6 +29,12 @@ export interface Finance {
   // The share of the buildings' upkeep paid, 0 to 1 (systems/estate). What
   // goes unpaid becomes backlog. Undefined means all of it.
   maintenanceFunding?: number;
+  // The endowment's annual draw, 0.03 to 0.07 (systems/finance/treasury.ts).
+  // Undefined means the default 4%.
+  drawRate?: number;
+  // Buildings' loans, oldest first (systems/finance/treasury.ts). Undefined
+  // means none.
+  loans?: Loan[];
   // Lifetime count of weeks cash closed below zero, counted by tickFinance.
   // Read by the "Never in the red" ambition and the legacy's stewardship axis.
   weeksInTheRed: number;

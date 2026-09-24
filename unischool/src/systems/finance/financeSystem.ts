@@ -1,4 +1,5 @@
 import { upkeepShare } from '../estate/estate';
+import { debtService, drawRate, serviceLoans } from './treasury';
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import { departmentPot, inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
@@ -95,11 +96,11 @@ export function instructionDetail(s: GameState): InstructionDetail {
 // richer demand model can replace it.
 const REPUTATION_DIVIDEND_PER_POINT_PER_YEAR = 900;
 
-// The endowment earns a return and pays a fixed rate into income each year;
-// payout is below the return, so an untouched endowment grows. There is no
+// The endowment earns a return and pays its draw rate into income each year
+// (treasury.ts: 4% unless the player moves it). At the default the payout
+// is below the return, so an untouched endowment grows. There is no
 // auto-draw: it is not an insolvency backstop.
-const ENDOWMENT_ANNUAL_RETURN = 0.055;
-const ENDOWMENT_PAYOUT_RATE = 0.040;
+export const ENDOWMENT_ANNUAL_RETURN = 0.055;
 
 // Group 3: endowment campaigns, the late-game money sink once the build
 // chains and curriculum run out. A campaign converts cash into endowment at a
@@ -152,7 +153,7 @@ export function endowmentCampaign(s: GameState): EndowmentCampaign {
     match,
     titleLift,
     endowmentGain,
-    annualPayout: endowmentGain * ENDOWMENT_PAYOUT_RATE,
+    annualPayout: endowmentGain * drawRate(s),
   };
 }
 
@@ -179,6 +180,7 @@ export interface FinanceBreakdown {
   facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
   athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week
+  debtService: number;         // the buildings' loan payments (finance/treasury.ts)
   totalExpenses: number;
   net: number;                 // totalIncome - totalExpenses
 }
@@ -258,7 +260,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const enrolled = totalEnrolled(s.students);
   const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
-  const endowmentPayout = (s.finance.endowment * ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
+  const endowmentPayout = (s.finance.endowment * drawRate(s)) / WEEKS_PER_YEAR;
   // The gate is paid to the athletics department's pot (subsidy + gate),
   // programs draw from it in list order, and only the leftover gate spills
   // into income. The university pays only the subsidy actually drawn. Do not
@@ -278,11 +280,12 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
+  const debt = debtService(s);
 
   // Four income lines; there is no state appropriation.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
-    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy;
+    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + debt;
 
   return {
     tuitionRevenue,
@@ -299,6 +302,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     facilityUpkeep,
     studentLifeUpkeep,
     athleticsSubsidy,
+    debtService: debt,
     totalExpenses,
     net: totalIncome - totalExpenses,
   };
@@ -317,12 +321,13 @@ export function tickFinance(s: GameState): void {
   // The run's solvency record (types.ts's Finance.weeksInTheRed), counted
   // only here where cash settles.
   if (s.finance.cash < 0) s.finance.weeksInTheRed += 1;
+  serviceLoans(s);
 
   // The endowment compounds net of the payout collected above. Cash can go
   // negative only through an operating deficit (purchases need the cash),
   // which stalls development rather than ending the run: no auto-draw, no
   // game over.
-  s.finance.endowment *= 1 + (ENDOWMENT_ANNUAL_RETURN - ENDOWMENT_PAYOUT_RATE) / WEEKS_PER_YEAR;
+  s.finance.endowment *= 1 + (ENDOWMENT_ANNUAL_RETURN - drawRate(s)) / WEEKS_PER_YEAR;
 }
 
 // "Stall, don't die": why no run can spiral beyond recovery. Each is a

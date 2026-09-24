@@ -1,4 +1,5 @@
-import type { FacilityType, GameState, HallSlot, Pathways, Placement, Trees } from './types';
+import type { FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Trees } from './types';
+import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
@@ -174,6 +175,23 @@ function sanitizeDressing(state: GameState): void {
 function sanitizeEstate(state: GameState): void {
   const f = state.finance.maintenanceFunding;
   if (f !== undefined && !(Number.isFinite(f) && f >= 0 && f <= 1)) delete state.finance.maintenanceFunding;
+  const loans = state.finance.loans as unknown;
+  if (loans !== undefined) {
+    const valid = Array.isArray(loans)
+      ? loans.filter((l): l is Loan => typeof l === 'object' && l !== null
+        && typeof l.buildingId === 'string'
+        && Number.isFinite(l.balance) && l.balance >= 0
+        && Number.isFinite(l.payment) && l.payment >= 0
+        && Number.isInteger(l.weeksLeft) && l.weeksLeft > 0)
+      : [];
+    if (valid.length > 0) state.finance.loans = valid;
+    else delete state.finance.loans;
+  }
+  const d = state.finance.drawRate;
+  if (d !== undefined) {
+    if (typeof d !== 'number' || !Number.isFinite(d)) delete state.finance.drawRate;
+    else state.finance.drawRate = clampDrawRate(d);
+  }
   for (const t of state.tech) {
     if (t.backlog !== undefined && !(Number.isFinite(t.backlog) && t.backlog >= 0)) delete t.backlog;
     if (t.renovationWeeks !== undefined && !(Number.isInteger(t.renovationWeeks) && t.renovationWeeks >= 0)) delete t.renovationWeeks;

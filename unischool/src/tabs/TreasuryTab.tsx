@@ -10,6 +10,8 @@ import HelpHint from '../components/HelpHint';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 import { money } from '../format';
 import EstatePanel from './EstatePanel';
+import EndowmentPanel from './EndowmentPanel';
+import { debtOutstanding, drawRate } from '../systems/finance/treasury';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
 // same breakdown the tick charges, so the two cannot drift. Figures are per
@@ -75,7 +77,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             />
             <StatementLine
               label="Endowment payout"
-              note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
+              note={`a ${(drawRate(s) * 100).toFixed(1)}% draw on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
             {(flow.athleticsSurplus > 0 || flow.gateRevenue > 0) && (
@@ -130,6 +132,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 amount={flow.athleticsSubsidy}
               />
             )}
+            {flow.debtService > 0 && (
+              <StatementLine
+                label="Loan repayments"
+                note={`${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`}
+                amount={flow.debtService}
+              />
+            )}
             <div className="statement-total">
               <span>Total expenses</span>
               <span className="statement-line-amount">{money(flow.totalExpenses)}</span>
@@ -150,7 +159,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         <section className="panel">
           <div className="panel-head">
             <h2>Endowment Campaign</h2>
-            <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays a fixed share of itself into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
+            <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays its draw rate into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
           </div>
           {!campaign.available ? (
             <p className="empty-note">
@@ -203,6 +212,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           </dl>
         </section>
       </div>
+      <EndowmentPanel s={s} act={act} />
       <EstatePanel s={s} act={act} />
     </div>
   );

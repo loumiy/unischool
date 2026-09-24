@@ -45,6 +45,17 @@ This document.
 - **`MOVE_TO_ENDOWMENT`:** a player's transfer of cash into the endowment,
   in round sums. Never automatic.
 
+**As implemented:** `systems/finance/treasury.ts` holds the treasury's
+choices. The draw replaces `ENDOWMENT_PAYOUT_RATE` everywhere it was read:
+the payout line, the endowment's growth, and a campaign's promised income.
+At the default 4% the arithmetic is the old arithmetic to the bit, so the
+harness is unmoved. A transfer is offered as a tenth, a quarter and half of
+the cash on hand, each rounded down to two figures, and never under
+$100,000. The Treasury tab gets an Endowment panel with the draw dial,
+what the endowment pays and how fast it grows, and the transfer buttons.
+Above 5% it notes the board would think the draw imprudent, which PR D's
+confidence reads.
+
 ## PR 27C — Borrowing for buildings
 
 - **A second way to pay for a building:** borrowed against the endowment,
@@ -54,6 +65,24 @@ This document.
   - The repayment is a line in the weekly statement.
 - **The build popup offers "borrow"** where cash falls short and the
   borrowing room allows it.
+
+**As implemented:**
+
+- **The loan is the shortfall, not the whole cost.** Cash pays what it can,
+  and the loan pays the rest. A tile the cash cannot cover but a loan can
+  says "borrow $X", and placing it borrows.
+- **Only a college with cash in hand can borrow.** One already in deficit
+  cannot, which is where PR D's Freeze will sit.
+- **Courses are never borrowed for.** Construction is.
+- **Each loan is kept on its own** (`finance.loans`), holding its building,
+  balance, level weekly payment and weeks left. A single balance and
+  repayment cannot say when one loan ends and another goes on.
+- **The payment** is a "Loan repayments" line in the weekly statement and
+  part of operating cost.
+- **The Endowment panel** shows what is owed and the room left to borrow.
+- **Save hygiene** drops malformed loans.
+- **The harness never borrows.** With no loans the new line is zero, and
+  the harness is unmoved.
 
 ## PR 27D — The distress ladder
 

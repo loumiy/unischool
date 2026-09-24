@@ -25,10 +25,10 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
           s.placements[node.id] = placement;
           fellTrees(s.trees, placement);
         }
-      } else if (canStartDevelopment(s, node)) {
+      } else if (canStartDevelopment(s, node, undefined, action.borrow === true)) {
         s.placements[node.id] = placement;
         fellTrees(s.trees, placement);
-        startDevelopment(s, node);
+        startDevelopment(s, node, undefined, action.borrow === true);
         // One grand landmark to a college: the other two close for good
         // (techSystem.ts's landmarkChosen keeps them closed).
         if (node.facilityType === 'landmark') {
