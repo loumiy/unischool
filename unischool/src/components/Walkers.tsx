@@ -180,12 +180,15 @@ function along(route: Waypoint[], lengths: number[], u: number): Waypoint {
   return { col: a.col + (b.col - a.col) * t, row: a.row + (b.row - a.row) * t };
 }
 
-export default function Walkers({ layout, students, gait, camera }: {
+export default function Walkers({ layout, students, gait, camera, turning = false }: {
   layout: CampusLayout;
   students: number;
   // The clock's pace as a multiple of Play; 0 while paused.
   gait: number;
   camera: Camera;
+  // A quarter turn in flight (CampusMap.tsx): the walkers keep walking, and
+  // go unclipped until the view comes to rest (Plan 37).
+  turning?: boolean;
 }) {
   const layerRef = useRef<SVGGElement>(null);
   const walkersRef = useRef<Walker[]>([]);
@@ -198,6 +201,12 @@ export default function Walkers({ layout, students, gait, camera }: {
   // walk in progress rather than rebuilding the crowd.
   const gaitRef = useRef(gait);
   gaitRef.current = Math.min(MAX_GAIT, gait);
+  // What the camera decides, kept apart from the routes (Plan 37): the
+  // buildings' outlines the walkers are clipped by, and which way is nearer.
+  // A turn changes these every frame; it must not send every walker back to
+  // re-plan its way.
+  const shapesRef = useRef<ReturnType<typeof silhouettes>>([]);
+  const axRef = useRef(cameraAxes());
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -208,9 +217,6 @@ export default function Walkers({ layout, students, gait, camera }: {
     const stops = doors(input, grid);
     const edges = roadsides();
     const table = new RouteTable(grid);
-    const shapes = silhouettes(layout);
-    const ax = cameraAxes();
-    writeClips(layer, shapes);
 
     // Somewhere to go: a door, by weight, or the road one time in five.
     const pickStop = (notAt: Waypoint | null): Waypoint | null => {
@@ -258,7 +264,6 @@ export default function Walkers({ layout, students, gait, camera }: {
     // A new campus: every walker keeps its place and finds its way again
     // from wherever it is headed.
     for (const w of walkers) {
-      shapeWalker(w.mover);
       w.route = [along(w.route, w.lengths, w.u)];
       w.lengths = [0];
       w.u = 0;
@@ -284,6 +289,8 @@ export default function Walkers({ layout, students, gait, camera }: {
         const p = project(pos.col, pos.row);
         w.mover.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`);
         // The first building between this walker and the camera cuts it.
+        const shapes = shapesRef.current;
+        const ax = axRef.current;
         let id: string | null = null;
         for (let i = 0; i < shapes.length; i++) {
           const s = shapes[i];
@@ -303,9 +310,21 @@ export default function Walkers({ layout, students, gait, camera }: {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-    // The camera changes the projection the outlines are built on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layout, want, camera]);
+  }, [layout, want]);
+
+  // The camera's part: each walker's figure answers the tilt, and the
+  // outlines that clip them are rebuilt for the view. Mid-turn the outlines
+  // are dropped, since rebuilding them every frame costs more than a quarter
+  // second of unclipped walkers is worth; they come back as the view rests.
+  useEffect(() => {
+    const layer = layerRef.current;
+    if (!layer) return;
+    for (const w of walkersRef.current) shapeWalker(w.mover);
+    axRef.current = cameraAxes();
+    shapesRef.current = turning ? [] : silhouettes(layout);
+    writeClips(layer, shapesRef.current);
+  }, [layout, camera, turning, want]);
 
   return <g ref={layerRef} className="campus-walkers" aria-hidden="true" />;
 }

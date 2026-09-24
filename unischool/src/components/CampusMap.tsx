@@ -31,11 +31,13 @@ import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
+import TurningScene from './TurningScene';
 import { castShadow } from './light';
 import {
-  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
-  type Camera,
+  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
+  turnStep, unproject, type Camera,
 } from './isoProjection';
+import { reducedMotion } from '../settings';
 
 // The campus map: the game's base layer, always on screen (see App.tsx).
 // It reads `s.placements` + `s.tech` and dispatches PLACE_BUILDABLE; it owns
@@ -113,9 +115,10 @@ const MAX_PAN_FRAME_S = 0.1;
 
 // --- the camera ---
 // Four views (VIEWS) and ten pitches (PITCHES), stepped with Q/E, Z/X and
-// Home; keys only, no animation between views (the motifs are drawn for
-// those exact angles). A camera change is a React re-render, unlike a pan.
-// It turns about the ground at the canvas centre (see applyCamera).
+// Home. The map rests only on those (the motifs are drawn for those exact
+// angles); a quarter turn between views is eased over TURN_MS (Plan 37,
+// see turnBy), and a tilt snaps. A camera change is a React re-render,
+// unlike a pan. It turns about the ground at the canvas centre.
 
 // The grid projects to a diamond whose left corner is at negative x, so
 // defaultView centres on WORLD's real bounds. Headroom at the top is for
@@ -577,6 +580,20 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
   );
 });
 
+// The ground a turn passes over (Plan 37): the plate, the grid and the road.
+const TurnGround = memo(function TurnGround({ camera }: { camera: Camera }) {
+  // `camera` is read by the projection.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ground = useMemo(groundGeometry, [camera]);
+  return (
+    <>
+      <polygon className="campus-ground" points={ground.plate} />
+      <path className="campus-grid" d={ground.grid} />
+      <polygon className="campus-road" points={ground.road} />
+    </>
+  );
+});
+
 // Desire lines: the lawn worn where the busiest routes cross it (see
 // walkRoutes.ts), under the paving, so a path laid over one covers it and
 // the next layout no longer routes across the grass there.
@@ -831,19 +848,84 @@ export default function CampusMap({
     applyView({ x: px - w.x * v.zoom, y: py - w.y * v.zoom, zoom: v.zoom });
     setCameraState(applied);
   }
+  // The quarter turn (Plan 37, from v2's): eased over TURN_MS about the
+  // ground at the canvas centre, which stays put. The azimuth runs
+  // unwrapped through the turn (setCamera wraps it); a second press mid-turn
+  // retargets from where the view has got to (`at`), not from the last
+  // target, which is v2's jump. Reduced motion keeps the snap.
+  const turnRef = useRef<{ at: number; to: number; raf: number; anchor: { col: number; row: number } } | null>(null);
+  const anchorRef = useRef<{ col: number; row: number } | null>(null);
+  const [turning, setTurning] = useState(false);
+  // The view the full scene holds while the massing turns.
+  const [restCamera, setRestCamera] = useState<Camera | null>(null);
+  function groundUnderCentre() {
+    const rect = svgRef.current?.getBoundingClientRect();
+    const v = viewRef.current;
+    return unproject(((rect ? rect.width / 2 : 0) - v.x) / v.zoom, ((rect ? rect.height / 2 : 0) - v.y) / v.zoom);
+  }
+  // After each committed frame of a turn, pan so the anchor is back under
+  // the centre. After the commit, not in the frame callback: that put the
+  // transform a frame ahead of the geometry and the scene shook.
+  useLayoutEffect(() => {
+    const a = anchorRef.current;
+    if (!a) return;
+    const rect = svgRef.current?.getBoundingClientRect();
+    const v = viewRef.current;
+    const w = project(a.col, a.row);
+    applyView({ x: (rect ? rect.width / 2 : 0) - w.x * v.zoom, y: (rect ? rect.height / 2 : 0) - w.y * v.zoom, zoom: v.zoom });
+    if (!turnRef.current) anchorRef.current = null;
+  }, [camera]);
+  function cancelTurn() {
+    const live = turnRef.current;
+    if (!live) return;
+    cancelAnimationFrame(live.raf);
+    turnRef.current = null;
+    anchorRef.current = null;
+    setTurning(false);
+  }
   function turnBy(steps: number) {
     const st = stanceRef.current;
     st.view = ((st.view + steps) % VIEWS.length + VIEWS.length) % VIEWS.length;
-    applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
+    const pitch = PITCHES[st.pitch];
+    if (reducedMotion()) {
+      cancelTurn();
+      applyCamera({ azimuth: VIEWS[st.view], pitch });
+      return;
+    }
+    const live = turnRef.current;
+    if (live) cancelAnimationFrame(live.raf);
+    const from = live ? live.at : camera.azimuth;
+    const to = (live ? live.to : from) + steps * (Math.PI / 2);
+    const anchor = live?.anchor ?? groundUnderCentre();
+    if (!live) setRestCamera(camera);
+    const start = performance.now();
+    const turn = { at: from, to, raf: 0, anchor };
+    turnRef.current = turn;
+    setTurning(true);
+    const frame = (now: number) => {
+      const t = (now - start) / TURN_MS;
+      turn.at = t >= 1 ? VIEWS[st.view] : turnStep(from, to, t);
+      anchorRef.current = anchor;
+      if (t >= 1) {
+        turnRef.current = null;
+        setTurning(false);
+      } else {
+        turn.raf = requestAnimationFrame(frame);
+      }
+      setCameraState(setCamera({ azimuth: turn.at, pitch }));
+    };
+    turn.raf = requestAnimationFrame(frame);
   }
   function tiltBy(steps: number) {
     const st = stanceRef.current;
     const next = Math.min(PITCHES.length - 1, Math.max(0, st.pitch + steps));
     if (next === st.pitch) return;
+    cancelTurn();
     st.pitch = next;
     applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
   }
   function resetCamera() {
+    cancelTurn();
     stanceRef.current = { view: 0, pitch: DEFAULT_PITCH_INDEX };
     applyCamera(DEFAULT_CAMERA);
   }
@@ -1290,6 +1372,17 @@ export default function CampusMap({
         >
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
+            {/* Mid-turn (Plan 37) the full scene holds its last rest view,
+                hidden, and the massing turns in its place; it redraws once
+                as the view comes to rest. */}
+            {turning && (
+              <>
+                <TurnGround camera={camera} />
+                <PathwayLayer pathways={layout.pathways} camera={camera} />
+                <TurningScene layout={layout} inset={BUILDING_INSET} camera={camera} />
+              </>
+            )}
+            <g style={turning ? { display: 'none' } : undefined}>
             <CrowdContext.Provider value={crowds}>
             <BannerContext.Provider value={banners}>
             <ColorsContext.Provider value={layout.colors}>
@@ -1302,16 +1395,17 @@ export default function CampusMap({
                 justFinished={justFinished}
                 onInspect={onInspect}
                 labelLayerRef={labelLayerRef}
-                camera={camera}
+                camera={turning && restCamera ? restCamera : camera}
               />
             </DevelopingContext.Provider>
             </CollegeNameContext.Provider>
             </ColorsContext.Provider>
             </BannerContext.Provider>
             </CrowdContext.Provider>
-            <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />
-            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
-            <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
+            </g>
+            <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} />
+            {!turning && <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />}
+            {!turning && <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />}
           </g>
         </svg>
 
