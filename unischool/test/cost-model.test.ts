@@ -16,7 +16,6 @@ import {
 } from '../src/systems/finance/financeSystem';
 import { marketRateMultiplier } from '../src/data/facultyData';
 import { SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
-import { DECISION_EVENTS } from '../src/data/eventData';
 import { foundingCourseIds } from '../src/state/actions';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
@@ -139,23 +138,6 @@ console.log('cost model tests');
   assert(near(financeBreakdown(s).weeklySalaries, (base * 3.4) / WEEKS_PER_YEAR), 'the payroll is the roster at the market rate');
   assert(near(facultyPay(s, 100_000), 340_000), 'and a hire\'s pay reads the same rate');
   assert(s.faculty.every((f) => f.salary === f.salary), 'the salary on the roster is untouched — the rate applies at the payroll');
-}
-
-// ---- capital events scale to what broke ----
-{
-  const s = fresh();
-  s.finance.weeklyOpEx = 20_000_000; // the late-game budget the review found the boiler scaling off
-  const building = s.tech.find((t) => t.kind === 'building' && t.status === 'done')!;
-  const roof = DECISION_EVENTS.find((e) => e.id === 'roof-failure')!;
-  const ctx = roof.rollContext!(s)!;
-  assert(ctx.amount! < s.finance.weeklyOpEx, `a roof costs a share of its building, not weeks of a $20M budget (${ctx.amount!.toLocaleString()})`);
-  assert(ctx.amount! >= 60_000, 'floored so a founding roof is still a bill');
-  assert(ctx.amount! <= Math.max(60_000, building.cost * 0.25) + 1, 'at most a quarter of the dearest building it could name');
-
-  const boiler = DECISION_EVENTS.find((e) => e.id === 'heating-plant')!;
-  const dorms = s.tech.filter((t) => t.kind === 'dorm' && t.status === 'done');
-  const amount = boiler.rollContext!(s)!.amount!;
-  assert(amount === Math.max(60_000, Math.round(dorms.reduce((sum, t) => sum + t.cost, 0) * 0.12)), 'the boiler is a share of the residence halls on its loop');
 }
 
 // ---- the founding statement still nets positive at the new costs ----

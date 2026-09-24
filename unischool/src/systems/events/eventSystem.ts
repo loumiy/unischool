@@ -1,3 +1,4 @@
+import { tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
@@ -243,6 +244,9 @@ export function fireOpeningLetter(s: GameState): boolean {
 }
 
 export function tickEvents(s: GameState): void {
+  // The panel's unanswered events take their defaults whoever claims the
+  // week.
+  timeOutCatalogue(s);
   // Another system already claimed this week.
   if (s.pendingInterrupt) return;
 
@@ -259,4 +263,7 @@ export function tickEvents(s: GameState): void {
   if (fireOpeningLetter(s)) return;
 
   rollDecisionEvent(s);
+  // The catalogue (catalogueEngine.ts): a letter only on a week nothing
+  // else claimed; an inline event joins the panel and the clock runs on.
+  tickCatalogue(s);
 }

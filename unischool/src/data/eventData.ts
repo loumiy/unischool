@@ -253,10 +253,6 @@ function dentSatisfaction(s: GameState, points: number): void {
   s.students.satisfaction = clamp(s.students.satisfaction - points, 0, 100);
 }
 
-function doneBuildings(s: GameState) {
-  return s.tech.filter((t) => t.kind === 'building' && t.status === 'done');
-}
-
 // Buildings a naming-rights offer may target: dedicated halls
 // (systems/techtree/schools.ts) not yet carrying a `donorSurname`. Read live,
 // so a hall that has lost its purity is not on offer: a donor names a school.
@@ -264,24 +260,6 @@ function unnamedSchoolBuildings(s: GameState): Buildable[] {
   return dedicatedHalls(s)
     .map(({ hallId }) => s.tech.find((t) => t.id === hallId))
     .filter((t): t is Buildable => t !== undefined && !t.donorSurname && t.status === 'done');
-}
-
-function doneDiningHalls(s: GameState) {
-  return s.tech.filter((t) => t.facilityType === 'diningHall' && t.status === 'done');
-}
-
-// Only faculty with a colleague in the same field may be put at risk, so no
-// departure or dismissal can leave a field's courses unstartable.
-const EVENT_MIN_FIELD_DEPTH = 2;
-
-function facultyAtRisk(s: GameState): Faculty[] {
-  const depth = new Map<string, number>();
-  for (const f of s.faculty) depth.set(f.field, (depth.get(f.field) ?? 0) + 1);
-  return s.faculty.filter((f) => (depth.get(f.field) ?? 0) >= EVENT_MIN_FIELD_DEPTH);
-}
-
-function removeFaculty(s: GameState, id: string | undefined): void {
-  s.faculty = s.faculty.filter((f) => f.id !== id);
 }
 
 function findChapter(s: GameState, id: string | undefined): GreekChapter | undefined {
@@ -309,10 +287,6 @@ function removeChapterHouse(s: GameState, chapterId: string): void {
 }
 
 // --- per-event tuning ------------------------------------------------
-const ESTATE_GIFT_MIN_WEEKS = 2;          // gift size, in weeks of opex
-const ESTATE_GIFT_MAX_WEEKS = 5;
-const ESTATE_GIFT_ENDOWED_MULTIPLIER = 1.7; // the donor gives more if it is endowed rather than spent
-
 const NAMING_RIGHTS_MIN_WEEKS = 4;
 const NAMING_RIGHTS_MAX_WEEKS = 8;
 const NAMING_RIGHTS_PRESTIGE_GATE = 40;   // nobody buys naming rights at a school nobody has heard of
@@ -335,15 +309,6 @@ const VENUE_NAMING: Partial<Record<FacilityType, string>> = {
 function unnamedVenues(s: GameState): Buildable[] {
   return s.tech.filter((t) => t.status === 'done' && !t.donorSurname && t.facilityType !== undefined && VENUE_NAMING[t.facilityType] !== undefined);
 }
-
-// Revealed, unbuilt venues the state capital match can aim at, priciest
-// first.
-function unbuiltVenues(s: GameState): Buildable[] {
-  return s.tech
-    .filter((t) => t.athleticsVenueReveal && t.status === 'available')
-    .sort((a, b) => b.cost - a.cost);
-}
-const STATE_MATCH_VENUE_SHARE_CAP = 0.6; // the state will not pay for more than this share of a building
 
 // Recruiting-scandal exposure: a multiplier on its weight that rises with
 // the pot (a point per $1.5M), with flagship programs, and with how far
@@ -376,15 +341,6 @@ function coachesAtRisk(s: GameState): Array<{ team: VarsityTeam; coach: Coach }>
   return out;
 }
 
-// What a commitment takes off a venue's price: the school's own money plus
-// the state's match, capped at STATE_MATCH_VENUE_SHARE_CAP of the building
-// so a small stadium is never free.
-function venueMatchDiscount(venueCost: number, commitment: number): number {
-  return Math.round(Math.min(venueCost * STATE_MATCH_VENUE_SHARE_CAP, commitment * (1 + STATE_MATCH_MULTIPLIER)));
-}
-
-const RETENTION_PACKAGE_SALARY_SHARE = 0.6; // a lump sum, as a share of the hire's current annual salary
-
 // The trustees' response ('rival-passed'). Paid choices cost several weeks
 // of opex, because a free response would not be one. The chair is a best-of-N
 // roll in a field the school already teaches; the campaign endows at a match
@@ -393,49 +349,9 @@ const TRUSTEE_RESPONSE_COST_WEEKS = 3;
 const TRUSTEE_CHAIR_CANDIDATE_ROLLS = 5;
 const TRUSTEE_CAMPAIGN_MULTIPLIER = 2.2;
 
-const VISITING_SCHOLAR_PRESTIGE_GATE = 55;
-// The up-front gift; the appointed scholar's salary is the rest of the price.
-const VISITING_SCHOLAR_COST_WEEKS = 1.5;
-// The AD's shortage ask ('ad-shortage'): cheaper, with a shallower roll,
-// than a visiting scholar, since a coach is a smaller commitment.
+// The AD's shortage ask ('ad-shortage'): a coach, at a shallow roll.
 const AD_SHORTAGE_COST_WEEKS = 0.8;
 const AD_SHORTAGE_COACH_ROLLS = 3;
-const VISITING_SCHOLAR_CANDIDATE_ROLLS = 4; // best of N rolls — a genuinely strong hire, not just a free one
-
-// Capital events scale to what broke, not to opex: a roof is a share of its
-// building, a kitchen of its dining hall, the boiler of the dorms on its
-// loop, a storm of everything standing. Floored so a founding campus's first
-// roof is still a bill.
-const ROOF_REPAIR_SHARE = 0.25;             // of the building's own cost
-const ROOF_DEFERRAL_SATISFACTION_HIT = 5;
-
-const DINING_REMEDIATION_SHARE = 0.3;       // of the dining hall's own cost
-const DINING_DEFERRAL_SATISFACTION_HIT = 8; // basic needs is the heaviest satisfaction attribute — this one bites
-
-const HEATING_PLANT_SHARE = 0.12;           // of the standing dorms' combined cost
-const HEATING_PLANT_CAPACITY_GATE = 800;
-const HEATING_DEFERRAL_SATISFACTION_HIT = 6;
-const CAPITAL_EVENT_FLOOR = 60_000;         // no repair is cheaper than this
-
-// A share of what stands: the sum of every finished Buildable's own cost
-// that matches, floored.
-function shareOfCost(items: ReadonlyArray<{ cost: number }>, share: number): number {
-  return Math.max(CAPITAL_EVENT_FLOOR, Math.round(items.reduce((sum, t) => sum + t.cost, 0) * share));
-}
-
-const STATE_MATCH_FIRST_YEAR = 5;
-const STATE_MATCH_COMMITMENT_WEEKS = 3;
-const STATE_MATCH_MULTIPLIER = 2.5;       // the legislature's match on the school's own commitment
-
-const STORM_CAPACITY_GATE = 500;
-const STORM_FULL_REPAIR_SHARE = 0.03;       // of every standing building's cost
-const STORM_PARTIAL_SHARE = 0.45;         // share of the full bill a patch job costs
-const STORM_PARTIAL_SATISFACTION_HIT = 3;
-const STORM_DEFERRAL_SATISFACTION_HIT = 9;
-
-const SCANDAL_DEFENCE_COST_WEEKS = 1.5;
-const SCANDAL_DEFENCE_SATISFACTION_HIT = 3; // students protest the school standing behind them
-const SCANDAL_DISMISSAL_SATISFACTION_GAIN = 2;
 
 // --- student organisations (see data/studentLifeData.ts) ---------------
 //
@@ -475,47 +391,12 @@ export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
 
 // =====================================================================
 // The table. Triggers are state-driven, not calendar-driven: a donor shows
-// up once the school is worth donating to, a heating plant fails once the
-// campus is big enough to have one.
+// up once the school is worth donating to. Since Plan 32 it holds only the
+// questions that belong to a system (naming, Greek life, athletics, the
+// rival); the texture is the catalogue's (data/eventCatalogue.ts). A saved
+// interrupt naming a retired event resolves as "an event has passed".
 // =====================================================================
 export const DECISION_EVENTS: readonly DecisionEvent[] = [
-  {
-    id: 'estate-gift',
-    title: 'An estate gift',
-    domain: 'advancement',
-    weight: 10,
-    boost: (s) => (inTitleYear(s) ? TITLE_YEAR_DONOR_BOOST : 1),
-    eligible: () => true,
-    rollContext: (s) => ({ amount: rollAmount(s, ESTATE_GIFT_MIN_WEEKS, ESTATE_GIFT_MAX_WEEKS) }),
-    prompt: (_s, ctx) =>
-      `The estate of a long-dead alumna has closed, and the university is named in the will. The executors will release ${money(ctx.amount ?? 0)} as unrestricted cash, or — if the school agrees to hold it in perpetuity as a named fund — considerably more.`,
-    choices: [
-      {
-        id: 'cash',
-        label: 'Take it as unrestricted cash',
-        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} into the operating account this week.`,
-        cost: () => 0,
-        apply: (s, ctx) => {
-          const amount = ctx.amount ?? 0;
-          s.finance.cash += amount;
-          return entry(s, `Estate gift accepted: ${money(amount)} in unrestricted cash.`, 'good');
-        },
-      },
-      {
-        id: 'endow',
-        label: 'Endow it as a named fund',
-        describe: (_s, ctx) =>
-          `${money((ctx.amount ?? 0) * ESTATE_GIFT_ENDOWED_MULTIPLIER)} into the endowment. No cash this week; it pays out every year from now on, and feeds the financial-resources input to prestige.`,
-        cost: () => 0,
-        apply: (s, ctx) => {
-          const endowed = Math.round((ctx.amount ?? 0) * ESTATE_GIFT_ENDOWED_MULTIPLIER);
-          s.finance.endowment += endowed;
-          return entry(s, `Estate gift endowed: ${money(endowed)} added to the endowment in perpetuity.`, 'good');
-        },
-      },
-    ],
-  },
-
   {
     id: 'naming-rights',
     title: 'A naming-rights offer',
@@ -591,361 +472,6 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         apply: (s, ctx) => entry(s, ctx.subjectField === 'venue'
           ? `Naming-rights offer on the ${ctx.subjectName} declined.`
           : `Naming-rights offer on the School of ${ctx.subjectName} declined.`, 'info'),
-      },
-    ],
-  },
-
-  {
-    id: 'faculty-outside-offer',
-    title: 'An outside offer',
-    domain: 'academic',
-    weight: 11,
-    eligible: (s) => facultyAtRisk(s).length > 0,
-    rollContext: (s) => {
-      const candidates = facultyAtRisk(s);
-      if (candidates.length === 0) return null;
-      const target = pick(candidates);
-      return {
-        subjectId: target.id,
-        subjectName: target.name,
-        subjectField: target.field,
-        amount: Math.round(target.salary * RETENTION_PACKAGE_SALARY_SHARE),
-      };
-    },
-    prompt: (_s, ctx) =>
-      `${ctx.subjectName} (${ctx.subjectField}) has an offer from a better-funded department and is, politely, telling you before accepting it. A retention package of ${money(ctx.amount ?? 0)} would settle it.`,
-    choices: [
-      {
-        id: 'retain',
-        mood: 1,
-        label: 'Fund the retention package',
-        describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front. ${ctx.subjectName} stays, keeps accruing tenure, and keeps their course slots.`,
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => entry(s, `${ctx.subjectName} retained for ${money(ctx.amount ?? 0)}.`, 'good'),
-      },
-      {
-        id: 'release',
-        label: 'Wish them well',
-        describe: (_s, ctx) =>
-          `${ctx.subjectName} leaves this week. Their salary comes off the payroll, and their ${ctx.subjectField} course slots go with them — courses already running are unaffected, but new ones in that field wait on a hire.`,
-        cost: () => 0,
-        apply: (s, ctx) => {
-          removeFaculty(s, ctx.subjectId);
-          return entry(s, `${ctx.subjectName} has left for another university.`, 'bad', 'departure', ctx.subjectId);
-        },
-      },
-    ],
-  },
-
-  {
-    id: 'visiting-scholar',
-    title: 'A distinguished visitor',
-    domain: 'academic',
-    weight: 6,
-    eligible: (s) => s.self.reputation >= VISITING_SCHOLAR_PRESTIGE_GATE,
-    // Rolled at fire time so the modal's name and salary describe the
-    // person appointed. Best of N: what the player buys is quality, since
-    // anyone can appoint off the market any week.
-    rollContext: (s) => {
-      const field = pick(FACULTY_FIELDS);
-      const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
-      let best = generateCandidate(field, existing);
-      for (let i = 1; i < VISITING_SCHOLAR_CANDIDATE_ROLLS; i += 1) {
-        const next = generateCandidate(field, [...existing, best.name]);
-        if (next.teachingPotential + next.researchPotential > best.teachingPotential + best.researchPotential) best = next;
-      }
-      return { subjectField: field, subjectName: best.name, amount: weeksOfOpEx(s, VISITING_SCHOLAR_COST_WEEKS), candidate: best };
-    },
-    prompt: (_s, ctx) =>
-      `${ctx.subjectName}, a well-regarded ${ctx.subjectField} scholar, is between appointments and would take a chair here — but only if the school funds the visit properly, at ${money(ctx.amount ?? 0)}.`,
-    choices: [
-      {
-        id: 'fund',
-        mood: 1,
-        label: 'Appoint them',
-        // Both numbers, because they are two different commitments: the
-        // gift is once, the salary is every week for as long as they stay.
-        describe: (_s, ctx) => {
-          const c = ctx.candidate;
-          return `${money(ctx.amount ?? 0)} up front, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
-            + `${ctx.subjectName} joins the faculty this week${c ? `, teaching ${c.teaching} · researching ${c.research}` : ''} — better than the job market normally turns up.`;
-        },
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => {
-          // Appointed outright through the ordinary hire path
-          // (appointFaculty). The fallback roll resolves an interrupt saved
-          // before the candidate was part of the context.
-          const field = ctx.subjectField ?? pick(FACULTY_FIELDS);
-          const person = ctx.candidate
-            ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
-          appointFaculty(s, person);
-          return entry(s, `${person.name} (${field}) has accepted a visiting chair and joined the faculty at ${money(person.salary)}/yr.`, 'good', 'appointment', person.id);
-        },
-      },
-      {
-        id: 'pass',
-        label: 'Pass',
-        describe: () => 'Nothing changes. They take the other offer.',
-        cost: () => 0,
-        apply: (s, ctx) => entry(s, `Passed on the visiting ${ctx.subjectField} chair.`, 'info'),
-      },
-    ],
-  },
-
-  {
-    id: 'roof-failure',
-    title: 'A roof gives way',
-    domain: 'estate',
-    weight: 9,
-    eligible: (s) => doneBuildings(s).length > 0,
-    rollContext: (s) => {
-      const buildings = doneBuildings(s);
-      if (buildings.length === 0) return null;
-      const target = pick(buildings);
-      return { subjectId: target.id, subjectName: target.name, amount: shareOfCost([target], ROOF_REPAIR_SHARE) };
-    },
-    prompt: (_s, ctx) =>
-      `Two decades of deferred maintenance have caught up with ${ctx.subjectName}: the roof is failing over the east wing. Facilities wants ${money(ctx.amount ?? 0)} to do it properly this term.`,
-    choices: [
-      {
-        id: 'repair',
-        label: 'Repair it now',
-        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} out of this week's cash. Nobody notices, which is the point.`,
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => entry(s, `Roof replaced on ${ctx.subjectName} for ${money(ctx.amount ?? 0)}.`, 'info'),
-      },
-      {
-        id: 'defer',
-        mood: -ROOF_DEFERRAL_SATISFACTION_HIT,
-        label: 'Buckets and tarpaulins',
-        describe: () =>
-          `No cash spent. Student satisfaction takes a ${ROOF_DEFERRAL_SATISFACTION_HIT}-point dent, which drifts back over the following weeks — unless the summer funnel arrives first.`,
-        cost: () => 0,
-        apply: (s, ctx) => {
-          dentSatisfaction(s, ROOF_DEFERRAL_SATISFACTION_HIT);
-          return entry(s, `Repairs on ${ctx.subjectName} deferred; the east wing is under tarpaulins.`, 'bad');
-        },
-      },
-    ],
-  },
-
-  {
-    id: 'dining-inspection',
-    title: 'A failed health inspection',
-    domain: 'estate',
-    weight: 8,
-    eligible: (s) => doneDiningHalls(s).length > 0,
-    rollContext: (s) => {
-      const halls = doneDiningHalls(s);
-      if (halls.length === 0) return null;
-      const target = pick(halls);
-      return { subjectId: target.id, subjectName: target.name, amount: shareOfCost([target], DINING_REMEDIATION_SHARE) };
-    },
-    prompt: (_s, ctx) =>
-      `The county has cited ${ctx.subjectName} — refrigeration, mostly, and a ventilation hood nobody has looked at in years. Full remediation runs ${money(ctx.amount ?? 0)}; the alternative is a limited menu until further notice.`,
-    choices: [
-      {
-        id: 'remediate',
-        label: 'Remediate in full',
-        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} now, and the kitchen reopens at full service.`,
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => entry(s, `${ctx.subjectName} remediated for ${money(ctx.amount ?? 0)}; citation cleared.`, 'info'),
-      },
-      {
-        id: 'limited',
-        mood: -DINING_DEFERRAL_SATISFACTION_HIT,
-        label: 'Run a limited menu',
-        describe: () =>
-          `No cash spent, and ${DINING_DEFERRAL_SATISFACTION_HIT} points off student satisfaction — the sharpest of the campus-life dents, because eating is the need students notice fastest.`,
-        cost: () => 0,
-        apply: (s, ctx) => {
-          dentSatisfaction(s, DINING_DEFERRAL_SATISFACTION_HIT);
-          return entry(s, `${ctx.subjectName} on a limited menu indefinitely; students are not quiet about it.`, 'bad');
-        },
-      },
-    ],
-  },
-
-  {
-    id: 'heating-plant',
-    title: 'The heating plant fails',
-    domain: 'estate',
-    weight: 8,
-    eligible: (s) => s.students.capacity >= HEATING_PLANT_CAPACITY_GATE,
-    rollContext: (s) => ({ amount: shareOfCost(s.tech.filter((t) => t.kind === 'dorm' && t.status === 'done'), HEATING_PLANT_SHARE) }),
-    prompt: (_s, ctx) =>
-      `The central plant's oldest boiler has cracked, three weeks into the cold. Replacing it costs ${money(ctx.amount ?? 0)}. The residence halls are on the same loop.`,
-    choices: [
-      {
-        id: 'replace',
-        label: 'Replace the boiler',
-        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} now. Heat stays on across the residence halls.`,
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => entry(s, `Boiler replaced for ${money(ctx.amount ?? 0)}; the plant is whole again.`, 'info'),
-      },
-      {
-        id: 'space-heaters',
-        mood: -HEATING_DEFERRAL_SATISFACTION_HIT,
-        label: 'Issue space heaters',
-        describe: () => `No cash spent. A ${HEATING_DEFERRAL_SATISFACTION_HIT}-point satisfaction dent, and a winter nobody forgets.`,
-        cost: () => 0,
-        apply: (s) => {
-          dentSatisfaction(s, HEATING_DEFERRAL_SATISFACTION_HIT);
-          return entry(s, 'Space heaters issued to the residence halls for the winter.', 'bad');
-        },
-      },
-    ],
-  },
-
-  {
-    id: 'state-capital-match',
-    title: 'A legislative capital match',
-    domain: 'board',
-    weight: 7,
-    eligible: (s) => s.clock.year >= STATE_MATCH_FIRST_YEAR,
-    // Aims at a revealed, unbuilt venue when there is one: the state's
-    // match can then come off the building's price instead of going to the
-    // endowment.
-    rollContext: (s) => {
-      const venue = unbuiltVenues(s)[0];
-      return {
-        amount: weeksOfOpEx(s, STATE_MATCH_COMMITMENT_WEEKS),
-        subjectId: venue?.id,
-        subjectName: venue?.name,
-      };
-    },
-    prompt: (_s, ctx) =>
-      `The state's capital committee has a matching programme with money left in it this biennium: commit ${money(ctx.amount ?? 0)} of the school's own funds and the state will match it several times over — into a restricted endowment, not into your operating account.`
-      + (ctx.subjectName ? ` The committee has also noticed the ${ctx.subjectName} on the school's plans, and a capital match can be spent on bricks.` : ''),
-    choices: [
-      {
-        id: 'commit',
-        label: 'Commit the match',
-        describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} out of cash now, ${money((ctx.amount ?? 0) * (1 + STATE_MATCH_MULTIPLIER))} into the endowment — permanent income, and a slow contribution to prestige.`,
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => {
-          const endowed = Math.round((ctx.amount ?? 0) * (1 + STATE_MATCH_MULTIPLIER));
-          s.finance.endowment += endowed;
-          return entry(s, `State capital match taken up: ${money(endowed)} added to the endowment.`, 'good');
-        },
-      },
-      {
-        id: 'lapse',
-        label: 'Let it lapse',
-        describe: () => 'Nothing changes. The money goes to a campus that asked for it.',
-        cost: () => 0,
-        apply: (s) => entry(s, 'The state capital match lapsed unclaimed.', 'info'),
-      },
-      // Offered only when the context found a venue: hidden rather than
-      // disabled (InterruptModal.tsx skips a choice whose `hidden` is true).
-      {
-        id: 'venue',
-        label: 'Put it toward the venue',
-        hidden: (_s, ctx) => !ctx.subjectId,
-        describe: (s, ctx) => {
-          const venue = s.tech.find((t) => t.id === ctx.subjectId);
-          const off = venue ? venueMatchDiscount(venue.cost, ctx.amount ?? 0) : 0;
-          return `${money(ctx.amount ?? 0)} out of cash now, and ${money(off)} comes off the price of the ${ctx.subjectName} — the state pays its match toward the building instead of the endowment.`;
-        },
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => {
-          const venue = s.tech.find((t) => t.id === ctx.subjectId);
-          if (!venue) return entry(s, 'The venue the match was aimed at is no longer on the plans.', 'info');
-          const off = venueMatchDiscount(venue.cost, ctx.amount ?? 0);
-          venue.cost = Math.max(0, venue.cost - off);
-          return entry(s, `State capital match aimed at the ${venue.name}: ${money(off)} off its price, now ${money(venue.cost)}.`, 'good');
-        },
-      },
-    ],
-  },
-
-  {
-    id: 'winter-storm',
-    title: 'A storm crosses the campus',
-    domain: 'estate',
-    weight: 7,
-    eligible: (s) => s.students.capacity >= STORM_CAPACITY_GATE,
-    rollContext: (s) => ({ amount: shareOfCost(s.tech.filter((t) => t.status === 'done' && t.kind !== 'course'), STORM_FULL_REPAIR_SHARE) }),
-    prompt: (_s, ctx) =>
-      `An overnight storm has taken out glazing, two transformers and most of the campus's trees. A full restoration is ${money(ctx.amount ?? 0)}; facilities can also do the safety-critical half and leave the rest until summer.`,
-    choices: [
-      {
-        id: 'full',
-        label: 'Restore everything now',
-        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} out of cash. The campus looks like nothing happened.`,
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => entry(s, `Storm damage fully restored for ${money(ctx.amount ?? 0)}.`, 'info'),
-      },
-      {
-        id: 'partial',
-        mood: -STORM_PARTIAL_SATISFACTION_HIT,
-        label: 'Safety-critical work only',
-        describe: (_s, ctx) =>
-          `${money((ctx.amount ?? 0) * STORM_PARTIAL_SHARE)} now and a ${STORM_PARTIAL_SATISFACTION_HIT}-point satisfaction dent while the rest waits for summer.`,
-        cost: (_s, ctx) => Math.round((ctx.amount ?? 0) * STORM_PARTIAL_SHARE),
-        apply: (s, ctx) => {
-          dentSatisfaction(s, STORM_PARTIAL_SATISFACTION_HIT);
-          return entry(s, `Storm: safety-critical repairs done for ${money((ctx.amount ?? 0) * STORM_PARTIAL_SHARE)}, the rest deferred to summer.`, 'info');
-        },
-      },
-      {
-        id: 'defer',
-        mood: -STORM_DEFERRAL_SATISFACTION_HIT,
-        label: 'Board it up and wait',
-        describe: () => `No cash spent, and ${STORM_DEFERRAL_SATISFACTION_HIT} points off student satisfaction — the largest dent in the table.`,
-        cost: () => 0,
-        apply: (s) => {
-          dentSatisfaction(s, STORM_DEFERRAL_SATISFACTION_HIT);
-          return entry(s, 'Storm damage boarded up and left; the campus spends the term in plywood.', 'bad');
-        },
-      },
-    ],
-  },
-
-  {
-    id: 'faculty-scandal',
-    title: 'A faculty controversy',
-    domain: 'board',
-    weight: 5,
-    eligible: (s) => facultyAtRisk(s).length > 0,
-    rollContext: (s) => {
-      const candidates = facultyAtRisk(s);
-      if (candidates.length === 0) return null;
-      const target = pick(candidates);
-      return {
-        subjectId: target.id,
-        subjectName: target.name,
-        subjectField: target.field,
-        amount: weeksOfOpEx(s, SCANDAL_DEFENCE_COST_WEEKS),
-      };
-    },
-    prompt: (_s, ctx) =>
-      `${ctx.subjectName} (${ctx.subjectField}) is at the centre of a public controversy. Counsel and a communications firm want ${money(ctx.amount ?? 0)} to see it through; the student body would rather the school simply parted ways.`,
-    choices: [
-      {
-        id: 'defend',
-        label: 'Stand behind them',
-        describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} in legal and communications costs. ${ctx.subjectName} stays on the roster; satisfaction takes a ${SCANDAL_DEFENCE_SATISFACTION_HIT}-point dent.`,
-        cost: (_s, ctx) => ctx.amount ?? 0,
-        apply: (s, ctx) => {
-          dentSatisfaction(s, SCANDAL_DEFENCE_SATISFACTION_HIT);
-          return entry(s, `The university has stood behind ${ctx.subjectName}; the campus is divided.`, 'info');
-        },
-      },
-      {
-        id: 'dismiss',
-        label: 'Part ways',
-        describe: (_s, ctx) =>
-          `No cash spent. ${ctx.subjectName} is off the roster and off the payroll, their ${ctx.subjectField} course slots with them, and the student body approves.`,
-        cost: () => 0,
-        apply: (s, ctx) => {
-          removeFaculty(s, ctx.subjectId);
-          s.students.satisfaction = clamp(s.students.satisfaction + SCANDAL_DISMISSAL_SATISFACTION_GAIN, 0, 100);
-          return entry(s, `${ctx.subjectName} has been dismissed.`, 'bad', 'departure', ctx.subjectId);
-        },
       },
     ],
   },

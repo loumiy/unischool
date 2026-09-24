@@ -387,6 +387,24 @@ export interface QuadState {
   designated: string[];
 }
 
+// An event from the catalogue waiting for an answer. The price scale and
+// the names in its text are fixed when it fires, so what the panel shows is
+// what is applied.
+export interface PendingCatalogueEvent {
+  instanceId: string;
+  eventId: string;
+  firedWeek: number;              // absolute (eventData.ts's absoluteWeek)
+  vars: Record<string, string>;
+  scale: number;
+}
+
+export interface CatalogueState {
+  pending: PendingCatalogueEvent[];
+  lastFired: Record<string, number>; // event id -> year
+  lastInlineWeek: number;            // absolute
+  lastSeismicWeek: number;           // absolute
+}
+
 // While `pendingInterrupt` is set the clock halts; the UI renders a modal by
 // `type` (docs/architecture/interrupts.md).
 export interface PendingInterrupt {
@@ -967,6 +985,10 @@ export interface GameState {
   // The college's rival (systems/rivals/collegeRival.ts) and whether the
   // college stood above it at the last summer. Undefined before one exists.
   rivalStanding?: { rivalId: string; above: boolean };
+  // The event catalogue (systems/events/catalogueEngine.ts): events waiting
+  // for an answer, the year each last fired, and when the last inline event
+  // and the last letter fired. Undefined before the first fires.
+  catalogue?: CatalogueState;
   // Lamps and benches the player has placed beside the paths, by tile key
   // (components/dressing.tsx). Optional: a campus may have none.
   dressing?: Dressing;

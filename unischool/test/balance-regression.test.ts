@@ -187,10 +187,10 @@ function findRecovery(name: string) {
 {
   const { run } = find('Overbuilder (beds ahead of demand)');
   const last = run.rows[run.rows.length - 1];
-  const year5 = run.rows.find((r) => r.year === 5)!;
+  const year6 = run.rows.find((r) => r.year === 6)!;
   economy(last.weeksInTheRed > 0, `the overbuilder strategy actually experiences real financial distress (got ${last.weeksInTheRed} weeks in the red)`);
   economy(last.minCash < 0, `the overbuilder strategy's cash genuinely goes negative at some point (min cash ${last.minCash.toLocaleString()})`);
-  // Plan 15's own sentence: underwater by year 5. Beds ahead of demand,
+  // Plan 15's own sentence: underwater by year 5 (now 6; see below). Beds ahead of demand,
   // priced under the ramp, with the barest facilities — the hole is dug
   // early and on purpose. JUDGED ACROSS SEEDS (see `holds` below), since
   // Plan 21's PR A: year-5 cash sits within a few hundred thousand of zero
@@ -200,8 +200,14 @@ function findRecovery(name: string) {
   // the default seed simply landed on the other side of it. The two claims
   // above it (real distress, cash genuinely negative) held at every seed
   // tried, both times, and stay point readings.
-  const underwater = holds('Overbuilder (beds ahead of demand)', YEARS, (r) => r.rows.find((row) => row.year === 5)!.cash < 0, run);
-  economy(underwater.ok, `the overbuilder strategy is underwater by year 5 (cash ${year5.cash.toLocaleString()})${underwater.note}`);
+  //
+  // Plan 32 moved it to year 6. The texture events it retired were early
+  // costs the harness paid in full (a roof, a kitchen, a boiler), and the
+  // catalogue's defaults cost little: year-5 cash now reads $0.2M to $0.6M
+  // at all five seeds, and year 6 is below zero at four of them, the
+  // default among them.
+  const underwater = holds('Overbuilder (beds ahead of demand)', YEARS, (r) => r.rows.find((row) => row.year === 6)!.cash < 0, run);
+  economy(underwater.ok, `the overbuilder strategy is underwater by year 6 (cash ${year6.cash.toLocaleString()})${underwater.note}`);
   // And it STALLS rather than sinking (Plan 15's PR G re-fit — the plan
   // said "recovered by 15", and what the fitted game does is hover at
   // break-even from the trough on, in and out of the red at seven hundred
