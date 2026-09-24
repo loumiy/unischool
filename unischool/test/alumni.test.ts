@@ -10,6 +10,8 @@ import {
 import { financeBreakdown } from '../src/systems/finance/financeSystem';
 import { reducer } from '../src/engine/reducer';
 import type { AlumniClass } from '../src/state/types';
+import { CAMPAIGNS, campaignById } from '../src/data/campaignData';
+import { advancementOf, classResponse, openCampaigns, tickCampaigns, yearlyResponse } from '../src/systems/alumni/campaigns';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState, YearSnapshot } from '../src/state/types';
 
@@ -80,6 +82,7 @@ function withYears(rows: YearSnapshot[]): GameState {
   assert(givingOf(cls(), 25) === 1000 * GIVING_PER_ALUM, 'an established, neutral class of a thousand gives the base rate each');
   assert(givingOf(cls({ warmth: 100 }), 25) === 2 * givingOf(cls(), 25), 'a devoted one twice that');
   assert(givingOf(cls({ warmth: 0 }), 25) === 0, 'a cold one nothing');
+  assert(givingOf(cls(), 6) === 0 && givingOf(cls(), 7) > 0, 'and nobody in the year after they leave');
   const s = createInitialState('Fund');
   s.clock.year = 30;
   const before = financeBreakdown(s).totalIncome;
@@ -106,6 +109,39 @@ function withYears(rows: YearSnapshot[]): GameState {
     s = reducer(s, { type: 'HOLD_REUNION', classYear: 5 });
   }
   assert(s.alumni![0].nudged === REUNION_WARMTH_CAP, `and never more than ${REUNION_WARMTH_CAP} in all`);
+}
+
+// ---- Campaigns ----
+{
+  let s = createInitialState('Campaigns');
+  s.pendingInterrupt = null;
+  s.finance.cash = 1e8;
+  s.clock.year = 30;
+  s.alumni = Array.from({ length: 20 }, (_, i) => ({ classYear: 5 + i, size: 800, satisfaction: 65, quality: 55, memory: i % 2 === 0 ? ['deficits'] : ['happy'], warmth: 60, nudged: 0 }));
+  s.finance.endowment = 10_000_000;
+  assert(CAMPAIGNS.length === 5 && CAMPAIGNS.every((c) => c.years > 0 && c.resonates.length > 0), 'five campaigns, each with a term and a case');
+  assert(openCampaigns(s).length === 0, 'no campaign without a VP of Advancement');
+  s = reducer(s, { type: 'APPOINT_SEAT', seatId: 'advancement', school: null });
+  const open = openCampaigns(s).map((c) => c.id);
+  assert(open.includes('endowment-drive'), `with one, the endowment drive opens for a college under $90M (${open.join(', ')})`);
+  const drive = campaignById('endowment-drive')!;
+  const moved = s.alumni![0];
+  const unmoved = s.alumni![1];
+  assert(classResponse(moved, drive, 30) > classResponse({ ...unmoved, memory: moved.memory.filter(() => false) }, drive, 30), 'a class whose memory is the case gives more');
+  s = reducer(s, { type: 'LAUNCH_CAMPAIGN', id: 'endowment-drive' });
+  const running = advancementOf(s).running!;
+  assert(running && running.target > 0 && running.target < yearlyResponse(s, drive) * drive.years, 'launched, with a target short of everything the ledger could give');
+  assert(openCampaigns(s).length === 0, 'one at a time');
+  const endowment = s.finance.endowment;
+  const warmth = s.alumni![0].warmth;
+  tickCampaigns(s);
+  assert(s.finance.endowment > endowment, 'endowment money goes into the endowment');
+  assert(s.alumni![0].warmth < warmth, 'and asking cools the ledger');
+  s.clock.year = running.dueYear;
+  tickCampaigns(s);
+  const closed = advancementOf(s).closed[0];
+  assert(advancementOf(s).running === null && closed.campaignId === 'endowment-drive' && closed.met === false, 'a campaign closes at its term, short if it came up short');
+  assert(!openCampaigns(s).some((c) => c.id === 'endowment-drive'), 'and is not run twice');
 }
 
 if (failures === 0) {

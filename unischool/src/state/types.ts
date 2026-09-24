@@ -876,6 +876,19 @@ export interface YearSnapshot {
   schoolsFounded?: number;
 }
 
+export interface RunningCampaign {
+  campaignId: string;       // data/campaignData.ts
+  startedYear: number;
+  dueYear: number;
+  raised: number;
+  target: number;
+}
+export interface Advancement {
+  running: RunningCampaign | null;
+  closed: { campaignId: string; year: number; raised: number; met: boolean }[];
+  restrictedBuilding: number; // raised for buildings, spendable on nothing else
+}
+
 // A graduated class, stamped at commencement (systems/alumni/ledger.ts).
 export interface AlumniClass {
   classYear: number;     // the year they graduated
@@ -940,6 +953,9 @@ export interface GameState {
   // The alumni ledger, oldest class first (Plan 30). Undefined before the
   // first commencement stamps a class.
   alumni?: AlumniClass[];
+  // Advancement (Plan 30): the campaign running, those closed, and building
+  // money raised and not yet spent. Undefined before the first campaign.
+  advancement?: Advancement;
   // Lamps and benches the player has placed beside the paths, by tile key
   // (components/dressing.tsx). Optional: a campus may have none.
   dressing?: Dressing;

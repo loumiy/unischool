@@ -23,7 +23,13 @@ export function warmthOf(a: AlumniClass): number {
   return Math.min(100, a.warmth + a.nudged);
 }
 
+// A class gives from its second year out: the first it spends finding its
+// feet. (It also keeps the summer's projection exact: the class stamped at
+// commencement gives nothing in the year the admissions panel prices.)
+export const GIVING_FIRST_YEAR_OUT = 2;
+
 export function givingOf(a: AlumniClass, year: number): number {
+  if (year - a.classYear < GIVING_FIRST_YEAR_OUT) return 0;
   const warmth = warmthOf(a) / 50;
   const means = 0.5 + a.quality / 100;
   return Math.round(a.size * GIVING_PER_ALUM * warmth * means * maturityOf(Math.max(0, year - a.classYear)));

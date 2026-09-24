@@ -110,9 +110,9 @@ export type Action =
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }
   | { type: 'UNMARK_QUAD'; key: string }
   | { type: 'NAME_QUAD'; key: string; name: string }
-  // Converts cash into endowment at a prestige-scaled match; repeatable at a
-  // rising cost, the late-game money sink (financeSystem.ts's endowmentCampaign).
-  | { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' }
+  // Launches an advancement campaign (systems/alumni/campaigns.ts), which
+  // replaced the endowment campaign in Plan 30.
+  | { type: 'LAUNCH_CAMPAIGN'; id: string }
   // Fallback for an interrupt type InterruptModal.tsx doesn't recognise.
   | { type: 'RESOLVE_INTERRUPT' }
   // Advances the summer one beat without moving the clock; leaving the

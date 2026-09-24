@@ -98,16 +98,6 @@ function emptyClasses(s: GameState): void {
   }
 }
 
-// An unaffordable endowment campaign is refused even past the prestige gate.
-{
-  const s0 = fresh();
-  s0.self.reputation = 80;   // clears the campaign's prestige gate
-  s0.finance.cash = 1000;    // but the base campaign costs millions
-  const s1 = reducer(s0, { type: 'LAUNCH_ENDOWMENT_CAMPAIGN' });
-  assert(s1.finance.cash === 1000, 'unaffordable endowment campaign does not charge');
-  assert(s1.finance.endowmentCampaigns === 0, 'unaffordable endowment campaign does not run');
-}
-
 // ---- The operating budget CAN go negative, and the run continues ----
 
 // Strip enrollment (no tuition) so the deterministic salary + seat-upkeep

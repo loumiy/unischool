@@ -5,7 +5,7 @@ import { debtService, drawRate, serviceLoans } from './treasury';
 import { accrueTerm } from './distress';
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
-import { departmentPot, inTitleYear, studentOrgUpkeep } from '../../data/studentLifeData';
+import { departmentPot, studentOrgUpkeep } from '../../data/studentLifeData';
 import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
 import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
@@ -104,61 +104,6 @@ const REPUTATION_DIVIDEND_PER_POINT_PER_YEAR = 900;
 // is below the return, so an untouched endowment grows. There is no
 // auto-draw: it is not an insolvency backstop.
 export const ENDOWMENT_ANNUAL_RETURN = 0.055;
-
-// Group 3: endowment campaigns, the late-game money sink once the build
-// chains and curriculum run out. A campaign converts cash into endowment at a
-// prestige-scaled donor match; it repeats forever at rising cost and buys
-// permanent payout plus a capped prestige input (prestigeSystem.ts's
-// endowmentScore). Revealed by prestige, never a throttle.
-const ENDOWMENT_CAMPAIGN_BASE_COST = 2_000_000;
-const ENDOWMENT_CAMPAIGN_COST_GROWTH = 1.45;  // each campaign costs 45% more than the last
-const ENDOWMENT_CAMPAIGN_PRESTIGE_GATE = 60;  // donors show up once the school is somebody
-// Donor match per dollar committed, scaling with prestige.
-const ENDOWMENT_CAMPAIGN_BASE_MATCH = 0.25;
-const ENDOWMENT_CAMPAIGN_PRESTIGE_MATCH = 0.75; // additional match at PRESTIGE_MATCH_REFERENCE prestige
-const ENDOWMENT_CAMPAIGN_PRESTIGE_REFERENCE = 150; // same top of the scale prestigeSystem.ts clamps to
-// Donor fatigue: each campaign's match is worth less than the last. Without
-// it cash -> endowment -> payout -> cash becomes a perpetual machine that
-// out-earns the university.
-const ENDOWMENT_CAMPAIGN_MATCH_DECAY = 0.88;
-// A title year lifts the match: championships sell capital campaigns.
-const ENDOWMENT_CAMPAIGN_TITLE_LIFT = 0.25;
-
-// Pure: the Treasury renders it and the reducer commits it, so the shown
-// number is the one the player gets.
-export interface EndowmentCampaign {
-  available: boolean;   // prestige gate cleared
-  affordable: boolean;  // and the cash is actually there
-  number: number;       // 1-indexed: which campaign this would be
-  cost: number;         // cash committed
-  match: number;        // donor match multiplier on that cash
-  titleLift: boolean;   // lifted because the school won a national title this year or last
-  endowmentGain: number; // cost x (1 + match)
-  annualPayout: number; // what that gain adds to income every year, forever
-}
-
-export function endowmentCampaign(s: GameState): EndowmentCampaign {
-  const number = s.finance.endowmentCampaigns + 1;
-  const cost = Math.round(
-    ENDOWMENT_CAMPAIGN_BASE_COST * ENDOWMENT_CAMPAIGN_COST_GROWTH ** s.finance.endowmentCampaigns,
-  );
-  const titleLift = inTitleYear(s);
-  const match = (ENDOWMENT_CAMPAIGN_BASE_MATCH +
-    ENDOWMENT_CAMPAIGN_PRESTIGE_MATCH * Math.max(0, s.self.reputation) / ENDOWMENT_CAMPAIGN_PRESTIGE_REFERENCE) *
-    ENDOWMENT_CAMPAIGN_MATCH_DECAY ** s.finance.endowmentCampaigns *
-    (titleLift ? 1 + ENDOWMENT_CAMPAIGN_TITLE_LIFT : 1);
-  const endowmentGain = Math.round(cost * (1 + match));
-  return {
-    available: s.self.reputation >= ENDOWMENT_CAMPAIGN_PRESTIGE_GATE,
-    affordable: s.finance.cash >= cost,
-    number,
-    cost,
-    match,
-    titleLift,
-    endowmentGain,
-    annualPayout: endowmentGain * drawRate(s),
-  };
-}
 
 // =====================================================================
 // The weekly cash flow

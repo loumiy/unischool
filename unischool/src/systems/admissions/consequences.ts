@@ -115,7 +115,9 @@ export function projectConsequences(
     finance: { ...s.finance, tuitionByClass: advanced.tuitionByClass, listedTuition: incomingPrice },
   };
 
-  const flow = financeBreakdown(projected);
+  // Priced in the year the summer opens (resolveAdmissions.ts advances the
+  // clock), which is when the annual fund's classes are a year further out.
+  const flow = financeBreakdown({ ...projected, clock: { ...s.clock, year: s.clock.year + 1 } });
   return {
     totalEnrolled: totalEnrolled(projected.students),
     graduating: advanced.graduating,

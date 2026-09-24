@@ -20,6 +20,7 @@
 //   npm run sim -- --compare last.json    # print what moved against them
 // ---------------------------------------------------------------------
 
+import { transferOffers } from '../src/systems/finance/treasury';
 import { careerWeeks } from '../src/systems/faculty/facultySystem';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { reducer } from '../src/engine/reducer';
@@ -31,7 +32,7 @@ import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, Legac
 import { SUMMER_LAST_BEAT, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
-import { financeBreakdown, endowmentCampaign, weeklyNet, instructionCostPerStudentWith, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
+import { financeBreakdown, weeklyNet, instructionCostPerStudentWith, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
 import { admitRate, priceTolerance, topBandShare } from '../src/systems/admissions/admissionsSystem';
 import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
@@ -721,14 +722,16 @@ function decide(
     }
   }
 
-  // The late-game sink: pour anything well past the reserve into the
-  // endowment (see financeSystem.ts's endowment campaigns).
+  // The late-game sink: move anything well past the reserve into the
+  // endowment. It was the endowment campaign until Plan 30 replaced that
+  // with the alumni's campaigns, which need a VP of Advancement the harness
+  // never appoints; the transfer (finance/treasury.ts) is the same sink
+  // without the old donor match.
   if (strategy.campaigns) {
     const s = get();
-    const campaign = endowmentCampaign(s);
-    if (campaign.available && s.finance.cash - campaign.cost >= strategy.buffer(s) * 3) {
-      dispatch({ type: 'LAUNCH_ENDOWMENT_CAMPAIGN' });
-    }
+    const spare = s.finance.cash - strategy.buffer(s) * 3;
+    const offer = transferOffers(s).filter((a) => a <= spare).pop();
+    if (offer !== undefined) dispatch({ type: 'MOVE_TO_ENDOWMENT', amount: offer });
   }
 }
 
