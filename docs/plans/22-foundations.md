@@ -390,6 +390,22 @@ it trims comments in their final shape, not twice.
 - **v2's validated JSON content arrives with its own loader in the phase
   that ports it (Phase K).** Its checks join this suite.
 
+**As implemented:**
+
+- **315 checks across the tables:**
+  - the catalogue: unique ids, prereqs that exist, no row its own prereq,
+    no prereq cycle, required faculty fields that exist, clean names and
+    descriptions, no negative cost or duration;
+  - programs: their courses, entry course and field;
+  - the founding programs and the cross-major bridges;
+  - course descriptions, research topics (fields and labs), decision events
+    (ids, choices, labels, weights), ambitions and sports.
+- **"Clean" text** is present, trimmed, and free of `${`, `{{`,
+  `undefined`, `NaN`, `null`, `TODO`, `TBD` and `XXX`.
+- **The data passed on the first run** except in one place: two decision
+  events have weight 0. That is deliberate; they are fired directly, never
+  drawn. The check now allows 0 and refuses only a negative weight.
+
 ## PR 22I — The merged balance harness
 
 - **`sim/balanceSim.ts` keeps its seven strategies, reference bands,
