@@ -1,6 +1,7 @@
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
+import { totalEnrolled } from '../state/types';
 import { useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
@@ -11,6 +12,8 @@ import { siteRefusal } from '../state/reach';
 import { detectQuads, tileIndex, type Quad } from '../state/quads';
 import { QuadOverlay, QuadPatches } from './quadLayer';
 import QuadPanel from './QuadPanel';
+import Walkers from './Walkers';
+import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
@@ -510,6 +513,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
       <path className="campus-road-centre" d={ground.centre} />
 
       <QuadPatches quads={quads} camera={camera} />
+      <DesireLines layout={layout} camera={camera} />
 
       <PathwayLayer pathways={pathways} camera={camera} />
 
@@ -531,6 +535,24 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
       </g>
     </>
   );
+});
+
+// Desire lines: the lawn worn where the busiest routes cross it (see
+// walkRoutes.ts), under the paving, so a path laid over one covers it and
+// the next layout no longer routes across the grass there.
+const DesireLines = memo(function DesireLines({ layout, camera }: { layout: CampusLayout; camera: Camera }) {
+  const d = useMemo(() => {
+    const input = { placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways };
+    return desireLines(input, walkGrid(input))
+      .map((run) => run.map((w, i) => {
+        const p = project(w.col, w.row);
+        return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+      }).join(''))
+      .join('');
+    // `camera` is read by the projection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, camera]);
+  return d ? <path className="campus-desire" d={d} aria-hidden="true" /> : null;
 });
 
 // Hall pips: one per slot, in the colour of the school whose program holds
@@ -560,7 +582,7 @@ function HallMarksLayer({ s, layout, onInspect }: {
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, inspectTarget, onInspectTargetConsumed, onInspectedChange,
+  onOpenCurriculum, inspectTarget, onInspectTargetConsumed, onInspectedChange, gait,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -587,6 +609,9 @@ export default function CampusMap({
   onInspectTargetConsumed?: () => void;
   // Reports which building's panel is open (the opening walkthrough reads it).
   onInspectedChange?: (id: string | null) => void;
+  // The clock's pace as a multiple of Play, 0 while it is stopped: how fast
+  // the walkers walk.
+  gait: number;
 }) {
   const [rotated, setRotated] = useState(false);
   // The building whose info panel is open. Mutually exclusive with
@@ -1219,6 +1244,7 @@ export default function CampusMap({
                 camera={camera}
               />
             </DevelopingContext.Provider>
+            <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
           </g>

@@ -1,6 +1,7 @@
 import type { CampusTool } from './state/actions';
 import { useEffect, useRef, useState } from 'react';
-import { useGame } from './engine/useGame';
+import { SPEEDS, useGame } from './engine/useGame';
+import { openingHoldsClock } from './state/opening';
 import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
@@ -235,6 +236,7 @@ export default function App() {
         inspectTarget={inspectTarget}
         onInspectTargetConsumed={() => setInspectTarget(null)}
         onInspectedChange={setInspectedId}
+        gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
       />
       <MainMenu act={act} />
       {/* The school's pennant (Pennant.tsx); the tab's title takes that

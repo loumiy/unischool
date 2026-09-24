@@ -645,6 +645,11 @@ button.build-tile { font-family: inherit; }
 /* Quads (state/quads.ts, quadLayer.tsx): a tint on the ground, an outline on
    the one under the pointer or open in its card, and its name on the ground. */
 .campus-quad { fill: rgba(255, 244, 196, 0.1); pointer-events: none; }
+/* Walkers (Walkers.tsx) and the lawn their routes wear (walkRoutes.ts). */
+.campus-walkers { pointer-events: none; }
+.walker-shadow { fill: rgba(0, 0, 0, 0.2); }
+.walker-head { fill: #e9c9a6; }
+.campus-desire { fill: none; stroke: rgba(176, 160, 104, 0.38); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .campus-quad.designated { fill: rgba(255, 244, 196, 0.14); }
 .campus-quad-outline { fill: rgba(255, 244, 196, 0.12); stroke: rgba(255, 246, 220, 0.85); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
 .campus-quad-outline.inspected { stroke: var(--gold); stroke-width: 2; }

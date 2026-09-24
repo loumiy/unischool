@@ -239,6 +239,27 @@ This is the baseline every later PR in this plan is measured against.
 - **Desire lines** form where routes cross grass often, and fade when a
   path is laid over them.
 
+**As implemented:**
+
+- **`components/walkRoutes.ts`** ports v2's walk grid (path 1, road 1.5, a
+  Campus Quad 2, lawn 4, buildings closed), its doors and its eight-way
+  Dijkstra. A route is read off a shortest-path tree from its first door,
+  and `RouteTable` grows at most one tree a frame, as walkers first ask.
+  A new campus fills in over a second rather than stalling a frame on every
+  door's search.
+- **`Walkers.tsx`** ports v2's imperative layer: one `<g>` a walker, moved
+  by attribute, positions in grid space projected every frame. A building
+  nearer the camera clips a walker by its outline. One clip slot a walker,
+  where v2 had two, keeps a crowd of hundreds cheap. The count is
+  `0.285 × students^0.684`, about 20 at 500 students and 400 at 40,000,
+  bucketed in tens so a week's attrition does not rebuild the crowd. The
+  pace follows the clock: Play is one, 4× is four, capped at eight, and
+  still when the clock is held.
+- **Desire lines** are homes to halls and dining, the busiest six by eight
+  routes. They are drawn as a worn stroke through lawn tile centres, under
+  the paving, and recomputed per layout.
+- **Profile, Year 40 (355 walkers):** 55.8 fps at 4×, 1.5 below F.
+
 ## PR 24H — Lamps, benches and bike racks
 
 - **Lamps and benches are placed by the player,** with the path tool's new
