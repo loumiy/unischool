@@ -2320,6 +2320,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .hall-reading-title { margin: 0 0 8px; font-family: var(--display); font-weight: 800; color: var(--ink); }
 .hall-reading-grades { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 12px; font-size: var(--text-sm); }
 
+/* ---------- The build menu, folded while a building is held (Plan 34) ---------- */
+.build-popup.holding { max-height: none; }
+.build-holding { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.build-holding-name { font-weight: 700; }
+.build-holding-keys { font-size: var(--text-sm); color: var(--ink-muted); flex: 1; }
+.build-holding .newgame-btn { width: auto; margin: 0; flex: none; }
+
 /* ---------- The chronicle (Plan 33, ChroniclePanel.tsx) ---------- */
 .chronicle-eras { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .chronicle-era { padding: 10px 14px; border-left: 4px solid var(--school-primary); background: var(--cream-hi); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }

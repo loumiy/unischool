@@ -228,6 +228,8 @@ export default function App() {
     if (e.key !== 'Escape' || s.pendingInterrupt) return;
     if (ladderOpen) setLadderOpen(false);
     else if (logOpen) setLogOpen(false);
+    // A building in hand is put down before the menu closes (Plan 34).
+    else if (buildOpen && placingId) setPlacingIdState(null);
     else if (buildOpen) closeBuild();
     else if (overlay) openTab(null);
   }, s.started);

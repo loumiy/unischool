@@ -43,7 +43,7 @@ console.log('waiting-on-map tests');
   s.catalogue.pending[0].firedWeek = week - e.timeoutWeeks + 1;
   assert(waitingOnMap(s)!.urgent === true, 'and pulses in its last week');
 
-  s.finance.distress = { ...(s.finance.distress ?? {}), letters: ['enter-2'] } as never;
+  s.finance.distress = { ...s.finance.distress, letters: ['enter-2'] } as never;
   const board = waitingOnMap(s)!;
   assert(board.text === 'The board has written' && board.urgent === true, 'the board outranks everything');
 }

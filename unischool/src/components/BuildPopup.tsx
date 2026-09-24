@@ -9,6 +9,7 @@ import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibr
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
+import { BUILD_WORDS } from '../data/buildWords';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
 import {
@@ -683,6 +684,28 @@ export default function BuildPopup({
     if (activeUnseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'buildable', ids: activeUnseenIds });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeUnseenKey]);
+
+  // A building in hand (Plan 34, from v2's): the menu folds to a strip along
+  // the toolbar, so the ghost and the ground it is going on are never under
+  // it. Escape puts it down (App.tsx's ladder), before it closes the menu.
+  const held = placingId ? s.tech.find((t) => t.id === placingId) : undefined;
+  if (held) {
+    const financing = held.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, held, undefined, f));
+    return (
+      <ToolbarPopup title="Build" onClose={onClose} className="build-popup holding">
+        <div className="build-holding">
+          <span className="build-holding-name">
+            {BUILD_WORDS.holding
+              .replace('{building}', held.name)
+              .replace('{cost}', money(held.status === 'done' ? 0 : held.cost))
+              .replace('{pay}', BUILD_WORDS.pay[financing ?? 'none'])}
+          </span>
+          <span className="build-holding-keys">{BUILD_WORDS.holdingKeys}</span>
+          <button type="button" className="newgame-btn" onClick={() => onArmPlacement(null)}>{BUILD_WORDS.putDown}</button>
+        </div>
+      </ToolbarPopup>
+    );
+  }
 
   return (
     <ToolbarPopup
