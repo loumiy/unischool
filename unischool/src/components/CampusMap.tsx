@@ -21,7 +21,7 @@ import PathwayLayer from './pathways';
 import Tree, { woodlandShadow } from './trees';
 import { castShadow } from './light';
 import {
-  DEFAULT_CAMERA, PITCHES, TILE_H, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
+  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TILE_H, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
   type Camera,
 } from './isoProjection';
 
@@ -100,7 +100,7 @@ const KEY_PAN_SPEED = 1100;
 const MAX_PAN_FRAME_S = 0.1;
 
 // --- the camera ---
-// Four views (VIEWS) and three pitches (PITCHES), stepped with Q/E, Z/X and
+// Four views (VIEWS) and ten pitches (PITCHES), stepped with Q/E, Z/X and
 // Home; keys only, no animation between views (the motifs are drawn for
 // those exact angles). A camera change is a React re-render, unlike a pan.
 // It turns about the ground at the canvas centre (see applyCamera).
@@ -573,7 +573,7 @@ export default function CampusMap({
   setCamera(camera);
   const layout = useCampusLayout(s);
   // The camera is derived from these, so it only rests on a crisp view.
-  const stanceRef = useRef({ view: 0, pitch: 0 });
+  const stanceRef = useRef({ view: 0, pitch: DEFAULT_PITCH_INDEX });
   // Buildings that finished within the last COMPLETION_PULSE_MS. Derived by
   // diffing the previous developing set, so nothing enters GameState.
   const [justFinished, setJustFinished] = useState<readonly string[]>([]);
@@ -720,7 +720,7 @@ export default function CampusMap({
     applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
   }
   function resetCamera() {
-    stanceRef.current = { view: 0, pitch: 0 };
+    stanceRef.current = { view: 0, pitch: DEFAULT_PITCH_INDEX };
     applyCamera(DEFAULT_CAMERA);
   }
 
@@ -1200,7 +1200,7 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, and Home brings back the opening view."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, from nearly level to straight down,, and Home brings back the opening view."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

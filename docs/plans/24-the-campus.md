@@ -113,6 +113,21 @@ This is the baseline every later PR in this plan is measured against.
 - **Z and X step the ladder, Home resets.** Every tab shortcut is checked
   against the camera's keys in the hotkey test.
 
+**As implemented:**
+
+- **`isoProjection.ts`** carries v2's `PITCH_SINES` and a
+  `DEFAULT_PITCH_INDEX` (the 2:1 dimetric, fourth of ten). The clamp opens
+  from 20–55° to 10–90°. The motifs needed nothing: every height already
+  runs through the projection's height scale, which is 0 straight down, so
+  the plan view shows roofs and ground.
+- **The depth test sorts a campus at every pitch and view,** with no
+  occlusion violations, and checks that no pitch on the ladder is clamped.
+- **This game has no tab shortcuts,** so there was nothing to check against
+  the camera's keys. The map's help text claimed C, F and L opened tabs; it
+  no longer does.
+- **Profile, Year 40:** 57.2 fps at 4× (56.5 at 24B), unchanged within
+  noise.
+
 ## PR 24D — The parcel and the road
 
 - **A road runs along the parcel's south edge** as terrain: not buildable,
