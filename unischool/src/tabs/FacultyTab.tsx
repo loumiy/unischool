@@ -623,6 +623,12 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   }, [s.candidates]);
 
   const [view, setView] = useState<View>('both');
+  // Only the departments the college uses (Plan 29): a course offered or
+  // revealed, or somebody on the roster. The rest wait behind a toggle, so
+  // the market scans without scrolling every field there is.
+  const [everyField, setEveryField] = useState(false);
+  const developed = (c: FieldCapacity) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.field === target;
+  const hiddenFields = cap.fields.filter((c) => !developed(c)).length;
   // Expansion is stored as per-row overrides over a default (collapsed), so
   // "Expand all" and a row's own toggle compose.
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -689,6 +695,11 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           <span className="dept-bulk">
             <button type="button" onClick={() => setAll(true)}>Expand all</button>
             <button type="button" onClick={() => setAll(false)}>Collapse all</button>
+            {hiddenFields > 0 || everyField ? (
+              <button type="button" aria-pressed={everyField} onClick={() => setEveryField((v) => !v)}>
+                {everyField ? 'Only the fields in use' : `Show every field (${hiddenFields} more)`}
+              </button>
+            ) : null}
           </span>
         </div>
 
@@ -706,10 +717,10 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           <span className="dept-note">next</span>
         </div>
 
-        {FACULTY_FIELD_GROUPS.map((group) => (
+        {FACULTY_FIELD_GROUPS.filter((group) => everyField || group.fields.some((field) => developed(cap.byField.get(field)!))).map((group) => (
           <section key={group.name} className="dept-group">
             <h4>{group.name}</h4>
-            {group.fields.map((field) => {
+            {group.fields.filter((field) => everyField || developed(cap.byField.get(field)!)).map((field) => {
               const c = cap.byField.get(field)!;
               return (
                 <DepartmentRow
