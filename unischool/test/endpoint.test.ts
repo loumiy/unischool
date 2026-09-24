@@ -71,12 +71,22 @@ for (const [name, readings] of [['Earnest completionist', completionist], ['Bala
 }
 
 // --- the earnest completionist ----------------------------------------------------
-every('Earnest completionist', completionist, 'finishes 90% or more of the catalogue', (r) => r.catalogueShare >= 0.9);
-every('Earnest completionist', completionist, 'builds every academic hall', (r) => r.hallsShare === 1);
-// Seven in ten since Plan 35: Plan 33's nine capital projects count as
-// placeables the harness never builds, and on the larger founding gift the
-// run lands at 74%, 79% and 80% on the three seeds (three in four before).
-every('Earnest completionist', completionist, 'builds seven in ten of every placeable thing', (r) => r.buildingsShare >= 0.7);
+// Plan 36's cost of being large: the earnest completionist builds whatever
+// it can, has no endowment to carry a big campus, and on two seeds of three
+// runs into the red and the board's construction freeze before the end
+// (89% and 91% of the catalogue, 64% and 86% of the halls; 98% and every
+// hall on the third). The design's sentence is that completing every school
+// is barely possible in the window (progression.md), and now it is: whole
+// on one seed, most of it on every seed. Before, every seed finished 90% of
+// the catalogue and every hall, and built seven in ten placeables.
+every('Earnest completionist', completionist, 'finishes 85% or more of the catalogue', (r) => r.catalogueShare >= 0.85);
+assert(completionist.some((r) => r.catalogueShare >= 0.95 && r.hallsShare === 1), `Earnest completionist: the whole catalogue and every hall on at least one seed (${completionist.map((r) => `${Math.round(r.catalogueShare * 100)}%/${Math.round(r.hallsShare * 100)}%`).join(', ')})`);
+every('Earnest completionist', completionist, 'builds three in five of its academic halls', (r) => r.hallsShare >= 0.6);
+// Seven in ten since Plan 35 (Plan 33's nine capital projects count as
+// placeables the harness never builds); on at least one seed since Plan 36,
+// and more than half on every seed.
+every('Earnest completionist', completionist, 'builds more than half of every placeable thing', (r) => r.buildingsShare > 0.5);
+assert(completionist.some((r) => r.buildingsShare >= 0.7), `Earnest completionist: seven in ten placeables on at least one seed (${completionist.map((r) => Math.round(r.buildingsShare * 100)).join(', ')}%)`);
 every('Earnest completionist', completionist, 'founds every school', (r) => r.schoolsFounded === r.schoolsTotal);
 every('Earnest completionist', completionist, 'reaches #1', (r) => r.firstAtOne !== null);
 every('Earnest completionist', completionist, 'holds #1 in at least half of years 40–50', (r) => r.yearsAtOneLateDecade >= 6);
@@ -98,7 +108,10 @@ every('Earnest completionist', completionist, 'holds #1 in at least half of year
 // ambition, after a lean decade the new sequence dealt it. Phase F's money
 // plan (Plan 27) reworks what being in the red means, so the floor is all
 // but four until that lands, and the "all but two somewhere" claim stands.
-every('Earnest completionist', completionist, 'is an A in breadth', (r) => atLeast(r, 'breadth', 'A'));
+// A B in breadth on the two seeds that stop short (Plan 36, above); an A
+// where it finishes.
+every('Earnest completionist', completionist, 'is at least a B in breadth', (r) => atLeast(r, 'breadth', 'B'));
+assert(completionist.some((r) => atLeast(r, 'breadth', 'A')), `Earnest completionist: an A in breadth on at least one seed (${completionist.map((r) => r.grades.breadth).join(', ')})`);
 
 // --- the balanced builder -----------------------------------------------------------
 every('Balanced builder', balanced, 'ends with a B or better in four axes', (r) => (Object.values(r.grades) as LegacyGrade[]).filter((g) => RANK[g] >= RANK.B).length >= 4);
@@ -149,7 +162,10 @@ every('Regional engine', regional, 'is no better than a C in research', (r) => !
 // either side of the B line (0.65) by the third decimal. So a B on two
 // seeds of three, and never below a C.
 every('Regional engine', regional, 'is at least a C in stewardship on every seed', (r) => atLeast(r, 'stewardship', 'C'));
-assert(regional.filter((r) => atLeast(r, 'stewardship', 'B')).length >= 2, `Regional engine: a B or better in stewardship on two seeds of three (${regional.map((r) => r.grades.stewardship).join(', ')})`);
+// A B on two seeds of three until Plan 36: the engine grows to the ceiling
+// without an endowment to carry the cost of being large, and its years in
+// the red read C (0.60 to 0.62) on all three; the claim above, a C on
+// every seed, is the one it holds.
 assert(regional.filter((r) => r.cash >= 0).length >= 2, `Regional engine: ends solvent on most seeds (${regional.map((r) => `${Math.round(r.cash / 1e6)}M`).join(', ')})`);
 regional.forEach((r, i) => assert(
   r.legacy !== null && r.legacy.name !== completionist[i].legacy?.name && r.legacy.name !== selective[i].legacy?.name,

@@ -206,3 +206,46 @@ follows a founding that works (the catalogue built by Year 15, first place
 by Year 17) is left open for the owner: every cost lever measured tips the
 economy into a stall before it slows the boom, so the fix is a mechanism
 that smooths the threshold, not a constant ([Plan 35](../plans/35-balance-and-playtest.md)).
+
+## The cost of being large (Plan 36)
+
+Every running cost used to be linear in size: services a price per student,
+instruction a price per full section, both scaled by prestige alone. So the
+marginal student paid as well at 20,000 as at 1,000, and a college whose
+founding worked compounded until its catalogue ran out: built by Year 15,
+first place by Year 16. **The cost of being large** is the administration a
+big institution needs to hold itself together, charged per student and
+rising with every doubling of the roll:
+
+```
+scaleCost/week = students × SCALE_PER_STUDENT_PER_WEEK × marketRate(prestige)
+                          × max(0, log2(students / SCALE_FREE_BELOW))
+```
+
+- **Free below 1,500 students** (`SCALE_FREE_BELOW`, the size "A town's
+  worth" announces), so a founding college never pays it.
+- **Logarithmic**, so the next student's margin falls smoothly with size,
+  and the size where it reaches zero rises with prestige, since prestige
+  lets a college charge more. Size follows standing instead of running
+  ahead of it.
+- **On top of the prestige market rate, never in place of it.** Flattening
+  the prestige curve to pay for it was measured, and made small famous
+  colleges three times richer.
+- **5 a student a week per doubling** (`SCALE_PER_STUDENT_PER_WEEK`),
+  fitted to the design's eras on the Balanced builder: catalogue
+  four-fifths built in Year 35, 20,000 students in Year 24, first place in
+  Year 29, and no founding week blocked by money.
+- **A big college runs a small operating deficit** that its endowment
+  payout and annual fund carry, as a real one does. It extends the settled
+  late margin above: the endowment is still the reward for decades of
+  surplus, and part of the reward is size.
+
+The break is shown, not hidden:
+- the summer's projections read what the next thousand would pay and cost;
+- the Treasury charts the next student's cost against the price at every
+  size the catalogue can seat.
+
+**What it does not do: first place by prestige alone.** A college that
+founds its schools early leads by Years 13–18 whatever size costs. That is
+the Selective college with 4,000 students, and the Earnest completionist.
+It is a question of how prestige weighs size and reach, and it is left open.

@@ -64,7 +64,11 @@ export const SERVICES_PER_STUDENT_PER_WEEK = 45; // at prestige 50
 // threshold, so a founding college never pays it; logarithmic, so the
 // marginal student's margin falls smoothly rather than at a cliff; at the
 // prestige market rate, on top of it, never in place of it.
-export const SCALE_PER_STUDENT_PER_WEEK = 0; // a week, a student, per doubling, at prestige 50
+// Fitted in Plan 36's PR D to the design's eras: on the default seed the
+// Balanced builder's catalogue is four-fifths built in Year 35 (Year 16
+// without it), it reaches 20,000 students in Year 24 (14) and first place in
+// Year 29 (16), and the founding decade is never blocked by money.
+export const SCALE_PER_STUDENT_PER_WEEK = 5; // a week, a student, per doubling, at prestige 50
 export const SCALE_FREE_BELOW = 1_500;       // students
 
 // The line for a roll of `students` at `prestige`. `perStudent` defaults to
