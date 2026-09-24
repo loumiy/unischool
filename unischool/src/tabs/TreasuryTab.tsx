@@ -4,7 +4,7 @@ import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
 import {
   financeBreakdown, instructionDetail, SECTION_SIZE, SECTION_COST,
-  SCALE_FREE_BELOW, SERVICES_PER_STUDENT_PER_WEEK, servicesMultiplier,
+  SCALE_FREE_BELOW, SERVICES_PER_STUDENT_PER_WEEK, marginalStudentCost, servicesMultiplier,
 } from '../systems/finance/financeSystem';
 import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
@@ -12,6 +12,7 @@ import Figure from '../components/Figure';
 import { FIGURE_HINTS } from '../data/figureHints';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 import { money, moneyShort } from '../format';
+import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { MultiChart } from '../components/MultiChart';
 import EstatePanel from './EstatePanel';
 import EndowmentPanel from './EndowmentPanel';
@@ -219,6 +220,33 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           </dl>
         </section>
       </div>
+      {totalEnrolled(s.students) > 0 && (() => {
+        // The break (Plan 36): what one more student costs a year at each
+        // size, at today's prestige, catalogue and price, against what they
+        // pay. Where the lines cross, growing stops paying.
+        // Up to the most the catalogue can seat: past it the class is held
+        // to the room (instructionCapacity.ts), whatever it would cost.
+        const now = totalEnrolled(s.students);
+        const top = Math.max(now, instructionCapacity(s), 2_000);
+        // A thousand short of it: the next thousand are the reading.
+        const last = Math.max(1_000, top - 1_000);
+        const sizes = Array.from({ length: 21 }, (_, i) => Math.round((last / 20) * i));
+        return (
+          <section className="panel">
+            <h2>The Cost of Being Large</h2>
+            <MultiChart
+              title="What the next student costs a year, by size"
+              xLabel="Students"
+              yMin={0}
+              series={[
+                { name: 'Costs', points: sizes.map((n) => ({ x: n, y: marginalStudentCost(s, 1_000, undefined, n) * WEEKS_PER_YEAR })), format: moneyShort },
+                { name: 'Pays', points: sizes.map((n) => ({ x: n, y: s.finance.listedTuition })), format: moneyShort },
+              ]}
+              note={`At today's prestige, catalogue and listed price. Every doubling past ${SCALE_FREE_BELOW.toLocaleString()} students adds to what each one costs to administer; where the lines cross, the next student costs more than they pay. The college has ${now.toLocaleString()}.`}
+            />
+          </section>
+        );
+      })()}
       {s.history.length >= 2 && (
         <section className="panel">
           <h2>Over the Years</h2>
