@@ -81,6 +81,10 @@ export const VERDICTS = {
   clean: 'It ends owing nothing.',
 } as const;
 
+// The draft report shows from this year (Plan 35: a mark of F after one
+// year read as a verdict on a college that had barely opened).
+export const REPORT_DRAFT_FROM = 10;
+
 export const REPORT_WORDS = {
   title: 'The Final Report',
   eyebrow: 'Year 50 · the run formally ends',
@@ -96,6 +100,7 @@ export const REPORT_WORDS = {
   rank: 'The guide\'s last word: {rank} of {total}.',
   chart: 'The six standings, year by year',
   draft: 'The Final Report is written at the fiftieth summer. Until then, the arc so far.',
+  notYet: 'The Final Report is written at the fiftieth summer, and drafted from the tenth: a college is not graded on its first decade.',
   epilogue: 'The run is over; the college is not. The clock runs on, and every ten years the chronicle gets an addendum. Nothing new unlocks.',
   addendum: 'Addendum, Years {from}–{to}',
 } as const;

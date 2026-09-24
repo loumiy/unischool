@@ -389,7 +389,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
 }
 
 // ---------------------------------------------------------------------
-// The summer: one modal, four beats, one stop a year. The header lights the
+// The summer: one modal, three beats, one stop a year. The header lights the
 // current beat; one action per beat moves on (types.ts's SummerPayload,
 // reducer.ts's RESOLVE_SUMMER_BEAT). Only the last beat turns the calendar.
 // ---------------------------------------------------------------------
@@ -565,7 +565,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
 
   return (
     <>
-      <h2>{isFirstReveal ? "You've Entered the Rankings" : published ? 'Standing — the U.S. News report' : 'Standing'}</h2>
+      <h2>{isFirstReveal ? "You've entered the rankings" : published ? 'Standing — the U.S. News report' : 'Standing'}</h2>
       <p>
         {isFirstReveal
           ? `Your university has cracked the top 50, landing at #${rank}. The report will keep you posted every summer from here on.`

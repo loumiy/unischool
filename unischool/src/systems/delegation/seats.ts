@@ -139,7 +139,7 @@ export function speedLock(s: GameState, speed: string): string | null {
   if (speed === 'octo' && !fastestAllowed(s)) {
     return provostAppointed(s)
       ? `Appoint ${DEANS_FOR_FASTEST - deansAppointed(s)} more Dean${DEANS_FOR_FASTEST - deansAppointed(s) === 1 ? '' : 's'} to run the year at eight times.`
-      : `Appoint a Provost and ${DEANS_FOR_FASTEST} Deans to run the year at eight times.`;
+      : `Appoint a Provost and the Deans of ${DEANS_FOR_FASTEST} founded schools to run the year at eight times.`;
   }
   return null;
 }

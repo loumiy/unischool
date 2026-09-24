@@ -21,7 +21,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
     ? 'The year can run at up to eight times.'
     : fasterAllowed(s)
       ? `The year can run at four times; ${DEANS_FOR_FASTEST - deansAppointed(s)} more Dean${DEANS_FOR_FASTEST - deansAppointed(s) === 1 ? '' : 's'} would open eight.`
-      : 'A Provost would let the year run at four times; with three Deans, eight.';
+      : 'A Provost would let the year run at four times; with the Deans of three founded schools as well, eight.';
   return (
     <section className="panel administration">
       <div className="panel-head">

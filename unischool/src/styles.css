@@ -375,7 +375,7 @@ button { cursor: pointer; font-family: inherit; }
 .help-hint-text { position: absolute; z-index: 15; top: 22px; left: 0; width: 240px;
   background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); border-radius: var(--radius-md);
   padding: 8px 10px; font-size: var(--text-sm); line-height: 1.4; margin: 0;
-  box-shadow: var(--shadow-1); }
+  box-shadow: var(--shadow-1); max-height: min(60vh, 420px); overflow-y: auto; }
 .help-hint-text.align-end { left: auto; right: 0; }
 
 .badge { display: inline-block; background: var(--school-secondary); color: var(--school-on-secondary); font-family: var(--display); font-weight: 800;
@@ -661,7 +661,7 @@ button.build-tile { font-family: inherit; }
 .campus-map-zoom-controls .help-hint-btn { width: 30px; height: 30px; border-radius: 50%;
   background: transparent; border: 2px solid transparent; color: var(--ink); font-size: var(--text-md); }
 .campus-map-zoom-controls .help-hint-btn:hover { background: var(--outline); color: var(--cream); }
-.campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; }
+.campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; width: 320px; }
 
 /* ---------- Isometric campus ----------
    Geometry and building tints live in isoProjection.ts / buildingMotifs.tsx. */
