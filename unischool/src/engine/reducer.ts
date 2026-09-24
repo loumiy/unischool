@@ -41,10 +41,12 @@ import { resolveAdmissions } from '../systems/admissions/resolveAdmissions';
 import { startInitiative } from '../systems/research/startInitiative';
 import { placeBuildable } from '../state/placeBuildable';
 import { fireFaculty, hireFaculty } from '../systems/faculty/appointments';
+import { tickLadder } from '../systems/ladder/ladderSystem';
 
 // The systems run in a fixed order each week; each placement comment says
 // what it must read fresh.
 const SYSTEMS: Array<(s: GameState) => void> = [
+  tickLadder,
   tickTech,
   tickFaculty,
   // Before tickFinance: output uses this week's grown stats, and a grant

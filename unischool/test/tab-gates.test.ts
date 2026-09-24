@@ -1,8 +1,9 @@
 // ---------------------------------------------------------------------
 // When a tab is worth offering (src/components/TabNav.tsx's tabAvailable).
 //
-// Three tabs appear only once the thing they are about is real: Research
-// needs a finished lab, Athletics a varsity team, History a second year.
+// Five tabs open from milestones on the ladder (data/ladderData.ts):
+// Enrollment, Student Life and History at the first commencement, Research
+// with the first finished lab, Athletics with the first sport club.
 // The risk this pins down is not that a gate is wrong on day one — it is
 // that a gate silently stops being reachable. A predicate that returns
 // false forever hides a whole system behind a screen nobody can open, and
@@ -10,8 +11,8 @@
 // Research tab again.
 //
 // So each gate is checked BOTH ways, against a real founding state: closed
-// on a fresh university, and open once (and only once) its own condition is
-// satisfied. Ungated tabs are checked too — they must be available from the
+// on a fresh university, and open once its milestone's condition holds and
+// the ladder ticks. A milestone is never undone, so an open tab stays open. Ungated tabs are checked too — they must be available from the
 // first week, since there is no other way into them.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
@@ -21,6 +22,7 @@ import { createInitialState } from '../src/state/actions';
 import { GATED_TABS, TAB_ORDER, tabAvailable, type TabId } from '../src/components/TabNav';
 import type { GameState, VarsityTeam } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
+import { tickLadder } from '../src/systems/ladder/ladderSystem';
 
 bindScriptStream(4242);
 const store = new Map<string, string>();
@@ -50,7 +52,7 @@ console.log('tab gate tests');
 {
   const s = fresh();
 
-  assert(GATED_TABS.length === 3, 'exactly three tabs are gated');
+  assert(GATED_TABS.length === 5, 'exactly five tabs are gated');
   for (const id of GATED_TABS) {
     assert(!tabAvailable(s, id), `${id} is not offered at founding`);
   }
@@ -58,10 +60,8 @@ console.log('tab gate tests');
     if (GATED_TABS.includes(id)) continue;
     assert(tabAvailable(s, id), `${id} is offered from the first week (nothing else opens it)`);
   }
-  assert(
-    TAB_ORDER.filter((id) => tabAvailable(s, id)).length === TAB_ORDER.length - 3,
-    'so a founding toolbar is three icons shorter than a settled one',
-  );
+  tickLadder(s);
+  assert(GATED_TABS.every((id) => !tabAvailable(s, id)), 'and the first tick opens none of them');
 }
 
 // --- research: a finished lab, and nothing less -----------------------
@@ -71,25 +71,24 @@ console.log('tab gate tests');
   assert(!!lab, 'the seeded catalogue has a lab facility to gate on');
 
   lab!.status = 'available';
+  tickLadder(s);
   assert(!tabAvailable(s, 'research'), 'a lab that can be built does not open Research');
   lab!.status = 'developing';
+  tickLadder(s);
   assert(!tabAvailable(s, 'research'), 'nor does one under construction');
   lab!.status = 'done';
+  tickLadder(s);
   assert(tabAvailable(s, 'research'), 'a FINISHED lab opens Research');
 
-  // The same gate research itself hangs off, not a second rule: a school
-  // with a finished lab is exactly a school with lab-equipped fields.
   const other = fresh();
   for (const t of other.tech) {
     if (t.kind === 'facility' && t.facilityType !== 'lab') t.status = 'done';
   }
-  assert(
-    !tabAvailable(other, 'research'),
-    'every other facility on campus, finished, still does not open Research',
-  );
+  tickLadder(other);
+  assert(!tabAvailable(other, 'research'), 'every other facility on campus, finished, still does not open Research');
 }
 
-// --- athletics: one varsity team -------------------------------------
+// --- athletics: a team or sport club ----------------------------------
 {
   const s = fresh();
   assert(s.orgs.teams.length === 0, 'a new school fields no varsity teams');
@@ -100,30 +99,31 @@ console.log('tab gate tests');
     status: 'awaitingVenue', foundedYear: 1,
   } as unknown as VarsityTeam;
   s.orgs.teams.push(team);
-  assert(
-    tabAvailable(s, 'athletics'),
-    'a team still waiting on its venue opens Athletics — it is a program the player has to staff',
-  );
+  tickLadder(s);
+  assert(tabAvailable(s, 'athletics'), 'a team still waiting on its venue opens Athletics — it is a program the player has to staff');
 
   s.orgs.teams.pop();
-  assert(!tabAvailable(s, 'athletics'), 'and the gate closes again if the last team goes');
+  tickLadder(s);
+  assert(tabAvailable(s, 'athletics'), 'and it stays open if the last team goes: a milestone is never undone');
 }
 
-// --- history: the second year ----------------------------------------
+// --- enrollment, student life, history: the first commencement ---------
 {
   const s = fresh();
-  assert(s.clock.year === 1, 'a run starts in year 1');
-  assert(!tabAvailable(s, 'history'), 'year 1 has no year to look back on');
-
   s.clock.week = 52;
-  assert(!tabAvailable(s, 'history'), 'not even in its last week');
-
+  tickLadder(s);
+  for (const id of ['enrollment', 'studentlife', 'history'] as TabId[]) {
+    assert(!tabAvailable(s, id), `${id} stays closed through the first year`);
+  }
+  s.history.push({ ...({} as GameState['history'][number]), year: 1 });
   s.clock.year = 2;
   s.clock.week = 1;
-  assert(tabAvailable(s, 'history'), 'year 2, week 1 opens History');
-
-  s.clock.year = 30;
-  assert(tabAvailable(s, 'history'), 'and it stays open');
+  tickLadder(s);
+  for (const id of ['enrollment', 'studentlife', 'history'] as TabId[]) {
+    assert(tabAvailable(s, id), `${id} opens once the first summer has closed`);
+  }
+  assert(s.ladder.reached.commencement === 2, 'the milestone records the year it was reached');
+  assert(s.ladder.unread.includes('commencement'), 'and queues its letter');
 }
 
 // --- the bookkeeping the unlock line hangs off ------------------------

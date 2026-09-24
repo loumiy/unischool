@@ -24,6 +24,7 @@ import {
 import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 import { OPENING_LETTERS } from '../data/eventData';
 import { DEFAULT_SEED, withRandom } from '../engine/random';
+import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSystem';
 
 // A founded university opens with only Founders Hall built, pre-placed at the
 // map's centre unless the founding is guided (state/opening.ts sites it then).
@@ -226,6 +227,7 @@ export function createPreStartState(): GameState {
     ambitions: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
+    ladder: foundingLadder(1),
   };
 }
 
@@ -424,8 +426,10 @@ function foundState(
     milestones: {},
     ambitions: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
+    ladder: foundingLadder(1),
   };
 
+  holdBackUnreached(state);
   unlockAvailable(state);
 
   // Founding content is not "new": no alert badges on day one.

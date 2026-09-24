@@ -1,5 +1,6 @@
 import type { GameState } from '../state/types';
-import { labEquippedFields } from '../data/researchData';
+import { milestoneForTab } from '../data/ladderData';
+import { ladderOpensTab } from '../systems/ladder/ladderSystem';
 
 // Views that pop up over the campus map, which is always on screen and is not
 // a tab. `active` is null when the player is looking at the map.
@@ -20,23 +21,16 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'treasury', label: 'Treasury' },
 ];
 
-// Tabs that appear only once their subject exists, each gated on the same
-// condition its system uses: research on a finished lab (researchData.ts's
-// labEquippedFields), athletics on the first sport club or team, history
-// from year 2. Every other tab is always available.
-const TAB_GATES: Partial<Record<TabId, (s: GameState) => boolean>> = {
-  research: (s) => labEquippedFields(s).size > 0,
-  athletics: (s) => s.orgs.teams.length > 0 || s.orgs.clubs.some((c) => c.sport !== null), // opens with the first sport club, empty and showing the path
-  history: (s) => s.clock.year >= 2,
-};
-
-// The gated ids, so App.tsx can log a line the first time each opens.
-export const GATED_TABS: readonly TabId[] = Object.keys(TAB_GATES) as TabId[];
+// Tabs open from milestones on the ladder (data/ladderData.ts): Enrollment,
+// Student Life and History at the first commencement, Research with the
+// first lab, Athletics with the first sport club. The rest are open from the
+// charter.
+export const GATED_TABS: readonly TabId[] = TABS.map((t) => t.id).filter((id) => milestoneForTab(id) !== undefined);
 
 // The one availability answer, used by the toolbar's icon row, by App (which
 // refuses to open an unavailable tab) and by the unlock log line.
 export function tabAvailable(s: GameState, id: TabId): boolean {
-  return TAB_GATES[id]?.(s) ?? true;
+  return ladderOpensTab(s, id);
 }
 
 // Pure tab metadata: the toolbar's icon row (Toolbar.tsx) renders the tabs in

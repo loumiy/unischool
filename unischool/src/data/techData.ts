@@ -69,7 +69,7 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // graduate programs. The numbers are provisional, fitted by feel.
 export const ACADEMIC_HALL_SLOTS = 6;
 // The first purchased hall waits on this many developed courses: the six the
-// college opens with plus two the player chose (Buildable.minCoursesToUnlock).
+// college opens with plus two the player chose (the ladder's 'curriculum' milestone).
 export const FIRST_HALL_COURSE_GATE = 8;
 const ACADEMIC_HALL_FIRST_COST = 750_000;
 const ACADEMIC_HALL_COST_RATIO = 1.3;
@@ -810,7 +810,6 @@ export function initialTech(): Buildable[] {
       cost,
       duration: i === 0 ? ACADEMIC_HALL_FIRST_WEEKS : ACADEMIC_HALL_WEEKS,
       prereqs: i === 0 ? [] : [academicHallId(i - 1)],
-      ...(i === 0 ? { minCoursesToUnlock: FIRST_HALL_COURSE_GATE } : {}),
       status: 'locked',
       slots: ACADEMIC_HALL_SLOTS,
       effects: { upkeepPerWeek: ACADEMIC_HALL_UPKEEP_PER_WEEK },

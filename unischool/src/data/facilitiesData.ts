@@ -465,7 +465,6 @@ export function initialFacilities(): Buildable[] {
       cost: GROCERY_COST,
       duration: GROCERY_WEEKS,
       prereqs: [],
-      minCapacityToUnlock: GROCERY_POPULATION_GATE,
       status: 'locked',
       effects: {
         servesPopulation: GROCERY_SERVES,
@@ -502,7 +501,6 @@ export function initialFacilities(): Buildable[] {
       cost: LIBRARY_TIER2_COST,
       duration: LIBRARY_TIER2_WEEKS,
       prereqs: [LIBRARY_TIER1_ID],
-      minPrestigeToUnlock: LIBRARY_TIER2_PRESTIGE_GATE,
       status: 'locked',
       effects: {
         servesPopulation: LIBRARY_TIER2_SERVES,
@@ -625,7 +623,6 @@ export function initialFacilities(): Buildable[] {
       cost: REC_CENTER_TIER2_COST,
       duration: REC_CENTER_TIER2_WEEKS,
       prereqs: [TENNIS_COURTS_ID],
-      minPrestigeToUnlock: REC_CENTER_TIER2_PRESTIGE_GATE,
       status: 'locked',
       effects: {
         servesPopulation: REC_CENTER_TIER2_SERVES,
@@ -790,7 +787,6 @@ export function initialFacilities(): Buildable[] {
       cost: HEALTH_CENTER_TIER1_COST,
       duration: HEALTH_CENTER_TIER1_WEEKS,
       prereqs: [],
-      minCapacityToUnlock: HEALTH_CENTER_TIER1_POPULATION_GATE,
       status: 'locked',
       effects: {
         servesPopulation: HEALTH_CENTER_TIER1_SERVES,
@@ -808,7 +804,6 @@ export function initialFacilities(): Buildable[] {
       cost: HEALTH_CENTER_TIER2_COST,
       duration: HEALTH_CENTER_TIER2_WEEKS,
       prereqs: [HEALTH_CENTER_TIER1_ID],
-      minCapacityToUnlock: HEALTH_CENTER_TIER2_POPULATION_GATE,
       status: 'locked',
       effects: {
         servesPopulation: HEALTH_CENTER_TIER2_SERVES,
@@ -828,7 +823,6 @@ export function initialFacilities(): Buildable[] {
       // The medical school founded (its entry course done). Not circular with
       // the MD capstone this gates: the entry course needs nothing of it.
       prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_ENTRY_ID],
-      minCapacityToUnlock: HEALTH_CENTER_TIER3_POPULATION_GATE,
       status: 'locked',
       effects: {
         servesPopulation: HEALTH_CENTER_TIER3_SERVES,

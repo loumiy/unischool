@@ -185,11 +185,8 @@ export interface Buildable {
   // Dynamic gates, in addition to prereqs, re-checked every tick because
   // what they read can fall back (techSystem.ts's unlockAvailable).
   // Despite the name, a population gate on total enrolled students.
-  minCapacityToUnlock?: number;
-  minPrestigeToUnlock?: number; // e.g. a research library / athletics complex tier
   // Locked until this many courses are developed, in any program. Only the
   // first purchased academic hall carries it, keeping it out of week one.
-  minCoursesToUnlock?: number;
   // Athletics venues only: locked until a varsity team in this
   // facilityType's category exists (meetsUnlockGates reads s.orgs.teams).
   athleticsVenueReveal?: true;
@@ -839,6 +836,7 @@ export interface GameState {
   // gate and grant nothing.
   ambitions: Record<string, number>;
   seen: SeenState;               // what the player has been shown, for alert badges
+  ladder: LadderState;           // the milestones reached, and their letters not yet read (data/ladderData.ts)
 }
 
 // Alert badges, cleared when the player looks. Ids are only ever added
@@ -850,6 +848,13 @@ export interface GameState {
 //   - tabIds: gated tabs (TabNav.tsx's TAB_GATES) seen open. Not a badge:
 //     keeps the "now available" log line one-off across saves and gates
 //     that close and reopen.
+// The ladder: milestone id -> the year it was reached (never undone), and
+// the milestones whose letters are still to be shown, oldest first.
+export interface LadderState {
+  reached: Record<string, number>;
+  unread: string[];
+}
+
 export interface SeenState {
   courseIds: Record<string, true>;
   buildableIds: Record<string, true>;
