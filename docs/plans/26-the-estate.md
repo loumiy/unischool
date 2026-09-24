@@ -71,6 +71,26 @@ This document.
   Age alone still streaks a building, as in Plan 24.
 - **The building panel** shows condition, backlog and the renovation offer.
 
+**As implemented:**
+
+- **`systems/estate/estate.ts`'s `tickEstate`** runs after `tickFinance`,
+  which charges each building's upkeep at the funding share
+  (`upkeepShare`).
+- **Condition's ruin line** is half a building's cost, with a $400,000
+  floor for the buildings that cost next to nothing.
+- **Dorms carry no upkeep line.** Their running costs are netted against
+  room fees elsewhere, so the dial does not reach them and they keep no
+  backlog. Giving dorms an upkeep would move every band, so that is Phase
+  N's to decide with the rest of the economy.
+- **The Treasury tab has an Estate panel:** the funding dial, mean
+  condition, the total backlog, and the five worst buildings, each with its
+  renovation. The building panel shows the same line for one building.
+- **Weathering** takes the worse of age and condition. Boarded windows,
+  weeds and a fence are new bands. A building under renovation wears
+  scaffolding over its whole height, and no weathering.
+- **Balance-neutral:** at full funding `tickEstate` writes nothing, and the
+  fast suite and the harness see the same upkeep.
+
 ## PR 26C — Storeys
 
 - **`EXTEND_BUILDING`** adds a storey to a dorm or a dining hall, up to two:

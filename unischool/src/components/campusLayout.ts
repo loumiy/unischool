@@ -6,7 +6,8 @@ import { chapterHouseId } from '../data/eventData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
 import { SCHOOL_SIGNATURES } from './buildingSpec';
 import { FOUNDERS_HALL_ID } from '../data/techData';
-import { ageBand, type AgeBand } from './ageMarks';
+import { weatherBand, type AgeBand } from './ageMarks';
+import { conditionOf } from '../systems/estate/estate';
 
 // What the campus scene draws, and nothing that changes week to week: which
 // buildings stand where and in what state, the paths, the trees, the names.
@@ -25,8 +26,10 @@ export interface PlacedEntry {
   developing: boolean;
   // A chapter house's letters.
   glyphs?: string;
-  // How weathered it is (ageMarks.tsx).
+  // How weathered it is (ageMarks.tsx), by age and condition.
   age: AgeBand;
+  // Under renovation: scaffolding over a building that stays open.
+  renovating: boolean;
 }
 
 export interface CampusLayout {
@@ -51,7 +54,7 @@ function entryKey(e: PlacedEntry): string {
   const { t, p } = e;
   const fx = t.effects;
   return [
-    t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age,
+    t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age, e.renovating ? 1 : 0,
     t.floorsAdded ?? 0, t.renovatingFrom ?? '', fx?.capacityBonus ?? 0, fx?.servesPopulation ?? 0,
     (t as Buildable & { signature?: string }).signature ?? '',
   ].join(':');
@@ -79,7 +82,8 @@ export function campusLayout(s: GameState): CampusLayout {
       label: hallDisplayName(s, t),
       developing: t.status === 'developing' && s.developing[id] !== undefined,
       glyphs: glyphs[id],
-      age: ageBand(t, s.clock.year),
+      age: weatherBand(t, s.clock.year, conditionOf(node)),
+      renovating: (node.renovationWeeks ?? 0) > 0,
     });
   }
   const bikeRacks = totalEnrolled(s.students) >= BIKE_RACK_ENROLMENT;

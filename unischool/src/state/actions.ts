@@ -90,6 +90,10 @@ export type Action =
   // Quads (state/quads.ts): mark the open space under a tile as one, lift the
   // marks inside one, or name one (an empty name gives it back its own).
   | { type: 'MARK_QUAD'; tile: TileCoord }
+  // The estate (systems/estate): how much of the upkeep to pay, and paying
+  // off one building's backlog under scaffolding.
+  | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
+  | { type: 'RENOVATE_BUILDING'; id: string }
   // A lamp or a bench beside a path, or lifted (components/dressing.tsx).
   | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }

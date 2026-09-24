@@ -17,6 +17,9 @@ export interface Finance {
   // enrolled students. Revenue is a sum of four products, never enrolled x price.
   tuitionByClass: ClassTuition;
   weeklyOpEx: number;    // salaries + upkeep + instruction, recomputed each tick
+  // The share of the buildings' upkeep paid, 0 to 1 (systems/estate). What
+  // goes unpaid becomes backlog. Undefined means all of it.
+  maintenanceFunding?: number;
   // Lifetime count of weeks cash closed below zero, counted by tickFinance.
   // Read by the "Never in the red" ambition and the legacy's stewardship axis.
   weeksInTheRed: number;
@@ -218,6 +221,12 @@ export interface Buildable {
   // servesPopulation before the renovation in progress, which stays in use
   // meanwhile. Set by RENOVATE_LIBRARY, cleared on completion.
   renovatingFrom?: number;
+  // Unpaid maintenance, compounding (systems/estate/estate.ts); what its
+  // condition reads. Undefined means none.
+  backlog?: number;
+  // Weeks left on a renovation, which it stays open through. Undefined means
+  // none under way.
+  renovationWeeks?: number;
   // The year a placeable Buildable was first finished, for the map's age
   // marks (components/ageMarks.tsx). Undefined for courses and for buildings
   // an older save finished.

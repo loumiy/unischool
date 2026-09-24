@@ -9,6 +9,7 @@ import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 import { money } from '../format';
+import EstatePanel from './EstatePanel';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
 // same breakdown the tick charges, so the two cannot drift. Figures are per
@@ -202,6 +203,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           </dl>
         </section>
       </div>
+      <EstatePanel s={s} act={act} />
     </div>
   );
 }

@@ -243,7 +243,7 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
 // a progress bar on the ground. Clicks are handled by the drawn shape, since
 // a tall building is drawn above the tiles it occupies.
 function PlacedBuilding({
-  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera, age = 0,
+  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera, age = 0, renovating = false,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   camera: Camera;
@@ -255,6 +255,7 @@ function PlacedBuilding({
   vernacular: Vernacular;
   glyphs?: string;
   age?: AgeBand;
+  renovating?: boolean;
 }) {
   const d = drawnFootprint(p);
 
@@ -272,7 +273,17 @@ function PlacedBuilding({
         developing={developing} glyphs={glyphs}
         camera={camera}
       />
-      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={age} vernacular={vernacular} />}
+      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={vernacular} />}
+      {renovating && motifOf(t) !== 'grounds' && (() => {
+        // Scaffolding over the whole of a building under renovation.
+        const shell = boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * 1.04);
+        return (
+          <g className="campus-site-shell renovating">
+            <polygon className="campus-site-hatch" points={polyPoints(shell.left)} />
+            <polygon className="campus-site-hatch" points={polyPoints(shell.right)} />
+          </g>
+        );
+      })()}
       {inspected && (
         // The footprint outline on the ground, which the building can't hide.
         <polygon className="campus-building-halo" points={polyPoints(boxFaces(p.col, p.row, p.w, p.h, 0, 0).top)} />
@@ -508,7 +519,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
 
   const ground = useMemo(groundGeometry, [camera]);
 
-  const building = ({ t, p, label, developing, glyphs, age }: CampusLayout['placed'][number]) => (
+  const building = ({ t, p, label, developing, glyphs, age, renovating }: CampusLayout['placed'][number]) => (
     <PlacedBuilding
       t={t}
       p={p}
@@ -521,6 +532,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
       vernacular={vernacular}
       camera={camera}
       age={age}
+      renovating={renovating}
     />
   );
 

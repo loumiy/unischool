@@ -1,3 +1,4 @@
+import { RENOVATION_WEEKS, canRenovate, clampFunding, renovationCost, tickEstate } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
 import { LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
 import type { Action } from '../state/actions';
@@ -61,6 +62,9 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // Before tickFinance, so a coach's grown salary is in this week's upkeep.
   tickAthletics,
   tickFinance,
+  // After tickFinance, which paid the week's share of the upkeep: the rest
+  // becomes backlog (systems/estate).
+  tickEstate,
   // After tickFinance (petitions are sized in this week's operating cost)
   // and before tickSatisfaction. Raises no interrupt: organisations are
   // answered in a batch at the summer boundary.
@@ -246,6 +250,21 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'FELL_TREE': {
       delete s.trees[pathTileKey(action.tile)];
+      return s;
+    }
+
+    case 'SET_MAINTENANCE_FUNDING': {
+      s.finance.maintenanceFunding = clampFunding(action.level);
+      return s;
+    }
+
+    case 'RENOVATE_BUILDING': {
+      const node = s.tech.find((t) => t.id === action.id);
+      if (!node || !canRenovate(node)) return s;
+      const cost = renovationCost(node);
+      if (s.finance.cash < cost) return s;
+      s.finance.cash -= cost;
+      node.renovationWeeks = RENOVATION_WEEKS;
       return s;
     }
 

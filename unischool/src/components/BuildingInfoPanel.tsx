@@ -1,3 +1,4 @@
+import { canRenovate, conditionOf, renovationCost } from '../systems/estate/estate';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
@@ -14,7 +15,7 @@ import {
 } from '../systems/techtree/techSystem';
 import { transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
-import { money } from '../format';
+import { money, pct } from '../format';
 
 // A popover for a placed building (see CampusMap.tsx's inspectBuilding). For
 // every kind but one it is a pure projection of the Buildable and the
@@ -436,6 +437,26 @@ function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
   return <p className="building-info-line">{t.description}</p>;
 }
 
+// A finished building's condition and, when it has a backlog, the offer to
+// renovate it (systems/estate).
+function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action) => void }) {
+  if ((t.renovationWeeks ?? 0) > 0) {
+    return <p className="building-info-line">Under renovation, open throughout: {t.renovationWeeks} weeks left.</p>;
+  }
+  if ((t.backlog ?? 0) <= 0) return null;
+  const cost = renovationCost(t);
+  return (
+    <>
+      <p className="building-info-line">
+        Condition {pct(conditionOf(t))}, with {money(t.backlog ?? 0)} of maintenance owed.
+      </p>
+      <button type="button" className="building-info-jump" disabled={!canRenovate(t) || s.finance.cash < cost} onClick={() => act({ type: 'RENOVATE_BUILDING', id: t.id })}>
+        Renovate · {money(cost)}, eight weeks
+      </button>
+    </>
+  );
+}
+
 export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum }: {
   t: Buildable; s: GameState; onClose: () => void;
   // The one thing this panel dispatches: FOUND_PROGRAM from a hall's slot.
@@ -464,6 +485,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
         <h3>{hallDisplayName(s, t)}</h3>
         <button type="button" className="building-info-close" onClick={onClose} aria-label="Close">✕</button>
       </div>
+      {t.status === 'done' && act && <EstateLine t={t} s={s} act={act} />}
       {t.status === 'developing' && weeksLeft !== undefined && (
         <p className="building-info-line building-info-construction">
           Under construction — {weeksLeft} of {t.duration} week{t.duration === 1 ? '' : 's'} left.
