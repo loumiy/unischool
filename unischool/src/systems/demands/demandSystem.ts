@@ -325,9 +325,10 @@ export function raiseDemand(s: GameState, demand: StudentDemand): void {
   s.events.activeDemand = demand;
   s.events.pendingDemand = null;
   s.events.lastDecisionWeek = week;
-  // No payload: the modal and the Student Life tab read
-  // s.events.activeDemand, so a save with the modal open resumes correctly.
-  s.pendingInterrupt = { type: 'demand' };
+  // A note over the map, not a modal (Plan 29): the clock runs on, and the
+  // Students tab keeps the demand in view until it is met or lapses. The
+  // old 'demand' interrupt still resolves for a save taken with it open.
+  s.events.demandUnread = true;
   log(s, `The student body has raised a formal demand: ${demandCopy(demand).ask(demand.askName)}, within ${DEMAND_DEADLINE_WEEKS} weeks.`, 'bad', 'demand-raised');
 }
 

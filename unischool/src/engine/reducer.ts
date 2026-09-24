@@ -281,6 +281,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       setSeatPolicy(s, action.seatId, action.school, action.policy);
       return s;
 
+    case 'READ_DEMAND':
+      delete s.events.demandUnread;
+      return s;
+
     case 'READ_BOARD_LETTER': {
       s.finance.distress?.letters.shift();
       return s;

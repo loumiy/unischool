@@ -450,6 +450,9 @@ export interface EventState {
   pendingDemand: StudentDemand | null;
   // The outstanding demand, cleared when met (reward) or expired (penalty).
   activeDemand: StudentDemand | null;
+  // The active demand's note is still over the map (Plan 29): a demand no
+  // longer stops the clock. Undefined once read.
+  demandUnread?: true;
   // Absolute week the last demand resolved; 0 = never. Its cooldown.
   lastDemandWeek: number;
   // The first year's letters (eventData.ts's OPENING_LETTERS): `read` is

@@ -16,6 +16,7 @@ import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import MilestoneNote from './components/MilestoneNote';
 import BoardLetter from './components/BoardLetter';
+import DemandNote from './components/DemandNote';
 import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
@@ -252,6 +253,7 @@ export default function App() {
         <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
         <MilestoneNote s={s} act={act} />
         <BoardLetter s={s} act={act} />
+        <DemandNote s={s} act={act} />
         <LogTicker
           s={s}
           open={logOpen}
