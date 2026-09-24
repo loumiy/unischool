@@ -1,32 +1,50 @@
-import type { GameState, Legacy, LegacyAxis, LegacyAxisKey, LegacyGrade } from './types';
-import { WEEKS_PER_YEAR, totalEnrolled } from './types';
-import { graduatePrograms, milestoneSchools } from '../data/techData';
-import { GRADE_A, GRADE_C, gradeFor } from '../data/courseQuality';
-import { courseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
+import type { GameState } from '../src/state/types';
+import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
+import { graduatePrograms, milestoneSchools } from '../src/data/techData';
+import { GRADE_A, GRADE_C, gradeFor } from '../src/data/courseQuality';
+import { courseQuality, facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import {
   RESEARCH_CREDITS_FOR_FULL_SCORE, concentrationScore, curriculumBreadthScore, researchCredits, researchScore,
   socialStandingBreakdown,
-} from '../systems/prestige/prestigeSystem';
-import { isSchoolFounded } from '../systems/techtree/schools';
-import { money } from '../format';
-import { clamp01 } from '../math';
+} from '../src/systems/prestige/prestigeSystem';
+import { isSchoolFounded } from '../src/systems/techtree/schools';
+import { money } from '../src/format';
+import { clamp01 } from '../src/math';
 
 // ---------------------------------------------------------------------
-// The legacy: what the run adds up to, as seven graded axes and a name. A
-// pure reading of the state (like yearInReview.ts). The fiftieth summer
-// writes the result onto s.self.legacy and seals it; until then the History
-// tab shows what the run would be called today.
+// The legacy (Plan 17): what a run adds up to, as seven graded axes and a
+// name. Retired from the game by Plan 33 (V1-28) for the Final Report
+// (src/state/finalReport.ts); kept here as a harness reading, because the
+// endpoint suite's strategies were designed against these axes (a selective
+// college's teaching, a regional engine's reach) and the report's six
+// standings do not separate them. A pure reading of the state, taken by the
+// harness at the fiftieth summer.
 //
 // Seven grades rather than a score, because a single number ranks runs and
-// rewards building everything; axes let a small selective college and a
-// broad state university each finish with strengths and trade-offs. The
-// name is flavour; the grades are the record. Breadth, concentration and
-// research are the standing's own inputs (prestigeSystem.ts); teaching,
-// reach, stewardship and campus life are graded here.
-//
-// The bands are calibrated so an A in breadth is what an earnest
-// completionist reaches at fifty and a C is a balanced school.
+// rewards building everything. Breadth, concentration and research are the
+// standing's own inputs (prestigeSystem.ts); teaching, reach, stewardship
+// and campus life are graded here. The bands are calibrated so an A in
+// breadth is what an earnest completionist reaches at fifty and a C is a
+// balanced school.
 // ---------------------------------------------------------------------
+
+export type LegacyGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship' | 'campusLife';
+
+export interface LegacyAxis {
+  key: LegacyAxisKey;
+  label: string;
+  score: number;      // 0..1, before banding
+  grade: LegacyGrade;
+  detail: string;     // one line about what the reading actually read
+}
+
+export interface Legacy {
+  year: number;               // the year the reading was taken
+  axes: LegacyAxis[];
+  name: string;               // "a great research university"
+  table: 'great' | 'sound' | 'troubled'; // which authored table the name came from
+}
 
 // Score at or above which each grade is earned, best first.
 export const LEGACY_GRADE_BANDS: ReadonlyArray<{ grade: LegacyGrade; from: number }> = [
@@ -258,7 +276,7 @@ export function legacyName(axes: readonly LegacyAxis[]): { name: string; table: 
 }
 
 // The whole reading, at this moment.
-export function legacy(s: GameState): Legacy {
+export function legacyReading(s: GameState): Legacy {
   const axes: LegacyAxis[] = AXES.map((spec) => {
     const { score, detail } = spec.read(s);
     const clamped = clamp01(score);

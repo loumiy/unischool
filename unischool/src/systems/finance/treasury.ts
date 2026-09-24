@@ -48,10 +48,12 @@ export function moveToEndowment(s: GameState, amount: number): boolean {
   return true;
 }
 
-// How a building is paid for (Plan 27C, Plan 30E): cash, a loan for the
-// shortfall, or the building money a campaign raised (alumni/campaigns.ts).
-// Restricted money is spent first, since it can be spent on nothing else.
-export type Financing = 'cash' | 'loan' | 'gift';
+// How a building is paid for (Plan 27C, Plan 30E, Plan 33): cash, a loan
+// for the shortfall, the building money a campaign raised
+// (alumni/campaigns.ts), or, for a capital project, half from the endowment
+// (estate/projects.ts). Restricted money is spent first, since it can be
+// spent on nothing else.
+export type Financing = 'cash' | 'loan' | 'gift' | 'endowment';
 
 export function giftFunds(s: GameState): number {
   return s.advancement?.restrictedBuilding ?? 0;
@@ -64,6 +66,7 @@ export function giftFunds(s: GameState): number {
 export function financingFor(can: (financing: Financing) => boolean): Financing | null {
   if (can('gift')) return 'gift';
   if (can('cash')) return 'cash';
+  if (can('endowment')) return 'endowment';
   if (can('loan')) return 'loan';
   return null;
 }

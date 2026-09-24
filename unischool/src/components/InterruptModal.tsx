@@ -4,13 +4,13 @@ import type { Action } from '../state/actions';
 import type {
   Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
 } from '../state/types';
-import { institutionName, SEMICENTENNIAL_YEAR, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
+import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { buildYearInReview } from '../state/yearInReview';
-import { legacy } from '../state/legacy';
-import { founderFigures } from '../state/finalReport';
-import { ambitionEntries } from '../data/ambitionsData';
-import { HistoryChart } from './HistoryChart';
-import { LegacyAxes } from './LegacyAxes';
+import { finalReport } from '../state/finalReport';
+import { hangInHall } from '../state/hall';
+import { REPORT_WORDS } from '../data/reportData';
+import { PromiseOffer } from '../tabs/PromisesPanel';
+import FinalReportView from './FinalReportView';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
@@ -27,14 +27,16 @@ import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
-import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivalsSystem';
+import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
+import { currentEra } from '../systems/chronicle/chronicle';
+import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventPanel';
 import { eventById, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
-import { money, moneyShort, ordinal, signedPct } from '../format';
+import { money, ordinal, signedPct } from '../format';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -401,8 +403,11 @@ function SummerSteps({ beat }: { beat: SummerBeat }) {
 
 // Beat one: the year just lived, in facts (state/yearInReview.ts).
 // Read-and-continue.
-function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
+function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: string[]) => void }) {
   const review = buildYearInReview(s);
+  const era = currentEra(s);
+  const [taken, setTaken] = useState<string[]>([]);
+  const toggle = (id: string) => setTaken((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   return (
     <>
       <h2>Year {review.year} in review</h2>
@@ -410,6 +415,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void })
         The year is over. Before the summer&rsquo;s decisions, what it produced.
         {review.truncated && ' The record of its earliest weeks has scrolled off the log.'}
       </p>
+      {era && <p className="review-era">{CHRONICLE_WORDS.now.replace('{era}', era.name)}</p>}
       <div className="review-grid">
         {review.sections.map((section) => (
           <section key={section.key} className="review-section">
@@ -426,66 +432,26 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: () => void })
           </section>
         ))}
       </div>
-      <button onClick={onContinue}>Continue →</button>
+      <PromiseOffer s={s} taken={taken} onToggle={toggle} />
+      <button onClick={() => onContinue(taken)}>{taken.length > 0 ? 'Make it public →' : 'Continue →'}</button>
     </>
   );
 }
 
-// The final report: the fiftieth summer's first beat, in place of the year in
-// review. Pure readings (state/legacy.ts, state/finalReport.ts, the history
-// record), taken exactly as RESOLVE_ADMISSIONS will seal them.
-// Read-and-continue: the run goes on.
+// The Final Report (Plan 33): the fiftieth summer's first beat, in place of
+// the year in review. A pure reading (state/finalReport.ts), taken exactly
+// as RESOLVE_ADMISSIONS will write it. Read-and-continue: the run goes on,
+// into the Epilogue.
 function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
-  const record = legacy(s);
-  const figures = founderFigures(s);
-  const reached = ambitionEntries(s).filter((a) => a.year !== null).sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
-  const unreached = ambitionEntries(s).filter((a) => a.year === null);
-  const years = s.history.map((h) => h.year);
+  const report = finalReport(s);
   return (
     <>
-      <div className="eyebrow final-report-eyebrow">The final report · year {SEMICENTENNIAL_YEAR}</div>
-      <h2>{institutionName(s.self)} is {record.name}.</h2>
-      <p>
-        Fifty years, and this is what they add up to. The record is sealed when this summer closes;
-        the clock keeps running for as long as you want to keep building.
-      </p>
-      <LegacyAxes axes={record.axes} />
-      <dl className="admissions-outcomes final-report-figures">
-        <div><dt>Students taught</dt><dd>{figures.studentsTaught.toLocaleString()}</dd></div>
-        <div><dt>Faculty who served</dt><dd>{figures.facultyServed.toLocaleString()}</dd></div>
-        <div><dt>Prizes</dt><dd>{figures.prizes.toLocaleString()}</dd></div>
-        <div><dt>National titles</dt><dd>{figures.titles.toLocaleString()}</dd></div>
-      </dl>
-      <section className="final-report-ambitions">
-        <h3>Ambitions</h3>
-        {reached.length === 0 ? (
-          <p className="review-empty">None reached.</p>
-        ) : (
-          <ul className="ambitions">
-            {reached.map((a) => (
-              <li key={a.id} className="ambition">
-                <span className="ambition-mark" aria-hidden="true">●</span>
-                <span className="ambition-body"><span className="ambition-name">{a.name}</span></span>
-                <span className="ambition-year">Year {a.year}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {unreached.length > 0 && (
-          <p className="final-report-unreached">
-            Not reached: {unreached.map((a) => a.name).join(' · ')}.
-          </p>
-        )}
-      </section>
-      {years.length >= 2 && (
-        <div className="history-charts final-report-charts">
-          <HistoryChart label="Prestige" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.prestige)} format={(v) => `${Math.round(v)}`} />
-          <HistoryChart label="Enrollment" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.enrolled)} format={(v) => Math.round(v).toLocaleString()} />
-          <HistoryChart label="Operating funds" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.cash)} format={moneyShort} />
-          <HistoryChart label="Rank" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => -h.rank)} format={(v) => `#${Math.round(-v)}`} />
-        </div>
-      )}
-      <button onClick={onContinue}>Continue →</button>
+      <div className="eyebrow final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
+      <h2>{REPORT_WORDS.title}</h2>
+      <FinalReportView s={s} report={report} />
+      <p className="review-empty">{REPORT_WORDS.epilogue}</p>
+      {/* Leaving the report hangs the run in the hall of fame (state/hall.ts). */}
+      <button onClick={() => { hangInHall(s, report); onContinue(); }}>Continue into the Epilogue →</button>
     </>
   );
 }
@@ -538,15 +504,8 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
       {payload.beat === 0 && payload.final ? (
         <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
       ) : payload.beat === 0 ? (
-        <ReviewBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
+        <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} />
       ) : payload.beat === 1 ? (
-        <RankingsReportView
-          payload={buildReportPayload(s)}
-          isFirstReveal={false}
-          published={s.hasEnteredRankings}
-          onDismiss={() => act({ type: 'RESOLVE_SUMMER_BEAT' })}
-        />
-      ) : payload.beat === 2 ? (
         <AdmissionsInterruptForm
           payload={{ tuition: payload.tuition, admitRate: payload.admitRate }}
           s={s}
@@ -1277,7 +1236,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
         // Only the read-and-continue beats: a key must not commit a price or
         // decline a year's petitions.
         const beat = (interrupt.payload as SummerPayload).beat;
-        if (beat < 2) act({ type: 'RESOLVE_SUMMER_BEAT' });
+        if (beat < 1) act({ type: 'RESOLVE_SUMMER_BEAT' });
         break;
       }
       case 'milestone':

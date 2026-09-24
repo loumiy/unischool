@@ -8,6 +8,8 @@ import { gradeYear, prestigeBreakdown } from '../systems/prestige/prestigeSystem
 import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 import { previousYear } from './history';
 import { money } from '../format';
+import { eventById } from '../systems/events/catalogue';
+import { classYears, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
 
 // ---------------------------------------------------------------------
 // The year in review: the summer's first beat. A pure reading, generated
@@ -22,7 +24,7 @@ import { money } from '../format';
 // doesn't deliver.
 // ---------------------------------------------------------------------
 
-export type ReviewSectionKey = 'built' | 'people' | 'research' | 'students' | 'money' | 'standing';
+export type ReviewSectionKey = 'built' | 'people' | 'research' | 'students' | 'money' | 'standing' | 'events' | 'class';
 
 export interface ReviewLine {
   text: string;
@@ -210,6 +212,46 @@ function standing(s: GameState): ReviewSection {
   return { key: 'standing', title: 'Standing', lines, empty: '' };
 }
 
+// The year's events (Plan 33): the board's letters answered, and the
+// catalogue's inline events by who answered them (the journal's records).
+function events(s: GameState): ReviewSection {
+  const lines: ReviewLine[] = [];
+  for (const l of s.catalogue?.letters ?? []) {
+    if (l.year !== s.clock.year) continue;
+    const e = eventById(l.eventId);
+    const choice = e?.choices.find((c) => c.id === l.choiceId);
+    lines.push({ text: `${e?.title ?? 'A letter'}, from the board: ${choice?.label ?? 'answered'}` });
+  }
+  const row = s.catalogue?.answered?.find((a) => a.year === s.clock.year);
+  if (row) {
+    const parts = [
+      row.player > 0 ? `${row.player.toLocaleString()} answered by you` : '',
+      row.seat > 0 ? `${row.seat.toLocaleString()} by the seats` : '',
+      row.timeout > 0 ? `${row.timeout.toLocaleString()} left to take ${row.timeout === 1 ? 'its' : 'their'} default` : '',
+    ].filter((x) => x !== '');
+    lines.push({ text: `${plural(row.player + row.seat + row.timeout, 'matter')} came up: ${parts.join(', ')}` });
+  }
+  return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year: nothing reached the president\'s desk.' };
+}
+
+// The class about to graduate (Plan 33): how it will remember its years
+// and how warmly, read as commencement will stamp it (alumni/ledger.ts).
+function graduatingClass(s: GameState): ReviewSection {
+  const seniors = s.students.classes.senior;
+  const lines: ReviewLine[] = [];
+  if (seniors > 0) {
+    const c = classYears(s, s.clock.year);
+    const memory = memoryFor(s, c);
+    const warmth = warmthFor(c, memory);
+    lines.push({ text: memoryLine({ classYear: s.clock.year, memory }) });
+    lines.push({
+      text: `${plural(seniors, 'senior')} leave${seniors === 1 ? 's' : ''} ${warmth >= 60 ? 'warm toward the college' : warmth >= 40 ? 'on fair terms with it' : 'cool toward it'} (${warmth.toFixed(0)} of 100)`,
+      tone: warmth >= 60 ? 'good' : warmth < 40 ? 'bad' : undefined,
+    });
+  }
+  return { key: 'class', title: 'The graduating class', lines, empty: 'No class graduates this summer.' };
+}
+
 export function buildYearInReview(s: GameState): YearInReview {
   const entries = yearLog(s);
   const oldest = s.log[s.log.length - 1];
@@ -222,6 +264,8 @@ export function buildYearInReview(s: GameState): YearInReview {
       students(s, entries),
       moneySection(s, entries),
       standing(s),
+      events(s),
+      graduatingClass(s),
     ],
     truncated: s.log.length >= LOG_CAP && oldest !== undefined && oldest.year === s.clock.year,
   };

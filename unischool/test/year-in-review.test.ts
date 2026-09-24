@@ -21,6 +21,7 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { buildYearInReview, projectedAttrition, yearLog } from '../src/state/yearInReview';
 import { FOUNDING_PRESET } from '../src/data/foundingData';
 import type { GameState } from '../src/state/types';
+import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { LOG_CAP, WEEKS_PER_YEAR } from '../src/state/types';
 
 let checks = 0;
@@ -163,6 +164,27 @@ console.log('year in review tests');
   }
   s.log.length = LOG_CAP;
   assert(buildYearInReview(s).truncated, 'a year that filled the log reports its earliest weeks gone');
+}
+
+// --- the year's events and the graduating class (Plan 33) ------------------
+{
+  const s = toSummer(createInitialState('Events'));
+  const section = (key: string) => buildYearInReview(s).sections.find((x) => x.key === key)!;
+  assert(section('events').lines.length === 0, 'a year nothing reached the desk says so');
+  const letter = EVENT_CATALOGUE.find((e) => e.kind === 'seismic')!;
+  s.catalogue = {
+    pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0,
+    letters: [{ eventId: letter.id, choiceId: letter.default, year: s.clock.year }, { eventId: letter.id, choiceId: letter.default, year: s.clock.year - 1 }],
+    answered: [{ year: s.clock.year, player: 2, seat: 1, timeout: 3 }],
+  };
+  const lines = section('events').lines.map((l) => l.text);
+  assert(lines.length === 2 && lines[0].startsWith(letter.title!), `the year's letter, and only this year's (${lines.join(' | ')})`);
+  assert(lines[1].startsWith('6 matters came up') && lines[1].includes('2 answered by you') && lines[1].includes('3 left to take their default'), `and who answered the rest (${lines[1]})`);
+  const cls = section('class');
+  assert(s.students.classes.senior === 0 ? cls.lines.length === 0 : cls.lines.length === 2, 'the graduating class, when there is one');
+  s.students.classes.senior = 120;
+  const seniors = section('class').lines.map((l) => l.text);
+  assert(seniors.length === 2 && seniors[0].startsWith(`The class of ${s.clock.year}`) && seniors[1].startsWith('120 seniors leave'), `how it will remember its years, and how warmly (${seniors.join(' | ')})`);
 }
 
 if (failures === 0) {

@@ -4,7 +4,8 @@ import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
 import { EVENT_CATALOGUE } from '../data/eventCatalogue';
-import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, Seat, Trees } from './types';
+import { promiseById } from '../data/promiseData';
+import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
@@ -45,7 +46,7 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 71;
+export const SAVE_VERSION = 72; // Plan 33: the summer's beats renumbered (Standing dropped); capital projects in the catalogue
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
 export interface SavePayload {
@@ -341,6 +342,14 @@ function sanitizeIdentity(state: GameState): void {
     return;
   }
   state.identity!.tags = (p.tags as unknown[]).filter((id): id is string => typeof id === 'string' && tagById(id) !== undefined);
+  const log = (raw as { log?: unknown }).log;
+  if (log !== undefined) {
+    const kept = Array.isArray(log)
+      ? log.filter((e): e is { id: string; year: number; earned: boolean } => typeof e === 'object' && e !== null
+        && typeof e.id === 'string' && tagById(e.id) !== undefined && Number.isInteger(e.year) && typeof e.earned === 'boolean')
+      : [];
+    if (kept.length > 0) state.identity!.log = kept; else delete state.identity!.log;
+  }
 }
 
 // Advancement: a malformed record is dropped whole, and a running campaign
@@ -374,6 +383,60 @@ function sanitizeCatalogue(state: GameState): void {
       && EVENT_CATALOGUE.some((x) => x.id === e.eventId) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
       && typeof e.vars === 'object' && e.vars !== null;
   });
+  // The journal: malformed entries are dropped.
+  const cat = state.catalogue!;
+  if (cat.letters !== undefined) {
+    cat.letters = Array.isArray(cat.letters) ? cat.letters.filter((l) => typeof l === 'object' && l !== null
+      && typeof l.eventId === 'string' && typeof l.choiceId === 'string' && Number.isInteger(l.year)) : [];
+    if (cat.letters.length === 0) delete cat.letters;
+  }
+  if (cat.answered !== undefined) {
+    cat.answered = Array.isArray(cat.answered) ? cat.answered.filter((a) => typeof a === 'object' && a !== null
+      && Number.isInteger(a.year) && [a.player, a.seat, a.timeout].every((n) => Number.isInteger(n) && n >= 0)) : [];
+    if (cat.answered.length === 0) delete cat.answered;
+  }
+}
+
+// The ending: a report missing its grades or its title is dropped whole,
+// and so is a malformed addendum.
+function sanitizeEnding(state: GameState): void {
+  const raw = state.ending as unknown;
+  if (raw === undefined) return;
+  const e = raw as { report?: { title?: unknown; axes?: unknown; mark?: unknown; year?: unknown }; addenda?: unknown };
+  const r = e.report;
+  const ok = typeof raw === 'object' && raw !== null && typeof r === 'object' && r !== null
+    && typeof r.title === 'string' && typeof r.mark === 'string' && Array.isArray(r.axes) && Number.isInteger(r.year);
+  if (!ok) { delete state.ending; return; }
+  state.ending!.addenda = Array.isArray(e.addenda)
+    ? e.addenda.filter((a): a is { from: number; to: number; lines: string[] } => typeof a === 'object' && a !== null
+      && Number.isInteger(a.from) && Number.isInteger(a.to) && Array.isArray(a.lines) && a.lines.every((l: unknown) => typeof l === 'string'))
+    : [];
+}
+
+// Promises: a malformed record is dropped whole; entries naming a promise
+// the game no longer has are dropped.
+function sanitizePromises(state: GameState): void {
+  const raw = state.promises as unknown;
+  if (raw === undefined) return;
+  const p = raw as Partial<PromiseState>;
+  if (typeof raw !== 'object' || raw === null || !Array.isArray(p.active) || !Array.isArray(p.settled) || !Array.isArray(p.declined)) {
+    delete state.promises;
+    return;
+  }
+  const known = (id: unknown): id is string => typeof id === 'string' && promiseById(id) !== undefined;
+  const year = (n: unknown) => Number.isInteger(n);
+  const ok: PromiseState = {
+    active: p.active.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.madeYear) && year(a.dueYear)),
+    settled: p.settled.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.year) && typeof a.kept === 'boolean'),
+    declined: p.declined.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.year)),
+    offer: null,
+  };
+  const offer = p.offer as { ids?: unknown; decade?: unknown } | null | undefined;
+  if (offer && Array.isArray(offer.ids) && typeof offer.decade === 'boolean') {
+    const ids = offer.ids.filter(known);
+    if (ids.length > 0) ok.offer = { ids, decade: offer.decade };
+  }
+  state.promises = ok;
 }
 
 // The alumni ledger: a malformed class is dropped, and a clause the game no
@@ -545,9 +608,16 @@ export function loadGame(): GameState | null {
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);
+  sanitizePromises(state);
+  // The achievements and the legacy (retired in Plan 33) are dropped from
+  // older saves.
+  delete (state as unknown as { ambitions?: unknown }).ambitions;
+  delete (state.self as unknown as { legacy?: unknown }).legacy;
+  sanitizeEnding(state);
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
+  else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;
   sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);

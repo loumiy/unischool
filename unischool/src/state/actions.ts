@@ -78,7 +78,7 @@ export type Action =
   // START_DEVELOPMENT, and its (rotated) footprint is reserved from week one,
   // so it may not overlap anything done or under construction. Effects still
   // apply only on completion.
-  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean; gift?: boolean }
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean; gift?: boolean; endowment?: boolean }
   // Decorative; the only check is that the tile is on the grid.
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
@@ -117,7 +117,9 @@ export type Action =
   | { type: 'RESOLVE_INTERRUPT' }
   // Advances the summer one beat without moving the clock; leaving the
   // Admissions beat carries the levers as `decision`.
-  | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision }
+  // `promises`: leaving the Review beat, the offered promises taken (Plan 33);
+  // the rest are declined.
+  | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision; promises?: string[] }
   // Resolves the summer: sets tuition (the only place it changes) and the
   // admit rate, commits the class, and advances the clock. Accepted at any
   // beat. Pending petitions not in `approvedPetitionIds` are declined.
@@ -220,7 +222,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), legacy: null, facultyServed: 0 },
+    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), facultyServed: 0 },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -254,7 +256,6 @@ export function createPreStartState(): GameState {
     started: false,
     hasEnteredRankings: false,
     milestones: {},
-    ambitions: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),
@@ -409,7 +410,6 @@ function foundState(
       researchStanding: RESEARCH_STANDING_BASELINE,
       vernacular,
       colors: { ...colors },
-      legacy: null,
       facultyServed: 5,
     },
     history: [],
@@ -455,7 +455,6 @@ function foundState(
     started: true,
     hasEnteredRankings: false,
     milestones: {},
-    ambitions: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),
   };

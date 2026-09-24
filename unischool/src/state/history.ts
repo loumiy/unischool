@@ -1,6 +1,6 @@
 import type { GameState, YearSnapshot } from './types';
 import { totalEnrolled } from './types';
-import { STANDINGS, playerRank, rankBy } from '../systems/rivals/rivalsSystem';
+import { STANDINGS, playerRank, rankBy, standingValue } from '../systems/rivals/rivalsSystem';
 import { FOUNDING_COURSES_PER_PROGRAM, FOUNDING_PRESET, FOUNDING_PROGRAMS } from '../data/foundingData';
 
 // The annual history record (see YearSnapshot in types.ts): a pure derivation
@@ -62,5 +62,7 @@ export function captureYearSnapshot(s: GameState, figures: YearFigures): YearSna
     worstRung: Math.max(s.finance.distress?.yearWorst ?? 0, s.finance.distress?.rung ?? 0),
     schoolsFounded: Object.keys(s.milestones).filter((k) => k.startsWith('school-founded:')).length,
     standings: Object.fromEntries(STANDINGS.map(({ axis }) => [axis, rankBy(s, axis)])),
+    endowment: Math.round(s.finance.endowment),
+    standingValues: Object.fromEntries(STANDINGS.map(({ axis }) => [axis, Number(standingValue(s, axis).toFixed(2))])),
   };
 }

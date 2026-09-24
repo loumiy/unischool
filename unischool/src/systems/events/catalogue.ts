@@ -99,9 +99,12 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   cashOver: [(s) => s.finance.cash, 'min'],
   cashUnder: [(s) => s.finance.cash, 'max'],
   debtOver: [debtOutstanding, 'min'],
+  debtUnder: [debtOutstanding, 'max'],
   deficitOver: [(s) => -financeBreakdown(s).net * WEEKS_PER_YEAR, 'min'],
   drawRateOver: [drawRate, 'min'],
   backlogOver: [(s) => standing(s).reduce((t, b) => t + (b.backlog ?? 0), 0), 'min'],
+  backlogUnder: [(s) => standing(s).reduce((t, b) => t + (b.backlog ?? 0), 0), 'max'],
+  projectsOver: [(s) => standing(s).filter((t) => t.project !== undefined).length, 'min'],
   maintenanceUnder: [(s) => s.finance.maintenanceFunding ?? 1, 'max'],
   conditionUnder: [(s) => Math.min(1, ...standing(s).map(conditionOf)), 'max'],
   satisfactionOver: [(s) => s.students.satisfaction, 'min'],
@@ -123,6 +126,7 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   confidenceOver: [(s) => distressOf(s).confidence, 'min'],
   confidenceUnder: [(s) => distressOf(s).confidence, 'max'],
   rungAtLeast: [(s) => distressOf(s).rung, 'min'],
+  rungAtMost: [(s) => distressOf(s).rung, 'max'],
   varsityAtLeast: [(s) => s.orgs.teams.filter((t) => t.status === 'active').length, 'min'],
   titlesAtLeast: [(s) => s.orgs.titles.length, 'min'],
   rivalAtLeast: [(s) => (collegeRival(s) ? 1 : 0), 'min'],
@@ -133,11 +137,17 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
 
 // Money thresholds were written for v2's founding college and scale as its
 // prices do.
-const MONEY_CONDITIONS: ReadonlySet<ConditionKey> = new Set(['endowmentOver', 'endowmentUnder', 'cashOver', 'cashUnder', 'debtOver', 'deficitOver', 'backlogOver']);
+const MONEY_CONDITIONS: ReadonlySet<ConditionKey> = new Set(['endowmentOver', 'endowmentUnder', 'cashOver', 'cashUnder', 'debtOver', 'debtUnder', 'deficitOver', 'backlogOver', 'backlogUnder']);
 
 export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
+  return whenMet(s, e.when);
+}
+
+// Any set of conditions in the catalogue's vocabulary (promises read theirs
+// here too).
+export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>>): boolean {
   const scale = priceScale(s);
-  for (const [key, raw] of Object.entries(e.when) as [ConditionKey, number][]) {
+  for (const [key, raw] of Object.entries(when) as [ConditionKey, number][]) {
     const [read, bound] = READINGS[key];
     const target = MONEY_CONDITIONS.has(key) ? raw * scale : raw;
     const value = read(s);
@@ -147,16 +157,19 @@ export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
   return true;
 }
 
+// The capital project v2 named, where this game has it (Plan 33), or the
+// nearest thing this game had before it.
+const stands = (s: GameState, id: string) => standing(s).some((t) => t.id === id);
 const NEEDS: Record<NeedKey, (s: GameState) => boolean> = {
-  'arts-centre': (s) => standing(s).some((t) => t.facilityType === 'performingArtsCenter' || t.facilityType === 'artGallery'),
-  'championship-stadium': (s) => standing(s).some((t) => t.facilityType === 'footballStadium'),
+  'arts-centre': (s) => stands(s, 'PROJ-ARTS') || standing(s).some((t) => t.facilityType === 'performingArtsCenter' || t.facilityType === 'artGallery'),
+  'championship-stadium': (s) => stands(s, 'PROJ-STADIUM') || standing(s).some((t) => t.facilityType === 'footballStadium'),
   'dining-hall': (s) => standing(s).some((t) => t.facilityType === 'diningHall'),
-  'great-lawn': (s) => standing(s).some((t) => t.facilityType === 'quad'),
+  'great-lawn': (s) => stands(s, 'PROJ-LAWN') || standing(s).some((t) => t.facilityType === 'quad'),
   'health-center': (s) => standing(s).some((t) => t.facilityType === 'healthCenter'),
   lab: (s) => standing(s).some((t) => t.facilityType === 'lab'),
   library: (s) => standing(s).some((t) => t.facilityType === 'library'),
   'playing-field': (s) => standing(s).some((t) => t.facilityType === 'athleticsField' || t.facilityType === 'recCenter'),
-  'research-park': (s) => standing(s).filter((t) => t.facilityType === 'lab').length >= 3,
+  'research-park': (s) => stands(s, 'PROJ-RESEARCH-PARK') || standing(s).filter((t) => t.facilityType === 'lab').length >= 3,
   'residence-hall': (s) => standing(s).some((t) => t.kind === 'dorm'),
 };
 

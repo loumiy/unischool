@@ -397,9 +397,9 @@ export function tickAdmissions(s: GameState): void {
       tuition: s.finance.listedTuition,
       admitRate: s.students.admitRate,
     };
-    // The fiftieth summer opens on the final report, only while the legacy
-    // record is unsealed so a resumed save is not told twice.
-    if (s.clock.year === SEMICENTENNIAL_YEAR && s.self.legacy === null) payload.final = true;
+    // The fiftieth summer opens on the Final Report, only while it is
+    // unwritten so a resumed save is not told twice.
+    if (s.clock.year === SEMICENTENNIAL_YEAR && !s.ending) payload.final = true;
     s.pendingInterrupt = { type: 'summer', payload };
   }
 }

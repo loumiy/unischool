@@ -74,7 +74,7 @@ console.log('summer sequence tests');
   const { s, interruptsBefore } = toSummer(createInitialState('Summer'));
   assert(s.clock.week === WEEKS_PER_YEAR && s.clock.year === 1, `the summer holds the clock at week ${WEEKS_PER_YEAR} of year 1 (Y${s.clock.year}W${s.clock.week})`);
   assert(payloadOf(s).beat === 0, 'and opens on the first beat, the review');
-  assert(SUMMER_BEATS[0] === 'Review' && SUMMER_BEATS[SUMMER_LAST_BEAT] === 'Students', 'the four beats run Review · Standing · Admissions · Students');
+  assert(SUMMER_BEATS[0] === 'Review' && SUMMER_BEATS[SUMMER_LAST_BEAT] === 'Students', 'the three beats run Review · Admissions · Students (Plan 33 dropped Standing)');
   assert(!interruptsBefore.includes('annual-report'), 'no U.S. News report stopped the clock mid-year');
   assert(!interruptsBefore.includes('admissions'), 'and nothing raises the old admissions interrupt');
 }
@@ -85,7 +85,7 @@ console.log('summer sequence tests');
   s0.hasEnteredRankings = true;
   s0.self.reputation = 120; // comfortably inside the top 50
   const { interruptsBefore } = toSummer(s0);
-  assert(!interruptsBefore.includes('annual-report'), 'a ranked school gets no mid-year report interrupt — the report is the Standing beat');
+  assert(!interruptsBefore.includes('annual-report'), 'a ranked school gets no mid-year report interrupt');
   assert(!interruptsBefore.includes('rankings-entry'), 'and, already on the list, is not told it has entered it');
 }
 
@@ -95,16 +95,13 @@ console.log('summer sequence tests');
   const stamp = (x: GameState) => `${x.clock.year}-${x.clock.week}`;
 
   const b1 = reducer(s, { type: 'RESOLVE_SUMMER_BEAT' });
-  assert(payloadOf(b1).beat === 1, 'Review → Standing');
+  assert(payloadOf(b1).beat === 1, 'Review → Admissions');
   assert(stamp(b1) === stamp(s), 'a beat does not move the calendar');
   assert(b1.history.length === 0, 'and files no year');
+  assert(payloadOf(b1).decision === undefined, 'no decision is recorded before the Admissions beat is left');
 
-  const b2 = reducer(b1, { type: 'RESOLVE_SUMMER_BEAT' });
-  assert(payloadOf(b2).beat === 2, 'Standing → Admissions');
-  assert(payloadOf(b2).decision === undefined, 'no decision is recorded before the Admissions beat is left');
-
-  const b3 = reducer(b2, { type: 'RESOLVE_SUMMER_BEAT', decision: { tuition: 27_500, admitRate: 1.7 } });
-  assert(payloadOf(b3).beat === 3, 'Admissions → Students');
+  const b3 = reducer(b1, { type: 'RESOLVE_SUMMER_BEAT', decision: { tuition: 27_500, admitRate: 1.7 } });
+  assert(payloadOf(b3).beat === 2, 'Admissions → Students');
   assert(payloadOf(b3).decision?.tuition === 27_500, 'the decision rides in the payload');
   assert(payloadOf(b3).decision?.admitRate === 1, 'and is clamped to what the funnel accepts');
   assert(b3.finance.listedTuition === s.finance.listedTuition, 'without touching the listed price yet');
@@ -119,7 +116,7 @@ console.log('summer sequence tests');
   const loaded = loadGame();
   assert(loaded !== null && loaded.pendingInterrupt?.type === 'summer', 'and loads with the summer still pending');
   if (loaded) {
-    assert(payloadOf(loaded).beat === 3 && payloadOf(loaded).decision?.tuition === 27_500, 'on the same beat, with the same decision');
+    assert(payloadOf(loaded).beat === 2 && payloadOf(loaded).decision?.tuition === 27_500, 'on the same beat, with the same decision');
     assert(stamp(loaded) === stamp(s), 'and the clock still halted at the summer');
   }
   clearSave();
@@ -142,7 +139,7 @@ console.log('summer sequence tests');
   assert(after.pendingInterrupt === null && after.clock.year === 2, 'a harness may answer the whole summer from its opening beat');
 }
 
-// --- the shared defaults walk all four beats ------------------------------
+// --- the shared defaults walk all three beats -----------------------------
 {
   let { s } = toSummer(createInitialState('Defaults'));
   const types: string[] = [];
@@ -153,7 +150,7 @@ console.log('summer sequence tests');
     s = reducer(s, answer);
   }
   assert(
-    types.join(',') === 'RESOLVE_SUMMER_BEAT,RESOLVE_SUMMER_BEAT,RESOLVE_SUMMER_BEAT,RESOLVE_ADMISSIONS',
+    types.join(',') === 'RESOLVE_SUMMER_BEAT,RESOLVE_SUMMER_BEAT,RESOLVE_ADMISSIONS',
     `the defaults take one beat per call and end on the last beat's action (${types.join(', ')})`,
   );
   assert(s.pendingInterrupt === null && s.clock.year === 2, 'and land on the far side of the boundary');

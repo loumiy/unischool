@@ -7,7 +7,7 @@ import { settleOpening } from './opening';
 import { canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
 
 function financingOf(action: Extract<Action, { type: 'PLACE_BUILDABLE' }>): Financing {
-  return action.gift ? 'gift' : action.borrow ? 'loan' : 'cash';
+  return action.gift ? 'gift' : action.endowment ? 'endowment' : action.borrow ? 'loan' : 'cash';
 }
 
 export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PLACE_BUILDABLE' }>): void {

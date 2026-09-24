@@ -1176,7 +1176,7 @@ export default function CampusMap({
     // cash, then a loan for the shortfall (finance/treasury.ts).
     const financing = t.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, t, undefined, f));
     if (t.status === 'done' ? !awaitsSite(s, t) : financing === null) return;
-    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated, ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : {}) });
+    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated, ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : financing === 'endowment' ? { endowment: true } : {}) });
     selectBuilding(null);
     setHover(null);
   };

@@ -40,7 +40,8 @@ export function checkRivalStanding(s: GameState): void {
   if (!r) return;
   const above = r.mine < r.theirs;
   const before = s.rivalStanding;
-  s.rivalStanding = { rivalId: r.rival.id, above };
+  const since = before && before.rivalId === r.rival.id ? (before.since ?? s.clock.year) : s.clock.year;
+  s.rivalStanding = { rivalId: r.rival.id, above, since };
   if (!before || before.rivalId !== r.rival.id || before.above === above) return;
   const sport = sportById(r.sport)?.teamName ?? r.sport;
   s.log.unshift({

@@ -42,10 +42,10 @@ function toSummer(start: GameState): GameState {
 
 console.log('modal layout tests');
 
-// --- the summer: wide, except the Standing beat, which is a page ----------
+// --- the summer: wide throughout (Plan 33 dropped the Standing page) ------
 {
-  const widths = ([0, 1, 2, 3] as SummerBeat[]).map((beat) => modalWidth({ type: 'summer', payload: { beat, tuition: 0, admitRate: 0 } }));
-  assert(widths.join(',') === 'wide,page,wide,wide', `Review · Standing · Admissions · Students read wide · page · wide · wide (${widths.join(', ')})`);
+  const widths = ([0, 1, 2] as SummerBeat[]).map((beat) => modalWidth({ type: 'summer', payload: { beat, tuition: 0, admitRate: 0 } }));
+  assert(widths.join(',') === 'wide,wide,wide', `Review · Admissions · Students read wide · wide · wide (${widths.join(', ')})`);
   assert(modalWidth({ type: 'summer' }) === 'wide', 'a summer with no payload reads as its opening beat');
 }
 

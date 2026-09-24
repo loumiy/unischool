@@ -1,3 +1,4 @@
+import { answerPromises, tickPromises } from '../systems/promises/promises';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
@@ -28,7 +29,6 @@ import { researchTopic } from '../data/researchTopics';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
-import { tickAmbitions } from '../systems/ambitions/ambitionsSystem';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
 import { setPrestigeForPlaytest, tickPrestige } from '../systems/prestige/prestigeSystem';
@@ -84,10 +84,11 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickStudentLife,
   tickSatisfaction,
   tickAdmissions,
+  // The week the summer opens: promises due are read out and the year's
+  // offer made (Plan 33). Here rather than in tickAdmissions, which the
+  // promises' readings would import in a circle.
+  tickPromises,
   tickRivals,
-  // After tickRivals (rank ambitions read this week's table) and before
-  // tickEvents. Writes only s.ambitions and the log.
-  tickAmbitions,
   // Near last: the summer decision and the U.S. News report own their weeks
   // and only one interrupt can be pending, so the texture system sees their
   // claim and stands down (see eventSystem.ts).
@@ -467,6 +468,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (s.pendingInterrupt?.type !== 'summer') return state;
       const payload = s.pendingInterrupt.payload as SummerPayload;
       if (payload.beat >= SUMMER_LAST_BEAT) return state;
+      if (payload.beat === 0) answerPromises(s, action.promises ?? []);
       payload.beat = (payload.beat + 1) as SummerBeat;
       if (action.decision) {
         payload.decision = {

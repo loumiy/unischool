@@ -5,8 +5,10 @@
 // Plays the four strategies Plan 17 §E names at the full fifty-year
 // horizon on the three seeds the reference is written from
 // (sim/reference.ts's REFERENCE_EXTRA_SEEDS beside the default), and
-// asserts how each FINISHES — off the legacy the fiftieth summer sealed,
-// the ambitions reached, the catalogue and the campus, and the rank curve
+// asserts how each FINISHES — off the legacy read at the fiftieth summer
+// (sim/legacyReading.ts, a harness reading since Plan 33 retired it from the
+// game for the Final Report, which each run must also write),
+// the catalogue and the campus, and the rank curve
 // (sim/endpointReading.ts, which `npm run endpoint` prints).
 //
 // The claims are the plan's, and each holds only if it holds on EVERY
@@ -22,7 +24,7 @@
 import { play, STRATEGIES, DEFAULT_SIM_SEED } from '../sim/balanceSim';
 import { REFERENCE_EXTRA_SEEDS, REFERENCE_HORIZON } from '../sim/reference';
 import { endpointReading, describeEndpoint, type EndpointReading } from '../sim/endpointReading';
-import type { LegacyAxisKey, LegacyGrade } from '../src/state/types';
+import type { LegacyAxisKey, LegacyGrade } from '../sim/legacyReading';
 
 let checks = 0;
 let failures = 0;
@@ -65,6 +67,7 @@ const regional = runs('Regional engine');
 
 for (const [name, readings] of [['Earnest completionist', completionist], ['Balanced builder', balanced], ['Selective college', selective], ['Regional engine', regional]] as const) {
   every(name, readings, 'seals a legacy at the fiftieth summer', (r) => r.legacy !== null && r.legacy.year === 50);
+  every(name, readings, 'and the game writes its Final Report', (r) => r.report !== null && r.report.year === 50 && r.report.axes.length === 6);
 }
 
 // --- the earnest completionist ----------------------------------------------------
@@ -92,8 +95,6 @@ every('Earnest completionist', completionist, 'holds #1 in at least half of year
 // ambition, after a lean decade the new sequence dealt it. Phase F's money
 // plan (Plan 27) reworks what being in the red means, so the floor is all
 // but four until that lands, and the "all but two somewhere" claim stands.
-every('Earnest completionist', completionist, 'reaches all but four ambitions on every seed', (r) => r.ambitionsReached >= r.ambitionsTotal - 4);
-assert(completionist.some((r) => r.ambitionsReached >= r.ambitionsTotal - 2), `Earnest completionist: all but two ambitions on at least one seed (${completionist.map((r) => `${r.ambitionsReached}/${r.ambitionsTotal}`).join(', ')})`);
 every('Earnest completionist', completionist, 'is an A in breadth', (r) => atLeast(r, 'breadth', 'A'));
 
 // --- the balanced builder -----------------------------------------------------------

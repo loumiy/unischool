@@ -21,10 +21,9 @@
 One tick is one week. The clock runs while nothing is pending; an interrupt
 halts it until the player resolves it (see [interrupts.md](interrupts.md)). The
 one annual boundary is the **summer** (see
-[admissions.md](../design/admissions.md)), whose Standing beat is the **U.S.
-News report** (see [progression.md](../design/progression.md)); the fiftieth
-summer's first beat is the **final report** that seals the run's record, after
-which the clock keeps running as a sandbox.
+[admissions.md](../design/admissions.md)); the fiftieth summer's first beat
+is the **Final Report** that closes the run (Plan 33), after which the clock
+keeps running in the Epilogue.
 
 The first system each week is the **ladder** (`systems/ladder/ladderSystem.ts`,
 `data/ladderData.ts`): it records every milestone whose condition has just

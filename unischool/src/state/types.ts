@@ -1,3 +1,4 @@
+import type { FinalReport } from './finalReport';
 // Central type definitions. Every system reads and writes this shared state.
 // Keep this file authoritative: if a concept exists in the game, its shape lives here.
 
@@ -230,7 +231,9 @@ export type FacilityType =
   // A grand landmark (Plan 25): one of three, a long build and a large payoff.
   | 'landmark'
   // A small landmark or amenity (Plan 26): cheap, beauty-bearing.
-  | 'amenity';
+  | 'amenity'
+  // A capital project (Plan 33, data/projectData.ts).
+  | 'project';
 
 export interface Buildable {
   id: string;
@@ -296,6 +299,17 @@ export interface Buildable {
   // marks (components/ageMarks.tsx). Undefined for courses and for buildings
   // an older save finished.
   builtYear?: number;
+  // A capital project (Plan 33, systems/estate/projects.ts): the year it
+  // opens from, and the standings it lifts at full condition. One to a
+  // campus.
+  project?: CapitalProject;
+}
+
+export interface CapitalProject {
+  fromYear: number;
+  late?: true;      // the late tier: opens with the defend era (data/projectData.ts)
+  graduate?: true;  // waits on a graduate program being housed
+  boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 
 // What a Buildable serves right now: full when done, nothing before it
@@ -387,6 +401,20 @@ export interface QuadState {
   designated: string[];
 }
 
+export interface Ending {
+  report: FinalReport;
+  addenda: { from: number; to: number; lines: string[] }[];
+}
+
+// Promises (Plan 33). `offer` is this summer's, answered on the Review
+// beat: one promise, or at a decade's close a list to take up to two from.
+export interface PromiseState {
+  active: { id: string; madeYear: number; dueYear: number }[];
+  settled: { id: string; year: number; kept: boolean }[];
+  declined: { id: string; year: number }[];
+  offer: { ids: string[]; decade: boolean } | null;
+}
+
 // An event from the catalogue waiting for an answer. The price scale and
 // the names in its text are fixed when it fires, so what the panel shows is
 // what is applied.
@@ -403,6 +431,10 @@ export interface CatalogueState {
   lastFired: Record<string, number>; // event id -> year
   lastInlineWeek: number;            // absolute
   lastSeismicWeek: number;           // absolute
+  // The journal (Plan 33): every letter answered, and each year's inline
+  // events by who answered them. Absent before the first.
+  letters?: { eventId: string; choiceId: string; year: number }[];
+  answered?: { year: number; player: number; seat: number; timeout: number }[];
 }
 
 // While `pendingInterrupt` is set the clock halts; the UI renders a modal by
@@ -412,15 +444,16 @@ export interface PendingInterrupt {
   payload?: unknown;
 }
 
-// The summer: one interrupt with four beats (SUMMER_BEATS), so a save
+// The summer: one interrupt with three beats (SUMMER_BEATS), so a save
 // between beats resumes with the clock halted and nothing slips in between.
-// Review and Standing are read-and-continue. RESOLVE_SUMMER_BEAT advances
-// `beat`, carrying the admissions decision into `decision` so the last beat
-// commits exactly what the player set; RESOLVE_ADMISSIONS, the last beat's
-// action, is the only one that moves the calendar.
-export type SummerBeat = 0 | 1 | 2 | 3;
-export const SUMMER_BEATS = ['Review', 'Standing', 'Admissions', 'Students'] as const;
-export const SUMMER_LAST_BEAT: SummerBeat = 3;
+// Review is read-and-continue, bar the year's promises (Plan 33, which also
+// dropped the Standing beat: V1-1). RESOLVE_SUMMER_BEAT advances `beat`,
+// carrying the admissions decision into `decision` so the last beat commits
+// exactly what the player set; RESOLVE_ADMISSIONS, the last beat's action,
+// is the only one that moves the calendar.
+export type SummerBeat = 0 | 1 | 2;
+export const SUMMER_BEATS = ['Review', 'Admissions', 'Students'] as const;
+export const SUMMER_LAST_BEAT: SummerBeat = 2;
 
 export interface SummerDecision {
   tuition: number;
@@ -816,9 +849,6 @@ export interface University {
   researchStanding: number;
   vernacular: Vernacular; // fixed at founding
   colors: SchoolColors;   // fixed at founding
-  // Written once at the fiftieth RESOLVE_ADMISSIONS (state/legacy.ts),
-  // before that summer changes anything, and never again. Null before.
-  legacy: Legacy | null;
   // Lifetime appointments including the founding five (appointFaculty).
   // Monotone; the final report's "faculty who served".
   facultyServed: number;
@@ -834,28 +864,6 @@ export interface ReportCard {
   grades: Record<string, number>;  // input key -> the contribution it was graded
   before: number;                  // prestige the morning of the report
   after: number;                   // prestige after the step
-}
-
-// The legacy: six graded axes and a name (state/legacy.ts), sealed onto
-// University.legacy at the fiftieth summer. Six grades rather than a score
-// so a run can be strong in one thing and weak in another; the name is
-// flavour chosen by the pattern of grades.
-export type LegacyGrade = 'A' | 'B' | 'C' | 'D' | 'F';
-export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship' | 'campusLife';
-
-export interface LegacyAxis {
-  key: LegacyAxisKey;
-  label: string;
-  score: number;      // 0..1, before banding
-  grade: LegacyGrade;
-  detail: string;     // one line about what the reading actually read
-}
-
-export interface Legacy {
-  year: number;               // the year the reading was taken (the fiftieth, when sealed)
-  axes: LegacyAxis[];         // six, in a fixed order (see state/legacy.ts's AXES)
-  name: string;               // "a great research university" — the sentence the run is called
-  table: 'great' | 'sound' | 'troubled'; // which authored table the name came from
 }
 
 // The full display name; handles an empty suffix without a stray space.
@@ -897,6 +905,11 @@ export interface YearSnapshot {
   // The year's rank on each of the six standings (Plan 31), by axis
   // (systems/rivals/rivalsSystem.ts's STANDINGS). Absent before it.
   standings?: Record<string, number>;
+  // The college's own value on each of the six (Plan 33), on the 0–150
+  // scale, so the Final Report can average a decade. Absent before it.
+  standingValues?: Record<string, number>;
+  // The endowment at the close (Plan 33), for the chronicle's money line.
+  endowment?: number;
 }
 
 export interface RunningCampaign {
@@ -981,10 +994,21 @@ export interface GameState {
   advancement?: Advancement;
   // What the guidebooks call the college (systems/identity/tags.ts): the
   // tags held, and the years each is toward being earned or shed.
-  identity?: { tags: string[]; earning: Record<string, number>; shedding: Record<string, number> };
+  identity?: {
+    tags: string[]; earning: Record<string, number>; shedding: Record<string, number>;
+    // Every tag earned or shed, and the year (Plan 33's journal).
+    log?: { id: string; year: number; earned: boolean }[];
+  };
+  // The ending (Plan 33): the Final Report written at the fiftieth summer
+  // (state/finalReport.ts), and the Epilogue's addenda, a decade each.
+  // Undefined before the fiftieth summer closes.
+  ending?: Ending;
+  // Promises (systems/promises/promises.ts): those open, those settled and
+  // declined, and what this summer offers. Undefined before the first offer.
+  promises?: PromiseState;
   // The college's rival (systems/rivals/collegeRival.ts) and whether the
   // college stood above it at the last summer. Undefined before one exists.
-  rivalStanding?: { rivalId: string; above: boolean };
+  rivalStanding?: { rivalId: string; above: boolean; since?: number }; // since: the year this rival was first named
   // The event catalogue (systems/events/catalogueEngine.ts): events waiting
   // for an answer, the year each last fired, and when the last inline event
   // and the last letter fired. Undefined before the first fires.
@@ -1004,9 +1028,6 @@ export interface GameState {
   started: boolean;              // false only during the pre-game startup screen
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
-  // Ambition id -> year reached, written once (ambitionsSystem.ts). They
-  // gate and grant nothing.
-  ambitions: Record<string, number>;
   seen: SeenState;               // what the player has been shown, for alert badges
   ladder: LadderState;           // the milestones reached, and their letters not yet read (data/ladderData.ts)
 }
@@ -1041,7 +1062,7 @@ export type LogTopic =
   | 'building'            // a hall, dorm or facility finished
   | 'program'             // a program founded in a hall
   | 'milestone'           // a milestone awarded (established, distinguished, a school founded)
-  | 'ambition'            // an ambition reached; a record, never a stop
+  | 'ambition'            // a promise made, kept or missed (systems/promises)
   | 'appointment'         // somebody joined the faculty
   | 'departure'           // somebody left it
   | 'prize'               // a research prize

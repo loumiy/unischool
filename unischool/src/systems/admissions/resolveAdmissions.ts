@@ -8,8 +8,9 @@ import { TUITION_SLIDER_MAX } from '../../data/foundingData';
 import { money } from '../../format';
 import { advanceClock } from '../../state/clock';
 import { captureYearSnapshot } from '../../state/history';
-import { legacy } from '../../state/legacy';
-import { SEMICENTENNIAL_YEAR, institutionName } from '../../state/types';
+import { EPILOGUE_DECADE, finalReport } from '../../state/finalReport';
+import { summariseYears } from '../chronicle/chronicle';
+import { SEMICENTENNIAL_YEAR } from '../../state/types';
 import { advanceClasses, attritionRate, priceTolerance, projectAdmissions, trailingYearSatisfaction } from './admissionsSystem';
 import { cohortCounts, deriveCohortSignals } from './cohorts';
 import { attritionReasons } from './consequences';
@@ -69,13 +70,15 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
 
 // The last beat of the summer, and the one that turns the calendar page.
 export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 'RESOLVE_ADMISSIONS' }>): void {
-  // The fiftieth summer seals the legacy, read once before anything this
-  // summer changes, so it matches the final report. The clock keeps running.
-  if (s.clock.year === SEMICENTENNIAL_YEAR && s.self.legacy === null) {
-    s.self.legacy = legacy(s);
+  // The fiftieth summer writes the Final Report (state/finalReport.ts),
+  // read once before anything this summer changes, so it is the report the
+  // summer showed. The clock keeps running: the Epilogue.
+  if (s.clock.year === SEMICENTENNIAL_YEAR && !s.ending) {
+    const report = finalReport(s);
+    s.ending = { report, addenda: [] };
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
-      message: `The fiftieth year closes. The record is sealed: ${institutionName(s.self)} is ${s.self.legacy.name}.`,
+      message: `The fiftieth year closes. The Final Report: ${report.title}. Final mark ${report.mark}.`,
       kind: 'good',
     });
   }
@@ -177,6 +180,12 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // The turn of the year for what the guidebooks say (systems/identity/tags.ts).
   turnPerception(s);
   checkRivalStanding(s);
+  // The Epilogue (Plan 33): every tenth summer after the fiftieth, the
+  // chronicle gets an addendum for the decade just closed.
+  if (s.ending && s.clock.year > SEMICENTENNIAL_YEAR && (s.clock.year - SEMICENTENNIAL_YEAR) % EPILOGUE_DECADE === 0) {
+    const from = s.clock.year - EPILOGUE_DECADE + 1;
+    s.ending.addenda.push({ from, to: s.clock.year, lines: summariseYears(s, from, s.clock.year) });
+  }
   if (s.finance.distress) s.finance.distress.yearWorst = s.finance.distress.rung;
 
   s.pendingInterrupt = null;
