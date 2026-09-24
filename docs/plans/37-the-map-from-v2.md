@@ -133,6 +133,9 @@ grid corners with `unproject`, and it fails on the old code in views 1–3.
   - a round crown per tree;
   - flat facilities as their plates;
   - everything painted back to front by the ground it stands on.
+- **Retired by Plan 38.** The massing below dropped every building's
+  detail mid-turn, even on a founding campus; Plan 38 draws the full scene
+  through the turn instead.
 - **The full scene is held,** hidden at its last rest view, so it does
   not redraw mid-turn. It redraws once as the turn ends, the same cost the
   snap always paid.
