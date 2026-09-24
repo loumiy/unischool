@@ -3,12 +3,12 @@
 `GameState` (`src/state/types.ts`) is the single source of truth. Every system
 reads and writes it; nothing else holds simulation state.
 
-Two records of the run's own story sit beside the systems' state: `ambitions`
-(ambition id → the year reached, written once each by the ambitions system and
-never revoked) and `self.legacy` (the six graded axes and the name, written once
-at the fiftieth summer and never again — see
-[progression.md](../design/progression.md)'s "The fifty years"). Both are
-plain id → number and plain JSON respectively, for the reason below.
+Records of the run's own story sit beside the systems' state (Plan 33): the
+`promises` made, kept, missed and declined; the journal the chronicle reads
+(the history rows' standing values and endowment, the identity's tag `log`,
+the rival's `since`, the catalogue's `letters` and `answered`); and `ending`,
+the Final Report written once at the fiftieth summer with the Epilogue's
+addenda. All are optional and plain JSON, for the reason below.
 
 Four records sit beside the central `tech` list rather than as fields on a
 Buildable, all keyed by id. Three are read by **no** system: `placements`

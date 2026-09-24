@@ -14,7 +14,7 @@ breakdown, which is a player feature the developer happens to need first.
 | To know why prestige is what it is | the History tab's **Standing** section |
 | To know whether a change moved a trajectory | `npm run sim`'s scorecard |
 | To know when things happen for the first time | `npm run milestones` |
-| To know how a run finishes — its legacy, its ambitions, its rank curve | `npm run endpoint` |
+| To know how a run finishes — its legacy reading, its Final Report, its rank curve | `npm run endpoint` |
 
 ## The flag
 
@@ -100,9 +100,8 @@ one edge of the grid (see `tools/README.md`).
   twenty-year jump takes about half a minute and the UI is frozen for it.
 - **Force** — any authored decision event (its payload rolled exactly as at
   fire time), a student demand for a named shortfall, the queued milestones,
-  the U.S. News report as a modal of its own (in play it is the summer's
-  Standing beat; this is the way to look at the table without waiting for a
-  summer). An event whose context cannot be rolled against this state is
+  the U.S. News report as a modal of its own (in play the table lives in the
+  History tab's standings since Plan 33). An event whose context cannot be rolled against this state is
   refused rather than shown empty.
 - **Load** — a save from `npm run scenario`.
 
@@ -259,9 +258,10 @@ the balanced builder are the four archetypes Plan 17's balance target names.
 ### The endpoint
 
 `test/endpoint.test.ts` plays those four at the full fifty years on the
-reference's three seeds and asserts how each **finishes** — the sealed legacy
-(`tally.legacy`, exactly what the fiftieth summer's final report showed), the
-ambitions reached, the catalogue and the campus, the rank curve. The
+reference's three seeds and asserts how each **finishes** — the legacy reading
+(`tally.legacy`, sim/legacyReading.ts, taken at the fiftieth summer), the Final
+Report the game wrote (`tally.report`), the catalogue and the campus, the rank
+curve. The
 assertions are Plan 17 §E's; where the fitted game landed beside them is in
 that PR's *as implemented* note. `npm run endpoint` prints the same readings
 (`sim/endpointReading.ts` is shared by both) without judging them, which is

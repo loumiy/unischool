@@ -70,6 +70,16 @@ This document.
 - **`identity` records the year each tag was earned,** and the rival
   record the year it was named.
 
+**As implemented:** only the six standings' values and the endowment go on
+the history row. The rest are kept by the systems that make them, each an
+optional, append-only record:
+- the identity's `log` (every tag earned or shed, with its year);
+- the rival's `since`;
+- the catalogue's `letters` (every letter answered, with the answer) and
+  `answered` (each year's inline events, counted by who answered them:
+  the player, a seat or the clock);
+- the promises' own settled and declined lists (PR C).
+
 ## PR 33C — Promises
 
 - **v2's 26 ambitions, as data** (`data/promiseData.ts`). Each has an
@@ -87,6 +97,23 @@ This document.
 - **The achievements are retired** (`ambitionsData.ts`,
   `systems/ambitions/`, and the History tab's panel), and History shows
   the promises: open, kept and missed.
+
+**As implemented:**
+- **v2's first promise** named its founding charter, which this game does
+  not have. It is retargeted at four schools.
+- **Offers are drawn from a hash** of the college and the year, never the
+  run's random stream. A run that declines everything (the harness) is the
+  run it would have been.
+- **Offers wait until Year 3,** as the catalogue's events do.
+- **A declined promise rests four years** before it is asked again. v2
+  asked the same one summer after summer.
+- **No promise is offered once the run has formally ended** at the
+  fiftieth summer. Those already made still come due.
+- **The promises open from the reducer,** after `tickAdmissions`. Hooking
+  them into the admissions system closed an import cycle through the
+  catalogue.
+- **The endpoint suite's achievements claim is retired** with the
+  achievements.
 
 ## PR 33D — Capital projects
 
@@ -110,6 +137,18 @@ This document.
   on campus.
 - **The catalogue's `needs`** read the real projects where one exists.
 
+**As implemented:**
+- **The lifts are v2's points on this game's standings:** a "Capital
+  projects" line in the academic, research and campus-life breakdowns,
+  shown once one stands; athletics adds to program strength.
+- **The graduate college** is residential: its beds add to capacity.
+- **The championship stadium** is now the largest footprint on campus,
+  and the building-spec test says so.
+- **Each is drawn in an existing motif** (a block, a portico, works, a
+  bowl, open ground). Bespoke art is Phase M's.
+- **The catalogue's `needs`** accept the project beside the nearest thing
+  this game had, so the harness, which never builds one, draws as it did.
+
 ## PR 33E — The summer
 
 - **The Standing beat goes.** The summer is Review, Admissions, Students.
@@ -125,6 +164,10 @@ This document.
   The built, people, research and money sections stay.
 - **The save migrates** a summer paused on the old Standing beat.
 
+**As implemented:** there is no migration: `SAVE_VERSION` goes to 72, which
+by this game's policy discards older saves (docs/architecture/game-state.md).
+Review also names the era the chronicle has the college in (PR F).
+
 ## PR 33F — The chronicle
 
 - **v2's chronicle** (`systems/chronicle/`), read from the history rows
@@ -138,6 +181,14 @@ This document.
   missed.
 - **The ladder gives each era its firsts.**
 - **History gets The Chronicle.**
+
+**As implemented:**
+- **Each history row keeps the endowment,** for the money line.
+- **v2's distinguished alumni and demolitions are left out;** this game
+  has neither.
+- **The rival's saga** is its name and year, the series record in the main
+  sport, and where the two stand now.
+- **Money now reads in billions** where it runs to them.
 
 ## PR 33G — The Final Report
 
@@ -156,11 +207,28 @@ This document.
   whether the Epilogue has begun, and its addenda. The harness and the
   endpoint suite read the report's grades where they read the legacy's.
 
+**As implemented:**
+- **The legacy's reading moves to `sim/legacyReading.ts`** rather than
+  being deleted. The endpoint suite's strategies were designed against its
+  axes (a selective college's teaching, a regional engine's reach), and the
+  report's six standings do not separate them. The harness takes the
+  reading at the fiftieth summer, from the state the game's seal read. The
+  suite now also requires every run to write its report. Phase N decides
+  whether the endpoint claims move to the report's terms.
+- **The campus portrait** is the college's own facade, drawn as the title
+  screen draws it (PR I). A picture of the campus map is Phase M's.
+- **The six standings are charted one to a panel,** with this game's
+  single-series chart.
+
 ## PR 33H — The Epilogue
 
 - **After the report, play on.** Every tenth year after the fiftieth, the
   chronicle writes an addendum for the decade, shown in History.
 - **Nothing new unlocks.**
+
+**As implemented:** the addendum is written at the summer that closes each
+tenth year (60, 70, …), after the year's history row, for the ten years it
+closes.
 
 ## PR 33I — The hall of fame
 
@@ -169,6 +237,12 @@ This document.
   chronicle to read.
 - **Kept in its own storage key** beside the save, a dozen runs at most.
 - **No palettes are unlocked by it** (V1-35).
+
+**As implemented:**
+- **Leaving the Final Report hangs the run,** never twice.
+- **The portrait** is the college's facade in its architecture, colors
+  and name.
+- **A frame opens** onto the title, the six grades and the chronicle.
 
 ## What this plan does not do
 

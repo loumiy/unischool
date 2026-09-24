@@ -11,17 +11,17 @@ Everything that needs to stop time rides on this one mechanism:
 
 - **The summer** (see [admissions.md](../design/admissions.md)'s "The
   summer") — the year's one fixed stop: **one** `summer` interrupt with a
-  `beat` index in its payload (Review · Standing · Admissions · Students),
+  `beat` index in its payload (Review · Admissions · Students; Plan 33 dropped
+  the Standing beat),
   advanced one beat per `RESOLVE_SUMMER_BEAT` with the clock still halted and
   the admissions decision carried along in the payload, and closed by the last
   beat's `RESOLVE_ADMISSIONS`, the only action that turns the page. A save
-  written between beats resumes on the same beat. The annual U.S. News report
-  is its Standing beat and the student-life digest its fourth; neither is an
-  interrupt of its own any more. On the **fiftieth summer** the first beat is
-  the **final report** in place of the year in review (the payload carries a
-  `final` flag, and the beat is a page): the legacy, the ambitions, the
-  founder's numbers and the fifty-year curves, read exactly as the last beat's
-  `RESOLVE_ADMISSIONS` then seals them onto `self.legacy`. Play continues.
+  written between beats resumes on the same beat. Review settles the promises
+  due and makes the year's offer; the student-life digest is the last beat.
+  On the **fiftieth summer** the first beat is the **Final Report** in place
+  of the year in review (the payload carries a `final` flag, and the beat is a
+  page), read exactly as the last beat's `RESOLVE_ADMISSIONS` then writes it
+  onto `ending`. Play continues into the Epilogue.
 - **The rankings entry** — the one-time "you've entered the top 50" reveal,
   which keeps its own moment because entering is the event.
 - **The first year's letters** — four letters from the board's chair, data in
@@ -153,8 +153,8 @@ An interrupt is one of three widths, chosen by what it is
 answer (a decision event, the charter, a demand, a research report, a single
 milestone), **wide** for a decision with a panel beside it (the summer's review,
 admissions and students beats, the athletic director's cards, a championship, a
-burst of milestones as cards), **page** for a table to read (the summer's
-Standing beat and the rankings entry). The summer changes width between beats
+burst of milestones as cards), **page** for a table to read (the Final Report
+and the rankings entry). The summer changes width between beats
 without the component knowing why.
 
 ## A new interrupt needs a default answer

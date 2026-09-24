@@ -118,7 +118,7 @@ it.
 | `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. Keys only — the map's corner pill has zoom buttons and nothing for the camera. |
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
-| `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review and Standing beats and a letter included — not its Admissions or Students beats or the charter offer, which are real choices). |
+| `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review beat and a letter included — not its Admissions or Students beats or the charter offer, which are real choices). |
 | `C` `F` `L` | Open (or close) Curriculum, Faculty, Student Life. |
 
 The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
