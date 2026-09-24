@@ -16,46 +16,25 @@ import { transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
 import { money } from '../format';
 
-// A popover for a PLACED building — what clicking it (outside placement/
-// path-draw mode; see CampusMap.tsx's inspectBuilding) shows. For every
-// kind but one it is a pure projection: every figure already lives on the
-// Buildable itself or in the curriculum data CurriculumTab.tsx reads,
-// nothing is computed fresh and nothing it reads is written back.
+// A popover for a placed building (see CampusMap.tsx's inspectBuilding). For
+// every kind but one it is a pure projection of the Buildable and the
+// curriculum data; nothing is computed fresh or written back.
 //
-// THE ONE EXCEPTION IS THE HALL VIEW (Plan 14). An academic hall's panel
-// is the map's first mechanical surface: its six program slots are where
-// a program is FOUNDED — the tier-1 course that opens a major starts from
-// here and nowhere else, because the decision is "what goes in this
-// building" and it needs the building on screen. The panel dispatches
-// FOUND_PROGRAM; the gate it reads (canFoundProgram) is the reducer's own,
-// so the button can never offer what the action would refuse.
-//
-// AND THAT IS THE WHOLE OF WHAT IT DOES. The panel answers the BUILDING
-// question — what is in this hall, what could go in it, how full and how
-// pure it is — at the grain of a PROGRAM. It does not develop courses. It
-// did for a while: a playtest follow-up drew the Curriculum tab's course
-// cells, its instructor picker and its market inside every open program
-// tile, and the two surfaces became the same screen, one of them squeezed
-// into a floating card. Plan 14's division is restored here: the map is
-// where a program is founded, the tab is where it is filled in and tuned,
-// and a program tile is a summary with one door to its row in the tab.
+// The exception is the hall view: an academic hall's six program slots are
+// where a program is founded, because the decision is "what goes in this
+// building". It dispatches FOUND_PROGRAM, gated by the reducer's own
+// canFoundProgram so the button never offers what the action would refuse.
+// It does not develop courses: the Curriculum tab is where a program is
+// filled in, and a program tile is a summary with one door to its row there.
 
-// A dorm's capacity is simply its capacityBonus effect — including the
-// founding dorm, which carries its beds through the same effect every other
-// dorm does (see campusData.ts; the founding hall opens pre-built, and its
-// beds are folded into the founding capacity — see actions.ts).
+// A dorm's capacity is its capacityBonus effect, the founding dorm included.
 function dormCapacity(t: Buildable): number | null {
   return t.effects?.capacityBonus ?? null;
 }
 
-// What a facility's servesPopulation effect actually COUNTS, per
-// facilityType — a dining hall's is seats, a library's is study seats, a
-// health center's is how many students it can care for, and so on. Quad
-// and lab are deliberately absent: neither has a servesPopulation effect
-// at all (a quad is a flat, non-scaling bonus; a lab is a research-rate
-// multiplier gating one major's capstone courses), so neither has a
-// natural "capacity" figure — see the facility branch below for what's
-// shown for those two instead.
+// What a facility's servesPopulation effect counts, per facilityType. Quad
+// and lab are absent: neither has a servesPopulation effect, so see the
+// facility branch below for what they show instead.
 const FACILITY_CAPACITY_LABEL: Partial<Record<FacilityType, string>> = {
   diningHall: 'dining seats',
   library: 'study seats',
@@ -69,10 +48,8 @@ const FACILITY_CAPACITY_LABEL: Partial<Record<FacilityType, string>> = {
   artGallery: 'gallery capacity',
 };
 
-// The five varsity athletics venues (facilitiesData.ts) — a shared
-// competition facility whose info panel should say which team(s) actually
-// play there, not just a capacity figure like an ordinary facility (see
-// AthleticsVenueInfo below).
+// The varsity venues (facilitiesData.ts): their panel says which teams play
+// there, not just a capacity (see AthleticsVenueInfo).
 const ATHLETICS_VENUE_TYPES: readonly FacilityType[] = [
   'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
 ];
@@ -135,9 +112,8 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
   return <p className="building-info-line">{t.description}</p>;
 }
 
-// "Take me to it." The hall is where the player is looking; the courses it
-// stands for are two clicks and a scroll away in another view, and the map
-// has no way to show them. See App.tsx's overlay target for the channel.
+// "Take me to it": the courses a hall stands for live in another view. See
+// App.tsx's overlay target for the channel.
 function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurriculum?: (id: string) => void }) {
   if (!onOpenCurriculum) return null;
   return (
@@ -148,14 +124,10 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
 }
 
 // ---------------------------------------------------------------------
-// THE PROGRAM TILE. A filled slot: the program's name in its school's
-// colour, its progress (courses done of nine) and its aggregate grade.
-// Clicking it opens the tile in place to the program's SUMMARY — what it
-// is one course away from, what it teaches, what is next — and one door,
-// "Open in Curriculum", which lands on the program's own row in the tab
-// with every course, chip and picker the tab already draws. Relocation is
-// behind a "Move…" disclosure: it happens a few times a run and used to
-// take as much room as the courses did.
+// The program tile: a filled slot showing the program's name in its school's
+// colour, courses done of nine, and aggregate grade. Clicking opens its
+// summary and one door, "Open in Curriculum". Relocation sits behind a
+// "Move…" disclosure since it happens a few times a run.
 // ---------------------------------------------------------------------
 function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   program: ProgramInfo; s: GameState; act?: (a: Action) => void; open: boolean; onToggle: () => void;
@@ -229,10 +201,9 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   );
 }
 
-// RELOCATION (PR F). Every free slot in every standing hall, offered as a
-// destination — and what the move costs, said up front: the program goes
-// dark for RELOCATION_WEEKS. A program already in transit cannot be moved
-// again until it settles.
+// Relocation: every free slot in every standing hall, with the cost said up
+// front (the program goes dark for RELOCATION_WEEKS). A program in transit
+// cannot be moved again until it settles.
 function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameState; act?: (a: Action) => void }) {
   const inTransit = transitWeeks(s, program.id);
   const destinations = Object.entries(s.halls)
@@ -279,13 +250,10 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
 }
 
 // ---------------------------------------------------------------------
-// THE HALL VIEW. A 2x3 grid of slots. An empty slot is a pale parchment
-// tile with a +; clicking it fans out the three programs on offer as
-// course tiles — the entry course's code, its name, its cost, its field,
-// and the school's colour and mark (schoolPalette.ts). Picking one opens
-// the same instructor picker the course drawer uses, and "Found" is the
-// one button on the map that starts a course. A filled slot shows its
-// program as a tile (ProgramTile above).
+// The hall view: a 2x3 grid of slots. Clicking an empty slot fans out the
+// three programs on offer as course tiles (schoolPalette.ts colours);
+// picking one opens the instructor picker, and "Found" is the one button on
+// the map that starts a course. A filled slot shows a ProgramTile.
 // ---------------------------------------------------------------------
 function HallSlots({ t, s, act, onOpenCurriculum }: {
   t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (sectionKey: string) => void;
@@ -295,8 +263,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
   const [openSlot, setOpenSlot] = useState<number | null>(null);
   const [pickedProgram, setPickedProgram] = useState<string | null>(null);
   const [pickedFaculty, setPickedFaculty] = useState<string | null>(null);
-  // Which housed program's tile is expanded. One at a time: the panel is
-  // a column, and two summaries open at once is a wall.
+  // Which housed program's tile is expanded; one at a time.
   const [openTile, setOpenTile] = useState<string | null>(null);
   useEffect(() => { setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }, [t.id]);
 
@@ -458,32 +425,27 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
   );
 }
 
-// A building's info: an academic hall's slots — Founders Hall included,
-// an ordinary hall since Plan 19.
+// A building's info: an academic hall's slots, Founders Hall included.
 function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
   t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (id: string) => void;
 }) {
   if (isAcademicHall(t)) return <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />;
 
-  // Unreachable for real seed data (every 'building' Buildable is a hall)
-  // — a plain fallback rather than a thrown error, since this is an info
-  // panel, not a place worth crashing the map over.
+  // Unreachable for real seed data (every 'building' is a hall); a plain
+  // fallback rather than crashing the map.
   return <p className="building-info-line">{t.description}</p>;
 }
 
 export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum }: {
   t: Buildable; s: GameState; onClose: () => void;
-  // The one thing this panel dispatches: FOUND_PROGRAM from a hall's slot
-  // (see HallSlots). Optional, like onOpenCurriculum, so the panel stays
-  // renderable on its own terms; the map always passes both.
+  // The one thing this panel dispatches: FOUND_PROGRAM from a hall's slot.
+  // Optional, like onOpenCurriculum; the map always passes both.
   act?: (a: Action) => void;
   // Opens the Curriculum tab at a school (by name) or at one program's row
   // ("program:<id>") — the targets CurriculumTab.tsx accepts.
   onOpenCurriculum?: (sectionKey: string) => void;
 }) {
-  // Escape closes the panel, same as TabOverlay's own dismiss — this only
-  // binds while the panel is actually mounted (see CampusMap.tsx, which
-  // renders this component only when a building is inspected).
+  // Escape closes the panel; binds only while mounted.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -492,12 +454,9 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
-  // A developing placeable's effects are authored data on `t.effects`
-  // already (what it WILL grant once it finishes — see techSystem.ts's
-  // applyEffects), not yet anything the school actually has — the kind-
-  // specific info below reads the same fields either way, so this banner is
-  // what keeps a still-under-construction building from reading as already
-  // standing.
+  // A developing building's effects are what it will grant once finished,
+  // and the info below reads them either way, so this banner keeps it from
+  // reading as already standing.
   const weeksLeft = s.developing[t.id];
   return (
     <div className={`building-info-panel${isAcademicHall(t) ? ' hall' : ''}`} role="dialog" aria-label={`${t.name} info`}>

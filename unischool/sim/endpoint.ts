@@ -1,14 +1,8 @@
-// ---------------------------------------------------------------------
-// THE ENDPOINT PROBE (Plan 17's PR E): what the four archetypes the
-// balance target names look like at fifty, on the seeds the reference is
-// written from — the sealed legacy, the ambitions, the rank curve, the
-// catalogue and the campus. Everything test/endpoint.test.ts asserts,
-// printed rather than judged, so a tuning pass can see where each run
-// lands before deciding what to move.
-//
-// Not part of the game, and not part of `npm test` — diagnostic, like
-// sim/milestones.ts. Run with `npm run endpoint -- [strategy-substring]`.
-// ---------------------------------------------------------------------
+// The endpoint probe: prints what each archetype the balance target names
+// looks like at fifty years, on the reference seeds (everything
+// test/endpoint.test.ts asserts), so a tuning pass can see where runs land.
+// Diagnostic only, not part of `npm test`.
+// Run with `npm run endpoint -- [strategy-substring]`.
 
 import { play, STRATEGIES, DEFAULT_SIM_SEED } from './balanceSim';
 import { REFERENCE_EXTRA_SEEDS, REFERENCE_HORIZON } from './reference';

@@ -1,52 +1,22 @@
 import type { Buildable, FacilityType } from '../state/types';
 import { FOUNDING_BODY } from './foundingData';
 
-// ---------------------------------------------------------------------
-// Campus-life facilities: the six non-housing, non-lab needs a campus has
-// (see docs/architecture/buildables.md — these are all just `facility`-kind
-// Buildables, same develop/build machinery as everything else; do not fork
-// a subsystem). Each instance "serves" a fixed number of students against
-// total ENROLLED students — a big commuter school with few dorms is still a
-// big school that needs feeding, studying space, and so on; only Housing
-// itself (satisfactionSystem.ts) is scored against bed capacity, since that
-// ratio is the whole point of that one attribute. satisfactionSystem.ts
-// sums servesPopulation across every 'done' facility of a given
-// satisfactionAttribute and compares it to enrolled to score that attribute
-// 0..100 each week — see BuildableEffects in state/types.ts for the
-// live-read-not-applied contract these effects follow.
+// Campus-life facilities: `facility`-kind Buildables on the shared machinery
+// (docs/architecture/buildables.md; do not fork a subsystem). Each serves a
+// fixed number of students; satisfactionSystem.ts sums servesPopulation per
+// satisfactionAttribute against enrolled students each week (live-read, see
+// BuildableEffects in state/types.ts).
 //
-// Two shapes, per the design pass on this feature:
+// Two shapes: repeatable sequential chains (dining halls), and single
+// buildings upgraded by tier (library, student center, rec center, health
+// center, quad).
 //
-//   - Repeatable chains (dining hall): like campusData.ts's dorm chain — a
-//     starting instance seeded 'done', then a strictly sequential queue of
-//     more instances. Real campuses have several dining halls, so "build
-//     another" is the natural action.
-//   - Single buildings with tier upgrades (library, student center, rec
-//     center, health center, quad): a campus typically has ONE of these,
-//     upgraded in place. Tier 2 is a genuinely bigger facility (more seats,
-//     sometimes a different unlock gate), not a repeat of tier 1.
-//
-// Every facility carries upkeepPerWeek (see financeSystem.ts) scaled off
-// how many students it serves (or a flat rate for the two that don't scale
-// with population) at a per-type rate reflecting how labor/equipment-heavy
-// that need is — dining (food service staff) and health (clinical staff)
-// cost the most per seat served.
-// ---------------------------------------------------------------------
-
-// ---------------------------------------------------------------------
-// FACILITY TUNING. Facilities are the relief valve of the growth loop and
-// they are deliberately priced as a COST THAT ARRIVES FIRST: GROWING
-// ENROLLMENT dilutes every ratio attribute the week the admissions funnel
-// commits it, so the dining hall that fixes it has to be bought (and its
-// upkeep carried) before the tuition that class pays has landed. Dorms no
-// longer play this role at all — they dilute only their own Housing
-// attribute, never basicNeeds/academic/social/health, since enrollment and
-// bed count are independent (see admissionsSystem.ts). Build costs are
-// sized against the dorm chain purely as a scale reference — roughly a
-// third to a half of the dorm whose bed count is in the same ballpark —
-// and per-served upkeep is sized so a fully served campus spends a real,
-// visible slice of tuition on keeping the lights on.
-// ---------------------------------------------------------------------
+// Facility tuning: facilities are a cost that arrives first. Enrollment
+// dilutes every ratio the week admissions commits it, so the fix must be
+// bought, and its upkeep carried, before that class's tuition lands. Build
+// costs are roughly a third to a half of the dorm with a similar bed count;
+// per-served upkeep is a visible slice of tuition, highest for dining and
+// health (staff-heavy).
 const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   diningHall: 2.2,
   grocery: 1.0,           // shelving/registers, lighter than a full-service dining hall's kitchen staff
@@ -59,10 +29,8 @@ const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   pool: 1.5,              // lifeguards plus chemical/mechanical upkeep — pricier per head than a gym
   performingArtsCenter: 1.0, // venue/production staff, a campus-wide draw like the student center
   artGallery: 0.7,        // curatorial and security staff, lighter than a working venue
-  // Varsity athletics venues (see the block below): grounds crew and
-  // officiating overhead, distinct from — and pricier per head than — the
-  // recreational trio above, since these host real competition rather than
-  // open-use fitness.
+  // Varsity venues host competition, so they cost more per head than the
+  // recreational trio above.
   athleticsField: 0.9,
   athleticsArena: 1.4,
   athleticsDiamond: 1.0,
@@ -71,51 +39,29 @@ const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   fieldHouse: 1.0,          // weight rooms, a training floor, treatment rooms — no stand
 };
 
-// Exported so engine/reducer.ts's RENOVATE_LIBRARY case can recompute
-// tier 1's upkeep off its new, post-renovation servesPopulation with the
-// exact same per-seat rate this file uses everywhere else, rather than a
-// second copy of it living in the reducer.
+// Exported for engine/reducer.ts's RENOVATE_LIBRARY, so the rate lives in one place.
 export function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, servesPopulation: number): number {
   return Math.round(UPKEEP_PER_SERVED_PER_WEEK[facilityType] * servesPopulation);
 }
 
 // --- Dining hall: repeatable chain, basic need, scales hard with capacity ---
-// Deliberately the steepest under-capacity penalty of the four attributes
-// (see satisfactionSystem.ts's BASIC_NEEDS_PENALTY_CURVATURE) — going
-// hungry reads as an acute problem, not a gentle drift.
+// basicNeeds carries the steepest under-capacity penalty
+// (satisfactionSystem.ts's BASIC_NEEDS_PENALTY_CURVATURE).
 //
-// EIGHT HALLS, AUTHORED, not five generated from `1,600 * 1.9^n`. That
-// growth rate is what produced the chain's worst reading: the founding hall
-// fed 350 and the sixth fed 20,851 — sixty times as many people, through
-// four doublings so steep that the fifth and sixth halls between them were
-// most of the campus's dining and the three before them were rounding
-// error. The rungs below roughly double at the small end and taper to about
-// 1.35x at the large end (350, 900, 1,800, 3,000, 5,000, 8,000, 12,000,
-// 16,000), so every hall in the queue is a meaningful fraction of what the
-// campus has — and each one is visibly bigger on the map than the last,
-// because campusMap.ts's DINING_FOOTPRINTS ladder reads
-// effects.servesPopulation and steps the footprint with it (a 350-seat
-// campus restaurant is 3x3; the 16,000-seat market hall is 12x9, on the
-// order of an academic quad).
-//
-// The chain serves 47,050 fully built, up from 42,591, over eight decisions
-// instead of six; with the grocery store below and the residential towers'
-// street-level retail (campusData.ts) the campus can feed about 70,000 at
-// basicNeeds' strict 1:1 ratio. Cost per seat still climbs the whole way
-// (1.3k -> 2.4k), the same cost-outgrows-capacity shape the dorm chain has.
+// Eight authored halls (350 to 16,000) that roughly double at the small end
+// and taper to ~1.35x, so each is a meaningful share of campus dining and
+// visibly bigger on the map (campusMap.ts's DINING_FOOTPRINTS reads
+// servesPopulation). The chain serves 47,050; with the grocery and the
+// towers' retail (campusData.ts) the campus feeds about 70,000 at 1:1. Cost
+// per seat climbs (1.3k -> 2.4k), like the dorm chain.
 const DINING_STARTING_ID = 'DINING-01';
 const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly the founding (all-commuter) class
-// A cheap, quick starter, sized so a new school can feed its founding class
-// without the build swallowing the whole opening budget. Cheaper per seat
-// than the escalating chain below.
+// Cheap and quick, so feeding the founding class does not swallow the
+// opening budget.
 const DINING_STARTING_COST = 250_000;
 const DINING_STARTING_WEEKS = 12;
 
-// One rung per hall after the founding one, in build order. Same authored-
-// table shape campusData.ts's dorm chain uses, and for the same reason: the
-// interesting facts about a chain (how big each rung is, what it costs per
-// seat, where the jumps are) belong where they can be read, not derived
-// from three growth constants.
+// One rung per hall after the founding one, in build order.
 interface DiningRung {
   id: string;
   name: string;
@@ -145,13 +91,8 @@ function diningChain(): Buildable[] {
       cost: DINING_STARTING_COST,
       duration: DINING_STARTING_WEEKS,
       prereqs: [],
-      // Available (not 'done') from day one: the campus opens empty, so the
-      // player builds the founding dining hall like any other facility (see
-      // campusData.ts's founding dorm for the same treatment). Its
-      // servesPopulation/upkeepPerWeek are LIVE-READ every tick straight off
-      // whatever's currently 'done' (see BuildableEffects in state/types.ts),
-      // so they only count once this is actually built — no fold-in, nothing
-      // to double-count.
+      // Available from day one: the campus opens empty. Effects are
+      // live-read, so they count only once it is built.
       status: 'available',
       effects: {
         servesPopulation: DINING_STARTING_SERVES,
@@ -172,9 +113,7 @@ function diningChain(): Buildable[] {
       cost: rung.cost,
       duration: rung.weeks,
       prereqs: [previousId], // strictly sequential, same reasoning as the dorm chain
-      // All locked; each unlocks the tick its prereq finishes — including the
-      // first, now that the founding hall is itself built rather than seeded
-      // 'done' (see the starting instance above).
+      // Each unlocks the tick its prereq finishes.
       status: 'locked',
       effects: {
         servesPopulation: rung.serves,
@@ -189,16 +128,9 @@ function diningChain(): Buildable[] {
 }
 
 // --- Campus grocery store: single building, basicNeeds, population-gated ---
-// A SECOND basicNeeds feeder alongside the dining chain, not another link in
-// it: real campuses have several dining halls but typically one grocery, so
-// this is shaped like the health center (one building, unlocked past a
-// population threshold) rather than repeatable. Exists purely to close the
-// max-buildout gap the dining chain alone couldn't (see the note above
-// DINING_STARTING_ID) — a big, single, late-game capacity top-up, not
-// an early strategic choice. Cheaper per seat than a full dining hall
-// (~1,500/seat): a grocery needs shelving and registers, not a kitchen and
-// a dining room, so its labor/equipment cost per student served is lower —
-// see GROCERY's own rate in UPKEEP_PER_SERVED_PER_WEEK.
+// A second basicNeeds feeder: one building unlocked past a population gate,
+// a late-game top-up to close the dining chain's max-buildout gap. Cheaper
+// per seat and in upkeep than a dining hall (no kitchen).
 export const GROCERY_POPULATION_GATE = 8_000;
 const GROCERY_ID = 'GROCERY-01';
 const GROCERY_SERVES = 17_500;
@@ -206,14 +138,9 @@ const GROCERY_COST = 15_750_000; // 900/seat
 const GROCERY_WEEKS = 20;
 
 // --- Library: single building, academic ---
-// Tier 2 (the research library) is a real prestige gate, not just a bigger
-// tier 1 — see prestigeSystem.ts's library-adequacy cap for why staying
-// under-seated caps how far curriculum breadth alone can push prestige. It
-// is deliberately narrow rather than a general-capacity fix: a research
-// collection reads as adjacent to the labs it multiplies output for (see
-// LIBRARY_TIER2_RESEARCH_RATE_BONUS below), not as "the library gets
-// bigger" — that's what renovating tier 1 (below) is for. It stays its own
-// separate building, with its own footprint, unlike tier 1's renovations.
+// Tier 2 (the research library) is a prestige gate (prestigeSystem.ts's
+// library-adequacy cap) and a research multiplier, and its own building.
+// General capacity comes from renovating tier 1 instead.
 export const LIBRARY_TIER1_ID = 'LIB-T1';
 const LIBRARY_TIER1_SERVES = 1_200;
 const LIBRARY_TIER1_COST = 360_000;
@@ -223,48 +150,21 @@ const LIBRARY_TIER2_SERVES = 3_500;
 const LIBRARY_TIER2_COST = 1_400_000;
 const LIBRARY_TIER2_WEEKS = 24;
 export const LIBRARY_TIER2_PRESTIGE_GATE = 70;
-// The research library is the one campus-life facility that touches
-// research: a real research collection makes every lab-equipped
-// department more productive. Read live off effects.researchRateBonus,
-// exactly as the labs' own bonuses are (see techData.ts's
-// LAB_RESEARCH_RATE_BONUS). It MULTIPLIES output and never creates it —
-// a campus with a research library and no lab still researches nothing,
-// because the gate is labs.
+// Read live off effects.researchRateBonus like the labs' bonuses
+// (techData.ts's LAB_RESEARCH_RATE_BONUS). Multiplies research output, never
+// creates it: with no lab, nothing is researched.
 const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 
-// Renovations — added floors on the SAME tier-1 building, the fix for the
-// real gap tier 1+2 always had: a hall built to serve a 350-student
-// founding class and a once-only research wing don't add up to anything
-// close to what a 50,000-student campus needs, and a THIRD SEPARATE
-// building (a law library, a science library...) would only repeat the
-// same mistake at a narrower scope — a specialized branch collection is
-// exactly that, specialized, never the answer to "the general collection
-// ran out of room, and there's nowhere left to put a new building for it."
+// Renovations add floors to the existing tier-1 building rather than a new
+// Buildable: engine/reducer.ts's RENOVATE_LIBRARY returns the placed node to
+// 'developing' and on completion raises its servesPopulation/upkeepPerWeek
+// in place. Existing floors keep serving during the work (types.ts's
+// servingPopulation). The map shows a storey per floor added
+// (buildingMotifs.tsx's addedFloors).
 //
-// Unlike every other tiered facility in this file, this is NOT a second
-// Buildable the player places on the map: engine/reducer.ts's
-// RENOVATE_LIBRARY case puts the EXISTING tier-1 Buildable back into
-// 'developing' status at its already-placed spot (no new footprint, no
-// second entry in s.placements) and, on completion, raises that same
-// node's own effects.servesPopulation/upkeepPerWeek in place — see
-// nextLibraryFloor below for the plan a renovation commits to, and its
-// floorsAdded read for why this needs no "which floor is this" state of
-// its own. While renovating, the floors that already exist keep working:
-// the node records what it was serving when the work started and the
-// satisfaction sums read that (see types.ts's servingPopulation), so a
-// renovation ADDS seats on completion rather than taking the old ones away
-// for six months and giving them back.
-//
-// Combined with tier 2's 3,500 (against satisfactionSystem.ts's
-// TARGET_RATIO.academic and prestigeSystem.ts's own LIBRARY_TARGET_RATIO,
-// both 0.15), a maxed-out tier 1 (1,200 base + all 3 renovations) plus
-// tier 2 serves 12,325 — fully adequate up to ~82,000 enrolled, comfortably
-// past the 40k-56k the balance sim's strongest strategies reach by year 40
-// (see campusData.ts's own dorm-chain tuning comment for the matching fix
-// on the housing side). A renovation now DOES show on the campus map: the
-// map is drawn at an angle, so buildings have a height, and a renovated
-// library grows a storey and a rank of windows per floor added — read
-// generically off floorsAdded, see buildingMotifs.tsx's addedFloors.
+// Maxed tier 1 (1,200 + 3 floors) plus tier 2 serves 12,325, adequate to
+// ~82,000 enrolled at the 0.15 target ratio, past the 40k-56k the strongest
+// balance strategies reach by year 40.
 const LIBRARY_FLOOR_MAX = 3;
 const LIBRARY_FLOOR_BASE_SERVES = 2_000;
 const LIBRARY_FLOOR_SERVES_GROWTH = 1.25;
@@ -279,12 +179,8 @@ export interface LibraryFloorPlan {
   weeks: number;
 }
 
-// What the NEXT renovation on this Buildable would commit to, or null once
-// LIBRARY_FLOOR_MAX is reached. Reads node.floorsAdded (defaulting to 0 for
-// a tier 1 that has never been renovated) rather than taking an index, so
-// the reducer and the build-panel tile that offers the button always agree
-// on which renovation comes next without either one tracking it
-// separately.
+// The next renovation's plan, or null at LIBRARY_FLOOR_MAX. Derived from
+// node.floorsAdded so the reducer and the build panel always agree.
 export function nextLibraryFloor(node: Buildable): LibraryFloorPlan | null {
   const floorsAdded = node.floorsAdded ?? 0;
   if (floorsAdded >= LIBRARY_FLOOR_MAX) return null;
@@ -307,69 +203,25 @@ const STUDENT_CENTER_TIER2_WEEKS = 20;
 
 // --- The recreation/fitness chain: Recreation Center -> Gym -> Pool -> ---
 // --- Tennis Courts -> Athletics Complex, strictly sequential ---
-// Five distinctly-named, one-off facilities (not N copies of one repeatable
-// thing, the way a dorm chain is) chained together the same way the dorm
-// and dining chains are: one buildable at a time, in a fixed order, so
-// "grow campus recreation" reads as a queue with one visible next step
-// rather than five independent choices sitting open at once. Recreation
-// Center is the founding rung — buildable from day one, exactly like the
-// starting dorm/dining hall's first "additional" link — and everything
-// after it unlocks only once the rung before it is done. BuildPopup.tsx's
-// TYPE_MATCHERS folds all five into one 'recCenter'-keyed group (repeatable:
-// true) so they collapse the same way Housing/Dining do, rather than each
-// getting its own single-row group heading.
+// Five one-off facilities chained strictly in order, like the dorm and
+// dining chains, so recreation reads as a queue. BuildPopup.tsx's
+// TYPE_MATCHERS groups them under 'recCenter'. Costs are not monotonic
+// along the chain; the order is judgment. The Athletics Complex also needs
+// REC_CENTER_TIER2_PRESTIGE_GATE (techSystem.ts's meetsUnlockGates).
 //
-// The order itself (Recreation Center, then Gym, Pool, Tennis Courts, then
-// the Athletics Complex capstone) is judgment, not a formula: cost doesn't
-// climb monotonically down the chain (tennis is the cheapest of the middle
-// three, yet sits third) because these were authored as independent one-off
-// amenities before this pass, and re-costing them to fit a growth curve
-// would be a balance change nobody asked for — only WHEN each becomes
-// buildable changed here, not what it costs or grants. The Athletics
-// Complex keeps its own prestige gate (REC_CENTER_TIER2_PRESTIGE_GATE) on
-// top of the chain position — both are ADDITIONAL conditions, same as any
-// other Buildable's minPrestigeToUnlock (see techSystem.ts's
-// meetsUnlockGates), so it needs the whole chain built AND enough prestige,
-// whichever clears second.
+// Recreation Center and Athletics Complex feed `social`; gym, pool and
+// tennis feed `health`, which needs scaling capacity of its own.
 //
-// Recreation Center keeps `social` (an open-use campus-life amenity, in the
-// same family as the student center); gym/pool/tennis feed `health` instead
-// (fitness is a wellness need on top of the health center itself — see
-// satisfactionSystem.ts and the health center block below) now that they
-// carry real capacity rather than a token gesture, and Athletics Complex
-// (tier 2) stays `social`, the same "big capstone amenity" role tier 1 has.
-// Splitting the chain's satisfactionAttribute per-facility rather than
-// keeping the whole five-building run on one is deliberate: `health` needs
-// its own scaling capacity just as much as `social` does, and this chain
-// already has three facilities suited to carrying it.
-//
-
-// RESOLVED (the athletics PR this flag was left for): the rec pool stays,
-// unchanged, alongside a separate NATATORIUM below, and the same split
-// applies to every other rec/competition pair. DESIGN FORK, made explicit
-// rather than resolved silently: "shared" in the varsity-athletics feature
-// means shared AMONG VARSITY TEAMS in one sport's category, not shared with
-// open-use recreation — a swim team does not compete in the rec center's
-// lap pool any more than the football team would play its games on the
-// intramural field. The alternative (letting an existing rec facility
-// double as a team's competition venue once a sport goes varsity) was
-// considered and rejected: it would make a rec facility's later social-
-// satisfaction contribution silently do double duty as an athletics gate,
-// coupling two systems that are otherwise cleanly separate, and it would
-// mean two very differently-scoped things (an open gym anyone can walk
-// into; a conference-regulation venue with real capacity) sharing one
-// Buildable id. Keeping them distinct costs exactly what this file already
-// costs for gym/pool/tennis vs. the rec center: another one-off facility
-// row, not a new subsystem.
+// Rec facilities are never varsity venues: competition venues are separate
+// Buildables below (the rec pool vs. the natatorium), so a rec facility's
+// social contribution never doubles as an athletics gate.
 const REC_CENTER_TIER1_ID = 'REC-T1';
 const REC_CENTER_TIER1_SERVES = 1_200;
 const REC_CENTER_TIER1_COST = 450_000;
 const REC_CENTER_TIER1_WEEKS = 12;
 const REC_CENTER_TIER1_PRESTIGE = 0.05;
-// Serves figures raised well past their old "quick recreational win" scale
-// (1,000/700/400) now that they carry real `health` capacity rather than a
-// token social gesture — cost keeps the same $/seat rate each already built
-// at, so the jump is honestly priced, not a freebie.
+// Gym/pool/tennis serve figures carry real `health` capacity, priced at the
+// same $/seat each was built at.
 const GYM_ID = 'GYM';
 const GYM_SERVES = 4_000;
 const GYM_COST = 1_400_000;
@@ -389,37 +241,17 @@ const REC_CENTER_TIER2_WEEKS = 28;
 const REC_CENTER_TIER2_PRESTIGE = 0.10;
 export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
 
-// Each arts facility's own major's tier-2 course ids (techData.ts builds
-// these as nodeId(prefix, num) off NUMS/TIERS; listed here as the literal
-// ids they resolve to) — referenced raw rather than imported, since
-// techData.ts already imports PERFORMING_ARTS_CENTER_ID and ART_GALLERY_ID
-// FROM this file and importing back would make the two data modules
-// circular. Music for the Performing Arts Center (the school's performing
-// half — concert hall and theater), Studio Art for the Art Gallery (the
-// exhibited-visual-work half).
+// Each arts facility's own major's tier-2 course ids, as literals because
+// techData.ts imports from this file and importing back would be circular.
 const MUSIC_TIER2_IDS = ['MUSC110', 'MUSC120', 'MUSC130', 'MUSC140'];
 const STUDIO_ART_TIER2_IDS = ['SART110', 'SART120', 'SART130', 'SART140'];
 
 // --- Arts facilities: performing arts center (landmark), art gallery ---
-// One-off, same shape as the recreation/fitness chain's individual rungs
-// (no tier field, no upgrade). Both feed `social` like any other campus-
-// life facility, and each ALSO gates its own major's tier-3 (capstone)
-// courses — see techData.ts's ARTS_CAPSTONE_GATE, wired the exact same way
-// a science major's Lab Buildable gates its own capstone quartet. Graphic
-// Design, the school's third major, sits outside both gates: a two-
-// building, two-major split already covers the school's performing and
-// exhibited halves, and there's no third facility for a third major to
-// specialize into, so its tier-3 courses take the plain t2Ids prereq every
-// non-gated major gets.
-//
-// Both are HIDDEN at founding and gate on their OWN major's tier-2 quartet
-// rather than starting with empty prereqs like every other one-off
-// facility here — "a certain amount of arts major completion", per the
-// design ask. This can NEVER be circular with each facility's OWN capstone
-// gate above: the unlock gate sits on tier-2 courses, one tier before the
-// tier-3 courses the facility itself gates, so the facility always clears
-// before anything that needs it.
-// Exported because techData.ts's course-prereq wiring needs the ids.
+// One-off facilities feeding `social`. Each also gates its own major's
+// tier-3 courses (techData.ts's ARTS_CAPSTONE_GATE, like a science Lab);
+// Graphic Design is ungated. Both are hidden until their own major's tier-2
+// quartet is done, one tier before the capstones they gate, so the gate is
+// never circular. IDs exported for techData.ts's course-prereq wiring.
 export const PERFORMING_ARTS_CENTER_ID = 'ARTS-PAC';
 const PERFORMING_ARTS_CENTER_SERVES = 1_500;
 const PERFORMING_ARTS_CENTER_COST = 1_100_000;
@@ -430,16 +262,10 @@ const ART_GALLERY_COST = 220_000;
 const ART_GALLERY_WEEKS = 8;
 
 // --- Varsity athletics venues: shared competition facilities, HIDDEN until demanded ---
-// See data/studentLifeData.ts's SPORTS for the sport -> category mapping and
-// eventData.ts's 'varsity-petition' for what reveals one. Every entry below
-// is seeded 'locked' with `athleticsVenueReveal: true` and EMPTY prereqs —
-// unlike every other facility in this file, prereqs alone would let
-// unlockAvailable() open it on the very first tick, so the reveal gate is
-// what actually keeps it hidden (see techSystem.ts's meetsUnlockGates,
-// following the Medicine/Law reveal-on-gate pattern). One-off, no tier
-// upgrades, same shape as the recreational trio above — but a fully
-// separate FacilityType per venue (see the design-fork note above GYM_ID),
-// so none of them are "the gym, but varsity".
+// Sport -> category mapping: studentLifeData.ts's SPORTS; reveal:
+// eventData.ts's 'varsity-petition'. Each is seeded 'locked' with
+// `athleticsVenueReveal: true` and empty prereqs, so the reveal gate
+// (techSystem.ts's meetsUnlockGates) is what keeps it hidden.
 const ATHLETICS_FIELD_ID = 'ATH-FIELD';
 const ATHLETICS_FIELD_SERVES = 700;
 const ATHLETICS_FIELD_COST = 650_000;
@@ -460,35 +286,16 @@ const ATHLETICS_NATATORIUM_SERVES = 550;
 const ATHLETICS_NATATORIUM_COST = 950_000;
 const ATHLETICS_NATATORIUM_WEEKS = 18;
 
-// The pinnacle venue: the most expensive facility in the game (well past
-// the athletics complex tier and the dorm chain's own early rungs), the
-// largest footprint on the map (see campusMap.ts's footprintOf), and gated
-// behind football's own petition and nothing else — no other sport can
-// reveal or share it.
+// The pinnacle venue: most expensive, largest footprint (campusMap.ts's
+// footprintOf), revealed only by football's own petition.
 const FOOTBALL_STADIUM_ID = 'ATH-STADIUM';
 const FOOTBALL_STADIUM_SERVES = 2_500;
 const FOOTBALL_STADIUM_COST = 6_500_000;
 const FOOTBALL_STADIUM_WEEKS = 40;
 
-// WHAT A VENUE IS WORTH TO CAMPUS LIFE (Plan 21's PR B). Until this the
-// rec centre's two rungs were the only Buildables carrying a
-// prestigeContribution, so prestigeSystem.ts's campus-life term — and the
-// "places built for it" input of campus-life standing, which reads the same
-// sum — could never be earned past +0.15; the weight was cut from 12 to 8
-// for exactly that reason, with a condition, and this is the condition
-// being met. Sized to the building: the stadium is the pinnacle venue and
-// carries the most; the five together (0.40) with the rec chain (0.15)
-// reach 0.55 of the term, so a school that builds every venue earns about
-// two thirds of what campus life can be worth, and the rest is the
-// organisations, the programs and the titles that fill them.
-// WHAT A VENUE HOLDS (Plan 21's PR D) — seats, for the gate. Keyed by the
-// venue's Buildable id rather than carried in its effects, so a save's
-// venues need no migration and a later rung (a larger arena, an expanded
-// stadium) is one more row here. Sized like the real things a college of
-// this scale builds: a stadium is a different order of building from a
-// field, which is what "gate revenue saturates — a venue holds what it
-// holds" needs to be true of. The stadium is deliberately far larger than
-// any school's early crowd, so filling it is a decades-long story.
+// Seats per venue, for the gate. Keyed by id rather than stored in effects
+// so saves need no migration. The stadium is far larger than any early
+// crowd, so filling it takes decades.
 export const VENUE_SEATS: Readonly<Record<string, number>> = {
   'ATH-FIELD': 4_000,
   'ATH-ARENA': 8_000,
@@ -497,30 +304,26 @@ export const VENUE_SEATS: Readonly<Record<string, number>> = {
   'ATH-STADIUM': 40_000,
 };
 
+// Venue prestigeContribution, sized to the building. The five (0.40) plus the
+// rec chain (0.15) reach 0.55 of prestigeSystem.ts's campus-life term; the
+// rest comes from organisations, programs and titles.
 const ATHLETICS_FIELD_PRESTIGE = 0.06;
 const ATHLETICS_ARENA_PRESTIGE = 0.10;
 const ATHLETICS_DIAMOND_PRESTIGE = 0.04;
 const ATHLETICS_NATATORIUM_PRESTIGE = 0.05;
 const FOOTBALL_STADIUM_PRESTIGE = 0.15;
 
-// THE FIELD HOUSE (Plan 21's PR Q). Revealed once the school fields any
-// team; lifts every program's coaching quality a little
-// (studentLifeData.ts's fieldHouseLift). Its id lives in studentLifeData.ts
-// with the lift it stands for.
+// The field house: revealed once the school fields any team; lifts every
+// program's coaching (studentLifeData.ts's fieldHouseLift, where its id lives).
 const FIELD_HOUSE_SERVES = 800;
 const FIELD_HOUSE_COST = 1_200_000;
 const FIELD_HOUSE_WEEKS = 14;
 const FIELD_HOUSE_PRESTIGE = 0.03;
 
-// VENUE RUNGS (Plan 21's PR Q). Every other chain in the game tiers —
-// dorms, dining, health — and athletics venues were one-and-done. A venue
-// can be expanded in place, up to VENUE_EXPANSIONS_MAX times, on the
-// library's renovation idiom (no new footprint): each expansion adds
-// VENUE_EXPANSION_SEATS_GAIN of the venue's base seats, raises its social
-// capacity and its campus-life contribution a little, and costs a share
-// of the original price that grows with each rung. This is where late-game
-// cash goes in athletics, it pairs directly with the gate, and it is the
-// only way the gate's ceiling rises.
+// Venue expansions, in place like library renovations, up to
+// VENUE_EXPANSIONS_MAX. Each adds seats, social capacity and a little
+// prestige for a growing share of the original price. The only way the
+// gate's ceiling rises.
 export const VENUE_EXPANSIONS_MAX = 2;
 export const VENUE_EXPANSION_SEATS_GAIN = 0.5;
 const VENUE_EXPANSION_COST_SHARE = 0.45;
@@ -537,10 +340,8 @@ export interface VenueExpansionPlan {
   prestigeGain: number;
 }
 
-// The base price and duration a venue was seeded with, for the expansion's
-// arithmetic: a venue's stored `cost` may already have had a state match
-// taken off it (eventData.ts's 'state-capital-match'), and a rung should
-// not be cheaper for that.
+// Seeded price and duration: stored `cost` may be reduced by a state match
+// (eventData.ts's 'state-capital-match'), which must not discount expansions.
 const VENUE_BASE: Readonly<Record<string, { cost: number; weeks: number }>> = {
   'ATH-FIELD': { cost: ATHLETICS_FIELD_COST, weeks: ATHLETICS_FIELD_WEEKS },
   'ATH-ARENA': { cost: ATHLETICS_ARENA_COST, weeks: ATHLETICS_ARENA_WEEKS },
@@ -570,31 +371,12 @@ export function venueSeatsOf(node: Buildable): number {
   return Math.round(base * (1 + VENUE_EXPANSION_SEATS_GAIN * (node.expansions ?? 0)));
 }
 
-// ---------------------------------------------------------------------
-// CATEGORIES. A grouping layer ABOVE FacilityType, for UI organisation only
-// (the build popup's sectioning today — see BuildPopup.tsx's TYPE_MATCHERS —
-// and whatever later reads it). Nothing in the engine branches on this: it
-// exists purely so "which facilities are athletics and which are
-// recreation" is authored ONCE, here,
-// rather than re-derived (or, worse, drifted) at every place that needs to
-// group them.
-//
-// The line is exactly the design fork documented above REC_CENTER_TIER1_ID:
-// ATHLETICS is the five varsity COMPETITION venues — the ones
-// data/studentLifeData.ts's SPORTS maps a team's `venueCategory` to, real
-// facilities gated behind a team actually going varsity. RECREATION is the
-// open-use amenities no team is ever tied to (the fitness chain and the two
-// arts facilities alike). A rec facility never becomes "athletics" just
-// because a club happens to practice on it informally, and a varsity venue
-// never becomes "recreation" just because it also has open hours — see the
-// note above REC_CENTER_TIER1_ID for why that coupling was rejected
-// outright. Every other FacilityType (library, dorm-adjacent facilities,
-// etc.) is absent here on purpose: it already has its own natural grouping
-// and doesn't need a second one.
-// 'social' is the student center and everything recreational and cultural
-// beside it — the buildings students go to for each other rather than for a
-// class; 'academic' is the halls, the library and the labs (the build menu
-// assigns those by kind and type, since a hall is not a FacilityType).
+// Categories: a UI-only grouping above FacilityType (BuildPopup.tsx's
+// TYPE_MATCHERS), authored once here. 'athletics' is the varsity
+// competition venues plus the field house; 'social' is the student center
+// and the recreational and cultural buildings; 'academic' is the library
+// and labs (halls are assigned by kind in the build menu). Unlisted types
+// have their own grouping.
 export type FacilityCategory = 'athletics' | 'social' | 'academic';
 
 export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory>> = {
@@ -617,66 +399,31 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
 
 // --- The health chain: Health & Counseling Center -> University Clinic ---
 // --- -> University Hospital ---
-// Three buildings, each a genuinely different institution rather than
-// "the health center, but with a bigger number on it". The old chain was
-// three tiers on one 5x4 footprint whose capacities ran 2,000 -> 6,000 ->
-// 42,000: the same building serving twenty-one times as many people as it
-// did two upgrades ago, with not one extra tile of ground under it. What
-// follows keeps the shape (one building per rung, upgraded in place, each
-// unlocked past a population threshold) and fixes the scale:
+// Three different buildings, each unlocked past a population threshold:
+//   - Health & Counseling Center (3x3).
+//   - University Clinic (5x5): also the practicum site for clinical majors
+//     (techData.ts's CLINICAL_PRACTICUM_GATE).
+//   - University Hospital (11x11): the largest building after the stadium,
+//     also gated on the School of Medicine standing; the MD's clerkship
+//     needs it.
 //
-//   - HEALTH & COUNSELING CENTER (3x3). Unchanged in cost and capacity —
-//     this rung was never the problem. It IS smaller on the map now: a
-//     campus clinic with a nurse practitioner and a couple of counsellors
-//     is a small building, and starting it at a lab's footprint is what
-//     leaves room for the two below it to be visibly bigger.
-//   - UNIVERSITY CLINIC (5x5). The mid-game rung: real outpatient care,
-//     three times the ground and three times the people. Also the
-//     PRACTICUM SITE two clinical majors now train in (see techData.ts's
-//     CLINICAL_PRACTICUM_GATE) — nursing students do their practicum in a
-//     clinic, not in a teaching lab, which is what retired the Nursing Lab
-//     that used to gate that coursework.
-//   - UNIVERSITY HOSPITAL (11x11). The largest BUILDING on campus (only
-//     the football stadium covers more ground) and the late-game rung,
-//     gated on the School of Medicine standing rather than on population
-//     alone: a university hospital is a teaching hospital, and a campus
-//     without a medical school does not have one. It is in turn what the
-//     MD's own capstone clerkship needs.
-//
-// Capacity now tracks FOOTPRINT at a near-flat rate — about 220-250
-// students served per tile across all three rungs — instead of the old
-// chain's 100 -> 300 -> 2,100. Cost per seat still climbs (280 -> 400 ->
-// 650), so the marginal bed of care keeps getting more expensive the way
-// every other chain in this file does.
-//
-// THE CEILING MOVED, and deliberately. A fully built-out health chain
-// serves 38,000 (plus the fitness trio's 9,000 — see the rec chain above),
-// down from 50,000, and 20,000 of that 38,000 is behind the medical
-// school. A large campus that never founds one will feel `health` as a
-// real, permanent shortfall rather than a box it ticked at 20,000
-// enrolled. That is the point of gating the hospital: the medical school
-// now pays off in campus terms and not only in prestige.
+// Capacity tracks footprint at about 220-250 served per tile; cost per seat
+// climbs (280 -> 400 -> 650). Fully built the chain serves 38,000 (plus the
+// fitness trio's 9,000), and 30,000 of that needs a medical school, so a
+// large campus without one feels a permanent `health` shortfall. Intended.
 export const HEALTH_CENTER_TIER1_POPULATION_GATE = 1_500;
 const HEALTH_CENTER_TIER1_ID = 'HLTH-T1';
 const HEALTH_CENTER_TIER1_SERVES = 2_000;
 const HEALTH_CENTER_TIER1_COST = 560_000;
 const HEALTH_CENTER_TIER1_WEEKS = 14;
-// Exported for techData.ts's CLINICAL_PRACTICUM_GATE — the clinic gates
-// Nursing's and Pharmacy's clinical coursework the same cross-kind way a
-// lab gates a bench science's capstones, and the arts facilities above gate
-// Music's and Studio Art's.
+// Exported for techData.ts's CLINICAL_PRACTICUM_GATE.
 export const HEALTH_CENTER_TIER2_POPULATION_GATE = 6_000;
 export const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
 const HEALTH_CENTER_TIER2_COST = 2_400_000; // 400/seat
 const HEALTH_CENTER_TIER2_WEEKS = 26;
-// The MD's entry course, named as a raw id rather than imported:
-// techData.ts already imports FROM this file (for the arts and clinical
-// gates), so importing back would make the two data modules circular —
-// the same reason MUSIC_TIER2_IDS above is written out. The School of
-// Medicine has no building of its own any more (Plan 14's PR E: it takes
-// a hall slot like any program), so "a school of medicine that stands" is
-// its founding course being done.
+// The MD's entry course as a raw id (importing techData.ts would be
+// circular). The School of Medicine stands once this course is done.
 const MEDICAL_SCHOOL_ENTRY_ID = 'MED501';
 export const HEALTH_CENTER_TIER3_POPULATION_GATE = 20_000;
 export const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
@@ -685,17 +432,14 @@ const HEALTH_CENTER_TIER3_COST = 19_500_000; // 650/seat
 const HEALTH_CENTER_TIER3_WEEKS = 48;
 
 // --- Green space/quad: single, cheap, FLAT (non-population-scaling) bonus ---
-// The one attribute contributor that doesn't play the capacity-ratio game
-// at all: a quad is worth the same whether the campus has 400 students or
-// 40,000, which is exactly why it's cheap and worth building early.
+// Worth the same at any enrollment, which is why it is cheap and worth
+// building early.
 const QUAD_TIER1_ID = 'QUAD-T1';
 const QUAD_TIER1_FLAT_BONUS = 8;
 const QUAD_TIER1_COST = 60_000;
 const QUAD_TIER1_WEEKS = 4;
 const QUAD_TIER1_UPKEEP = 400;
-// A SECOND SMALL QUAD, the first one's footprint and shape, for a campus
-// with more than one open middle. Not a tier: it is another quad, not a
-// bigger one, so it carries no `tier` and the build tray gives it no chip.
+// A second small quad, not a tier: no `tier`, so the build tray shows no chip.
 const QUAD_SECOND_ID = 'QUAD-S2';
 const QUAD_SECOND_FLAT_BONUS = 5;
 const QUAD_SECOND_COST = 90_000;
@@ -804,13 +548,9 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // The recreation/fitness chain — see the long note above
-    // REC_CENTER_TIER1_ID for the sequencing and why it's authored this way.
-    // No `tier` field on any of the five: unlike library/studentCenter (a
-    // single building upgraded in place), this is five DIFFERENT named
-    // facilities at fixed chain positions, the same shape as a dorm or
-    // dining hall's own numbered rungs — BuildPopup.tsx's rowMarker gives
-    // each a plain #N chip off that position instead.
+    // The recreation/fitness chain (see above REC_CENTER_TIER1_ID). No
+    // `tier`: five different facilities at chain positions, which
+    // BuildPopup.tsx's rowMarker labels #N.
     {
       id: REC_CENTER_TIER1_ID,
       kind: 'facility',
@@ -895,11 +635,7 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // Arts facilities: performing arts center (landmark) and gallery — each
-    // hidden until its own major's tier-2 quartet is done (see the long note
-    // above PERFORMING_ARTS_CENTER_ID). Independent of each other — nothing
-    // orders the gallery against the performing arts center, only each
-    // against its own major's coursework.
+    // Arts facilities, each gated only on its own major's tier-2 quartet.
     {
       id: PERFORMING_ARTS_CENTER_ID,
       kind: 'facility',
@@ -933,8 +669,7 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // Varsity athletics venues — locked from the start, revealed only once
-    // a team needing the category is granted (see the block above).
+    // Varsity venues, revealed once a team needing the category is granted.
     {
       id: ATHLETICS_FIELD_ID,
       kind: 'facility',
@@ -1044,12 +779,7 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // The health chain — see the long note above
-    // HEALTH_CENTER_TIER1_POPULATION_GATE. `tier` is kept on all three
-    // (this is one institution upgraded in place, the library/student
-    // center shape, not five different named facilities the way the
-    // recreation chain is), even though each rung now has a name and a
-    // footprint of its own.
+    // The health chain: one institution upgraded in place, so it keeps `tier`.
     {
       id: HEALTH_CENTER_TIER1_ID,
       kind: 'facility',
@@ -1095,13 +825,8 @@ export function initialFacilities(): Buildable[] {
       description: `A teaching hospital caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students, and where the MD's clerkship year is spent. Needs the School of Medicine founded, and a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER3_COST,
       duration: HEALTH_CENTER_TIER3_WEEKS,
-      // The medical school FOUNDED, not merely its academic gate: a
-      // teaching hospital belongs to a school of medicine that actually
-      // exists, and the MD's entry course done is what that means now
-      // that the school has no building (see MEDICAL_SCHOOL_ENTRY_ID).
-      // Never circular with the MD capstone this in turn gates
-      // (techData.ts) — that is the last course of the program, and the
-      // entry course requires nothing of the hospital.
+      // The medical school founded (its entry course done). Not circular with
+      // the MD capstone this gates: the entry course needs nothing of it.
       prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_ENTRY_ID],
       minCapacityToUnlock: HEALTH_CENTER_TIER3_POPULATION_GATE,
       status: 'locked',

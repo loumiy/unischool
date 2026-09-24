@@ -4,17 +4,11 @@ import type { TabId } from './TabNav';
 import { newToasts, pushToasts, TOAST_MS, toastKey, toastTarget } from './toasts';
 
 // ---------------------------------------------------------------------
-// THE TOAST STACK (Plan 16's PR G). A small column above the log ticker
-// for the things that never stop the clock (see toasts.ts for which).
-// Three seconds each, five at most, click to open the relevant tab. The
-// ticker stays as the last line; this is what a player at 4x actually
-// sees of a quiet stretch.
-//
-// It reads the log and nothing else — the same lines the ticker shows —
-// and keeps one piece of state of its own: which lines it has already
-// shown, seeded with the whole log on mount so a resumed save does not
-// open on a wall of cards. Nothing here is game state, and nothing here
-// dispatches: a click hands the tab to App and drops the card.
+// The toast stack: a small column above the log ticker for events that
+// never stop the clock (toasts.ts decides which). Three seconds each, five
+// at most, click to open the relevant tab. Reads only the log; its one piece
+// of state is which lines it has shown, seeded with the whole log on mount so
+// a resumed save does not open on a wall of cards.
 // ---------------------------------------------------------------------
 
 interface Toast {

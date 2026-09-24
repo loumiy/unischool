@@ -5,35 +5,18 @@ import { schoolFoundedKey } from '../systems/techtree/schools';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 
 // ---------------------------------------------------------------------
-// AMBITIONS (Plan 17's PR A): the named achievements a founder might set
-// out to reach, each with a line and a detector. A RECORD, like
-// milestones without the prestige — none of these gates anything, none
-// grants anything, and none stops the clock (the milestone celebrations
-// already cover the ones worth stopping for). The September review's H1
-// asked for the objectives and their consequences to be clear: these are
-// the objectives, and the legacy (state/legacy.ts) is the consequence.
-//
-// Every detector is a READING of state the game already keeps — a
-// milestone key, a rank, a count on the research tally, the roster of
-// teams — never a parallel tally of its own. That is what makes the list
-// cheap to extend and impossible to get out of step with the game: an
-// ambition is true exactly when the thing it names is true.
-//
-// Two are read at the fiftieth summer only, on the week the summer
-// interrupt holds the clock: *Never in the red* is a claim about a whole
-// run and can only be made once the run is whole, and *Fifty years* IS
-// the fiftieth summer. Both use SEMICENTENNIAL_YEAR (types.ts), the one
-// place the run's length lives.
-//
-// Ordered as a founder would list them: the campus, the schools, the
-// table, the work, the students, the money, the whole thing.
+// Ambitions: named achievements a founder might reach, each with a line and
+// a detector. A record only: none gates, grants or stops the clock; the
+// legacy (state/legacy.ts) is the consequence. Every detector reads state
+// the game already keeps, never a parallel tally, so an ambition is true
+// exactly when the thing it names is. Two are read only at the fiftieth
+// summer (SEMICENTENNIAL_YEAR), since they are claims about the whole run.
 // ---------------------------------------------------------------------
 
 export interface Ambition {
   id: string;
   name: string;
-  // One line under the name on the History tab's panel: what reaching it
-  // means, in the game's own terms.
+  // One line under the name on the History tab: what reaching it means.
   line: string;
   reached(s: GameState): boolean;
 }
@@ -42,10 +25,8 @@ function hasMilestoneWith(s: GameState, prefix: string): boolean {
   return Object.keys(s.milestones).some((key) => key.startsWith(prefix) && s.milestones[key]);
 }
 
-// Held at the fiftieth summer: the week the summer interrupt stops the
-// clock on year fifty, which is the last week the run's record is still
-// the run's alone. Ambitions are detected weekly (see ambitionsSystem.ts),
-// so this reads true for exactly one detection pass.
+// The week the summer interrupt holds the clock on year fifty. Ambitions are
+// detected weekly (ambitionsSystem.ts), so this is true for one pass only.
 function atTheFiftiethSummer(s: GameState): boolean {
   return s.clock.year === SEMICENTENNIAL_YEAR && s.clock.week === WEEKS_PER_YEAR;
 }
@@ -190,8 +171,8 @@ export function ambitionById(id: string): Ambition | undefined {
   return AMBITIONS.find((a) => a.id === id);
 }
 
-// The record, in authored order, with the year each was reached or null.
-// What the History tab's panel and the final report both render.
+// The record in authored order, with the year each was reached or null, for
+// the History tab and the final report.
 export interface AmbitionEntry extends Ambition {
   year: number | null;
 }

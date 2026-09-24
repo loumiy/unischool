@@ -28,33 +28,19 @@ function seasonLabel(r: SeasonResult): string {
   }
 }
 
-// What a coach's ceiling reads as (Plan 21's PR K): a scouted range for a
-// candidate and for a hire whose tenure has not yet resolved it, the number
-// once it has. Beside it, the age — which is the veteran-or-prospect
-// question in one figure.
+// A coach's ceiling: a scouted range for a candidate or a hire whose tenure
+// has not yet resolved it, the number once it has. The age sits beside it.
 function ceilingLabel(c: Coach): string {
   const p = coachProfile(c);
   if (ceilingResolved(c)) return `ceiling ${c.qualityPotential}`;
   return p.scouted[0] === p.scouted[1] ? `ceiling ${p.scouted[0]}` : `ceiling ${p.scouted[0]}–${p.scouted[1]}`;
 }
 
-// ---------------------------------------------------------------------
-// VARSITY ATHLETICS, Athletics V2. Grew from the v1 shape (moved here from
-// StudentLifeTab.tsx — a sport club still lives on Student Life, alongside
-// every other club, until it graduates; only VARSITY status moves it here)
-// by replacing the single auto-generated coachName with three separately
-// hireable staff roles per team (head coach, assistant coach, trainer),
-// each drawn from s.orgs.coachCandidates — a standing market mirroring
-// FacultyTab.tsx's own hire flow, just scoped to athletics — and by adding
-// the recruiting & scholarship budget lever's quality bonus (teamQuality)
-// and a real standings readout (athleticRank) against rivals' own
-// athleticStrength.
-//
-// No "petition" affordance here: like the chapter housing petition, going
-// varsity is only ever offered through the decision-event interrupt (see
-// eventData.ts's 'varsity-petition'), never dispatched directly from this
-// tab.
-// ---------------------------------------------------------------------
+// Varsity athletics: teams with three hireable staff roles each (head coach,
+// assistant, trainer) drawn from s.orgs.coachCandidates, the recruiting
+// budget's quality bonus (teamQuality), and standings against rivals
+// (athleticRank). Sport clubs stay on Student Life until they go varsity,
+// which is only offered through the 'varsity-petition' decision event.
 
 type Role = 'head' | 'assistant' | 'trainer';
 const ROLE_LABEL: Record<Role, string> = { head: 'Head Coach', assistant: 'Assistant Coach', trainer: 'Trainer' };
@@ -65,18 +51,7 @@ function coachInSlot(team: VarsityTeam, role: Role): Coach | null {
 }
 
 // One staff role's row: the coach filling it (name, face, quality, salary, a
-// Release button), or a vacancy that says so and nothing more.
-//
-// THE HIRING USED TO LIVE HERE, as a toggle per vacant role that expanded the
-// slice of s.orgs.coachCandidates matching that one field. That works for
-// three listings and collapses at forty — and worse, it asks the player to go
-// looking role by role for a market they cannot see. A department with six
-// teams has eighteen slots and eighteen separate places to check.
-//
-// So the market moved to one list of its own (see TheMarket below), and this
-// row's job shrank to reporting. A vacancy is now a thing you notice on the
-// team and answer in the market, which is the direction the information
-// actually flows.
+// Release button), or a vacancy. Hiring happens in TheMarket below.
 function StaffRow({ act, team, role }: { act: (a: Action) => void; team: VarsityTeam; role: Role }) {
   const coach = coachInSlot(team, role);
 
@@ -104,10 +79,8 @@ function StaffRow({ act, team, role }: { act: (a: Action) => void; team: Varsity
   );
 }
 
-// A coach, as FacultyPortrait sees them. The seniority input is the one thing
-// the two kinds of person compute differently: a professor's comes from
-// teaching+research through facultyQualityTier, a coach's from their single
-// `quality`, so it is resolved here rather than in the portrait.
+// A coach, as FacultyPortrait sees them. A coach's seniority comes from their
+// single `quality` (a professor's from facultyQualityTier), so it is resolved here.
 const COACH_GRAY_AT_QUALITY = 85; // a coach at the very top of the market is most likely a veteran
 function coachPortrait(c: Coach) {
   return {
@@ -118,11 +91,9 @@ function coachPortrait(c: Coach) {
   };
 }
 
-// WHICH TEAMS COULD USE THIS CANDIDATE, as {team, role} pairs. A head/assistant
-// coach's field is one SPORTS id, so they can only ever answer the team
-// playing that sport — but they may answer either of ITS two chairs. A trainer
-// serves any team regardless of sport, so a single trainer listing can be the
-// answer to a dozen different vacancies at once.
+// Which {team, role} pairs could use this candidate. A head or assistant
+// coach's field is one sport, so they fit either chair of that sport's team;
+// a trainer fits any team.
 interface Opening { team: VarsityTeam; role: Role; }
 
 function openingsFor(s: GameState, c: Coach): Opening[] {
@@ -145,21 +116,9 @@ function fieldLabel(field: string): string {
   return field === TRAINER_FIELD ? 'Strength & Conditioning' : sportById(field)?.teamName ?? field;
 }
 
-// ---------------------------------------------------------------------
-// THE MARKET — one list of everyone on it, tagged by who needs them.
-//
-// This is the shape FacultyTab.tsx used to have and gave up, and its own
-// header records why: faculty hiring moved to the Curriculum tab "where the
-// shortage is actually felt — you find out you need a kinesiologist when a
-// course will not start." Athletics has no second screen where a coaching
-// shortage surfaces. This tab IS where it is felt, so the pattern was never
-// wrong — it was in the wrong building.
-//
-// SORTED BY WHETHER ANYBODY NEEDS THEM, then by quality. A market where the
-// useful listings are scattered through the useless ones is a market the
-// player scrolls past; putting the answerable ones on top is the whole
-// content of "tagged by need".
-// ---------------------------------------------------------------------
+// The market: one list of every coach candidate, tagged by which teams need
+// them, sorted by whether anybody needs them and then by quality. Unlike
+// faculty hiring, this tab is where a coaching shortage is felt.
 function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const [showAll, setShowAll] = useState(false);
 
@@ -218,10 +177,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                         title={`${team.name} — ${ROLE_LABEL[role]}`}
                         onClick={() => act({ type: 'HIRE_COACH', candidateId: c.id, teamId: team.id, role })}
                       >
-                        {/* The tag IS the button: naming the team that wants
-                            them is what turns a list of strangers into a list
-                            of answers, and clicking the answer should be the
-                            same gesture as reading it. */}
+                        {/* The tag is the button: clicking the team that wants them hires. */}
                         {openings.length === 1 && openings[0].role !== 'trainer'
                           ? `Hire — ${ROLE_LABEL[role]}`
                           : `${team.name}${role === 'trainer' ? '' : ` · ${ROLE_LABEL[role]}`}`}
@@ -242,16 +198,8 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
   );
 }
 
-// ---------------------------------------------------------------------
-// THE DEPARTMENT — who runs it, what it is called, what it spends, and where
-// it stands.
-//
-// The tab used to open on the budget lever, which is a knob rather than a
-// subject: it told a player what they could change before telling them what
-// they had. This is the header the screen was missing — the director, the
-// name the teams play under, the two standings athletics actually moves, and
-// only then the one dial.
-// ---------------------------------------------------------------------
+// The department: director, the teams' name, spend and standing, then the
+// budget dial.
 function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   const ad = s.orgs.athleticDirector;
@@ -267,8 +215,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
       </div>
 
       <div className="department-grid">
-        {/* The director first: they are the answer to "who runs this", and
-            an empty chair here says the offer is still coming. */}
+        {/* The director first; an empty chair means the offer is still coming. */}
         <div className="department-ad">
           {ad ? (
             <>
@@ -289,10 +236,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           )}
         </div>
 
-        {/* The two standings, side by side, because they answer different
-            questions: how good is the department, and how much does the
-            school's campus life amount to. Athletics is the only thing on
-            this screen that moves the second. */}
+        {/* Two standings: the department's, and campus life, which athletics moves. */}
         <dl className="department-standings">
           <div>
             <dt>Athletic standing</dt>
@@ -302,9 +246,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
             <dt>Campus life</dt>
             <dd><strong>#{rankBy(s, 'socialStanding')}</strong> of {s.rivals.length + 1}</dd>
           </div>
-          {/* Only once there is one. A nought here would be the screen telling
-              a young department it has failed at something it has not had
-              time to attempt. */}
+          {/* Championships only once there is one. */}
           {s.orgs.titles.length > 0 && (
             <div>
               <dt>Championships</dt>
@@ -314,9 +256,8 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
         </dl>
       </div>
 
-      {/* THE POT (Plan 21's PR G): the subsidy the school puts in, what the
-          programs earned at the gate, and what is left once the list has
-          drawn on it. The tier is the subsidy, said in dollars. */}
+      {/* The pot: the school's subsidy, gate earnings, and what is left once
+          the priority list has drawn on it. The tier is the subsidy in dollars. */}
       <div className="athletics-budget">
         <span className="stat">
           Subsidy: {s.orgs.athleticsBudget} ({money(pot.subsidy)}/yr)
@@ -343,20 +284,8 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
   );
 }
 
-// ---------------------------------------------------------------------
-// THE STANDINGS — one row per sport the school actually fields, showing where
-// it sits in THAT sport rather than in athletics generally.
-//
-// This is what PR 1C's per-sport strength was built for, and the first screen
-// in the game where the field is something other than one ordered list of a
-// hundred names. The department-wide rank above says whether the school runs a
-// good athletics program; this says whether it is any good at lacrosse, which
-// is the question a particular coach hire is an answer to.
-//
-// Each row shows the schools immediately above and below, by name and mascot,
-// because a rank with nothing around it is a number and a rank between two
-// named rivals is a position.
-// ---------------------------------------------------------------------
+// The standings: one row per sport the school fields, showing its rank in
+// that sport with the schools immediately above and below by name and mascot.
 function SportStandings({ s }: { s: GameState }) {
   const fielded = s.orgs.teams.filter((t) => t.status === 'active');
   if (fielded.length === 0) return null;
@@ -387,10 +316,7 @@ function SportStandings({ s }: { s: GameState }) {
                 <strong>#{place}</strong>
                 <span className="sport-standing-of">of {list.length}</span>
               </span>
-              {/* Last season, beside the rank: a table of ranks says where you
-                  stand, and this says what happened. "Did not qualify" is a
-                  result the row states plainly — it is the sentence that makes
-                  a coach's salary a decision. */}
+              {/* Last season's result beside the rank, "did not qualify" included. */}
               <span className="sport-standing-season">
                 {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
               </span>
@@ -400,9 +326,7 @@ function SportStandings({ s }: { s: GameState }) {
                   : <span className="sport-standing-above best">nobody in the country is ahead</span>}
                 {below && <span className="sport-standing-below">↓ {below.name} {below.mascot}</span>}
               </span>
-              {/* The record and the rival (Plan 21's PRs M and N): a rank is
-                  a number; a rank against Wexford State, whom you have beaten
-                  eleven times in thirty years, is a story. */}
+              {/* This season's record and the rivalry. */}
               <span className="sport-standing-rivalry">
                 {record ? <span className="stat">{record.wins}–{record.losses} this season</span> : <span className="stat">season not yet open</span>}
                 {rival && (
@@ -420,12 +344,7 @@ function SportStandings({ s }: { s: GameState }) {
   );
 }
 
-// ---------------------------------------------------------------------
-// THE TROPHY CASE (Plan 21's PR E): every title as an object with a year and
-// a sport, newest first, not a count. The almanac feel the design review
-// said to protect — a banner is a thing that happened, and a case full of
-// them is what a dynasty looks like from the hallway.
-// ---------------------------------------------------------------------
+// The trophy case: every title as an object with a year and sport, newest first.
 function TrophyCase({ s }: { s: GameState }) {
   if (s.orgs.titles.length === 0) return null;
   const titles = [...s.orgs.titles].sort((a, b) => b.year - a.year);
@@ -453,9 +372,7 @@ function TeamCard({ s, act, team, funding }: { s: GameState; act: (a: Action) =>
   const staffAnnual = (team.headCoach?.salary ?? 0) + (team.assistantCoach?.salary ?? 0) + (team.trainer?.salary ?? 0);
   const weeklyCost = team.upkeepPerWeek + staffAnnual / WEEKS_PER_YEAR;
   const venue = venueForCategory(s, team.venueCategory);
-  // The house (Plan 21's PR D): 1,200 in the rain in year twelve and a full
-  // house in year thirty-four is the growth fantasy in one number, and what
-  // it earns beside it is the knife-edge the budget lever never posed.
+  // The house: attendance and what it earns at the gate.
   const attendance = attendanceFor(s, team);
   const gate = annualGateFor(s, team);
 
@@ -488,12 +405,9 @@ function TeamCard({ s, act, team, funding }: { s: GameState; act: (a: Action) =>
   );
 }
 
-// ---------------------------------------------------------------------
-// THE PRIORITY LIST (Plan 21's PR G): the programs in the order the player
-// put them, dragged, with the line drawn where the money runs out. The
-// idiom is the Curriculum tab's drag-and-drop, here on whole cards. Only
-// the order is dispatched; the bands on the cards are read back off the pot.
-// ---------------------------------------------------------------------
+// The priority list: programs in the player's order, dragged, with the line
+// drawn where the money runs out. Only the order is dispatched; the bands
+// are read back off the pot.
 function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
@@ -522,8 +436,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">
-          {/* The path (PR O): the tab opens with the first sport club, empty
-              and saying what comes next, rather than with the first team. */}
+          {/* Before any team: the first sport club and what comes next. */}
           <p>No sport club has gone varsity yet. The path: a sport club forms on Student Life, and after {VARSITY_PETITION_MIN_TENURE_YEARS} years it may petition to go varsity — a program budget, a shared venue for its sport, and a place on this list.</p>
           {s.orgs.clubs.filter((c) => c.sport !== null).length > 0 && (
             <ul className="org-list">
@@ -582,11 +495,8 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
 
   return (
     <div className="tab-content">
-      {/* THE ORDER IS THE ORDER THE QUESTIONS ARRIVE IN. What is this
-          department and where does it stand; what does it field; how is it
-          doing in each sport; and who is available to fix what is missing.
-          The tab used to open on the budget lever — a knob before a
-          subject. */}
+      {/* Sections follow the order the questions arrive in: the department,
+          what it fields, how each sport is doing, then who is available. */}
       <Department s={s} act={act} />
 
       <PriorityList s={s} act={act} />
@@ -595,9 +505,7 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
 
       <TrophyCase s={s} />
 
-      {/* The market sits LAST, because that is the order the questions arrive
-          in: you notice a chair is empty on a team, then you go looking for
-          somebody to fill it. */}
+      {/* The market last: you notice an empty chair, then look for someone. */}
       {teams.length > 0 && <TheMarket s={s} act={act} />}
     </div>
   );

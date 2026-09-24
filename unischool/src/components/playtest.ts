@@ -1,52 +1,25 @@
 import type { GameState } from '../state/types';
 
 // ---------------------------------------------------------------------
-// THE PLAYTEST GATE. One place decides whether the developer shortcuts —
-// the sandbox Fast speed, the debug panel (see DebugPanel.tsx) and
-// everything it dispatches — are reachable, and everything that offers one
-// asks here.
-//
-// It used to be the school's NAME: a university called "test" got the
-// shortcuts, anything else did not. That worked while a playtest always
-// started from the startup screen, and stopped working the moment
-// scenarios arrived (see tools/scenarios.ts): a scenario save carries the
-// name the run was played under, so every state a playtest wanted to look
-// at had to be renamed "test" by hand first, which is precisely what the
-// September 2026 review's scripts were doing.
-//
-// So the gate is a FLAG, set three ways:
-//
-//   ?debug=1        on the URL — and it sticks, see below
-//   unischool.debug in localStorage — `localStorage['unischool.debug']='1'`
-//   a school named "test" — the old way, still working
-//
-// The first two are read ONCE, at module load, into the constant below: a
-// flag that could change mid-session would mean a panel that appears and
-// disappears under the player, and there is no reason to want that. The
-// name check is per-call because the name lives in the state.
+// The playtest gate: one place decides whether the developer shortcuts (the
+// sandbox Fast speed, DebugPanel.tsx and what it dispatches) are reachable.
+// A flag set by `?debug=1` on the URL, the `unischool.debug` localStorage
+// key, or a school named "test" (so scenario saves under any name work).
+// The first two are read once at module load so the panel cannot appear or
+// vanish mid-session; the name is checked per call.
 // ---------------------------------------------------------------------
 
 export const DEBUG_FLAG_KEY = 'unischool.debug';
 
-// Playtesting controls are only useful during development, not normal
-// play — they stay reachable by naming the university "test" rather than
-// being removed outright, so they're still there for anyone iterating on
-// the game. Checked against the player-written half of the name only (see
-// types.ts's University), so it keeps working whether the school is Test
-// College or Test University.
+// Checks the player-written half of the name only (types.ts's University),
+// so both Test College and Test University count.
 export function isTestUniversity(name: string): boolean {
   return name.trim().toLowerCase() === 'test';
 }
 
-// `?debug=1` also WRITES the localStorage key, and `?debug=0` clears it.
-// That is what makes the URL form usable at all here: the panel's own Load
-// button writes a save and reloads the page, and a flag that lived only in
-// the query string would be a flag every reload had to re-type.
-//
-// Every storage access is wrapped, like persistence.ts's: the API throws
-// outright when storage is disabled (Safari private browsing, hardened
-// privacy settings), and a developer shortcut is not a reason to take the
-// run down.
+// `?debug=1` also writes the localStorage key (and `?debug=0` clears it), so
+// the flag survives the panel's Load-and-reload. Storage access is wrapped
+// because the API throws when storage is disabled.
 function readFlagAtBoot(): boolean {
   let stored = false;
   try {
@@ -74,9 +47,7 @@ function readFlagAtBoot(): boolean {
   return fromUrl;
 }
 
-// Read at module load. `typeof window` guards the headless callers (the
-// balance sim and the test suites import reducer-adjacent modules into
-// Node, where there is no window and no localStorage worth the name).
+// `typeof window` guards headless callers (the balance sim and tests in Node).
 const FLAG_AT_BOOT = typeof window === 'undefined' ? false : readFlagAtBoot();
 
 export function playtestEnabled(s: GameState): boolean {

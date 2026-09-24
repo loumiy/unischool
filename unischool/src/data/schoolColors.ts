@@ -1,38 +1,14 @@
 import type { SchoolColors } from '../state/types';
 
-// ---------------------------------------------------------------------
-// THE SCHOOL'S COLOURS (Plan 18's PR B). A university has a colour pair the
-// way it has a vernacular: chosen at founding, worn everywhere, changed
-// never. The pair is the game's THEME — styles.css's --school-primary and
-// --school-secondary are written from it (see components/theme.ts) and every
-// chrome surface reads them — so a maroon-and-gold school gets a maroon dock
-// and gold chips, and a navy-and-orange one gets navy and orange.
+// The school's colours: a named pair chosen at founding and never changed.
+// The pair is the game's theme (styles.css's --school-primary and
+// --school-secondary, written by components/theme.ts).
 //
-// AUTHORED AS PAIRS WITH NAMES, not as two colour pickers. The startup
-// screen offers "Maroon and gold", "Navy and orange", "Black and gold" —
-// real collegiate pairings a player recognises as identities — rather than
-// a hex value, because the question is "what school is this" and not "what
-// colour do you like". Eight, which is enough to pick from and few enough
-// to pick between, and EIGHT EXACTLY because the startup screen lays them
-// out as one even row (see .startup-colors): a row that wraps unevenly
-// reads as a row with a chip missing. The table once held ten; "Teal and
-// gold" sat next to "Forest and gold" and "Scarlet and grey" next to
-// "Crimson and silver", and a pick between two chips that read as the same
-// pair is not a pick. Navy and royal blue stay: side by side they are
-// plainly two blues.
-//
-// EVERY PAIR PASSES A CONTRAST RULE, and test/school-colors.test.ts pins it:
-// cream text on the primary at 4.5:1 or better, and the primary as text on
-// the secondary at 4.5:1 or better. Those are the two pairings the register
-// draws constantly (the dock's text; the active tab and the primary button)
-// and a pair that fails either would put an unreadable control on every
-// screen. "Burnt orange and cream" and "Slate and copper" were tried and
-// failed the second test; they are not offered.
-//
-// The secondary is never the cream the register's ground is. A cream
-// secondary would vanish as an active chip on a cream screen, and the focus
-// ring — drawn in the secondary — would vanish with it.
-// ---------------------------------------------------------------------
+// Exactly eight pairs, because the startup screen lays them out as one even
+// row (.startup-colors); no two may read as the same pair. Every pair must
+// pass the contrast rule below (pinned by test/school-colors.test.ts), and
+// no secondary is cream, or active chips and the focus ring would vanish on
+// the cream ground.
 
 export interface SchoolColorChoice extends SchoolColors {
   id: string;
@@ -50,39 +26,29 @@ export const SCHOOL_COLOR_PAIRS: SchoolColorChoice[] = [
   { id: 'royal-gold', name: 'Royal blue and gold', primary: '#1d3f86', secondary: '#e6b84a' },
 ];
 
-// The pair the game wears before anyone has picked one — the startup
-// screen's initial selection, and what createInitialState defaults to for
-// the tests and the sim, which are not about the picture. The first row,
-// which is also the pair styles.css carries as its literal defaults, so a
-// page that has not had the theme applied yet already matches it.
+// The default pair: the startup screen's initial pick and createInitialState's
+// default. It matches the literal defaults in styles.css.
 export const FOUNDING_COLORS: SchoolColorChoice = SCHOOL_COLOR_PAIRS[0];
 
-// The pair's two colours and nothing else — what University and Rival
-// store. The id and the name are the startup screen's, not the save's.
+// The two colours only: what University and Rival store.
 export function schoolColorsOf(choice: SchoolColorChoice): SchoolColors {
   return { primary: choice.primary, secondary: choice.secondary };
 }
 
-// A rival's pair, DERIVED from its id the way its athletic strength and its
-// two standings are (see rivalData.ts's hashUnit and the reasoning there):
-// 99 hand-picked pairs would be a table of arithmetic nobody keeps
-// consistent, and a deterministic pick off the id is stable across a run.
-// Two rivals sharing a pair is what happens in a real conference too.
-//
-// Unread by anything today — Plan 18's PR E draws the playoff bracket in
-// both schools' colours, and the annual report's rows after it.
+// A rival's pair, derived deterministically from its id (as rivalData.ts
+// derives its other axes). Two rivals may share a pair.
 export function rivalColorsFor(id: string): SchoolColors {
   return schoolColorsOf(SCHOOL_COLOR_PAIRS[hashIndex(id, SCHOOL_COLOR_PAIRS.length)]);
 }
 
-// Which pair a rival wears, by name, for a caller that wants the label.
+// A pair's display name, or null if it is not in the table.
 export function colorPairName(colors: SchoolColors): string | null {
   return SCHOOL_COLOR_PAIRS.find((p) => p.primary === colors.primary && p.secondary === colors.secondary)?.name ?? null;
 }
 
 // The same FNV-style hash rivalData.ts uses for its derived axes, bucketed.
-// Duplicated rather than imported so this module has no dependency on the
-// rival table it is itself consulted by.
+// Duplicated rather than imported so this module does not depend on the
+// rival table that consults it.
 function hashIndex(id: string, buckets: number): number {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < id.length; i++) {
@@ -95,15 +61,10 @@ function hashIndex(id: string, buckets: number): number {
   return (h >>> 0) % buckets;
 }
 
-// ---------------------------------------------------------------------
-// The contrast rule, as WCAG writes it, so the test and the picker agree
-// on what "readable" means. Relative luminance of an sRGB hex, then the
-// ratio of the lighter to the darker with the 0.05 flare term.
-// ---------------------------------------------------------------------
+// The WCAG contrast rule, shared by the test and the picker.
 
-// What text on the primary is drawn in, for every pair: the register's
-// cream (styles.css's --cream / --school-on-primary). Named here so the
-// contrast test checks the colour the game actually uses.
+// Text on the primary is the register's cream (styles.css's
+// --school-on-primary), so the test checks the colour actually used.
 export const TEXT_ON_PRIMARY = '#f7f2e8';
 export const MIN_CONTRAST = 4.5;
 

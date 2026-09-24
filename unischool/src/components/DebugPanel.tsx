@@ -10,38 +10,21 @@ import { SAVE_KEY } from '../state/persistence';
 import { playtestEnabled } from './playtest';
 import { money } from '../format';
 
-// ---------------------------------------------------------------------
-// THE DEBUG PANEL: read the simulation, change it, and move through it,
-// while looking at the screen the change is about.
-//
-// Only rendered behind the playtest flag (see playtest.ts) — `?debug=1`,
-// `localStorage['unischool.debug'] = '1'`, or a school named "test". With
-// the flag off, App.tsx never mounts this at all, so nothing here is in
-// the DOM of an ordinary run.
-//
-// It is a DEVELOPER'S panel and deliberately does not wear the parchment:
-// monospace, flat rows, no illustration. Everything it changes goes
-// through the reducer as a DEBUG_ action (see actions.ts's playtest block)
-// — this component computes nothing and writes nothing.
-//
-// The four things it is for, in the order a tuning pass uses them:
-//
-//   READ   what the simulation currently thinks, including the prestige
-//          target, which no other screen shows
-//   SET    cash, prestige, satisfaction, price — the four numbers you want
-//          to try a state at rather than play your way to
-//   JUMP   N weeks or years, answering modals on the way with the same
-//          default answers the balance harness uses
+// The debug panel: read, set, jump, force and load, on top of the live game.
+// Mounted only behind the playtest flag (see playtest.ts). Deliberately plain
+// developer styling. Every change goes through the reducer as a DEBUG_ action
+// (actions.ts's playtest block); this component computes and writes nothing.
+//   READ   the simulation's state, including the prestige target
+//   SET    cash, prestige, satisfaction, price
+//   JUMP   N weeks or years, optionally answering modals with the balance
+//          harness's default answers
 //   FORCE  an event, a demand, the queued milestones, the annual report
-//   LOAD   a save written by `npm run scenario` (see tools/scenario.ts) —
-//          the one thing that stops a playtest needing devtools
-// ---------------------------------------------------------------------
+//   LOAD   a save written by `npm run scenario` (see tools/scenario.ts)
 
 const DEMAND_SUBJECTS: DemandSubject[] = [
   'academic', 'social', 'basicNeeds', 'health', 'housing', 'instruction',
 ];
 
-// A label, a value, and nothing else. The panel is two dozen of these.
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="debug-row">
@@ -51,18 +34,9 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-// A number field and the button that commits it. Kept as its own component
-// because there are four, and because each one holds its OWN draft text:
-// typing "1200" into a field that wrote through on every keystroke would
-// set the price to 1, then 12, then 120 on the way.
-//
-// The draft starts EMPTY, with the live figure as the placeholder, and
-// that is deliberate rather than lazy. A field seeded with the current
-// value goes stale the moment the clock ticks — it would sit there
-// showing last week's cash as though it were this week's, which is the one
-// thing a panel whose job is reading the simulation must not do. Empty and
-// ghosted, the field is unambiguously a box to type a new number into; the
-// current one is in Read, one section up, where it stays true.
+// A number field and its commit button, each holding its own draft text so
+// typing "1200" does not write 1, 12, 120 on the way. The draft starts empty
+// with the live figure as placeholder, so it never shows a stale value.
 function SetField({ label, current, onApply }: {
   label: string; current: number; onApply: (value: number) => void;
 }) {
@@ -97,22 +71,15 @@ export default function DebugPanel({ s, act, exportRun }: { s: GameState; act: (
 
   if (!playtestEnabled(s)) return null;
 
-  // Before a school is founded there is nothing to read, set, jump through
-  // or force — but there IS something to load, and that is precisely when
-  // you want to: a fresh browser with no save is exactly the position a
-  // developer opening a scenario is in. So the panel renders on the startup
-  // screen too, with Load as its only section.
+  // Before founding, the panel renders with Load as its only section.
   const running = s.started;
   const jumpWeeks = Math.max(0, Math.round(Number(jump) || 0));
   const target = computePrestigeTarget(s);
   const attrs = s.students.satisfactionBreakdown;
 
-  // Writes the picked file into the save slot and reloads. Deliberately a
-  // reload rather than a dispatch: loading is what useGame.ts does at boot
-  // (persistence.ts's loadGame, with its version check and its shape
-  // check), and routing a file through that same path is what makes a
-  // scenario save load exactly as the player's own save would — migrations,
-  // rejections and all.
+  // Writes the picked file into the save slot and reloads, so a scenario
+  // goes through useGame.ts's normal boot load (persistence.ts's loadGame:
+  // version check, migrations, shape check) exactly like a player's save.
   async function loadSave(file: File): Promise<void> {
     try {
       const text = await file.text();
@@ -148,16 +115,12 @@ export default function DebugPanel({ s, act, exportRun }: { s: GameState; act: (
             <Row label="clock" value={`Y${s.clock.year} W${s.clock.week}`} />
             <Row label="cash" value={`${money(s.finance.cash)} (${weeklyNet(s) >= 0 ? '+' : ''}${money(weeklyNet(s))}/wk)`} />
             <Row label="enrolled" value={`${totalEnrolled(s.students).toLocaleString()} / ${s.students.capacity.toLocaleString()} beds`} />
-            {/* The one reading no other screen has ever shown, to a player
-                or to a developer: where prestige is GOING. PR C puts the
-                whole breakdown behind it on the History tab. */}
+            {/* Where prestige is heading: current → target. */}
             <Row label="prestige" value={`${s.self.reputation.toFixed(1)} → ${target.toFixed(1)}`} />
             <Row label="research std" value={s.self.researchStanding.toFixed(1)} />
             <Row label="social std" value={s.self.socialStanding.toFixed(1)} />
             <Row label="satisfaction" value={s.students.satisfaction.toFixed(0)} />
-            {/* The five satisfaction attributes, in the order
-                satisfactionSystem.ts lists them, initialled so the row fits
-                the panel: academic, social, basic needs, health, housing. */}
+            {/* The five satisfaction attributes in satisfactionSystem.ts's order. */}
             <Row
               label="  a/s/b/h/h"
               value={[attrs.academic, attrs.social, attrs.basicNeeds, attrs.health, attrs.housing]
@@ -206,8 +169,7 @@ export default function DebugPanel({ s, act, exportRun }: { s: GameState; act: (
             </div>
             <label className="debug-check">
               <input type="checkbox" checked={autoResolve} onChange={(e) => setAutoResolve(e.target.checked)} />
-              {/* Off, the jump stops at the first modal — which is how you
-                  get TO a modal rather than through it. */}
+              {/* Off, the jump stops at the first modal. */}
               answer modals on the way
             </label>
           </section>

@@ -1,22 +1,12 @@
 import type { FunnelFactors, FunnelRecord } from '../../state/types';
 import type { AdmissionsProjection } from './admissionsSystem';
 
-// ---------------------------------------------------------------------
-// YEAR OVER YEAR ON THE REVEAL (Plan 16's PR C). The funnel is a product
-// of six factors (types.ts's FunnelFactors), and last summer's six are
-// recorded at the boundary (students.lastFunnel). So the pool's move from
-// one summer to the next decomposes EXACTLY: each factor's ratio, this
-// year over last, is that factor's share of the change, and the six
-// ratios multiply to the pool's own ratio (before the rounding of a whole
-// number of applicants). Nothing here is a second model — it is a
-// division of the same six numbers the funnel already produced.
-//
-// WORD OF MOUTH IS NAMED. docs/design/admissions.md used to say it was
-// deliberately not shown, so a player would learn the rule by noticing
-// the pool grow the year after the students got happier. The September
-// review found the rule was never learned; a player who reads "word of
-// mouth +21%" the year after building a dining hall has learned it.
-// ---------------------------------------------------------------------
+// Year over year on the admissions reveal. The funnel is a product of six
+// factors (types.ts's FunnelFactors) and last summer's are recorded
+// (students.lastFunnel), so the pool's change decomposes exactly: each
+// factor's ratio, this year over last, is its share, and the ratios multiply
+// to the pool's own ratio (before rounding). Word of mouth is named on
+// purpose so players learn that satisfaction grows the pool.
 
 export interface PoolMove {
   key: keyof FunnelFactors;
@@ -30,10 +20,7 @@ export interface PoolChange {
   parts: PoolMove[]; // the factors that moved, biggest first; the ones that did not are left out
 }
 
-// What a player reads each factor as. The order is the order the funnel
-// multiplies them in, which is also roughly the order of what a player
-// can do about them — nothing moves prestige quickly, price is the slider
-// in their hand, and the rest are the campus.
+// Player-facing names, in the order the funnel multiplies them.
 const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['prestigePool', 'prestige'],
   ['priceFactor', 'price'],
@@ -43,8 +30,7 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['stickerShock', 'sticker shock'],
 ];
 
-// Below this a factor's move is rounding, not news, and is left off the
-// line — a line that reads "beds +0%" every year is a line nobody reads.
+// Moves smaller than this are rounding and are left off the line.
 const MOVE_FLOOR = 0.005;
 
 export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null): PoolChange | null {

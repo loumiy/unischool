@@ -21,23 +21,11 @@ const ATTRIBUTE_LABELS: Record<keyof SatisfactionAttributes, string> = {
 const ATTRIBUTE_ORDER: Array<keyof SatisfactionAttributes> = ['academic', 'social', 'basicNeeds', 'health', 'housing'];
 
 // ---------------------------------------------------------------------
-// The home for the student-life layer: the clubs the campus has grown, the
-// Greek chapters on top of them, and — the part that stops the whole system
-// feeling arbitrary — what any of it is actually doing to satisfaction.
-//
-// THAT NUMBER IS READ, NOT INVENTED. Satisfaction is a stock drifting
-// toward a facilities-derived target; clubs and chapters nudge the TARGET,
-// so there is no standing "+N satisfaction" to print. The panel below reads
-// studentLifeSatisfaction (see satisfactionSystem.ts), which runs the very
-// computation the weekly tick runs against a copy of the state with one
-// source removed and reports the difference — the same way the milestone
-// modal reads prestigeTargetWithout rather than printing authored text. If
-// the social attribute is already clamped at its ceiling, the reading says
-// zero, because zero is what the model is applying.
-//
-// Membership is display and flavour only: no system reads it (see
-// data/studentLifeData.ts). It is a current number with no trend line and
-// no sparkline, deliberately.
+// The student-life layer: clubs, Greek chapters, and what they do to
+// satisfaction. That effect is read, not invented: clubs and chapters nudge
+// satisfaction's target, so studentLifeSatisfaction (satisfactionSystem.ts)
+// reruns the tick's computation without each source and reports the
+// difference. Membership is display only; no system reads it.
 // ---------------------------------------------------------------------
 
 function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?: string; note?: string }) {
@@ -55,19 +43,15 @@ function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?
   );
 }
 
-// FORESHADOWING (Plan 21's PR O): a sport club's row says when it may
-// petition to go varsity, so a delayed department reads as awaited rather
-// than buried.
+// A sport club's row says when it may petition to go varsity, so a delayed
+// department reads as awaited.
 function varsityNote(club: StudentClub, s: GameState): string {
   const year = varsityEligibleYear(club);
   return year <= s.clock.year ? 'may petition to go varsity this year' : `may petition to go varsity in year ${year}`;
 }
 
-// The satisfaction reading. Deliberately shows BOTH shapes the design
-// allows — the per-source contribution and the target with and without the
-// whole layer — because they answer different questions: "is Greek life
-// pulling its weight against clubs" and "what would happen if all of this
-// went away".
+// Shows both the per-source contribution and the target with and without
+// the whole layer: they answer different questions.
 function StudentLifeEffect({ s }: { s: GameState }) {
   const effect = studentLifeSatisfaction(s);
   const upkeep = studentOrgUpkeep(s);
@@ -111,20 +95,10 @@ function money2(v: number): string {
 }
 
 // ---------------------------------------------------------------------
-// THE SATISFACTION DIAL. One attribute's 0..100 score drawn as a ring that
-// fills — the shape a bounded score wants, and the one thing a row of five
-// numbers could never do: let the eye find the low one without reading.
-//
-// Plain inline SVG, like every other drawing in this app (see
-// buildingMotifs.tsx's house rule). The arc is a stroked circle with
-// stroke-dasharray set to the filled fraction of its own circumference,
-// rotated so it starts at twelve o'clock — no arc-path maths, and it stays
-// correct at any radius because the dash is computed from the radius.
-//
-// Colour is banded rather than continuous: a score is read as "fine /
-// slipping / a problem", and three bands say that where a smooth gradient
-// only says "some colour". The bands are the app's existing ok/warn/bad
-// tokens, so this panel agrees with every other health reading on screen.
+// The satisfaction dial: a 0..100 score as a filling ring, so the eye finds
+// the low one without reading. A stroked circle with stroke-dasharray set to
+// the filled fraction of its circumference. Colour is banded (the app's
+// ok/warn/bad tokens) because a score reads as fine / slipping / a problem.
 // ---------------------------------------------------------------------
 const DIAL_SIZE = 64;
 const DIAL_STROKE = 7;
@@ -159,8 +133,7 @@ function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean 
         cx={DIAL_SIZE / 2} cy={DIAL_SIZE / 2} r={r}
         strokeWidth={DIAL_STROKE}
         strokeDasharray={`${(circumference * filled).toFixed(2)} ${circumference.toFixed(2)}`}
-        // Start the fill at twelve o'clock rather than at three, where a
-        // stroked circle's dash otherwise begins.
+        // Start the fill at twelve o'clock rather than three.
         transform={`rotate(-90 ${DIAL_SIZE / 2} ${DIAL_SIZE / 2})`}
       />
       <text className="satisfaction-dial-value" x={DIAL_SIZE / 2} y={DIAL_SIZE / 2} textAnchor="middle" dominantBaseline="central">
@@ -170,36 +143,24 @@ function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean 
   );
 }
 
-// One attribute's CARD: the dial, the attribute's name, how much of the
-// headline number it is worth, a one-line reading of the coverage behind
-// the score — and, still collapsed by default, exactly what is behind it,
-// building by building (the disclosure this panel has always had, kept
-// verbatim because it is the part that makes the score checkable).
-//
-// Everything here is read from attributeDetail rather than reauthored —
-// see satisfactionSystem.ts's own note on why.
+// One attribute's card: dial, name, weight, coverage line, and a collapsed
+// building-by-building breakdown, all read from attributeDetail.
 function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof SatisfactionAttributes }) {
   const [open, setOpen] = useState(false);
   const detail = attributeDetail(s, attribute);
   const label = ATTRIBUTE_LABELS[attribute];
-  // The coverage line. Housing counts BEDS and the other four count
-  // students served (see satisfactionSystem.ts's one deliberate exception),
-  // so the unit is named rather than left to be inferred from two numbers.
+  // Housing counts beds and the other four count students served, so the
+  // unit is named.
   const unit = attribute === 'housing' ? 'beds' : 'served';
 
-  // No `open` modifier class on the card: an expanded card is styled no
-  // differently from a closed one, it simply has more inside it (see
-  // styles.css) — `aria-expanded` on the toggle below is what actually
-  // reports the state, and it reports it to the people who need it.
+  // Expanded state is reported by `aria-expanded` on the toggle, not a class.
   return (
     <li className="satisfaction-card">
       <div className="satisfaction-card-head">
         <SatisfactionDial score={detail.score} dormant={detail.dormant} />
         <div className="satisfaction-card-text">
           <span className="satisfaction-card-label">{label}</span>
-          {/* How much of the headline number this attribute is worth. Kept
-              to two words so it never wraps inside a card narrow enough for
-              five to sit in a row; the panel's help text spells it out. */}
+          {/* Two words, so it never wraps in a narrow card. */}
           <span className="satisfaction-card-weight">{ATTRIBUTE_WEIGHTS[attribute]}% weight</span>
           <span className="satisfaction-card-coverage">
             {detail.dormant
@@ -252,20 +213,10 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
   );
 }
 
-// The per-attribute reading behind the headline number and the target above:
-// each attribute is read live off the campus as it stands right now — not
-// smoothed the way s.students.satisfaction itself is (see
-// satisfactionSystem.ts), so a facility that finished this week shows up
-// here immediately even while "Satisfaction today" is still drifting
-// toward its new target.
-//
-// ALWAYS ON SCREEN, at every stage of a run. It used to sit below an early
-// return that fired whenever the campus had no clubs and no pending
-// petitions — which is the first ten to fifteen years of most runs and the
-// whole of some — so the one panel that explains what satisfaction IS was
-// hidden for exactly as long as a player most needed it, and appeared, for
-// no visible reason, the week a chess club was recognised. It is the first
-// thing on the tab now (see StudentLifeTab below).
+// The per-attribute reading behind the headline, live off the campus rather
+// than smoothed like s.students.satisfaction, so a facility finished this
+// week shows immediately. Always on screen: it explains satisfaction from
+// week one, long before any club exists.
 function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
   return (
     <section className="panel panel-span-2">
@@ -285,22 +236,11 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
 }
 
 // ---------------------------------------------------------------------
-// THE OUTSTANDING DEMAND (see systems/demands/demandSystem.ts). The
-// counterweight to everything else on this screen: clubs are what a happy
-// student body gives the institution, a demand is what an unhappy one asks
-// of it. It lives here rather than in a stream of its own so that a player
-// who dismissed the raising modal can still see what is outstanding, what
-// it will take, and how long they have.
-//
-// The stakes are read from the model exactly as the club panel above reads
-// its contribution: the satisfaction figures are the nudges the demand
-// system would apply, and the applicant figures come from running the
-// shipped admissions funnel at today's policy against each of them (see
-// demandStakes). Nothing here is authored except the grievance itself.
-//
-// Progress is the same reading the resolution runs on — servedPopulation
-// for the attribute, or capacity for a housing demand — so the bar cannot
-// disagree with whether the demand is actually met.
+// The outstanding demand (demandSystem.ts): what an unhappy student body
+// asks of the institution, kept here so a dismissed modal is still visible.
+// The stakes are read from the model (demandStakes runs the admissions
+// funnel against each nudge), and progress uses the same reading the
+// resolution does, so the bar cannot disagree with whether it is met.
 // ---------------------------------------------------------------------
 function StudentDemandPanel({ s }: { s: GameState }) {
   const demand = s.events.activeDemand;
@@ -370,29 +310,17 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
   const clubs: StudentClub[] = s.orgs.clubs;
   const chapters: GreekChapter[] = s.orgs.chapters;
   const pending = s.orgs.pendingPetitions;
-  // Varsity teams no longer show on this tab (see AthleticsTab.tsx), so
-  // their existence alone must not keep this tab out of its own empty
-  // state — only clubs and chapters (this tab's actual content) do.
+  // Only clubs and chapters count; varsity teams live on AthleticsTab.tsx.
   const anyOrgs = clubs.length > 0 || chapters.length > 0;
 
-  // THE EMPTY STATE IS NOW ONLY THE ORGANISATIONS' OWN. It used to be the
-  // whole TAB's: a campus with no clubs and no pending petitions returned
-  // early, taking the satisfaction breakdown down with it. That is the
-  // first ten to fifteen founding years of most runs and the whole of some
-  // — precisely the stretch where a player is trying to work out what
-  // satisfaction responds to — and it meant the panel appeared for the
-  // first time the week a chess club was recognised, as if the club had
-  // summoned it. The breakdown is campus-wide and true from week one, so it
-  // renders unconditionally below; only the two organisation panels and the
-  // clubs-vs-chapters contribution reading (which genuinely has nothing to
-  // report with no organisations) collapse to a note.
+  // The empty state covers only the organisation panels; the satisfaction
+  // breakdown always renders.
   const emptyOrgs = !anyOrgs && pending.length === 0;
 
   return (
     <div className="tab-content">
       <div className="student-life-columns">
-        {/* First, and always: the reading that explains the headline
-            number, whatever stage the campus is at. */}
+        {/* First, and always: the reading that explains the headline. */}
         <SatisfactionBreakdownPanel s={s} />
         <StudentDemandPanel s={s} />
         {emptyOrgs ? (
@@ -430,9 +358,8 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           </section>
         )}
 
-        {/* The two rosters, hidden entirely while the campus has no
-            organisations at all — the single note above says it once,
-            and two more panels each saying "none" says nothing further. */}
+        {/* The rosters are hidden while there are no organisations; the
+            note above says so once. */}
         {!emptyOrgs && (
           <>
           <section className="panel">

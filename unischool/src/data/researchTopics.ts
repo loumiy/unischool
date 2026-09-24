@@ -1,70 +1,35 @@
 // =====================================================================
-// WHAT A UNIVERSITY ACTUALLY WORKS ON.
+// What a university actually works on: authored research topics, named
+// pieces of work run out of a specific facility by specific people (see
+// researchData.ts's initiative block).
 //
-// Authored content, not a procedural roll. A research initiative is a
-// NAMED piece of advanced work run out of a specific facility by specific
-// people for years at a time (see researchData.ts's initiative block), and
-// the name is most of what makes it feel like a university doing
-// something rather than a counter going up.
+// Single-field topics: six per field (eight for the two fields split across
+// two facilities). Offers are drawn from one facility's own fields (see
+// researchData.ts's initiativeOffers), so the depth here is what keeps a
+// mature campus from seeing the same few names for a decade.
 //
-// Two kinds, and the second is the one worth the authoring care:
+// Cross-disciplinary topics: two or three fields, staffable only by drawing
+// somebody from each. The Landmark depth tier requires one, so the most
+// prestigious outcome is out of reach for a single strong department.
 //
-//   SINGLE-FIELD topics — six per field (eight for the two fields that
-//   are split across two facilities), so a department always has
-//   something to offer and a facility does not show the same project name
-//   twice a year.
-//
-//   CROSS-DISCIPLINARY topics — two or three fields, and STAFFABLE ONLY BY
-//   DRAWING SOMEBODY FROM EACH. These are the mechanic that makes a large
-//   university feel like one thing rather than a pile of departments, and
-//   they are why breadth pays off twice: the Landmark depth tier requires
-//   one, so the most prestigious outcome in the game is structurally out
-//   of reach for a single strong department however well funded.
-//
-// SIZE, AND WHY IT DOUBLED. The first pass was ~70 topics (two per field,
-// 18 interdisciplinary), sized to ship. Then offers stopped being drawn
-// from a whole school's fields and started being drawn from the one
-// facility's own (see researchData.ts's initiativeOffers) — which is
-// correct, and which cut a typical pool from dozens to two. Six per field
-// and ~70 interdisciplinary is the other half of that change rather than
-// optional polish: it is what keeps a mature campus from seeing the same
-// four project names for a decade. Nothing about the engine changes —
-// a topic is a row in a table.
-//
-// WHERE A TOPIC HAPPENS. A project has to happen somewhere, and only
-// eleven of the twenty-nine faculty fields have a research facility of
-// their own. The other eighteen lead work in the building their SCHOOL
-// built (Plan 20's PR B — techData.ts's hostableFields): a facility hosts
-// its own field and every field its school teaches that has no facility
-// anywhere, so the Computing Research Center runs the AI department's
-// projects and the Humanities Research Institute the English
-// department's. Every topic below, of either kind, is therefore offerable
-// at at least one facility — pinned by test/research-topics.test.ts,
-// because an unreachable topic is authored content no player can ever
-// see. (Before that rule, 108 of the departmental topics were "reserve
-// content" waiting for a building; the reserve is empty now.)
+// Where a topic happens: fields without a facility of their own lead work in
+// the building their school built (techData.ts's hostableFields). Every
+// topic must be offerable at at least one facility, pinned by
+// test/research-topics.test.ts.
 // =====================================================================
 
 export interface ResearchTopic {
   id: string;
   name: string;
-  // The fields the work needs. One for a departmental topic; two or three
-  // for a cross-disciplinary one, every one of which must be represented
-  // on the team.
+  // The fields the work needs: one for a departmental topic; two or three
+  // for a cross-disciplinary one, each of which must be on the team.
   fields: readonly string[];
-  // Which facilities may host it, by Buildable id — set ONLY to keep a
-  // topic out of a facility that would otherwise host it, and EXHAUSTIVE
-  // when it is set. It exists for the two pairs of facilities that share a
-  // field: Chemistry has both the Chemistry Labs (pure) and the Chemical
-  // Engineering Labs (applied); Physics has both the Physics Labs and the
-  // Aerospace Engineering Lab. Without this, "Acoustics of Performance
-  // Spaces" is a Physics topic and so is offerable in an aerospace lab,
-  // which is the complaint that started this pass. Because the list is
-  // exhaustive, a topic that names a second field must list that field's
-  // hosts too if it wants them — the aerospace pass below does, so that a
-  // flight-test topic is aerospace AND management without being physics.
-  // Unset — the common case — means any facility hosting a field the
-  // topic names (techData.ts's hostableFields).
+  // Which facilities may host it, by Buildable id. Set only to keep a topic
+  // out of a facility that would otherwise host it (the two shared fields:
+  // Chemistry Labs vs Chemical Engineering Labs, Physics Labs vs Aerospace
+  // Engineering Lab). Exhaustive when set, so a topic naming a second field
+  // must list that field's hosts too if it wants them. Unset means any
+  // facility hosting a field the topic names (hostableFields).
   labs?: readonly string[];
 }
 
@@ -152,9 +117,8 @@ const SINGLE_FIELD: ReadonlyArray<readonly [string, string, string, (readonly st
   ['MAT4', 'Optimal Transport and Curvature', 'Mathematics'],
   ['MAT5', 'Randomized Algorithms for Linear Systems', 'Mathematics'],
   ['MAT6', 'Dynamics of Coupled Oscillators', 'Mathematics'],
-  // Physics is fielded by two facilities — the Physics Labs and the
-  // Aerospace Engineering Lab — so each departmental topic says which of
-  // them it belongs in, except the two that genuinely belong in both.
+  // Physics is fielded by two facilities, so each topic says which it
+  // belongs in, except the two that belong in both.
   ['PHY1', 'Room-Temperature Superconductivity', 'Physics', [PHYSICS_LABS]],
   ['PHY2', 'Precision Tests of the Weak Interaction', 'Physics', [PHYSICS_LABS]],
   ['PHY3', 'Hypersonic Boundary-Layer Transition', 'Physics', [AEROSPACE_LAB]],
@@ -163,10 +127,7 @@ const SINGLE_FIELD: ReadonlyArray<readonly [string, string, string, (readonly st
   ['PHY6', 'Metamaterials for Acoustic Control', 'Physics'],
   ['PHY7', 'Quantum Noise in Precision Measurement', 'Physics', [PHYSICS_LABS]],
   ['PHY8', 'Re-Entry Heating and Ablative Shields', 'Physics', [AEROSPACE_LAB]],
-  // Chemistry, the same: the Chemistry Labs and the Chemical Engineering
-  // Labs both field it, and a plant-scale synthesis project does not
-  // belong in the former any more than a mechanism study belongs in the
-  // latter.
+  // Chemistry, the same: pure vs applied labs.
   ['CHE1', 'Catalysis Without Rare Earths', 'Chemistry'],
   ['CHE2', 'Self-Assembling Molecular Machines', 'Chemistry', [CHEMISTRY_LABS]],
   ['CHE3', 'Reaction Mechanisms in Confined Water', 'Chemistry', [CHEMISTRY_LABS]],
@@ -281,16 +242,9 @@ const SINGLE_FIELD: ReadonlyArray<readonly [string, string, string, (readonly st
   ['LAW6', 'Privacy Doctrine After Ubiquitous Sensing', 'Law'],
 ];
 
-// The interdisciplinary set. Each names the fields it genuinely needs, and
-// the team must cover every one of them — which is the whole point: these
-// are unreachable for a university that built one excellent school.
-//
-// Every entry names at least one field that HAS a facility, because the
-// work has to happen somewhere (see the module comment). That constraint
-// is also what makes this table the way an unequipped department does
-// research at all: a philosopher, a marketer or a violinist joins a
-// project hosted by a lab, which is a truer picture of how a university
-// works than giving every department a building.
+// The interdisciplinary set. The team must cover every field named. Every
+// entry names at least one field that has a facility, because the work has
+// to happen somewhere; this is how an unequipped department does research.
 const CROSS_DISCIPLINARY: ReadonlyArray<readonly [string, string, readonly string[], (readonly string[])?]> = [
   ['X01', 'Computational Neuroscience of Learning', ['Neuroscience', 'Computer Science']],
   ['X02', 'Climate Economics and Ecosystem Valuation', ['Biology', 'Economics']],
@@ -308,10 +262,8 @@ const CROSS_DISCIPLINARY: ReadonlyArray<readonly [string, string, readonly strin
   ['X14', 'Social Networks and Disease Transmission', ['Sociology', 'Biology']],
   ['X15', 'Autonomous Systems, Law and Liability', ['Law', 'Computer Science']],
   ['X16', 'Biomechanics of Human Performance', ['Kinesiology', 'Mechanical Engineering']],
-  // Chemistry and History, not Sociology as well: Anthropology shares
-  // Sociology's department, so a topic that named it drew its archaeologist
-  // from "Sociology", which was correct by the taxonomy and read as a
-  // mistake (Plan 20's PR C).
+  // Chemistry and History, not Sociology: Anthropology shares Sociology's
+  // department, so naming it would draw the archaeologist from "Sociology".
   ['X17', 'Archaeological Dating and Isotope Chemistry', ['Chemistry', 'History'], [CHEMISTRY_LABS, HISTORY_INSTITUTE]],
   ['X18', 'Media, Attention and Democratic Participation', ['Communication', 'Political Science']],
   ['X19', 'Structural Health Monitoring of Bridges', ['Civil Engineering', 'Information Systems']],
@@ -354,23 +306,16 @@ const CROSS_DISCIPLINARY: ReadonlyArray<readonly [string, string, readonly strin
   ['X56', 'Autonomy, Liability and Machine Decisions', ['Artificial Intelligence', 'Law', 'Computer Science']],
   ['X57', 'Pricing, Platforms and Market Power', ['Marketing', 'Economics']],
   // Physics is split across two facilities, so its interdisciplinary work
-  // is authored for both halves rather than leaving the aerospace lab with
-  // a thin pool it would repeat inside a year.
+  // is authored for both halves.
   ['X58', 'Thermal Control of Small Satellites', ['Physics', 'Mechanical Engineering'], [AEROSPACE_LAB]],
   ['X59', 'Instrumentation for Flight Testing', ['Physics', 'Electrical Engineering'], [AEROSPACE_LAB]],
   ['X60', 'Quantum Sensing for Navigation', ['Physics', 'Electrical Engineering']],
   ['X61', 'Gravitational-Wave Data Analysis', ['Physics', 'Computer Science'], [PHYSICS_LABS]],
   ['X62', 'Cryogenics for Precision Measurement', ['Physics', 'Mechanical Engineering'], [PHYSICS_LABS]],
-  // The thin end of the table (Plan 20's PR C). A Landmark Program needs a
-  // cross-disciplinary topic, so a facility's interdisciplinary pool is the
-  // ceiling on the most prestigious work it can do, and the mechanical,
-  // chemical-engineering and aerospace labs and the media studio had the
-  // shallowest. Each of these pairs one of those four with a field that
-  // itself appeared in only two topics — English, Philosophy, Music, Art &
-  // Design, Mathematics, Marketing, Management, AI, Accounting — so both
-  // ends of the table deepen at once. The aerospace and chemical-
-  // engineering entries list their hosts, because the list is exhaustive
-  // once set and these belong in the applied lab and not its pure twin.
+  // A Landmark Program needs a cross-disciplinary topic, so these deepen the
+  // shallowest pools (mechanical, chemical-engineering and aerospace labs,
+  // media studio), each paired with a thinly used field. Aerospace and
+  // chemical-engineering entries list their hosts to stay out of the pure twin.
   ['X63', 'Additive Manufacture of Musical Instruments', ['Mechanical Engineering', 'Music']],
   ['X64', 'Generative Design and the Machine-Made Form', ['Mechanical Engineering', 'Art & Design']],
   ['X65', 'Safety Factors and the Ethics of Tolerable Risk', ['Mechanical Engineering', 'Philosophy']],

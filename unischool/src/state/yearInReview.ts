@@ -10,27 +10,16 @@ import { previousYear } from './history';
 import { money } from '../format';
 
 // ---------------------------------------------------------------------
-// THE YEAR IN REVIEW (Plan 16's PR B): the summer's first beat. Generated,
-// not authored — from the closing year's log lines, grouped by the topic
-// each system tagged them with (see types.ts's LogTopic), and from the
-// state as it stands at week 52 against the row filed last summer. Nothing
-// here is a system and nothing is stored: it is a pure reading, the same
-// shape as history.ts's snapshot, built once when the beat renders.
+// The year in review: the summer's first beat. A pure reading, generated
+// from the closing year's log lines grouped by LogTopic and from the state
+// against last summer's row. The log is the source because every fact is
+// already a line written the week it happened; a second ledger would
+// drift. A year busier than LOG_CAP lines loses its earliest weeks, and the
+// review says so (`truncated`).
 //
-// Why the log and not a ledger. Every fact the review wants is already a
-// line something wrote the week it happened — a course finishing, a
-// petition raised, a paper out — and a second record of the same events,
-// kept in state and reset each summer, would be one more thing to drift.
-// The cost is the log's cap: a year busier than LOG_CAP lines has lost its
-// earliest weeks by the summer, and the review says so rather than
-// pretending the year was shorter (see `truncated`).
-//
-// Two figures are READ rather than counted, because they are about the
-// summer that is about to happen rather than the year behind it: who will
-// not return (the same attrition the last beat applies, off the same
-// average), and the report card (the same grade the last beat steps
-// prestige by). Both are the pure functions the reducer commits with, so
-// the review cannot promise a summer the boundary does not deliver.
+// Attrition and the report card are read with the same pure functions the
+// reducer commits with, so the review can't promise a summer the boundary
+// doesn't deliver.
 // ---------------------------------------------------------------------
 
 export type ReviewSectionKey = 'built' | 'people' | 'research' | 'students' | 'money' | 'standing';
@@ -44,8 +33,7 @@ export interface ReviewSection {
   key: ReviewSectionKey;
   title: string;
   lines: ReviewLine[];
-  // What the section says when nothing in the year belongs to it — a
-  // sentence, so an empty section still reads as a fact about the year.
+  // Shown when nothing in the year belongs to the section.
   empty: string;
 }
 
@@ -73,9 +61,8 @@ function signed(v: number, digits = 1): string {
   return `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(digits)}`;
 }
 
-// Courses finished, grouped by the school their program belongs to. A
-// course's school is looked up off its id (the line's subject), never off
-// its name, so a renamed course still files under the right school.
+// Courses finished, grouped by school. Looked up off the course id (the
+// line's subject), not its name.
 function coursesBySchool(entries: LogEntry[]): ReviewLine[] {
   const counts = new Map<string, number>();
   for (const e of entries) {
@@ -137,10 +124,8 @@ function research(entries: LogEntry[]): ReviewSection {
   return { key: 'research', title: 'Research', lines, empty: 'No research under way.' };
 }
 
-// Who will not return at this summer — the same advance the last beat
-// commits, run on the classes as they stand with nobody incoming, so the
-// figure is exactly the one the boundary will log. Its own line, because
-// a silently smaller school is the likeliest source of "what happened".
+// Who won't return this summer: the same advance the boundary commits, with
+// nobody incoming, so the figure matches what it will log.
 export function projectedAttrition(s: GameState): number {
   return advanceClasses(
     { classes: s.students.classes, tuitionByClass: s.finance.tuitionByClass, cohortsByClass: s.students.cohortsByClass },
@@ -194,10 +179,8 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
   return { key: 'money', title: 'Money', lines, empty: '' };
 }
 
-// The report card, read before it is applied (Plan 15's PR B): what the
-// year graded, the step prestige is about to take, and each input's grade
-// beside the weight it could have reached — so the arrow on prestige comes
-// with its reasons.
+// The report card, read before it is applied: the year's grade, the step
+// prestige is about to take, and each input's grade against its weight.
 function standing(s: GameState): ReviewSection {
   const card = gradeYear(s);
   const breakdown = prestigeBreakdown(s);
@@ -210,9 +193,7 @@ function standing(s: GameState): ReviewSection {
   ];
   const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
   if (last) lines.push({ text: `A year ago prestige stood at ${last.prestige.toFixed(1)}` });
-  // A rival that passed the school this year says so here as well as on
-  // the Standing beat (Plan 17's PR D) — the same crossing the report
-  // reads, off the same reconstruction, so the two beats agree.
+  // Same crossing the Standing beat reports, so the two agree.
   const passedBy = last ? buildReportPayload(s).passedBy : [];
   if (passedBy.length > 0) {
     lines.push({ text: `Passed this year by ${passedBy.join(', ')}`, tone: 'bad' });

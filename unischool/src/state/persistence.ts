@@ -10,145 +10,45 @@ import { FACULTY_FIELDS } from '../data/facultyData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
 // ---------------------------------------------------------------------
-// Save / load (see docs/architecture/game-state.md). A run is measured in
-// hours, so a refresh must not destroy it. This is deliberately the
-// smallest thing that works: the WHOLE GameState, JSON-serialized under
-// ONE versioned localStorage key.
+// Save / load (see docs/architecture/game-state.md): the whole GameState,
+// JSON-serialized under one versioned localStorage key.
 //
-// That is only viable because GameState is already plain data — no
-// functions, no Dates, no Maps/Sets, no object references between slices
-// (see the shape notes on `placements`, `developing`, `candidates` and
-// `YearSnapshot` in types.ts). Every field survives a JSON round trip
-// untouched, so there is no per-field serializer to write and none to keep
-// in sync as the state grows. Keep it that way: anything added to
-// GameState that ISN'T JSON-round-trippable breaks save/load silently.
+// This works only because GameState is plain data: no functions, Dates,
+// Maps/Sets or cross-slice references. Anything added to GameState that
+// isn't JSON-round-trippable breaks save/load silently.
 //
-// Nothing here is a system and nothing ticks: these are pure helpers over
-// the shared state, called from the engine, in the same spirit as
-// campusMap.ts and history.ts.
-//
-// Size: a newly founded university serializes to ~175 KiB (481 Buildables
-// with descriptions, 99 rivals, the founding roster, and the 30-listing
-// candidate market — ~24 KiB of names and bios that is REPLACED rather
-// than accumulated, since the pool is held at CANDIDATE_POOL_TARGET
-// forever). A decades-long run
-// adds only bounded amounts on top — one small YearSnapshot per year, a
-// log capped at LOG_CAP entries, a roster in the dozens — so a mature save
-// stays in the low hundreds of KiB, comfortably inside the ~5 MB
-// localStorage budget. Nothing here needs compression or slotting yet;
-// what would change that is unbounded per-week state, which is exactly
-// what the existing caps exist to prevent.
+// Size: a new university serializes to ~175 KiB, and a long run adds only
+// bounded amounts (one YearSnapshot per year, a capped log), so a mature
+// save stays in the low hundreds of KiB, well inside localStorage's ~5 MB.
+// Unbounded per-week state is what would change that.
 // ---------------------------------------------------------------------
 
-// The single key every save lives under. One key, not one per slot: there
-// is exactly one run at a time, and a save overwrites the previous one.
-// Exported so the save/load test harness (see test/save-load.test.ts) can
-// seed a payload under the exact key loadGame reads, exercising the real
-// load path — version check, shape check, sanitizers — rather than a copy
-// of it.
+// The single save key: one run at a time. Exported so
+// test/save-load.test.ts can exercise the real load path.
 export const SAVE_KEY = 'unischool.save';
 
-// Bump this whenever GameState's SHAPE changes in a way an older save
-// can't satisfy — a new required field, a renamed/retyped field, a changed
-// meaning for an existing one.
+// Bump this whenever GameState's shape changes in a way an older save can't
+// satisfy: a new required field, a renamed/retyped field, a changed meaning.
+// Additive optional fields don't need a bump.
 //
-// Additive OPTIONAL fields don't need a bump — they read as absent, which
-// is what they'd be in a new game too.
-//
-// THE BUMP IS THE WHOLE OBLIGATION. A save at any other version is
-// discarded and the player starts fresh — that is the rule, not a failure:
-// the game is in development and is not deployed anywhere, so the only
-// saves that exist are in a developer's own browser. A silently
-// half-loaded run is worse than an obviously new one; a run dropped
-// between two builds of an unreleased game costs nothing worth code.
-//
-// THERE IS NO MIGRATION CHAIN ANY MORE. Versions 3 through 51 each carried
-// an entry once, written under an earlier policy of migrating every shape
-// change: 2,870 lines of this file carrying saves forward through a
-// curriculum reorg, a hundred-school field, three standings and a
-// postseason, for a game nobody was playing yet — the September review's
-// clearest case of overdevelopment. Plan 14's first PR broke the save
-// shape (halls and their slots — see types.ts's HallSlot) and took that as
-// the moment to freeze the chain and delete it. What survives is this
-// policy, the sanitizers below, and loadGame's one branch: a save at any
-// version but this one loads as null. If a specific run is ever worth
-// carrying across a bump, write the few lines that carry it as a
-// one-off, in that PR, and delete them in the next — never a table.
-// See docs/architecture/game-state.md.
-//
-// v52: Plan 14 PR A. `s.halls` (a hall Buildable's program slots, added as
-// required), `Buildable.slots`, and a twelve-hall chain in the seed.
-// v53: Plan 14 PRs C and E. The seven school buildings and then Medicine's
-// and Law's leave the seed, tier-2 and lab prerequisites are re-pointed,
-// and `s.programOffers` is added as required. (PR C should have bumped on
-// its own; a save carries its own `tech`, so one written under v52 would
-// have loaded with buildings the game no longer knows.)
-// v54: Plan 14 PR H. `s.searches` (a posted faculty search per field,
-// added as required).
-// v55: Plan 15 PR B. `s.self.reportCard` (last summer's grade, nullable)
-// and the crowding accumulator on `s.students`, both added as required.
-// v56: Plan 15 PR C. `Initiative.banked` (output toward the next paper,
-// added as required).
-// v57: The campus vernaculars change: 'brutalist' is gone, 'modern' and
-//      'classical' arrive, and `s.self.vernacular` on an old save could name
-//      a set that no longer exists.
-// v58: Plan 16 PR A. The `admissions` interrupt becomes `summer`, with a
-// beat index in its payload (see types.ts's SummerPayload). A save written
-// with the old modal open would resume on a modal nothing renders and
-// clear it without running the year's funnel — a skipped year, silently.
-// v59: Plan 16 PR B. YearSnapshot grows the year's own figures (net,
-// applicants, admit rate, incoming quality, the satisfaction average,
-// courses finished, attrition), all added as required.
-// v60: Plan 16 PR C. `s.students.lastFunnel` (what last summer's funnel
-// read, nullable, added as required).
-// v61: Plan 16 PR F. `s.events.opening` (the first year's script — which
-// letters have been read, and whether it was skipped — added as required).
-// v62: Plan 18 PR B. `s.self.colors` (the pair picked at founding) and
-// `Rival.colors` (dealt off the id), both added as required. Presentation
-// only — but a save without them would theme the game off two undefined
-// custom properties, which is every chrome surface drawn in the browser's
-// idea of nothing.
-// v63: Plan 17 PR A. `s.ambitions` (ambition id -> the year reached) and
-// `s.finance.weeksInTheRed` (the run's own solvency count), both added as
-// required.
-// v64: Plan 17 PR C. `s.self.legacy` (the sealed record, nullable),
-// `s.self.facultyServed` and `YearSnapshot.graduated`, all added as
-// required.
-// v65: Plan 17 PR D. `s.events.passedResponses` (the rivals whose passing
-// the trustees have already answered), added as required.
-// v66: the opening walkthrough. `s.events.opening.stage` (added as
-// required — see state/opening.ts). A save without it would resume with
-// the clock held by a stage nothing renders.
-// v67: Plan 19 PR A. The general-education core and General Studies leave
-// the seed, Founders Hall has six slots and three founding programs in
-// them, and a save carries its own `tech` and `halls` — one written
-// under v66 would load with courses the game no longer knows and a hall
-// with a slot the game says holds a program that does not exist.
-// v68: Plan 21. `s.orgs.teamOrder` (PR G's priority list) — a save without
-// it would read every program as unlisted, which the derivation tolerates,
-// but the rest of the plan's fields land under the same number.
-// v69: Plan 22 PR C. `ResearchState.points`, `ResearchState.lifetimePoints`
-// and `SeenState.candidateIds` leave the shape; nothing read them.
-// v70: Plan 22 PR D. `s.rng` (the random stream's position), required.
+// A save at any other version is discarded and the player starts fresh.
+// That is the policy: the game is unreleased, and a silently half-loaded
+// run is worse than a new one. There is no migration chain; if a specific
+// run is ever worth carrying across a bump, write a one-off and delete it
+// in the next PR. See docs/architecture/game-state.md.
 export const SAVE_VERSION = 70;
 
-// What actually goes in localStorage: the state plus enough metadata to
-// tell what it is without parsing further. `savedAt` is epoch
-// milliseconds, not a Date — the payload stays as JSON-plain as the state
-// it wraps.
+// What goes in localStorage. `savedAt` is epoch milliseconds.
 export interface SavePayload {
   version: number;
   savedAt: number;
   state: GameState;
 }
 
-// Every localStorage access here is wrapped: the API throws outright when
-// storage is disabled (Safari private browsing, hardened privacy settings)
-// and on quota overrun, and neither is a reason to take the run down.
-
-// Writes the full state. Returns false if the browser refused (storage
-// disabled, quota exceeded) so the caller can tell the player their run
-// isn't actually safe rather than pretending it is.
+// Every localStorage access is wrapped: the API throws when storage is
+// disabled (Safari private browsing) or over quota, and neither should take
+// the run down. saveGame returns false so the caller can tell the player
+// their run isn't safe.
 export function saveGame(state: GameState): boolean {
   try {
     const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state };
@@ -167,32 +67,16 @@ export function clearSave(): void {
   }
 }
 
-// Placement hygiene, run on EVERY load. The map is a
-// visual layer that no system reads, so a bad entry here can't corrupt the
-// sim — but it can render a building on top of another one or off the edge
-// of the grid, so the loader is where it gets cleaned up rather than every
-// read site having to be defensive.
-//
-// Three things get dropped, in this order:
-//   - orphans: an id that isn't a placeable Buildable any more, or one that
-//     hasn't (or no longer) started construction — 'locked' or 'available'
-//     (content was renamed or removed between builds). 'done' AND
-//     'developing' are both valid: a placement means "under construction
-//     or finished here", not just "finished here" (see the long comment
-//     above campusMap.ts's canPlace).
-//   - out of bounds: a footprint that doesn't fit the CURRENT grid. The
-//     anchor is nudged back inside where the footprint still fits at all —
-//     the grid only ever grew so far, but shrinking it must not strand a
-//     building half off the map — and dropped when it can't.
-//   - overlaps: two placements covering the same tile. The invariant
-//     footprints introduce, so it is checked rather than assumed.
-// A dropped placement costs the player nothing mechanically: a 'done'
-// Buildable already has every effect it granted; a 'developing' one keeps
-// counting down in s.developing regardless (tickTech doesn't read
-// s.placements at all) — it just won't render anywhere until the player
-// notices it's missing, which today's tooling has no way to happen against
-// the real catalogue (see firstFreeSpot's comment on why this is dormant
-// in practice).
+// Placement hygiene, run on every load. The map is a visual layer no system
+// reads, but a bad entry could render a building over another or off the
+// grid. Dropped, in order:
+//   - orphans: not a placeable Buildable, or not 'done'/'developing' (a
+//     placement means "under construction or finished here").
+//   - out of bounds: nudged back inside the current grid if the footprint
+//     fits at all, otherwise dropped.
+//   - overlaps: two placements covering the same tile.
+// A dropped placement costs nothing mechanically (tickTech doesn't read
+// s.placements).
 function sanitizePlacements(state: GameState): void {
   if (typeof state.placements !== 'object' || state.placements === null) {
     state.placements = {};
@@ -222,23 +106,9 @@ function sanitizePlacements(state: GameState): void {
   state.placements = clean;
 }
 
-// Pathway hygiene, run on EVERY load, mirroring
-// sanitizePlacements above for exactly the same reason: pathways are a
-// visual layer no system reads, so a bad entry can't corrupt the sim, but
-// it could still render a stray path off the edge of the grid — and unlike
-// placements, a tile key is a free-form string nothing has type-checked
-// since it left localStorage. Two things get dropped:
-//   - unparseable keys: not the `row,col` shape this version ever wrote
-//     (see campusMap.ts's parsePathTileKey).
-//   - out of bounds: a tile that doesn't exist on the CURRENT grid. Unlike
-//     a placement's anchor there is nothing sensible to nudge a path tile
-//     back to — it's a single square with no footprint to slide within —
-//     so an out-of-bounds tile is simply dropped rather than clamped. The
-//     grid has only ever grown, so this is dormant today; it exists for
-//     the day CAMPUS_GRID_WIDTH/HEIGHT shrink, the same forward-looking
-//     reason sanitizePlacements already clamps rather than assumes.
-// A dropped tile costs the player nothing mechanically — it was decoration
-// referencing ground that no longer exists.
+// Pathway hygiene, run on every load. Tile keys are free-form strings, so
+// unparseable keys and out-of-bounds tiles are dropped (a single tile has
+// nothing sensible to clamp to).
 function sanitizePathways(state: GameState): void {
   if (typeof state.pathways !== 'object' || state.pathways === null) {
     state.pathways = {};
@@ -254,24 +124,10 @@ function sanitizePathways(state: GameState): void {
   state.pathways = clean;
 }
 
-// Tree hygiene, run on EVERY load, and the exact mirror
-// of sanitizePathways above: trees are a visual layer no system reads, and
-// a tree key is a free-form string nothing has type-checked since it left
-// localStorage. Three things get dropped or fixed:
-//   - unparseable keys, and out-of-bounds tiles. Same rule and same
-//     reasoning as a path tile: a tree is one square with no footprint to
-//     slide within, so there is nothing sensible to clamp it to.
-//   - a non-numeric seed, which would make the renderer's hash produce NaN
-//     and draw a tree at no position at all.
-//   - A TREE STANDING UNDER A BUILDING. This is the one check pathways
-//     doesn't have an equivalent of, and it is what keeps the fell-on-build
-//     rule true across a save: the reducer fells trees as it commits a
-//     placement, but a hand-edited save can carry a tree under a
-//     building. Applying
-//     fellTrees over every current placement here is the same rule, applied
-//     once at load, rather than a second version of it.
-// Dropping a tree costs the player nothing: it is ground cover on a layer
-// no system reads.
+// Tree hygiene, run on every load. Drops unparseable keys, out-of-bounds
+// tiles and non-numeric seeds (which would render at NaN), then fells any
+// tree standing under a building, applying the reducer's fell-on-build rule
+// once at load.
 function sanitizeTrees(state: GameState): void {
   if (typeof state.trees !== 'object' || state.trees === null) {
     state.trees = {};
@@ -288,45 +144,23 @@ function sanitizeTrees(state: GameState): void {
   state.trees = clean;
 }
 
-// The five venue categories a team can legitimately reference — the same
-// list facilitiesData.ts seeds, kept here rather than imported from it so
-// this stays a defensive, self-contained check the way sanitizePlacements'
-// own checks are (it doesn't import techData.ts either).
+// The five venue categories a team can reference, kept local rather than
+// imported so this check stays self-contained.
 const VENUE_CATEGORIES: readonly FacilityType[] = [
   'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium',
 ];
 
-// Every sport+gender combination that can legitimately exist, read off
-// SPORTS itself (unlike VENUE_CATEGORIES above, this genuinely would drift
-// from the real catalogue if duplicated by hand — a gendered id like
-// 'soccer-m' has no meaning independent of SPORTS the way a FacilityType
-// string does). A combination that can't exist — a 'women's football', say
-// — never appears in SPORTS at all (football fields only 'football', the
-// men's-implied bare id), so membership here is exactly the check.
+// Every sport+gender id that can exist, read off SPORTS so it can't drift.
+// An impossible combination (women's football) never appears in SPORTS.
 const KNOWN_SPORT_IDS: ReadonlySet<string> = new Set(SPORTS.map((sp) => sp.id));
 
-// Team hygiene, run on EVERY load, mirroring
-// sanitizePlacements/sanitizePathways above for the same reason: a team is
-// a visual/derived reading away from being load-bearing (its upkeep and
-// social contribution are live-read every week — see
-// data/studentLifeData.ts), so a bad entry here would silently misprice the
-// weekly statement rather than crash outright, which is worse. Three things
-// get fixed, in this order:
-//   - a team whose venueCategory names something that isn't one of the five
-//     known venues (content was renamed or removed between builds — can't
-//     happen against the current seed, but neither could a stale placement
-//     before content ever moved) is DROPPED entirely, same as an orphaned
-//     placement.
-//   - a team whose sport isn't a sport+gender combination that can actually
-//     exist (a 'women's football' that the catalogue never fields, or a
-//     bare pre-gendering id from a hand-edited save) is likewise DROPPED — venueCategory alone can't catch this,
-//     since it is captured at grant time and deliberately never re-derived
-//     from `sport` (see VarsityTeam's own comment), so an invalid sport
-//     can otherwise sit behind an entirely valid-looking venue category.
-//   - a team marked 'active' whose venue Buildable isn't actually 'done'
-//     (a hand-edited or corrupted save) is RESET to 'awaitingVenue' rather
-//     than dropped — the team itself, its coach and its upkeep are all
-//     still real, only the venue claim was wrong.
+// Team hygiene, run on every load. Team upkeep is live-read every week, so
+// a bad entry would silently misprice the weekly statement.
+//   - an unknown venueCategory: dropped.
+//   - a sport that isn't a real sport+gender id: dropped (venueCategory
+//     can't catch this; it's never re-derived from `sport`).
+//   - 'active' with a venue that isn't 'done': reset to 'awaitingVenue',
+//     since the team, coach and upkeep are still real.
 function sanitizeTeams(state: GameState): void {
   if (!Array.isArray(state.orgs?.teams)) {
     if (state.orgs) state.orgs.teams = [];
@@ -342,20 +176,10 @@ function sanitizeTeams(state: GameState): void {
   }
 }
 
-// Chapter hygiene, run on EVERY load. One job: fill in
-// `glyphs` for a chapter that lacks them.
-//
-// Deliberately a sanitize rather than a SAVE_VERSION bump, because there
-// is nothing to migrate. A chapter's name has always
-// BEEN its letters ("Alpha Beta Gamma"), so the glyphs are not new
-// information recovered from somewhere, they are the same name written the
-// way a building writes it — and glyphsFor is the same function that
-// produced the field in the first place, not a second reading of it.
-//
-// A chapter whose name is not three Greek words (a hand-edited save) comes
-// back with an empty string, and an empty pediment is the right answer to
-// "what letters does this house wear": the campus map draws nothing rather
-// than drawing something wrong.
+// Chapter hygiene: fills in `glyphs` from the chapter's name (glyphsFor)
+// where missing. Not a version bump because the name already is the
+// letters. A name that isn't three Greek words yields an empty string, and
+// the map draws nothing.
 function sanitizeChapters(state: GameState): void {
   if (!Array.isArray(state.orgs?.chapters)) {
     if (state.orgs) state.orgs.chapters = [];
@@ -366,44 +190,27 @@ function sanitizeChapters(state: GameState): void {
   }
 }
 
-// Seen-slice hygiene, run on EVERY load, mirroring
-// sanitizeTeams above: `seen` is display-only (no system reads it — see
-// types.ts's SeenState), so a bad entry here can't corrupt the sim, but a
-// missing or malformed bucket would crash the first MARK_SEEN dispatch or
-// the first badge check that indexes into it. Each bucket is
-// reset to empty if it isn't a plain object; a badge briefly re-lighting
-// for content the player already saw is a harmless, self-correcting cost,
-// the same trade sanitizePlacements/sanitizePathways/sanitizeTeams already
-// accept for their own corrupt-entry cases.
+// Seen-slice hygiene: `seen` is display-only, but a malformed bucket would
+// crash MARK_SEEN or a badge check. Bad buckets reset to empty; a badge
+// briefly re-lighting is harmless.
 function sanitizeSeen(state: GameState): void {
   const isRecord = (v: unknown): v is Record<string, true> => typeof v === 'object' && v !== null;
   const seen = (typeof state.seen === 'object' && state.seen !== null) ? state.seen : ({} as Partial<GameState['seen']>);
   state.seen = {
     courseIds: isRecord(seen.courseIds) ? seen.courseIds : {},
     buildableIds: isRecord(seen.buildableIds) ? seen.buildableIds : {},
-    // An absent bucket is indistinguishable from an empty one here,
-    // and App.tsx fills it silently from whichever gates it finds ALREADY
-    // open on its first render (see NOTE_TAB_AVAILABLE's `announce`). So a
-    // save written before this field existed resumes with no tab
-    // announcements at all — which is right: it has had those views for
-    // years.
+    // An absent bucket reads as empty, and App.tsx fills it silently from
+    // the gates already open on first render (see NOTE_TAB_AVAILABLE's
+    // `announce`), so there are no stale tab announcements.
     tabIds: isRecord(seen.tabIds) ? seen.tabIds : {},
   };
 }
 
-// Drops course -> instructor entries that no longer name a real pairing:
-// the course is gone from the seed, the faculty member is not on the
-// roster, or the value isn't a string at all. Same defensive posture as
-// sanitizePlacements/sanitizeSeen above, and cheap for the same reason —
-// a stale entry here is not a crash but it IS a lie, and the one thing
-// this record must never do is claim a course is taught by somebody who
-// does not work here.
-//
-// Note what is deliberately NOT repaired: a course left with no entry is
-// not reassigned to somebody available. Unstaffed is a legitimate, visible
-// state with a fix the player owns (see types.ts's CourseFaculty) —
-// quietly filling it in here would hide exactly the situation the feature
-// exists to surface.
+// Drops course -> instructor entries whose course or faculty member no
+// longer exists, or whose value isn't a string: this record must never
+// claim a course is taught by someone who doesn't work here. An unstaffed
+// course is deliberately not reassigned; that is a visible state the player
+// fixes (see types.ts's CourseFaculty).
 function sanitizeCourseFaculty(state: GameState): void {
   const source = (typeof state.courseFaculty === 'object' && state.courseFaculty !== null) ? state.courseFaculty : {};
   const courseIds = new Set(state.tech.map((t) => t.id));
@@ -418,23 +225,15 @@ function sanitizeCourseFaculty(state: GameState): void {
   state.courseFaculty = clean;
 }
 
-// Hall hygiene, run on EVERY load. `halls` is the one side record beside
-// `tech` that systems DO read (from Plan 14's PR C on — see types.ts's
-// HallSlot block), so a bad entry here is not a rendering glitch but a
-// program the game believes is housed somewhere it is not. Three rules,
-// the same three test/invariants.test.ts asserts of every state:
-//   - a hall entry names a 'done' Buildable that has `slots` and stands on
-//     the map; anything else is dropped. A hall still under construction
-//     has no slots yet (techSystem.ts opens them the week it finishes).
-//   - an entry has exactly `slots` entries: padded with empty slots or
-//     trimmed, so a slot index always means the same slot.
-//   - a slot's program is a real program id — a major prefix or a graduate
-//     program — housed nowhere else. A duplicate or an unknown
-//     id becomes an empty slot rather than a claim nothing can honour.
+// Hall hygiene, run on every load. Systems do read `halls`, so a bad entry
+// means a program housed somewhere it isn't. The rules test/invariants.test.ts
+// asserts of every state:
+//   - an entry names a 'done' Buildable with `slots` that stands on the map
+//     (slots open the week a hall finishes); anything else is dropped.
+//   - an entry has exactly `slots` entries, padded or trimmed.
+//   - a slot's program is a real program id (major prefix or graduate
+//     program) housed nowhere else; otherwise the slot is emptied.
 //   - a transit countdown is a positive whole number of weeks, or gone.
-// A dropped or emptied slot costs the player only what a stale
-// courseFaculty entry costs: a state that has to be re-made visibly rather
-// than one that quietly asserts something false.
 function sanitizeHalls(state: GameState): void {
   const source = (typeof state.halls === 'object' && state.halls !== null) ? state.halls : {};
   const programIds = new Set<string>([...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
@@ -444,11 +243,8 @@ function sanitizeHalls(state: GameState): void {
   for (const [hallId, raw] of Object.entries(source)) {
     const hall = state.tech.find((t) => t.id === hallId);
     if (!hall || hall.slots === undefined || hall.status !== 'done') continue;
-    // A hall stands on the map — except Founders Hall, which stands before
-    // it is sited: a guided founding leaves it for the player to place as
-    // the walkthrough's first step (state/opening.ts), and the
-    // founding save is written before that click. The founding programs'
-    // slots are a fact of the school, not of the map.
+    // Founders Hall counts even before it is sited: a guided founding saves
+    // before the player places it (state/opening.ts).
     if (!(hallId in state.placements) && hallId !== FOUNDERS_HALL_ID) continue;
     const slots: HallSlot[] = [];
     for (let i = 0; i < hall.slots; i += 1) {
@@ -456,8 +252,6 @@ function sanitizeHalls(state: GameState): void {
       const programId = entry && typeof entry.programId === 'string' ? entry.programId : null;
       if (programId !== null && programIds.has(programId) && !housed.has(programId)) {
         housed.add(programId);
-        // A transit countdown survives only as a positive whole number of
-        // weeks; anything else reads as settled.
         const weeks = entry?.transitWeeks;
         slots.push(Number.isInteger(weeks) && (weeks as number) > 0 ? { programId, transitWeeks: weeks as number } : { programId });
       } else {
@@ -469,12 +263,9 @@ function sanitizeHalls(state: GameState): void {
   state.halls = clean;
 }
 
-// Offer hygiene, run on EVERY load, after sanitizeHalls (it reads the
-// cleaned halls to know what is housed). An offer is a claim that a
-// program can be founded right now, so an entry that cannot be — housed,
-// gated, unknown, or a duplicate — is dropped. Never topped back up here:
-// a short offer is refilled by the next finish (techSystem.ts), and a
-// loader that drew dice would make loading a save change the game.
+// Offer hygiene, after sanitizeHalls (it reads the cleaned halls). Drops
+// offers that are housed, gated, unknown or duplicated. Never tops the list
+// back up: a loader that drew dice would make loading change the game.
 function sanitizeProgramOffers(state: GameState): void {
   const source = Array.isArray(state.programOffers) ? state.programOffers : [];
   const offerable = new Set(offerablePrograms(state).map((program) => program.id));
@@ -499,13 +290,9 @@ function sanitizeSearches(state: GameState): void {
   state.searches = clean;
 }
 
-// A shallow structural check, not a full validation of GameState. The point
-// is to reject the things that actually happen — a truncated write, a key
-// collision, a payload from an older shape that shares the version number
-// by accident — before they reach the reducer and crash a system mid-tick.
-// It intentionally does NOT verify every field: a save that passes this and
-// still has a hole in it is a version-bump bug (see SAVE_VERSION), and
-// papering over it here would just hide it.
+// A shallow structural check that rejects what actually happens (truncated
+// writes, key collisions) before it reaches the reducer. A save that passes
+// and still has a hole in it is a version-bump bug (see SAVE_VERSION).
 function looksLikeGameState(value: unknown): value is GameState {
   if (typeof value !== 'object' || value === null) return false;
   const s = value as Partial<GameState>;
@@ -522,17 +309,14 @@ function looksLikeGameState(value: unknown): value is GameState {
     Array.isArray(s.history) &&
     Array.isArray(s.log) &&
     typeof s.self === 'object' && s.self !== null &&
-    // A save is only ever written from a founded university, so anything
-    // claiming otherwise is not a run worth resuming.
+    // Saves are only written from a founded university.
     s.started === true
   );
 }
 
-// Returns the saved run, or null if there isn't one, it can't be read, it
-// can't be parsed, its version is not this build's (see SAVE_VERSION), or
-// it doesn't look like a GameState. Every one of those falls back to a
-// new game rather than throwing — a corrupt save must never be able to stop
-// the app booting.
+// Returns the saved run, or null if it is missing, unreadable, unparseable,
+// the wrong version, or not shaped like a GameState. A corrupt save must
+// never stop the app booting.
 export function loadGame(): GameState | null {
   let raw: string | null;
   try {
@@ -551,25 +335,20 @@ export function loadGame(): GameState | null {
 
   if (typeof parsed !== 'object' || parsed === null) return null;
   const payload = parsed as Partial<SavePayload>;
-  // Exactly this version, nothing else: an older save is not carried
-  // forward (see the policy note above SAVE_VERSION) and a newer one was
-  // written by a build this one does not understand. Both fall back to a
-  // new game, which is the one thing a version mismatch must never fail
-  // to do.
+  // Exactly this version: older saves aren't carried forward and newer ones
+  // aren't understood.
   if (payload.version !== SAVE_VERSION) return null;
   if (!looksLikeGameState(payload.state)) return null;
 
   const state = payload.state;
   sanitizePlacements(state);
-  // After sanitizePlacements: a hall's slots are only real while the hall
-  // itself stands on the map. And offers after halls: an offer is only
-  // real while its program is unhoused.
+  // Halls after placements (a hall's slots are real only while it stands),
+  // offers after halls (an offer is real only while its program is unhoused).
   sanitizeHalls(state);
   sanitizeProgramOffers(state);
   sanitizeSearches(state);
   sanitizePathways(state);
-  // After sanitizePlacements, never before: it reads the CLEANED placements
-  // to decide which trees are standing under a building.
+  // Trees after placements: it reads the cleaned placements.
   sanitizeTrees(state);
   sanitizeTeams(state);
   sanitizeChapters(state);

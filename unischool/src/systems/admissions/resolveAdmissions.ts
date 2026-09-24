@@ -19,30 +19,13 @@ import {
   CLUB_DECLINE_SATISFACTION_HIT,
 } from '../../data/studentLifeData';
 
-// ---------------------------------------------------------------------
-// The student-life digest (see docs/design/student-life.md, and
-// data/studentLifeData.ts). Clubs and Greek chapters form quietly during
-// the year and queue as petitions; this is where the whole year's worth is
-// answered, folded into the summer admissions interrupt rather than given
-// a modal of its own. So the light beat costs the run ZERO extra
-// stop-the-clock moments.
-//
-// The queue is drained WHOLESALE: anything the player did not tick is
-// declined here and now. That is what keeps the digest a digest — it can
-// never accumulate across years into a screen of decisions — and it is why
-// declining has a consequence at all, since a petition that simply expired
-// would be a decision nobody made.
-//
-// Approving is a MOVE, not a re-roll: everything mechanical about the
-// organisation (its name, founding size, weekly cost) was rolled when the
-// petition was raised, so the figures shown in the digest are the figures
-// applied — the same contract the decision-event table follows.
-//
-// The satisfaction changes here are transient nudges to the STOCK, on top
-// of the durable contribution a live organisation makes to the satisfaction
-// TARGET every week (see satisfactionSystem.ts). The durable half is the
-// real reward for approving; this half is what makes the moment land, and
-// what gives declining teeth it would otherwise have none of.
+// The student-life digest (docs/design/student-life.md): the year's club and
+// chapter petitions, answered at the summer boundary. The queue drains
+// wholesale, so anything not ticked is declined and the digest never
+// accumulates. Approving activates the petition as rolled, so the digest's
+// figures are the ones applied. The satisfaction nudges here are transient,
+// on top of the durable contribution a live organisation makes to the
+// target (satisfactionSystem.ts).
 function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
   const petitions = s.orgs.pendingPetitions;
   if (petitions.length === 0) return;
@@ -54,9 +37,7 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
   let declined = 0;
   for (const petition of petitions) {
     if (approved.has(petition.id)) {
-      // The first sport club is a named beat (Plan 21's PR O): the school
-      // picks its mascot on the next quiet week, not in the director's
-      // modal two decades on.
+      // The first sport club triggers the mascot beat on the next quiet week.
       const firstSport = !!petition.sport && !s.orgs.clubs.some((c) => c.sport !== null) && s.orgs.teams.length === 0;
       activatePetition(s, petition);
       if (firstSport && !s.self.mascot) s.orgs.mascotBeatPending = true;
@@ -82,15 +63,10 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
   });
 }
 
-// THE LAST BEAT OF THE SUMMER, and the one that turns the calendar page.
+// The last beat of the summer, and the one that turns the calendar page.
 export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 'RESOLVE_ADMISSIONS' }>): void {
-  // THE SEMICENTENNIAL (Plan 17's PR C). The fiftieth summer seals the
-  // record: the legacy is read ONCE, here, before anything about this
-  // summer changes the school — so it is exactly the reading the final
-  // report (the summer's first beat) showed — and written to s.self,
-  // where nothing ever writes it again. The clock does not stop: the
-  // rest of this case runs as it does every year, and the sixtieth
-  // summer files an ordinary year in review.
+  // The fiftieth summer seals the legacy, read once before anything this
+  // summer changes, so it matches the final report. The clock keeps running.
   if (s.clock.year === SEMICENTENNIAL_YEAR && s.self.legacy === null) {
     s.self.legacy = legacy(s);
     s.log.unshift({
@@ -100,29 +76,21 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     });
   }
 
-  // Tuition is set ONLY here, once a year — see
-  // docs/design/admissions.md and the removed live SET_TUITION control.
-  // This sets the LISTED price. It reaches a student only through the
-  // freshman entry of tuitionByClass, below, after the classes advance:
-  // the three classes already on the books keep the price they were
-  // admitted under (see types.ts's tuitionByClass).
+  // Tuition is set only here, once a year (docs/design/admissions.md). This
+  // is the listed price; it reaches only the incoming class, via
+  // tuitionByClass below. Continuing classes keep their admitted price.
   s.finance.listedTuition = Math.max(0, Math.min(action.tuition, TUITION_SLIDER_MAX));
 
   resolveStudentLifeDigest(s, action.approvedPetitionIds);
 
-  // THE REPORT CARD (Plan 15's PR B, see prestigeSystem.ts's gradeYear):
-  // the year that just ended, graded — on the accumulators as they
-  // stand and the class that spent the year — BEFORE anything below
-  // resets or replaces either. The step itself is applied after the
+  // Grade the year that just ended (prestigeSystem.ts's gradeYear) before
+  // anything below resets its accumulators; the step is applied after the
   // funnel, so the class that enrolls is the one the panel projected.
   const reportCard = gradeYear(s);
 
-  // Word of mouth: the trailing-year AVERAGE satisfaction (accumulated
-  // weekly since last summer) scales next year's applicant pool — the
-  // design's "current experience -> satisfaction -> next year's
-  // applications". Read it, record it as this year's figure, then reset
-  // the accumulator for the year now beginning — and the crowding
-  // accumulator the report card just read, alongside it.
+  // Word of mouth: the trailing-year average satisfaction scales next
+  // year's applicant pool. Record it, then reset this year's accumulators
+  // (including the crowding one the report card just read).
   const priorYearAvgSatisfaction = trailingYearSatisfaction(s);
   s.students.priorYearAvgSatisfaction = priorYearAvgSatisfaction;
   s.students.satisfactionYearSum = 0;
@@ -130,18 +98,12 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   s.students.crowdingYearSum = 0;
   s.students.crowdingYearWeeks = 0;
 
-  // Run the distribution funnel with the committed policy: it sizes the
-  // incoming FRESHMAN class from demand and policy alone — dorm capacity
-  // only scales the applicant pool now (see admissionsSystem.ts's
-  // module comment), never a ceiling to fill or be capped by.
-  // The admit rate is the player's second decision now (Plan 05's PR
-  // C): the funnel takes it rather than computing one. What comes back
-  // as outcome.admitRate is admits/applicants, which matches the choice
-  // unless a thin top/mid band ran out before the share was filled.
+  // The funnel sizes the freshman class from demand and the player's chosen
+  // admit rate; capacity only scales the pool. outcome.admitRate is the
+  // realized admits/applicants, which can fall short of the choice.
   const chosenAdmitRate = Math.max(0, Math.min(1, action.admitRate));
-  // THE CEILING (Plan 15's PR E): the class is clipped to the seats the
-  // housed catalogue has left after graduation — read here, at the one
-  // boundary, off the same function the reveal shows.
+  // The class is clipped to the seats the housed catalogue has left after
+  // graduation, from the same function the reveal shows.
   const ceiling = intakeCeiling(s);
   const outcome = projectAdmissions(
     s.self.reputation,
@@ -153,15 +115,10 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     ceiling.seatsLeft,
   );
 
-  // Advance the classes a year: seniors graduate and leave, everyone
-  // else moves up — less the share a bad year cost (Plan 15's PR F,
-  // admissionsSystem.ts's attritionRate, off the same year's average
-  // word of mouth reads) — and the incoming class arrives at the price
-  // just set. The advance itself is a pure function in
-  // admissionsSystem.ts because the admissions panel runs the SAME one
-  // on a copy to project what this commit will do (see
-  // consequences.ts) — two copies of it is how a projection starts
-  // promising a body the tick does not produce.
+  // Advance the classes: seniors graduate, others move up less attrition,
+  // and the incoming class arrives at the price just set. advanceClasses is
+  // the same pure function the admissions panel projects with
+  // (consequences.ts), so projection and tick cannot diverge.
   const attrition = attritionRate(priorYearAvgSatisfaction);
   const reasons = attritionReasons(s);
   const advanced = advanceClasses(
@@ -173,8 +130,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     {
       count: outcome.enrolled,
       price: s.finance.listedTuition,
-      // Written once, here, and never recomputed: what the class that
-      // just enrolled is made of (see types.ts's ClassCohorts).
+      // Written once, here, and never recomputed (types.ts's ClassCohorts).
       cohorts: outcome.enrolledCohorts,
     },
     attrition,
@@ -184,17 +140,13 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   s.finance.tuitionByClass = advanced.tuitionByClass;
   s.students.cohortsByClass = advanced.cohortsByClass;
   s.students.applicantPool = outcome.applicants;
-  // Stored as the CHOSEN rate, not the realized one, because this is
-  // what next summer's slider opens at (see admissionsSystem.ts's
-  // payload) — a school whose thin top band clipped its intake should
-  // reopen on the policy it set, not on the clipped consequence.
+  // The chosen rate, not the realized one: next summer's slider reopens on
+  // the policy the player set.
   s.students.admitRate = chosenAdmitRate;
   s.students.incomingQuality = outcome.avgIncomingQuality;
-  // What this funnel read, for next summer's reveal to be measured
-  // against (Plan 16's PR C — see types.ts's FunnelRecord). The pool's
-  // cohort split is apportioned by the same function the reveal's cards
-  // use, off the same signals, so next year's "last year" is exactly
-  // what this year's cards showed.
+  // What this funnel read, for next summer's reveal (types.ts's
+  // FunnelRecord). The cohort split uses the same function as the reveal's
+  // cards, so next year's "last year" is what this year's cards showed.
   s.students.lastFunnel = {
     year: s.clock.year,
     applicants: outcome.applicants,
@@ -202,18 +154,13 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     cohorts: cohortCounts(deriveCohortSignals(s), priceTolerance(s.self.reputation), s.finance.listedTuition, outcome.applicants),
   };
 
-  // The summer step: prestige moves toward the year score — a small
-  // share of the gap upward, a large one downward. This is the one
-  // moment in the year prestige moves by more than a tremor.
+  // The summer step: prestige moves toward the year score, a small share
+  // of the gap upward and a large one downward.
   applyReportCard(s, reportCard);
 
-  // The one annual boundary in the game, so the one place the history
-  // record grows (see state/history.ts). Appended AFTER the funnel and
-  // the step above, so the row is the class and the standing the school
-  // actually carries into the next year, and BEFORE advanceClock, so it
-  // is filed under the year that just closed. The year's own figures
-  // that only this boundary knows — who left, what the year averaged —
-  // are handed in rather than re-derived.
+  // The one place the history record grows (state/history.ts): after the
+  // funnel and the step, so the row is what the school carries into next
+  // year, and before advanceClock, so it is filed under the closing year.
   s.history.push(captureYearSnapshot(s, {
     attrition: advanced.notReturning,
     satisfactionAverage: priorYearAvgSatisfaction,
@@ -229,9 +176,8 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     kind: 'info',
     topic: 'admissions',
   });
-  // ATTRITION GETS ITS OWN LINE. A silently smaller number is the
-  // single most likely source of "I don't understand what happened to
-  // my school", and this plan added enough hidden machinery already.
+  // Attrition gets its own line so a smaller student body is never
+  // unexplained.
   if (advanced.notReturning > 0) {
     s.log.unshift({
       year: s.clock.year,

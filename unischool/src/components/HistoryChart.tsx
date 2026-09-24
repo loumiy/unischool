@@ -1,33 +1,26 @@
 import { linePoints } from './Sparkline';
 
 // ---------------------------------------------------------------------
-// One series over the years, as a plain SVG polyline — the chart the
-// History tab draws four of (tabs/HistoryTab.tsx) and the final report
-// draws again for the fifty-year curves (Plan 17's PR C). Lifted out of
-// the tab so the two cannot drift: a chart here is a line, a baseline and
-// two end labels, and anything more would be a different game's UI.
+// One series over the years as a plain SVG polyline, shared by the History
+// tab and the final report so the two can't drift.
 // ---------------------------------------------------------------------
 
-// Chart geometry. The SVG scales to the width of its column while keeping
-// this aspect ratio, so these are proportions, not pixels.
+// Proportions, not pixels: the SVG scales to its column at this aspect.
 const CHART_WIDTH = 320;
 const CHART_HEIGHT = 96;
 const CHART_PAD_Y = 4; // vertical breathing room so peaks aren't clipped
 
-// One series over the years. `format` renders the y-axis end labels and the
-// current-value caption, so each chart reports its own units (dollars,
-// students, points) rather than the view guessing.
+// `format` renders the end labels and the current-value caption in the
+// series' own units.
 export function HistoryChart({ label, years, values, format, note, span }: {
   label: string;
   years: number[];
   values: number[];
   format: (v: number) => string;
   note?: string;
-  // The last year the x-axis reaches (Plan 17's PR F). Given, the axis is
-  // fixed from year 1 to this year whatever the series holds — the History
-  // tab passes the fiftieth, so the curves have somewhere to go — and a run
-  // that has played past it extends the axis to its own last year. Omitted,
-  // the series spans the full width as it always did.
+  // The last year the x-axis reaches. Given, the axis runs from year 1 to
+  // this (or the series' last year, if later); omitted, the series spans
+  // the full width.
   span?: number;
 }) {
   const last = years[years.length - 1];

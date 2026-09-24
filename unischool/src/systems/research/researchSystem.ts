@@ -10,85 +10,34 @@ import { generateCandidate } from '../../data/facultyData';
 import { money } from '../../format';
 import { random } from '../../engine/random';
 
-// ---------------------------------------------------------------------
-// One ordinary pure tick function (see docs/design/research.md). It walks
-// the running initiatives — one per research facility — and for each one,
-// in this order:
-//
-//   1. PRODUCTION. The team's weekly output, from who is on it, how deep
-//      they committed and what the campus has built. All of the rules live
-//      in data/researchData.ts; this only applies them. A run whose whole
-//      team has been dismissed is abandoned rather than left running on
-//      nobody; one that lost SOME of its people carries on short-handed,
-//      which shows in what it produces.
-//
-//   2. OUTPUTS (Plan 15's PR C — see researchData.ts's guaranteed-output
-//      block). Publications are BANKED: the week's output goes toward the
-//      next paper, and every PUBLICATION_POINTS of it publishes one, with
-//      a grant riding on one paper in five. A breakthrough is ROLLED once
-//      a year, at each anniversary and at the end, at a stated chance. All
-//      three are SILENT — a log line, landing in a system that already
-//      exists — and the clock never stops for them.
-//
-//   3. CONCLUSION, when the weeks run out. A Funded Project or deeper that
-//      somehow banked nothing publishes its concluding paper; the
-//      completion itself is worth a credit in researchScore; and then the
-//      award is rolled — the one thing that can only happen here, gated on
-//      the run having actually banked a breakthrough. A run that produced
-//      a breakthrough or an award queues a report; a run that produced
-//      papers alone LOGS, and never stops the clock — the review's cut.
-//
-//   4. OUTPUT REACHES SOMEWHERE. A breakthrough, and every fourth paper,
-//      brings a scholar in the field onto the candidate market — "a
-//      physicist saw your paper" — and the applicant funnel's research-
-//      oriented cohort reads the same tally (cohorts.ts). Small, and the
-//      difference between research being a system and being a number.
-//
-// WHY THIS IS NOT AN EVENT. The decision-event table is for things the
-// player RESOLVES: every entry is a prompt with choices and a cash cost.
-// A grant and a breakthrough have no decision in them at all, and giving
-// them one would turn research into the approve/deny stream the design
-// deliberately refuses. Nothing here is an interrupt but the report, and
-// the report only for a run that produced a breakthrough or an award.
-//
-// WHY THE PRIZE IS QUEUED RATHER THAN FIRED. Exactly the reason
-// techSystem.ts queues milestones: the week a prize lands may already
-// belong to the summer admissions decision or the U.S. News report, and
-// only one interrupt can be pending at a time. Firing it here would mean
-// the single most momentous thing in a decade of research silently not
-// happening. The AWARD itself (the badge, the salary and output premium)
-// is applied here, the week it is won — the celebration is a report on
-// something that already happened, like a milestone celebration, so a
-// delayed modal never delays the effect.
-// ---------------------------------------------------------------------
+// The research tick (docs/design/research.md). Each running initiative, one
+// per research facility, in order:
+//   1. Production: the team's weekly output (rules in researchData.ts). A
+//      run with no team left is abandoned; a partial team carries on.
+//   2. Outputs: output is banked, and every PUBLICATION_POINTS publishes a
+//      paper, with a chance of a grant; a breakthrough is rolled once a year.
+//      These only log and never stop the clock.
+//   3. Conclusion: the award roll, gated on a banked breakthrough. Only a
+//      run with a breakthrough or award queues a report.
+//   4. Breakthroughs and every fourth paper bring a scholar in the field onto
+//      the candidate market; cohorts.ts reads the same tally.
+// Nothing here is a decision event: grants and breakthroughs have no choice
+// in them. Reports are queued, not fired, because only one interrupt can be
+// pending; an award's effects apply the week it is won.
 
 function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad', topic?: LogTopic, subject?: string): void {
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind, topic, subject });
 }
 
-// =====================================================================
-// THE INITIATIVE LOOP — what replaced the stock.
-//
-// Research used to be a bank: lab-equipped faculty trickled points into
-// one campus-wide pool every week, and the pool occasionally bought an
-// output. That produced research because the school OWNED A BUILDING, with
-// no decision anywhere in it.
-//
-// Now the player commissions the work — a topic, a team, a depth, out of a
-// specific facility — and this runs it. The randomness is all still here
-// and does the same job; what changed is that it resolves something the
-// player chose rather than resolving everything. Idle capacity produces
-// nothing (decision 7): the way to produce is to start something.
-// =====================================================================
+// The player commissions each run (topic, team, depth, facility); idle
+// capacity produces nothing.
 
 // Every fourth paper out of one project brings a candidate in its field
 // onto the market; every breakthrough brings one at once.
 const PUBLICATIONS_PER_CANDIDATE_PULL = 4;
 
-// Somebody in the field saw the work. Lands in the standing market the
-// same way facultySystem.ts's weekly arrivals do — a listing to appoint or
-// let lapse — so a school whose labs are producing has a market that
-// notices. The field is one of the team's, drawn from whoever is on it.
+// Somebody in the field saw the work: a listing in the standing market, in
+// the field of a team member.
 function pullCandidate(s: GameState, participants: Faculty[], why: string): void {
   const who = pickFrom(participants);
   if (!who) return;
@@ -106,9 +55,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
   s.research.publications += 1;
   log(s, `${article(vocab.publication)} new ${vocab.publication} out of ${where}.`, 'info', 'publication', initiative.labId);
 
-  // A grant rides on the paper: a strong team pulls more money in — the
-  // brief's "faculty research strength improves outcomes", applied where
-  // it is most legible.
+  // A grant rides on the paper, scaled by team strength.
   if (random() < GRANT_PER_PUBLICATION_CHANCE) {
     const amount = rollGrantAmount(s);
     const scaled = Math.round(amount * (0.7 + teamStrength(participants)));
@@ -135,9 +82,7 @@ function rollBreakthrough(s: GameState, initiative: Initiative, participants: Fa
   pullCandidate(s, participants, `the ${vocab.breakthrough} out of ${where}`);
 }
 
-// The week's production: banked toward the next paper, and every
-// PUBLICATION_POINTS publishes one. Deterministic in the output, so the
-// offer's "expected N publications" is a promise the run keeps.
+// Deterministic, so the offer's "expected N publications" is kept.
 function produce(s: GameState, initiative: Initiative, participants: Faculty[]): void {
   const depth = initiativeDepth(initiative.depth);
   const output = initiativeWeeklyOutput(s, participants, depth);
@@ -148,10 +93,8 @@ function produce(s: GameState, initiative: Initiative, participants: Faculty[]):
   }
 }
 
-// The end of a run. The payoff is the completion itself (a credit in
-// researchScore, sized by depth), and then the one thing that can only
-// happen here: the award roll, gated on the work having actually produced
-// a breakthrough.
+// The end of a run: a completion credit in researchScore (sized by depth),
+// then the award roll, gated on a breakthrough.
 function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boolean): void {
   const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
   const topic = researchTopic(initiative.topicId);
@@ -159,33 +102,25 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
   let award: PrizeAward | null = null;
 
   if (!cancelled) {
-    // A FUNDED PROJECT OR DEEPER ALWAYS PUBLISHES SOMETHING: eighteen
-    // months of two scholars produces a paper however thin the team, and
-    // the concluding paper is it. A pilot publishes what it earned.
+    // A Funded Project or deeper always publishes at least one paper.
     if (initiative.depth !== 'pilot' && initiative.publications === 0) publish(s, initiative, participants);
 
     const strength = teamStrength(participants);
     if (random() < awardChance(initiative.depth, strength, initiative.breakthroughs)) {
-      // Drawn from the team that did the work, weighted by their own
-      // output — so it usually, but not always, goes to the strongest
-      // person on it.
+      // Weighted by output, so usually the strongest team member.
       const winner = pickFrom(participants);
       if (winner) {
         winner.acclaim += 1;
         s.research.prizes += 1;
-        // Named by the discipline that won it, same as every other log
-        // line this run produced: an award for Scientific Achievement is
-        // the wrong trophy for a five-year work of history.
+        // Named for the facility's discipline.
         const prizeName = rollPrizeName(disciplineVocab(facilitySchool(initiative.labId)));
         award = { facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName };
         log(s, `${winner.name} has been awarded ${prizeName} for “${name}”.`, 'good', 'prize', winner.id);
       }
     }
     const papers = initiative.publications;
-    // Tagged by whether a report will follow (see `notable` below): a run
-    // that produced papers alone is the line the toasts surface (Plan
-    // 16's PR G), since nothing else will; a run about to get its modal is
-    // not toasted on top of it.
+    // Toasts surface a papers-only run; a run getting a report is not
+    // toasted on top of it.
     const notable = award !== null || initiative.breakthroughs > 0;
     log(
       s,
@@ -197,25 +132,10 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
       initiative.labId,
     );
 
-    // THE COMPLETION IS THE EVENT, and the award is one of its results.
-    // Queued rather than raised here for the same reason a prize used to
-    // be: the week a five-year programme ends may already belong to summer
-    // admissions or the U.S. News report, and only one interrupt can be
-    // pending at a time. The award's own EFFECTS have already applied
-    // above, so a delayed report never delays anything mechanical.
-    //
-    // A CANCELLED project queues nothing. Winding one up early is the
-    // player's own action and already logs; a modal confirming what they
-    // just did is noise.
-    //
-    // NOR DOES A RUN THAT PRODUCED PAPERS ALONE (Plan 15's PR C, the
-    // September 2026 review's cut-list item). The most frequent interrupt
-    // in the game was a project concluding with nothing to say — a quarter
-    // of every modal in a forty-year run. A modal is a thing the game
-    // spends the player's attention on, so a run reports only when it did
-    // something worth stopping for: a breakthrough, or an award. Papers
-    // are logged (above) and appear in the Research tab's history, and
-    // Plan 16's toasts will surface the line when they exist.
+    // Queued rather than raised, since only one interrupt can be pending;
+    // the award's effects have already applied. A cancelled run or a run
+    // with papers alone queues nothing, so the modal is kept for a
+    // breakthrough or an award.
     if (notable) s.research.pendingCompletions.push({
       topicId: initiative.topicId,
       topicName: name,
@@ -246,8 +166,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
   delete s.research.initiatives[initiative.labId];
 }
 
-// Exported so the reducer's CANCEL_INITIATIVE can end one the same way the
-// tick does, rather than forking the bookkeeping.
+// Shared with the reducer's CANCEL_INITIATIVE.
 export function endInitiative(s: GameState, labId: string, cancelled: boolean): void {
   const initiative = s.research.initiatives[labId];
   if (!initiative) return;
@@ -266,10 +185,7 @@ function pickFrom(participants: Faculty[]): Faculty | null {
 }
 
 export function tickResearch(s: GameState): void {
-  // A facility whose initiative has lost its whole team — every
-  // participant dismissed — cannot continue, and is ended rather than left
-  // running on nobody. A team that lost SOME of its people carries on
-  // short-handed, which is the honest outcome and shows in what it produces.
+  // A run whose whole team was dismissed is ended; a partial team carries on.
   for (const initiative of Object.values(s.research.initiatives)) {
     const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
     if (participants.length === 0) {

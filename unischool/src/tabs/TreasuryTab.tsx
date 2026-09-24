@@ -10,24 +10,9 @@ import HelpHint from '../components/HelpHint';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 import { money } from '../format';
 
-// ---------------------------------------------------------------------
-// The Treasury is where the economy explains itself. Money is the game's
-// primary throttle (see docs/design/economy.md), but every line of it
-// used to be invisible: financeSystem.ts computed tuition revenue, the
-// reputation dividend, baseline funding, salaries, seat upkeep and
-// facility upkeep every single week, and the player was shown one lump
-// "Weekly OpEx" and nothing at all on the income side.
-//
-// So this reads the same breakdown the tick actually charges (see
-// financeBreakdown — one formula, no second copy to drift) and lays it out
-// as a two-column income statement: what comes in, what goes out, and the
-// net between them. That net IS the pacing: it's the answer to "how long
-// until I can afford the next dorm", and now it's traceable to the four or
-// five decisions that produced it.
-//
-// All figures are per week, the unit the sim runs on — the annualized
-// footer is a x WEEKS_PER_YEAR convenience, not a second set of numbers.
-// ---------------------------------------------------------------------
+// The Treasury: a weekly income statement built from financeBreakdown, the
+// same breakdown the tick charges, so the two cannot drift. Figures are per
+// week; the annualized footer is just x WEEKS_PER_YEAR.
 
 // Youngest first, the same order the Enrollment tab stacks the classes in
 // and the same order reducer.ts advances them.
@@ -57,8 +42,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const teaching = instructionDetail(s);
   const marketRate = marketRateMultiplier(s.self.reputation);
   const services = servicesMultiplier(s);
-  // A cost model the player cannot read is the same problem as a prestige
-  // formula they cannot read: the line says how the sections are running.
+  // Says how the sections are running, so the cost model is readable.
   const sectionsNote = teaching.courses === 0
     ? 'no course is offered yet'
     : teaching.overflow > 0
@@ -197,20 +181,14 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
             <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
             <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
-            {/* Research grants are one-off arrivals, not a line of the weekly
-                statement above — so they are reported here as a running
-                total instead of being folded into an average that would
-                misrepresent both the weeks a grant lands and the weeks it
-                doesn't. See systems/research/researchSystem.ts. */}
+            {/* Grants are one-off arrivals, so they show as a running total
+                rather than a weekly line (see researchSystem.ts). */}
             <dt>Research grants</dt>
             <dd>{money(s.research.grantIncome)} across {s.research.grants}</dd>
-            {/* The listed price is what the next class will be quoted; the
-                four below are what the classes on the books actually pay.
-                They are equal until the player first moves the slider, and
-                the gap that opens afterwards is the point — a school that
-                has raised its price is collecting up to four prices at once,
-                and this is the only screen that says so. See types.ts's
-                tuitionByClass. */}
+            {/* The listed price is what the next class is quoted; each class
+                on the books pays its own locked price, so after a price move
+                up to four prices are collected at once (types.ts's
+                tuitionByClass). */}
             <dt>Tuition, listed</dt><dd>{money(s.finance.listedTuition)}/yr</dd>
             <dt>Charged, by class</dt>
             <dd>

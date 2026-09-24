@@ -8,52 +8,30 @@ import { ordinal } from '../../format';
 import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
-// THE SEASON (Plan 21's PR N) — four occasions, a record, and a log with
-// Saturdays in it.
-//
-// THE LINE THIS CROSSES, STATED PLAINLY. BACKLOG.md defers match simulation
-// and schedules, and Plan 08 drew it hard: "a bracket is not a season."
-// What is here is not a schedule — no fixture generator, no opponent pool,
-// no table, no travel, and the resolver is playoffs.ts's own weighted
-// comparison, unchanged. But it IS a season in the one sense that matters
-// to a player: a record accumulates week to week. That is a deliberate
-// partial crossing. Four dates is the minimum that produces a record and a
-// rivalry, and a fixture list is the maximum that produces nothing more —
-// which is why OCCASIONS is a named constant of three, plus the postseason
-// playoffs.ts already runs, and why this file sits beside playoffs.ts and
-// not inside it. If it ever grows a fifth date, it should be argued for.
-//
-// Each occasion resolves the week it happens, on ONE draw on the global
-// stream for every team fielded (the discipline runPlayoffs uses), writes
-// a log line, and adds to the season record. An UPSET — beating a school
-// far stronger, or losing to a far weaker one — is called out. Only the
-// rivalry result and a title may raise anything modal, and a title still
-// queues; the rivalry is a log line with teeth, not a modal.
+// The season: three dated occasions (OCCASIONS) before the postseason, a
+// record, and a log line for each. Deliberately not a schedule: no fixture
+// list or table, and the resolver is playoffs.ts's own comparison. Adding a
+// date should be argued for. Each occasion resolves on one draw on the
+// global stream for every team fielded, and upsets are called out. The
+// rivalry result is a log line, never a modal.
 // ---------------------------------------------------------------------
 
 export type Occasion = OccasionResult['occasion'];
 
-// The three dated occasions with a result, in the order the year reaches
-// them. The opener early, the rivalry game in the season's heart, a
-// homecoming late; the postseason is PLAYOFF_WEEK, eleven twelfths in.
+// The dated occasions, in year order; the postseason is PLAYOFF_WEEK.
 export const OCCASIONS: ReadonlyArray<{ occasion: Occasion; week: number }> = [
   { occasion: 'opener', week: Math.floor(WEEKS_PER_YEAR * 2 / 13) },       // week 8
   { occasion: 'rivalry', week: Math.floor(WEEKS_PER_YEAR * 5 / 13) },      // week 20
   { occasion: 'homecoming', week: Math.floor(WEEKS_PER_YEAR * 8 / 13) },   // week 32
 ];
 
-// How far apart two sides have to be for a result against the grain to be
-// an upset: at SPREAD the stronger side wins three times in four, so a gap
-// of a spread is a result worth calling out.
+// At SPREAD the stronger side wins three times in four, so a result against
+// the grain across that gap is an upset.
 const UPSET_GAP = SPREAD;
 
-// A RIVAL WITH A NAME, PER SPORT (Plan 21's PR M). Each fielded sport has a
-// designated rival: one named school, DERIVED (never stored) from the same
-// deterministic hash sportStrengthFor uses, drawn from the authored table's
-// middle band — schools of comparable standing rather than the elite ten
-// or the bottom — and stable for the whole run, since the hash reads the
-// sport and the school's own name. Shown on the standings row and in every
-// occasion involving them, with a streak and a named trophy.
+// Each fielded sport's named rival: derived (never stored) from a hash of
+// the school's name and the sport, drawn from the authored table's middle
+// band, so it is stable for the whole run.
 const RIVAL_BAND_LOW = 55;
 const RIVAL_BAND_HIGH = 92;
 
@@ -74,14 +52,12 @@ const TROPHY_NAMES: readonly string[] = [
   'the Keg of Nails', 'the Wagon Wheel', 'the Victory Bell', 'the Axe', 'the Blue Line Trophy',
 ];
 
-// What the two schools play for — derived like the rival, so a run's
-// "Old Oak Trophy" is the same trophy every year.
+// Derived like the rival, so the trophy is the same every year.
 export function trophyFor(s: GameState, sportId: string): string {
   return TROPHY_NAMES[Math.floor(hashUnit(`trophy:${institutionName(s.self)}:${sportId}`) * TROPHY_NAMES.length) % TROPHY_NAMES.length];
 }
 
-// An opponent of comparable strength for a date that is not the rivalry:
-// one of the schools within a few places on the sport's own table, on the
+// An opponent within a few places on the sport's own table, drawn on the
 // local generator.
 const NEIGHBOURHOOD = 4;
 function comparableOpponent(s: GameState, sportId: string, roll: () => number): { name: string; mascot: string; value: number } | null {

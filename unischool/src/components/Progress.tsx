@@ -1,18 +1,8 @@
-// ---------------------------------------------------------------------
-// Shared completion geometry: one bar and one ring, both driven by a plain
-// 0..1 fraction. Used everywhere the UI answers "how far along is this" —
-// a Buildable under development (weeks elapsed / duration), the catalogue
-// as a whole, and each revealed school's own share of it.
-//
-// Presentation only. Nothing here reads or writes GameState: every caller
-// computes its own fraction from state it already has, so there is no new
-// derived field and nothing for a system to keep in sync. Plain SVG for
-// the ring, no charting dependency — the same rule Sparkline.ts follows.
-// ---------------------------------------------------------------------
+// Shared completion bar and ring, both driven by a plain 0..1 fraction.
+// Presentation only: callers compute the fraction from state they already
+// have. Plain SVG, no charting dependency.
 
-// Ring geometry. The stroke is a fixed weight rather than a share of the
-// size so a 26px section-head ring and a 46px panel-head ring read as the
-// same instrument at two sizes.
+// Fixed stroke weight (not a share of size) so rings of any size read alike.
 const RING_STROKE = 3.5;
 const RING_CENTER_FONT_RATIO = 0.3; // center label size, as a share of the ring's box
 
@@ -20,9 +10,7 @@ function clamp01(n: number): number {
   return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
 }
 
-// A horizontal fill bar. `label` is an optional compact endcap (e.g. the
-// weeks still to run) — the bar carries the shape, the label the exact
-// figure.
+// `label` is an optional compact endcap carrying the exact figure.
 export function ProgressBar({ fraction, label, title }: { fraction: number; label?: string; title: string }) {
   const pct = Math.round(clamp01(fraction) * 100);
   return (
@@ -43,8 +31,7 @@ export function ProgressBar({ fraction, label, title }: { fraction: number; labe
   );
 }
 
-// A completion ring. `center` (usually a percentage) is drawn inside it
-// when there's room; the exact counts belong beside the ring, not in it.
+// `center` (usually a percentage) is drawn inside; exact counts go beside it.
 export function ProgressRing({
   fraction,
   size,

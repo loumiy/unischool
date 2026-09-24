@@ -1,17 +1,11 @@
 // ---------------------------------------------------------------------
-// How long does each scripted strategy (see balanceSim.ts's STRATEGIES)
-// take to hit a fixed set of "the campus is done" milestones — full
-// schools, full labs, a complete curriculum, a full dorm chain, a fielded
-// varsity team, every asset in the game — in both game-years and real
-// playtime at the game's own tick speeds (see src/engine/useGame.ts's
-// SPEEDS)? `play()`'s own `rows` are one snapshot a YEAR (at the summer
-// admissions boundary), too coarse to say which WEEK a one-time milestone
-// first became true, so this drives `play()`'s optional `onWeek` hook
-// directly instead.
+// When does each scripted strategy (balanceSim.ts's STRATEGIES) hit a set of
+// "firsts" and "campus is done" milestones, in game-years and in real
+// playtime at useGame.ts's SPEEDS? `play()`'s rows are yearly, too coarse to
+// say which week a milestone landed, so this drives its `onWeek` hook.
 //
-// Not part of the game, and not part of `npm test` — this is diagnostic,
-// not an assertion suite; a milestone moving a few years because of an
-// unrelated balance change is expected, not a regression. Run with
+// Diagnostic, not part of `npm test`: a milestone moving a few years after
+// an unrelated balance change is expected. Run with
 // `npm run milestones -- [years] [strategy-name-substring]`.
 // ---------------------------------------------------------------------
 
@@ -25,16 +19,12 @@ import type { GameState } from '../src/state/types';
 
 const WEEKS_PER_YEAR = 52;
 
-// The catalogue, read once from the real seed data — never hand-counted —
-// so a future content change (a new school, a new dorm) is picked up
-// automatically rather than silently going stale here.
+// The catalogue, read from the real seed data so content changes are
+// picked up automatically.
 const tech = initialTech();
 const facilities = initialFacilities();
 const dorms = initialDorms();
 
-// The academic hall chain (Plan 14): "every hall built" is the
-// completionist's own campus. Plan 14's PR I adds the school-founding
-// milestones beside it.
 const HALL_IDS = tech.filter(isAcademicHall).map((t) => t.id);
 const LAB_IDS = tech
   .filter((t) => t.kind === 'facility' && t.facilityType === 'lab')
@@ -58,24 +48,15 @@ function doneIds(s: GameState): Set<string> {
   return new Set(s.tech.filter((t) => t.status === 'done').map((t) => t.id));
 }
 
-// THE FIRSTS: the other half of the pacing question, and the half the
-// September 2026 review actually measured by hand (Appendix A's "Firsts",
-// from dorm at 1.0 to the last placeable at 28.8). The milestones above ask
-// "when is everything finished"; these ask "when does each thing in the game
-// happen for the first time", which is what a pacing change actually moves.
-// A line here reads as "rank #1 moved from year 18 to year 31".
-//
-// Each is a predicate over the live state rather than a set of ids, because
-// most of them are not Buildables at all — a rank, a charter, a banner. They
-// are checked every week and latched on the first one that returns true.
+// The firsts: when each thing in the game happens for the first time, which
+// is what a pacing change actually moves. Predicates over live state (most
+// are not Buildables), checked weekly and latched on the first true.
 const FIRSTS: Array<{ label: string; reached: (s: GameState) => boolean }> = [
   { label: 'First dorm', reached: (s) => s.tech.some((t) => t.kind === 'dorm' && t.status === 'done') },
-  // The first hall the school BUILDS. The founding campus already has one —
-  // Founders Hall stands on day one (see state/actions.ts's founding
-  // state), an ordinary hall since Plan 19 — so counting it would report
-  // week 1 for every strategy and say nothing about pacing.
+  // The first hall the school builds: Founders Hall stands on day one, so
+  // counting it would report week 1 for every strategy.
   { label: 'First academic hall built', reached: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.status === 'done') },
-  // Schools are FOUNDED (Plan 14): six programs of one school in one hall.
+  // Schools are founded: six programs of one school in one hall.
   { label: 'First school founded', reached: (s) => Object.keys(s.milestones).some((k) => k.startsWith('school-founded:')) },
   { label: 'Every school founded', reached: (s) => Object.keys(s.milestones).filter((k) => k.startsWith('school-founded:')).length >= 7 },
   { label: 'First club', reached: (s) => s.orgs.clubs.length > 0 },
@@ -120,9 +101,7 @@ function stuckReport(s: GameState, ids: string[]): string {
 function runOne(strategyName: string, years: number): void {
   const strategy = STRATEGIES.find((s) => s.name === strategyName)!;
   const hitWeek: Record<string, number | null> = {};
-  // Firsts first, then the completion milestones: a report that reads in
-  // the order things happen is a timeline, and one that reads in the order
-  // the arrays were declared is a list.
+  // Firsts first, then completion milestones; the report is sorted by week.
   for (const f of FIRSTS) hitWeek[f.label] = null;
   for (const m of MILESTONES) hitWeek[m.label] = null;
 

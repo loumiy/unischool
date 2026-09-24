@@ -5,17 +5,13 @@ import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
 import { TreeAt, type Species } from './trees';
 
-// Open ground: the Buildables you walk across rather than into — the quad,
-// the pool deck, the courts, the pitches, and the stadium's own field. These
-// have no mass at all, so they are the one part of the map that is drawn
-// flat ON the grid, with their markings projected into the same angle as
-// everything standing on it.
+// Open ground: the Buildables you walk across rather than into (quad, pool
+// deck, courts, pitches, the stadium's field). They have no mass, so they are
+// drawn flat on the grid with their markings projected at the same angle.
 //
-// Markings are authored in NORMALISED footprint coordinates (u across, v
-// down, both 0..1) and projected at draw time, so a 6x3 tennis court and a
-// 12x9 stadium use the same numbers and each comes out correctly
-// proportioned and correctly skewed. Colour lives in styles.css; this file
-// is geometry.
+// Markings are authored in normalised footprint coordinates (u across, v
+// down, both 0..1) and projected at draw time, so every footprint size comes
+// out correctly proportioned. Colour lives in styles.css; this file is geometry.
 
 // u/v within the footprint -> world point.
 function uv(col: number, row: number, w: number, h: number, u: number, v: number): Pt {
@@ -36,40 +32,20 @@ interface GroundProps { col: number; row: number; w: number; h: number; }
 export type TilePt = [number, number];
 
 // ---------------------------------------------------------------------
-// FLAT GROUND AND THE THINGS STANDING ON IT — a split this file needs and
-// the campus map enforces (see CampusMap.tsx's render).
+// Flat ground and the things standing on it (enforced by CampusMap.tsx's
+// render). Flat ground has no height, so it never occludes anything: it is
+// drawn in its own pass under every mass and needs no depth. What stands on
+// it (planting, hedges, fountains, stands, fences) is a mass like any other
+// and depth-sorts over the ground it covers.
 //
-// An angled map is painted back to front, and the order IS the occlusion.
-// That works for masses, each of which can be represented by one depth (the
-// far corner of its footprint) well enough. It does NOT work for a large
-// FLAT plate: a 9x9 quad sorted on its far corner draws AFTER — and so over
-// — a tree standing in front of its near corner but off to one side, whose
-// own depth is smaller. That is not a tuning problem, it is what a single
-// sort key cannot express about a big footprint.
-//
-// The fix is to stop asking. Flat ground has no height, so it can never
-// legitimately occlude anything: it belongs UNDER every mass on the map,
-// drawn in a pass of its own before them, and needs no depth at all. What
-// genuinely stands on a quad or a ball field — planting, hedges, a
-// fountain, a monument, a stand, a fence — is a mass like any other and
-// sorts like one, each over the ground it actually covers.
-//
-// So each open-ground marking below comes in two halves: a component that
-// draws the paint, and a function returning its raised props. `groundProps`
-// at the bottom of this file is the one entry point for the second half.
+// So each marking comes in two halves: a component that draws the paint, and
+// a function returning its raised props. `groundProps` at the bottom of this
+// file is the entry point for the second half.
 export interface GroundProp {
   key: string;
-  // The GROUND this prop covers, in grid coordinates: origin plus extent, the
-  // same {col,row,w,h} shape a Placement uses, and what the map depth-sorts it
-  // on (see depthSort.ts).
-  //
-  // An extent rather than a point, because several of these are not points. A
-  // stand behind home plate, an outfield fence and a garden hedge each cover
-  // real ground, and a prop that declares itself a point has to nominate ONE
-  // spot to be sorted at — which is the same class of mistake as sorting a
-  // building on its far corner, at a smaller scale. Anything genuinely
-  // point-like (a tree) declares the tile it stands in, exactly as the
-  // woodland on the map around it does.
+  // The ground this prop covers, as {col,row,w,h} like a Placement: what the
+  // map depth-sorts it on (depthSort.ts). An extent, not a point, because a
+  // stand or a fence covers real ground; a tree declares the tile it stands in.
   col: number;
   row: number;
   w: number;
@@ -77,28 +53,20 @@ export interface GroundProp {
   node: React.JSX.Element;
 }
 
-// The box a round prop covers, from its centre and radius — the shape a
-// fountain, a medallion or a tree crown actually occupies on the ground.
+// The box a round prop (fountain, medallion, tree crown) covers on the ground.
 function aroundPoint(cc: number, cr: number, radius: number): { col: number; row: number; w: number; h: number } {
   return { col: cc - radius, row: cr - radius, w: radius * 2, h: radius * 2 };
 }
 
 // ---------------------------------------------------------------------
-// A raked stand. This is the one piece of furniture every venue on campus
-// shares — the stadium is four of them around a gridiron, and the pitch and
-// the ball field each get one small one — so it is defined once here and
-// the geometry is identical wherever it appears.
+// A raked stand, shared by every venue (the stadium is four around a
+// gridiron; the pitch and ball field get small ones).
 //
-// A stand is NOT a box. It is a wedge: the row nearest the field sits low,
-// and each row behind it sits higher, so the surface the camera sees is a
-// rake climbing away from the play. Drawing it as a box was what made the
-// stadium read as "a field inside a container" — a box has a flat top and
-// vertical inner walls, which is a wall around a pitch, not seating.
+// A wedge, not a box: each row sits higher than the one in front, so the
+// surface climbs away from the play. A box reads as a wall around a pitch.
 //
-// Colours are passed in rather than taken from CSS: the stadium shades its
-// stands from its own tint the way every building shades its walls, while
-// the small bleachers beside a pitch are plain concrete. One geometry, two
-// palettes.
+// Colours are passed in: the stadium shades its stands from its own tint,
+// the bleachers beside a pitch are plain concrete.
 // ---------------------------------------------------------------------
 export function RakedStand({
   outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall = false, frontWall = false,
@@ -109,17 +77,13 @@ export function RakedStand({
   bottomH: number; topH: number;
   rakeFill: string; wallFill: string; seatStroke: string;
   rows?: number;
-  // Which of the stand's two vertical faces the camera can actually see.
-  // A stand on the near side of a pitch (max row / max col) shows its OUTER
-  // back; one on the far side shows the face toward the field instead. Draw
-  // the wrong one and the stand has no mass at all — it reads as a striped
-  // ramp lying in the grass, which is exactly what the first version of the
-  // small bleachers looked like.
+  // Which vertical face the camera sees: a stand on the near side of a pitch
+  // (max row / max col) shows its outer back, one on the far side the face
+  // toward the field. Drawing the wrong one leaves the stand with no mass.
   wall?: boolean;
   frontWall?: boolean;
-  // The two side profiles of the wedge. These are what say "raked seating"
-  // from any angle — a stand without them is a plane — and are drawn unless
-  // the caller knows both ends are buried in a neighbouring bank.
+  // The two side profiles of the wedge, which say "raked seating" from any
+  // angle; omitted only when both ends are buried in a neighbouring bank.
   endFaces?: boolean;
   // Gangways cut down the rake, as dark slots. Zero for a bleacher.
   aisles?: number;
@@ -131,11 +95,9 @@ export function RakedStand({
   const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
   const between = (a: TilePt, b: TilePt, f: number): TilePt => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
 
-  // Which edge is nearer the camera. A stand whose FRONT edge is nearer
-  // climbs away from the viewer, so its risers face the camera and the
-  // seating reads as steps; one whose back edge is nearer shows its back
-  // wall and the tops of its treads only, which is what you see looking
-  // over a near stand into a bowl.
+  // Which edge is nearer the camera. Front edge nearer: the risers face the
+  // camera and read as steps. Back edge nearer: only the back wall and tread
+  // tops show, as when looking over a near stand into a bowl.
   const midO = project((o0[0] + o1[0]) / 2, (o0[1] + o1[1]) / 2);
   const midI = project((i0[0] + i1[0]) / 2, (i0[1] + i1[1]) / 2);
   const climbsAway = midI.y > midO.y;
@@ -146,9 +108,8 @@ export function RakedStand({
   const riserFill = shade(rakeFill, 0.72);
   const endFill = shade(wallFill, 0.9);
 
-  // The side profile of the wedge: stepped when the steps face the camera,
-  // a plain trapezoid when they do not (the steps would be hidden behind
-  // the back wall anyway).
+  // The side profile: stepped when the steps face the camera, a plain
+  // trapezoid when they would be hidden behind the back wall.
   const profile = (i: TilePt, o: TilePt): Pt[] => {
     const pts: Pt[] = [at(i, 0), at(i, bottomH)];
     if (climbsAway) {
@@ -165,10 +126,9 @@ export function RakedStand({
 
   const treads: React.JSX.Element[] = [];
   if (climbsAway) {
-    // Back to front: the top tier first, each lower one painting over the
-    // foot of the riser behind it. Tread k sits between the k/tiers and
-    // (k+1)/tiers lines, at its own height; its riser stands on the front
-    // line from the tread below up to it.
+    // Back to front: top tier first, each lower one painting over the foot of
+    // the riser behind. Tread k sits between the k/tiers and (k+1)/tiers
+    // lines; its riser stands on the front line from the tread below up to it.
     for (let k = tiers - 1; k >= 0; k--) {
       const f0 = k / tiers; const f1 = (k + 1) / tiers;
       const z = tierTop(k); const zPrev = k === 0 ? bottomH : tierTop(k - 1);
@@ -182,9 +142,7 @@ export function RakedStand({
       );
     }
   } else {
-    // Seen from behind: the rake as one surface, with the tier edges as
-    // bands of riser tone across it, which is what terraces look like
-    // from the back of the top row.
+    // Seen from behind: the rake as one surface, with tier edges as bands.
     treads.push(
       <polygon key="rake" points={polyPoints([at(o0, topH), at(o1, topH), at(i1, bottomH), at(i0, bottomH)])} fill={rakeFill} />,
     );
@@ -235,10 +193,8 @@ export function RakedStand({
 const CONCRETE = { rake: '#cfc7b4', wall: '#b3ab99', seat: 'rgba(60, 54, 42, 0.35)' };
 
 // ---------------------------------------------------------------------
-// A MESH FENCE around a plot — tennis courts, a pool deck, the ballpark's
-// backstop. A translucent band standing on the ground with a post every
-// couple of tiles and a rail along the top: the one vertical thing open
-// ground has, and what stops a slab of court reading as paint.
+// A mesh fence around a plot (courts, pool deck, backstop): a translucent
+// band with posts and a top rail, what stops a slab of court reading as paint.
 // ---------------------------------------------------------------------
 function FenceRun({ a, b, height, postEvery = 2 }: { a: TilePt; b: TilePt; height: number; postEvery?: number }) {
   const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
@@ -278,9 +234,8 @@ function GroundBox({ col, row, w, h, base = 0, height, side, front, top }: Groun
   base?: number; height: number; side: string; front: string; top: string;
 }) {
   const f = boxFaces(col, row, w, h, base, height);
-  // `front` is the +row face's tone and `side` the +col face's — the pair
-  // the default camera sees; the other two take their place in the same sun
-  // (light.ts's faceTone) when the camera turns them into view.
+  // `front` is the +row face's tone and `side` the +col face's; the other
+  // two come from light.ts's faceTone when the camera turns them into view.
   return (
     <>
       <polygon points={polyPoints(f.left)} fill={faceTone(f.dir.CD, front, side)} />
@@ -299,10 +254,8 @@ function Post({ at: t, from = 0, to, className }: { at: TilePt; from?: number; t
 }
 
 // ---------------------------------------------------------------------
-// Gridiron. The markings ARE the recognition: without cross-field yard
-// lines and the two rows of hash marks down the middle, a green rectangle
-// is just a green rectangle. Drawn along the footprint's longer axis, so a
-// rotated stadium still has its yard lines running the right way.
+// Gridiron: the yard lines and hash marks are the recognition. Drawn along
+// the footprint's longer axis so a rotated stadium's lines run the right way.
 // ---------------------------------------------------------------------
 function Gridiron({ col, row, w, h, inset = 0, insetAcross = inset, posts = false }: GroundProps & {
   inset?: number; insetAcross?: number; posts?: boolean;
@@ -330,8 +283,8 @@ function Gridiron({ col, row, w, h, inset = 0, insetAcross = inset, posts = fals
         const l = uvLine(col, row, w, h, p[0], p[1], q[0], q[1]);
         return <line key={`y${i}`} className="ground-line" {...l} />;
       })}
-      {/* Hash marks: two rows of short ticks between the yard lines, which
-          is the detail that makes it read as gridiron rather than soccer. */}
+      {/* Hash marks: two rows of short ticks between the yard lines, what
+          reads as gridiron rather than soccer. */}
       {lines.flatMap((a, i) => [HASH_IN, 1 - HASH_IN].map((c, j) => {
         const p = at(a - 0.022, c); const q = at(a + 0.022, c);
         const l = uvLine(col, row, w, h, p[0], p[1], q[0], q[1]);
@@ -374,24 +327,20 @@ function Gridiron({ col, row, w, h, inset = 0, insetAcross = inset, posts = fals
 }
 
 // ---------------------------------------------------------------------
-// Ball diamond. A ballfield is not a square with a diamond in it — it is a
-// QUARTER CIRCLE: home plate at one corner, the foul lines 90 degrees
-// apart, the outfield sweeping between them, and a wedge of infield dirt
-// around the bases. The dirt is what makes it read instantly.
+// Ball diamond: a quarter circle, home plate at one corner, foul lines 90
+// degrees apart, with a wedge of infield dirt around the bases.
 // ---------------------------------------------------------------------
 function Diamond({ col, row, w, h }: GroundProps) {
-  // Home plate sits well back from the footprint's front corner, because the
-  // SEATING needs that room: a ballpark's grandstand wraps the plate and
-  // runs down both foul lines to the bases, and that horseshoe is a third
+  // Home plate sits well back from the footprint's front corner: the
+  // grandstand wrapping the plate and running down both lines takes a third
   // of the plot.
   const g = diamondGeometry(col, row, w, h);
   const { hc, hr, R, TRACK, DIRT, BASE, from, to, bisect, short } = g;
   const home = project(hc, hr);
   const polar = (r: number, a: number) => project(hc + r * Math.cos(a), hr + r * Math.sin(a));
 
-  // The base path, and the grass inside it. A real infield is not a solid
-  // wedge of dirt — the skin runs around the bases and the middle of the
-  // diamond is turf, which is most of what the pattern reads as from above.
+  // The base path and the turf inside it: a real infield's skin runs around
+  // the bases, not a solid wedge.
   const basePath = [home, polar(BASE, from), polar(BASE * Math.SQRT2, bisect), polar(BASE, to)];
   const infieldGrass = [
     polar(BASE * 0.34, bisect), polar(BASE * 0.72, from), polar(BASE * 1.06, bisect), polar(BASE * 0.72, to),
@@ -406,8 +355,7 @@ function Diamond({ col, row, w, h }: GroundProps) {
   return (
     <>
       <polygon className="ground-turf" points={polyPoints([home, ...projectedArc(hc, hr, R, from, to), home])} />
-      {/* Mowing arcs across the outfield, the way the quad's lawn is
-          striped — kept grass rather than one flat green. */}
+      {/* Mowing arcs across the outfield, like the quad's lawn. */}
       {[0, 1, 2].map((i) => {
         const r0 = DIRT * 1.25 + (TRACK - DIRT * 1.25) * ((2 * i + 1) / 6);
         const r1 = DIRT * 1.25 + (TRACK - DIRT * 1.25) * ((2 * i + 2) / 6);
@@ -419,9 +367,8 @@ function Diamond({ col, row, w, h }: GroundProps) {
           />
         );
       })}
-      {/* The warning track: a band of dirt inside the fence, so a fielder
-          knows the wall is coming. The ring between the boundary arc and one
-          just inside it. */}
+      {/* The warning track: a band of dirt inside the fence, between the
+          boundary arc and one just inside it. */}
       <polygon
         className="ground-dirt"
         points={polyPoints([
@@ -432,8 +379,7 @@ function Diamond({ col, row, w, h }: GroundProps) {
       <polygon className="ground-dirt" points={polyPoints([home, ...projectedArc(hc, hr, DIRT, from, to), home])} />
       <polygon className="ground-turf" points={polyPoints(infieldGrass)} />
       <polygon className="ground-line" fill="none" points={polyPoints(basePath)} />
-      {/* The mound: a real one is about 5.5 m across, which on a 125 m field
-          is small. It was drawn at half again that and read as a pale blob. */}
+      {/* The mound, at its real size (about 5.5 m across on a 125 m field). */}
       <polygon className="ground-dirt-pale" points={polyPoints(projectedCircle(
         hc + BASE * 0.62 * Math.cos(bisect), hr + BASE * 0.62 * Math.sin(bisect), short * 0.028, 20,
       ))} />
@@ -486,10 +432,8 @@ function diamondGeometry(col: number, row: number, w: number, h: number) {
   };
 }
 
-// The diamond's raised props: the outfield fence, and the seating wrapping
-// home plate. Both stand ON the field, so both sort against their
-// surroundings individually rather than riding the plate's own depth — see
-// groundProps at the bottom of this file.
+// The diamond's raised props: the outfield fence and the seating around home
+// plate, each sorted individually (see groundProps).
 function diamondProps(col: number, row: number, w: number, h: number): GroundProp[] {
   const { hc, hr, R, from, to, bisect, short } = diamondGeometry(col, row, w, h);
   const polar = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
@@ -498,18 +442,13 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
   const arcPts = projectedArc(hc, hr, R, from, to, 36);
 
   // --- the seating -----------------------------------------------------
-  // ONE HORSESHOE, in three straight pieces: a grandstand behind the plate
-  // set square to the bisector, and a wing down each foul line as far as
-  // the bases — all one depth, one height and one back wall, on a low
-  // field wall, with the covered press box over the middle. That is what a
-  // college ballpark is (Holman Stadium, the reference for this), and it is
-  // what neither of the two earlier drawings was: an unbroken arc read as
-  // an amphitheatre, and five fanned banks read as five crates on the lawn.
-  //
-  // Three props rather than one because the depth sort needs them apart —
-  // a tree beside the third-base line passes in front of that wing and
-  // behind the plate stand (see depth-sort.test.ts). The foul lines run
-  // along the grid axes, so the wings are axis-aligned and draw cleanly.
+  // One horseshoe in three straight pieces: a grandstand behind the plate,
+  // square to the bisector, and a wing down each foul line to the bases, all
+  // one depth and height, on a low field wall, with a press box over the
+  // middle (modelled on a college ballpark such as Holman Stadium). Three
+  // props because the depth sort needs them apart: a tree beside the
+  // third-base line passes in front of that wing and behind the plate stand
+  // (depth-sort.test.ts). The wings follow the grid axes.
   const gap = 0.35;                     // the walkway between the line and the front row
   const depth = short * 0.13;           // how deep the seating is
   const s0 = 0.55;                      // where the wings start, out from the plate
@@ -605,8 +544,7 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
 
   // --- the dugouts -----------------------------------------------------
   // Two low covered benches just outside the foul lines, a third of the way
-  // to the fence. The one thing besides the diamond itself that says
-  // "baseball" at map zoom.
+  // to the fence.
   const dugout = (a: number, k: number): GroundProp => {
     const r = L + 0.3;
     const along = 1.4; const deep = 0.55;
@@ -655,15 +593,14 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
   return [
     {
       key: 'fence',
-      // The fence rings the OUTFIELD — the quarter-disc of the plot away from
-      // home plate — so the ground it covers is the box that arc sweeps.
+      // The fence rings the outfield, so the ground it covers is the box the
+      // arc sweeps.
       col: hc - R, row: hr - R, w: R, h: R,
       node: (
         <>
           <polygon className="ground-fence" points={polyPoints([...arcPts, ...[...arcPts].reverse().map((q) => lift(q, FENCE_H))])} />
           <polyline className="ground-fence-rail" fill="none" points={polyPoints(arcPts.map((q) => lift(q, FENCE_H)))} />
-          {/* Foul poles, at the two ends of the fence — the one yellow on the
-              campus, because that is what colour they are. */}
+          {/* Foul poles at the two ends of the fence, in yellow. */}
           <Post at={polar(R, from)} to={up(7)} className="ground-foul-pole" />
           <Post at={polar(R, to)} to={up(7)} className="ground-foul-pole" />
         </>
@@ -690,8 +627,7 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
 
 // A soccer pitch: centre circle, halfway line, and the two penalty areas
 // that stop it being "a field with a circle on it".
-// The number of running lanes. Eight is the competition standard and what a
-// track looks like from above — the concentric lines ARE the read.
+// The number of running lanes: eight, the competition standard.
 const TRACK_LANES = 8;
 
 // Where the oval's centre sits across the plot: pushed toward the near side
@@ -705,10 +641,9 @@ function pitchGeometry(col: number, row: number, w: number, h: number) {
   const across = landscape ? h : w;
   const cc = landscape ? col + w * 0.5 : col + w * TRACK_CENTRE_ACROSS;
   const cr = landscape ? row + h * TRACK_CENTRE_ACROSS : row + h * 0.5;
-  // A track is a STADIUM, not an ellipse: two dead-straight sides joined by
-  // semicircular ends. It FILLS the plot now — the footprint was widened to
-  // 22 by 13 so it could — because at three-quarters of the plot the pitch
-  // inside it came out 70 m long, and a pitch is the size it is: 105 by 68.
+  // A track is a stadium shape, not an ellipse: two straights joined by
+  // semicircular ends. It fills the plot so the pitch inside can be near its
+  // real 105 by 68 m.
   const outerLen = along * 0.445;
   const outerWid = across * 0.39;
   const trackWidth = Math.min(across * 0.1, 8 * 1.22 / METRES_PER_TILE);   // eight 1.22 m lanes
@@ -756,11 +691,9 @@ function Pitch({ col, row, w, h }: GroundProps) {
 
   return (
     <>
-      {/* The running surface in two tones — the outer four lanes a shade
-          darker than the inner four, which is how a laid track reads from
-          above — then the lane lines over it. The infield inside the
-          innermost lane is a paler surface: the D-zones either side of the
-          pitch and the strips beside it. */}
+      {/* The running surface in two tones (outer four lanes darker, as a laid
+          track reads from above), then the lane lines. The infield inside the
+          innermost lane is paler: the D-zones and the strips beside the pitch. */}
       <polygon className="ground-track" points={polyPoints(stadium(1))} />
       <polygon className="ground-track-inner" points={polyPoints(stadium(0.5))} />
       <polygon className="ground-dzone" points={polyPoints(stadium(0))} />
@@ -773,9 +706,7 @@ function Pitch({ col, row, w, h }: GroundProps) {
         />
       ))}
       {/* The finish line across all eight lanes at the end of the home
-          straight, and the staggered start marks stepping back round the
-          bend behind it. At map zoom the finish line alone is what says
-          "track" rather than "red oval". */}
+          straight, and the staggered starts behind it round the bend. */}
       <line className="ground-line-heavy" {...tseg(straight * 0.62, innerWid, straight * 0.62, outerWid)} />
       {Array.from({ length: TRACK_LANES }, (_, i) => {
         const c = innerWid + lane * (i + 0.5);
@@ -800,8 +731,7 @@ function Pitch({ col, row, w, h }: GroundProps) {
         );
       })()}
 
-      {/* The pitch, with mowing stripes — the bands are most of what makes a
-          pitch read as cut grass rather than as a green rectangle. */}
+      {/* The pitch, with mowing stripes. */}
       <polygon className="ground-turf" points={rect(-1, 1, -1, 1)} />
       {Array.from({ length: STRIPES }, (_, i) => (i % 2 === 0 ? null : (
         <polygon
@@ -837,14 +767,10 @@ function Pitch({ col, row, w, h }: GroundProps) {
   );
 }
 
-// The pitch's one raised prop: the stand outside the track on the far side.
-// Spanning the middle only, where the track's straight runs — and seated ON
-// the track's edge rather than at a guessed offset, so shrinking or
-// widening the oval cannot leave it floating in the margin.
-//
-// A real college track stand: raked seating on a low plinth, with a cover
-// over the back rows on four posts. The first version was the rake alone,
-// four units off the grass, and read as a plank.
+// The pitch's one raised prop: the stand outside the track on the far side,
+// spanning the straight and seated on the track's edge so resizing the oval
+// cannot leave it floating. Raked seating on a low plinth, with a cover over
+// the back rows on four posts.
 function pitchProps(col: number, row: number, w: number, h: number): GroundProp[] {
   const landscape = w >= h;
   const across = landscape ? h : w;
@@ -895,19 +821,10 @@ function pitchProps(col: number, row: number, w: number, h: number): GroundProp[
   }];
 }
 
-// Courts: a net across the middle and the service boxes either side.
-// Six courts, which is what a 12x4 plot IS.
-//
-// FACILITY_FOOTPRINTS.tennisCourts says so in its own comment -- "six courts
-// in a row, which is ~110m by 36m" -- and the drawing ignored it, stretching
-// ONE court over the whole plot. That is why the courts read as enormous: a
-// net 108 metres long and a service box the size of a basketball hall. The
-// footprint was right all along; only the paint was wrong.
-//
-// Every number below is a real dimension divided by the ground it sits on,
-// so the courts stay the right size if the footprint ever changes rather
-// than scaling with it. The count comes off the plot too: a longer plot is
-// more courts, not wider ones.
+// Courts: a net across the middle and the service boxes either side. A 12x4
+// plot is six courts in a row (FACILITY_FOOTPRINTS.tennisCourts). Every
+// number is a real dimension divided by the ground it sits on, so a longer
+// plot means more courts, not bigger ones.
 const COURT_BAY_METRES = 18;      // one court and its side run-off
 const COURT_WIDTH_METRES = 10.97; // doubles sidelines
 const COURT_LENGTH_METRES = 23.77;// baseline to baseline
@@ -916,8 +833,7 @@ const SERVICE_LINE = 6.4 / (23.77 / 2);            // service line, as a share o
 
 function courtsLayout(w: number, h: number) {
   const landscape = w >= h;
-  // u runs ALONG the row of courts, v across one court's length, whichever
-  // way the plot was placed.
+  // u runs along the row of courts, v across one court's length.
   const A = (a: number, c: number): [number, number] => (landscape ? [a, c] : [c, a]);
   const alongM = (landscape ? w : h) * METRES_PER_TILE;
   const deepM = (landscape ? h : w) * METRES_PER_TILE;
@@ -938,10 +854,9 @@ function Courts({ col, row, w, h }: GroundProps) {
 
   return (
     <>
-      {/* One surface under all of them. A six-court block is laid as a single
-          slab and fenced as one, not as six islands in the grass. Green
-          run-off, blue inside the lines: the hard-court scheme, and the two
-          tones are what say "tennis" once the line work is below a pixel. */}
+      {/* One slab under all of them, fenced as one. Green run-off, blue
+          inside the lines: the hard-court scheme, which still says "tennis"
+          once the line work is below a pixel. */}
       <polygon className="ground-court" points={uvPoly(col, row, w, h, [
         A(0, 0), A(1, 0), A(1, 1), A(0, 1),
       ])} />
@@ -963,9 +878,8 @@ function Courts({ col, row, w, h }: GroundProps) {
               fill="none"
               points={uvPoly(col, row, w, h, [A(u0, v0), A(u1, v0), A(u1, v1), A(u0, v1)])}
             />
-            {/* The singles sidelines, which is what the alley is the gap
-                between — and the one marking that says "tennis" rather than
-                "a rectangle with a net across it". */}
+            {/* The singles sidelines (the alley is the gap between), the one
+                marking that says "tennis". */}
             {line(u0 + alley, v0, u0 + alley, v1, 'ground-line-fine')}
             {line(u1 - alley, v0, u1 - alley, v1, 'ground-line-fine')}
             {/* The service courts behind the net on each side. The net
@@ -1019,8 +933,8 @@ function QuadWalks({ col, row, w, h }: GroundProps) {
   const half = QUAD_WALK / 2;
   return (
     <>
-      {/* Edge midpoint to edge midpoint, both ways — so the walks cross at
-          the centre and meet every side square on. */}
+      {/* Edge midpoint to edge midpoint, both ways, so the walks cross at
+          the centre. */}
       <polygon
         className="ground-walk-fill"
         points={uvPoly(col, row, w, h, [[0, 0.5 - half], [1, 0.5 - half], [1, 0.5 + half], [0, 0.5 + half]])}
@@ -1033,18 +947,11 @@ function QuadWalks({ col, row, w, h }: GroundProps) {
   );
 }
 
-// The quad's own planting. Drawn through components/trees.tsx's TreeAt,
-// the SAME component the founding woodland uses, so a tree on the quad is
-// the same object as a tree in the wood beside it rather than a
-// second-class lookalike. What differs is only where it comes from: a
-// woodland tree is one tile's entry in `trees` (its own state, felled by
-// building — see state/types.ts), while a quad's planting is part of the
-// quad, arriving and leaving with the building, so it is authored geometry
-// here and carries no state at all.
-//
-// Authored rather than random, and that is load-bearing: the map re-renders
-// on every pan and every tick, so planting rolled at draw time would shift
-// between frames and read as a rendering fault.
+// The quad's own planting, drawn through trees.tsx's TreeAt like the
+// woodland. Unlike woodland trees (state in `trees`), it is part of the quad
+// and carries no state. Authored rather than random, because the map
+// re-renders on every pan and tick and rolled planting would shift between
+// frames.
 type QuadPlanting = [u: number, v: number, species: Species, scale: number];
 
 const QUAD_TREES: QuadPlanting[] = [
@@ -1053,9 +960,8 @@ const QUAD_TREES: QuadPlanting[] = [
   [0.5, 0.12, 'ornamental', 1.0], [0.5, 0.88, 'ornamental', 1.0],
 ];
 
-// The gardens tier keeps every one of those and fills in between them: the
-// corners of the four lawn panels the cross walk makes, and a conifer on
-// each side to break the line of round crowns.
+// The gardens tier keeps those and fills in between: the corners of the four
+// lawn panels, and a conifer each side to break the line of round crowns.
 const GARDEN_TREES: QuadPlanting[] = [
   ...QUAD_TREES,
   [0.08, 0.5, 'conifer', 1.1], [0.92, 0.5, 'conifer', 1.1],
@@ -1063,10 +969,8 @@ const GARDEN_TREES: QuadPlanting[] = [
   [0.26, 0.74, 'canopy', 0.8], [0.74, 0.74, 'canopy', 0.8],
 ];
 
-// A bed of flowers: dark earth with blooms scattered over it. The blooms
-// are placed from a fixed lattice with a fixed nudge per index rather than
-// at random — the map re-renders constantly (every pan, every tick), and
-// planting that moved between frames would read as a rendering fault.
+// A bed of flowers: dark earth with blooms from a fixed lattice and a fixed
+// nudge per index, so nothing moves between renders.
 function FlowerBed({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
   u0: number; v0: number; u1: number; v1: number;
 }) {
@@ -1094,8 +998,7 @@ function FlowerBed({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
   );
 }
 
-// A clipped hedge: a low box with a lit top face, so it has mass rather
-// than being a green stripe painted on the grass.
+// A clipped hedge: a low box with a lit top, so it has mass.
 function Hedge({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
   u0: number; v0: number; u1: number; v1: number;
 }) {
@@ -1110,11 +1013,9 @@ function Hedge({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
   );
 }
 
-// The fountain at the centre of the Grand Quad: a stone kerb, the water
-// inside it, a raised basin, and a jet standing out of that with a ring of
-// spray falling back into the pool. Static geometry — a real animation
-// would have to run every frame on a surface that is otherwise only redrawn
-// when something changes, and the shape alone already reads as a fountain.
+// The Grand Quad's fountain: kerb, water, a raised basin, and a jet with a
+// ring of spray. Static: animating it would force redraws on a surface that
+// is otherwise only redrawn when something changes.
 function Fountain({ col, row, w, h }: GroundProps) {
   const cc = col + w * 0.5; const cr = row + h * 0.5;
   const R = Math.min(w, h) * 0.20;
@@ -1128,11 +1029,9 @@ function Fountain({ col, row, w, h }: GroundProps) {
       {/* The raised basin standing in the middle of the pool. */}
       <polygon className="ground-fountain-kerb" points={ring(R * 0.30, 7)} />
       <polygon className="ground-fountain-basin" points={ring(R * 0.24, 9)} />
-      {/* The jet: a tapering column of water over the basin, with spray
-          falling back around it. The spray ring is deliberately small and
-          close to the basin — at the first pass it was wide enough to
-          cover most of the pool, which washed the water out to near-white
-          and lost the one blue on the quad. */}
+      {/* The jet: a tapering column of water with spray falling back. The
+          spray ring stays small and close to the basin so it does not wash
+          out the pool's blue. */}
       <polygon
         className="ground-fountain-spray"
         points={ring(R * 0.44, 11)}
@@ -1154,10 +1053,8 @@ function Fountain({ col, row, w, h }: GroundProps) {
   );
 }
 
-// The tier-1 quad's centrepiece: a paved roundel, a stepped plinth on it,
-// and a column standing on that. Drawn in the same two-part language the
-// fountain below uses — a ground ring, then mass lifted above it — so the
-// two tiers' centres read as the same KIND of thing at different scales.
+// The tier-1 quad's centrepiece: a paved roundel, a stepped plinth and a
+// column, in the fountain's two-part language (ground ring, then raised mass).
 function Monument({ col, row, w, h }: GroundProps) {
   const cc = col + w * 0.5; const cr = row + h * 0.5;
   const R = Math.min(w, h) * 0.13;
@@ -1167,8 +1064,7 @@ function Monument({ col, row, w, h }: GroundProps) {
     <>
       <polygon className="ground-medallion" points={ring(R)} />
       <polygon className="ground-fountain-kerb" points={ring(R * 0.46, 5)} />
-      {/* The shaft: a tapering column, in screen space like a tree's crown —
-          it is mass in the air, not a marking on the ground. */}
+      {/* The shaft: a tapering column in screen space, like a tree's crown. */}
       <polygon
         className="ground-monument"
         points={polyPoints([
@@ -1190,18 +1086,14 @@ function Monument({ col, row, w, h }: GroundProps) {
   );
 }
 
-// The quad's FLAT half: everything that is paint on the ground. The things
-// that STAND on it — planting, hedges, the fountain, the monument — are not
-// here; they are raised props, and they come out of quadProps below so the
-// map can sort each of them against whatever else is nearby. See
-// groundProps at the bottom of this file for why that split exists.
+// The quad's flat half: everything painted on the ground. What stands on it
+// comes from quadProps (see groundProps).
 function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
   const gardens = tier >= 2;
   return (
     <>
       <polygon className="ground-lawn" points={uvPoly(col, row, w, h, [[0, 0], [1, 0], [1, 1], [0, 1]])} />
-      {/* Mowing stripes, which are most of what makes a big green read as
-          kept lawn rather than a flat colour. */}
+      {/* Mowing stripes, so a big green reads as kept lawn. */}
       {[0.12, 0.28, 0.44, 0.60, 0.76, 0.92].map((v) => (
         <polygon
           key={v}
@@ -1211,8 +1103,8 @@ function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
       ))}
       <QuadWalks col={col} row={row} w={w} h={h} />
 
-      {/* Beds down both sides of each walk. Earth and blooms both lie ON the
-          ground, so unlike the hedges beside them they stay in this half. */}
+      {/* Beds down both sides of each walk. They lie on the ground, so unlike
+          the hedges they stay in this half. */}
       {gardens && (
         <>
           <FlowerBed col={col} row={row} w={w} h={h} u0={0.10} v0={0.38} u1={0.40} v1={0.44} />
@@ -1225,12 +1117,11 @@ function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
   );
 }
 
-// The quad's RAISED half, one entry per standing object, each carrying the
-// point it stands on so the map can depth-sort it individually.
+// The quad's raised half, one entry per standing object, each depth-sorted
+// individually.
 function quadProps(col: number, row: number, w: number, h: number, tier: number): GroundProp[] {
   const gardens = tier >= 2;
-  // A planting stands in one tile, like every tree in the woodland around the
-  // quad — so it sorts against them on the same terms.
+  // A planting stands in one tile, so it sorts like the woodland around it.
   const at = (u: number, v: number) => ({
     col: col + w * u - 0.5, row: row + h * v - 0.5, w: 1, h: 1,
   });
@@ -1261,12 +1152,8 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
         ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.20),
         node: <Fountain col={col} row={row} w={w} h={h} />,
       }
-      // Tier 1's centre: a paved roundel where the walks meet, with a plinth
-      // and a column standing on it. The roundel alone was there first and
-      // was invisible — it is the same stone as the walks that run into it,
-      // so on a lawn it read as a slight widening of the crossing and
-      // nothing more. What the walks need at their meeting point is
-      // something to be walking TO.
+      // Tier 1's centre: a roundel with a plinth and column, something for the
+      // walks to lead to (a bare roundel in the walks' stone read as nothing).
       : {
         key: 'monument',
         ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.13),
@@ -1332,46 +1219,27 @@ function poolProps(col: number, row: number, w: number, h: number): GroundProp[]
 }
 
 // ---------------------------------------------------------------------
-// OPEN GROUND UNDER CONSTRUCTION — the state every marking above shares
-// while it is being laid.
-//
-// The old comment in buildingMotifs.tsx said open ground had "no
-// construction state worth drawing either, since there is nothing to
-// raise", and drew the finished surface throughout. That reasoning is
-// backwards: RISING MASS is how a building shows its progress, but it is
-// not what makes construction legible. The absence of the finished surface
-// is. A quad being laid was drawn complete — lawn, walks, fountain, trees —
-// with a progress bar lying on top of it, which reads as a finished quad
-// somebody has put a bar on rather than as a site.
-//
-// So a developing plate is graded earth inside a site hoarding, and nothing
-// else: no markings, no planting, no furniture (see groundProps below,
-// which returns an empty list while a plate is developing, so the trees and
-// fountains that stand ON a quad do not arrive before the quad does). The
-// progress bar along the front is drawn by CampusMap for every site alike.
+// Open ground under construction, shared by every marking above. The
+// absence of the finished surface is what makes a site legible, so a
+// developing plate is graded earth inside a site hoarding and nothing else:
+// no markings, planting or furniture (groundProps returns nothing while
+// developing). CampusMap draws the progress bar for every site alike.
 // ---------------------------------------------------------------------
 
-// A real site hoarding, near enough: high enough to stand in front of, low
-// enough that it never reads as a wall somebody is building.
+// A site hoarding: high enough to stand in front of, low enough not to read
+// as a wall under construction.
 const HOARDING_H = up(2.1);
 
-// How far in from the plot edge the hoarding stands. Off the boundary by a
-// little so two adjacent sites do not draw their boards through each other.
+// How far in from the plot edge the hoarding stands, so adjacent sites do
+// not draw their boards through each other.
 const HOARDING_INSET = 0.08;
 
 export function GroundSite({ col, row, w, h }: GroundProps) {
-  // The grader's passes, as scrape lines running the LONG way across the
-  // plot — which is the way a machine would actually work it. Counted from
-  // the short span in tiles rather than fixed, so a 3x3 courts site and a
-  // 20x11 field site both come out with passes about half a tile apart
-  // instead of the small one looking ploughed and the large one swept.
-  //
-  // Each pass is short of the edges by a different amount. Evenly spaced
-  // full-width lines are what a DECK looks like; ground that has been
-  // worked reads as overlapping runs that stop short, which is the whole
-  // difference between this and a plank floor. The offsets come off the
-  // index rather than random(): a site that reshuffled its own scrapes
-  // on every render would crawl.
+  // The grader's passes: scrape lines the long way across the plot, counted
+  // from the short span so passes land about half a tile apart at any size.
+  // Each stops short of the edges by a different amount (from the index, not
+  // random, so it never crawls between renders); evenly spaced full-width
+  // lines would read as a deck.
   const alongW = w >= h;
   const passes = Math.max(3, Math.round((alongW ? h : w) * 1.8));
   const jitter = (i: number, salt: number) => ((Math.sin((i + 1) * 12.9898 + salt) * 43758.5453) % 1 + 1) % 1;
@@ -1382,11 +1250,9 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
   const ih = h * (1 - HOARDING_INSET * 2);
   const f = boxFaces(ic, ir, iw, ih, 0, HOARDING_H);
 
-  // The two panels facing the camera are f.left and f.right; the two behind
-  // are the same edges on the far side, and we see their inner faces. Each
-  // takes the tone of the panel it runs parallel to, so the four boards
-  // read as one enclosure rather than as four unrelated strips. Back before
-  // front, so a near board covers the far one it crosses.
+  // The two camera-facing panels are f.left and f.right; the two behind show
+  // their inner faces. Each takes the tone of the panel it parallels. Back
+  // before front.
   const boards: Array<{ tone: string; pts: Pt[]; span: number }> = [
     { tone: 'a', pts: [f.A, f.B, f.Bt, f.At], span: iw },
     { tone: 'b', pts: [f.A, f.D, f.Dt, f.At], span: ih },
@@ -1410,9 +1276,8 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
         );
       })}
       {boards.map(({ tone, pts, span }, i) => {
-        // Posts every couple of tiles along the run. Without them the board
-        // is a ribbon of flat colour; with them it is a hoarding somebody
-        // erected, which is the difference this whole component is about.
+        // Posts every couple of tiles, so the board reads as a hoarding rather
+        // than a ribbon of flat colour.
         const posts = Math.max(1, Math.round(span / 2.5) - 1);
         return (
           <g key={i}>
@@ -1428,8 +1293,7 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
                 />
               );
             })}
-            {/* The capping rail along the top edge of each board, which is
-                what stops a flat plate reading as a change of colour. */}
+            {/* The capping rail along each board's top edge. */}
             <line className="site-hoarding-cap" x1={pts[3].x} y1={pts[3].y} x2={pts[2].x} y2={pts[2].y} />
           </g>
         );
@@ -1438,18 +1302,13 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
   );
 }
 
-// Which marking each open-ground facility wears. The stadium's own field
-// is a gridiron too — see StadiumField below, which the bowl motif draws
-// inside its stands.
+// Which marking each open-ground facility wears. The stadium's field is
+// StadiumField below, drawn by the bowl motif inside its stands.
 export default function GroundMarking({ facilityType, col, row, w, h, tier, developing }: GroundProps & {
   facilityType?: FacilityType;
-  // The quad is the one open-ground facility with TIERS, and its two are
-  // genuinely different places rather than the same lawn at two sizes (see
-  // the quad block above). Nothing else here reads it.
+  // Only the quad has tiers, and its two are different places.
   tier?: number;
-  // Before the switch, not inside it: a site is a site whatever is going to
-  // be on it when it is done, and the point of GroundSite is that every
-  // open-ground facility shares one.
+  // Checked before the switch: every open-ground facility shares one site.
   developing?: boolean;
 }) {
   if (developing) return <GroundSite col={col} row={row} w={w} h={h} />;
@@ -1464,23 +1323,14 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
   }
 }
 
-// The raised half of an open-ground facility: every prop standing on it,
-// each with the point it stands on. Mirrors GroundMarking above exactly —
-// same switch, same argument list, same `developing` shortcut ahead of it —
-// so a facility can never have its paint drawn without its props, or vice
-// versa. An empty list is still a normal answer — nothing stands on a
-// quad's lawn beyond what quadProps lists — but a tennis block is fenced
-// and netted and a pool deck is fenced, and those stand up.
+// The raised half of an open-ground facility. Mirrors GroundMarking exactly
+// (same switch, arguments and `developing` shortcut) so a facility can never
+// have its paint without its props, or vice versa.
 export function groundProps(
   facilityType: FacilityType | undefined,
   col: number, row: number, w: number, h: number, tier?: number, developing?: boolean,
 ): GroundProp[] {
-  // Nothing stands on a site yet. Without this a quad under construction
-  // kept its full-grown trees, its fountain and its monument while the
-  // ground under them was still being graded — the props are a separate
-  // pass from the paint (see the note at the top of this file), so hiding
-  // one half and not the other is exactly the mistake the mirroring is
-  // meant to prevent.
+  // Nothing stands on a site yet.
   if (developing) return [];
   switch (facilityType) {
     case 'athleticsField': return pitchProps(col, row, w, h);
@@ -1492,24 +1342,17 @@ export function groundProps(
   }
 }
 
-// The stadium's interior, drawn by the bowl motif inside its ring of
-// stands. A SOLID surface under everything: the first version left the
-// ring's opening showing bare lawn and grid lines between the pitch edge
-// and the stands, which read as a hole in the map rather than a stadium.
+// The stadium's interior, drawn by the bowl motif inside its stands: a solid
+// surface under everything, so the ring's opening never shows bare lawn.
 export function StadiumField({ col, row, w, h }: GroundProps) {
   return (
     <>
-      {/* The full interior, so nothing behind the stands is ever visible
-          through the opening. A concourse in concrete, not a running track:
-          a football stadium's field is ringed by a walkway, and the red band
-          this used to be read as a second track next to the real one on the
-          multi-sport field. */}
+      {/* The full interior, so nothing behind the stands shows through the
+          opening: a concrete concourse around the field. */}
       <polygon className="ground-apron" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
-      {/* A gridiron is 120 by 53 yards, a shape and a SIZE, not a fraction
-          of the bowl: it is drawn at that length (the multi-sport field's
-          pitch is drawn near its real 110 m, so the two read as the same
-          kind of object at map scale), the width follows from the shape,
-          and the apron takes what is left all round. */}
+      {/* A gridiron is 120 by 53 yards, drawn at that length (the multi-sport
+          field's pitch is near its real 110 m, so the two match at map
+          scale); the apron takes what is left all round. */}
       {(() => {
         const along = Math.max(w, h); const across = Math.min(w, h);
         const fieldLen = Math.min(along * (1 - 0.06 * 2), (120 * 0.9144 * 1.15) / METRES_PER_TILE);

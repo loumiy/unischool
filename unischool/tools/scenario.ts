@@ -1,14 +1,6 @@
-// ---------------------------------------------------------------------
-// STAND THE GAME UP SOMEWHERE SPECIFIC. Plays sim/balanceSim.ts forward
-// under a scripted strategy and writes the resulting GameState out as a
-// save payload, so the browser can open year 8 of a balanced school, or
-// the exact week a championship modal is pending, instead of week one of
-// a fresh game.
-//
-// This is the thing every later playtest is checked with: "does this
-// change make the game better" is a question about a state, and until
-// this existed the only way to reach one was to play there, or to write a
-// one-off script (which is what the September 2026 design review did).
+// Plays sim/balanceSim.ts forward under a scripted strategy and writes the
+// resulting GameState as a save payload, so the browser can open a specific
+// year or pending modal instead of a fresh game.
 //
 //   npm run scenario -- --list
 //   npm run scenario -- year-8-balanced [out.json]
@@ -21,14 +13,9 @@
 // Flags: --strategy <name> --year N --modal <interrupt type> --seed N
 //        --vernacular <v> --name <school> --clear-modal --build-all --list
 //
-// The written file is a real save (persistence.ts's SavePayload at the
-// current SAVE_VERSION), built through the reducer rather than assembled
-// by hand, so it never needs migrating and can never disagree with the
-// shape the game actually loads. Load it with the debug panel's Load
-// button, or hand it to `npm run shot`.
-//
-// Not part of the game: nothing in src/ imports it.
-// ---------------------------------------------------------------------
+// The output is a real save at the current SAVE_VERSION, built through the
+// reducer, so it never needs migrating. Load it with the debug panel's Load
+// button, or hand it to `npm run shot`. Nothing in src/ imports this.
 import { writeFileSync } from 'node:fs';
 import { play, STRATEGIES, DEFAULT_SIM_SEED, type Strategy } from '../sim/balanceSim';
 import { SAVE_VERSION } from '../src/state/persistence';
@@ -37,11 +24,7 @@ import type { GameState, Vernacular } from '../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 
-// ---------------------------------------------------------------------
-// Arguments. `--k v` and `--k=v` both work, and anything that isn't a flag
-// or a flag's value is positional: the scenario name, and the output path
-// (told apart by the `.json`, see below).
-// ---------------------------------------------------------------------
+// `--k v` and `--k=v` both work; other arguments are positional.
 const VALUE_FLAGS = ['strategy', 'year', 'modal', 'seed', 'vernacular', 'name', 'out'];
 const BOOL_FLAGS = ['list', 'clear-modal', 'build-all', 'help'];
 
@@ -63,11 +46,8 @@ function parseArgs(argv: string[]): { flags: Record<string, string>; positional:
 
 const { flags, positional } = parseArgs(process.argv.slice(2));
 
-// A positional ending in `.json` is the OUTPUT PATH, wherever it sits, and
-// anything else is the scenario name. Positional order alone is not enough:
-// `--strategy Balanced --year 20 out.json` has no name in it at all, and
-// reading that path as a scenario name would quietly write the file
-// somewhere else.
+// A positional ending in `.json` is the output path wherever it sits (a run
+// built only from flags has no scenario name); anything else is the name.
 const pathArg = positional.find((arg) => arg.endsWith('.json'));
 const nameArg = positional.find((arg) => !arg.endsWith('.json'));
 
@@ -87,11 +67,8 @@ if (flags.help || flags.list) {
   process.exit(0);
 }
 
-// ---------------------------------------------------------------------
-// The recipe: either a named scenario, or one assembled from the flags.
-// Flags override a named scenario's own fields, so `year-8-balanced
-// --year 12` is a legal thing to ask for.
-// ---------------------------------------------------------------------
+// The recipe: a named scenario, or one from flags. Flags override a named
+// scenario's fields.
 const named = nameArg ? findScenario(nameArg) : undefined;
 if (nameArg && !named) {
   console.error(`no scenario named "${nameArg}". Try --list.`);
@@ -105,10 +82,7 @@ const recipe: Scenario = {
   year: Number(flags.year ?? named?.year ?? 20),
   stopWhen: flags.modal ? atModal(flags.modal) : named?.stopWhen,
 };
-// What the run was ASKED to stop at, kept beside the predicate so the
-// check below can name it. A named scenario's own stopWhen is opaque —
-// it is a function — so the modal it waits for is recovered from the
-// state it actually stopped in.
+// Only an explicit --modal is known here; a named scenario's stopWhen is opaque.
 const wantedModal = flags.modal ?? null;
 
 function resolveStrategy(name: string): Strategy {
@@ -127,22 +101,14 @@ const strategy = resolveStrategy(recipe.strategy);
 const seed = flags.seed ? Number(flags.seed) : DEFAULT_SIM_SEED;
 const outPath = pathArg ?? flags.out ?? `node_modules/.tmp/${recipe.name}.json`;
 
-// ---------------------------------------------------------------------
-// Play it.
-// ---------------------------------------------------------------------
 const run = play(strategy, recipe.year, undefined, seed, recipe.stopWhen);
 const state: GameState = run.state;
 // A recipe that breaks the school after the run (see Scenario.mutate).
 named?.mutate?.(state);
 
-// A scenario that asked to stop somewhere and never got there is a
-// FAILURE, not a save with a caveat: the whole value of `championship` is
-// that the state it writes has a championship on screen, and silently
-// handing back year 40 instead would send a playtest looking at the wrong
-// thing. Read off the CLOCK rather than off the modal — the run halted
-// early if and only if it never reached the year cutoff — so a scenario
-// whose stopping point is not a modal at all (`founding` stops at week
-// one) is judged by the same rule.
+// Failing to reach the requested stopping point is an error, not a caveat.
+// Judged by the clock (the run halts early only if it stopped), so
+// non-modal stops like `founding` follow the same rule.
 const pending = state.pendingInterrupt?.type ?? null;
 const stoppedEarly = state.clock.year <= recipe.year;
 if (recipe.stopWhen && !stoppedEarly) {
@@ -158,31 +124,20 @@ if (wantedModal && pending !== wantedModal) {
   process.exit(1);
 }
 
-// ---------------------------------------------------------------------
-// The overrides, applied to the finished state. Each one is cosmetic or
-// developer-facing — nothing here changes a number the simulation reads
-// back — so a scenario stays a state the game itself produced.
-// ---------------------------------------------------------------------
+// Cosmetic or developer-facing overrides: nothing the simulation reads back.
 if (flags.name) state.self.name = flags.name;
 if (flags.vernacular) state.self.vernacular = flags.vernacular as Vernacular;
 if (flags['clear-modal']) {
-  // What tools/makeSave.ts used to do unconditionally, now a flag: a
-  // loaded save opens whatever modal it was holding, and a modal backdrop
-  // swallows the clicks a screenshot driver needs for zoom and pan.
+  // A loaded save reopens its modal, whose backdrop would swallow a
+  // screenshot driver's zoom and pan clicks.
   state.pendingInterrupt = null;
   state.events.pendingDemand = null;
   state.events.activeDemand = null;
 }
 
-// THE ONE OVERRIDE THAT IS NOT COSMETIC, and flagged as such: --build-all
-// stands every placeable Buildable in the catalogue that the run did not
-// build — the football stadium, which no scripted strategy ever unlocks
-// because no club of its petitions for varsity football; the chapter
-// houses an event granted and the strategy never sited; whatever the run
-// had not reached. Each is marked done and dropped on the first clear
-// tiles (tools/layout.ts re-sites everything anyway). The result is a
-// campus with every asset on it to photograph, and NOT a state the game
-// produced: nothing about it is a measurement.
+// Not cosmetic: --build-all stands every placeable Buildable the run did not
+// build (e.g. the football stadium no strategy unlocks) on the first clear
+// tiles, for photographing. The result is not a state the game produced.
 let stood = 0;
 if (flags['build-all']) {
   for (const node of state.tech) {

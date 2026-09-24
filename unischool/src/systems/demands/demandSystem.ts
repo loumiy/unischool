@@ -17,61 +17,28 @@ import { clamp } from '../../math';
 import { newId } from '../../engine/random';
 
 // ---------------------------------------------------------------------
-// STUDENT DEMANDS — the inverse of clubs (see
-// docs/design/student-life.md's "Student demands"). One ordinary pure tick
-// function. All of the content and every tunable number is in
-// data/demandData.ts; what is here is the target logic, the cadence, and
-// the two readings the views render.
+// Student demands (see docs/design/student-life.md). Content and tuning are
+// in data/demandData.ts; this file holds target logic, cadence and the two
+// readings the views render.
 //
-// THE SHAPE. When satisfaction sits below DEMAND_SATISFACTION_THRESHOLD the
-// student body asks for one concrete, buildable thing — derived from the
-// campus's WORST actual shortfall, not drawn at random — with a target and
-// a deadline. Build it in time and the demand clears with a satisfaction
-// reward; let the deadline pass and it clears with a satisfaction penalty.
-// The penalty needs no machinery of its own: satisfaction feeds word of
-// mouth, and word of mouth costs applicants at the next summer funnel (see
-// admissionsSystem.ts's WORD_OF_MOUTH_STRENGTH). That IS the consequence.
+// Below DEMAND_SATISFACTION_THRESHOLD the students ask for the fix to the
+// campus's worst real shortfall, with a target and a deadline. Meeting it
+// pays a satisfaction reward; missing it costs a penalty, which reaches
+// admissions through word of mouth. Targets reuse readings the game already
+// keeps (servedPopulationFor, capacity, instructionCapacity); meeting a
+// demand is finishing a Buildable, and the tick notices.
 //
-// NO PARALLEL CAPACITY MODEL. A demand's target is measured with
-// satisfactionSystem.ts's own servedPopulationFor — the sum of
-// servesPopulation across the 'done' facilities feeding one attribute — or
-// against s.students.capacity for a housing demand. Both are readings the
-// game already keeps; this system adds none of its own. Which is also why
-// there is no acknowledge button on the resolution: meeting a demand is
-// finishing a Buildable, and the tick notices.
-//
-// WHY THIS RUNS LAST IN THE REDUCER'S SYSTEMS ORDER, after tickEvents.
-// Only one interrupt can be pending at a time, and every other claimant on
-// a week — the summer admissions decision, the U.S. News report, a
-// milestone celebration, the charter offer, a research prize, an authored
-// decision event — is either annual or something the player earned.
-// Running last means this system SEES their claim and stands down, so no
-// other system has to know demands exist. Nothing is lost by standing
-// down: the rolled demand waits in s.events.pendingDemand for the next
-// quiet week, exactly as a milestone waits in s.events.pendingMilestones,
-// and its deadline clock does not start until it is actually announced.
-//
-// THE SHARED CADENCE. Announcing a demand reads AND writes
-// s.events.lastDecisionWeek, the same global floor the authored decision
-// events run on. So a demand can never land in the week after an event (or
-// an event in the week after a demand), and the combined number of
-// stop-the-clock modals a year does not rise by the number of demands — a
-// demand spends the existing texture budget rather than adding to it, the
-// same way the Greek-life entries in eventData.ts do. That is deliberate:
-// the answer to "does the modal frequency still read as light flavour"
-// should not depend on how badly the school is being run.
-//
-// RESOLUTION RUNS EVERY WEEK, interrupt or no interrupt. The reducer runs
-// every system each tick and only holds the CLOCK when one of them raises
-// an interrupt, so a demand met during the week the summer decision fires
-// is met that week, not the week after.
+// This runs last in the reducer's systems order, so it sees any other
+// interrupt claiming the week and stands down; the rolled demand waits in
+// s.events.pendingDemand, and its deadline starts only when announced.
+// Announcing reads and writes s.events.lastDecisionWeek, the floor the
+// authored decision events share, so demands spend the existing modal
+// budget rather than adding to it. Resolution runs every week, interrupt or
+// not.
 // ---------------------------------------------------------------------
 
-// The ratio-scored satisfaction attributes, in the order a tie between two
-// equally bad shortfalls is broken. Basic needs first because it is the
-// heaviest attribute and the one with the steepest penalty curve (see
-// satisfactionSystem.ts), so when two needs are equally uncovered, going
-// hungry is the one students organise about.
+// The ratio-scored attributes, in tie-break order. Basic needs first: it is
+// the heaviest attribute with the steepest penalty curve.
 const RATIO_ATTRIBUTES: readonly (keyof SatisfactionAttributes)[] = [
   'basicNeeds', 'academic', 'social', 'health',
 ];
@@ -88,10 +55,8 @@ export interface DemandProgress {
   weeksLeft: number; // until the deadline; 0 once it has passed
 }
 
-// The one place a demand's target is compared against the world. Both
-// metrics read numbers the game already maintains — no capacity model of
-// this system's own — and neither can move backwards, so a demand that has
-// been met stays met.
+// The one place a demand's target is compared against the world. Neither
+// metric can move backwards, so a met demand stays met.
 export function demandProgress(s: GameState, demand: StudentDemand): DemandProgress {
   const current = demand.metric === 'capacity'
     ? s.students.capacity
@@ -116,19 +81,10 @@ export interface DemandStakes {
   applicantsIfFailed: number;
 }
 
-// WHAT THE DEMAND IS ACTUALLY WORTH, read off the model rather than
-// authored — the same honesty rule satisfactionSystem.ts's
-// studentLifeSatisfaction follows for the club panel, and the milestone
-// modal's prestigeTargetWithout before it.
-//
-// The satisfaction figures are the nudge this system would apply, clamped
-// exactly as resolveActiveDemand clamps it. The applicant figures are the
-// consequence that actually matters, and they are produced by running the
-// SHIPPED admissions funnel (projectAdmissions — the same pure function the
-// summer modal previews with and the reducer commits with) at today's
-// policy against each of those three satisfaction values. So "failing this
-// costs you N applicants" is a real reading of word of mouth, not a
-// sentence someone wrote.
+// What the demand is worth, read off the model rather than authored. The
+// satisfaction figures are clamped as resolveActiveDemand clamps them; the
+// applicant figures run the shipped admissions funnel (projectAdmissions)
+// at today's policy against each of the three satisfaction values.
 export function demandStakes(s: GameState): DemandStakes {
   const now = s.students.satisfaction;
   const ifMet = clamp(now + DEMAND_MET_SATISFACTION_REWARD, 0, 100);
@@ -154,16 +110,10 @@ export function demandStakes(s: GameState): DemandStakes {
 // DERIVING THE ASK — the worst real shortfall, and the thing that fixes it
 // =====================================================================
 
-// The Buildable a shortfall's ask resolves to: the next rung of that
-// attribute's chain that the school could actually start today.
-//
-// Two conditions, both load-bearing. 'available' rather than any unfinished
-// node, so students never demand something whose prereqs or prestige/
-// capacity gate the school has not reached — a demand must always be
-// buildable, even when it is not yet affordable. And servesPopulation > 0,
-// which excludes the flat contributors (the quad): a demand's target is a
-// served-population total, so an ask that serves nobody would be met the
-// instant it was raised.
+// The Buildable a shortfall resolves to: the next rung of that attribute's
+// chain. 'available' so a demand is always buildable (if not affordable),
+// and servesPopulation > 0 so the ask isn't met the instant it is raised
+// (the target is a served-population total).
 function nextAskFor(s: GameState, attribute: keyof SatisfactionAttributes): Buildable | undefined {
   return s.tech.find((t) =>
     t.status === 'available' &&
@@ -181,10 +131,8 @@ interface Candidate {
 }
 
 function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Candidate | null {
-  // Health scores full — and so is genuinely not short — below the
-  // population threshold the health center itself unlocks at (see
-  // satisfactionSystem.ts's dormancy rule). Students cannot demand a
-  // building the campus is too small to have a use for.
+  // Health isn't short below the population the health center unlocks at
+  // (satisfactionSystem.ts's dormancy rule).
   if (attribute === 'health' && totalEnrolled(s.students) < HEALTH_CENTER_TIER1_POPULATION_GATE) return null;
 
   const ask = nextAskFor(s, attribute);
@@ -199,12 +147,8 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
       attribute,
       askId: ask.id,
       askName: ask.name,
-      // The ask, in the units the satisfaction model already counts: what
-      // this need serves today plus what the demanded building would add.
-      // Fixed at the moment the demand is rolled and never re-derived, so
-      // enrollment growing later cannot silently move the goalposts — a
-      // coverage RATIO target would do exactly that, since every ratio is
-      // scored against enrolled.
+      // Served today plus what the ask adds. Fixed when rolled: a coverage
+      // ratio target would move as enrollment grows.
       target: servedPopulationFor(s, attribute) + (ask.effects?.servesPopulation ?? 0),
       raisedWeek: 0,
       deadlineWeek: 0,
@@ -212,12 +156,8 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
   };
 }
 
-// Housing is scored exactly like the four RATIO_ATTRIBUTES above — off
-// satisfactionSystem.ts's own attributeCoverage — rather than a bespoke
-// fill-ratio gate: with commuters the norm, "every bed is full" is true of
-// almost any campus almost all the time, so the real question is the same
-// one basicNeeds/academic/social/health ask: is this need, per the target
-// ratio the satisfaction model itself uses, adequately covered right now.
+// Housing is scored off attributeCoverage like the others: with commuters
+// the norm, "every bed is full" is nearly always true and says little.
 function housingCandidate(s: GameState): Candidate | null {
   const dorm = nextDorm(s);
   if (!dorm) return null; // nothing left to build for this need: not a demand anyone could meet
@@ -238,11 +178,8 @@ function housingCandidate(s: GameState): Candidate | null {
   };
 }
 
-// THE INSTRUCTION SHORTFALL (Plan 15's PR F): classes are full. Scored off
-// instructionCapacity.ts's coverage exactly as the five above are scored
-// off theirs, and the ask is the next course the school could start in a
-// housed program — the thing that adds seats. Met when the catalogue's
-// seats reach one more course's worth.
+// The instruction shortfall: classes are full. The ask is the next course
+// startable in a housed program; met at one more course's worth of seats.
 function instructionCandidate(s: GameState): Candidate | null {
   const ask = s.tech.find((t) => {
     if (t.kind !== 'course' || t.status !== 'available') return false;
@@ -267,10 +204,8 @@ function instructionCandidate(s: GameState): Candidate | null {
 }
 
 // One named shortfall's demand, if there is anything left to build for it.
-// The roll below picks the worst of these; the playtest panel's "force a
-// demand" asks for a specific one (see reducer.ts's DEBUG_FORCE_DEMAND).
-// Same candidates either way — a forced demand is a real demand, with the
-// real ask and the real target, not a mock-up of one.
+// Also used by the playtest panel's "force a demand" (reducer.ts's
+// DEBUG_FORCE_DEMAND), so a forced demand is a real one.
 export function shortfallDemandFor(
   s: GameState,
   subject: DemandSubject,
@@ -283,11 +218,8 @@ export function shortfallDemandFor(
   return candidate?.demand ?? null;
 }
 
-// The whole content decision, and the reason a demand reads as a real
-// grievance: score every candidate shortfall against the model's own
-// coverage reading and ask for the WORST one. No weighted draw, no random
-// pick — if the students are demanding dining it is because dining is
-// the thing this campus is most short of.
+// Scores every candidate shortfall and asks for the worst one. No random
+// draw: if students demand dining, dining is what the campus lacks most.
 export function rollShortfallDemand(s: GameState): StudentDemand | null {
   const candidates: Candidate[] = [];
   for (const attribute of RATIO_ATTRIBUTES) {
@@ -303,9 +235,7 @@ export function rollShortfallDemand(s: GameState): StudentDemand | null {
   for (const candidate of candidates) {
     if (!best || candidate.severity > best.severity) best = candidate;
   }
-  // A school under the satisfaction threshold with nothing left to build
-  // for any of its needs simply gets no demand — there would be nothing to
-  // ask for. Rare, and deliberately silent.
+  // Under the threshold with nothing left to build: no demand.
   return best && best.severity > 0 ? best.demand : null;
 }
 
@@ -321,19 +251,15 @@ function nudgeSatisfaction(s: GameState, points: number): void {
   s.students.satisfaction = clamp(s.students.satisfaction + points, 0, 100);
 }
 
-// Clears the demand, wherever it was sitting, and starts the cooldown.
-// Every way a demand can end goes through here — met, expired, or fixed
-// before it could even be announced — so there is exactly one place the
-// anti-spiral cooldown is set and no path can forget it.
+// Clears the demand wherever it sits and starts the cooldown. Every ending
+// goes through here, so no path can forget the cooldown.
 function closeDemand(s: GameState, week: number): void {
   s.events.activeDemand = null;
   s.events.pendingDemand = null;
   s.events.lastDemandWeek = week;
 }
 
-// Met or expired. Runs every week regardless of what else claimed it — the
-// player finishing the demanded building is the resolution, and it should
-// not wait on a quiet week.
+// Met or expired. Runs every week regardless of what else claimed it.
 function resolveActiveDemand(s: GameState): void {
   const demand = s.events.activeDemand;
   if (!demand) return;
@@ -355,9 +281,8 @@ function resolveActiveDemand(s: GameState): void {
   }
 }
 
-// Rolls a demand and QUEUES it. Deliberately separate from announcing it:
-// what the school is short of is true this week, but which week the student
-// body gets to say so depends on what else is happening (see the header).
+// Rolls a demand and queues it; which week it is announced depends on what
+// else is happening.
 function queueDemand(s: GameState): void {
   if (s.events.activeDemand || s.events.pendingDemand) return; // one at a time, ever
   if (s.clock.year < DEMAND_FIRST_YEAR) return;
@@ -370,11 +295,9 @@ function queueDemand(s: GameState): void {
   if (demand) s.events.pendingDemand = demand;
 }
 
-// Drains the queue of one onto the interrupt mechanism, on a week nothing
-// else has claimed and the shared cadence floor allows. The demand becomes
-// ACTIVE here — this is where its deadline is stamped — so a demand that
-// waited three weeks for a quiet slot still gets its full DEMAND_DEADLINE
-// _WEEKS to be met.
+// Announces a queued demand on a week nothing else has claimed and the
+// shared cadence floor allows. The deadline is stamped here, so a demand
+// that waited still gets its full DEMAND_DEADLINE_WEEKS.
 function announceDemand(s: GameState): void {
   const demand = s.events.pendingDemand;
   if (!demand) return;
@@ -383,10 +306,7 @@ function announceDemand(s: GameState): void {
   const week = absoluteWeek(s);
   if (s.events.lastDecisionWeek > 0 && week - s.events.lastDecisionWeek < DECISION_EVENT_COOLDOWN_WEEKS) return;
 
-  // The shortfall may have been fixed while the demand sat in the queue —
-  // the player built the thing before anyone got round to asking for it.
-  // Nothing to announce, and the cooldown starts anyway, so a school that
-  // is still unhappy does not immediately roll a second one.
+  // Fixed while queued: nothing to announce, but the cooldown still starts.
   if (demandProgress(s, demand).met) {
     closeDemand(s, week);
     return;
@@ -395,23 +315,18 @@ function announceDemand(s: GameState): void {
   raiseDemand(s, demand);
 }
 
-// Announces one demand: stamps its deadline, puts it on the interrupt
-// mechanism, spends the cadence budget and says so in the log. The tail of
-// announceDemand above, lifted out so the playtest panel's "force a demand"
-// raises one exactly the way the system does (see reducer.ts's
-// DEBUG_FORCE_DEMAND) rather than assembling a lookalike beside it — a
-// forced demand has a real deadline and ends the real way.
+// Announces one demand: stamps its deadline, raises the interrupt, spends
+// the cadence budget and logs it. Exported for the playtest panel's "force
+// a demand" (reducer.ts's DEBUG_FORCE_DEMAND).
 export function raiseDemand(s: GameState, demand: StudentDemand): void {
   const week = absoluteWeek(s);
   demand.raisedWeek = week;
   demand.deadlineWeek = week + DEMAND_DEADLINE_WEEKS;
   s.events.activeDemand = demand;
   s.events.pendingDemand = null;
-  // Spends the shared texture budget rather than adding to it (see header).
   s.events.lastDecisionWeek = week;
-  // No payload: the demand lives on s.events.activeDemand, which the modal
-  // and the Student Life tab both read, so a run saved with the modal open
-  // resumes showing the same demand rather than a stale copy of it.
+  // No payload: the modal and the Student Life tab read
+  // s.events.activeDemand, so a save with the modal open resumes correctly.
   s.pendingInterrupt = { type: 'demand' };
   log(s, `The student body has raised a formal demand: ${demandCopy(demand).ask(demand.askName)}, within ${DEMAND_DEADLINE_WEEKS} weeks.`, 'bad', 'demand-raised');
 }

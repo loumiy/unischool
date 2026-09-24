@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-// Ticks from whatever is currently on screen to a new `value` instead of
-// snapping straight to it — the "quick animation" the admissions form
-// wants whenever a lever moves a downstream number (the freshman class,
-// incoming quality). Purely cosmetic: the settled display always equals
-// `value` exactly, and interrupting mid-tween (dragging a slider quickly)
-// just re-tweens from wherever the animation currently is, never fights
-// or resets.
+// Tweens from what is on screen to a new `value` rather than snapping.
+// Cosmetic only: the settled display always equals `value`, and a new value
+// mid-tween re-tweens from the current position.
 const DEFAULT_DURATION_MS = 450;
 
-// This tween is driven by requestAnimationFrame, not by CSS, so the
-// stylesheet's blanket prefers-reduced-motion rule cannot reach it — it has
-// to ask for itself. A reader who has asked for less motion gets the settled
-// figure immediately, which is the same number either way.
+// The tween runs on requestAnimationFrame, which the stylesheet's
+// prefers-reduced-motion rule cannot reach, so it checks for itself.
 function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
@@ -27,14 +21,11 @@ export default function AnimatedNumber({
 }: {
   value: number;
   format?: (n: number) => string;
-  // Longer than the default for a number that is the point of the screen
-  // rather than a consequence of a slider — see the summer admissions
-  // reveal (Plan 05's PR F).
+  // Longer than the default for a number that is the point of the screen,
+  // such as the summer admissions reveal.
   durationMs?: number;
-  // Where to start counting from ON MOUNT. Without it a freshly mounted
-  // number has nothing to tween from — it initialises to its own final
-  // value and simply appears, which is the right behaviour everywhere
-  // except a reveal, whose whole content is the climb.
+  // Where to start counting from on mount; without it a new number simply
+  // appears, which is right everywhere except a reveal.
   revealFrom?: number;
 }) {
   const [displayed, setDisplayed] = useState(revealFrom ?? value);
@@ -56,7 +47,7 @@ export default function AnimatedNumber({
     function tick(now: number) {
       if (start === null) start = now;
       const t = Math.min(1, (now - start) / durationMs);
-      const eased = 1 - (1 - t) ** 3; // ease-out: settles gently, doesn't slide linearly
+      const eased = 1 - (1 - t) ** 3; // ease-out
       const next = from + (to - from) * eased;
       displayedRef.current = next;
       setDisplayed(next);
@@ -64,9 +55,8 @@ export default function AnimatedNumber({
     }
     frameRef.current = requestAnimationFrame(tick);
     return () => { if (frameRef.current !== null) cancelAnimationFrame(frameRef.current); };
-    // `durationMs` is deliberately NOT a dependency: re-running this on a
-    // duration change would restart a tween mid-flight, and nothing in the
-    // app changes a number's duration while it is moving.
+    // `durationMs` is deliberately not a dependency: changing it would
+    // restart a tween mid-flight.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 

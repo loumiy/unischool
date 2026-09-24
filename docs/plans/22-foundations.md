@@ -340,6 +340,42 @@ it trims comments in their final shape, not twice.
   Each is checked by the typecheck and by a token-level diff that ignores
   comments.
 
+**As implemented:**
+
+- **Done in parallel.** Eight agents each took a balanced share of the 123
+  files with more than a handful of comments, under one written brief.
+- **Every file is checked against HEAD** by comparing the leaf tokens of its
+  syntax tree. The checker ignores comments and JSDoc, and treats JSX text
+  whitespace-insensitively.
+  - The first version scanned tokens instead of parsing. It lost its place
+    after a template literal and reported false changes. An agent caught
+    this, and the checker was rebuilt on the parser.
+  - The checker caught every slip an agent made (a dropped `useState` line,
+    a duplicated constant, a dropped `case`) before hand-back, with one
+    exception, `tools/layout.ts`, below.
+- **Comments fell from 19,506 lines to about 6,750.** That is 38% of
+  51,000 lines before, and 18% of 38,000 lines after. No plan or PR
+  citations remain in TypeScript.
+- **Density is above the one-tenth target.** The agents kept tuning intent,
+  units, invariants and gotchas rather than cut to a number. The heavy files
+  are the constant tables and the central types.
+- **The trim fixed comments that had gone wrong, not just long ones:**
+  - comments sitting above the wrong function or constant, in the reducer,
+    `balanceSim.ts`, `buildingSpec.ts`, the event system and elsewhere;
+  - figures the code contradicts: a weight of 75 where the code says 50, a
+    hospital serving 20,000 where the constant says 30,000, and "no ceiling
+    of any kind" on a class the code clips to its seats;
+  - claims that were no longer true, such as "no posting, no fee, and no
+    wait" for the faculty market, which has posted searches.
+- **Another dead field turned up:** `ResearchState.lastOutputWeek` is set
+  to 0 at founding and read by nothing. It leaves with the next state
+  change.
+- **`tools/layout.ts` is left untrimmed.** An agent's edit dropped one of
+  its code lines, which the checker caught; that file's trim was not
+  committed.
+- **`styles.css` is trimmed separately, as G (ii).** Its comments were 42% of
+  its lines.
+
 ## PR 22H — Content integrity checks
 
 - The TypeScript data files already get their shape from the type system.

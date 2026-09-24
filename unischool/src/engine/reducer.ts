@@ -42,77 +42,44 @@ import { startInitiative } from '../systems/research/startInitiative';
 import { placeBuildable } from '../state/placeBuildable';
 import { fireFaculty, hireFaculty } from '../systems/faculty/appointments';
 
-// The systems run in a fixed order each week. Order matters: research and
-// finance resolve before admissions/rivals read the updated world;
-// satisfaction resolves before admissions so the summer funnel's
-// word-of-mouth term reads this week's freshly recomputed satisfaction,
-// not last week's.
+// The systems run in a fixed order each week; each placement comment says
+// what it must read fresh.
 const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
   tickFaculty,
-  // After tickFaculty, before tickFinance: research output is weighted by
-  // this week's freshly grown stats and tenure, and a grant that lands
-  // this week should be in the balance the same week's cash flow settles
-  // against.
+  // Before tickFinance: output uses this week's grown stats, and a grant
+  // lands in the same week's balance.
   tickResearch,
-  // After tickResearch, before tickFinance: prestige drifts weekly toward its
-  // computed target (see prestigeSystem.ts's tickPrestige — moved off the old
-  // annual boundary so standing responds smoothly to mid-year curriculum,
-  // faculty and research changes rather than sitting frozen between summers).
-  // Placed before tickFinance so this week's reputation feeds the prestige
-  // dividend, and after tickTech/tickFaculty/tickResearch so a milestone,
-  // matured hire or breakthrough from this week is already in the target it
-  // drifts toward. The two admissions-derived inputs (selectivity, incoming
-  // quality) only change at the summer boundary; every other input can move
-  // any week.
+  // Weekly drift toward the computed target (see tickPrestige). After this
+  // week's milestones, hires and breakthroughs; before tickFinance, so the
+  // prestige dividend reads this week's reputation.
   tickPrestige,
-  // After tickPrestige, before tickFinance: a coach's grown quality/salary
-  // (see systems/athletics/athleticsSystem.ts) should be in the SAME
-  // week's varsityTeamUpkeep read, not a week stale — the same "feeds this
-  // week's finance" reasoning tickResearch/tickPrestige's own placement
-  // uses.
+  // Before tickFinance, so a coach's grown salary is in this week's upkeep.
   tickAthletics,
   tickFinance,
-  // After tickFinance, before tickSatisfaction: a student organisation
-  // petition is sized in weeks of THIS week's operating cost, and an
-  // organisation the player recognised belongs in this week's satisfaction
-  // target rather than a week behind it. Raises no interrupt of its own —
-  // clubs and chapters are answered in a batch at the summer boundary (see
-  // systems/studentlife/studentLifeSystem.ts).
+  // After tickFinance (petitions are sized in this week's operating cost)
+  // and before tickSatisfaction. Raises no interrupt: organisations are
+  // answered in a batch at the summer boundary.
   tickStudentLife,
   tickSatisfaction,
   tickAdmissions,
   tickRivals,
-  // After tickRivals, so an ambition about rank reads the table as it
-  // stands this week, and before tickEvents, so the line lands before any
-  // interrupt claims the week. Reads everything and writes only
-  // s.ambitions and the log (see systems/ambitions/ambitionsSystem.ts).
+  // After tickRivals (rank ambitions read this week's table) and before
+  // tickEvents. Writes only s.ambitions and the log.
   tickAmbitions,
-  // Last, deliberately: the summer admissions decision and the U.S. News
-  // report own their weeks, and only one interrupt can be pending at a
-  // time. Running the texture system afterwards means it sees their claim
-  // and stands down instead of competing for the week — see
-  // systems/events/eventSystem.ts.
+  // Near last: the summer decision and the U.S. News report own their weeks
+  // and only one interrupt can be pending, so the texture system sees their
+  // claim and stands down (see eventSystem.ts).
   tickEvents,
-  // After tickEvents, and last of all: the student-demand system (see
-  // systems/demands/demandSystem.ts). It stands down for EVERY other
-  // claimant on the week — the two annual interrupts, a milestone, the
-  // charter, a prize, and now an authored decision event too — because a
-  // demand it cannot announce this week waits in s.events.pendingDemand
-  // for the next quiet one, exactly as a milestone waits in
-  // pendingMilestones. Its resolution half (target met, or deadline
-  // passed) runs every week regardless of what claimed the week: the
-  // player finishing the demanded building is the answer, and it should
-  // not have to wait for a quiet slot.
+  // Last of all: a demand stands down for every other claimant and waits in
+  // s.events.pendingDemand for a quiet week. Its resolution half (target met
+  // or deadline passed) runs every week regardless.
   tickDemands,
 ];
 
-// The four "set this number" playtest actions, together: each one writes
-// the field a panel control names and hands back a line saying what it
-// did, so the reducer's own case is four lines rather than four cases.
-// Clamped where the game clamps the same field anywhere else — a playtest
-// shortcut may skip the WORK of reaching a state, never produce one the
-// simulation could not.
+// The four "set this number" playtest actions. Clamped where the game clamps
+// the same field elsewhere: a shortcut may skip the work of reaching a state,
+// never produce one the simulation could not.
 function debugSet(
   s: GameState,
   action: Extract<Action, { type: 'DEBUG_SET_CASH' | 'DEBUG_SET_PRESTIGE' | 'DEBUG_SET_SATISFACTION' | 'DEBUG_SET_TUITION' }>,
@@ -122,9 +89,7 @@ function debugSet(
       s.finance.cash = action.amount;
       return `operating funds set to ${money(action.amount)}`;
     case 'DEBUG_SET_PRESTIGE':
-      // Written through prestigeSystem.ts, which owns the field and clamps
-      // it to the band its own drift uses — see setPrestigeForPlaytest, and
-      // invariants.test.ts section 5 for why the write is not here.
+      // prestigeSystem.ts owns and clamps this field (see invariants.test.ts section 5).
       return `prestige set to ${setPrestigeForPlaytest(s, action.value).toFixed(1)}`;
     case 'DEBUG_SET_SATISFACTION': {
       const value = Math.max(0, Math.min(100, action.value));
@@ -140,8 +105,8 @@ function debugSet(
 }
 
 export function reducer(state: GameState, action: Action): GameState {
-  // Clone so systems can mutate freely without touching the previous state,
-  // and bind the clone's random stream for every draw this action makes.
+  // Clone so systems can mutate freely, and bind the clone's random stream
+  // for every draw this action makes.
   const s: GameState = structuredClone(state);
   return withRandom(s, () => reduce(state, s, action));
 }
@@ -149,32 +114,24 @@ export function reducer(state: GameState, action: Action): GameState {
 function reduce(state: GameState, s: GameState, action: Action): GameState {
   switch (action.type) {
     case 'TICK': {
-      // The clock halts while an interrupt is pending, and while the opening
-      // walkthrough is holding it (see state/opening.ts).
+      // The clock halts while an interrupt is pending or the opening
+      // walkthrough holds it (see state/opening.ts).
       if (!s.started || s.pendingInterrupt || openingHoldsClock(s)) return state;
       for (const system of SYSTEMS) system(s);
-      // A system may have just enqueued an interrupt (e.g. the summer
-      // admissions decision) — hold the clock at this week rather than
-      // rolling into the next one until it's resolved.
+      // Hold the week if a system just raised an interrupt.
       if (!s.pendingInterrupt) advanceClock(s);
-      if (s.log.length > LOG_CAP) s.log.length = LOG_CAP; // cap log growth
+      if (s.log.length > LOG_CAP) s.log.length = LOG_CAP;
       return s;
     }
 
     case 'START_GAME':
-      // Deliberately does NOT save here, even though founding is exactly
-      // when a save should first exist: createInitialState rolls dice
-      // (rivals, the candidate pool, faculty potentials), so under
-      // StrictMode's double-invocation the two runs build different
-      // universities and a write from inside the reducer could persist the
-      // one React discards. The founding save is taken in useGame.ts
-      // instead, from the state actually committed — see the note above.
+      // Does not save: createInitialState rolls dice, so under StrictMode's
+      // double invocation a save from here could persist the discarded run.
+      // useGame.ts takes the founding save from the committed state.
       return createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed);
 
-    // The opening walkthrough's two Next buttons and its decline (see
-    // state/opening.ts). The steps that end on something DONE
-    // (the hall sited, a program founded) are settled by settleOpening from
-    // the action that did it, never from here.
+    // The opening walkthrough's Next and decline (see state/opening.ts). Steps
+    // that end on something done are settled by settleOpening from that action.
     case 'ADVANCE_OPENING': {
       advanceOpening(s);
       return s;
@@ -185,24 +142,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'START_DEVELOPMENT': {
-      // Courses only now. A placeable Buildable (building/dorm/facility)
-      // starts through PLACE_BUILDABLE instead, which combines this same
-      // gate with siting a location in one step (see that case below, and
-      // state/campusMap.ts's canPlace) — placement is how a placeable
-      // Buildable starts, not a cosmetic step after it finishes. The
-      // isPlaceableKind guard is defensive: no UI path dispatches
-      // START_DEVELOPMENT for a placeable Buildable any more, but refusing
-      // it here rather than trusting the caller keeps this the one place a
-      // placeable Buildable can be started structurally, not just by
-      // convention — exactly as canStartDevelopment stays the one gate,
-      // reused rather than forked, for both actions.
+      // Courses only: placeable Buildables start through PLACE_BUILDABLE,
+      // which applies the same gate plus siting. The guard keeps that
+      // structural rather than trusting callers.
       //
-      // action.facultyId is the instructor the player chose. It is threaded
-      // through BOTH halves — the gate and the mutation — so the person who
-      // is checked for eligibility is exactly the person who gets recorded,
-      // and a stale or ineligible pick is refused rather than silently
-      // swapped for someone else. Omitted only by the two non-player
-      // callers (see actions.ts), where startDevelopment auto-picks.
+      // action.facultyId is checked and recorded by the same calls, so a
+      // stale or ineligible pick is refused, never swapped. Omitted only by
+      // the non-player callers (see actions.ts), where startDevelopment
+      // auto-picks.
       const node = s.tech.find((t) => t.id === action.nodeId);
       if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
         startDevelopment(s, node, action.facultyId);
@@ -211,11 +158,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'FOUND_PROGRAM': {
-      // The whole gate and the whole mutation live in techSystem.ts's
-      // foundProgram, for the reason START_DEVELOPMENT's do in
-      // canStartDevelopment/startDevelopment: the hall panel has to be
-      // able to say whether a founding will go through before offering
-      // the button, and one predicate serves both.
+      // Gate and mutation live in foundProgram, so the hall panel can ask
+      // the same predicate before offering the button.
       foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
       settleOpening(s); // the walkthrough's last step ends on a fourth program founded
       return s;
@@ -238,8 +182,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       startInitiative(s, action);
       return s;
 
-    // Ending one early: the funding is gone and nothing banks, but the
-    // team comes back this instant, which is usually why a player does it.
+    // Ending early: the funding is lost, but the team is freed at once.
     case 'CANCEL_INITIATIVE': {
       const running = s.research.initiatives[action.labId];
       if (!running) return s;
@@ -256,16 +199,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Moves an offered course to a different instructor — the lever for
-    // improving a weak course, and for re-staffing one a dismissal left
-    // orphaned. Free and immediate by design: the real cost is the
-    // opportunity cost, since whoever takes it on has one slot less for
-    // everything else.
-    //
-    // The course itself is passed as `except` so its CURRENT instructor
-    // still counts as eligible: the slot that course occupies is already
-    // theirs, so a full professor must not be judged unable to go on
-    // teaching something they are teaching right now.
+    // Moves an offered course to another instructor: free and immediate; the
+    // cost is the slot it takes. The course is passed as `except` so its
+    // current instructor still counts as eligible even when full.
     case 'REASSIGN_COURSE_FACULTY': {
       const course = s.tech.find((t) => t.id === action.courseId);
       if (!course || (course.status !== 'developing' && course.status !== 'done')) return s;
@@ -289,9 +225,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'PLANT_TREE': {
-      // Only on open ground: a tree under a building is felled by
-      // definition, and one under a path is hidden until the path lifts
-      // (see types.ts's Trees) — neither is something worth planting.
+      // Only on open ground (not under a building or a path; see types.ts's Trees).
       const { row, col } = action.tile;
       if (!isInBounds(row, col)) return s;
       const key = pathTileKey(action.tile);
@@ -306,12 +240,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'LAUNCH_ENDOWMENT_CAMPAIGN': {
-      // The late-game money sink (see financeSystem.ts's endowmentCampaign
-      // for the cost/match curve). Charged in full, up front, exactly like
-      // starting a Buildable — but unlike a Buildable it is repeatable
-      // forever, so it is the one purchase a fully built-out school still
-      // has left. The same pure function the Treasury previews it with is
-      // what commits it, so the player gets the numbers they were shown.
+      // The repeatable late-game money sink (see endowmentCampaign), charged
+      // up front. The same function previews and commits it, so the player
+      // gets the numbers they were shown.
       const campaign = endowmentCampaign(s);
       if (campaign.available && campaign.affordable) {
         s.finance.cash -= campaign.cost;
@@ -328,21 +259,15 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // The one athletics-wide recruiting & scholarship budget lever (see
-    // data/studentLifeData.ts's ATHLETICS_BUDGET_TIERS). No cost, no gate,
-    // no log line — this is a standing dial, not a decision, and reads live
-    // everywhere it matters (financeSystem's studentLifeUpkeep line,
-    // satisfactionSystem's social attribute, teamQuality) the very next
-    // tick.
+    // The athletics recruiting budget dial (studentLifeData.ts's
+    // ATHLETICS_BUDGET_TIERS): no cost, no gate, no log line; read live next tick.
     case 'SET_ATHLETICS_BUDGET': {
       s.orgs.athleticsBudget = action.tier;
       return s;
     }
 
-    // The priority list, dragged (Plan 21's PR G). The order is the stored
-    // thing; the funded line is derived. A program dragged below the line
-    // it was above may lose its head coach on the spot (studentLifeData.ts's
-    // applyTeamOrder), and the log says who walked.
+    // The priority list. The order is stored; the funded line is derived. A
+    // program dragged below the line may lose its head coach (applyTeamOrder).
     case 'SET_TEAM_ORDER': {
       const left = applyTeamOrder(s, action.order);
       if (left.length > 0) {
@@ -355,12 +280,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Hires a listed coach candidate into one of a team's three staff
-    // roles. Every gate is checked here, not trusted from the UI, the same
-    // discipline HIRE_FACULTY's own simplicity relies on the candidate
-    // pool's shape to uphold — but a coach hire has real ways to be invalid
-    // (wrong field for the role, an already-filled slot) that a plain
-    // splice can't rule out by construction, so they're checked explicitly.
+    // Hires a listed coach into one of a team's three staff roles. Every gate
+    // (field for the role, slot empty) is checked here, not trusted from the UI.
     case 'HIRE_COACH': {
       const idx = s.orgs.coachCandidates.findIndex((c) => c.id === action.candidateId);
       const team = s.orgs.teams.find((t) => t.id === action.teamId);
@@ -385,15 +306,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // A view reporting that the player has now seen these ids (see
-    // types.ts's SeenState and the alert-badge module comment there).
-    // Purely additive — nothing here ever un-sees an id — so this can
-    // never resurrect a badge, only retire one.
     // A gated tab's gate has opened (see TabNav.tsx's TAB_GATES). Idempotent
-    // through the seen bucket rather than through the caller being careful:
-    // App.tsx dispatches this from an effect, which runs twice under
-    // StrictMode and again for any render in between, and however many times
-    // that happens the log must carry one line.
+    // via the seen bucket, because App.tsx dispatches it from an effect that
+    // can run more than once; the log must carry one line.
     case 'NOTE_TAB_AVAILABLE': {
       if (s.seen.tabIds[action.id]) return state;
       s.seen.tabIds[action.id] = true;
@@ -408,28 +323,18 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
+    // A view reports ids the player has now seen (see types.ts's SeenState).
+    // Purely additive, so it can only retire a badge, never resurrect one.
     case 'MARK_SEEN': {
       const bucket = action.kind === 'course' ? s.seen.courseIds : s.seen.buildableIds;
       for (const id of action.ids) bucket[id] = true;
       return s;
     }
 
-    // The generic fallback for an interrupt type the UI's own switch
-    // doesn't recognise (see InterruptModal.tsx's final, normally-
-    // unreachable render branch — every one of the 8 interrupt types that
-    // exist today is wired to its own dedicated resolve action instead,
-    // every one of which advances the clock; see e.g. RESOLVE_MILESTONE).
-    // That is not incidental: every interrupt today is raised mid-TICK (see
-    // the SYSTEMS loop below), which skips its OWN advanceClock call to
-    // hold the week open, so resolving has to advance it or the next
-    // ordinary TICK would silently re-run that same week's systems a
-    // second time before finally moving on. This action used to skip that
-    // call, leaving it a live footgun rather than a safe fallback: a future
-    // interrupt type reaching here by accident (its own resolve action
-    // never wired up) would wedge the clock on that week forever instead of
-    // erroring loudly. Advancing here matches every dedicated resolve
-    // action and is the correct behavior for the case this fallback
-    // actually exists to catch.
+    // Generic fallback for an interrupt type with no dedicated resolve
+    // action. It must advance the clock like every resolve action: interrupts
+    // are raised mid-TICK, which skips advanceClock to hold the week, so not
+    // advancing would re-run that week's systems.
     case 'RESOLVE_INTERRUPT': {
       s.pendingInterrupt = null;
       advanceClock(s);
@@ -437,11 +342,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     // One beat forward through the summer (see types.ts's SummerPayload).
-    // Nothing here touches the calendar or the school: it is bookkeeping
-    // about where in the sequence the player is, written into the
-    // interrupt's own payload so a save taken between beats resumes on the
-    // right one. The decision the Admissions beat produced rides along the
-    // same way, so the last beat commits it rather than a re-read slider.
+    // Bookkeeping only, kept in the interrupt's payload so a save between
+    // beats resumes on the right one; the Admissions beat's decision rides
+    // along so the last beat commits it.
     case 'RESOLVE_SUMMER_BEAT': {
       if (s.pendingInterrupt?.type !== 'summer') return state;
       const payload = s.pendingInterrupt.payload as SummerPayload;
@@ -460,48 +363,32 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       resolveAdmissions(s, action);
       return s;
 
-    // Acknowledges a student demand the moment it is raised (see
-    // systems/demands/demandSystem.ts). Grants nothing and costs nothing:
-    // the demand is already open on s.events.activeDemand, with its target
-    // and its deadline, and the only way to answer it is to BUILD the
-    // thing before the deadline passes — which the demand system detects
-    // off the campus itself, with no second action to dispatch. This is
-    // the dismissable acknowledgement the zero-cost/fairness rule asks
-    // for, and nothing more. Advances the clock, like every other trailing
-    // interrupt.
+    // Acknowledges a student demand (see demandSystem.ts). Grants nothing:
+    // the answer is building the thing before the deadline, which the demand
+    // system detects off the campus. Advances the clock, like every other
+    // trailing interrupt.
     case 'RESOLVE_DEMAND': {
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
     }
 
-    // Dismisses a research prize celebration (see
-    // systems/research/researchSystem.ts). Grants nothing, for the same
-    // reason RESOLVE_MILESTONE does: the award — the winner's permanent
-    // acclaim, and with it their higher salary and research output, plus
-    // the school's prestige credit — landed the week the prize was won.
-    // Advances the clock, like every other trailing interrupt.
+    // Dismisses a research prize celebration. Grants nothing: the award
+    // landed the week the prize was won. Advances the clock.
     case 'RESOLVE_RESEARCH_REPORT': {
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
     }
 
-    // Answers the one-time College -> University charter offer (see
-    // systems/events/eventSystem.ts). Purely cosmetic: it swaps the fixed
-    // half of the institution's name, and nothing in the game reads that
-    // string except the views that display it. The flag is set either way,
-    // so declining is final and the question never returns.
     case 'RESOLVE_CHAMPIONSHIP': {
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
     }
 
-    // The first sport club's naming beat (Plan 21's PR O). Trimmed and
-    // capped as the director's modal does it; an empty name keeps the
-    // question for the director's modal, which still asks when nothing has
-    // answered.
+    // The first sport club's naming beat. An empty name leaves the question
+    // for the athletic director's modal.
     case 'RESOLVE_MASCOT': {
       const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
       if (mascot) s.self.mascot = mascot;
@@ -518,10 +405,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'RESOLVE_ATHLETIC_DIRECTOR': {
       if (action.candidate) {
         s.orgs.athleticDirector = action.candidate;
-        // The mascot is trimmed and capped here rather than trusted from the
-        // form: it goes into standings rows and championship banners beside a
-        // school's own name, and an empty one is a real state the rest of the
-        // game already handles (see types.ts's University.mascot).
+        // Trimmed and capped rather than trusted from the form; an empty
+        // mascot is a valid state (see types.ts's University.mascot).
         const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
         if (mascot) s.self.mascot = mascot;
         s.log.unshift({
@@ -533,9 +418,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
           kind: 'good',
         });
       } else {
-        // Nothing to record: the week the offer went out was stamped when it
-        // FIRED (see eventSystem.ts), precisely so that declining and never
-        // answering cool down the same way.
+        // The offer's week was stamped when it fired (see eventSystem.ts),
+        // so declining and never answering cool down the same way.
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
@@ -548,6 +432,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
+    // The one-time College -> University charter offer. Cosmetic: it swaps
+    // the name's suffix. The flag is set either way, so declining is final.
     case 'RESOLVE_CHARTER': {
       s.self.universityCharterOffered = true;
       if (action.accept) {
@@ -571,32 +457,19 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Dismisses a milestone celebration (see systems/events/eventSystem.ts).
-    // Nothing to apply — the milestone's real effects landed in techSystem
-    // the week it was awarded; this interrupt exists to make the moment
-    // land, not to grant anything. Advances the clock for the same reason
-    // RESOLVE_REPORT does: it fires as a trailing step after that week's
-    // systems already ran.
+    // Dismisses a milestone celebration. Its effects landed in techSystem the
+    // week it was awarded. Advances the clock.
     case 'RESOLVE_MILESTONE': {
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
     }
 
-    // Commits one choice from an authored decision event (see
-    // data/eventData.ts). The definition is looked up from the data table
-    // by id and the choice's own pure cost/apply pair does the work, so
-    // the numbers the modal showed are exactly the numbers charged — the
-    // same contract RESOLVE_ADMISSIONS and the endowment campaign follow.
-    //
-    // The cash cost is charged HERE rather than inside apply(), so every
-    // event in the table is charged the same way and no authored effect
-    // can quietly take the school below zero: an unaffordable choice is
-    // refused outright, exactly as an unaffordable Buildable is (see
-    // techSystem.ts's canStartDevelopment). Every event is guaranteed to
-    // offer at least one zero-cost choice, so a refusal is never a dead
-    // end. Either way the interrupt clears and the clock resumes: an
-    // event can never wedge the game.
+    // Commits one choice from an authored decision event (see eventData.ts),
+    // using the choice's own cost/apply pair so the modal's numbers are what
+    // is charged. The cost is charged here, not in apply(), so no event can
+    // take the school below zero: an unaffordable choice is refused (every
+    // event offers a zero-cost choice). Either way the clock resumes.
     case 'RESOLVE_DECISION_EVENT': {
       const event = findDecisionEvent(action.eventId);
       const choice = event && offeredChoices(s, event, action.ctx).find((c) => c.id === action.choiceId);
@@ -615,15 +488,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'RESOLVE_REPORT': {
       s.pendingInterrupt = null;
-      advanceClock(s); // fires as a trailing step after that week's systems ran; dismissing moves on
+      advanceClock(s); // a trailing interrupt: that week's systems already ran
       return s;
     }
 
-    // Puts down one of the first year's letters (see eventSystem.ts's
-    // fireOpeningLetter). The letter was marked read when it fired; all
-    // this records is the one thing a letter can change — the player
-    // declining the rest of the script. Advances the clock like every
-    // other trailing interrupt.
+    // Puts down one of the first year's letters (see fireOpeningLetter). The
+    // only thing a letter records is declining the rest. Advances the clock.
     case 'RESOLVE_LETTER': {
       if (action.skipAll) s.events.opening.skipped = true;
       s.pendingInterrupt = null;
@@ -631,17 +501,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // =====================================================================
-    // THE PLAYTEST BLOCK (see actions.ts's own DEBUG_ block, and
-    // components/DebugPanel.tsx, the single component that dispatches any
-    // of these). One place, one comment, so what a developer can reach for
-    // is a list rather than a habit — and so it is obvious at a glance that
-    // nothing here is reachable in ordinary play or from any system.
-    //
-    // Each one is LOGGED, for the same reason the old "+$1B" grant was:
-    // a number that changed because somebody typed it into a panel should
-    // be distinguishable, weeks later, from one the simulation produced.
-    // =====================================================================
+    // Playtest actions, dispatched only by components/DebugPanel.tsx (see
+    // actions.ts's DEBUG_ block). Each is logged, so a number someone typed
+    // is distinguishable from one the simulation produced.
     case 'DEBUG_SET_CASH':
     case 'DEBUG_SET_PRESTIGE':
     case 'DEBUG_SET_SATISFACTION':
@@ -651,13 +513,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Fast-forward. The loop runs HERE rather than as a burst of TICKs
-    // dispatched from the panel, and the reason is the auto-resolve: a
-    // component dispatching a hundred actions in one handler cannot see
-    // the state between any two of them, so it cannot know a modal came up
-    // on week 37 and answer it. So it is a loop over the ordinary
-    // primitives, inside the reducer, taking no shortcut the single-step
-    // version does not take — and it costs one render rather than N.
+    // Fast-forward. The loop runs inside the reducer so it can see and
+    // auto-answer an interrupt between weeks, using only ordinary primitives,
+    // for one render instead of N.
     case 'DEBUG_JUMP': {
       let jumped = s;
       let weeks = 0;
@@ -667,7 +525,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
           const answer = defaultAnswer(jumped);
           if (!answer) break;
           jumped = reducer(jumped, answer);
-          continue; // answering turns the calendar page itself; that IS the week
+          continue; // resolving an interrupt advances the clock itself
         }
         jumped = reducer(jumped, { type: 'TICK' });
         weeks += 1;
@@ -683,12 +541,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return jumped;
     }
 
-    // Fire one authored decision event by id, bypassing eligibility and
-    // both cooldowns — the payload is rolled exactly as eventSystem.ts
-    // would roll it, so what comes up is the real modal and the choice
-    // applies for real. An event whose context cannot be rolled against
-    // this state (no faculty to poach, no building to break) is refused
-    // rather than shown empty.
+    // Fire one authored decision event, bypassing eligibility and cooldowns.
+    // The payload is rolled as eventSystem.ts would; an event whose context
+    // cannot be rolled against this state is refused.
     case 'DEBUG_FORCE_EVENT': {
       if (s.pendingInterrupt) return state;
       const event = findDecisionEvent(action.eventId);
@@ -703,11 +558,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Raise a demand for one named shortfall now, past the satisfaction
-    // threshold and the cooldown that ordinarily gate it. The ask is the
-    // one the demand system itself would make for that need, and it is
-    // raised through the system's own raiseDemand — so a forced demand has
-    // a real deadline, a real target, and resolves the real way.
+    // Raise a demand for one named shortfall now, past its threshold and
+    // cooldown, through the demand system's own raiseDemand.
     case 'DEBUG_FORCE_DEMAND': {
       if (s.pendingInterrupt || s.events.activeDemand) return state;
       const demand = shortfallDemandFor(s, action.subject);
@@ -716,35 +568,20 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Celebrate whatever is queued now, rather than on the next week the
-    // frequency floor allows. Nothing is invented: an empty queue stays
-    // empty and nothing happens.
+    // Celebrate whatever milestone is queued now; an empty queue does nothing.
     case 'DEBUG_FORCE_MILESTONE': {
       if (s.pendingInterrupt) return state;
       s.events.lastMilestoneWeek = 0; // stand the frequency floor down for this one
       return fireMilestoneCelebration(s) ? s : state;
     }
 
-    // Publish the U.S. News report now, off this week's standings — as its
-    // own modal, the way it used to fire every year at week 26 before it
-    // became the summer's Standing beat. The playtest panel's way of
-    // looking at the table without waiting for a summer.
+    // Publish the U.S. News report now as its own modal, off this week's standings.
     case 'DEBUG_FORCE_REPORT': {
       if (s.pendingInterrupt) return state;
       s.pendingInterrupt = { type: 'annual-report', payload: buildReportPayload(s) };
       return s;
     }
 
-    // A shortcut for clicking every available course's own "Develop"
-    // button in turn (see CurriculumTab.tsx's "Develop All" button) — not a
-    // new capability, so it goes through canStartDevelopment/
-    // startDevelopment one course at a time, in s.tech's own order, exactly
-    // as START_DEVELOPMENT does for a single course. Re-checking the gate
-    // before every course (rather than snapshotting the available list
-    // once) is what makes cash and faculty-slot limits bite mid-loop
-    // exactly as they would clicking by hand: a course started earlier in
-    // the loop can spend the cash or fill the faculty slot a later one
-    // needed.
     case 'POST_SEARCH': {
       postSearch(s, action.field);
       return s;
@@ -755,22 +592,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Renovates the tier-1 library in place (see facilitiesData.ts's
-    // nextLibraryFloor and actions.ts's RENOVATE_LIBRARY) rather than
-    // starting a new Buildable: the SAME node goes back to 'developing' at
-    // its already-placed spot — s.placements is untouched, there is no
-    // second footprint — and its own effects are raised right away so they
-    // take over the moment tickTech's ordinary completion flips status back
-    // to 'done'.
-    //
-    // Raising effects at the START is only safe because the node also
-    // records what it was serving BEFORE the work (renovatingFrom), which
-    // is what the satisfaction sums read while it is 'developing' — see
-    // types.ts's servingPopulation. Without that the library went fully
-    // offline for the whole renovation and the new figure arrived only at
-    // completion, so adding a fourth floor first took three away: a school
-    // could watch its academic score fall for a year and read the
-    // renovation as having caused it. The floors that exist keep working.
+    // Renovates the tier-1 library in place (see nextLibraryFloor): the same
+    // node goes back to 'developing' at its placed spot, with its effects
+    // raised at the start. renovatingFrom records what it served before, and
+    // the satisfaction sums read that while developing (see types.ts's
+    // servingPopulation), so existing floors keep working during the work.
     case 'RENOVATE_LIBRARY': {
       const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
       const plan = node ? nextLibraryFloor(node) : null;
@@ -790,11 +616,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Expands a venue in place (Plan 21's PR Q), on the library's renovation
-    // idiom above: the same node goes back to 'developing' at its spot, its
-    // effects are raised at the start with renovatingFrom standing in for
-    // the crowd it already serves, and its expansions count is what the
-    // gate reads the seats off (facilitiesData.ts's venueSeatsOf).
+    // Expands a venue in place, on the library's renovation pattern; the gate
+    // reads seats off its expansions count (facilitiesData.ts's venueSeatsOf).
     case 'EXPAND_VENUE': {
       const node = s.tech.find((t) => t.id === action.venueId);
       const plan = node ? nextVenueExpansion(node) : null;
@@ -816,8 +639,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'SAVE_GAME':
-      // The manual save's confirmation. The write itself happens in
-      // useGame.ts, from the state this returns, so the saved run carries
+      // The write happens in useGame.ts from this state, so the save carries
       // its own "saved" line; a refused write comes back as SAVE_FAILED.
       s.log.unshift({ year: s.clock.year, week: s.clock.week, message: 'Game saved.', kind: 'good' });
       return s;
@@ -837,8 +659,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'RESET':
-      // Abandoning the run returns to the startup screen; useGame.ts
-      // erases the save alongside.
+      // Returns to the startup screen; useGame.ts erases the save.
       return createPreStartState();
 
     default:

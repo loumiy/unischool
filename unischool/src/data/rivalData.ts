@@ -2,63 +2,21 @@ import type { Rival } from '../state/types';
 import { rivalColorsFor } from './schoolColors';
 
 // ---------------------------------------------------------------------
-// 99 fictionalized rival schools, so the player's own institution makes a
-// field of exactly 100 and a top-50 ranking is the upper HALF of a real
-// one (see docs/design/progression.md's "Rankings: the U.S. News
-// report") — not just edging out four other names.
+// 99 fictional rival schools, so the player's institution makes a field of
+// exactly 100 and the top 50 is the upper half (docs/design/progression.md).
 // Reputation is the ranking metric; momentum is the hidden trend
-// tickRivals uses to keep the leaderboard alive over decades (see
-// rivalsSystem.ts for the annual reroll + shock that actually applies
-// it).
+// rivalsSystem.ts applies each year.
 //
-// TWO BANDS, and the split is load-bearing rather than tidy. The first 55
-// (r1-r55) span 45 to 99 and none of them starts below ~45: a founding
-// school opens at 50 (see foundingData.ts's FOUNDING_PRESET), so that whole
-// band starts at or above a fresh university, and cracking the top 50 means
-// passing the same handful of schools it has always meant. The other 44
-// (r56-r99) are the TAIL, authored deliberately BELOW that floor — see the
-// block comment above them for why the field had to grow downward and what
-// the tail buys.
-//
-// Every school also carries a MASCOT. Nothing mechanical reads it: it is
-// what lets a standings row read as a sports page rather than a
-// spreadsheet, and what a per-sport table names alongside the school
-// (see systems/rivals/rivalsSystem.ts). The player names their own at the
-// athletic-director interrupt rather than at founding.
+// Two bands: r1-r55 start at 45 or above, at or above a founding school (50,
+// foundingData.ts's FOUNDING_PRESET); r56-r99 are a tail authored below it
+// (see the note above them). Mascots are flavour only; the player names
+// their own later.
 // ---------------------------------------------------------------------
 
-// Athletics V2's own ranking axis (see types.ts's Rival.athleticStrength and
-// rivalsSystem.ts's athleticRank). DERIVED rather than hand-authored per
-// school below — 99 more hand-picked numbers would be pure busywork with no
-// signal a formula can't already give — but not a straight copy of
-// reputation either: a deterministic hash of the school's own id seeds a
-// wide (0.6x-1.4x) multiplier on reputation, so athletic strength loosely
-// tracks academic standing (a bigger, better-resourced school fields a
-// bigger program, on average) while staying genuinely independent per
-// school — a reputable college can be an athletic minnow and a mid-table
-// university can be a real power, same as real conferences. Deterministic
-// off the id (not random()) so it's stable across a run rather than
-// reshuffling on every reload.
-// FNV-1a over the string, then Murmur3's finalizer to avalanche it.
-//
-// THE FINALIZER IS THE POINT, and this function did not have one. It used
-// to be `h = (h * 31 + c) % 1_000_003`, which for inputs as short and as
-// similar as 'r1'..'r99' does not disperse at all: r1..r9 all landed within
-// 0.000008 of each other and r10..r99 within 0.00026, so the "wide
-// (0.6x-1.4x) multiplier" the block below claims was, in practice, a band
-// of 0.603 to 0.689. Every rival's athletic strength was therefore about
-// 0.65x its reputation — a near-exact copy of the academic axis, which is
-// precisely the coupling athleticStrengthFor exists to break.
-//
-// A plain multiply-and-mod leaves adjacent inputs adjacent; the xor-shift/
-// multiply finalizer is what turns a one-character difference into an
-// unrelated output. Fixed here rather than left for the per-sport split to
-// inherit (see the plan's PR 1C, which hashes id-plus-sport through this
-// same function and would have given all 100 schools the same profile).
-//
-// CONSEQUENCE, stated plainly: every rival's athleticStrength in a NEW game
-// changes. A save keeps the value it stored — athleticStrength is state,
-// derived once at founding — so no run in progress is disturbed.
+// A deterministic 0..1 hash of a string, used to derive rival stats from
+// their ids so they are stable across reloads. FNV-1a, then Murmur3's
+// finalizer: without the finalizer, short similar ids ('r1'..'r99') land
+// almost on top of each other and every derived spread collapses.
 export function hashUnit(id: string): number {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < id.length; i++) {
@@ -73,11 +31,9 @@ export function hashUnit(id: string): number {
   return (h >>> 0) / 4294967296; // 0..1
 }
 
-// A small local PRNG, seeded once and then run independently of
-// random() — see systems/rivals/rivalsSystem.ts's annual drift for the
-// first caller and the reason it exists: one draw on the global stream per
-// event, however many numbers the event then needs. The program offer
-// draw (systems/techtree/programOffers.ts) rides it for the same reason.
+// A small local PRNG, seeded once and run independently of random(), so an
+// event costs one draw on the global stream however many numbers it needs
+// (rivalsSystem.ts's annual drift, systems/techtree/programOffers.ts).
 export function makeRivalRng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -86,21 +42,12 @@ export function makeRivalRng(seed: number): () => number {
   };
 }
 
-// THE BAND IS DELIBERATELY SHORT OF THE CEILING, and that is a fix rather
-// than a preference. This used to map reputation straight onto 10..100, and
-// with reputations reaching 99 the product saturated: TWELVE of the 99 rivals
-// sat at exactly 100, so the department table opened with a twelve-way tie
-// broken by array order — and once sportStrengthFor spread those same
-// saturated numbers per sport, every one of the eighteen tables opened with a
-// thirteen-to-sixteen-way tie at 100. "Who is best at lacrosse" had no answer,
-// and a playoff seeded off that field would have been seeded by position in an
-// array.
-//
-// Scaling reputation down before the spread leaves the headroom the per-sport
-// derivation needs to sit INSIDE the 0..100 band teamQuality shares, instead
-// of being clamped into it. The ceiling here is the seeding one; the drift
-// (rivalsSystem.ts) is allowed a little above it so a school that climbs for
-// decades is not stuck against the same wall.
+// Athletic strength: reputation scaled down, times a per-school 0.6x-1.4x
+// hash multiplier, so it loosely tracks academic standing but is independent
+// per school. The scale keeps the seeded band short of 100, so the per-sport
+// spread fits inside teamQuality's 0..100 without clamping into ties at the
+// top. The annual drift (rivalsSystem.ts) may go a little above the seed
+// ceiling.
 const ATHLETIC_BASE_SCALE = 0.55;
 const ATHLETIC_SEED_MIN = 10;
 const ATHLETIC_SEED_MAX = 80;
@@ -113,46 +60,21 @@ export function athleticStrengthFor(reputation: number, id: string): number {
   );
 }
 
-// THE OTHER TWO AXES, derived the same way and for the same reason
-// athleticStrengthFor is (see above): 99 schools x two more numbers is 198
-// more hand-picked values with no signal a formula cannot already give, and a
-// deterministic spread off the school's own id is stable across a run rather
-// than reshuffling on every reload.
-//
-// What differs is the SALT and, for social standing, one deliberate coupling.
-// Hashing the bare id again would give all three axes the same ordering — a
-// school strong at one would be strong at all of them, which is exactly the
-// collapse the finalizer above was added to prevent. Each axis hashes the id
-// under its own suffix instead, so the three are independent readings of the
-// same school.
-//
-// RESEARCH leans HARDER on reputation than athletics does (a narrower band
-// around it): research standing and academic standing are genuinely
-// correlated in a way athletics is not — a university known for its research
-// is, most of the time, a well-regarded university — so a wide independent
-// spread here would read as noise rather than as character. The band still
-// leaves room for the two interesting cases: the teaching college that
-// publishes nothing, and the institute that outranks its own reputation.
+// Research and social standing, derived like athleticStrength. Each axis
+// hashes the id under its own salt, so the three are independent readings of
+// the same school. Research uses a narrower band around reputation, because
+// research and academic standing genuinely correlate.
 const RESEARCH_SPREAD_MIN = 0.75;
 const RESEARCH_SPREAD_RANGE = 0.5; // 0.75..1.25
 
-// SOCIAL is the wide one, and it borrows from athleticStrength rather than
-// standing alone. A school's athletic program is part of what it is like to
-// be a student there, so a sports school should read as a social school; the
-// remainder is its own hash, which is what lets a quiet athletic minnow still
-// be a wonderful place to spend four years.
+// Social standing is wider, and partly borrows from athleticStrength: a
+// sports school reads as a social school.
 const SOCIAL_SPREAD_MIN = 0.55;
 const SOCIAL_SPREAD_RANGE = 0.9;  // 0.55..1.45
 const SOCIAL_ATHLETICS_SHARE = 0.35; // how much of the number the athletic program accounts for
 
-// The same band `reputation` lives in (rivalsSystem.ts's
-// RIVAL_REPUTATION_MIN/MAX and prestigeSystem.ts's PRESTIGE_MIN/MAX), NOT
-// athleticStrength's 10..100. These two are prestige-shaped stocks that the
-// player's own drifting standings are read against, so they have to be on the
-// player's scale: capped at 100 they would be trivially overtaken by a school
-// whose own standing can reach 150, and topping a table would mean nothing.
-// Athletics keeps its narrower band because nothing of the player's is scored
-// against it on a 150 scale — athleticProgramStrength is itself 0..100.
+// On the reputation/prestige scale (up to 150), not athleticStrength's, since
+// the player's own drifting standings are read against these.
 const STANDING_MIN = 5;
 const STANDING_MAX = 150;
 
@@ -169,51 +91,25 @@ export function socialStandingFor(reputation: number, athleticStrength: number, 
   return clampStanding(own * (1 - SOCIAL_ATHLETICS_SHARE) + athleticStrength * SOCIAL_ATHLETICS_SHARE);
 }
 
-// A rival's starting momentum on each of the two new axes. Same band the
-// authored `momentum` values sit in, spread off the id so the three trends
-// are independent — a school can be climbing academically while its campus
-// life slides, which is the whole point of having three tables.
+// Starting momentum on the derived axes, spread off the id so the trends are
+// independent of each other.
 const STANDING_MOMENTUM_RANGE = 1.6; // -0.8 .. +0.8
 
 export function standingMomentumFor(id: string, axis: string): number {
   return Math.round((hashUnit(`${id}:${axis}:momentum`) - 0.5) * STANDING_MOMENTUM_RANGE * 100) / 100;
 }
 
-// A school's strength in ONE sport, spread around its department-wide
-// athleticStrength.
-//
-// DERIVED, NOT STORED, and the call is the opposite of Plan 06's on the
-// cohort mix — deliberately, because the thing being reconstructed is a
-// different kind of thing. A class's cohort mix is a fossil: a fact about a
-// decision made at one moment, unrecoverable afterwards because the inputs
-// have moved. A school's strength at lacrosse is a standing fact about the
-// school, and a deterministic hash of (id, sport) reproduces it identically
-// on every read, forever, across saves and reloads. There is nothing to
-// lose, and 100 schools x 18 sports is 1,800 numbers to author and to carry
-// in every save.
-//
-// The consequence is that a school is reliably strong at some sports and
-// weak at others, for the whole run. That is not a compromise — it is the
-// thing that makes a rivalry legible over forty years, and what lets a
-// per-sport table say something the department-wide one cannot.
-// ADDITIVE, in points, rather than a multiplier — which matters for the same
-// reason the band above is short of the ceiling. A multiplicative spread
-// scales with the base, so a strong department stays strong in every sport
-// and the eighteen tables are the department table with noise on it. A fixed
-// swing in points gives a mid-table school a real chance to be a genuine
-// hockey school, which is the only thing a per-sport table is for.
-//
-// +/-28 measured against the alternatives: at +/-20 the strongest departments
-// still led most sports; at +/-28 no sport's table opens with a tie, ten of
-// the eighteen have a different best school, and two sports share only about
-// two of their eight strongest — so each sport has its own field rather than
-// the same one reordered.
+// A school's strength in one sport: athleticStrength plus a fixed swing in
+// points from a hash of (id, sport). Derived rather than stored, since it is
+// reproducible on every read. Additive, not multiplicative, so a mid-table
+// department can be a genuine power in one sport. At +/-28 no sport's table
+// opens with a tie and most sports have a different leader.
 const SPORT_SPREAD_POINTS = 28;
 
 export function sportStrengthFor(rival: Rival, sportId: string): number {
   const swing = (hashUnit(`${rival.id}:${sportId}`) * 2 - 1) * SPORT_SPREAD_POINTS;
-  // The band teamQuality (studentLifeData.ts) produces, since the player's own
-  // per-sport number IS a teamQuality and the two are read against each other.
+  // The band teamQuality (studentLifeData.ts) produces, since the player's
+  // per-sport number is a teamQuality.
   return Math.max(5, Math.min(100, Math.round(rival.athleticStrength + swing)));
 }
 
@@ -222,8 +118,7 @@ export function initialRivals(): Rival[] {
     const athleticStrength = athleticStrengthFor(r.reputation, r.id);
     return {
       ...r,
-      // The pair the school wears, dealt off its id like the three axes
-      // below it (see schoolColors.ts's rivalColorsFor).
+      // schoolColors.ts's rivalColorsFor, dealt off the id.
       colors: rivalColorsFor(r.id),
       athleticStrength,
       athleticMomentum: standingMomentumFor(r.id, 'athletic'),
@@ -235,22 +130,14 @@ export function initialRivals(): Rival[] {
   });
 }
 
-// What is AUTHORED, as opposed to derived. The omitted fields are all
-// computed in initialRivals above — the colours and three axes from the
-// school's own id, and the momenta from it too — so the table below stays a
-// table of decisions rather than of arithmetic somebody has to keep
-// consistent by hand.
+// The authored fields; everything omitted is derived in initialRivals.
 export type AuthoredRival = Omit<Rival,
   'colors' | 'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
 
-// THE ELITE BAND (Plan 17's PR D): the ten schools authored at 87-99, the
-// top of the table a founding school is climbing toward. Once the player
-// is above ELITE_CLOSE_ABOVE_PRESTIGE these ten stop drifting like the rest
-// of the field and CLOSE on the leader (rivalsSystem.ts's
-// eliteClosingStep) — which is what makes the defend era an era. Named as
-// a set of ids rather than read off reputation, so a rival that has
-// drifted below 87 is still one of the ten and one that has drifted above
-// is not; the test pins the set to the authored table.
+// The elite band: the ten schools authored at 87-99. Once the player is above
+// ELITE_CLOSE_ABOVE_PRESTIGE they close on the leader (rivalsSystem.ts's
+// eliteClosingStep). A fixed set of ids rather than a reputation reading, so
+// membership does not change with drift; a test pins it to the table.
 export const ELITE_RIVAL_IDS: ReadonlySet<string> = new Set(['r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15']);
 
 export function baseRivals(): AuthoredRival[] {
@@ -322,33 +209,12 @@ export function baseRivals(): AuthoredRival[] {
     { id: 'r54', name: 'Briskwater College', mascot: 'Kingfishers', reputation: 62, momentum: 0.2 },
     { id: 'r55', name: 'Cragmoor University', mascot: 'Mountaineers', reputation: 61, momentum: -0.3 },
 
-    // --- THE TAIL: the field BELOW a founding school ---------------------
-    // Forty-four schools authored beneath the block above's ~45 floor, and
-    // that placement is the whole point rather than an aesthetic choice
-    // (see docs/plans/07-athletics-rivals.md's section 0). Growing the
-    // field from 56 schools to 100 would otherwise change what rank 50
-    // MEANS — six schools to pass instead of fifty — and silently retune
-    // the mid-game reveal docs/design/progression.md describes into a
-    // late-game one. Authored below the old floor, the 50th school by
-    // reputation is the same school it has always been, so the top-50
-    // entry threshold costs exactly the prestige it did before and not one
-    // constant moves.
-    //
-    // What they buy is the other half: a standing that MEANS something from
-    // week one. A founding school opens at 50 (foundingData.ts's
-    // FOUNDING_PRESET) — above the whole tail, and so ranked mid-table at
-    // about #55 of 100 rather than last of 56. That is what makes an
-    // always-visible rank readout (see components/StatusHeader.tsx) worth
-    // showing: "#56 of 56" is not a standing, it is the bottom, and a
-    // number that can only ever improve teaches nothing about the year it
-    // did not.
-    //
-    // It also gives the rank somewhere to FALL. A school that stalls, or
-    // spends a decade in the red, now slides into a field of real schools
-    // instead of sitting on a floor it cannot drop through.
-    //
-    // Small colleges, community colleges and technical institutes by name,
-    // because that is what a field below a founding university is made of.
+    // --- The tail: the field below a founding school ---------------------
+    // Authored below the ~45 floor so the 50th school by reputation is the
+    // same as with a 56-school field, and the top-50 threshold is unchanged
+    // (docs/plans/07-athletics-rivals.md, section 0). It gives a founding
+    // school a meaningful mid-table rank from week one (StatusHeader.tsx),
+    // and somewhere to fall to.
     { id: 'r56', name: 'Pinehurst College', mascot: 'Quakers', reputation: 44, momentum: 0.5 },
     { id: 'r57', name: 'Marlowe Community College', mascot: 'Mariners', reputation: 44, momentum: -0.2 },
     { id: 'r58', name: 'Ashbury State College', mascot: 'Sentinels', reputation: 43, momentum: 0.9 },

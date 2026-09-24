@@ -7,12 +7,9 @@ export function hireFaculty(s: GameState, action: Extract<Action, { type: 'HIRE_
   const idx = s.candidates.findIndex((c) => c.id === action.facultyId);
   if (idx !== -1) {
     const [hired] = s.candidates.splice(idx, 1);
-    // The one appointment path, shared with the visiting-chair event
-    // (see facultySystem.ts's appointFaculty).
+    // The one appointment path, shared with the visiting-chair event.
     appointFaculty(s, hired);
-    // Logged (Plan 16's PR B) so the year in review can list the
-    // year's appointments — the roster growing is obvious the week it
-    // happens and invisible by the summer.
+    // Logged so the year in review can list the year's appointments.
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
@@ -24,24 +21,11 @@ export function hireFaculty(s: GameState, action: Extract<Action, { type: 'HIRE_
   }
 }
 
-// Dismissal is now two things happening together, not one. The person
-// leaves the roster, AND every course they were teaching is orphaned:
-// their assignments are cleared, so those courses go unstaffed until
-// the player gives them a new instructor (see types.ts's CourseFaculty).
-//
-// Clearing the entries rather than leaving them dangling is what lets
-// a replacement take the orphans over: eligibility is a per-person
-// check, so anyone hired into the field with a free slot can pick them
-// up. What does NOT happen is the department getting its capacity
-// back — an unstaffed course still holds its field slot (see
-// techSystem.ts's usedFacultySlots), because the course still exists
-// and still needs teaching. The school is left over-committed, and has
-// to staff what it already offers before it can offer more.
-//
-// It is logged because it is the one player action in the game with a
-// consequence that outlives the click: the roster shrinking is
-// obvious, four courses quietly losing their teacher is not. The UI
-// warns beforehand (FacultyTab.tsx); this is the record afterwards.
+// Dismissal removes the person and orphans every course they teach: the
+// assignments are cleared (so anyone eligible can take them over), but the
+// courses still hold their field slots (techSystem.ts's usedFacultySlots),
+// leaving the school over-committed until it restaffs. Logged because the
+// orphaned courses are easy to miss; FacultyTab.tsx warns beforehand.
 export function fireFaculty(s: GameState, action: Extract<Action, { type: 'FIRE_FACULTY' }>): void {
   const leaving = s.faculty.find((f) => f.id === action.facultyId);
   if (!leaving) return;
@@ -50,9 +34,7 @@ export function fireFaculty(s: GameState, action: Extract<Action, { type: 'FIRE_
   for (const course of orphaned) delete s.courseFaculty[course.id];
   s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
 
-  // Logged either way now (Plan 16's PR B), so the year in review can
-  // list the year's departures; the orphaned courses are the half that
-  // is bad news rather than a record.
+  // Logged either way, so the year in review can list departures.
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,

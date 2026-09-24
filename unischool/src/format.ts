@@ -1,5 +1,4 @@
-// How the game writes numbers and names. Every screen uses these, so a
-// figure reads the same in the Treasury, a letter and the year in review.
+// How the game writes numbers and names, shared by every screen.
 
 // Whole dollars with thousands separators. A negative figure takes a true
 // minus sign before the dollar sign: −$5,000.

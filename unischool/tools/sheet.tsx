@@ -1,26 +1,16 @@
-// ---------------------------------------------------------------------
-// A CONTACT SHEET OF EVERY MOTIF. Renders each placeable Buildable on its
-// own — through the game's own BuildingMotif, GroundMarking and groundProps,
-// via react-dom/server — in one or more vernaculars, and writes one HTML
-// page per vernacular with a labelled cell per building. No dev server, no
-// save, no scenario: the only way to see every motif at once without
-// playing a campus that contains them all.
+// A contact sheet of every motif: renders each placeable Buildable alone
+// through the game's own BuildingMotif, GroundMarking and groundProps (via
+// react-dom/server) and writes one HTML page per vernacular. Not part of the
+// game; nothing in src/ imports it.
 //
-//   npm run sheet                                   # all four vernaculars
+//   npm run sheet                                   # every vernacular
 //   npm run sheet -- --vernacular gothic --scale 2  # one set, closer
 //   npm run sheet -- --only 'hangar|bowl|grounds'   # a regex on the labels
 //   npm run sheet -- --azimuth 225 --pitch 30       # from another camera
 //   npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html out/ --cells
 //
-// Cells are drawn at `--scale` screen pixels per world unit (default 1.4,
-// about three and a half times the zoom the game opens at) so a canopy or
-// a lancet can be judged, and each cell is a real <svg> with the real
-// stylesheet, so what the sheet shows is what the map draws. The four
-// committed campus renders (docs/images) remain the honest picture of the
-// assets TOGETHER; this is for looking at one asset at a time.
-//
-// Not part of the game: nothing in src/ imports it.
-// ---------------------------------------------------------------------
+// `--scale` is screen pixels per world unit (default 1.4). Each cell is a
+// real <svg> with the real stylesheet, so it shows what the map draws.
 import { renderToStaticMarkup } from 'react-dom/server';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -49,9 +39,7 @@ const VERNS = flag('vernacular', 'georgian,gothic,classical,mission,modern').spl
 const SCALE = Number(flag('scale', '1.4'));
 const ONLY = flag('only', '') ? new RegExp(flag('only', '')) : null;
 const OUT = flag('out', 'node_modules/.tmp/sheets');
-// The camera to draw at, in degrees: the map's opening view is 45 and 30.
-// `--azimuth 225` is the same campus seen from behind, which is where a
-// motif that was drawn for one camera shows it.
+// Camera in degrees; the map opens at 45 and 30. `--azimuth 225` views from behind.
 setCamera({ azimuth: (Number(flag('azimuth', '45')) * Math.PI) / 180, pitch: (Number(flag('pitch', '30')) * Math.PI) / 180 });
 // CampusMap's own inset (see BUILDING_INSET there), so a cell shows the
 // building at the size the map draws it inside its footprint.

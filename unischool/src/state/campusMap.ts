@@ -3,125 +3,45 @@ import type {
 } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
 
-// Pure helpers for the campus map's placement rules, shared by the
-// reducer's PLACE_BUILDABLE case, the save loader's placement hygiene, and
-// the map UI so "can this go here" has exactly one definition (the same way
-// techSystem.ts's canStartDevelopment is shared by the reducer and the
-// Campus tab).
-//
-// PLACE_BUILDABLE is now the combined build-and-site action for placeable
-// kinds (building/dorm/facility — see types.ts's PLACEABLE_KINDS): siting a
-// location is no longer something that happens to an already-finished
-// Buildable, it's how one starts. A placeable Buildable therefore gets its
-// s.placements entry the SAME week it starts developing, not the week it
-// finishes — that entry is the single source of truth for "where is this",
-// exactly as s.developing stays the single source of truth for "how long
-// left", for a placeable and a course alike (a course never has a
-// placements entry, at any status, because it was never placeable). This is
-// what makes an in-progress placeable renderable at its footprint and its
-// tiles reserved from week one: footprintIsClear below reads every entry in
-// s.placements regardless of the Buildable's status, so it already treats a
-// developing placement as occupied, with no special case needed.
-//
-// Nothing here mutates state and nothing here ticks — placement is a
-// player action interpreted by the reducer, not a system.
+// Pure placement rules for the campus map, shared by the reducer's
+// PLACE_BUILDABLE, the save loader's placement hygiene and the map UI, so
+// "can this go here" has one definition. PLACE_BUILDABLE builds and sites in
+// one action: a placeable Buildable gets its s.placements entry the week it
+// starts developing, so its tiles are reserved from week one (footprintIsClear
+// reads every entry regardless of status). Courses never have a placement.
 
-// Courses are never placeable; buildings, dorms, and facilities are.
 export function isPlaceableKind(t: Buildable): boolean {
   return PLACEABLE_KINDS.includes(t.kind);
 }
 
-// ---------------------------------------------------------------------
-// FOOTPRINTS. How many tiles a placed Buildable covers, in grid units.
-// A school hall, a dorm block and a lab are not the same size on a real
-// campus, and a map of uniform squares reads as a spreadsheet — so size
-// varies by what the thing IS.
-//
-// This is a placement RULE keyed on the Buildable's existing data (kind;
-// for facilities facilityType and, where the type's instances vary in
-// scale, effects.servesPopulation or `tier`; for dorms
-// effects.capacityBonus), NOT a new field on Buildable: the single
-// Buildable model stays unforked, and `course` Buildables — which are
-// never placeable — carry no vestigial map data (see
-// docs/architecture/buildables.md).
-//
-// Sizes are pinned to 9m per tile — the scale the map actually DRAWS at (see
-// components/campusScale.ts, which derives it from the projection). An earlier
-// pass took 15m from the football stadium's own footprint and sized the rest
-// against that, which left every athletics venue two-thirds the size it should
-// be next to the buildings: a 400m running track needs 176m down the straight
-// and had 108m to do it in. The venues below are sized from what they really
-// are, at 9m, so a pitch, a ballpark and a teaching hall stand in something
-// like their true proportions to each other.
-//
-// Footprints are pure geometry: a bigger building grants nothing extra and
-// costs nothing extra. Placement is still visual-only.
-//
-// Retuning these numbers only affects buildings placed AFTERWARDS —
-// a placement stores the footprint it was made with (see types.ts's
-// Placement), so an existing save's layout can never silently reshape into
-// an overlap.
-// ---------------------------------------------------------------------
+// Footprints, in tiles at 9m per tile (the scale the map draws at, see
+// components/campusScale.ts), sized from what each thing really is. Keyed on
+// existing Buildable data (kind, facilityType, servesPopulation, tier,
+// capacityBonus), not a new field. Pure geometry: size grants and costs
+// nothing. A placement stores the footprint it was made with, so retuning
+// these only affects buildings placed afterwards.
 
-// Defensive fallback only. Every FacilityType below has a real entry —
-// either a fixed one in FACILITY_FOOTPRINTS or a ladder in
-// FACILITY_SIZE_LADDERS — so this is never actually read against today's
-// catalogue; it exists so a future facilityType added without a table entry
-// renders as a small building rather than a 1x1 speck beside a hospital.
-// Sized like the smallest real facility (a lab).
+// Defensive fallback for a facilityType with no entry; every current type
+// has one. Sized like a lab.
 const DEFAULT_FACILITY_FOOTPRINT: Footprint = { w: 3, h: 3 };
 
-// ---------------------------------------------------------------------
-// SIZE LADDERS. The rule for everything whose instances differ in SCALE
-// rather than in kind: a dining hall feeding 350 and one feeding 16,000 are
-// not the same building, and neither are a 500-bed residence hall and a
-// 5,000-bed tower. A ladder maps "how much does this instance hold" onto
-// "how much ground does it cover", so a chain's capacity jumps are visible
-// on the map instead of every rung being the same block with a bigger
-// number in its tooltip.
+// Size ladders, for things whose instances differ in scale (a 350-seat dining
+// hall vs a 16,000-seat one), read off servesPopulation or capacityBonus.
+// Rungs are listed largest first and matched on `min`; the last (min 0) is
+// the floor.
 //
-// Read off data the Buildable ALREADY carries — effects.servesPopulation
-// for a facility, effects.capacityBonus for a dorm — so this stays a
-// placement rule keyed on existing fields, exactly as the single-threshold
-// version footprintOf used for dining halls always was. No new field on
-// Buildable, and `course` Buildables still carry no map data at all.
-//
-// Rungs are listed LARGEST FIRST and matched on `min`, so the last entry
-// (min 0) is the floor and a ladder can never fail to match.
-// ---------------------------------------------------------------------
-// ODD WIDTHS, FOR EVERYTHING WITH A FRONT DOOR.
-//
-// A motif that draws a centred door on an even-width footprint centres it on
-// the SEAM between two tiles: the door is half on one tile and half on the
-// next, so nothing can arrive at it. A path stops one tile off, and a hall
-// cannot line up with the quad it faces. An odd width puts the door on a
-// tile, which is the thing a walkway can actually reach and the reason the
-// quad ladder (9x9, 13x13) was odd already.
-//
-// The rule applies to every footprint whose Buildable has a door at all —
-// buildingSpec.ts's doorFamilyOf, which is null for open ground, the
-// stadium, and a village (whose houses each have their own). Those are
-// exempt: there is no centred anything to land on a seam.
-//
-// Pinned by test/building-spec.test.ts, which walks the real catalogue
-// rather than this table, so a new rung cannot quietly break it.
-//
-// NEW GAMES ONLY (decision 4). A Placement stores the footprint it was made
-// with, so an existing campus keeps the ground its buildings already stand
-// on; Founders Hall is pre-placed at founding, so a save from before this
-// keeps its 8-wide hall for good. Re-footprinting a placed building can
-// collide with whatever was built next to it, and there is no good automatic
-// answer to that collision.
+// Anything with a front door has an odd width, so its centred door sits on a
+// tile a path can reach rather than on a seam (exempt: open ground, the
+// stadium and the village; see buildingSpec.ts's doorFamilyOf). Pinned by
+// test/building-spec.test.ts.
 interface SizeRung { min: number; fp: Footprint }
 
 function rungFootprint(rungs: SizeRung[], size: number): Footprint {
   return (rungs.find((r) => size >= r.min) ?? rungs[rungs.length - 1]).fp;
 }
 
-// Housing, by bed count (see campusData.ts's four size classes). The
-// village is the one entry that is not a single building at all — it is a
-// PLOT, which is why it covers more ground than the tower that sleeps three
-// times as many people: the tower goes up, the village goes out.
+// Housing, by bed count (campusData.ts's size classes). The village is a plot
+// of houses, so it covers more ground than the taller tower.
 const DORM_FOOTPRINTS: SizeRung[] = [
   { min: 5_000, fp: { w: 7, h: 7 } },    // residential tower: a small plan, very tall (see buildingMotifs' 'tower')
   { min: 1_500, fp: { w: 11, h: 10 } },  // village: a dozen small houses around shared green
@@ -130,15 +50,11 @@ const DORM_FOOTPRINTS: SizeRung[] = [
   { min: 0, fp: { w: 7, h: 3 } },        // the founding hall
 ];
 
-// Facilities whose footprint steps with how many students they serve.
-// Everything NOT here has one fixed size in FACILITY_FOOTPRINTS below,
-// because its instances don't vary in scale — there is exactly one
-// natatorium, and a tennis court is a tennis court.
+// Facilities whose footprint steps with students served. Everything else has
+// one fixed size in FACILITY_FOOTPRINTS.
 const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
-  // Eight halls from a 350-seat campus restaurant to a 16,000-seat market
-  // hall (facilitiesData.ts's DINING_RUNGS). Density climbs with size on
-  // purpose: the big halls are multi-storey, so they feed more people per
-  // tile than the single-storey café at the bottom of the chain.
+  // facilitiesData.ts's DINING_RUNGS. Bigger halls are multi-storey, so
+  // density climbs with size.
   diningHall: [
     { min: 14_000, fp: { w: 11, h: 9 } },
     { min: 10_000, fp: { w: 11, h: 7 } },
@@ -149,18 +65,13 @@ const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
     { min: 700, fp: { w: 5, h: 3 } },
     { min: 0, fp: { w: 3, h: 3 } },
   ],
-  // The health chain's three rungs, and the clearest case for a ladder:
-  // a counselling centre, a clinic and a teaching hospital are three
-  // different institutions (see facilitiesData.ts's health block).
   healthCenter: [
     { min: 20_000, fp: { w: 11, h: 11 } }, // University Hospital — the largest BUILDING on campus
     { min: 4_000, fp: { w: 5, h: 5 } },    // University Clinic
     { min: 0, fp: { w: 3, h: 3 } },        // Health & Counseling Center
   ],
-  // The research library is a bigger building than the general one, not
-  // the same one relabelled. (Renovating tier 1 adds STOREYS rather than
-  // ground — see facilitiesData.ts's nextLibraryFloor — so its footprint
-  // deliberately stays put as it grows.)
+  // Renovating the general library adds storeys, not ground
+  // (facilitiesData.ts's nextLibraryFloor).
   library: [
     { min: 2_000, fp: { w: 9, h: 6 } },
     { min: 0, fp: { w: 7, h: 5 } },
@@ -169,75 +80,43 @@ const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
     { min: 2_000, fp: { w: 7, h: 5 } },    // the Student Union Expansion
     { min: 0, fp: { w: 5, h: 4 } },
   ],
-  // recCenter covers both ends of the fitness chain: the modest Recreation
-  // Center a young campus opens with, and the Athletics Complex capstone.
+  // Covers both the Recreation Center and the Athletics Complex capstone.
   recCenter: [
     { min: 2_000, fp: { w: 7, h: 5 } },
     { min: 0, fp: { w: 5, h: 4 } },
   ],
 };
 
-// The quad is the one ladder keyed on `tier` rather than on a capacity: it
-// has no servesPopulation at all (its contribution is a flat bonus that
-// never scales — see facilitiesData.ts), so there is no size to read.
-// Both rungs are large. A campus quad is the open middle of the place, and
-// at 7x7 the first one was smaller than the library beside it.
+// The quad is keyed on `tier`: it has no servesPopulation to read.
 const QUAD_FOOTPRINTS: SizeRung[] = [
   { min: 2, fp: { w: 13, h: 13 } },  // Grand Quad & Gardens
   { min: 0, fp: { w: 9, h: 9 } },    // Campus Quad
 ];
 
-// Academic halls are the campus's landmarks. Rectangular rather than the
-// old 9x9 square: a square hall reads as a block, and this is both closer to
-// the proportions of a real academic building and a shape rotation actually
-// does something to. At 9m to a tile that is about 63m by 45m — a large
-// teaching building, which is what these are.
-//
-// ODD, and this is the note's own example: at 8 wide Founders Hall centred
-// its formal door on the seam between two tiles, so no walkway could arrive
-// at it and it could not line up with the quad it faces.
+// Academic halls: about 63m by 45m, rectangular so rotation matters, and odd
+// width for the door (see above).
 const SCHOOL_BUILDING_FOOTPRINT: Footprint = { w: 7, h: 5 };
 
-// Per facility type, for everything that ISN'T on a ladder above. Sized
-// against a rough 15m to a tile, which is what the football stadium (a real
-// one is about 220m by 180m) pins down.
+// Per facility type, for everything not on a ladder.
 const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   lab: { w: 5, h: 3 },           // a teaching/research lab building — one per lab-gated major
   grocery: { w: 5, h: 4 },       // a full supermarket, not a corner shop
-  // Between the Recreation Center (5x4) and the Athletics Complex (7x5) in
-  // ground as it is in the chain. Square, so its door sits on a tile whichever
-  // way it is turned.
+  // Square, so its door sits on a tile either way it is turned.
   gym: { w: 5, h: 5 },
   tennisCourts: { w: 12, h: 4 }, // six courts in a row, which is ~110m by 36m — open ground, no door to centre
   pool: { w: 7, h: 4 },          // a 50m pool and its deck
-  // performingArtsCenter is the landmark of this batch: a concert hall and
-  // theater reads as a real building — grand, and on more ground than a
-  // teaching hall.
   performingArtsCenter: { w: 9, h: 7 },
-  artGallery: { w: 5, h: 3 },    // small, but no longer a bare utility box
+  artGallery: { w: 5, h: 3 },
 
-  // Varsity athletics venues (facilitiesData.ts): real competition venues,
-  // sized from what they actually are rather than from each other.
-  // athleticsField is deliberately RECTANGULAR and LONG — it carries a
-  // 400m track now (see groundMarkings.tsx), and a 400m track is 176m down
-  // the straight, so 10 tiles was never enough to hold one. The football
-  // stadium stays the largest footprint of any Buildable in the game,
-  // bigger even than the hospital — the pinnacle venue should read as one
-  // on the map, not just in its cost.
-  // A 400m track is 176m down each straight with 36m radius bends, so its
-  // envelope is about 176 by 92 — which is what this is, and what 12 by 7
-  // could not have been at any scale.
-  // 22 by 13 rather than 20 by 11: a 400 m track is 176 by 92 m and its
-  // stand needs a margin down one straight, and at 20 by 11 the oval was
-  // drawn at three-quarters of the plot to make room, which shrank the
-  // pitch inside it to 70 m. On 22 by 13 the oval fills the plot's width
-  // and the pitch inside it is a real 105 by 68.
+  // Varsity venues, sized from the real thing. The field holds a 400m track
+  // (176m by 92m, see groundMarkings.tsx) with a 105m by 68m pitch inside and
+  // room for a stand. The football stadium is the largest footprint in the game.
   athleticsField: { w: 22, h: 13 },
   athleticsArena: { w: 11, h: 9 },        // ~100m by 80m, the footprint of a real arena bowl
   athleticsDiamond: { w: 14, h: 14 },     // ~125m, a real outfield being ~120m to the fence
   athleticsNatatorium: { w: 7, h: 5 },    // a 50m competition pool, its deck and its stand
   footballStadium: { w: 24, h: 20 },      // ~220m by 180m: still the largest footprint in the game
-  fieldHouse: { w: 9, h: 6 },             // an indoor training floor and the rooms around it (Plan 21's PR Q)
+  fieldHouse: { w: 9, h: 6 },             // an indoor training floor and the rooms around it
 };
 
 export function footprintOf(t: Buildable): Footprint {
@@ -252,19 +131,11 @@ export function footprintOf(t: Buildable): Footprint {
   return DEFAULT_FACILITY_FOOTPRINT;
 }
 
-// ---------------------------------------------------------------------
-// ROTATION. A building picked up for siting can be turned 90 degrees before
-// it's set down (see CampusMap.tsx's 'R' hotkey / rotate control). There is
-// no separate "orientation" field anywhere: rotating just swaps which of a
-// Buildable's own footprintOf() dimensions is w and which is h, and THAT
-// swapped {row,col,w,h} is what PLACE_BUILDABLE writes into `placements` —
-// the same field that already exists and is already saved. One source of
-// truth, and the reason the v13 -> v14 migration needs no placement-shape
-// change at all (see persistence.ts).
-// ---------------------------------------------------------------------
+// Rotation swaps a footprint's w and h (CampusMap.tsx's 'R' control). There
+// is no orientation field: the swapped footprint is what PLACE_BUILDABLE
+// stores in `placements`.
 
-// A square footprint reads identically rotated or not — offering a rotate
-// control for one would be a control that visibly does nothing.
+// A square footprint looks the same rotated, so offer no control for it.
 export function canRotate(fp: Footprint): boolean {
   return fp.w !== fp.h;
 }
@@ -273,9 +144,7 @@ export function rotateFootprint(fp: Footprint): Footprint {
   return { w: fp.h, h: fp.w };
 }
 
-// The footprint actually being sited right now: a Buildable's base
-// footprint, swapped if the player has rotated it. Square footprints never
-// change regardless of `rotated` (see canRotate above).
+// The footprint being sited now: the base footprint, swapped if rotated.
 export function orientedFootprint(t: Buildable, rotated: boolean): Footprint {
   const fp = footprintOf(t);
   return rotated && canRotate(fp) ? rotateFootprint(fp) : fp;
@@ -291,16 +160,14 @@ export function isInBounds(row: number, col: number): boolean {
     && col >= 0 && col < CAMPUS_GRID_WIDTH;
 }
 
-// The whole footprint must fit, not just its anchor tile: a 2x2 anchored on
-// the last column hangs off the edge even though the anchor itself is fine.
+// The whole footprint must fit, not just its anchor tile.
 export function footprintFits(row: number, col: number, fp: Footprint): boolean {
   return Number.isInteger(fp.w) && Number.isInteger(fp.h) && fp.w >= 1 && fp.h >= 1
     && isInBounds(row, col)
     && isInBounds(row + fp.h - 1, col + fp.w - 1);
 }
 
-// Every tile a placement covers, anchor first. The one definition of "which
-// tiles is this thing on", used by occupancy, placement and rendering alike.
+// Every tile a placement covers, anchor first.
 export function placementTiles(p: Placement): TileCoord[] {
   const tiles: TileCoord[] = [];
   for (let r = 0; r < p.h; r++) {
@@ -313,9 +180,8 @@ export function placementCovers(p: Placement, row: number, col: number): boolean
   return row >= p.row && row < p.row + p.h && col >= p.col && col < p.col + p.w;
 }
 
-// The Buildable id covering a tile, or undefined if the tile is empty.
-// Linear over `placements`, which holds at most one entry per placeable
-// Buildable (67 today) — no index worth keeping in state for that.
+// The Buildable id covering a tile, or undefined. A linear scan is fine: at
+// most one entry per placeable Buildable.
 export function occupantAt(placements: Placements, row: number, col: number): string | undefined {
   for (const [id, p] of Object.entries(placements)) {
     if (placementCovers(p, row, col)) return id;
@@ -323,9 +189,7 @@ export function occupantAt(placements: Placements, row: number, col: number): st
   return undefined;
 }
 
-// Would this footprint, anchored here, sit entirely on empty in-bounds
-// tiles? Split out from canPlace so the map can preview a hovered/dragged
-// footprint without re-deriving the rule.
+// Split out from canPlace so the map can preview a footprint.
 export function footprintIsClear(placements: Placements, row: number, col: number, fp: Footprint): boolean {
   if (!footprintFits(row, col, fp)) return false;
   for (const tile of placementTiles({ row, col, ...fp })) {
@@ -334,12 +198,10 @@ export function footprintIsClear(placements: Placements, row: number, col: numbe
   return true;
 }
 
-// The one definition of a legal placement target: a placeable Buildable
-// that is 'available', or built and awaiting a site (awaitsSite below), is
-// not already sited, and whose whole footprint `fp` lands on empty,
-// in-bounds tiles. Geometry and status only: whether the school can afford
-// to start it is techSystem.ts's canStartDevelopment, which every caller
-// combines with this before committing.
+// A legal placement target: a placeable Buildable that is 'available' (or
+// built and awaiting a site), not yet sited, with its footprint on clear
+// in-bounds tiles. Geometry and status only; callers combine it with
+// canStartDevelopment for cost.
 export function canPlace(s: GameState, t: Buildable, row: number, col: number, fp: Footprint): boolean {
   return isPlaceableKind(t)
     && (t.status === 'available' || t.status === 'done')
@@ -347,19 +209,14 @@ export function canPlace(s: GameState, t: Buildable, row: number, col: number, f
     && footprintIsClear(s.placements, row, col, fp);
 }
 
-// A placeable Buildable that is already built but has no place on the map.
-// Only Founders Hall is ever one: a guided founding leaves it unsited so
-// that placing it is the walkthrough's first step (see state/opening.ts).
-// Siting it costs nothing; its ground came with the charter.
+// Built but unsited. Only Founders Hall, in a guided founding, where placing
+// it is the walkthrough's first step (state/opening.ts). Siting it is free.
 export function awaitsSite(s: GameState, t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'done' && !(t.id in s.placements);
 }
 
-// The middle of the grid, for a footprint: where createInitialState puts
-// Founders Hall in a headless founding and where skipOpening puts it for a
-// player who declined the walk. Math.floor keeps the anchor on a whole
-// tile; the footprint is odd or even against the grid dimensions, so this
-// lands as close to dead centre as the tile grid allows.
+// The grid's centre for a footprint: Founders Hall's spot in a headless
+// founding or a skipped opening.
 export function centredPlacement(fp: Footprint): Placement {
   return placementFor(
     Math.floor((CAMPUS_GRID_HEIGHT - fp.h) / 2),
@@ -368,18 +225,10 @@ export function centredPlacement(fp: Footprint): Placement {
   );
 }
 
-// A deterministic "first empty spot" scan: top-left to bottom-right, the
-// first anchor whose footprint lands entirely on clear tiles. This is NOT
-// part of the ordinary player-facing placement flow — an ordinary
-// PLACE_BUILDABLE always names the row/col the player chose. It exists for
-// the handful of places a Buildable needs a location nobody was ever asked
-// to pick: the founding Buildables that start already 'done' (see
-// actions.ts's createInitialState), the headless balance sim (which has no
-// player to click a tile), and an authored event that manufactures a
-// finished Buildable on the spot (eventData.ts's chapter house). The full catalogue covers under a third of the grid (see
-// types.ts's CAMPUS_GRID_WIDTH/HEIGHT comment), so in every case this is
-// actually used for today, room is always found; callers still handle a
-// null result rather than assuming it.
+// Deterministic first-fit scan, top-left to bottom-right. Not the player's
+// flow: it is for Buildables nobody picks a spot for (founding Buildables,
+// the headless sim, eventData.ts's chapter house). Callers must still handle
+// null.
 export function firstFreeSpot(placements: Placements, fp: Footprint): TileCoord | null {
   for (let row = 0; row + fp.h <= CAMPUS_GRID_HEIGHT; row++) {
     for (let col = 0; col + fp.w <= CAMPUS_GRID_WIDTH; col++) {
@@ -389,36 +238,22 @@ export function firstFreeSpot(placements: Placements, fp: Footprint): TileCoord 
   return null;
 }
 
-// The placement PLACE_BUILDABLE writes: the anchor the player picked plus
-// the footprint (already oriented — see orientedFootprint) it gets, frozen
-// in at the moment of placement.
+// The placement PLACE_BUILDABLE writes, with the already-oriented footprint.
 export function placementFor(row: number, col: number, fp: Footprint): Placement {
   return { row, col, ...fp };
 }
 
-// ---------------------------------------------------------------------
-// PATHWAYS. See types.ts's Pathways block for the tile-identification
-// scheme (a drawn path fills a whole tile, the same TileCoord unit
-// everything else on the grid uses). Everything below is pure geometry,
-// shared by the reducer's ADD_PATH_TILE/REMOVE_PATH_TILE cases, the save
-// loader's tile hygiene, and the map UI — same one-definition rationale as
-// footprintOf and friends. Bounds-checking a path tile is just isInBounds
-// (above) — there is no separate edge-shaped bounds rule to keep in step
-// with it any more.
-// ---------------------------------------------------------------------
+// Pathways: whole-tile paths (see types.ts's Pathways), shared by the
+// reducer's ADD_PATH_TILE/REMOVE_PATH_TILE, the save loader and the map UI.
+// A path tile's bounds check is just isInBounds.
 
-// The one string form a path tile is ever stored or looked up by — a
-// Pathways key. Also what makes drawing the same tile twice idempotent: two
-// calls with the same tile produce the same key, so writing it a second
-// time overwrites rather than duplicates.
+// The one key form a path tile is stored under; also makes redrawing a tile
+// idempotent.
 export function pathTileKey(t: TileCoord): string {
   return `${t.row},${t.col}`;
 }
 
-// The inverse of pathTileKey, for reading a saved Pathways record back into
-// tiles (rendering, migration hygiene). Returns null for a key that isn't
-// shaped like one this version ever wrote — a defensive read, not a parser
-// for a format with variants.
+// Inverse of pathTileKey; null for a malformed key.
 export function parsePathTileKey(key: string): TileCoord | null {
   const parts = key.split(',');
   if (parts.length !== 2) return null;

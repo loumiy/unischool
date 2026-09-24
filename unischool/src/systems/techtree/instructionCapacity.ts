@@ -3,49 +3,16 @@ import { totalEnrolled, WEEKS_PER_YEAR } from '../../state/types';
 import { programOfCourse } from '../../data/techData';
 import { isHoused, isInTransit } from './programOffers';
 
-// ---------------------------------------------------------------------
-// INSTRUCTION CAPACITY: the seats the housed catalogue can teach (Plan
-// 15's §4). A sum over every DEVELOPED course whose program is HOUSED in
-// a hall slot and settled there, of SEATS_PER_COURSE. Plan 14's halls are
-// what make this honest — you cannot teach students in programs you have
-// nowhere to put — and the reading is what turns a hall from a purchase
-// into a bet: an empty slot teaches nobody.
-//
-// A founded-but-shallow program contributes less than a distinguished
-// one, because the sum is over courses and not programs, so depth and
-// breadth both buy growth, in different shapes.
-//
-// IT IS THE GAME'S ONE HARD CEILING (Plan 15's PR E): the freshman class
-// cannot exceed the seats left after graduation (intakeCeiling below,
-// which admissionsSystem.ts's funnel clips to), the summer reveal says how
-// much room there is and what next summer will hold, and the services
-// line rises past 85% of it (financeSystem.ts's servicesMultiplier). It
-// caps ENROLLMENT, never applicants: the pool and the cohort reveal are
-// untouched. Housing, dining and health stay soft — crowding, never caps
-// — so "I over-admitted and paid for it" is still a story the game tells.
-//
-// A program IN TRANSIT counts nothing, for the same reason its courses
-// carry no teaching quality while it moves (facultyAssignment.ts): it is
-// not teaching anybody this term.
-//
-// THE FOUNDING COLLEGE IS SEATED FROM FOUNDING, for an honest reason
-// (Plan 19): Founders Hall houses three programs whose first six courses
-// are developed and taught from day one (actions.ts's createInitialState),
-// so the founding body of 350 has 480 seats to sit in by the same rule as
-// every course after — developed, housed, settled. The general-education
-// core used to be counted here whether or not it was finished, as the one
-// exemption; there is no exemption any more.
-// ---------------------------------------------------------------------
+// Instruction capacity: SEATS_PER_COURSE for every developed course whose
+// program is housed and settled (not in transit), so depth and breadth both
+// buy growth. The game's one hard ceiling: it caps enrollment via
+// intakeCeiling (admissionsSystem.ts), never applicants; housing, dining and
+// health stay soft.
 
-// Seats a developed course adds to what the school can teach. PROVISIONAL —
-// Plan 15's PR G fits it against the scorecard. The opening value is sized
-// off the bands that PR is written against: the whole catalogue (415
-// courses when this was fitted, 427 since Plan 20; every one housed and
-// developed) holds about 33,000, the top of
-// the year-50 band, and a year-20 completionist with 150–225 courses open
-// holds 12,000–18,000, which is that year's band. The founding college's
-// six courses hold 480 at founding: the founding body of 350 with a little
-// room, and nothing more until a course is developed or a program founded.
+// Seats a developed course adds. Provisional; sized so the whole catalogue
+// holds about 33,000 (top of the year-50 band), a year-20 completionist with
+// 150–225 courses holds 12,000–18,000, and the founding six courses hold 480
+// for the founding body of 350.
 export const SEATS_PER_COURSE = 80;
 
 export interface InstructionCapacity {
@@ -70,12 +37,9 @@ export function instructionCapacity(s: GameState): number {
   return instructionCapacityDetail(s).seats;
 }
 
-// THE CEILING, read at the summer boundary. `seatsLeft` is what the
-// freshman class may not exceed: the catalogue's seats less the three
-// classes that stay on after the seniors graduate. `nextSummer` is what
-// the catalogue will hold a year from now if every course now developing
-// in a housed program finishes on schedule — so a player building toward
-// a bigger class sees it coming.
+// The ceiling, read at the summer boundary. `seatsLeft` caps the freshman
+// class (capacity less the three classes staying on); `nextSummer` counts
+// courses now developing in housed programs that finish within a year.
 export interface IntakeCeiling {
   capacity: number;              // seats today
   stayingOn: number;             // enrolled less the graduating seniors
@@ -101,10 +65,8 @@ export function intakeCeiling(s: GameState): IntakeCeiling {
   };
 }
 
-// How much of the enrolled body the catalogue can teach, 0..1 — the same
-// shape as satisfactionSystem.ts's attributeCoverage, so the crowding
-// reading can take the worst of the six without converting units. A campus
-// with nobody enrolled is fully covered rather than divided by zero.
+// Share of the enrolled body the catalogue can teach, 0..1 — the same shape
+// as satisfactionSystem.ts's attributeCoverage. Empty campus counts as covered.
 export function instructionCoverage(s: GameState): number {
   const enrolled = totalEnrolled(s.students);
   if (enrolled <= 0) return 1;
