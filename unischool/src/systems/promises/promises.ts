@@ -1,7 +1,7 @@
 import type { GameState, PromiseState } from '../../state/types';
 import { institutionName } from '../../state/types';
 import {
-  DECADE_LIST, DECADE_PICKS, DECADE_YEARS, PROMISES, PROMISE_CAP, PROMISE_LINES, PROMISE_OFFER_ODDS, promiseById,
+  DECADE_LIST, DECADE_PICKS, DECADE_YEARS, PROMISES, PROMISE_CAP, PROMISE_DECLINED_REST_YEARS, PROMISE_FIRST_YEAR, PROMISE_LINES, PROMISE_OFFER_ODDS, promiseById,
   type PromiseDef,
 } from '../../data/promiseData';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
@@ -30,7 +30,8 @@ export function dealable(s: GameState): PromiseDef[] {
   const p = promisesOf(s);
   const held = new Set(p.active.map((a) => a.id));
   const done = new Set(p.settled.map((a) => a.id));
-  return PROMISES.filter((d) => !held.has(d.id) && !done.has(d.id) && whenMet(s, d.deal) && !goalMet(s, d));
+  const resting = new Set(p.declined.filter((d) => s.clock.year - d.year < PROMISE_DECLINED_REST_YEARS).map((d) => d.id));
+  return PROMISES.filter((d) => !held.has(d.id) && !done.has(d.id) && !resting.has(d.id) && whenMet(s, d.deal) && !goalMet(s, d));
 }
 
 export function isDecadeClose(year: number): boolean {
@@ -75,7 +76,7 @@ export function openSummerPromises(s: GameState): void {
   }
   p.offer = null;
   const room = PROMISE_CAP - p.active.length;
-  if (room > 0) {
+  if (room > 0 && s.clock.year >= PROMISE_FIRST_YEAR) {
     s.promises = p;
     const pool = dealable(s);
     if (isDecadeClose(s.clock.year)) {

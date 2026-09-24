@@ -20,7 +20,7 @@ export function modalWidth(interrupt: PendingInterrupt): ModalWidth {
       const beat = payload?.beat ?? 0;
       // The fiftieth summer's first beat is the final report: a page.
       if (beat === 0 && payload?.final) return 'page';
-      return beat === 1 ? 'page' : 'wide';
+      return 'wide';
     }
     case 'rankings-entry':
     case 'annual-report':

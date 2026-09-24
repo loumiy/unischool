@@ -65,10 +65,11 @@ export function eliteClosingStep(rivalReputation: number, playerReputation: numb
 
 // The U.S. News report is a mid-game reveal (docs/design/progression.md):
 // the player is unaware of it until prestige first enters the top
-// TOP_50_CUTOFF, which fires a one-time interrupt. The annual report is the
-// summer's Standing beat (types.ts's SUMMER_BEATS), built by
-// buildReportPayload; the field still drifts at week WEEKS_PER_YEAR, so the
-// table it shows is this year's.
+// TOP_50_CUTOFF, which fires a one-time interrupt. The annual report was the
+// summer's Standing beat until Plan 33 dropped it (V1-1); buildReportPayload
+// still builds it for that reveal and for the trustees' response, and the
+// History tab's standings show the table. The field drifts at week
+// WEEKS_PER_YEAR, so the table is this year's.
 export const TOP_50_CUTOFF = 50;
 
 // A rival must move more than this many places to be named; smaller moves

@@ -27,7 +27,7 @@ import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
-import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivalsSystem';
+import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
@@ -524,13 +524,6 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
       ) : payload.beat === 0 ? (
         <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} />
       ) : payload.beat === 1 ? (
-        <RankingsReportView
-          payload={buildReportPayload(s)}
-          isFirstReveal={false}
-          published={s.hasEnteredRankings}
-          onDismiss={() => act({ type: 'RESOLVE_SUMMER_BEAT' })}
-        />
-      ) : payload.beat === 2 ? (
         <AdmissionsInterruptForm
           payload={{ tuition: payload.tuition, admitRate: payload.admitRate }}
           s={s}
@@ -1261,7 +1254,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
         // Only the read-and-continue beats: a key must not commit a price or
         // decline a year's petitions.
         const beat = (interrupt.payload as SummerPayload).beat;
-        if (beat < 2) act({ type: 'RESOLVE_SUMMER_BEAT' });
+        if (beat < 1) act({ type: 'RESOLVE_SUMMER_BEAT' });
         break;
       }
       case 'milestone':

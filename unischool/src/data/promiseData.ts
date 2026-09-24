@@ -26,6 +26,10 @@ export const PROMISE_OFFER_ODDS = 0.45; // a summer's chance of an offer, with r
 export const DECADE_YEARS = 10;         // the decade's list comes at the summers of Years 10, 20, 30, 40
 export const DECADE_LIST = 3;
 export const DECADE_PICKS = 2;
+// Not in the founding years, which the opening letters teach; and a promise
+// declined is not asked again for a few years.
+export const PROMISE_FIRST_YEAR = 3;
+export const PROMISE_DECLINED_REST_YEARS = 4;
 
 export const PROMISES: readonly PromiseDef[] = [
   {

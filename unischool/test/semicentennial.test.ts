@@ -94,7 +94,7 @@ console.log('semicentennial tests');
 
   const shown = legacy(s);
   const b1 = reducer(s, { type: 'RESOLVE_SUMMER_BEAT' });
-  assert(payloadOf(b1).beat === 1 && modalWidth(b1.pendingInterrupt!) === 'page', 'the Standing beat follows, a page as ever');
+  assert(payloadOf(b1).beat === 1 && modalWidth(b1.pendingInterrupt!) === 'wide', 'Admissions follows (Plan 33 dropped the Standing beat)');
   assert(b1.self.legacy === null, 'still unsealed between beats');
   assert(payloadOf(b1).final === true, 'the flag rides through the beats');
 

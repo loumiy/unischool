@@ -46,7 +46,7 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 71;
+export const SAVE_VERSION = 72; // Plan 33: the summer's beats renumbered (Standing dropped); capital projects in the catalogue
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
 export interface SavePayload {

@@ -101,6 +101,21 @@ function fresh(year: number): GameState {
   assert(!dealable(s).some((d) => d.id === def.id), 'a promise settled is never offered again');
 }
 
+// ---- Not too soon, and not again at once ----
+{
+  const early = fresh(2);
+  openSummerPromises(early);
+  assert(promisesOf(early).offer === null, 'no promise in the founding years');
+  const s = fresh(10);
+  openSummerPromises(s);
+  const first = promisesOf(s).offer!.ids;
+  answerPromises(s, []);
+  s.clock.year = 11;
+  assert(!dealable(s).some((d) => first.includes(d.id)), 'a promise declined rests a few years');
+  s.clock.year = 14;
+  assert(first.some((id) => dealable(s).some((d) => d.id === id)) || dealable(s).length === 0, 'and may be asked again after');
+}
+
 // ---- The cap ----
 {
   const s = fresh(10);

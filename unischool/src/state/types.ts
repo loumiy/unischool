@@ -438,15 +438,16 @@ export interface PendingInterrupt {
   payload?: unknown;
 }
 
-// The summer: one interrupt with four beats (SUMMER_BEATS), so a save
+// The summer: one interrupt with three beats (SUMMER_BEATS), so a save
 // between beats resumes with the clock halted and nothing slips in between.
-// Review and Standing are read-and-continue. RESOLVE_SUMMER_BEAT advances
-// `beat`, carrying the admissions decision into `decision` so the last beat
-// commits exactly what the player set; RESOLVE_ADMISSIONS, the last beat's
-// action, is the only one that moves the calendar.
-export type SummerBeat = 0 | 1 | 2 | 3;
-export const SUMMER_BEATS = ['Review', 'Standing', 'Admissions', 'Students'] as const;
-export const SUMMER_LAST_BEAT: SummerBeat = 3;
+// Review is read-and-continue, bar the year's promises (Plan 33, which also
+// dropped the Standing beat: V1-1). RESOLVE_SUMMER_BEAT advances `beat`,
+// carrying the admissions decision into `decision` so the last beat commits
+// exactly what the player set; RESOLVE_ADMISSIONS, the last beat's action,
+// is the only one that moves the calendar.
+export type SummerBeat = 0 | 1 | 2;
+export const SUMMER_BEATS = ['Review', 'Admissions', 'Students'] as const;
+export const SUMMER_LAST_BEAT: SummerBeat = 2;
 
 export interface SummerDecision {
   tuition: number;
