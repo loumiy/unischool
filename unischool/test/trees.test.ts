@@ -8,7 +8,10 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
 import { SPECIES, TREE_SEED_RANGE, seedForSpecies, speciesOf } from '../src/data/treeData';
-import { treeShape } from '../src/components/trees';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { CONIFER_FLOOR, CROWN_SPREAD, TreeAt, treeShape, treeStanding } from '../src/components/trees';
+import { DEFAULT_CAMERA, PITCHES, setCamera } from '../src/components/isoProjection';
 import type { GameState } from '../src/state/types';
 
 bindScriptStream(3370);
@@ -61,6 +64,35 @@ function open(): { s: GameState; tile: { row: number; col: number } } {
     const plain = reducer(structuredClone(s), { type: 'PLANT_TREE', tile });
     assert(planted.rng === plain.rng, `and draws the same one number from the run's stream as planting whatever grows (${species})`);
   }
+}
+
+// ---- Trees answer the tilt (Plan 37) ----
+{
+  const circles = (svg: string) => [...svg.matchAll(/<circle[^>]*cy="([-\d.]+)"[^>]*r="([-\d.]+)"/g)].map((m) => ({ cy: Number(m[1]), r: Number(m[2]) }));
+  const polys = (svg: string) => [...svg.matchAll(/points="([^"]+)"/g)].map((m) => m[1].trim().split(' ').map((p) => p.split(',').map(Number)));
+  const draw = (species: 'canopy' | 'conifer', pitch: number) => {
+    setCamera({ ...DEFAULT_CAMERA, pitch });
+    return renderToStaticMarkup(createElement('svg', null, createElement(TreeAt, { col: 20, row: 20, species, scale: 1, shadow: false })));
+  };
+  setCamera({ ...DEFAULT_CAMERA, pitch: PITCHES[0] });
+  assert(treeStanding() === 1, 'nearly level, a tree stands no taller than at the opening view');
+  setCamera(DEFAULT_CAMERA);
+  assert(Math.abs(treeStanding() - 1) < 1e-9, 'at the opening view it stands');
+  setCamera({ ...DEFAULT_CAMERA, pitch: PITCHES[PITCHES.length - 1] });
+  assert(treeStanding() < 1e-9, 'straight down it does not');
+
+  const side = circles(draw('canopy', DEFAULT_CAMERA.pitch));
+  const top = circles(draw('canopy', PITCHES[PITCHES.length - 1]));
+  assert(Math.abs(top[0].r / side[0].r - (1 + CROWN_SPREAD)) < 1e-6, `overhead a broadleaf crown spreads by ${CROWN_SPREAD * 100}%`);
+  // The trunk has no length overhead, so the crown's lit cap sits on its foot.
+  const trunkTopY = polys(draw('canopy', PITCHES[PITCHES.length - 1]))[0][3][1];
+  assert(Math.abs(top[3].cy - trunkTopY) < 0.01, 'and settles onto the trunk');
+
+  const riseOf = (svg: string) => { const p = polys(svg); const apex = p[p.length - 1][2][1]; const base = p[1][0][1]; return base - apex; };
+  const coniferSide = riseOf(draw('conifer', DEFAULT_CAMERA.pitch));
+  const coniferTop = riseOf(draw('conifer', PITCHES[PITCHES.length - 1]));
+  assert(Math.abs(coniferTop / coniferSide - CONIFER_FLOOR) < 0.01, `a conifer keeps a quarter of its rise (${(coniferTop / coniferSide).toFixed(2)})`);
+  setCamera(DEFAULT_CAMERA);
 }
 
 if (failures === 0) {

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { lift, polyPoints, project, projectedCircle, type Camera, type Pt } from './isoProjection';
+import { heightScale, lift, polyPoints, project, projectedCircle, type Camera, type Pt } from './isoProjection';
 import { shadowOffset, sunScreenDir } from './light';
 import { roll, speciesOf, type Species } from '../data/treeData';
 
@@ -71,6 +71,19 @@ export function woodlandShadow(row: number, col: number, seed: number): Pt[] {
   return treeShadow(col + u, row + v, species, scale);
 }
 
+// How a tree answers the tilt (Plan 37, v2's shapes). `standing` is the
+// camera's height factor, 1 at the opening view and 0 looking straight
+// down, clamped so the low end of the ladder does not stretch a tree: as it
+// falls, the crown settles onto the trunk, a broadleaf crown spreads (a
+// canopy covers more ground than its height suggests) and a conifer keeps a
+// quarter of its rise and none of the spread, so it stays a tight dark mark
+// among the broad ones.
+export const CROWN_SPREAD = 0.28;
+export const CONIFER_FLOOR = 0.25;
+export function treeStanding(): number {
+  return Math.max(0, Math.min(1, heightScale()));
+}
+
 export function TreeAt({ col, row, species, scale, shadow = true }: {
   col: number; row: number; species: Species; scale: number;
   // Woodland trees pass false: CampusMap draws their shadows in one pass
@@ -78,7 +91,10 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
   shadow?: boolean;
 }) {
   const foot = project(col, row);
-  const { trunkH, crownR, trunkW } = treeMetrics(species, scale);
+  const { trunkH, crownR: sideR, trunkW } = treeMetrics(species, scale);
+  const standing = treeStanding();
+  const crownR = sideR * (1 + (1 - standing) * (species === 'conifer' ? 0 : CROWN_SPREAD));
+  const rise = CONIFER_FLOOR + (1 - CONIFER_FLOOR) * standing;
   const trunkTop = lift(foot, trunkH);
   // The lit side follows the sun and is always toward the top.
   const sun = sunScreenDir();
@@ -98,8 +114,8 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
       {species === 'conifer' ? (
         // Three tapering tiers so the profile steps.
         [0, 1, 2].map((tier) => {
-          const halfW = crownR * (1 - (tier / 2) * 0.45);
-          const base = trunkTop.y - crownR * 0.75 * tier;
+          const halfW = crownR * (1 - (tier / 2) * 0.45 * rise);
+          const base = trunkTop.y - crownR * 0.75 * tier * rise;
           return (
             <polygon
               key={tier}
@@ -107,17 +123,17 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
               points={polyPoints([
                 { x: foot.x - halfW, y: base },
                 { x: foot.x + halfW, y: base },
-                { x: foot.x, y: base - crownR * 1.5 },
+                { x: foot.x, y: base - crownR * 1.5 * rise },
               ])}
             />
           );
         })
       ) : species === 'ornamental' ? (
         <>
-          <circle className="campus-tree-crown" cx={trunkTop.x} cy={trunkTop.y - crownR * 0.55} r={crownR} />
+          <circle className="campus-tree-crown" cx={trunkTop.x} cy={trunkTop.y - crownR * 0.55 * standing} r={crownR} />
           <circle
             className="campus-tree-crown-top"
-            cx={trunkTop.x + sun.x * crownR * 0.42} cy={trunkTop.y - crownR * 0.95}
+            cx={trunkTop.x + sun.x * crownR * 0.42} cy={trunkTop.y - crownR * 0.95 * standing}
             r={crownR * 0.52}
           />
         </>
@@ -128,7 +144,7 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
               key={i}
               className="campus-tree-crown"
               cx={trunkTop.x + b.dx * crownR}
-              cy={trunkTop.y - crownR * 0.62 + b.dy * crownR}
+              cy={trunkTop.y - crownR * 0.62 * standing + b.dy * crownR}
               r={b.r * crownR}
             />
           ))}
@@ -136,7 +152,7 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
           <circle
             className="campus-tree-crown-top"
             cx={trunkTop.x + sun.x * crownR * 0.36}
-            cy={trunkTop.y - crownR * 1.10}
+            cy={trunkTop.y - crownR * 1.10 * standing}
             r={crownR * 0.60}
           />
         </>
