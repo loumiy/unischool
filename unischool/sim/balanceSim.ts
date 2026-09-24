@@ -28,6 +28,7 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_EXTRA_SEEDS, bandsFor } from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
+import { conditionOf, renovationCost } from '../src/systems/estate/estate';
 import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, Legacy, SummerPayload } from '../src/state/types';
 import { SUMMER_LAST_BEAT, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
@@ -541,6 +542,19 @@ function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, s
   if (canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) dispatchPlaceable(get, dispatch, next.id);
 }
 
+// Buildings the catalogue's events have left run down are renovated, as a
+// player who keeps the estate would (Plan 32): the harness funds maintenance
+// fully, so an event's deferred repairs are its only backlog. Below half
+// condition, and only from cash above the strategy's buffer.
+const RENOVATE_BELOW_CONDITION = 0.5;
+function renovateRunDown(get: () => GameState, dispatch: (a: Action) => void, strategy: Strategy): void {
+  for (const t of get().tech) {
+    if (t.status !== 'done' || t.kind === 'course' || t.renovationWeeks !== undefined || !t.backlog) continue;
+    if (conditionOf(t) >= RENOVATE_BELOW_CONDITION || !affordable(get(), renovationCost(t), strategy)) continue;
+    dispatch({ type: 'RENOVATE_BUILDING', id: t.id });
+  }
+}
+
 // One week of player decisions, through the actions the UI dispatches. Every
 // block re-reads state through `get()`: each dispatch produces a new state,
 // and a stale snapshot would spend the same cash twice.
@@ -553,6 +567,7 @@ function decide(
 ): void {
   commissionScholarship(get, dispatch, strategy);
   restaffOrphans(get, dispatch, strategy, retired);
+  renovateRunDown(get, dispatch, strategy);
   balanceTeaching(get, dispatch, strategy);
   cutPayrollIfStalled(get, weeksInTheRed, dispatch, strategy);
   staffTheDepartment(get, dispatch, strategy);
