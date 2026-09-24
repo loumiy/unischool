@@ -19,7 +19,8 @@ export type Motif =
   | 'hangar'       // rec centre, gym, arena, natatorium: clear-span vault
   | 'works'        // labs: low, flat, crowded with rooftop plant
   | 'grounds'      // quad, field, courts, diamond, pool: markings, no mass
-  | 'bowl';        // the football stadium: stands around a gridiron
+  | 'bowl'         // the football stadium: stands around a gridiron
+  | 'landmark';    // a grand landmark: bespoke, built in stages (landmarks.tsx)
 
 const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   library: 'portico',
@@ -42,6 +43,7 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   footballStadium: 'bowl',
   fieldHouse: 'hangar',
   grocery: 'pavilion',
+  landmark: 'landmark',
 };
 
 // Research facilities that are not laboratories. They keep facilityType 'lab'
@@ -52,7 +54,27 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   'LAB-FILM': 'hangar',
   'LAB-COMP': 'block',
   'LAB-ECON': 'pavilion',
+  // By discipline (Plan 25): the engineering test halls are clear-span
+  // sheds, the neuroscience labs a clinical block.
+  'LAB-CIVE': 'hangar',
+  'LAB-MECH': 'hangar',
+  'LAB-AERO': 'hangar',
+  'LAB-NEUR': 'block',
 };
+
+// What a laboratory carries on its roof to say which science it is: an
+// observatory's drum and dome for physics, a glasshouse for biology, a row of
+// fume flues for chemistry.
+export type LabFeature = 'observatory' | 'glasshouse' | 'flues';
+const LAB_FEATURES: Partial<Record<string, LabFeature>> = {
+  'LAB-PHYS': 'observatory',
+  'LAB-BIOL': 'glasshouse',
+  'LAB-CHMY': 'flues',
+  'LAB-CHEM': 'flues',
+};
+export function labFeatureOf(t: Buildable): LabFeature | undefined {
+  return LAB_FEATURES[t.id];
+}
 
 // Bed and serve thresholds at which a chain changes kind. Same numbers as
 // campusMap.ts's DORM_FOOTPRINTS and FACILITY_SIZE_LADDERS, kept as literals so
@@ -64,8 +86,27 @@ const CLINIC_MIN_SERVES = 4_000;
 const RESEARCH_LIBRARY_MIN_SERVES = 2_000;
 const STUDENT_CENTRE_EXPANDED_MIN_SERVES = 2_000;
 
+// A hall dedicated to one school is drawn as that school's signature
+// building (Plan 25): a mixed hall is the generic gabled hall. The map's copy
+// of the Buildable carries the school (campusLayout.ts); state never does.
+export interface Signature { motif: Motif; material: keyof MaterialSet }
+export const SCHOOL_SIGNATURES: Readonly<Record<string, Signature>> = {
+  'Science': { motif: 'block', material: 'render' },
+  'Engineering': { motif: 'works', material: 'render' },
+  'Health Science': { motif: 'block', material: 'clinical' },
+  'Computer Science': { motif: 'block', material: 'curtain' },
+  'Arts & Media': { motif: 'portico', material: 'limestone' },
+  'Business': { motif: 'portico', material: 'brickBuff' },
+  'Social Sciences & Humanities': { motif: 'hall', material: 'limestone' },
+};
+
+export function signatureOf(t: Buildable): Signature | undefined {
+  const school = (t as Buildable & { signature?: string }).signature;
+  return school === undefined ? undefined : SCHOOL_SIGNATURES[school];
+}
+
 export function motifOf(t: Buildable): Motif {
-  if (t.kind === 'building') return 'hall';
+  if (t.kind === 'building') return signatureOf(t)?.motif ?? 'hall';
   if (t.kind === 'dorm') {
     const beds = t.effects?.capacityBonus ?? 0;
     if (beds >= DORM_TOWER_MIN_BEDS) return 'tower';
@@ -145,7 +186,7 @@ function facilityStoreys(t: Buildable): number {
 // volume whose height comes from CLEAR_SPAN_METRES instead.
 export function storeysOf(t: Buildable): number {
   const motif = motifOf(t);
-  if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl') return 0;
+  if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark') return 0;
   if (motif === 'tower') return dormStoreys(t.effects?.capacityBonus ?? 0);
   if (t.kind === 'building') {
     return ACADEMIC_HALL_STOREYS + addedFloors(t);
@@ -163,9 +204,17 @@ const CLEAR_SPAN_METRES: Partial<Record<Motif, number>> = {
 };
 
 // How tall the walls stand, in screen units, before any roof.
+// The grand landmarks' full heights, in metres (landmarks.tsx draws them).
+export const LANDMARK_HEIGHT_METRES: Record<string, number> = {
+  'LANDMARK-CAMPANILE': 52,
+  'LANDMARK-DOME': 34,
+  'LANDMARK-GATE': 20,
+};
+
 export function wallHeightOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds') return 0;
+  if (motif === 'landmark') return up(LANDMARK_HEIGHT_METRES[t.id] ?? 20);
   const storeys = storeysOf(t);
   if (storeys > 0) return storeys * STOREY;
   return up(CLEAR_SPAN_METRES[motif] ?? 0);
@@ -285,7 +334,7 @@ const DOOR_FAMILIES: Record<DoorFamily, DoorSpec> = {
 // single front door (open ground, a stadium, a village of houses).
 export function doorFamilyOf(t: Buildable): DoorFamily | null {
   const motif = motifOf(t);
-  if (motif === 'grounds' || motif === 'bowl' || motif === 'village') return null;
+  if (motif === 'grounds' || motif === 'bowl' || motif === 'village' || motif === 'landmark') return null;
   if (t.kind === 'building') return 'formal';
   if (t.kind === 'dorm') return motif === 'tower' ? 'shopfront' : 'residential';
   switch (t.facilityType) {
@@ -477,7 +526,7 @@ const GEORGIAN_GILT = '#c9a227';
 const GEORGIAN_TOWER_STONE = '#e4dcc8';
 
 // The vernacular: which architecture the whole campus is built in (a Motif is
-// what one building is). Six motifs never vary by vernacular; see
+// what one building is). Seven motifs never vary by vernacular; see
 // VERNACULAR_INVARIANT_MOTIFS.
 
 // Stonework that is not a wall: trim, gilding, the clock tower's stone, glass.
@@ -856,8 +905,9 @@ export function windowShapeOf(v: Vernacular): WindowShape {
   return VERNACULARS[v].windowShape;
 }
 
-// The six motifs no vernacular may restyle: a Gothic campus's gym is still a
-// shed and its hospital a modern hospital.
+// The seven motifs no vernacular may restyle: a Gothic campus's gym is still a
+// shed and its hospital a modern hospital, and a grand landmark is its own
+// statement (landmarks.tsx).
 export const VERNACULAR_INVARIANT_MOTIFS = [
   'grounds',  // a gridiron is a gridiron
   'bowl',     // a concrete stadium in every era
@@ -865,6 +915,7 @@ export const VERNACULAR_INVARIANT_MOTIFS = [
   'works',    // the dullest wall on the map, by design
   'block',    // a teaching hospital is a modern hospital
   'tower',    // a late-game apartment tower postdates the founding campus
+  'landmark', // bespoke in limestone, whatever the campus around it
 ] as const satisfies readonly Motif[];
 
 export function variesByVernacular(m: Motif): boolean {
@@ -1002,7 +1053,10 @@ export function stoneFor(v: Vernacular): StonePalette {
 
 export function materialOf(t: Buildable, v: Vernacular): Material {
   const MATERIALS = materialsFor(v);
-  if (t.kind === 'building') return MATERIALS.brickRed;
+  if (t.kind === 'building') {
+    const signature = signatureOf(t);
+    return signature ? MATERIALS[signature.material] : MATERIALS.brickRed;
+  }
   if (t.kind === 'dorm') {
     return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickDark;
   }
@@ -1011,6 +1065,10 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
     case 'performingArtsCenter':
     case 'artGallery':
       return MATERIALS.limestone;
+    // A landmark draws its own stone (landmarks.tsx); for everything else
+    // that asks, it is the one material every vernacular shares.
+    case 'landmark':
+      return MATERIALS.clinical;
     case 'healthCenter':
       return MATERIALS.clinical;
     case 'diningHall':
@@ -1020,6 +1078,8 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
     case 'athleticsNatatorium':
       return MATERIALS.curtain;
     case 'lab':
+      if (t.id === 'LAB-NEUR') return MATERIALS.clinical;
+      return MATERIALS.render;
     case 'gym':
     case 'recCenter':
     case 'athleticsArena':

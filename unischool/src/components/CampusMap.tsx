@@ -1,4 +1,4 @@
-import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
@@ -15,7 +15,7 @@ import QuadPanel from './QuadPanel';
 import Walkers from './Walkers';
 import AgeMarks, { type AgeBand } from './ageMarks';
 import { dressingProps } from './dressing';
-import { BannerContext, CrowdContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
+import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
@@ -203,9 +203,6 @@ type SceneEntry = DepthBox & (
   | { kind: 'prop'; key: string; node: React.JSX.Element; owner?: string }
 );
 
-// Weeks left on each site, by Buildable id. A context rather than a prop so
-// a week's countdown redraws the progress bars alone, not the scene.
-const DevelopingContext = createContext<GameState['developing']>({});
 
 // A site's progress: the building's shell rising in scaffolding over its
 // build weeks, from the motif's low frame to the eaves, a progress bar lying
@@ -215,7 +212,7 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
   const weeksLeft = useContext(DevelopingContext)[t.id];
   if (weeksLeft === undefined) return null;
   const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
-  const rises = motifOf(t) !== 'grounds' && floorsUnderConstruction(t) === 0;
+  const rises = motifOf(t) !== 'grounds' && motifOf(t) !== 'landmark' && floorsUnderConstruction(t) === 0;
   const d = drawnFootprint(p);
   const shell = rises ? boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * elapsedFraction) : null;
   return (
@@ -1276,6 +1273,8 @@ export default function CampusMap({
           <g ref={worldRef}>
             <CrowdContext.Provider value={crowds}>
             <BannerContext.Provider value={banners}>
+            <ColorsContext.Provider value={layout.colors}>
+            <CollegeNameContext.Provider value={s.self.name}>
             <DevelopingContext.Provider value={s.developing}>
               <CampusScene
                 layout={layout}
@@ -1287,6 +1286,8 @@ export default function CampusMap({
                 camera={camera}
               />
             </DevelopingContext.Provider>
+            </CollegeNameContext.Provider>
+            </ColorsContext.Provider>
             </BannerContext.Provider>
             </CrowdContext.Provider>
             <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />

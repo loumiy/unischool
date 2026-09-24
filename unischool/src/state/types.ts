@@ -165,7 +165,9 @@ export type FacilityType =
   // rec facilities. Hidden until a team needing one is granted varsity
   // status (Buildable.athleticsVenueReveal).
   | 'athleticsField' | 'athleticsArena' | 'athleticsDiamond' | 'athleticsNatatorium' | 'footballStadium'
-  | 'fieldHouse'; // a non-competition athletics facility that lifts every program
+  | 'fieldHouse' // a non-competition athletics facility that lifts every program
+  // A grand landmark (Plan 25): one of three, a long build and a large payoff.
+  | 'landmark';
 
 export interface Buildable {
   id: string;

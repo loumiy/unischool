@@ -661,6 +661,11 @@ button.build-tile { font-family: inherit; }
 /* A site's shell rising in scaffolding (CampusMap.tsx's SiteProgress). */
 .campus-site-shell polygon { fill: rgba(214, 206, 188, 0.78); stroke: rgba(90, 84, 70, 0.5); stroke-width: 0.8; }
 .campus-site-shell polygon.campus-site-hatch { fill: url(#campus-scaffold); stroke: none; }
+/* A biology lab's rooftop glasshouse (buildingMotifs.tsx's LabRoofFeature). */
+.glass-pane { fill: rgba(196, 226, 232, 0.72); stroke: rgba(80, 104, 110, 0.6); stroke-width: 0.8; }
+.glass-roof { fill: rgba(214, 238, 242, 0.8); stroke: rgba(80, 104, 110, 0.6); stroke-width: 0.8; }
+.glass-ridge { stroke: rgba(70, 90, 96, 0.8); stroke-width: 1.2; }
+.landmark-inscription { fill: #5a4e3a; font-family: var(--serif); font-weight: 700; letter-spacing: 0.08em; text-anchor: middle; dominant-baseline: middle; }
 /* Weathering (ageMarks.tsx). */
 .campus-age { pointer-events: none; }
 .campus-age-streak { stroke: rgba(40, 36, 30, 0.22); stroke-width: 1.6; stroke-linecap: round; fill: none; }

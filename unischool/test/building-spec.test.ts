@@ -691,7 +691,7 @@ console.log('campus scale and building spec');
 
   // THE INVARIANT SIX, enforced rather than described. This is the check
   // that stops a future set PR quietly restyling the gym.
-  assert(VERNACULAR_INVARIANT_MOTIFS.length === 6, 'six motifs are vernacular-invariant');
+  assert(VERNACULAR_INVARIANT_MOTIFS.length === 7, 'seven motifs are vernacular-invariant');
   for (const t of CATALOGUE) {
     const m = motifOf(t);
     if (variesByVernacular(m)) continue;
@@ -733,7 +733,7 @@ console.log('campus scale and building spec');
 
   // THE TABLE COVERS EXACTLY THE FIVE VARYING MOTIFS. One short is a
   // building that silently loses its entrance; one extra is a vernacular
-  // reaching into the invariant six by the back door.
+  // reaching into the invariant seven by the back door.
   const varying = [...new Set(CATALOGUE.map(motifOf))].filter(variesByVernacular);
   for (const m of varying) {
     assert(parts.entrance[m] !== undefined,

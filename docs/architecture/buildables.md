@@ -111,3 +111,25 @@ three away for six months, and a school could watch its academic score fall
 for a year and read the renovation as the cause. The map agrees: such a
 building is drawn at the height of the floors it has, with the scaffold
 rising off its finished roof rather than off the grass.
+
+### Looks that are not state (Plan 25)
+
+Some of what a building looks like depends on the campus, not on the Buildable:
+
+- **A hall dedicated to one school** is drawn as that school's signature building (`buildingSpec.ts`'s `SCHOOL_SIGNATURES`). The map's copy of the Buildable carries the school (`campusLayout.ts`); the state's never does.
+- **A research facility** looks like its discipline, through a motif by id and a roof feature (`labFeatureOf`: an observatory, a glasshouse, fume flues).
+
+Both are drawing only, like the rest of the map.
+
+### Grand landmarks
+
+`facilityType: 'landmark'`: the campanile, the great dome and the triumphal gate (`facilitiesData.ts`'s `GRAND_LANDMARKS`).
+
+- All three open at the ladder's "A national name" (prestige 90), and building one closes the other two (`techSystem.ts`'s `landmarkChosen`, `placeBuildable.ts`).
+- Each is a three-year build with a share of prestige's campus-life input, a one-time lift to the applicant pool and an upkeep. None carries a satisfaction attribute, so the balance harness never builds one.
+- `landmarks.tsx` draws each in stages as its countdown runs.
+
+### Deferred
+
+- **v2's amenities and small landmarks** (the chapel, museum, café, bookshop, statue, fountain, gate, garden, bell tower) arrive in Phase E, with the beauty they exist to produce.
+- **Graduate halls as capital projects** arrive in Phase L.

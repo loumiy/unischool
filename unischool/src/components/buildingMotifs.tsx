@@ -1,10 +1,13 @@
-import { memo } from 'react';
+import { memo, useContext } from 'react';
 import type { Buildable, Vernacular } from '../state/types';
 import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
+import Landmark from './landmarks';
+import { ColorsContext } from './mapOccasions';
 import {
+  labFeatureOf, type LabFeature,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
   CROSS_BAR_METRES, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
   CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
@@ -327,6 +330,121 @@ function Scaffolding({ col, row, w, h, height, base = 0 }: {
         y2={lift(footAt(posts[1][0], posts[1][1]), POLE * 0.72).y}
       />
     </>
+  );
+}
+
+// What a laboratory carries on its roof to say which science it is
+// (buildingSpec.ts's labFeatureOf). Standing on the roof at `base`.
+function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
+  feature: LabFeature; col: number; row: number; w: number; h: number; base: number; tint: string;
+}) {
+  if (feature === 'observatory') {
+    // A drum and a dome at the front of the roof, taller than the lab under
+    // it, with the shutter slit facing the camera.
+    const r = Math.min(w, h) * 0.3;
+    const cc = col + w * 0.62; const cr = row + h * 0.55;
+    const drumRise = up(8);
+    const ring = (z: number) => projectedCircle(cc, cr, r, 32).map((q) => lift(q, z));
+    const bottom = ring(base); const top = ring(base + drumRise);
+    const left = bottom.reduce((a, q) => (q.x < a.x ? q : a)); const right = bottom.reduce((a, q) => (q.x > a.x ? q : a));
+    // The near half of a ring, left to right: the points below the line
+    // through its two widest points.
+    const front = (pts: Pt[]) => {
+      const l = pts.reduce((a, q) => (q.x < a.x ? q : a)); const r = pts.reduce((a, q) => (q.x > a.x ? q : a));
+      return pts.filter((q) => q.y >= (l.y + r.y) / 2 - 0.01).sort((a, b) => a.x - b.x);
+    };
+    const side = [...front(bottom), ...front(top).reverse()];
+    const centre = lift(project(cc, cr), base + drumRise);
+    const rx = (right.x - left.x) / 2;
+    const rise = up(4.2) * heightScale() + rx * 0.35;
+    const dome: string[] = [];
+    for (let i = 0; i <= 20; i++) {
+      const a = Math.PI + (i / 20) * Math.PI;
+      dome.push(`${(centre.x + Math.cos(a) * rx).toFixed(2)},${(centre.y + Math.sin(a) * rise).toFixed(2)}`);
+    }
+    const slitW = rx * 0.14;
+    return (
+      <g className="lab-observatory">
+        <polygon points={polyPoints(side)} fill="#d6cfbf" stroke="rgba(70, 64, 54, 0.5)" strokeWidth={0.8} />
+        <polygon points={polyPoints(top)} fill="#bdb5a3" />
+        <polygon points={dome.join(' ')} fill="#d9dcdf" stroke="rgba(60, 64, 70, 0.45)" strokeWidth={0.8} />
+        <polygon
+          points={polyPoints([
+            { x: centre.x - slitW, y: centre.y }, { x: centre.x + slitW, y: centre.y },
+            { x: centre.x + slitW * 0.6, y: centre.y - rise * 0.98 }, { x: centre.x - slitW * 0.6, y: centre.y - rise * 0.98 },
+          ])}
+          fill="#3b4148"
+        />
+      </g>
+    );
+  }
+  if (feature === 'glasshouse') {
+    // A glazed house along the roof's front edge, ridge and panes.
+    const gh = boxFaces(col + w * 0.12, row + h * 0.52, w * 0.62, h * 0.36, base, up(2.6));
+    const ridgeA = lift(project(col + w * 0.12, row + h * 0.7), base + up(4.2));
+    const ridgeB = lift(project(col + w * 0.74, row + h * 0.7), base + up(4.2));
+    return (
+      <g className="lab-glasshouse">
+        <polygon points={polyPoints(gh.left)} className="glass-pane" />
+        <polygon points={polyPoints(gh.right)} className="glass-pane" />
+        <polygon points={polyPoints([gh.Dt, gh.Ct, ridgeB, ridgeA])} className="glass-roof" />
+        <polygon points={polyPoints([gh.Ct, gh.Bt, ridgeB])} className="glass-roof" />
+        <line x1={ridgeA.x} y1={ridgeA.y} x2={ridgeB.x} y2={ridgeB.y} className="glass-ridge" />
+      </g>
+    );
+  }
+  // Fume flues: a row of tall thin stacks along the back of the roof.
+  const sp = across(0.9);
+  return (
+    <g className="lab-flues">
+      {[0.2, 0.4, 0.6].map((u) => {
+        const st = boxFaces(col + w * u, row + h * 0.12, sp, sp, base, up(8.5));
+        return (
+          <g key={u}>
+            {sideFaces(st, shade(tint, 0.9), shade(tint, 0.74))}
+            <polygon points={polyPoints(st.top)} fill={shade(tint, 0.4)} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// Balconies on a tall residence: a slab and a rail at every second bay of
+// each visible wall, on every storey but the ground and the top.
+function Balconies({ f, storeys, height, tone }: { f: BoxFaces; storeys: number; height: number; tone: string }) {
+  const out: React.JSX.Element[] = [];
+  const faces: [Pt, Pt, number][] = [[f.D, f.C, f.spanLeft], [f.C, f.B, f.spanRight]];
+  faces.forEach(([o, a, span], side) => {
+    const n = Math.max(1, Math.floor(span / 2));
+    for (let k = 1; k < storeys - 1; k++) {
+      const v = k / storeys;
+      for (let i = 0; i < n; i++) {
+        const u = (i + 0.5) / n;
+        const slab = [facePoint(o, a, height, u - 0.035, v), facePoint(o, a, height, u + 0.035, v)];
+        const rail = [facePoint(o, a, height, u - 0.035, v + 0.28 / storeys), facePoint(o, a, height, u + 0.035, v + 0.28 / storeys)];
+        out.push(
+          <g key={`${side}-${k}-${i}`}>
+            <line x1={slab[0].x} y1={slab[0].y} x2={slab[1].x} y2={slab[1].y} stroke={tone} strokeWidth={2.2} />
+            <line x1={rail[0].x} y1={rail[0].y} x2={rail[1].x} y2={rail[1].y} stroke="rgba(40, 40, 40, 0.55)" strokeWidth={0.9} />
+          </g>,
+        );
+      }
+    }
+  });
+  return <g className="iso-balconies">{out}</g>;
+}
+
+// A flag on a civic roof, in the college's colours.
+function RoofFlag({ at }: { at: Pt }) {
+  const colors = useContext(ColorsContext);
+  const top = lift(at, up(7));
+  return (
+    <g className="iso-roof-flag">
+      <line x1={at.x} y1={at.y} x2={top.x} y2={top.y} stroke="#d8d4c8" strokeWidth={1.2} />
+      <path d={`M${top.x},${top.y + 1} q6,-2 12,0 v7 q-6,-2 -12,0 Z`} fill={colors.primary} />
+      <path d={`M${top.x},${top.y + 3.6} q6,-2 12,0 v1.6 q-6,-2 -12,0 Z`} fill={colors.secondary} />
+    </g>
   );
 }
 
@@ -1888,6 +2006,8 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   // Unused here; compared by the memo so the motif redraws when the view turns.
   camera?: Camera;
 }) {
+  // The grand landmarks draw themselves, stage by stage (landmarks.tsx).
+  if (motifOf(t) === 'landmark') return <Landmark t={t} p={p} developing={developing} />;
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
   if (!extending) return <BuildingMass t={t} p={p} material={material} vernacular={vernacular} developing={developing} glyphs={glyphs} />;
 
@@ -2942,6 +3062,9 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
               </>
             );
           })()}
+          {!site && labFeatureOf(t) && (
+            <LabRoofFeature feature={labFeatureOf(t)!} col={col} row={row} w={w} h={h} base={H} tint={roofTint} />
+          )}
           {!site && (motif === 'works' || motif === 'pavilion' || motif === 'block') && (
             // Roof plant, heaviest on labs and hospitals. Sorted back to
             // front with depthSort.ts's comparator (in footprint fractions),
@@ -2988,6 +3111,24 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           inward={gableInward(col, row, w, h)}
           wallHeight={H} span={f.spanLeft} centreU={0.5} sideAt="u1" scale={0.8}
         />
+      )}
+      {/* The roof parts that read (Plan 25): a dining hall's kitchen flues,
+          a tall residence's balconies, a civic building's flag. */}
+      {!site && t.facilityType === 'diningHall' && [0.22, 0.34].map((u) => {
+        const sp = across(0.8);
+        const st = boxFaces(col + w * u, row + h * 0.1, sp, sp, H, up(3.5));
+        return (
+          <g key={`flue${u}`}>
+            {sideFaces(st, shade(pal.wallLeft, 0.8), shade(pal.wallLeft, 0.66))}
+            <polygon points={polyPoints(st.top)} fill={shade(roofTint, 0.4)} />
+          </g>
+        );
+      })}
+      {!site && motif === 'residential' && storeysOf(t) >= 4 && (
+        <Balconies f={f} storeys={storeysOf(t)} height={H} tone={stone.trim} />
+      )}
+      {!site && (t.facilityType === 'library' || t.facilityType === 'performingArtsCenter') && (
+        <RoofFlag at={lift(project(col + w * 0.82, row + h * 0.82), H)} />
       )}
       {/* Chapter letters over both doors, last: the pediment rises above
           the eaves, so anything drawn later would cover it. */}

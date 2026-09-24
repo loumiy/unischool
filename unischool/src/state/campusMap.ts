@@ -120,7 +120,16 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   fieldHouse: { w: 9, h: 6 },             // an indoor training floor and the rooms around it
 };
 
+// The grand landmarks, each its own shape: a tower's square base, a
+// rotunda, and an arch across a way.
+const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
+  'LANDMARK-CAMPANILE': { w: 5, h: 5 },
+  'LANDMARK-DOME': { w: 9, h: 9 },
+  'LANDMARK-GATE': { w: 9, h: 3 },
+};
+
 export function footprintOf(t: Buildable): Footprint {
+  if (t.facilityType === 'landmark') return LANDMARK_FOOTPRINTS[t.id] ?? DEFAULT_FACILITY_FOOTPRINT;
   if (t.kind === 'building') return SCHOOL_BUILDING_FOOTPRINT;
   if (t.kind === 'dorm') return rungFootprint(DORM_FOOTPRINTS, t.effects?.capacityBonus ?? 0);
   if (t.kind === 'facility' && t.facilityType) {

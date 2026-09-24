@@ -10,7 +10,11 @@ import {
   HEALTH_CENTER_TIER3_POPULATION_GATE,
   LIBRARY_TIER2_PRESTIGE_GATE,
   REC_CENTER_TIER2_PRESTIGE_GATE,
+  GRAND_LANDMARK_IDS,
 } from './facilitiesData';
+
+// The grand landmarks' milestone: a national name.
+const GRAND_LANDMARK_PRESTIGE_GATE = 90;
 
 // The ladder: named milestones, each opening buildings and tabs on one
 // condition. Milestones are independent (a strategy that never founds a
@@ -216,6 +220,17 @@ export const MILESTONES: readonly Milestone[] = [
     tabs: [],
     letter: 'A school with every course taught is a school that can train its successors. Graduate programs open where their schools stand.',
     opens: ['Graduate programs, school by school'],
+  },
+  {
+    id: 'national',
+    tier: 'National',
+    name: 'A national name',
+    condition: `prestige ${GRAND_LANDMARK_PRESTIGE_GATE}`,
+    ...prestige(GRAND_LANDMARK_PRESTIGE_GATE),
+    buildables: GRAND_LANDMARK_IDS,
+    tabs: [],
+    letter: 'The college is known across the country now, and the board would like the country to be able to picture it. One grand landmark: a campanile, a great dome or a triumphal gate. Three years to build, and only one of them.',
+    opens: ['A grand landmark, one of three: a long build, and a lasting lift to prestige and applications'],
   },
   {
     id: 'university-town',
