@@ -32,7 +32,6 @@ import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
-import TurningScene from './TurningScene';
 import { castShadow } from './light';
 import {
   DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
@@ -641,35 +640,24 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
   );
 });
 
-// The ground a turn passes over (Plan 37): the plate, the grid and the road.
-const TurnGround = memo(function TurnGround({ camera }: { camera: Camera }) {
-  // `camera` is read by the projection.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const ground = useMemo(groundGeometry, [camera]);
-  return (
-    <>
-      <polygon className="campus-ground" points={ground.plate} />
-      <path className="campus-grid" d={ground.grid} />
-      <polygon className="campus-road" points={ground.road} />
-    </>
-  );
-});
-
 // Desire lines: the lawn worn where the busiest routes cross it (see
 // walkRoutes.ts), under the paving, so a path laid over one covers it and
 // the next layout no longer routes across the grass there.
 const DesireLines = memo(function DesireLines({ layout, camera }: { layout: CampusLayout; camera: Camera }) {
-  const d = useMemo(() => {
+  // The routes are found once per layout; a turn only re-projects them.
+  const runs = useMemo(() => {
     const input = { placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways };
-    return desireLines(input, walkGrid(input))
-      .map((run) => run.map((w, i) => {
-        const p = project(w.col, w.row);
-        return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-      }).join(''))
-      .join('');
-    // `camera` is read by the projection.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layout, camera]);
+    return desireLines(input, walkGrid(input));
+  }, [layout]);
+  const d = useMemo(() => runs
+    .map((run) => run.map((w, i) => {
+      const p = project(w.col, w.row);
+      return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+    }).join(''))
+    .join(''),
+  // `camera` is read by the projection.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [runs, camera]);
   return d ? <path className="campus-desire" d={d} aria-hidden="true" /> : null;
 });
 
@@ -914,11 +902,9 @@ export default function CampusMap({
   // unwrapped through the turn (setCamera wraps it); a second press mid-turn
   // retargets from where the view has got to (`at`), not from the last
   // target, which is v2's jump. Reduced motion keeps the snap.
-  const turnRef = useRef<{ at: number; to: number; raf: number; anchor: { col: number; row: number } } | null>(null);
-  const anchorRef = useRef<{ col: number; row: number } | null>(null);
+  const turnRef = useRef<{ at: number; to: number; raf: number; anchor: { col: number; row: number; rect?: DOMRect } } | null>(null);
+  const anchorRef = useRef<{ col: number; row: number; rect?: DOMRect } | null>(null);
   const [turning, setTurning] = useState(false);
-  // The view the full scene holds while the massing turns.
-  const [restCamera, setRestCamera] = useState<Camera | null>(null);
   function groundUnderCentre() {
     const rect = svgRef.current?.getBoundingClientRect();
     const v = viewRef.current;
@@ -930,7 +916,9 @@ export default function CampusMap({
   useLayoutEffect(() => {
     const a = anchorRef.current;
     if (!a) return;
-    const rect = svgRef.current?.getBoundingClientRect();
+    // Measured once when the turn starts: reading it here, every frame,
+    // forced the browser to lay the whole redrawn scene out twice a frame.
+    const rect = a.rect ?? svgRef.current?.getBoundingClientRect();
     const v = viewRef.current;
     const w = project(a.col, a.row);
     applyView({ x: (rect ? rect.width / 2 : 0) - w.x * v.zoom, y: (rect ? rect.height / 2 : 0) - w.y * v.zoom, zoom: v.zoom });
@@ -957,8 +945,7 @@ export default function CampusMap({
     if (live) cancelAnimationFrame(live.raf);
     const from = live ? live.at : camera.azimuth;
     const to = (live ? live.to : from) + steps * (Math.PI / 2);
-    const anchor = live?.anchor ?? groundUnderCentre();
-    if (!live) setRestCamera(camera);
+    const anchor = live?.anchor ?? { ...groundUnderCentre(), rect: svgRef.current?.getBoundingClientRect() };
     const start = performance.now();
     const turn = { at: from, to, raf: 0, anchor };
     turnRef.current = turn;
@@ -1433,17 +1420,6 @@ export default function CampusMap({
         >
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
-            {/* Mid-turn (Plan 37) the full scene holds its last rest view,
-                hidden, and the massing turns in its place; it redraws once
-                as the view comes to rest. */}
-            {turning && (
-              <>
-                <TurnGround camera={camera} />
-                <PathwayLayer pathways={layout.pathways} camera={camera} />
-                <TurningScene layout={layout} inset={BUILDING_INSET} camera={camera} />
-              </>
-            )}
-            <g style={turning ? { display: 'none' } : undefined}>
             <CrowdContext.Provider value={crowds}>
             <BannerContext.Provider value={banners}>
             <ColorsContext.Provider value={layout.colors}>
@@ -1456,18 +1432,17 @@ export default function CampusMap({
                 justFinished={justFinished}
                 onInspect={onInspect}
                 labelLayerRef={labelLayerRef}
-                camera={turning && restCamera ? restCamera : camera}
+                camera={camera}
               />
             </DevelopingContext.Provider>
             </CollegeNameContext.Provider>
             </ColorsContext.Provider>
             </BannerContext.Provider>
             </CrowdContext.Provider>
-            </g>
             <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} />
-            {!turning && <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />}
-            {!turning && <LabMarksLayer s={s} layout={layout} onInspect={onInspect} />}
-            {!turning && <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />}
+            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
+            <LabMarksLayer s={s} layout={layout} onInspect={onInspect} />
+            <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
           </g>
         </svg>
 
