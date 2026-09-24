@@ -45,6 +45,27 @@ const TARGET_RATIO: SatisfactionAttributes = {
   housing: 0.35,
 };
 
+// Rising expectations (Plan 29, v2's satisfaction): the better the college's
+// name, the more students expect of its library, its social life and its
+// beds. Each point of prestige over 50 raises those three targets by a
+// tenth of a percent, so a college at 150 needs a tenth more of each for
+// the same score. Food and care are needs, not expectations, and stay put.
+export const EXPECTATION_PER_PRESTIGE = 0.001;
+export function expectation(s: GameState): number {
+  return 1 + EXPECTATION_PER_PRESTIGE * Math.max(0, s.self.reputation - 50);
+}
+function expectedRatio(s: GameState, attribute: keyof SatisfactionAttributes): number {
+  const rises = attribute === 'academic' || attribute === 'social' || attribute === 'housing';
+  return TARGET_RATIO[attribute] * (rises ? expectation(s) : 1);
+}
+
+// Diminishing returns (v2): what a college does above 80 counts half, so a
+// campus cannot buy its way to a perfect mood.
+export const DIMINISHING_ABOVE = 80;
+export function diminished(target: number): number {
+  return target <= DIMINISHING_ABOVE ? target : DIMINISHING_ABOVE + (target - DIMINISHING_ABOVE) / 2;
+}
+
 // Under-capacity penalty is ratio^curvature. Basic needs is the steepest
 // (hunger is acute), social is steep but less so; the others are linear.
 const BASIC_NEEDS_PENALTY_CURVATURE = 2.2;
@@ -103,7 +124,7 @@ export function attributeCoverage(s: GameState, attribute: keyof SatisfactionAtt
   const enrolled = totalEnrolled(s.students);
   if (enrolled <= 0) return 1;
   const served = attribute === 'housing' ? s.students.capacity : servedPopulationFor(s, attribute);
-  return clamp(served / (enrolled * TARGET_RATIO[attribute]), 0, 1);
+  return clamp(served / (enrolled * expectedRatio(s, attribute)), 0, 1);
 }
 
 function ratioScore(servesPopulation: number, enrolled: number, targetRatio: number, curvature: number): number {
@@ -131,13 +152,13 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   const enrolled = totalEnrolled(s.students);
 
   // Library ratio plus course-quality bonus, clamped to the shared band.
-  const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, TARGET_RATIO.academic, 1);
+  const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, expectedRatio(s, 'academic'), 1);
   const academicFacultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
   // Sensible neighbours (systems/estate/pairing.ts), a couple of points at most.
   const pairing = pairingBumps(s);
   const academic = clamp(academicLibraryRatio + academicFacultyBonus + pairing.academic + facultyMorale(s), ATTRIBUTE_SCORE_FLOOR, 100);
 
-  const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, TARGET_RATIO.social, SOCIAL_PENALTY_CURVATURE);
+  const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, expectedRatio(s, 'social'), SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
   // Student organisations add a flat bonus (it does not dilute as the campus
   // grows), read live off s.orgs each week like BuildableEffects.
@@ -157,7 +178,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
     : ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1);
 
   // Housing: bed capacity (dorms plus housed Greek chapters) over enrolled.
-  const housing = clamp(ratioScore(s.students.capacity, enrolled, TARGET_RATIO.housing, 1) + pairing.housing, ATTRIBUTE_SCORE_FLOOR, 100);
+  const housing = clamp(ratioScore(s.students.capacity, enrolled, expectedRatio(s, 'housing'), 1) + pairing.housing, ATTRIBUTE_SCORE_FLOOR, 100);
 
   return { academic, social, basicNeeds, health, housing };
 }
@@ -231,7 +252,7 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   return {
     contributors,
     totalServed,
-    neededForFullScore: Math.round(enrolled * TARGET_RATIO[attribute]),
+    neededForFullScore: Math.round(enrolled * expectedRatio(s, attribute)),
     bonuses,
     score: computeSatisfactionBreakdown(s)[attribute],
     dormant,
@@ -250,7 +271,7 @@ function weightedSum(breakdown: SatisfactionAttributes): number {
 
 // The target the headline drifts toward. Exported so views read the real one.
 export function satisfactionTarget(s: GameState): number {
-  return weightedSum(computeSatisfactionBreakdown(s));
+  return diminished(weightedSum(computeSatisfactionBreakdown(s)));
 }
 
 // What student life is worth on the satisfaction target. Orgs nudge the
@@ -315,7 +336,7 @@ export function tickSatisfaction(s: GameState): void {
   const breakdown = computeSatisfactionBreakdown(s);
   s.students.satisfactionBreakdown = breakdown;
 
-  const target = weightedSum(breakdown);
+  const target = diminished(weightedSum(breakdown));
   s.students.satisfaction += (target - s.students.satisfaction) * SATISFACTION_DRIFT_RATE;
   s.students.satisfaction = clamp(s.students.satisfaction, 0, 100);
 
