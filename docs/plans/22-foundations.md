@@ -305,6 +305,28 @@ it trims comments in their final shape, not twice.
 - There is no behaviour change. PR E's replay test and the scorecard prove
   it.
 
+**As implemented:**
+
+- **Each case moved to a file of its own,** following the existing
+  `foundProgram(s, …)` pattern. New files avoid import cycles with the tick
+  systems:
+  - `systems/admissions/resolveAdmissions.ts` (with the student-life digest
+    it calls);
+  - `systems/research/startInitiative.ts`;
+  - `systems/faculty/appointments.ts` (hire and fire);
+  - `state/placeBuildable.ts`. It sits in `state/` rather than `systems/`,
+    because the invariants suite rightly forbids anything under `systems/`
+    from reading the map's placements.
+- **`advanceClock` moved to `state/clock.ts`,** so the admissions
+  resolution can turn the page itself.
+- **The move was done by script:** each case's body, its comment and exactly
+  the imports it uses, with `return s` becoming `return`.
+- **Proof of no behaviour change:** every strategy played twelve years gives
+  a state with the same hash before and after.
+- **`reducer.ts` is 847 lines,** down from 1,339 before this plan.
+- A comment describing `REASSIGN_COURSE_FACULTY` had drifted above
+  `START_INITIATIVE`; it is back above its own case.
+
 ## PR 22G — The comment trim
 
 - File by file, with the state types first and then each system, each
