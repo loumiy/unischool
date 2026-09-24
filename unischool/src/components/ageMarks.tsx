@@ -39,10 +39,30 @@ function hash(id: string, salt: number): number {
 
 const lerp = (a: Pt, b: Pt, u: number): Pt => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u });
 
-export default function AgeMarks({ t, p, band }: {
+// Ivy on a historic building (Plan 26): clusters climbing the visible walls
+// from the ground, thickest at the corners.
+function Ivy({ t, f }: { t: Buildable; f: ReturnType<typeof boxFaces> }) {
+  const walls: [Pt, Pt, Pt, Pt][] = [[f.C, f.D, f.Ct, f.Dt], [f.B, f.C, f.Bt, f.Ct]];
+  const leaves: React.JSX.Element[] = [];
+  walls.forEach(([g0, g1, e0, e1], k) => {
+    for (let i = 0; i < 26; i++) {
+      // Corners first: u clusters toward each end of the wall.
+      const r = hash(t.id, 300 + k * 40 + i);
+      const u = r < 0.5 ? r * 0.5 : 1 - (r - 0.5) * 0.5;
+      const v = hash(t.id, 340 + k * 40 + i) * 0.7 * (1 - Math.abs(u - 0.5));
+      const q = lerp(lerp(g0, g1, u), lerp(e0, e1, u), v);
+      leaves.push(<circle key={`${k}-${i}`} cx={q.x.toFixed(1)} cy={q.y.toFixed(1)} r={2.2 + hash(t.id, 380 + i) * 1.8} />);
+    }
+  });
+  return <g className="campus-ivy">{leaves}</g>;
+}
+
+export default function AgeMarks({ t, p, band, historic = false }: {
   t: Buildable; p: { col: number; row: number; w: number; h: number }; band: AgeBand; vernacular: Vernacular;
+  historic?: boolean;
 }) {
-  if (band === 0) return null;
+  if (band === 0 && !historic) return null;
+  if (band === 0) return <Ivy t={t} f={boxFaces(p.col, p.row, p.w, p.h, 0, wallHeightOf(t))} />;
   const H = wallHeightOf(t);
   const f = boxFaces(p.col, p.row, p.w, p.h, 0, H);
   // The two visible walls, each as its ground edge and its eave edge.
@@ -92,6 +112,7 @@ export default function AgeMarks({ t, p, band }: {
       <path className="campus-age-streak" d={streaks.join('')} />
       {slates.length > 0 && <path className="campus-age-slates" d={slates.join('')} />}
       {boards.length > 0 && <path className="campus-age-boards" d={boards.join('')} />}
+      {historic && <Ivy t={t} f={f} />}
       {band === 4 && (
         <>
           <path className="campus-age-weeds" d={walls.map(([g0, g1]) => [0.1, 0.3, 0.55, 0.8].map((u) => {

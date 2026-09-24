@@ -30,6 +30,8 @@ export interface PlacedEntry {
   age: AgeBand;
   // Under renovation: scaffolding over a building that stays open.
   renovating: boolean;
+  // Declared historic: ivy on the walls.
+  historic: boolean;
 }
 
 export interface CampusLayout {
@@ -54,7 +56,7 @@ function entryKey(e: PlacedEntry): string {
   const { t, p } = e;
   const fx = t.effects;
   return [
-    t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age, e.renovating ? 1 : 0,
+    t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age, e.renovating ? 1 : 0, e.historic ? 1 : 0,
     t.floorsAdded ?? 0, t.renovatingFrom ?? '', fx?.capacityBonus ?? 0, fx?.servesPopulation ?? 0,
     (t as Buildable & { signature?: string }).signature ?? '',
   ].join(':');
@@ -84,6 +86,7 @@ export function campusLayout(s: GameState): CampusLayout {
       glyphs: glyphs[id],
       age: weatherBand(t, s.clock.year, conditionOf(node)),
       renovating: (node.renovationWeeks ?? 0) > 0 || (node.extensionWeeks ?? 0) > 0,
+      historic: node.historic === true,
     });
   }
   const bikeRacks = totalEnrolled(s.students) >= BIKE_RACK_ENROLMENT;

@@ -118,6 +118,14 @@ under scaffolding on the map. The building panel offers it.
   - wears ivy on the map.
 - Founders Hall can be declared from year 25 like any other.
 
+**As implemented:** `canDeclareHistoric` reads `builtYear` (Plan 24), so a
+building an older save finished cannot be declared until the save is
+replaced. A historic building's upkeep share is the funding times 1.25.
+Prestige's campus-life score adds `historicPrestige`, 0.03 a building for
+at most five. On the map, ivy clusters climb the visible walls from the
+corners. The building panel offers the declaration once a building
+qualifies.
+
 ## PR 26E — Beauty
 
 - **`systems/estate/beauty.ts`:** a score from 0 to 100 out of four weighted

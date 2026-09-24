@@ -243,7 +243,7 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
 // a progress bar on the ground. Clicks are handled by the drawn shape, since
 // a tall building is drawn above the tiles it occupies.
 function PlacedBuilding({
-  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera, age = 0, renovating = false,
+  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera, age = 0, renovating = false, historic = false,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   camera: Camera;
@@ -256,6 +256,7 @@ function PlacedBuilding({
   glyphs?: string;
   age?: AgeBand;
   renovating?: boolean;
+  historic?: boolean;
 }) {
   const d = drawnFootprint(p);
 
@@ -273,7 +274,7 @@ function PlacedBuilding({
         developing={developing} glyphs={glyphs}
         camera={camera}
       />
-      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={vernacular} />}
+      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={vernacular} historic={historic} />}
       {renovating && motifOf(t) !== 'grounds' && (() => {
         // Scaffolding over the whole of a building under renovation.
         const shell = boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * 1.04);
@@ -519,7 +520,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
 
   const ground = useMemo(groundGeometry, [camera]);
 
-  const building = ({ t, p, label, developing, glyphs, age, renovating }: CampusLayout['placed'][number]) => (
+  const building = ({ t, p, label, developing, glyphs, age, renovating, historic }: CampusLayout['placed'][number]) => (
     <PlacedBuilding
       t={t}
       p={p}
@@ -533,6 +534,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
       camera={camera}
       age={age}
       renovating={renovating}
+      historic={historic}
     />
   );
 

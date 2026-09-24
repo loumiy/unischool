@@ -36,7 +36,8 @@ export function clampFunding(level: number): number {
 // The share of this Buildable's upkeep actually paid: maintenance funding for
 // a building, all of it for a course.
 export function upkeepShare(s: GameState, t: Buildable): number {
-  return isPlaceableKind(t) ? maintenanceFunding(s) : 1;
+  if (!isPlaceableKind(t)) return 1;
+  return maintenanceFunding(s) * (t.historic ? HISTORIC_UPKEEP_FACTOR : 1);
 }
 
 // Condition: how much of the building the backlog has not eaten, 0 to 1.
@@ -94,6 +95,25 @@ function finishExtension(s: GameState, t: Buildable): void {
     const per = (t.effects.servesPopulation ?? 0) > 0 ? upkeep / (t.effects.servesPopulation ?? 1) : 0;
     t.effects = { ...t.effects, servesPopulation: serves, upkeepPerWeek: Math.round(serves * per) };
   }
+}
+
+// Historic status (Plan 26): a building standing 25 years can be declared
+// historic. It lends prestige's campus-life input a little (up to five
+// buildings), costs a quarter more to keep, and wears ivy.
+export const HISTORIC_AGE_YEARS = 25;
+export const HISTORIC_PRESTIGE = 0.03;
+export const HISTORIC_PRESTIGE_MAX = 5;
+export const HISTORIC_UPKEEP_FACTOR = 1.25;
+
+export function canDeclareHistoric(s: GameState, t: Buildable): boolean {
+  return isPlaceableKind(t) && t.status === 'done' && !t.historic
+    && t.builtYear !== undefined && s.clock.year - t.builtYear >= HISTORIC_AGE_YEARS;
+}
+
+// Prestige's share from historic buildings (prestigeSystem.ts's campus life).
+export function historicPrestige(s: GameState): number {
+  const n = s.tech.filter((t) => t.historic && t.status === 'done').length;
+  return Math.min(HISTORIC_PRESTIGE_MAX, n) * HISTORIC_PRESTIGE;
 }
 
 // The estate's week: unpaid upkeep becomes backlog, backlogs compound, and

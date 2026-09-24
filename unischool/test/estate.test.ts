@@ -6,6 +6,8 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { financeBreakdown } from '../src/systems/finance/financeSystem';
+import { computePrestigeTarget } from '../src/systems/prestige/prestigeSystem';
+import { HISTORIC_AGE_YEARS, HISTORIC_PRESTIGE, HISTORIC_PRESTIGE_MAX, historicPrestige } from '../src/systems/estate/estate';
 import {
   EXTENSION_MAX_STOREYS, EXTENSION_WEEKS, RENOVATION_WEEKS, conditionOf, extensionCost, renovationCost, tickEstate,
 } from '../src/systems/estate/estate';
@@ -121,6 +123,24 @@ const buildingOf = (s: GameState) => s.tech.find((t) => t.id === 'DINING-01')!;
   const after = s.tech.find((t) => t.id === 'DINING-01')!;
   assert(after.effects!.servesPopulation === serves + Math.round(serves * 0.25), 'a dining hall serves a quarter more');
   assert(after.effects!.upkeepPerWeek! > upkeepBefore, 'and costs more to run');
+}
+
+// ---- Historic status ----
+{
+  let s = withBuilding();
+  const hall = buildingOf(s);
+  hall.builtYear = s.clock.year;
+  s = reducer(s, { type: 'DECLARE_HISTORIC', id: hall.id });
+  assert(buildingOf(s).historic === undefined, 'a new building cannot be declared historic');
+  s.clock.year += HISTORIC_AGE_YEARS;
+  const upkeep = financeBreakdown(s).facilityUpkeep;
+  const prestige = computePrestigeTarget(s);
+  s = reducer(s, { type: 'DECLARE_HISTORIC', id: hall.id });
+  assert(buildingOf(s).historic === true, `one standing ${HISTORIC_AGE_YEARS} years can`);
+  assert(financeBreakdown(s).facilityUpkeep > upkeep, 'it costs more to keep');
+  assert(computePrestigeTarget(s) > prestige, 'and lends prestige');
+  for (const t of s.tech.filter((x) => x.kind === 'facility').slice(0, 10)) { t.status = 'done'; t.historic = true; }
+  assert(historicPrestige(s) === HISTORIC_PRESTIGE_MAX * HISTORIC_PRESTIGE, `only ${HISTORIC_PRESTIGE_MAX} count toward it`);
 }
 
 if (failures === 0) {

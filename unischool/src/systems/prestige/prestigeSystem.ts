@@ -1,3 +1,4 @@
+import { historicPrestige } from '../estate/estate';
 import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
@@ -140,7 +141,8 @@ function campusLifeScore(s: GameState): number {
   const total = s.tech
     .filter((t) => t.status === 'done')
     .reduce((sum, t) => sum + (t.effects?.prestigeContribution ?? 0), 0);
-  return clamp01(total);
+  // Historic buildings lend a little of their own (systems/estate).
+  return clamp01(total + historicPrestige(s));
 }
 
 // Research: its only path into prestige, as a capped, small-weighted input,

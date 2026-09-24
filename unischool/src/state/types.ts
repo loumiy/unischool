@@ -230,6 +230,8 @@ export interface Buildable {
   // Weeks left on an added storey (systems/estate), built while it stays
   // open; floorsAdded counts the finished ones.
   extensionWeeks?: number;
+  // Declared historic (systems/estate): prestige, a dearer upkeep, ivy.
+  historic?: true;
   // The year a placeable Buildable was first finished, for the map's age
   // marks (components/ageMarks.tsx). Undefined for courses and for buildings
   // an older save finished.

@@ -1,4 +1,4 @@
-import { canExtend, canRenovate, conditionOf, extensionCost, extensionGain, renovationCost } from '../systems/estate/estate';
+import { canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, renovationCost } from '../systems/estate/estate';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
@@ -451,7 +451,14 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
   if ((t.renovationWeeks ?? 0) > 0) {
     return <p className="building-info-line">Under renovation, open throughout: {t.renovationWeeks} weeks left.</p>;
   }
-  if ((t.backlog ?? 0) <= 0) return extend;
+  const historic = t.historic
+    ? <p className="building-info-line">Historic: a landmark of the college's own past.</p>
+    : canDeclareHistoric(s, t) ? (
+      <button type="button" className="building-info-jump" onClick={() => act({ type: 'DECLARE_HISTORIC', id: t.id })}>
+        Declare historic · lends prestige, costs a quarter more to keep
+      </button>
+    ) : null;
+  if ((t.backlog ?? 0) <= 0) return <>{historic}{extend}</>;
   const cost = renovationCost(t);
   return (
     <>
@@ -461,6 +468,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
       <button type="button" className="building-info-jump" disabled={!canRenovate(t) || s.finance.cash < cost} onClick={() => act({ type: 'RENOVATE_BUILDING', id: t.id })}>
         Renovate · {money(cost)}, eight weeks
       </button>
+      {historic}
       {extend}
     </>
   );

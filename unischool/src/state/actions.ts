@@ -95,6 +95,7 @@ export type Action =
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
   | { type: 'RENOVATE_BUILDING'; id: string }
   | { type: 'EXTEND_BUILDING'; id: string }
+  | { type: 'DECLARE_HISTORIC'; id: string }
   // A lamp or a bench beside a path, or lifted (components/dressing.tsx).
   | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }

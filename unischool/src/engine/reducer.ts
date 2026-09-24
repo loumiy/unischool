@@ -1,5 +1,5 @@
 import {
-  EXTENSION_WEEKS, RENOVATION_WEEKS, canExtend, canRenovate, clampFunding, extensionCost, renovationCost, tickEstate,
+  EXTENSION_WEEKS, RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, renovationCost, tickEstate,
 } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
 import { LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
@@ -267,6 +267,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (s.finance.cash < cost) return s;
       s.finance.cash -= cost;
       node.renovationWeeks = RENOVATION_WEEKS;
+      return s;
+    }
+
+    case 'DECLARE_HISTORIC': {
+      const node = s.tech.find((t) => t.id === action.id);
+      if (node && canDeclareHistoric(s, node)) node.historic = true;
       return s;
     }
 
