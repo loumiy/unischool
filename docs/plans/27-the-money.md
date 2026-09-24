@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn Phase F of the v2 merge (money,
 `loumiy/unischool-v2`'s `docs/MIGRATION_PLAN.md`) into a sequence of PRs.*
 
-**Status: In progress.**
+**Status: Landed.**
 
 ---
 
