@@ -217,6 +217,37 @@ points each) rather than by one shared clamp. The satisfaction panel lists
 each as a named bonus. The invariant suite's map-reading exemption names
 both estate modules.
 
+## The harness, re-measured
+
+Beauty is the one change the harness cannot avoid (the plan's first rule),
+and the slow suites say what it moved.
+
+- **Plan 25 was balance-neutral:** main and its branch give identical
+  runs. So everything below is this plan's.
+- **Beauty itself is a small nudge.** The harness's campuses score 55 to 60
+  from year 5 to year 50 on every strategy measured (see 26E). The pool
+  moves 1–2%, and prestige a point or so.
+- **The random stream is not.** Beauty moves admissions in the first year,
+  so every later draw lands differently: at the default seed the Earnest
+  completionist saw 53 decision events where it had seen 64. That, not
+  beauty's size, is what moved the bands.
+- **The scorecard's reference bands are re-recorded**
+  (`npm run sim -- --write-reference`), as Plan 22's were. The biggest
+  moves are in late cash, where the bands were already wide: one seed's
+  fiftieth-year cash can be a tenth or ten times another's.
+- **Two claims moved, each with a note beside it:**
+  - The endpoint's Earnest completionist reaches 17, 16 and 19 ambitions
+    of 20 on the three seeds (it was 17, 18 and 17). The fourth miss on
+    seed 4242 is "never in the red", after a lean decade. The floor is all
+    but four on every seed until Plan 27 reworks what the red means. "All
+    but two on some seed" still holds, at 19.
+  - The regression's "a Curriculum rush out-prestiges idling" is judged at
+    year 30, not 20. At year 20 the rush cleared the idle college on one
+    seed in five on main, and clears on none here (51.7 at best, against
+    52.1 needed). At year 30 it clears on three seeds, against two on
+    main. The claim was always about the rush's growth
+    outrunning idling, and year 30 is where it shows.
+
 ## What this plan does not do
 
 - **Failure events** (a boiler, a roof) are Phase K's, with the other
