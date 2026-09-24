@@ -8,6 +8,14 @@ import { OCCASIONS } from '../systems/athletics/season';
 // commencement week. Read through contexts, so a game week redraws the stands
 // and a commencement the lamps, never the rest of the scene.
 
+// Weeks left on each site, by Buildable id: a site's progress bar and a
+// landmark's stage read it, so a week's countdown redraws them alone.
+export const DevelopingContext = createContext<GameState['developing']>({});
+// The college's name, for what carries it (the triumphal gate).
+export const CollegeNameContext = createContext('');
+// The college's colours, for the flags on its civic buildings.
+export const ColorsContext = createContext<SchoolColors>({ primary: '#7a2e26', secondary: '#e0b64a' });
+
 // The venues with a crowd this week, by Buildable id. Empty most weeks.
 export const CrowdContext = createContext<ReadonlySet<string>>(new Set());
 // The venue a stand belongs to, set round each building and its props.

@@ -268,6 +268,11 @@ function openHall(s: GameState, node: Buildable): void {
 
 // Gates beyond prereqs that read the school's current state. Checked every
 // tick since they can cross either way, but nothing available ever re-locks.
+// A grand landmark other than `except` is going up or standing.
+export function landmarkChosen(s: GameState, except?: string): boolean {
+  return s.tech.some((o) => o.facilityType === 'landmark' && o.id !== except && (o.status === 'developing' || o.status === 'done'));
+}
+
 function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // Every course of a major or graduate program waits on its program being
   // housed in a hall slot. Founding writes the slot and opens the entry course
@@ -281,6 +286,8 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   if (t.schoolGate !== undefined && !s.milestones[schoolFoundedKey(t.schoolGate)]) return false;
   // The ladder: a buildable a milestone names waits on it (data/ladderData.ts).
   if (!ladderAllows(s, t.id)) return false;
+  // One grand landmark to a college: choosing one closes the others.
+  if (t.facilityType === 'landmark' && landmarkChosen(s, t.id)) return false;
   if (t.graduateProgram !== undefined && !graduateGateMet(s, t.graduateProgram)) return false;
   // An athletics venue stays hidden until a team needing its category exists
   // (eventData.ts's 'varsity-petition'); s.orgs.teams is the reveal signal.

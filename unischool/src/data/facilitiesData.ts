@@ -451,6 +451,34 @@ const QUAD_TIER2_COST = 190_000;
 const QUAD_TIER2_WEEKS = 8;
 const QUAD_TIER2_UPKEEP = 1_000;
 
+// The grand landmarks: a long build and a large payoff, a share of prestige's
+// campus-life input the size of the football stadium's twice over, and a
+// one-time lift to the applicant pool. Never on the harness's path: none has
+// a satisfaction attribute, which is how a strategy picks a facility.
+export const GRAND_LANDMARK_COST = 30_000_000;
+export const GRAND_LANDMARK_WEEKS = 156;
+const GRAND_LANDMARK_PRESTIGE = 0.3;
+const GRAND_LANDMARK_APPLICANTS = 1_500;
+const GRAND_LANDMARK_UPKEEP = 30_000;
+export const GRAND_LANDMARKS: ReadonlyArray<{ id: string; name: string; description: string }> = [
+  {
+    id: 'LANDMARK-CAMPANILE',
+    name: 'The Campanile',
+    description: 'A bell tower taller than anything for miles: the college on every postcard, and a clock the town sets its watches by.',
+  },
+  {
+    id: 'LANDMARK-DOME',
+    name: 'The Great Dome',
+    description: 'A domed rotunda over a reading room, the kind of room people travel to stand in.',
+  },
+  {
+    id: 'LANDMARK-GATE',
+    name: 'The Triumphal Gate',
+    description: 'An arch at the head of the campus with the college\'s name cut across it: the way every graduate walks out.',
+  },
+];
+export const GRAND_LANDMARK_IDS: readonly string[] = GRAND_LANDMARKS.map((l) => l.id);
+
 export function initialFacilities(): Buildable[] {
   return [
     ...diningChain(),
@@ -882,5 +910,25 @@ export function initialFacilities(): Buildable[] {
         upkeepPerWeek: QUAD_TIER2_UPKEEP,
       },
     },
+
+    // The grand landmarks (Plan 25): one of three, chosen once the college
+    // has a national name (ladderData.ts's 'national'); choosing one closes
+    // the others (techSystem.ts's meetsUnlockGates, placeBuildable.ts).
+    ...GRAND_LANDMARKS.map((l): Buildable => ({
+      id: l.id,
+      kind: 'facility',
+      facilityType: 'landmark',
+      name: l.name,
+      description: l.description,
+      cost: GRAND_LANDMARK_COST,
+      duration: GRAND_LANDMARK_WEEKS,
+      prereqs: [],
+      status: 'locked',
+      effects: {
+        prestigeContribution: GRAND_LANDMARK_PRESTIGE,
+        applicantPoolBonus: GRAND_LANDMARK_APPLICANTS,
+        upkeepPerWeek: GRAND_LANDMARK_UPKEEP,
+      },
+    })),
   ];
 }

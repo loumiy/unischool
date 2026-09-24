@@ -104,7 +104,7 @@ tower whatever it holds.
   glasshouse along the roof, and chemistry and chemical engineering three
   fume flues.
 - **Only the electrical engineering labs** stay a plain works building.
-- **Profile, Year 40:** 55.1 fps at 4×, unchanged.
+- **Profile, Year 40:** 56.0 fps at 4×, unchanged.
 
 ## PR 25D — Grand landmarks
 
@@ -119,11 +119,39 @@ tower whatever it holds.
 - **Bespoke art for each.** The campanile and the dome rise over their
   stages. The gate is a triumphal arch with the college's name on it.
 
+**As implemented:**
+
+- **A new facility type, `landmark`** (`facilitiesData.ts`'s
+  `GRAND_LANDMARKS`): $30M and 156 weeks each, with 0.3 of prestige's
+  campus-life input (the stadium carries 0.15), 1,500 applicants once, and
+  $30,000 a week. The ladder's "A national name" opens all three at
+  prestige 90. Placing one locks the other two, and `techSystem.ts`'s
+  `landmarkChosen` keeps them locked.
+- **`components/landmarks.tsx`** draws each in one stone whatever the
+  vernacular:
+  - the campanile: a shaft, an open belfry and a lead spire;
+  - the dome: a podium, a drum, a green dome and its lantern;
+  - the gate: an arch with the college's name cut across its attic.
+- **The stages** follow the countdown through `DevelopingContext`
+  (footings, half, all but the crown, each in scaffold hatch), so only the
+  landmark redraws each week.
+- **They sit in the build popup's Campus Tools tab,** beside the quads.
+- **`landmark` is the seventh vernacular-invariant motif.** For anything
+  that asks its material, it takes the one material every vernacular
+  shares, so the palette tests keep their bounds.
+
 ## PR 25E — Roof parts that read
 
 - **Flues on the dining halls and the labs, balconies on the four-storey
   and high-rise dorms, flagpoles on the civic buildings** (V2 #42).
   Nothing is added that does not read at the default zoom.
+
+**As implemented:** two kitchen flues on every dining hall. The labs keep
+the exhaust stack they had. Every dorm of four storeys or more has
+balconies: a slab and a rail at every second bay of each visible wall, on
+every storey but the ground and the top. The library and the performing
+arts centre fly the college's colours from their roofs, through a
+`ColorsContext`.
 
 ## PR 25F — Balance and docs
 

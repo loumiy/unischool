@@ -1,9 +1,11 @@
-import { memo } from 'react';
+import { memo, useContext } from 'react';
 import type { Buildable, Vernacular } from '../state/types';
 import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
+import Landmark from './landmarks';
+import { ColorsContext } from './mapOccasions';
 import {
   labFeatureOf, type LabFeature,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
@@ -404,6 +406,44 @@ function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
           </g>
         );
       })}
+    </g>
+  );
+}
+
+// Balconies on a tall residence: a slab and a rail at every second bay of
+// each visible wall, on every storey but the ground and the top.
+function Balconies({ f, storeys, height, tone }: { f: BoxFaces; storeys: number; height: number; tone: string }) {
+  const out: React.JSX.Element[] = [];
+  const faces: [Pt, Pt, number][] = [[f.D, f.C, f.spanLeft], [f.C, f.B, f.spanRight]];
+  faces.forEach(([o, a, span], side) => {
+    const n = Math.max(1, Math.floor(span / 2));
+    for (let k = 1; k < storeys - 1; k++) {
+      const v = k / storeys;
+      for (let i = 0; i < n; i++) {
+        const u = (i + 0.5) / n;
+        const slab = [facePoint(o, a, height, u - 0.035, v), facePoint(o, a, height, u + 0.035, v)];
+        const rail = [facePoint(o, a, height, u - 0.035, v + 0.28 / storeys), facePoint(o, a, height, u + 0.035, v + 0.28 / storeys)];
+        out.push(
+          <g key={`${side}-${k}-${i}`}>
+            <line x1={slab[0].x} y1={slab[0].y} x2={slab[1].x} y2={slab[1].y} stroke={tone} strokeWidth={2.2} />
+            <line x1={rail[0].x} y1={rail[0].y} x2={rail[1].x} y2={rail[1].y} stroke="rgba(40, 40, 40, 0.55)" strokeWidth={0.9} />
+          </g>,
+        );
+      }
+    }
+  });
+  return <g className="iso-balconies">{out}</g>;
+}
+
+// A flag on a civic roof, in the college's colours.
+function RoofFlag({ at }: { at: Pt }) {
+  const colors = useContext(ColorsContext);
+  const top = lift(at, up(7));
+  return (
+    <g className="iso-roof-flag">
+      <line x1={at.x} y1={at.y} x2={top.x} y2={top.y} stroke="#d8d4c8" strokeWidth={1.2} />
+      <path d={`M${top.x},${top.y + 1} q6,-2 12,0 v7 q-6,-2 -12,0 Z`} fill={colors.primary} />
+      <path d={`M${top.x},${top.y + 3.6} q6,-2 12,0 v1.6 q-6,-2 -12,0 Z`} fill={colors.secondary} />
     </g>
   );
 }
@@ -1966,6 +2006,8 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   // Unused here; compared by the memo so the motif redraws when the view turns.
   camera?: Camera;
 }) {
+  // The grand landmarks draw themselves, stage by stage (landmarks.tsx).
+  if (motifOf(t) === 'landmark') return <Landmark t={t} p={p} developing={developing} />;
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
   if (!extending) return <BuildingMass t={t} p={p} material={material} vernacular={vernacular} developing={developing} glyphs={glyphs} />;
 
@@ -3069,6 +3111,24 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           inward={gableInward(col, row, w, h)}
           wallHeight={H} span={f.spanLeft} centreU={0.5} sideAt="u1" scale={0.8}
         />
+      )}
+      {/* The roof parts that read (Plan 25): a dining hall's kitchen flues,
+          a tall residence's balconies, a civic building's flag. */}
+      {!site && t.facilityType === 'diningHall' && [0.22, 0.34].map((u) => {
+        const sp = across(0.8);
+        const st = boxFaces(col + w * u, row + h * 0.1, sp, sp, H, up(3.5));
+        return (
+          <g key={`flue${u}`}>
+            {sideFaces(st, shade(pal.wallLeft, 0.8), shade(pal.wallLeft, 0.66))}
+            <polygon points={polyPoints(st.top)} fill={shade(roofTint, 0.4)} />
+          </g>
+        );
+      })}
+      {!site && motif === 'residential' && storeysOf(t) >= 4 && (
+        <Balconies f={f} storeys={storeysOf(t)} height={H} tone={stone.trim} />
+      )}
+      {!site && (t.facilityType === 'library' || t.facilityType === 'performingArtsCenter') && (
+        <RoofFlag at={lift(project(col + w * 0.82, row + h * 0.82), H)} />
       )}
       {/* Chapter letters over both doors, last: the pediment rises above
           the eaves, so anything drawn later would cover it. */}

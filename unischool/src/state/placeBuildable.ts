@@ -29,6 +29,11 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
         s.placements[node.id] = placement;
         fellTrees(s.trees, placement);
         startDevelopment(s, node);
+        // One grand landmark to a college: the other two close for good
+        // (techSystem.ts's landmarkChosen keeps them closed).
+        if (node.facilityType === 'landmark') {
+          for (const other of s.tech) if (other.facilityType === 'landmark' && other.id !== node.id && other.status === 'available') other.status = 'locked';
+        }
       }
       settleOpening(s); // the walkthrough's first step ends on Founders Hall standing
     }

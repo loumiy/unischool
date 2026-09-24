@@ -10,6 +10,10 @@ import { FOUNDERS_HALL_ID, initialTech, programById, programs } from '../src/dat
 import { schoolMark } from '../src/data/schoolPalette';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
+import { reducer } from '../src/engine/reducer';
+import { GRAND_LANDMARK_IDS } from '../src/data/facilitiesData';
+import { milestoneForBuildable } from '../src/data/ladderData';
+import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 
 bindScriptStream(2525);
 const store = new Map<string, string>();
@@ -77,6 +81,29 @@ function withHall(slots: (string | null)[]): GameState {
   const plain = labs.filter((t) => motifOf(t) === 'works' && labFeatureOf(t) === undefined).map((t) => t.id);
   assert(plain.length <= 1, `at most one lab is left a plain works building (${plain.join(', ')})`);
   assert(labFeatureOf(labs.find((t) => t.id === 'LAB-PHYS')!) === 'observatory', 'physics has its observatory');
+}
+
+// ---- Grand landmarks: a national name opens three; building one closes two ----
+{
+  let s = createInitialState('Landmarks');
+  s.pendingInterrupt = null;
+  const status = (id: string) => s.tech.find((t) => t.id === id)!.status;
+  assert(GRAND_LANDMARK_IDS.length === 3 && GRAND_LANDMARK_IDS.every((id) => milestoneForBuildable(id) === 'national'), 'three landmarks, all behind "A national name"');
+  assert(GRAND_LANDMARK_IDS.every((id) => status(id) === 'locked'), 'locked at founding');
+  assert(GRAND_LANDMARK_IDS.every((id) => s.tech.find((t) => t.id === id)!.effects?.satisfactionAttribute === undefined), 'and off the harness\'s path: no satisfaction attribute');
+  s.self.reputation = 95;
+  s = reducer(s, { type: 'TICK' });
+  s.pendingInterrupt = null;
+  assert(GRAND_LANDMARK_IDS.every((id) => status(id) === 'available'), 'prestige 95 opens all three');
+  s.finance.cash = 1e9;
+  const gate = s.tech.find((t) => t.id === 'LANDMARK-GATE')!;
+  const spot = firstFreeSpot(s, gate, footprintOf(gate))!;
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: gate.id, row: spot.row, col: spot.col, rotated: false });
+  assert(status('LANDMARK-GATE') === 'developing', 'the gate goes up');
+  assert(status('LANDMARK-DOME') === 'locked' && status('LANDMARK-CAMPANILE') === 'locked', 'and the other two close');
+  s.pendingInterrupt = null;
+  s = reducer(s, { type: 'TICK' });
+  assert(status('LANDMARK-DOME') === 'locked', 'and stay closed');
 }
 
 if (failures === 0) {
