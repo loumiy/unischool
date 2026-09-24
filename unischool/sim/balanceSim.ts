@@ -761,6 +761,9 @@ export interface Row {
   year: number; cash: number; enrolled: number; capacity: number; prestige: number;
   rank: number; // national rank at the boundary (rivalsSystem.ts's playerRank)
   opex: number; net: number; satisfaction: number; courses: number; majors: number;
+  // The week's endowment payout and annual fund, inside `net`: the scorecard
+  // reads the operating margin without them (Plan 35, V1-25).
+  payout?: number; fund?: number;
   faculty: number; tuition: number; applicants: number; admitRate: number;
   endowment: number; weeksInTheRed: number; minCash: number;
   // `social` and `academic` alone: the headline blends four attributes.
@@ -822,6 +825,8 @@ function snapshot(
     rank: playerRank(s),
     opex: flow.totalExpenses,
     net: flow.net,
+    payout: flow.endowmentPayout,
+    fund: flow.annualFund,
     satisfaction: s.students.satisfaction,
     courses: s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length,
     majors: Object.keys(s.milestones).filter((k) => k.startsWith('program-established:')).length,

@@ -40,11 +40,30 @@ const YEARS = 50;
 let findings = 0;
 let strategiesWithoutBands = 0;
 
+// The guardrails as gates (Plan 35; sim/guardrails.ts reports them across
+// seeds): read here on the default seed, off the runs this suite plays.
+const STOPS_PER_YEAR_MAX = 12; // v2's complaint was too many stops
+const SATURATED = 95;          // satisfaction at or above this reads as maxed out
+const IDLE = 'Idle (builds nothing)';
+const BUILT_TO_FAIL = new Set(['Overbuilder (beds ahead of demand)']);
+const finalRank = new Map<string, number>();
+let gateFailures = 0;
+function gate(ok: boolean, msg: string): void {
+  if (ok) return;
+  gateFailures += 1;
+  console.log(`  ✗ guardrail: ${msg}`);
+}
+
 console.log('balance scorecard');
 console.log(`  ${STRATEGIES.length} strategies, ${YEARS} years, seed ${DEFAULT_SIM_SEED}`);
 
 for (const strategy of STRATEGIES) {
-  const { rows } = play(strategy, YEARS);
+  const { rows, tally } = play(strategy, YEARS);
+  const stops = Object.values(tally.modals).reduce((a, b) => a + b, 0) / YEARS;
+  gate(stops <= STOPS_PER_YEAR_MAX, `${strategy.name} stops ${stops.toFixed(1)} times a year (at most ${STOPS_PER_YEAR_MAX})`);
+  const saturated = rows.filter((r) => r.satisfaction >= SATURATED).length;
+  gate(saturated === 0, `${strategy.name} has ${saturated} year(s) at or above ${SATURATED} satisfaction`);
+  finalRank.set(strategy.name, rows[rows.length - 1].rank);
   if (!bandsFor(strategy.name)) {
     strategiesWithoutBands += 1;
     console.log(`  · ${strategy.name}: no bands recorded — run \`npm run sim -- --write-reference\``);
@@ -81,4 +100,12 @@ if (findings === 0) {
   console.log(`\n  ${findings} figure(s) out of band. Reported, not failed — see the header.`);
 }
 
-process.exit(REPORT_ONLY ? 0 : (findings === 0 && strategiesWithoutBands === 0 ? 0 : 1));
+// The idle college outranks nothing that tries, bar the one built to fail.
+const idleRank = finalRank.get(IDLE);
+if (idleRank !== undefined) {
+  const beaten = [...finalRank].filter(([name, rank]) => name !== IDLE && !BUILT_TO_FAIL.has(name) && rank > idleRank).map(([name]) => name);
+  gate(beaten.length === 0, `the idle college (#${idleRank}) outranks ${beaten.join(', ')}`);
+}
+if (gateFailures === 0) console.log('  ✓ the guardrails hold: stops, saturation, and the idle college');
+
+process.exit(REPORT_ONLY ? 0 : (findings === 0 && strategiesWithoutBands === 0 && gateFailures === 0 ? 0 : 1));

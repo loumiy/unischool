@@ -46,9 +46,15 @@ export interface Band { lo: number; hi: number }
 export type ReferenceRow = { year: number } & Record<Metric, Band>;
 export type Reference = Record<string, ReferenceRow[]>;
 
-// Net weekly margin as a share of weekly operating cost; 0 when opex is 0.
+// The operating margin: the week's net less the endowment payout and the
+// annual fund, as a share of weekly operating cost; 0 when opex is 0. The
+// metric kept its name when Plan 35 took the endowment out of it (V1-25):
+// the headline margin rose to 70% late in a run because the harness moves
+// every spare dollar into the endowment, whose payout comes back as income.
+// A rows file from before Plan 35 has no payout or fund, and reads as the
+// headline margin.
 export function netMargin(row: Row): number {
-  return row.opex > 0 ? row.net / row.opex : 0;
+  return row.opex > 0 ? (row.net - (row.payout ?? 0) - (row.fund ?? 0)) / row.opex : 0;
 }
 
 export function metricOf(row: Row, metric: Metric): number {
@@ -208,19 +214,11 @@ export const TARGETS: Reference = {
     { year: 10, cash: { lo: -2_000_000, hi: 40_000_000 }, enrolled: { lo: 4_000, hi: 16_000 }, prestige: { lo: 55, hi: 95 }, rank: { lo: 12, hi: 60 }, netMargin: { lo: 0.05, hi: 0.5 }, weeksInTheRed: { lo: 0, hi: 120 } },
     { year: 20, cash: { lo: -5_000_000, hi: 300_000_000 }, enrolled: { lo: 8_000, hi: 32_000 }, prestige: { lo: 80, hi: 140 }, rank: { lo: 1, hi: 20 }, netMargin: { lo: -0.05, hi: 0.4 }, weeksInTheRed: { lo: 0, hi: 200 } },
     { year: 35, cash: { lo: -20_000_000, hi: 2_000_000_000 }, enrolled: { lo: 12_000, hi: 40_000 }, prestige: { lo: 100, hi: 150 }, rank: { lo: 1, hi: 8 }, netMargin: { lo: -0.05, hi: 0.2 }, weeksInTheRed: { lo: 0, hi: 400 } },
-    // Year 50's margin ceiling was 30% until Plan 29: retirement hands back
-    // each long-serving professor's seniority premium, and the successor
-    // starts at a junior salary, so a well-run college's late payroll
-    // falls. Measured at 26%, 32% and 13% on the three seeds (8%, 14% and
-    // 25% before). Plan 30's annual fund added alumni giving on top, and the
-    // default seed read 42%: the ceiling is 45%. That is twice in two plans
-    // the late margin has risen; Phase N owns it (V1-25). Plan 32 retired
-    // the texture events the harness paid for in full (a roof, a boiler, a
-    // storm), and the catalogue's defaults cost little: cash piles up by
-    // year 27 rather than 39, the harness's sink moves it into the
-    // endowment, and the payout carries the margin to 69%. The ceiling is
-    // 75%. Phase L's late capital projects are the spending this lacks.
-    { year: 50, cash: { lo: -20_000_000, hi: 5_000_000_000 }, enrolled: { lo: 15_000, hi: 42_000 }, prestige: { lo: 110, hi: 150 }, rank: { lo: 1, hi: 5 }, netMargin: { lo: 0, hi: 0.75 }, weeksInTheRed: { lo: 0, hi: 500 } },
+    // Year 50's margin was read with the endowment's payout in it until
+    // Plan 35, and its ceiling had risen to 75% (Plans 29, 30 and 32). The
+    // operating margin (netMargin above) is 1–3% from Year 15 on, and the
+    // band is the mature college's.
+    { year: 50, cash: { lo: -20_000_000, hi: 5_000_000_000 }, enrolled: { lo: 15_000, hi: 42_000 }, prestige: { lo: 110, hi: 150 }, rank: { lo: 1, hi: 5 }, netMargin: { lo: -0.05, hi: 0.2 }, weeksInTheRed: { lo: 0, hi: 500 } },
   ],
   'Idle (builds nothing)': [
     { year: 5, cash: { lo: 0, hi: 50_000_000 }, enrolled: { lo: 0, hi: 480 }, prestige: { lo: 5, hi: 45 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 100 } },

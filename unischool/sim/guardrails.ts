@@ -94,3 +94,23 @@ for (const [name, rs] of readings) {
   const last = rs.map((r) => r.rows.at(-1)).filter((r): r is Row => r !== undefined);
   console.log(`   ${name.padEnd(40)} prestige ${range(last.map((r) => r.prestige)).padStart(9)}   cash ${range(last.map((r) => r.cash / 1e6))}`);
 }
+
+// 6. Pacing (Plan 35): when a strategy first leads the field, when its
+// catalogue is four-fifths built, how long money held it in the founding
+// decade, and how much of the last decade it spent at the top. The design's
+// eras (docs/design/progression.md) put the building at years 12–35.
+const PACE_FOUNDING = 10;
+const PACE_LAST_DECADE = 10;
+console.log('\n6. pacing (first year at #1; catalogue 80% built; weeks blocked by money in years 1–10; years at #1 in the last decade)');
+for (const [name, rs] of readings) {
+  const at = (p: (row: Row) => boolean) => rs.map((r) => r.rows.find(p)?.year ?? Infinity);
+  const firstTop = at((row) => row.rank === 1);
+  const built = rs.map((r) => {
+    const most = Math.max(...r.rows.map((row) => row.courses));
+    return r.rows.find((row) => row.courses >= 0.8 * most)?.year ?? Infinity;
+  });
+  const blocked = rs.map((r) => r.rows.filter((row) => row.year <= PACE_FOUNDING).reduce((t, row) => t + row.blockedWeeks, 0));
+  const held = rs.map((r) => r.rows.filter((row) => row.year > years - PACE_LAST_DECADE && row.rank === 1).length);
+  const yr = (xs: number[]) => (xs.every((x) => x === Infinity) ? 'never' : range(xs.map((x) => (x === Infinity ? years + 1 : x))));
+  console.log(`   ${name.padEnd(40)} #1 ${yr(firstTop).padStart(7)}   built ${yr(built).padStart(7)}   blocked ${range(blocked).padStart(7)}   held ${range(held)}/${PACE_LAST_DECADE}${flag(Math.min(...firstTop) < 12)}`);
+}
