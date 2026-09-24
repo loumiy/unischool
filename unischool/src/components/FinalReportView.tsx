@@ -1,10 +1,9 @@
 import type { GameState } from '../state/types';
-import { SEMICENTENNIAL_YEAR } from '../state/types';
 import type { FinalReport } from '../state/finalReport';
 import { founderFigures } from '../state/finalReport';
 import { REPORT_WORDS } from '../data/reportData';
 import { STANDINGS } from '../systems/rivals/rivalsSystem';
-import { HistoryChart } from './HistoryChart';
+import { MultiChart } from './MultiChart';
 import HelpHint from './HelpHint';
 
 // The Final Report (Plan 33, state/finalReport.ts), as the fiftieth summer
@@ -17,7 +16,6 @@ const fill = (t: string, vars: Record<string, string | number>) => t.replace(/\{
 export default function FinalReportView({ s, report }: { s: GameState; report: FinalReport }) {
   const figures = founderFigures(s);
   const rows = s.history.filter((h) => h.standingValues !== undefined);
-  const years = rows.map((h) => h.year);
   return (
     <div className="final-report">
       <h3 className="final-report-title">{report.title}</h3>
@@ -61,22 +59,16 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
         <div><dt>National titles</dt><dd>{figures.titles.toLocaleString()}</dd></div>
       </dl>
 
-      {years.length >= 2 && (
-        <>
-          <h4>{REPORT_WORDS.chart}</h4>
-          <div className="history-charts final-report-charts">
-            {STANDINGS.map(({ axis, label }) => (
-              <HistoryChart
-                key={axis}
-                label={label}
-                span={SEMICENTENNIAL_YEAR}
-                years={years}
-                values={rows.map((h) => (h.standingValues![axis] ?? 0) / 1.5)}
-                format={(v) => `${Math.round(v)}`}
-              />
-            ))}
-          </div>
-        </>
+      {rows.length >= 2 && (
+        <MultiChart
+          title={REPORT_WORDS.chart}
+          yMin={0}
+          yMax={100}
+          series={STANDINGS.map(({ axis, label }) => ({
+            name: label,
+            points: rows.map((h) => ({ x: h.year, y: (h.standingValues![axis] ?? 0) / 1.5 })),
+          }))}
+        />
       )}
     </div>
   );

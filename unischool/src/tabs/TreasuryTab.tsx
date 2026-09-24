@@ -9,7 +9,8 @@ import {
 import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
-import { money } from '../format';
+import { money, moneyShort } from '../format';
+import { MultiChart } from '../components/MultiChart';
 import EstatePanel from './EstatePanel';
 import EndowmentPanel from './EndowmentPanel';
 import { debtOutstanding, drawRate } from '../systems/finance/treasury';
@@ -207,6 +208,19 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           </dl>
         </section>
       </div>
+      {s.history.length >= 2 && (
+        <section className="panel">
+          <h2>Over the Years</h2>
+          <MultiChart
+            title="The endowment and the year's net"
+            series={[
+              { name: 'Endowment', points: s.history.filter((h) => h.endowment !== undefined).map((h) => ({ x: h.year, y: h.endowment! })), format: moneyShort },
+              { name: 'Net', points: s.history.map((h) => ({ x: h.year, y: h.net })), format: moneyShort },
+            ]}
+            note="Read each summer. The net is the year's change in cash on hand, so a year that built something big reads low."
+          />
+        </section>
+      )}
       <EndowmentPanel s={s} act={act} />
       <EstatePanel s={s} act={act} />
     </div>

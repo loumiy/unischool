@@ -5,6 +5,7 @@ import type { GameState, YearSnapshot } from '../state/types';
 import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
+import { MultiChart } from '../components/MultiChart';
 import { moneyShort } from '../format';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
@@ -315,6 +316,14 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             values={history.map((h) => h.prestige)}
             format={(v) => `${Math.round(v)}`}
             note="A slow-moving stock: it drifts a little each week toward a target set by curriculum breadth, selectivity, student quality, faculty and research."
+          />
+          <MultiChart
+            title="Place in the guide, by year"
+            invert
+            yMin={1}
+            yMax={s.rivals.length + 1}
+            series={[{ name: 'Rank', points: history.map((h) => ({ x: h.year, y: h.rank })), format: (v) => `#${Math.round(v)}` }]}
+            note={`Of ${s.rivals.length + 1} colleges, on the academic table the rest of the game means by rank. One is the top of the chart.`}
           />
           <HistoryChart
             label="Enrollment"
