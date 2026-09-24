@@ -106,6 +106,9 @@ function fresh(year: number): GameState {
   const early = fresh(2);
   openSummerPromises(early);
   assert(promisesOf(early).offer === null, 'no promise in the founding years');
+  const ended = fresh(SEMICENTENNIAL_YEAR);
+  openSummerPromises(ended);
+  assert(promisesOf(ended).offer === null, 'nor once the run has ended');
   const s = fresh(10);
   openSummerPromises(s);
   const first = promisesOf(s).offer!.ids;

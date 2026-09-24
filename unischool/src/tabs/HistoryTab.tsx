@@ -8,9 +8,10 @@ import { HistoryChart } from '../components/HistoryChart';
 import { moneyShort } from '../format';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
-import { legacy } from '../state/legacy';
+import { finalReport } from '../state/finalReport';
+import { REPORT_WORDS } from '../data/reportData';
+import FinalReportView from '../components/FinalReportView';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
-import { LegacyAxes } from '../components/LegacyAxes';
 import {
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
   type StandingBreakdown, type StandingInput, type StandingReading,
@@ -175,39 +176,42 @@ function StandingPanel({ s }: { s: GameState }) {
 }
 
 // ---------------------------------------------------------------------
-// The legacy: six graded axes and a name. Sealed onto s.self.legacy at the
-// fiftieth summer; until then the same reading, taken live.
+// The Final Report (Plan 33): written at the fiftieth summer and kept for
+// good; until then the arc so far, in draft. The Epilogue's addenda follow.
 // ---------------------------------------------------------------------
-function LegacyPanel({ s }: { s: GameState }) {
-  const sealed = s.self.legacy;
-  const record = sealed ?? legacy(s);
+function FinalReportPanel({ s }: { s: GameState }) {
+  const written = s.ending?.report;
+  const report = written ?? finalReport(s);
+  const left = SEMICENTENNIAL_YEAR - s.clock.year;
   return (
     <section className="panel">
       <div className="panel-head">
         <div className="panel-head-title">
-          <h2>Legacy</h2>
-          <span className="panel-count">{sealed ? `sealed in year ${sealed.year}` : `as it stands in year ${s.clock.year}`}</span>
+          <h2>{REPORT_WORDS.title}</h2>
+          <span className="panel-count">{written ? `written in year ${written.year}` : `the arc to year ${s.clock.year}`}</span>
         </div>
-        <HelpHint
-          align="end"
-          text={`Six axes graded A to F from what the school has actually done, and a name from the pattern of grades. The record is sealed at the fiftieth summer's final report and nothing after it changes it; before then this is the reading as it stands today. Fifty years is the run; play continues past it.`}
-        />
+        <HelpHint align="end" text={REPORT_WORDS.markHint} />
       </div>
-      <p className="legacy-name">
-        {sealed
-          ? <>The record, sealed in the fiftieth year: <strong>{record.name}</strong>.</>
-          : <>Today the school would be called <strong>{record.name}</strong>. {SEMICENTENNIAL_YEAR - s.clock.year > 0 ? `${SEMICENTENNIAL_YEAR - s.clock.year} year${SEMICENTENNIAL_YEAR - s.clock.year === 1 ? '' : 's'} to the final report.` : 'The final report is filed this summer.'}</>}
-      </p>
-      <LegacyAxes axes={record.axes} />
+      {!written && (
+        <p className="review-empty">
+          {REPORT_WORDS.draft} {left > 0 ? `${left} year${left === 1 ? '' : 's'} to go.` : 'It is written this summer.'}
+        </p>
+      )}
+      <FinalReportView s={s} report={report} />
+      {(s.ending?.addenda ?? []).map((a) => (
+        <div key={a.from} className="final-report-addendum">
+          <h4>{REPORT_WORDS.addendum.replace('{from}', String(a.from)).replace('{to}', String(a.to))}</h4>
+          <p>{a.lines.join(' ')}</p>
+        </div>
+      ))}
     </section>
   );
 }
 
-// "Year 23 of 50" within the fifty years; past them, the year the record was
-// sealed (the clock keeps running, the record does not).
+// "Year 23 of 50" within the fifty years; past them, the Epilogue.
 function yearOfFifty(s: GameState): string {
   if (s.clock.year <= SEMICENTENNIAL_YEAR) return `Year ${s.clock.year} of ${SEMICENTENNIAL_YEAR}`;
-  return `Year ${s.clock.year} · the record sealed in year ${s.self.legacy?.year ?? SEMICENTENNIAL_YEAR}`;
+  return `Year ${s.clock.year} · the Epilogue`;
 }
 
 function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
@@ -257,7 +261,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
       <div className="tab-content">
         {/* Standing needs no history, so a first-year school still sees it. */}
         <StandingPanel s={s} />
-        <LegacyPanel s={s} />
+        <FinalReportPanel s={s} />
         <PromisesPanel s={s} />
       <ChroniclePanel s={s} />
         <ChroniclePanel s={s} />
@@ -286,7 +290,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
   return (
     <div className="tab-content">
       <StandingPanel s={s} />
-      <LegacyPanel s={s} />
+      <FinalReportPanel s={s} />
       <PromisesPanel s={s} />
       <section className="panel">
         <div className="panel-head">

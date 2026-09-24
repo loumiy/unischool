@@ -4,7 +4,8 @@
 // the game: nothing in src/ imports this.
 
 import type { play } from './balanceSim';
-import type { Legacy, LegacyAxisKey, LegacyGrade } from '../src/state/types';
+import type { Legacy, LegacyAxisKey, LegacyGrade } from './legacyReading';
+import type { FinalReport } from '../src/state/finalReport';
 import { SEMICENTENNIAL_YEAR, totalEnrolled } from '../src/state/types';
 import { isAcademicHall, milestoneSchools } from '../src/data/techData';
 
@@ -12,6 +13,7 @@ export const ENDPOINT_STRATEGIES = ['Earnest completionist', 'Balanced builder',
 
 export interface EndpointReading {
   legacy: Legacy | null;
+  report: FinalReport | null; // the Final Report the game wrote (Plan 33)
   grades: Partial<Record<LegacyAxisKey, LegacyGrade>>;
   catalogueShare: number;      // courses done / courses
   buildingsShare: number;      // placeable Buildables done / placeable Buildables (halls, dorms, facilities)
@@ -46,6 +48,7 @@ export function endpointReading(run: ReturnType<typeof play>): EndpointReading {
   const atOne = rows.filter((r) => r.rank === 1);
   return {
     legacy,
+    report: run.tally.report,
     grades,
     catalogueShare: courses.filter((t) => t.status === 'done').length / Math.max(1, courses.length),
     buildingsShare: placeable.filter((t) => t.status === 'done').length / Math.max(1, placeable.length),

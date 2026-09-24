@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------
 // The legacy (Plan 17's PR B): six graded axes and a name, read off state
-// at any moment (src/state/legacy.ts).
+// at any moment (sim/legacyReading.ts: a harness reading since Plan 33).
 //
 // What is pinned: that every axis is a 0..1 reading banded by one table;
 // that the three axes the standing already grades read the standing's own
@@ -15,10 +15,11 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
-import { AXES, LEGACY_GRADE_BANDS, LEGACY_NAMES, gradeOf, legacy, legacyName } from '../src/state/legacy';
+import { AXES, LEGACY_GRADE_BANDS, LEGACY_NAMES, gradeOf, legacyReading as legacy, legacyName } from '../sim/legacyReading';
 import { concentrationScore, curriculumBreadthScore, researchScore } from '../src/systems/prestige/prestigeSystem';
 import { graduatePrograms, milestoneSchools } from '../src/data/techData';
-import type { GameState, LegacyAxis, LegacyAxisKey, LegacyGrade } from '../src/state/types';
+import type { GameState } from '../src/state/types';
+import type { LegacyAxis, LegacyAxisKey, LegacyGrade } from '../sim/legacyReading';
 
 let checks = 0;
 let failures = 0;

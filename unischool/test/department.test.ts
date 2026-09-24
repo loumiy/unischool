@@ -22,7 +22,7 @@ import {
 import { VENUE_SEATS } from '../src/data/facilitiesData';
 import { attendanceFor, annualGateFor, venueSeats } from '../src/systems/athletics/gate';
 import { financeBreakdown } from '../src/systems/finance/financeSystem';
-import { legacy } from '../src/state/legacy';
+import { legacyReading as legacy } from '../sim/legacyReading';
 import { deriveCohortSignals, cohortBreakdown, athleticResultsFor } from '../src/systems/admissions/cohorts';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { Coach, GameState, StudentClub } from '../src/state/types';

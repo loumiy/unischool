@@ -4,13 +4,12 @@ import type { Action } from '../state/actions';
 import type {
   Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
 } from '../state/types';
-import { institutionName, SEMICENTENNIAL_YEAR, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
+import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { buildYearInReview } from '../state/yearInReview';
-import { legacy } from '../state/legacy';
-import { founderFigures } from '../state/finalReport';
-import { PromiseOffer, PromiseRecord } from '../tabs/PromisesPanel';
-import { HistoryChart } from './HistoryChart';
-import { LegacyAxes } from './LegacyAxes';
+import { finalReport } from '../state/finalReport';
+import { REPORT_WORDS } from '../data/reportData';
+import { PromiseOffer } from '../tabs/PromisesPanel';
+import FinalReportView from './FinalReportView';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
@@ -36,7 +35,7 @@ import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventPanel';
 import { eventById, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
-import { money, moneyShort, ordinal, signedPct } from '../format';
+import { money, ordinal, signedPct } from '../format';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -438,41 +437,18 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
   );
 }
 
-// The final report: the fiftieth summer's first beat, in place of the year in
-// review. Pure readings (state/legacy.ts, state/finalReport.ts, the history
-// record), taken exactly as RESOLVE_ADMISSIONS will seal them.
-// Read-and-continue: the run goes on.
+// The Final Report (Plan 33): the fiftieth summer's first beat, in place of
+// the year in review. A pure reading (state/finalReport.ts), taken exactly
+// as RESOLVE_ADMISSIONS will write it. Read-and-continue: the run goes on,
+// into the Epilogue.
 function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
-  const record = legacy(s);
-  const figures = founderFigures(s);
-  const years = s.history.map((h) => h.year);
+  const report = finalReport(s);
   return (
     <>
-      <div className="eyebrow final-report-eyebrow">The final report · year {SEMICENTENNIAL_YEAR}</div>
-      <h2>{institutionName(s.self)} is {record.name}.</h2>
-      <p>
-        Fifty years, and this is what they add up to. The record is sealed when this summer closes;
-        the clock keeps running for as long as you want to keep building.
-      </p>
-      <LegacyAxes axes={record.axes} />
-      <dl className="admissions-outcomes final-report-figures">
-        <div><dt>Students taught</dt><dd>{figures.studentsTaught.toLocaleString()}</dd></div>
-        <div><dt>Faculty who served</dt><dd>{figures.facultyServed.toLocaleString()}</dd></div>
-        <div><dt>Prizes</dt><dd>{figures.prizes.toLocaleString()}</dd></div>
-        <div><dt>National titles</dt><dd>{figures.titles.toLocaleString()}</dd></div>
-      </dl>
-      <section className="final-report-ambitions">
-        <h3>Promises</h3>
-        <PromiseRecord s={s} />
-      </section>
-      {years.length >= 2 && (
-        <div className="history-charts final-report-charts">
-          <HistoryChart label="Prestige" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.prestige)} format={(v) => `${Math.round(v)}`} />
-          <HistoryChart label="Enrollment" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.enrolled)} format={(v) => Math.round(v).toLocaleString()} />
-          <HistoryChart label="Operating funds" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => h.cash)} format={moneyShort} />
-          <HistoryChart label="Rank" span={SEMICENTENNIAL_YEAR} years={years} values={s.history.map((h) => -h.rank)} format={(v) => `#${Math.round(-v)}`} />
-        </div>
-      )}
+      <div className="eyebrow final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
+      <h2>{REPORT_WORDS.title}</h2>
+      <FinalReportView s={s} report={report} />
+      <p className="review-empty">{REPORT_WORDS.epilogue}</p>
       <button onClick={onContinue}>Continue →</button>
     </>
   );

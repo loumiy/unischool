@@ -1,3 +1,4 @@
+import type { FinalReport } from './finalReport';
 // Central type definitions. Every system reads and writes this shared state.
 // Keep this file authoritative: if a concept exists in the game, its shape lives here.
 
@@ -398,6 +399,11 @@ export interface QuadState {
   // Tile keys the player has marked: the open space under each is a quad
   // even where detection would not make it one.
   designated: string[];
+}
+
+export interface Ending {
+  report: FinalReport;
+  addenda: { from: number; to: number; lines: string[] }[];
 }
 
 // Promises (Plan 33). `offer` is this summer's, answered on the Review
@@ -843,9 +849,6 @@ export interface University {
   researchStanding: number;
   vernacular: Vernacular; // fixed at founding
   colors: SchoolColors;   // fixed at founding
-  // Written once at the fiftieth RESOLVE_ADMISSIONS (state/legacy.ts),
-  // before that summer changes anything, and never again. Null before.
-  legacy: Legacy | null;
   // Lifetime appointments including the founding five (appointFaculty).
   // Monotone; the final report's "faculty who served".
   facultyServed: number;
@@ -861,28 +864,6 @@ export interface ReportCard {
   grades: Record<string, number>;  // input key -> the contribution it was graded
   before: number;                  // prestige the morning of the report
   after: number;                   // prestige after the step
-}
-
-// The legacy: six graded axes and a name (state/legacy.ts), sealed onto
-// University.legacy at the fiftieth summer. Six grades rather than a score
-// so a run can be strong in one thing and weak in another; the name is
-// flavour chosen by the pattern of grades.
-export type LegacyGrade = 'A' | 'B' | 'C' | 'D' | 'F';
-export type LegacyAxisKey = 'breadth' | 'concentration' | 'teaching' | 'research' | 'reach' | 'stewardship' | 'campusLife';
-
-export interface LegacyAxis {
-  key: LegacyAxisKey;
-  label: string;
-  score: number;      // 0..1, before banding
-  grade: LegacyGrade;
-  detail: string;     // one line about what the reading actually read
-}
-
-export interface Legacy {
-  year: number;               // the year the reading was taken (the fiftieth, when sealed)
-  axes: LegacyAxis[];         // six, in a fixed order (see state/legacy.ts's AXES)
-  name: string;               // "a great research university" — the sentence the run is called
-  table: 'great' | 'sound' | 'troubled'; // which authored table the name came from
 }
 
 // The full display name; handles an empty suffix without a stray space.
@@ -1018,6 +999,10 @@ export interface GameState {
     // Every tag earned or shed, and the year (Plan 33's journal).
     log?: { id: string; year: number; earned: boolean }[];
   };
+  // The ending (Plan 33): the Final Report written at the fiftieth summer
+  // (state/finalReport.ts), and the Epilogue's addenda, a decade each.
+  // Undefined before the fiftieth summer closes.
+  ending?: Ending;
   // Promises (systems/promises/promises.ts): those open, those settled and
   // declined, and what this summer offers. Undefined before the first offer.
   promises?: PromiseState;

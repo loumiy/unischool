@@ -397,6 +397,22 @@ function sanitizeCatalogue(state: GameState): void {
   }
 }
 
+// The ending: a report missing its grades or its title is dropped whole,
+// and so is a malformed addendum.
+function sanitizeEnding(state: GameState): void {
+  const raw = state.ending as unknown;
+  if (raw === undefined) return;
+  const e = raw as { report?: { title?: unknown; axes?: unknown; mark?: unknown; year?: unknown }; addenda?: unknown };
+  const r = e.report;
+  const ok = typeof raw === 'object' && raw !== null && typeof r === 'object' && r !== null
+    && typeof r.title === 'string' && typeof r.mark === 'string' && Array.isArray(r.axes) && Number.isInteger(r.year);
+  if (!ok) { delete state.ending; return; }
+  state.ending!.addenda = Array.isArray(e.addenda)
+    ? e.addenda.filter((a): a is { from: number; to: number; lines: string[] } => typeof a === 'object' && a !== null
+      && Number.isInteger(a.from) && Number.isInteger(a.to) && Array.isArray(a.lines) && a.lines.every((l: unknown) => typeof l === 'string'))
+    : [];
+}
+
 // Promises: a malformed record is dropped whole; entries naming a promise
 // the game no longer has are dropped.
 function sanitizePromises(state: GameState): void {
@@ -593,8 +609,11 @@ export function loadGame(): GameState | null {
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);
   sanitizePromises(state);
-  // The achievements (retired in Plan 33) are dropped from older saves.
+  // The achievements and the legacy (retired in Plan 33) are dropped from
+  // older saves.
   delete (state as unknown as { ambitions?: unknown }).ambitions;
+  delete (state.self as unknown as { legacy?: unknown }).legacy;
+  sanitizeEnding(state);
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;

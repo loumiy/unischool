@@ -29,7 +29,10 @@ import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseRe
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
 import { conditionOf, renovationCost } from '../src/systems/estate/estate';
-import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, Legacy, SummerPayload } from '../src/state/types';
+import type { AthleticsBudgetTier, GameState, Buildable, InitiativeReport, SummerPayload } from '../src/state/types';
+import { SEMICENTENNIAL_YEAR } from '../src/state/types';
+import type { FinalReport } from '../src/state/finalReport';
+import { legacyReading, type Legacy } from './legacyReading';
 import { SUMMER_LAST_BEAT, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
@@ -898,6 +901,7 @@ export interface EventTally {
   titles: number; // championships won over the run (see systems/athletics/playoffs.ts)
   // The sealed record from the fiftieth summer, or null.
   legacy: Legacy | null;
+  report: FinalReport | null; // the Final Report the game wrote at the fiftieth summer
   // Every interrupt the run answered, by type: which modals the player
   // actually sees, as distinct from the texture line below.
   modals: Record<string, number>;
@@ -966,6 +970,7 @@ export function play(
     hellenicCouncilYear: null, hellenicCouncilEligibleYear: null, studentCenterYear: null,
     eventFireCounts: {}, varsityPetitions: 0, varsityGranted: 0, titles: 0,
     legacy: null,
+    report: null,
     modals: {},
   };
 
@@ -1017,15 +1022,18 @@ export function play(
         tally.titles += 1;
       }
 
+      // The legacy (sim/legacyReading.ts), a harness reading since Plan 33,
+      // taken as the fiftieth summer closes: the state the game's own seal
+      // read before it. The Final Report the game writes is kept beside it.
+      if (summerCloses && s.clock.year === SEMICENTENNIAL_YEAR && tally.legacy === null) tally.legacy = legacyReading(s);
+
       const before = s.finance.cash;
       if (answer) dispatch(answer);
 
       if (summerCloses) {
         rows.push(snapshot(s, weeksInTheRed, minCash, year));
         year = newYear();
-        // The record, the summer it is sealed, read off the state so the
-        // harness asserts against what a player was shown.
-        if (tally.legacy === null && s.self.legacy) tally.legacy = s.self.legacy;
+        if (tally.report === null && s.ending) tally.report = s.ending.report;
       }
       if (type === 'decision-event') {
         const taken = answer?.type === 'RESOLVE_DECISION_EVENT' && answer.eventId !== ''

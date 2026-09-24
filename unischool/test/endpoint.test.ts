@@ -5,7 +5,9 @@
 // Plays the four strategies Plan 17 §E names at the full fifty-year
 // horizon on the three seeds the reference is written from
 // (sim/reference.ts's REFERENCE_EXTRA_SEEDS beside the default), and
-// asserts how each FINISHES — off the legacy the fiftieth summer sealed,
+// asserts how each FINISHES — off the legacy read at the fiftieth summer
+// (sim/legacyReading.ts, a harness reading since Plan 33 retired it from the
+// game for the Final Report, which each run must also write),
 // the catalogue and the campus, and the rank curve
 // (sim/endpointReading.ts, which `npm run endpoint` prints).
 //
@@ -22,7 +24,7 @@
 import { play, STRATEGIES, DEFAULT_SIM_SEED } from '../sim/balanceSim';
 import { REFERENCE_EXTRA_SEEDS, REFERENCE_HORIZON } from '../sim/reference';
 import { endpointReading, describeEndpoint, type EndpointReading } from '../sim/endpointReading';
-import type { LegacyAxisKey, LegacyGrade } from '../src/state/types';
+import type { LegacyAxisKey, LegacyGrade } from '../sim/legacyReading';
 
 let checks = 0;
 let failures = 0;
@@ -65,6 +67,7 @@ const regional = runs('Regional engine');
 
 for (const [name, readings] of [['Earnest completionist', completionist], ['Balanced builder', balanced], ['Selective college', selective], ['Regional engine', regional]] as const) {
   every(name, readings, 'seals a legacy at the fiftieth summer', (r) => r.legacy !== null && r.legacy.year === 50);
+  every(name, readings, 'and the game writes its Final Report', (r) => r.report !== null && r.report.year === 50 && r.report.axes.length === 6);
 }
 
 // --- the earnest completionist ----------------------------------------------------

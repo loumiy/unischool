@@ -1,15 +1,16 @@
 // ---------------------------------------------------------------------
-// The semicentennial (Plan 17's PR C): the fiftieth summer's first beat is
-// the final report, the record is sealed once at that summer's boundary,
-// and play continues.
+// The semicentennial (Plan 17's PR C, Plan 33's PR G and H): the fiftieth
+// summer's first beat is the Final Report, which is written once at that
+// summer's boundary, and play continues into the Epilogue.
 //
 // What is pinned: that the summer raised on year fifty carries the `final`
 // flag and only then; that its first beat is a page while every other
-// summer's is wide; that RESOLVE_ADMISSIONS at year fifty writes
-// s.self.legacy exactly once, as the reading the beat showed, and logs it;
-// that the fifty-first summer is an ordinary one and cannot re-seal; that
-// the snapshot carries the graduating class and the founder's figures sum
-// it; and that the sealed record survives a save.
+// summer's is wide; that RESOLVE_ADMISSIONS at year fifty writes s.ending
+// exactly once, as the report the beat showed, and logs it; that the
+// fifty-first summer is an ordinary one and cannot rewrite it; that every
+// tenth summer after writes an addendum; that the snapshot carries the
+// graduating class and the founder's figures sum it; and that the written
+// report survives a save.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -18,8 +19,7 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { modalWidth } from '../src/components/modalLayout';
-import { legacy } from '../src/state/legacy';
-import { founderFigures } from '../src/state/finalReport';
+import { finalReport, founderFigures } from '../src/state/finalReport';
 import { loadGame, saveGame, clearSave } from '../src/state/persistence';
 import { appointFaculty } from '../src/systems/faculty/facultySystem';
 import type { GameState, SummerPayload } from '../src/state/types';
@@ -81,7 +81,7 @@ console.log('semicentennial tests');
   assert(payloadOf(s).final === undefined, 'and is not the final report');
   assert(modalWidth(s.pendingInterrupt!) === 'wide', 'its review is wide');
   const after = throughSummer(s);
-  assert(after.self.legacy === null, 'and seals nothing');
+  assert(after.ending === undefined, 'and writes nothing');
 }
 
 // --- the fiftieth summer ------------------------------------------------------------
@@ -90,29 +90,38 @@ console.log('semicentennial tests');
   assert(s.clock.year === SEMICENTENNIAL_YEAR && payloadOf(s).beat === 0, 'the fiftieth summer opens on its first beat');
   assert(payloadOf(s).final === true, 'and it is the final report');
   assert(modalWidth(s.pendingInterrupt!) === 'page', 'the final report is a page');
-  assert(s.self.legacy === null, 'the record is not sealed while the report is on screen');
+  assert(s.ending === undefined, 'the report is not written while it is on screen');
 
-  const shown = legacy(s);
+  const shown = finalReport(s);
   const b1 = reducer(s, { type: 'RESOLVE_SUMMER_BEAT' });
   assert(payloadOf(b1).beat === 1 && modalWidth(b1.pendingInterrupt!) === 'wide', 'Admissions follows (Plan 33 dropped the Standing beat)');
-  assert(b1.self.legacy === null, 'still unsealed between beats');
+  assert(b1.ending === undefined, 'nor between beats');
   assert(payloadOf(b1).final === true, 'the flag rides through the beats');
 
   const after = throughSummer(s);
   assert(after.clock.year === SEMICENTENNIAL_YEAR + 1, 'the calendar turns to year fifty-one');
-  assert(after.self.legacy !== null, 'the record is sealed at the boundary');
-  assert(JSON.stringify(after.self.legacy) === JSON.stringify(shown), 'and it is exactly the reading the report showed');
-  assert(after.self.legacy!.year === SEMICENTENNIAL_YEAR, 'stamped with the fiftieth year');
-  assert(after.log.some((e) => e.message.includes('The record is sealed')), 'the log says so');
+  assert(after.ending !== undefined, 'the report is written at the boundary');
+  assert(JSON.stringify(after.ending!.report) === JSON.stringify(shown), 'and it is exactly the report the beat showed');
+  assert(after.ending!.report.year === SEMICENTENNIAL_YEAR, 'dated the fiftieth year');
+  assert(after.ending!.report.axes.length === 6 && ['A', 'B', 'C', 'D', 'F'].includes(after.ending!.report.mark), 'six standings graded, and a mark');
+  assert(after.ending!.report.title.startsWith(after.ending!.report.college), `a title that names the college ("${after.ending!.report.title}")`);
+  assert(after.log.some((e) => e.message.includes('The Final Report')), 'the log says so');
   assert(after.history[after.history.length - 1].year === SEMICENTENNIAL_YEAR, 'the fiftieth row is filed like any other');
   assert(after.pendingInterrupt === null, 'and the clock runs on');
 
-  // The fifty-first summer is an ordinary one, and cannot re-seal.
-  const sealed = after.self.legacy;
+  // The fifty-first summer is an ordinary one, and cannot rewrite it.
+  const written = after.ending!.report;
   const next = toSummer(after);
   assert(payloadOf(next).final === undefined, 'the fifty-first summer is not a final report');
-  const later = throughSummer(next);
-  assert(JSON.stringify(later.self.legacy) === JSON.stringify(sealed), 'and the record it carries is the one sealed at fifty, untouched');
+  let later = throughSummer(next);
+  assert(JSON.stringify(later.ending!.report) === JSON.stringify(written), 'and the report it carries is the one written at fifty, untouched');
+  // The Epilogue: an addendum at the sixtieth summer, for the decade.
+  for (let y = SEMICENTENNIAL_YEAR + 2; y < SEMICENTENNIAL_YEAR + 10; y++) later = throughSummer(toSummer(later));
+  assert(later.ending!.addenda.length === 0, 'no addendum before the decade is out');
+  later = throughSummer(toSummer(later));
+  const addendum = later.ending!.addenda[0];
+  assert(later.ending!.addenda.length === 1 && addendum.from === SEMICENTENNIAL_YEAR + 1 && addendum.to === SEMICENTENNIAL_YEAR + 10, 'the sixtieth summer writes the decade\'s addendum');
+  assert(addendum.lines[0] === `Years ${SEMICENTENNIAL_YEAR + 1} to ${SEMICENTENNIAL_YEAR + 10}.`, `in the chronicle's sentences (${addendum.lines.join(' ')})`);
 }
 
 // --- the founder's figures ---------------------------------------------------------
@@ -130,13 +139,20 @@ console.log('semicentennial tests');
   assert(figures.facultyServed === 6 && figures.prizes === 0 && figures.titles === 0, 'the other three read the tallies they name');
 }
 
-// --- the sealed record survives a save -------------------------------------------------
+// --- the written report survives a save ------------------------------------------------
 {
   clearSave();
   const after = throughSummer(toSummer(inYear(SEMICENTENNIAL_YEAR)));
-  assert(saveGame(after), 'a sealed run saves');
+  assert(saveGame(after), 'a finished run saves');
   const loaded = loadGame();
-  assert(loaded !== null && JSON.stringify(loaded.self.legacy) === JSON.stringify(after.self.legacy), 'and the record comes back byte for byte');
+  assert(loaded !== null && JSON.stringify(loaded.ending) === JSON.stringify(after.ending), 'and the report comes back byte for byte');
+  (after as unknown as { ending: unknown }).ending = { report: 'nonsense' };
+  saveGame(after);
+  assert(loadGame()!.ending === undefined, 'a malformed ending is dropped');
+  (after.self as unknown as { legacy: unknown }).legacy = { name: 'old' };
+  delete after.ending;
+  saveGame(after);
+  assert(!('legacy' in loadGame()!.self), 'the retired legacy is dropped from older saves');
 }
 
 console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);
