@@ -1171,8 +1171,11 @@ export default function CampusMap({
     if (!t) return;
     const fp = t.status === 'done' ? footprintOf(t) : orientedFootprint(t, rotated);
     if (!canPlace(s, t, row, col, fp)) return;
-    if (t.status === 'done' ? !awaitsSite(s, t) : !canStartDevelopment(s, t)) return;
-    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated });
+    // A building the cash cannot cover is borrowed for when the tile offered
+    // it (BuildPopup.tsx): the loan is the shortfall (finance/treasury.ts).
+    const borrow = t.status !== 'done' && !canStartDevelopment(s, t) && canStartDevelopment(s, t, undefined, true);
+    if (t.status === 'done' ? !awaitsSite(s, t) : !canStartDevelopment(s, t, undefined, borrow)) return;
+    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated, ...(borrow ? { borrow: true } : {}) });
     selectBuilding(null);
     setHover(null);
   };

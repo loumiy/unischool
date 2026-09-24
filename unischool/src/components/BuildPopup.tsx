@@ -15,7 +15,9 @@ import {
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, ToolsIcon,
 } from './icons';
-import { money } from '../format';
+import { money, moneyShort } from '../format';
+import { LOAN_RATE, LOAN_YEARS, loanFor } from '../systems/finance/treasury';
+import { constructionFrozen } from '../systems/finance/distress';
 
 // The build menu: every physical building the university can have, as a
 // row of category icons over a horizontal strip of building tiles. A wide
@@ -419,15 +421,21 @@ function BuildTile({
   }
 
   // Available. Enabled exactly when canStartDevelopment (the reducer's own
-  // PLACE_BUILDABLE gate) allows it. Clicking only arms the pickup; dragging
+  // PLACE_BUILDABLE gate) allows it, paid in cash or with a loan. Clicking only arms the pickup; dragging
   // onto the map arms and drops in one gesture.
   const shortfall = t.cost - s.finance.cash;
-  const disabledReason = shortfall > 0
-    ? `${money(Math.ceil(shortfall))} short.`
-    : missingFaculty
-      ? `No free ${t.requiresFaculty} slot.`
-      : undefined;
-  const startable = canStartDevelopment(s, t);
+  // Short of cash, a building can be borrowed for (finance/treasury.ts).
+  const loan = !canStartDevelopment(s, t) && canStartDevelopment(s, t, undefined, true) ? loanFor(s, t.cost) : 0;
+  const disabledReason = loan > 0
+    ? `Borrows ${money(loan)}, repaid over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`
+    : constructionFrozen(s)
+      ? 'The board has frozen construction.'
+      : shortfall > 0
+        ? `${money(Math.ceil(shortfall))} short.`
+        : missingFaculty
+          ? `No free ${t.requiresFaculty} slot.`
+          : undefined;
+  const startable = canStartDevelopment(s, t) || loan > 0;
   const armed = placingId === t.id;
   const detail = builtDetail(t);
   return (
@@ -457,6 +465,7 @@ function BuildTile({
             ? 'already paid · place it'
             : <>{t.cost > 0 ? `${money(t.cost)} · ` : ''}{t.duration}w</>}
       </span>
+      {loan > 0 && !armed && <span className="build-tile-note">borrow {moneyShort(loan)}</span>}
       {t.requiresFaculty && <span className="build-tile-note">needs {t.requiresFaculty}</span>}
     </button>
   );
@@ -677,7 +686,10 @@ export default function BuildPopup({
           <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
         </div>
 
-        {s.finance.cash < 0 && (
+        {constructionFrozen(s) && (
+          <p className="stall-note">The board has frozen new construction until the college has run two surplus terms with cash in the bank.</p>
+        )}
+        {s.finance.cash < 0 && !constructionFrozen(s) && (
           <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
         )}
 

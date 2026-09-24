@@ -1,4 +1,5 @@
-import type { FacilityType, GameState, HallSlot, Pathways, Placement, Trees } from './types';
+import type { FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Trees } from './types';
+import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
@@ -171,9 +172,43 @@ function sanitizeDressing(state: GameState): void {
 // Estate hygiene, run on every load: a funding level outside 0 to 1, or a
 // backlog or renovation count that is not a finite non-negative number, is
 // dropped rather than compounded.
+// The distress ladder: optional, and a malformed one is dropped whole (the
+// college is then Sound, with no history) rather than half-read.
+function sanitizeDistress(state: GameState): void {
+  const d = state.finance.distress as unknown;
+  if (d === undefined) return;
+  const ok = typeof d === 'object' && d !== null && (() => {
+    const x = d as Record<string, unknown>;
+    const num = (k: string) => typeof x[k] === 'number' && Number.isFinite(x[k]);
+    return Number.isInteger(x.rung) && (x.rung as number) >= 0 && (x.rung as number) <= 5
+      && ['termsAtRung', 'confidence', 'termNet', 'surplusRun', 'deficitRun', 'receivershipTermsLeft'].every(num)
+      && Array.isArray(x.letters) && x.letters.every((l) => typeof l === 'string')
+      && Array.isArray(x.scars) && x.scars.every((y) => Number.isInteger(y));
+  })();
+  if (!ok) delete state.finance.distress;
+}
+
 function sanitizeEstate(state: GameState): void {
   const f = state.finance.maintenanceFunding;
   if (f !== undefined && !(Number.isFinite(f) && f >= 0 && f <= 1)) delete state.finance.maintenanceFunding;
+  const loans = state.finance.loans as unknown;
+  if (loans !== undefined) {
+    const valid = Array.isArray(loans)
+      ? loans.filter((l): l is Loan => typeof l === 'object' && l !== null
+        && typeof l.buildingId === 'string'
+        && Number.isFinite(l.balance) && l.balance >= 0
+        && Number.isFinite(l.payment) && l.payment >= 0
+        && Number.isInteger(l.weeksLeft) && l.weeksLeft > 0)
+      : [];
+    if (valid.length > 0) state.finance.loans = valid;
+    else delete state.finance.loans;
+  }
+  sanitizeDistress(state);
+  const d = state.finance.drawRate;
+  if (d !== undefined) {
+    if (typeof d !== 'number' || !Number.isFinite(d)) delete state.finance.drawRate;
+    else state.finance.drawRate = clampDrawRate(d);
+  }
   for (const t of state.tech) {
     if (t.backlog !== undefined && !(Number.isFinite(t.backlog) && t.backlog >= 0)) delete t.backlog;
     if (t.renovationWeeks !== undefined && !(Number.isInteger(t.renovationWeeks) && t.renovationWeeks >= 0)) delete t.renovationWeeks;

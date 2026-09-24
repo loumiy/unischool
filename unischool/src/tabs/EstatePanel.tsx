@@ -7,6 +7,7 @@ import {
 import HelpHint from '../components/HelpHint';
 import { money, pct } from '../format';
 import { beautyTerms } from '../systems/estate/beauty';
+import { boardHoldsBudget } from '../systems/finance/distress';
 
 // The estate (systems/estate): how much of the buildings' upkeep is paid,
 // what the rest has cost them, and the buildings most in need. Renovation
@@ -25,6 +26,8 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
     .slice(0, WORST_SHOWN);
   const setFunding = (level: number) => act({ type: 'SET_MAINTENANCE_FUNDING', level });
   const beauty = beautyTerms(s);
+  // Under austerity and receivership the board sets it (finance/distress.ts).
+  const held = boardHoldsBudget(s);
   return (
     <section className="panel estate-panel">
       <div className="panel-head">
@@ -33,9 +36,9 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
       </div>
       <div className="estate-funding">
         <span>Maintenance funded</span>
-        <button type="button" className="panel-action small" aria-label="Fund less" disabled={funding <= 0} onClick={() => setFunding(funding - MAINTENANCE_FUNDING_STEP)}>−</button>
+        <button type="button" className="panel-action small" aria-label="Fund less" disabled={held || funding <= 0} onClick={() => setFunding(funding - MAINTENANCE_FUNDING_STEP)}>−</button>
         <strong>{pct(funding)}</strong>
-        <button type="button" className="panel-action small" aria-label="Fund more" disabled={funding >= 1} onClick={() => setFunding(funding + MAINTENANCE_FUNDING_STEP)}>+</button>
+        <button type="button" className="panel-action small" aria-label="Fund more" disabled={held || funding >= 1} onClick={() => setFunding(funding + MAINTENANCE_FUNDING_STEP)}>+</button>
       </div>
       <dl>
         <dt>Campus beauty</dt>

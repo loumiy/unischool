@@ -78,7 +78,7 @@ export type Action =
   // START_DEVELOPMENT, and its (rotated) footprint is reserved from week one,
   // so it may not overlap anything done or under construction. Effects still
   // apply only on completion.
-  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean }
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean }
   // Decorative; the only check is that the tile is on the grid.
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
@@ -93,6 +93,9 @@ export type Action =
   // The estate (systems/estate): how much of the upkeep to pay, and paying
   // off one building's backlog under scaffolding.
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
+  | { type: 'SET_DRAW_RATE'; rate: number }
+  | { type: 'MOVE_TO_ENDOWMENT'; amount: number }
+  | { type: 'READ_BOARD_LETTER' }
   | { type: 'RENOVATE_BUILDING'; id: string }
   | { type: 'EXTEND_BUILDING'; id: string }
   | { type: 'DECLARE_HISTORIC'; id: string }

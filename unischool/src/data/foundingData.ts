@@ -24,7 +24,7 @@ export const STARTING_TUITION = 13_000;
 // closes a 40-year run around 38k, so a player at this number has left the
 // part of the curve the game is balanced over.
 export const TUITION_SLIDER_MAX = 100_000;
-export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (see financeSystem.ts's ENDOWMENT_PAYOUT_RATE)
+export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (at treasury.ts's DRAW_RATE_DEFAULT)
 
 // --- Founding class mix (see actions.ts's createInitialState) ----------
 // All four class years present and balanced, so there is a graduating class

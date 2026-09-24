@@ -6,6 +6,34 @@ export interface GameClock {
   week: number;      // 1..WEEKS_PER_YEAR
 }
 
+// The distress ladder (systems/finance/distress.ts): Sound, Tight, Deficit,
+// Freeze, Austerity, Receivership.
+export type DistressRung = 0 | 1 | 2 | 3 | 4 | 5;
+export interface Distress {
+  rung: DistressRung;
+  termsAtRung: number;
+  confidence: number;          // the board's, 0–100
+  termNet: number;             // this term's operating result so far
+  surplusRun: number;          // consecutive surplus terms
+  deficitRun: number;          // consecutive deficit terms
+  receivershipTermsLeft: number;
+  letters: string[];           // board letters not yet read, oldest first
+  scars: number[];             // the years receivership began
+  // The college's own maintenance and draw, held while the board sets them.
+  ownMaintenance?: number;
+  ownDrawRate?: number | null;
+  closedAt?: number;           // year * 100 + week of the last term closed
+}
+
+// One building's loan: what is still owed, the weekly payment that clears
+// it, and the weeks left to pay.
+export interface Loan {
+  buildingId: string;
+  balance: number;
+  payment: number;
+  weeksLeft: number;
+}
+
 export interface Finance {
   cash: number;          // liquid funds
   endowment: number;     // long-term reserve; pays a fixed share into income yearly (financeSystem.ts)
@@ -20,6 +48,14 @@ export interface Finance {
   // The share of the buildings' upkeep paid, 0 to 1 (systems/estate). What
   // goes unpaid becomes backlog. Undefined means all of it.
   maintenanceFunding?: number;
+  // The endowment's annual draw, 0.03 to 0.07 (systems/finance/treasury.ts).
+  // Undefined means the default 4%.
+  drawRate?: number;
+  // Buildings' loans, oldest first (systems/finance/treasury.ts). Undefined
+  // means none.
+  loans?: Loan[];
+  // The distress ladder. Undefined means Sound, with no history.
+  distress?: Distress;
   // Lifetime count of weeks cash closed below zero, counted by tickFinance.
   // Read by the "Never in the red" ambition and the legacy's stewardship axis.
   weeksInTheRed: number;

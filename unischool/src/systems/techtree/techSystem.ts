@@ -1,4 +1,6 @@
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
+import { loanFor, takeLoan } from '../finance/treasury';
+import { constructionFrozen } from '../finance/distress';
 import {
   graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools, programById, programOfCourse,
 } from '../../data/techData';
@@ -210,7 +212,8 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // Cash is the only throttle (docs/design/economy.md): the cost is charged up
 // front, so nothing with a cost starts on negative cash. `facultyId` narrows
 // the faculty gate to that person; omitted, any free slot in the field will do.
-export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string): boolean {
+// `borrow`: the shortfall is a loan (finance/treasury.ts), placeables only.
+export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, borrow = false): boolean {
   // A course of a program in transit cannot be started.
   if (node.kind === 'course') {
     const programId = programOfCourse(node.id);
@@ -220,14 +223,18 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
     || (facultyId === undefined
       ? hasFreeFacultySlot(s, node.requiresFaculty)
       : eligibleInstructors(s, node).some((f) => f.id === facultyId));
-  const canAfford = s.finance.cash >= node.cost;
+  // No new construction while the board has frozen it (finance/distress.ts).
+  if (node.kind !== 'course' && constructionFrozen(s)) return false;
+  const canAfford = borrow ? node.kind !== 'course' && loanFor(s, node.cost) > 0 : s.finance.cash >= node.cost;
   return node.status === 'available' && facultyOk && canAfford;
 }
 
-export function startDevelopment(s: GameState, node: Buildable, facultyId?: string): void {
+export function startDevelopment(s: GameState, node: Buildable, facultyId?: string, borrow = false): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
-  // Never takes cash below zero: canStartDevelopment requires the cash.
+  // Never takes cash below zero: canStartDevelopment requires the cash, or
+  // the loan that makes it up.
+  if (borrow) takeLoan(s, loanFor(s, node.cost), node.id);
   s.finance.cash -= node.cost;
 
   // The instructor is recorded in the same transaction as the start, so a

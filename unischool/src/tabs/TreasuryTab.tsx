@@ -10,6 +10,9 @@ import HelpHint from '../components/HelpHint';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 import { money } from '../format';
 import EstatePanel from './EstatePanel';
+import EndowmentPanel from './EndowmentPanel';
+import { debtOutstanding, drawRate } from '../systems/finance/treasury';
+import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_NAMES, RUNG_RECEIVERSHIP, distressOf } from '../systems/finance/distress';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
 // same breakdown the tick charges, so the two cannot drift. Figures are per
@@ -40,6 +43,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const annualNet = flow.net * WEEKS_PER_YEAR;
   const coursesDone = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
   const campaign = endowmentCampaign(s);
+  const distress = distressOf(s);
   const teaching = instructionDetail(s);
   const marketRate = marketRateMultiplier(s.self.reputation);
   const services = servicesMultiplier(s);
@@ -75,7 +79,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             />
             <StatementLine
               label="Endowment payout"
-              note={`the endowment's annual spend rate on ${money(s.finance.endowment)}`}
+              note={`a ${(drawRate(s) * 100).toFixed(1)}% draw on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
             {(flow.athleticsSurplus > 0 || flow.gateRevenue > 0) && (
@@ -130,6 +134,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 amount={flow.athleticsSubsidy}
               />
             )}
+            {flow.debtService > 0 && (
+              <StatementLine
+                label="Loan repayments"
+                note={`${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`}
+                amount={flow.debtService}
+              />
+            )}
             <div className="statement-total">
               <span>Total expenses</span>
               <span className="statement-line-amount">{money(flow.totalExpenses)}</span>
@@ -142,7 +153,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
-          {money(annualNet)} a year at this rate. Money is the only throttle on starting development: a Buildable's cost is charged in full, up front, and you cannot start what you cannot pay for — so the wait for the next purchase is the pacing. Only an operating deficit can push cash negative, and that stalls expansion rather than ending the run.
+          {money(annualNet)} a year at this rate. Money is the only throttle on starting development: a Buildable's cost is charged in full, up front, and you cannot start what you cannot pay for — so the wait for the next purchase is the pacing. Only an operating deficit can push cash negative. That never ends the run: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
         </p>
       </section>
 
@@ -150,7 +161,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         <section className="panel">
           <div className="panel-head">
             <h2>Endowment Campaign</h2>
-            <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays a fixed share of itself into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
+            <HelpHint align="end" text="A campaign converts cash into endowment at a donor match that scales with prestige. The endowment pays its draw rate into income every year, and its size per student feeds prestige — so once the dorm chain and the curriculum are built out, this is what money is still for. Each campaign costs more than the last, and donors give a little less each time." />
           </div>
           {!campaign.available ? (
             <p className="empty-note">
@@ -180,6 +191,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <h2>Balance & Policy</h2>
           <dl>
             <dt>Cash</dt><dd>{money(s.finance.cash)}</dd>
+            <dt>The board</dt>
+            <dd>
+              {RUNG_NAMES[distress.rung]}, confidence {Math.round(distress.confidence)}
+              {distress.rung === RUNG_RECEIVERSHIP && <span className="stat"> — the interim CFO sets the draw and the maintenance, {distress.receivershipTermsLeft} terms left</span>}
+              {distress.rung === RUNG_AUSTERITY && <span className="stat"> — no construction, no maintenance, and tuition held</span>}
+              {distress.rung === RUNG_FREEZE && <span className="stat"> — no construction or borrowing until two surplus terms</span>}
+            </dd>
             <dt>Endowment</dt><dd>{money(s.finance.endowment)}</dd>
             <dt>Campaigns run</dt><dd>{s.finance.endowmentCampaigns}</dd>
             {/* Grants are one-off arrivals, so they show as a running total
@@ -203,6 +221,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           </dl>
         </section>
       </div>
+      <EndowmentPanel s={s} act={act} />
       <EstatePanel s={s} act={act} />
     </div>
   );

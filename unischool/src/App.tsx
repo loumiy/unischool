@@ -15,6 +15,7 @@ import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import MilestoneNote from './components/MilestoneNote';
+import BoardLetter from './components/BoardLetter';
 import Toasts from './components/Toasts';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
@@ -251,6 +252,7 @@ export default function App() {
             ticker; a click opens the relevant tab. */}
         <Toasts s={s} onOpenTab={(tab) => openTab(tab)} />
         <MilestoneNote s={s} act={act} />
+        <BoardLetter s={s} act={act} />
         <LogTicker
           s={s}
           open={logOpen}

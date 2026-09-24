@@ -1,3 +1,5 @@
+import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
+import { boardHoldsBudget, tickDistress } from '../systems/finance/distress';
 import {
   EXTENSION_WEEKS, RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, renovationCost, tickEstate,
 } from '../systems/estate/estate';
@@ -67,6 +69,9 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // After tickFinance, which paid the week's share of the upkeep: the rest
   // becomes backlog (systems/estate).
   tickEstate,
+  // After the week's money has moved: a term closes at its top
+  // (systems/finance/distress.ts).
+  tickDistress,
   // After tickFinance (petitions are sized in this week's operating cost)
   // and before tickSatisfaction. Raises no interrupt: organisations are
   // answered in a batch at the summer boundary.
@@ -256,7 +261,24 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'SET_MAINTENANCE_FUNDING': {
+      if (boardHoldsBudget(s)) return state;
       s.finance.maintenanceFunding = clampFunding(action.level);
+      return s;
+    }
+
+    case 'SET_DRAW_RATE': {
+      if (boardHoldsBudget(s)) return state;
+      s.finance.drawRate = clampDrawRate(action.rate);
+      return s;
+    }
+
+    case 'READ_BOARD_LETTER': {
+      s.finance.distress?.letters.shift();
+      return s;
+    }
+
+    case 'MOVE_TO_ENDOWMENT': {
+      moveToEndowment(s, action.amount);
       return s;
     }
 
