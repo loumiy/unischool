@@ -1,5 +1,5 @@
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
-import { loanFor, takeLoan } from '../finance/treasury';
+import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
   graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools, programById, programOfCourse,
@@ -212,8 +212,9 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // Cash is the only throttle (docs/design/economy.md): the cost is charged up
 // front, so nothing with a cost starts on negative cash. `facultyId` narrows
 // the faculty gate to that person; omitted, any free slot in the field will do.
-// `borrow`: the shortfall is a loan (finance/treasury.ts), placeables only.
-export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, borrow = false): boolean {
+// `financing`: a loan for the shortfall, or campaign-raised building money
+// (finance/treasury.ts), for placeables only; courses are paid in cash.
+export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): boolean {
   // A course of a program in transit cannot be started.
   if (node.kind === 'course') {
     const programId = programOfCourse(node.id);
@@ -225,17 +226,24 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
       : eligibleInstructors(s, node).some((f) => f.id === facultyId));
   // No new construction while the board has frozen it (finance/distress.ts).
   if (node.kind !== 'course' && constructionFrozen(s)) return false;
-  const canAfford = borrow ? node.kind !== 'course' && loanFor(s, node.cost) > 0 : s.finance.cash >= node.cost;
+  const canAfford = financing === 'loan'
+    ? node.kind !== 'course' && loanFor(s, node.cost) > 0
+    : financing === 'gift'
+      ? node.kind !== 'course' && giftFunds(s) >= node.cost
+      : s.finance.cash >= node.cost;
   return node.status === 'available' && facultyOk && canAfford;
 }
 
-export function startDevelopment(s: GameState, node: Buildable, facultyId?: string, borrow = false): void {
+export function startDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
   // Never takes cash below zero: canStartDevelopment requires the cash, or
   // the loan that makes it up.
-  if (borrow) takeLoan(s, loanFor(s, node.cost), node.id);
-  s.finance.cash -= node.cost;
+  if (financing === 'gift' && s.advancement) s.advancement.restrictedBuilding -= node.cost;
+  else {
+    if (financing === 'loan') takeLoan(s, loanFor(s, node.cost), node.id);
+    s.finance.cash -= node.cost;
+  }
 
   // The instructor is recorded in the same transaction as the start, so a
   // developing course always has one. An omitted facultyId auto-picks the

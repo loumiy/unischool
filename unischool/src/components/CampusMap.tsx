@@ -1,3 +1,4 @@
+import { financingFor } from '../systems/finance/treasury';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
@@ -1171,11 +1172,11 @@ export default function CampusMap({
     if (!t) return;
     const fp = t.status === 'done' ? footprintOf(t) : orientedFootprint(t, rotated);
     if (!canPlace(s, t, row, col, fp)) return;
-    // A building the cash cannot cover is borrowed for when the tile offered
-    // it (BuildPopup.tsx): the loan is the shortfall (finance/treasury.ts).
-    const borrow = t.status !== 'done' && !canStartDevelopment(s, t) && canStartDevelopment(s, t, undefined, true);
-    if (t.status === 'done' ? !awaitsSite(s, t) : !canStartDevelopment(s, t, undefined, borrow)) return;
-    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated, ...(borrow ? { borrow: true } : {}) });
+    // Paid as the tile said (BuildPopup.tsx): building gifts first, then
+    // cash, then a loan for the shortfall (finance/treasury.ts).
+    const financing = t.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, t, undefined, f));
+    if (t.status === 'done' ? !awaitsSite(s, t) : financing === null) return;
+    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated, ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : {}) });
     selectBuilding(null);
     setHover(null);
   };

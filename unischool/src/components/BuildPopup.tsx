@@ -16,7 +16,7 @@ import {
   AthleticsIcon, StudentLifeIcon, ToolsIcon,
 } from './icons';
 import { money, moneyShort } from '../format';
-import { LOAN_RATE, LOAN_YEARS, loanFor } from '../systems/finance/treasury';
+import { LOAN_RATE, LOAN_YEARS, financingFor, giftFunds, loanFor } from '../systems/finance/treasury';
 import { constructionFrozen } from '../systems/finance/distress';
 
 // The build menu: every physical building the university can have, as a
@@ -424,9 +424,13 @@ function BuildTile({
   // PLACE_BUILDABLE gate) allows it, paid in cash or with a loan. Clicking only arms the pickup; dragging
   // onto the map arms and drops in one gesture.
   const shortfall = t.cost - s.finance.cash;
-  // Short of cash, a building can be borrowed for (finance/treasury.ts).
-  const loan = !canStartDevelopment(s, t) && canStartDevelopment(s, t, undefined, true) ? loanFor(s, t.cost) : 0;
-  const disabledReason = loan > 0
+  // Paid from building gifts when they cover it; short of cash, a building
+  // can be borrowed for (finance/treasury.ts).
+  const financing = financingFor((f) => canStartDevelopment(s, t, undefined, f));
+  const loan = financing === 'loan' ? loanFor(s, t.cost) : 0;
+  const disabledReason = financing === 'gift'
+    ? `Paid from ${money(giftFunds(s))} raised for buildings.`
+    : loan > 0
     ? `Borrows ${money(loan)}, repaid over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`
     : constructionFrozen(s)
       ? 'The board has frozen construction.'
@@ -435,7 +439,7 @@ function BuildTile({
         : missingFaculty
           ? `No free ${t.requiresFaculty} slot.`
           : undefined;
-  const startable = canStartDevelopment(s, t) || loan > 0;
+  const startable = financing !== null;
   const armed = placingId === t.id;
   const detail = builtDetail(t);
   return (
@@ -466,6 +470,7 @@ function BuildTile({
             : <>{t.cost > 0 ? `${money(t.cost)} · ` : ''}{t.duration}w</>}
       </span>
       {loan > 0 && !armed && <span className="build-tile-note">borrow {moneyShort(loan)}</span>}
+      {financing === 'gift' && !armed && t.cost > 0 && <span className="build-tile-note">from gifts</span>}
       {t.requiresFaculty && <span className="build-tile-note">needs {t.requiresFaculty}</span>}
     </button>
   );

@@ -48,6 +48,26 @@ export function moveToEndowment(s: GameState, amount: number): boolean {
   return true;
 }
 
+// How a building is paid for (Plan 27C, Plan 30E): cash, a loan for the
+// shortfall, or the building money a campaign raised (alumni/campaigns.ts).
+// Restricted money is spent first, since it can be spent on nothing else.
+export type Financing = 'cash' | 'loan' | 'gift';
+
+export function giftFunds(s: GameState): number {
+  return s.advancement?.restrictedBuilding ?? 0;
+}
+
+// How the map and the build popup pay for a building: gifts that cover it
+// first, then cash, then a loan for the shortfall; null when none will.
+// `can` is techSystem's canStartDevelopment, passed in to keep this module
+// free of the tech tree.
+export function financingFor(can: (financing: Financing) => boolean): Financing | null {
+  if (can('gift')) return 'gift';
+  if (can('cash')) return 'cash';
+  if (can('loan')) return 'loan';
+  return null;
+}
+
 // ---- Borrowing for buildings (Plan 27C) ----
 // A building the cash cannot cover can be borrowed for: the shortfall, as a
 // loan against the endowment, repaid weekly over fifteen years at 5%. What

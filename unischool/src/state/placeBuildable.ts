@@ -1,9 +1,14 @@
+import type { Financing } from '../systems/finance/treasury';
 import type { GameState } from './types';
 import type { Action } from './actions';
 import { fellTrees } from '../data/treeData';
 import { awaitsSite, canPlace, footprintOf, orientedFootprint, placementFor } from './campusMap';
 import { settleOpening } from './opening';
 import { canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
+
+function financingOf(action: Extract<Action, { type: 'PLACE_BUILDABLE' }>): Financing {
+  return action.gift ? 'gift' : action.borrow ? 'loan' : 'cash';
+}
 
 export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PLACE_BUILDABLE' }>): void {
   // Build and site a placeable Buildable in one action (courses use
@@ -25,10 +30,10 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
           s.placements[node.id] = placement;
           fellTrees(s.trees, placement);
         }
-      } else if (canStartDevelopment(s, node, undefined, action.borrow === true)) {
+      } else if (canStartDevelopment(s, node, undefined, financingOf(action))) {
         s.placements[node.id] = placement;
         fellTrees(s.trees, placement);
-        startDevelopment(s, node, undefined, action.borrow === true);
+        startDevelopment(s, node, undefined, financingOf(action));
         // One grand landmark to a college: the other two close for good
         // (techSystem.ts's landmarkChosen keeps them closed).
         if (node.facilityType === 'landmark') {
