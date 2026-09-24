@@ -1,5 +1,5 @@
 import type { GameState } from '../../state/types';
-import { MILESTONES, milestoneForBuildable, milestoneForTab, CHARTER_ID } from '../../data/ladderData';
+import { MILESTONES, milestoneForBuildable, milestoneForTab, CHARTER_ID, type Milestone } from '../../data/ladderData';
 import type { TabId } from '../../components/TabNav';
 
 // Records each milestone the week its condition first holds, and queues its
@@ -39,4 +39,17 @@ export function holdBackUnreached(s: GameState): void {
 // The founding state: the charter, and nothing waiting to be read.
 export function foundingLadder(year: number): GameState['ladder'] {
   return { reached: { [CHARTER_ID]: year }, unread: [] };
+}
+
+// The milestone the ticker shows: of those not yet reached that measure
+// progress, the one closest to done; failing that, the first unreached main
+// milestone. Null once the ladder is climbed.
+export function nextMilestone(s: GameState): Milestone | null {
+  const open = MILESTONES.filter((m) => !milestoneReached(s, m.id));
+  const measured = open.filter((m) => m.progress);
+  if (measured.length > 0) {
+    const ratio = (m: Milestone) => { const p = m.progress!(s); return p.value / p.target; };
+    return measured.reduce((best, m) => (ratio(m) > ratio(best) ? m : best));
+  }
+  return open.find((m) => !m.side) ?? open[0] ?? null;
 }
