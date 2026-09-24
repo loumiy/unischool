@@ -7,6 +7,7 @@ import type {
 import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { buildYearInReview } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
+import { hangInHall } from '../state/hall';
 import { REPORT_WORDS } from '../data/reportData';
 import { PromiseOffer } from '../tabs/PromisesPanel';
 import FinalReportView from './FinalReportView';
@@ -449,7 +450,8 @@ function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => vo
       <h2>{REPORT_WORDS.title}</h2>
       <FinalReportView s={s} report={report} />
       <p className="review-empty">{REPORT_WORDS.epilogue}</p>
-      <button onClick={onContinue}>Continue →</button>
+      {/* Leaving the report hangs the run in the hall of fame (state/hall.ts). */}
+      <button onClick={() => { hangInHall(s, report); onContinue(); }}>Continue into the Epilogue →</button>
     </>
   );
 }

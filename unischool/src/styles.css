@@ -2254,6 +2254,24 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border: 2px dashed var(--parchment-line) !important; font-weight: 700 !important; }
 .letter-skip:hover { border-color: var(--outline) !important; color: var(--ink) !important; }
 
+/* ---------- The hall of fame (Plan 33, StartupScreen.tsx) ---------- */
+.startup { flex-direction: column; gap: 24px; }
+.hall { width: min(960px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
+  padding: 18px 20px; box-shadow: var(--shadow-2, var(--shadow-1)); }
+.hall-title { margin: 0 0 12px; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); color: var(--ink); }
+.hall-frames { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.hall-frame { display: flex; flex-direction: column; width: 100%; padding: 8px; background: #6b4a2b; border: 3px solid #3d2a17;
+  border-radius: 6px; box-shadow: inset 0 0 0 3px #a37b4c; cursor: pointer; text-align: left; color: var(--ink); }
+.hall-frame.is-open { outline: 3px solid var(--school-primary); }
+.hall-portrait { display: block; background: var(--cream); border: 2px solid #3d2a17; overflow: hidden; }
+.hall-portrait svg { display: block; width: 100%; height: auto; }
+.hall-plaque { display: block; margin-top: 8px; padding: 6px 8px; background: #d9b86c; border: 2px solid #8a6a2a; border-radius: 3px; }
+.hall-plaque-name { display: block; font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: #2a1d0c; }
+.hall-plaque-meta { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: #3d2a17; }
+.hall-reading { margin-top: 16px; }
+.hall-reading-title { margin: 0 0 8px; font-family: var(--display); font-weight: 800; color: var(--ink); }
+.hall-reading-grades { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 12px; font-size: var(--text-sm); }
+
 /* ---------- The chronicle (Plan 33, ChroniclePanel.tsx) ---------- */
 .chronicle-eras { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .chronicle-era { padding: 10px 14px; border-left: 4px solid var(--school-primary); background: var(--cream-hi); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
