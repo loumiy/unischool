@@ -1,3 +1,4 @@
+import { checkRivalStanding } from '../rivals/collegeRival';
 import { turnPerception } from '../identity/tags';
 import { stampGraduatingClass } from '../alumni/ledger';
 import { tuitionFloor } from '../finance/distress';
@@ -175,6 +176,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   stampGraduatingClass(s, graduating, s.clock.year);
   // The turn of the year for what the guidebooks say (systems/identity/tags.ts).
   turnPerception(s);
+  checkRivalStanding(s);
   if (s.finance.distress) s.finance.distress.yearWorst = s.finance.distress.rung;
 
   s.pendingInterrupt = null;

@@ -3,6 +3,8 @@ import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
 import { STANDINGS, rankedListBy } from '../systems/rivals/rivalsSystem';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
+import { rivalRanks } from '../systems/rivals/collegeRival';
+import { sportById } from '../data/studentLifeData';
 
 // The league table (Plan 31, V1-22, V1-33): where the college stands on each
 // of the six axes this year, who leads each, and each rank charted over the
@@ -11,6 +13,8 @@ import { SEMICENTENNIAL_YEAR } from '../state/types';
 export default function StandingsPanel({ s }: { s: GameState }) {
   const field = s.rivals.length + 1;
   const rows = s.history.filter((h) => h.standings !== undefined);
+  const rival = rivalRanks(s);
+  const series = rival ? s.orgs.rivalries[rival.sport] : undefined;
   return (
     <section className="panel standings-panel">
       <div className="panel-head">
@@ -36,6 +40,12 @@ export default function StandingsPanel({ s }: { s: GameState }) {
           );
         })}
       </dl>
+      {rival && (
+        <p className="stat">
+          The rival: {rival.rival.name} {rival.rival.mascot}, in {sportById(rival.sport)?.teamName ?? rival.sport} and in the rankings, #{rival.theirs} to the college&rsquo;s #{rival.mine}.
+          {series && ` The series stands ${series.wins}–${series.losses}.`}
+        </p>
+      )}
       {rows.length > 1 && (
         <div className="standings-charts">
           {STANDINGS.map(({ axis, label }) => (

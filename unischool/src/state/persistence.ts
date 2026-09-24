@@ -525,6 +525,8 @@ export function loadGame(): GameState | null {
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
   sanitizeIdentity(state);
+  const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
+  if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);

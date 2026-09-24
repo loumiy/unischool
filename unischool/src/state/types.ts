@@ -964,6 +964,9 @@ export interface GameState {
   // What the guidebooks call the college (systems/identity/tags.ts): the
   // tags held, and the years each is toward being earned or shed.
   identity?: { tags: string[]; earning: Record<string, number>; shedding: Record<string, number> };
+  // The college's rival (systems/rivals/collegeRival.ts) and whether the
+  // college stood above it at the last summer. Undefined before one exists.
+  rivalStanding?: { rivalId: string; above: boolean };
   // Lamps and benches the player has placed beside the paths, by tile key
   // (components/dressing.tsx). Optional: a campus may have none.
   dressing?: Dressing;
