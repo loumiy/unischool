@@ -1,9 +1,10 @@
+import { speedLock } from '../systems/delegation/seats';
 import { useEffect, useRef } from 'react';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import {
   RankIcon, StudentsIcon, PrestigeIcon, SatisfactionIcon,
-  PauseIcon, PlayIcon, DoubleSpeedIcon, QuadSpeedIcon,
+  PauseIcon, PlayIcon, DoubleSpeedIcon, QuadSpeedIcon, OctoSpeedIcon,
 } from './icons';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
@@ -17,7 +18,7 @@ import { money } from '../format';
 // 1/2/3 set real/double/quad; 4 sets the sandbox speed under the playtest
 // flag only. Space toggles pause, resuming the last running speed rather than
 // always `real`. The typing guard lives in useHotkeys (hotkeys.ts).
-function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandboxAllowed: boolean) {
+function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandboxAllowed: boolean, locked: (speed: Speed) => boolean) {
   const resumeSpeedRef = useRef<Speed>('real');
   useEffect(() => {
     if (speed !== 'paused') resumeSpeedRef.current = speed;
@@ -26,8 +27,9 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
   useHotkeys((e) => {
     if (e.key === '1') setSpeed('real');
     else if (e.key === '2') setSpeed('double');
-    else if (e.key === '3') setSpeed('quad');
-    else if (e.key === '4' && sandboxAllowed) setSpeed('fast');
+    else if (e.key === '3' && !locked('quad')) setSpeed('quad');
+    else if (e.key === '4' && !locked('octo')) setSpeed('octo');
+    else if (e.key === '5' && sandboxAllowed) setSpeed('fast');
     else if (e.key === ' ') {
       // A Tab-focused button's native Space click wins. preventDefault stops
       // the page scrolling.
@@ -40,13 +42,13 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
 
 // The ordinary gears are glyphs (icons.tsx), with the word as label and
 // title. The sandbox gear keeps its word so it looks like the odd one out.
-const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: '2×', quad: '4×', fast: 'Fast (sandbox)' };
+const SPEED_LABELS: Record<Speed, string> = { paused: 'Paused', real: 'Play', double: '2×', quad: '4×', octo: '8×', fast: 'Fast (sandbox)' };
 const SPEED_ICONS: Partial<Record<Speed, () => React.JSX.Element>> = {
-  paused: PauseIcon, real: PlayIcon, double: DoubleSpeedIcon, quad: QuadSpeedIcon,
+  paused: PauseIcon, real: PlayIcon, double: DoubleSpeedIcon, quad: QuadSpeedIcon, octo: OctoSpeedIcon,
 };
 const SPEED_HINTS: Record<Speed, string> = {
   paused: 'Pause (Space)', real: 'Play (1)', double: 'Double speed (2)', quad: 'Quadruple speed (3)',
-  fast: 'Playtesting only — not intended for normal play (4)',
+  octo: 'Eight times speed (4)', fast: 'Playtesting only — not intended for normal play (5)',
 };
 
 // Display threshold only: below it satisfaction shows in red. Its mechanical
@@ -126,7 +128,9 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
     (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
   );
 
-  useSpeedHotkeys(speed, setSpeed, showPlaytestControls);
+  // The top speeds are earned by the administration's seats.
+  const lockOf = (sp: Speed) => speedLock(s, sp);
+  useSpeedHotkeys(speed, setSpeed, showPlaytestControls, (sp) => lockOf(sp) !== null);
 
   // Two rows, clock above gears (styles.css's .toolbar-right).
   return (
@@ -139,17 +143,20 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
         <div className="speeds">
           {visibleSpeeds.map((sp) => {
             const Icon = SPEED_ICONS[sp];
+            const lock = lockOf(sp);
             return (
               <button
                 key={sp}
                 className={[
                   speed === sp ? 'active' : '',
                   SANDBOX_SPEEDS.includes(sp) ? 'sandbox' : '',
+                  lock ? 'locked' : '',
                 ].join(' ').trim()}
+                disabled={lock !== null}
                 aria-pressed={speed === sp}
                 aria-label={SPEED_LABELS[sp]}
                 onClick={() => setSpeed(sp)}
-                title={SPEED_HINTS[sp]}
+                title={lock ?? SPEED_HINTS[sp]}
               >
                 {Icon ? <Icon /> : SPEED_LABELS[sp]}
               </button>

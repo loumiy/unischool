@@ -1,4 +1,5 @@
-import type { FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Trees } from './types';
+import { seatDef } from '../data/seatData';
+import type { FacilityType, GameState, HallSlot, Loan, Pathways, Placement, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
@@ -215,6 +216,23 @@ function sanitizeEstate(state: GameState): void {
     if (t.historic !== undefined && t.historic !== true) delete t.historic;
     if (t.extensionWeeks !== undefined && !(Number.isInteger(t.extensionWeeks) && t.extensionWeeks >= 0)) delete t.extensionWeeks;
   }
+}
+
+// Seats: optional; a malformed one is dropped, and a seat the game no
+// longer has (or a policy it no longer offers) with it.
+function sanitizeSeats(state: GameState): void {
+  const raw = state.seats as unknown;
+  if (raw === undefined) return;
+  const valid = Array.isArray(raw)
+    ? raw.filter((x): x is Seat => typeof x === 'object' && x !== null
+      && typeof x.seatId === 'string' && seatDef(x.seatId) !== undefined
+      && (x.school === null || typeof x.school === 'string')
+      && typeof x.holder === 'string' && typeof x.internal === 'boolean'
+      && typeof x.policy === 'string' && seatDef(x.seatId)!.policies.some((p) => p.id === x.policy)
+      && Number.isFinite(x.salary) && x.salary >= 0 && Number.isInteger(x.appointedYear))
+    : [];
+  if (valid.length > 0) state.seats = valid;
+  else delete state.seats;
 }
 
 // Quad hygiene, run on every load: the field is optional, and a malformed
@@ -448,6 +466,7 @@ export function loadGame(): GameState | null {
   sanitizeTrees(state);
   sanitizeEstate(state);
   sanitizeQuads(state);
+  sanitizeSeats(state);
   sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);

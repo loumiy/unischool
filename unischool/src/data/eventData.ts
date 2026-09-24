@@ -1,3 +1,4 @@
+import type { EventDomain } from './seatData';
 import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
@@ -216,11 +217,18 @@ export interface DecisionChoice {
   // Mutates shared state through existing hooks only, and returns the log
   // line. The cash cost above is charged by the reducer, not here.
   apply(s: GameState, ctx: DecisionEventContext): LogEntry;
+  // How the choice lands with the people it touches, for a seat's
+  // "popular" policy (systems/delegation/seats.ts): the satisfaction it
+  // costs as a negative, goodwill as a positive. Omitted = 0.
+  mood?: number;
 }
 
 export interface DecisionEvent {
   id: string;
   title: string;
+  // Whose routine it is (data/seatData.ts): a seat covering the domain
+  // answers it by policy. 'board' is the president's own.
+  domain: EventDomain;
   weight: number;                     // relative draw weight among everything eligible this week
   // A multiplier on weight, read at draw time (e.g. donor events in a title
   // year). Omitted = 1.
@@ -474,6 +482,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'estate-gift',
     title: 'An estate gift',
+    domain: 'advancement',
     weight: 10,
     boost: (s) => (inTitleYear(s) ? TITLE_YEAR_DONOR_BOOST : 1),
     eligible: () => true,
@@ -510,6 +519,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'naming-rights',
     title: 'A naming-rights offer',
+    domain: 'board',
     // Tuned so most runs name every school before year 60; eligible()
     // retires the offer once the pool is empty.
     weight: 18,
@@ -588,6 +598,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'faculty-outside-offer',
     title: 'An outside offer',
+    domain: 'academic',
     weight: 11,
     eligible: (s) => facultyAtRisk(s).length > 0,
     rollContext: (s) => {
@@ -606,6 +617,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     choices: [
       {
         id: 'retain',
+        mood: 1,
         label: 'Fund the retention package',
         describe: (_s, ctx) =>
           `${money(ctx.amount ?? 0)} up front. ${ctx.subjectName} stays, keeps accruing tenure, and keeps their course slots.`,
@@ -629,6 +641,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'visiting-scholar',
     title: 'A distinguished visitor',
+    domain: 'academic',
     weight: 6,
     eligible: (s) => s.self.reputation >= VISITING_SCHOLAR_PRESTIGE_GATE,
     // Rolled at fire time so the modal's name and salary describe the
@@ -649,6 +662,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     choices: [
       {
         id: 'fund',
+        mood: 1,
         label: 'Appoint them',
         // Both numbers, because they are two different commitments: the
         // gift is once, the salary is every week for as long as they stay.
@@ -682,6 +696,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'roof-failure',
     title: 'A roof gives way',
+    domain: 'estate',
     weight: 9,
     eligible: (s) => doneBuildings(s).length > 0,
     rollContext: (s) => {
@@ -702,6 +717,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
       {
         id: 'defer',
+        mood: -ROOF_DEFERRAL_SATISFACTION_HIT,
         label: 'Buckets and tarpaulins',
         describe: () =>
           `No cash spent. Student satisfaction takes a ${ROOF_DEFERRAL_SATISFACTION_HIT}-point dent, which drifts back over the following weeks — unless the summer funnel arrives first.`,
@@ -717,6 +733,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'dining-inspection',
     title: 'A failed health inspection',
+    domain: 'estate',
     weight: 8,
     eligible: (s) => doneDiningHalls(s).length > 0,
     rollContext: (s) => {
@@ -737,6 +754,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
       {
         id: 'limited',
+        mood: -DINING_DEFERRAL_SATISFACTION_HIT,
         label: 'Run a limited menu',
         describe: () =>
           `No cash spent, and ${DINING_DEFERRAL_SATISFACTION_HIT} points off student satisfaction — the sharpest of the campus-life dents, because eating is the need students notice fastest.`,
@@ -752,6 +770,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'heating-plant',
     title: 'The heating plant fails',
+    domain: 'estate',
     weight: 8,
     eligible: (s) => s.students.capacity >= HEATING_PLANT_CAPACITY_GATE,
     rollContext: (s) => ({ amount: shareOfCost(s.tech.filter((t) => t.kind === 'dorm' && t.status === 'done'), HEATING_PLANT_SHARE) }),
@@ -767,6 +786,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
       {
         id: 'space-heaters',
+        mood: -HEATING_DEFERRAL_SATISFACTION_HIT,
         label: 'Issue space heaters',
         describe: () => `No cash spent. A ${HEATING_DEFERRAL_SATISFACTION_HIT}-point satisfaction dent, and a winter nobody forgets.`,
         cost: () => 0,
@@ -781,6 +801,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'state-capital-match',
     title: 'A legislative capital match',
+    domain: 'board',
     weight: 7,
     eligible: (s) => s.clock.year >= STATE_MATCH_FIRST_YEAR,
     // Aims at a revealed, unbuilt venue when there is one: the state's
@@ -843,6 +864,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'winter-storm',
     title: 'A storm crosses the campus',
+    domain: 'estate',
     weight: 7,
     eligible: (s) => s.students.capacity >= STORM_CAPACITY_GATE,
     rollContext: (s) => ({ amount: shareOfCost(s.tech.filter((t) => t.status === 'done' && t.kind !== 'course'), STORM_FULL_REPAIR_SHARE) }),
@@ -858,6 +880,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
       {
         id: 'partial',
+        mood: -STORM_PARTIAL_SATISFACTION_HIT,
         label: 'Safety-critical work only',
         describe: (_s, ctx) =>
           `${money((ctx.amount ?? 0) * STORM_PARTIAL_SHARE)} now and a ${STORM_PARTIAL_SATISFACTION_HIT}-point satisfaction dent while the rest waits for summer.`,
@@ -869,6 +892,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
       {
         id: 'defer',
+        mood: -STORM_DEFERRAL_SATISFACTION_HIT,
         label: 'Board it up and wait',
         describe: () => `No cash spent, and ${STORM_DEFERRAL_SATISFACTION_HIT} points off student satisfaction — the largest dent in the table.`,
         cost: () => 0,
@@ -883,6 +907,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'faculty-scandal',
     title: 'A faculty controversy',
+    domain: 'board',
     weight: 5,
     eligible: (s) => facultyAtRisk(s).length > 0,
     rollContext: (s) => {
@@ -933,6 +958,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'hellenic-council',
     title: 'A petition for a Hellenic Council',
+    domain: 'students',
     // A one-shot question a run should actually be asked: weighted to
     // dominate its pool once the club gate clears, and capped at one firing.
     weight: 45,
@@ -943,6 +969,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     choices: [
       {
         id: 'charter',
+        mood: 1,
         label: 'Charter the council',
         describe: () =>
           `Chapters begin forming from here on, each petitioning for recognition at summer admissions like any other society. A chapter is worth ${CHAPTER_SOCIAL_BONUS} points of social satisfaction against a club's fraction of that, carries a real recurring cost, and will eventually bring you its own problems.`,
@@ -970,6 +997,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'greek-scandal',
     title: 'A chapter in disgrace',
+    domain: 'students',
     // Greek life's share of the decision-event budget for scandals.
     weight: 7,
     eligible: (s) => s.orgs.hellenicCouncilApproved && s.orgs.chapters.length > 0,
@@ -991,6 +1019,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     choices: [
       {
         id: 'pr',
+        mood: -GREEK_SCANDAL_PR_SATISFACTION_HIT,
         label: 'Fund a public-relations campaign',
         describe: (_s, ctx) =>
           `${money(ctx.amount ?? 0)} up front. ${ctx.subjectName} keeps its charter and everything it contributes; satisfaction takes a ${GREEK_SCANDAL_PR_SATISFACTION_HIT}-point dent that heals over the following weeks.`,
@@ -1005,6 +1034,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         // one: it removes the chapter's satisfaction contribution and its
         // weekly cost for good.
         id: 'disband',
+        mood: -CHAPTER_SOCIAL_BONUS,
         label: 'Pull the charter',
         describe: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -1026,6 +1056,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'greek-housing',
     title: 'A chapter asks for a house',
+    domain: 'students',
     // Each chapter asks at most once, so supply is bounded; the weight is
     // tuned so most chapters get to ask within a run.
     weight: 14,
@@ -1089,6 +1120,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
       {
         id: 'refuse',
+        mood: -GREEK_HOUSE_REFUSAL_SATISFACTION_HIT,
         label: 'They can keep meeting where they are',
         describe: (_s, ctx) =>
           `No cash spent, and a ${GREEK_HOUSE_REFUSAL_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. ${ctx.subjectName} keeps its charter and everything it already contributes, and will not ask again.`,
@@ -1113,6 +1145,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'ad-shortage',
     title: 'The director wants a chair filled',
+    domain: 'board',
     // In the weighted lottery rather than on a cadence of its own: a
     // decision event changes the mix of what stops the clock, never how
     // often (docs/architecture/interrupts.md).
@@ -1185,6 +1218,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     // chose (scandalExposure); the penalty is a postseason ban, not cash.
     id: 'recruiting-scandal',
     title: 'A recruiting scandal',
+    domain: 'board',
     weight: 4,
     boost: (s) => scandalExposure(s),
     eligible: (s) => s.orgs.athleticDirector !== null && departmentPot(s).programs.some((p) => p.band === 'flagship'),
@@ -1240,6 +1274,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     // retention package or hire again. Same shape as 'faculty-outside-offer'.
     id: 'coach-poached',
     title: 'A coach with an offer',
+    domain: 'board',
     weight: 9,
     eligible: (s) => coachesAtRisk(s).length > 0,
     rollContext: (s) => {
@@ -1283,6 +1318,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     // rather than drawn; it still spends the decision-event budget.
     id: 'rival-passed',
     title: 'The board wants a response',
+    domain: 'board',
     weight: 0, // never drawn by the weighted lottery — fired by eventSystem.ts's fireTrusteeResponse
     eligible: () => false,
     rollContext: (s) => {
@@ -1359,6 +1395,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'varsity-petition',
     title: 'A petition to go varsity',
+    domain: 'board',
     weight: 0, // never drawn by the weighted lottery — see the trigger note above
     eligible: () => false, // fired directly by eventSystem.ts's fireVarsityPetition instead
     rollContext: (s) => {

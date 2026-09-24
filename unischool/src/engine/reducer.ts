@@ -1,3 +1,4 @@
+import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
 import { boardHoldsBudget, tickDistress } from '../systems/finance/distress';
 import {
@@ -271,6 +272,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       s.finance.drawRate = clampDrawRate(action.rate);
       return s;
     }
+
+    case 'APPOINT_SEAT':
+      appointSeat(s, action.seatId, action.school, action.facultyId);
+      return s;
+
+    case 'SET_SEAT_POLICY':
+      setSeatPolicy(s, action.seatId, action.school, action.policy);
+      return s;
 
     case 'READ_BOARD_LETTER': {
       s.finance.distress?.letters.shift();

@@ -347,6 +347,18 @@ export function DoubleSpeedIcon() {
   );
 }
 
+// Eight times: three chevrons and the bar, narrower.
+export function OctoSpeedIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...FILLED}>
+      <path d="M1 6.2v11.6a.6.6 0 0 0 1 .5L8 12.5a.6.6 0 0 0 0-1L2 5.7a.6.6 0 0 0-1 .5Z" />
+      <path d="M7.4 6.2v11.6a.6.6 0 0 0 1 .5l6-5.8a.6.6 0 0 0 0-1l-6-5.8a.6.6 0 0 0-1 .5Z" />
+      <path d="M13.8 6.2v11.6a.6.6 0 0 0 1 .5l6-5.8a.6.6 0 0 0 0-1l-6-5.8a.6.6 0 0 0-1 .5Z" />
+      <rect x="21" y="5" width="2.2" height="14" rx="0.8" />
+    </svg>
+  );
+}
+
 export function QuadSpeedIcon() {
   return (
     <svg viewBox="0 0 24 24" {...FILLED}>

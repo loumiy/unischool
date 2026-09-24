@@ -1,3 +1,4 @@
+import { delegate } from '../delegation/seats';
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayload } from '../../data/eventData';
@@ -188,6 +189,9 @@ function rollDecisionEvent(s: GameState): void {
   const history = s.events.decisionHistory[chosen.event.id] ?? { fires: 0, lastWeek: 0 };
   s.events.lastDecisionWeek = week;
   s.events.decisionHistory[chosen.event.id] = { fires: history.fires + 1, lastWeek: week };
+  // A seat covering the event's domain answers routine by policy, and only
+  // what escalates reaches the president (systems/delegation/seats.ts).
+  if (delegate(s, chosen.event, chosen.ctx)) return;
   s.pendingInterrupt = {
     type: 'decision-event',
     // JSON-plain: the definition is looked up by id when rendered and applied.

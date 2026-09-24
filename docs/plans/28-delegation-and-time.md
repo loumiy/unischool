@@ -55,6 +55,26 @@ This document.
 - **The Treasury** gets an "Administration" line in the weekly statement,
   and the administrative share of payroll.
 
+**As implemented:**
+
+- **The content:** `data/seatData.ts`, with v2's salaries (outside
+  $190,000 to $320,000 a year, inside about two thirds of that).
+- **Pay** is scaled by `marketRateMultiplier` at the payroll, as the
+  faculty's is, so the ratchet grows with the college's standing: a cost
+  that grows with the college, which V1-25 asked for.
+- **Promoting from inside:**
+  - the professor leaves the roster, and their courses lose their
+    instructor, as when anyone leaves;
+  - a Dean's candidates come from the fields that teach in that school.
+- **An outside hire** is named with the coach market's name roller.
+- **A Dean's seat** exists for each school with a `school-founded`
+  milestone.
+- **The weekly statement** gets an "Administration" line with its share of
+  the payroll.
+- **Nothing dismisses a seat.** v2's austerity could abolish the newest
+  one. This game's austerity is the board's automatic cut (Plan 27), not
+  a menu, so that waits for Phase K's events if it is wanted.
+
 ## PR 28C — The routine, by policy
 
 - **Every decision event names a domain:** academic, estate, students,
@@ -68,12 +88,44 @@ This document.
   reaches the player.
 - **`SET_SEAT_POLICY`** changes a seat's instinct at any time.
 
+**As implemented:** each event in `eventData.ts` names its `domain`:
+
+| Domain | Events |
+| --- | --- |
+| Academic | an outside offer, a distinguished visitor |
+| Estate | roof failure, dining inspection, heating plant, winter storm |
+| Students | the Hellenic council, a Greek scandal, a chapter's housing |
+| Advancement | an estate gift |
+| Board | naming rights, the state's capital match, a faculty scandal, athletics (a shortage of ADs, recruiting, a poached coach), the rival passing, varsity petitions |
+
+- **The popular policy** reads a new optional `mood` on a choice. It is
+  authored on the eleven choices whose satisfaction cost or goodwill the
+  event already states: deferrals and refusals as their dent, retaining
+  and funding faculty and chartering the council as goodwill.
+- **The seat answers inside `rollDecisionEvent`,** after the draw and its
+  cooldowns, exactly as `RESOLVE_DECISION_EVENT` would: it charges, applies
+  and logs, naming the seat and its holder.
+- **Varsity petitions and the rival's passing** fire on their own paths
+  and stay with the president.
+- **The escalation line** is four weeks of operating cost (floored as
+  every event price is), rather than v2's flat $500,000, because this
+  game's budgets span four orders of magnitude.
+
 ## PR 28D — Speed tiers
 
 - **1× and 2× are free.** 4× needs a Provost. A new 8× needs a Provost and
   three Deans.
 - **The speed control shows the locked tiers** and says what opens them.
   The sandbox speed for playtests is untouched.
+
+**As implemented:**
+
+- **`SPEEDS` gains `octo`** at 625 ms a week.
+- **`speedLock` in `seats.ts`** says why a speed is closed.
+  - The speed buttons dim a locked tier and title it with the reason.
+  - The hotkeys refuse it.
+  - A game loaded without the seats drops to 2×.
+- **The hotkeys:** 4 is now 8×, and the sandbox moves to 5.
 
 ## PR 28E — The org chart
 
@@ -82,3 +134,19 @@ This document.
   - the shortlist of senior faculty who could take it;
   - the outside appointment and what each costs;
   - the speeds the seats have earned.
+
+**As implemented:** `tabs/AdministrationPanel.tsx`, at the foot of the
+Faculty tab.
+
+- **A held seat** shows its holder, where they came from and their salary
+  at today's market, with its three policies as buttons (each titled with
+  its rule).
+- **A vacant one** offers the three best senior candidates and the outside
+  hire, each priced.
+
+## The harness
+
+Neutral, as the rules require. The harness never appoints a seat, so no
+event is delegated and the administration line is zero. `escalates`
+returns before it prices anything when no seat covers an event, so the
+random stream is untouched.

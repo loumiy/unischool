@@ -1,3 +1,4 @@
+import AdministrationPanel from './AdministrationPanel';
 import { useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
@@ -728,6 +729,8 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           </section>
         ))}
       </section>
+
+      <AdministrationPanel s={s} act={act} />
     </div>
   );
 }

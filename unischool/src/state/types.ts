@@ -34,6 +34,18 @@ export interface Loan {
   weeksLeft: number;
 }
 
+// A filled seat of the administration (systems/delegation/seats.ts). Held
+// for good: the seats are the administrative ratchet.
+export interface Seat {
+  seatId: string;           // data/seatData.ts
+  school: string | null;    // a Dean's school; null for every other seat
+  holder: string;           // who holds it
+  internal: boolean;        // promoted from the faculty rather than hired in
+  policy: string;           // one of the seat's policies
+  salary: number;           // annual, at a prestige-50 market
+  appointedYear: number;
+}
+
 export interface Finance {
   cash: number;          // liquid funds
   endowment: number;     // long-term reserve; pays a fixed share into income yearly (financeSystem.ts)
@@ -898,6 +910,8 @@ export interface GameState {
   // Quad names and the player's marks (state/quads.ts). Optional: a campus
   // with neither has none.
   quads?: QuadState;
+  // The administration's filled seats (Plan 28). Undefined means none.
+  seats?: Seat[];
   // Lamps and benches the player has placed beside the paths, by tile key
   // (components/dressing.tsx). Optional: a campus may have none.
   dressing?: Dressing;
