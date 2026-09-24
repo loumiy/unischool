@@ -4,7 +4,7 @@
 [merge review](../reviews/2026-09-merge-review.md) into a sequence of PRs:
 the boom, fixed by a mechanism rather than a constant.*
 
-**Status: In progress.**
+**Status: Landed.**
 
 ---
 

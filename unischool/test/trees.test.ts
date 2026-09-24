@@ -68,7 +68,7 @@ function open(): { s: GameState; tile: { row: number; col: number } } {
 
 // ---- Trees answer the tilt (Plan 37) ----
 {
-  const circles = (svg: string) => [...svg.matchAll(/<circle[^>]*cy="([-\d.]+)"[^>]*r="([-\d.]+)"/g)].map((m) => ({ cy: Number(m[1]), r: Number(m[2]) }));
+  const circles = (svg: string) => [...svg.matchAll(/<circle[^>]*cy="([-\d.e]+)"[^>]*r="([-\d.e]+)"/g)].map((m) => ({ cy: Number(m[1]), r: Number(m[2]) }));
   const polys = (svg: string) => [...svg.matchAll(/points="([^"]+)"/g)].map((m) => m[1].trim().split(' ').map((p) => p.split(',').map(Number)));
   const draw = (species: 'canopy' | 'conifer', pitch: number) => {
     setCamera({ ...DEFAULT_CAMERA, pitch });
@@ -92,6 +92,23 @@ function open(): { s: GameState; tile: { row: number; col: number } } {
   const coniferSide = riseOf(draw('conifer', DEFAULT_CAMERA.pitch));
   const coniferTop = riseOf(draw('conifer', PITCHES[PITCHES.length - 1]));
   assert(Math.abs(coniferTop / coniferSide - CONIFER_FLOOR) < 0.01, `a conifer keeps a quarter of its rise (${(coniferTop / coniferSide).toFixed(2)})`);
+  setCamera(DEFAULT_CAMERA);
+}
+
+// ---- A turn moves a tree, it does not redraw one (Plan 38) ----
+// Everything but the lit cap is drawn about the tree's foot, so two views a
+// part-turn apart differ only in where the tree stands and where its cap
+// sits: the memoised body is the same markup either way.
+{
+  const body = (azimuth: number) => {
+    setCamera({ ...DEFAULT_CAMERA, azimuth });
+    const svg = renderToStaticMarkup(createElement('svg', null, createElement(TreeAt, { col: 20, row: 20, species: 'canopy', scale: 1, shadow: false })));
+    return { svg, stripped: svg.replace(/transform="[^"]*"/, '').replace(/<circle class="campus-tree-crown-top"[^>]*>(<\/circle>)?/, '') };
+  };
+  const a = body(DEFAULT_CAMERA.azimuth);
+  const b = body(DEFAULT_CAMERA.azimuth + 0.4);
+  assert(a.svg !== b.svg, 'a part-turn moves the tree');
+  assert(a.stripped === b.stripped, 'and leaves its body as it was');
   setCamera(DEFAULT_CAMERA);
 }
 
