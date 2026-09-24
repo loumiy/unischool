@@ -1,0 +1,196 @@
+import { TILE_W, boxFaces, heightScale, lift, polyPoints, project, type Pt } from './isoProjection';
+import { shade } from './tint';
+
+// The works on a building site (Plan 40, ported from v2's map/works.tsx):
+// the scaffold and the tower crane. Both are drawn as filled beams rather
+// than stroked lines. A stroke stays a hairline at every zoom, which made
+// the old crane read as a diagram beside buildings that have mass.
+
+// A thick line as a polygon, taperable end to end.
+function beam(a: Pt, b: Pt, wa: number, wb = wa): Pt[] {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  return [
+    { x: a.x + nx * wa, y: a.y + ny * wa },
+    { x: b.x + nx * wb, y: b.y + ny * wb },
+    { x: b.x - nx * wb, y: b.y - ny * wb },
+    { x: a.x - nx * wa, y: a.y - ny * wa },
+  ];
+}
+
+function lerp(a: Pt, b: Pt, t: number): Pt {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+// The zig-zag between two chords of a truss, one beam a bay.
+function web(aFrom: Pt, aTo: Pt, bFrom: Pt, bTo: Pt, bays: number, thick: number): Pt[][] {
+  const out: Pt[][] = [];
+  for (let i = 0; i < bays; i++) {
+    const t0 = i / bays;
+    const t1 = (i + 1) / bays;
+    const top = i % 2 === 0 ? lerp(aFrom, aTo, t0) : lerp(aFrom, aTo, t1);
+    const bot = i % 2 === 0 ? lerp(bFrom, bTo, t1) : lerp(bFrom, bTo, t0);
+    out.push(beam(top, bot, thick));
+  }
+  return out;
+}
+
+// Standards at the corners of the plot with two lifts of ledgers between
+// them and a brace across the back. A hatch alone reads as a texture; the
+// tubes say work is happening here.
+export function Scaffolding({ col, row, w, h, height, base = 0 }: {
+  col: number; row: number; w: number; h: number; height: number;
+  // Pole footing: the ground for a site, the roof for an extension.
+  base?: number;
+}) {
+  const posts: [number, number][] = [
+    [col + w * 0.06, row + h * 0.06], [col + w * 0.94, row + h * 0.06],
+    [col + w * 0.94, row + h * 0.94], [col + w * 0.06, row + h * 0.94],
+  ];
+  const pole = height * 2.6;
+  const foot = (i: number) => lift(project(posts[i][0], posts[i][1]), base);
+  const at = (i: number, up: number) => lift(foot(i), pole * up);
+  const tube = 1.5;
+  const ledger = 1;
+  // Two working lifts, each a rail along the back and one down each side.
+  const lifts = [0.42, 0.78].flatMap((up) => [
+    [at(0, up), at(1, up)],
+    [at(1, up), at(2, up)],
+    [at(0, up), at(3, up)],
+  ]);
+  return (
+    <g className="scaffolding" aria-hidden="true">
+      {posts.map((_, i) => (
+        <polygon key={i} className="scaffold-pole" points={polyPoints(beam(foot(i), at(i, 1), tube))} />
+      ))}
+      {lifts.map(([a, b], i) => (
+        <polygon key={i} className="scaffold-rail" points={polyPoints(beam(a, b, ledger))} />
+      ))}
+      {/* One brace, so the bay reads as braced rather than as a box. */}
+      <polygon className="scaffold-rail" points={polyPoints(beam(at(0, 0.42), at(1, 0.78), ledger * 0.8))} />
+    </g>
+  );
+}
+
+const CRANE_YELLOW = '#d8a92a';
+
+// A tower crane: a latticed mast on a ballast pad, a slewing ring, the cab,
+// the A-frame the ties hang from, a tapering jib with its trolley and hook,
+// and a counter-jib with the weights on its end. The standing parts are
+// drawn in screen space, foreshortened with the tilt like everything else
+// that stands up. The jib points along a fixed grid direction (across the
+// plot, towards +col/−row), so it stays put on the ground as the camera
+// turns rather than always swinging to the right of the screen.
+export function Crane({ col, row, w, h, height }: { col: number; row: number; w: number; h: number; height: number }) {
+  const standing = Math.max(0.12, Math.min(1, heightScale()));
+  const base = project(col + w * 0.18, row + h * 0.82);
+  const mastH = (Math.max(height * 2.2, 70) + 40) * standing;
+  const top = { x: base.x, y: base.y - mastH };
+  const legW = Math.max(2.6, mastH * 0.035);
+
+  // The jib's heading on the ground, in tiles, and where that lands on
+  // screen. `project` is linear, so a grid vector projects on its own. At
+  // the opening camera this is exactly screen-right.
+  const reachTiles = Math.min(w, h) * 0.46;
+  const jibVec = project(reachTiles, -reachTiles);
+  const reachPx = reachTiles * TILE_W;
+  const flat = Math.hypot(jibVec.x, jibVec.y) || 1;
+  const u = { x: jibVec.x / flat, y: jibVec.y / flat };
+  // The screen side the jib is on, for the parts drawn as upright rectangles.
+  const side = u.x >= 0 ? 1 : -1;
+  const along = (p: Pt, d: number, dy = 0): Pt => ({ x: p.x + u.x * d, y: p.y + u.y * d + dy });
+  const rise = reachPx * 0.1 * standing;
+  const backRatio = 0.38;
+
+  // The jib, two chords converging on the tip; the counter-jib, stubbier,
+  // carrying the weights.
+  const jibRoot = along(top, legW * 1.4, -mastH * 0.04);
+  const jibTip = { x: top.x + jibVec.x, y: top.y + jibVec.y - rise };
+  const jibRootLow = { x: jibRoot.x, y: jibRoot.y + legW * 3.1 };
+  const jibTipLow = { x: jibTip.x, y: jibTip.y + legW * 1.05 };
+  const cjRoot = along(top, -legW * 1.4, mastH * 0.01);
+  const cjEnd = { x: top.x - jibVec.x * backRatio, y: top.y - jibVec.y * backRatio + rise * backRatio };
+  const cjRootLow = { x: cjRoot.x, y: cjRoot.y + legW * 2.7 };
+  const cjEndLow = { x: cjEnd.x, y: cjEnd.y + legW * 1.2 };
+
+  // The A-frame over the slewing ring, and the ties out to both arms.
+  const apex = { x: top.x, y: top.y - mastH * 0.3 };
+  const tieJib = lerp(jibRoot, jibTip, 0.62);
+  const tieCj = lerp(cjRoot, cjEnd, 0.8);
+
+  // The trolley, and the hook hanging off it.
+  const trolley = lerp(jibRootLow, jibTipLow, 0.55);
+  const hookY = trolley.y + mastH * 0.42;
+  const dark = shade(CRANE_YELLOW, 0.72);
+  const poly = (pts: Pt[], cls: string, fill?: string) => <polygon className={cls} points={polyPoints(pts)} fill={fill} />;
+  // A screen rectangle spanning x0..x1 (offsets from `at`, mirrored to the
+  // jib's side) and y0..y1.
+  const rect = (at: Pt, x0: number, x1: number, y0: number, y1: number, cls: string) => poly([
+    { x: at.x + side * x0, y: at.y + y0 },
+    { x: at.x + side * x1, y: at.y + y0 },
+    { x: at.x + side * x1, y: at.y + y1 },
+    { x: at.x + side * x0, y: at.y + y1 },
+  ], cls);
+
+  const counterJib = (
+    <g>
+      {poly(beam(cjRoot, cjEnd, legW * 0.42, legW * 0.3), 'crane-steel', dark)}
+      {poly(beam(cjRootLow, cjEndLow, legW * 0.3), 'crane-steel', dark)}
+      {web(cjRoot, cjEnd, cjRootLow, cjEndLow, 4, legW * 0.16).map((pts, i) => (
+        <polygon key={i} className="crane-lattice" points={polyPoints(pts)} />
+      ))}
+      {rect(cjEnd, -legW * 1.7, legW * 0.2, -legW * 0.2, cjEndLow.y - cjEnd.y + legW * 1.5, 'crane-weight')}
+    </g>
+  );
+  const jib = (
+    <g>
+      {poly(beam(jibRoot, jibTip, legW * 0.5, legW * 0.26), 'crane-steel')}
+      {poly(beam(jibRootLow, jibTipLow, legW * 0.34, legW * 0.2), 'crane-steel')}
+      {web(jibRoot, jibTip, jibRootLow, jibTipLow, 9, legW * 0.16).map((pts, i) => (
+        <polygon key={i} className="crane-lattice" points={polyPoints(pts)} />
+      ))}
+      {/* Trolley, hoist line and hook block. */}
+      {rect(trolley, -legW * 0.5, legW * 0.5, -legW * 0.35, legW * 0.35, 'crane-weight')}
+      {poly(beam(trolley, { x: trolley.x, y: hookY }, legW * 0.1), 'crane-tie')}
+      {rect({ x: trolley.x, y: hookY }, -legW * 0.42, legW * 0.42, 0, legW * 0.8, 'crane-weight')}
+    </g>
+  );
+  // Whichever arm points away from the viewer (up the screen) sits behind
+  // the mast head; the other is drawn over it.
+  const jibBehind = u.y < 0;
+  return (
+    <g className="site-crane" aria-hidden="true">
+      {/* Ballast pad. */}
+      <polygon className="crane-ballast" points={polyPoints(boxFaces(col + w * 0.06, row + h * 0.7, 0.9, 0.9, 0, 3).top)} />
+      {jibBehind ? jib : counterJib}
+      {/* Mast: two legs, the lattice between them. */}
+      {poly(beam(base, top, legW * 0.9, legW * 0.62), 'crane-steel', dark)}
+      {Array.from({ length: 7 }, (_, i) => {
+        const t0 = i / 7;
+        const t1 = (i + 1) / 7;
+        const wide = (t: number) => legW * (0.9 - 0.28 * t);
+        const l0 = { x: base.x - wide(t0), y: base.y - mastH * t0 };
+        const r1 = { x: base.x + wide(t1), y: base.y - mastH * t1 };
+        const r0 = { x: base.x + wide(t0), y: l0.y };
+        const l1 = { x: base.x - wide(t1), y: r1.y };
+        return (
+          <g key={i}>
+            {poly(beam(l0, r1, legW * 0.16), 'crane-lattice')}
+            {poly(beam(r0, l1, legW * 0.16), 'crane-lattice')}
+          </g>
+        );
+      })}
+      {/* A-frame and the ties it carries. */}
+      {poly(beam(along(top, -legW * 1.1), apex, legW * 0.36, legW * 0.2), 'crane-steel')}
+      {poly(beam(along(top, legW * 1.1), apex, legW * 0.36, legW * 0.2), 'crane-steel')}
+      {poly(beam(apex, tieJib, legW * 0.11), 'crane-tie')}
+      {poly(beam(apex, tieCj, legW * 0.11), 'crane-tie')}
+      {/* The cab, where the operator sits. */}
+      {rect(top, legW * 0.9, legW * 3.1, mastH * 0.015, mastH * 0.075, 'crane-cab')}
+      {jibBehind ? counterJib : jib}
+    </g>
+  );
+}
