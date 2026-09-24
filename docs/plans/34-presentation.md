@@ -62,6 +62,13 @@ This document.
 - **The main menu** gains the hall, settings and the title screen beside
   save and new game.
 
+**As implemented:**
+- **The settings came here** rather than in PR F, since the title screen
+  needed somewhere to send them. Every type token scales with the text
+  size. The counting numbers read reduced motion as well as the walkers
+  and pulses do.
+- **The clock is paused** while any front screen is up.
+
 ## PR 34C — One notification system
 
 - **The toasts go.** What they announced is the ticker's.
@@ -75,6 +82,14 @@ This document.
 - **The event panel steps aside while a tab is open,** and NEXT points back
   to it.
 
+**As implemented:**
+- **NEXT names the first thing holding the clock,** in the order the list
+  gives, with the board first. "Campus" closes the tab.
+- **An event with a week or less to answer pulses,** and so does the
+  board's letter.
+- **The notes over the map step aside with the event panel.** v2 had no
+  notes; here they are the milestone, the demand and the board's letter.
+
 ## PR 34D — The build menu that gets out of the way
 
 - **While a building is held,** the build menu folds to a strip:
@@ -85,6 +100,13 @@ This document.
 - **Escape puts it down** before it closes the menu. This game's hall
   panel is unchanged.
 
+**As implemented:**
+- **The strip reads** "Placing: the building · its price · how it will be
+  paid", from a data file (`data/buildWords.ts`), so the words match the
+  full menu's.
+- **The keys it lists are the map's:** click to break ground, R to turn it,
+  Escape to put it down.
+
 ## PR 34E — History charts
 
 - **v2's multi-series chart,** with ranks drawn the right way up, replaces
@@ -94,6 +116,18 @@ This document.
   - endowment and net, in the Treasury;
   - each graduated class's size and satisfaction, in Students;
   - the six standings together, in the Final Report.
+
+**As implemented:**
+- **The chart is `components/MultiChart.tsx`,** beside the single-series
+  one, which stays for the History tab's four figures. The standings panel
+  keeps its six small rank charts.
+- **Lines past the third are dashed,** so no series is told apart by
+  colour alone. Its colours are the signal tokens, which the
+  colour-vision setting remaps.
+- **The Treasury's net is the year's change in cash,** as the history row
+  records it. A year that built something big reads low beside an
+  endowment in the billions. That is what the row holds, so the chart says
+  so in its note.
 
 ## PR 34F — Every number explains itself
 
@@ -113,6 +147,24 @@ This document.
   typecheck, and the tabs' bare figures are counted so the count can only
   fall.
 
+**As implemented:**
+- **The settings had landed in PR B.**
+- **A hint is typed as a sentence,** a string ending in a full stop. An
+  empty or unpunctuated one does not typecheck, and nor does a Figure
+  without one.
+- **`Figure` is a label and value inside a `<dl>`.** In a panel's grid it
+  sits as if unwrapped. `FigureBox` wraps anything else: the status bar's
+  stats, which open their sentence upward.
+- **The sentences are data** (`data/figureHints.ts`).
+- **Rolled out to:**
+  - the status bar's four stats and the funds;
+  - the Treasury's balance;
+  - the Students tab's effect on satisfaction;
+  - the summer's outcomes, projections and decision.
+- **`test/figures.test.ts` counts the `<dd>`s left in `src/tabs/`** (30)
+  and fails when the count rises, or when it falls without the ceiling
+  following.
+
 ## PR 34G — Sound
 
 - **v2's synthesiser and its data file:**
@@ -127,9 +179,34 @@ This document.
   listening bench in the debug panel.
 - **The levels are v2's,** to be tuned by ear (Phase N's playtest).
 
+**As implemented:**
+- **The data file is `data/audioData.ts`** (this game's writing is
+  TypeScript). The load-time checks v2 ran are `audioProblems()`, which
+  the audio test calls.
+- **The theme turns to distress at the freeze** (rung 3 here, as v2's
+  rung 2 was). It turns ceremonial from Year 46 and for the Final Report.
+- **The crowd is full at 6,000 students,** not v2's 1,500. This game's
+  colleges reach thirty thousand.
+- **The crowd thins while the summer is being decided,** as this game has
+  no summer term.
+- **The roar is on the season's three dated games and the postseason
+  week,** once a team is active.
+- **Cues are keyed on log topics.** A team's line cheers when the news is
+  good.
+- **New lines are found by their year, week and words,** since the reducer
+  clones the state. A load or a new run is heard from where it stands.
+- **The dev console handle is left out,** since the listening bench is in
+  the debug panel.
+
 ## What this plan does not do
 
 - **Bespoke art** for the capital projects, or a picture of the campus for
   the hall's portraits (Plan 33 left both open). These are Phase N's if
   the playtest asks for them.
 - **Balance.** The harness does not move.
+
+## Left for Phase N
+
+- **At the largest text size the toolbar wraps** at a 1440-wide window.
+- **The mix has not been heard by a person.** The listening bench is
+  there for the playtest to set the levels.
