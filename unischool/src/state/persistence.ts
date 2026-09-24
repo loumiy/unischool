@@ -341,6 +341,14 @@ function sanitizeIdentity(state: GameState): void {
     return;
   }
   state.identity!.tags = (p.tags as unknown[]).filter((id): id is string => typeof id === 'string' && tagById(id) !== undefined);
+  const log = (raw as { log?: unknown }).log;
+  if (log !== undefined) {
+    const kept = Array.isArray(log)
+      ? log.filter((e): e is { id: string; year: number; earned: boolean } => typeof e === 'object' && e !== null
+        && typeof e.id === 'string' && tagById(e.id) !== undefined && Number.isInteger(e.year) && typeof e.earned === 'boolean')
+      : [];
+    if (kept.length > 0) state.identity!.log = kept; else delete state.identity!.log;
+  }
 }
 
 // Advancement: a malformed record is dropped whole, and a running campaign
@@ -374,6 +382,18 @@ function sanitizeCatalogue(state: GameState): void {
       && EVENT_CATALOGUE.some((x) => x.id === e.eventId) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
       && typeof e.vars === 'object' && e.vars !== null;
   });
+  // The journal: malformed entries are dropped.
+  const cat = state.catalogue!;
+  if (cat.letters !== undefined) {
+    cat.letters = Array.isArray(cat.letters) ? cat.letters.filter((l) => typeof l === 'object' && l !== null
+      && typeof l.eventId === 'string' && typeof l.choiceId === 'string' && Number.isInteger(l.year)) : [];
+    if (cat.letters.length === 0) delete cat.letters;
+  }
+  if (cat.answered !== undefined) {
+    cat.answered = Array.isArray(cat.answered) ? cat.answered.filter((a) => typeof a === 'object' && a !== null
+      && Number.isInteger(a.year) && [a.player, a.seat, a.timeout].every((n) => Number.isInteger(n) && n >= 0)) : [];
+    if (cat.answered.length === 0) delete cat.answered;
+  }
 }
 
 // The alumni ledger: a malformed class is dropped, and a clause the game no
@@ -548,6 +568,7 @@ export function loadGame(): GameState | null {
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
+  else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;
   sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);

@@ -18,6 +18,7 @@ export interface Perception {
   tags: string[];
   earning: Record<string, number>;
   shedding: Record<string, number>;
+  log?: { id: string; year: number; earned: boolean }[];
 }
 
 export function perceptionOf(s: GameState): Perception {
@@ -108,7 +109,8 @@ export function turnPerception(s: GameState): void {
   const taken = [...earned].sort((a, b) => ind[b] - ind[a]).slice(0, room);
   for (const id of earned) if (!taken.includes(id)) earning[id] = TAG_YEARS - 1;
   tags = [...tags, ...taken];
-  s.identity = { tags, earning, shedding };
+  const log = [...(p.log ?? []), ...shed.map((id) => ({ id, year: s.clock.year, earned: false })), ...taken.map((id) => ({ id, year: s.clock.year, earned: true }))];
+  s.identity = { tags, earning, shedding, ...(log.length > 0 ? { log } : {}) };
   for (const id of shed) s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `The guidebooks no longer call the college ${tagById(id)!.name}.` });
   for (const id of taken) s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'good', message: `The guidebooks have started calling the college ${tagById(id)!.name}: “${tagById(id)!.blurb}”` });
 }

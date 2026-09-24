@@ -151,12 +151,25 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   if (by === 'player' && choiceId !== e.default && choiceCost(e, choiceId, p.scale) > Math.max(0, s.finance.cash)) return false;
   applyEffects(s, scaledEffects(choice.effects, p.scale));
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
+  journal(c, e, choiceId, by, s.clock.year);
   const title = e.title ?? firstSentence(fill(e.text, p.vars));
   const who = by === 'seat'
     ? (() => { const seat = handlerFor(s, e.domain)!; return `${seatTitle(seatDef(seat.seatId)!, seat.school)} ${seat.holder} answered`; })()
     : by === 'timeout' ? 'Nobody answered in time' : 'Answered';
   s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `${title} — ${who}: ${choice.label}.` });
   return true;
+}
+
+// The journal (Plan 33): letters for good, inline answers counted by year.
+function journal(c: CatalogueState, e: CatalogueEvent, choiceId: string, by: 'player' | 'seat' | 'timeout', year: number): void {
+  if (e.kind === 'seismic') {
+    (c.letters ??= []).push({ eventId: e.id, choiceId, year });
+    return;
+  }
+  const rows = (c.answered ??= []);
+  let row = rows[rows.length - 1];
+  if (!row || row.year !== year) rows.push(row = { year, player: 0, seat: 0, timeout: 0 });
+  row[by] += 1;
 }
 
 function firstSentence(text: string): string {

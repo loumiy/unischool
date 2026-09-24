@@ -403,6 +403,10 @@ export interface CatalogueState {
   lastFired: Record<string, number>; // event id -> year
   lastInlineWeek: number;            // absolute
   lastSeismicWeek: number;           // absolute
+  // The journal (Plan 33): every letter answered, and each year's inline
+  // events by who answered them. Absent before the first.
+  letters?: { eventId: string; choiceId: string; year: number }[];
+  answered?: { year: number; player: number; seat: number; timeout: number }[];
 }
 
 // While `pendingInterrupt` is set the clock halts; the UI renders a modal by
@@ -897,6 +901,9 @@ export interface YearSnapshot {
   // The year's rank on each of the six standings (Plan 31), by axis
   // (systems/rivals/rivalsSystem.ts's STANDINGS). Absent before it.
   standings?: Record<string, number>;
+  // The college's own value on each of the six (Plan 33), on the 0–150
+  // scale, so the Final Report can average a decade. Absent before it.
+  standingValues?: Record<string, number>;
 }
 
 export interface RunningCampaign {
@@ -981,10 +988,14 @@ export interface GameState {
   advancement?: Advancement;
   // What the guidebooks call the college (systems/identity/tags.ts): the
   // tags held, and the years each is toward being earned or shed.
-  identity?: { tags: string[]; earning: Record<string, number>; shedding: Record<string, number> };
+  identity?: {
+    tags: string[]; earning: Record<string, number>; shedding: Record<string, number>;
+    // Every tag earned or shed, and the year (Plan 33's journal).
+    log?: { id: string; year: number; earned: boolean }[];
+  };
   // The college's rival (systems/rivals/collegeRival.ts) and whether the
   // college stood above it at the last summer. Undefined before one exists.
-  rivalStanding?: { rivalId: string; above: boolean };
+  rivalStanding?: { rivalId: string; above: boolean; since?: number }; // since: the year this rival was first named
   // The event catalogue (systems/events/catalogueEngine.ts): events waiting
   // for an answer, the year each last fired, and when the last inline event
   // and the last letter fired. Undefined before the first fires.

@@ -249,6 +249,11 @@ export function rankedListBy(s: GameState, axis: StandingAxis): RankedEntry[] {
   return rankedFrom(s, selfValue(s, axis), (r) => rivalValue(r, axis));
 }
 
+// The college's own value on an axis, on the 0–150 scale.
+export function standingValue(s: GameState, axis: StandingAxis): number {
+  return rankedListBy(s, axis).find((e) => e.isPlayer)?.value ?? 0;
+}
+
 // The player's 1-indexed position on an axis.
 export function rankBy(s: GameState, axis: StandingAxis): number {
   return rankedListBy(s, axis).findIndex((e) => e.isPlayer) + 1;
