@@ -52,7 +52,27 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   'LAB-FILM': 'hangar',
   'LAB-COMP': 'block',
   'LAB-ECON': 'pavilion',
+  // By discipline (Plan 25): the engineering test halls are clear-span
+  // sheds, the neuroscience labs a clinical block.
+  'LAB-CIVE': 'hangar',
+  'LAB-MECH': 'hangar',
+  'LAB-AERO': 'hangar',
+  'LAB-NEUR': 'block',
 };
+
+// What a laboratory carries on its roof to say which science it is: an
+// observatory's drum and dome for physics, a glasshouse for biology, a row of
+// fume flues for chemistry.
+export type LabFeature = 'observatory' | 'glasshouse' | 'flues';
+const LAB_FEATURES: Partial<Record<string, LabFeature>> = {
+  'LAB-PHYS': 'observatory',
+  'LAB-BIOL': 'glasshouse',
+  'LAB-CHMY': 'flues',
+  'LAB-CHEM': 'flues',
+};
+export function labFeatureOf(t: Buildable): LabFeature | undefined {
+  return LAB_FEATURES[t.id];
+}
 
 // Bed and serve thresholds at which a chain changes kind. Same numbers as
 // campusMap.ts's DORM_FOOTPRINTS and FACILITY_SIZE_LADDERS, kept as literals so
@@ -64,8 +84,27 @@ const CLINIC_MIN_SERVES = 4_000;
 const RESEARCH_LIBRARY_MIN_SERVES = 2_000;
 const STUDENT_CENTRE_EXPANDED_MIN_SERVES = 2_000;
 
+// A hall dedicated to one school is drawn as that school's signature
+// building (Plan 25): a mixed hall is the generic gabled hall. The map's copy
+// of the Buildable carries the school (campusLayout.ts); state never does.
+export interface Signature { motif: Motif; material: keyof MaterialSet }
+export const SCHOOL_SIGNATURES: Readonly<Record<string, Signature>> = {
+  'Science': { motif: 'block', material: 'render' },
+  'Engineering': { motif: 'works', material: 'render' },
+  'Health Science': { motif: 'block', material: 'clinical' },
+  'Computer Science': { motif: 'block', material: 'curtain' },
+  'Arts & Media': { motif: 'portico', material: 'limestone' },
+  'Business': { motif: 'portico', material: 'brickBuff' },
+  'Social Sciences & Humanities': { motif: 'hall', material: 'limestone' },
+};
+
+export function signatureOf(t: Buildable): Signature | undefined {
+  const school = (t as Buildable & { signature?: string }).signature;
+  return school === undefined ? undefined : SCHOOL_SIGNATURES[school];
+}
+
 export function motifOf(t: Buildable): Motif {
-  if (t.kind === 'building') return 'hall';
+  if (t.kind === 'building') return signatureOf(t)?.motif ?? 'hall';
   if (t.kind === 'dorm') {
     const beds = t.effects?.capacityBonus ?? 0;
     if (beds >= DORM_TOWER_MIN_BEDS) return 'tower';
@@ -1002,7 +1041,10 @@ export function stoneFor(v: Vernacular): StonePalette {
 
 export function materialOf(t: Buildable, v: Vernacular): Material {
   const MATERIALS = materialsFor(v);
-  if (t.kind === 'building') return MATERIALS.brickRed;
+  if (t.kind === 'building') {
+    const signature = signatureOf(t);
+    return signature ? MATERIALS[signature.material] : MATERIALS.brickRed;
+  }
   if (t.kind === 'dorm') {
     return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickDark;
   }
@@ -1020,6 +1062,8 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
     case 'athleticsNatatorium':
       return MATERIALS.curtain;
     case 'lab':
+      if (t.id === 'LAB-NEUR') return MATERIALS.clinical;
+      return MATERIALS.render;
     case 'gym':
     case 'recCenter':
     case 'athleticsArena':

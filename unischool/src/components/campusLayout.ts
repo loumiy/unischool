@@ -3,7 +3,9 @@ import type { Buildable, Dressing, GameState, Pathways, Placement, Placements, Q
 import { totalEnrolled } from '../state/types';
 import { BIKE_RACK_ENROLMENT } from './dressing';
 import { chapterHouseId } from '../data/eventData';
-import { hallDisplayName } from '../systems/techtree/schools';
+import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
+import { SCHOOL_SIGNATURES } from './buildingSpec';
+import { FOUNDERS_HALL_ID } from '../data/techData';
 import { ageBand, type AgeBand } from './ageMarks';
 
 // What the campus scene draws, and nothing that changes week to week: which
@@ -51,6 +53,7 @@ function entryKey(e: PlacedEntry): string {
   return [
     t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age,
     t.floorsAdded ?? 0, t.renovatingFrom ?? '', fx?.capacityBonus ?? 0, fx?.servesPopulation ?? 0,
+    (t as Buildable & { signature?: string }).signature ?? '',
   ].join(':');
 }
 
@@ -65,8 +68,12 @@ export function campusLayout(s: GameState): CampusLayout {
   for (const c of s.orgs.chapters) glyphs[chapterHouseId(c.id)] = c.glyphs;
   const placed: PlacedEntry[] = [];
   for (const [id, p] of Object.entries(s.placements)) {
-    const t = s.tech.find((x) => x.id === id);
-    if (!t) continue;
+    const node = s.tech.find((x) => x.id === id);
+    if (!node) continue;
+    // A hall dedicated to one school is drawn as its signature building; the
+    // map's copy carries the school, the state's never does.
+    const school = node.slots !== undefined && id !== FOUNDERS_HALL_ID ? dedicatedSchool(s, id) : null;
+    const t: Buildable = school && SCHOOL_SIGNATURES[school] ? { ...node, signature: school } as Buildable : node;
     placed.push({
       t, p,
       label: hallDisplayName(s, t),

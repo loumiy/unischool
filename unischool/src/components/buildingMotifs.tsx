@@ -5,6 +5,7 @@ import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import {
+  labFeatureOf, type LabFeature,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
   CROSS_BAR_METRES, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
   CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
@@ -327,6 +328,83 @@ function Scaffolding({ col, row, w, h, height, base = 0 }: {
         y2={lift(footAt(posts[1][0], posts[1][1]), POLE * 0.72).y}
       />
     </>
+  );
+}
+
+// What a laboratory carries on its roof to say which science it is
+// (buildingSpec.ts's labFeatureOf). Standing on the roof at `base`.
+function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
+  feature: LabFeature; col: number; row: number; w: number; h: number; base: number; tint: string;
+}) {
+  if (feature === 'observatory') {
+    // A drum and a dome at the front of the roof, taller than the lab under
+    // it, with the shutter slit facing the camera.
+    const r = Math.min(w, h) * 0.3;
+    const cc = col + w * 0.62; const cr = row + h * 0.55;
+    const drumRise = up(8);
+    const ring = (z: number) => projectedCircle(cc, cr, r, 32).map((q) => lift(q, z));
+    const bottom = ring(base); const top = ring(base + drumRise);
+    const left = bottom.reduce((a, q) => (q.x < a.x ? q : a)); const right = bottom.reduce((a, q) => (q.x > a.x ? q : a));
+    // The near half of a ring, left to right: the points below the line
+    // through its two widest points.
+    const front = (pts: Pt[]) => {
+      const l = pts.reduce((a, q) => (q.x < a.x ? q : a)); const r = pts.reduce((a, q) => (q.x > a.x ? q : a));
+      return pts.filter((q) => q.y >= (l.y + r.y) / 2 - 0.01).sort((a, b) => a.x - b.x);
+    };
+    const side = [...front(bottom), ...front(top).reverse()];
+    const centre = lift(project(cc, cr), base + drumRise);
+    const rx = (right.x - left.x) / 2;
+    const rise = up(4.2) * heightScale() + rx * 0.35;
+    const dome: string[] = [];
+    for (let i = 0; i <= 20; i++) {
+      const a = Math.PI + (i / 20) * Math.PI;
+      dome.push(`${(centre.x + Math.cos(a) * rx).toFixed(2)},${(centre.y + Math.sin(a) * rise).toFixed(2)}`);
+    }
+    const slitW = rx * 0.14;
+    return (
+      <g className="lab-observatory">
+        <polygon points={polyPoints(side)} fill="#d6cfbf" stroke="rgba(70, 64, 54, 0.5)" strokeWidth={0.8} />
+        <polygon points={polyPoints(top)} fill="#bdb5a3" />
+        <polygon points={dome.join(' ')} fill="#d9dcdf" stroke="rgba(60, 64, 70, 0.45)" strokeWidth={0.8} />
+        <polygon
+          points={polyPoints([
+            { x: centre.x - slitW, y: centre.y }, { x: centre.x + slitW, y: centre.y },
+            { x: centre.x + slitW * 0.6, y: centre.y - rise * 0.98 }, { x: centre.x - slitW * 0.6, y: centre.y - rise * 0.98 },
+          ])}
+          fill="#3b4148"
+        />
+      </g>
+    );
+  }
+  if (feature === 'glasshouse') {
+    // A glazed house along the roof's front edge, ridge and panes.
+    const gh = boxFaces(col + w * 0.12, row + h * 0.52, w * 0.62, h * 0.36, base, up(2.6));
+    const ridgeA = lift(project(col + w * 0.12, row + h * 0.7), base + up(4.2));
+    const ridgeB = lift(project(col + w * 0.74, row + h * 0.7), base + up(4.2));
+    return (
+      <g className="lab-glasshouse">
+        <polygon points={polyPoints(gh.left)} className="glass-pane" />
+        <polygon points={polyPoints(gh.right)} className="glass-pane" />
+        <polygon points={polyPoints([gh.Dt, gh.Ct, ridgeB, ridgeA])} className="glass-roof" />
+        <polygon points={polyPoints([gh.Ct, gh.Bt, ridgeB])} className="glass-roof" />
+        <line x1={ridgeA.x} y1={ridgeA.y} x2={ridgeB.x} y2={ridgeB.y} className="glass-ridge" />
+      </g>
+    );
+  }
+  // Fume flues: a row of tall thin stacks along the back of the roof.
+  const sp = across(0.9);
+  return (
+    <g className="lab-flues">
+      {[0.2, 0.4, 0.6].map((u) => {
+        const st = boxFaces(col + w * u, row + h * 0.12, sp, sp, base, up(8.5));
+        return (
+          <g key={u}>
+            {sideFaces(st, shade(tint, 0.9), shade(tint, 0.74))}
+            <polygon points={polyPoints(st.top)} fill={shade(tint, 0.4)} />
+          </g>
+        );
+      })}
+    </g>
   );
 }
 
@@ -2942,6 +3020,9 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
               </>
             );
           })()}
+          {!site && labFeatureOf(t) && (
+            <LabRoofFeature feature={labFeatureOf(t)!} col={col} row={row} w={w} h={h} base={H} tint={roofTint} />
+          )}
           {!site && (motif === 'works' || motif === 'pavilion' || motif === 'block') && (
             // Roof plant, heaviest on labs and hospitals. Sorted back to
             // front with depthSort.ts's comparator (in footprint fractions),

@@ -77,6 +77,13 @@ This document.
 - Drawing only. The map's copy of the Buildable carries the signature;
   state does not.
 
+**As implemented:** `buildingSpec.ts`'s `SCHOOL_SIGNATURES` maps each school
+to a motif and a material. `campusLayout.ts` hands the map a copy of a
+dedicated hall carrying its school, which `motifOf` and `materialOf` read.
+The school is in the layout key, so the look changes the week the hall is
+dedicated, even for a hall a donor named. Founders Hall keeps its clock
+tower whatever it holds.
+
 ## PR 25C — Research buildings by discipline
 
 - **Every research facility has a discipline's look,** not only the four
@@ -86,6 +93,18 @@ This document.
   - a clinic front on the neuroscience labs;
   - flues and extraction on the chemistry and chemical engineering labs;
   - a test hall on the civil, mechanical and aerospace labs.
+
+**As implemented:**
+
+- **Motifs by discipline:** the civil, mechanical and aerospace labs are
+  clear-span test halls (`hangar`). The neuroscience labs are a clinical
+  `block`.
+- **`labFeatureOf`:** physics carries an observatory (a stone drum eight
+  metres high and a dome with its shutter slit toward the camera), biology a
+  glasshouse along the roof, and chemistry and chemical engineering three
+  fume flues.
+- **Only the electrical engineering labs** stay a plain works building.
+- **Profile, Year 40:** 55.1 fps at 4×, unchanged.
 
 ## PR 25D — Grand landmarks
 
