@@ -1,3 +1,4 @@
+import { tagTeeth } from '../identity/teeth';
 import { annualGiving } from '../alumni/giving';
 import { seatPayroll } from '../delegation/seats';
 import { upkeepShare } from '../estate/estate';
@@ -227,7 +228,9 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const emptySeats = Math.max(s.students.capacity - filledSeats, 0);
   const seatUpkeep = (filledSeats + emptySeats * UPKEEP_EMPTY_SEAT_MULTIPLIER) * UPKEEP_PER_SEAT_PER_WEEK;
   const instructionCost = instructionDetail(s).cost;
-  const servicesCost = enrolled * SERVICES_PER_STUDENT_PER_WEEK * marketRateMultiplier(s.self.reputation) * servicesMultiplier(s);
+  // A Party School pays for the parties (an identity tag's teeth, Plan 31).
+  const servicesCost = enrolled * SERVICES_PER_STUDENT_PER_WEEK * marketRateMultiplier(s.self.reputation) * servicesMultiplier(s)
+    + (enrolled * tagTeeth(s, 'studentCost')) / WEEKS_PER_YEAR;
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);

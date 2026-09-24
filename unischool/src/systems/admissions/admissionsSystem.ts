@@ -319,7 +319,9 @@ export function projectAdmissions(
   const volume = applicantVolumeParts(prestige, Math.max(tuition, 0), capacity);
   // Campus beauty's swing, capped (systems/estate/beauty.ts).
   const beauty = beautyPoolFactor(cohortSignals.beauty);
-  const rawApplicants = volume.prestigePool * volume.priceFactor * volume.capacityFactor * wordOfMouth * cohortDemand * beauty;
+  // What the guidebooks say (systems/identity/tags.ts).
+  const tags = cohortSignals.tagPool ?? 1;
+  const rawApplicants = volume.prestigePool * volume.priceFactor * volume.capacityFactor * wordOfMouth * cohortDemand * beauty * tags;
   const mix = qualityMix(prestige, tuition, athleteBandDrag(cohortSignals, tolerance, tuition));
 
   const bands: QualityBand[] = ['top', 'mid', 'low'];
@@ -359,9 +361,9 @@ export function projectAdmissions(
   const enrolled = Math.round(enrolledRaw);
 
   const avgIncomingQuality = enrolledRaw > 0
-    ? (admitsByBand.top * QUALITY_BAND_SCORE.top +
+    ? clamp((admitsByBand.top * QUALITY_BAND_SCORE.top +
        admitsByBand.mid * QUALITY_BAND_SCORE.mid +
-       admitsByBand.low * QUALITY_BAND_SCORE.low) / enrolledRaw
+       admitsByBand.low * QUALITY_BAND_SCORE.low) / enrolledRaw + (cohortSignals.tagQuality ?? 0), 0, 100)
     : 0;
 
   return {
@@ -378,7 +380,7 @@ export function projectAdmissions(
     // Computed here, not in the reducer, so the consequences.ts preview and
     // the commit apportion identically.
     enrolledCohorts: cohortCounts(cohortSignals, tolerance, tuition, enrolled),
-    factors: { ...volume, wordOfMouth, cohortDemand, stickerShock: stickerShockMultiplier, beauty },
+    factors: { ...volume, wordOfMouth, cohortDemand, stickerShock: stickerShockMultiplier, beauty, tags },
   };
 }
 

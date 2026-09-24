@@ -2403,3 +2403,6 @@ body:has(.building-info-panel) .pennant { display: none; }
 .standings-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 16px; margin: 8px 0; }
 .standings-table dd { margin: 0; }
 .standings-charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+/* What the guidebooks say (tabs/IdentityPanel.tsx). */
+.identity-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }

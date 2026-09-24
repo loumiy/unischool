@@ -1,3 +1,4 @@
+import { tagTeeth } from '../identity/teeth';
 import type { AlumniClass, GameState } from '../../state/types';
 
 // THE ANNUAL FUND AND REUNIONS (Plan 30, from v2's alumni.ts). Each class
@@ -36,8 +37,11 @@ export function givingOf(a: AlumniClass, year: number): number {
 }
 
 // The year's giving, every class together.
+// An identity tag's teeth (Plan 31) lift or cut it: Research Powerhouse,
+// Country Club.
 export function annualGiving(s: GameState): number {
-  return (s.alumni ?? []).reduce((t, a) => t + givingOf(a, s.clock.year), 0);
+  const base = (s.alumni ?? []).reduce((t, a) => t + givingOf(a, s.clock.year), 0);
+  return Math.round(base * (1 + tagTeeth(s, 'giving')));
 }
 
 // ---- Reunions ----

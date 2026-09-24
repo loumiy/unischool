@@ -1,3 +1,4 @@
+import { tagTeeth } from '../identity/teeth';
 import type { GameState } from '../../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../../state/types';
 import { isPlaceableKind } from '../../state/campusMap';
@@ -72,8 +73,9 @@ export function beautyTerms(s: GameState): BeautyTerms {
   };
 }
 
+// The score, with an identity tag's teeth (Plan 31: Artsy's galleries).
 export function campusBeauty(s: GameState): number {
-  return beautyTerms(s).score;
+  return Math.min(100, beautyTerms(s).score + tagTeeth(s, 'beauty'));
 }
 
 // Beauty's swing on the applicant pool: neutral at 50, the layout cap at

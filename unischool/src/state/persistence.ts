@@ -1,3 +1,4 @@
+import { tagById } from '../data/tagData';
 import { campaignById } from '../data/campaignData';
 import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
@@ -328,6 +329,19 @@ function sanitizeSeen(state: GameState): void {
 // claim a course is taught by someone who doesn't work here. An unstaffed
 // course is deliberately not reassigned; that is a visible state the player
 // fixes (see types.ts's CourseFaculty).
+// Identity: tags the game no longer has are dropped; a malformed record is
+// dropped whole, and the college is known for nothing yet.
+function sanitizeIdentity(state: GameState): void {
+  const raw = state.identity as unknown;
+  if (raw === undefined) return;
+  const p = raw as { tags?: unknown; earning?: unknown; shedding?: unknown };
+  if (typeof raw !== 'object' || raw === null || !Array.isArray(p.tags) || typeof p.earning !== 'object' || typeof p.shedding !== 'object' || p.earning === null || p.shedding === null) {
+    delete state.identity;
+    return;
+  }
+  state.identity!.tags = (p.tags as unknown[]).filter((id): id is string => typeof id === 'string' && tagById(id) !== undefined);
+}
+
 // Advancement: a malformed record is dropped whole, and a running campaign
 // the game no longer has is stopped.
 function sanitizeAdvancement(state: GameState): void {
@@ -510,6 +524,7 @@ export function loadGame(): GameState | null {
   sanitizeQuirks(state);
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
+  sanitizeIdentity(state);
   sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);
