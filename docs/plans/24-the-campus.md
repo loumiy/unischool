@@ -4,7 +4,7 @@
 campus map, `loumiy/unischool-v2`'s `docs/MIGRATION_PLAN.md`) into a
 sequence of PRs.*
 
-**Status: In progress.** PRs A–J are done in this branch, awaiting merge.
+**Status: Landed** (#135). PRs A–J, with D and E in one commit.
 
 ---
 
