@@ -53,6 +53,7 @@ import { startInitiative } from '../systems/research/startInitiative';
 import { placeBuildable } from '../state/placeBuildable';
 import { fireFaculty, hireFaculty } from '../systems/faculty/appointments';
 import { tickLadder } from '../systems/ladder/ladderSystem';
+import { cancelConstruction, demolish } from '../state/demolition';
 
 // The systems run in a fixed order each week; each placement comment says
 // what it must read fresh.
@@ -321,6 +322,15 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (node && canDeclareHistoric(s, node)) node.historic = true;
       return s;
     }
+
+    // Plan 39 (state/demolition.ts).
+    case 'CANCEL_CONSTRUCTION':
+      cancelConstruction(s, action.id);
+      return s;
+
+    case 'DEMOLISH_BUILDING':
+      demolish(s, action.id);
+      return s;
 
     case 'EXTEND_BUILDING': {
       const node = s.tech.find((t) => t.id === action.id);

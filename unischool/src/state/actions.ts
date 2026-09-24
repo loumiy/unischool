@@ -107,6 +107,10 @@ export type Action =
   | { type: 'RENOVATE_BUILDING'; id: string }
   | { type: 'EXTEND_BUILDING'; id: string }
   | { type: 'DECLARE_HISTORIC'; id: string }
+  // Plan 39: a building under construction called off, its cost returned;
+  // a standing one pulled down, for nothing and with nothing back.
+  | { type: 'CANCEL_CONSTRUCTION'; id: string }
+  | { type: 'DEMOLISH_BUILDING'; id: string }
   // A lamp or a bench beside a path, or lifted (components/dressing.tsx).
   | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }

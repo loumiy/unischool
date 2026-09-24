@@ -16,6 +16,7 @@ import {
 import { transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
 import { money, pct } from '../format';
+import { canCancelConstruction, demolitionBlock } from '../state/demolition';
 
 // A popover for a placed building (see CampusMap.tsx's inspectBuilding). For
 // every kind but one it is a pure projection of the Buildable and the
@@ -474,10 +475,50 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
   );
 }
 
+// Calling off a building going up, or pulling down a standing one (Plan 39).
+// Each asks once more before it acts; neither can be undone.
+function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a: Action) => void; onClose: () => void }) {
+  const [asking, setAsking] = useState(false);
+  if (canCancelConstruction(s, t)) {
+    const back = t.financing === 'gift' ? 'to the building fund'
+      : t.financing === 'endowment' ? 'half to the endowment, half to cash'
+        : t.financing === 'loan' ? 'to cash, its loan settled'
+          : 'to cash';
+    return asking ? (
+      <div className="building-info-takedown">
+        <p className="building-info-line">Call off {t.name}? {money(t.cost)} comes back {back}; the site is cleared.</p>
+        <div className="building-info-confirm">
+          <button type="button" className="building-info-jump danger" onClick={() => { act({ type: 'CANCEL_CONSTRUCTION', id: t.id }); onClose(); }}>Call it off</button>
+          <button type="button" className="building-info-jump" onClick={() => setAsking(false)}>Keep building</button>
+        </div>
+      </div>
+    ) : (
+      <button type="button" className="building-info-jump quiet" onClick={() => setAsking(true)}>
+        Call off construction · {money(t.cost)} returned
+      </button>
+    );
+  }
+  if (t.status !== 'done') return null;
+  const blocked = demolitionBlock(s, t);
+  if (blocked) return <p className="building-info-line building-info-note">Not for demolition. {blocked}</p>;
+  return asking ? (
+    <div className="building-info-takedown">
+      <p className="building-info-line">Demolish {t.name}? It is free, nothing is returned, and it cannot be undone.</p>
+      <div className="building-info-confirm">
+        <button type="button" className="building-info-jump danger" onClick={() => { act({ type: 'DEMOLISH_BUILDING', id: t.id }); onClose(); }}>Demolish</button>
+        <button type="button" className="building-info-jump" onClick={() => setAsking(false)}>Keep it</button>
+      </div>
+    </div>
+  ) : (
+    <button type="button" className="building-info-jump quiet" onClick={() => setAsking(true)}>Demolish…</button>
+  );
+}
+
 export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum }: {
   t: Buildable; s: GameState; onClose: () => void;
-  // The one thing this panel dispatches: FOUND_PROGRAM from a hall's slot.
-  // Optional, like onOpenCurriculum; the map always passes both.
+  // What this panel dispatches: FOUND_PROGRAM from a hall's slot, the
+  // estate's actions, and calling off or demolishing (Plan 39). Optional,
+  // like onOpenCurriculum; the map always passes both.
   act?: (a: Action) => void;
   // Opens the Curriculum tab at a school (by name) or at one program's row
   // ("program:<id>") — the targets CurriculumTab.tsx accepts.
@@ -518,6 +559,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
       {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
+      {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}
     </div>
   );
 }

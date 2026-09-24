@@ -240,6 +240,7 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
 export function startDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
+  if (financing !== 'cash') node.financing = financing;
   // Never takes cash below zero: canStartDevelopment requires the cash, or
   // the loan that makes it up.
   if (financing === 'gift' && s.advancement) s.advancement.restrictedBuilding -= node.cost;
@@ -588,6 +589,7 @@ export function tickTech(s: GameState): void {
     if (node.kind !== 'course' && node.builtYear === undefined) node.builtYear = s.clock.year;
     // A finished renovation serves its new figure (types.ts's servingPopulation).
     delete node.renovatingFrom;
+    delete node.financing;
     applyEffects(s, node.effects);
     openHall(s, node);
     s.log.unshift({

@@ -287,6 +287,11 @@ export interface Buildable {
   // Unpaid maintenance, compounding (systems/estate/estate.ts); what its
   // condition reads. Undefined means none.
   backlog?: number;
+  // How a building under construction was paid for, when not from cash
+  // (systems/finance/treasury.ts's Financing), so calling it off returns the
+  // money where it came from (state/demolition.ts). Cleared when it
+  // is finished or called off.
+  financing?: 'loan' | 'gift' | 'endowment';
   // Weeks left on a renovation, which it stays open through. Undefined means
   // none under way.
   renovationWeeks?: number;

@@ -602,6 +602,13 @@ button.build-tile { font-family: inherit; }
 .hall-offer-meta { color: var(--ink-muted); font-weight: 600; }
 .hall-offer-picker .instructor-options { margin-bottom: 6px; }
 .building-info-jump:disabled { opacity: 0.5; cursor: default; }
+.building-info-jump.quiet { background: transparent; color: var(--ink); border-style: dashed; }
+.building-info-jump.danger { background: var(--danger-ink); border-color: var(--danger-ink); color: var(--cream-hi); }
+.building-info-jump.danger:hover { filter: brightness(1.1); background: var(--danger-ink); color: var(--cream-hi); }
+.building-info-takedown { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--outline); }
+.building-info-confirm { display: flex; gap: 8px; }
+.building-info-confirm .building-info-jump { margin-top: 0; }
+.building-info-note { margin-top: 10px; opacity: 0.7; font-style: italic; }
 /* A hall's panel is wider, to fit three columns of tiles. */
 .building-info-panel.hall { width: 440px; max-width: calc(100vw - 32px); }
 .building-info-dedication { font-weight: 600; }
