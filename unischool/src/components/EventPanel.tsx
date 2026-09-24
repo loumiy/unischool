@@ -55,6 +55,8 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
   e: CatalogueEvent;
   onChoose: (choiceId: string) => void;
 }) {
+  // Only an inline event is ever left unanswered: a letter waits.
+  const marksDefault = e.kind === 'inline';
   return (
     <div className="event-choices">
       {e.choices.map((c) => {
@@ -65,7 +67,7 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
           <button key={c.id} type="button" className="event-choice" disabled={!affordable} onClick={() => onChoose(c.id)}>
             <span className="event-choice-label">
               {fill(c.label, p.vars)}
-              {c.id === e.default && <span className="event-choice-cost">if nobody answers</span>}
+              {marksDefault && c.id === e.default && <span className="event-choice-cost">if nobody answers</span>}
             </span>
             <span className="event-choice-detail">
               {phrases.length > 0 ? phrases.join(' · ') : 'nothing to speak of'}

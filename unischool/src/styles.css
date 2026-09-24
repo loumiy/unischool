@@ -2253,8 +2253,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* ---------- The event panel (Plan 32, EventPanel.tsx) ----------
    The catalogue's inline events, over the map's right edge while the clock
    runs. One card open at a time; the others show a line of their text. */
-.event-panel { position: fixed; z-index: 12; right: 24px; top: 150px; width: min(360px, calc(100vw - 48px));
-  max-height: calc(100vh - 300px); overflow-y: auto; display: grid; gap: 8px; }
+/* Clear of the map's controls down the right edge. minmax(0, 1fr) keeps a
+   teaser's unbroken line from widening the column. */
+.event-panel { position: fixed; z-index: 12; right: 76px; top: 150px; width: min(360px, calc(100vw - 100px));
+  max-height: calc(100vh - 300px); overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .event-card { padding: 12px 14px; background: var(--cream); border: 2px solid var(--outline); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-1); color: var(--ink); }
 .event-card-head { display: block; width: 100%; padding: 0; margin: 0 0 4px; background: none; border: 0; box-shadow: none;
