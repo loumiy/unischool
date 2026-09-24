@@ -31,6 +31,7 @@ import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
 import { money, moneyShort, ordinal, signedPct } from '../format';
+import { milestoneById } from '../data/ladderData';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -1083,6 +1084,24 @@ function AthleticDirectorView({ s, payload, onResolve }: {
 // first letter offers "I know the way", which skips the rest of the script.
 // A letter no longer in the table (an old save) is put down quietly.
 // ---------------------------------------------------------------------
+// A milestone on the ladder: what it took, and what it opened.
+function MilestoneReachedView({ s, id, onResolve }: { s: GameState; id: string; onResolve: () => void }) {
+  const m = milestoneById(id);
+  return (
+    <>
+      <p className="letter-eyebrow">A milestone · {m?.tier ?? 'The ladder'} · Year {s.ladder.reached[id] ?? s.clock.year}</p>
+      <h2>{m?.name ?? 'A milestone'}</h2>
+      {m && <p className="letter-body">{m.letter}</p>}
+      {m && (
+        <ul className="milestone-opens">
+          {m.opens.map((line) => <li key={line}>{line}</li>)}
+        </ul>
+      )}
+      <button onClick={onResolve}>Understood</button>
+    </>
+  );
+}
+
 function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve: (skipAll: boolean) => void }) {
   const letter = findOpeningLetter(id);
   if (!letter) {
@@ -1255,6 +1274,9 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'letter':
         act({ type: 'RESOLVE_LETTER', skipAll: false });
         break;
+      case 'milestone-reached':
+        act({ type: 'RESOLVE_MILESTONE_LETTER' });
+        break;
       case 'demand':
         act({ type: 'RESOLVE_DEMAND' });
         break;
@@ -1309,6 +1331,12 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           />
         ) : interrupt.type === 'charter' ? (
           <CharterOfferView s={s} onResolve={(accept) => act({ type: 'RESOLVE_CHARTER', accept })} />
+        ) : interrupt.type === 'milestone-reached' ? (
+          <MilestoneReachedView
+            s={s}
+            id={(interrupt.payload as { id: string }).id}
+            onResolve={() => act({ type: 'RESOLVE_MILESTONE_LETTER' })}
+          />
         ) : interrupt.type === 'letter' ? (
           <LetterView
             s={s}

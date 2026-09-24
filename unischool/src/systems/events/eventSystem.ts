@@ -238,6 +238,14 @@ export function fireOpeningLetter(s: GameState): boolean {
   return true;
 }
 
+// A milestone on the ladder has been reached: its letter, oldest first.
+function fireLadderLetter(s: GameState): boolean {
+  const id = s.ladder.unread[0];
+  if (id === undefined) return false;
+  s.pendingInterrupt = { type: 'milestone-reached', payload: { id } };
+  return true;
+}
+
 export function tickEvents(s: GameState): void {
   // Another system already claimed this week.
   if (s.pendingInterrupt) return;
@@ -245,6 +253,7 @@ export function tickEvents(s: GameState): void {
   // Priority order: earned celebrations and one-shot questions first, the
   // random decision roll last.
   if (fireMilestoneCelebration(s)) return;
+  if (fireLadderLetter(s)) return;
   if (fireCharterOffer(s)) return;
   if (fireResearchReport(s)) return;
   if (fireChampionshipReport(s)) return;

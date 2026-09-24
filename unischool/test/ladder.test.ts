@@ -82,6 +82,24 @@ console.log('ladder tests');
   assert(status(s, 'HLTH-T1') !== 'locked', 'nor re-lock what it opened');
 }
 
+// ---- A reached milestone arrives as a letter, and reading it clears it ----
+{
+  let s = createInitialState('Ladder');
+  s.pendingInterrupt = null;
+  for (const c of Object.keys(s.students.classes) as (keyof GameState['students']['classes'])[]) s.students.classes[c] = 400;
+  s = tick(s); // reaches the milestone and queues its letter
+  for (let i = 0; i < 4 && s.pendingInterrupt?.type !== 'milestone-reached'; i += 1) {
+    if (s.pendingInterrupt) s = { ...s, pendingInterrupt: null };
+    s = tick(s);
+  }
+  assert(s.pendingInterrupt?.type === 'milestone-reached', 'the letter fires on a following quiet week');
+  assert((s.pendingInterrupt?.payload as { id: string }).id === 'town', 'for the milestone that was reached');
+  const week = s.clock.week;
+  s = reducer(s, { type: 'RESOLVE_MILESTONE_LETTER' });
+  assert(!s.ladder.unread.includes('town') && s.pendingInterrupt === null, 'reading it clears it');
+  assert(s.clock.week !== week, 'and turns the page, like every trailing letter');
+}
+
 // ---- The first commencement opens the student center, once a year is behind the college ----
 {
   const s = createInitialState('Ladder');

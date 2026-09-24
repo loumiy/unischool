@@ -496,6 +496,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     // Puts down one of the first year's letters (see fireOpeningLetter). The
     // only thing a letter records is declining the rest. Advances the clock.
+    case 'RESOLVE_MILESTONE_LETTER': {
+      const read = (s.pendingInterrupt?.payload as { id?: string } | undefined)?.id;
+      s.ladder.unread = s.ladder.unread.filter((id) => id !== read);
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
     case 'RESOLVE_LETTER': {
       if (action.skipAll) s.events.opening.skipped = true;
       s.pendingInterrupt = null;

@@ -2181,6 +2181,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .letter-eyebrow { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 4px !important; }
 .letter-body { line-height: 1.55; }
+.milestone-opens { margin: 0 0 14px; padding: 10px 14px 10px 30px; border: 2px solid var(--outline); border-radius: var(--radius-lg); background: var(--cream-hi); color: var(--ink); }
+.milestone-opens li { margin: 4px 0; line-height: 1.4; }
 .letter-ask { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; margin: 0 0 14px !important;
   background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); color: var(--ink); font-weight: 600; }
 .letter-ask-label { flex: none; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
