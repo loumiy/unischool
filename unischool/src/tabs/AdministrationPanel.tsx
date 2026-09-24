@@ -33,7 +33,9 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
       </div>
       <p className="empty-note">{speeds}</p>
       <ul className="seat-list">
-        {slots.map(({ def, school }) => {
+        {slots.map(({ def, school }, i) => {
+          // A seat's description once, on its first slot: every Dean's is the same.
+          const firstOfKind = slots.findIndex((slot) => slot.def.id === def.id) === i;
           const seat = heldSeat(s, def.id, school);
           const title = seatTitle(def, school);
           const key = `${def.id}:${school ?? ''}`;
@@ -69,7 +71,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                 <strong>{title}</strong>
                 <span className="stat">vacant</span>
               </div>
-              <p className="seat-blurb">{def.blurb}</p>
+              {firstOfKind && <p className="seat-blurb">{def.blurb}</p>}
               <div className="seat-appoint">
                 {candidates.map((f) => (
                   <button key={f.id} type="button" className="panel-action small" onClick={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school, facultyId: f.id })}>

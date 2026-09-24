@@ -96,7 +96,7 @@ This document.
 | Estate | roof failure, dining inspection, heating plant, winter storm |
 | Students | the Hellenic council, a Greek scandal, a chapter's housing |
 | Advancement | an estate gift |
-| Board | naming rights, the state's capital match, a faculty scandal, athletics (a shortage of ADs, recruiting, a poached coach), the rival passing, varsity petitions |
+| Board | naming rights, the state's capital match, a faculty scandal, athletics (a coaching vacancy, recruiting, a coach with an offer), the rival passing, varsity petitions |
 
 - **The popular policy** reads a new optional `mood` on a choice. It is
   authored on the eleven choices whose satisfaction cost or goodwill the
