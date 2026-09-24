@@ -290,6 +290,21 @@ This is the baseline every later PR in this plan is measured against.
 - **Crowds fill the stands** of a venue in the weeks its team plays at home
   (the athletics season's occasions), and only then.
 
+**As implemented:**
+
+- **Three React contexts** (`components/mapOccasions.ts`) carry the week's
+  occasions into the static layer without redrawing it: the venues with a
+  crowd, the venue each building and prop belongs to, and the college's
+  colours in commencement week. Only the stands and the lamps redraw.
+- **Crowds** sit on the treads of the shared `RakedStand`, so every venue's
+  stands fill as drawn. A venue fills in the weeks of the season's three
+  dated occasions (`OCCASIONS`) when an active team plays in its category.
+- **Commencement** is the last fortnight of the year, before the summer.
+  Each of the player's lamps hangs a banner in the college's two colours.
+- **The flag** flies on a pole just off Founders Hall's front corner, in the
+  college's colours, which the layout key now carries.
+- **Profile, Year 40, crowds in week 8 of the run:** 55.2 fps at 4×.
+
 ## PR 24J — Construction and age
 
 - **A building under construction** shows a crane and scaffolding as solid

@@ -14,6 +14,7 @@ import { QuadOverlay, QuadPatches } from './quadLayer';
 import QuadPanel from './QuadPanel';
 import Walkers from './Walkers';
 import { dressingProps } from './dressing';
+import { BannerContext, CrowdContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
@@ -197,7 +198,8 @@ function labelLayout(label: string, t: Buildable, p: Placement, v: Vernacular) {
 type SceneEntry = DepthBox & (
   | { kind: 'mass'; key: string; id: string }
   | { kind: 'tree'; key: string; seed: number }
-  | { kind: 'prop'; key: string; node: React.JSX.Element }
+  // `owner` is the Buildable a prop belongs to, for its stands' crowd.
+  | { kind: 'prop'; key: string; node: React.JSX.Element; owner?: string }
 );
 
 // Weeks left on each site, by Buildable id. A context rather than a prop so
@@ -467,7 +469,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
         const d = drawnFootprint(p);
         for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing)) {
           entries.push({
-            kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node,
+            kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id,
             col: prop.col, row: prop.row, w: prop.w, h: prop.h,
           });
         }
@@ -528,9 +530,11 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
 
       {scene.map((entry) => {
         if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} camera={camera} />;
-        if (entry.kind === 'prop') return <g key={entry.key}>{entry.node}</g>;
+        if (entry.kind === 'prop') {
+          return <VenueContext.Provider key={entry.key} value={entry.owner ?? null}><g>{entry.node}</g></VenueContext.Provider>;
+        }
         const e = byId.get(entry.id);
-        return e ? <g key={entry.key}>{building(e)}</g> : null;
+        return e ? <VenueContext.Provider key={entry.key} value={e.t.id}><g>{building(e)}</g></VenueContext.Provider> : null;
       })}
 
       <g ref={labelLayerRef}>
@@ -631,6 +635,13 @@ export default function CampusMap({
   const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
   setCamera(camera);
   const layout = useCampusLayout(s);
+  // This week's occasions (mapOccasions.ts), reference-stable between them.
+  const crowdKey = crowdedVenues(s).join(',');
+  const crowds = useMemo(() => new Set(crowdKey ? crowdKey.split(',') : []), [crowdKey]);
+  const commencement = isCommencement(s);
+  const banners = useMemo(() => (commencement ? { ...s.self.colors } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commencement, s.self.colors.primary, s.self.colors.secondary]);
   // The quads, once per layout, and which quad (by index + 1) each tile is in.
   const quads = useMemo(
     () => detectQuads({ placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways, quads: layout.quads }),
@@ -1245,6 +1256,8 @@ export default function CampusMap({
         >
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
+            <CrowdContext.Provider value={crowds}>
+            <BannerContext.Provider value={banners}>
             <DevelopingContext.Provider value={s.developing}>
               <CampusScene
                 layout={layout}
@@ -1256,6 +1269,8 @@ export default function CampusMap({
                 camera={camera}
               />
             </DevelopingContext.Provider>
+            </BannerContext.Provider>
+            </CrowdContext.Provider>
             <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />

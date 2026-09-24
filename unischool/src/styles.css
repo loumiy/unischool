@@ -656,6 +656,8 @@ button.build-tile { font-family: inherit; }
 .campus-bench-leg { stroke: #4a3a2a; stroke-width: 1.2; }
 .campus-bench-seat { stroke: #8a5f3a; stroke-width: 3; stroke-linecap: round; }
 .campus-bench-back { stroke: #7a522f; stroke-width: 2; stroke-linecap: round; }
+.campus-flag-pole { stroke: #d8d4c8; stroke-width: 1.4; }
+.campus-flag-finial { fill: #d9b44a; }
 .campus-rack-hoop { stroke: #5c6166; stroke-width: 1.4; stroke-linecap: round; }
 .campus-desire { fill: none; stroke: rgba(176, 160, 104, 0.38); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .campus-quad.designated { fill: rgba(255, 244, 196, 0.14); }

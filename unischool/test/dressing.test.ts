@@ -10,6 +10,10 @@ import { BIKE_RACK_ENROLMENT, dressingProps } from '../src/components/dressing';
 import { ROAD_FIRST_ROW } from '../src/state/campusMap';
 import { SAVE_KEY, SAVE_VERSION, loadGame } from '../src/state/persistence';
 import { bindScriptStream } from '../src/engine/random';
+import { crowdedVenues, isCommencement } from '../src/components/mapOccasions';
+import { OCCASIONS } from '../src/systems/athletics/season';
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 
 bindScriptStream(2429);
@@ -81,6 +85,25 @@ function fresh(): GameState {
   s.dressing = { '10,11': 'lamp', [`${hall.row},${hall.col}`]: 'bench', [`${ROAD_FIRST_ROW},3`]: 'lamp', '9,9': 'fountain' as 'lamp' };
   store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: s }));
   assert(JSON.stringify(loadGame()!.dressing) === JSON.stringify({ '10,11': 'lamp' }), 'only the lamp on open land survives a load');
+}
+
+// ---- The flag, the crowds and the banners ----
+{
+  const s = fresh();
+  assert(FOUNDERS_HALL_ID in s.placements && dressingProps(campusLayout(s)).some((p) => p.key === 'flag'), 'the flag flies at Founders Hall');
+  const field = s.tech.find((t) => t.facilityType === 'athleticsField')!;
+  field.status = 'done';
+  s.placements[field.id] = { row: 5, col: 5, w: 22, h: 13 };
+  s.clock.week = OCCASIONS[0].week;
+  assert(crowdedVenues(s).length === 0, 'a field with no team has no crowd');
+  s.orgs.teams.push({ venueCategory: 'athleticsField', status: 'active' } as GameState['orgs']['teams'][number]);
+  assert(JSON.stringify(crowdedVenues(s)) === JSON.stringify([field.id]), 'with a team, it fills on a game week');
+  s.clock.week = OCCASIONS[0].week + 1;
+  assert(crowdedVenues(s).length === 0, 'and empties the week after');
+  s.clock.week = WEEKS_PER_YEAR;
+  assert(isCommencement(s), 'the last week of the year is commencement');
+  s.clock.week = 10;
+  assert(!isCommencement(s), 'a week in the fall is not');
 }
 
 if (failures === 0) {

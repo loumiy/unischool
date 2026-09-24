@@ -1,4 +1,7 @@
+import { useContext } from 'react';
 import type { CampusLayout } from './campusLayout';
+import { BannerContext } from './mapOccasions';
+import { FOUNDERS_HALL_ID } from '../data/techData';
 import type { Dressing } from '../state/types';
 import { isLand, parsePathTileKey } from '../state/campusMap';
 import { isAcademicHall } from '../data/techData';
@@ -23,13 +26,41 @@ const LAMP_HEIGHT = up(4.5);
 const BENCH_SEAT = up(0.45);
 const BENCH_BACK = up(0.9);
 
+// A lamp, with a banner in the college's colours in commencement week.
 function Lamp({ at }: { at: Pt }) {
   const top = lift(at, LAMP_HEIGHT);
+  const banner = useContext(BannerContext);
+  const hang = lift(at, LAMP_HEIGHT * 0.82);
+  const foot = lift(at, LAMP_HEIGHT * 0.42);
   return (
     <g className="campus-lamp">
       <ellipse className="campus-lamp-foot" cx={at.x} cy={at.y} rx={2.4} ry={1.2} />
       <line className="campus-lamp-post" x1={at.x} y1={at.y} x2={top.x} y2={top.y} />
       <circle className="campus-lamp-head" cx={top.x} cy={top.y} r={2.6} />
+      {banner && (
+        <g className="campus-lamp-banner">
+          <rect x={hang.x + 0.8} y={hang.y} width={5.5} height={foot.y - hang.y} fill={banner.primary} />
+          <rect x={hang.x + 0.8} y={hang.y + (foot.y - hang.y) * 0.62} width={5.5} height={(foot.y - hang.y) * 0.16} fill={banner.secondary} />
+        </g>
+      )}
+    </g>
+  );
+}
+
+const FLAG_HEIGHT = up(14);
+
+// The college's flag on a pole before Founders Hall.
+function Flag({ at, colors }: { at: Pt; colors: CampusLayout['colors'] }) {
+  const top = lift(at, FLAG_HEIGHT);
+  const w = 16;
+  const h = 10;
+  return (
+    <g className="campus-flag">
+      <ellipse className="campus-lamp-foot" cx={at.x} cy={at.y} rx={2.6} ry={1.3} />
+      <line className="campus-flag-pole" x1={at.x} y1={at.y} x2={top.x} y2={top.y} />
+      <path d={`M${top.x},${top.y + 1} q${w / 2},-3 ${w},0 v${h} q${-w / 2},-3 ${-w},0 Z`} fill={colors.primary} />
+      <path d={`M${top.x},${top.y + 1 + h * 0.4} q${w / 2},-3 ${w},0 v${h * 0.22} q${-w / 2},-3 ${-w},0 Z`} fill={colors.secondary} />
+      <circle className="campus-flag-finial" cx={top.x} cy={top.y - 1} r={1.4} />
     </g>
   );
 }
@@ -79,6 +110,18 @@ export function dressingProps(layout: CampusLayout): DressingProp[] {
       ? <Lamp at={project(t.col + 0.5, t.row + 0.5)} />
       : <Bench col={t.col} row={t.row} along={benchAlong(layout.pathways, t.row, t.col)} />;
     out.push({ key: `d-${key}`, col: t.col, row: t.row, w: 1, h: 1, node });
+  }
+  // The flag, just off Founders Hall's front corner, on whichever of two
+  // spots is open land.
+  const hall = layout.byId.get(FOUNDERS_HALL_ID);
+  if (hall && !hall.developing) {
+    const { p } = hall;
+    const spots = [{ row: p.row + p.h, col: p.col }, { row: p.row - 1, col: p.col }];
+    const free = spots.find(({ row, col }) => isLand(row, col)
+      && !Object.values(layout.placements).some((q) => row >= q.row && row < q.row + q.h && col >= q.col && col < q.col + q.w));
+    if (free) {
+      out.push({ key: 'flag', ...free, w: 1, h: 1, node: <Flag at={project(free.col + 0.5, free.row + 0.5)} colors={layout.colors} /> });
+    }
   }
   if (layout.bikeRacks) {
     const taken = new Set(Object.keys(layout.dressing ?? {}));
