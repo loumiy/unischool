@@ -6,7 +6,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
-import { SCALE_FREE_BELOW, financeBreakdown, scaleCostFor } from '../src/systems/finance/financeSystem';
+import { SCALE_FREE_BELOW, financeBreakdown, marginalStudentMargin, scaleCostFor } from '../src/systems/finance/financeSystem';
 import { marketRateMultiplier } from '../src/data/facultyData';
 
 bindScriptStream(3360);
@@ -59,6 +59,20 @@ const RATE = 10; // a rate of the test's own: the constant is fitted in Plan 36'
   const lines = flow.weeklySalaries + flow.seatUpkeep + flow.instructionCost + flow.servicesCost + flow.scaleCost +
     flow.academicUpkeep + flow.facilityUpkeep + flow.studentLifeUpkeep + flow.athleticsSubsidy + flow.debtService + flow.administration;
   assert(Math.abs(flow.totalExpenses - lines) < 1e-6, 'and it is one of the lines the expenses add up');
+}
+
+// ---- The marginal student ----
+{
+  const at = (n: number) => {
+    const s = createInitialState('Margin');
+    s.students.classes = { freshman: n / 4, sophomore: n / 4, junior: n / 4, senior: n / 4 };
+    s.finance.listedTuition = 30_000;
+    return s;
+  };
+  const small = marginalStudentMargin(at(4_000), 1_000, RATE);
+  const large = marginalStudentMargin(at(32_000), 1_000, RATE);
+  assert(large < small, `the next thousand pay less the larger the college (${small.toFixed(0)} against ${large.toFixed(0)} a week each)`);
+  assert(marginalStudentMargin(at(32_000), 1_000, 0) > large, 'and it is the cost of being large that takes it');
 }
 
 if (failures === 0) {

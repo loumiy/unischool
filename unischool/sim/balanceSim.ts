@@ -36,8 +36,9 @@ import { legacyReading, type Legacy } from './legacyReading';
 import { SUMMER_LAST_BEAT, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import { intakeCeiling } from '../src/systems/techtree/instructionCapacity';
-import { financeBreakdown, weeklyNet, instructionCostPerStudentWith, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
-import { admitRate, priceTolerance, topBandShare } from '../src/systems/admissions/admissionsSystem';
+import { financeBreakdown, weeklyNet, instructionCostPerStudentWith, marginalStudentMargin, SCALE_FREE_BELOW, SERVICES_PER_STUDENT_PER_WEEK } from '../src/systems/finance/financeSystem';
+import { admitRate, priceTolerance, projectAdmissions, topBandShare, trailingYearSatisfaction } from '../src/systems/admissions/admissionsSystem';
+import { deriveCohortSignals } from '../src/systems/admissions/cohorts';
 import { TUITION_SLIDER_MAX, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import {
@@ -88,6 +89,10 @@ export interface Strategy {
   // The share of the applicant pool to take. Omitted means the slider's own
   // opening position for this standing; only the probes set it.
   admitRate?(s: GameState): number;
+  // Reads the marginal student (Plan 36): once the next thousand would cost
+  // more than they pay, it admits only a replacement class. The strategies
+  // meant to be sensible read it; the ones meant to overreach do not.
+  respectsMargin?: boolean;
   buffer(s: GameState): number;   // cash held back before any discretionary start
   // The flow gate: no new recurring commitment unless this week's net clears
   // this fraction of weekly opex (see hasHeadroom). 0 spends to the wire.
@@ -138,6 +143,21 @@ function tierOf(t: Buildable): number {
   if (!m) return 0;
   const n = Number(m[1]);
   return n === 101 ? 1 : n < 200 ? 2 : 3;
+}
+
+// A sensible strategy past the break (Plan 36): the class that would keep
+// the roll where it is, the graduating seniors, rather than the rate's own.
+// The funnel is read the way the summer resolves it (resolveAdmissions.ts).
+function marginAware(s: GameState, strategy: Strategy, rate: number): number {
+  if (!strategy.respectsMargin) return rate;
+  const enrolled = s.students.classes.freshman + s.students.classes.sophomore + s.students.classes.junior + s.students.classes.senior;
+  if (enrolled <= SCALE_FREE_BELOW || marginalStudentMargin(s) >= 0) return rate;
+  const projected = projectAdmissions(
+    s.self.reputation, strategy.tuition(s), s.students.capacity, trailingYearSatisfaction(s),
+    deriveCohortSignals(s), rate, intakeCeiling(s).seatsLeft,
+  ).enrolled;
+  if (projected <= 0) return rate;
+  return rate * Math.min(1, s.students.classes.senior / projected);
 }
 
 function affordable(s: GameState, cost: number, strategy: Strategy): boolean {
@@ -999,7 +1019,7 @@ export function play(
         tuition: strategy.tuition(s),
         // Unless the strategy sets it, the slider's opening position for the
         // current standing: s.students.admitRate is sticky by design.
-        admitRate: strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation),
+        admitRate: marginAware(s, strategy, strategy.admitRate ? strategy.admitRate(s) : admitRate(s.self.reputation)),
       });
 
       if (summerCloses) {
@@ -1283,6 +1303,7 @@ export const STRATEGIES: Strategy[] = [
     // The intended line of play: grow one thing at a time, never take on a
     // commitment the current cash flow can't carry.
     name: 'Balanced builder',
+    respectsMargin: true,
     tuition: rampTuition(225, 3_000),
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
@@ -1320,6 +1341,7 @@ export const STRATEGIES: Strategy[] = [
     // available facility is built regardless of satisfaction. The only
     // strategy that reaches the whole catalogue (see sim/milestones.ts).
     name: 'Completionist (build everything)',
+    respectsMargin: true,
     tuition: rampTuition(225, 3_000),
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
     netMargin: 0.12,
@@ -1359,6 +1381,7 @@ export const STRATEGIES: Strategy[] = [
     //   money      campaigns with the surplus, athletics budget high once
     //              flush
     name: 'Earnest completionist',
+    respectsMargin: true,
     tuition: (s) => Math.min(TUITION_SLIDER_MAX, Math.round(priceTolerance(s.self.reputation) * 0.9 / 500) * 500),
     admitRate: (s) => Math.max(0.08, Math.min(0.65, 1.35 - s.self.reputation / 100)),
     buffer: (s) => Math.max(150_000, s.finance.weeklyOpEx * 4),
@@ -1424,6 +1447,7 @@ export const STRATEGIES: Strategy[] = [
     // Target: an A in reach, a C in research, solvency, and a legacy of its
     // own.
     name: 'Regional engine',
+    respectsMargin: true,
     // Cheap later, not at founding: under the founding line it cannot carry
     // its first curriculum; a quarter under the balanced ramp late, its
     // standing-driven costs outrun it.

@@ -185,6 +185,30 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
   return (courses * sectionsPerCourse * SECTION_COST * marketRateMultiplier(s.self.reputation)) / enrolled;
 }
 
+// What the next `extra` students would add to the running costs, per student
+// per week (Plan 36): instruction, services and the cost of being large, at
+// today's rates and catalogue. Read by the summer's projection, the
+// Treasury's chart and the harness's sensible strategies (sim/balanceSim.ts).
+export function marginalStudentCost(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK, at = totalEnrolled(s.students)): number {
+  const rate = marketRateMultiplier(s.self.reputation);
+  const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  const running = (n: number) => {
+    const perCourse = courses > 0 ? (n * COURSES_PER_STUDENT) / courses : 0;
+    const sectionsPerCourse = courses > 0 ? Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE))) : 0;
+    return courses * sectionsPerCourse * SECTION_COST * rate
+      + n * SERVICES_PER_STUDENT_PER_WEEK * rate * servicesMultiplier(s)
+      + scaleCostFor(n, s.self.reputation, scaleRate);
+  };
+  return (running(at + extra) - running(at)) / extra;
+}
+
+// What the next `extra` would pay at the listed price less what they would
+// cost, per student per week. The break is where this turns negative: past
+// it, the next thousand cost more than they pay.
+export function marginalStudentMargin(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK): number {
+  return s.finance.listedTuition / WEEKS_PER_YEAR - marginalStudentCost(s, extra, scaleRate);
+}
+
 // Crowding raises the services line: flat up to SERVICES_CROWDING_FROM of
 // instruction capacity, then linear to 1 + SERVICES_CROWDING_AT_FULL at the
 // ceiling and beyond, capped. A campus with no seats reads the cap.
