@@ -54,16 +54,6 @@ export function ResearchIcon() {
   );
 }
 
-export function EnrollmentIcon() {
-  return (
-    <svg viewBox="0 0 24 24" {...STROKE}>
-      <rect x="5" y="4" width="14" height="17" rx="2" />
-      <rect x="9" y="2" width="6" height="3" rx="1" />
-      <polyline points="8.5 13 10.5 15 15.5 10" />
-    </svg>
-  );
-}
-
 // A heart mirrored exactly around x=12, from two matched cubic curves, so
 // it stays symmetric at small sizes.
 export function StudentLifeIcon() {

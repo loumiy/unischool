@@ -1,5 +1,7 @@
+import { quirkById } from '../../data/quirkData';
 import { tickSearches } from './facultySearch';
 import type { Faculty, GameState } from '../../state/types';
+import { WEEKS_PER_YEAR } from '../../state/types';
 import { neededFacultyFields } from '../techtree/techSystem';
 
 // The one way somebody joins the roster, shared by HIRE_FACULTY and the
@@ -26,7 +28,8 @@ function growFaculty(f: Faculty): void {
   f.research = grownStat(f.researchPotential, f.tenureWeeks);
   // A prize's raise is passed in as acclaim because this line overwrites
   // last week's salary.
-  f.salary = facultySalary(f.teaching, f.research, f.tenureWeeks, f.acclaim);
+  // A quirk's pay factor rides on top (data/quirkData.ts).
+  f.salary = Math.round(facultySalary(f.teaching, f.research, f.tenureWeeks, f.acclaim) * (quirkById(f.quirk)?.effects.salary ?? 1));
   // Course slots grow in flat +1 steps on tenure milestones, another reason
   // to retain a hire.
   if (f.tenureWeeks % SLOT_GROWTH_INTERVAL_WEEKS === 0 && f.courseSlots < MAX_FACULTY_SLOTS) {
@@ -69,4 +72,47 @@ function tickCandidatePool(s: GameState): void {
 export function tickFaculty(s: GameState): void {
   tickCandidatePool(s);
   for (const f of s.faculty) growFaculty(f);
+  tickRetirements(s);
+}
+
+// ---- Retirement (Plan 29, v2's faculty churn) ----
+// A professor's career at the college runs 25 to 40 years, read from their
+// id rather than the shared stream. The log gives a year's notice; at the
+// end they retire, and their courses wait for a new instructor, as when
+// anyone leaves. There is no random quitting.
+export const CAREER_MIN_YEARS = 25;
+export const CAREER_SPAN_YEARS = 15;
+
+export function careerWeeks(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  // A different slice of the hash from the quirk's (quirkData.ts).
+  const years = CAREER_MIN_YEARS + ((h >>> 12) % (CAREER_SPAN_YEARS + 1));
+  return years * WEEKS_PER_YEAR;
+}
+
+function tickRetirements(s: GameState): void {
+  const leaving: Faculty[] = [];
+  for (const f of s.faculty) {
+    const career = careerWeeks(f.id);
+    if (f.tenureWeeks === career - WEEKS_PER_YEAR) {
+      s.log.unshift({
+        year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'departure', subject: f.id,
+        message: `${f.name} (${f.field}) will retire a year from now, after ${career / WEEKS_PER_YEAR - 1} years at the college.`,
+      });
+    }
+    if (f.tenureWeeks >= career) leaving.push(f);
+  }
+  for (const f of leaving) {
+    const orphaned = s.tech.filter((t) => s.courseFaculty[t.id] === f.id && (t.status === 'developing' || t.status === 'done'));
+    for (const course of orphaned) delete s.courseFaculty[course.id];
+    s.faculty = s.faculty.filter((x) => x.id !== f.id);
+    s.log.unshift({
+      year: s.clock.year, week: s.clock.week, kind: orphaned.length > 0 ? 'bad' : 'info', topic: 'departure', subject: f.id,
+      message: `${f.name} retires after ${Math.round(f.tenureWeeks / WEEKS_PER_YEAR)} years.${orphaned.length > 0 ? ` ${orphaned.length} ${orphaned.length === 1 ? 'course waits' : 'courses wait'} for a new instructor in ${f.field}.` : ''}`,
+    });
+  }
 }

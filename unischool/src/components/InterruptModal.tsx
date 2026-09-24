@@ -1,3 +1,4 @@
+import { servedPopulationFor } from '../systems/satisfaction/satisfactionSystem';
 import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type {
@@ -320,6 +321,14 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             <div><dt>Freshman class</dt><dd><AnimatedNumber value={outcome.enrolled} /></dd></div>
             <div><dt>Incoming quality</dt><dd><AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} /></dd></div>
           </dl>
+
+          {/* The projection line (Plan 29): the class against last year's,
+              and the whole body against the beds and dining it will need. */}
+          <p className="admissions-projection">
+            A class of {outcome.enrolled.toLocaleString()} against {s.students.classes.freshman.toLocaleString()} last year:
+            {' '}{consequence.totalEnrolled.toLocaleString()} students next year, for {s.students.capacity.toLocaleString()} beds
+            {' '}and dining for {Math.round(servedPopulationFor(s, 'basicNeeds')).toLocaleString()}.
+          </p>
 
           {/* What committing does to the whole school, including the three
               older classes still paying their locked price. */}
@@ -898,7 +907,7 @@ function DemandView({ s, onDismiss }: { s: GameState; onDismiss: () => void }) {
       <p className="digest-note">
         There is nothing to answer here and nothing to pay: the demand is met by building what
         it asks for, and missing the deadline costs the school goodwill and next year&rsquo;s
-        applicants &mdash; nothing more. It stays visible in the Student Life tab until it resolves.
+        applicants &mdash; nothing more. It stays visible in the Students tab until it resolves.
       </p>
 
       <button onClick={onDismiss}>Understood</button>

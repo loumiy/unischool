@@ -43,7 +43,7 @@ console.log('toast tests');
 // --- where a click goes -----------------------------------------------------
 {
   assert(toastTarget('course') === 'curriculum' && toastTarget('program') === 'curriculum', 'courses and programs open the Curriculum');
-  assert(toastTarget('petition') === 'studentlife', 'a petition opens Student Life');
+  assert(toastTarget('petition') === 'students', 'a petition opens the Students tab');
   assert(toastTarget('publication') === 'research' && toastTarget('research-concluded') === 'research', 'research opens Research');
   assert(toastTarget('candidate') === 'faculty', 'a candidate opens Faculty');
   assert(toastTarget('building') === null, 'a building points at the map, which is already behind the toast');

@@ -2382,3 +2382,9 @@ body:has(.building-info-panel) .pennant { display: none; }
 .seat-blurb { margin: 4px 0 6px; font-size: var(--text-sm); }
 .seat-policies, .seat-appoint { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .seat-policies .panel-action.on { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); }
+
+/* A professor's quirk (data/quirkData.ts), as a chip on the card. */
+.faculty-quirk { display: inline-block; margin: 2px 0 4px; padding: 0 8px; border-radius: var(--radius-pill); border: 1px dashed var(--ink-muted); font-size: var(--text-xs); color: var(--ink-muted); }
+
+/* The admissions projection line (InterruptModal.tsx). */
+.admissions-projection { margin: 4px 0 10px; font-size: var(--text-sm); color: var(--ink-muted); }

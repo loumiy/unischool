@@ -7,7 +7,7 @@ import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
 import {
-  FacultyIcon, CurriculumIcon, EnrollmentIcon,
+  FacultyIcon, CurriculumIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
   ResearchIcon, HomeIcon,
 } from './icons';
@@ -31,8 +31,7 @@ const TAB_ICONS: Record<Exclude<TabId, 'treasury'>, () => React.JSX.Element> = {
   faculty: FacultyIcon,
   curriculum: CurriculumIcon,
   research: ResearchIcon,
-  enrollment: EnrollmentIcon,
-  studentlife: StudentLifeIcon,
+  students: StudentLifeIcon,
   history: HistoryIcon,
   athletics: AthleticsIcon,
 };

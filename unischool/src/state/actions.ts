@@ -96,6 +96,7 @@ export type Action =
   | { type: 'SET_DRAW_RATE'; rate: number }
   | { type: 'MOVE_TO_ENDOWMENT'; amount: number }
   | { type: 'READ_BOARD_LETTER' }
+  | { type: 'READ_DEMAND' }
   // Fills a seat of the administration (systems/delegation/seats.ts): from
   // the faculty when facultyId is given, from outside otherwise.
   | { type: 'APPOINT_SEAT'; seatId: string; school: string | null; facultyId?: string }
