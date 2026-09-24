@@ -58,6 +58,7 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 35 | [Balance and playtest](35-balance-and-playtest.md) | Phase N of the merge: the economy measured by decade; the late margin (V1-25) settled as the endowment's; the scorecard reading the operating margin and the pacing, with the guardrails as gates; a founding with slack for a player less efficient than the script; the playtest's fixes; and the review. PRs A–E. | Landed |
 | 36 | [Costs that grow with size](36-costs-that-grow-with-size.md) | The boom (the merge review's first open question): the cost of being large, a running-cost line that rises with the logarithm of the roll above a founding threshold, on top of the prestige market rate; the endowment carrying a big college; the harness taught the marginal student; the scale fitted to the design's eras; and the break made visible. PRs A–F. | In progress |
 | 37 | [The map, from v2](37-the-map-from-v2.md) | The owner's map requests: the path joints drawn by grid corner in every view (a bug); a choice of tree when planting; trees that answer the tilt as v2's do; and v2's smooth quarter turn, measured on a late campus. PRs A–E. | Landed |
+| 41 | [Labs at work](41-labs-at-work.md) | The owner's request: a lab hosting research shows it on the map, without text: a ring filling in its school's colour as the project runs, and an atom turning inside it (still under reduced motion). One PR. | In progress |
 
 ## Naming
 
