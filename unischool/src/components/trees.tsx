@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { heightScale, lift, polyPoints, project, projectedCircle, type Camera, type Pt } from './isoProjection';
+import { heightScale, polyPoints, project, projectedCircle, type Camera, type Pt } from './isoProjection';
 import { shadowOffset, sunScreenDir } from './light';
 import { roll, speciesOf, type Species } from '../data/treeData';
 
@@ -91,75 +91,88 @@ export function TreeAt({ col, row, species, scale, shadow = true }: {
   shadow?: boolean;
 }) {
   const foot = project(col, row);
-  const { trunkH, crownR: sideR, trunkW } = treeMetrics(species, scale);
   const standing = treeStanding();
-  const crownR = sideR * (1 + (1 - standing) * (species === 'conifer' ? 0 : CROWN_SPREAD));
-  const rise = CONIFER_FLOOR + (1 - CONIFER_FLOOR) * standing;
-  const trunkTop = lift(foot, trunkH);
-  // The lit side follows the sun and is always toward the top.
+  const { trunkH, crownR } = crownOf(species, scale, standing);
+  // The lit side follows the sun and is always toward the top. The cap is
+  // the one part of a tree that a turn moves relative to its foot, so it is
+  // drawn here and the rest comes from the memoised body, which a turn
+  // leaves alone (Plan 38).
   const sun = sunScreenDir();
+  const capDx = species === 'conifer' ? 0 : sun.x * crownR * (species === 'ornamental' ? 0.42 : 0.36);
 
   return (
-    <g className={`campus-tree ${species}`} aria-hidden="true">
+    <>
       {shadow && <polygon className="campus-tree-shadow" points={polyPoints(treeShadow(col, row, species, scale))} />}
+      <g className={`campus-tree ${species}`} aria-hidden="true" transform={`translate(${foot.x.toFixed(2)} ${foot.y.toFixed(2)})`}>
+        <TreeBody species={species} scale={scale} standing={standing} hs={heightScale()} />
+        {species === 'ornamental' ? (
+          <circle className="campus-tree-crown-top" cx={capDx} cy={-trunkH * heightScale() - crownR * 0.95 * standing} r={crownR * 0.52} />
+        ) : species === 'canopy' ? (
+          <circle className="campus-tree-crown-top" cx={capDx} cy={-trunkH * heightScale() - crownR * 1.10 * standing} r={crownR * 0.60} />
+        ) : null}
+      </g>
+    </>
+  );
+}
+
+// The crown's drawn size at a tilt: see treeStanding.
+function crownOf(species: Species, scale: number, standing: number) {
+  const { trunkH, crownR: sideR, trunkW } = treeMetrics(species, scale);
+  const crownR = sideR * (1 + (1 - standing) * (species === 'conifer' ? 0 : CROWN_SPREAD));
+  return { trunkH, crownR, trunkW };
+}
+
+// Everything of a tree but its lit cap, drawn about its foot at the origin.
+// It depends on the tilt and not the turn, so a turn redraws none of it.
+// `hs` is the camera's height factor unclamped, which `standing` is not.
+const TreeBody = memo(function TreeBody({ species, scale, standing, hs }: { species: Species; scale: number; standing: number; hs: number }) {
+  const { trunkH, crownR, trunkW } = crownOf(species, scale, standing);
+  const rise = CONIFER_FLOOR + (1 - CONIFER_FLOOR) * standing;
+  const top = -trunkH * hs;
+  return (
+    <>
       <polygon
         className="campus-tree-trunk"
         points={polyPoints([
-          { x: foot.x - trunkW, y: foot.y },
-          { x: foot.x + trunkW, y: foot.y },
-          { x: trunkTop.x + trunkW * 0.6, y: trunkTop.y },
-          { x: trunkTop.x - trunkW * 0.6, y: trunkTop.y },
+          { x: -trunkW, y: 0 },
+          { x: trunkW, y: 0 },
+          { x: trunkW * 0.6, y: top },
+          { x: -trunkW * 0.6, y: top },
         ])}
       />
       {species === 'conifer' ? (
         // Three tapering tiers so the profile steps.
         [0, 1, 2].map((tier) => {
           const halfW = crownR * (1 - (tier / 2) * 0.45 * rise);
-          const base = trunkTop.y - crownR * 0.75 * tier * rise;
+          const base = top - crownR * 0.75 * tier * rise;
           return (
             <polygon
               key={tier}
               className={tier === 2 ? 'campus-tree-crown-top' : 'campus-tree-crown'}
               points={polyPoints([
-                { x: foot.x - halfW, y: base },
-                { x: foot.x + halfW, y: base },
-                { x: foot.x, y: base - crownR * 1.5 * rise },
+                { x: -halfW, y: base },
+                { x: halfW, y: base },
+                { x: 0, y: base - crownR * 1.5 * rise },
               ])}
             />
           );
         })
       ) : species === 'ornamental' ? (
-        <>
-          <circle className="campus-tree-crown" cx={trunkTop.x} cy={trunkTop.y - crownR * 0.55 * standing} r={crownR} />
-          <circle
-            className="campus-tree-crown-top"
-            cx={trunkTop.x + sun.x * crownR * 0.42} cy={trunkTop.y - crownR * 0.95 * standing}
-            r={crownR * 0.52}
-          />
-        </>
+        <circle className="campus-tree-crown" cx={0} cy={top - crownR * 0.55 * standing} r={crownR} />
       ) : (
-        <>
-          {CANOPY_BLOBS.map((b, i) => (
-            <circle
-              key={i}
-              className="campus-tree-crown"
-              cx={trunkTop.x + b.dx * crownR}
-              cy={trunkTop.y - crownR * 0.62 * standing + b.dy * crownR}
-              r={b.r * crownR}
-            />
-          ))}
-          {/* The lit cap, toward the sun (light.ts). */}
+        CANOPY_BLOBS.map((b, i) => (
           <circle
-            className="campus-tree-crown-top"
-            cx={trunkTop.x + sun.x * crownR * 0.36}
-            cy={trunkTop.y - crownR * 1.10 * standing}
-            r={crownR * 0.60}
+            key={i}
+            className="campus-tree-crown"
+            cx={b.dx * crownR}
+            cy={top - crownR * 0.62 * standing + b.dy * crownR}
+            r={b.r * crownR}
           />
-        </>
+        ))
       )}
-    </g>
+    </>
   );
-}
+});
 
 // A woodland tree on tile (row, col), rolled off the tile's seed. Memoised:
 // a campus carries hundreds of trees. `camera` is a prop only so the memo
