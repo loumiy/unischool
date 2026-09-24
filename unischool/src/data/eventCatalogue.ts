@@ -148,7 +148,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { yearAtLeast: 10, endowmentOver: 20000000 },
     title: 'The markets',
-    text: 'The markets have done in a fortnight what they usually take a decade to do. The endowment is worth materially less than it was at breakfast on the Monday, the investment committee has asked for a special meeting, and three members of it have separately telephoned to say they were always uneasy about the allocation.\n\nNone of this changes what the college costs to run this year. That is the whole of the problem.',
+    text: 'The markets have done in two weeks what they usually take a decade to do. The endowment is worth materially less than it was at breakfast on the Monday, the investment committee has asked for a special meeting, and three members of it have separately telephoned to say they were always uneasy about the allocation.\n\nNone of this changes what the college costs to run this year. That is the whole of the problem.',
     timeoutWeeks: 6,
     choices: [
       { id: 'ride', label: 'Ride it out on the standing draw', effects: { endowment: -4000000, confidence: -2 } },
@@ -867,8 +867,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     weight: 3,
     cooldownYears: 25,
     when: { yearAtLeast: 12, enrolledOver: 140 },
-    title: 'The matter in the Bursary',
-    text: 'The irregularity in the Bursary accounts is eleven years old, amounts to rather more than was first thought, and was found by a temporary clerk checking something else. The person responsible retired four years ago with a presentation and a speech.\n\nThe auditors have been informed because they had to be. The board has been informed because the auditors informed them. The press have not been informed, yet, and the Communications Officer has written the word \'yet\' on the briefing note in a hand that suggests she does not expect that to last.\n\nThere is a version of this where {school} announces it first, plainly, with the figure and the referral, and takes a bad fortnight. There is a version where it does not, and the fortnight arrives anyway, later, with the college having chosen its own silence to explain.',
+    title: 'The matter in the business office',
+    text: 'The irregularity in the business office accounts is eleven years old, amounts to rather more than was first thought, and was found by a temporary clerk checking something else. The person responsible retired four years ago with a presentation and a speech.\n\nThe auditors have been informed because they had to be. The board has been informed because the auditors informed them. The press have not been informed, yet, and the Communications Officer has written the word \'yet\' on the briefing note in a hand that suggests she does not expect that to last.\n\nThere is a version of this where {school} announces it first, plainly, with the figure and the referral, and takes a bad two weeks. There is a version where it does not, and the two weeks arrives anyway, later, with the college having chosen its own silence to explain.',
     timeoutWeeks: 4,
     choices: [
       { id: 'announce', label: 'Announce it, refer it, and publish the figure', effects: { cash: -400000, confidence: 5, warmth: -3, mood: -2 } },

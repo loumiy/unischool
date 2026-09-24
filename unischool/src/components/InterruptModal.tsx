@@ -31,7 +31,7 @@ import { buildReportPayload, type ReportPayload } from '../systems/rivals/rivals
 import AnimatedNumber from './AnimatedNumber';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
-import { CatalogueChoices } from './EventPanel';
+import { CatalogueChoices, CatalogueText } from './EventPanel';
 import { eventById, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { money, moneyShort, ordinal, signedPct } from '../format';
@@ -1181,7 +1181,7 @@ function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId:
     <>
       <p className="letter-eyebrow">From the board · Year {s.clock.year}</p>
       <h2>{e.title ? fill(e.title, p.vars) : 'A letter from the board'}</h2>
-      <p className="letter-body">{text}</p>
+      <CatalogueText text={text} className="letter-body" />
       <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId })} />
     </>
   );

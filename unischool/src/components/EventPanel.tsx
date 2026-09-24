@@ -49,6 +49,15 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects']): strin
   return out;
 }
 
+// v2's texts break into paragraphs on a blank line.
+export function CatalogueText({ text, className }: { text: string; className: string }) {
+  return (
+    <>
+      {text.split(/\n\s*\n/).map((para, i) => <p key={i} className={className}>{para}</p>)}
+    </>
+  );
+}
+
 export function CatalogueChoices({ s, p, e, onChoose }: {
   s: GameState;
   p: PendingCatalogueEvent;
@@ -100,11 +109,11 @@ export default function EventPanel({ s, act }: { s: GameState; act: (a: Action) 
               <span className="letter-eyebrow">
                 {DOMAIN_LABEL[e.domain]} · {weeksLeft === 1 ? '1 week' : `${weeksLeft} weeks`} to answer
               </span>
-              {!expanded && <span className="event-card-teaser">{text}</span>}
+              {!expanded && <span className="event-card-teaser">{text.split('\n')[0]}</span>}
             </button>
             {expanded && (
               <>
-                <p className="milestone-note-text">{text}</p>
+                <CatalogueText text={text} className="milestone-note-text" />
                 <CatalogueChoices
                   s={s}
                   p={p}
