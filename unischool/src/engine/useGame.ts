@@ -1,3 +1,4 @@
+import { speedLock } from '../systems/delegation/seats';
 import { useReducer, useEffect, useRef, useState, useCallback } from 'react';
 import type { GameState } from '../state/types';
 import { reducer } from './reducer';
@@ -15,7 +16,9 @@ import { openingHoldsClock } from '../state/opening';
 // `fast` is sandbox-only (hidden outside the playtest flag, see
 // StatusHeader.tsx and playtest.ts). Speed only changes how often TICK fires;
 // the sim is identical at every setting.
-export const SPEEDS = { paused: 0, real: 5000, double: 2500, quad: 1250, fast: 150 } as const;
+// 4× and 8× are earned by the administration's seats (systems/delegation/
+// seats.ts's speedLock); `fast` is the playtest sandbox's.
+export const SPEEDS = { paused: 0, real: 5000, double: 2500, quad: 1250, octo: 625, fast: 150 } as const;
 export type Speed = keyof typeof SPEEDS;
 export const SANDBOX_SPEEDS: readonly Speed[] = ['fast'];
 
@@ -90,6 +93,13 @@ export function useGame() {
   useEffect(() => {
     if (interrupted && speed === 'fast') setSpeed('real');
   }, [interrupted]);
+
+  // A speed the seats have not earned (a new game, another save) falls back
+  // to double (systems/delegation/seats.ts's speedLock).
+  const speedLocked = speedLock(state, speed) !== null;
+  useEffect(() => {
+    if (speedLocked) setSpeed('double');
+  }, [speedLocked]);
 
   // Save at founding, since the autosave is a year away. Only on the
   // false -> true transition, so loading a started save does not rewrite it.

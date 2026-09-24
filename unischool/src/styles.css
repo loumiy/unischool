@@ -134,6 +134,8 @@ button { cursor: pointer; font-family: inherit; }
 .speeds button svg { width: 14px; height: 14px; display: block; }
 .speeds button.sandbox { width: auto; padding: 0 10px; border-radius: var(--radius-pill); }
 .speeds button:hover { border-color: var(--ink-hi); }
+.speeds button.locked { opacity: 0.35; cursor: not-allowed; }
+.speeds button.locked:hover { border-color: inherit; }
 .speeds button.active { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); font-weight: 800; }
 .speeds button.sandbox { border-style: dashed; border-color: var(--warn-on-dark); color: var(--warn-on-dark); }
 .speeds button.sandbox.active { background: var(--warn-on-dark); color: var(--outline); border-color: var(--warn-on-dark); }
@@ -2371,3 +2373,12 @@ body:has(.building-info-panel) .pennant { display: none; }
 .estate-worst li { display: flex; align-items: center; gap: 10px; }
 .estate-worst li > span:first-child { flex: 1; }
 .panel-action.small { padding: 2px 10px; font-size: var(--text-sm); }
+
+/* The org chart (tabs/AdministrationPanel.tsx). */
+.seat-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.seat { border: 1.5px solid var(--parchment-line); border-radius: var(--radius-sm); padding: 8px 10px; }
+.seat.vacant { border-style: dashed; }
+.seat-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.seat-blurb { margin: 4px 0 6px; font-size: var(--text-sm); }
+.seat-policies, .seat-appoint { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.seat-policies .panel-action.on { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); }

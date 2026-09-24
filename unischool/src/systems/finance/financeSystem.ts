@@ -1,3 +1,4 @@
+import { seatPayroll } from '../delegation/seats';
 import { upkeepShare } from '../estate/estate';
 import { debtService, drawRate, serviceLoans } from './treasury';
 import { accrueTerm } from './distress';
@@ -182,6 +183,7 @@ export interface FinanceBreakdown {
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
   athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week
   debtService: number;         // the buildings' loan payments (finance/treasury.ts)
+  administration: number;      // the seats' salaries at market rate (delegation/seats.ts): the administrative ratchet
   totalExpenses: number;
   net: number;                 // totalIncome - totalExpenses
 }
@@ -282,11 +284,12 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const facilityUpkeep = upkeepFor(s, false);
   const studentLifeUpkeep = studentOrgUpkeep(s);
   const debt = debtService(s);
+  const administration = seatPayroll(s);
 
   // Four income lines; there is no state appropriation.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
-    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + debt;
+    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + debt + administration;
 
   return {
     tuitionRevenue,
@@ -304,6 +307,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     studentLifeUpkeep,
     athleticsSubsidy,
     debtService: debt,
+    administration,
     totalExpenses,
     net: totalIncome - totalExpenses,
   };

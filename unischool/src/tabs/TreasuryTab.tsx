@@ -134,6 +134,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 amount={flow.athleticsSubsidy}
               />
             )}
+            {flow.administration > 0 && (
+              <StatementLine
+                label="Administration"
+                note={`${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${Math.round((flow.administration / (flow.administration + flow.weeklySalaries)) * 100)}% of the payroll`}
+                amount={flow.administration}
+              />
+            )}
             {flow.debtService > 0 && (
               <StatementLine
                 label="Loan repayments"
