@@ -1,28 +1,37 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Placement, TileCoord, Vernacular } from '../state/types';
+import { totalEnrolled } from '../state/types';
+import { useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  awaitsSite, canPlace, canRotate, footprintIsClear, footprintOf,
-  isPlaceableKind, orientedFootprint, parsePathTileKey,
+  ROAD_FIRST_ROW, awaitsSite, canPlace, canRotate, footprintOf,
+  isPlaceableKind, orientedFootprint, parsePathTileKey, pathTileKey,
 } from '../state/campusMap';
+import { siteRefusal } from '../state/reach';
+import { detectQuads, tileIndex, type Quad } from '../state/quads';
+import { QuadOverlay, QuadPatches } from './quadLayer';
+import QuadPanel from './QuadPanel';
+import Walkers from './Walkers';
+import AgeMarks, { type AgeBand } from './ageMarks';
+import { dressingProps } from './dressing';
+import { BannerContext, CrowdContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
+import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
-import { chapterHouseId } from '../data/eventData';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import { hallDisplayName } from '../systems/techtree/schools';
 import { isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
-import { materialOf, motifOf } from './buildingSpec';
+import { floorsUnderConstruction, materialOf, motifOf, wallHeightOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import Tree, { woodlandShadow } from './trees';
 import { castShadow } from './light';
 import {
-  DEFAULT_CAMERA, PITCHES, TILE_H, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
+  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt, unproject,
   type Camera,
 } from './isoProjection';
 
@@ -101,7 +110,7 @@ const KEY_PAN_SPEED = 1100;
 const MAX_PAN_FRAME_S = 0.1;
 
 // --- the camera ---
-// Four views (VIEWS) and three pitches (PITCHES), stepped with Q/E, Z/X and
+// Four views (VIEWS) and ten pitches (PITCHES), stepped with Q/E, Z/X and
 // Home; keys only, no animation between views (the motifs are drawn for
 // those exact angles). A camera change is a React re-render, unlike a pan.
 // It turns about the ground at the canvas centre (see applyCamera).
@@ -111,21 +120,38 @@ const MAX_PAN_FRAME_S = 0.1;
 // the tallest roof.
 const WORLD_TOP_HEADROOM = 140;
 
-// The ground plate and grid lines, rebuilt only when the camera moves.
-function groundGeometry(): { plate: string; grid: string } {
+// The ground plate, the grid lines over the land and the road along the
+// south edge (campusMap.ts's ROAD_FIRST_ROW), rebuilt only when the camera
+// moves.
+function groundGeometry(): { plate: string; grid: string; road: string; kerb: string; centre: string } {
   const plate = polyPoints(boxFaces(0, 0, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT, 0, 0).top);
+  const line = (c0: number, r0: number, c1: number, r1: number) => {
+    const a = project(c0, r0); const b = project(c1, r1);
+    return `M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`;
+  };
+  const road = polyPoints(boxFaces(0, ROAD_FIRST_ROW, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT - ROAD_FIRST_ROW, 0, 0).top);
+  const kerb = line(0, ROAD_FIRST_ROW, CAMPUS_GRID_WIDTH, ROAD_FIRST_ROW);
+  const centre = line(0, (ROAD_FIRST_ROW + CAMPUS_GRID_HEIGHT) / 2, CAMPUS_GRID_WIDTH, (ROAD_FIRST_ROW + CAMPUS_GRID_HEIGHT) / 2);
   const seg: string[] = [];
-  for (let r = 0; r <= CAMPUS_GRID_HEIGHT; r++) {
+  for (let r = 0; r <= ROAD_FIRST_ROW; r++) {
     const a = project(0, r); const b = project(CAMPUS_GRID_WIDTH, r);
     seg.push(`M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`);
   }
-  for (let c = 0; c <= CAMPUS_GRID_WIDTH; c++) {
-    const a = project(c, 0); const b = project(c, CAMPUS_GRID_HEIGHT);
-    seg.push(`M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`);
-  }
-  return { plate, grid: seg.join('') };
+  for (let c = 0; c <= CAMPUS_GRID_WIDTH; c++) seg.push(line(c, 0, c, ROAD_FIRST_ROW));
+  return { plate, grid: seg.join(''), road, kerb, centre };
 }
 const MAP_HEIGHT = WORLD.maxY - WORLD.minY + MAP_PADDING * 2 + WORLD_TOP_HEADROOM;
+
+// The tiles of an eight-connected line from `a` to `b`, both included.
+function tilesBetween(a: TileCoord, b: TileCoord): TileCoord[] {
+  const steps = Math.max(Math.abs(b.row - a.row), Math.abs(b.col - a.col));
+  const out: TileCoord[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = steps === 0 ? 0 : i / steps;
+    out.push({ row: Math.round(a.row + (b.row - a.row) * t), col: Math.round(a.col + (b.col - a.col) * t) });
+  }
+  return out;
+}
 
 // The path tool the secondary mouse button paints with, given the armed one.
 function otherPathTool(tool: CampusTool): CampusTool {
@@ -134,6 +160,9 @@ function otherPathTool(tool: CampusTool): CampusTool {
     case 'erase': return 'draw';
     case 'plant': return 'fell';
     case 'fell': return 'plant';
+    case 'quad': return 'quad';
+    case 'lamp': return 'lamp';
+    case 'bench': return 'bench';
   }
 }
 
@@ -170,28 +199,67 @@ function labelLayout(label: string, t: Buildable, p: Placement, v: Vernacular) {
 type SceneEntry = DepthBox & (
   | { kind: 'mass'; key: string; id: string }
   | { kind: 'tree'; key: string; seed: number }
-  | { kind: 'prop'; key: string; node: React.JSX.Element }
+  // `owner` is the Buildable a prop belongs to, for its stands' crowd.
+  | { kind: 'prop'; key: string; node: React.JSX.Element; owner?: string }
 );
+
+// Weeks left on each site, by Buildable id. A context rather than a prop so
+// a week's countdown redraws the progress bars alone, not the scene.
+const DevelopingContext = createContext<GameState['developing']>({});
+
+// A site's progress: the building's shell rising in scaffolding over its
+// build weeks, from the motif's low frame to the eaves, a progress bar lying
+// flat along the front edge of its footprint, and the tooltip that counts
+// it down.
+function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: string }) {
+  const weeksLeft = useContext(DevelopingContext)[t.id];
+  if (weeksLeft === undefined) return null;
+  const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
+  const rises = motifOf(t) !== 'grounds' && floorsUnderConstruction(t) === 0;
+  const d = drawnFootprint(p);
+  const shell = rises ? boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * elapsedFraction) : null;
+  return (
+    <>
+      {shell && elapsedFraction > 0.05 && (
+        <g className="campus-site-shell">
+          <polygon points={polyPoints(shell.left)} />
+          <polygon points={polyPoints(shell.right)} />
+          <polygon points={polyPoints(shell.top)} />
+          <polygon className="campus-site-hatch" points={polyPoints(shell.left)} />
+          <polygon className="campus-site-hatch" points={polyPoints(shell.right)} />
+        </g>
+      )}
+      <polygon
+        className="campus-building-progress-track"
+        points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, p.w, PROGRESS_BAR_DEPTH, 0, 0).top)}
+      />
+      <polygon
+        className="campus-building-progress-fill"
+        points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, Math.max(0, p.w * elapsedFraction), PROGRESS_BAR_DEPTH, 0, 0).top)}
+      />
+      {t.facilityType !== 'quad' && <title>{`${label} · under construction · ${weeksLeft}w left`}</title>}
+    </>
+  );
+}
 
 // One placed building: its mass (buildingMotifs.tsx) plus, while going up,
 // a progress bar on the ground. Clicks are handled by the drawn shape, since
 // a tall building is drawn above the tiles it occupies.
 function PlacedBuilding({
-  t, p, label, onInspect, inspected, weeksLeft, justFinished, glyphs, vernacular, camera,
+  t, p, label, onInspect, inspected, developing, justFinished, glyphs, vernacular, camera, age = 0,
 }: {
   t: Buildable; p: Placement; onInspect: () => void; inspected: boolean;
   camera: Camera;
   // What the map calls it (see schools.ts's hallDisplayName).
   label: string;
-  weeksLeft?: number; justFinished?: boolean;
+  developing: boolean; justFinished?: boolean;
   // Resolves to objects on buildingSpec's VERNACULARS table, so they are
   // reference-stable and BuildingMotif's memo still short-circuits.
   vernacular: Vernacular;
   glyphs?: string;
+  age?: AgeBand;
 }) {
   const d = drawnFootprint(p);
-  const developing = t.status === 'developing' && weeksLeft !== undefined;
-  const elapsedFraction = developing && t.duration > 0 ? (t.duration - weeksLeft!) / t.duration : 1;
 
   return (
     <g
@@ -207,6 +275,7 @@ function PlacedBuilding({
         developing={developing} glyphs={glyphs}
         camera={camera}
       />
+      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={age} vernacular={vernacular} />}
       {inspected && (
         // The footprint outline on the ground, which the building can't hide.
         <polygon className="campus-building-halo" points={polyPoints(boxFaces(p.col, p.row, p.w, p.h, 0, 0).top)} />
@@ -219,22 +288,9 @@ function PlacedBuilding({
           points={polyPoints(boxFaces(p.col - 0.15, p.row - 0.15, p.w + 0.3, p.h + 0.3, 0, 0).top)}
         />
       )}
-      {developing && (
-        <>
-          <polygon
-            className="campus-building-progress-track"
-            points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, p.w, PROGRESS_BAR_DEPTH, 0, 0).top)}
-          />
-          <polygon
-            className="campus-building-progress-fill"
-            points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, Math.max(0, p.w * elapsedFraction), PROGRESS_BAR_DEPTH, 0, 0).top)}
-          />
-        </>
-      )}
+      {developing && <SiteProgress t={t} p={p} label={label} />}
       {/* A quad gets no tooltip and no label. */}
-      {t.facilityType !== 'quad' && (
-        <title>{developing ? `${label} · under construction · ${weeksLeft}w left` : `${label} · ${p.w}×${p.h}`}</title>
-      )}
+      {t.facilityType !== 'quad' && !developing && <title>{`${label} · ${p.w}×${p.h}`}</title>}
     </g>
   );
 }
@@ -242,19 +298,17 @@ function PlacedBuilding({
 // Every cast shadow in one pass (see the shadow note above). One <path> per
 // fill rather than a polygon per shadow, so overlaps draw as one shadow
 // rather than a darker one.
-function CastShadows({ placed, scene, developing, vernacular, camera }: {
-  placed: ReadonlyArray<{ t: Buildable; p: Placement }>;
+function CastShadows({ placed, scene, vernacular, camera }: {
+  placed: CampusLayout['placed'];
   scene: readonly SceneEntry[];
-  developing: GameState['developing'];
   vernacular: Vernacular;
   camera: Camera;
 }) {
   const d = useMemo(() => {
     const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
     const buildings: string[] = [];
-    for (const { t, p } of placed) {
-      const isDeveloping = t.status === 'developing' && developing[t.id] !== undefined;
-      const height = drawnHeightOf(t, isDeveloping, vernacular);
+    for (const { t, p, developing } of placed) {
+      const height = drawnHeightOf(t, developing, vernacular);
       if (height <= 0) continue;
       const f = drawnFootprint(p);
       buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
@@ -264,7 +318,7 @@ function CastShadows({ placed, scene, developing, vernacular, camera }: {
     return { buildings: buildings.join(''), trees: trees.join('') };
     // `camera` is read by the projection, not here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placed, scene, developing, vernacular, camera]);
+  }, [placed, scene, vernacular, camera]);
   return (
     <g className="campus-shadows" aria-hidden="true">
       {d.buildings && <path className="campus-building-shadow" d={d.buildings} />}
@@ -392,12 +446,15 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
   );
 }
 
-// Everything that stands on the ground, as one memoised component. `hover`
-// is React state and changes on every mouse move while siting or drawing;
-// the scene depends on none of it, so memo skips it and a hover renders only
-// the ghost. `onInspect` must be a stable callback for this to work.
-const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, onInspect, labelLayerRef, camera }: {
-  s: GameState;
+// Everything that stands on the ground, as one memoised component: the
+// static layer. Its props change only when the layout does (campusLayout.ts),
+// the camera turns, or a building is inspected or finishes; a week in which
+// nothing was built or paved skips it entirely, as does a hover. `onInspect`
+// must be a stable callback for this to work.
+const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, justFinished, onInspect, labelLayerRef, camera }: {
+  layout: CampusLayout;
+  // Detected once per layout (state/quads.ts).
+  quads: readonly Quad[];
   inspectedId: string | null;
   justFinished: readonly string[];
   onInspect: (id: string) => void;
@@ -408,9 +465,7 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
   // every mouse move (see paintLabels).
   labelLayerRef: React.RefObject<SVGGElement | null>;
 }) {
-  const placed = useMemo(() => Object.entries(s.placements)
-    .map(([id, p]) => ({ p, t: s.tech.find((x) => x.id === id) }))
-    .filter((entry): entry is { p: Placement; t: Buildable } => entry.t !== undefined), [s.placements, s.tech]);
+  const { placed, byId, trees, pathways, vernacular } = layout;
 
   // Open-ground facilities (quads, pitches, courts, pool decks) have no
   // height, so their plates are drawn in their own pass under every mass: a
@@ -419,114 +474,124 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
   // groundProps and joins the sorted pass below.
   const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
 
-  // A chapter house's letters by Buildable id, derived from the chapter
-  // roster because a scandal can disband a chapter and take its house.
-  const chapterGlyphs = useMemo(() => {
-    const byId: Record<string, string> = {};
-    for (const c of s.orgs.chapters) byId[chapterHouseId(c.id)] = c.glyphs;
-    return byId;
-  }, [s.orgs.chapters]);
-
   // The sorted scene: every mass, tree and raised prop in paint order (see
-  // depthSort.ts). Memoised on the state it reads, which is what makes the
-  // sort affordable, since the render path runs on every mouse move. It
-  // returns descriptors, not elements, so inspect/finish/weeks-left changes
-  // never invalidate the sort.
+  // depthSort.ts). It returns descriptors, not elements, so inspect/finish
+  // changes never invalidate the sort.
   const scene = useMemo(() => {
     const entries: SceneEntry[] = [];
-    for (const [id, p] of Object.entries(s.placements)) {
-      const t = s.tech.find((x) => x.id === id);
-      if (!t) continue;
+    for (const { t, p, developing } of placed) {
       if (motifOf(t) === 'grounds') {
-        // Each prop enters the sort on the ground it covers.
+        // Each prop enters the sort on the ground it covers. A site has no
+        // props yet.
         const d = drawnFootprint(p);
-        // A site has no props yet (same test PlacedBuilding uses).
-        const siteDeveloping = t.status === 'developing' && s.developing[id] !== undefined;
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, siteDeveloping)) {
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing)) {
           entries.push({
-            kind: 'prop', key: `g-${id}-${prop.key}`, node: prop.node,
+            kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id,
             col: prop.col, row: prop.row, w: prop.w, h: prop.h,
           });
         }
       } else {
-        entries.push({ kind: 'mass', key: `b-${id}`, id, col: p.col, row: p.row, w: p.w, h: p.h });
+        entries.push({ kind: 'mass', key: `b-${t.id}`, id: t.id, col: p.col, row: p.row, w: p.w, h: p.h });
       }
     }
+    // Lamps, benches and bike racks (dressing.tsx).
+    for (const prop of dressingProps(layout)) entries.push({ kind: 'prop', ...prop });
     // A paved tree is hidden, not deleted, so lifting the path brings it
     // back (see state/types.ts's Trees block).
-    for (const [key, seed] of Object.entries(s.trees)) {
-      if (key in s.pathways) continue;
+    for (const [key, seed] of Object.entries(trees)) {
+      if (key in pathways) continue;
       const tile = parsePathTileKey(key);
       if (!tile) continue;
       entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
     }
     return depthOrder(entries);
     // The camera changes the order and the props' geometry.
-  }, [s.placements, s.tech, s.trees, s.pathways, s.developing, camera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, camera]);
 
   const ground = useMemo(groundGeometry, [camera]);
+
+  const building = ({ t, p, label, developing, glyphs, age }: CampusLayout['placed'][number]) => (
+    <PlacedBuilding
+      t={t}
+      p={p}
+      label={label}
+      onInspect={() => onInspect(t.id)}
+      inspected={t.id === inspectedId}
+      developing={developing}
+      justFinished={justFinished.includes(t.id)}
+      glyphs={glyphs}
+      vernacular={vernacular}
+      camera={camera}
+      age={age}
+    />
+  );
 
   return (
     <>
       {/* Ground, pathways, shadows, flat plates, the sorted scene, then
-          labels and hall marks on top. The ghost is a separate SVG. */}
+          labels on top. Hall marks and the ghost are drawn outside. */}
       <polygon className="campus-ground" points={ground.plate} />
       <path className="campus-grid" d={ground.grid} />
+      <polygon className="campus-road" points={ground.road} />
+      <path className="campus-road-kerb" d={ground.kerb} />
+      <path className="campus-road-centre" d={ground.centre} />
 
-      <PathwayLayer pathways={s.pathways} camera={camera} />
+      <QuadPatches quads={quads} camera={camera} />
+      <DesireLines layout={layout} camera={camera} />
 
-      <CastShadows placed={placed} scene={scene} developing={s.developing} vernacular={s.self.vernacular} camera={camera} />
+      <PathwayLayer pathways={pathways} camera={camera} />
 
-      {groundPlaced.map(({ t, p }) => (
-        <PlacedBuilding
-          key={t.id}
-          t={t}
-          p={p}
-          label={hallDisplayName(s, t)}
-          onInspect={() => onInspect(t.id)}
-          inspected={t.id === inspectedId}
-          weeksLeft={s.developing[t.id]}
-          justFinished={justFinished.includes(t.id)}
-          glyphs={chapterGlyphs[t.id]}
-          vernacular={s.self.vernacular}
-          camera={camera}
-        />
-      ))}
+      <CastShadows placed={placed} scene={scene} vernacular={vernacular} camera={camera} />
+
+      {groundPlaced.map((e) => <g key={e.t.id}>{building(e)}</g>)}
 
       {scene.map((entry) => {
         if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} camera={camera} />;
-        if (entry.kind === 'prop') return <g key={entry.key}>{entry.node}</g>;
-        const t = s.tech.find((x) => x.id === entry.id);
-        const p = s.placements[entry.id];
-        if (!t || !p) return null;
-        return (
-          <g key={entry.key}>
-            <PlacedBuilding
-              t={t}
-              p={p}
-              label={hallDisplayName(s, t)}
-              onInspect={() => onInspect(entry.id)}
-              inspected={entry.id === inspectedId}
-              weeksLeft={s.developing[entry.id]}
-              justFinished={justFinished.includes(entry.id)}
-              glyphs={chapterGlyphs[entry.id]}
-              vernacular={s.self.vernacular}
-              camera={camera}
-            />
-          </g>
-        );
+        if (entry.kind === 'prop') {
+          return <VenueContext.Provider key={entry.key} value={entry.owner ?? null}><g>{entry.node}</g></VenueContext.Provider>;
+        }
+        const e = byId.get(entry.id);
+        return e ? <VenueContext.Provider key={entry.key} value={e.t.id}><g>{building(e)}</g></VenueContext.Provider> : null;
       })}
 
       <g ref={labelLayerRef}>
-        {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p }) => (
-          <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={hallDisplayName(s, t)} pinned={t.id === inspectedId} vernacular={s.self.vernacular} />
+        {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p, label }) => (
+          <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={label} pinned={t.id === inspectedId} vernacular={vernacular} />
         ))}
       </g>
+    </>
+  );
+});
 
-      {/* Hall pips: one per slot, in the colour of the school whose
-          program holds it, plus a flag when a slot is free and a program is
-          on offer. Always on, unlike the labels. */}
-      {placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
+// Desire lines: the lawn worn where the busiest routes cross it (see
+// walkRoutes.ts), under the paving, so a path laid over one covers it and
+// the next layout no longer routes across the grass there.
+const DesireLines = memo(function DesireLines({ layout, camera }: { layout: CampusLayout; camera: Camera }) {
+  const d = useMemo(() => {
+    const input = { placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways };
+    return desireLines(input, walkGrid(input))
+      .map((run) => run.map((w, i) => {
+        const p = project(w.col, w.row);
+        return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+      }).join(''))
+      .join('');
+    // `camera` is read by the projection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, camera]);
+  return d ? <path className="campus-desire" d={d} aria-hidden="true" /> : null;
+});
+
+// Hall pips: one per slot, in the colour of the school whose program holds
+// it, plus a flag when a slot is free and a program is on offer. Always on,
+// unlike the labels, and redrawn every week, since a program can arrive or
+// stall in any week.
+function HallMarksLayer({ s, layout, onInspect }: {
+  s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
+}) {
+  return (
+    <>
+      {layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
         <HallMarks
           key={`marks-${t.id}`}
           t={t}
@@ -534,17 +599,17 @@ const CampusScene = memo(function CampusScene({ s, inspectedId, justFinished, on
           slots={s.halls[t.id]}
           offerWaiting={s.programOffers.length > 0}
           blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
-          vernacular={s.self.vernacular}
+          vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
         />
       ))}
     </>
   );
-});
+}
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, inspectTarget, onInspectTargetConsumed, onInspectedChange,
+  onOpenCurriculum, inspectTarget, onInspectTargetConsumed, onInspectedChange, gait,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -571,6 +636,9 @@ export default function CampusMap({
   onInspectTargetConsumed?: () => void;
   // Reports which building's panel is open (the opening walkthrough reads it).
   onInspectedChange?: (id: string | null) => void;
+  // The clock's pace as a multiple of Play, 0 while it is stopped: how fast
+  // the walkers walk.
+  gait: number;
 }) {
   const [rotated, setRotated] = useState(false);
   // The building whose info panel is open. Mutually exclusive with
@@ -584,8 +652,33 @@ export default function CampusMap({
   // draws at it. Not persisted.
   const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
   setCamera(camera);
+  const layout = useCampusLayout(s);
+  // This week's occasions (mapOccasions.ts), reference-stable between them.
+  const crowdKey = crowdedVenues(s).join(',');
+  const crowds = useMemo(() => new Set(crowdKey ? crowdKey.split(',') : []), [crowdKey]);
+  const commencement = isCommencement(s);
+  const banners = useMemo(() => (commencement ? { ...s.self.colors } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commencement, s.self.colors.primary, s.self.colors.secondary]);
+  // The quads, once per layout, and which quad (by index + 1) each tile is in.
+  const quads = useMemo(
+    () => detectQuads({ placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways, quads: layout.quads }),
+    [layout],
+  );
+  const quadAt = useMemo(() => {
+    const at = new Int16Array(CAMPUS_GRID_WIDTH * CAMPUS_GRID_HEIGHT);
+    quads.forEach((q, k) => { for (const i of q.tiles) at[i] = k + 1; });
+    return at;
+  }, [quads]);
+  const quadUnder = (tile: TileCoord | null): Quad | null => (tile ? quads[quadAt[tileIndex(tile.row, tile.col)] - 1] ?? null : null);
+  // The quad under the pointer (for its outline and name) and the one whose
+  // card is open, by key; N puts every name up.
+  const [hoveredQuad, setHoveredQuad] = useState<string | null>(null);
+  const [inspectedQuadKey, setInspectedQuadKey] = useState<string | null>(null);
+  const [showQuadNames, setShowQuadNames] = useState(false);
+  const inspectedQuad = quads.find((q) => q.key === inspectedQuadKey) ?? null;
   // The camera is derived from these, so it only rests on a crisp view.
-  const stanceRef = useRef({ view: 0, pitch: 0 });
+  const stanceRef = useRef({ view: 0, pitch: DEFAULT_PITCH_INDEX });
   // Buildings that finished within the last COMPLETION_PULSE_MS. Derived by
   // diffing the previous developing set, so nothing enters GameState.
   const [justFinished, setJustFinished] = useState<readonly string[]>([]);
@@ -638,6 +731,9 @@ export default function CampusMap({
   // Refs, because the label pass runs on every mouse move.
   const labelLayerRef = useRef<SVGGElement>(null);
   const cursorRef = useRef<{ x: number; y: number } | null>(null);
+  // The pointer in canvas pixels, for the refused ghost's reason (re-read on
+  // the re-render a new hover tile causes).
+  const pointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // A mousedown that moves past the threshold is a drag-to-pan. `button` is
   // recorded because only a left-button pan sets justPannedRef: a left
   // mouseup is followed by a `click`, a middle one by `auxclick`, so a
@@ -647,9 +743,12 @@ export default function CampusMap({
   // doesn't also place a building. Consumed by the next click or mousedown.
   const justPannedRef = useRef(false);
   const pathDragRef = useRef<CampusTool | null>(null);
-  // The last world point a stroke painted at. Mousemove can skip tiles on a
-  // fast drag, so paintStroke interpolates from here.
-  const pathLastRef = useRef<{ x: number; y: number } | null>(null);
+  // The last tile a stroke painted. Mousemove can skip tiles on a fast
+  // drag, so paintStroke draws the line from here.
+  const pathLastRef = useRef<TileCoord | null>(null);
+  // Where the current stroke began and the tiles it has laid, for the
+  // Shift-held straight run.
+  const strokeRef = useRef<{ anchor: TileCoord; laid: Set<string> } | null>(null);
 
   // Light each label by the cursor's distance to the building's footprint
   // (not the label), converted to screen pixels via the zoom.
@@ -732,7 +831,7 @@ export default function CampusMap({
     applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
   }
   function resetCamera() {
-    stanceRef.current = { view: 0, pitch: 0 };
+    stanceRef.current = { view: 0, pitch: DEFAULT_PITCH_INDEX };
     applyCamera(DEFAULT_CAMERA);
   }
 
@@ -779,6 +878,7 @@ export default function CampusMap({
       }
       pathDragRef.current = null;
       pathLastRef.current = null;
+      strokeRef.current = null;
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -875,7 +975,11 @@ export default function CampusMap({
     // Labels track the cursor in every mode, including mid-pan.
     cursorRef.current = worldFromEvent(e);
     paintLabels(cursorRef.current);
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (rect) pointerRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     if (dragRef.current?.moved) return;   // panning: don't jitter the ghost across the tiles a drag crosses
+    const overQuad = selected || (pathTool && pathTool !== 'quad') ? null : quadUnder(tileFromEvent(e))?.key ?? null;
+    if (overQuad !== hoveredQuad) setHoveredQuad(overQuad);
     if (selected || pathTool) {
       const tile = tileFromEvent(e);
       setHover((cur) => (cur && tile && cur.row === tile.row && cur.col === tile.col ? cur : tile));
@@ -883,29 +987,38 @@ export default function CampusMap({
     if (pathDragRef.current) paintStroke(e, pathDragRef.current);
   }
 
-  // Paint every tile between the last sampled point and this one. Half-tile
-  // steps can't skip a tile at any angle.
-  function paintStroke(e: { clientX: number; clientY: number }, tool: CampusTool) {
-    const here = worldFromEvent(e);
+  // A freehand stroke paints every tile between the last one painted and
+  // the one under the pointer, so a fast drag leaves no gaps. With Shift held
+  // the draw tool lays a straight run from where the stroke began instead,
+  // diagonals included (drawn as one band, see pathways.tsx), and moving the
+  // pointer moves the run: tiles this stroke laid off the new line are lifted.
+  function paintStroke(e: { clientX: number; clientY: number; shiftKey: boolean }, tool: CampusTool) {
+    const here = tileFromEvent(e);
     if (!here) return;
-    const from = pathLastRef.current ?? here;
+    const stroke = strokeRef.current;
+    if (e.shiftKey && tool === 'draw' && stroke) {
+      const line = tilesBetween(stroke.anchor, here);
+      const onLine = new Set(line.map(pathTileKey));
+      const add = line.filter((t) => !(pathTileKey(t) in s.pathways));
+      const remove = [...stroke.laid].filter((key) => !onLine.has(key)).map((key) => parsePathTileKey(key)!);
+      for (const key of remove.map(pathTileKey)) stroke.laid.delete(key);
+      for (const t of add) stroke.laid.add(pathTileKey(t));
+      if (add.length > 0 || remove.length > 0) act({ type: 'PAINT_PATH_TILES', add, remove });
+      pathLastRef.current = here;
+      return;
+    }
+    const from = pathLastRef.current;
     pathLastRef.current = here;
-    const dist = Math.hypot(here.x - from.x, here.y - from.y);
-    const steps = Math.max(1, Math.ceil(dist / (TILE_H / 2)));
-    let last = '';
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const tile = tileAt(from.x + (here.x - from.x) * t, from.y + (here.y - from.y) * t);
-      if (!tile) continue;
-      const key = `${tile.row},${tile.col}`;
-      if (key === last) continue;
-      last = key;
+    const run = from ? tilesBetween(from, here).slice(1) : [here];
+    for (const tile of run) {
+      if (tool === 'draw' && stroke && !(pathTileKey(tile) in s.pathways)) stroke.laid.add(pathTileKey(tile));
       paintTile(tile, tool);
     }
   }
 
   function leaveMap() {
     setHover(null);
+    setHoveredQuad(null);
     cursorRef.current = null;
     paintLabels(null);
   }
@@ -927,12 +1040,25 @@ export default function CampusMap({
     }
     // A path tool owns the gesture and never arms the pan. Left paints with
     // the armed tool, right with its opposite (so left draws, right erases).
+    // The quad tool marks on a click, not along a stroke.
+    if (pathTool === 'quad' && e.button === 0) {
+      const tile = tileFromEvent(e);
+      if (tile) act({ type: 'MARK_QUAD', tile });
+      return;
+    }
+    // Lamps and benches: one a click, the right button lifts.
+    if ((pathTool === 'lamp' || pathTool === 'bench') && (e.button === 0 || e.button === 2)) {
+      const tile = tileFromEvent(e);
+      if (tile) act(e.button === 0 ? { type: 'PLACE_DRESSING', tile, kind: pathTool } : { type: 'REMOVE_DRESSING', tile });
+      return;
+    }
     if (pathTool && (e.button === 0 || e.button === 2)) {
       const tool = e.button === 0 ? pathTool : otherPathTool(pathTool);
       const tile = tileFromEvent(e);
       if (tile) {
         pathDragRef.current = tool;
         pathLastRef.current = null;   // a new stroke never interpolates from where the last one ended
+        strokeRef.current = { anchor: tile, laid: new Set() };
         paintStroke(e, tool);
         return;
       }
@@ -1011,6 +1137,7 @@ export default function CampusMap({
     if (key === 'z') tiltBy(-1);
     if (key === 'x') tiltBy(1);
     if (key === 'home') resetCamera();
+    if (key === 'n') setShowQuadNames((on) => !on);
   }, controlsEnabled);
 
   // Escape backs out one layer at a time (path tool, pickup, info panel), on
@@ -1020,6 +1147,7 @@ export default function CampusMap({
       if (pathTool) onSetPathTool(pathTool);
       else if (selected) selectBuilding(null);
       else if (inspectedId) setInspectedId(null);
+      else if (inspectedQuadKey) setInspectedQuadKey(null);
     }
   }, backOutEnabled);
 
@@ -1047,12 +1175,15 @@ export default function CampusMap({
     if (consumePanClick()) return;
     if (selected) { placeById(selected.id, row, col); return; }
     if (inspectedId) setInspectedId(null);
+    // Open ground inside a quad opens its card; anywhere else closes it.
+    setInspectedQuadKey(pathTool ? null : quadUnder({ row, col })?.key ?? null);
   };
   // A placed building: toggles its info panel, but only when nothing is
   // being sited or drawn; otherwise the click belongs to that mode.
   const inspectBuilding = (id: string) => {
     if (consumePanClick()) return;
     if (selected || pathTool) return;
+    setInspectedQuadKey(null);
     setInspectedId((cur) => (cur === id ? null : id));
   };
   // A stable identity for the scene, reading the current inspectBuilding
@@ -1067,7 +1198,9 @@ export default function CampusMap({
       tool === 'draw' ? { type: 'ADD_PATH_TILE', tile }
         : tool === 'erase' ? { type: 'REMOVE_PATH_TILE', tile }
           : tool === 'plant' ? { type: 'PLANT_TREE', tile }
-            : { type: 'FELL_TREE', tile },
+            : tool === 'fell' ? { type: 'FELL_TREE', tile }
+              : tool === 'quad' ? { type: 'MARK_QUAD', tile }
+                : { type: 'PLACE_DRESSING', tile, kind: tool },
     );
   };
 
@@ -1077,13 +1210,23 @@ export default function CampusMap({
   const inspected = inspectedPlacement && inspectedBuildable ? { t: inspectedBuildable, p: inspectedPlacement } : null;
 
   // The footprint ghost at the current rotation, and whether a click would
-  // succeed: the footprint is clear and the school can afford it
-  // (canStartDevelopment, or awaitsSite for Founders Hall).
+  // succeed: the site is allowed (reach.ts: clear land, a walk from the road,
+  // nothing walled off) and the school can afford it (canStartDevelopment,
+  // or awaitsSite for Founders Hall). A refused site says why. Memoised on
+  // the tile, since the walk check floods the parcel.
+  const refusal = useMemo(
+    () => (selected && hover && selectedFootprint
+      ? siteRefusal(s, selected, hover.row, hover.col, selectedFootprint)
+      : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selected?.id, hover?.row, hover?.col, selectedFootprint?.w, selectedFootprint?.h, s.placements],
+  );
   const preview = selected && hover && selectedFootprint
     ? {
         ...hover,
         ...selectedFootprint,
-        ok: footprintIsClear(s.placements, hover.row, hover.col, selectedFootprint)
+        refusal,
+        ok: refusal === null
           && (selected.status === 'done' ? awaitsSite(s, selected) : canStartDevelopment(s, selected)),
       }
     : null;
@@ -1131,14 +1274,24 @@ export default function CampusMap({
         >
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
-            <CampusScene
-              s={s}
-              inspectedId={inspectedId}
-              justFinished={justFinished}
-              onInspect={onInspect}
-              labelLayerRef={labelLayerRef}
-              camera={camera}
-            />
+            <CrowdContext.Provider value={crowds}>
+            <BannerContext.Provider value={banners}>
+            <DevelopingContext.Provider value={s.developing}>
+              <CampusScene
+                layout={layout}
+                quads={quads}
+                inspectedId={inspectedId}
+                justFinished={justFinished}
+                onInspect={onInspect}
+                labelLayerRef={labelLayerRef}
+                camera={camera}
+              />
+            </DevelopingContext.Provider>
+            </BannerContext.Provider>
+            </CrowdContext.Provider>
+            <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />
+            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
+            <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
           </g>
         </svg>
 
@@ -1154,6 +1307,7 @@ export default function CampusMap({
                     className={`campus-preview ${preview.ok ? 'ok' : 'blocked'}`}
                     points={polyPoints(boxFaces(preview.col, preview.row, preview.w, preview.h, 0, 0).top)}
                   />
+
                   {/* The rotate control, pinned to the ghost's right corner
                       inside the world <g>, so it tracks the ghost. */}
                   {canRotateSelected && (() => {
@@ -1190,9 +1344,20 @@ export default function CampusMap({
           </g>
         </svg>
 
+        {/* Why the ghost is refused (reach.ts's siteRefusal), by the
+            pointer and at screen size whatever the zoom. */}
+        {preview?.refusal && (
+          <div className="campus-map-why" style={{ left: pointerRef.current.x, top: pointerRef.current.y }}>
+            {preview.refusal}
+          </div>
+        )}
+
         {/* The inspected building's info panel: a fixed corner card, not
             anchored to the building, since tracking it under imperative
             pan/zoom would mean re-rendering on every pixel of a drag. */}
+        {inspectedQuad && !inspected && (
+          <QuadPanel quad={inspectedQuad} act={act} onClose={() => setInspectedQuadKey(null)} />
+        )}
         {inspected && (
           <BuildingInfoPanel
             t={inspected.t}
@@ -1209,7 +1374,7 @@ export default function CampusMap({
         <div className="campus-map-zoom-controls">
           <HelpHint
             align="end"
-            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground — nothing can be built without it. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time, C/F/L open Curriculum, Faculty and Student Life. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, and Home brings back the opening view."
+            text="Where the university physically grows. Pick a building, dorm, or facility to build from the Build popup (the toolbar's build icon) — placing it here is how it starts: cost is charged immediately, and it counts down under construction right where you put it, reserving those tiles until it's done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground, and a way to walk to it from the road along the campus's south edge; a building that would wall another off is refused, and the ghost says why. Courses are never sited: a course is not a place, and develops from the Curriculum view with no map involvement. Press P (or use the build popup's Draw path tile) to lay walkways — free, purely decorative, and unrelated to building: drag with the left button to pave, the right button to lift, and the ghost tile shows which square you're on. Hold Shift while drawing to lay a straight run from where you started, diagonals included. Every other view — Curriculum, Faculty, Research and the rest — opens as a full screen over this one; the home button at the left of the toolbar's icon row, that view's own close button, or Escape brings you back here. Keys: W/A/S/D or the arrows pan, Space pauses and resumes wherever you are, R rotates, P draws, Escape backs out one layer at a time. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll/pinch to zoom. Open ground the buildings close in is found as a quad and named; click one to rename it, press N to show every name, and use the build popup's Mark a quad to make one of a space the campus has not. Q/E turn the view a quarter turn round the campus, Z/X tilt it flatter or steeper, from nearly level to straight down,, and Home brings back the opening view."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

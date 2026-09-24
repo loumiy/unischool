@@ -12,7 +12,8 @@
 //
 // So each gate is checked BOTH ways, against a real founding state: closed
 // on a fresh university, and open once its milestone's condition holds and
-// the ladder ticks. A milestone is never undone, so an open tab stays open. Ungated tabs are checked too — they must be available from the
+// the ladder ticks. A milestone is never undone, so an open tab stays
+// open. Ungated tabs are checked too — they must be available from the
 // first week, since there is no other way into them.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.

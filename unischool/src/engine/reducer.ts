@@ -33,7 +33,9 @@ import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} f
 import { TREE_SEED_RANGE } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import { TRAINER_FIELD, MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
-import { isInBounds, isPlaceableKind, pathTileKey, occupantAt } from '../state/campusMap';
+import { isLand, isPlaceableKind, parsePathTileKey, pathTileKey, occupantAt } from '../state/campusMap';
+import { designationRefusal, detectQuads, tileIndex } from '../state/quads';
+import { QUAD_NAME_MAX } from '../data/quadData';
 import { money } from '../format';
 import { random, withRandom } from './random';
 import { advanceClock } from '../state/clock';
@@ -217,7 +219,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
 
     case 'ADD_PATH_TILE': {
-      if (isInBounds(action.tile.row, action.tile.col)) s.pathways[pathTileKey(action.tile)] = true;
+      if (isLand(action.tile.row, action.tile.col)) s.pathways[pathTileKey(action.tile)] = true;
       return s;
     }
 
@@ -226,10 +228,16 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
+    case 'PAINT_PATH_TILES': {
+      for (const tile of action.remove) delete s.pathways[pathTileKey(tile)];
+      for (const tile of action.add) if (isLand(tile.row, tile.col)) s.pathways[pathTileKey(tile)] = true;
+      return s;
+    }
+
     case 'PLANT_TREE': {
       // Only on open ground (not under a building or a path; see types.ts's Trees).
       const { row, col } = action.tile;
-      if (!isInBounds(row, col)) return s;
+      if (!isLand(row, col)) return s;
       const key = pathTileKey(action.tile);
       if (key in s.pathways || occupantAt(s.placements, row, col) !== undefined) return s;
       if (!(key in s.trees)) s.trees[key] = Math.floor(random() * TREE_SEED_RANGE);
@@ -238,6 +246,51 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'FELL_TREE': {
       delete s.trees[pathTileKey(action.tile)];
+      return s;
+    }
+
+    case 'PLACE_DRESSING': {
+      // On the land, off the buildings, and on or beside a path.
+      const { row, col } = action.tile;
+      if (!isLand(row, col) || occupantAt(s.placements, row, col) !== undefined) return s;
+      const nearPath = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => `${row + dr},${col + dc}` in s.pathways);
+      if (!nearPath) return s;
+      s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: action.kind };
+      return s;
+    }
+
+    case 'REMOVE_DRESSING': {
+      if (s.dressing) delete s.dressing[pathTileKey(action.tile)];
+      return s;
+    }
+
+    case 'MARK_QUAD': {
+      const { row, col } = action.tile;
+      if (designationRefusal(s, row, col) !== null) return s;
+      // A mark inside a quad already standing would add nothing.
+      const at = tileIndex(row, col);
+      if (detectQuads(s).some((q) => q.tiles.includes(at))) return s;
+      s.quads = { names: s.quads?.names ?? {}, designated: [...(s.quads?.designated ?? []), pathTileKey(action.tile)] };
+      return s;
+    }
+
+    case 'UNMARK_QUAD': {
+      const quad = detectQuads(s).find((q) => q.key === action.key);
+      if (!quad || !s.quads) return s;
+      const inside = new Set(quad.tiles);
+      s.quads.designated = s.quads.designated.filter((key) => {
+        const t = parsePathTileKey(key);
+        return !t || !inside.has(tileIndex(t.row, t.col));
+      });
+      return s;
+    }
+
+    case 'NAME_QUAD': {
+      const name = action.name.trim().slice(0, QUAD_NAME_MAX);
+      const names = { ...s.quads?.names };
+      if (name === '') delete names[action.key];
+      else names[action.key] = name;
+      s.quads = { names, designated: s.quads?.designated ?? [] };
       return s;
     }
 

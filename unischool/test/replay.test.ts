@@ -44,7 +44,7 @@ function nextMove(s: GameState): Action {
     const course = s.tech.find((t) => t.kind === 'course' && t.status === 'available' && canStartDevelopment(s, t, eligibleInstructors(s, t)[0]?.id));
     if (course) return { type: 'START_DEVELOPMENT', nodeId: course.id, facultyId: eligibleInstructors(s, course)[0]?.id };
     const building = s.tech.find((t) => isPlaceableKind(t) && t.status === 'available' && canStartDevelopment(s, t));
-    const spot = building && firstFreeSpot(s.placements, footprintOf(building));
+    const spot = building && firstFreeSpot(s, building, footprintOf(building));
     if (building && spot) return { type: 'PLACE_BUILDABLE', buildableId: building.id, row: spot.row, col: spot.col, rotated: false };
   }
   return { type: 'TICK' };

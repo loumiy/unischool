@@ -579,6 +579,42 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         <span className="build-tile-name">Fell trees</span>
         <span className="build-tile-foot">clear a wood</span>
       </button>
+      {/* Quads are found on their own (state/quads.ts); this marks an open
+          space the finder passed over. */}
+      <button
+        type="button"
+        className={`build-tile tool ${pathTool === 'quad' ? 'placing' : ''}`}
+        aria-pressed={pathTool === 'quad'}
+        onClick={() => onSetPathTool('quad')}
+        title="Mark the open space under a click as a quad, where the campus has not already made it one. It must be closed off from the edge of the campus. Click a quad on the map to name it or lift the mark."
+      >
+        <span className="build-tile-icon"><QuadIcon /></span>
+        <span className="build-tile-name">Mark a quad</span>
+        <span className="build-tile-foot">name an open space</span>
+      </button>
+      {/* Lamps and benches: free, on or beside a path, one a click. */}
+      <button
+        type="button"
+        className={`build-tile tool ${pathTool === 'lamp' ? 'placing' : ''}`}
+        aria-pressed={pathTool === 'lamp'}
+        onClick={() => onSetPathTool('lamp')}
+        title="Stand a lamp on or beside a path, one a click — the right mouse button lifts one. Free, like a path."
+      >
+        <span className="build-tile-icon"><DrawPathIcon /></span>
+        <span className="build-tile-name">Lamps</span>
+        <span className="build-tile-foot">beside a path</span>
+      </button>
+      <button
+        type="button"
+        className={`build-tile tool ${pathTool === 'bench' ? 'placing' : ''}`}
+        aria-pressed={pathTool === 'bench'}
+        onClick={() => onSetPathTool('bench')}
+        title="Set a bench on or beside a path, facing along it, one a click — the right mouse button lifts one. Free, like a path."
+      >
+        <span className="build-tile-icon"><DrawPathIcon /></span>
+        <span className="build-tile-name">Benches</span>
+        <span className="build-tile-foot">beside a path</span>
+      </button>
       {groups.map((group) => (
         <BuildGroupTiles key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}

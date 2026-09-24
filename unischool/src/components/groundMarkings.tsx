@@ -1,4 +1,6 @@
+import { useContext } from 'react';
 import type { FacilityType } from '../state/types';
+import { CrowdContext, VenueContext } from './mapOccasions';
 import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
@@ -93,6 +95,10 @@ export function RakedStand({
   const [o0, o1] = outer;
   const [i0, i1] = inner;
   const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
+  // A crowd on the treads in the weeks this stand's venue has a game
+  // (mapOccasions.ts).
+  const venue = useContext(VenueContext);
+  const crowded = useContext(CrowdContext).has(venue ?? '');
   const between = (a: TilePt, b: TilePt, f: number): TilePt => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
 
   // Which edge is nearer the camera. Front edge nearer: the risers face the
@@ -180,6 +186,7 @@ export function RakedStand({
         <polygon points={polyPoints([at(i0, 0), at(i1, 0), at(i1, bottomH), at(i0, bottomH)])} fill={wallFill} />
       )}
       {treads}
+      {crowded && <Crowd outer={outer} inner={inner} bottomH={bottomH} topH={topH} rows={Math.max(1, rows)} />}
       {slots}
       {rail && (
         <line className="stand-rail" x1={at(o0, topH).x} y1={at(o0, topH).y} x2={at(o1, topH).x} y2={at(o1, topH).y} />
@@ -187,6 +194,28 @@ export function RakedStand({
       {void seatStroke}
     </>
   );
+}
+
+// Spectators: a row of heads and shoulders along the middle of each tread.
+const CROWD_COLOURS = ['#c94b4b', '#3d6a9c', '#e0b64a', '#f2ede2', '#5b8a5b', '#8c5a9c'];
+function Crowd({ outer, inner, bottomH, topH, rows }: {
+  outer: [TilePt, TilePt]; inner: [TilePt, TilePt]; bottomH: number; topH: number; rows: number;
+}) {
+  const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
+  const between = (a: TilePt, b: TilePt, f: number): TilePt => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+  const step = (topH - bottomH) / rows;
+  const dots: React.JSX.Element[] = [];
+  for (let k = 0; k < rows; k++) {
+    const f = (k + 0.5) / rows;
+    const a = between(inner[0], outer[0], f);
+    const b = between(inner[1], outer[1], f);
+    const n = Math.max(2, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 2.2));
+    for (let i = 0; i < n; i++) {
+      const p = at(between(a, b, (i + 0.5 + (k % 2) * 0.35) / n), bottomH + step * (k + 1) + 1.6);
+      dots.push(<circle key={`${k}-${i}`} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={1.4} fill={CROWD_COLOURS[(i * 7 + k * 3) % CROWD_COLOURS.length]} />);
+    }
+  }
+  return <g className="stand-crowd">{dots}</g>;
 }
 
 // Plain concrete, for the bleachers that are not part of a tinted building.

@@ -30,14 +30,15 @@ the opening camera), and each kind carries an architectural form
 ## The camera
 
 The view stands at one of **four corners of the campus** (a quarter turn
-apart) and one of **three pitches**, and steps between them instantly: Q/E
+apart) and one of **ten pitches**, from nearly level to straight down (Plan
+24), and steps between them instantly: Q/E
 turn, Z/X tilt, Home returns to the opening view — keys only; the corner pill
 beside the zoom buttons carries no camera controls. `isoProjection.ts`
 owns one `Camera` (azimuth and pitch) and derives every projection
 coefficient from it, so the two hundred call sites that draw a wall or a
 roof never know a camera exists; it accepts any camera, but the map only
 rests on `VIEWS` and `PITCHES`, every one of which keeps a tile edge on a
-clean pixel slope (sin pitch of 1/2, 2/3 or 3/4). A continuous camera was
+clean pixel slope (sin pitch a simple ratio, from 1/5 to 1). A continuous camera was
 tried first and looked worse than it sounded: the motifs were drawn for
 that pixel grid, and at an in-between angle they shimmer and foreshorten
 into shapes nobody drew. The camera is `CampusMap.tsx` state — unlike pan
@@ -66,6 +67,50 @@ Three consequences, each in its own place:
   building presents its entrances from every side, and nothing is drawn
   against a wall that has turned away. Composite masses (a hospital's slab
   and wing, a corner tower) order their parts by the camera.
+
+## The static layer, and what moves
+
+The reducer clones the state every week, so every record arrives with a
+new identity whether or not anything moved (Plan 24). The scene is drawn
+from a **layout** (`campusLayout.ts`) kept while its string key holds. The
+key covers each building's site, status, name and age band, plus the
+trees, paths, quads, lamps and colours, so the memoised scene skips every
+week in which nothing was built, finished, renamed, paved or aged. What
+does change weekly reaches the scene through React contexts, which redraw
+only their consumers:
+
+- `DevelopingContext`: a site's countdown, progress bar and rising shell;
+- `CrowdContext`: the stands of a venue with a game this week;
+- `BannerContext`: the lamps in commencement week.
+
+The hall pips, the quad outlines and names, and the walkers are drawn after
+the scene from the live state. `npm run profile` gates every change to the
+map.
+
+## The road, the walk and the quads
+
+A **road** runs along the parcel's last two rows (`campusMap.ts`'s
+`ROAD_FIRST_ROW`): fixed terrain, never built, paved or planted on.
+**Reachability** (`state/reach.ts`) rules on siting only. Every building
+needs a way on foot from the road, and nothing is sited that walls off a
+building that had one. `canPlace` asks it, and the ghost says why a site is
+refused. **Quads** (`state/quads.ts`) are found, not declared: open ground
+the buildings enclose. The player can name one, or mark one detection
+passes over; names and marks are the optional `GameState.quads`. A placed
+Campus Quad is lawn to both the walk and the quad finder. Both modules sit
+in `src/state/`, not `src/systems/`, because no tick system may read
+placements.
+
+## Life on the map
+
+Walkers (`Walkers.tsx`) walk routes between doors (`walkRoutes.ts`),
+preferring paths. They are drawn imperatively on the frame clock, clipped
+by the buildings in front of them, and more numerous as the college grows.
+Desire lines wear the lawn where the busiest routes cross it. The player's
+lamps and benches (`GameState.dressing`), bike racks by the doors of a big
+college, and the flag at Founders Hall are props in the depth-sorted scene.
+Weathering (`ageMarks.tsx`) reads `Buildable.builtYear`. All of it is
+drawing only.
 
 ## Footprints
 

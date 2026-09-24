@@ -216,6 +216,10 @@ export interface Buildable {
   // servesPopulation before the renovation in progress, which stays in use
   // meanwhile. Set by RENOVATE_LIBRARY, cleared on completion.
   renovatingFrom?: number;
+  // The year a placeable Buildable was first finished, for the map's age
+  // marks (components/ageMarks.tsx). Undefined for courses and for buildings
+  // an older save finished.
+  builtYear?: number;
 }
 
 // What a Buildable serves right now: full when done, nothing before it
@@ -292,6 +296,19 @@ export type Pathways = Record<string, true>;
 // it only hides it at render time. The value is a seed from which
 // components/trees.tsx derives species, size and offset. Visual only.
 export type Trees = Record<string, number>;
+
+// A lamp or a bench, by the tile it stands on.
+export type DressingKind = 'lamp' | 'bench';
+export type Dressing = Record<string, DressingKind>;
+
+// The player's say in the campus's quads (state/quads.ts detects them).
+export interface QuadState {
+  // A player's name for a quad, by its anchor tile key.
+  names: Record<string, string>;
+  // Tile keys the player has marked: the open space under each is a quad
+  // even where detection would not make it one.
+  designated: string[];
+}
 
 // While `pendingInterrupt` is set the clock halts; the UI renders a modal by
 // `type` (docs/architecture/interrupts.md).
@@ -820,6 +837,12 @@ export interface GameState {
   placements: Placements;
   pathways: Pathways;
   trees: Trees;
+  // Quad names and the player's marks (state/quads.ts). Optional: a campus
+  // with neither has none.
+  quads?: QuadState;
+  // Lamps and benches the player has placed beside the paths, by tile key
+  // (components/dressing.tsx). Optional: a campus may have none.
+  dressing?: Dressing;
   rivals: Rival[];
   self: University;
   history: YearSnapshot[];       // one per completed year, oldest first

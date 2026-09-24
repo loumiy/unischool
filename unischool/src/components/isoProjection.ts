@@ -31,18 +31,24 @@ export const DEFAULT_AZIMUTH = Math.PI / 4;
 // Derived, not chosen: sin(pitch) = TILE_H / TILE_W, 30° at a 64x32 tile
 // (see campusScale.ts for vertical distances).
 export const DEFAULT_PITCH = Math.asin(TILE_H / TILE_W);
-// Steeper leaves walls as slivers; shallower lets tall halls hide the
-// campus and breaks the ground-only depth sort (depthSort.ts).
-export const MIN_PITCH = (20 * Math.PI) / 180;
-export const MAX_PITCH = (55 * Math.PI) / 180;
+// From nearly level to straight down (see PITCH_SINES).
+export const MIN_PITCH = (10 * Math.PI) / 180;
+export const MAX_PITCH = Math.PI / 2;
 
 export const DEFAULT_CAMERA: Camera = { azimuth: DEFAULT_AZIMUTH, pitch: DEFAULT_PITCH };
 
-// The views the map rests on: four azimuths a quarter turn apart, and the
-// pitches where sin(pitch) is 1/2, 2/3 or 3/4, so a tile edge climbs one
-// pixel every 2, 3 or 4 across and stays crisp.
+// The views the map rests on: four azimuths a quarter turn apart, and ten
+// pitches.
 export const VIEWS: readonly number[] = [0, 1, 2, 3].map((k) => DEFAULT_AZIMUTH + (k * Math.PI) / 2);
-export const PITCHES: readonly number[] = [1 / 2, 2 / 3, 3 / 4].map((s) => Math.asin(s));
+// The tilt ladder, stepped in the sine of the pitch rather than the angle:
+// the sine is the factor the ground's depth is squashed by, so even steps in
+// it look even, where even steps in degrees crowd at the top. Each is a
+// simple ratio, which keeps tile edges on a clean pixel slope. The last is a
+// plan view, straight down, where heights vanish. Ported from v2.
+export const PITCH_SINES: readonly number[] = [1 / 5, 1 / 4, 1 / 3, 1 / 2, 2 / 3, 3 / 4, 5 / 6, 11 / 12, 24 / 25, 1];
+export const PITCHES: readonly number[] = PITCH_SINES.map((s) => Math.asin(s));
+// The opening view's place on the ladder: the 2:1 dimetric.
+export const DEFAULT_PITCH_INDEX = PITCH_SINES.indexOf(TILE_H / TILE_W);
 
 // World units per tile along the ground, whatever the camera.
 const SCALE = TILE_W / Math.SQRT2;

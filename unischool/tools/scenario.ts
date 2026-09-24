@@ -125,6 +125,9 @@ if (wantedModal && pending !== wantedModal) {
 }
 
 // Cosmetic or developer-facing overrides: nothing the simulation reads back.
+// The harness never reads the milestone notes, which a player would have
+// read as they came: a Year-20 save would otherwise open on Year 1's.
+state.ladder.unread = [];
 if (flags.name) state.self.name = flags.name;
 if (flags.vernacular) state.self.vernacular = flags.vernacular as Vernacular;
 if (flags['clear-modal']) {
@@ -142,7 +145,7 @@ let stood = 0;
 if (flags['build-all']) {
   for (const node of state.tech) {
     if (!isPlaceableKind(node) || node.status === 'done' || node.status === 'developing') continue;
-    const spot = firstFreeSpot(state.placements, footprintOf(node));
+    const spot = firstFreeSpot(state, node, footprintOf(node));
     if (!spot) { console.error(`--build-all: no room for ${node.id}`); continue; }
     node.status = 'done';
     state.placements[node.id] = placementFor(spot.row, spot.col, footprintOf(node));

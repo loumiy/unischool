@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------
 
 import { depthOrder, occludes, type DepthBox } from '../src/components/depthSort';
-import { DEFAULT_CAMERA, setCamera } from '../src/components/isoProjection';
+import { DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, VIEWS, setCamera } from '../src/components/isoProjection';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { groundProps } from '../src/components/groundMarkings';
 import { motifOf } from '../src/components/buildingSpec';
@@ -198,6 +198,27 @@ console.log('campus map painter\'s order');
   assert(total === 0, `${steps} azimuths, ${items} items: expected 0 occlusion violations, got ${total}`);
   assert(asym === 0, `the relation is antisymmetric at every azimuth (${asym} pairs were not)`);
   console.log(`  · azimuths: ${items} items over ${steps} cameras — ${total} violations`);
+}
+
+// --- 3c. Every pitch on the tilt ladder -----------------------------------
+{
+  // Ten pitches from nearly level to straight down, at each of the four
+  // views. The sort is on the ground alone, so it must hold at all of them;
+  // and the camera must land on each pitch as asked, not a clamped one.
+  assert(PITCHES.length === 10, 'the tilt ladder has ten pitches');
+  assert(PITCHES.every((p, i) => i === 0 || p > PITCHES[i - 1]), 'from flattest to steepest');
+  assert(PITCHES[DEFAULT_PITCH_INDEX] === DEFAULT_CAMERA.pitch, 'and the opening pitch is on it');
+  let total = 0;
+  for (const pitch of PITCHES) {
+    for (const azimuth of VIEWS) {
+      const applied = setCamera({ azimuth, pitch });
+      assert(Math.abs(applied.pitch - pitch) < 1e-12, `pitch ${pitch.toFixed(3)} is not clamped`);
+      const ordered = depthOrder(layout(40, 300, 50));
+      total += violations(ordered);
+    }
+  }
+  setCamera(DEFAULT_CAMERA);
+  assert(total === 0, `every pitch and view: expected 0 occlusion violations, got ${total}`);
 }
 
 // --- 4. Determinism -------------------------------------------------------
