@@ -1,3 +1,4 @@
+import type { Action } from '../state/actions';
 import AlumniPanel from './AlumniPanel';
 import type { GameState, YearSnapshot } from '../state/types';
 import { MIN_SERIES_POINTS } from '../components/Sparkline';
@@ -281,7 +282,7 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   );
 }
 
-export default function HistoryTab({ s }: { s: GameState }) {
+export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const history = s.history;
   const totalCourses = s.tech.filter((t) => t.kind === 'course').length;
 
@@ -370,7 +371,7 @@ export default function HistoryTab({ s }: { s: GameState }) {
         </div>
       </section>
 
-      <AlumniPanel s={s} />
+      <AlumniPanel s={s} act={act} />
 
       <section className="panel">
         <h2>Year by Year</h2>

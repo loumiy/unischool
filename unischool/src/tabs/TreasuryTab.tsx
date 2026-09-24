@@ -77,6 +77,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note={`donors and grants, scaling with prestige ${Math.round(s.self.reputation)}`}
               amount={flow.prestigeRevenue}
             />
+            {flow.annualFund > 0 && (
+              <StatementLine
+                label="Annual fund"
+                note={`what ${(s.alumni?.length ?? 0)} graduated class${(s.alumni?.length ?? 0) === 1 ? '' : 'es'} give, by their warmth and years out`}
+                amount={flow.annualFund}
+              />
+            )}
             <StatementLine
               label="Endowment payout"
               note={`a ${(drawRate(s) * 100).toFixed(1)}% draw on ${money(s.finance.endowment)}`}

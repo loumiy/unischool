@@ -1,3 +1,4 @@
+import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
 import { boardHoldsBudget, tickDistress } from '../systems/finance/distress';
@@ -279,6 +280,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'SET_SEAT_POLICY':
       setSeatPolicy(s, action.seatId, action.school, action.policy);
+      return s;
+
+    case 'HOLD_REUNION':
+      holdReunion(s, action.classYear);
       return s;
 
     case 'READ_DEMAND':

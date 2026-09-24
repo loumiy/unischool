@@ -885,6 +885,7 @@ export interface AlumniClass {
   memory: string[];      // clause ids (data/alumniData.ts), loudest first
   warmth: number;        // 0–100, set at commencement
   nudged: number;        // warmth added by reunions, capped
+  reunionYear?: number;  // the year of the last reunion (systems/alumni/giving.ts)
 }
 
 // Where every program lives: hall Buildable id -> its slots, positional so

@@ -4,6 +4,12 @@
 
 import { createInitialState } from '../src/state/actions';
 import { classYears, memoryFor, memoryLine, stampGraduatingClass, warmthFor } from '../src/systems/alumni/ledger';
+import {
+  GIVING_PER_ALUM, REUNION_WARMTH, REUNION_WARMTH_CAP, annualGiving, canReunite, givingOf, maturityOf, reunionCost,
+} from '../src/systems/alumni/giving';
+import { financeBreakdown } from '../src/systems/finance/financeSystem';
+import { reducer } from '../src/engine/reducer';
+import type { AlumniClass } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState, YearSnapshot } from '../src/state/types';
 
@@ -65,6 +71,41 @@ function withYears(rows: YearSnapshot[]): GameState {
   assert(stamped.classYear === 5 && stamped.size === 250 && stamped.warmth > 0 && stamped.warmth <= 100 && stamped.nudged === 0, 'commencement stamps the class');
   stampGraduatingClass(happy, 0, 6);
   assert(happy.alumni!.length === 1, 'a class of nobody is not a class');
+}
+
+// ---- The annual fund ----
+{
+  const cls = (over: Partial<AlumniClass> = {}): AlumniClass => ({ classYear: 5, size: 1000, satisfaction: 70, quality: 50, memory: ['happy'], warmth: 50, nudged: 0, ...over });
+  assert(maturityOf(0) < maturityOf(10) && maturityOf(20) === 1 && maturityOf(40) === 1, 'a class gives more as it comes into its own, then holds');
+  assert(givingOf(cls(), 25) === 1000 * GIVING_PER_ALUM, 'an established, neutral class of a thousand gives the base rate each');
+  assert(givingOf(cls({ warmth: 100 }), 25) === 2 * givingOf(cls(), 25), 'a devoted one twice that');
+  assert(givingOf(cls({ warmth: 0 }), 25) === 0, 'a cold one nothing');
+  const s = createInitialState('Fund');
+  s.clock.year = 30;
+  const before = financeBreakdown(s).totalIncome;
+  s.alumni = [cls(), cls({ classYear: 10 })];
+  assert(Math.abs(financeBreakdown(s).annualFund - annualGiving(s) / 52) < 1e-6 && financeBreakdown(s).totalIncome > before, 'the fund is an income line');
+}
+
+// ---- Reunions ----
+{
+  let s = createInitialState('Reunions');
+  s.pendingInterrupt = null;
+  s.finance.cash = 1e8;
+  s.alumni = [{ classYear: 5, size: 1000, satisfaction: 70, quality: 50, memory: ['happy'], warmth: 50, nudged: 0 }];
+  s.clock.year = 9;
+  assert(!canReunite(s, s.alumni[0]), 'no reunion in an off year');
+  s.clock.year = 10;
+  assert(canReunite(s, s.alumni[0]), 'one at five years');
+  s = reducer(s, { type: 'HOLD_REUNION', classYear: 5 });
+  assert(s.alumni![0].nudged === REUNION_WARMTH && s.finance.cash === 1e8 - reunionCost(s.alumni![0]), 'it costs by the head and warms the class');
+  s = reducer(s, { type: 'HOLD_REUNION', classYear: 5 });
+  assert(s.alumni![0].nudged === REUNION_WARMTH, 'once a reunion year');
+  for (const year of [15, 20, 25, 30]) {
+    s.clock.year = year;
+    s = reducer(s, { type: 'HOLD_REUNION', classYear: 5 });
+  }
+  assert(s.alumni![0].nudged === REUNION_WARMTH_CAP, `and never more than ${REUNION_WARMTH_CAP} in all`);
 }
 
 if (failures === 0) {

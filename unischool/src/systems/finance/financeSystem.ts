@@ -1,3 +1,4 @@
+import { annualGiving } from '../alumni/giving';
 import { seatPayroll } from '../delegation/seats';
 import { upkeepShare } from '../estate/estate';
 import { debtService, drawRate, serviceLoans } from './treasury';
@@ -170,6 +171,7 @@ export interface FinanceBreakdown {
   tuitionRevenue: number;      // every class at its own admission-year price (see annualTuitionBilled)
   prestigeRevenue: number;     // the reputation dividend: donors/grants/brand, independent of enrollment
   endowmentPayout: number;     // the endowment's annual spend rate, sliced into weeks
+  annualFund: number;          // what the alumni give, sliced into weeks (alumni/giving.ts)
   gateRevenue: number;         // gross gate take (systems/athletics/gate.ts). Shown, not summed: it is paid into the department's pot, and only the surplus reaches income
   athleticsSurplus: number;    // the gate beyond what the programs drew, spilled into general income
   totalIncome: number;
@@ -264,6 +266,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const tuitionRevenue = annualTuitionBilled(s) / WEEKS_PER_YEAR;
   const prestigeRevenue = (s.self.reputation * REPUTATION_DIVIDEND_PER_POINT_PER_YEAR) / WEEKS_PER_YEAR;
   const endowmentPayout = (s.finance.endowment * drawRate(s)) / WEEKS_PER_YEAR;
+  const annualFund = annualGiving(s) / WEEKS_PER_YEAR;
   // The gate is paid to the athletics department's pot (subsidy + gate),
   // programs draw from it in list order, and only the leftover gate spills
   // into income. The university pays only the subsidy actually drawn. Do not
@@ -286,8 +289,8 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const debt = debtService(s);
   const administration = seatPayroll(s);
 
-  // Four income lines; there is no state appropriation.
-  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus;
+  // Five income lines; there is no state appropriation.
+  const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus + annualFund;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + academicUpkeep +
     facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + debt + administration;
 
@@ -295,6 +298,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     tuitionRevenue,
     prestigeRevenue,
     endowmentPayout,
+    annualFund,
     gateRevenue,
     athleticsSurplus,
     totalIncome,
