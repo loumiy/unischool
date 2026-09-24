@@ -47,6 +47,13 @@ This document.
   full, so a college that maintains its buildings, like the harness,
   is unmoved.
 
+**As implemented:** a penalty rather than a weighted input, beside the
+existing ones: the whole four points are owed at a mean condition of half.
+The harness does not maintain every building fully. A college in
+austerity has its maintenance cut to nothing by the board (Plan 27), so
+the struggling strategies now lose prestige as their buildings run down.
+See "The harness, re-measured".
+
 ## PR 31C — Six standings
 
 - **Each school in the field is ranked on six axes:** academics,
@@ -55,6 +62,13 @@ This document.
   schools from their profiles.
 - **The History tab gets the league table:** the six ranks, this year and
   charted over the run.
+
+**As implemented:** access and financial strength are read, not stored.
+Access is the admit rate and the price against what the name could
+charge; financial strength is endowment per student. A rival's two are
+read off its reputation, with a fixed tilt from its id, since the field
+has no budgets. Each year's six ranks ride on its history row
+(`YearSnapshot.standings`). The annual report names the two new axes.
 
 ## PR 31D — Identity tags
 
@@ -66,6 +80,16 @@ This document.
 - **The cohorts, clubs and Greek life feed them** (V1-14, V1-17, V1-18).
 - **Shown** on the Students tab and in the summer's admissions.
 
+**As implemented:**
+- **v2's yield becomes a pool lever:** this game's summer has no yield
+  step.
+- **The commuter tag:** it reads a college with far fewer beds than a
+  third of its students, since most students here commute by design.
+- **The teeth:** giving, attrition, services cost, athletic strength,
+  beauty, the satisfaction target and the pool.
+- **Where it shows:** the Students tab's identity panel, and the
+  year-over-year reading in the summer, which names the tags.
+
 ## PR 31E — One rival
 
 - **The rival:** the school just above the college in the field when its
@@ -73,7 +97,37 @@ This document.
 - **Passing it, or being passed by it,** is announced as the elite-band
   passing already is.
 
+**As implemented:** the rival is the college's rival in its main sport
+(the head of the athletics priority list), so the rivalry on the field
+and in the rankings are one story. Passing and being passed are logged at
+the summer. They are not a modal, since the trustees' response to the
+elite band is already one. The History tab's standings name the rival,
+with the series record.
+
 ## PR 31F — The schedule climbs
 
 - **The athletics schedule's strength rises with the college's prestige,**
   so a winning record is harder to keep as the college rises.
+
+**As implemented:** a season's opponents come from a few places around
+the college on the sport's own table. When the college ranks higher
+academically than its team, that neighbourhood is pulled a third of the
+way up.
+
+## The harness, re-measured
+
+- **Three things move the harness:** the condition penalty, the tags'
+  teeth and the climbing schedule. The endpoint and regression suites
+  pass unchanged. The reference bands are re-recorded.
+- **The Overbuilder slides further.** Most of the slide is the condition
+  penalty: in austerity the board cuts maintenance, and the campus's name
+  follows its buildings. At the default seed its year-35 prestige is 15,
+  or 19 without the penalty. Two hand-written bands move, each with a
+  note:
+  - year 35's rank ceiling, from 90 to 95 (rank 93 at seed 4242);
+  - year 50's prestige floor, from 25 to 20 (24 at seed 777).
+
+  It is still judged across seeds, and both other seeds are now inside
+  every band.
+- **The Balanced builder and the idle college are unmoved** inside their
+  bands.
