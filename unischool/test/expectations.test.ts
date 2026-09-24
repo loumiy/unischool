@@ -4,7 +4,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import {
-  DIMINISHING_ABOVE, computeSatisfactionBreakdown, diminished, expectation, satisfactionTarget,
+  DIMINISHING_ABOVE, attributeDetail, computeSatisfactionBreakdown, diminished, expectation, satisfactionTarget,
 } from '../src/systems/satisfaction/satisfactionSystem';
 import { bindScriptStream } from '../src/engine/random';
 
@@ -36,7 +36,13 @@ console.log('expectations tests');
   s.self.reputation = 150;
   const grand = computeSatisfactionBreakdown(s);
   assert(grand.housing <= plain.housing && grand.academic <= plain.academic, 'the same campus satisfies less under a grander name');
-  assert(grand.basicNeeds === plain.basicNeeds && grand.health === plain.health, 'food and care are needs, and do not rise');
+  s.self.reputation = 50;
+  const needs50 = [attributeDetail(s, 'basicNeeds').neededForFullScore, attributeDetail(s, 'health').neededForFullScore];
+  const books50 = attributeDetail(s, 'academic').neededForFullScore;
+  s.self.reputation = 150;
+  const needs150 = [attributeDetail(s, 'basicNeeds').neededForFullScore, attributeDetail(s, 'health').neededForFullScore];
+  assert(needs150[0] === needs50[0] && needs150[1] === needs50[1], 'food and care are needs, and ask no more');
+  assert(attributeDetail(s, 'academic').neededForFullScore > books50, 'the library is asked for more');
   assert(satisfactionTarget(s) <= 90, 'the headline target never passes 90');
 }
 
