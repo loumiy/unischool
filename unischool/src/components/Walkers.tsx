@@ -46,8 +46,10 @@ function rng(seed: number): () => number {
 interface Walker {
   el: SVGGElement;     // the outermost group: what is appended and removed
   mover: SVGGElement;  // carries the walk's transform
-  clip: SVGGElement;   // the group a building's outline is hung on
-  clipId: string | null;
+  // Nested groups, outermost first, each able to carry one building's
+  // outline: a figure behind two buildings is cut by both (Plan 42).
+  clips: SVGGElement[];
+  clipIds: (string | null)[];
   route: Waypoint[];
   lengths: number[];   // cumulative, in tiles
   u: number;           // distance along the route
@@ -56,7 +58,7 @@ interface Walker {
   waitUntil: number;
 }
 
-interface Silhouette {
+export interface Silhouette {
   col: number; row: number; w: number; h: number;
   minX: number; maxX: number; minY: number; maxY: number;
   hull: Pt[];
@@ -82,22 +84,25 @@ function silhouettes(layout: CampusLayout): Silhouette[] {
   const out: Silhouette[] = [];
   for (const { t, p, developing } of layout.placed) {
     if (motifOf(t) === 'grounds') continue;
-    const height = drawnHeightOf(t, developing, layout.vernacular);
-    const f = boxFaces(p.col, p.row, p.w, p.h, 0, height);
-    const pts = [...f.top, ...boxFaces(p.col, p.row, p.w, p.h, 0, 0).top];
-    out.push({
-      col: p.col, row: p.row, w: p.w, h: p.h,
-      minX: Math.min(...pts.map((q) => q.x)), maxX: Math.max(...pts.map((q) => q.x)),
-      minY: Math.min(...pts.map((q) => q.y)), maxY: Math.max(...pts.map((q) => q.y)),
-      hull: hullOf(pts),
-    });
+    out.push(silhouetteOf(p.col, p.row, p.w, p.h, drawnHeightOf(t, developing, layout.vernacular)));
   }
   return out;
 }
 
+// A box's outline on screen at the current camera.
+export function silhouetteOf(col: number, row: number, w: number, h: number, height: number): Silhouette {
+  const pts = [...boxFaces(col, row, w, h, 0, height).top, ...boxFaces(col, row, w, h, 0, 0).top];
+  return {
+    col, row, w, h,
+    minX: Math.min(...pts.map((q) => q.x)), maxX: Math.max(...pts.map((q) => q.x)),
+    minY: Math.min(...pts.map((q) => q.y)), maxY: Math.max(...pts.map((q) => q.y)),
+    hull: hullOf(pts),
+  };
+}
+
 // Is the building nearer the camera than a walker at this point? The
 // relation depthSort.ts paints by, for a point rather than a box.
-function nearerThanWalker(s: Silhouette, wc: number, wr: number, sinA: number, cosA: number): boolean {
+export function nearerThanWalker(s: Silhouette, wc: number, wr: number, sinA: number, cosA: number): boolean {
   if (s.col >= wc) return sinA > 0;
   if (wc >= s.col + s.w) return sinA < 0;
   if (s.row >= wr) return cosA > 0;
@@ -106,8 +111,54 @@ function nearerThanWalker(s: Silhouette, wc: number, wr: number, sinA: number, c
 }
 
 const CLIP_FIELD = 1e5;
-const WALKER_REACH = 20;
 const clipName = (i: number) => `walker-behind-${i}`;
+
+// A standing figure's extent about its foot, in screen units at the
+// opening view (shapeWalker): wide enough for its shadow, tall enough for
+// its head.
+const FIGURE_HALF_W = 5;
+const FIGURE_H = 16;
+export const MAX_CLIPS = 3;
+
+function insideHull(h: Pt[], x: number, y: number): boolean {
+  let pos = 0;
+  let neg = 0;
+  for (let i = 0; i < h.length; i++) {
+    const a = h[i];
+    const b = h[(i + 1) % h.length];
+    const c = (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x);
+    if (c > 0) pos++;
+    else if (c < 0) neg++;
+    if (pos > 0 && neg > 0) return false;
+  }
+  return true;
+}
+
+// The buildings that hide some of a figure standing at `pos` (grid) whose
+// foot is at `p` (screen): nearer the camera, and with an outline over the
+// figure. Plan 42: this was the first nearer building whose box came within
+// twenty units, which could name one that covered nothing and leave the one
+// that did unapplied, so the walker was drawn over it.
+export function coveringBuildings(shapes: readonly Silhouette[], p: Pt, pos: { col: number; row: number }, sinA: number, cosA: number, figureH = FIGURE_H): number[] {
+  const out: number[] = [];
+  const top = p.y - figureH;
+  for (let i = 0; i < shapes.length && out.length < MAX_CLIPS; i++) {
+    const s = shapes[i];
+    if (p.x + FIGURE_HALF_W < s.minX || p.x - FIGURE_HALF_W > s.maxX) continue;
+    if (p.y < s.minY || top > s.maxY) continue;
+    if (!nearerThanWalker(s, pos.col, pos.row, sinA, cosA)) continue;
+    // Some of the figure inside the outline: its foot, waist, head or
+    // shoulders, or a corner of the outline inside the figure's box.
+    const probes: [number, number][] = [
+      [p.x, p.y], [p.x, p.y - figureH * 0.5], [p.x, top],
+      [p.x - FIGURE_HALF_W, p.y - figureH * 0.6], [p.x + FIGURE_HALF_W, p.y - figureH * 0.6],
+    ];
+    const covers = probes.some(([x, y]) => insideHull(s.hull, x, y))
+      || s.hull.some((q) => q.x >= p.x - FIGURE_HALF_W && q.x <= p.x + FIGURE_HALF_W && q.y >= top && q.y <= p.y);
+    if (covers) out.push(i);
+  }
+  return out;
+}
 
 // One clipPath per building: the whole field with its outline punched out.
 function writeClips(layer: SVGGElement, shapes: Silhouette[]): void {
@@ -132,8 +183,13 @@ function writeClips(layer: SVGGElement, shapes: Silhouette[]): void {
 
 // A figure stands up, so it answers the tilt like the trees do: squatter and
 // broader as the camera looks down, never less than a fifth of its height.
+// How tall a figure stands at this tilt, as a share of its opening height.
+function figureScale(): number {
+  return 0.22 + 0.78 * Math.max(0, Math.min(1, heightScale()));
+}
+
 function shapeWalker(g: SVGGElement): void {
-  const s = 0.22 + 0.78 * Math.max(0, Math.min(1, heightScale()));
+  const s = figureScale();
   const half = 3.1 * (1 + (1 - s) * 0.55);
   const n = (v: number) => v.toFixed(2);
   g.querySelector('.walker-body')?.setAttribute('d', `M${n(-half)},0 L${n(-half)},${n(-8.5 * s)} Q0,${n(-11 * s)} ${n(half)},${n(-8.5 * s)} L${n(half)},0 Z`);
@@ -142,7 +198,7 @@ function shapeWalker(g: SVGGElement): void {
   head?.setAttribute('r', n(3 * (1 + (1 - s) * 0.18)));
 }
 
-function makeWalker(shirt: string): { el: SVGGElement; mover: SVGGElement; clip: SVGGElement } {
+function makeWalker(shirt: string): { el: SVGGElement; mover: SVGGElement; clips: SVGGElement[] } {
   const g = document.createElementNS(SVG_NS, 'g');
   g.setAttribute('class', 'walker');
   const shadow = document.createElementNS(SVG_NS, 'ellipse');
@@ -156,10 +212,12 @@ function makeWalker(shirt: string): { el: SVGGElement; mover: SVGGElement; clip:
   head.setAttribute('class', 'walker-head');
   g.append(shadow, body, head);
   shapeWalker(g);
-  // The clip is outermost: a clip in user space must not move with the figure.
-  const clip = document.createElementNS(SVG_NS, 'g');
-  clip.append(g);
-  return { el: clip, mover: g, clip };
+  // The clips are outside the figure: a clip in user space must not move
+  // with it.
+  const clips = Array.from({ length: MAX_CLIPS }, () => document.createElementNS(SVG_NS, 'g'));
+  for (let i = 0; i < MAX_CLIPS - 1; i++) clips[i].append(clips[i + 1]);
+  clips[MAX_CLIPS - 1].append(g);
+  return { el: clips[0], mover: g, clips };
 }
 
 function measure(route: Waypoint[]): number[] {
@@ -180,15 +238,12 @@ function along(route: Waypoint[], lengths: number[], u: number): Waypoint {
   return { col: a.col + (b.col - a.col) * t, row: a.row + (b.row - a.row) * t };
 }
 
-export default function Walkers({ layout, students, gait, camera, turning = false }: {
+export default function Walkers({ layout, students, gait, camera }: {
   layout: CampusLayout;
   students: number;
   // The clock's pace as a multiple of Play; 0 while paused.
   gait: number;
   camera: Camera;
-  // A quarter turn in flight (CampusMap.tsx): the walkers keep walking, and
-  // go unclipped until the view comes to rest (Plan 37).
-  turning?: boolean;
 }) {
   const layerRef = useRef<SVGGElement>(null);
   const walkersRef = useRef<Walker[]>([]);
@@ -207,6 +262,7 @@ export default function Walkers({ layout, students, gait, camera, turning = fals
   // re-plan its way.
   const shapesRef = useRef<ReturnType<typeof silhouettes>>([]);
   const axRef = useRef(cameraAxes());
+  const figureRef = useRef(figureScale());
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -257,7 +313,7 @@ export default function Walkers({ layout, students, gait, camera, turning = fals
       layer.append(made.el);
       const start = pickStop(null) ?? edges[0];
       walkers.push({
-        ...made, clipId: null, route: [start], lengths: [0], u: 0,
+        ...made, clipIds: made.clips.map(() => null), route: [start], lengths: [0], u: 0,
         from: start, at: start, waitUntil: performance.now() + random() * 1500,
       });
     }
@@ -288,22 +344,15 @@ export default function Walkers({ layout, students, gait, camera, turning = fals
         const pos = along(w.route, w.lengths, w.u);
         const p = project(pos.col, pos.row);
         w.mover.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`);
-        // The first building between this walker and the camera cuts it.
-        const shapes = shapesRef.current;
+        // Every building between this walker and the camera cuts it.
         const ax = axRef.current;
-        let id: string | null = null;
-        for (let i = 0; i < shapes.length; i++) {
-          const s = shapes[i];
-          if (p.x < s.minX - WALKER_REACH || p.x > s.maxX + WALKER_REACH) continue;
-          if (p.y < s.minY - WALKER_REACH || p.y > s.maxY + WALKER_REACH) continue;
-          if (!nearerThanWalker(s, pos.col, pos.row, ax.sinA, ax.cosA)) continue;
-          id = `url(#${clipName(i)})`;
-          break;
-        }
-        if (w.clipId !== id) {
-          if (id) w.clip.setAttribute('clip-path', id);
-          else w.clip.removeAttribute('clip-path');
-          w.clipId = id;
+        const cover = coveringBuildings(shapesRef.current, p, pos, ax.sinA, ax.cosA, FIGURE_H * figureRef.current);
+        for (let k = 0; k < MAX_CLIPS; k++) {
+          const id = k < cover.length ? `url(#${clipName(cover[k])})` : null;
+          if (w.clipIds[k] === id) continue;
+          if (id) w.clips[k].setAttribute('clip-path', id);
+          else w.clips[k].removeAttribute('clip-path');
+          w.clipIds[k] = id;
         }
       }
       frame = requestAnimationFrame(step);
@@ -314,17 +363,18 @@ export default function Walkers({ layout, students, gait, camera, turning = fals
   }, [layout, want]);
 
   // The camera's part: each walker's figure answers the tilt, and the
-  // outlines that clip them are rebuilt for the view. Mid-turn the outlines
-  // are dropped, since rebuilding them every frame costs more than a quarter
-  // second of unclipped walkers is worth; they come back as the view rests.
+  // outlines that clip them are rebuilt for the view, through a turn too
+  // (Plan 42: Plan 37 dropped them mid-turn, and a turn's walkers were drawn
+  // over the buildings in front of them).
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     for (const w of walkersRef.current) shapeWalker(w.mover);
     axRef.current = cameraAxes();
-    shapesRef.current = turning ? [] : silhouettes(layout);
+    figureRef.current = figureScale();
+    shapesRef.current = silhouettes(layout);
     writeClips(layer, shapesRef.current);
-  }, [layout, camera, turning, want]);
+  }, [layout, camera, want]);
 
   return <g ref={layerRef} className="campus-walkers" aria-hidden="true" />;
 }

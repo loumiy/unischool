@@ -843,7 +843,6 @@ export default function CampusMap({
   // target, which is v2's jump. Reduced motion keeps the snap.
   const turnRef = useRef<{ at: number; to: number; raf: number; anchor: { col: number; row: number; rect?: DOMRect } } | null>(null);
   const anchorRef = useRef<{ col: number; row: number; rect?: DOMRect } | null>(null);
-  const [turning, setTurning] = useState(false);
   function groundUnderCentre() {
     const rect = svgRef.current?.getBoundingClientRect();
     const v = viewRef.current;
@@ -869,7 +868,6 @@ export default function CampusMap({
     cancelAnimationFrame(live.raf);
     turnRef.current = null;
     anchorRef.current = null;
-    setTurning(false);
   }
   function turnBy(steps: number) {
     const st = stanceRef.current;
@@ -888,14 +886,12 @@ export default function CampusMap({
     const start = performance.now();
     const turn = { at: from, to, raf: 0, anchor };
     turnRef.current = turn;
-    setTurning(true);
     const frame = (now: number) => {
       const t = (now - start) / TURN_MS;
       turn.at = t >= 1 ? VIEWS[st.view] : turnStep(from, to, t);
       anchorRef.current = anchor;
       if (t >= 1) {
         turnRef.current = null;
-        setTurning(false);
       } else {
         turn.raf = requestAnimationFrame(frame);
       }
@@ -1378,7 +1374,7 @@ export default function CampusMap({
             </ColorsContext.Provider>
             </BannerContext.Provider>
             </CrowdContext.Provider>
-            <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} />
+            <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
           </g>
