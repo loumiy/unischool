@@ -64,17 +64,21 @@ Everything that needs to stop time rides on this one mechanism:
   than fired on the spot, so a milestone landing on the admissions or report
   week is delayed to the next quiet week instead of being dropped, and a burst
   of simultaneous completions folds into a single modal.
-- **Decision-interrupt events** — the donor offers, faculty departures and
-  facility failures that give the quiet weeks between milestones their texture.
-  Authored as data (`src/data/eventData.ts`: trigger conditions, prompts,
-  choices, effects) and fired by one ordinary tick function
-  (`src/systems/events/eventSystem.ts`) on a weighted random draw across
-  whatever the current game state makes eligible. Their effects route through
-  hooks that already exist — cash and endowment, the satisfaction stock, the
-  faculty roster and hiring pool — and never write prestige directly, because
-  prestige is a stock (see [progression.md](../design/progression.md)). Every
-  event is guaranteed to offer at least
-  one zero-cost choice, so no event can strand a school that has no money.
+- **Decision-interrupt events** — since Plan 32, only the questions that
+  belong to a system: naming rights, Greek life, the athletic director's
+  asks and the rival's passing (below). Authored as data
+  (`src/data/eventData.ts`) and fired by `src/systems/events/eventSystem.ts`
+  on a weighted draw across whatever the state makes eligible. Their effects
+  route through hooks that already exist and never write prestige directly.
+  Every event offers at least one zero-cost choice. The texture they used
+  to carry (donors, departures, failures) is the catalogue's, next.
+- **The board's letters** (`catalogue-letter`, Plan 32) — the catalogue's
+  rare seismic events (`src/data/eventCatalogue.ts`), drawn by
+  `src/systems/events/catalogueEngine.ts` on a week nothing else claimed,
+  keeping the decision events' global quiet stretch and a year apart from
+  each other. The catalogue's inline events never stop the clock: they
+  wait in the event panel over the map (`EventPanel.tsx`) and take their
+  default when their weeks run out, or a seat answers them by policy.
 - **A research prize** — the one research output momentous enough to stop the
   clock, awarded when an initiative concludes (see
   [research.md](../design/research.md)).
