@@ -1,6 +1,6 @@
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, Coach, DressingKind, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -45,7 +45,7 @@ export function foundingCourseIds(): string[] {
 export const STARTING_INSTITUTION_SUFFIX = 'College';
 
 // The map's campus tools; the right button applies the armed tool's opposite.
-export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'quad';
+export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'quad' | 'lamp' | 'bench';
 
 // All the ways a player can change the world. The reducer is the only thing
 // that interprets these; UI dispatches them, systems never do.
@@ -90,6 +90,9 @@ export type Action =
   // Quads (state/quads.ts): mark the open space under a tile as one, lift the
   // marks inside one, or name one (an empty name gives it back its own).
   | { type: 'MARK_QUAD'; tile: TileCoord }
+  // A lamp or a bench beside a path, or lifted (components/dressing.tsx).
+  | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind }
+  | { type: 'REMOVE_DRESSING'; tile: TileCoord }
   | { type: 'UNMARK_QUAD'; key: string }
   | { type: 'NAME_QUAD'; key: string; name: string }
   // Converts cash into endowment at a prestige-scaled match; repeatable at a

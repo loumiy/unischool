@@ -13,6 +13,7 @@ import { detectQuads, tileIndex, type Quad } from '../state/quads';
 import { QuadOverlay, QuadPatches } from './quadLayer';
 import QuadPanel from './QuadPanel';
 import Walkers from './Walkers';
+import { dressingProps } from './dressing';
 import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { isTypingTarget, useHotkeys } from './hotkeys';
@@ -158,6 +159,8 @@ function otherPathTool(tool: CampusTool): CampusTool {
     case 'plant': return 'fell';
     case 'fell': return 'plant';
     case 'quad': return 'quad';
+    case 'lamp': return 'lamp';
+    case 'bench': return 'bench';
   }
 }
 
@@ -472,6 +475,8 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
         entries.push({ kind: 'mass', key: `b-${t.id}`, id: t.id, col: p.col, row: p.row, w: p.w, h: p.h });
       }
     }
+    // Lamps, benches and bike racks (dressing.tsx).
+    for (const prop of dressingProps(layout)) entries.push({ kind: 'prop', ...prop });
     // A paved tree is hidden, not deleted, so lifting the path brings it
     // back (see state/types.ts's Trees block).
     for (const [key, seed] of Object.entries(trees)) {
@@ -483,7 +488,7 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
     return depthOrder(entries);
     // The camera changes the order and the props' geometry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placed, trees, pathways, camera]);
+  }, [layout, camera]);
 
   const ground = useMemo(groundGeometry, [camera]);
 
@@ -1012,6 +1017,12 @@ export default function CampusMap({
       if (tile) act({ type: 'MARK_QUAD', tile });
       return;
     }
+    // Lamps and benches: one a click, the right button lifts.
+    if ((pathTool === 'lamp' || pathTool === 'bench') && (e.button === 0 || e.button === 2)) {
+      const tile = tileFromEvent(e);
+      if (tile) act(e.button === 0 ? { type: 'PLACE_DRESSING', tile, kind: pathTool } : { type: 'REMOVE_DRESSING', tile });
+      return;
+    }
     if (pathTool && (e.button === 0 || e.button === 2)) {
       const tool = e.button === 0 ? pathTool : otherPathTool(pathTool);
       const tile = tileFromEvent(e);
@@ -1159,7 +1170,8 @@ export default function CampusMap({
         : tool === 'erase' ? { type: 'REMOVE_PATH_TILE', tile }
           : tool === 'plant' ? { type: 'PLANT_TREE', tile }
             : tool === 'fell' ? { type: 'FELL_TREE', tile }
-              : { type: 'MARK_QUAD', tile },
+              : tool === 'quad' ? { type: 'MARK_QUAD', tile }
+                : { type: 'PLACE_DRESSING', tile, kind: tool },
     );
   };
 

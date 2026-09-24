@@ -640,7 +640,7 @@ button.build-tile { font-family: inherit; }
 .campus-path-ghost.erase { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 .campus-path-ghost.plant { stroke: #3f6b2a; fill: rgba(63, 107, 42, 0.28); }
 .campus-path-ghost.fell { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
-.campus-path-ghost.quad { stroke: var(--gold); fill: rgba(201, 162, 39, 0.2); }
+.campus-path-ghost.quad, .campus-path-ghost.lamp, .campus-path-ghost.bench { stroke: var(--gold); fill: rgba(201, 162, 39, 0.2); }
 
 /* Quads (state/quads.ts, quadLayer.tsx): a tint on the ground, an outline on
    the one under the pointer or open in its card, and its name on the ground. */
@@ -649,6 +649,14 @@ button.build-tile { font-family: inherit; }
 .campus-walkers { pointer-events: none; }
 .walker-shadow { fill: rgba(0, 0, 0, 0.2); }
 .walker-head { fill: #e9c9a6; }
+/* Lamps, benches and bike racks (dressing.tsx). */
+.campus-lamp-foot { fill: rgba(0, 0, 0, 0.2); }
+.campus-lamp-post { stroke: #3a3a38; stroke-width: 1.6; }
+.campus-lamp-head { fill: #f5e3a3; stroke: #3a3a38; stroke-width: 1; }
+.campus-bench-leg { stroke: #4a3a2a; stroke-width: 1.2; }
+.campus-bench-seat { stroke: #8a5f3a; stroke-width: 3; stroke-linecap: round; }
+.campus-bench-back { stroke: #7a522f; stroke-width: 2; stroke-linecap: round; }
+.campus-rack-hoop { stroke: #5c6166; stroke-width: 1.4; stroke-linecap: round; }
 .campus-desire { fill: none; stroke: rgba(176, 160, 104, 0.38); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .campus-quad.designated { fill: rgba(255, 244, 196, 0.14); }
 .campus-quad-outline { fill: rgba(255, 244, 196, 0.12); stroke: rgba(255, 246, 220, 0.85); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }

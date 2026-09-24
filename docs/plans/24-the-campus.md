@@ -267,6 +267,22 @@ This is the baseline every later PR in this plan is measured against.
   beauty in Phase E, and are drawn in the static layer.
 - **Bike racks appear beside academic halls and dorms** as the college grows.
 
+**As implemented:**
+
+- **Lamps and benches are free, like paths and trees,** not cheap. A price
+  would make the map something the finances read, and the map stays
+  cosmetic until Phase E gives these a worth. Each has its own tool in the
+  build popup, one a click, with the right button lifting. They stand on
+  the land, off the buildings, on or beside a path (`PLACE_DRESSING`), and
+  are kept in an optional `GameState.dressing`, sanitised on load.
+- **They are props in the depth-sorted scene** (`components/dressing.tsx`),
+  so a lamp stands in front of one hall and behind another. A bench faces
+  along the path beside it.
+- **Bike racks** stand by the front door of every finished dorm and academic
+  hall once enrolment reaches 2,000. The layout key carries that flag, so
+  they appear the week it is crossed and never redraw the scene otherwise.
+- **Profile, Year 40:** 55.9 fps at 4×.
+
 ## PR 24I — Colour and crowds
 
 - **The college's flag** flies over Founders Hall.

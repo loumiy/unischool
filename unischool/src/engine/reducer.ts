@@ -249,6 +249,21 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
+    case 'PLACE_DRESSING': {
+      // On the land, off the buildings, and on or beside a path.
+      const { row, col } = action.tile;
+      if (!isLand(row, col) || occupantAt(s.placements, row, col) !== undefined) return s;
+      const nearPath = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => `${row + dr},${col + dc}` in s.pathways);
+      if (!nearPath) return s;
+      s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: action.kind };
+      return s;
+    }
+
+    case 'REMOVE_DRESSING': {
+      if (s.dressing) delete s.dressing[pathTileKey(action.tile)];
+      return s;
+    }
+
     case 'MARK_QUAD': {
       const { row, col } = action.tile;
       if (designationRefusal(s, row, col) !== null) return s;

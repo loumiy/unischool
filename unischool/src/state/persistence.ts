@@ -152,6 +152,22 @@ function sanitizeTrees(state: GameState): void {
   state.trees = clean;
 }
 
+// Dressing hygiene, run on every load: lamps and benches on the land, off
+// the buildings; anything else is dropped.
+function sanitizeDressing(state: GameState): void {
+  const raw = state.dressing as unknown;
+  if (raw === undefined) return;
+  if (typeof raw !== 'object' || raw === null) { delete state.dressing; return; }
+  const clean: Record<string, 'lamp' | 'bench'> = {};
+  for (const [key, kind] of Object.entries(raw)) {
+    const t = parsePathTileKey(key);
+    if (!t || !isLand(t.row, t.col) || (kind !== 'lamp' && kind !== 'bench')) continue;
+    if (Object.values(state.placements).some((p) => t.row >= p.row && t.row < p.row + p.h && t.col >= p.col && t.col < p.col + p.w)) continue;
+    clean[pathTileKey(t)] = kind;
+  }
+  state.dressing = clean;
+}
+
 // Quad hygiene, run on every load: the field is optional, and a malformed
 // one is dropped rather than half-read. Names are capped as NAME_QUAD caps
 // them; marks must be tile keys on the land.
@@ -382,6 +398,7 @@ export function loadGame(): GameState | null {
   // Trees after placements: it reads the cleaned placements.
   sanitizeTrees(state);
   sanitizeQuads(state);
+  sanitizeDressing(state);
   sanitizeTeams(state);
   sanitizeChapters(state);
   sanitizeSeen(state);
