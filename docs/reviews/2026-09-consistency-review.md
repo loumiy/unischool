@@ -193,6 +193,23 @@ The projection, hit-testing, depth sort and memoisation are right in every view.
 
 ## Open questions
 
+**The owner's answers (September 25):**
+- Q1–Q10: yes.
+- Q11: keep it for development, and remove it before publishing.
+- Q12: yes, except the capital projects that repeat buildings, which get
+  their own look later.
+- Q13, Q14 and Q16: yes.
+- Q15: fix the walkers, not the doors.
+  - Every side of a building has a door in principle; the drawing shows
+    the two sides in view.
+  - Walkers use any door whose side is not blocked by an adjacent
+    building.
+  - Better walking, and doors that open.
+- Spelling: American, always.
+
+The answers are carried out in Plans [46](../plans/46-the-owners-answers.md)
+(Q1–Q10 and Q12), 47 (Q13 and Q14), 48 (Q15) and 49 (Q16).
+
 Each is a design call. Each has a recommendation; none has been acted on.
 
 <a id="q1"></a>**Q1. In-place work reuses `'developing'`.** A library floor or venue expansion flips the building to `'developing'` with `renovatingFrom` set. Satisfaction, venue seats and team status now treat it as standing (`standsOnCampus`). Prestige's library adequacy, upkeep, a building's prestige contribution, historic status and beauty still drop it for the weeks of the work, and it re-logs as newly "Developed". *Recommend:* route those readers through `standsOnCampus` too (small, mechanical), and log a renovation's end as a renovation. A separate `renovatingUntil` field is cleaner but touches the save.
