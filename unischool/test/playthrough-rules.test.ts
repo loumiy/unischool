@@ -132,7 +132,8 @@ function orphanEnglish(s: GameState): void {
   s.events.opening.read = OPENING_LETTERS.filter((l) => !l.id.startsWith('the-')).map((l) => l.id);
   const lab = s.tech.find((t) => t.facilityType === 'lab')!;
   lab.status = 'done';
-  assert(fireOpeningLetter(s) && (s.pendingInterrupt?.payload as { id: string }).id === 'the-laboratories', 'the first lab brings "The laboratories"');
+  const fired = fireOpeningLetter(s) ? (s.pendingInterrupt?.payload as { id: string } | undefined)?.id : undefined;
+  assert(fired === 'the-laboratories', `the first lab brings "The laboratories" (${fired})`);
   s.pendingInterrupt = null;
   const letter = OPENING_LETTERS.find((l) => l.id === 'the-laboratories')!;
   assert(letter.ask(s).intent?.kind === 'research', `it asks for research in ${lab.name} (${letter.ask(s).text})`);
