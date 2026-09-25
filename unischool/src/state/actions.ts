@@ -5,7 +5,7 @@ import type {
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
-import { WEEKS_PER_YEAR } from './types';
+import { WEEKS_PER_YEAR, bareSchoolName } from './types';
 import { centredPlacement, footprintOf, isPlaceableKind } from './campusMap';
 import { initialTech, FOUNDERS_HALL_REPUTATION_BONUS, FOUNDERS_HALL_ID, ACADEMIC_HALL_SLOTS, programById } from '../data/techData';
 import { unlockAvailable } from '../systems/techtree/techSystem';
@@ -406,7 +406,7 @@ function foundState(
     trees: seedTrees(foundingPlacements),
     rivals: initialRivals(),
     self: {
-      name,
+      name: bareSchoolName(name),
       suffix: STARTING_INSTITUTION_SUFFIX,
       universityCharterOffered: false,
       mascot: '',

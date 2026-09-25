@@ -5,6 +5,7 @@ import { FOUNDING_VERNACULAR } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
 import type { SchoolColors, Vernacular } from '../state/types';
+import { bareSchoolName } from '../state/types';
 
 // Shown once, before play begins: name the school, and choose its
 // architecture and colours. Every other founding condition comes from
@@ -81,9 +82,8 @@ function HungBanner({ x, y, colors }: { x: number; y: number; colors: SchoolColo
 // `suffix`: what the school became (the hall of fame's portraits); a new
 // school is a college.
 export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTITUTION_SUFFIX }: { name: string; vernacular: Vernacular; colors: SchoolColors; suffix?: string }) {
-  const bannerText = name.trim()
-    ? `${name.trim().toUpperCase()} ${suffix.toUpperCase()}`
-    : suffix.toUpperCase();
+  const bare = bareSchoolName(name);
+  const bannerText = bare ? `${bare.toUpperCase()} ${suffix.toUpperCase()}` : suffix.toUpperCase();
   const fontSize = bannerFontSize(bannerText.length);
   const compress = bannerText.length * fontSize * AVG_GLYPH_WIDTH_EM > FACADE_TEXT_WIDTH;
 
@@ -389,7 +389,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         <div className="startup-color-name">{choice.name}</div>
         <button
           className="startup-begin-btn"
-          disabled={name.trim().length === 0}
+          disabled={bareSchoolName(name).length === 0}
           onClick={() => onStart(name.trim(), vernacular, colors)}
         >
           Open the Doors

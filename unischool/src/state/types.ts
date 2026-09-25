@@ -871,6 +871,15 @@ export interface ReportCard {
   after: number;                   // prestige after the step
 }
 
+// The half of the name the player writes: a trailing "College" or
+// "University" typed into it is dropped, since the game supplies the suffix
+// and later changes it (the University charter). Without this, "Blackmoor
+// University" founded as "Blackmoor University College" and chartered as
+// "Blackmoor University University".
+export function bareSchoolName(typed: string): string {
+  return typed.trim().replace(/(\s+(college|university))+$/i, '').trim();
+}
+
 // The full display name; handles an empty suffix without a stray space.
 export function institutionName(u: University): string {
   return u.suffix ? `${u.name} ${u.suffix}` : u.name;
