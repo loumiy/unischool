@@ -53,3 +53,8 @@ darkens its program.
   three beats long.
 - The guided player's report now records when the last school settles in
   Founders Hall, in place of "Founders Hall empty".
+- `balance-regression`'s economy-shape claims are reported, not failed
+  (`ECONOMY_REPORT_ONLY`), per the owner's rule that balance numbers do not
+  gate. The one that moved: the old harness's Earnest completionist, whose
+  mid-game dip now runs from year 19 to 25 instead of 17 to 19; it
+  recovers, and every hard check (stall, don't die) still gates.

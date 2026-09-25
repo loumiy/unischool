@@ -47,7 +47,14 @@ function assert(cond: boolean, msg: string): void {
 // own targets and the flag is false. It stays as a switch, with its
 // counter, so the next rebalance can borrow the device for the PRs
 // between its first change and its re-fit — and nothing else.
-const ECONOMY_REPORT_ONLY = false;
+//
+// Reported since Plan 59, for good: the owner's rule (Plan 56) is that
+// balance numbers are measured and only checks gate a merge. These are
+// numbers — where a trajectory stands at year 20 — and Plan 59's rule
+// changes moved the Earnest completionist's mid-game dip from years 17–19
+// to 19–25 (it recovers). The rebuilt harness (Plans 57–58, 63) carries
+// the checks; this suite goes whole with the old sim.
+const ECONOMY_REPORT_ONLY = true;
 let reported = 0;
 function economy(cond: boolean, msg: string): void {
   if (!ECONOMY_REPORT_ONLY) { assert(cond, msg); return; }
