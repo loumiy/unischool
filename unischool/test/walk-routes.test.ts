@@ -1,10 +1,11 @@
 // The walkers' routes and the crowd's size (src/components/walkRoutes.ts,
 // Walkers.tsx's walkerCount): routes go round buildings, prefer paving, and
-// wear desire lines only into lawn; the crowd grows slower than the student
-// body and stops at its cap.
+// wear desire lines only into lawn; every wall has a door unless it is built
+// against, and a walk leaves and enters by the doors that suit it; the crowd
+// grows slower than the student body and stops at its cap.
 
-import { doors, desireLines, growTree, routeTo, walkGrid, RouteTable, LAWN_COST, PATH_COST } from '../src/components/walkRoutes';
-import { MAX_WALKERS, walkerCount } from '../src/components/Walkers';
+import { doors, desireLines, entrancesOf, growTree, routeTo, walkGrid, RouteTable, LAWN_COST, PATH_COST } from '../src/components/walkRoutes';
+import { MAX_WALKERS, doorOpacity, doorsHeld, walkerCount } from '../src/components/Walkers';
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
@@ -77,14 +78,82 @@ function stand(s: GameState, id: string, row: number, col: number, w: number, h:
   stand(s, 'DINING-01', 30, 50, 3, 3);
   const grid = walkGrid(s);
   const ds = doors(s, grid);
-  assert(ds.length === 2, 'each finished building has a door');
+  assert(ds.length === 2, 'each finished building is somewhere to go');
   assert(ds.find((d) => d.id === 'DORM-01')?.weight === 3, 'home weighs most');
   const table = new RouteTable(grid);
   const [a, b] = ds;
-  assert(table.route(a, b) === undefined, 'a route waits for its tree');
+  assert(table.walk(a, b) === undefined, 'a route waits for its tree');
   table.grow(1);
-  const r = table.route(a, b);
-  assert(Array.isArray(r) && r.length > 1, 'and has it a frame later');
+  const r = table.walk(a, b);
+  assert(!!r && r.route.length > 1, 'and has it a frame later');
+}
+
+// ---- A door on every wall, and none onto a neighbor ----
+{
+  const s = bare();
+  stand(s, 'DORM-01', 30, 30, 7, 3);
+  const grid = walkGrid(s);
+  const all = entrancesOf(s.placements['DORM-01'], grid);
+  assert(all.length === 4, `a building standing alone has four doors (${all.length})`);
+  const front = all.find((e) => e.side === 'posRow')!;
+  assert(front.face.col === 33.5 && front.face.row === 33, `each at its wall's middle (${front.face.col}, ${front.face.row})`);
+  const west = all.find((e) => e.side === 'negCol')!;
+  assert(west.face.col === 30 && west.face.row === 31.5 && west.col === 29, 'the -col door opens onto the tile west of the wall');
+
+  // A dining hall built flush against the +row wall, over its middle.
+  stand(s, 'DINING-01', 33, 32, 3, 3);
+  const walled = entrancesOf(s.placements['DORM-01'], walkGrid(s));
+  assert(!walled.some((e) => e.side === 'posRow'), 'a wall built against has no door');
+  assert(walled.length === 3, `the other three stay open (${walled.length})`);
+
+  // An even wall's door opens onto the two tiles either side of its
+  // middle; one of them built over shuts it.
+  const e = bare();
+  stand(e, 'HALL-01', 30, 30, 6, 4);
+  stand(e, 'DINING-01', 34, 33, 3, 3);   // covers col 33, just right of the middle (col 33 | 32)
+  const evenDoors = entrancesOf(e.placements['HALL-01'], walkGrid(e));
+  assert(!evenDoors.some((d) => d.side === 'posRow'), 'half a doorway built over is shut');
+
+  // Every door built against: reached at the edge, as before.
+  const boxed = bare();
+  stand(boxed, 'DINING-01', 30, 30, 3, 3);
+  stand(boxed, 'DORM-01', 33, 31, 1, 1);
+  stand(boxed, 'HALL-01', 29, 31, 1, 1);
+  stand(boxed, 'LIB-T1', 31, 29, 1, 1);
+  stand(boxed, 'DORM-02', 31, 33, 1, 1);
+  const cornered = entrancesOf(boxed.placements['DINING-01'], walkGrid(boxed));
+  assert(cornered.length === 1 && cornered[0].side === null, `a walled-in building is still reached (${cornered.length})`);
+}
+
+// ---- A walk leaves by the door toward where it is going ----
+{
+  const s = bare();
+  stand(s, 'DORM-01', 60, 60, 7, 3);
+  stand(s, 'DINING-01', 30, 62, 3, 3);   // far to the north (-row)
+  stand(s, 'HALL-01', 61, 90, 7, 5);     // far to the east (+col)
+  const grid = walkGrid(s);
+  const [home, dining, hall] = ['DORM-01', 'DINING-01', 'HALL-01'].map((id) => doors(s, grid).find((d) => d.id === id)!);
+  const table = new RouteTable(grid);
+  table.walk(home, dining);
+  table.grow(1);
+  const north = table.walk(home, dining)!;
+  assert(north.exit.side === 'negRow' && north.entry.side === 'posRow', `north: out the -row door, in at the +row (${north.exit.side} → ${north.entry.side})`);
+  const east = table.walk(home, hall)!;
+  assert(east.exit.side === 'posCol' && east.entry.side === 'negCol', `east: out the +col door, in at the -col (${east.exit.side} → ${east.entry.side})`);
+  const last = east.route[east.route.length - 1];
+  assert(last.col === east.entry.face.col && last.row === east.entry.face.row && last.col === 90, 'and ends at the door on the wall');
+  assert(east.route[0].col === 67 && east.route[0].row === 61.5, 'having begun at the door on the other');
+}
+
+// ---- Through a door: faded in the wall, and the door held open ----
+{
+  assert(doorOpacity(0, 5, true, true) === 0 && doorOpacity(5, 5, true, true) === 0, 'in the wall at either end');
+  assert(doorOpacity(2.5, 5, true, true) === 1, 'in the open between');
+  assert(doorOpacity(0, 5, false, false) === 1, 'no door, no fade');
+  assert(doorsHeld(0.2, 5, 'a', 'b').join() === 'a', 'the door behind is held while on its step');
+  assert(doorsHeld(4.5, 5, 'a', 'b').join() === 'b', 'the door ahead opens on the approach');
+  assert(doorsHeld(5, 5, 'a', 'b').length === 0, 'and shuts once through');
+  assert(doorsHeld(2.5, 5, 'a', 'b').length === 0, 'none held in the open');
 }
 
 // ---- Desire lines wear only lawn ----

@@ -687,6 +687,7 @@ button.build-tile { font-family: inherit; }
 .campus-walkers { pointer-events: none; }
 .walker-shadow { fill: rgba(0, 0, 0, 0.2); }
 .walker-head { fill: #e9c9a6; }
+.walker-leg { fill: none; stroke-width: 1.7; stroke-linecap: round; }
 /* Lamps, benches and bike racks (dressing.tsx). */
 .campus-lamp-foot { fill: rgba(0, 0, 0, 0.2); }
 .campus-lamp-post { stroke: #3a3a38; stroke-width: 1.6; }
@@ -774,6 +775,12 @@ button.build-tile { font-family: inherit; }
 .iso-door-bar { fill: rgba(38, 30, 16, 0.42); }
 .iso-door-glass { fill: rgba(255, 253, 246, 0.42); }
 .iso-door-lintel { fill: rgba(38, 30, 16, 0.3); }
+/* A door someone is on the step of (Walkers.tsx): the leaves swing in to
+   their hinges and the lit hall shows through. */
+.iso-door-leaf-open { fill: rgba(70, 48, 24, 0.85); opacity: 0; }
+.iso-door-way.door-open .iso-door-leaf { opacity: 0; }
+.iso-door-way.door-open .iso-door-leaf-open { opacity: 1; }
+.iso-door-way.door-open .iso-door { fill: rgba(236, 196, 120, 0.72); }
 /* Entrance stair treads (buildingMotifs' EntranceSteps). */
 .iso-step-tread { fill: rgba(255, 253, 246, 0.34); }
 .iso-rooflight { fill: rgba(255, 253, 246, 0.42); }

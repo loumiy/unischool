@@ -284,6 +284,8 @@ function PlacedBuilding({
   return (
     <g
       className={`campus-building ${kindClasses(t)} ${inspected ? 'inspected' : ''} ${developing ? 'under-construction' : ''}`}
+      // The walkers find this building's doors by it (Walkers.tsx).
+      data-building={t.id}
       aria-label={label}
       role="button"
       onClick={onInspect}
