@@ -55,24 +55,32 @@ function writeSave(version: number, state: unknown): void {
   store.set(SAVE_KEY, JSON.stringify({ version, savedAt: Date.now(), state }));
 }
 
-// ---- Test: the one-off carry from version 75 (Plan 53's research library) ----
-function testResearchCarry(): void {
+// ---- Test: the one-off carry from version 76 (Plan 55's seven halls) ----
+function testHallChainCarry(): void {
   clearSave();
   const cur = createInitialState('Carry');
-  // The same run as version 75 wrote it: the research library standing on
-  // its site, and something that named it.
+  // The same run as version 76 wrote it: thirteen purchased halls, the
+  // eighth standing with a program in it, the ninth sited and rising, the
+  // rest unbuilt.
   const old = JSON.parse(JSON.stringify(cur)) as GameState;
-  const library = old.tech.find((t) => t.id === 'LIB-T1')!;
-  old.tech.push({ ...library, id: 'LIB-T2', name: 'Research Library', status: 'done', prereqs: ['LIB-T1'] });
-  old.placements['LIB-T2'] = { row: 5, col: 5, w: 7, h: 5 };
-  const bell = old.tech.find((t) => t.id === 'AMENITY-BELLTOWER')!;
-  bell.prereqs = [...bell.prereqs, 'LIB-T2'];
+  const cedar = old.tech.find((t) => t.id === 'HALL-07')!;
+  cedar.status = 'done';
+  old.placements['HALL-07'] = { row: 5, col: 5, w: 7, h: 5 };
+  old.halls['HALL-07'] = Array.from({ length: 6 }, () => ({ programId: null }));
+  for (let i = 8; i <= 13; i += 1) {
+    const id = `HALL-${String(i).padStart(2, '0')}`;
+    old.tech.push({ ...cedar, id, name: `Hall ${i}`, status: i === 8 ? 'done' : i === 9 ? 'developing' : 'locked', prereqs: [`HALL-${String(i - 1).padStart(2, '0')}`] });
+  }
+  old.placements['HALL-08'] = { row: 5, col: 20, w: 7, h: 5 };
+  old.halls['HALL-08'] = [{ programId: 'HIST' }, ...Array.from({ length: 5 }, () => ({ programId: null }))];
+  old.placements['HALL-09'] = { row: 5, col: 35, w: 7, h: 5 };
   store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: old }));
   const back = loadGame();
-  assert(back !== null, 'a version-75 save loads');
+  assert(back !== null, 'a version-76 save loads');
   if (!back) return;
-  assert(!back.tech.some((t) => t.id === 'LIB-T2') && !back.placements['LIB-T2'], 'without the research library or its site');
-  assert(!back.tech.find((t) => t.id === 'AMENITY-BELLTOWER')!.prereqs.includes('LIB-T2'), 'even in a prerequisite');
+  const halls = back.tech.filter((t) => /^HALL-\d+$/.test(t.id)).map((t) => t.id);
+  assert(halls.join(',') === 'HALL-01,HALL-02,HALL-03,HALL-04,HALL-05,HALL-06,HALL-07,HALL-08,HALL-09', `the unbuilt rungs past Cedar Hall are gone, the sited ones kept (${halls.join(',')})`);
+  assert(back.halls['HALL-08']?.[0]?.programId === 'HIST', 'and a standing one keeps its program');
 }
 
 // ---- Test: the catalog's text reaches a saved run (Plan 46) ----
@@ -333,7 +341,7 @@ function testRejects(): void {
 console.log(`save/load tests (SAVE_VERSION ${SAVE_VERSION})`);
 testRoundTrip();
 testAuthoredText();
-testResearchCarry();
+testHallChainCarry();
 testFoundingSeenExcludesStartingContent();
 testCourseFacultySanitizer();
 testChapterGlyphs();

@@ -230,17 +230,25 @@ function weightedPick(
   return null;
 }
 
-// Year one's opening letters (eventData.ts's OPENING_LETTERS): the first
-// unread letter whose week has come fires on a quiet week and is marked read
-// at fire time so it never re-fires. Yields to everything earned and to the
-// one-shot questions. Letters unread when year two begins are never sent.
+// The opening letters (eventData.ts's OPENING_LETTERS): the first unread
+// letter that is due fires on a quiet week and is marked read at fire time
+// so it never re-fires. A calendar letter is due from its week of year one
+// and never after it; a letter with `arrives` is due while that holds, in
+// any year, and is recorded read unsent if its ask was done before it came.
+// Yields to everything earned and to the one-shot questions.
 export function fireOpeningLetter(s: GameState): boolean {
-  if (s.clock.year !== 1 || s.events.opening.skipped) return false;
-  const letter = OPENING_LETTERS.find((l) => l.week <= s.clock.week && !s.events.opening.read.includes(l.id));
-  if (!letter) return false;
-  s.events.opening.read.push(letter.id);
-  s.pendingInterrupt = { type: 'letter', payload: { id: letter.id } };
-  return true;
+  if (s.events.opening.skipped) return false;
+  const read = s.events.opening.read;
+  for (const letter of OPENING_LETTERS) {
+    if (read.includes(letter.id)) continue;
+    const due = letter.arrives ? letter.arrives(s) : s.clock.year === 1 && letter.week <= s.clock.week;
+    if (!due) continue;
+    read.push(letter.id);
+    if (letter.arrives && letter.done(s)) continue;
+    s.pendingInterrupt = { type: 'letter', payload: { id: letter.id } };
+    return true;
+  }
+  return false;
 }
 
 export function tickEvents(s: GameState): void {

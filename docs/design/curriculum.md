@@ -16,21 +16,24 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    slots themselves are `s.halls`, keyed by hall id and positional — slot 3
    is slot 3 forever). Six is not arbitrary: every school in the game has
    exactly six majors, so **one hall is exactly one school**, and that is a
-   rule a player learns in one sentence and plans a decade around. Fourteen
+   rule a player learns in one sentence and plans a decade around. Eight
    halls in all: **Founders Hall**, which stands at founding, and a strictly
-   sequential chain of thirteen like housing — seven schools of six majors,
-   and a second hall for each of the seven schools, built for the graduate
-   programs their six majors left no room for. Since Plan 51 graduate
-   programs are housed in capital projects instead, so the second halls are
-   room to spare; the chain is unchanged, and whether it should shrink is
-   the owner's call. Founders Hall is an ordinary hall
+   sequential chain of seven like housing (Elm, Oak, Linden, Maple,
+   Chestnut, Sycamore and Cedar), one for each of the seven schools. (Until
+   Plan 55 the chain ran to thirteen, a second hall for each school's
+   graduate programs; since Plan 51 those are housed in capital projects, so
+   the second halls were room to spare, and the owner shortened the chain.)
+   Founders Hall is an ordinary hall
    in every mechanical respect (Plan 19): six slots, three of them holding the
    founding programs — English, Mathematics and Economics since Plan 52, the
    pillars of three schools, with their first two courses developed and
    taught by the founding roster (Calculus, Microeconomics, Introduction to
    Literary Studies and their sequels) — and three rooms free. Three schools
    begun under one roof make it no school's hall: a school is a hall of the
-   player's own. (Until Plan 52 the founding programs were English, History
+   player's own. **Founders Hall is where programs begin** (Plan 55): the
+   intended line of play founds them there, then moves them out school by
+   school, until every school has a hall of its own and Founders Hall stands
+   empty — seven schools in seven halls. (Until Plan 52 the founding programs were English, History
    and Philosophy, and three more Social Sciences & Humanities programs
    dedicated Founders Hall.) The
    first purchased hall opens once the college teaches **eight developed
@@ -87,12 +90,29 @@ gone with the forty-two-card wall it existed to sweep.
 
 **Relocation** (`RELOCATE_PROGRAM`) moves a housed program to any empty slot in
 any standing hall. Free in money, expensive in time: the program goes dark for
-`RELOCATION_WEEKS` — no grade, nothing to any average, its courses cannot be
-started or advanced, and it counts toward no dedication until it arrives. You
-can only move into a free slot, so reorganising six programs into one hall
-needs the spare capacity to shuffle through, and the dark term is what stops
-a free, instant, end-of-run tidy-up from defusing every slot decision made
-along the way.
+`RELOCATION_WEEKS` (twelve) — no grade, nothing to any average, its courses
+cannot be started or advanced, and it counts toward no dedication until it
+arrives. You can only move into a free slot, so reorganising six programs into
+one hall needs the spare capacity to shuffle through, and the dark term is
+what stops a free, instant, end-of-run tidy-up from defusing every slot
+decision made along the way. **A move out of Founders Hall is
+`FOUNDERS_MOVE_WEEKS` (four)** (Plan 55): moving programs out of the hall
+where they began is the line of play, not a reshuffle, and the game should
+not tax it at the reshuffle's rate.
+
+**Sorting** (Plan 55) is read, never stored (`systems/techtree/schools.ts`). A
+purchased hall is **claimed** by a school while every program in it, settled
+or arriving, is that school's (`claimedSchool`); a full claim with nothing in
+transit is a dedication. The **next school to move** is the one with no hall of
+its own and the most programs away from home (`nextSchoolToMove`). A program
+away from home has a **suggested move** (`suggestedMove`): a free slot in its
+school's hall, or, for the next school to move, an empty hall. The readings
+reach the player four ways: the program tile's one-click move, with an arrow
+on the tile; a claimed hall's label and panel ("Elm Hall · Science · 3 of
+6"); the hall panel's note when a picked offer's school has a hall of its own
+elsewhere; and the next-step line, which names a possible move before a free
+slot, and sends an offer to its school's hall before Founders Hall. The
+opening letters teach it (docs/architecture/interrupts.md).
 
 ### The milestones
 

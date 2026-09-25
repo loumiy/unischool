@@ -1021,12 +1021,14 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
   }
   return (
     <>
-      <p className="letter-eyebrow">From the chair of the board · Week {letter.week}</p>
+      {/* Dated by the clock: a letter that waited on the college (Plan 55)
+          can arrive in any year. */}
+      <p className="letter-eyebrow">From the chair of the board · {s.clock.year > 1 ? `Year ${s.clock.year} · ` : ''}Week {s.clock.week}</p>
       <h2>{letter.title}</h2>
       <p className="letter-body">{letter.body(s)}</p>
       <p className="letter-ask">
         <span className="letter-ask-label">{letter.done(s) ? 'Done' : 'To do'}</span>
-        {letter.ask}
+        {letter.ask(s).text}
       </p>
       <div className="letter-actions">
         <button onClick={() => onResolve(false)}>Continue</button>

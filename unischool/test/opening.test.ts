@@ -1,15 +1,16 @@
 // ---------------------------------------------------------------------
-// The first year's script (Plan 16's PR F): four letters from the board's
-// chair (data/eventData.ts's OPENING_LETTERS), fired through the interrupt
-// system on the first quiet week at or after each letter's week of year
-// one (eventSystem.ts's fireOpeningLetter), skippable from the first, and
-// the next-step line the toolbar carries (systems/guidance/nextStep.ts).
+// The first year's script (Plan 16's PR F): letters from the board's chair
+// (data/eventData.ts's OPENING_LETTERS), fired through the interrupt system
+// (eventSystem.ts's fireOpeningLetter), skippable from the first, and the
+// next-step line the toolbar carries (systems/guidance/nextStep.ts). The
+// letters that wait on the college rather than the calendar (Plan 55) are
+// pinned in test/sorting.test.ts.
 //
-// What is pinned: the letters arrive in order, at or after their weeks, in
-// year one and never again; each fires once; "I know the way" stands the
-// rest down; the shared defaults read them; the next-step line is the
-// latest letter's ask until it is done, and afterward a reading of the
-// campus that goes quiet when nothing is on offer.
+// What is pinned: the calendar letters arrive in order, at or after their
+// weeks, in year one and never again; each fires once; "I know the way"
+// stands the rest down; the shared defaults read them; the next-step line
+// is the latest letter's ask until it is done, and afterward a reading of
+// the campus that goes quiet when nothing is on offer.
 //
 // AND THE WALKTHROUGH (state/opening.ts): a guided founding
 // opens with the clock held and Founders Hall unsited; the hall sites for
@@ -80,18 +81,21 @@ function playYear(start: GameState, onLetter?: (s: GameState) => void): { s: Gam
 
 console.log('opening script tests');
 
-// --- four letters, in order, at or after their weeks, in year one -------
+// The letters due on a week of year one; the rest wait on the college.
+const CALENDAR = OPENING_LETTERS.filter((l) => !l.arrives);
+
+// --- the calendar letters, in order, at or after their weeks, in year one --
 {
   const { s, letters } = playYear(createInitialState('Opening'));
-  assert(letters.length === OPENING_LETTERS.length, `every letter is delivered in year one (${letters.length} of ${OPENING_LETTERS.length})`);
-  assert(letters.map((l) => l.id).join(',') === OPENING_LETTERS.map((l) => l.id).join(','), 'in the order they were written');
-  for (const [i, letter] of OPENING_LETTERS.entries()) {
+  assert(letters.length === CALENDAR.length, `every calendar letter is delivered in year one, and nothing else by a college that builds nothing (${letters.length} of ${CALENDAR.length})`);
+  assert(letters.map((l) => l.id).join(',') === CALENDAR.map((l) => l.id).join(','), 'in the order they were written');
+  for (const [i, letter] of CALENDAR.entries()) {
     const fired = letters[i];
     assert(fired !== undefined && fired.week >= letter.week && fired.week <= letter.week + 4, `"${letter.title}" arrives at or just after week ${letter.week} (week ${fired?.week})`);
   }
   assert(letters[0].week === 1, 'the doors open in week one — the first thing a new player sees');
   assert(s.clock.year === 2, 'and the year still turns over');
-  assert(s.events.opening.read.length === OPENING_LETTERS.length && !s.events.opening.skipped, 'every letter is recorded read, and the script was not declined');
+  assert(s.events.opening.read.length === CALENDAR.length && !s.events.opening.skipped, 'every calendar letter is recorded read, and the script was not declined');
 
   const second = playYear(s);
   assert(second.letters.length === 0, 'year two gets no letters');
@@ -117,7 +121,7 @@ console.log('opening script tests');
   s = reducer(s, { type: 'RESOLVE_INTERRUPT' }); // the generic fallback, not the letter's own action
   const { letters } = playYear(s);
   assert(!letters.some((l) => l.id === OPENING_LETTERS[0].id), 'a letter cleared generically does not come back');
-  assert(letters.length === OPENING_LETTERS.length - 1, 'the rest still arrive');
+  assert(letters.length === CALENDAR.length - 1, 'the rest still arrive');
 }
 
 // --- the next-step line: the letter's ask until it is done ----------------
@@ -126,7 +130,7 @@ console.log('opening script tests');
   assert(nextStep(s) === null, 'before any letter there is nothing to say');
   s = reducer(s, { type: 'TICK' });
   s = reducer(s, { type: 'RESOLVE_LETTER', skipAll: false });
-  assert(nextStep(s)?.text === OPENING_LETTERS[0].ask, `after the first letter the line is its ask (${nextStep(s)?.text})`);
+  assert(nextStep(s)?.text === OPENING_LETTERS[0].ask(s).text, `after the first letter the line is its ask (${nextStep(s)?.text})`);
   assert(nextStep(s)?.go === 'hall' && nextStep(s)?.hallId === 'BLDG-GENSTUDIES', "and it opens Founders Hall's panel, where a program is founded");
   // Found a fourth program into one of Founders Hall's free rooms — the
   // founding draw guarantees one the roster can staff.
@@ -138,7 +142,7 @@ console.log('opening script tests');
 
   // The second letter's ask, and the reading it hands to the build menu.
   s.events.opening.read.push(OPENING_LETTERS[1].id);
-  assert(nextStep(s)?.text === OPENING_LETTERS[1].ask && nextStep(s)?.go === 'build', 'the second letter\'s ask points at the build menu');
+  assert(nextStep(s)?.text === OPENING_LETTERS[1].ask(s).text && nextStep(s)?.go === 'build', `the second letter's ask points at the build menu (${nextStep(s)?.text})`);
 }
 
 // --- after the first year: a reading of the campus ------------------------
@@ -167,6 +171,12 @@ console.log('opening script tests');
   s.placements[hall.id] = { row: 0, col: 0, w: 1, h: 1 };
   s.halls[hall.id] = Array.from({ length: hall.slots ?? 6 }, () => ({ programId: null }));
   s.programOffers = ['COMP'];
+  // A program that could move into the empty hall outranks founding
+  // (Plan 55; test/sorting.test.ts has the rest).
+  const move = nextStep(s);
+  assert(move?.go === 'hall' && move.hallId === FOUNDERS_HALL_ID && move.text.includes(hall.name), `a program that can move out of Founders Hall is the line (${move?.text})`);
+  s.halls[hall.id][0] = { programId: 'HIST' };
+  s.halls[hall.id][1] = { programId: 'MATH' };
   const step = nextStep(s);
   assert(step?.go === 'hall' && step.hallId === hall.id && step.text.includes(hall.name) && step.text.includes('Computer Science'), `a free slot with a program on offer is the line (${step?.text})`);
 }
@@ -232,7 +242,12 @@ console.log('opening script tests');
   // The letters carry on from the second, on their weeks.
   const { letters, s: after } = playYear(s);
   assert(!letters.some((l) => l.id === OPENING_LETTERS[0].id), 'the first letter is never sent — the welcome was it');
-  assert(letters.map((l) => l.id).join(',') === OPENING_LETTERS.slice(1).map((l) => l.id).join(','), `the rest arrive in order (${letters.map((l) => l.id).join(',')})`);
+  const calendar = letters.filter((l) => CALENDAR.some((c) => c.id === l.id));
+  assert(calendar.map((l) => l.id).join(',') === CALENDAR.slice(1).map((l) => l.id).join(','), `the rest of the calendar arrives in order (${letters.map((l) => l.id).join(',')})`);
+  // The fourth program's course and the one started along the way make
+  // eight: the first hall opens in year one, and its letter comes with it.
+  const hallLetter = letters.find((l) => l.id === 'a-hall-of-its-own');
+  assert(hallLetter !== undefined && after.tech.find((t) => t.id === 'HALL-01')?.status === 'available', `eight courses open Elm Hall, and "A hall of its own" says so (week ${hallLetter?.week})`);
   assert(after.clock.year === 2, 'and the year turns over');
 }
 

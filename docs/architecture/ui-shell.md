@@ -44,9 +44,11 @@ candidate in a short field, a project concluded without a report — three
 seconds each, five at most, each a button that opens the tab it is about (see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
 right end of the ticker line runs the **next step**: during the scripted first
-year the latest letter's ask until it is done; afterwards the highest-value
-thing on offer — a hall with a free slot while programs are offered, a program
-one course from established, a satisfaction attribute under 50, an idle lab —
+year the latest letter's ask until it is done; afterwards a waiting letter's
+ask, then the highest-value thing on offer — a program that can move to its
+school's hall (Plan 55), a hall with a free slot while programs are offered
+(an offer's own school's hall first), a program one course from established,
+a satisfaction attribute under 50, an idle lab —
 recomputed from state on every render (`src/systems/guidance/nextStep.ts`). A
 reading, never a queue: nothing is ticked off, and the line goes quiet when
 nothing is on offer. The log on the left says what just happened; the step on

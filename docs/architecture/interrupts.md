@@ -24,12 +24,28 @@ Everything that needs to stop time rides on this one mechanism:
   onto `ending`. Play continues into the Epilogue.
 - **The rankings entry** — the one-time "you've entered the top 50" reveal,
   which keeps its own moment because entering is the event.
-- **The first year's letters** — four letters from the board's chair, data in
-  `src/data/eventData.ts` (`OPENING_LETTERS`), fired on the first quiet week at
-  or after each one's week of year one, once each, and skippable from the
-  first ("I know the way"). They yield to everything the player earned and
-  outrank only the decision roll. The toolbar carries a letter's ask as its
-  next-step line until it is done (`src/systems/guidance/nextStep.ts`).
+- **The opening letters** — letters from the board's chair, data in
+  `src/data/eventData.ts` (`OPENING_LETTERS`), once each, and skippable from
+  the first ("I know the way"). Two kinds (Plan 55). Three are **calendar
+  letters**, due on the first quiet week at or after their week of year one
+  and never after it: the doors open (week 1: found a fourth program in
+  Founders Hall), somewhere to sleep (week 9) and summer is coming (week
+  48). Four **wait on the college** (`arrives`), in any year, and teach the
+  line of play — programs begin in Founders Hall and move out, school by
+  school, into halls of their own: *A hall of its own* when Elm Hall opens
+  (site it); *Moving in* when it stands (move the next school's first
+  program into it, four weeks dark, naming the school with the most
+  programs in Founders Hall); *A school takes shape* once it is claimed
+  (grow that school to three programs there, founding its new programs
+  straight into it); and *A second school* once one has three and Oak Hall
+  opens (site it, then move the next school in). One of these whose ask was
+  already done when it came due is recorded read and never sent; after the
+  last, the school-founded milestone celebrates each school. They yield to
+  everything the player earned and outrank only the decision roll. The
+  toolbar carries a letter's ask as its next-step line until it is done
+  (`src/systems/guidance/nextStep.ts`): in year one only a letter's, and
+  afterward a waiting letter's first, then the campus readings, a possible
+  move out of a mixed hall before a free slot.
 - **The opening walkthrough** — not an interrupt, but the same hold on the
   clock, so it is listed here. A founding from the startup screen
   (`START_GAME` with `guided`) opens on `s.events.opening.stage = 'welcome'`
@@ -49,7 +65,7 @@ Everything that needs to stop time rides on this one mechanism:
   `settleOpening` from the action that did them (`PLACE_BUILDABLE`,
   `FOUND_PROGRAM`), never by the UI. The welcome IS the first letter's
   content and the walk does its ask, so a guided founding counts that
-  letter read and the letters carry on from the second on their weeks. A
+  letter read and the letters carry on from the second. A
   headless founding (tests, the sim, a scenario file) opens at `'play'`
   with the hall pre-placed, unchanged.
   The copy is `src/data/openingData.ts` and the card is

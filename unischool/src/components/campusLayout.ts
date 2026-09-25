@@ -3,7 +3,7 @@ import type { Buildable, Dressing, GameState, Pathways, Placement, Placements, Q
 import { totalEnrolled } from '../state/types';
 import { BIKE_RACK_ENROLMENT } from './dressing';
 import { chapterHouseId } from '../data/eventData';
-import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
+import { claimedSchool, dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
 import { SCHOOL_SIGNATURES } from './buildingSpec';
 import { FOUNDERS_HALL_ID } from '../data/techData';
 import { weatherBand, type AgeBand } from './ageMarks';
@@ -68,6 +68,14 @@ function recordKey(r: Record<string, unknown>): string {
   return out;
 }
 
+// A hall on its way to a school says how far (Plan 55): "Elm Hall · Science
+// · 3 of 6". A dedicated hall already carries the school's name.
+function hallLabel(s: GameState, t: Buildable): string {
+  const name = hallDisplayName(s, t);
+  const claim = t.slots !== undefined && !dedicatedSchool(s, t.id) ? claimedSchool(s, t.id) : null;
+  return claim ? `${name} · ${claim.school} · ${claim.housed} of ${claim.slots}` : name;
+}
+
 export function campusLayout(s: GameState): CampusLayout {
   const glyphs: Record<string, string> = {};
   for (const c of s.orgs.chapters) glyphs[chapterHouseId(c.id)] = c.glyphs;
@@ -81,7 +89,7 @@ export function campusLayout(s: GameState): CampusLayout {
     const t: Buildable = school && SCHOOL_SIGNATURES[school] ? { ...node, signature: school } as Buildable : node;
     placed.push({
       t, p,
-      label: hallDisplayName(s, t),
+      label: hallLabel(s, t),
       developing: t.status === 'developing' && s.developing[id] !== undefined,
       glyphs: glyphs[id],
       age: weatherBand(t, s.clock.year, conditionOf(node)),
