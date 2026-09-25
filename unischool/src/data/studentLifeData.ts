@@ -636,8 +636,11 @@ export function coachingQuality(team: VarsityTeam, s: GameState): number {
 const FUNDED_QUALITY_BONUS = 10;
 const UNDERFUNDING_PENALTY = 0.15; // a program drawing nothing runs at 85% of what its staff is worth
 
-export function teamQuality(team: VarsityTeam, s: GameState): number {
-  const funded = fundedFractionFor(s, team);
+// `pot` is the department's, when the caller reads every team at once: it is
+// the same for all of them, and computing it reads every team's gate, so a
+// loop that let each team compute its own was quadratic (Plan 57).
+export function teamQuality(team: VarsityTeam, s: GameState, pot?: DepartmentPot): number {
+  const funded = pot ? fundedFrom(pot, team) : fundedFractionFor(s, team);
   const quality = (coachingQuality(team, s) + FUNDED_QUALITY_BONUS * funded) * (1 - UNDERFUNDING_PENALTY * (1 - funded));
   return Math.max(0, Math.min(100, Math.round(quality)));
 }
@@ -723,8 +726,12 @@ export function departmentPot(s: GameState): DepartmentPot {
 }
 
 export function fundedFractionFor(s: GameState, team: VarsityTeam): number {
+  return fundedFrom(departmentPot(s), team);
+}
+
+function fundedFrom(pot: DepartmentPot, team: VarsityTeam): number {
   if (team.status !== 'active') return 0;
-  return departmentPot(s).programs.find((p) => p.team.id === team.id)?.funded ?? 0;
+  return pot.programs.find((p) => p.team.id === team.id)?.funded ?? 0;
 }
 
 // Program reputation, per sport: decaying title history, sustained quality
@@ -789,7 +796,8 @@ export function athleticBreadth(s: GameState): number {
 export function athleticProgramStrength(s: GameState): number {
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   if (active.length === 0) return 0;
-  const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s), 0) / active.length;
+  const pot = departmentPot(s);
+  const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s, pot), 0) / active.length;
   const breadth = Math.min(1, athleticBreadth(s) / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
   // Recruits want to play at a Jock School (an identity tag's teeth, Plan 31).
   // A project that lifts athletics lifts every program (Plan 33, estate/projects.ts); none does since Plan 50.

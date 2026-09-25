@@ -3,7 +3,7 @@ import { campusBeauty } from '../estate/beauty';
 import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { graduateCourseIds, graduatePrograms } from '../../data/techData';
-import { sportById, sportEconomics, teamQuality } from '../../data/studentLifeData';
+import { departmentPot, sportById, sportEconomics, teamQuality } from '../../data/studentLifeData';
 
 // Student cohorts: an additive lens on admissionsSystem.ts's applicant
 // pool. Their pulls blend into one extra multiplier on the pool
@@ -118,6 +118,8 @@ export function athleticResultsFor(s: GameState): { results: number; label: stri
 
 export function deriveCohortSignals(s: GameState): CohortSignals {
   const activeTeams = s.orgs.teams.filter((t) => t.status === 'active');
+  // Read once for every team (studentLifeData.ts's teamQuality).
+  const pot = departmentPot(s);
   const athletic = athleticResultsFor(s);
   return {
     beauty: campusBeauty(s),
@@ -133,7 +135,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     artsFacilities: doneIds(s, ARTS_FACILITY_IDS),
     activeTeams: activeTeams.length,
     athleticsQuality: activeTeams.length > 0
-      ? activeTeams.reduce((sum, t) => sum + teamQuality(t, s), 0) / activeTeams.length
+      ? activeTeams.reduce((sum, t) => sum + teamQuality(t, s, pot), 0) / activeTeams.length
       : 0,
     revenueShare: revenueShareOf(activeTeams.map((t) => t.sport)),
     athleticResults: athletic.results,
