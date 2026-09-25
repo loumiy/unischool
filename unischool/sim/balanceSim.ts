@@ -25,7 +25,7 @@ import { careerWeeks } from '../src/systems/faculty/facultySystem';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
-import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_EXTRA_SEEDS, bandsFor } from './reference';
+import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_RUNS, bandsFor, type RunKey } from './reference';
 import type { Action } from '../src/state/actions';
 import { createPreStartState } from '../src/state/actions';
 import { conditionOf, renovationCost } from '../src/systems/estate/estate';
@@ -77,6 +77,9 @@ const fakeStorage = new Map<string, string>();
   setItem: (k: string, v: string) => { fakeStorage.set(k, v); },
   removeItem: (k: string) => { fakeStorage.delete(k); },
 };
+
+// The name the harness founds under unless a run names another.
+export const FOUNDING_NAME = 'Test University';
 
 // ---------------------------------------------------------------------
 // A strategy is a scripted player: a tuition policy plus rules for what it
@@ -487,8 +490,46 @@ function foundPrograms(get: () => GameState, dispatch: (a: Action) => void, stra
       founded = true;
       break;
     }
-    if (!founded) return;
+    if (!founded) {
+      // Whatever fits (Plan 49): with every hall built, an offer that
+      // fits no pure hall goes into any free slot rather than waiting for
+      // ever. The offers stand until one is taken, so waiting was a stall
+      // for the rest of the run, and which schools are offered hangs on the
+      // college's name.
+      if (policy === 'scatter' || !nowhereToFound(s, strategy)) return;
+      if (s.tech.some((t) => isAcademicHall(t) && t.status !== 'done')) return;
+      for (const { p, entry } of offers) {
+        if (!hasHeadroom(s, strategy) || !affordable(s, entry!.cost, strategy)) continue;
+        if (!courseStaysSustainable(s, strategy)) continue;
+        const instructor = eligibleInstructors(s, entry!)[0];
+        const slot = anyAcademicSlot(s);
+        if (!instructor || !slot) continue;
+        const founding = { programId: p.id, hallId: slot.hallId, slot: slot.slot, facultyId: instructor.id };
+        if (!canFoundProgram(s, founding)) continue;
+        dispatch({ type: 'FOUND_PROGRAM', ...founding });
+        founded = true;
+        break;
+      }
+      if (!founded) return;
+    }
   }
+}
+
+// Offers stand and none can be founded where this strategy founds: every
+// one needs a hall that is not there.
+function nowhereToFound(s: GameState, strategy: Strategy): boolean {
+  const offers = allowedOffers(s, strategy);
+  return offers.length > 0 && !offers.some((id) => { const p = programById(id); return p && slotForProgram(s, strategy, p.school) !== null; });
+}
+
+function anyAcademicSlot(s: GameState): { hallId: string; slot: number } | null {
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    const hall = s.tech.find((t) => t.id === hallId);
+    if (!hall || !isAcademicHall(hall)) continue;
+    const slot = slots.findIndex((x) => x.programId === null);
+    if (slot >= 0) return { hallId, slot };
+  }
+  return null;
 }
 
 // The schools a hall's housed programs belong to; more than one means mixed.
@@ -551,10 +592,7 @@ function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, s
   // second hall.
   const policy = strategy.founding ?? 'cheapest';
   const offers = allowedOffers(s, strategy);
-  const nowhere = !freeSlot(s) || (
-    policy !== 'scatter' &&
-    !offers.some((id) => { const p = programById(id); return p && slotForProgram(s, strategy, p.school) !== null; })
-  );
+  const nowhere = !freeSlot(s) || (policy !== 'scatter' && nowhereToFound(s, strategy));
   // A prudent strategy also sites a hall when seats are the constraint and
   // every slot is taken: "seats before beds" for the one line that adds seats.
   const seatsShort = strategy.netMargin > 0 && seatsAreTheConstraint(s) && !freeSlot(s);
@@ -730,6 +768,14 @@ function decide(
   // this even while "saving": with no margin to keep they save for nothing.
   if (strategy.buildsCourses && (!saving || strategy.netMargin <= 0)) {
     foundPrograms(get, dispatch, strategy);
+    siteHallIfNeeded(get, dispatch, strategy);
+  } else if (strategy.buildsCourses && freeSlot(get()) && nowhereToFound(get(), strategy)) {
+    // Saving never waits on the hall that nothing on offer can be founded
+    // without (Plan 49): free slots that no offer may take are a deadlock,
+    // since offers stand until one is taken. On one founding name the
+    // Balanced builder saved for a decade at $3M with a $0.8M hall unbuilt
+    // and three offers standing. A full campus still waits for the saving,
+    // as before.
     siteHallIfNeeded(get, dispatch, strategy);
   }
 
@@ -965,6 +1011,9 @@ export function play(
   // Continue from another run's state instead of founding (the recovery
   // scenario). Deep-cloned, so the source is untouched.
   from?: GameState,
+  // The college's name. Program offers are seeded from it
+  // (programOffers.ts), so it is a second stream beside the seed (Plan 49).
+  name: string = FOUNDING_NAME,
 ): { rows: Row[]; tally: EventTally; venuesBuilt: string[]; state: GameState } {
   const seed = resetSimEnvironment(seedOverride);
   let s: GameState;
@@ -972,7 +1021,7 @@ export function play(
     s = structuredClone(from);
   } else {
     s = createPreStartState();
-    s = reducer(s, { type: 'START_GAME', name: 'Test University', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), seed });
+    s = reducer(s, { type: 'START_GAME', name, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), seed });
   }
   const dispatch = (a: Action) => { s = reducer(s, a); };
   // The same dispatch, counted. Handed to decide() alone, so it measures
@@ -1121,6 +1170,12 @@ export function play(
   // The final state rides along: a run halted by `stopWhen` stops between
   // weeks, so `onWeek` never sees it. tools/scenario.ts writes it out.
   return { rows, tally, venuesBuilt, state: s };
+}
+
+// One of the reference's runs (sim/reference.ts's REFERENCE_RUNS): a seed,
+// a founding name, or the default of both.
+export function playRun(strategy: Strategy, years: number, key: RunKey): ReturnType<typeof play> {
+  return play(strategy, years, undefined, key.seed, undefined, undefined, key.name ?? FOUNDING_NAME);
 }
 
 function fmt(n: number): string {
@@ -1613,7 +1668,7 @@ function writeReference(runs: Record<string, Row[][]>): void {
   const years = Object.values(reference)[0]?.map((r) => r.year).join(', ') ?? 'none';
   console.log(
     `\nwrote ${REFERENCE_PATH}: ${Object.keys(reference).length} strategies at years ${years}, `
-    + `each band the envelope of ${1 + REFERENCE_EXTRA_SEEDS.length} seeds at ±${(TOLERANCE * 100).toFixed(0)}%`,
+    + `each band the envelope of ${REFERENCE_RUNS.length} runs (seeds and founding names) at ±${(TOLERANCE * 100).toFixed(0)}%`,
   );
 }
 
@@ -1650,10 +1705,10 @@ if (isCliEntry) {
     runs[strategy.name] = run.rows;
     report(strategy, run, every);
     if (!writingReference) reportScorecard(strategy, run.rows);
-    // Three-seed bands: a band fitted to one seed is a claim about that
-    // seed, so each band is the envelope of three streams.
+    // Bands across runs: a band fitted to one seed is a claim about that
+    // seed, so each band is the envelope of every run in REFERENCE_RUNS.
     if (writingReference) {
-      seedRuns[strategy.name] = [run.rows, ...REFERENCE_EXTRA_SEEDS.map((seed) => play(strategy, years, undefined, seed).rows)];
+      seedRuns[strategy.name] = [run.rows, ...REFERENCE_RUNS.slice(1).map((key) => playRun(strategy, years, key).rows)];
     }
   }
 
