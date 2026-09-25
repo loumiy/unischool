@@ -13,7 +13,7 @@ import { DevelopingContext, CollegeNameContext } from './mapOccasions';
 // its countdown (DevelopingContext) picks the stage: footings, then the
 // lower half, then all but the crown, each in scaffolding, and then the
 // finished thing. Drawn in limestone whatever the vernacular: a landmark is
-// a statement, not a neighbour.
+// a statement, not a neighbor.
 
 const STONE = '#ddd3bd';
 const STONE_DARK = '#b8ad95';

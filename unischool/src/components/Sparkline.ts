@@ -8,7 +8,7 @@ export const MIN_SERIES_POINTS = 2;
 const DEFAULT_PAD_Y = 1.5;
 
 // Maps a series onto an SVG `points` string, stretched to fill the height; a
-// flat series is a centred horizontal line. `xAt` places point i at that
+// flat series is a centered horizontal line. `xAt` places point i at that
 // share (0..1) of the width, which is how the History tab fixes its axis at
 // fifty years.
 export function linePoints(

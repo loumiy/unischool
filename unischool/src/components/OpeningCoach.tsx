@@ -6,7 +6,7 @@ import { isActivationTarget, useHotkeys } from './hotkeys';
 // The opening walkthrough's card. state/opening.ts owns the stages and
 // data/openingData.ts the copy; this only draws the current step. The
 // welcome is a modal (the one step with a decline); every other step is a
-// coach card pinned top-centre with no backdrop, since the player has to
+// coach card pinned top-center with no backdrop, since the player has to
 // work the screen under it. A step that ends on something done has no Next
 // button, but offers to reopen the door it needs (build menu, Founders
 // Hall's panel) so wandering off is never a dead end, and every card can

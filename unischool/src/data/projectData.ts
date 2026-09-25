@@ -41,7 +41,7 @@ export const PROJECTS: readonly ProjectDef[] = [
   },
   {
     id: 'PROJ-ARTS', name: 'The Arts Center',
-    description: 'A concert hall, two theatres and the studios behind them, under one roof and open late: the building the town comes to the college for.',
+    description: 'A concert hall, two theaters and the studios behind them, under one roof and open late: the building the town comes to the college for.',
     cost: 35_000_000, weeks: 144, upkeep: 40_000, beauty: 2,
     project: { fromYear: 10, boosts: { experience: 6 } },
   },
@@ -59,7 +59,7 @@ export const PROJECTS: readonly ProjectDef[] = [
   },
   {
     id: 'PROJ-MEDICAL', name: 'The Medical Center',
-    description: 'A teaching hospital with the college\'s name over the door: wards, clinics, operating theatres and a residency program that trains the region\'s doctors.',
+    description: 'A teaching hospital with the college\'s name over the door: wards, clinics, operating theaters and a residency program that trains the region\'s doctors.',
     cost: 70_000_000, weeks: 180, upkeep: 90_000,
     project: { fromYear: 15, boosts: { academics: 6, research: 8 } },
   },

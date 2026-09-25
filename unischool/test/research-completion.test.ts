@@ -9,7 +9,7 @@
 // a log line, so the checks here are mostly "the report exists, carries
 // everything, and is raised exactly once".
 //
-// The cancelled case is the one worth a test of its own: winding a project
+// The canceled case is the one worth a test of its own: winding a project
 // up early is the player's own action and must NOT produce a modal telling
 // them what they just did.
 //
@@ -114,14 +114,14 @@ console.log('research completion tests');
   assert(report.depth === 'project', 'and how deep a commitment it was');
 }
 
-// --- a cancelled project files none -----------------------------------
+// --- a canceled project files none -----------------------------------
 {
   const { s, labId } = aboutToFinish();
   endInitiative(s, labId, true);
 
-  assert(s.research.initiatives[labId] === undefined, 'cancelling frees the facility');
+  assert(s.research.initiatives[labId] === undefined, 'canceling frees the facility');
   assert(s.research.completedInitiatives.length === 1, 'and still records what happened');
-  assert(s.research.completedInitiatives[0].cancelled === true, 'marked as cancelled');
+  assert(s.research.completedInitiatives[0].cancelled === true, 'marked as canceled');
   assert(
     s.research.pendingCompletions.length === 0,
     'but queues no report — a modal confirming what the player just did is noise',

@@ -133,7 +133,7 @@ console.log('legacy tests');
   for (const key of ['breadth', 'concentration', 'research', 'reach', 'stewardship'] as LegacyAxisKey[]) {
     assert(grade(key) === 'A', `a saturated school is an A in ${key} (${grade(key)})`);
   }
-  assert(grade('teaching') === 'F', 'a catalogue with nobody teaching it is not taught well');
+  assert(grade('teaching') === 'F', 'a catalog with nobody teaching it is not taught well');
 }
 
 // --- the names table is total, and its examples land ----------------------------------------

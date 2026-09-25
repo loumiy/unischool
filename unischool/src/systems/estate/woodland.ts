@@ -3,7 +3,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../../state/types';
 import { isLand, pathTileKey } from '../../state/campusMap';
 import { absoluteWeek } from '../../data/eventData';
 
-// The woodland, for the event catalogue (Plan 32): how many trees stand,
+// The woodland, for the event catalog (Plan 32): how many trees stand,
 // and an event's planting or felling. Kept in the estate, the one place the
 // simulation reads the map (test/invariants.test.ts).
 

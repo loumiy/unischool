@@ -9,7 +9,7 @@ import { handlerFor, seatTitle } from '../delegation/seats';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { ESCALATION_WEEKS_OF_OPEX, seatDef } from '../../data/seatData';
 
-// THE PANEL (Plan 32): when the catalogue's events fire, how they wait, and
+// THE PANEL (Plan 32): when the catalog's events fire, how they wait, and
 // how they are answered. Inline events queue in the panel and never stop
 // the clock; if nobody answers, each takes its default when its weeks run
 // out. Seismic events are the board's letters and do stop it. A seat
@@ -23,7 +23,7 @@ const INLINE_SPACING_WEEKS = 6;
 const INLINE_QUEUE_MAX = 3;
 const SEISMIC_WEEKLY_CHANCE = 0.012;
 const SEISMIC_SPACING_WEEKS = 52;
-// The pull of an identity tag an event favours (data/tagData.ts).
+// The pull of an identity tag an event favors (data/tagData.ts).
 const FAVOUR_WEIGHT = 2;
 
 export function sizeFactor(s: GameState): number {
@@ -55,7 +55,7 @@ function draw(s: GameState, kind: CatalogueEvent['kind']): CatalogueEvent | null
 }
 
 // ---- Seats ----
-// The choice a policy takes over the catalogue's own effects: thrifty
+// The choice a policy takes over the catalog's own effects: thrifty
 // spends least, thorough most, popular pleases most (mood), ties cheaper.
 export function seatAnswer(s: GameState, e: CatalogueEvent, scale: number): string | null {
   const seat = handlerFor(s, e.domain);
@@ -141,7 +141,7 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   const p = c?.pending.find((x) => x.instanceId === instanceId);
   if (!c || !p) return false;
   const e = eventById(p.eventId);
-  // An event gone from the catalogue since a save was written passes.
+  // An event gone from the catalog since a save was written passes.
   if (!e) { c.pending = c.pending.filter((x) => x !== p); return false; }
   const choice = e.choices.find((x) => x.id === choiceId);
   if (!choice) return false;

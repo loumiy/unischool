@@ -69,7 +69,7 @@ console.log('tab gate tests');
 {
   const s = fresh();
   const lab = s.tech.find((t) => t.kind === 'facility' && t.facilityType === 'lab');
-  assert(!!lab, 'the seeded catalogue has a lab facility to gate on');
+  assert(!!lab, 'the seeded catalog has a lab facility to gate on');
 
   lab!.status = 'available';
   tickLadder(s);

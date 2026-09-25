@@ -20,7 +20,7 @@ export function isPlaceableKind(t: Buildable): boolean {
 // existing Buildable data (kind, facilityType, servesPopulation, tier,
 // capacityBonus), not a new field. Pure geometry: size grants and costs
 // nothing. A placement stores the footprint it was made with, so retuning
-// these only affects buildings placed afterwards.
+// these only affects buildings placed afterward.
 
 // Defensive fallback for a facilityType with no entry; every current type
 // has one. Sized like a lab.
@@ -31,7 +31,7 @@ const DEFAULT_FACILITY_FOOTPRINT: Footprint = { w: 3, h: 3 };
 // Rungs are listed largest first and matched on `min`; the last (min 0) is
 // the floor.
 //
-// Anything with a front door has an odd width, so its centred door sits on a
+// Anything with a front door has an odd width, so its centered door sits on a
 // tile a path can reach rather than on a seam (exempt: open ground, the
 // stadium and the village; see buildingSpec.ts's doorFamilyOf). Pinned by
 // test/building-spec.test.ts.
@@ -54,7 +54,7 @@ const DORM_FOOTPRINTS: SizeRung[] = [
 // Facilities whose footprint steps with students served. Everything else has
 // one fixed size in FACILITY_FOOTPRINTS.
 const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
-  // facilitiesData.ts's DINING_RUNGS. Bigger halls are multi-storey, so
+  // facilitiesData.ts's DINING_RUNGS. Bigger halls are multi-story, so
   // density climbs with size.
   diningHall: [
     { min: 14_000, fp: { w: 11, h: 9 } },
@@ -71,7 +71,7 @@ const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
     { min: 4_000, fp: { w: 5, h: 5 } },    // University Clinic
     { min: 0, fp: { w: 3, h: 3 } },        // Health & Counseling Center
   ],
-  // Renovating the general library adds storeys, not ground
+  // Renovating the general library adds stories, not ground
   // (facilitiesData.ts's nextLibraryFloor).
   library: [
     { min: 2_000, fp: { w: 9, h: 6 } },
@@ -256,7 +256,7 @@ export function awaitsSite(s: GameState, t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'done' && !(t.id in s.placements);
 }
 
-// The grid's centre for a footprint: Founders Hall's spot in a headless
+// The grid's center for a footprint: Founders Hall's spot in a headless
 // founding or a skipped opening.
 export function centredPlacement(fp: Footprint): Placement {
   return placementFor(

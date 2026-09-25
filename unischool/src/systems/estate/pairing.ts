@@ -1,10 +1,10 @@
 import type { GameState, Placement } from '../../state/types';
 import { isAcademicHall } from '../../data/techData';
 
-// Pairing bumps (Plan 26, v2's small layout effects): sensible neighbours are
+// Pairing bumps (Plan 26, v2's small layout effects): sensible neighbors are
 // worth a little. Residences near a dining hall lift housing; halls near a
 // library lift academic life. Each is the share of the kind that has the
-// neighbour, times PAIRING_POINTS, so it can never exceed that. Read by the
+// neighbor, times PAIRING_POINTS, so it can never exceed that. Read by the
 // satisfaction breakdown. The second of the two systems/ modules that read
 // the map (test/invariants.test.ts, section 4).
 

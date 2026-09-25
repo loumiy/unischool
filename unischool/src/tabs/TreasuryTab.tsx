@@ -55,10 +55,10 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const sectionsNote = teaching.courses === 0
     ? 'no course is offered yet'
     : teaching.overflow > 0
-      ? `every section is full and ${teaching.overflow.toLocaleString()} students are in overflow — the catalogue is smaller than the college`
+      ? `every section is full and ${teaching.overflow.toLocaleString()} students are in overflow — the catalog is smaller than the college`
       : teaching.fill >= 0.85
         ? `sections are running ${Math.round(teaching.fill * 100)}% full`
-        : `sections are running ${Math.round(teaching.fill * 100)}% full — the catalogue is bigger than the college`;
+        : `sections are running ${Math.round(teaching.fill * 100)}% full — the catalog is bigger than the college`;
 
   return (
     <div className="tab-content">
@@ -222,9 +222,9 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
       </div>
       {totalEnrolled(s.students) > 0 && (() => {
         // The break (Plan 36): what one more student costs a year at each
-        // size, at today's prestige, catalogue and price, against what they
+        // size, at today's prestige, catalog and price, against what they
         // pay. Where the lines cross, growing stops paying.
-        // Up to the most the catalogue can seat: past it the class is held
+        // Up to the most the catalog can seat: past it the class is held
         // to the room (instructionCapacity.ts), whatever it would cost.
         const now = totalEnrolled(s.students);
         const top = Math.max(now, instructionCapacity(s), 2_000);
@@ -242,7 +242,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 { name: 'Costs', points: sizes.map((n) => ({ x: n, y: marginalStudentCost(s, 1_000, undefined, n) * WEEKS_PER_YEAR })), format: moneyShort },
                 { name: 'Pays', points: sizes.map((n) => ({ x: n, y: s.finance.listedTuition })), format: moneyShort },
               ]}
-              note={`At today's prestige, catalogue and listed price. Every doubling past ${SCALE_FREE_BELOW.toLocaleString()} students adds to what each one costs to administer; where the lines cross, the next student costs more than they pay. The college has ${now.toLocaleString()}.`}
+              note={`At today's prestige, catalog and listed price. Every doubling past ${SCALE_FREE_BELOW.toLocaleString()} students adds to what each one costs to administer; where the lines cross, the next student costs more than they pay. The college has ${now.toLocaleString()}.`}
             />
           </section>
         );

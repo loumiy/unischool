@@ -10,7 +10,7 @@ import { rollCoachName } from './facultyData';
 import { makeRivalRng } from './rivalData';
 import { random, newId } from '../engine/random';
 
-// Student organisations (see docs/design/student-life.md), gated on campus
+// Student organizations (see docs/design/student-life.md), gated on campus
 // the player has built:
 //   1. Clubs form once a student center stands. A formation raises a petition
 //      the player answers in the summer admissions digest; clubs never stop
@@ -21,7 +21,7 @@ import { random, newId } from '../engine/random';
 //      sport clubs, which may petition to go varsity (eventData.ts's
 //      'varsity-petition') and become VarsityTeam records in s.orgs.teams.
 //
-// Mechanically an organisation costs money (financeSystem.ts sums
+// Mechanically an organization costs money (financeSystem.ts sums
 // upkeepPerWeek) and lifts the `social` satisfaction attribute, flat per org
 // (satisfactionSystem.ts). Both are read live off s.orgs every week, so
 // disbanding removes the effect immediately. Membership is display-only;
@@ -36,7 +36,7 @@ export const ORG_FORMATION_COOLDOWN_WEEKS = 6;
 // The digest is a section of the admissions modal, so keep it short.
 export const MAX_PETITIONS_PER_DIGEST = 4;
 
-// Organisations a campus can sustain, read against total enrolled (not beds).
+// Organizations a campus can sustain, read against total enrolled (not beds).
 export const STUDENTS_PER_CLUB = 220;
 export const STUDENTS_PER_CHAPTER = 900;
 // Absolute caps keep a 40-year run's list readable.
@@ -44,13 +44,13 @@ export const MAX_ACTIVE_CLUBS = 24;
 export const MAX_ACTIVE_CHAPTERS = 10;
 
 // Tuning: money. Sized in weeks of opex (moneyScale.ts) and fixed in dollars
-// when the organisation is approved. Re-deriving weekly would be circular
+// when the organization is approved. Re-deriving weekly would be circular
 // (opex -> pricier clubs -> higher opex), so an old club's budget fades
 // against a grown school's spending by design.
 export const CLUB_UPKEEP_WEEKS_OF_OPEX = 0.0015;    // ~0.15% of one week's opex, every week (~$68/wk at founding scale)
 export const CHAPTER_UPKEEP_WEEKS_OF_OPEX = 0.0060; // a chapter is a house, a staff liaison and an events budget: 4x a club
 
-// Tuning: satisfaction. A flat `social` contribution per live organisation,
+// Tuning: satisfaction. A flat `social` contribution per live organization,
 // capped in aggregate so student life cannot carry the attribute alone.
 export const CLUB_SOCIAL_BONUS = 0.6;          // points added to `social` per approved club
 export const CHAPTER_SOCIAL_BONUS = 2.5;       // significantly heavier per chapter — a chapter IS a social institution
@@ -78,8 +78,8 @@ export const CHAPTER_DECLINE_SATISFACTION_HIT = 3;
 // never stored: see orgMembership.
 export const CLUB_FOUNDING_MEMBERS = 14;      // the size a new club starts at, before the per-org roll below
 export const CHAPTER_FOUNDING_MEMBERS = 32;   // a chapter pledges a bigger founding class than a club draws
-export const ORG_FOUNDING_MEMBERS_VARIATION = 0.4; // +/- share rolled once per organisation, so no two are identical
-export const ORG_MEMBERSHIP_GROWTH_PER_YEAR = 0.045; // an established organisation keeps growing on its own
+export const ORG_FOUNDING_MEMBERS_VARIATION = 0.4; // +/- share rolled once per organization, so no two are identical
+export const ORG_MEMBERSHIP_GROWTH_PER_YEAR = 0.045; // an established organization keeps growing on its own
 // How hard membership tracks enrollment: 1 = fixed share of the student body,
 // 0 = never grows with the school. 0.5 means a school that quadruples doubles
 // its clubs' rolls.
@@ -343,7 +343,7 @@ const COACH_GROWTH_PLATEAU_YEARS = 6;
 // COACH_RETIREMENT_AGE (athleticsSystem.ts's growCoach).
 //
 // The card shows a scouted range, not the true ceiling: SCOUT_RANGE_WIDTH
-// wide, off-centre by up to half its width, narrowed by a better athletic
+// wide, off-center by up to half its width, narrowed by a better athletic
 // director.
 const VETERAN_SHARE = 0.35;
 const PROSPECT_AGE_MIN = 28;
@@ -840,7 +840,7 @@ export function seatCoach(team: VarsityTeam, role: VacantChair['role'], coach: C
 // varsity team lands in a narrow window across runs.
 export const VARSITY_PETITION_MIN_TENURE_YEARS = 3;
 
-// Pity timer: if a student centre has stood this long and no sport club has
+// Pity timer: if a student center has stood this long and no sport club has
 // ever formed, the next club formation is one.
 export const SPORT_CLUB_PITY_YEARS = 2;
 
@@ -1059,7 +1059,7 @@ export function orgMembership(org: StudentOrgBase, s: GameState): number {
   return Math.max(1, Math.min(enrolled, Math.round(grown * scale)));
 }
 
-// Weekly cost of every live organisation, summed by financeSystem.ts.
+// Weekly cost of every live organization, summed by financeSystem.ts.
 export function studentOrgUpkeep(s: GameState): number {
   const clubs = s.orgs.clubs.reduce((sum, c) => sum + c.upkeepPerWeek, 0);
   const chapters = s.orgs.chapters.reduce((sum, c) => sum + c.upkeepPerWeek, 0);

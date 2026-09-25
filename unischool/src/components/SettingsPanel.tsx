@@ -1,7 +1,7 @@
 import { TEXT_SCALES, setSettings, useSettings } from '../settings';
 import { useHotkeys } from './hotkeys';
 
-// Settings (Plan 34, from v2's): text size, colour vision and motion, and
+// Settings (Plan 34, from v2's): text size, color vision and motion, and
 // the sound (App.tsx passes SoundControls in).
 
 const SCALE_LABELS: Record<number, string> = { 1: 'Standard', 1.15: 'Larger', 1.3: 'Largest' };
@@ -25,9 +25,9 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
           ))}
         </fieldset>
         <fieldset className="settings-row">
-          <legend>Colours</legend>
+          <legend>Colors</legend>
           <button type="button" className={`startup-vern-btn ${s.vision === 'standard' ? 'active' : ''}`} aria-pressed={s.vision === 'standard'} onClick={() => setSettings({ vision: 'standard' })}>Standard</button>
-          <button type="button" className={`startup-vern-btn ${s.vision === 'safe' ? 'active' : ''}`} aria-pressed={s.vision === 'safe'} onClick={() => setSettings({ vision: 'safe' })}>Colour-vision safe</button>
+          <button type="button" className={`startup-vern-btn ${s.vision === 'safe' ? 'active' : ''}`} aria-pressed={s.vision === 'safe'} onClick={() => setSettings({ vision: 'safe' })}>Color-vision safe</button>
           <p className="settings-note">Good and bad news in blue and orange rather than green and red.</p>
         </fieldset>
         <fieldset className="settings-row">

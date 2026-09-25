@@ -61,7 +61,7 @@ console.log('research offer tests');
 
 // --- the mapping itself ----------------------------------------------
 {
-  assert(LAB_IDS.length > 0, 'the catalogue has research facilities at all');
+  assert(LAB_IDS.length > 0, 'the catalog has research facilities at all');
   for (const id of LAB_IDS) {
     const fields = labFields(id);
     assert(fields.length > 0, `${id} knows what field its work is in`);
@@ -116,12 +116,12 @@ console.log('research offer tests');
 
 // --- and the pools are genuinely different per facility ---------------
 {
-  // The old behaviour's signature: two labs in the same school, offered the
+  // The old behavior's signature: two labs in the same school, offered the
   // same thing. Pick two facilities whose fields differ and assert neither
   // can ever be offered the other's departmental work.
   const pairs = LAB_IDS.flatMap((a) => LAB_IDS.map((b) => [a, b] as const))
     .filter(([a, b]) => a !== b && labFields(a).join() !== labFields(b).join());
-  assert(pairs.length > 0, 'the catalogue has facilities in different fields to compare');
+  assert(pairs.length > 0, 'the catalog has facilities in different fields to compare');
 
   const s = fullyEquipped();
   let crossContamination = 0;

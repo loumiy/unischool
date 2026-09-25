@@ -83,7 +83,7 @@ console.log('cost model tests');
   assert(d.overflow === 0 && d.fill > 0.9, 'and the sections run nearly full with nobody in overflow');
   assert(near(financeBreakdown(s).instructionCost, d.cost), 'the statement charges the same line');
 
-  // A big catalogue at a small school runs empty sections dearly.
+  // A big catalog at a small school runs empty sections dearly.
   const big = fresh();
   withCourses(big, 200);
   enrol(big, 350);
@@ -93,7 +93,7 @@ console.log('cost model tests');
   assert(e.fill < 0.25 && e.overflow === 0, `and they run nearly empty (${Math.round(e.fill * 100)}% full)`);
   assert(instructionCostPerStudent(big) > instructionCostPerStudent(s) * 5, 'which is dear per student');
 
-  // A small catalogue at a big school runs enormous sections cheaply.
+  // A small catalog at a big school runs enormous sections cheaply.
   const crowded = fresh();
   withCourses(crowded, 6);
   enrol(crowded, 20_000);
@@ -104,7 +104,7 @@ console.log('cost model tests');
   // At exactly the ceiling every section is full and nobody is over.
   enrol(crowded, 6 * SEATS_PER_COURSE);
   const full = instructionDetail(crowded);
-  assert(full.sectionsPerCourse === maxSections && full.fill === 1 && full.overflow === 0, 'at the ceiling the catalogue is exactly full');
+  assert(full.sectionsPerCourse === maxSections && full.fill === 1 && full.overflow === 0, 'at the ceiling the catalog is exactly full');
 
   // The projection with more courses is the same model.
   assert(near(instructionCostPerStudentWith(s, 0), instructionCostPerStudent(s)), 'zero extra courses is today\'s figure');

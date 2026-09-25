@@ -314,7 +314,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
         {facilities.length === 0 ? (
           <p className="empty-note">
             No research facility has been finished yet. Every school can build one — a lab, an institute,
-            a studio or a computing centre — once its building and that program's entry course are done.
+            a studio or a computing center — once its building and that program's entry course are done.
           </p>
         ) : (
           <>

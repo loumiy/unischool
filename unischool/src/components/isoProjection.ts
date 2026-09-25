@@ -136,7 +136,7 @@ function frameFor(c: Camera): Frame {
 // to memoised children as a prop so they redraw. Nothing else may set it.
 let frame: Frame = frameFor(DEFAULT_CAMERA);
 
-// Returns the normalised camera applied, for the caller to store.
+// Returns the normalized camera applied, for the caller to store.
 export function setCamera(c: Camera): Camera {
   if (c.azimuth !== frame.camera.azimuth || c.pitch !== frame.camera.pitch) frame = frameFor(c);
   return frame.camera;
@@ -280,7 +280,7 @@ export function projectedCircle(
 }
 
 // A running-track outline: straight sides joined by semicircular ends (an
-// ellipse would bow the sides). `halfLen`/`halfWid` are from the centre, so
+// ellipse would bow the sides). `halfLen`/`halfWid` are from the center, so
 // the straights are (halfLen - halfWid) and the caps have radius halfWid.
 // `landscape` says which grid axis is the long one.
 export function projectedStadium(
@@ -333,7 +333,7 @@ export function worldBounds(): { minX: number; maxX: number; minY: number; maxY:
   };
 }
 
-// The same at the default camera: what the first view is centred and sized on.
+// The same at the default camera: what the first view is centered and sized on.
 export const WORLD = (() => {
   const N = Math.max(CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT);
   return { ...worldBounds(), width: N * TILE_W, height: N * TILE_H };

@@ -50,7 +50,7 @@ export interface CampusLayout {
   vernacular: Vernacular;
 }
 
-// Everything the scene reads from a placed Buildable. Fields the catalogue
+// Everything the scene reads from a placed Buildable. Fields the catalog
 // never changes for a given id (kind, facilityType, tier) ride on the id.
 function entryKey(e: PlacedEntry): string {
   const { t, p } = e;

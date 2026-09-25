@@ -82,7 +82,7 @@ const CRANE_YELLOW = '#d8a92a';
 // and a counter-jib with the weights on its end. The standing parts are
 // drawn in screen space, foreshortened with the tilt like everything else
 // that stands up. The jib points along a fixed grid direction (across the
-// plot, towards +col/−row), so it stays put on the ground as the camera
+// plot, toward +col/−row), so it stays put on the ground as the camera
 // turns rather than always swinging to the right of the screen.
 export function Crane({ col, row, w, h, height }: { col: number; row: number; w: number; h: number; height: number }) {
   const standing = Math.max(0.12, Math.min(1, heightScale()));

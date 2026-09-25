@@ -450,7 +450,7 @@ const AMERICAN_NATIONALITY_CHANCE = 0.72;
 const AMERICAN_NATIONALITY = { nationality: 'United States', flag: '🇺🇸' };
 
 // Non-American nationalities by origin pool. Chinese, Korean and Japanese
-// each map to one country so a name never gets a wrong neighbouring
+// each map to one country so a name never gets a wrong neighboring
 // nationality.
 export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: string }>> = {
   'Chinese': [
@@ -528,12 +528,12 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   Communication: ['media effects research', 'documentary practice', 'political communication'],
   'Art & Design': ['visual culture', 'typographic history', 'studio practice'],
   Music: ['music cognition', 'ethnomusicology', 'composition for ensembles'],
-  Economics: ['labour markets', 'behavioral economics', 'monetary policy'],
-  'Political Science': ['comparative democratisation', 'constitutional law', 'international security'],
+  Economics: ['labor markets', 'behavioral economics', 'monetary policy'],
+  'Political Science': ['comparative democratization', 'constitutional law', 'international security'],
   Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
   Sociology: ['urban inequality', 'social network analysis', 'the sociology of work'],
   Mathematics: ['combinatorics', 'applied topology', 'statistical learning theory'],
-  Physics: ['condensed matter theory', 'orbital mechanics', 'astrophysical modelling'],
+  Physics: ['condensed matter theory', 'orbital mechanics', 'astrophysical modeling'],
   Chemistry: ['catalysis', 'polymer synthesis', 'medicinal chemistry'],
   Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
   'Public Health': ['infectious disease epidemiology', 'nutrition policy', 'health disparities'],
@@ -545,19 +545,19 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   'Information Systems': ['applied cryptography', 'enterprise data governance', 'security operations'],
   'Mechanical Engineering': ['thermofluid systems', 'materials fatigue', 'robotic actuation'],
   'Electrical Engineering': ['power electronics', 'wireless signal processing', 'integrated circuit design'],
-  'Civil Engineering': ['structural resilience', 'geotechnical modelling', 'transportation networks'],
-  'Operations Research': ['stochastic optimisation', 'supply chain modelling', 'queueing theory'],
+  'Civil Engineering': ['structural resilience', 'geotechnical modeling', 'transportation networks'],
+  'Operations Research': ['stochastic optimization', 'supply chain modeling', 'queueing theory'],
   'Accounting & Finance': ['asset pricing', 'audit quality', 'corporate disclosure'],
   Marketing: ['consumer choice', 'brand equity', 'digital attribution'],
   Law: ['constitutional interpretation', 'contract theory', 'law and technology'],
-  Management: ['corporate strategy', 'entrepreneurship', 'organisational behaviour'],
+  Management: ['corporate strategy', 'entrepreneurship', 'organisational behavior'],
 };
 
 function rollBio(field: string): string {
   const institution = pick(BIO_INSTITUTIONS);
   const interests = FIELD_RESEARCH_INTERESTS[field] ?? ['the field'];
   const interest = pick(interests);
-  return `Earned a doctorate in ${field} at ${institution}; research centres on ${interest}.`;
+  return `Earned a doctorate in ${field} at ${institution}; research centers on ${interest}.`;
 }
 
 // ---------------------------------------------------------------------
@@ -640,7 +640,7 @@ export function facultySalary(teaching: number, research: number, tenureWeeks: n
 //
 // 4-6 base slots keeps early payroll heavy but survivable (at 2-4 a
 // founding school needed about one professor per course and couldn't save
-// for a dorm). Slots are occupied forever, so a full catalogue still needs
+// for a dorm). Slots are occupied forever, so a full catalog still needs
 // a roster in the dozens.
 // ---------------------------------------------------------------------
 const FACULTY_BASE_SLOTS_MIN = 4;
@@ -796,7 +796,7 @@ function clampPotential(v: number): number {
 }
 
 // The market the week the university is founded: a full pool. weeksListed
-// is staggered so the pool doesn't age out in one synchronised wave.
+// is staggered so the pool doesn't age out in one synchronized wave.
 export function initialCandidatePool(): Faculty[] {
   const pool: Faculty[] = [];
   const names: string[] = [];

@@ -50,7 +50,7 @@ const TEACHING_QUALITY_WEIGHT = 30;   // how good the courses actually are, as i
 const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, selective posture
 const RESEARCH_WEIGHT = 22;           // what the university's research has actually produced (see researchScore below)
 const WELFARE_WEIGHT = 20;            // the year's average satisfaction, scored from 40 to 80 (see welfareScore below)
-// Campus life: every athletics venue and rec-centre rung carries a
+// Campus life: every athletics venue and rec-center rung carries a
 // prestigeContribution (facilitiesData.ts); a full build reads about 0.55.
 const CAMPUS_LIFE_WEIGHT = 12;
 // Campus beauty (systems/estate/beauty.ts): either way from a neutral 50.
@@ -170,7 +170,7 @@ function campusLifeScore(s: GameState): number {
 // Research: its only path into prestige, as a capped, small-weighted input,
 // so research supplements standing and never substitutes for curriculum. A
 // monotone lifetime count. Publications are heavily discounted because they
-// are common; cancelled initiatives earn nothing.
+// are common; canceled initiatives earn nothing.
 const PUBLICATION_PRESTIGE_CREDIT = 0.1;
 const BREAKTHROUGH_PRESTIGE_CREDIT = 1;
 const PRIZE_PRESTIGE_CREDIT = 3;      // on top of what the winner's own output gains
@@ -199,7 +199,7 @@ export function researchScore(s: GameState): number {
 }
 
 // Endowment per enrolled student: what late-game campaigns buy, bounded.
-// Read against enrolled rather than beds, which would favour commuter schools.
+// Read against enrolled rather than beds, which would favor commuter schools.
 const ENDOWMENT_PER_SEAT_FOR_FULL_SCORE = 400_000;
 export function endowmentScore(s: GameState): number {
   const enrolled = totalEnrolled(s.students);
@@ -218,7 +218,7 @@ export function endowmentScore(s: GameState): number {
 export interface StandingMultiplier {
   label: string;
   value: number;   // 0..1
-  detail: string;  // what the ratio is, in the units a reader recognises
+  detail: string;  // what the ratio is, in the units a reader recognizes
 }
 
 export interface StandingInput {
@@ -575,7 +575,7 @@ export function computeResearchTarget(s: GameState): number {
   return researchStandingBreakdown(s).target;
 }
 
-const SOCIAL_FACILITIES_WEIGHT = 30;   // the rec-centre chain's own prestigeContribution, the same sum campusLifeScore reads
+const SOCIAL_FACILITIES_WEIGHT = 30;   // the rec-center chain's own prestigeContribution, the same sum campusLifeScore reads
 const SOCIAL_ORGANISATIONS_WEIGHT = 35; // clubs, chapters and housed chapters, through their own capped bonus
 const SOCIAL_ATHLETICS_WEIGHT = 30;     // athleticProgramStrength
 const SOCIAL_SATISFACTION_WEIGHT = 25;  // what the student body actually reports about its social life
@@ -641,7 +641,7 @@ function drift(current: number, target: number, rate: number): number {
 }
 
 // Lives here because test/invariants.test.ts section 5 confines writers of
-// s.self.reputation. Prestige drifts back toward its target afterwards.
+// s.self.reputation. Prestige drifts back toward its target afterward.
 export function setPrestigeForPlaytest(s: GameState, value: number): number {
   s.self.reputation = clamp(value, PRESTIGE_MIN, PRESTIGE_MAX);
   return s.self.reputation;

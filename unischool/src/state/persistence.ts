@@ -47,7 +47,7 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 72; // Plan 33: the summer's beats renumbered (Standing dropped); capital projects in the catalogue
+export const SAVE_VERSION = 72; // Plan 33: the summer's beats renumbered (Standing dropped); capital projects in the catalog
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
 export interface SavePayload {
@@ -372,8 +372,8 @@ function sanitizeAdvancement(state: GameState): void {
   if (state.advancement!.running && !campaignById(state.advancement!.running.campaignId)) state.advancement!.running = null;
 }
 
-// The event catalogue: a malformed record is dropped whole, and an event
-// waiting that the catalogue no longer has, or that is malformed, is
+// The event catalog: a malformed record is dropped whole, and an event
+// waiting that the catalog no longer has, or that is malformed, is
 // dropped (a letter left naming it is cleared when answered).
 function sanitizeCatalogue(state: GameState): void {
   const raw = state.catalogue as unknown;

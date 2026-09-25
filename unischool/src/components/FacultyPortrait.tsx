@@ -21,7 +21,7 @@ export function portraitOf(f: Faculty): Portrayed {
   };
 }
 
-// Procedural headshots in hand-rolled SVG with hardcoded colours (they are
+// Procedural headshots in hand-rolled SVG with hardcoded colors (they are
 // illustrative content, unlike icons.tsx's currentColor glyphs).
 //
 // Deterministic per id, with nothing stored in the save: each trait is its
@@ -70,7 +70,7 @@ const HAIR_COLORS = ['#1b1712', '#3b2314', '#8a5a2b'];
 const GRAY_HAIR = '#c8c2b8';
 
 // Chance of gray hair by tier. Keyed off facultyQualityTier rather than
-// tenure so a senior-calibre candidate reads the same as a hire.
+// tenure so a senior-caliber candidate reads the same as a hire.
 const GRAY_CHANCE_BY_TIER: Record<string, number> = {
   Distinguished: 0.65,
   Full: 0.4,
@@ -90,7 +90,7 @@ function hairColor(f: Portrayed): string {
 const BACKGROUND_TINTS = ['#d7c9a3', '#c9b98f', '#b9c9a8', '#c2b6c4', '#c8b49a'];
 
 // --- Hairstyles ---------------------------------------------------------
-// SVG paths keyed to the head circle (centre 12,9.5, radius 4.6). `back`
+// SVG paths keyed to the head circle (center 12,9.5, radius 4.6). `back`
 // is drawn behind the head for long hair.
 interface HairStyle { back?: string; front: string }
 

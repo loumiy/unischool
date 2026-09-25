@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------
-// The school's colours (Plan 18's PR B — see data/schoolColors.ts). Three
+// The school's colors (Plan 18's PR B — see data/schoolColors.ts). Three
 // things are pinned here: every offered pair passes the contrast rule the
 // register is drawn against, the pick reaches the founded university and
 // every rival is dealt a pair from the same table, and the pair is
@@ -34,14 +34,14 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-console.log('school colour tests');
+console.log('school color tests');
 
 // ---- The table ----
 assert(SCHOOL_COLOR_PAIRS.length >= 8 && SCHOOL_COLOR_PAIRS.length <= 12, 'eight to twelve pairs are offered');
 assert(new Set(SCHOOL_COLOR_PAIRS.map((p) => p.id)).size === SCHOOL_COLOR_PAIRS.length, 'every pair has its own id');
 assert(new Set(SCHOOL_COLOR_PAIRS.map((p) => p.name)).size === SCHOOL_COLOR_PAIRS.length, 'every pair has its own name');
 for (const pair of SCHOOL_COLOR_PAIRS) {
-  assert(/^#[0-9a-f]{6}$/.test(pair.primary) && /^#[0-9a-f]{6}$/.test(pair.secondary), `${pair.name}: both colours are six-digit lowercase hex`);
+  assert(/^#[0-9a-f]{6}$/.test(pair.primary) && /^#[0-9a-f]{6}$/.test(pair.secondary), `${pair.name}: both colors are six-digit lowercase hex`);
   assert(
     contrastRatio(TEXT_ON_PRIMARY, pair.primary) >= MIN_CONTRAST,
     `${pair.name}: cream on the primary reads at ${MIN_CONTRAST}:1 or better (${contrastRatio(TEXT_ON_PRIMARY, pair.primary).toFixed(2)})`,
@@ -65,7 +65,7 @@ const picked = SCHOOL_COLOR_PAIRS[4];
 const founded = reducer(pre, { type: 'START_GAME', name: 'Colours', vernacular: 'gothic', colors: schoolColorsOf(picked) });
 assert(founded.started, 'the school is founded');
 assert(founded.self.colors.primary === picked.primary && founded.self.colors.secondary === picked.secondary, 'START_GAME writes the picked pair');
-assert(colorPairName(founded.self.colors) === picked.name, 'and the pair can be named back from the two colours');
+assert(colorPairName(founded.self.colors) === picked.name, 'and the pair can be named back from the two colors');
 assert(founded.self.vernacular === 'gothic', 'the vernacular still comes through beside it');
 const defaulted = createInitialState('Default');
 assert(defaulted.self.colors.primary === FOUNDING_COLORS.primary && defaulted.self.colors.secondary === FOUNDING_COLORS.secondary, 'createInitialState defaults to the founding pair');

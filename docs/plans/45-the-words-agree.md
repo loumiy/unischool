@@ -12,7 +12,7 @@ A read of every player-facing string found text that was assembled wrong,
 text that said something the code does not do, and text that called one
 thing by several names.
 
-- **Placeholders filled badly.** The catalogue's `{class}` filled "the class
+- **Placeholders filled badly.** The catalog's `{class}` filled "the class
   of 7" into texts that already wrote "the", so the player read "the the
   class of 7". `{sport}` kept the team name's "Team" ("The Men's Soccer Team
   team"). `{school}` was a founded school's name ("Science has appeared in a
@@ -34,7 +34,7 @@ thing by several names.
   small drift between, and neither is an input); the Treasury saying
   nothing can start that cash cannot pay for (a campaign's building fund, a
   loan and, for a capital project, the endowment's half can pay); a library
-  renovation said to serve no one while its new storey goes up.
+  renovation said to serve no one while its new story goes up.
 - **One thing, several names.** The player's institution was "the
   university" and "the school" before any charter; the rankings were "U.S.
   News", a real publication; offices were sometimes lower case; housing was
@@ -51,7 +51,7 @@ thing by several names.
   "intramural"); `{school}` is `institutionName(s.self)`; `{building}` is
   only a roofed building (no open ground, courts, pool deck, stadium bowl or
   ornament; the chapel counts), with a leading "The" lowered mid-sentence.
-- **Two gates** in the catalogue's vocabulary: the dining petition takes
+- **Two gates** in the catalog's vocabulary: the dining petition takes
   `enrolledUnder: 1100`, and a new `mascotAtMost` reading (1 once the teams
   are named) keeps the mascot event to a college with no mascot.
 - **Assembly and plurals** fixed where they were built: research, campaigns,
@@ -59,7 +59,7 @@ thing by several names.
   listings, the opening coach, the campaign panel, the demand asks ("the
   Library").
 - **Mechanics told truthfully**: the promise goals match their titles
-  (thirty, twelve, two thousand, twenty; the catalogue promise names the
+  (thirty, twelve, two thousand, twenty; the catalog promise names the
   eleven it checks; the schools promise names no count); the week-9 letter
   names only what is missing; the year in review counts campaign closing
   lines; the prestige hints, the Treasury and the build notes say what the
@@ -68,11 +68,12 @@ thing by several names.
   institution; "the guide"; President, Registrar, Bursar, Provost, Athletic
   Director, Facilities Director, Dean of Students, Admissions, the
   Communications Office; residence hall; the interim CFO; Campus life and
-  Athletic standing; the summer's Students beat; build menu; add a storey;
+  Athletic standing; the summer's Students beat; build menu; add a story;
   the Hellenic Council; program, not major; "Year N".
-- **Spelling**: British in prose, with "program", building names ending in
-  "Center", tab names and course titles left as they are. The catalogue
-  test that pinned American spelling now pins British.
+- **Spelling**: American, always (the owner's call). All player-facing
+  text, docs and code comments; identifiers and save field names stay as
+  they are, since renaming a save field needs a version bump and a
+  migration. The catalog test pins American spelling.
 - **Quotes**: curly quotes and `&rsquo;` become straight ASCII.
 
 **As implemented:** everything above. The text in files Plan 43 was
@@ -85,6 +86,6 @@ editing at the same time follows the same rules there:
 
 `BoardLetter.tsx` still prints the current year, because a letter is
 stored as an id with no year; it is left as it is. `rollVars` no longer
-rolls a random founded school for `{school}`, so the catalogue's variable
+rolls a random founded school for `{school}`, so the catalog's variable
 rolls draw one fewer random number, and seeded runs differ slightly from
 before.

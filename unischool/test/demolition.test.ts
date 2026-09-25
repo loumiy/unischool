@@ -2,7 +2,7 @@
 // a building under construction called off returns its cost to where it was
 // paid from, settles its loan and clears its site; a standing building
 // demolished costs nothing, returns nothing, takes back a dorm's beds and
-// goes back into the catalogue as it first was. Founders Hall, a historic
+// goes back into the catalog as it first was. Founders Hall, a historic
 // building and a hall with programs in it stay up.
 
 import { createInitialState } from '../src/state/actions';
@@ -62,7 +62,7 @@ const facility = (s: GameState) => {
   const cash = s.finance.cash;
   s = reducer(s, { type: 'CANCEL_CONSTRUCTION', id: t.id });
   assert(s.finance.cash === cash + t.cost, 'calling it off returns its cost');
-  assert(node(s, t.id).status === 'available' && s.developing[t.id] === undefined && s.placements[t.id] === undefined, 'clears its site and puts it back in the catalogue');
+  assert(node(s, t.id).status === 'available' && s.developing[t.id] === undefined && s.placements[t.id] === undefined, 'clears its site and puts it back in the catalog');
   assert(s.log[0].message.includes('called off'), 'and says so');
   s = reducer(s, { type: 'CANCEL_CONSTRUCTION', id: t.id });
   assert(s.finance.cash === cash + t.cost, 'a second call-off returns nothing more');
@@ -137,7 +137,7 @@ const facility = (s: GameState) => {
   s = reducer(s, { type: 'DEMOLISH_BUILDING', id: t.id });
   const after = node(s, t.id);
   assert(s.finance.cash === cash, 'free, and with nothing back');
-  assert(after.status === 'available' && s.placements[t.id] === undefined, 'its site cleared and it is in the catalogue again');
+  assert(after.status === 'available' && s.placements[t.id] === undefined, 'its site cleared and it is in the catalog again');
   assert(after.backlog === undefined && after.builtYear === undefined, 'as it first was');
   assert(s.log[0].message.includes('demolished'), 'and the log says so');
 
@@ -160,8 +160,8 @@ const facility = (s: GameState) => {
     node(s, dorm.id).floorsAdded = 1;
     s.students.capacity += Math.round(dorm.effects!.capacityBonus! * 0.25);
     s = reducer(s, { type: 'DEMOLISH_BUILDING', id: dorm.id });
-    assert(s.students.capacity === before, 'and demolished takes them back, its added storey included');
-    assert(node(s, dorm.id).floorsAdded === undefined, 'and forgets the storey');
+    assert(s.students.capacity === before, 'and demolished takes them back, its added story included');
+    assert(node(s, dorm.id).floorsAdded === undefined, 'and forgets the story');
   } else {
     assert(false, 'a dorm is available at the founding');
   }

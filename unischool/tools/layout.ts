@@ -59,7 +59,7 @@ interface Site { id: string; row: number; col: number; rotated?: boolean }
 // diagonal; the camera sees a building's south (row + h) and east (col + w)
 // faces, so the halls that should be seen fronting a green stand to its
 // north and west. Nothing with a door is rotated onto an even side: a door
-// centred on an even face sits on the seam between two tiles.
+// centered on an even face sits on the seam between two tiles.
 // ---------------------------------------------------------------------
 const PLAN: Site[] = [
   // --- The academic core: the Grand Quad and the halls around it. The
@@ -115,7 +115,7 @@ const PLAN: Site[] = [
 
   // --- South: the South Quad on the Grand Quad's own axis, ringed by the
   // last six halls and closed by the old library, with the computing
-  // centre behind it and the market hall as the terminus of the axis. ---
+  // center behind it and the market hall as the terminus of the axis. ---
   { id: 'QUAD-S2', row: 83, col: 59 },                     // 9x9, below the research library
   { id: 'HALL-07', row: 83, col: 52, rotated: true },      // west side, fronting the quad
   { id: 'HALL-08', row: 83, col: 70, rotated: true },      // east side
@@ -128,7 +128,7 @@ const PLAN: Site[] = [
   { id: 'HALL-13', row: 108, col: 51 },
 
   // --- East: the recreation chain on the first lane behind the union, the
-  // grocery and the market hall on the second — the campus's town centre —
+  // grocery and the market hall on the second — the campus's town center —
   // then the Campus Quad with a dining hall on it, villages, and a court of
   // four towers. ---
   { id: 'REC-T2', row: 39, col: 82 },
@@ -160,14 +160,14 @@ const PLAN: Site[] = [
   { id: 'ATH-FIELD', row: 21, col: 45 },                   // 22x13
   { id: 'ATH-DIAMOND', row: 21, col: 69 },                 // 14x14
   { id: 'ATH-ARENA', row: 36, col: 45 },                   // 11x9
-  // The aquatic centre and the courts, in the north-east corner past the
+  // The aquatic center and the courts, in the north-east corner past the
   // diamond: the natatorium and the outdoor pool side by side, the tennis
   // courts along the lane below them.
   { id: 'ATH-NATATORIUM', row: 23, col: 86 },
   { id: 'POOL', row: 23, col: 94 },
   { id: 'TENNIS-COURTS', row: 29, col: 86 },
   // The field house (Plan 21's PR Q) closes the corner east of the pool,
-  // on the same lane as the aquatic centre.
+  // on the same lane as the aquatic center.
   { id: 'ATH-FIELDHOUSE', row: 22, col: 103 },             // 9x6
 ];
 
@@ -256,7 +256,7 @@ const WALKS: TileCoord[] = [
   ...run(35, 43, 35, 84), ...run(35, 59, 48, 59), ...run(35, 69, 48, 69),
   ...run(38, 70, 38, 113),
   // The north-east corner: the lane past the diamond, and the lanes round
-  // the aquatic centre and the courts.
+  // the aquatic center and the courts.
   ...run(22, 84, 38, 84), ...run(28, 84, 28, 113), ...run(34, 84, 34, 113), ...run(22, 93, 28, 93), ...run(22, 101, 28, 101),
   ...run(22, 113, 38, 113),
 ];
@@ -265,8 +265,8 @@ const WALKS: TileCoord[] = [
 // Apply it.
 // ---------------------------------------------------------------------
 // Slides the whole plan so its SCREEN extent (see the report at the end) is
-// centred on the grid, which is where the map opens centred: the plan was
-// drawn with Founders Hall at the grid's centre, but the campus that grew
+// centered on the grid, which is where the map opens centered: the plan was
+// drawn with Founders Hall at the grid's center, but the campus that grew
 // round it leans east and south of there.
 const OFFSET = { row: 1, col: 0 };
 for (const site_ of PLAN) { site_.row += OFFSET.row; site_.col += OFFSET.col; }
@@ -288,7 +288,7 @@ const problems: string[] = [];
 
 function site(id: string, row: number, col: number, rotated: boolean): void {
   const node = byId.get(id);
-  if (!node) { problems.push(`${id}: not in this save's catalogue`); return; }
+  if (!node) { problems.push(`${id}: not in this save's catalog`); return; }
   const fp = orientedFootprint(node, rotated);
   if (!footprintIsClear(placements, row, col, fp)) {
     const hit = Object.entries(placements).find(([, p]) =>
@@ -400,7 +400,7 @@ function route(from: TileCoord[], goal: (t: TileCoord) => boolean): TileCoord[] 
 }
 
 // Dead ends: a walk should end at a door or a junction, never in the grass.
-// Leaves (one path neighbour) are pruned repeatedly, keeping any tile a
+// Leaves (one path neighbor) are pruned repeatedly, keeping any tile a
 // visible door opens onto; open ground has no door to keep a stub for, and
 // gets a doorstep below only if the pruning left it unserved.
 const keep = new Set<string>();
@@ -547,7 +547,7 @@ for (const p of Object.values(placements)) {
     dMin = Math.min(dMin, c - r); dMax = Math.max(dMax, c - r); sMin = Math.min(sMin, c + r); sMax = Math.max(sMax, c + r);
   }
 }
-console.log(`screen extent: col-row ${dMin}..${dMax} (${dMax - dMin} half-tiles wide), col+row ${sMin}..${sMax} (${sMax - sMin} half-tiles tall), centre ${((dMin + dMax) / 2).toFixed(1)}, ${((sMin + sMax) / 2).toFixed(1)}`);
+console.log(`screen extent: col-row ${dMin}..${dMax} (${dMax - dMin} half-tiles wide), col+row ${sMin}..${sMax} (${sMax - sMin} half-tiles tall), center ${((dMin + dMax) / 2).toFixed(1)}, ${((sMin + sMax) / 2).toFixed(1)}`);
 if (pruned) console.log(`dead ends pruned: ${pruned} tiles`);
 const leaves = Object.keys(pathways).filter((key) => { const [r, c] = key.split(',').map(Number); return neighbours({ row: r, col: c }) <= 1; });
 console.log(`dead ends left: ${leaves.length}${leaves.length ? ` (${leaves.join(' ')})` : ''} — each a doorstep`);

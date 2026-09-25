@@ -3,14 +3,14 @@ import { heightScale, polyPoints, project, projectedCircle, type Camera, type Pt
 import { shadowOffset, sunScreenDir } from './light';
 import { roll, speciesOf, type Species } from '../data/treeData';
 
-// Trees on the campus map. Geometry here, colour in styles.css.
+// Trees on the campus map. Geometry here, color in styles.css.
 //
 // Everything about a tree derives from its tile's one stored seed, so a
 // tree looks the same every render. Trees are drawn in the same depth-sorted
 // pass as buildings (CampusMap.tsx) so they occlude and are occluded correctly.
 
 // The species and the hash live in data/treeData.ts (Plan 37), where the
-// reducer can honour a planting choice.
+// reducer can honor a planting choice.
 export type { Species } from '../data/treeData';
 
 export interface TreeShape {

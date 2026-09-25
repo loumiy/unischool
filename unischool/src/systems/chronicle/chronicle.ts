@@ -13,8 +13,8 @@ import { moneyShort } from '../../format';
 // game keeps for good (the history rows and the journal: see Plan 33's PR B),
 // given a kind (a founding, a building boom, troubles, a campaign, a rise,
 // a golden stretch, or nothing much); runs of a kind become eras, eras too
-// short to name fold into a neighbour, and each era is named from a
-// template and summarised. A pure reading, in draft at any time.
+// short to name fold into a neighbor, and each era is named from a
+// template and summarized. A pure reading, in draft at any time.
 
 export interface YearRecord {
   year: number;

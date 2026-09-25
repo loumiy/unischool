@@ -147,7 +147,7 @@ export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
   return whenMet(s, e.when);
 }
 
-// Any set of conditions in the catalogue's vocabulary (promises read theirs
+// Any set of conditions in the catalog's vocabulary (promises read theirs
 // here too).
 export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>>): boolean {
   const scale = priceScale(s);

@@ -196,8 +196,8 @@ export function serialiseReference(reference: Reference): string {
 // - Balanced builder: the design table in docs/plans/15-growth-has-a-cost.md
 //   (section 6), re-read for a college that opens teaching, which puts it
 //   about a decade ahead of those eras in standing: top fifty by year 5,
-//   rank #1 by year 20. Enrolment bands are wide because seeds diverge on
-//   when the catalogue is finished. Net margin is 25-40% while building and
+//   rank #1 by year 20. Enrollment bands are wide because seeds diverge on
+//   when the catalog is finished. Net margin is 25-40% while building and
 //   5-15% from year 35, and positive at 50 because a mature builder keeps
 //   building (balanceSim.ts's HEADROOM_OPEX_CAP). Cash is loose: "one to
 //   three years of surplus" is a relation, not a figure.
@@ -233,7 +233,7 @@ export const TARGETS: Reference = {
     { year: 50, cash: { lo: 0, hi: 75_000_000 }, enrolled: { lo: 0, hi: 480 }, prestige: { lo: 5, hi: 44 }, rank: { lo: 60, hi: 100 }, netMargin: { lo: -1, hi: 3 }, weeksInTheRed: { lo: 0, hi: 1_500 } },
   ],
   'Overbuilder (beds ahead of demand)': [
-    // Year 5's margin ceiling was 15% and year 35's enrolment ceiling 8,000
+    // Year 5's margin ceiling was 15% and year 35's enrollment ceiling 8,000
     // until Plan 35: on the larger founding gift the overbuilder stalls less,
     // and reads 16% at year 5 and 8,240 students at year 35.
     { year: 5, cash: { lo: -6_000_000, hi: 1_000_000 }, enrolled: { lo: 300, hi: 2_000 }, prestige: { lo: 30, hi: 65 }, rank: { lo: 40, hi: 90 }, netMargin: { lo: -0.5, hi: 0.25 }, weeksInTheRed: { lo: 0, hi: 260 } },

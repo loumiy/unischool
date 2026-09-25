@@ -10,7 +10,7 @@ export interface BoardLetter {
 export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
   'enter-2': {
     title: 'Two terms in deficit',
-    text: 'The college has spent more than it took in for two terms running. The board would like to see a surplus before it sees another building. Tuition, the payroll and the size of the catalogue are the usual places to look.',
+    text: 'The college has spent more than it took in for two terms running. The board would like to see a surplus before it sees another building. Tuition, the payroll and the size of the catalog are the usual places to look.',
   },
   'enter-3': {
     title: 'The board freezes construction',

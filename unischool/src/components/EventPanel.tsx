@@ -8,7 +8,7 @@ import { eventById, fill, scaledEffects } from '../systems/events/catalogue';
 import { catalogueOf, choiceCost } from '../systems/events/catalogueEngine';
 import { money } from '../format';
 
-// THE PANEL (Plan 32): the catalogue's inline events, waiting over the map
+// THE PANEL (Plan 32): the catalog's inline events, waiting over the map
 // while the clock runs. Each shows its weeks left and what each answer
 // does, in the sums the college will actually pay; one left alone takes
 // its default when its weeks run out. The board's letters are modal

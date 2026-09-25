@@ -87,7 +87,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     name: 'year-25-rich',
-    what: 'the catalogue done, cash piling up, rank held',
+    what: 'the catalog done, cash piling up, rank held',
     strategy: 'Completionist',
     year: 25,
   },

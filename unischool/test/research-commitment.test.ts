@@ -63,7 +63,7 @@ function equipped(): { s: GameState; labId: string; field: string } {
 }
 
 // Put `count` offered courses in `field` on the roster member `f`, taken
-// from the real catalogue so their tiers are the game's own.
+// from the real catalog so their tiers are the game's own.
 function teach(s: GameState, f: Faculty, count: number): Buildable[] {
   const courses = s.tech.filter((t) => t.kind === 'course' && t.requiresFaculty === f.field).slice(0, count);
   for (const c of courses) {
@@ -121,7 +121,7 @@ console.log('research commitment tests');
   const { s, field } = equipped();
   const prof = hire(s, field, 5, 'prof');
   const courses = teach(s, prof, 5);
-  assert(courses.length === 5, 'the catalogue gave us five courses in the field to work with');
+  assert(courses.length === 5, 'the catalog gave us five courses in the field to work with');
 
   const shed = coursesShedByCommitment(s, [prof.id]);
   assert(shed.length === 2, 'a five-slot professor sheds exactly two courses, not five');
@@ -171,7 +171,7 @@ console.log('research commitment tests');
   const stillTeaching = courses.filter((c) => after.courseFaculty[c.id] === prof.id);
   assert(stillTeaching.length === 3, `they keep teaching three of their five courses (kept ${stillTeaching.length})`);
   // Compared as sets: the helper reports them in shed order (lowest tier
-  // first) and this reads them back in catalogue order, and it is WHICH
+  // first) and this reads them back in catalog order, and it is WHICH
   // courses that matters, not the order they are listed in.
   const orphaned = courses.filter((c) => after.courseFaculty[c.id] === undefined).map((c) => c.id);
   assert(
@@ -183,8 +183,8 @@ console.log('research commitment tests');
     'their load now sits exactly at their reduced ceiling',
   );
 
-  // The old behaviour, stated as the thing that must not come back.
-  assert(orphaned.length !== courses.length, 'a commitment no longer empties a professor’s whole catalogue');
+  // The old behavior, stated as the thing that must not come back.
+  assert(orphaned.length !== courses.length, 'a commitment no longer empties a professor’s whole catalog');
 }
 
 // --- 2D: a colleague picks up what they can --------------------------

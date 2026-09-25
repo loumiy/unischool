@@ -283,8 +283,8 @@ function courseDemandByField(s: GameState): Map<string, DemandByMajor> {
 function demandSentence(field: string, demand: DemandByMajor | undefined, catalogue: number): string {
   if (!demand || demand.length === 0) {
     return catalogue > 0
-      ? `No ${field} course has been revealed yet — ${catalogue} in the catalogue are waiting behind buildings and prerequisites.`
-      : `Nothing in the catalogue asks for ${field}.`;
+      ? `No ${field} course has been revealed yet — ${catalogue} in the catalog are waiting behind buildings and prerequisites.`
+      : `Nothing in the catalog asks for ${field}.`;
   }
   const count = demand.reduce((n, g) => n + g.courses.length, 0);
   return `${count} revealed ${count === 1 ? 'course pulls' : 'courses pull'} on ${field}: `
@@ -350,7 +350,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
 //   solid      slots the current courseload takes: every offered course,
 //              staffed or not (techSystem.ts's usedFacultySlots).
 //   half-tone  courses revealed but not yet developed.
-//   dotted     the rest of the catalogue, still locked.
+//   dotted     the rest of the catalog, still locked.
 //   the rule   what the roster supplies; the thing hiring moves.
 // Rule past the ink: room. Inside the half-tone: at the ceiling, something
 // revealed cannot start. Inside the solid: a course is unstaffed. A fainter
@@ -365,9 +365,9 @@ function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
 
   const title = [
     `${c.field}: ${c.supply} course ${c.supply === 1 ? 'slot' : 'slots'} supplied by ${c.hired} ${c.hired === 1 ? 'professor' : 'professors'}.`,
-    `${c.offered} taken by courses on offer now, ${c.available} more revealed and not yet developed, ${c.catalogue} in the catalogue all told.`,
+    `${c.offered} taken by courses on offer now, ${c.available} more revealed and not yet developed, ${c.catalogue} in the catalog all told.`,
     taken > 0 ? `${taken} ${taken === 1 ? 'slot is' : 'slots are'} with a research project.` : '',
-    beyond ? 'The department can already teach its whole catalogue.' : '',
+    beyond ? 'The department can already teach its whole catalog.' : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -424,7 +424,7 @@ function DepartmentRow(
         <span className="dept-slots" title="Course slots taken by what is offered now, against what the roster supplies">
           {c.offered}/{c.supply}
         </span>
-        <span className="dept-catalogue" title={`${c.catalogue} courses in the catalogue ask for ${c.field}`}>
+        <span className="dept-catalogue" title={`${c.catalogue} courses in the catalog ask for ${c.field}`}>
           {c.catalogue}
         </span>
         <span className="dept-people">
@@ -664,7 +664,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text="Every department the college could have, whether or not anybody is in it. The meter on each row is drawn to one scale across the whole board: the solid part is the slots its courses take now, the half-tone the courses revealed but not yet developed, the dotted tail the rest of the catalogue — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
+            <HelpHint text="Every department the college could have, whether or not anybody is in it. The meter on each row is drawn to one scale across the whole board: the solid part is the slots its courses take now, the half-tone the courses revealed but not yet developed, the dotted tail the rest of the catalog — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
           </span>
           <span className="stat">{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
@@ -677,8 +677,8 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
           {' '}<strong>{cap.total.available}</strong> more revealed and waiting.
           {toFinish > 0
-            ? ` Teaching the whole catalogue takes ${cap.total.catalogue} slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the slots a new hire brings, fewer if you keep them long enough to grow.`
-            : ' Every department can already teach its whole catalogue.'}
+            ? ` Teaching the whole catalog takes ${cap.total.catalogue} slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the slots a new hire brings, fewer if you keep them long enough to grow.`
+            : ' Every department can already teach its whole catalog.'}
         </p>
       </section>
 
@@ -713,7 +713,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           <span className="capacity-legend">
             <span className="capacity-key-pair"><span className="capacity-key offered" />offered</span>
             <span className="capacity-key-pair"><span className="capacity-key available" />revealed</span>
-            <span className="capacity-key-pair"><span className="capacity-key locked" />catalogue</span>
+            <span className="capacity-key-pair"><span className="capacity-key locked" />catalog</span>
             <span className="capacity-key-pair"><span className="capacity-key rule" />slots supplied</span>
           </span>
           <span className="dept-slots">used/have</span>

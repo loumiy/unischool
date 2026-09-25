@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 // THE PLAYER'S SETTINGS (Plan 34, from v2's; V2 #52): text size, a
-// colour-vision-safe set of signal colours, and reduced motion beside the
+// color-vision-safe set of signal colors, and reduced motion beside the
 // operating system's own. Per-browser conveniences, kept outside the save
 // in their own key and read defensively: a browser that refuses storage
 // plays at the defaults. Sound keeps its own store (audio/, PR G).
@@ -78,7 +78,7 @@ export function reducedMotion(): boolean {
 }
 
 // Onto the page: the text scale multiplies every --text-* token, the
-// colour-vision set swaps the signal colours, and data-motion quiets every
+// color-vision set swaps the signal colors, and data-motion quiets every
 // animation (styles.css).
 export function applySettings(s: GameSettings = current): void {
   if (typeof document === 'undefined') return;

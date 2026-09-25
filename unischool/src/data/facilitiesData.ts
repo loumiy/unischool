@@ -160,7 +160,7 @@ const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 // Buildable: engine/reducer.ts's RENOVATE_LIBRARY returns the placed node to
 // 'developing' and on completion raises its servesPopulation/upkeepPerWeek
 // in place. Existing floors keep serving during the work (types.ts's
-// servingPopulation). The map shows a storey per floor added
+// servingPopulation). The map shows a story per floor added
 // (buildingMotifs.tsx's addedFloors).
 //
 // Maxed tier 1 (1,200 + 3 floors) plus tier 2 serves 12,325, adequate to
@@ -307,7 +307,7 @@ export const VENUE_SEATS: Readonly<Record<string, number>> = {
 
 // Venue prestigeContribution, sized to the building. The five (0.40) plus the
 // rec chain (0.15) reach 0.55 of prestigeSystem.ts's campus-life term; the
-// rest comes from organisations, programs and titles.
+// rest comes from organizations, programs and titles.
 const ATHLETICS_FIELD_PRESTIGE = 0.06;
 const ATHLETICS_ARENA_PRESTIGE = 0.10;
 const ATHLETICS_DIAMOND_PRESTIGE = 0.04;
@@ -680,7 +680,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'performingArtsCenter',
       name: 'Performing Arts Center',
-      description: `A campus landmark: a concert hall and theatre seating ${PERFORMING_ARTS_CENTER_SERVES.toLocaleString()} students, and the venue Music's capstone courses perform in.`,
+      description: `A campus landmark: a concert hall and theater seating ${PERFORMING_ARTS_CENTER_SERVES.toLocaleString()} students, and the venue Music's capstone courses perform in.`,
       cost: PERFORMING_ARTS_CENTER_COST,
       duration: PERFORMING_ARTS_CENTER_WEEKS,
       prereqs: [...MUSIC_TIER2_IDS],

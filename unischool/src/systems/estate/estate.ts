@@ -58,7 +58,7 @@ export function canRenovate(t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'done' && (t.renovationWeeks ?? 0) === 0 && (t.backlog ?? 0) > 0;
 }
 
-// Added storeys (Plan 26): a dorm or a dining hall can go up by up to two
+// Added stories (Plan 26): a dorm or a dining hall can go up by up to two
 // floors, a quarter more capacity each, built over twelve weeks while it
 // stays open.
 export const EXTENSION_MAX_STOREYS = 2;
@@ -76,7 +76,7 @@ export function extensionCost(t: Buildable): number {
   return Math.round(t.cost * EXTENSION_COST_SHARE);
 }
 
-// What one more storey adds: beds for a dorm, seats for a dining hall, a
+// What one more story adds: beds for a dorm, seats for a dining hall, a
 // quarter of what it was built with.
 export function extensionGain(t: Buildable): number {
   if (t.kind === 'dorm') return Math.round((t.effects?.capacityBonus ?? 0) * EXTENSION_GAIN);

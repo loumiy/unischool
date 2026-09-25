@@ -33,7 +33,7 @@ export interface AmbienceLevels {
 
 // How deep into winter the week is, 0 to 1: this game's winter runs from
 // week 44 to week 8 and is deepest at the turn of the year (as the
-// catalogue's winter condition reads it).
+// catalog's winter condition reads it).
 export function winterDepth(week: number): number {
   const fromNewYear = week <= WEEKS_PER_YEAR / 2 ? week : week - WEEKS_PER_YEAR;
   return Math.max(0, 1 - Math.abs(fromNewYear) / 9);

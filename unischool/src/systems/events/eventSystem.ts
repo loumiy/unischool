@@ -94,7 +94,7 @@ function fireChampionshipReport(s: GameState): boolean {
 }
 
 // The first sport club's beat (naming the mascot), on the first quiet week
-// after the club is recognised; the flag just clears if a mascot exists.
+// after the club is recognized; the flag just clears if a mascot exists.
 function fireMascotBeat(s: GameState): boolean {
   if (!s.orgs.mascotBeatPending) return false;
   if (s.self.mascot) { s.orgs.mascotBeatPending = false; return false; }
@@ -263,7 +263,7 @@ export function tickEvents(s: GameState): void {
   if (fireOpeningLetter(s)) return;
 
   rollDecisionEvent(s);
-  // The catalogue (catalogueEngine.ts): a letter only on a week nothing
+  // The catalog (catalogueEngine.ts): a letter only on a week nothing
   // else claimed; an inline event joins the panel and the clock runs on.
   tickCatalogue(s);
 }

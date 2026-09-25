@@ -33,14 +33,14 @@ import { money, moneyShort, surnameOf } from '../format';
 //     programs that have a home.
 //   - A school forms a section once one of its programs is housed, drawn one
 //     row per program (nine cells in tier order, unrevealed ones empty),
-//     under the school's colour and mark, and its name once founded.
+//     under the school's color and mark, and its name once founded.
 //   - A major whose tier-2 quartet is complete (`program-established:<prefix>`)
 //     becomes its own sub-group and reveals its tier-3s.
 //   - A housed graduate program appears as a sub-group of its home school.
 // A revealed course is never hidden again; "locked" means revealed but
 // blocked (a faculty gate or cross-major prereq), never "undiscovered".
 
-// The catalogue's own completion is the panel's headline figure.
+// The catalog's own completion is the panel's headline figure.
 const CATALOG_RING_SIZE = 46;
 
 // A sub-group inside a school section: a completed major or a revealed
@@ -112,7 +112,7 @@ function buildSections(s: GameState, revealedGrad: Set<string>): DiscoverySectio
     }
 
     // A school's name is revealed on founding (six programs housed in one
-    // hall); until then it shows only its colour and mark. A hall with a
+    // hall); until then it shows only its color and mark. A hall with a
     // `donorSurname` carries donor text as its `name`, used verbatim.
     const founded = isSchoolFounded(s, school.name);
     const mark = schoolMark(school.name);
@@ -204,7 +204,7 @@ function schoolGroups(s: GameState, sections: DiscoverySection[]): SchoolGroup[]
   return groups;
 }
 
-// Which school each course belongs to (static catalogue, memoized).
+// Which school each course belongs to (static catalog, memoized).
 let courseSchoolMap: Map<string, { key: string; school: string }> | null = null;
 function courseSchools(): Map<string, { key: string; school: string }> {
   if (courseSchoolMap) return courseSchoolMap;
@@ -244,7 +244,7 @@ function cellState(s: GameState, t: Buildable): CellState {
 }
 
 // The grade chip, for a course's own grade and for aggregates alike. The
-// letter always shows; the tint is only a cue (colour-blind players, small sizes).
+// letter always shows; the tint is only a cue (color-blind players, small sizes).
 export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
   return (
     <span className={`grade-chip grade-${grade.toLowerCase()} ${size}`} title={title}>
@@ -898,7 +898,7 @@ function ProgramRowView(
   );
 }
 
-// A school's group: heading (name once founded, colour and mark before; see
+// A school's group: heading (name once founded, color and mark before; see
 // data/schoolPalette.ts), grade and rows.
 function SchoolGroupView(
   { s, act, group, lookup, selectedId, onSelect, loads, dnd }:
@@ -1295,7 +1295,7 @@ export default function CurriculumTab(
               />
               <span className="stat">{doneCourses} / {courses.length}<br />developed</span>
             </span>
-            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalogue" loads={loads} />
+            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" loads={loads} />
             <HelpHint
               align="end"
               text='One row per program, grouped by school — a school is named once six of its programs share a hall. Each row leads with its next start: the course, the strongest free teacher and the grade they would earn; Develop takes it, "choose…" opens the course to pick somebody else. Programs are founded from an academic hall on the map — the strip above says which halls have room. Drag a professor onto another course in the same department to swap them, and both grades preview while you hold.'

@@ -1,6 +1,6 @@
 // Hand-rolled inline SVG icons (no icon library, like CampusMap.tsx's plain
 // SVG). Convention: a 24x24 viewBox, stroke=currentColor so each icon takes
-// its button's text colour (including the `.active` state), and simple
+// its button's text color (including the `.active` state), and simple
 // primitives rather than hand-fit curves. Sizing lives in styles.css
 // (.toolbar-icon-btn svg), so callers pass no width/height.
 const STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -75,7 +75,7 @@ export function HistoryIcon() {
 }
 
 // A basketball: a circle with a cross and two bowed seams reads as a ball
-// even at 20px, where a panelled soccer ball collapses.
+// even at 20px, where a paneled soccer ball collapses.
 export function AthleticsIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>

@@ -19,7 +19,7 @@ import type { GameState } from '../src/state/types';
 
 const WEEKS_PER_YEAR = 52;
 
-// The catalogue, read from the real seed data so content changes are
+// The catalog, read from the real seed data so content changes are
 // picked up automatically.
 const tech = initialTech();
 const facilities = initialFacilities();

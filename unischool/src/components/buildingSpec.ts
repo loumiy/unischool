@@ -2,7 +2,7 @@ import type { Buildable, FacilityType, Vernacular } from '../state/types';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 
 // What a placed Buildable is, dimensionally: its architectural motif, its
-// storey count and therefore its height. Free of JSX on purpose — this module
+// story count and therefore its height. Free of JSX on purpose — this module
 // answers questions about buildings and buildingMotifs.tsx turns the answers
 // into polygons, so everything here would survive a renderer change. Every
 // rule keys on data the Buildable already carries (kind, facilityType,
@@ -15,8 +15,8 @@ export type Motif =
   | 'tower'        // a residential tower: a small plan carried very high, over a retail podium
   | 'portico'      // library / performing arts / gallery: flat roof, rooflights
   | 'block'        // the university hospital: a big institutional mass, flat-roofed, rooftop plant
-  | 'pavilion'     // student centre, dining, health, grocery: low, a unit or two
-  | 'hangar'       // rec centre, gym, arena, natatorium: clear-span vault
+  | 'pavilion'     // student center, dining, health, grocery: low, a unit or two
+  | 'hangar'       // rec center, gym, arena, natatorium: clear-span vault
   | 'works'        // labs: low, flat, crowded with rooftop plant
   | 'grounds'      // quad, field, courts, diamond, pool: markings, no mass
   | 'bowl'         // the football stadium: stands around a gridiron
@@ -139,12 +139,12 @@ export function motifOf(t: Buildable): Motif {
   return 'pavilion';
 }
 
-// Storeys: the one number a building's height comes from.
+// Stories: the one number a building's height comes from.
 // wallHeightOf = storeysOf * STOREY and windowRanksOf = storeysOf, so height
 // and window ranks cannot disagree. A capacity ladder picks the floor count,
 // as campusMap.ts's ladders pick the footprint.
 
-// Storeys added after the fact (the library renovation, see facilitiesData's
+// Stories added after the fact (the library renovation, see facilitiesData's
 // nextLibraryFloor and the reducer's RENOVATE_LIBRARY). Read generically off
 // floorsAdded so anything that gains floors gets the same treatment.
 function addedFloors(t: Buildable): number {
@@ -158,7 +158,7 @@ export function floorsUnderConstruction(t: Buildable): number {
   return t.renovatingFrom !== undefined ? 1 : 0;
 }
 
-// Every academic hall stands four storeys.
+// Every academic hall stands four stories.
 const ACADEMIC_HALL_STOREYS = 4;
 
 // A residential tower is a shaft on a retail podium, counted separately
@@ -168,10 +168,10 @@ const TOWER_SHAFT_STOREYS = 12;
 
 function dormStoreys(beds: number): number {
   if (beds >= DORM_TOWER_MIN_BEDS) return TOWER_PODIUM_STOREYS + TOWER_SHAFT_STOREYS;
-  // A village is a plot of small houses, so its storey count is one house's.
+  // A village is a plot of small houses, so its story count is one house's.
   if (beds >= DORM_VILLAGE_MIN_BEDS) return 2;
   if (beds >= 1_000) return 6;
-  if (beds >= 500) return 4;     // campusData.ts describes a four-storey residence hall
+  if (beds >= 500) return 4;     // campusData.ts describes a four-story residence hall
   return 3;
 }
 
@@ -212,15 +212,15 @@ export function storeysOf(t: Buildable): number {
   return 2;
 }
 
-// Height of the clear-span motifs, in metres: a sports hall is one volume
-// about two and a half storeys tall, and a stadium's rim is higher.
+// Height of the clear-span motifs, in meters: a sports hall is one volume
+// about two and a half stories tall, and a stadium's rim is higher.
 const CLEAR_SPAN_METRES: Partial<Record<Motif, number>> = {
   hangar: 10,
   bowl: 16,
 };
 
 // How tall the walls stand, in screen units, before any roof.
-// The grand landmarks' full heights, in metres (landmarks.tsx draws them).
+// The grand landmarks' full heights, in meters (landmarks.tsx draws them).
 export const LANDMARK_HEIGHT_METRES: Record<string, number> = {
   'LANDMARK-CAMPANILE': 52,
   'LANDMARK-DOME': 34,
@@ -237,14 +237,14 @@ export function wallHeightOf(t: Buildable): number {
   return up(CLEAR_SPAN_METRES[motif] ?? 0);
 }
 
-// Ranks of windows: one per storey. A clear-span volume gets a single
+// Ranks of windows: one per story. A clear-span volume gets a single
 // clerestory band instead.
 export function windowRanksOf(t: Buildable): number {
   const storeys = storeysOf(t);
   return storeys > 0 ? storeys : 1;
 }
 
-// Ridge rise above the eaves, in metres. Unlisted motifs are flat-roofed.
+// Ridge rise above the eaves, in meters. Unlisted motifs are flat-roofed.
 const GEORGIAN_RIDGE_METRES: Partial<Record<Motif, number>> = {
   // Shallow: an academic hall's roof is a hip set behind a parapet, not a
   // barn gable.
@@ -253,7 +253,7 @@ const GEORGIAN_RIDGE_METRES: Partial<Record<Motif, number>> = {
   pavilion: 2.0,
 };
 
-// A residence hall's ridge by storey count: a three-storey hall keeps a
+// A residence hall's ridge by story count: a three-story hall keeps a
 // domestic pitch, taller halls get the academic halls' shallow hip.
 function georgianResidentialRidgeMetres(storeys: number): number {
   if (storeys <= 3) return 4.2;
@@ -306,7 +306,7 @@ export function windowWidthOf(t: Buildable): number {
   return across(WIDE_WINDOW_MOTIFS.includes(motifOf(t)) ? WIDE_WINDOW_W_METRES : WINDOW_W_METRES);
 }
 
-// Each rank's sill height in screen units above the base, one per storey.
+// Each rank's sill height in screen units above the base, one per story.
 export function rankSills(ranks: number): number[] {
   return Array.from({ length: Math.max(0, ranks) }, (_, i) => i * STOREY + SILL_HEIGHT);
 }
@@ -316,7 +316,7 @@ export function clerestorySill(wallHeight: number): number {
   return Math.max(0, wallHeight - up(CLERESTORY_HEAD_DROP_METRES) - WINDOW_HEIGHT);
 }
 
-// Floor lines in screen units above the base: storeys - 1 of them.
+// Floor lines in screen units above the base: stories - 1 of them.
 export function floorLinesOf(t: Buildable): number[] {
   const storeys = storeysOf(t);
   return Array.from({ length: Math.max(0, storeys - 1) }, (_, i) => (i + 1) * STOREY);
@@ -337,7 +337,7 @@ interface DoorSpec {
 const DOOR_FAMILIES: Record<DoorFamily, DoorSpec> = {
   // Double height, reaching into the first floor, up a flight of five.
   formal: { widthMetres: 4.0, heightMetres: 5.4, thresholdMetres: 1.4, treads: 5 },
-  // Must fit under the eaves course of its shortest user, the one-storey
+  // Must fit under the eaves course of its shortest user, the one-story
   // (3.9 m) campus restaurant; Door skips a door taller than its wall.
   civic: { widthMetres: 2.6, heightMetres: 3.0, thresholdMetres: 0.25, treads: 1 },
   residential: { widthMetres: 2.2, heightMetres: 3.0, thresholdMetres: 0.3, treads: 1 },
@@ -405,13 +405,13 @@ export const PLINTH = up(0.7);
 export const CORNICE = up(1.05);
 // The parapet above the cornice is per-vernacular: see parapetOf(v).
 
-// The centre bay projects, rises past the cornice and carries a pediment.
+// The center bay projects, rises past the cornice and carries a pediment.
 export const PAVILION_DEPTH = across(1.9);
 export const PAVILION_BAYS = 4;
 export const PAVILION_RISE = up(2.1);
 export const PEDIMENT_RISE = up(2.9);
 
-// The portico: four columns clear of the centre bay under an entablature.
+// The portico: four columns clear of the center bay under an entablature.
 export const PORTICO_COLUMNS = 4;
 export const PORTICO_HEIGHT = up(10.4);         // up to the second-floor line
 export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is its square
@@ -436,7 +436,7 @@ export const RECESS_OVERHANG = across(1.1);
 export const CORE_PLAN = across(6.0);
 export const CORE_RISE = up(15.0);
 export const CORE_CAP_RISE = up(2.4);
-// The porch (Gothic entrance) is the centre bay itself, with a pointed arch
+// The porch (Gothic entrance) is the center bay itself, with a pointed arch
 // and a steep gable. It stands lower than the wall so the main wall's lancets
 // show above it.
 export const PORCH_HEIGHT_FRACTION = 0.66;
@@ -448,7 +448,7 @@ export const PORCH_ARCH_HEIGHT = 0.66;
 export const BUTTRESS_PLAN = across(1.15);
 export const BUTTRESS_SETOFF_FRACTION = 0.58;
 export const BUTTRESS_SETOFF_DEPTH = 0.45;
-// Engaged portico: the columns stand just clear of the centre bay.
+// Engaged portico: the columns stand just clear of the center bay.
 export const PORTICO_STANDOFF = across(0.4);
 export const ENTABLATURE = up(1.5);
 
@@ -502,7 +502,7 @@ const SLATE = '#5f6b5f';
 const DECK = '#7c8377';
 
 // The named walls every vernacular supplies. materialOf maps a Buildable onto
-// one of these names, never onto a colour.
+// one of these names, never onto a color.
 export interface MaterialSet {
   brickRed: Material;
   brickBuff: Material;
@@ -557,13 +557,13 @@ export interface StonePalette {
 }
 
 export interface VernacularRoof {
-  // Ridge rise above the eaves in metres, by motif. Absent means flat.
+  // Ridge rise above the eaves in meters, by motif. Absent means flat.
   ridgeMetres: Partial<Record<Motif, number>>;
   residentialRidgeMetres(storeys: number): number;
   // Wall height above the cornice, in units. Zero means no parapet (the roof
   // springs from the eaves).
   parapet: number;
-  // Roof overhang past the walls, in metres. Absent means none.
+  // Roof overhang past the walls, in meters. Absent means none.
   eavesMetres?: number;
 }
 
@@ -579,7 +579,7 @@ export type WindowShape =
 
 // What stands at a building's way in, per motif as well as per vernacular.
 export type EntrancePart =
-  | 'portico'    // a rank of columns standing clear of a projecting centre bay
+  | 'portico'    // a rank of columns standing clear of a projecting center bay
   | 'colonnade'  // the same columns, run the length of the front
   | 'canopy'     // a slab on two posts
   | 'porch'      // buttressed, pointed-arched — the Gothic way in
@@ -609,7 +609,7 @@ export interface VernacularParts {
   hood?: boolean;
   chimneys?: boolean;
   dormers?: boolean;
-  // A bell-gable (espadaña) above the centre of a hall's and pavilion's front.
+  // A bell-gable (espadaña) above the center of a hall's and pavilion's front.
   bellGable?: boolean;
   // Gothic: buttresses at every bay line down the long walls,
   buttresses?: boolean;
@@ -668,19 +668,19 @@ const GEORGIAN: VernacularSpec = {
   massing: 'solid',
 };
 
-// Collegiate Gothic: grey ashlar, steep unparapeted roofs, a spire.
+// Collegiate Gothic: gray ashlar, steep unparapeted roofs, a spire.
 // `render`, `curtain` and `clinical` must equal Georgian's: those are the
 // invariant motifs' walls (enforced in test/building-spec.test.ts).
 
 // Bluer than Georgian's slate at the same lightness: roof faces are shaded
-// multiplicatively off this colour, so a darker slate makes a steep hip read
+// multiplicatively off this color, so a darker slate makes a steep hip read
 // as one flat plate.
 const GOTHIC_SLATE = '#5a6270';
 // Georgian's lead deck, to keep the campus to three roof tones.
 const GOTHIC_DECK = '#7c8377';
 
 const GOTHIC_MATERIALS = {
-  // The academic halls: grey ashlar, kept clear of `render`.
+  // The academic halls: gray ashlar, kept clear of `render`.
   brickRed: { wall: '#8a8b86', roof: GOTHIC_SLATE },
   // Support buildings in warm sandstone, pushed warm enough to clear the
   // palette distance check against the halls and `render`.
@@ -697,7 +697,7 @@ const GOTHIC_MATERIALS = {
 const GOTHIC: VernacularSpec = {
   materials: GOTHIC_MATERIALS,
   stone: {
-    // Cooler than Georgian's so the bands read against grey walls.
+    // Cooler than Georgian's so the bands read against gray walls.
     glass: PAINTED_SASH,
     trim: '#e6e3d6',
     // A pale lead rather than gold: the spire's finial must still show.
@@ -707,7 +707,7 @@ const GOTHIC: VernacularSpec = {
   roof: {
     ridgeMetres: {
       // Gothic's roof is the building. It must be deep to read as steep: a
-      // hall's hip climbs 20-odd metres of span.
+      // hall's hip climbs 20-odd meters of span.
       hall: 13.0,
       village: 6.0,
       pavilion: 5.0,
@@ -966,7 +966,7 @@ export interface VernacularChoice {
 
 export const VERNACULAR_CHOICES: VernacularChoice[] = [
   { id: 'georgian', label: 'Georgian', blurb: 'Red brick and white trim, under a gilded cupola.' },
-  { id: 'gothic', label: 'Collegiate Gothic', blurb: 'Grey ashlar and steep slate, under a spire.' },
+  { id: 'gothic', label: 'Collegiate Gothic', blurb: 'Gray ashlar and steep slate, under a spire.' },
   { id: 'classical', label: 'Classical', blurb: 'Limestone and columns under copper roofs, and a stone dome.' },
   { id: 'mission', label: 'Mission', blurb: 'Cream stucco and red tile, around a shaded arcade.' },
   { id: 'modern', label: 'Modern', blurb: 'White panel, glass and burnt-orange brick, under flat roofs.' },
@@ -1051,7 +1051,7 @@ export function windowOutline(
       return [[u0 + i, v0], [u1 - i, v0], [u1 - i, v1], [u0 + i, v1]];
     }
     case 'ribbon': {
-      // windows() widens u0/u1 to the bay edges for ribbons, so neighbours touch.
+      // windows() widens u0/u1 to the bay edges for ribbons, so neighbors touch.
       const span = v1 - v0;
       const lo = v0 + span * RIBBON_DROP;
       return [[u0, lo], [u1, lo], [u1, lo + span * RIBBON_HEIGHT], [u0, lo + span * RIBBON_HEIGHT]];
@@ -1107,13 +1107,13 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
     case 'athleticsArena':
     case 'fieldHouse':
       return MATERIALS.render;
-    // Open ground and venues drawn as markings take a wall colour only for their props.
+    // Open ground and venues drawn as markings take a wall color only for their props.
     default:
       return MATERIALS.render;
   }
 }
 
-// Neighbouring residence halls differ by a few percent of brightness, hashed off the id.
+// Neighboring residence halls differ by a few percent of brightness, hashed off the id.
 const DORM_SHADE_STEPS = [0.94, 1.0, 1.06, 1.11];
 
 export function wallShadeOf(t: Buildable): number {
@@ -1123,7 +1123,7 @@ export function wallShadeOf(t: Buildable): number {
   return DORM_SHADE_STEPS[h % DORM_SHADE_STEPS.length];
 }
 
-// The rest of the catalogue: every roofed motif is assembled from the same
+// The rest of the catalog: every roofed motif is assembled from the same
 // parts (base course, cornice, bays, a door family) so the campus reads as one.
 
 // Every roofed motif gets a base course and an eaves course.
@@ -1135,7 +1135,7 @@ export const COLONNADE_HEIGHT = up(8.2);
 export const COLONNADE_BAY_METRES = 6.5;
 export const COLONNADE_MAX = 9;
 
-// Piers at bay centres on the clear-span sheds.
+// Piers at bay centers on the clear-span sheds.
 export const PIER_WIDTH_METRES = 1.1;
 export const PIER_PROJECTION = across(0.5);
 
@@ -1144,7 +1144,7 @@ export const CANOPY_SLAB = up(0.45);
 export const CANOPY_POST = across(0.35);
 
 // The hospital: large `block` instances split into a tall ward slab and a
-// lower glazed public wing. Small ones (the 4x3 computing centre) stay a box.
+// lower glazed public wing. Small ones (the 4x3 computing center) stay a box.
 
 export const BLOCK_SPLIT_MIN_TILES = 7;
 
@@ -1153,7 +1153,7 @@ export const BLOCK_SPLIT_MIN_TILES = 7;
 // camera, so the wing takes the high rows.
 export const SLAB_ROW_FRACTION = 0.5;
 export const WING_COL_FRACTION = 0.62;
-// The wing's share of the slab's height, rounded to whole storeys.
+// The wing's share of the slab's height, rounded to whole stories.
 export const WING_STOREY_FRACTION = 0.6;
 
 // The recessed, glazed ground floor both wings stand on.

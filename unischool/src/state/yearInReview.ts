@@ -218,7 +218,7 @@ function standing(s: GameState): ReviewSection {
 }
 
 // The year's events (Plan 33): the board's letters answered, and the
-// catalogue's inline events by who answered them (the journal's records).
+// catalog's inline events by who answered them (the journal's records).
 function events(s: GameState): ReviewSection {
   const lines: ReviewLine[] = [];
   for (const l of s.catalogue?.letters ?? []) {

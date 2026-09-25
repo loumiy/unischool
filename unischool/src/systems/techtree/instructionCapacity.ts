@@ -9,7 +9,7 @@ import { isHoused, isInTransit } from './programOffers';
 // intakeCeiling (admissionsSystem.ts), never applicants; housing, dining and
 // health stay soft.
 
-// Seats a developed course adds. Provisional; sized so the whole catalogue
+// Seats a developed course adds. Provisional; sized so the whole catalog
 // holds about 33,000 (top of the year-50 band), a year-20 completionist with
 // 150–225 courses holds 12,000–18,000, and the founding six courses hold 480
 // for the founding body of 350.
@@ -65,7 +65,7 @@ export function intakeCeiling(s: GameState): IntakeCeiling {
   };
 }
 
-// Share of the enrolled body the catalogue can teach, 0..1 — the same shape
+// Share of the enrolled body the catalog can teach, 0..1 — the same shape
 // as satisfactionSystem.ts's attributeCoverage. Empty campus counts as covered.
 export function instructionCoverage(s: GameState): number {
   const enrolled = totalEnrolled(s.students);

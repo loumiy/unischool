@@ -197,7 +197,7 @@ console.log('standing readings tests');
   t.tech.push(
     { id: 'TEST-DINING', kind: 'facility', facilityType: 'diningHall', name: 'Test Dining', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'basicNeeds', servesPopulation: 1_000_000 } },
     { id: 'TEST-LIB', kind: 'facility', facilityType: 'library', name: 'Test Library', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'academic', servesPopulation: 1_000_000 } },
-    { id: 'TEST-SOCIAL', kind: 'facility', facilityType: 'studentCenter', name: 'Test Centre', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'social', servesPopulation: 1_000_000 } },
+    { id: 'TEST-SOCIAL', kind: 'facility', facilityType: 'studentCenter', name: 'Test Center', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'social', servesPopulation: 1_000_000 } },
     { id: 'TEST-HEALTH', kind: 'facility', facilityType: 'healthCenter', name: 'Test Clinic', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'health', servesPopulation: 1_000_000 } },
   );
   // The grace is 0.85 since PR G fitted it (the plan opened at 0.9).

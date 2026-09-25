@@ -3,10 +3,10 @@ import type { CatalogueChoice, ConditionKey } from './eventCatalogueTypes';
 // PROMISES (Plan 33, from v2's ambitions.json; V2 #25, #26): public
 // commitments with a deadline, a reward and a penalty. `deal` is when one
 // may be offered and `goal` is what keeping it means, both in the event
-// catalogue's conditions (systems/events/catalogue.ts); the reward and the
+// catalog's conditions (systems/events/catalogue.ts); the reward and the
 // penalty are its effects, with money scaled to the budget as its are.
 // {college} is the college's name. A goal's "Over" is a floor, as the
-// catalogue reads it: facultyOver: 30 is thirty or more.
+// catalog reads it: facultyOver: 30 is thirty or more.
 
 export interface PromiseDef {
   id: string;
@@ -113,7 +113,7 @@ export const PROMISES: readonly PromiseDef[] = [
   },
   {
     id: 'open-thirty-programs',
-    title: "A fuller catalogue",
+    title: "A fuller catalog",
     weight: 3,
     deal: { programsOver: 3, yearAtLeast: 8 },
     goal: { programsOver: 11 },
@@ -121,8 +121,8 @@ export const PROMISES: readonly PromiseDef[] = [
     text: "The prospectus is thin. The Registrar has costed a fuller one — eleven programs, each taught properly — and has attached the costing to a proposed date, which is the part that makes it an announcement rather than a memo.",
     reward: { confidence: 6, quality: 2, mood: 2 },
     penalty: { confidence: -5 },
-    kept: "The catalogue has its eleven programs, and every one of them is taught.",
-    missed: "The catalogue is still thin, and the date the college named is behind it.",
+    kept: "The catalog has its eleven programs, and every one of them is taught.",
+    missed: "The catalog is still thin, and the date the college named is behind it.",
   },
   {
     id: 'beautiful-campus',
@@ -261,7 +261,7 @@ export const PROMISES: readonly PromiseDef[] = [
     deal: { enrolledOver: 800, yearAtLeast: 10 },
     goal: { enrolledOver: 2000 },
     years: 15,
-    text: "{college} is already bigger than its founders imagined, and the Registrar has stopped apologising for it. The proposal is to say how big it means to become, and to build and hire for that number rather than for the one it happens to reach.",
+    text: "{college} is already bigger than its founders imagined, and the Registrar has stopped apologizing for it. The proposal is to say how big it means to become, and to build and hire for that number rather than for the one it happens to reach.",
     reward: { confidence: 7, mood: 2 },
     penalty: { confidence: -5, mood: -2 },
     kept: "Two thousand of them, and a college built for the number rather than surprised by it.",

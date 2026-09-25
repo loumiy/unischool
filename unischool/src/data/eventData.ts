@@ -125,7 +125,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     return {
       key,
       headline: `This is the School of ${subject}`,
-      detail: `Six programs, one building. Until now these were ${subject}'s programs in a colour with no name; housed together, they are a school, and the hall they share is ${subject} Hall. The name is permanent, and a donor may now put a family name on it.`,
+      detail: `Six programs, one building. Until now these were ${subject}'s programs in a color with no name; housed together, they are a school, and the hall they share is ${subject} Hall. The name is permanent, and a donor may now put a family name on it.`,
       unlocks: s.tech
         .filter((t) => t.schoolGate === subject && t.status !== 'locked')
         .map((t) => t.name),
@@ -148,7 +148,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         return {
           key,
           headline: `${major.name} is now an established program`,
-          detail: `Every tier-2 course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its tier-3 catalogue is open.`,
+          detail: `Every tier-2 course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its tier-3 catalog is open.`,
           unlocks: major.tier3Ids.map((id) => nameOf(s, id)),
         };
       }
@@ -353,7 +353,7 @@ const TRUSTEE_CAMPAIGN_MULTIPLIER = 2.2;
 const AD_SHORTAGE_COST_WEEKS = 0.8;
 const AD_SHORTAGE_COACH_ROLLS = 3;
 
-// --- student organisations (see data/studentLifeData.ts) ---------------
+// --- student organizations (see data/studentLifeData.ts) ---------------
 //
 // Clubs and new chapters never stop the clock (they are answered in a batch
 // at summer admissions). The consequential Greek beats are authored here so
@@ -393,7 +393,7 @@ export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
 // The table. Triggers are state-driven, not calendar-driven: a donor shows
 // up once the school is worth donating to. Since Plan 32 it holds only the
 // questions that belong to a system (naming, Greek life, athletics, the
-// rival); the texture is the catalogue's (data/eventCatalogue.ts). A saved
+// rival); the texture is the catalog's (data/eventCatalogue.ts). A saved
 // interrupt naming a retired event resolves as "an event has passed".
 // =====================================================================
 export const DECISION_EVENTS: readonly DecisionEvent[] = [
@@ -437,8 +437,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       };
     },
     prompt: (_s, ctx) => (ctx.subjectField === 'venue'
-      ? `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name over the gate of the ${ctx.subjectName} — permanently. It would become ${ctx.newName}. The cheque clears immediately. The student section has opinions.`
-      : `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name on the School of ${ctx.subjectName} — permanently. It would become the ${ctx.newName}. The cheque clears immediately. The student paper has already written the editorial.`),
+      ? `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name over the gate of the ${ctx.subjectName} — permanently. It would become ${ctx.newName}. The check clears immediately. The student section has opinions.`
+      : `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name on the School of ${ctx.subjectName} — permanently. It would become the ${ctx.newName}. The check clears immediately. The student paper has already written the editorial.`),
     choices: [
       {
         id: 'sign',
@@ -491,7 +491,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     maxFires: 1,
     eligible: (s) => !s.orgs.hellenicCouncilOffered && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS,
     prompt: (s) =>
-      `The ${s.orgs.clubs.length} recognised student societies have sent a joint delegation: they want the college to charter a Hellenic Council and permit Greek-letter organisations on campus. Fraternities and sororities would bring a great deal of student life with them, and a great deal of everything that comes with student life.`,
+      `The ${s.orgs.clubs.length} recognized student societies have sent a joint delegation: they want the college to charter a Hellenic Council and permit Greek-letter organizations on campus. Fraternities and sororities would bring a great deal of student life with them, and a great deal of everything that comes with student life.`,
     choices: [
       {
         id: 'charter',
@@ -503,7 +503,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         apply: (s) => {
           s.orgs.hellenicCouncilApproved = true;
           s.orgs.hellenicCouncilOffered = true;
-          return entry(s, 'A Hellenic Council has been chartered; Greek-letter organisations may now form on campus.', 'good');
+          return entry(s, 'A Hellenic Council has been chartered; Greek-letter organizations may now form on campus.', 'good');
         },
       },
       {

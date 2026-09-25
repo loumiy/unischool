@@ -75,7 +75,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <h2>Effect on Satisfaction</h2>
         <HelpHint
           align="end"
-          text="Satisfaction is a stock that drifts toward a target set by what the campus offers. Student organisations move that target, so these are the real points they are adding to it right now — read from the same computation the weekly tick runs, not a separate tally. The headline satisfaction number moves toward the target over the coming weeks."
+          text="Satisfaction is a stock that drifts toward a target set by what the campus offers. Student organizations move that target, so these are the real points they are adding to it right now — read from the same computation the weekly tick runs, not a separate tally. The headline satisfaction number moves toward the target over the coming weeks."
         />
       </div>
       <dl>
@@ -88,7 +88,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
       </dl>
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
         <p className="empty-note">
-          Social satisfaction is already at its ceiling from the campus itself, so these organisations
+          Social satisfaction is already at its ceiling from the campus itself, so these organizations
           are adding nothing to the target right now — they will start to again the moment the campus
           grows past what its social facilities cover.
         </p>
@@ -104,7 +104,7 @@ function money2(v: number): string {
 // ---------------------------------------------------------------------
 // The satisfaction dial: a 0..100 score as a filling ring, so the eye finds
 // the low one without reading. A stroked circle with stroke-dasharray set to
-// the filled fraction of its circumference. Colour is banded (the app's
+// the filled fraction of its circumference. Color is banded (the app's
 // ok/warn/bad tokens) because a score reads as fine / slipping / a problem.
 // ---------------------------------------------------------------------
 const DIAL_SIZE = 64;
@@ -325,7 +325,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
   // Only clubs and chapters count; varsity teams live on AthleticsTab.tsx.
   const anyOrgs = clubs.length > 0 || chapters.length > 0;
 
-  // The empty state covers only the organisation panels; the satisfaction
+  // The empty state covers only the organization panels; the satisfaction
   // breakdown always renders.
   const emptyOrgs = !anyOrgs && pending.length === 0;
 
@@ -337,11 +337,11 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
         <StudentDemandPanel s={s} />
         {emptyOrgs ? (
           <section className="panel">
-            <h2>Student Organisations</h2>
+            <h2>Student Organizations</h2>
             <p className="empty-note">
               {hasStudentCenter(s)
-                ? 'No student organisations yet — students will start forming clubs of their own before long.'
-                : 'No student organisations yet — build a Student Center to let students start forming clubs.'}
+                ? 'No student organizations yet — students will start forming clubs of their own before long.'
+                : 'No student organizations yet — build a Student Center to let students start forming clubs.'}
             </p>
           </section>
         ) : (
@@ -362,7 +362,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
                     <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
                   </span>
                   <span className="org-meta">
-                    {p.foundingMembers} founding members · {money(p.upkeepPerWeek)}/wk if recognised
+                    {p.foundingMembers} founding members · {money(p.upkeepPerWeek)}/wk if recognized
                   </span>
                 </li>
               ))}
@@ -380,7 +380,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
               <span className="panel-count">{clubs.length} / {clubCapacity(s)}</span>
             </div>
             {clubs.length === 0 ? (
-              <p className="empty-note">No recognised clubs.</p>
+              <p className="empty-note">No recognized clubs.</p>
             ) : (
               <ul className="org-list">
                 {clubs.map((c) => (

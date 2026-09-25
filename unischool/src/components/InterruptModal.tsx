@@ -99,12 +99,12 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
     <div className="digest">
       <h3 className="digest-head">
         {petitions.length === 1
-          ? 'One new student organisation this year'
-          : `${petitions.length} new student organisations this year`}
+          ? 'One new student organization this year'
+          : `${petitions.length} new student organizations this year`}
       </h3>
       <p className="digest-note">
         {clubs === petitions.length
-          ? 'Recognise a society and it costs a little every week and adds a little to student satisfaction, for as long as it exists. Decline and the students notice.'
+          ? 'Recognize a society and it costs a little every week and adds a little to student satisfaction, for as long as it exists. Decline and the students notice.'
           : 'Chapters carry more of both than clubs do — more cost, and considerably more student life.'}
       </p>
       {petitions.map((p) => (
@@ -206,7 +206,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // seeing the pool would be a lookup table, not a decision.
   const [tuitionLocked, setTuitionLocked] = useState(false);
 
-  // Seats the catalogue has left after graduation, from the same function
+  // Seats the catalog has left after graduation, from the same function
   // the reducer clips with. The admit-rate slider shrinks to fit.
   const ceiling = intakeCeiling(s);
   // Live preview of the emergent outcomes, computed with the very function
@@ -291,15 +291,15 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             )}
             <Figure
               className="reveal"
-              label={<>Room for <span className="outcome-note">(the catalogue's seats, less those who stay on)</span></>}
+              label={<>Room for <span className="outcome-note">(the catalog's seats, less those who stay on)</span></>}
               hint={FIGURE_HINTS.room}
               value={<AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />}
             />
           </dl>
           <p className="admissions-ceiling-note">
-            {ceiling.capacity.toLocaleString()} seats across the housed catalogue; {ceiling.stayingOn.toLocaleString()} return next year.
+            {ceiling.capacity.toLocaleString()} seats across the housed catalog; {ceiling.stayingOn.toLocaleString()} return next year.
             {ceiling.nextSummer > ceiling.capacity
-              ? ` Next summer the catalogue will hold ${ceiling.nextSummer.toLocaleString()}, counting the courses now in development.`
+              ? ` Next summer the catalog will hold ${ceiling.nextSummer.toLocaleString()}, counting the courses now in development.`
               : ' Nothing in development will add seats by next summer.'}
           </p>
 
@@ -497,13 +497,13 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
       <h2>Students</h2>
       {petitions.length === 0 ? (
         <p>
-          No new student organisation petitioned this year
+          No new student organization petitioned this year
           {s.orgs.clubs.length === 0 && s.orgs.chapters.length === 0
             ? ' — clubs form once the campus has a Student Center for them to meet in.'
             : '.'}
         </p>
       ) : (
-        <p>What the students organised this year, and are asking the college to recognise.</p>
+        <p>What the students organized this year, and are asking the college to recognize.</p>
       )}
       <StudentLifeDigest
         petitions={petitions}
@@ -707,7 +707,7 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
       {single ? (
         <p>{single.detail}</p>
       ) : (
-        <p>The catalogue has crossed several milestones at once.</p>
+        <p>The catalog has crossed several milestones at once.</p>
       )}
 
       {/* One milestone reads as a paragraph with its unlocks; a burst reads
@@ -915,10 +915,10 @@ function FirstSportClubView({ s, payload, onResolve }: {
     <>
       <h2>The first sport club</h2>
       <p>
-        The {payload.clubName} is the first of the college's sport clubs to be recognised. It plays intramurals
+        The {payload.clubName} is the first of the college's sport clubs to be recognized. It plays intramurals
         for now; in a few years it may petition to go varsity, and there will be a department, a venue and a
         season behind it. The students have already started arguing about what the teams should be called —
-        the colours are {institutionName(s.self)}'s own, but a name is something people shout.
+        the colors are {institutionName(s.self)}'s own, but a name is something people shout.
       </p>
       <label className="ad-mascot">
         <span className="ad-mascot-label">The teams will play as the</span>
@@ -1069,7 +1069,7 @@ function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: 
   );
 }
 
-// A letter from the board (Plan 32): one of the catalogue's seismic events.
+// A letter from the board (Plan 32): one of the catalog's seismic events.
 // The clock waits on it; its choices are the panel's (EventPanel.tsx).
 function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId: string; act: (a: Action) => void }) {
   const p = catalogueOf(s).pending.find((x) => x.instanceId === instanceId);
@@ -1170,7 +1170,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
   // picked, never a paid one. Left out: the charter (a real either/or), the
   // summer's decision beats (their values live in local state), and the
   // athletic director (both). useHotkeys ignores Enter on a focused button
-  // or input, so those keep their native behaviour.
+  // or input, so those keep their native behavior.
   useHotkeys((e) => {
     if (e.key !== 'Enter' || !interrupt) return;
     if (isActivationTarget(e.target)) return;

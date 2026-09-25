@@ -361,7 +361,7 @@ function BuildTile({
           <span className="build-tile-icon"><Icon /></span>
           <span className="build-tile-name">{t.name}</span>
           {detail && <span className="build-tile-sub">{detail}</span>}
-          <span className="build-tile-foot">add a storey · {money(floorPlan.cost)} · {floorPlan.weeks}w</span>
+          <span className="build-tile-foot">add a story · {money(floorPlan.cost)} · {floorPlan.weeks}w</span>
         </button>
       );
     }

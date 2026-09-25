@@ -134,7 +134,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     );
 
     // Queued rather than raised, since only one interrupt can be pending;
-    // the award's effects have already applied. A cancelled run or a run
+    // the award's effects have already applied. A canceled run or a run
     // with papers alone queues nothing, so the modal is kept for a
     // breakthrough or an award.
     if (notable) s.research.pendingCompletions.push({

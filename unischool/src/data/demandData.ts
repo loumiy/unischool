@@ -20,7 +20,7 @@ import type { SatisfactionAttributes, StudentDemand } from '../state/types';
 // DECISION_EVENT_FIRST_YEAR).
 export const DEMAND_FIRST_YEAR = 3;
 
-// The trigger: satisfaction below this and the student body organises.
+// The trigger: satisfaction below this and the student body organizes.
 // Under the founding value of 70 (WORD_OF_MOUTH_NEUTRAL), so a merely
 // imperfect school never sees a demand.
 export const DEMAND_SATISFACTION_THRESHOLD = 60;
@@ -100,14 +100,14 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
     ask: (ask) => `Build ${ask}`,
     unit: 'beds of campus housing',
   },
-  // Measured against the catalogue's seats (instructionCapacity.ts); the ask
+  // Measured against the catalog's seats (instructionCapacity.ts); the ask
   // is a course.
   instruction: {
     headline: 'Students demand a seat in class',
     grievance: (ask) =>
       `Every section is over its room and students are following lectures from the corridor. The Registrar has forwarded a petition with one demand on it: open ${ask}, and stop admitting people there is no seat for.`,
     ask: (ask) => `Develop ${ask}`,
-    unit: 'seats across the catalogue',
+    unit: 'seats across the catalog',
   },
 };
 

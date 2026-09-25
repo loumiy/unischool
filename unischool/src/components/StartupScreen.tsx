@@ -8,7 +8,7 @@ import type { SchoolColors, Vernacular } from '../state/types';
 import { bareSchoolName } from '../state/types';
 
 // Shown once, before play begins: name the school, and choose its
-// architecture and colours. Every other founding condition comes from
+// architecture and colors. Every other founding condition comes from
 // FOUNDING_PRESET (data/foundingData.ts).
 //
 // The player writes only half the name: every school opens as a College,
@@ -17,7 +17,7 @@ import { bareSchoolName } from '../state/types';
 // carved in stone, so no caption is needed; the field starts empty.
 
 // The facade: Founders Hall seen head-on, in the chosen vernacular. Every
-// colour and part is read from buildingSpec.ts's VERNACULARS, so this preview
+// color and part is read from buildingSpec.ts's VERNACULARS, so this preview
 // cannot drift from the map. It is a flat elevation rather than the isometric
 // motif because an iso mass cannot carry the name at this size. Seven bays
 // because Founders Hall is seven tiles across.
@@ -31,7 +31,7 @@ const FACADE_BAND_WIDTH = 404; // shared span for the cornice/frieze/architrave
 // The engraved text's width before it must compress (see bannerFontSize and
 // needsCompression), a little inside FACADE_BAND_WIDTH.
 const FACADE_TEXT_WIDTH = 360;
-// The colonnade sits tighter than the full width, centred on the apex (220).
+// The colonnade sits tighter than the full width, centered on the apex (220).
 const FACADE_COLUMN_SPAN = 320;
 
 // Stepped sizes, so a short name gets a large banner font.
@@ -56,7 +56,7 @@ function tint(hex: string, factor: number): string {
   return `#${ch.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
-// The two banners hung from the band in the school's colours (primary cloth,
+// The two banners hung from the band in the school's colors (primary cloth,
 // secondary stripe), outside the colonnade. The one thing on the facade not
 // read from the vernacular.
 const BANNER_WIDTH = 18;
@@ -103,7 +103,7 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
   // Every crown is drawn down to bandY so no sky shows between roof and wall.
   const bandH = 32;
   const wallTop = bandY + bandH;
-  const baseY = 152;         // where the ground-storey order begins
+  const baseY = 152;         // where the ground-story order begins
 
   const bayXs = Array.from(
     { length: FACADE_BAYS },
@@ -193,7 +193,7 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
     return <rect fill={tint(wall, 1.02)} x={x - 2} y="16" width={w + 4} height="56" />;
   };
 
-  // --- THE ORDER: what stands along the ground storey. -------------------
+  // --- THE ORDER: what stands along the ground story. -------------------
   const order = () => {
     if (entrance === 'arcade') {
       // Mission: a run of round arches.
@@ -212,7 +212,7 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
       });
     }
     if (entrance === 'canopy') {
-      // Modern: a glazed ground storey between slim posts, and the thin
+      // Modern: a glazed ground story between slim posts, and the thin
       // slab of the canopy over the middle bays.
       return (
         <>
@@ -323,7 +323,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
   const [name, setName] = useState('');
   const [vernacular, setVernacular] = useState<Vernacular>(FOUNDING_VERNACULAR);
   // Held as the table's choice so the picker can show its name; the save
-  // takes only the two colours (see schoolColorsOf).
+  // takes only the two colors (see schoolColorsOf).
   const [choice, setChoice] = useState<SchoolColorChoice>(FOUNDING_COLORS);
   const colors = schoolColorsOf(choice);
 
@@ -368,7 +368,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         </div>
         {/* The colours: one row of two-tone chips (see schoolColors.ts),
             previewed on the facade's banners and the card's chrome. */}
-        <div className="startup-colors" role="radiogroup" aria-label="School colours">
+        <div className="startup-colors" role="radiogroup" aria-label="School colors">
           {SCHOOL_COLOR_PAIRS.map((pair) => (
             <button
               key={pair.id}

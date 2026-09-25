@@ -35,7 +35,7 @@ const TABLE_VISIBLE_ROWS = 12;
 // a shortfall (a small library, a small student body) is costing.
 // ---------------------------------------------------------------------
 
-// A penalty row (crowding) is drawn in the penalty colour as a subtraction.
+// A penalty row (crowding) is drawn in the penalty color as a subtraction.
 // `grade`, when present, is what the input was worth at last summer's report
 // card (prestigeSystem.ts's gradeYear), shown beside its worth now.
 function StandingRow({ input, max, grade }: { input: StandingInput; max: number; grade?: number }) {
@@ -308,8 +308,8 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
-          {Math.round(first.prestige)} → {Math.round(latest.prestige)}, enrolment{' '}
-          {first.enrolled.toLocaleString()} → {latest.enrolled.toLocaleString()}, catalogue{' '}
+          {Math.round(first.prestige)} → {Math.round(latest.prestige)}, enrollment{' '}
+          {first.enrolled.toLocaleString()} → {latest.enrolled.toLocaleString()}, catalog{' '}
           {first.coursesDone} → {latest.coursesDone} of {totalCourses} courses.
         </p>
 
@@ -336,7 +336,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => Math.round(v).toLocaleString()}
-            note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard cap on enrolment."
+            note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard cap on enrollment."
           />
           <HistoryChart
             label="Operating funds"

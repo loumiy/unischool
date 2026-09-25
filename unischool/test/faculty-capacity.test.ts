@@ -2,14 +2,14 @@
 // The four capacity figures the Faculty tab's meter is drawn from (see
 // src/systems/faculty/facultyCapacity.ts): what the roster supplies, what
 // the current courseload takes, what the revealed curriculum would take
-// next, and what the whole catalogue will take once it is developed.
+// next, and what the whole catalog will take once it is developed.
 //
 // Two of those are new readings of old state and one is a re-derivation of
 // arithmetic techSystem.ts already owns, so what is worth pinning is that
 // they agree — with techSystem, and with each other:
 //
 //   - a department's four figures are nested (offered <= offered+available
-//     <= catalogue), so the meter's segments can never overdraw its track;
+//     <= catalog), so the meter's segments can never overdraw its track;
 //   - supply is COMMITMENT-ADJUSTED, so funding a project is visible as a
 //     department losing capacity rather than as a number that did not move;
 //   - an unstaffed course still consumes supply, which is the finding
@@ -97,14 +97,14 @@ console.log('faculty capacity tests');
     'the divisions partition the field list exactly');
   assert(new Set(grouped).size === grouped.length, 'no field sits in two divisions');
 
-  // A department nobody has hired into still has a catalogue, which is the
+  // A department nobody has hired into still has a catalog, which is the
   // number that says whether it is worth founding.
   const neuro = cap.byField.get('Neuroscience')!;
   assert(neuro.hired === 0 && neuro.catalogue > 0,
-    `an empty department still reports its catalogue (Neuroscience: ${neuro.catalogue} courses)`);
+    `an empty department still reports its catalog (Neuroscience: ${neuro.catalogue} courses)`);
 
   assert(cap.total.catalogue === s.tech.filter((t) => t.kind === 'course' && t.requiresFaculty).length,
-    'the field totals account for every gated course in the catalogue');
+    'the field totals account for every gated course in the catalog');
   assert(cap.fields.reduce((n, c) => n + c.hired, 0) === s.faculty.length,
     'and for every person on the roster');
 }
@@ -115,12 +115,12 @@ console.log('faculty capacity tests');
   const cap = facultyCapacity(s);
   for (const c of cap.fields) {
     assert(c.offered + c.available <= c.catalogue,
-      `${c.field}: offered + available never exceeds the catalogue (${c.offered}+${c.available} <= ${c.catalogue})`);
+      `${c.field}: offered + available never exceeds the catalog (${c.offered}+${c.available} <= ${c.catalogue})`);
     assert(c.supply <= c.grossSupply, `${c.field}: commitments only ever subtract supply`);
-    assert(c.catalogue <= cap.scale, `${c.field}: its catalogue fits the shared scale`);
+    assert(c.catalogue <= cap.scale, `${c.field}: its catalog fits the shared scale`);
   }
   assert(cap.scale === Math.max(...cap.fields.map((c) => c.catalogue)),
-    'the shared scale is the longest catalogue on the board, not the largest roster');
+    'the shared scale is the longest catalog on the board, not the largest roster');
 }
 
 // --- the school-wide gap is summed per department ----------------------
@@ -136,8 +136,8 @@ console.log('faculty capacity tests');
   const after = facultyCapacity(s);
   const physics = after.byField.get(FIELD)!;
 
-  assert(physics.supply > physics.catalogue, 'Physics is now hired well past its own catalogue');
-  assert(after.total.supply > after.total.catalogue, 'and the school-wide supply passes the school-wide catalogue');
+  assert(physics.supply > physics.catalogue, 'Physics is now hired well past its own catalog');
+  assert(after.total.supply > after.total.catalogue, 'and the school-wide supply passes the school-wide catalog');
   assert(after.total.shortfall > 0,
     `while every other department is still short (${after.total.shortfall} slots), which the naive subtraction would report as zero`);
   assert(after.total.shortfall === before.total.shortfall - Math.max(0, before.byField.get(FIELD)!.catalogue - before.byField.get(FIELD)!.supply),

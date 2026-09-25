@@ -167,7 +167,7 @@ export function revenueShareOf(sportIds: readonly string[]): number {
   return total > 0 ? revenue / total : 0;
 }
 
-// The cost of a big programme: the admitted class's band mix shifts
+// The cost of a big program: the admitted class's band mix shifts
 // slightly with the athlete share of the pool, weighted by revenue share.
 // Returned as the shift admissionsSystem.ts's qualityMix moves from the top
 // band to the low one: at most ATHLETE_BAND_DRAG, when athletes have doubled

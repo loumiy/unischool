@@ -1,4 +1,4 @@
-// The event catalogue (Plan 32): v2's events as data, read against this
+// The event catalog (Plan 32): v2's events as data, read against this
 // game's state (systems/events/catalogue.ts), fired, queued, answered and
 // timed out (systems/events/catalogueEngine.ts).
 
@@ -39,7 +39,7 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-console.log('event catalogue tests');
+console.log('event catalog tests');
 
 function fresh(year = 5): GameState {
   const s = createInitialState('Catalogue');
@@ -67,7 +67,7 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
 {
   const ids = new Set(EVENT_CATALOGUE.map((e) => e.id));
   assert(ids.size === EVENT_CATALOGUE.length, 'every event has its own id');
-  assert(EVENT_CATALOGUE.length >= 150, `the catalogue is v2's, less what this game has no place for (${EVENT_CATALOGUE.length})`);
+  assert(EVENT_CATALOGUE.length >= 150, `the catalog is v2's, less what this game has no place for (${EVENT_CATALOGUE.length})`);
   const letters = EVENT_CATALOGUE.filter((e) => e.kind === 'seismic');
   assert(letters.length >= 15 && letters.length < EVENT_CATALOGUE.length / 4, `a few of them are letters (${letters.length})`);
   assert(EVENT_CATALOGUE.every((e) => e.choices.some((c) => c.id === e.default)), 'every default is one of its choices');
@@ -75,14 +75,13 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   assert(EVENT_CATALOGUE.every((e) => e.choices.every((c) => Object.keys(c.effects).length > 0)), 'every answer does something');
   assert(EVENT_CATALOGUE.every((e) => e.kind === 'seismic' || e.timeoutWeeks >= 1), 'every inline event waits at least a week');
   assert(EVENT_CATALOGUE.every((e) => e.weight > 0 && e.cooldownYears >= 0), 'weights and cooldowns are sane');
-  assert(EVENT_CATALOGUE.every((e) => (e.favours ?? []).every((t) => tagById(t) !== undefined)), 'every favoured tag exists');
+  assert(EVENT_CATALOGUE.every((e) => (e.favours ?? []).every((t) => tagById(t) !== undefined)), 'every favored tag exists');
   const vars = rollVars(fresh());
   const unfilled = EVENT_CATALOGUE.filter((e) => /\{\w+\}/.test(fill(e.text, vars)) || e.choices.some((c) => /\{\w+\}/.test(fill(c.label, vars))));
   assert(unfilled.length === 0, `every name in the text is one the game fills (${unfilled.map((e) => e.id).join(', ')})`);
   const text = EVENT_CATALOGUE.map((e) => `${e.text} ${e.choices.map((c) => c.label).join(' ')}`).join(' ');
-  // British in prose (Plan 45), but "program" is the game's word, and a
-  // building's proper name may end in "Center".
-  assert(!/\b(programmes?|color(s|ed)?|behaviors?|organizations?|theaters?|catalogs?|defense|analyze[sd]?|specialized|enrollment)\b/i.test(text) && !/\bcenters?\b/.test(text), 'in this game\'s British spelling');
+  // American spelling throughout (Plan 45).
+  assert(!/\b(programmes?|colours?|coloured|behaviours?|organisations?|theatres?|catalogues?|defence|analys(e|ed|es|ing)|specialised|enrolment|centres?|storeys?|neighbours?|cheques?)\b/i.test(text), 'in American spelling');
   assert(!/\badjunct|\bcharter\b/i.test(text), 'and about nothing this game does not have');
   assert(DECISION_EVENTS.every((e) => !['roof-failure', 'heating-plant', 'estate-gift', 'winter-storm'].includes(e.id)), 'this game\'s texture events are retired');
   assert(DECISION_EVENTS.some((e) => e.id === 'hellenic-council') && DECISION_EVENTS.some((e) => e.id === 'naming-rights'), 'the questions that belong to a system stay');
@@ -237,12 +236,12 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
     tickEvents(s);
     if (s.pendingInterrupt) s = reducer(s, defaultAnswer(s)!);
   }
-  assert(s.catalogue !== undefined, 'the event system runs the catalogue');
+  assert(s.catalogue !== undefined, 'the event system runs the catalog');
   const c = catalogueOf(s);
   c.pending.push({ instanceId: 'stale', eventId: 'no-such-event', firedWeek: 1, vars: {}, scale: 1 });
   saveGame(s);
   const loaded = loadGame()!;
-  assert(loaded.catalogue !== undefined && loaded.catalogue.pending.every((p) => p.eventId !== 'no-such-event'), 'the catalogue saves, less events it no longer has');
+  assert(loaded.catalogue !== undefined && loaded.catalogue.pending.every((p) => p.eventId !== 'no-such-event'), 'the catalog saves, less events it no longer has');
   assert(JSON.stringify(loaded.catalogue!.lastFired) === JSON.stringify(c.lastFired), 'and remembers what fired when');
   (s as unknown as { catalogue: unknown }).catalogue = { pending: 'nonsense' };
   saveGame(s);

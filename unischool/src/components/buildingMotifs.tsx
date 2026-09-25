@@ -41,7 +41,7 @@ import { TreeAt } from './trees';
 
 // Architectural motifs: what makes a placed Buildable read as a building.
 // Hand-rolled inline SVG, no icon library or external art. Geometry here,
-// colour in styles.css, except roof and wall tones, which are derived from
+// color in styles.css, except roof and wall tones, which are derived from
 // each building's tint at runtime (see paletteFrom). buildingSpec.ts
 // derives height, ridge, window ranks and bays.
 
@@ -381,7 +381,7 @@ function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
 }
 
 // Balconies on a tall residence: a slab and a rail at every second bay of
-// each visible wall, on every storey but the ground and the top.
+// each visible wall, on every story but the ground and the top.
 function Balconies({ f, storeys, height, tone }: { f: BoxFaces; storeys: number; height: number; tone: string }) {
   const out: React.JSX.Element[] = [];
   const faces: [Pt, Pt, number][] = [[f.D, f.C, f.spanLeft], [f.C, f.B, f.spanRight]];
@@ -405,7 +405,7 @@ function Balconies({ f, storeys, height, tone }: { f: BoxFaces; storeys: number;
   return <g className="iso-balconies">{out}</g>;
 }
 
-// A flag on a civic roof, in the college's colours.
+// A flag on a civic roof, in the college's colors.
 function RoofFlag({ at }: { at: Pt }) {
   const colors = useContext(ColorsContext);
   const top = lift(at, up(7));
@@ -427,7 +427,7 @@ function doorFraction(d: DoorDimensions, span: number): number {
 
 // The bay a door reserves, in (u, v): opening, surround and lintel, from the
 // ground up so nothing draws behind the steps. A portal taller than a
-// storey clears the first-floor rank too.
+// story clears the first-floor rank too.
 function doorBay(d: DoorDimensions, span: number, wallHeight: number): FaceRect | undefined {
   const dw = doorFraction(d, span);
   if (dw <= 0 || wallHeight <= 0) return undefined;
@@ -467,7 +467,7 @@ function Door({ d, origin, along, wallHeight, span, shape = 'rect' }: {
     polyPoints([at(a, c), at(b, c), at(b, e), at(a, e)]);
 
   const transom = v0 + h * 0.72;    // head of the leaves; the fanlight sits above
-  const mull = dw * 0.035;          // the centre post between the two leaves
+  const mull = dw * 0.035;          // the center post between the two leaves
   const reveal = dw * 0.08;         // how far the leaves sit inside the opening
   const bar = h * 0.045;            // the transom bar itself
 
@@ -565,7 +565,7 @@ function RoofBox({ col, row, w, h, base, height, tint }: {
 
 // The academic hall: the landmark, drawn from a real reference building.
 // Plinth, floor courses, cornice and parapet, a shallow hipped roof, a
-// projecting pedimented centre bay, raised end blocks, and on Founders Hall
+// projecting pedimented center bay, raised end blocks, and on Founders Hall
 // alone a clock tower (hasClockTower). Dimensions live in buildingSpec.ts.
 
 // A band of stonework across a wall (plinth, cornice, parapet, course), in
@@ -655,7 +655,7 @@ function EndPavilion({ col, row, w, h, base, pal, stone }: {
   );
 }
 
-// The centre bay projects from the front past the cornice, capped with a
+// The center bay projects from the front past the cornice, capped with a
 // pediment, and carries the door so the entrance reads as the front.
 //
 // Its width: three structural bays, capped at half the front. Shared with
@@ -701,7 +701,7 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
   );
 }
 
-// The portico: square columns standing clear of the centre bay under an
+// The portico: square columns standing clear of the center bay under an
 // entablature, drawn between the pavilion and the steps. Square shafts
 // because round shading is not worth it at this size; the rhythm is what
 // reads.
@@ -1330,7 +1330,7 @@ function StairCore({ col, row, w, h, base, stone }: {
   );
 }
 
-// Buttress piers along a clear-span wall, at bay centres: shallow boxes so
+// Buttress piers along a clear-span wall, at bay centers: shallow boxes so
 // they catch light on one face and read as depth.
 function Piers({ col, row, w, h, height, outward, pal, stone }: {
   col: number; row: number; w: number; h: number; height: number;
@@ -1366,7 +1366,7 @@ function Canopy({ d, col, row, w, h, outward, wallHeight, stone, hood = false, r
 }) {
   // With no trim (Modern), canopies use the tower stone.
   const canopyStone = stone.trim === 'none' ? stone.towerStone : stone.trim;
-  // Clamped under the eaves: on a one-storey pavilion the door, threshold
+  // Clamped under the eaves: on a one-story pavilion the door, threshold
   // and clearance can exceed the wall height.
   const top = Math.min(d.threshold + d.height + up(0.6), wallHeight - EAVES_COURSE - CANOPY_SLAB);
   if (top <= d.threshold + d.height * 0.5) return null;
@@ -1777,7 +1777,7 @@ function VillageHouse({ col, row, w, h, height, ridge, pal, stone, glass, paneSh
   const alongW = w >= h;
   const rs = lift(alongW ? project(col, row + h / 2) : project(col + w / 2, row), height + ridge);
   const re = lift(alongW ? project(col + w, row + h / 2) : project(col + w / 2, row + h), height + ridge);
-  // Small windows per storey on both faces, and a door toward the green.
+  // Small windows per story on both faces, and a door toward the green.
   const storeys = Math.max(1, Math.round(height / STOREY));
   const sills = rankSills(storeys).filter((v) => v + WINDOW_HEIGHT * 0.7 < height);
   const pane = (o: Pt, a: Pt, span: number, key: string, skipMiddle: boolean) => {
@@ -1835,10 +1835,10 @@ function VillageHouse({ col, row, w, h, height, ridge, pal, stone, glass, paneSh
   );
 }
 
-// Village house lots in normalised footprint coordinates (u across, v
+// Village house lots in normalized footprint coordinates (u across, v
 // down, 0..1), so the arrangement survives rotation: ranks around a green
-// plus a long block, varied in size, ridge direction and storeys (two are
-// L-shaped) so it does not read as a storage-unit lot. `s` is storeys, `d`
+// plus a long block, varied in size, ridge direction and stories (two are
+// L-shaped) so it does not read as a storage-unit lot. `s` is stories, `d`
 // the door's face.
 interface VillageLot { u: number; v: number; uw: number; vh: number; s: number; d: 'row' | 'col' | 'none' }
 const VILLAGE_HOUSES: VillageLot[] = [
@@ -1867,7 +1867,7 @@ const VILLAGE_TREES: Array<[number, number, 'canopy' | 'ornamental' | 'conifer',
 ];
 
 // A chapter house's Greek letters (ΑΒΓ), on a pedimented parapet above the
-// wall: a one-storey chapter house has no room under its eaves. Sized off
+// wall: a one-story chapter house has no room under its eaves. Sized off
 // the wall, not the (domestic, narrow) door.
 const PEDIMENT_SPAN = 0.62;    // share of the wall the assembly covers
 const FRIEZE_DEPTH = 0.16;     // the lettered band, as a share of its own width
@@ -2050,7 +2050,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const H = site ? Math.max(4, wallHeightOf(t) * 0.16) : full;
   const ridge = site ? 0 : ridgeOf(t, vernacular);
   const f = boxFaces(col, row, w, h, 0, H);
-  // One rank per standing storey (added floors included); a clear-span
+  // One rank per standing story (added floors included); a clear-span
   // volume gets one band near its eaves (buildingSpec's clerestorySill).
   const ranks = windowRanksOf(t) - inFlight;
   const sills = storeysOf(t) - inFlight > 0 ? rankSills(ranks) : [clerestorySill(H)];
@@ -2139,7 +2139,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
 
     const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
     const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, H - PODIUM_H);
-    // The shaft carries every storey the tower has except the podium's.
+    // The shaft carries every story the tower has except the podium's.
     const shaftRanks = Math.max(1, storeysOf(t) - TOWER_PODIUM_STOREYS);
     const shaftSills = rankSills(shaftRanks);
     const shaftW = windowWidthOf(t);
@@ -2988,7 +2988,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
             ))
           ))}
           {!site && t.facilityType === 'performingArtsCenter' && (() => {
-            // The fly tower: a blank box over the stage that says "theatre".
+            // The fly tower: a blank box over the stage that says "theater".
             const fw = w * 0.34; const fh = h * 0.56;
             const fly = boxFaces(col + w * 0.06, row + h * 0.22, fw, fh, H, STOREY * 1.6);
             return (
@@ -3113,5 +3113,5 @@ export default memo(BuildingMotif, (a, b) => (
   && a.p.w === b.p.w && a.p.h === b.p.h
 ));
 
-// Colour lives in buildingSpec.ts's MATERIALS (see materialOf).
+// Color lives in buildingSpec.ts's MATERIALS (see materialOf).
 export { materialOf } from './buildingSpec';

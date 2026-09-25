@@ -203,7 +203,7 @@ function findRecovery(name: string) {
   //
   // Plan 32 moved it to year 6. The texture events it retired were early
   // costs the harness paid in full (a roof, a kitchen, a boiler), and the
-  // catalogue's defaults cost little: year-5 cash now reads $0.2M to $0.6M
+  // catalog's defaults cost little: year-5 cash now reads $0.2M to $0.6M
   // at all five seeds, and year 6 is below zero at four of them, the
   // default among them.
   const underwater = holds('Overbuilder (beds ahead of demand)', YEARS, (r) => r.rows.find((row) => row.year === 6)!.cash < 0, run);
@@ -242,7 +242,7 @@ function findRecovery(name: string) {
 // every summer and watches its pool shrink. Plan 15's control said
 // prestige into the thirties and under three hundred students by year 20,
 // and the fitted game went to the bottom of the field — for a college that
-// opened with an empty catalogue. Since Plan 19 the college opens
+// opened with an empty catalog. Since Plan 19 the college opens
 // TEACHING: three programs, six courses, five professors with real
 // grades, and 480 seats. Idled, that is a small college that never grows
 // — it falls ten points below its founding standing in five years and
@@ -257,7 +257,7 @@ function findRecovery(name: string) {
   const foundingPrestige = FOUNDING_PRESET.startingReputation + FOUNDERS_HALL_REPUTATION_BONUS;
   assert(last.prestige < foundingPrestige - 8, `the idle school's prestige has fallen well below its founding standing by year ${YEARS} (${last.prestige.toFixed(1)} against ${foundingPrestige})`);
   assert(run.rows.every((r) => r.year < 5 || r.prestige < foundingPrestige - 8), 'and never regains it after year five');
-  assert(last.enrolled < FOUNDING_SEATS, `its enrolment never fills more than the founding rooms (${last.enrolled} against ${FOUNDING_SEATS} seats)`);
+  assert(last.enrolled < FOUNDING_SEATS, `its enrollment never fills more than the founding rooms (${last.enrolled} against ${FOUNDING_SEATS} seats)`);
   assert(last.cash > 0, `but it is not broke — it has nothing to be broke on (cash ${last.cash.toLocaleString()})`);
 }
 
@@ -595,8 +595,8 @@ for (const strategy of STRATEGIES.filter((s) => !MISTAKE_CASES.includes(s.name) 
 // unbounded version of it was a fair model. Course quality made it false:
 // a dismissal orphans whatever that person taught, and the unbounded lever
 // walked the discount strategy to ZERO faculty with 91 courses still on
-// offer — a school with a full catalogue and nobody in front of any class,
-// still printing a prestige and an enrolment, so every figure downstream
+// offer — a school with a full catalog and nobody in front of any class,
+// still printing a prestige and an enrollment, so every figure downstream
 // of it described a university that could not exist.
 //
 // Called DIRECTLY rather than read off a run, and that is the point: the
@@ -708,7 +708,7 @@ for (const strategy of STRATEGIES) {
 // design this replaces financeSystem.ts's old "instruction is never a
 // loss" blanket claim with (see that file's own note on
 // instructionCostPerStudent): a heavily-discounted strategy's own net
-// tuition per student can fall below what a large catalogue costs to
+// tuition per student can fall below what a large catalog costs to
 // teach, so courseAffordabilityAware throttles Discount volume's course
 // build-out well below what a market-rate strategy reaches on the same
 // clock. This locks in that the throttle is actually doing something, not

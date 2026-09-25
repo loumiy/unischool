@@ -15,9 +15,9 @@ export const TREE_COVERAGE = 0.05;
 // Share of trees in groves rather than the scatter.
 const GROVE_SHARE = 0.78;
 const GROVE_COUNT = 14;
-// Trees fall within this many tiles of a grove centre, denser toward it.
+// Trees fall within this many tiles of a grove center, denser toward it.
 const GROVE_RADIUS = 13;
-// No grove centre lands within this many tiles of the middle of the grid,
+// No grove center lands within this many tiles of the middle of the grid,
 // so the founding campus opens with a clearing to build in.
 const CLEARING_RADIUS = 18;
 
@@ -26,7 +26,7 @@ const CLEARING_RADIUS = 18;
 export const TREE_SEED_RANGE = 1 << 20;
 
 // What kind of tree a seed is (Plan 37, from v2's sim/trees.ts). The hash
-// moved here from the renderer, byte for byte, so the reducer can honour a
+// moved here from the renderer, byte for byte, so the reducer can honor a
 // planting choice without widening the save: a tree is still one integer,
 // and a seed is found that already means the species asked for.
 export type Species = 'canopy' | 'conifer' | 'ornamental';
@@ -93,7 +93,7 @@ export function seedTrees(placements: Placements): Trees {
     trees[key] = randomSeed();
   };
 
-  // Grove centres, kept out of the clearing in the middle.
+  // Grove centers, kept out of the clearing in the middle.
   const midRow = CAMPUS_GRID_HEIGHT / 2;
   const midCol = CAMPUS_GRID_WIDTH / 2;
   const centres: Array<{ row: number; col: number }> = [];
@@ -124,7 +124,7 @@ export function seedTrees(placements: Placements): Trees {
     );
   }
 
-  // Nothing grows on the road. Cleared afterwards rather than skipped while
+  // Nothing grows on the road. Cleared afterward rather than skipped while
   // planting, so the founding draws from the random stream are unchanged.
   for (const key of Object.keys(trees)) {
     const tile = parsePathTileKey(key);

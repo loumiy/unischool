@@ -86,7 +86,7 @@ function testOfferGate(): void {
 //
 // The offer records the week it was PUT, not the week it was answered. So an
 // interrupt cleared by anything other than the decline — the generic resolve
-// path, a harness dismissing a modal it does not recognise — still cools down.
+// path, a harness dismissing a modal it does not recognize — still cools down.
 // Written as a regression test because the first version stamped the decline
 // instead, and the offer then re-fired every quiet week forever: the balance
 // sim's decision-event count over forty years fell from 52 to 8.

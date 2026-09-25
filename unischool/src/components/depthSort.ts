@@ -5,7 +5,7 @@
 // Not a sort key: a scalar such as the far corner (`row + h + col + w`) is
 // right for points but not rectangles, since whether A occludes B depends on
 // how they are separated. So this states the occlusion relation directly and
-// topologically sorts it, with that scalar (generalised to any camera) as the
+// topologically sorts it, with that scalar (generalized to any camera) as the
 // tie-break where the relation leaves the order free. The camera's axes are
 // an input, so rotation is a transform rather than a rewrite.
 //
@@ -105,7 +105,7 @@ const SMALL = 1;
 function isSmall(b: DepthBox): boolean {
   return b.w <= SMALL && b.h <= SMALL;
 }
-// How far the neighbourhood scan reaches, in tiles. Two, not one: boxes sit
+// How far the neighborhood scan reaches, in tiles. Two, not one: boxes sit
 // at fractional coordinates, and a one-tile footprint's screen bounding box is
 // at most sqrt2 tiles a side at any azimuth.
 const NEIGHBOURHOOD = 2;

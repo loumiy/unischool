@@ -40,15 +40,15 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   MRKT130: 'Plans search, social, email, and paid campaigns around the funnel, and measures them with attribution rather than impressions.',
   MRKT140: 'Builds and defends a brand as an asset: positioning, identity, extensions, and the valuation of what the name is worth.',
   MRKT210: 'Applies sponsorship, ticketing, media rights, and fan engagement to teams, leagues, and the athletes who front them.',
-  MRKT220: 'Develops creative briefs, media plans, and promotional offers, and evaluates a campaign against the behaviour it set out to change.',
-  MRKT230: 'Organises a sales force — territories, quotas, compensation, pipeline forecasting — and the coaching that lifts a team\'s close rate.',
-  MRKT240: 'Adapts product, price, and message across cultures, currencies, and regulators, and decides when to standardise and when to localise.',
+  MRKT220: 'Develops creative briefs, media plans, and promotional offers, and evaluates a campaign against the behavior it set out to change.',
+  MRKT230: 'Organizes a sales force — territories, quotas, compensation, pipeline forecasting — and the coaching that lifts a team\'s close rate.',
+  MRKT240: 'Adapts product, price, and message across cultures, currencies, and regulators, and decides when to standardize and when to localize.',
 
   // --- Economics ---
   ECON101: 'Examines how individuals and firms make decisions under scarcity, from supply and demand to market structure.',
   ECON110: 'Models output, unemployment, inflation, and growth for a whole economy, and what monetary and fiscal policy can do about them.',
   ECON120: 'Estimates economic relationships from data with regression, and confronts the endogeneity and identification problems that make a causal claim hard.',
-  ECON130: 'Formalises consumer and producer theory, general equilibrium, and market failure with the calculus the introductory course left out.',
+  ECON130: 'Formalizes consumer and producer theory, general equilibrium, and market failure with the calculus the introductory course left out.',
   ECON140: 'Reads the Industrial Revolution, the Great Depression, and the post-war boom as tests of economic theory rather than as a chronicle.',
   ECON210: 'Replaces the rational agent with the one experiments find, and works out what bounded rationality and present bias do to markets and policy.',
   ECON220: 'Analyses taxation, public spending, and debt: who bears a tax, what a public good is worth, and when redistribution costs efficiency.',
@@ -74,7 +74,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   SPCO140: 'Forecasts what customers will order from history, promotions, and market signals, and reconciles the forecast with what operations can supply.',
   SPCO210: 'Manages sourcing and distribution across borders: tariffs, currency, lead times, and the resilience a shock like a port closure demands.',
   SPCO220: 'Sets reorder points, safety stock, and replenishment policies, and tunes them for demand that is uncertain and lead times that slip.',
-  SPCO230: 'Applies optimisation, simulation, and forecasting models to routing, scheduling, and stock decisions, using real operational data.',
+  SPCO230: 'Applies optimization, simulation, and forecasting models to routing, scheduling, and stock decisions, using real operational data.',
   SPCO240: 'Plans carrier selection, fleet routing, and freight contracts across road, rail, sea, and air, under regulation and fuel cost.',
 
   // === Engineering ===
@@ -109,7 +109,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   CHEM140: 'Sizes batch, stirred, and tubular reactors from kinetics and residence time, with heat effects and catalysis.',
   CHEM210: 'Analyses hazards, relief systems, and layers of protection with HAZOP studies and the case histories of plant disasters, so a design fails safely.',
   CHEM220: 'Engineers fermentation, enzyme reactors, and downstream purification to make pharmaceuticals and fuels from living cells.',
-  CHEM230: 'Covers polymerisation, molecular weight, and the viscoelastic behaviour of plastics, with the processing that shapes them.',
+  CHEM230: 'Covers polymerisation, molecular weight, and the viscoelastic behavior of plastics, with the processing that shapes them.',
   CHEM240: 'Evaluates biofuels, hydrogen, carbon capture, and electrochemical storage on efficiency, cost, and life-cycle emissions.',
 
   // --- Civil Engineering ---
@@ -124,13 +124,13 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   CIVE240: 'Covers land use, zoning, transport, and housing, and how planning decisions shape a city over decades.',
 
   // --- Industrial Engineering ---
-  INDE101: 'Introduces systems thinking for analysing and improving industrial processes.',
+  INDE101: 'Introduces systems thinking for analyzing and improving industrial processes.',
   INDE110: 'Schedules materials, machines, and people to meet demand, with MRP, capacity planning, and the trade-off between inventory and lead time.',
   INDE120: 'Designs workstations, tools, and tasks around the human body, with the hazard analysis that keeps a workplace from injuring it.',
   INDE130: 'Applies control charts, sampling plans, and process capability to detect drift before it becomes defects.',
   INDE140: 'Lays out plants and warehouses for material flow, with location analysis and the space each operation needs.',
   INDE210: 'Builds discrete-event models of factories, hospitals, and queues, and runs experiments on them that would be too costly in real life.',
-  INDE220: 'Optimises network design, inventory, and sourcing with mathematical programming and data from a real supply chain.',
+  INDE220: 'Optimizes network design, inventory, and sourcing with mathematical programming and data from a real supply chain.',
   INDE230: 'Applies value-stream mapping, pull systems, and continuous improvement to take the waste out of a production line.',
   INDE240: 'Models failure with life distributions and fault trees, and designs maintenance and redundancy for systems that must not stop.',
 
@@ -156,12 +156,12 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   MDIA210: 'Follows a film from development finance through distribution windows and marketing, and how streaming rewrote the economics.',
   MDIA220: 'Measures reach, sentiment, and network spread across platforms, and separates a real audience signal from bots and vanity metrics.',
   MDIA230: 'Shoots, edits, and captions news photographs under deadline, with the ethics of staging, cropping, and consent.',
-  MDIA240: 'Manages an organisation\'s reputation through media relations, crisis response, and campaigns, and measures what the coverage did.',
+  MDIA240: 'Manages an organization\'s reputation through media relations, crisis response, and campaigns, and measures what the coverage did.',
 
   // --- Graphic Design ---
-  GRDS101: 'Introduces composition, colour, and layout as tools for communicating visually.',
+  GRDS101: 'Introduces composition, color, and layout as tools for communicating visually.',
   GRDS110: 'Sets type with attention to letterform, hierarchy, spacing, and grid, from a single word mark to a running text page.',
-  GRDS120: 'Edits and composes raster and vector images for print and screen, with colour management and resolution handled correctly.',
+  GRDS120: 'Edits and composes raster and vector images for print and screen, with color management and resolution handled correctly.',
   GRDS130: 'Arranges type and image on the page and the screen using grids, hierarchy, and white space, for editorial and advertising work.',
   GRDS140: 'Develops logos, identity systems, and brand guidelines, and tests them across the applications a client will actually use.',
   GRDS210: 'Designs responsive interfaces in HTML and CSS with attention to navigation, accessibility, and performance on real devices.',
@@ -182,7 +182,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
 
   // --- Music ---
   MUSC101: 'Covers notation, scales, and harmony, the building blocks of Western music.',
-  MUSC110: 'Extends harmony into chromaticism, modulation, and form, analysing sonatas and songs from the score.',
+  MUSC110: 'Extends harmony into chromaticism, modulation, and form, analyzing sonatas and songs from the score.',
   MUSC120: 'Traces Western art music from chant through the classical and romantic eras to the twentieth century, by listening.',
   MUSC130: 'Writes short pieces for solo instruments and small ensembles, and hears them performed and critiqued.',
   MUSC140: 'Gives weekly private lessons on the student\'s instrument or voice, building technique and repertoire toward a juried performance.',
@@ -200,18 +200,18 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   FILM210: 'Researches, shoots, and edits a nonfiction film, negotiating access, consent, and the line between observing and staging.',
   FILM220: 'Surveys national cinemas and movements from silent film to the present, from Soviet montage to the new waves and beyond.',
   FILM230: 'Records dialogue, builds effects and ambience, and mixes them into a soundtrack that does half the storytelling.',
-  FILM240: 'Edits, colour-grades, and finishes a film to delivery, with the workflow and versioning a real release requires.',
+  FILM240: 'Edits, color-grades, and finishes a film to delivery, with the workflow and versioning a real release requires.',
 
   // --- Studio Art ---
   SART101: 'Introduces line, shape, and composition through studio exercises in two-dimensional art.',
   SART110: 'Builds observational skill in line, value, and proportion from still life and the figure, in charcoal, graphite, and ink.',
-  SART120: 'Works in oil and acrylic on colour mixing, surface, and composition, from studies to sustained canvases.',
+  SART120: 'Works in oil and acrylic on color mixing, surface, and composition, from studies to sustained canvases.',
   SART130: 'Builds in clay, plaster, wood, and found material, and learns what changes when a work occupies space rather than a wall.',
   SART140: 'Surveys art and architecture from the ancient world to the present, and how to read a work in its period and context.',
   SART210: 'Covers relief, intaglio, and screen printing, from plate and stencil to the edition.',
   SART220: 'Throws and hand-builds vessels and sculptural forms, and fires and glazes them with an understanding of the chemistry involved.',
   SART230: 'Shoots, develops, and prints in the darkroom and the digital lab, with the history of the medium alongside the technique.',
-  SART240: 'Makes work in generative code, 3D modelling, video, and interactive media, exhibited on screens rather than paper.',
+  SART240: 'Makes work in generative code, 3D modeling, video, and interactive media, exhibited on screens rather than paper.',
 
   // === Social Sciences & Humanities ===
 
@@ -227,20 +227,20 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ENGL240: 'Writes documentation, proposals, and reports for expert and lay readers, with structure, plain language, and usability testing.',
 
   // --- Sociology ---
-  SOCY101: 'Examines how social structures, institutions, and group behaviour shape everyday life.',
+  SOCY101: 'Examines how social structures, institutions, and group behavior shape everyday life.',
   SOCY110: 'Analyses class, status, and power: how inequality is measured, reproduced across generations, and justified.',
   SOCY120: 'Reads Marx, Weber, Durkheim, and their successors, and asks what each framework explains that the others cannot.',
   SOCY130: 'Examines how racial and ethnic categories are made, enforced, and contested, and their effects on housing, schooling, and justice.',
   SOCY140: 'Trains interviewing, ethnographic observation, and the coding of field notes, with the ethics of studying people up close.',
-  SOCY210: 'Explains crime and punishment through theories of strain, control, and labelling, and tests them against crime statistics and the courts.',
+  SOCY210: 'Explains crime and punishment through theories of strain, control, and labeling, and tests them against crime statistics and the courts.',
   SOCY220: 'Studies how marriage, parenting, and kinship vary across class and culture and have changed over a century.',
-  SOCY230: 'Examines segregation, gentrification, and neighbourhood effects, and how cities shape the lives lived in them.',
+  SOCY230: 'Examines segregation, gentrification, and neighborhood effects, and how cities shape the lives lived in them.',
   SOCY240: 'Analyses how gender is socially constructed and enforced, in work, family, and the body, and how sexuality intersects with it.',
 
   // --- Anthropology ---
   ANTH101: 'Introduces the four fields of anthropology and what each asks about being human.',
   ANTH110: 'Studies kinship, ritual, exchange, and belief across societies through ethnography, and what fieldwork can and cannot see.',
-  ANTH120: 'Covers human evolution, primate behaviour, and modern human variation, from fossil evidence to genetics.',
+  ANTH120: 'Covers human evolution, primate behavior, and modern human variation, from fossil evidence to genetics.',
   ANTH130: 'Teaches survey, excavation, stratigraphy, and dating, and how material remains are turned into claims about the past.',
   ANTH140: 'Examines how language shapes and reflects culture: dialect, politeness, multilingualism, and language loss.',
   ANTH210: 'Designs and carries out a small ethnographic project, from gaining access to writing up, with the ethics at every step.',
@@ -249,20 +249,20 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ANTH240: 'Examines collecting, display, repatriation, and heritage policy, and who gets to tell whose past.',
 
   // --- Political Science ---
-  POLS101: 'Surveys power, institutions, and political behaviour, and the questions and methods of the discipline.',
+  POLS101: 'Surveys power, institutions, and political behavior, and the questions and methods of the discipline.',
   POLS110: 'Compares regimes, party systems, and institutions across countries to explain why democracies and dictatorships rise, endure, and fall.',
-  POLS120: 'Introduces realism, liberalism, and constructivism, and applies them to war, trade, alliances, and international organisations.',
+  POLS120: 'Introduces realism, liberalism, and constructivism, and applies them to war, trade, alliances, and international organizations.',
   POLS130: 'Examines the constitution, the separation of powers, federalism, and the parties and interest groups that work them.',
   POLS140: 'Defines a policy problem, weighs alternatives with cost-benefit analysis and evidence, and explains why the best option often loses.',
   POLS210: 'Reads the landmark cases on judicial review, federal power, and civil liberties, and how doctrine changes with the court.',
   POLS220: 'Studies how campaigns are strategised, funded, and run, from polling and messaging to turnout, using a live election where there is one.',
   POLS230: 'Reads Rawls, Nozick, and their critics on what a just distribution and a legitimate state would be.',
-  POLS240: 'Analyses war, deterrence, terrorism, and cyber conflict, and the intelligence and defence institutions built to meet them.',
+  POLS240: 'Analyses war, deterrence, terrorism, and cyber conflict, and the intelligence and defense institutions built to meet them.',
 
   // --- History ---
   HIST101: 'Surveys major civilisations and turning points from antiquity to the modern era.',
   HIST110: 'Trains the historian\'s craft: finding and reading primary sources, weighing conflicting accounts, and writing from evidence.',
-  HIST120: 'Surveys the American past from colonisation through the Civil War, industrialisation, and the twentieth century.',
+  HIST120: 'Surveys the American past from colonization through the Civil War, industrialization, and the twentieth century.',
   HIST130: 'Traces Europe from the Renaissance and Reformation through revolutions, nationalism, and the two world wars.',
   HIST140: 'Studies Mesopotamia, Egypt, Greece, and Rome through their texts and material remains, and what each left behind.',
   HIST210: 'Examines the causes, conduct, and consequences of the two world wars, from the trenches and the home front to the peace settlements.',
@@ -278,7 +278,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PHIL140: 'Reads the Presocratics, Plato, and Aristotle closely, on nature, knowledge, the soul, and the good life.',
   PHIL210: 'Reads Kierkegaard, Nietzsche, Heidegger, Sartre, and de Beauvoir on freedom, anxiety, authenticity, and meaning without guarantee.',
   PHIL220: 'Examines consciousness, intentionality, and the mind-body problem, and whether a machine could have any of them.',
-  PHIL230: 'Asks what art is, what makes a judgement of beauty more than a preference, and how a work can mean anything.',
+  PHIL230: 'Asks what art is, what makes a judgment of beauty more than a preference, and how a work can mean anything.',
   PHIL240: 'Develops propositional and first-order logic with proofs and models, up to the completeness and the limits of the systems.',
 
   // === Science ===
@@ -319,7 +319,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   // --- Physics ---
   PHYS101: 'Derives motion, force, energy, and momentum from Newton\'s laws, with lab work throughout.',
   PHYS110: 'Develops fields, potentials, circuits, and induction from Coulomb\'s law to Maxwell\'s equations, with lab work throughout.',
-  PHYS120: 'Covers oscillations, wave propagation, interference, diffraction, and polarisation, from sound to lasers.',
+  PHYS120: 'Covers oscillations, wave propagation, interference, diffraction, and polarization, from sound to lasers.',
   PHYS130: 'Introduces special relativity, the quantum, atomic structure, and nuclear physics, and the experiments that forced each.',
   PHYS140: 'Derives temperature, entropy, and the laws of thermodynamics from the statistics of many particles.',
   PHYS210: 'Develops the Schrödinger equation, operators, angular momentum, and spin, and applies them to atoms and simple systems.',
@@ -344,10 +344,10 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PSYC120: 'Examines attention, memory, language, and reasoning through the experiments that reveal how the mind processes information.',
   PSYC130: 'Covers the classification, causes, and treatment of mental disorders, from anxiety and depression to psychosis.',
   PSYC140: 'Designs experiments and surveys, analyses their data, and confronts the replication problems of the field.',
-  PSYC210: 'Studies conformity, persuasion, prejudice, and group behaviour, through the classic experiments and their modern re-tests.',
-  PSYC220: 'Links behaviour to the brain: neurotransmitters, hormones, sleep, and the effects of drugs and damage.',
+  PSYC210: 'Studies conformity, persuasion, prejudice, and group behavior, through the classic experiments and their modern re-tests.',
+  PSYC220: 'Links behavior to the brain: neurotransmitters, hormones, sleep, and the effects of drugs and damage.',
   PSYC230: 'Applies psychology to selection, motivation, leadership, and team performance in the workplace.',
-  PSYC240: 'Examines how stress, behaviour, and belief affect illness and recovery, and the interventions that change them.',
+  PSYC240: 'Examines how stress, behavior, and belief affect illness and recovery, and the interventions that change them.',
 
   // === Health Science ===
 
@@ -358,7 +358,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PHLT130: 'Examines how health systems are financed, regulated, and run, and the policy choices behind coverage, cost, and access.',
   PHLT140: 'Covers air and water quality, toxic exposure, and food safety, and the regulation that protects a population from them.',
   PHLT210: 'Examines disease burden, health systems, and interventions in low-income settings, from vaccination campaigns to maternal care.',
-  PHLT220: 'Designs programmes that change behaviour — smoking, diet, screening — using behavioural theory and an evaluation of what worked.',
+  PHLT220: 'Designs programs that change behavior — smoking, diet, screening — using behavioral theory and an evaluation of what worked.',
   PHLT230: 'Gathers and analyses local health data with community partners, and turns it into a set of priorities and a plan.',
   PHLT240: 'Covers pregnancy, birth, infant, and child health outcomes, and the services and policies that improve them.',
 
@@ -371,7 +371,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   NURS210: 'Manages ventilated, unstable, and post-operative patients in intensive care, with monitoring, drugs, and rapid response.',
   NURS220: 'Cares for infants, children, and adolescents, with the growth, dosing, and family communication that differ from adult practice.',
   NURS230: 'Cares for older adults with chronic illness, frailty, dementia, and polypharmacy, at home and in long-term care.',
-  NURS240: 'Runs a full patient load on a specialty unit under a preceptor — the transition from student to practising nurse.',
+  NURS240: 'Runs a full patient load on a specialty unit under a preceptor — the transition from student to practicing nurse.',
 
   // --- Nutrition ---
   NUTR101: 'Covers macronutrients, micronutrients, and how diet supports human health.',
@@ -380,9 +380,9 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   NUTR130: 'Assesses nutritional status, plans diets, and counsels clients — the clinical practice of a dietitian.',
   NUTR140: 'Examines the chemistry, microbiology, and processing of food, from spoilage and preservation to what cooking does to it.',
   NUTR210: 'Fuels training and competition with energy, hydration, and timing strategies, and evaluates the supplements athletes take.',
-  NUTR220: 'Addresses malnutrition and obesity at the population level, through food policy, school programmes, and surveillance.',
+  NUTR220: 'Addresses malnutrition and obesity at the population level, through food policy, school programs, and surveillance.',
   NUTR230: 'Manages nutrition in diabetes, kidney disease, cancer, and critical illness, including tube and intravenous feeding.',
-  NUTR240: 'Runs supervised client consultations from dietary assessment through behaviour-change counselling and follow-up, the capstone of dietetic practice.',
+  NUTR240: 'Runs supervised client consultations from dietary assessment through behavior-change counseling and follow-up, the capstone of dietetic practice.',
 
   // --- Pharmacy ---
   PHRM101: 'Introduces drug discovery, formulation, and the pharmacist\'s role in patient care.',
@@ -401,13 +401,13 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   KINE120: 'Measures how the heart, lungs, and muscles respond and adapt to exercise, in the lab with treadmill and metabolic testing.',
   KINE130: 'Applies mechanics to the body — forces, torques, and motion capture — from a golf swing to a fall.',
   KINE140: 'Examines how skills are acquired and coordinated by the nervous system, and how practice and feedback should be structured.',
-  KINE210: 'Designs resistance and conditioning programmes for athletes, with periodisation, testing, and coaching technique.',
+  KINE210: 'Designs resistance and conditioning programs for athletes, with periodisation, testing, and coaching technique.',
   KINE220: 'Assesses and rehabilitates common sports injuries, from acute care and taping to return-to-play progressions.',
   KINE230: 'Runs fitness assessments and prescribes exercise for healthy and clinical populations, following professional guidelines.',
   KINE240: 'Designs physical activity for people with disabilities and chronic conditions, with inclusion and safety as the starting points.',
 
   // --- Neuroscience ---
-  NEUR101: 'Introduces the nervous system from single neurons up to behaviour and cognition.',
+  NEUR101: 'Introduces the nervous system from single neurons up to behavior and cognition.',
   NEUR110: 'Maps the structures of the brain and spinal cord, their connections, and what damage to each does, with brain dissection in the lab.',
   NEUR120: 'Covers ion channels, action potentials, synaptic transmission, and the molecular machinery of the neuron.',
   NEUR130: 'Links perception, memory, language, and decision-making to brain systems, through imaging, lesion, and recording studies.',
@@ -425,16 +425,16 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   COMP120: 'Designs and analyses algorithms — sorting, graph search, dynamic programming, greedy methods — with proofs of correctness and running time.',
   COMP130: 'Builds the pieces of an operating system: processes and threads, scheduling, memory management, file systems, and concurrency.',
   COMP140: 'Covers instruction sets, pipelining, caches, and the memory hierarchy, and how hardware decides what software runs fast.',
-  COMP210: 'Writes a compiler from lexing and parsing through type checking, optimisation, and code generation for a real target.',
+  COMP210: 'Writes a compiler from lexing and parsing through type checking, optimization, and code generation for a real target.',
   COMP220: 'Builds a playable game as a team, with a rendering loop, physics, input, and the design iteration that makes it fun.',
   COMP230: 'Programs multicore, GPU, and distributed systems with threads and message passing, and measures the speedup actually obtained.',
   COMP240: 'Builds full-stack web applications with a client framework, a server API, a database, and deployment, including authentication and security.',
 
   // --- Data Science ---
   DATA101: 'Introduces data collection, cleaning, and exploratory analysis techniques.',
-  DATA110: 'Fits linear and generalised linear models, checks their assumptions, and reads what the coefficients do and do not claim.',
+  DATA110: 'Fits linear and generalized linear models, checks their assumptions, and reads what the coefficients do and do not claim.',
   DATA120: 'Trains and evaluates supervised and unsupervised models — regression, trees, clustering, neural networks — with the bias-variance trade-off throughout.',
-  DATA130: 'Designs charts and interactive graphics that make a dataset\'s structure legible, and learns what makes a visualisation mislead.',
+  DATA130: 'Designs charts and interactive graphics that make a dataset\'s structure legible, and learns what makes a visualization mislead.',
   DATA140: 'Finds patterns in large datasets with association rules, clustering, and anomaly detection, and validates that they are real.',
   DATA210: 'Processes data at scale with distributed storage and computation frameworks, and the trade-offs that shape a data pipeline.',
   DATA220: 'Models trend, seasonality, and autocorrelation with ARIMA and state-space methods, and forecasts with honest uncertainty.',
@@ -445,11 +445,11 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   CYBR101: 'Surveys threats, defenses, and the core principles of securing systems.',
   CYBR110: 'Secures networks with firewalls, intrusion detection, VPNs, and protocol hardening, against attacks run in a lab.',
   CYBR120: 'Covers symmetric and public-key ciphers, hashes, signatures, and protocols, and why so many real systems get them wrong.',
-  CYBR130: 'Runs authorised penetration tests — reconnaissance, exploitation, privilege escalation — and writes the report that makes the findings fixable.',
-  CYBR140: 'Runs a security operations centre: log analysis, monitoring, incident response, and the playbooks for when something gets through.',
+  CYBR130: 'Runs authorized penetration tests — reconnaissance, exploitation, privilege escalation — and writes the report that makes the findings fixable.',
+  CYBR140: 'Runs a security operations center: log analysis, monitoring, incident response, and the playbooks for when something gets through.',
   CYBR210: 'Secures identity, storage, networking, and workloads on public cloud platforms, where a misconfiguration is the usual breach.',
   CYBR220: 'Acquires and analyses evidence from disks, memory, and networks in a way that holds up in court.',
-  CYBR230: 'Assesses threats, vulnerabilities, and impact to prioritise controls, and maps them to the compliance frameworks an organisation is audited against.',
+  CYBR230: 'Assesses threats, vulnerabilities, and impact to prioritize controls, and maps them to the compliance frameworks an organization is audited against.',
   CYBR240: 'Finds vulnerabilities in code with static analysis, fuzzing, and code review, and builds the practices that keep them out.',
 
   // --- Software Engineering ---
@@ -467,21 +467,21 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ARTF101: 'Surveys the history, goals, and core techniques of artificial intelligence.',
   ARTF110: 'Implements search, constraint satisfaction, and probabilistic reasoning in code — the classical toolkit under modern systems.',
   ARTF120: 'Encodes facts and rules in logics and ontologies, and reasons over them with inference engines and their limits.',
-  ARTF130: 'Builds and trains multilayer networks from backpropagation up, with the optimisation and regularisation that make them learn.',
-  ARTF140: 'Covers kernel methods, ensembles, probabilistic graphical models, and the theory of generalisation behind them.',
+  ARTF130: 'Builds and trains multilayer networks from backpropagation up, with the optimization and regularization that make them learn.',
+  ARTF140: 'Covers kernel methods, ensembles, probabilistic graphical models, and the theory of generalization behind them.',
   ARTF210: 'Trains convolutional, recurrent, and transformer architectures at scale, with the engineering that makes large models work.',
-  ARTF220: 'Gives a robot senses and plans — localisation, mapping, motion planning, and control — on real hardware.',
-  ARTF230: 'Builds systems that detect, segment, and recognise objects in images and video, from filters and features to deep models.',
-  ARTF240: 'Examines bias, accountability, surveillance, and labour displacement in deployed AI, and the governance proposed for it.',
+  ARTF220: 'Gives a robot senses and plans — localization, mapping, motion planning, and control — on real hardware.',
+  ARTF230: 'Builds systems that detect, segment, and recognize objects in images and video, from filters and features to deep models.',
+  ARTF240: 'Examines bias, accountability, surveillance, and labor displacement in deployed AI, and the governance proposed for it.',
 
   // --- Information Systems ---
-  INFO101: 'Introduces how organisations use information systems to run and improve operations.',
-  INFO110: 'Models an organisation\'s processes and data, and specifies the information system that would serve them, with the stakeholders in the room.',
+  INFO101: 'Introduces how organizations use information systems to run and improve operations.',
+  INFO110: 'Models an organization\'s processes and data, and specifies the information system that would serve them, with the stakeholders in the room.',
   INFO120: 'Administers databases in production: schema design, query tuning, backup, security, and the move from relational to other stores.',
   INFO130: 'Configures an enterprise system across finance, supply chain, and HR, and studies why so many implementations overrun.',
-  INFO140: 'Covers servers, networks, virtualisation, and cloud services, and how an organisation provisions, secures, and pays for them.',
+  INFO140: 'Covers servers, networks, virtualisation, and cloud services, and how an organization provisions, secures, and pays for them.',
   INFO210: 'Maps and redesigns workflows with process notation and simulation, and measures the improvement actually delivered.',
   INFO220: 'Analyses online business models, platforms, payments, and logistics, and what makes a digital marketplace defensible.',
-  INFO230: 'Builds an organisation\'s security programme: policy, risk assessment, awareness, and governance under regulation.',
+  INFO230: 'Builds an organization\'s security program: policy, risk assessment, awareness, and governance under regulation.',
   INFO240: 'Designs dimensional models and ETL pipelines that feed analytics and reporting, and keeps the numbers consistent across them.',
 };

@@ -2,7 +2,7 @@
 // The ceiling (Plan 15's PR E — see instructionCapacity.ts's intakeCeiling,
 // admissionsSystem.ts's `seatsLeft`, and financeSystem.ts's
 // servicesMultiplier). The freshman class cannot exceed the seats the
-// housed catalogue has left after graduation; the funnel clips it from
+// housed catalog has left after graduation; the funnel clips it from
 // the bottom band up; the pool is never capped; and the services line
 // rises past 85% of capacity.
 //
@@ -70,7 +70,7 @@ console.log('intake ceiling tests');
   assert(held.enrolled === 100, `to exactly the seats left (${held.enrolled})`);
   assert(held.applicants === free.applicants, 'the pool is untouched');
   assert(held.avgIncomingQuality >= free.avgIncomingQuality, 'and the weakest admits are the ones turned away');
-  assert(held.admitRate < free.admitRate, 'so the realised admit rate falls below the chosen one');
+  assert(held.admitRate < free.admitRate, 'so the realized admit rate falls below the chosen one');
 
   const roomy = projectAdmissions(60, 20_000, 0, 70, undefined, undefined, free.enrolled + 50);
   assert(!roomy.capped && roomy.enrolled === free.enrolled, 'a ceiling above the class changes nothing');
@@ -102,7 +102,7 @@ console.log('intake ceiling tests');
   assert(instructionCapacity(s) === c.capacity, 'and neither counts today');
 
   s.students.classes = { freshman: 1_000, sophomore: 1_000, junior: 1_000, senior: 0 };
-  assert(intakeCeiling(s).seatsLeft === 0, 'a body past the catalogue leaves no room, never a negative one');
+  assert(intakeCeiling(s).seatsLeft === 0, 'a body past the catalog leaves no room, never a negative one');
 }
 
 // ---- services rise past 85% of capacity ----
@@ -139,7 +139,7 @@ console.log('intake ceiling tests');
   assert(s.students.classes.freshman <= ceiling.seatsLeft, `the freshman class is held to the room (${s.students.classes.freshman})`);
   assert(s.students.classes.freshman === ceiling.seatsLeft, 'exactly, when the pool would have filled it');
   assert(s.log.some((l) => l.message.includes('the class was held to it')), 'and the log says so');
-  assert(totalEnrolled(s.students) <= intakeCeiling(atSummer).capacity, 'so the body fits the catalogue');
+  assert(totalEnrolled(s.students) <= intakeCeiling(atSummer).capacity, 'so the body fits the catalog');
 }
 
 console.log(`intake ceiling: ${checks} checks, ${failures} failures`);

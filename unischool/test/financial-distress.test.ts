@@ -89,7 +89,7 @@ function emptyClasses(s: GameState): void {
   const dorm = s0.tech.find((t) => t.kind === 'dorm' && t.status === 'available' && t.cost > 50);
   assert(dorm !== undefined, 'fixture: an available dorm costs more than 50');
   if (dorm) {
-    // A clear, in-bounds spot, well clear of the centred founding dorm — so
+    // A clear, in-bounds spot, well clear of the centered founding dorm — so
     // the only reason placement is refused is that it is unaffordable.
     const s1 = reducer(s0, { type: 'PLACE_BUILDABLE', buildableId: dorm.id, row: 45, col: 60, rotated: false });
     assert(!(dorm.id in s1.placements), 'unaffordable placeable is not sited');
@@ -115,7 +115,7 @@ function emptyClasses(s: GameState): void {
   for (let i = 0; i < 6; i += 1) {
     // The first year's opening letter (Plan 16's PR F) holds week one open
     // like any other interrupt; it is read and put down so the clock's own
-    // behaviour under a deficit is what this measures.
+    // behavior under a deficit is what this measures.
     if (s.pendingInterrupt) { s = reducer(s, { type: 'RESOLVE_LETTER', skipAll: true }); continue; }
     s = reducer(s, { type: 'TICK' });
     ticks += 1;

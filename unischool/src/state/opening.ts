@@ -57,7 +57,7 @@ function fourthProgramFounded(s: GameState): boolean {
 }
 
 // "I know the way": declines the walk (and, from the welcome, the letters),
-// and places Founders Hall at the grid centre as a headless founding would.
+// and places Founders Hall at the grid center as a headless founding would.
 // Every later card offers it too, so a step the player cannot finish never
 // holds the clock for good.
 export function skipOpening(s: GameState, declineLetters = true): void {

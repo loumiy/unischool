@@ -11,9 +11,9 @@ import { TreeAt, type Species } from './trees';
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
 // drawn flat on the grid with their markings projected at the same angle.
 //
-// Markings are authored in normalised footprint coordinates (u across, v
+// Markings are authored in normalized footprint coordinates (u across, v
 // down, both 0..1) and projected at draw time, so every footprint size comes
-// out correctly proportioned. Colour lives in styles.css; this file is geometry.
+// out correctly proportioned. Color lives in styles.css; this file is geometry.
 
 // u/v within the footprint -> world point.
 function uv(col: number, row: number, w: number, h: number, u: number, v: number): Pt {
@@ -67,7 +67,7 @@ function aroundPoint(cc: number, cr: number, radius: number): { col: number; row
 // A wedge, not a box: each row sits higher than the one in front, so the
 // surface climbs away from the play. A box reads as a wall around a pitch.
 //
-// Colours are passed in: the stadium shades its stands from its own tint,
+// Colors are passed in: the stadium shades its stands from its own tint,
 // the bleachers beside a pitch are plain concrete.
 // ---------------------------------------------------------------------
 export function RakedStand({
@@ -85,7 +85,7 @@ export function RakedStand({
   wall?: boolean;
   frontWall?: boolean;
   // The two side profiles of the wedge, which say "raked seating" from any
-  // angle; omitted only when both ends are buried in a neighbouring bank.
+  // angle; omitted only when both ends are buried in a neighboring bank.
   endFaces?: boolean;
   // Gangways cut down the rake, as dark slots. Zero for a bleacher.
   aisles?: number;
@@ -474,7 +474,7 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
   // One horseshoe in three straight pieces: a grandstand behind the plate,
   // square to the bisector, and a wing down each foul line to the bases, all
   // one depth and height, on a low field wall, with a press box over the
-  // middle (modelled on a college ballpark such as Holman Stadium). Three
+  // middle (modeled on a college ballpark such as Holman Stadium). Three
   // props because the depth sort needs them apart: a tree beside the
   // third-base line passes in front of that wing and behind the plate stand
   // (depth-sort.test.ts). The wings follow the grid axes.
@@ -590,8 +590,8 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
     };
   };
 
-  // --- centre field ----------------------------------------------------
-  // The batter's eye — a dark panel on the fence at dead centre — and the
+  // --- center field ----------------------------------------------------
+  // The batter's eye — a dark panel on the fence at dead center — and the
   // scoreboard standing over it.
   const centreField = (() => {
     const c = polar(R * 0.99, bisect);
@@ -639,7 +639,7 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
     {
       key: 'backstop',
       // The screen between the plate and the front row of the grandstand:
-      // a mesh along the plate stand's inner edge, a storey and a half high.
+      // a mesh along the plate stand's inner edge, a story and a half high.
       ...boxOf([...plate.inner]),
       node: (
         <>
@@ -654,12 +654,12 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
   ];
 }
 
-// A soccer pitch: centre circle, halfway line, and the two penalty areas
+// A soccer pitch: center circle, halfway line, and the two penalty areas
 // that stop it being "a field with a circle on it".
 // The number of running lanes: eight, the competition standard.
 const TRACK_LANES = 8;
 
-// Where the oval's centre sits across the plot: pushed toward the near side
+// Where the oval's center sits across the plot: pushed toward the near side
 // so the stand has a margin down the far straight. A fraction of the plot's
 // short side, shared with pitchProps so the stand sits on the track's edge.
 const TRACK_CENTRE_ACROSS = 0.54;
@@ -683,7 +683,7 @@ function pitchGeometry(col: number, row: number, w: number, h: number) {
   const PITCH_RATIO = 110 / 68;                                         // a long pitch, within the laws
   const pitchWid = Math.min(innerWid * 0.96, (68 / METRES_PER_TILE) / 2);
   const pitchLen = Math.min(pitchWid * PITCH_RATIO, innerLen * 0.97);
-  // (along, across) offsets from the centre onto the grid.
+  // (along, across) offsets from the center onto the grid.
   const tp = (a: number, c: number): Pt => (landscape ? project(cc + a, cr + c) : project(cc + c, cr + a));
   const tile = (a: number, c: number): TilePt => (landscape ? [cc + a, cr + c] : [cc + c, cr + a]);
   return { landscape, cc, cr, along, across, outerLen, outerWid, trackWidth, innerLen, innerWid, pitchWid, pitchLen, tp, tile };
@@ -744,7 +744,7 @@ function Pitch({ col, row, w, h }: GroundProps) {
       })}
       {/* A long-jump runway and its pit in one D-zone. */}
       {(() => {
-        const rc = innerWid * 0.5;           // off the centre line, clear of the goal
+        const rc = innerWid * 0.5;           // off the center line, clear of the goal
         const a0 = -innerLen * 0.9; const a1 = -pitchLen * 1.04;
         return (
           <>
@@ -1042,7 +1042,7 @@ function Hedge({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
   );
 }
 
-// The Grand Quad's fountain: kerb, water, a raised basin, and a jet with a
+// The Grand Quad's fountain: curb, water, a raised basin, and a jet with a
 // ring of spray. Static: animating it would force redraws on a surface that
 // is otherwise only redrawn when something changes.
 function Fountain({ col, row, w, h }: GroundProps) {
@@ -1087,7 +1087,7 @@ function Fountain({ col, row, w, h }: GroundProps) {
 // of its own plot; the garden is a small Grand Quad.
 function amenityProps(id: string | undefined, col: number, row: number, w: number, h: number): GroundProp[] {
   if (id === 'AMENITY-GARDEN') return quadProps(col, row, w, h, 2);
-  // Scaled so the centrepiece fills its plot rather than a quad's middle.
+  // Scaled so the centerpiece fills its plot rather than a quad's middle.
   const k = id === 'AMENITY-STATUE' ? 3.2 : 2.2;
   const cc = col + w / 2; const cr = row + h / 2;
   const plot = { col: cc - (w * k) / 2, row: cr - (h * k) / 2, w: w * k, h: h * k };
@@ -1095,7 +1095,7 @@ function amenityProps(id: string | undefined, col: number, row: number, w: numbe
   return [{ key: 'centre', col, row, w, h, node }];
 }
 
-// The tier-1 quad's centrepiece: a paved roundel, a stepped plinth and a
+// The tier-1 quad's centerpiece: a paved roundel, a stepped plinth and a
 // column, in the fountain's two-part language (ground ring, then raised mass).
 function Monument({ col, row, w, h }: GroundProps) {
   const cc = col + w * 0.5; const cr = row + h * 0.5;
@@ -1190,11 +1190,11 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
     gardens
       ? {
         key: 'fountain',
-        // The same radius Fountain draws its kerb at, so the two cannot drift.
+        // The same radius Fountain draws its curb at, so the two cannot drift.
         ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.20),
         node: <Fountain col={col} row={row} w={w} h={h} />,
       }
-      // Tier 1's centre: a roundel with a plinth and column, something for the
+      // Tier 1's center: a roundel with a plinth and column, something for the
       // walks to lead to (a bare roundel in the walks' stone read as nothing).
       : {
         key: 'monument',
@@ -1319,7 +1319,7 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
       })}
       {boards.map(({ tone, pts, span }, i) => {
         // Posts every couple of tiles, so the board reads as a hoarding rather
-        // than a ribbon of flat colour.
+        // than a ribbon of flat color.
         const posts = Math.max(1, Math.round(span / 2.5) - 1);
         return (
           <g key={i}>

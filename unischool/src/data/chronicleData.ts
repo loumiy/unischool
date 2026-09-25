@@ -1,12 +1,12 @@
 // THE CHRONICLE's words (Plan 33, from v2's chronicle.json; V2 #53): the
 // names an era may be given, by the kind of years it was, and the sentences
-// that summarise it. systems/chronicle/chronicle.ts decides which apply.
+// that summarize it. systems/chronicle/chronicle.ts decides which apply.
 
 export type EraKind =
   | 'founding' | 'building' | 'troubles' | 'receivership' | 'rise' | 'decline'
   | 'campaign' | 'rivalry' | 'golden' | 'quiet' | 'eventful';
 
-export const ERA_MIN_YEARS = 4;   // shorter runs fold into a neighbour
+export const ERA_MIN_YEARS = 4;   // shorter runs fold into a neighbor
 export const ERA_MAX = 9;         // no more eras than a chronicle can hold
 export const ERA_MAX_YEARS = 12;  // a longer run is split where the most happened
 

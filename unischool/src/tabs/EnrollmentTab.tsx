@@ -19,7 +19,7 @@ const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]
   ['senior', 'Seniors'],
 ];
 
-// Categorical colours as muted, mid-dark pigments so they sit on parchment
+// Categorical colors as muted, mid-dark pigments so they sit on parchment
 // and white segment labels stay legible on each.
 const COHORT_COLOR: Record<CohortId, string> = {
   highAchievers: '#8a6d14',    // brass — the same finished-work tone as --brass-deep
@@ -183,7 +183,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
           />
           <FunnelLine
             label="Enrolled"
-            note="The four classes summed. Set once a year at the summer decision, and held until the next. The one ceiling is the catalogue's seats: the freshman class cannot exceed what the housed courses have room to teach."
+            note="The four classes summed. Set once a year at the summer decision, and held until the next. The one ceiling is the catalog's seats: the freshman class cannot exceed what the housed courses have room to teach."
             value={enrolled.toLocaleString()}
             net
           />

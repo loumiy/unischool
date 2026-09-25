@@ -1,6 +1,6 @@
 // One fifty-year run read against the balance target, shared by the probe
 // (sim/endpoint.ts) and the gate (test/endpoint.test.ts) so they agree on
-// what "finishes the catalogue" or "holds first place" means. Not part of
+// what "finishes the catalog" or "holds first place" means. Not part of
 // the game: nothing in src/ imports this.
 
 import type { play } from './balanceSim';
@@ -86,7 +86,7 @@ export function describeEndpoint(r: EndpointReading): string[] {
     l
       ? `legacy: ${l.name} [${l.table}] — ${l.axes.map((a) => `${a.key} ${a.grade} (${a.score.toFixed(2)})`).join(', ')}`
       : 'legacy: not sealed',
-    `catalogue ${pct(r.catalogueShare)}, buildings ${pct(r.buildingsShare)}, halls ${pct(r.hallsShare)}, schools founded ${r.schoolsFounded}/${r.schoolsTotal}`,
+    `catalog ${pct(r.catalogueShare)}, buildings ${pct(r.buildingsShare)}, halls ${pct(r.hallsShare)}, schools founded ${r.schoolsFounded}/${r.schoolsTotal}`,
     `first at #1: ${r.firstAtOne ?? 'never'}; years 40–50 at #1: ${r.yearsAtOneLateDecade}/11`,
     `at 50: prestige ${r.prestige.toFixed(1)} rank #${r.rank} cash ${fmt(r.cash)} enrolled ${r.enrolled.toLocaleString()} admit ${pct(r.admitRate)} quality ${r.incomingQuality.toFixed(0)} red weeks ${r.weeksInTheRed}`,
   ];
