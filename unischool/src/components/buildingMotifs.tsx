@@ -2113,7 +2113,9 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   // A site has nothing standing; an extension has all but its new floors
   // (BuildingMotif). Construction branches below are the site case.
   const inFlight = developing ? floorsUnderConstruction(t) : 0;
-  const site = developing && inFlight === 0;
+  // A venue expanding in place (Plan 54) stands at its current stage while
+  // the work goes on; only a first construction is a site.
+  const site = developing && inFlight === 0 && t.renovatingFrom === undefined;
   const { row, col, w, h } = p;
   const pal = paletteFrom(material, wallShadeOf(t));
   // The visible walls, left then right, where entrances and attachments go.
@@ -2311,6 +2313,31 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     const { cosA, sinA } = cameraAxes();
     const northFar = cosA > 0; const southFar = cosA < 0;
     const westFar = sinA > 0; const eastFar = sinA < 0;
+
+    // The stadium grows with its expansions (Plan 54): the field alone, then
+    // a low stand down each touchline, then the full bowl. The field keeps
+    // its place and size throughout, so the bowl grows around it.
+    const stage = Math.min(2, t.expansions ?? 0);
+    if (stage < 2) {
+      const ground = polyPoints(boxFaces(col, row, w, h, 0, 0).top);
+      const touchline = (key: string, outerRow: number, innerRow: number, fill: number) => (
+        <RakedStand key={key} outer={[T(iCol, outerRow), T(iCol + iW, outerRow)]} inner={[T(iCol, innerRow), T(iCol + iW, innerRow)]}
+          bottomH={H * 0.06} topH={H * 0.34} rows={3} aisles={3} {...fills(fill)} />
+      );
+      const sideDepth = d * 0.55;
+      const northStand = touchline('n', iRow - sideDepth, iRow, 1.0);
+      const southStand = touchline('s', iRow + iH + sideDepth, iRow + iH, 0.8);
+      return (
+        <>
+          <polygon className="ground-lawn" points={ground} />
+          {stage === 1 && northFar && northStand}
+          {stage === 1 && southFar && southStand}
+          <StadiumField col={iCol} row={iRow} w={iW} h={iH} />
+          {stage === 1 && !northFar && northStand}
+          {stage === 1 && !southFar && southStand}
+        </>
+      );
+    }
     const north = (
       <RakedStand key="n" outer={[T(iCol, row), T(iCol + iW, row)]} inner={[T(iCol, iRow), T(iCol + iW, iRow)]}
         bottomH={bottom} topH={H * 0.85} rows={7} aisles={3} {...fills(1.0)} />

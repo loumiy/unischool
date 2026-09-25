@@ -273,7 +273,11 @@ export function wallHeightOf(t: Buildable): number {
   if (motif === 'landmark') return up(LANDMARK_HEIGHT_METRES[t.id] ?? 20);
   const storeys = storeysOf(t);
   if (storeys > 0) return storeys * STOREY;
-  return up(CLEAR_SPAN_METRES[motif] ?? 0);
+  // An arena or a natatorium rises a storey with each expansion (Plan 54).
+  const risen = motif === 'hangar' && (t.facilityType === 'athleticsArena' || t.facilityType === 'athleticsNatatorium')
+    ? (t.expansions ?? 0) * STOREY
+    : 0;
+  return up(CLEAR_SPAN_METRES[motif] ?? 0) + risen;
 }
 
 // Ranks of windows: one per story. A clear-span volume gets a single

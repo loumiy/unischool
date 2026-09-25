@@ -311,6 +311,13 @@ const FIELD_HOUSE_PRESTIGE = 0.03;
 // prestige for a growing share of the original price. The only way the
 // gate's ceiling rises.
 export const VENUE_EXPANSIONS_MAX = 2;
+// Each venue's own cap (Plan 54): the fields and the stadium grow from the
+// field alone to stands to full seating in two, the arena rises two storeys,
+// and the natatorium one.
+const VENUE_EXPANSIONS_CAP: Readonly<Record<string, number>> = { 'ATH-NATATORIUM': 1 };
+export function venueExpansionsMax(id: string): number {
+  return VENUE_EXPANSIONS_CAP[id] ?? VENUE_EXPANSIONS_MAX;
+}
 export const VENUE_EXPANSION_SEATS_GAIN = 0.5;
 const VENUE_EXPANSION_COST_SHARE = 0.45;
 const VENUE_EXPANSION_COST_GROWTH = 1.3;
@@ -341,7 +348,7 @@ export function nextVenueExpansion(node: Buildable): VenueExpansionPlan | null {
   const seats = VENUE_SEATS[node.id];
   if (!base || seats === undefined) return null;
   const done = node.expansions ?? 0;
-  if (done >= VENUE_EXPANSIONS_MAX) return null;
+  if (done >= venueExpansionsMax(node.id)) return null;
   return {
     cost: Math.round(base.cost * VENUE_EXPANSION_COST_SHARE * VENUE_EXPANSION_COST_GROWTH ** done),
     weeks: Math.round(base.weeks * VENUE_EXPANSION_WEEKS_SHARE),

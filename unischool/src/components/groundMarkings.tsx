@@ -471,7 +471,7 @@ function diamondGeometry(col: number, row: number, w: number, h: number) {
 
 // The diamond's raised props: the outfield fence and the seating around home
 // plate, each sorted individually (see groundProps).
-function diamondProps(col: number, row: number, w: number, h: number): GroundProp[] {
+function diamondProps(col: number, row: number, w: number, h: number, stage: number): GroundProp[] {
   const { hc, hr, R, from, to, bisect, short } = diamondGeometry(col, row, w, h);
   const polar = (r: number, a: number): TilePt => [hc + r * Math.cos(a), hr + r * Math.sin(a)];
 
@@ -659,8 +659,11 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
     },
     dugout(from, 0),
     dugout(to, 1),
-    ...towers,
-    ...stands,
+    // The seating by stage (Plan 54): none on the diamond alone, the plate
+    // stand on the first expansion, the covered horseshoe and its lights
+    // on the second.
+    ...(stage >= 2 ? towers : []),
+    ...(stage >= 2 ? stands : stage === 1 ? [bank('stand-1', plate, 1)] : []),
   ];
 }
 
@@ -810,7 +813,9 @@ function Pitch({ col, row, w, h }: GroundProps) {
 // spanning the straight and seated on the track's edge so resizing the oval
 // cannot leave it floating. Raked seating on a low plinth, with a cover over
 // the back rows on four posts.
-function pitchProps(col: number, row: number, w: number, h: number): GroundProp[] {
+function pitchProps(col: number, row: number, w: number, h: number, stage: number): GroundProp[] {
+  // The field alone until the first expansion (Plan 54).
+  if (stage <= 0) return [];
   const landscape = w >= h;
   const across = landscape ? h : w;
   const { outerWid } = pitchGeometry(col, row, w, h);
@@ -829,7 +834,23 @@ function pitchProps(col: number, row: number, w: number, h: number): GroundProp[
   const b0 = tp(0.34, 0.02); const b1 = tp(0.66, 0.02);
   const slabZ = topH + up(3.2); const slab = up(0.35);
   const seatZ = bottomH + (topH - bottomH) * 0.55;
-  return [{
+  // A low open bleacher, the first expansion's; on the second the near one
+  // becomes the covered grandstand and a bleacher faces it across the field.
+  const bleacher = (key: string, near: number, far: number): GroundProp => {
+    const o0 = tp(0.36, near); const o1 = tp(0.64, near);
+    const i0 = tp(0.36, far); const i1 = tp(0.64, far);
+    return {
+      key,
+      col: Math.min(o0[0], i1[0]), row: Math.min(o0[1], i1[1]),
+      w: Math.abs(i1[0] - o0[0]), h: Math.abs(i1[1] - o0[1]),
+      node: (
+        <RakedStand outer={[o0, o1]} inner={[i0, i1]} bottomH={up(0.5)} topH={up(2.4)}
+          rakeFill={CONCRETE.rake} wallFill={CONCRETE.wall} seatStroke={CONCRETE.seat} rows={3} aisles={1} />
+      ),
+    };
+  };
+  if (stage === 1) return [bleacher('stand', 0.02, trackEdge)];
+  return [bleacher('stand-far', 0.98, 1 - trackEdge), {
     key: 'stand',
     col: Math.min(back[0], front[0]),
     row: Math.min(back[1], front[1]),
@@ -1396,13 +1417,16 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
 export function groundProps(
   facilityType: FacilityType | undefined,
   col: number, row: number, w: number, h: number, tier?: number, developing?: boolean, id?: string,
+  // A venue's expansions (Plan 54): the field alone, then a small stand,
+  // then full seating.
+  stage = 0,
 ): GroundProp[] {
   // Nothing stands on a site yet.
   if (developing) return [];
   switch (facilityType) {
     case 'amenity': return amenityProps(id, col, row, w, h);
-    case 'athleticsField': return pitchProps(col, row, w, h);
-    case 'athleticsDiamond': return diamondProps(col, row, w, h);
+    case 'athleticsField': return pitchProps(col, row, w, h, stage);
+    case 'athleticsDiamond': return diamondProps(col, row, w, h, stage);
     case 'tennisCourts': return courtsProps(col, row, w, h);
     case 'pool': return poolProps(col, row, w, h);
     case 'quad': return quadProps(col, row, w, h, tier ?? 1);
