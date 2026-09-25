@@ -50,7 +50,7 @@ const SINGLE_FIELD: ReadonlyArray<readonly [string, string, string, (readonly st
   // --- Humanities & arts ---
   ['ENG1', 'The Archive and the Novel', 'English'],
   ['ENG2', 'Translation and the Limits of Meaning', 'English'],
-  ['ENG3', 'Serialization and the Victorian Reader', 'English'],
+  ['ENG3', 'Serialisation and the Victorian Reader', 'English'],
   ['ENG4', 'Poetics of the Unreliable Narrator', 'English'],
   ['ENG5', 'Vernacular Literatures of the Atlantic', 'English'],
   ['ENG6', 'Editing and the Authority of the Text', 'English'],
@@ -116,7 +116,7 @@ const SINGLE_FIELD: ReadonlyArray<readonly [string, string, string, (readonly st
   ['MAT2', 'Prime Gaps and Sieve Methods', 'Mathematics'],
   ['MAT3', 'Spectral Methods for Sparse Graphs', 'Mathematics'],
   ['MAT4', 'Optimal Transport and Curvature', 'Mathematics'],
-  ['MAT5', 'Randomized Algorithms for Linear Systems', 'Mathematics'],
+  ['MAT5', 'Randomised Algorithms for Linear Systems', 'Mathematics'],
   ['MAT6', 'Dynamics of Coupled Oscillators', 'Mathematics'],
   // Physics is fielded by two facilities, so each topic says which it
   // belongs in, except the two that belong in both.
@@ -289,7 +289,7 @@ const CROSS_DISCIPLINARY: ReadonlyArray<readonly [string, string, readonly strin
   ['X38', 'Historical Climate Reconstruction', ['History', 'Biology']],
   ['X39', 'The Ethics of Human-Subject Research', ['Philosophy', 'Neuroscience']],
   ['X40', 'Music Perception and the Auditory Cortex', ['Neuroscience', 'Music']],
-  ['X41', 'Archival Digitization at Scale', ['History', 'Information Systems']],
+  ['X41', 'Archival Digitisation at Scale', ['History', 'Information Systems']],
   ['X42', 'Cyber-Resilience of Municipal Utilities', ['Computer Science', 'Information Systems', 'Civil Engineering']],
   ['X43', 'Emissions Accounting for Heavy Industry', ['Chemistry', 'Accounting & Finance'], [CHEM_ENG_LABS]],
   ['X44', 'The Operations of Disaster Response', ['Operations Research', 'Civil Engineering']],
@@ -302,7 +302,7 @@ const CROSS_DISCIPLINARY: ReadonlyArray<readonly [string, string, readonly strin
   ['X51', 'Water Treatment for Small Systems', ['Chemistry', 'Civil Engineering'], [CHEM_ENG_LABS]],
   ['X52', 'Scientific Collaboration as a Social Form', ['Sociology', 'History']],
   ['X53', 'Privacy Law and Networked Sensors', ['Law', 'Electrical Engineering']],
-  ['X54', 'The Mathematics of Structural Optimization', ['Mathematics', 'Mechanical Engineering']],
+  ['X54', 'The Mathematics of Structural Optimisation', ['Mathematics', 'Mechanical Engineering']],
   ['X55', 'Learning Algorithms and Cortical Models', ['Artificial Intelligence', 'Neuroscience']],
   ['X56', 'Autonomy, Liability and Machine Decisions', ['Artificial Intelligence', 'Law', 'Computer Science']],
   ['X57', 'Pricing, Platforms and Market Power', ['Marketing', 'Economics']],

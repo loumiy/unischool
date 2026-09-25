@@ -528,12 +528,12 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   Communication: ['media effects research', 'documentary practice', 'political communication'],
   'Art & Design': ['visual culture', 'typographic history', 'studio practice'],
   Music: ['music cognition', 'ethnomusicology', 'composition for ensembles'],
-  Economics: ['labor markets', 'behavioral economics', 'monetary policy'],
-  'Political Science': ['comparative democratization', 'constitutional law', 'international security'],
+  Economics: ['labour markets', 'behavioral economics', 'monetary policy'],
+  'Political Science': ['comparative democratisation', 'constitutional law', 'international security'],
   Psychology: ['cognitive development', 'clinical resilience', 'decision-making under uncertainty'],
   Sociology: ['urban inequality', 'social network analysis', 'the sociology of work'],
   Mathematics: ['combinatorics', 'applied topology', 'statistical learning theory'],
-  Physics: ['condensed matter theory', 'orbital mechanics', 'astrophysical modeling'],
+  Physics: ['condensed matter theory', 'orbital mechanics', 'astrophysical modelling'],
   Chemistry: ['catalysis', 'polymer synthesis', 'medicinal chemistry'],
   Biology: ['cell signaling pathways', 'conservation ecology', 'evolutionary genetics'],
   'Public Health': ['infectious disease epidemiology', 'nutrition policy', 'health disparities'],
@@ -545,19 +545,19 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   'Information Systems': ['applied cryptography', 'enterprise data governance', 'security operations'],
   'Mechanical Engineering': ['thermofluid systems', 'materials fatigue', 'robotic actuation'],
   'Electrical Engineering': ['power electronics', 'wireless signal processing', 'integrated circuit design'],
-  'Civil Engineering': ['structural resilience', 'geotechnical modeling', 'transportation networks'],
-  'Operations Research': ['stochastic optimization', 'supply chain modeling', 'queueing theory'],
+  'Civil Engineering': ['structural resilience', 'geotechnical modelling', 'transportation networks'],
+  'Operations Research': ['stochastic optimisation', 'supply chain modelling', 'queueing theory'],
   'Accounting & Finance': ['asset pricing', 'audit quality', 'corporate disclosure'],
   Marketing: ['consumer choice', 'brand equity', 'digital attribution'],
   Law: ['constitutional interpretation', 'contract theory', 'law and technology'],
-  Management: ['corporate strategy', 'entrepreneurship', 'organizational behavior'],
+  Management: ['corporate strategy', 'entrepreneurship', 'organisational behaviour'],
 };
 
 function rollBio(field: string): string {
   const institution = pick(BIO_INSTITUTIONS);
   const interests = FIELD_RESEARCH_INTERESTS[field] ?? ['the field'];
   const interest = pick(interests);
-  return `Earned a doctorate in ${field} at ${institution}; research centers on ${interest}.`;
+  return `Earned a doctorate in ${field} at ${institution}; research centres on ${interest}.`;
 }
 
 // ---------------------------------------------------------------------

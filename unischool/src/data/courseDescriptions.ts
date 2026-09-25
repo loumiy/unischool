@@ -124,7 +124,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   CIVE240: 'Covers land use, zoning, transport, and housing, and how planning decisions shape a city over decades.',
 
   // --- Industrial Engineering ---
-  INDE101: 'Introduces systems thinking for analyzing and improving industrial processes.',
+  INDE101: 'Introduces systems thinking for analysing and improving industrial processes.',
   INDE110: 'Schedules materials, machines, and people to meet demand, with MRP, capacity planning, and the trade-off between inventory and lead time.',
   INDE120: 'Designs workstations, tools, and tasks around the human body, with the hazard analysis that keeps a workplace from injuring it.',
   INDE130: 'Applies control charts, sampling plans, and process capability to detect drift before it becomes defects.',
@@ -159,7 +159,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   MDIA240: 'Manages an organisation\'s reputation through media relations, crisis response, and campaigns, and measures what the coverage did.',
 
   // --- Graphic Design ---
-  GRDS101: 'Introduces composition, color, and layout as tools for communicating visually.',
+  GRDS101: 'Introduces composition, colour, and layout as tools for communicating visually.',
   GRDS110: 'Sets type with attention to letterform, hierarchy, spacing, and grid, from a single word mark to a running text page.',
   GRDS120: 'Edits and composes raster and vector images for print and screen, with colour management and resolution handled correctly.',
   GRDS130: 'Arranges type and image on the page and the screen using grids, hierarchy, and white space, for editorial and advertising work.',
@@ -227,7 +227,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ENGL240: 'Writes documentation, proposals, and reports for expert and lay readers, with structure, plain language, and usability testing.',
 
   // --- Sociology ---
-  SOCY101: 'Examines how social structures, institutions, and group behavior shape everyday life.',
+  SOCY101: 'Examines how social structures, institutions, and group behaviour shape everyday life.',
   SOCY110: 'Analyses class, status, and power: how inequality is measured, reproduced across generations, and justified.',
   SOCY120: 'Reads Marx, Weber, Durkheim, and their successors, and asks what each framework explains that the others cannot.',
   SOCY130: 'Examines how racial and ethnic categories are made, enforced, and contested, and their effects on housing, schooling, and justice.',
@@ -249,7 +249,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ANTH240: 'Examines collecting, display, repatriation, and heritage policy, and who gets to tell whose past.',
 
   // --- Political Science ---
-  POLS101: 'Surveys power, institutions, and political behavior, and the questions and methods of the discipline.',
+  POLS101: 'Surveys power, institutions, and political behaviour, and the questions and methods of the discipline.',
   POLS110: 'Compares regimes, party systems, and institutions across countries to explain why democracies and dictatorships rise, endure, and fall.',
   POLS120: 'Introduces realism, liberalism, and constructivism, and applies them to war, trade, alliances, and international organisations.',
   POLS130: 'Examines the constitution, the separation of powers, federalism, and the parties and interest groups that work them.',
@@ -260,7 +260,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   POLS240: 'Analyses war, deterrence, terrorism, and cyber conflict, and the intelligence and defence institutions built to meet them.',
 
   // --- History ---
-  HIST101: 'Surveys major civilizations and turning points from antiquity to the modern era.',
+  HIST101: 'Surveys major civilisations and turning points from antiquity to the modern era.',
   HIST110: 'Trains the historian\'s craft: finding and reading primary sources, weighing conflicting accounts, and writing from evidence.',
   HIST120: 'Surveys the American past from colonisation through the Civil War, industrialisation, and the twentieth century.',
   HIST130: 'Traces Europe from the Renaissance and Reformation through revolutions, nationalism, and the two world wars.',
@@ -407,7 +407,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   KINE240: 'Designs physical activity for people with disabilities and chronic conditions, with inclusion and safety as the starting points.',
 
   // --- Neuroscience ---
-  NEUR101: 'Introduces the nervous system from single neurons up to behavior and cognition.',
+  NEUR101: 'Introduces the nervous system from single neurons up to behaviour and cognition.',
   NEUR110: 'Maps the structures of the brain and spinal cord, their connections, and what damage to each does, with brain dissection in the lab.',
   NEUR120: 'Covers ion channels, action potentials, synaptic transmission, and the molecular machinery of the neuron.',
   NEUR130: 'Links perception, memory, language, and decision-making to brain systems, through imaging, lesion, and recording studies.',
@@ -475,7 +475,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ARTF240: 'Examines bias, accountability, surveillance, and labour displacement in deployed AI, and the governance proposed for it.',
 
   // --- Information Systems ---
-  INFO101: 'Introduces how organizations use information systems to run and improve operations.',
+  INFO101: 'Introduces how organisations use information systems to run and improve operations.',
   INFO110: 'Models an organisation\'s processes and data, and specifies the information system that would serve them, with the stakeholders in the room.',
   INFO120: 'Administers databases in production: schema design, query tuning, backup, security, and the move from relational to other stores.',
   INFO130: 'Configures an enterprise system across finance, supply chain, and HR, and studies why so many implementations overrun.',

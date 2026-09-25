@@ -445,7 +445,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
                 return (
                   <li key={c.id} className="org-row">
                     <span className="org-name">{c.name}</span>
-                    <span className="org-meta">{year <= s.clock.year ? 'may petition this year' : `may petition in year ${year}`}</span>
+                    <span className="org-meta">{year <= s.clock.year ? 'may petition this year' : `may petition in Year ${year}`}</span>
                   </li>
                 );
               })}

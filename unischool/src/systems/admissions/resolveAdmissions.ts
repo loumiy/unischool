@@ -219,7 +219,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: `Report card for year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
+    message: `Report card for Year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
     kind: reportCard.after >= reportCard.before ? 'good' : 'bad',
     topic: 'report-card',
   });

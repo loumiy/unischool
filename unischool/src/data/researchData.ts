@@ -185,7 +185,7 @@ const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
     publication: 'paper',
     breakthrough: 'breakthrough',
     breakthroughTail: 'published and put into practice',
-    funders: ['a defense research agency', 'an industrial research consortium'],
+    funders: ['a defence research agency', 'an industrial research consortium'],
     prizes: ['the Kellner Award for Scientific Achievement'],
   },
   'Health Science': {

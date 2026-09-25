@@ -49,7 +49,7 @@ function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?
 // department reads as awaited.
 function varsityNote(club: StudentClub, s: GameState): string {
   const year = varsityEligibleYear(club);
-  return year <= s.clock.year ? 'may petition to go varsity this year' : `may petition to go varsity in year ${year}`;
+  return year <= s.clock.year ? 'may petition to go varsity this year' : `may petition to go varsity in Year ${year}`;
 }
 
 // Shows both the per-source contribution and the target with and without

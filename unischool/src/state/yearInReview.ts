@@ -160,7 +160,7 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
     });
   }
   const petitions = s.orgs.pendingPetitions.length;
-  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organisation')} petitioning for recognition — answered in the Students beat` });
+  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organisation')} petitioning for recognition — answered in the summer's Students beat` });
   const leaving = projectedAttrition(s);
   if (leaving > 0) {
     const reasons = attritionReasons(s);

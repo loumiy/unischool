@@ -518,7 +518,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
         <Figure label={<>Tuition for the incoming class <span className="outcome-note">(locked for four years)</span></>} value={`${money(decision.tuition)}/yr`} hint={FIGURE_HINTS.tuitionLocked} />
         <Figure label="Admit rate" value={`${Math.round(decision.admitRate * 100)}%`} hint={FIGURE_HINTS.admitRate} />
       </dl>
-      <button onClick={() => onResolve([...approved])}>Open year {s.clock.year + 1}</button>
+      <button onClick={() => onResolve([...approved])}>Open Year {s.clock.year + 1}</button>
     </>
   );
 }

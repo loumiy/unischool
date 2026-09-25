@@ -164,7 +164,7 @@ console.log('report card tests');
   assert(near(s.self.reputation, expected.after), 'and prestige stepped to the card\'s figure');
   assert(s.students.crowdingYearWeeks === 0 && s.students.crowdingYearSum === 0, 'the crowding accumulator is reset for the new year');
   assert(s.history[s.history.length - 1].prestige === s.self.reputation, 'the year\'s snapshot records the stepped standing');
-  assert(s.log.some((l) => l.message.startsWith('Report card for year')), 'and the log says so');
+  assert(s.log.some((l) => l.message.startsWith('Report card for Year')), 'and the log says so');
   const made = prestigeBreakdown(s);
   assert(made.summer?.reportCard === s.self.reportCard, 'the breakdown carries the card for the panel');
   assert(near(made.summer!.riseRate, PRESTIGE_RISE_RATE) && near(made.summer!.fallRate, PRESTIGE_FALL_RATE), 'and both rates');

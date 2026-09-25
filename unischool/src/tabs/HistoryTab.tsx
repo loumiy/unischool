@@ -189,7 +189,7 @@ function FinalReportPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <div className="panel-head-title">
           <h2>{REPORT_WORDS.title}</h2>
-          <span className="panel-count">{written ? `written in year ${written.year}` : `the arc to year ${s.clock.year}`}</span>
+          <span className="panel-count">{written ? `written in Year ${written.year}` : `the arc to Year ${s.clock.year}`}</span>
         </div>
       </div>
       {!written && s.clock.year < REPORT_DRAFT_FROM ? (
@@ -308,7 +308,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
-          {Math.round(first.prestige)} → {Math.round(latest.prestige)}, enrollment{' '}
+          {Math.round(first.prestige)} → {Math.round(latest.prestige)}, enrolment{' '}
           {first.enrolled.toLocaleString()} → {latest.enrolled.toLocaleString()}, catalogue{' '}
           {first.coursesDone} → {latest.coursesDone} of {totalCourses} courses.
         </p>
@@ -336,7 +336,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => Math.round(v).toLocaleString()}
-            note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard cap on enrollment."
+            note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard cap on enrolment."
           />
           <HistoryChart
             label="Operating funds"

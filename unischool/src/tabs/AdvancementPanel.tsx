@@ -22,7 +22,7 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
       </div>
       {running && def ? (
         <>
-          <p><strong>{def.title}</strong>: {money(running.raised)} of {money(running.target)}, {running.dueYear - s.clock.year > 0 ? `${running.dueYear - s.clock.year} years to go` : 'closing this year'}.</p>
+          <p><strong>{def.title}</strong>: {money(running.raised)} of {money(running.target)}, {running.dueYear - s.clock.year > 1 ? `${running.dueYear - s.clock.year} years to go` : running.dueYear - s.clock.year === 1 ? 'a year to go' : 'closing this year'}.</p>
           <p className="empty-note">{def.text}</p>
         </>
       ) : !hasAdvancementOffice(s) ? (

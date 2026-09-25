@@ -5,7 +5,8 @@ import type { CatalogueChoice, ConditionKey } from './eventCatalogueTypes';
 // may be offered and `goal` is what keeping it means, both in the event
 // catalogue's conditions (systems/events/catalogue.ts); the reward and the
 // penalty are its effects, with money scaled to the budget as its are.
-// {college} is the college's name.
+// {college} is the college's name. A goal's "Over" is a floor, as the
+// catalogue reads it: facultyOver: 30 is thirty or more.
 
 export interface PromiseDef {
   id: string;
@@ -39,10 +40,10 @@ export const PROMISES: readonly PromiseDef[] = [
     deal: { schoolsOver: 1, yearAtLeast: 6 },
     goal: { schoolsOver: 4 },
     years: 12,
-    text: "{college} has one school, and a plan for more that has been admired in several meetings. The Provost has proposed saying publicly how many schools there will be by a named year, on the grounds that a college which will not name a number has not really decided to become a university.",
+    text: "{college} has begun founding schools, and has a plan for more that has been admired in several meetings. The Provost has proposed saying publicly how many schools there will be by a named year, on the grounds that a college which will not name a number has not really decided to become a university.",
     reward: { confidence: 8, warmth: 4 },
     penalty: { confidence: -7 },
-    kept: "Four schools stand, which is three more than the year it was promised in.",
+    kept: "Four schools stand, as the college said in public that they would.",
     missed: "The year named for the schools came and went with the plan still mostly a plan.",
   },
   {
@@ -112,16 +113,16 @@ export const PROMISES: readonly PromiseDef[] = [
   },
   {
     id: 'open-thirty-programs',
-    title: "A full catalog",
+    title: "A fuller catalogue",
     weight: 3,
     deal: { programsOver: 3, yearAtLeast: 8 },
     goal: { programsOver: 11 },
     years: 14,
-    text: "The prospectus is thin. The Registrar has costed a full one — every program the founded schools could offer, taught properly — and has attached the costing to a proposed date, which is the part that makes it an announcement rather than a memo.",
+    text: "The prospectus is thin. The Registrar has costed a fuller one — eleven programs, each taught properly — and has attached the costing to a proposed date, which is the part that makes it an announcement rather than a memo.",
     reward: { confidence: 6, quality: 2, mood: 2 },
     penalty: { confidence: -5 },
-    kept: "The catalog is full, and every program in it is taught.",
-    missed: "The catalog is still thin, and the date the college named is behind it.",
+    kept: "The catalogue has its eleven programs, and every one of them is taught.",
+    missed: "The catalogue is still thin, and the date the college named is behind it.",
   },
   {
     id: 'beautiful-campus',
@@ -180,7 +181,7 @@ export const PROMISES: readonly PromiseDef[] = [
     title: "Thirty scholars worth the name",
     weight: 3,
     deal: { facultyOver: 5, yearAtLeast: 8 },
-    goal: { facultyOver: 24 },
+    goal: { facultyOver: 30 },
     years: 12,
     text: "The roster is small enough that the Provost knows everyone's field and most of their arguments. The proposal is to stop being that college: thirty of them, properly paid, in a decade.",
     reward: { confidence: 6, quality: 3, mood: 2 },
@@ -245,7 +246,7 @@ export const PROMISES: readonly PromiseDef[] = [
     title: "Twelve buildings, and still a beautiful campus",
     weight: 3,
     deal: { buildingsOver: 3, beautyUnder: 85, yearAtLeast: 5 },
-    goal: { buildingsOver: 11, beautyOver: 75 },
+    goal: { buildingsOver: 12, beautyOver: 75 },
     years: 12,
     text: "The master plan shows twelve buildings where there are now a handful. The landscape committee has asked that the college promise, in the same breath, that the campus will still be worth walking through when they are all built.",
     reward: { confidence: 6, mood: 3, warmth: 3 },
@@ -258,7 +259,7 @@ export const PROMISES: readonly PromiseDef[] = [
     title: "Two thousand students",
     weight: 3,
     deal: { enrolledOver: 800, yearAtLeast: 10 },
-    goal: { enrolledOver: 1800 },
+    goal: { enrolledOver: 2000 },
     years: 15,
     text: "{college} is already bigger than its founders imagined, and the Registrar has stopped apologising for it. The proposal is to say how big it means to become, and to build and hire for that number rather than for the one it happens to reach.",
     reward: { confidence: 7, mood: 2 },
@@ -310,7 +311,7 @@ export const PROMISES: readonly PromiseDef[] = [
     title: "Twenty programs in the prospectus",
     weight: 3,
     deal: { programsOver: 8, yearAtLeast: 12 },
-    goal: { programsOver: 19 },
+    goal: { programsOver: 20 },
     years: 12,
     text: "The prospectus has filled out and the Registrar would like it to fill out further. Twenty programs would make {college} the college a school-leaver can choose without first deciding what to be, which the Registrar considers the point.",
     reward: { confidence: 6, quality: 2, mood: 2 },
