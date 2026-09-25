@@ -102,15 +102,15 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ELEC240: 'Lays out digital circuits in CMOS from transistor to chip, with timing, power, and the design flow that gets a chip fabricated.',
 
   // --- Chemical Engineering ---
-  CHEM101: 'Introduces the chemical process industries and the unit operations, flows, and conversions that run them.',
-  CHEM110: 'Applies phase equilibria, chemical equilibrium, and solution thermodynamics to the separations and reactions a plant depends on.',
-  CHEM120: 'Covers momentum, heat, and mass transfer in process equipment, from pipe flow and pumps to heat exchangers and diffusion.',
-  CHEM130: 'Accounts for every stream into and out of a process, with recycle, purge, and reaction — the bookkeeping every plant design starts with.',
-  CHEM140: 'Sizes batch, stirred, and tubular reactors from kinetics and residence time, with heat effects and catalysis.',
-  CHEM210: 'Analyses hazards, relief systems, and layers of protection with HAZOP studies and the case histories of plant disasters, so a design fails safely.',
-  CHEM220: 'Engineers fermentation, enzyme reactors, and downstream purification to make pharmaceuticals and fuels from living cells.',
-  CHEM230: 'Covers polymerisation, molecular weight, and the viscoelastic behavior of plastics, with the processing that shapes them.',
-  CHEM240: 'Evaluates biofuels, hydrogen, carbon capture, and electrochemical storage on efficiency, cost, and life-cycle emissions.',
+  CHEN101: 'Introduces the chemical process industries and the unit operations, flows, and conversions that run them.',
+  CHEN110: 'Applies phase equilibria, chemical equilibrium, and solution thermodynamics to the separations and reactions a plant depends on.',
+  CHEN120: 'Covers momentum, heat, and mass transfer in process equipment, from pipe flow and pumps to heat exchangers and diffusion.',
+  CHEN130: 'Accounts for every stream into and out of a process, with recycle, purge, and reaction — the bookkeeping every plant design starts with.',
+  CHEN140: 'Sizes batch, stirred, and tubular reactors from kinetics and residence time, with heat effects and catalysis.',
+  CHEN210: 'Analyses hazards, relief systems, and layers of protection with HAZOP studies and the case histories of plant disasters, so a design fails safely.',
+  CHEN220: 'Engineers fermentation, enzyme reactors, and downstream purification to make pharmaceuticals and fuels from living cells.',
+  CHEN230: 'Covers polymerisation, molecular weight, and the viscoelastic behavior of plastics, with the processing that shapes them.',
+  CHEN240: 'Evaluates biofuels, hydrogen, carbon capture, and electrochemical storage on efficiency, cost, and life-cycle emissions.',
 
   // --- Civil Engineering ---
   CIVE101: 'Covers forces in equilibrium, free-body diagrams, and load paths, the physical foundation for structural and civil design.',
@@ -306,15 +306,15 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   BIOL240: 'Traces innate and adaptive immunity from antigen recognition to vaccines, allergy, and autoimmune disease.',
 
   // --- Chemistry ---
-  CHMY101: 'Builds stoichiometry, periodicity, and reaction theory from first principles.',
-  CHMY110: 'Covers bonding, coordination complexes, and the descriptive chemistry of the main-group and transition elements.',
-  CHMY120: 'Develops the structure, stereochemistry, and reaction mechanisms of carbon compounds, with synthesis and spectroscopy in the lab.',
-  CHMY130: 'Teaches titration, chromatography, and electrochemical and spectroscopic analysis, with the statistics that say how far to trust a measurement.',
-  CHMY140: 'Develops thermodynamics, kinetics, and quantum mechanics as they apply to molecules, with the mathematics each requires.',
-  CHMY210: 'Examines proteins, enzymes, nucleic acids, and metabolism, and how the chemistry of the cell is regulated.',
-  CHMY220: 'Solves molecular structures from NMR, infrared, and mass spectra, and the crystallography behind them.',
-  CHMY230: 'Follows a drug from target and lead compound through structure-activity relationships to metabolism and dose.',
-  CHMY240: 'Models molecules with quantum chemistry and molecular dynamics, and learns what each method can and cannot predict.',
+  CHEM101: 'Builds stoichiometry, periodicity, and reaction theory from first principles.',
+  CHEM110: 'Covers bonding, coordination complexes, and the descriptive chemistry of the main-group and transition elements.',
+  CHEM120: 'Develops the structure, stereochemistry, and reaction mechanisms of carbon compounds, with synthesis and spectroscopy in the lab.',
+  CHEM130: 'Teaches titration, chromatography, and electrochemical and spectroscopic analysis, with the statistics that say how far to trust a measurement.',
+  CHEM140: 'Develops thermodynamics, kinetics, and quantum mechanics as they apply to molecules, with the mathematics each requires.',
+  CHEM210: 'Examines proteins, enzymes, nucleic acids, and metabolism, and how the chemistry of the cell is regulated.',
+  CHEM220: 'Solves molecular structures from NMR, infrared, and mass spectra, and the crystallography behind them.',
+  CHEM230: 'Follows a drug from target and lead compound through structure-activity relationships to metabolism and dose.',
+  CHEM240: 'Models molecules with quantum chemistry and molecular dynamics, and learns what each method can and cannot predict.',
 
   // --- Physics ---
   PHYS101: 'Derives motion, force, energy, and momentum from Newton\'s laws, with lab work throughout.',

@@ -50,7 +50,23 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 72; // Plan 33: the summer's beats renumbered (Standing dropped); capital projects in the catalog
+export const SAVE_VERSION = 73; // Plan 46: Chemistry is CHEM and Chemical Engineering CHEN (were CHMY and CHEM)
+
+// The one-off carry from the previous version (the policy above): Plan 46
+// swapped two majors' codes, which are ids throughout a save (programs, their
+// courses, their labs). Remapped on the saved text before it is read. Delete
+// with the next bump.
+const MIGRATED_FROM = 72;
+function migrateChemistryCodes(raw: string): string {
+  return raw
+    .replace(/\bCHEM(?=\d{3}\b)/g, '@@CHEN')
+    .replace(/\bLAB-CHEM\b/g, 'LAB-@@CHEN')
+    .replace(/"CHEM"/g, '"@@CHEN"')
+    .replace(/\bCHMY(?=\d{3}\b)/g, 'CHEM')
+    .replace(/\bLAB-CHMY\b/g, 'LAB-CHEM')
+    .replace(/"CHMY"/g, '"CHEM"')
+    .replace(/@@CHEN/g, 'CHEN');
+}
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
 export interface SavePayload {
@@ -647,6 +663,10 @@ export function loadGame(): GameState | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
+    if ((parsed as Partial<SavePayload> | null)?.version === MIGRATED_FROM) {
+      parsed = JSON.parse(migrateChemistryCodes(raw));
+      (parsed as SavePayload).version = SAVE_VERSION;
+    }
   } catch {
     return null;
   }

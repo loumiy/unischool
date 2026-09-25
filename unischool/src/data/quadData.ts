@@ -24,7 +24,7 @@ export const QUAD_GREEN_WEIGHT = 0.5;
 export const QUAD_NAMES: readonly string[] = [
   'The Old Quad', 'Founders Quad', 'The Green', 'North Quad', 'South Quad', 'The Cloister',
   'Chapel Green', 'The Yard', 'Library Court', 'The Lower Green', 'Alumni Quad', 'The Long Court',
-  'East Court', 'West Green', 'The Commons', 'Fellows Garden', 'Scholars Walk', 'The Close',
+  'East Court', 'West Green', 'The Common', 'Fellows Garden', 'Scholars Walk', 'The Close',
 ];
 
 // The longest name a player can give one.

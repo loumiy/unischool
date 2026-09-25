@@ -75,9 +75,9 @@ const DINING_RUNGS: DiningRung[] = [
   { id: 'DININGHALL-02', name: 'Union Square Eatery', serves: 900, cost: 1_200_000, weeks: 14 },
   { id: 'DININGHALL-03', name: 'Commons Cafeteria', serves: 1_800, cost: 2_700_000, weeks: 16 },
   { id: 'DININGHALL-04', name: 'The Grand Table', serves: 3_000, cost: 5_000_000, weeks: 18 },
-  { id: 'DININGHALL-05', name: 'Founders Commons', serves: 5_000, cost: 9_000_000, weeks: 20 },
-  { id: 'DININGHALL-06', name: 'Lakeside Dining Commons', serves: 8_000, cost: 16_000_000, weeks: 22 },
-  { id: 'DININGHALL-07', name: 'Harborview Market Hall', serves: 12_000, cost: 26_400_000, weeks: 24 },
+  { id: 'DININGHALL-05', name: 'Old Well Commons', serves: 5_000, cost: 9_000_000, weeks: 20 },
+  { id: 'DININGHALL-06', name: 'Waterside Commons', serves: 8_000, cost: 16_000_000, weeks: 22 },
+  { id: 'DININGHALL-07', name: 'Harborview Market', serves: 12_000, cost: 26_400_000, weeks: 24 },
   { id: 'DININGHALL-08', name: 'Central Dining Pavilion', serves: 16_000, cost: 38_400_000, weeks: 26 },
 ];
 
@@ -87,7 +87,7 @@ function diningChain(): Buildable[] {
       id: DINING_STARTING_ID,
       kind: 'facility',
       facilityType: 'diningHall',
-      name: 'The Original Dining Hall',
+      name: 'The Original Commons',
       description: `The college's first dining hall — build it to feed the founding class. Serves ${DINING_STARTING_SERVES.toLocaleString()} students.`,
       cost: DINING_STARTING_COST,
       duration: DINING_STARTING_WEEKS,

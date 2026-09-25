@@ -54,7 +54,7 @@ function stand(s: GameState, id: string): void {
   assert(PROJECTS.length === 9 && new Set(PROJECT_IDS).size === 9, 'nine projects, each its own');
   assert(PROJECT_IDS.every((id) => node(s, id)?.facilityType === 'project' && node(s, id).project !== undefined), 'each is a buildable the college can place');
   assert(PROJECTS.filter((p) => p.project.late).length === 3, 'three in the late tier');
-  assert(PROJECTS.some((p) => p.project.graduate && (p.beds ?? 0) > 0), 'a graduate college that houses its students');
+  assert(PROJECTS.some((p) => p.project.graduate && (p.beds ?? 0) === 0), 'a graduate college, adding no beds: the game houses no graduate students');
   assert(PROJECTS.every((p) => Object.values(p.project.boosts).some((b) => (b ?? 0) > 0)), 'every one lifts a standing');
 }
 

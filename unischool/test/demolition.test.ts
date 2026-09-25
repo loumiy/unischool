@@ -178,8 +178,11 @@ const facility = (s: GameState) => {
 // ---- Beds on a facility, a venue's teams, an older loan (Plan 43) ----
 {
   let s = fresh();
-  const grad = s.tech.find((x) => x.kind === 'facility' && (x.effects?.capacityBonus ?? 0) > 0);
-  assert(grad !== undefined, 'a facility carries beds (the Graduate College)');
+  // No facility carries beds today (Plan 46 took the Graduate College's), so
+  // one is given some: the path that takes them back must still work.
+  const grad = s.tech.find((x) => x.id === 'PROJ-GRADUATE');
+  if (grad) grad.effects = { ...grad.effects, capacityBonus: 600 };
+  assert(grad !== undefined, 'a facility given beds (the Graduate College)');
   if (grad) {
     grad.status = 'available';
     s.finance.cash = grad.cost * 2;

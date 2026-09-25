@@ -88,8 +88,8 @@ export type LabFeature = 'observatory' | 'glasshouse' | 'flues';
 const LAB_FEATURES: Partial<Record<string, LabFeature>> = {
   'LAB-PHYS': 'observatory',
   'LAB-BIOL': 'glasshouse',
-  'LAB-CHMY': 'flues',
   'LAB-CHEM': 'flues',
+  'LAB-CHEN': 'flues',
 };
 export function labFeatureOf(t: Buildable): LabFeature | undefined {
   return LAB_FEATURES[t.id];
@@ -232,7 +232,8 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
   'PROJ-ARTS': { storeys: facilityStoreys('performingArtsCenter', 0), material: 'limestone' },
   'PROJ-RESEARCH-PARK': { storeys: facilityStoreys('lab', 0), material: 'render' },
   'PROJ-MEDICAL': { storeys: facilityStoreys('healthCenter', HOSPITAL_MIN_SERVES), material: 'clinical' },
-  // Its 600 graduate beds, as a residence hall of that size.
+  // A quadrangle of rooms, drawn as a 600-bed residence hall (it adds no
+  // beds: the game houses no graduate students).
   'PROJ-GRADUATE': { storeys: dormStoreys(600), material: 'brickDark' },
   'PROJ-INSTITUTE': { storeys: facilityStoreys('library', 0), material: 'limestone' },
   'PROJ-MUSEUM': { storeys: facilityStoreys('artGallery', 0), material: 'limestone' },

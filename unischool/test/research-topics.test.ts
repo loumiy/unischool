@@ -20,6 +20,7 @@
 
 import { RESEARCH_TOPICS, isCrossDisciplinary, researchTopic } from '../src/data/researchTopics';
 import { FACULTY_FIELDS } from '../src/data/facultyData';
+import { topicHostedAt } from '../src/data/researchData';
 import { hostableFields, labFields, researchSchools } from '../src/data/techData';
 
 let checks = 0;
@@ -40,14 +41,24 @@ const ALL_FIELDS = new Set<string>(FACULTY_FIELDS);
 // Which facilities could host a topic: those hosting a field it names —
 // their own field, or a field their school teaches that has no facility
 // of its own (Plan 20's PR B) — and then, if it restricts itself, only
-// the ones it lists.
-function hosts(topic: { fields: readonly string[]; labs?: readonly string[] }): string[] {
+// the ones it lists for a twin-lab field (researchData.ts's topicHostedAt).
+function hosts(topic: { id?: string; name?: string; fields: readonly string[]; labs?: readonly string[] }): string[] {
   return LAB_IDS.filter((id) => (
-    hostableFields(id).some((f) => topic.fields.includes(f)) && (!topic.labs || topic.labs.includes(id))
+    hostableFields(id).some((f) => topic.fields.includes(f)) && topicHostedAt({ id: '', name: '', ...topic }, id)
   ));
 }
 
 console.log('research topic tests');
+
+// --- a cross topic's partner lab is never shut out (Plan 46) ---------------
+{
+  const partnerless = RESEARCH_TOPICS.filter((topic) => topic.fields.length > 1 && topic.fields.some((f) => {
+    if (f === 'Physics' || f === 'Chemistry') return false;
+    const own = LAB_IDS.filter((id) => hostableFields(id)[0] === f);
+    return own.length > 0 && !own.some((id) => topicHostedAt(topic, id));
+  }));
+  assert(partnerless.length === 0, `every cross topic can be led from its other field's own lab (${partnerless.map((x) => x.id).join(', ')})`);
+}
 
 // --- the table is well formed ----------------------------------------
 {
@@ -193,7 +204,7 @@ console.log('research topic tests');
   // Engineering Labs. The restriction exists so the pure and applied halves
   // do not read each other's project names — "Acoustics of Performance
   // Spaces in the Aerospace Engineering Lab" is the note that started this.
-  const twins: Array<[string, string]> = [['LAB-PHYS', 'LAB-AERO'], ['LAB-CHMY', 'LAB-CHEM']];
+  const twins: Array<[string, string]> = [['LAB-PHYS', 'LAB-AERO'], ['LAB-CHEM', 'LAB-CHEN']];
   for (const [a, b] of twins) {
     assert(LAB_IDS.includes(a) && LAB_IDS.includes(b), `${a} and ${b} both exist`);
     assert(
