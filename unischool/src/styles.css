@@ -1159,10 +1159,13 @@ button.build-tile { font-family: inherit; }
 .facility-panel { border: 2px solid var(--outline); border-radius: var(--radius-lg);
   background: var(--cream-hi); padding: 12px 14px 14px; }
 .facility-panel.vacant { border-style: dashed; border-color: var(--parchment-line); background: transparent; }
-.facility-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  flex-wrap: wrap; margin-bottom: 8px; }
+/* The name and its tags wrap among themselves; the button stays top right
+   however long the lab's name is, rather than dropping to its own line. */
+.facility-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-bottom: 8px; }
+.facility-head > button { flex: none; }
 .facility-name { font-family: var(--display); font-size: var(--text-lg); font-weight: 800; letter-spacing: -0.01em; color: var(--ink);
-  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  display: flex; align-items: baseline; gap: 6px 10px; flex-wrap: wrap; min-width: 0; }
 .facility-depth { font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; color: var(--school-on-secondary);
   background: var(--school-secondary); border: 1.5px solid var(--outline); border-radius: var(--radius-pill); padding: 1px 7px;
   letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3; }
