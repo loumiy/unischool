@@ -20,7 +20,7 @@ import { reducer } from '../src/engine/reducer';
 import { ACADEMIC_HALL_COUNT, FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools } from '../src/data/techData';
 import { OPENING_LETTERS } from '../src/data/eventData';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS, relocationWeeks } from '../src/systems/techtree/techSystem';
-import { claimedSchool, nextSchoolToMove, suggestedMove } from '../src/systems/techtree/schools';
+import { claimedSchool, dedicatedSchool, hallDisplayName, nextSchoolToMove, suggestedMove } from '../src/systems/techtree/schools';
 import { fireOpeningLetter } from '../src/systems/events/eventSystem';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import type { GameState } from '../src/state/types';
@@ -67,13 +67,31 @@ function letter(id: string) {
   return OPENING_LETTERS.find((l) => l.id === id)!;
 }
 
-// --- the chain: one purchased hall a school --------------------------------
+// --- the chain: six purchased halls, and Founders Hall for the last school --
 {
   const s = createInitialState('Chain');
   const purchased = s.tech.filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID);
-  assert(purchased.length === 7 && ACADEMIC_HALL_COUNT === 7, `seven purchased halls (${purchased.length})`);
-  assert(purchased.length === milestoneSchools().length, 'one for each school');
-  assert(purchased.map((t) => t.name).join(',') === 'Elm Hall,Oak Hall,Linden Hall,Maple Hall,Chestnut Hall,Sycamore Hall,Cedar Hall', 'Elm through Cedar');
+  assert(purchased.length === 6 && ACADEMIC_HALL_COUNT === 6, `six purchased halls (${purchased.length})`);
+  assert(purchased.length + 1 === milestoneSchools().length, 'one fewer than the schools: the last school sorted keeps Founders Hall');
+  assert(purchased.map((t) => t.name).join(',') === 'Elm Hall,Oak Hall,Linden Hall,Maple Hall,Chestnut Hall,Sycamore Hall', 'Elm through Sycamore');
+
+  // Founders Hall is the starting room until every purchased hall is sited;
+  // then the school left in it is at home there (Plan 59).
+  for (let i = 0; i < 6; i += 1) s.halls[FOUNDERS_HALL_ID][i] = { programId: ['CIVE', 'INDE', 'ELEC', 'CHEN', 'MECH', 'AERO'][i] };
+  assert(claimedSchool(s, FOUNDERS_HALL_ID) === null && nextSchoolToMove(s) === 'Engineering', 'six Engineering programs in Founders Hall are still away from home while a hall is left to site');
+  for (const t of purchased) t.status = 'done';
+  assert(claimedSchool(s, FOUNDERS_HALL_ID)?.school === 'Engineering' && nextSchoolToMove(s) === null, 'with every hall sited, Engineering is at home in Founders Hall');
+  assert(hallDisplayName(s, s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!) === 'Founders Hall', 'and Founders Hall keeps its name');
+}
+
+// --- a graduate program's host is no school's hall (Plan 59) ---------------
+{
+  const s = createInitialState('Host');
+  const law = s.tech.find((t) => t.id === 'PROJ-LAW')!;
+  law.status = 'done';
+  s.halls[law.id] = [{ programId: 'LAWS' }];
+  assert(dedicatedSchool(s, law.id) === null, 'the Law School housing the JD is dedicated to no school');
+  assert(hallDisplayName(s, law) === law.name, `and keeps its name (${hallDisplayName(s, law)})`);
 }
 
 // --- moves: four weeks out of Founders Hall, twelve between halls --------

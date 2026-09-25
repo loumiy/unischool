@@ -26,6 +26,13 @@ took was a real choice: an in-log accept/dismiss control would have made
 that fires anyway, so student life adds **zero** stop-the-clock moments a
 year.
 
+**Two caps** (Plan 59). Interest clubs keep theirs — one per 220 students,
+at most 24 — and sport clubs have their own: one from the start, one more
+per 1,000 students, at most six at once. A sport club leaves the list when
+it goes varsity, so a large campus full of interest clubs still grows sport
+clubs, and every sport can come through in time. When the interest clubs
+are full, a new petition is a sport club if there is room for one.
+
 **Greek life** is an extension of clubs behind a **one-time, declinable
 opt-in**, so it can never appear unbidden. Once the club scene is real
 enough, students petition to charter a **Hellenic Council**; a school may

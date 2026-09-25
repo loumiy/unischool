@@ -198,10 +198,21 @@ function shortfall(s: GameState): NextStep | null {
 }
 
 // A finished lab with nothing running in it.
+// A lab that has not seen an initiative through comes first: every lab
+// finishing one opens the Research Park (Plan 59).
 function idleLab(s: GameState): NextStep | null {
-  const lab = s.tech.find((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id]);
-  if (!lab) return null;
-  return { text: `${lab.name} is idle — commission research`, go: 'research', intent: { kind: 'research', labId: lab.id } };
+  const idle = s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id]);
+  if (idle.length === 0) return null;
+  const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
+  const unproven = idle.find((t) => !finished.has(t.id));
+  const lab = unproven ?? idle[0];
+  return {
+    text: unproven
+      ? `${lab.name} has not seen an initiative through — every lab that does brings the Research Park closer`
+      : `${lab.name} is idle — commission research`,
+    go: 'research',
+    intent: { kind: 'research', labId: lab.id },
+  };
 }
 
 // A run that skipped the scripted first year gets the readings from the start.

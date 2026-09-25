@@ -71,6 +71,9 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
     case 'research-complete':
       return { type: 'RESOLVE_RESEARCH_REPORT' };
 
+    case 'dean-recommendations':
+      return { type: 'RESOLVE_DEAN_RECOMMENDATIONS', accept: true };
+
     case 'charter':
       return { type: 'RESOLVE_CHARTER', accept: true };
 

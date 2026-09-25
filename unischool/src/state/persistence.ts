@@ -50,21 +50,19 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 77; // Plan 55: seven purchased halls
+export const SAVE_VERSION = 78; // Plan 59: six purchased halls, no Second Quad
 
-// The one-off carry from the previous version (the policy above): Plan 55
-// shortened the hall chain to seven, one for each school. The rungs past
-// Cedar Hall leave the save unless they are sited, since a sited hall may
-// house programs; one that stands keeps its place and its slots. Delete
-// with the next bump.
-const MIGRATED_FROM = 76;
-const LAST_KEPT_HALL = 7;
-function carryHallChain(payload: SavePayload): void {
+// The one-off carry from the previous version (the policy above): Plan 59
+// shortened the hall chain to six and retired the Second Quad. Either leaves
+// the save unless it is sited, since a sited hall may house programs and a
+// sited quad is ground the player laid out; one that stands keeps its place,
+// its slots and its effects. Delete with the next bump.
+const MIGRATED_FROM = 77;
+const RETIRED_IDS = ['HALL-07', 'QUAD-S2'];
+function carryRetired(payload: SavePayload): void {
   const state = payload.state as GameState & { placements?: Record<string, unknown> };
   if (!Array.isArray(state?.tech)) return;
-  const retired = new Set(state.tech
-    .filter((t) => /^HALL-\d+$/.test(t.id) && Number(t.id.slice(5)) > LAST_KEPT_HALL && !(state.placements && t.id in state.placements))
-    .map((t) => t.id));
+  const retired = new Set(RETIRED_IDS.filter((id) => !(state.placements && id in state.placements)));
   state.tech = state.tech.filter((t) => !retired.has(t.id));
   for (const t of state.tech) if (Array.isArray(t.prereqs)) t.prereqs = t.prereqs.filter((id) => !retired.has(id));
 }
@@ -668,7 +666,7 @@ export function loadGame(): GameState | null {
   try {
     parsed = JSON.parse(raw);
     if ((parsed as Partial<SavePayload> | null)?.version === MIGRATED_FROM) {
-      carryHallChain(parsed as SavePayload);
+      carryRetired(parsed as SavePayload);
       (parsed as SavePayload).version = SAVE_VERSION;
     }
   } catch {

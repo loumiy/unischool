@@ -41,6 +41,10 @@ export const STUDENTS_PER_CLUB = 220;
 export const STUDENTS_PER_CHAPTER = 900;
 // Absolute caps keep a 40-year run's list readable.
 export const MAX_ACTIVE_CLUBS = 24;
+// Sport clubs on their own cap (Plan 59): at most this many at once, one
+// more per STUDENTS_PER_SPORT_CLUB students.
+export const MAX_ACTIVE_SPORT_CLUBS = 6;
+export const STUDENTS_PER_SPORT_CLUB = 1_000;
 export const MAX_ACTIVE_CHAPTERS = 10;
 
 // Tuning: money. Sized in weeks of opex (moneyScale.ts) and fixed in dollars
@@ -924,8 +928,25 @@ export function hasStudentCenter(s: GameState): boolean {
   return s.tech.some((t) => t.status === 'done' && t.facilityType === 'studentCenter');
 }
 
+// Interest clubs and sport clubs are capped apart (Plan 59): a campus full
+// of interest clubs still grows sport clubs, which leave the list when they
+// go varsity, so every sport can come through in time.
 export function clubCapacity(s: GameState): number {
   return Math.min(MAX_ACTIVE_CLUBS, Math.floor(totalEnrolled(s.students) / STUDENTS_PER_CLUB));
+}
+
+export function sportClubCapacity(s: GameState): number {
+  // One from the start, so the first sport club (athletics' beginning) can
+  // come at any size.
+  return Math.min(MAX_ACTIVE_SPORT_CLUBS, 1 + Math.floor(totalEnrolled(s.students) / STUDENTS_PER_SPORT_CLUB));
+}
+
+export function interestClubs(s: GameState): StudentClub[] {
+  return s.orgs.clubs.filter((c) => c.sport === null);
+}
+
+export function sportClubs(s: GameState): StudentClub[] {
+  return s.orgs.clubs.filter((c) => c.sport !== null);
 }
 
 export function chapterCapacity(s: GameState): number {
@@ -938,10 +959,20 @@ function pendingOf(s: GameState, kind: OrgPetition['kind']): number {
   return s.orgs.pendingPetitions.filter((p) => p.kind === kind).length;
 }
 
+// Room for an interest club, and for a sport club, petitions included.
+function interestRoom(s: GameState): boolean {
+  const pending = s.orgs.pendingPetitions.filter((p) => p.kind === 'club' && !p.sport).length;
+  return interestClubs(s).length + pending < clubCapacity(s);
+}
+function sportRoom(s: GameState): boolean {
+  const pending = s.orgs.pendingPetitions.filter((p) => p.kind === 'club' && !!p.sport).length;
+  return sportClubs(s).length + pending < sportClubCapacity(s);
+}
+
 export function canFormClub(s: GameState): boolean {
   if (!hasStudentCenter(s)) return false;
   if (s.orgs.pendingPetitions.length >= MAX_PETITIONS_PER_DIGEST) return false;
-  return s.orgs.clubs.length + pendingOf(s, 'club') < clubCapacity(s);
+  return interestRoom(s) || sportRoom(s);
 }
 
 export function canFormChapter(s: GameState): boolean {
@@ -996,8 +1027,13 @@ function nextChapterName(s: GameState): string | null {
 }
 
 export function rollClubPetition(s: GameState): OrgPetition | null {
-  // If the sport draw comes up empty, fall back to an ordinary club.
-  const sportDef = sportClubOverdue(s) || random() < SPORT_CLUB_SHARE ? rollSportClub(s) : null;
+  // A sport club when there is room for one and the dice (or the pity
+  // timer, or a full list of interest clubs) say so; if the sport draw
+  // comes up empty, an interest club, if there is room for one.
+  const interest = interestRoom(s);
+  const wantSport = sportRoom(s) && (!interest || sportClubOverdue(s) || random() < SPORT_CLUB_SHARE);
+  const sportDef = wantSport ? rollSportClub(s) : null;
+  if (!sportDef && !interest) return null;
   const name = sportDef?.clubName ?? nextClubName(s);
   if (name === null) return null;
   return {

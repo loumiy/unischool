@@ -147,6 +147,11 @@ export type Action =
   // deadline; there is deliberately no accept/refuse.
   // The one-time College -> University charter offer; cosmetic.
   | { type: 'RESOLVE_CHARTER'; accept: boolean }
+  // Restaffing (Plan 59, systems/faculty/restaffing.ts): every unstaffed
+  // course of a school, or of the college when school is null.
+  | { type: 'RESTAFF'; school: string | null }
+  // The Deans' year-end recommendations: accept every school's plan, or not.
+  | { type: 'RESOLVE_DEAN_RECOMMENDATIONS'; accept: boolean }
   // `candidate` is the whole person: they exist only in the interrupt
   // payload. `null` declines and records the week asked.
   | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }

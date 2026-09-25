@@ -34,7 +34,7 @@ for (const run of RUNS) {
   const firstOne = r.years.find((y) => y.rank === 1)?.year;
   console.log(`\n${label}`);
   console.log(`  letters: ${Object.keys(r.done).length} of ${OPENING_LETTERS.length} asks done, the last in ${fmt(lettersDone)}`);
-  console.log(`  schools: ${schools.length} founded, the last in ${fmt(schools.length ? Math.max(...schools) : null)}; Founders Hall empty ${fmt(r.foundersEmpty)}`);
+  console.log(`  schools: ${schools.length} founded, the last in ${fmt(schools.length ? Math.max(...schools) : null)}; the last school home in Founders Hall ${fmt(r.foundersHome)}`);
   console.log(`  first #1 ${fmt(firstOne)}; rank ${[10, 20, 35, years].map((y) => `Y${y} #${at(r, y)?.rank ?? '-'}`).join(', ')}`);
   console.log(`  students ${[10, 20, 35, years].map((y) => `Y${y} ${at(r, y)?.enrolled.toLocaleString() ?? '-'}`).join(', ')}`);
   console.log(`  the line: ${Object.entries(r.asked).map(([k, n]) => `${k} ${r.carried[k] ?? 0}/${n}`).join(', ')} (carried/asked weeks); silent ${r.quiet}, saving ${r.saving}`);
@@ -43,12 +43,12 @@ for (const run of RUNS) {
 const pick = (f: (r: GuidedRecord) => number) => records.map(({ r }) => f(r));
 const lastLetter = pick((r) => Math.max(...Object.values(r.done).map(([y]) => y)));
 const allSchools = pick((r) => (Object.keys(r.schools).length === 7 ? Math.max(...Object.values(r.schools)) : Infinity));
-const empty = pick((r) => r.foundersEmpty ?? Infinity);
+const home = pick((r) => r.foundersHome ?? Infinity);
 const firstOne = pick((r) => r.years.find((y) => y.rank === 1)?.year ?? Infinity);
 
 console.log(`\nAcross ${records.length} runs (median, worst):`);
 console.log(`  every letter's ask done       ${fmt(median(lastLetter))}, ${fmt(worst(lastLetter))}`);
 console.log(`  all seven schools founded     ${fmt(median(allSchools))}, ${fmt(worst(allSchools))}`);
-console.log(`  Founders Hall empty           ${fmt(median(empty))}, ${fmt(worst(empty))}`);
+console.log(`  last school home in Founders  ${fmt(median(home))}, ${fmt(worst(home))}`);
 console.log(`  first #1                      ${fmt(median(firstOne))}, ${fmt(worst(firstOne))}`);
 console.log('\nA number held as a check should sit past the worst run with room: the worst plus about half again.');

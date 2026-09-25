@@ -1,3 +1,4 @@
+import { restaffPlan } from '../faculty/restaffing';
 import { tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState } from '../../state/types';
@@ -251,6 +252,25 @@ export function fireOpeningLetter(s: GameState): boolean {
   return false;
 }
 
+// The Deans' year-end recommendations (Plan 59): on the first quiet week
+// of a year, every school with a Dean and an unstaffed course gets a plan
+// to restaff it (restaffing.ts), put to the President once, accepted in one
+// click. Only in the year's first quarter, so it reads as the year-end
+// turnover it is, and once a year.
+export const DEAN_RECOMMENDATION_WEEKS = 13;
+export function deanSchoolsToRestaff(s: GameState): string[] {
+  const deans = (s.seats ?? []).filter((x) => x.seatId === 'dean' && x.school !== null).map((x) => x.school!);
+  return [...new Set(deans)].filter((school) => restaffPlan(s, school).length > 0);
+}
+function fireDeanRecommendations(s: GameState): boolean {
+  if (s.events.deanYear === s.clock.year || s.clock.week > DEAN_RECOMMENDATION_WEEKS) return false;
+  const schools = deanSchoolsToRestaff(s);
+  if (schools.length === 0) return false;
+  s.events.deanYear = s.clock.year;
+  s.pendingInterrupt = { type: 'dean-recommendations', payload: { schools } };
+  return true;
+}
+
 export function tickEvents(s: GameState): void {
   // The panel's unanswered events take their defaults whoever claims the
   // week.
@@ -262,6 +282,7 @@ export function tickEvents(s: GameState): void {
   // random decision roll last.
   if (fireMilestoneCelebration(s)) return;
   if (fireCharterOffer(s)) return;
+  if (fireDeanRecommendations(s)) return;
   if (fireResearchReport(s)) return;
   if (fireChampionshipReport(s)) return;
   if (fireMascotBeat(s)) return;

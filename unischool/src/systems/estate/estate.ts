@@ -1,6 +1,7 @@
 import type { Buildable, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus } from '../../state/types';
 import { isPlaceableKind } from '../../state/campusMap';
+import { LIBRARY_FLOOR_MAX, LIBRARY_TIER1_ID, nextLibraryFloor } from '../../data/facilitiesData';
 
 // The estate (Plan 26, ported from v2's estate.ts): what the buildings cost
 // to keep, and what skimping does to them. Every finished building has an
@@ -60,26 +61,37 @@ export function canRenovate(t: Buildable): boolean {
 
 // Added stories (Plan 26): a dorm or a dining hall can go up by up to two
 // floors, a quarter more capacity each, built over twelve weeks while it
-// stays open.
+// stays open. The library goes up the same way since Plan 59, from its
+// panel, on its own plan: up to three floors, each on nextLibraryFloor's
+// cost, seats and weeks (facilitiesData.ts).
 export const EXTENSION_MAX_STOREYS = 2;
 export const EXTENSION_COST_SHARE = 0.4;
 export const EXTENSION_WEEKS = 12;
 const EXTENSION_GAIN = 0.25;
 
+const isLibrary = (t: Buildable) => t.id === LIBRARY_TIER1_ID;
+
 export function canExtend(t: Buildable): boolean {
-  const kind = (t.kind === 'dorm' && (t.effects?.capacityBonus ?? 0) > 0) || t.facilityType === 'diningHall';
-  return kind && t.status === 'done' && (t.floorsAdded ?? 0) < EXTENSION_MAX_STOREYS
+  const kind = (t.kind === 'dorm' && (t.effects?.capacityBonus ?? 0) > 0) || t.facilityType === 'diningHall' || isLibrary(t);
+  const max = isLibrary(t) ? LIBRARY_FLOOR_MAX : EXTENSION_MAX_STOREYS;
+  return kind && t.status === 'done' && (t.floorsAdded ?? 0) < max
     && (t.extensionWeeks ?? 0) === 0 && (t.renovationWeeks ?? 0) === 0;
 }
 
 export function extensionCost(t: Buildable): number {
+  if (isLibrary(t)) return nextLibraryFloor(t)?.cost ?? 0;
   return Math.round(t.cost * EXTENSION_COST_SHARE);
 }
 
+export function extensionWeeks(t: Buildable): number {
+  return isLibrary(t) ? nextLibraryFloor(t)?.weeks ?? EXTENSION_WEEKS : EXTENSION_WEEKS;
+}
+
 // What one more story adds: beds for a dorm, seats for a dining hall, a
-// quarter of what it was built with.
+// quarter of what it was built with; the library's floor plan for it.
 export function extensionGain(t: Buildable): number {
   if (t.kind === 'dorm') return Math.round((t.effects?.capacityBonus ?? 0) * EXTENSION_GAIN);
+  if (isLibrary(t)) return nextLibraryFloor(t)?.servesGain ?? 0;
   const serves = t.effects?.servesPopulation ?? 0;
   return Math.round((serves / (1 + EXTENSION_GAIN * (t.floorsAdded ?? 0))) * EXTENSION_GAIN);
 }

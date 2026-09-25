@@ -1,12 +1,13 @@
 import { constructionFrozen } from '../systems/finance/distress';
 import ConfirmButton from './ConfirmButton';
-import { canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, renovationCost } from '../systems/estate/estate';
+import { canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, extensionWeeks, renovationCost } from '../systems/estate/estate';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
+import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
@@ -144,6 +145,8 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   const avg = averageCourseQuality(s, program.courseIds, loads);
   const progress = programProgress(s, program);
   const inTransit = transitWeeks(s, program.id);
+  // An unstaffed course darkens the program (Plan 59).
+  const dark = unstaffedPrograms(s).has(program.id);
   const move = act && program.kind !== 'graduate' ? suggestedMove(s, program.id) : null;
   const moveHall = move ? s.tech.find((x) => x.id === move.hallId) : undefined;
   const courseTitle = (t: Buildable) => t.name.split(' · ')[1] ?? t.name;
@@ -163,7 +166,9 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
         <span className="program-tile-meta">
           {inTransit > 0
             ? <span className="program-tile-transit" title={`In transit — ${inTransit} weeks until it is teaching again`}>moving · {inTransit}w</span>
-            : <span className="program-tile-progress">{progress.done}/{progress.total}</span>}
+            : dark
+              ? <span className="program-tile-transit" title="A course has no instructor: the program is dark until it is restaffed">dark</span>
+              : <span className="program-tile-progress">{progress.done}/{progress.total}</span>}
           {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
           {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
         </span>
@@ -342,7 +347,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
       )}
       {t.id === FOUNDERS_HALL_ID && (
         <p className="building-info-line">
-          Where programs begin: each moves on to a hall of its own school, {FOUNDERS_MOVE_WEEKS} weeks dark.
+          Where programs begin: they move on to halls of their own school, {FOUNDERS_MOVE_WEEKS} weeks dark, and the last school sorted keeps this one.
         </p>
       )}
       <p className="building-info-line">
@@ -499,7 +504,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
   }
   const extend = canExtend(t) ? (
     <button type="button" className="building-info-jump" disabled={s.finance.cash < extensionCost(t) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction; nothing new goes up until it lifts.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
-      Add a story · {money(extensionCost(t))}, twelve weeks, {extensionGain(t).toLocaleString()} more {t.kind === 'dorm' ? 'beds' : 'served'}
+      Add a story · {money(extensionCost(t))}, {extensionWeeks(t)} weeks, {extensionGain(t).toLocaleString()} more {t.kind === 'dorm' ? 'beds' : 'served'}
     </button>
   ) : null;
   if ((t.renovationWeeks ?? 0) > 0) {

@@ -541,6 +541,9 @@ export interface EventState {
   // Rivals whose passing the player has been asked about ('rival-passed'),
   // stamped when the event fires, so each is asked once.
   passedResponses: string[];
+  // The year the Deans last brought their restaffing recommendations
+  // (eventSystem.ts's fireDeanRecommendations, Plan 59). Absent: never.
+  deanYear?: number;
 }
 
 // See state/opening.ts, which owns the order and the meaning.

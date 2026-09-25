@@ -248,6 +248,27 @@ academic satisfaction through seats-per-student and already reaches prestige as
 a multiplier on curriculum breadth. A third path would let one building move the
 dominant input three ways at once.
 
+**An unstaffed course darkens its program** (Plan 59, `techtree/darkness.ts`).
+A program with any offered course and no live instructor is not taught: none of
+its courses seat anyone (instruction capacity), its courses in development hold
+their countdowns, and every one of its courses scores zero in the grade
+averages — the whole program, not only the orphan. A college that lets its
+faculty go therefore craters: seats fall to nothing, the intake ceiling with
+them, and teaching quality to an F. Restaffing brings it back, and nothing
+about darkness blocks a hire, an assignment or a move.
+
+**Restaffing is one click** (`faculty/restaffing.ts`). A plan gives every
+unstaffed course of a school an instructor: someone on the payroll with a free
+course slot first, else the cheapest listed candidate in the field, each hire
+taking as many of the field's courses as their slots hold. The Curriculum
+tab's **"Staff from the market"** on a school's heading commits it
+(`RESTAFF`), and so does a **Dean's year-end recommendation**: on the first
+quiet week of each year (within its first quarter), every school with a Dean
+and an unstaffed course gets its plan put to the President once, all accepted
+in one click (`RESOLVE_DEAN_RECOMMENDATIONS`). The market keeps a candidate
+listed in every field with an unstaffed course (`tickCandidatePool`), so a
+plan always has someone to hire.
+
 **An unstaffed course scores zero, not nothing.** Aggregates count it, because a
 school gutted to fifteen professors across four hundred courses is not a
 comfortable B — excluding orphans was tried, and that is exactly what it

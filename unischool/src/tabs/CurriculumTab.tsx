@@ -1,3 +1,5 @@
+import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
+import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { useCallback, useEffect, useState } from 'react';
 import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
@@ -871,6 +873,7 @@ function ProgramRowView(
   const grad = graduate ? graduatePrograms().find((g) => g.id === program.id) : undefined;
   const hallId = hallOfCourse(s, program.entryCourseId);
   const hall = hallId ? lookup.get(hallId) : undefined;
+  const dark = unstaffedPrograms(s).has(program.id);
 
   return (
     <section className={`program-row${graduate ? ' graduate' : ''}`} data-program={program.id}>
@@ -879,6 +882,7 @@ function ProgramRowView(
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
         {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${Math.round(avg)} / 100`} />}
         {hall && <span className="program-row-hall" title="Where it is housed">{hallDisplayName(s, hall)}</span>}
+        {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no seats, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
         <span className="lane-count">{progress.done} / {progress.total}</span>
       </header>
       <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} />
@@ -910,6 +914,12 @@ function SchoolGroupView(
   const ids = group.rows.flatMap((row) => row.program.courseIds);
   const avg = averageCourseQuality(s, ids, loads);
   const done = completion(s, ids);
+  // Restaffing in one click (Plan 59, restaffing.ts): what the market and
+  // the payroll can cover of this school's unstaffed courses.
+  const school = group.rows[0] ? programById(group.rows[0].program.id)?.school : undefined;
+  const unstaffedHere = school ? unstaffedIn(s, school).length : 0;
+  const plan = unstaffedHere > 0 && school ? restaffPlan(s, school) : [];
+  const hires = plan.filter((x) => x.hire);
   return (
     <section
       className={`school-group${group.founded ? ' founded' : ' unfounded'}`}
@@ -921,6 +931,19 @@ function SchoolGroupView(
         <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
         {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
         <span className="lane-count">{done.done} / {done.total}</span>
+        {unstaffedHere > 0 && school && (
+          <button
+            type="button"
+            className="school-restaff"
+            disabled={plan.length === 0}
+            title={plan.length === 0
+              ? 'Nobody on the payroll or the market can take these courses this week.'
+              : `Staff ${plan.length} of ${unstaffedHere} unstaffed course${unstaffedHere === 1 ? '' : 's'}${hires.length > 0 ? `, appointing ${hires.length} from the market at ${money(hires.reduce((n, x) => n + x.hire!.salary, 0))}/yr` : ''}`}
+            onClick={() => act({ type: 'RESTAFF', school })}
+          >
+            Staff from the market · {unstaffedHere}
+          </button>
+        )}
       </header>
       <div className="program-rows">
         {group.rows.map((row) => (

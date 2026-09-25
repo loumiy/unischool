@@ -61,7 +61,8 @@ function withCourses(s: GameState, n: number): void {
   const courses = s.tech.filter((t) => t.kind === 'course');
   courses.forEach((t) => { if (t.status === 'done') t.status = 'available'; });
   const chosen = courses.slice(0, n);
-  chosen.forEach((t) => { t.status = 'done'; });
+  // Each taught by someone, or its program is dark and seats nobody (Plan 59).
+  chosen.forEach((t) => { t.status = 'done'; s.courseFaculty[t.id] = s.faculty[0].id; });
   const programs = new Set(chosen.map((t) => programOfCourse(t.id)).filter((id): id is string => id !== undefined));
   const housed = new Set(Object.values(s.halls).flat().map((slot) => slot.programId));
   s.halls['TEST-HALL'] = [...programs].filter((id) => !housed.has(id)).map((programId) => ({ programId }));

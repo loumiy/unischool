@@ -16,13 +16,14 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    slots themselves are `s.halls`, keyed by hall id and positional — slot 3
    is slot 3 forever). Six is not arbitrary: every school in the game has
    exactly six majors, so **one hall is exactly one school**, and that is a
-   rule a player learns in one sentence and plans a decade around. Eight
+   rule a player learns in one sentence and plans a decade around. Seven
    halls in all: **Founders Hall**, which stands at founding, and a strictly
-   sequential chain of seven like housing (Elm, Oak, Linden, Maple,
-   Chestnut, Sycamore and Cedar), one for each of the seven schools. (Until
-   Plan 55 the chain ran to thirteen, a second hall for each school's
-   graduate programs; since Plan 51 those are housed in capital projects, so
-   the second halls were room to spare, and the owner shortened the chain.)
+   sequential chain of six like housing (Elm, Oak, Linden, Maple, Chestnut
+   and Sycamore). Seven schools, seven halls: the last school sorted keeps
+   Founders Hall as its own (Plan 59). (Until Plan 55 the chain ran to
+   thirteen, a second hall for each school's graduate programs; since Plan
+   51 those are housed in capital projects, so the owner shortened it to
+   seven, then to six once Founders Hall could be a school's.)
    Founders Hall is an ordinary hall
    in every mechanical respect (Plan 19): six slots, three of them holding the
    founding programs — English, Mathematics and Economics since Plan 52, the
@@ -32,8 +33,12 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    begun under one roof make it no school's hall: a school is a hall of the
    player's own. **Founders Hall is where programs begin** (Plan 55): the
    intended line of play founds them there, then moves them out school by
-   school, until every school has a hall of its own and Founders Hall stands
-   empty — seven schools in seven halls. (Until Plan 52 the founding programs were English, History
+   school into halls of their own. It is the starting room, claimed by no
+   school, until every purchased hall is sited; then the school left in it
+   is at home there (`schools.ts`'s `foundersIsHome`), and it keeps the name
+   Founders Hall. A graduate program's host (the Law School, the Medical
+   Center) has slots too but is never dedicated: it founds no school and
+   keeps its own name and look (Plan 59). (Until Plan 52 the founding programs were English, History
    and Philosophy, and three more Social Sciences & Humanities programs
    dedicated Founders Hall.) The
    first purchased hall opens once the college teaches **eight developed

@@ -68,6 +68,8 @@ function finishSomething(s: GameState): GameState {
   const next = s.tech.find((t) => t.id === 'ENGL120')!;
   next.status = 'developing';
   s.developing['ENGL120'] = 1;
+  // Taught by someone, or the program is dark and nothing finishes (Plan 59).
+  s.courseFaculty['ENGL120'] = s.faculty[0].id;
   return reducer(s, { type: 'TICK' });
 }
 

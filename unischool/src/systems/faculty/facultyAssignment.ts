@@ -3,6 +3,7 @@ import { assignedInstructor } from '../techtree/techSystem';
 import { qualityOf, tierOf, type CourseQuality } from '../../data/courseQuality';
 import { programOfCourse } from '../../data/techData';
 import { isInTransit } from '../techtree/programOffers';
+import { unstaffedPrograms } from '../techtree/darkness';
 
 // Who teaches what, in both directions, read from one record: s.courseFaculty,
 // the instructor chosen when the course was started (types.ts's CourseFaculty).
@@ -36,12 +37,16 @@ export function facultyLoads(s: GameState): FacultyLoads {
 }
 
 // Only an offered course with a faculty field is graded; null renders as a dash.
-export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads): CourseQuality | null {
+// `unstaffed` is darkness.ts's unstaffedPrograms, when the caller grades
+// many courses and has it already.
+export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads, unstaffed?: ReadonlySet<string>): CourseQuality | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
-  // A program in transit between halls is not taught this term: no grade,
-  // and no contribution to averages (see aggregateScore).
+  // A dark program is not taught this term (darkness.ts): in transit
+  // between halls, or unstaffed somewhere. No grade on its courses.
   if (inTransit(s, t)) return null;
+  const programId = programOfCourse(t.id);
+  if (programId !== undefined && (unstaffed ?? unstaffedPrograms(s)).has(programId)) return null;
 
   // An unstaffed course (instructor dismissed) is null too: not taught,
   // rather than taught badly.
@@ -74,15 +79,16 @@ export function projectedQuality(s: GameState, t: Buildable, f: Faculty, loads?:
 // What one course contributes to an aggregate (a major, a school, the campus):
 //   - Not offered, fieldless, or in transit: nothing (excluded), so revealing
 //     new coursework never lowers a grade.
-//   - Offered but unstaffed: zero. Leaving it out would let a school that
-//     dismissed most of its faculty report a comfortable grade from the few
-//     staffed courses. (The course's own card still shows "—": it answers a
-//     different question.)
-function aggregateScore(s: GameState, t: Buildable, loads: FacultyLoads): number | null {
+//   - In a program with an unstaffed course: zero, every course of it
+//     (Plan 59: the program is dark). Leaving them out would let a school
+//     that dismissed most of its faculty report a comfortable grade from
+//     the few staffed courses. (The course's own card shows "—": it answers
+//     a different question.)
+function aggregateScore(s: GameState, t: Buildable, loads: FacultyLoads, unstaffed: ReadonlySet<string>): number | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
   if (inTransit(s, t)) return null;
-  return courseQuality(s, t, loads)?.score ?? 0;
+  return courseQuality(s, t, loads, unstaffed)?.score ?? 0;
 }
 
 function inTransit(s: GameState, t: Buildable): boolean {
@@ -94,12 +100,13 @@ function inTransit(s: GameState, t: Buildable): boolean {
 export function averageCourseQuality(s: GameState, ids: string[], loads?: FacultyLoads): number | null {
   const byId = new Map(s.tech.map((t) => [t.id, t]));
   const load = loads ?? facultyLoads(s);
+  const unstaffed = unstaffedPrograms(s);
   let sum = 0;
   let n = 0;
   for (const id of ids) {
     const t = byId.get(id);
     if (!t) continue;
-    const score = aggregateScore(s, t, load);
+    const score = aggregateScore(s, t, load, unstaffed);
     if (score === null) continue;
     sum += score;
     n += 1;
@@ -111,10 +118,11 @@ export function averageCourseQuality(s: GameState, ids: string[], loads?: Facult
 // prestige so they agree.
 export function campusAverageCourseQuality(s: GameState): number | null {
   const loads = facultyLoads(s);
+  const unstaffed = unstaffedPrograms(s);
   let sum = 0;
   let n = 0;
   for (const t of s.tech) {
-    const score = aggregateScore(s, t, loads);
+    const score = aggregateScore(s, t, loads, unstaffed);
     if (score === null) continue;
     sum += score;
     n += 1;

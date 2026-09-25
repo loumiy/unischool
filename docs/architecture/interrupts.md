@@ -38,7 +38,10 @@ Everything that needs to stop time rides on this one mechanism:
   programs in Founders Hall); *A school takes shape* once it is claimed
   (grow that school to three programs there, founding its new programs
   straight into it); and *A second school* once one has three and Oak Hall
-  opens (site it, then move the next school in). One of these whose ask was
+  opens (site it, then move the next school in). Two more follow research
+  (Plan 59): *The laboratories* when the first lab stands (see an
+  initiative through in every lab) and *The Research Park* when the park
+  opens (site it). One of these whose ask was
   already done when it came due is recorded read and never sent; after the
   last, the school-founded milestone celebrates each school. They yield to
   everything the player earned and outrank only the decision roll. The
@@ -46,6 +49,11 @@ Everything that needs to stop time rides on this one mechanism:
   (`src/systems/guidance/nextStep.ts`): in year one only a letter's, and
   afterward a waiting letter's first, then the campus readings, a possible
   move out of a mixed hall before a free slot.
+- **The Deans' recommendations** (`dean-recommendations`, Plan 59) — on the
+  first quiet week of a year, within its first quarter, once a year: every
+  school with a Dean and an unstaffed course has a plan to restaff it
+  (`faculty/restaffing.ts`), accepted all at once or not at all
+  (`RESOLVE_DEAN_RECOMMENDATIONS`). Unanswered, the programs stay dark.
 - **The opening walkthrough** — not an interrupt, but the same hold on the
   clock, so it is listed here. A founding from the startup screen
   (`START_GAME` with `guided`) opens on `s.events.opening.stage = 'welcome'`

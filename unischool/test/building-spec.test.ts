@@ -375,7 +375,7 @@ console.log('campus scale and building spec');
 // --- 11. The academic halls, and the one that carries a tower ------------
 {
   const halls = CATALOGUE.filter((t) => motifOf(t) === 'hall');
-  assert(halls.length >= 8, `every academic building wears the hall motif (${halls.length} of them)`);
+  assert(halls.length >= 7, `every academic building wears the hall motif (${halls.length} of them)`);
 
   // "The same style, without the spire" is one flag, not a second motif — so
   // every hall has to agree on everything except that flag.

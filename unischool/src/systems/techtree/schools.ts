@@ -10,10 +10,15 @@ import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../../data/techDa
 // school.
 
 // The school a hall is dedicated to, or null if it is partly filled, empty,
-// or mixed. Founders Hall is an ordinary hall here.
+// or mixed. Founders Hall is an ordinary hall here. Only an academic hall is
+// ever dedicated (Plan 59): a graduate program's host (the Law School, the
+// Medical Center) has slots too, but housing its program founds no school
+// and renames nothing.
 export function dedicatedSchool(s: GameState, hallId: string): string | null {
   const slots = s.halls[hallId];
   if (!slots || slots.length === 0) return null;
+  const hall = s.tech.find((t) => t.id === hallId);
+  if (!hall || !isAcademicHall(hall)) return null;
   let school: string | null = null;
   for (const slot of slots) {
     if (slot.programId === null) return null;
@@ -51,9 +56,10 @@ export function isSchoolFounded(s: GameState, school: string): boolean {
 // A hall's display name: its donor's name if naming rights were sold (a
 // stored overwrite of `name`, see eventData.ts's 'naming-rights'),
 // "<School> Hall" while dedicated, its seeded name otherwise. Live, so the
-// label follows the hall's purity while the milestone stays.
+// label follows the hall's purity while the milestone stays. Founders Hall
+// keeps its name whichever school fills it (Plan 59).
 export function hallDisplayName(s: GameState, t: Buildable): string {
-  if (t.donorSurname) return t.name;
+  if (t.donorSurname || t.id === FOUNDERS_HALL_ID) return t.name;
   const school = t.slots !== undefined ? dedicatedSchool(s, t.id) : null;
   return school ? `${school} Hall` : t.name;
 }
@@ -61,7 +67,7 @@ export function hallDisplayName(s: GameState, t: Buildable): string {
 // ---------------------------------------------------------------------
 // Sorting (Plan 55). Programs begin in Founders Hall and move out, school
 // by school, into halls of their own, until every school has one and
-// Founders Hall stands empty. These readings tell the player how far along
+// the last school sorted keeps Founders Hall (Plan 59). These readings tell the player how far along
 // that is: the letters (eventData.ts), the next-step line (nextStep.ts),
 // the hall's label and panel, and the program tile's suggested move.
 // ---------------------------------------------------------------------
@@ -73,13 +79,13 @@ export interface Claim {
   slots: number;
 }
 
-// The school a purchased hall is being sorted into: every program in it,
-// settled or arriving, belongs to that school. Null when it is empty or
-// mixed, and always for Founders Hall, which is where programs start and
-// is no school's hall. A full claim with nothing in transit is a
-// dedication (dedicatedSchool above).
+// The school a hall is being sorted into: every program in it, settled or
+// arriving, belongs to that school. Null when it is empty or mixed, and for
+// Founders Hall until every purchased hall is sited (foundersIsHome). A
+// full claim with nothing in transit is a dedication (dedicatedSchool
+// above).
 export function claimedSchool(s: GameState, hallId: string): Claim | null {
-  if (hallId === FOUNDERS_HALL_ID) return null;
+  if (hallId === FOUNDERS_HALL_ID && !foundersIsHome(s)) return null;
   const hall = s.tech.find((t) => t.id === hallId);
   const slots = s.halls[hallId];
   if (!hall || !isAcademicHall(hall) || !slots) return null;
@@ -94,6 +100,15 @@ export function claimedSchool(s: GameState, hallId: string): Claim | null {
     housed += 1;
   }
   return school === null ? null : { school, housed, slots: slots.length };
+}
+
+// Founders Hall is the starting room, no school's, until every purchased
+// hall is sited (Plan 59): six halls for seven schools, so the school still
+// in it then is at home there, and nothing asks it to move.
+export function foundersIsHome(s: GameState): boolean {
+  return s.tech
+    .filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID)
+    .every((t) => t.status === 'developing' || t.status === 'done');
 }
 
 // Every claimed hall, with its claim.
