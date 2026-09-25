@@ -316,6 +316,8 @@ export interface CapitalProject {
   // Waits on a school's whole undergraduate curriculum being taught (Plan
   // 51): a school's name, or ANY_SCHOOL for the first school to finish.
   curriculum?: string;
+  // Waits on every standing lab having finished an initiative (Plan 53).
+  everyLabFinished?: true;
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 
@@ -645,6 +647,10 @@ export interface ResearchState {
   // Keyed by hosting facility; a facility is vacant when it has no key.
   initiatives: Record<string, Initiative>;
   completedInitiatives: CompletedInitiative[]; // newest first, capped at INITIATIVE_HISTORY_LIMIT
+  // The labs that have seen an initiative through, uncancelled (Plan 53):
+  // the Research Park waits on every standing lab being among them.
+  // Optional: a save from before it reads as none.
+  finishedLabs?: string[];
   lastOutputWeek: number;  // absolute week of the last research output; 0 = never
   pendingCompletions: InitiativeReport[]; // queued like pendingMilestones; drained one per modal (eventSystem.ts)
 }

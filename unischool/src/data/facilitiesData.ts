@@ -138,22 +138,13 @@ const GROCERY_COST = 15_750_000; // 900/seat
 const GROCERY_WEEKS = 20;
 
 // --- Library: single building, academic ---
-// Tier 2 (the research library) is a prestige gate (prestigeSystem.ts's
-// library-adequacy cap) and a research multiplier, and its own building.
-// General capacity comes from renovating tier 1 instead.
+// One building, its capacity grown by renovation (floors on tier 1). The
+// research library that was its second tier is gone (Plan 53): the Research
+// Park is research's building now.
 export const LIBRARY_TIER1_ID = 'LIB-T1';
 const LIBRARY_TIER1_SERVES = 1_200;
 const LIBRARY_TIER1_COST = 360_000;
 const LIBRARY_TIER1_WEEKS = 12;
-const LIBRARY_TIER2_ID = 'LIB-T2';
-const LIBRARY_TIER2_SERVES = 3_500;
-const LIBRARY_TIER2_COST = 1_400_000;
-const LIBRARY_TIER2_WEEKS = 24;
-export const LIBRARY_TIER2_PRESTIGE_GATE = 70;
-// Read live off effects.researchRateBonus like the labs' bonuses
-// (techData.ts's LAB_RESEARCH_RATE_BONUS). Multiplies research output, never
-// creates it: with no lab, nothing is researched.
-const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 
 // Renovations add floors to the existing tier-1 building rather than a new
 // Buildable: engine/reducer.ts's RENOVATE_LIBRARY returns the placed node to
@@ -522,24 +513,6 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: LIBRARY_TIER1_SERVES,
         satisfactionAttribute: 'academic',
         upkeepPerWeek: servedUpkeep('library', LIBRARY_TIER1_SERVES),
-      },
-    },
-    {
-      id: LIBRARY_TIER2_ID,
-      kind: 'facility',
-      facilityType: 'library',
-      tier: 2,
-      name: 'Research Library',
-      description: `Adds ${LIBRARY_TIER2_SERVES.toLocaleString()} more seats and a real research collection, lifting research output across every lab-equipped department. Unlocks at prestige ${LIBRARY_TIER2_PRESTIGE_GATE}+.`,
-      cost: LIBRARY_TIER2_COST,
-      duration: LIBRARY_TIER2_WEEKS,
-      prereqs: [LIBRARY_TIER1_ID],
-      status: 'locked',
-      effects: {
-        servesPopulation: LIBRARY_TIER2_SERVES,
-        satisfactionAttribute: 'academic',
-        upkeepPerWeek: servedUpkeep('library', LIBRARY_TIER2_SERVES),
-        researchRateBonus: LIBRARY_TIER2_RESEARCH_RATE_BONUS,
       },
     },
 

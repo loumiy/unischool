@@ -19,7 +19,6 @@ import { glyphsFor, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
-import { GRADUATE_HOSTS } from '../data/projectData';
 import { FACULTY_FIELDS } from '../data/facultyData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -51,53 +50,23 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 75; // Plan 51: graduate programs housed in their capital projects; the Performing Arts Center gone
+export const SAVE_VERSION = 76; // Plan 53: the research library gone
 
-// The one-off carry from the previous version (the policy above): Plan 51
-// housed graduate programs in capital projects, added the Law School, the
-// Business School and the economics doctorate, and retired the Performing
-// Arts Center. The catalog's new nodes join the save; the hosts take their
-// slots (a standing host has them at once); a graduate program already in a
-// hall moves to its host when the host stands, and otherwise stays where it
-// is; and the Performing Arts Center leaves, with every prerequisite that
-// named it. Delete with the next bump.
-const MIGRATED_FROM = 74;
-const RETIRED_ID = 'ARTS-PAC';
-function carryGraduateSchools(payload: SavePayload): void {
-  const state = payload.state as GameState & { placements?: Record<string, unknown>; developing?: Record<string, unknown>; halls?: Record<string, HallSlot[]> };
+// The one-off carry from the previous version (the policy above): Plan 53
+// retired the research library. Its node and site leave the save, with
+// every prerequisite that named it; the library's floors carry its seats
+// from here. (The labs that have finished an initiative are an optional
+// field, so a carried save starts with none recorded.) Delete with the next
+// bump.
+const MIGRATED_FROM = 75;
+const RETIRED_ID = 'LIB-T2';
+function carryResearchStaging(payload: SavePayload): void {
+  const state = payload.state as GameState & { placements?: Record<string, unknown>; developing?: Record<string, unknown> };
   if (!Array.isArray(state?.tech)) return;
   state.tech = state.tech.filter((t) => t.id !== RETIRED_ID);
   for (const t of state.tech) if (Array.isArray(t.prereqs)) t.prereqs = t.prereqs.filter((id) => id !== RETIRED_ID);
   if (state.placements) delete state.placements[RETIRED_ID];
   if (state.developing) delete state.developing[RETIRED_ID];
-
-  const catalog = [...initialTech(), ...initialDorms(), ...initialFacilities()];
-  const have = new Set(state.tech.map((t) => t.id));
-  for (const node of catalog) if (!have.has(node.id)) state.tech.push(structuredClone(node));
-
-  state.halls ??= {};
-  for (const hostId of new Set(Object.values(GRADUATE_HOSTS))) {
-    const host = state.tech.find((t) => t.id === hostId);
-    const seed = catalog.find((t) => t.id === hostId);
-    if (!host || !seed) continue;
-    host.slots = seed.slots;
-    host.project = seed.project;
-    if (host.status === 'done' && !state.halls[hostId]) state.halls[hostId] = Array.from({ length: seed.slots ?? 0 }, (): HallSlot => ({ programId: null }));
-  }
-  for (const [programId, hostId] of Object.entries(GRADUATE_HOSTS)) {
-    const target = state.halls[hostId];
-    const free = target ? target.findIndex((slot) => slot.programId === null) : -1;
-    if (free < 0) continue;
-    for (const [hallId, slots] of Object.entries(state.halls)) {
-      if (hallId === hostId) continue;
-      const at = slots.findIndex((slot) => slot.programId === programId);
-      if (at < 0) continue;
-      slots[at] = { programId: null };
-      target![free] = { programId };
-      break;
-    }
-  }
-  if (Array.isArray(state.programOffers)) state.programOffers = state.programOffers.filter((id) => !(id in GRADUATE_HOSTS));
 }
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
@@ -696,7 +665,7 @@ export function loadGame(): GameState | null {
   try {
     parsed = JSON.parse(raw);
     if ((parsed as Partial<SavePayload> | null)?.version === MIGRATED_FROM) {
-      carryGraduateSchools(parsed as SavePayload);
+      carryResearchStaging(parsed as SavePayload);
       (parsed as SavePayload).version = SAVE_VERSION;
     }
   } catch {

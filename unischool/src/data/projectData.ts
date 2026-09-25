@@ -55,9 +55,9 @@ export const PROJECTS: readonly ProjectDef[] = [
   },
   {
     id: 'PROJ-RESEARCH-PARK', name: 'The Research Park',
-    description: 'Laboratories for rent at the edge of campus, to companies who want to be near the faculty, and faculty who want to be near the money.',
+    description: 'Laboratories for rent at the edge of campus, to companies who want to be near the faculty, and faculty who want to be near the money: where Landmark Programs are commissioned. Opens once every lab on campus has seen an initiative through.',
     cost: 45_000_000, weeks: 144, upkeep: 45_000,
-    project: { fromYear: 12, boosts: { research: 18 } },
+    project: { fromYear: 12, everyLabFinished: true, boosts: { research: 18 } },
   },
   {
     id: 'PROJ-GRADUATE', name: 'The Graduate College',

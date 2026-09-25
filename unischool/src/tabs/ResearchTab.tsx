@@ -4,7 +4,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState, Initiative } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import {
-  availableScholars, initiativeDepth, initiativeOffers,
+  availableScholars, depthOpen, initiativeDepth, initiativeOffers,
   initiativeWeeklyOutput, interdisciplinaryBonus, teamStrength,
   type InitiativeOffer,
 } from '../data/researchData';
@@ -191,6 +191,9 @@ function VacantPanel(
             </button>
           ))}
         </div>
+      )}
+      {open && !depthOpen(s, 'landmark') && (
+        <p className="empty-note">Landmark Programs, four scholars across disciplines over five years, are commissioned once the Research Park stands.</p>
       )}
 
       {open && picked && !picked.blockedReason && (

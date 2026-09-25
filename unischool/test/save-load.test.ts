@@ -55,33 +55,24 @@ function writeSave(version: number, state: unknown): void {
   store.set(SAVE_KEY, JSON.stringify({ version, savedAt: Date.now(), state }));
 }
 
-// ---- Test: the one-off carry from version 74 (Plan 51's graduate schools) ----
-function testGraduateCarry(): void {
+// ---- Test: the one-off carry from version 75 (Plan 53's research library) ----
+function testResearchCarry(): void {
   clearSave();
   const cur = createInitialState('Carry');
-  // The same run as version 74 wrote it: the Performing Arts Center in the
-  // catalog and in Music's capstone prereqs, no Law School, the Arts Center
-  // standing without slots, and the MFA housed in Founders Hall.
+  // The same run as version 75 wrote it: the research library standing on
+  // its site, and something that named it.
   const old = JSON.parse(JSON.stringify(cur)) as GameState;
-  const gallery = old.tech.find((t) => t.id === 'ART-GALLERY')!;
-  old.tech.push({ ...gallery, id: 'ARTS-PAC', name: 'Performing Arts Center' });
-  const capstone = old.tech.find((t) => t.id === 'MUSC210')!;
-  capstone.prereqs = [...capstone.prereqs, 'ARTS-PAC'];
-  old.tech = old.tech.filter((t) => t.id !== 'PROJ-LAW');
-  const arts = old.tech.find((t) => t.id === 'PROJ-ARTS')!;
-  arts.status = 'done';
-  delete arts.slots;
-  old.placements['PROJ-ARTS'] = { row: 5, col: 5, w: 11, h: 9 };
-  const founders = old.halls[FOUNDERS_HALL_ID];
-  const free = founders.findIndex((slot) => slot.programId === null);
-  founders[free] = { programId: 'MFAX' };
+  const library = old.tech.find((t) => t.id === 'LIB-T1')!;
+  old.tech.push({ ...library, id: 'LIB-T2', name: 'Research Library', status: 'done', prereqs: ['LIB-T1'] });
+  old.placements['LIB-T2'] = { row: 5, col: 5, w: 7, h: 5 };
+  const bell = old.tech.find((t) => t.id === 'AMENITY-BELLTOWER')!;
+  bell.prereqs = [...bell.prereqs, 'LIB-T2'];
   store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: old }));
   const back = loadGame();
-  assert(back !== null, 'a version-74 save loads');
+  assert(back !== null, 'a version-75 save loads');
   if (!back) return;
-  assert(!back.tech.some((t) => t.id === 'ARTS-PAC') && !back.tech.find((t) => t.id === 'MUSC210')!.prereqs.includes('ARTS-PAC'), 'without the Performing Arts Center, even in a prerequisite');
-  assert(back.tech.some((t) => t.id === 'PROJ-LAW'), 'with the Law School in the catalog');
-  assert(back.halls['PROJ-ARTS']?.[0]?.programId === 'MFAX' && !back.halls[FOUNDERS_HALL_ID].some((slot) => slot.programId === 'MFAX'), 'and the MFA moved into the Arts Center');
+  assert(!back.tech.some((t) => t.id === 'LIB-T2') && !back.placements['LIB-T2'], 'without the research library or its site');
+  assert(!back.tech.find((t) => t.id === 'AMENITY-BELLTOWER')!.prereqs.includes('LIB-T2'), 'even in a prerequisite');
 }
 
 // ---- Test: the catalog's text reaches a saved run (Plan 46) ----
@@ -342,7 +333,7 @@ function testRejects(): void {
 console.log(`save/load tests (SAVE_VERSION ${SAVE_VERSION})`);
 testRoundTrip();
 testAuthoredText();
-testGraduateCarry();
+testResearchCarry();
 testFoundingSeenExcludesStartingContent();
 testCourseFacultySanitizer();
 testChapterGlyphs();
