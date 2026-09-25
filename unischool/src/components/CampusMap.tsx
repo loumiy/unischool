@@ -35,7 +35,7 @@ import { plantingSpecies } from './plantingChoice';
 import { castShadow } from './light';
 import {
   DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
-  turnStep, unproject, type Camera,
+  turnStep, unproject, type Camera, type Pt,
 } from './isoProjection';
 import { reducedMotion } from '../settings';
 
@@ -68,8 +68,24 @@ const LABEL_PLATE_PAD_X = 5;
 const LABEL_PLATE_PAD_Y = 3;
 
 // The under-construction bar lies flat on the ground along the front edge
-// of the site's footprint.
+// of the site's footprint: the edge under its visible left wall, filling
+// left to right on screen.
 const PROGRESS_BAR_DEPTH = 0.22;   // in tiles
+
+// The strip inside footprint `p` along the edge its screen-left wall stands
+// on (D to C), from `u0` to `u1` of the way along and PROGRESS_BAR_DEPTH
+// deep. Built from the footprint's screen corners, so it is the near edge
+// at every camera: always the +row edge, it lay behind the building (and
+// showed through it) when the camera looked from -row.
+function frontEdgeStrip(p: Placement, u0: number, u1: number): Pt[] {
+  const f = boxFaces(p.col, p.row, p.w, p.h, 0, 0);
+  const v = PROGRESS_BAR_DEPTH / f.spanRight;   // D to A runs spanRight tiles
+  const at = (u: number, vv: number): Pt => ({
+    x: f.D.x + (f.C.x - f.D.x) * u + (f.A.x - f.D.x) * vv,
+    y: f.D.y + (f.C.y - f.D.y) * u + (f.A.y - f.D.y) * vv,
+  });
+  return [at(u0, 0), at(u1, 0), at(u1, v), at(u0, v)];
+}
 
 // Cast shadows: the footprint translated away from the sun (light.ts),
 // scaled by the mass's drawn height. All are drawn in one pass after the
@@ -233,11 +249,11 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
       )}
       <polygon
         className="campus-building-progress-track"
-        points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, p.w, PROGRESS_BAR_DEPTH, 0, 0).top)}
+        points={polyPoints(frontEdgeStrip(p, 0, 1))}
       />
       <polygon
         className="campus-building-progress-fill"
-        points={polyPoints(boxFaces(p.col, p.row + p.h - PROGRESS_BAR_DEPTH, Math.max(0, p.w * elapsedFraction), PROGRESS_BAR_DEPTH, 0, 0).top)}
+        points={polyPoints(frontEdgeStrip(p, 0, Math.max(0, elapsedFraction)))}
       />
       {t.facilityType !== 'quad' && <title>{`${label} · under construction · ${weeksLeft}w left`}</title>}
     </>
@@ -1456,9 +1472,10 @@ export default function CampusMap({
                   />
 
                   {/* The rotate control, pinned to the ghost's right corner
+                      on screen (boxFaces' B, whichever grid corner that is)
                       inside the world <g>, so it tracks the ghost. */}
                   {canRotateSelected && (() => {
-                    const at = project(preview.col + preview.w, preview.row);
+                    const at = boxFaces(preview.col, preview.row, preview.w, preview.h, 0, 0).B;
                     return (
                       <g
                         className="campus-rotate-btn"
