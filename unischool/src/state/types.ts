@@ -317,6 +317,12 @@ export interface CapitalProject {
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 
+// Finished courses, counted off `tech` so no copy can drift: the one
+// count the catalogue, the budget, the ladder and the history all read.
+export function coursesDone(s: { tech: Buildable[] }): number {
+  return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+}
+
 // Standing: finished, or open through in-place work (a library floor, a
 // venue expansion), which flips it to 'developing' with renovatingFrom set
 // while it stays in use. A first construction does not stand.

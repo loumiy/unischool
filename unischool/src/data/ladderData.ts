@@ -1,5 +1,5 @@
 import type { GameState } from '../state/types';
-import { totalEnrolled } from '../state/types';
+import { coursesDone, totalEnrolled } from '../state/types';
 import type { TabId } from '../components/TabNav';
 import { FIRST_HALL_COURSE_GATE } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
@@ -49,7 +49,6 @@ export interface Milestone {
 }
 
 const enrolled = (s: GameState) => totalEnrolled(s.students);
-const coursesDeveloped = (s: GameState) => s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
 const housedPrograms = (s: GameState) => Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
 const hasMilestone = (s: GameState, prefix: string) => Object.keys(s.milestones).some((k) => k.startsWith(prefix));
 
@@ -112,8 +111,8 @@ export const MILESTONES: readonly Milestone[] = [
     tier: 'Founding',
     name: 'A curriculum',
     condition: `${FIRST_HALL_COURSE_GATE} courses developed`,
-    reached: (s) => coursesDeveloped(s) >= FIRST_HALL_COURSE_GATE,
-    progress: (s) => ({ value: coursesDeveloped(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
+    reached: (s) => coursesDone(s) >= FIRST_HALL_COURSE_GATE,
+    progress: (s) => ({ value: coursesDone(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
     buildables: ['HALL-01'],
     tabs: [],
     letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six rooms, one program to a room, and when six programs of one school share a hall, that school is founded.`,

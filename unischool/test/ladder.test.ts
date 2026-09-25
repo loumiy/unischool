@@ -7,7 +7,8 @@ import { reducer } from '../src/engine/reducer';
 import { MILESTONES, LADDER_TIERS, milestoneForBuildable, CHARTER_ID } from '../src/data/ladderData';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
-import { initialFacilities } from '../src/data/facilitiesData';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE, initialFacilities } from '../src/data/facilitiesData';
+import { SCALE_FREE_BELOW } from '../src/systems/finance/financeSystem';
 import { TAB_ORDER } from '../src/components/TabNav';
 import { isPlaceableKind } from '../src/state/campusMap';
 import { bindScriptStream } from '../src/engine/random';
@@ -99,6 +100,16 @@ console.log('ladder tests');
 {
   const unreachable = MILESTONES.filter((m) => milestoneForBuildable(m.buildables[0] ?? '') !== undefined && m.buildables.some((b) => milestoneForBuildable(b) !== m.id));
   assert(unreachable.length === 0, 'each named buildable maps back to its milestone');
+}
+
+// ---- The 'town' rung's letter tells the truth about the cost of being large ----
+{
+  // Its letter says the per-student administration starts "from here", so
+  // the rung and the cost's threshold must be the same roll. Retuning one
+  // without the other would make the letter wrong.
+  const town = MILESTONES.find((m) => m.id === 'town');
+  assert(town !== undefined && /every time the college doubles/.test(town.letter ?? ''), "the 'town' letter announces the cost of being large");
+  assert(HEALTH_CENTER_TIER1_POPULATION_GATE === SCALE_FREE_BELOW, `the rung (${HEALTH_CENTER_TIER1_POPULATION_GATE}) and the cost's threshold (${SCALE_FREE_BELOW}) are the same roll`);
 }
 
 if (failures === 0) {

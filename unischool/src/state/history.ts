@@ -1,5 +1,5 @@
 import type { GameState, YearSnapshot } from './types';
-import { totalEnrolled } from './types';
+import { coursesDone, totalEnrolled } from './types';
 import { STANDINGS, playerRank, rankBy, standingValue } from '../systems/rivals/rivalsSystem';
 import { FOUNDING_COURSES_PER_PROGRAM, FOUNDING_PRESET, FOUNDING_PROGRAMS } from '../data/foundingData';
 
@@ -8,11 +8,6 @@ import { FOUNDING_COURSES_PER_PROGRAM, FOUNDING_PRESET, FOUNDING_PROGRAMS } from
 // readings (percentages, deltas) are not stored; views compute them.
 // Attrition and the year's average satisfaction exist only inside
 // RESOLVE_ADMISSIONS, so the reducer hands them in.
-
-// Finished courses, counted off `tech` so it cannot drift.
-function coursesDone(s: GameState): number {
-  return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
-}
 
 // Milestone keys are namespaced by kind (see techSystem.ts's awardMilestone).
 const PROGRAM_ESTABLISHED_PREFIX = 'program-established:';

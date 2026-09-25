@@ -5,7 +5,7 @@ import { upkeepShare } from '../estate/estate';
 import { debtService, drawRate, serviceLoans } from './treasury';
 import { accrueTerm } from './distress';
 import type { ClassTuition, GameState } from '../../state/types';
-import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
+import { WEEKS_PER_YEAR, coursesDone, totalEnrolled } from '../../state/types';
 import { departmentPot, studentOrgUpkeep } from '../../data/studentLifeData';
 import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
@@ -92,7 +92,7 @@ export interface InstructionDetail {
 // the tick.
 export function instructionDetail(s: GameState): InstructionDetail {
   const enrolled = totalEnrolled(s.students);
-  const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  const courses = coursesDone(s);
   if (courses === 0) {
     return { courses: 0, perCourse: 0, sectionsPerCourse: 0, sections: 0, fill: 0, overflow: enrolled, cost: 0 };
   }
@@ -182,7 +182,7 @@ export function instructionCostPerStudent(s: GameState): number {
 export function instructionCostPerStudentWith(s: GameState, extra: number): number {
   const enrolled = totalEnrolled(s.students);
   if (enrolled <= 0) return 0;
-  const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length + extra;
+  const courses = coursesDone(s) + extra;
   if (courses <= 0) return 0;
   const perCourse = (enrolled * COURSES_PER_STUDENT) / courses;
   const sectionsPerCourse = Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE)));
@@ -195,7 +195,7 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
 // Treasury's chart and the harness's sensible strategies (sim/balanceSim.ts).
 export function marginalStudentCost(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK, at = totalEnrolled(s.students)): number {
   const rate = marketRateMultiplier(s.self.reputation);
-  const courses = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  const courses = coursesDone(s);
   // Sections are read as a share rather than rounded up: every course is the
   // same size here, so a thousand more students would otherwise tip every
   // course over a section boundary at once, and the next student's cost

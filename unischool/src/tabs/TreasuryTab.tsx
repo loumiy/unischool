@@ -1,6 +1,6 @@
 import AdvancementPanel from './AdvancementPanel';
 import type { ClassTuition, GameState } from '../state/types';
-import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
+import { WEEKS_PER_YEAR, coursesDone as countCoursesDone, totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
 import {
   financeBreakdown, instructionDetail, SECTION_SIZE, SECTION_COST,
@@ -46,7 +46,7 @@ function StatementLine({ label, note, amount }: { label: string; note: string; a
 export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const flow = financeBreakdown(s);
   const annualNet = flow.net * WEEKS_PER_YEAR;
-  const coursesDone = s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+  const coursesDone = countCoursesDone(s);
   const distress = distressOf(s);
   const teaching = instructionDetail(s);
   const marketRate = marketRateMultiplier(s.self.reputation);
