@@ -18,6 +18,7 @@
 //   npm test
 // ---------------------------------------------------------------------
 
+import { discardSetAsideSave, readSetAsideSave } from '../src/state/persistence';
 import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
@@ -51,6 +52,25 @@ type Loose = Record<string, unknown>;
 
 function writeSave(version: number, state: unknown): void {
   store.set(SAVE_KEY, JSON.stringify({ version, savedAt: Date.now(), state }));
+}
+
+// ---- Test: the catalog's text reaches a saved run (Plan 46) ----
+function testAuthoredText(): void {
+  clearSave();
+  const cur = createInitialState('Text');
+  const course = cur.tech.find((t) => t.kind === 'course')!;
+  const hall = cur.tech.find((t) => t.kind === 'building')!;
+  const courseName = course.name;
+  const hallDescription = hall.description;
+  course.name = 'An old title';
+  course.description = 'An old description';
+  hall.name = 'The Donor Hall';
+  hall.description = 'An old description';
+  saveGame(cur);
+  const back = loadGame()!;
+  assert(back.tech.find((t) => t.id === course.id)!.name === courseName, "a course's corrected title reaches the saved run");
+  assert(back.tech.find((t) => t.id === hall.id)!.description === hallDescription, 'and every corrected description');
+  assert(back.tech.find((t) => t.id === hall.id)!.name === 'The Donor Hall', "but a building's name, which naming rights can change, is kept");
 }
 
 // ---- Test: a current-version save round-trips ----
@@ -262,6 +282,11 @@ function testRejects(): void {
   // not carry forward. Null, never half-loaded.
   writeSave(SAVE_VERSION - 1, cur);
   assert(loadGame() === null, 'the previous version -> null (no migration chain)');
+  // ...but set aside, not lost: the title screen names it (Plan 46).
+  const aside = readSetAsideSave();
+  assert(aside !== null && aside.version === SAVE_VERSION - 1, 'and the unreadable run is kept aside for the title screen to name');
+  discardSetAsideSave();
+  assert(readSetAsideSave() === null, 'until the player discards it');
 
   // A version from the future.
   writeSave(SAVE_VERSION + 1, cur);
@@ -286,6 +311,7 @@ function testRejects(): void {
 
 console.log(`save/load tests (SAVE_VERSION ${SAVE_VERSION})`);
 testRoundTrip();
+testAuthoredText();
 testFoundingSeenExcludesStartingContent();
 testCourseFacultySanitizer();
 testChapterGlyphs();

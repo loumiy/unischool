@@ -5,11 +5,11 @@ import { upkeepShare } from '../estate/estate';
 import { debtService, drawRate, serviceLoans } from './treasury';
 import { accrueTerm } from './distress';
 import type { ClassTuition, GameState } from '../../state/types';
-import { WEEKS_PER_YEAR, coursesDone, totalEnrolled } from '../../state/types';
+import { WEEKS_PER_YEAR, standsOnCampus, totalEnrolled } from '../../state/types';
 import { departmentPot, studentOrgUpkeep } from '../../data/studentLifeData';
 import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
-import { SEATS_PER_COURSE, instructionCapacity } from '../techtree/instructionCapacity';
+import { SEATS_PER_COURSE, instructionCapacity, instructionCapacityDetail } from '../techtree/instructionCapacity';
 
 // Money is the game's primary throttle (docs/design/economy.md). The tuning
 // shape: cost leads and revenue follows. Every cost driver is charged the
@@ -88,11 +88,19 @@ export interface InstructionDetail {
   cost: number;           // sections x SECTION_COST, a week
 }
 
+// Developed courses in housed, settled programs: the same count the
+// admissions ceiling seats (instructionCapacity.ts).
+function taughtCourses(s: GameState): number {
+  return instructionCapacityDetail(s).courses;
+}
+
 // The one computation of the instruction line, shared by the Treasury and
 // the tick.
 export function instructionDetail(s: GameState): InstructionDetail {
   const enrolled = totalEnrolled(s.students);
-  const courses = coursesDone(s);
+  // The courses actually taught: a program between halls is not taught
+  // (instructionCapacity.ts), so it neither seats students nor costs sections.
+  const courses = taughtCourses(s);
   if (courses === 0) {
     return { courses: 0, perCourse: 0, sectionsPerCourse: 0, sections: 0, fill: 0, overflow: enrolled, cost: 0 };
   }
@@ -161,12 +169,13 @@ export interface FinanceBreakdown {
   net: number;                 // totalIncome - totalExpenses
 }
 
-// Sums effects.upkeepPerWeek across 'done' Buildables. Split academic vs.
+// Sums effects.upkeepPerWeek across standing Buildables (standsOnCampus:
+// in-place work keeps a building open, and paying for it). Split academic vs.
 // campus only so the Treasury can show which half runs up the bill.
 // A building's upkeep is paid at the maintenance funding (systems/estate).
 function upkeepFor(s: GameState, academic: boolean): number {
   return s.tech
-    .filter((t) => t.status === 'done' && (t.kind === 'course' || t.kind === 'building') === academic)
+    .filter((t) => standsOnCampus(t) && (t.kind === 'course' || t.kind === 'building') === academic)
     .reduce((sum, t) => sum + (t.effects?.upkeepPerWeek ?? 0) * upkeepShare(s, t), 0);
 }
 
@@ -182,7 +191,7 @@ export function instructionCostPerStudent(s: GameState): number {
 export function instructionCostPerStudentWith(s: GameState, extra: number): number {
   const enrolled = totalEnrolled(s.students);
   if (enrolled <= 0) return 0;
-  const courses = coursesDone(s) + extra;
+  const courses = taughtCourses(s) + extra;
   if (courses <= 0) return 0;
   const perCourse = (enrolled * COURSES_PER_STUDENT) / courses;
   const sectionsPerCourse = Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE)));
@@ -195,7 +204,7 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
 // Treasury's chart and the harness's sensible strategies (sim/balanceSim.ts).
 export function marginalStudentCost(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK, at = totalEnrolled(s.students)): number {
   const rate = marketRateMultiplier(s.self.reputation);
-  const courses = coursesDone(s);
+  const courses = taughtCourses(s);
   // Sections are read as a share rather than rounded up: every course is the
   // same size here, so a thousand more students would otherwise tip every
   // course over a section boundary at once, and the next student's cost

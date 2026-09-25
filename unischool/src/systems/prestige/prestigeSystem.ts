@@ -3,7 +3,7 @@ import { campusBeauty } from '../estate/beauty';
 import { conditionOf, historicPrestige } from '../estate/estate';
 import { isPlaceableKind } from '../../state/campusMap';
 import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
-import { totalEnrolled } from '../../state/types';
+import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { teachingQualityScore } from '../../data/courseQuality';
@@ -132,9 +132,11 @@ const LIBRARY_ADEQUACY_FLOOR = 0.4;
 function libraryAdequacyScore(s: GameState): number {
   const enrolled = totalEnrolled(s.students);
   if (enrolled <= 0) return 1;
+  // A library under a new floor serves its old figure (types.ts's
+  // servingPopulation), as satisfaction reads it.
   const servesPopulation = s.tech
-    .filter((t) => t.status === 'done' && t.facilityType === 'library')
-    .reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
+    .filter((t) => standsOnCampus(t) && t.facilityType === 'library')
+    .reduce((sum, t) => sum + servingPopulation(t), 0);
   const ratio = clamp01(servesPopulation / (enrolled * LIBRARY_TARGET_RATIO));
   return clamp(ratio, LIBRARY_ADEQUACY_FLOOR, 1);
 }
@@ -149,7 +151,7 @@ function teachingScore(s: GameState): number {
 // From -1 at a campus scoring 0 to 1 at one scoring 100.
 // 0 at full condition, 1 at CONDITION_FLOOR or worse.
 function conditionScore(s: GameState): number {
-  const standing = s.tech.filter((t) => isPlaceableKind(t) && t.status === 'done');
+  const standing = s.tech.filter((t) => isPlaceableKind(t) && standsOnCampus(t));
   if (standing.length === 0) return 0;
   const mean = standing.reduce((t, b) => t + conditionOf(b), 0) / standing.length;
   return Math.max(0, Math.min(1, (1 - mean) / (1 - CONDITION_FLOOR)));
@@ -160,8 +162,9 @@ function beautyScore(s: GameState): number {
 }
 
 function campusLifeScore(s: GameState): number {
+  // In-place work (a venue expansion) stands throughout (standsOnCampus).
   const total = s.tech
-    .filter((t) => t.status === 'done')
+    .filter((t) => standsOnCampus(t))
     .reduce((sum, t) => sum + (t.effects?.prestigeContribution ?? 0), 0);
   // Historic buildings lend a little of their own (systems/estate).
   return clamp01(total + historicPrestige(s));
@@ -305,8 +308,8 @@ function breakdown(
 function libraryMultiplier(s: GameState): StandingMultiplier {
   const enrolled = totalEnrolled(s.students);
   const seats = s.tech
-    .filter((t) => t.status === 'done' && t.facilityType === 'library')
-    .reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
+    .filter((t) => standsOnCampus(t) && t.facilityType === 'library')
+    .reduce((sum, t) => sum + servingPopulation(t), 0);
   return {
     label: 'library adequacy',
     value: libraryAdequacyScore(s),

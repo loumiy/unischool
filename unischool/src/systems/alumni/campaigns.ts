@@ -5,6 +5,7 @@ import {
   type CampaignDef,
 } from '../../data/campaignData';
 import { givingOf } from './giving';
+import { absoluteWeek } from '../../data/eventData';
 import { heldSeat } from '../delegation/seats';
 import { inTitleYear } from '../../data/studentLifeData';
 
@@ -56,7 +57,7 @@ export function launchCampaign(s: GameState, id: string): boolean {
   const def = openCampaigns(s).find((c) => c.id === id);
   if (!def) return false;
   const target = Math.round((yearlyResponse(s, def) * def.years * CAMPAIGN_TARGET_STRETCH) / 100_000) * 100_000;
-  s.advancement = { ...advancementOf(s), running: { campaignId: id, startedYear: s.clock.year, dueYear: s.clock.year + def.years, raised: 0, target } };
+  s.advancement = { ...advancementOf(s), running: { campaignId: id, startedYear: s.clock.year, dueYear: s.clock.year + def.years, dueWeek: absoluteWeek(s) + def.years * WEEKS_PER_YEAR, raised: 0, target } };
   s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'money', message: `${def.title} is launched: $${(target / 1e6).toFixed(1)}M over ${def.years} years.` });
   return true;
 }
@@ -74,7 +75,10 @@ export function tickCampaigns(s: GameState): void {
   if (def.kind === 'endowment') s.finance.endowment += week;
   else adv.restrictedBuilding += week;
   for (const a of s.alumni ?? []) a.warmth = Math.max(0, a.warmth - CAMPAIGN_ASK_COOLING);
-  if (s.clock.year >= running.dueYear) {
+  // Closes when its full term is up, to the week: a campaign launched in
+  // the autumn runs its whole term, not to a calendar year's turn.
+  const due = running.dueWeek !== undefined ? absoluteWeek(s) >= running.dueWeek : s.clock.year >= running.dueYear;
+  if (due) {
     const met = running.raised >= running.target;
     adv.closed.push({ campaignId: def.id, year: s.clock.year, raised: Math.round(running.raised), met });
     adv.running = null;

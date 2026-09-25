@@ -327,12 +327,13 @@ function BuildTile({
     const rung = t.athleticsVenueReveal ? nextVenueExpansion(t) : null;
     if (rung) {
       const shortfall = rung.cost - s.finance.cash;
+      const frozen = constructionFrozen(s);
       return (
         <button
           type="button"
           className="build-tile available"
-          disabled={shortfall > 0}
-          title={shortfall > 0
+          disabled={shortfall > 0 || frozen}
+          title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
             : `Expands the ${t.name} in place — no new building. Adds ${rung.seatsGain.toLocaleString()} seats for the gate and ${rung.servesGain.toLocaleString()} of social capacity over ${rung.weeks} weeks; the teams keep playing while the work is underway.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
@@ -347,12 +348,13 @@ function BuildTile({
     }
     if (floorPlan) {
       const shortfall = floorPlan.cost - s.finance.cash;
+      const frozen = constructionFrozen(s);
       return (
         <button
           type="button"
           className="build-tile available"
-          disabled={shortfall > 0}
-          title={shortfall > 0
+          disabled={shortfall > 0 || frozen}
+          title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
             : `Renovates the existing library in place — no new building. Adds ${floorPlan.servesGain.toLocaleString()} seats over ${floorPlan.weeks} weeks; the library keeps serving its existing floors while the new one goes up.`}
           onClick={() => act({ type: 'RENOVATE_LIBRARY' })}

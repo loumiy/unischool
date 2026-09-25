@@ -434,8 +434,10 @@ export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[]
   const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
   const fieldSet = new Set(hostableFields(labId));
 
+  // A topic runs in one lab at a time: one under way elsewhere is not offered.
+  const elsewhere = new Set(Object.values(s.research.initiatives).filter((i) => i.labId !== labId).map((i) => i.topicId));
   const runnable = RESEARCH_TOPICS.filter((topic) => (
-    topic.fields.some((f) => fieldSet.has(f)) && (!topic.labs || topic.labs.includes(labId))
+    topic.fields.some((f) => fieldSet.has(f)) && (!topic.labs || topic.labs.includes(labId)) && !elsewhere.has(topic.id)
   ));
 
   return INITIATIVE_DEPTHS.map((depth, depthIndex) => {

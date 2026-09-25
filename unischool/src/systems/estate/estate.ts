@@ -1,5 +1,5 @@
 import type { Buildable, GameState } from '../../state/types';
-import { WEEKS_PER_YEAR } from '../../state/types';
+import { WEEKS_PER_YEAR, standsOnCampus } from '../../state/types';
 import { isPlaceableKind } from '../../state/campusMap';
 
 // The estate (Plan 26, ported from v2's estate.ts): what the buildings cost
@@ -112,7 +112,7 @@ export function canDeclareHistoric(s: GameState, t: Buildable): boolean {
 
 // Prestige's share from historic buildings (prestigeSystem.ts's campus life).
 export function historicPrestige(s: GameState): number {
-  const n = s.tech.filter((t) => t.historic && t.status === 'done').length;
+  const n = s.tech.filter((t) => t.historic && standsOnCampus(t)).length;
   return Math.min(HISTORIC_PRESTIGE_MAX, n) * HISTORIC_PRESTIGE;
 }
 
@@ -122,7 +122,8 @@ export function historicPrestige(s: GameState): number {
 export function tickEstate(s: GameState): void {
   const unpaid = 1 - maintenanceFunding(s);
   for (const t of s.tech) {
-    if (!isPlaceableKind(t) || t.status !== 'done') continue;
+    // In-place work keeps a building standing, and its estate running.
+    if (!isPlaceableKind(t) || !standsOnCampus(t)) continue;
     if (t.extensionWeeks !== undefined && t.extensionWeeks > 0) {
       t.extensionWeeks -= 1;
       if (t.extensionWeeks === 0) {

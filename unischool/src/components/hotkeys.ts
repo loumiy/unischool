@@ -63,6 +63,8 @@ export function mapControlsLive(o: ShellOverlays): boolean {
   return !o.frontUp && !o.overlayOpen && !o.logOpen && !o.interrupted;
 }
 
+const CONFIRM_KEYS = new Set(['Enter', ' ', 'Escape']);
+
 // Subscribe to global keydown while `enabled`. The handler is read through a
 // ref, so the listener registers once while always running the latest
 // closure. Chords with Ctrl/Meta/Alt belong to the browser and pass through.
@@ -77,6 +79,9 @@ export function useHotkeys(onKeyDown: (e: KeyboardEvent) => void, enabled = true
     function handle(e: KeyboardEvent) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
+      // A held Enter, Space or Escape answers once: its auto-repeat must not
+      // answer the next modal unseen, or pause and resume on its own.
+      if (e.repeat && CONFIRM_KEYS.has(e.key)) return;
       handlerRef.current(e);
     }
     window.addEventListener('keydown', handle);
