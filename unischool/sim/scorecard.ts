@@ -1,28 +1,25 @@
 // ---------------------------------------------------------------------
-// THE SCORECARD, AS A GATE (Plan 15's PR G).
+// THE SCORECARD, AS A REPORT (Plan 56; a gate from Plan 15's PR G until
+// then).
 //
 // sim/reference.ts holds two kinds of band. TARGETS are hand-written —
 // Plan 15 §6's table for the Balanced builder, and the plan's own
-// sentences for the two controls — and they are the design decision
-// recorded as data. REFERENCE is generated: the envelope of the reference's
-// runs (three seeds and a second founding name, Plan 49) at ±25%, written by
-// `npm run sim -- --write-reference`, a statement of where every other
-// strategy IS so a change that moves one is noticed.
+// sentences for the two controls. REFERENCE is generated: the envelope of
+// the reference's runs (three seeds and a second founding name, Plan 49)
+// at ±25%, written by `npm run sim -- --write-reference`.
 //
-// This suite plays every strategy on the default seed at the full
-// fifty-year horizon and FAILS on any figure outside its band. A failure
-// is a regression, or a re-fit that has not re-recorded the reference;
-// it is never "a known problem", because the known problems are what
-// this plan fixed. Plan 09 wrote it to report and pass, with a header
-// saying this PR would flip it; this is that PR.
+// This plays every strategy on the default seed at the full fifty-year
+// horizon and prints every figure outside its band, and every guardrail
+// that does not hold. It no longer fails anything: the owner's rule since
+// Plan 56 is that balance numbers are measured and reported, and only
+// checks gate a merge. The harness that replaces this one (Plans 57–59)
+// measures first and recommends numbers after.
 //
-// Not part of the game: nothing imports it. Run with `npm test`.
+// Run with `npm run scorecard`. Takes several minutes.
 // ---------------------------------------------------------------------
 
-import { play, playRun, STRATEGIES, DEFAULT_SIM_SEED, type Row } from '../sim/balanceSim';
-import { bandsFor, describeFinding, findingsFor, REFERENCE_RUNS, type Finding } from '../sim/reference';
-
-const REPORT_ONLY = false;
+import { play, playRun, STRATEGIES, DEFAULT_SIM_SEED, type Row } from './balanceSim';
+import { bandsFor, describeFinding, findingsFor, REFERENCE_RUNS, type Finding } from './reference';
 
 // The hand-written targets are judged across the reference's runs (seeds and
 // founding names, sim/reference.ts's REFERENCE_RUNS), not at the default run
@@ -182,7 +179,7 @@ if (strategiesWithoutBands > 0) {
 if (findings === 0) {
   console.log('  ✓ nothing out of band');
 } else {
-  console.log(`\n  ${findings} figure(s) out of band. Reported, not failed — see the header.`);
+  console.log(`\n  ${findings} figure(s) out of band.`);
 }
 
 // The idle college outranks nothing that tries, bar the one built to fail.
@@ -193,4 +190,5 @@ if (idleRank !== undefined) {
 }
 if (gateFailures === 0) console.log('  ✓ the guardrails hold: stops, saturation, the idle college, and the pace');
 
-process.exit(REPORT_ONLY ? 0 : (findings === 0 && strategiesWithoutBands === 0 && gateFailures === 0 ? 0 : 1));
+// Reported, never failed (Plan 56).
+console.log(`\n  ${findings} figure(s) out of band, ${gateFailures} guardrail(s) not holding, ${strategiesWithoutBands} strategy(ies) unmeasured.`);

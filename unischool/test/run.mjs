@@ -19,8 +19,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'node_modules/.tmp/tests');
 
 // Suites that play one or more whole games through the reducer. They take
-// minutes rather than seconds, so they run on their own.
-const SLOW = new Set(['balance-regression', 'balance-scorecard', 'endpoint']);
+// minutes rather than seconds, so they run on their own. The scorecard and
+// the endpoint claims were slow suites until Plan 56 made them reports
+// (`npm run scorecard`, `npm run endpoint:claims`): balance numbers are
+// measured, and only checks gate a merge.
+const SLOW = new Set(['balance-regression']);
 
 const args = process.argv.slice(2);
 const mode = args.includes('--all') ? 'all' : args.includes('--slow') ? 'slow' : 'fast';

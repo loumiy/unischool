@@ -841,7 +841,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
 // floor), the same school given an endowment and a full research record
 // (inputs at their caps, and a target that clamps), and the same school
 // with nothing but a vast student body (the scale multiplier at 1, the
-// library multiplier on its floor). test/balance-scorecard's own year-20
+// library multiplier on its floor). sim/scorecard's own year-20
 // states are covered by the sim harness; this is the cheap structural half.
 // =====================================================================
 {
