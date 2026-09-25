@@ -1,6 +1,6 @@
 import { quirkById } from '../../data/quirkData';
 import { tickSearches } from './facultySearch';
-import type { Faculty, GameState } from '../../state/types';
+import type { Buildable, Faculty, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { neededFacultyFields } from '../techtree/techSystem';
 
@@ -14,6 +14,18 @@ export function appointFaculty(s: GameState, person: Faculty): void {
   // Lifetime count for the final report (University.facultyServed).
   s.self.facultyServed += 1;
 }
+
+// The one way off the roster (dismissal, retirement, promotion to a seat):
+// the person goes and every course they teach is left without an
+// instructor, still holding its slot until the field is restaffed. Returns
+// the orphaned courses for the caller's log line.
+export function leaveFaculty(s: GameState, f: Faculty): Buildable[] {
+  const orphaned = s.tech.filter((t) => s.courseFaculty[t.id] === f.id && (t.status === 'developing' || t.status === 'done'));
+  for (const course of orphaned) delete s.courseFaculty[course.id];
+  s.faculty = s.faculty.filter((x) => x.id !== f.id);
+  return orphaned;
+}
+
 import {
   generateCandidate, grownStat, facultySalary, rollCandidateField, candidateArrivalsThisWeek,
   SLOT_GROWTH_INTERVAL_WEEKS, MAX_FACULTY_SLOTS, CANDIDATE_LISTING_WEEKS,
@@ -107,9 +119,7 @@ function tickRetirements(s: GameState): void {
     if (f.tenureWeeks >= career) leaving.push(f);
   }
   for (const f of leaving) {
-    const orphaned = s.tech.filter((t) => s.courseFaculty[t.id] === f.id && (t.status === 'developing' || t.status === 'done'));
-    for (const course of orphaned) delete s.courseFaculty[course.id];
-    s.faculty = s.faculty.filter((x) => x.id !== f.id);
+    const orphaned = leaveFaculty(s, f);
     s.log.unshift({
       year: s.clock.year, week: s.clock.week, kind: orphaned.length > 0 ? 'bad' : 'info', topic: 'departure', subject: f.id,
       message: `${f.name} retires after ${Math.round(f.tenureWeeks / WEEKS_PER_YEAR)} years.${orphaned.length > 0 ? ` ${orphaned.length} ${orphaned.length === 1 ? 'course waits' : 'courses wait'} for a new instructor in ${f.field}.` : ''}`,

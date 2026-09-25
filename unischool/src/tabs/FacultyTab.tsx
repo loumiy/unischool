@@ -76,9 +76,9 @@ function FacultyCard(
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
   const load = isCandidate ? 0 : facultyLoad(s, f.id);
   const projected = isCandidate && waiting ? projectedQuality(s, waiting, f) : null;
-  // A listing shows what this school would pay: the market rate is applied
-  // at payroll (financeSystem.ts's facultyPay).
-  const pay = isCandidate ? facultyPay(s, f.salary) : f.salary;
+  // Every card shows what this school pays, listing or roster: the market
+  // rate is applied at payroll (financeSystem.ts's facultyPay).
+  const pay = facultyPay(s, f.salary);
   const quirk = quirkById(f.quirk);
 
   return (
@@ -124,7 +124,7 @@ function FacultyCard(
             <StatBar label="R" value={f.research} potential={f.researchPotential} />
           </div>
           <div className="faculty-card-foot">
-            <span className="faculty-card-salary" title={isCandidate ? `Asks ${money(f.salary)}; this school pays ${money(pay)} at its market rate` : undefined}>{moneyShort(pay)}/yr</span>
+            <span className="faculty-card-salary" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}; this school pays ${money(pay)} at its market rate`}>{moneyShort(pay)}/yr</span>
             {isCandidate ? (
               <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>withdraws in {weeksLeft}w</span>
             ) : (

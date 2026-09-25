@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import type { GameState } from '../state/types';
 import type { Action } from '../state/actions';
 import HelpHint from '../components/HelpHint';
 import { money } from '../format';
 import { DEANS_FOR_FASTEST, POLICY_RULE_NOTES, SEAT_SENIOR_YEARS } from '../data/seatData';
 import { marketRateMultiplier } from '../data/facultyData';
+import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import {
   deansAppointed, fastestAllowed, fasterAllowed, heldSeat, seatCandidates, seatPayroll, seatSlots, seatTitle,
 } from '../systems/delegation/seats';
@@ -17,6 +19,9 @@ const SHORTLIST = 3;
 export default function AdministrationPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const market = marketRateMultiplier(s.self.reputation);
   const slots = seatSlots(s);
+  // Promoting a professor who teaches leaves those courses without an
+  // instructor, so, like Dismiss, it takes a second click that names them.
+  const [armed, setArmed] = useState<string | null>(null);
   const speeds = fastestAllowed(s)
     ? 'The year can run at up to eight times.'
     : fasterAllowed(s)
@@ -73,11 +78,28 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
               </div>
               {firstOfKind && <p className="seat-blurb">{def.blurb}</p>}
               <div className="seat-appoint">
-                {candidates.map((f) => (
-                  <button key={f.id} type="button" className="panel-action small" onClick={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school, facultyId: f.id })}>
-                    Promote {f.name} ({f.field}) · {money(def.internalSalary * market)}/yr
-                  </button>
-                ))}
+                {candidates.map((f) => {
+                  const taught = coursesTaughtBy(s, f);
+                  const confirming = armed === `${key}:${f.id}`;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className={`panel-action small${confirming ? ' dismiss-confirm' : ''}`}
+                      title={taught.length > 0 ? `${f.name} leaves the classroom: ${taught.map((c) => c.name.split(' · ')[0]).join(', ')} will be left without an instructor.` : undefined}
+                      onClick={() => {
+                        if (!confirming && taught.length > 0) { setArmed(`${key}:${f.id}`); return; }
+                        setArmed(null);
+                        act({ type: 'APPOINT_SEAT', seatId: def.id, school, facultyId: f.id });
+                      }}
+                      onBlur={() => setArmed((cur) => (cur === `${key}:${f.id}` ? null : cur))}
+                    >
+                      {confirming
+                        ? `Confirm — ${taught.length} ${taught.length === 1 ? 'course loses its' : 'courses lose their'} instructor`
+                        : `Promote ${f.name} (${f.field}) · ${money(def.internalSalary * market)}/yr`}
+                    </button>
+                  );
+                })}
                 <button type="button" className="panel-action small" onClick={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school })}>
                   Hire from outside · {money(def.outsideSalary * market)}/yr
                 </button>

@@ -1,7 +1,8 @@
 import type { GameState } from '../../state/types';
 import type { Action } from '../../state/actions';
 import { money } from '../../format';
-import { appointFaculty } from './facultySystem';
+import { appointFaculty, leaveFaculty } from './facultySystem';
+import { facultyPay } from '../finance/financeSystem';
 
 export function hireFaculty(s: GameState, action: Extract<Action, { type: 'HIRE_FACULTY' }>): void {
   const idx = s.candidates.findIndex((c) => c.id === action.facultyId);
@@ -13,7 +14,8 @@ export function hireFaculty(s: GameState, action: Extract<Action, { type: 'HIRE_
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `Appointed ${hired.name} to the faculty in ${hired.field}, at ${money(hired.salary)}/yr.`,
+      // The pay this school gives, as every card shows it.
+      message: `Appointed ${hired.name} to the faculty in ${hired.field}, at ${money(Math.round(facultyPay(s, hired.salary)))}/yr.`,
       kind: 'info',
       topic: 'appointment',
       subject: hired.id,
@@ -30,9 +32,7 @@ export function fireFaculty(s: GameState, action: Extract<Action, { type: 'FIRE_
   const leaving = s.faculty.find((f) => f.id === action.facultyId);
   if (!leaving) return;
 
-  const orphaned = s.tech.filter((t) => s.courseFaculty[t.id] === leaving.id && (t.status === 'developing' || t.status === 'done'));
-  for (const course of orphaned) delete s.courseFaculty[course.id];
-  s.faculty = s.faculty.filter((f) => f.id !== action.facultyId);
+  const orphaned = leaveFaculty(s, leaving);
 
   // Logged either way, so the year in review can list departures.
   s.log.unshift({

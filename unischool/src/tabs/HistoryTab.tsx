@@ -298,6 +298,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
       <StandingPanel s={s} />
       <FinalReportPanel s={s} />
       <PromisesPanel s={s} />
+      <ChroniclePanel s={s} />
       <section className="panel">
         <div className="panel-head">
           <div className="panel-head-title">
