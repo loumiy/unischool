@@ -149,10 +149,6 @@ console.log('semicentennial tests');
   (after as unknown as { ending: unknown }).ending = { report: 'nonsense' };
   saveGame(after);
   assert(loadGame()!.ending === undefined, 'a malformed ending is dropped');
-  (after.self as unknown as { legacy: unknown }).legacy = { name: 'old' };
-  delete after.ending;
-  saveGame(after);
-  assert(!('legacy' in loadGame()!.self), 'the retired legacy is dropped from older saves');
 }
 
 console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);

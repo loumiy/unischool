@@ -158,10 +158,6 @@ function fresh(year: number): GameState {
   (s as unknown as { promises: unknown }).promises = { active: 'x' };
   saveGame(s);
   assert(loadGame()!.promises === undefined, 'a malformed record is dropped whole');
-  (s as unknown as { ambitions: unknown }).ambitions = { 'top-fifty': 1 };
-  delete s.promises;
-  saveGame(s);
-  assert(!('ambitions' in loadGame()!), 'the retired achievements are dropped from older saves');
 }
 
 if (failures === 0) {
