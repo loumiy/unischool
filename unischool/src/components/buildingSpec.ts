@@ -127,7 +127,7 @@ export function signatureOf(t: Buildable): Signature | undefined {
 export function motifOf(t: Buildable): Motif {
   if (t.kind === 'building') return signatureOf(t)?.motif ?? 'hall';
   // A chapter house (eventData.ts) is a facility with no facilityType: a
-  // small house, drawn as a one-storey pavilion under its letters.
+  // small house, drawn as a one-story pavilion under its letters.
   if (t.chapterHouse) return 'pavilion';
   if (t.kind === 'dorm') {
     const beds = t.effects?.capacityBonus ?? 0;
@@ -181,8 +181,8 @@ function dormStoreys(beds: number): number {
   return 3;
 }
 
-// The catalogue's own entry for a Buildable, as it was first built: what its
-// storeys are read from. A library renovation or a dining hall's extension
+// The catalog's own entry for a Buildable, as it was first built: what its
+// stories are read from. A library renovation or a dining hall's extension
 // raises servesPopulation AND floorsAdded, so reading the live figure (as
 // this did) counted the new floor twice, once by crossing a size rung and
 // once as an added floor. Chapter houses are made at runtime and have none;
@@ -194,7 +194,7 @@ function asBuilt(t: Buildable): Buildable {
   return asBuiltById.get(t.id) ?? t;
 }
 
-// A chapter house is a house: one storey, the letters on a parapet over it
+// A chapter house is a house: one story, the letters on a parapet over it
 // (buildingMotifs.tsx's ChapterPediment).
 const CHAPTER_HOUSE_STOREYS = 1;
 
@@ -226,7 +226,7 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
 
 // The capital projects (Plan 33, facilityType 'project'), each as tall as,
 // and in the wall of, the building it is a grander version of. Unlisted
-// ones are open ground or a stadium and have no storeys.
+// ones are open ground or a stadium and have no stories.
 interface ProjectSpec { storeys: number; material: keyof MaterialSet }
 const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
   'PROJ-ARTS': { storeys: facilityStoreys('performingArtsCenter', 0), material: 'limestone' },

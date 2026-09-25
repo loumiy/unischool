@@ -138,10 +138,10 @@ console.log('campus scale and building spec');
 
   // A renovation raises what the building serves along with its floors
   // (RENOVATE_LIBRARY, an extension's finishExtension). Crossing a size rung
-  // must not count the floor a second time: storeys come from the building
+  // must not count the floor a second time: stories come from the building
   // as built, plus the floors added.
   const lib1 = byId('LIB-T1');
-  assert(!!lib1, 'the tier-1 library is in the catalogue');
+  assert(!!lib1, 'the tier-1 library is in the catalog');
   if (lib1) {
     const base = storeysOf(lib1);
     const oneFloor = {
@@ -149,7 +149,7 @@ console.log('campus scale and building spec');
       effects: { ...lib1.effects, servesPopulation: (lib1.effects?.servesPopulation ?? 0) + 50_000 },
     };
     assert(storeysOf(oneFloor) === base + 1,
-      `one library floor is one more storey, however far it lifts what the library serves (got ${storeysOf(oneFloor)} from ${base})`);
+      `one library floor is one more story, however far it lifts what the library serves (got ${storeysOf(oneFloor)} from ${base})`);
   }
   const dining = CATALOGUE.filter((t) => t.facilityType === 'diningHall')
     .sort((a, b) => (a.effects?.servesPopulation ?? 0) - (b.effects?.servesPopulation ?? 0))[0];
@@ -159,20 +159,20 @@ console.log('campus scale and building spec');
       ...dining, floorsAdded: 2,
       effects: { ...dining.effects, servesPopulation: (dining.effects?.servesPopulation ?? 0) * 40 },
     };
-    assert(storeysOf(extended) === base + 2, 'two dining-hall storeys added are two more, not a rung more as well');
+    assert(storeysOf(extended) === base + 2, 'two dining-hall stories added are two more, not a rung more as well');
   }
 }
 
 // --- 5b. What is made at runtime, and the capital projects ------------------
 {
-  // A chapter house (eventData.ts) has no facilityType and no catalogue
-  // entry; it is a one-storey house, not whatever a default gives.
+  // A chapter house (eventData.ts) has no facilityType and no catalog
+  // entry; it is a one-story house, not whatever a default gives.
   const chapter: Buildable = {
     id: 'CHAPTER-HOUSE-test', kind: 'facility', name: 'Test House', description: '',
     cost: 0, duration: 0, prereqs: [], status: 'available', chapterHouse: true,
   };
   assert(motifOf(chapter) === 'pavilion', 'a chapter house is drawn as a pavilion');
-  assert(storeysOf(chapter) === 1, 'a chapter house stands one storey');
+  assert(storeysOf(chapter) === 1, 'a chapter house stands one story');
   assert(footprintOf(chapter).w === 3 && footprintOf(chapter).h === 3, 'on its own 3x3 footprint');
 
   // Each roofed capital project is as tall as what it is a grander version of.
@@ -183,7 +183,7 @@ console.log('campus scale and building spec');
   const hospitalStoreys = Math.max(...CATALOGUE.filter((t) => t.facilityType === 'healthCenter').map(storeysOf));
   const diningStoreys = Math.max(...CATALOGUE.filter((t) => t.facilityType === 'diningHall').map(storeysOf));
   const pac = CATALOGUE.find((t) => t.facilityType === 'performingArtsCenter');
-  assert(!!medical && !!commons && !!arts && !!pac, 'the projects and their models are in the catalogue');
+  assert(!!medical && !!commons && !!arts && !!pac, 'the projects and their models are in the catalog');
   if (medical && commons && arts && pac) {
     assert(storeysOf(medical) === hospitalStoreys, 'the medical center stands as tall as the teaching hospital');
     assert(storeysOf(commons) === diningStoreys, 'the great commons as tall as the largest dining hall');

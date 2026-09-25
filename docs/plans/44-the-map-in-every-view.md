@@ -41,13 +41,13 @@ heights are always seen at 30°. Grouped:
 
 And three drawing-data bugs in buildingSpec.ts:
 
-- **Storeys counted twice.** A library renovation or a dining extension
-  raises servesPopulation and floorsAdded together; storeys were read off
+- **Stories counted twice.** A library renovation or a dining extension
+  raises servesPopulation and floorsAdded together; stories were read off
   the live figure and then had floorsAdded added, so the tier-1 library's
-  first new floor took it from 3 storeys to 5.
+  first new floor took it from 3 stories to 5.
 - **Chapter houses** (made at runtime, no facilityType) fell through to
-  default footprint, motif and storeys.
-- **Capital projects** stood at a default two storeys in the default
+  default footprint, motif and stories.
+- **Capital projects** stood at a default two stories in the default
   render wall.
 
 ## 1. The PR
@@ -78,7 +78,7 @@ Visuals only: no sim or state changes, no save change.
 - **Tilt and wind:** `groundSquash` for ground ellipses; lantern, finial
   and lamp heads foreshortened; flags and banners fly one world-fixed
   wind (`wind.ts`), projected like the crane's jib.
-- **Storeys from the building as built** (the catalogue entry, cached),
+- **Stories from the building as built** (the catalog entry, cached),
   plus floors added; chapter houses a one-storey pavilion in the
   residence halls' wall on an explicit 3x3; `PROJECT_SPECS` for the
   projects. Covered in `building-spec.test.ts`.

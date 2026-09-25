@@ -14,7 +14,7 @@ import { downwind, flagCloth } from './wind';
 // once the college is big enough to cycle. Each is a prop in the depth-sorted
 // scene (CampusMap.tsx), drawn once per layout.
 
-// Racks appear at this enrolment (campusLayout.ts carries the flag).
+// Racks appear at this enrollment (campusLayout.ts carries the flag).
 export const BIKE_RACK_ENROLMENT = 2_000;
 
 export interface DressingProp {
@@ -27,7 +27,7 @@ const LAMP_HEIGHT = up(4.5);
 const BENCH_SEAT = up(0.45);
 const BENCH_BACK = up(0.9);
 
-// A lamp, with a banner in the college's colours in commencement week. The
+// A lamp, with a banner in the college's colors in commencement week. The
 // banner hangs from a bracket on the downwind side (wind.ts), so it stays on
 // the same side of the post over the ground as the camera turns; its foot is
 // a ground circle, as squashed as the ground is (groundSquash).

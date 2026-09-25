@@ -28,7 +28,7 @@ export function isPlaceableKind(t: Buildable): boolean {
 const DEFAULT_FACILITY_FOOTPRINT: Footprint = { w: 3, h: 3 };
 
 // A chapter house (eventData.ts: a facility with no facilityType): a house
-// of about 27 m a side, drawn as a one-storey pavilion (buildingSpec.ts).
+// of about 27 m a side, drawn as a one-story pavilion (buildingSpec.ts).
 // The size it always had, now said rather than fallen through to.
 const CHAPTER_HOUSE_FOOTPRINT: Footprint = { w: 3, h: 3 };
 
