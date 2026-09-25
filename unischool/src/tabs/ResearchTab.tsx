@@ -227,7 +227,7 @@ function VacantPanel(
             <p className={coverage.orphaned.length > 0 ? 'offer-warning' : 'offer-note'}>
               {coverage.covered.length > 0 && (
                 <>
-                  {coverage.covered.length} of this team&rsquo;s {coverage.shed.length}{' '}
+                  {coverage.covered.length} of this team's {coverage.shed.length}{' '}
                   {coverage.shed.length === 1 ? 'course' : 'courses'} would move to colleagues
                   {coverage.orphaned.length === 0 ? ', with none left uncovered.' : '. '}
                 </>

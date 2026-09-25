@@ -258,8 +258,8 @@ function summarise(span: Span, recs: YearRecord[]): string[] {
   if (rival) lines.push(fill(L.rival, { rival }));
   const kept = years.flatMap((r) => r.kept).map((t) => t.toLowerCase());
   const missed = years.flatMap((r) => r.missed).map((t) => t.toLowerCase());
-  if (kept.length) lines.push(fill(L.kept, { list: listOf(kept) }));
-  if (missed.length) lines.push(fill(L.missed, { list: listOf(missed) }));
+  if (kept.length) lines.push(fill(kept.length === 1 ? L.kept : L.keptMany, { list: listOf(kept) }));
+  if (missed.length) lines.push(fill(missed.length === 1 ? L.missed : L.missedMany, { list: listOf(missed) }));
   return lines;
 }
 
@@ -319,7 +319,7 @@ export function currentEra(s: GameState): Era | null {
 export function sagaLines(saga: RivalSaga): string[] {
   const W = CHRONICLE_WORDS;
   const lines = [fill(W.sagaNamed, { rival: saga.name, year: saga.since })];
-  if (saga.won + saga.lost > 0) lines.push(fill(W.sagaGames, { count: saga.won + saga.lost, won: saga.won, lost: saga.lost }));
+  if (saga.won + saga.lost > 0) lines.push(fill(saga.won + saga.lost === 1 ? W.sagaGame : W.sagaGames, { count: saga.won + saga.lost, won: saga.won, lost: saga.lost }));
   lines.push(fill(W.sagaStanding, { mine: rankWord(saga.mine), rival: saga.name, theirs: rankWord(saga.theirs) }));
   return lines;
 }

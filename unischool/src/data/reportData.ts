@@ -75,8 +75,8 @@ export const VERDICTS = {
   rich: 'It left its successors far richer than it found itself: the endowment grew from {from} to {to}.',
   steady: 'It kept its money: the endowment went from {from} to {to}, and the books mostly balanced.',
   poorer: 'It spent what it was given: the endowment went from {from} to {to}.',
-  distress: 'It spent {years} years in distress{scars}.',
-  scars: ', {count} of them under the interim CFO',
+  distress: 'It spent {years} in distress{scars}.',
+  scars: ', and had an interim CFO appointed {times}',
   debt: 'It ends owing {debt}.',
   clean: 'It ends owing nothing.',
 } as const;

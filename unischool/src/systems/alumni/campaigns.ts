@@ -57,7 +57,7 @@ export function launchCampaign(s: GameState, id: string): boolean {
   if (!def) return false;
   const target = Math.round((yearlyResponse(s, def) * def.years * CAMPAIGN_TARGET_STRETCH) / 100_000) * 100_000;
   s.advancement = { ...advancementOf(s), running: { campaignId: id, startedYear: s.clock.year, dueYear: s.clock.year + def.years, raised: 0, target } };
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'money', message: `The ${def.title} is launched: $${(target / 1e6).toFixed(1)}M over ${def.years} years.` });
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'money', message: `${def.title} is launched: $${(target / 1e6).toFixed(1)}M over ${def.years} years.` });
   return true;
 }
 

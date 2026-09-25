@@ -80,7 +80,9 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   const unfilled = EVENT_CATALOGUE.filter((e) => /\{\w+\}/.test(fill(e.text, vars)) || e.choices.some((c) => /\{\w+\}/.test(fill(c.label, vars))));
   assert(unfilled.length === 0, `every name in the text is one the game fills (${unfilled.map((e) => e.id).join(', ')})`);
   const text = EVENT_CATALOGUE.map((e) => `${e.text} ${e.choices.map((c) => c.label).join(' ')}`).join(' ');
-  assert(!/\b(programmes?|colours?|centres?|licence|catalogue)\b/i.test(text), 'in this game\'s American spelling');
+  // British in prose (Plan 45), but "program" is the game's word, and a
+  // building's proper name may end in "Center".
+  assert(!/\b(programmes?|color(s|ed)?|behaviors?|organizations?|theaters?|catalogs?|defense|analyze[sd]?|specialized|enrollment)\b/i.test(text) && !/\bcenters?\b/.test(text), 'in this game\'s British spelling');
   assert(!/\badjunct|\bcharter\b/i.test(text), 'and about nothing this game does not have');
   assert(DECISION_EVENTS.every((e) => !['roof-failure', 'heating-plant', 'estate-gift', 'winter-storm'].includes(e.id)), 'this game\'s texture events are retired');
   assert(DECISION_EVENTS.some((e) => e.id === 'hellenic-council') && DECISION_EVENTS.some((e) => e.id === 'naming-rights'), 'the questions that belong to a system stay');

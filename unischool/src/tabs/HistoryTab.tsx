@@ -102,11 +102,11 @@ function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
 // the step works, and last summer's card if there is one.
 function summerNote(breakdown: StandingBreakdown, gap: number): string {
   const { riseRate, fallRate, reportCard } = breakdown.summer!;
-  const grading = `This year is grading ${breakdown.target.toFixed(1)}; at the summer prestige closes `
+  const grading = `This year is grading ${breakdown.target.toFixed(1)}; at the summer, prestige closes `
     + `${Math.round(riseRate * 100)}% of a gap upward and ${Math.round(fallRate * 100)}% downward`
     + (Math.abs(gap) < 0.05 ? '.' : ` — ${gap > 0 ? '+' : '−'}${(Math.abs(gap) * (gap > 0 ? riseRate : fallRate)).toFixed(1)} if nothing changes.`);
   const last = reportCard
-    ? ` Last summer graded ${reportCard.score.toFixed(0)} for year ${reportCard.year}: ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`
+    ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`
     : ' No summer has graded it yet.';
   return grading + last;
 }
@@ -320,7 +320,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             years={years}
             values={history.map((h) => h.prestige)}
             format={(v) => `${Math.round(v)}`}
-            note="A slow-moving stock: it drifts a little each week toward a target set by curriculum breadth, selectivity, student quality, faculty and research."
+            note="A slow-moving stock: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade reads the curriculum, the teaching, the students, research, satisfaction, campus life, the estate and the endowment."
           />
           <MultiChart
             title="Place in the guide, by year"

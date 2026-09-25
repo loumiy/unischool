@@ -43,7 +43,7 @@ export function checkRivalStanding(s: GameState): void {
   const since = before && before.rivalId === r.rival.id ? (before.since ?? s.clock.year) : s.clock.year;
   s.rivalStanding = { rivalId: r.rival.id, above, since };
   if (!before || before.rivalId !== r.rival.id || before.above === above) return;
-  const sport = sportById(r.sport)?.teamName ?? r.sport;
+  const sport = (sportById(r.sport)?.teamName ?? r.sport).replace(/ Team$/, '');
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: above ? 'good' : 'bad',
     message: above

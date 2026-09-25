@@ -26,7 +26,7 @@ export default function IdentityPanel({ s }: { s: GameState }) {
             const t = tagById(id)!;
             return (
               <li key={id}>
-                <strong>{t.name}</strong> <em>“{t.blurb}”</em>
+                <strong>{t.name}</strong> <em>"{t.blurb}"</em>
                 <div className="stat">{t.why} {t.teeth.line}</div>
               </li>
             );

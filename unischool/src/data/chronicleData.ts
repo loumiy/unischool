@@ -40,7 +40,9 @@ export const CHRONICLE_LINES = {
   tags: 'The guidebooks started calling it {tags}.',
   rival: '{rival} became the rival.',
   kept: 'It kept its promise: {list}.',
+  keptMany: 'It kept its promises: {list}.',
   missed: 'It missed its promise: {list}.',
+  missedMany: 'It missed its promises: {list}.',
   weathered: 'It weathered {list}.',
   firsts: 'Firsts: {list}.',
 } as const;
@@ -53,6 +55,7 @@ export const CHRONICLE_WORDS = {
   rivalNone: 'No rival yet.',
   sagaNamed: '{rival} became the rival in Year {year}.',
   sagaGames: 'The teams have met {count} times: {won} won, {lost} lost.',
+  sagaGame: 'The teams have met once: {won} won, {lost} lost.',
   sagaStanding: 'In the rankings the college stands {mine}, and {rival} {theirs}.',
   now: 'The historians will call these years {era}.',
   none: 'The first year has not closed yet: there is nothing for the historians to divide.',

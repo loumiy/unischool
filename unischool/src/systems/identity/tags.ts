@@ -2,6 +2,7 @@ import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { totalEnrolled } from '../../state/types';
 import { TAGS, TAG_EARN_AT, TAG_LIMIT, TAG_SHED_AT, TAG_YEARS, tagById } from '../../data/tagData';
 import { tagTeeth } from './teeth';
+import { TAG_PHRASES } from '../../data/reportData';
 import { programById } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { beautyTerms } from '../estate/beauty';
@@ -111,8 +112,8 @@ export function turnPerception(s: GameState): void {
   tags = [...tags, ...taken];
   const log = [...(p.log ?? []), ...shed.map((id) => ({ id, year: s.clock.year, earned: false })), ...taken.map((id) => ({ id, year: s.clock.year, earned: true }))];
   s.identity = { tags, earning, shedding, ...(log.length > 0 ? { log } : {}) };
-  for (const id of shed) s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `The guidebooks no longer call the college ${tagById(id)!.name}.` });
-  for (const id of taken) s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'good', message: `The guidebooks have started calling the college ${tagById(id)!.name}: “${tagById(id)!.blurb}”` });
+  for (const id of shed) s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `The guidebooks no longer call the college ${TAG_PHRASES[id] ?? tagById(id)!.name}.` });
+  for (const id of taken) s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'good', message: `The guidebooks have started calling the college ${TAG_PHRASES[id] ?? tagById(id)!.name}: "${tagById(id)!.blurb}"` });
 }
 
 export function hasTag(s: GameState, id: string): boolean {

@@ -23,7 +23,7 @@ export default function DemandNote({ s, act }: { s: GameState; act: (a: Action) 
       <p className="milestone-note-text">{copy.grievance(demand.askName)}</p>
       <p className="milestone-note-text">
         <strong>{copy.ask(demand.askName)}</strong>: {Math.round(progress.current).toLocaleString()} of {Math.round(progress.target).toLocaleString()} {copy.unit}.
-        {' '}Met, satisfaction heads for {stakes.satisfactionIfMet.toFixed(0)}; missed, next summer&rsquo;s pool is {stakes.applicantsIfFailed.toLocaleString()} rather than {stakes.applicantsIfMet.toLocaleString()}.
+        {' '}Met, satisfaction heads for {stakes.satisfactionIfMet.toFixed(0)}; missed, next summer's pool is {stakes.applicantsIfFailed.toLocaleString()} rather than {stakes.applicantsIfMet.toLocaleString()}.
       </p>
       <div className="opening-coach-actions">
         <button type="button" onClick={() => act({ type: 'READ_DEMAND' })}>Noted</button>

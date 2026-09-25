@@ -107,7 +107,7 @@ export function athleticResultsFor(s: GameState): { results: number; label: stri
     results += (FINISH_RESULT_WEIGHT[result.finish] ?? 0) * sportEconomics(result.sport).payoffMultiplier;
   }
   recent.sort((a, b) => b.year - a.year);
-  const name = (t: { sport: string; year: number }) => `the ${t.year} title in ${sportById(t.sport)?.teamName.replace(/ Team$/, '') ?? t.sport}`;
+  const name = (t: { sport: string; year: number }) => `the Year ${t.year} title in ${sportById(t.sport)?.teamName.replace(/ Team$/, '') ?? t.sport}`;
   const label = recent.length === 0
     ? (results > 0 ? "last season's postseason runs" : '')
     : recent.length === 1

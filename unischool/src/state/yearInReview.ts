@@ -10,6 +10,9 @@ import { previousYear } from './history';
 import { money } from '../format';
 import { eventById } from '../systems/events/catalogue';
 import { classYears, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
+import { CAMPAIGNS } from '../data/campaignData';
+
+const CAMPAIGN_CLOSINGS: ReadonlySet<string> = new Set(CAMPAIGNS.flatMap((c) => [c.kept, c.missed]));
 
 // ---------------------------------------------------------------------
 // The year in review: the summer's first beat. A pure reading, generated
@@ -176,8 +179,10 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
     { text: `Net over the year: ${net >= 0 ? '+' : '−'}${money(Math.abs(net))}`, tone: net >= 0 ? 'good' : 'bad' },
     { text: `Operating funds ${money(s.finance.cash)}, against ${money(before.cash)} a year ago` },
   ];
-  const campaigns = byTopic(entries, 'money').length;
-  if (campaigns > 0) lines.push({ text: `${plural(campaigns, 'endowment campaign')} closed; the endowment stands at ${money(s.finance.endowment)}` });
+  // Only a campaign's closing line counts: its launch and the building
+  // fund's lines are money lines too (alumni/campaigns.ts).
+  const campaigns = byTopic(entries, 'money').filter((e) => CAMPAIGN_CLOSINGS.has(e.message)).length;
+  if (campaigns > 0) lines.push({ text: `${plural(campaigns, 'campaign')} closed; the endowment stands at ${money(s.finance.endowment)}` });
   return { key: 'money', title: 'Money', lines, empty: '' };
 }
 

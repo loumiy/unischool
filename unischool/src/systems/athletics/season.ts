@@ -112,8 +112,8 @@ function resolveOccasion(s: GameState, team: VarsityTeam, occasion: Occasion, ro
       : `${upset ? 'An upset: ' : ''}${name} lost ${trophy} to ${them}${run > 1 ? ` for the ${ordinal(run)} year running` : ''}. The series stands ${rivalry.wins}–${rivalry.losses}.`;
   } else if (occasion === 'opener') {
     message = won
-      ? `${upset ? 'An upset to open the season: ' : ''}${name} open the season with a win over ${them}.`
-      : `${upset ? 'An upset to open the season: ' : ''}${name} open the season with a loss to ${them}.`;
+      ? `${upset ? 'An upset to open the season: ' : ''}${name} opens the season with a win over ${them}.`
+      : `${upset ? 'An upset to open the season: ' : ''}${name} opens the season with a loss to ${them}.`;
   } else {
     message = won
       ? `${upset ? 'An upset on homecoming weekend: ' : ''}${name} sent the homecoming crowd home happy, beating ${them}. ${record.wins}–${record.losses} on the year.`

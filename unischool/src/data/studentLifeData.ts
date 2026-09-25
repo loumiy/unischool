@@ -88,7 +88,7 @@ export const ORG_ENROLLMENT_TRACKING = 0.5;
 // Shown on the Students tab before a council has been offered. Kept vague
 // about the trigger (eventData.ts's HELLENIC_COUNCIL_MIN_CLUBS) on purpose.
 export const HELLENIC_COUNCIL_HINT =
-  'No Greek life on this campus. Once there is a real club scene, students may petition to charter a Hellenic Council — approving one is a deliberate choice, and a school can decline Greek life entirely.';
+  'No Greek life on this campus. Once there is a real club scene, students may petition to charter a Hellenic Council — approving one is a deliberate choice, and the college can decline Greek life entirely.';
 
 // Names: authored pools, drawn without repeating what the campus already has.
 const CLUB_NAMES: readonly string[] = [

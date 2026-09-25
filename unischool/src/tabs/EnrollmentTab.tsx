@@ -117,8 +117,8 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
         <h2>The Standing Body</h2>
         <p className="history-summary">
           {enrolled.toLocaleString()} students across four classes. Each was admitted
-          under the school as it stood that summer, and keeps that composition until it
-          graduates — so the bars differ by exactly as much as this university has changed.
+          under the college as it stood that summer, and keeps that composition until it
+          graduates — so the bars differ by exactly as much as the college has changed.
         </p>
 
         <div className="body-legend">
@@ -173,17 +173,17 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
           />
           <FunnelLine
             label="Incoming quality"
-            note="The weighted average of the class that enrolled — everyone admitted comes, there is no yield step. Feeds prestige, which is what makes admitting deep cost something."
+            note="The weighted average of the class that enrolled — everyone admitted comes; there is no yield step. Feeds prestige, which is what makes admitting deep cost something."
             value={`${Math.round(s.students.incomingQuality)} / 100`}
           />
           <FunnelLine
             label="Satisfaction"
-            note="Next summer's word of mouth: the trailing-year average scales the pool above. The five attributes behind this number are at the top of this tab."
+            note="Next summer's word of mouth: the trailing-year average scales the pool above. The five attributes behind this number are in the Satisfaction Breakdown, above."
             value={`${Math.round(s.students.satisfaction)}`}
           />
           <FunnelLine
             label="Enrolled"
-            note="The four classes summed. Set once a year at the summer decision and held: full progression, held. The one ceiling is the catalogue's seats: the freshman class cannot exceed what the housed courses have room to teach."
+            note="The four classes summed. Set once a year at the summer decision, and held until the next. The one ceiling is the catalogue's seats: the freshman class cannot exceed what the housed courses have room to teach."
             value={enrolled.toLocaleString()}
             net
           />

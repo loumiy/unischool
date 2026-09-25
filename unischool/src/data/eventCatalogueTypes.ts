@@ -22,7 +22,7 @@ export type ConditionKey =
   | 'beautyOver' | 'beautyUnder'
   | 'warmthOver' | 'warmthUnder'
   | 'confidenceOver' | 'confidenceUnder' | 'rungAtLeast' | 'rungAtMost'
-  | 'varsityAtLeast' | 'titlesAtLeast' | 'rivalAtLeast'
+  | 'varsityAtLeast' | 'titlesAtLeast' | 'rivalAtLeast' | 'mascotAtMost'
   | 'adminShareOver' | 'payrollShareOver'
   | 'winterAtLeast';
 

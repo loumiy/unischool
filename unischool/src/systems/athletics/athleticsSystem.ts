@@ -51,6 +51,9 @@ function growCoach(c: Coach): void {
 // At COACH_RETIREMENT_AGE a coach retires and the chair is vacated, so tenure
 // is not free money.
 const CHAIRS = ['headCoach', 'assistantCoach', 'trainer'] as const;
+function tenureYears(n: number): string {
+  return n < 1 ? 'less than a year' : n === 1 ? 'a year' : `${n} years`;
+}
 function retireCoaches(s: GameState): void {
   for (const t of s.orgs.teams) {
     for (const chair of CHAIRS) {
@@ -59,7 +62,7 @@ function retireCoaches(s: GameState): void {
       t[chair] = null;
       s.log.unshift({
         year: s.clock.year, week: s.clock.week,
-        message: `${c.name} has retired from ${t.name} at ${c.age}, after ${Math.floor(c.tenureWeeks / WEEKS_PER_YEAR)} years.`,
+        message: `${c.name} has retired from ${t.name} at ${c.age}, after ${tenureYears(Math.floor(c.tenureWeeks / WEEKS_PER_YEAR))}.`,
         kind: 'info', topic: 'team', subject: t.id,
       });
     }

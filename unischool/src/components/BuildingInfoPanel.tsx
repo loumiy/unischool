@@ -97,7 +97,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
         {t.effects?.flatSatisfactionBonus !== undefined
           ? `+${t.effects.flatSatisfactionBonus} flat social satisfaction`
           : 'A green centerpiece for campus life.'}
-        {' — no capacity figure; a quad doesn’t scale with enrollment.'}
+        {' — no capacity figure; a quad does not scale with enrolment.'}
       </p>
     );
   }
@@ -107,7 +107,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
         {t.effects?.researchRateBonus !== undefined
           ? `+${Math.round(t.effects.researchRateBonus * 100)}% research output`
           : 'Specialized lab space.'}
-        {' — no capacity figure; gates this major’s capstone coursework instead.'}
+        {' — no capacity figure; gates this program\'s capstone coursework instead.'}
       </p>
     );
   }

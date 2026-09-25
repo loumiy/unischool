@@ -26,7 +26,7 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
           <p className="empty-note">{def.text}</p>
         </>
       ) : !hasAdvancementOffice(s) ? (
-        <p className="empty-note">A campaign needs a VP of Advancement to run it (the Faculty tab&rsquo;s Administration).</p>
+        <p className="empty-note">A campaign needs a VP of Advancement to run it (the Faculty tab's Administration).</p>
       ) : open.length === 0 ? (
         <p className="empty-note">No campaign is ready. Each opens once the college has the alumni for it and the need it answers.</p>
       ) : (

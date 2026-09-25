@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GameState, GreekChapter, SatisfactionAttributes, StudentClub, StudentOrgBase } from '../state/types';
+import type { BuildableStatus, GameState, GreekChapter, SatisfactionAttributes, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
@@ -54,6 +54,15 @@ function varsityNote(club: StudentClub, s: GameState): string {
 
 // Shows both the per-source contribution and the target with and without
 // the whole layer: they answer different questions.
+// Where the asked-for building stands, in words; nothing while it is simply
+// on offer.
+const ASK_STATUS: Record<BuildableStatus, string> = {
+  locked: ' (not yet open to build)',
+  available: '',
+  developing: ' (under construction)',
+  done: ' (built)',
+};
+
 const signed = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}`;
 
 function StudentLifeEffect({ s }: { s: GameState }) {
@@ -66,7 +75,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <h2>Effect on Satisfaction</h2>
         <HelpHint
           align="end"
-          text="Satisfaction is a stock that drifts toward a target set by what the campus offers. Student organisations move that target, so these are the real points they are adding to it right now — read from the same computation the weekly tick runs, not a separate tally. The headline satisfaction number follows the target over the following weeks."
+          text="Satisfaction is a stock that drifts toward a target set by what the campus offers. Student organisations move that target, so these are the real points they are adding to it right now — read from the same computation the weekly tick runs, not a separate tally. The headline satisfaction number moves toward the target over the coming weeks."
         />
       </div>
       <dl>
@@ -185,7 +194,7 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
       {open && (
         <div className="satisfaction-card-detail">
           {detail.dormant ? (
-            <p className="empty-note">Dormant — the campus hasn&rsquo;t crossed the population where this need starts to matter yet.</p>
+            <p className="empty-note">Dormant — the campus hasn't crossed the population where this need starts to matter yet.</p>
           ) : (
             <>
               {detail.contributors.length > 0 ? (
@@ -286,9 +295,9 @@ function StudentDemandPanel({ s }: { s: GameState }) {
           The ask
           <HelpHint text="Progress above is read off the same campus state the demand resolves against — what this need serves today, against the total the demand asks for. Finish the building and the demand clears itself; there is nothing to confirm." />
         </dt>
-        <dd>{copy.ask(demand.askName)}{node ? ` (${node.status})` : ''}</dd>
+        <dd>{copy.ask(demand.askName)}{node ? ASK_STATUS[node.status] : ''}</dd>
         <dt>Deadline</dt>
-        <dd>year {Math.floor((demand.deadlineWeek - 1) / WEEKS_PER_YEAR) + 1}, week {((demand.deadlineWeek - 1) % WEEKS_PER_YEAR) + 1}</dd>
+        <dd>Year {Math.floor((demand.deadlineWeek - 1) / WEEKS_PER_YEAR) + 1}, week {((demand.deadlineWeek - 1) % WEEKS_PER_YEAR) + 1}</dd>
         <dt>If it is met</dt>
         <dd>
           satisfaction {stakes.satisfactionNow.toFixed(1)} → {stakes.satisfactionIfMet.toFixed(1)} ·
@@ -302,7 +311,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       </dl>
       <p className="empty-note demand-footnote">
         Missing the deadline costs goodwill and the applicants word of mouth brings — the figures
-        above, at next summer&rsquo;s funnel. Nothing else: satisfaction is floored, so an unaffordable
+        above, at next summer's funnel. Nothing else: satisfaction is floored, so an unaffordable
         demand left unmet stalls the school rather than sinking it.
       </p>
     </section>
@@ -332,7 +341,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
             <p className="empty-note">
               {hasStudentCenter(s)
                 ? 'No student organisations yet — students will start forming clubs of their own before long.'
-                : 'No student organisations yet — build a student center to let students start forming clubs.'}
+                : 'No student organisations yet — build a Student Center to let students start forming clubs.'}
             </p>
           </section>
         ) : (
@@ -343,7 +352,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           <section className="panel panel-span-2">
             <h2>Awaiting Recognition</h2>
             <p className="empty-note">
-              Answered together at the summer admissions decision — nothing here interrupts play.
+              Answered together in the summer's Students beat — nothing here interrupts play.
             </p>
             <ul className="org-list">
               {pending.map((p) => (
@@ -391,12 +400,12 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
             {!s.orgs.hellenicCouncilApproved ? (
               <p className="empty-note">
                 {s.orgs.hellenicCouncilOffered
-                  ? 'This school has no Greek life. The Hellenic Council was declined, and the question does not come back.'
+                  ? 'The college has no Greek life. The Hellenic Council was declined, and the question does not come back.'
                   : HELLENIC_COUNCIL_HINT}
               </p>
             ) : chapters.length === 0 ? (
               <p className="empty-note">
-                The Hellenic Council is chartered; no chapter currently holds one.
+                The Hellenic Council is chartered; no chapter has formed yet.
               </p>
             ) : (
               <ul className="org-list">

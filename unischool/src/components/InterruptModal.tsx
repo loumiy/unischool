@@ -2,7 +2,7 @@ import { servedPopulationFor } from '../systems/satisfaction/satisfactionSystem'
 import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type {
-  Coach, GameState, InitiativeReport, PendingInterrupt, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
+  Coach, GameState, InitiativeReport, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
 } from '../state/types';
 import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { buildYearInReview } from '../state/yearInReview';
@@ -43,8 +43,8 @@ import { promisesOf } from '../systems/promises/promises';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
-function interruptBody(interrupt: PendingInterrupt): { title: string; body: string } {
-  return { title: interrupt.type, body: 'No content registered for this interrupt type.' };
+function interruptBody(): { title: string; body: string } {
+  return { title: 'A matter set aside', body: 'The matter this concerned has lapsed. Nothing has changed.' };
 }
 
 interface AdmissionsDraft {
@@ -279,7 +279,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             />
             {change && (
               <div className="pool-change">
-                <dt>Against last summer&rsquo;s {change.lastApplicants.toLocaleString()}</dt>
+                <dt>Against last summer's {change.lastApplicants.toLocaleString()}</dt>
                 <dd className="pool-change-parts">
                   {change.parts.length === 0
                     ? 'nothing moved'
@@ -291,13 +291,13 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             )}
             <Figure
               className="reveal"
-              label={<>Room for <span className="outcome-note">(the catalogue&rsquo;s seats, less who stays on)</span></>}
+              label={<>Room for <span className="outcome-note">(the catalogue's seats, less those who stay on)</span></>}
               hint={FIGURE_HINTS.room}
               value={<AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />}
             />
           </dl>
           <p className="admissions-ceiling-note">
-            {ceiling.capacity.toLocaleString()} seats across the housed catalogue; {ceiling.stayingOn.toLocaleString()} stay on after graduation.
+            {ceiling.capacity.toLocaleString()} seats across the housed catalogue; {ceiling.stayingOn.toLocaleString()} return next year.
             {ceiling.nextSummer > ceiling.capacity
               ? ` Next summer the catalogue will hold ${ceiling.nextSummer.toLocaleString()}, counting the courses now in development.`
               : ' Nothing in development will add seats by next summer.'}
@@ -439,7 +439,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
     <>
       <h2>Year {review.year} in review</h2>
       <p>
-        The year is over. Before the summer&rsquo;s decisions, what it produced.
+        The year is over. Before the summer's decisions, what it produced.
         {review.truncated && ' The record of its earliest weeks has scrolled off the log.'}
       </p>
       {era && <p className="review-era">{CHRONICLE_WORDS.now.replace('{era}', era.name)}</p>}
@@ -499,7 +499,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
         <p>
           No new student organisation petitioned this year
           {s.orgs.clubs.length === 0 && s.orgs.chapters.length === 0
-            ? ' — clubs form once the campus has a student center for them to meet in.'
+            ? ' — clubs form once the campus has a Student Center for them to meet in.'
             : '.'}
         </p>
       ) : (
@@ -573,7 +573,7 @@ function RankMovement({ delta }: { delta: number }) {
 function RankingsReportView({ payload, isFirstReveal, published = true, onDismiss }: {
   payload: ReportPayload;
   isFirstReveal: boolean;
-  // Whether the U.S. News list carries the school yet (s.hasEnteredRankings).
+  // Whether the guide's list carries the school yet (s.hasEnteredRankings).
   // The Standing beat renders for every school; the top-50 table only once
   // the school is on it.
   published?: boolean;
@@ -584,13 +584,13 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
 
   return (
     <>
-      <h2>{isFirstReveal ? "You've entered the rankings" : published ? 'Standing — the U.S. News report' : 'Standing'}</h2>
+      <h2>{isFirstReveal ? "You've entered the rankings" : published ? 'Standing — the guide' : 'Standing'}</h2>
       <p>
         {isFirstReveal
-          ? `Your university has cracked the top 50, landing at #${rank}. The report will keep you posted every summer from here on.`
+          ? `${standings.find((r) => r.isPlayer)?.name ?? 'The college'} has entered the guide's top fifty, at #${rank}.`
           : published
             ? `This year's standings are in — you're ranked #${rank}.`
-            : `You are ranked #${rank} of ${payload.field} this summer. The U.S. News list publishes fifty names; the school is not on it yet.`}
+            : `You are ranked #${rank} of ${payload.field} this summer. The guide publishes fifty names; the college is not on it yet.`}
       </p>
 
       {delta !== null && (
@@ -750,7 +750,7 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
           <dd className={delta > 0 ? 'milestone-gain' : ''}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</dd>
         </div>
         <div>
-          <dt>Prestige today <span className="outcome-note">(drifts toward the target each summer)</span></dt>
+          <dt>Prestige today <span className="outcome-note">(steps toward the target each summer, and drifts a little between)</span></dt>
           <dd>{s.self.reputation.toFixed(1)}</dd>
         </div>
       </dl>
@@ -805,7 +805,7 @@ function ResearchReportView({ s, report, onDismiss }: {
         {report.award && (
           <>
             <div>
-              <dt>{report.award.facultyName}&rsquo;s output <span className="outcome-note">(permanent, per prize)</span></dt>
+              <dt>{report.award.facultyName}'s output <span className="outcome-note">(permanent, per prize)</span></dt>
               <dd>+{Math.round(ACCLAIM_RESEARCH_BONUS * 100)}%</dd>
             </div>
             <div>
@@ -889,7 +889,7 @@ function ChampionshipView({ s, result, onDismiss }: {
           <dd>{s.orgs.titles.length}</dd>
         </div>
         <div>
-          <dt>Campus-life standing</dt>
+          <dt>Campus life</dt>
           {/* Standing drifts toward its target, so this is what the target
               moved by. */}
           <dd>{worth >= 0.05 ? `+${worth.toFixed(1)} to the target` : 'already at its ceiling'}</dd>
@@ -1114,7 +1114,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
     return (
       <>
         <h2>An event has passed</h2>
-        <p>This event is no longer in the game's content. Nothing has changed.</p>
+        <p>The matter this concerned has lapsed. Nothing has changed.</p>
         <button onClick={onDismiss}>Continue</button>
       </>
     );
@@ -1285,8 +1285,8 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           // Content drift only (see interruptBody). RESOLVE_INTERRUPT
           // advances the clock rather than holding the week open.
           <>
-            <h2>{interruptBody(interrupt).title}</h2>
-            <p>{interruptBody(interrupt).body}</p>
+            <h2>{interruptBody().title}</h2>
+            <p>{interruptBody().body}</p>
             <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Resolve</button>
           </>
         )}

@@ -34,19 +34,19 @@ export const OPENING_STEPS: Record<Exclude<OpeningStage, 'play'>, OpeningStep> =
   'site-hall': {
     eyebrow: 'Step one',
     title: 'Raise Founders Hall',
-    body: () => 'Every building comes from the Build menu at the foot of the screen. Click Founders Hall to pick it up, then click a clear stretch of ground to set it down — its footprint follows the pointer, and the ground is yours, so this one costs nothing. Every later building is placed the same way.',
+    body: () => 'Every building comes from the build menu at the foot of the screen. Click Founders Hall to pick it up, then click a clear stretch of ground to set it down — its footprint follows the pointer, and the ground is yours, so this one costs nothing. Every later building is placed the same way.',
     door: 'build',
   },
   teaching: {
     eyebrow: 'Step two',
     title: 'The college already teaches',
-    body: () => `Founders Hall stands, and inside it ${foundingNames()} are being taught: three programs, two courses each, and a professor on every one. A program is a row of nine courses; each is DEVELOPED — paid for once, built over some weeks, and taught by one of your professors from then on — and the next of each row is ready to start. The Curriculum is where you see all of that.`,
+    body: () => `Founders Hall stands, and inside it ${foundingNames()} are being taught: three programs, two courses each, and a professor on every one. A program is a row of nine courses; each is developed — paid for once, built over some weeks, and taught by one of your professors from then on — and the next of each row is ready to start. The Curriculum is where you see all of that.`,
     next: 'Open the Curriculum',
   },
   found: {
     eyebrow: 'Step three',
     title: 'Found a fourth program',
-    body: (s) => `Three rows, and Founders Hall has three rooms still empty. A program is FOUNDED into a room from the hall's own panel on the map: ${s.programOffers.length > 0 ? `${s.programOffers.length} programs are on offer` : 'programs are offered three at a time'}, and founding one starts its first course with the professor you pick. When nobody on the payroll teaches that field, the panel shows the market — appointing someone there is how a department starts. Open Founders Hall, click the ringed room, and choose.`,
+    body: (s) => `Three rows, and Founders Hall has three rooms still empty. A program is founded into a room from the hall's own panel on the map: ${s.programOffers.length > 1 ? `${s.programOffers.length} programs are on offer` : s.programOffers.length === 1 ? 'one program is on offer' : 'programs are offered three at a time'}, and founding one starts its first course with the professor you pick. When nobody on the payroll teaches that field, the panel shows the market — appointing someone there is how a department starts. Open Founders Hall, click the ringed room, and choose.`,
     door: 'hall',
   },
 };

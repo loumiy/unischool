@@ -49,7 +49,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ECON110: 'Models output, unemployment, inflation, and growth for a whole economy, and what monetary and fiscal policy can do about them.',
   ECON120: 'Estimates economic relationships from data with regression, and confronts the endogeneity and identification problems that make a causal claim hard.',
   ECON130: 'Formalises consumer and producer theory, general equilibrium, and market failure with the calculus the introductory course left out.',
-  ECON140: 'Reads the industrial revolution, the great depression, and the post-war boom as tests of economic theory rather than as a chronicle.',
+  ECON140: 'Reads the Industrial Revolution, the Great Depression, and the post-war boom as tests of economic theory rather than as a chronicle.',
   ECON210: 'Replaces the rational agent with the one experiments find, and works out what bounded rationality and present bias do to markets and policy.',
   ECON220: 'Analyses taxation, public spending, and debt: who bears a tax, what a public good is worth, and when redistribution costs efficiency.',
   ECON230: 'Solves strategic interaction with Nash equilibrium, backward induction, and signalling, from auctions to arms races.',
@@ -262,13 +262,13 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   // --- History ---
   HIST101: 'Surveys major civilizations and turning points from antiquity to the modern era.',
   HIST110: 'Trains the historian\'s craft: finding and reading primary sources, weighing conflicting accounts, and writing from evidence.',
-  HIST120: 'Surveys the American past from colonisation through the civil war, industrialisation, and the twentieth century.',
+  HIST120: 'Surveys the American past from colonisation through the Civil War, industrialisation, and the twentieth century.',
   HIST130: 'Traces Europe from the Renaissance and Reformation through revolutions, nationalism, and the two world wars.',
   HIST140: 'Studies Mesopotamia, Egypt, Greece, and Rome through their texts and material remains, and what each left behind.',
   HIST210: 'Examines the causes, conduct, and consequences of the two world wars, from the trenches and the home front to the peace settlements.',
   HIST220: 'Uses excavated material alongside written records to recover the lives of people the documents left out.',
   HIST230: 'Reads past societies with the anthropologist\'s questions about kinship, ritual, and exchange, from the archive rather than the field.',
-  HIST240: 'Traces how scientific ideas and machines were made, contested, and adopted, from the scientific revolution to the digital age.',
+  HIST240: 'Traces how scientific ideas and machines were made, contested, and adopted, from the Scientific Revolution to the digital age.',
 
   // --- Philosophy ---
   PHIL101: 'Builds skills in argument analysis, deduction, and identifying logical fallacies.',
@@ -325,7 +325,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PHYS210: 'Develops the Schrödinger equation, operators, angular momentum, and spin, and applies them to atoms and simple systems.',
   PHYS220: 'Covers crystal structure, phonons, band theory, semiconductors, and superconductivity — the physics inside every device.',
   PHYS230: 'Studies stars, galaxies, dark matter, and the expanding universe, from stellar structure to the cosmic microwave background.',
-  PHYS240: 'Introduces the standard model of quarks, leptons, and forces, and how accelerators and detectors test it.',
+  PHYS240: 'Introduces the Standard Model of quarks, leptons, and forces, and how accelerators and detectors test it.',
 
   // --- Environmental Science ---
   ENVS101: 'Surveys how physical, chemical, and biological systems interact across a changing planet.',
