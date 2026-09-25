@@ -1,6 +1,6 @@
 # UniSchool
 
-![The campus map in year 51 of a university: the Grand Quad and the South Quad with their halls, the science court and Greek Row, the union and the residential quarter, the medical campus, and the venues along the north edge under the stadium](docs/images/campus.png)
+![The campus map in year 51 of a university, in navy and gold: the Grand Quad and its fountain ringed by the halls, the capital projects' court below it on the same axis, the science court and Greek Row, the union and the residential quarter, the medical campus, and the venues along the north edge under the double-decked stadium](docs/images/campus.png)
 
 A university management simulation about building an institution from a small
 college into a major university.
@@ -90,22 +90,36 @@ the management interfaces, curriculum presentation, faculty interaction and
 the research systems. There is no art pipeline yet; everything on screen is
 drawn from data.
 
+## Five architectures, eight colours
+
+A school chooses its architecture and its colours at its founding; the map,
+the banner and every screen wear them. The same fifty-year campus as above, in
+the other four architectures, each in another of the eight colour pairs:
+
+| | |
+|---|---|
+| ![The same campus in Collegiate Gothic, crimson and silver](docs/images/campus-gothic.png) | ![The same campus in Classical, forest and gold](docs/images/campus-classical.png) |
+| **Collegiate Gothic** · crimson and silver | **Classical** · forest and gold |
+| ![The same campus in Mission, maroon and gold](docs/images/campus-mission.png) | ![The same campus in Modern, purple and gold](docs/images/campus-modern.png) |
+| **Mission** · maroon and gold | **Modern** · purple and gold |
+
 ## The interfaces
 
 Every view other than the map is a full screen laid over it, with the dock
 kept on top. These are year 51 of a finished school — the same run as the
-campus above — one screen per tab, in the toolbar's order.
+campus above — one screen per tab, in the toolbar's order, each in a
+different pair of school colours.
 
 | | |
 |---|---|
-| ![The Curriculum tab: the catalogue by school and department, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: payroll, the market, and each department's roster against its catalogue](docs/images/tab-faculty.png) |
-| **Curriculum** — 427 courses by school and department, each with who teaches it and the grade they earn. | **Faculty** — the roster and the market, department by department, against what the catalogue needs. |
-| ![The Research tab: every lab with its initiative, team, depth and progress](docs/images/tab-research.png) | ![The Student Life tab: satisfaction by attribute, clubs and Greek chapters](docs/images/tab-studentlife.png) |
-| **Research** — each lab's running initiative: the topic, the team, the depth and what it has produced. | **Student Life** — satisfaction by attribute and what serves it, the clubs, the chapters and the demands. |
-| ![The Athletics tab: the athletic director, the department's finances and the varsity programs](docs/images/tab-athletics.png) | ![The Enrollment tab: the four classes by audience, and last summer's funnel](docs/images/tab-enrollment.png) |
-| **Athletics** — the director, the subsidy and the gate, and every program with its staff. | **Enrollment** — the standing body class by class, and the funnel the last summer decision produced. |
-| ![The History tab: the three standings and every input that grades them](docs/images/tab-history.png) | ![The Treasury tab: the weekly income statement, the endowment campaign and the balance](docs/images/tab-treasury.png) |
-| **History** — the three standings with every input that grades them, and the legacy once sealed. | **Treasury** — the weekly income statement, the endowment campaign and the balance sheet. |
+| ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: payroll, the market, and each department's roster against its catalogue](docs/images/tab-faculty.png) |
+| **Curriculum** — the catalogue by school and program, each with who teaches it and the grade they earn; a finished school folds away. | **Faculty** — the roster and the market, department by department, against what the catalogue needs. |
+| ![The Research tab: every lab with its initiative, team, depth and progress](docs/images/tab-research.png) | ![The Students tab: what the guidebooks say, satisfaction by attribute, clubs and Greek chapters](docs/images/tab-students.png) |
+| **Research** — each lab's running initiative: the topic, the team, the depth and what it has produced. | **Students** — satisfaction by attribute and what serves it, the clubs, the chapters and the demands. |
+| ![The Athletics tab: the department at the side, and every varsity program as a card with its standing, its money and its staff](docs/images/tab-athletics.png) | ![The History tab: the three standings and every input that grades them](docs/images/tab-history.png) |
+| **Athletics** — the director, the subsidy and the gate at the side; every program a card with its rank in its sport and its staff. | **History** — the three standings with every input that grades them, and the legacy once sealed. |
+| ![The Treasury tab: the weekly income statement, advancement and the balance](docs/images/tab-treasury.png) | |
+| **Treasury** — the weekly income statement, the endowment campaign and the balance sheet, reached through the funds figure. | |
 
 ## Run it
 

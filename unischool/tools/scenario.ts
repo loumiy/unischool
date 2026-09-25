@@ -12,7 +12,8 @@
 //     --clear-modal /tmp/all.json           # every placeable asset standing
 //
 // Flags: --player <name> (or --strategy) --year N --modal <interrupt type>
-//        --seed N --vernacular <v> --name <school> --clear-modal --build-all --list
+//        --seed N --vernacular <v> --colors <pair id> --name <school>
+//        --clear-modal --build-all --list
 //
 // The output is a real save at the current SAVE_VERSION, built through the
 // reducer, so it never needs migrating. Load it with the debug panel's Load
@@ -21,13 +22,15 @@ import { writeFileSync } from 'node:fs';
 import { DEFAULT_SEED, foundGame, playUntil } from '../sim/harness/game';
 import { PLAYERS, playerNamed } from '../sim/harness/archetypes';
 import { SAVE_VERSION } from '../src/state/persistence';
+import { SCHOOL_COLOR_PAIRS, schoolColorsOf } from '../src/data/schoolColors';
+import { nextVenueExpansion, venueExpansionsMax } from '../src/data/facilitiesData';
 import { totalEnrolled } from '../src/state/types';
 import type { GameState, Vernacular } from '../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 
 // `--k v` and `--k=v` both work; other arguments are positional.
-const VALUE_FLAGS = ['player', 'strategy', 'year', 'modal', 'seed', 'vernacular', 'name', 'out'];
+const VALUE_FLAGS = ['player', 'strategy', 'year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
 const BOOL_FLAGS = ['list', 'clear-modal', 'build-all', 'help'];
 
 function parseArgs(argv: string[]): { flags: Record<string, string>; positional: string[] } {
@@ -122,24 +125,45 @@ if (wantedModal && pending !== wantedModal) {
 state.ladder.unread = [];
 if (flags.name) state.self.name = flags.name;
 if (flags.vernacular) state.self.vernacular = flags.vernacular as Vernacular;
+if (flags.colors) {
+  // A school color pair by id (schoolColors.ts's SCHOOL_COLOR_PAIRS).
+  const pair = SCHOOL_COLOR_PAIRS.find((p) => p.id === flags.colors);
+  if (!pair) throw new Error(`no color pair "${flags.colors}". Known: ${SCHOOL_COLOR_PAIRS.map((p) => p.id).join(', ')}`);
+  state.self.colors = schoolColorsOf(pair);
+}
 if (flags['clear-modal']) {
   // A loaded save reopens its modal, whose backdrop would swallow a
   // screenshot driver's zoom and pan clicks.
   state.pendingInterrupt = null;
   state.events.pendingDemand = null;
   state.events.activeDemand = null;
+  // And the board's letters, which float over the map the same way.
+  if (state.finance.distress) state.finance.distress.letters = [];
 }
 
 // Not cosmetic: --build-all stands every placeable Buildable the run did not
 // build (e.g. a venue no player has unlocked) on the first clear
 // tiles, for photographing. The result is not a state the game produced.
 let stood = 0;
+const landmarkChosen = state.tech.some((t) => t.facilityType === 'landmark' && (t.status === 'done' || t.status === 'developing'));
 if (flags['build-all']) {
+  // Finish what is going up, and grow every venue to its last stage, so the
+  // picture shows each asset whole.
+  for (const node of state.tech) {
+    if (node.status === 'developing' && isPlaceableKind(node) && node.id in state.placements) {
+      node.status = 'done';
+      delete state.developing[node.id];
+    }
+    if (node.status === 'done' && nextVenueExpansion(node)) node.expansions = venueExpansionsMax(node.id);
+  }
   for (const node of state.tech) {
     if (!isPlaceableKind(node) || node.status === 'done' || node.status === 'developing') continue;
+    // One grand landmark is chosen, and its rivals close (Plan 25).
+    if (node.facilityType === 'landmark' && landmarkChosen) continue;
     const spot = firstFreeSpot(state, node, footprintOf(node));
     if (!spot) { console.error(`--build-all: no room for ${node.id}`); continue; }
     node.status = 'done';
+    if (nextVenueExpansion(node)) node.expansions = venueExpansionsMax(node.id);
     state.placements[node.id] = placementFor(spot.row, spot.col, footprintOf(node));
     stood += 1;
   }
