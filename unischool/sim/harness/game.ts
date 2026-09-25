@@ -124,3 +124,16 @@ export function playYears(g: Game, player: Player, years: number, each?: (g: Gam
   }
   if (g.s.clock.year < endYear) throw new Error(`the clock stalled in year ${g.s.clock.year}, week ${g.s.clock.week}`);
 }
+
+// Plays until `stop` holds at the top of a week (before anything is
+// answered, so a modal it waits for is still standing), or the clock
+// reaches the start of `years + 1`. True if it stopped on `stop`.
+export function playUntil(g: Game, player: Player, years: number, stop: (s: GameState) => boolean): boolean {
+  const endYear = g.s.clock.year + years;
+  const limit = years * 52 * 4 + 100;
+  for (let i = 0; i < limit && g.s.clock.year < endYear; i += 1) {
+    if (stop(g.s)) return true;
+    playWeek(g, player);
+  }
+  return stop(g.s);
+}

@@ -67,7 +67,7 @@ const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = {
   housing: 'Housing',
 };
 
-// Shortfall line on the 0..100 attribute scale. Exported for sim/balanceSim.ts.
+// Shortfall line on the 0..100 attribute scale.
 export const ATTRIBUTE_SHORTFALL = 50;
 
 function letterAsk(s: GameState): NextStep | null {

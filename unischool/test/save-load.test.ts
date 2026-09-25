@@ -12,7 +12,7 @@
 // — the LAST case, the one that makes discarding safe — a save at any other
 // version loads as null rather than half-loading.
 //
-// Like sim/balanceSim.ts, this is NOT part of the game: nothing imports it,
+// Like the harness (sim/), this is NOT part of the game: nothing imports it,
 // it ships nothing into the bundle.
 //
 //   npm test

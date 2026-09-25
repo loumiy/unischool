@@ -94,7 +94,8 @@ read in the Treasury off the same arithmetic the tick charges
 that makes the founding years viable *and* the late game tight: a founding
 school pays the base and a school at prestige 130 pays three and a half times
 it per student, and tuition does not rise that fast. Fitted by Plan 15's PR G
-against the scorecard, where the record of what each value is and why lives.
+against the old harness's scorecard (retired in Plan 63; `npm run sim` reports
+the trajectories now).
 
 **Capital events scale to what broke**, not to opex: a roof is a quarter of
 its building, a kitchen 30% of its dining hall, the boiler 12% of the standing
@@ -173,12 +174,11 @@ Consequences that the code must honor:
   shifts the frontier between tuition and enrollment volume) can replace the
   simple version later without touching the rest of the system.
 
-Balance claims about any of this are checked with `npm run sim` — a headless
-fast-forward through the real reducer under several scripted strategies (see
-`sim/balanceSim.ts`), which prints cash/enrolled/prestige/opex by year — and
-gated by its scorecard (`sim/reference.ts`: hand-written targets for the
-Balanced builder and the two controls, three-seed envelopes for the rest; see
-[playtesting.md](../architecture/playtesting.md)).
+Balance claims about any of this are measured with `npm run sim` — a headless
+fast-forward through the real reducer under the harness's four archetypes and
+its guided player (`sim/report.ts`), which prints each one's trajectory
+against the committed baseline. It reports and never gates: only checks gate
+a merge (see [playtesting.md](../architecture/playtesting.md)).
 
 ## The late margin (V1-25), settled
 
@@ -192,9 +192,8 @@ $17B fund.
 
 That is the decision: **the endowment is the reward for decades of surplus,
 and grows as a real one does; it is not a margin to be taxed away.** The
-scorecard reads the operating margin (`sim/reference.ts`'s `netMargin`, the
-week's net less the endowment payout and the annual fund, over operating
-cost) and holds a mature college to it. What the money is *for* late in a
+operating margin — the week's net less the endowment payout and the annual
+fund, over operating cost — is the figure a mature college is read by. What the money is *for* late in a
 run (the capital projects, the endowment's half of them) is Plan 33's.
 
 The same plan measured the other end. **The founding has no slack of its

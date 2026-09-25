@@ -3,19 +3,18 @@
 // player built. A random college founded from nothing goes broke and
 // stalls before it has a lab or a team (test/fuzz.test.ts), so the late
 // game — research, varsity athletics, capital projects, a big estate —
-// is fuzzed from checkpoints: the Balanced builder's college at years 12
-// and 30, each played on at random for three years through the reducer the
-// game uses, checked every week and saved at each year's turn.
-//
-// The checkpoints come from the old harness (sim/balanceSim.ts) until the
-// archetypes replace it (Plan 59). Checks only, never balance.
+// is fuzzed from checkpoints: the Completionist's college (the archetype
+// that builds everything; sim/harness/archetypes.ts) at years 12 and 30,
+// each played on at random for three years through the reducer the game
+// uses, checked every week and saved at each year's turn. Checks only,
+// never balance.
 //
 // Not part of the game: nothing imports it. Slow — one thirty-year run.
 // ---------------------------------------------------------------------
 
 import type { GameState } from '../src/state/types';
-import { play, STRATEGIES } from '../sim/balanceSim';
 import { foundGame, fakeStorage, playYears } from '../sim/harness/game';
+import { createArchetype } from '../sim/harness/archetypes';
 import { fuzzPlayer } from '../sim/harness/fuzz';
 import { brokenRules } from '../sim/harness/invariants';
 import { saveGame, loadGame } from '../src/state/persistence';
@@ -35,14 +34,14 @@ console.log('late fuzz tests');
 const CHECKPOINT_YEARS = [12, 30];
 const YEARS = 3;
 
-const builder = STRATEGIES.find((s) => s.name === 'Balanced builder')!;
 const checkpoints = new Map<number, GameState>();
-play(builder, Math.max(...CHECKPOINT_YEARS), (s) => {
+playYears(foundGame(), createArchetype('Completionist'), Math.max(...CHECKPOINT_YEARS), (g) => {
+  const s = g.s;
   if (CHECKPOINT_YEARS.includes(s.clock.year) && !checkpoints.has(s.clock.year) && !s.pendingInterrupt) {
     checkpoints.set(s.clock.year, structuredClone(s));
   }
 });
-assert(checkpoints.size === CHECKPOINT_YEARS.length, `the builder reached every checkpoint (${[...checkpoints.keys()].join(', ')})`);
+assert(checkpoints.size === CHECKPOINT_YEARS.length, `the Completionist reached every checkpoint (${[...checkpoints.keys()].join(', ')})`);
 
 for (const [year, from] of checkpoints) {
   for (const seed of [1, 2]) {

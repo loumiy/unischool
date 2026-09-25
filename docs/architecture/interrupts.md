@@ -183,8 +183,8 @@ without the component knowing why.
 
 ## A new interrupt needs a default answer
 
-Two things fast-forward through a run with no player: the balance harness
-(`sim/balanceSim.ts`) and the debug panel's Jump. Both answer whatever stops
+Two things fast-forward through a run with no player: the harness
+(`sim/harness/game.ts`) and the debug panel's Jump. Both answer whatever stops
 the clock by asking `src/engine/defaultAnswers.ts` for an action, so that both
 answer the same modal the same way.
 

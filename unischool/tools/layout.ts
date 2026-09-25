@@ -4,7 +4,7 @@
 // walkways between them, regrows the woodland around the result, and
 // writes the save back out — a campus to photograph.
 //
-// Why this exists: the scripted player in sim/balanceSim.ts sites every
+// Why this exists: the harness's players (sim/harness/moves.ts) site every
 // building at campusMap.ts's firstFreeSpot, a plain top-left scan, so a
 // scenario's campus is a strip along one edge of the grid. That is fine
 // for measuring a trajectory and useless for a picture. Placement is

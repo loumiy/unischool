@@ -14,24 +14,24 @@ export interface Scenario {
   // One line, printed by `--list`: what this state is for, not what it
   // contains.
   what: string;
-  // A STRATEGIES name (sim/balanceSim.ts), matched case-insensitively on a
-  // prefix, so 'Balanced' finds 'Balanced builder'.
-  strategy: string;
+  // A player (sim/harness/archetypes.ts's PLAYERS: the guided player or an
+  // archetype), matched case-insensitively on a prefix.
+  player: string;
   // Years to play; the run stops at the start of the year after this one.
   // With `stopWhen` it is a cutoff, so a scenario waiting on a modal can
   // never become an unbounded search.
   year: number;
   // Where to stop inside a year. Checked at the top of a week, before the
-  // scripted player answers anything, so the modal is still pending.
+  // player answers anything, so the modal is still pending.
   stopWhen?: (s: GameState) => boolean;
-  // Break the state after the run, before it is written: no scripted
-  // strategy digs a hole deep enough on its own.
+  // Break the state after the run, before it is written: no player
+  // digs a hole deep enough on its own.
   mutate?: (s: GameState) => void;
 }
 
 // A school in crisis: satisfaction in the thirties, a body half again too
 // big, and the year's accumulators saying so. Shared by the crisis scenario
-// and test/balance-regression.test.ts so both break the school the same way.
+// and test/archetypes.test.ts so both break the school the same way.
 export function intoCrisis(s: GameState): void {
   s.students.satisfaction = 35;
   s.students.satisfactionYearSum = 35 * s.students.satisfactionYearWeeks;
@@ -54,47 +54,47 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'founding',
     what: 'week one: Founders Hall teaching three programs, three rooms free, three on offer — what a new player is looking at',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 1,
     // Immediately: the loop checks this before its first week runs.
     stopWhen: () => true,
   },
   {
     name: 'year-3-first-hall',
-    // The balanced builder fills Founders Hall's three rooms first and buys
+    // The guided player fills Founders Hall's three rooms first and buys
     // its first hall in year two.
     what: 'the first purchased hall standing beside a full Founders Hall, the campus still small',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 3,
   },
   {
     name: 'year-8-balanced',
     what: 'the intended line of play, mid-buildout',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 8,
   },
   {
     name: 'year-8-discount',
-    what: 'the same year at the volume archetype: beds first, priced low',
-    strategy: 'Discount volume',
+    what: 'the same year at the Lean college: spending only while in the black',
+    player: 'Lean',
     year: 8,
   },
   {
     name: 'year-15-completionist',
     what: 'everything affordable built — the review\'s "what is there left to do" state',
-    strategy: 'Completionist',
+    player: 'Completionist',
     year: 15,
   },
   {
     name: 'year-25-rich',
     what: 'the catalog done, cash piling up, rank held',
-    strategy: 'Completionist',
+    player: 'Completionist',
     year: 25,
   },
   {
     name: 'year-40-done',
     what: 'the end of the default horizon — the late game as it actually plays',
-    strategy: 'Completionist',
+    player: 'Completionist',
     year: 40,
   },
 
@@ -102,14 +102,14 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'first-milestone',
     what: 'the first milestone celebration, unanswered',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 10,
     stopWhen: atModal('milestone'),
   },
   {
     name: 'rankings-entry',
     what: 'the week the school enters the top 50',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 20,
     stopWhen: atModal('rankings-entry'),
   },
@@ -118,7 +118,7 @@ export const SCENARIOS: Scenario[] = [
     // scenario too.
     name: 'summer',
     what: 'the summer sequence — review, standing (the U.S. News report), the blind price, the digest',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 12,
     // Not the first summer: the screen is interesting with a prior year to
     // read against.
@@ -130,57 +130,56 @@ export const SCENARIOS: Scenario[] = [
     // report has the most on it.
     name: 'final-report',
     what: 'the fiftieth summer — the final report as its first beat, the record about to be sealed',
-    strategy: 'Earnest completionist',
+    player: 'Completionist',
     year: 50,
     stopWhen: (s) => s.pendingInterrupt?.type === 'summer' && s.clock.year >= 50,
   },
   {
     name: 'championship',
     what: 'the week a national title is won',
-    // The only strategy that can reach this: the others never hire a coach,
-    // and teamQuality seeds a bracket (systems/athletics/playoffs.ts). The
-    // earnest completionist wins its first title around year 24.
-    strategy: 'Earnest completionist',
+    // The Completionist fields every team it can, and teamQuality seeds a
+    // bracket (systems/athletics/playoffs.ts); a title may take decades.
+    player: 'Completionist',
     year: 40,
     stopWhen: atModal('championship'),
   },
   {
     name: 'athletic-director',
     what: 'the three AD candidates, nobody hired yet',
-    strategy: 'Completionist',
+    player: 'Completionist',
     year: 30,
     stopWhen: atModal('athletic-director'),
   },
   {
     name: 'research-report',
     what: 'an initiative concluding — the run\'s most frequent interrupt',
-    strategy: 'Completionist',
+    player: 'Completionist',
     year: 30,
     stopWhen: atModal('research-complete'),
   },
   {
     name: 'decision-event',
     what: 'an authored decision event, unanswered',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 15,
     stopWhen: atModal('decision-event'),
   },
   {
-    // The recovery scenario: a balanced school's fifteenth year, broken (see
-    // intoCrisis). test/balance-regression.test.ts asks whether correct play
-    // gets it out: satisfaction back above 60 and prestige climbing by year 25.
+    // The recovery scenario: the guided player's fifteenth year, broken (see
+    // intoCrisis). test/archetypes.test.ts asks whether correct play gets it
+    // out.
     name: 'crisis',
     what: 'year 15 in the hole — satisfaction in the thirties, a body it cannot serve, cash gone, standing falling',
-    strategy: 'Balanced builder',
+    player: 'Guided',
     year: 15,
     mutate: intoCrisis,
   },
   {
     name: 'demand',
-    what: 'a student demand on the clock — the strategy that earns them',
+    what: 'a student demand on the clock — the player that earns them',
     // The overbuilder builds only beds, so its satisfaction falls far enough
     // to raise demands.
-    strategy: 'Overbuilder',
+    player: 'Completionist',
     year: 40,
     stopWhen: atModal('demand'),
   },

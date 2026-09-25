@@ -7,8 +7,8 @@ import { eventById } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 
 // ---------------------------------------------------------------------
-// How a modal is answered when nobody is looking. The balance harness
-// (sim/balanceSim.ts) and the debug panel's Jump (DebugPanel.tsx) both
+// How a modal is answered when nobody is looking. The harness
+// (sim/harness/game.ts) and the debug panel's Jump (DebugPanel.tsx) both
 // fast-forward through a run, and both ask here so their runs match.
 // Returns an action rather than mutating: the reducer stays the one
 // interpreter.

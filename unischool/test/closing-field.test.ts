@@ -27,8 +27,8 @@ import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
 
-// The field's drift rolls dice; pinned to one stream (the sim's own LCG,
-// sim/balanceSim.ts) so the claims below are about the model and not the
+// The field's drift rolls dice; pinned to one stream (the harness's
+// default seed) so the claims below are about the model and not the
 // weather. A claim that only holds on some streams is not pinned here.
 bindScriptStream(12345);
 

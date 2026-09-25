@@ -186,22 +186,10 @@ export function instructionCostPerStudent(s: GameState): number {
   return enrolled <= 0 ? 0 : instructionDetail(s).cost / enrolled;
 }
 
-// The same reading with `extra` more courses offered, for a strategy asking
-// whether the next course still pays (sim/balanceSim.ts).
-export function instructionCostPerStudentWith(s: GameState, extra: number): number {
-  const enrolled = totalEnrolled(s.students);
-  if (enrolled <= 0) return 0;
-  const courses = taughtCourses(s) + extra;
-  if (courses <= 0) return 0;
-  const perCourse = (enrolled * COURSES_PER_STUDENT) / courses;
-  const sectionsPerCourse = Math.max(1, Math.min(MAX_SECTIONS_PER_COURSE, Math.ceil(perCourse / SECTION_SIZE)));
-  return (courses * sectionsPerCourse * SECTION_COST * marketRateMultiplier(s.self.reputation)) / enrolled;
-}
-
 // What the next `extra` students would add to the running costs, per student
 // per week (Plan 36): instruction, services and the cost of being large, at
 // today's rates and catalog. Read by the summer's projection, the
-// Treasury's chart and the harness's sensible strategies (sim/balanceSim.ts).
+// Treasury's chart.
 export function marginalStudentCost(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK, at = totalEnrolled(s.students)): number {
   const rate = marketRateMultiplier(s.self.reputation);
   const courses = taughtCourses(s);

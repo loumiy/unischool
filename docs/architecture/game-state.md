@@ -58,7 +58,7 @@ discarding safe enough to be the rule.
 migration. The game is in development and is not deployed anywhere: there is no
 build anyone else is playing, and every save that exists is sitting in a
 developer's own browser, so a discarded one costs a single in-progress test run
-and nothing else. `sim/balanceSim.ts` reproduces forty-year runs headlessly and
+and nothing else. The harness (`sim/harness/`) reproduces fifty-year runs headlessly and
 `npm run scenario` stands the game up at any named state, which is what most
 "but I'd lose the run" instincts actually want.
 

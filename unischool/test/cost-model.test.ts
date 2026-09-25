@@ -12,7 +12,7 @@
 import { createInitialState } from '../src/state/actions';
 import {
   COURSES_PER_STUDENT, SECTION_COST, SECTION_SIZE, SERVICES_PER_STUDENT_PER_WEEK,
-  facultyPay, financeBreakdown, instructionCostPerStudent, instructionCostPerStudentWith, instructionDetail,
+  facultyPay, financeBreakdown, instructionCostPerStudent, instructionDetail,
 } from '../src/systems/finance/financeSystem';
 import { marketRateMultiplier } from '../src/data/facultyData';
 import { SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
@@ -114,9 +114,6 @@ console.log('cost model tests');
   const full = instructionDetail(crowded);
   assert(full.sectionsPerCourse === maxSections && full.fill === 1 && full.overflow === 0, 'at the ceiling the catalog is exactly full');
 
-  // The projection with more courses is the same model.
-  assert(near(instructionCostPerStudentWith(s, 0), instructionCostPerStudent(s)), 'zero extra courses is today\'s figure');
-  assert(instructionCostPerStudentWith(big, 10) > instructionCostPerStudent(big), 'another empty course costs more per student');
 }
 
 // ---- services per student ----
