@@ -357,7 +357,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
       onDrop={dnd && legalTarget ? (e) => { e.preventDefault(); dnd.onDrop(t.id); } : undefined}
     >
       <span className="cell-code">{code}</span>
-      <span className="cell-title">{title}</span>
+      <span className="cell-title" title={title}>{title}</span>
       {ahead && (
         <span className="cell-next">
           {moneyShort(t.cost)}
@@ -982,6 +982,7 @@ function FilterBar(
         id="curriculum-search"
         type="search"
         className="curriculum-search"
+        aria-label="Search courses"
         placeholder="Search courses…"
         value={filters.query}
         onChange={(e) => onChange({ ...filters, query: e.target.value })}
@@ -989,6 +990,7 @@ function FilterBar(
       <select
         id="curriculum-status"
         className="curriculum-select"
+        aria-label="Filter by status"
         value={filters.status}
         onChange={(e) => onChange({ ...filters, status: e.target.value as StatusFilter })}
       >

@@ -228,6 +228,9 @@ export default function App() {
     }
     setBuildOpenState(true);
     setOverlay(null);
+    // The build menu and the log popups share the bottom-left corner.
+    setLogOpen(false);
+    setLadderOpen(false);
   }
 
   // The opening walkthrough drives the shell (see state/opening.ts). Each
@@ -321,18 +324,24 @@ export default function App() {
               (Plan 34: one notification system, V1-34). */}
           {!overlay && (
             <>
-              <MilestoneNote s={s} act={act} />
-              <BoardLetter s={s} act={act} />
-              <DemandNote s={s} act={act} />
+              {/* The left-hand notes wait while a building's panel holds
+                  that side of the screen. */}
+              {inspectedId === null && (
+                <>
+                  <MilestoneNote s={s} act={act} />
+                  <BoardLetter s={s} act={act} />
+                  <DemandNote s={s} act={act} />
+                </>
+              )}
               <EventPanel s={s} act={act} />
             </>
           )}
           <LogTicker
             s={s}
             open={logOpen}
-            onSetOpen={(o) => { setLogOpen(o); if (o) setLadderOpen(false); }}
+            onSetOpen={(o) => { setLogOpen(o); if (o) { setLadderOpen(false); closeBuild(); } }}
             ladderOpen={ladderOpen}
-            onSetLadderOpen={(o) => { setLadderOpen(o); if (o) setLogOpen(false); }}
+            onSetLadderOpen={(o) => { setLadderOpen(o); if (o) { setLogOpen(false); closeBuild(); } }}
             onGo={(go) => { if (go === 'build') setBuildOpen(true); else if (go === 'campus') openTab(null); else openTab(go); }}
             mapHidden={overlay !== null}
           />

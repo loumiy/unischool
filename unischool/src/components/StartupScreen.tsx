@@ -339,6 +339,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         <h1>Name your school</h1>
         <input
           className="startup-name"
+          aria-label="The college's name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}

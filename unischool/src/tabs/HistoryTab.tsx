@@ -164,7 +164,7 @@ function StandingPanel({ s }: { s: GameState }) {
         <h2>Standing</h2>
         <HelpHint
           align="end"
-          text="Each standing is a stock. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A red bar is a penalty."
+          text="Each standing is a stock. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted."
         />
       </div>
       <div className="standings">

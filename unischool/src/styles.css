@@ -167,7 +167,7 @@ button { cursor: pointer; font-family: inherit; }
 .stat-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .stat-value { font-family: var(--display); font-size: var(--text-md); font-weight: 800; color: var(--ink); line-height: 1; }
 /* The one monospace readout, so digits hold their columns as it ticks. */
-.toolbar-funds-btn .stat-value { font-family: var(--mono); font-size: 22px; letter-spacing: -0.01em; color: var(--ink-hi); }
+.toolbar-funds-btn .stat-value { font-family: var(--mono); font-size: calc(22px * var(--text-scale)); letter-spacing: -0.01em; color: var(--ink-hi); }
 .stat-value.money { color: var(--ink-hi); }
 .stat-value.money-negative { color: var(--bad-on-dark); }
 .stat-value.gold { color: var(--ink); }
@@ -312,7 +312,7 @@ button { cursor: pointer; font-family: inherit; }
 
 /* Alert badge (types.ts's SeenState); every host is position: relative. */
 .alert-badge { position: absolute; top: -3px; right: -3px; width: 15px; height: 15px; border-radius: 50%;
-  background: #c23b3b; color: #fff; border: 2px solid var(--cream);
+  background: var(--danger-ink); color: #fff; border: 2px solid var(--cream);
   font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; line-height: 1;
   display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
@@ -670,7 +670,7 @@ button.build-tile { font-family: inherit; }
 .campus-preview.blocked { stroke: #b4544a; fill: rgba(180, 84, 74, 0.18); stroke-dasharray: 4 3; }
 /* Why a site is refused (reach.ts's siteRefusal), beside the pointer. */
 .campus-map-why { position: absolute; transform: translate(16px, 14px); pointer-events: none; padding: 4px 9px; border-radius: 6px;
-  background: #7a2e26; color: #fff6ec; font-size: 13px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+  background: var(--danger-ink); color: #fff6ec; font-size: calc(13px * var(--text-scale)); font-weight: 600; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
 
 .campus-path-ghost { pointer-events: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .campus-path-ghost.draw { stroke: var(--gold); fill: rgba(201, 162, 39, 0.28); }
@@ -961,7 +961,7 @@ button.build-tile { font-family: inherit; }
      + 16px inset + 12px gap. */
   padding-right: 68px; }
 .tab-overlay-head h2 { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.02em;
-  font-size: 32px; line-height: 1; color: var(--ink); }
+  font-size: calc(32px * var(--text-scale)); line-height: 1; color: var(--ink); }
 .tab-overlay-close { background: var(--cream); border: 2px solid var(--outline); color: var(--ink);
   border-radius: var(--radius-pill); padding: 6px 14px; font-size: var(--text-sm); font-family: var(--display); font-weight: 700;
   box-shadow: var(--shadow-1); }
@@ -1050,7 +1050,7 @@ button.build-tile { font-family: inherit; }
 .school-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
   padding: 8px 14px; border-radius: var(--radius-lg); background: var(--school-hue, var(--school-primary)); color: var(--school-on-primary); }
 .school-group-head h3 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); letter-spacing: -0.01em; color: inherit; }
-.school-group-mark { color: inherit; font-size: 22px; line-height: 1; }
+.school-group-mark { color: inherit; font-size: calc(22px * var(--text-scale)); line-height: 1; }
 .school-group-unnamed { font-style: italic; font-weight: 600; color: inherit; opacity: 0.85; }
 .program-rows { display: flex; flex-direction: column; gap: 8px; overflow-x: auto; }
 .program-row { border: 2px solid var(--outline); border-left: 6px solid var(--school-hue, var(--outline));
@@ -1066,7 +1066,9 @@ button.build-tile { font-family: inherit; }
 .program-row-cells.graduate { grid-template-columns: repeat(9, minmax(0, 1fr)); }
 .tier-rule { align-self: stretch; margin: 4px 0; border-left: 2px dotted var(--outline); }
 .program-row-cells .course-cell { min-height: 54px; padding: 5px 6px; }
-.program-row-cells .cell-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* One line in a program row, cut with an ellipsis (the line clamp's box
+   display would swallow it); its tooltip names it in full. */
+.program-row-cells .cell-title { display: block; align-self: stretch; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .course-cell.placeholder { border: 2px dashed var(--parchment-line); border-radius: var(--radius-md); background: transparent; min-height: 54px; }
 /* A developed cell takes its group's --school-hue (see .done above). */
 :is(.school-group, .hall-slot) .course-cell.done .cell-code { opacity: 0.75; }
@@ -1109,7 +1111,7 @@ button.build-tile { font-family: inherit; }
 .prereq-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 .prereq-go { margin-left: auto; opacity: 0; flex: none; }
 .prereq-link:hover .prereq-go, .prereq-link:focus-visible .prereq-go { opacity: 0.7; }
-.prereq-bridge { font-family: var(--display); font-weight: 800; font-size: 10px; text-transform: uppercase;
+.prereq-bridge { font-family: var(--display); font-weight: 800; font-size: calc(10px * var(--text-scale)); text-transform: uppercase;
   letter-spacing: 0.06em; border: 1.5px solid currentColor; border-radius: var(--radius-pill);
   padding: 1px 6px; opacity: 0.8; flex: none; }
 
@@ -1157,11 +1159,11 @@ button.build-tile { font-family: inherit; }
 .scholar-name { font-size: var(--text-sm); font-weight: 600; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scholar-field { font-size: var(--text-xs); font-weight: 600; color: var(--ink-muted); }
-.facility-cross { font-family: var(--display); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+.facility-cross { font-family: var(--display); font-size: calc(10px * var(--text-scale)); text-transform: uppercase; letter-spacing: 0.06em;
   font-weight: 800; color: var(--school-primary); border: 1.5px solid currentColor;
   border-radius: var(--radius-pill); padding: 1px 7px; }
 .scholar-stat { display: grid; grid-template-columns: auto 64px auto; gap: 6px; align-items: center; }
-.scholar-stat-label { font-family: var(--display); font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+.scholar-stat-label { font-family: var(--display); font-weight: 800; font-size: calc(10px * var(--text-scale)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
 .scholar-bar-track { position: relative; height: 7px; border-radius: 4px; background: var(--cream-lo); overflow: hidden; }
 .scholar-bar-headroom { position: absolute; inset: 0 auto 0 0; background: var(--parchment-line); }
 .scholar-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--school-primary); border-radius: 4px; }
@@ -1204,7 +1206,7 @@ button.build-tile { font-family: inherit; }
 .offer-add { border: 2px dashed var(--outline); background: transparent; border-radius: var(--radius-pill);
   padding: 3px 10px; font-size: var(--text-xs); font-weight: 700; font-family: inherit; color: var(--ink); cursor: pointer; }
 .offer-add:hover { border-style: solid; background: var(--cream-hi); box-shadow: var(--shadow-1); }
-.offer-add-field { color: var(--ink-muted); font-size: 10px; font-weight: 600; }
+.offer-add-field { color: var(--ink-muted); font-size: calc(10px * var(--text-scale)); font-weight: 600; }
 .offer-note { margin: 0; font-size: var(--text-xs); font-weight: 600; color: var(--ink-muted); }
 .offer-warning { margin: 0; background: var(--danger-bg); color: var(--danger-ink);
   border: 1px solid var(--danger-line); border-radius: var(--radius-sm); padding: 7px 10px;
@@ -1320,7 +1322,7 @@ button.build-tile { font-family: inherit; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .instructor-option-bars { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
 .instructor-stat { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; align-items: center; }
-.instructor-stat-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+.instructor-stat-label { font-size: calc(10px * var(--text-scale)); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--ink-muted); }
 .instructor-bar-track { position: relative; height: 7px; border-radius: 4px; background: var(--cream-lo); overflow: hidden; }
 .instructor-bar-headroom { position: absolute; inset: 0 auto 0 0; background: var(--parchment-line); }
@@ -1330,7 +1332,7 @@ button.build-tile { font-family: inherit; }
 .instructor-option-load { font-weight: 700; font-size: var(--text-xs); color: var(--ink-muted);
   display: flex; flex-direction: column; align-items: flex-end; text-align: right; line-height: 1.25; }
 .instructor-option-load.full { color: var(--danger-ink); }
-.instructor-load-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; }
+.instructor-load-label { font-size: calc(9px * var(--text-scale)); text-transform: uppercase; letter-spacing: 0.06em; }
 
 .course-drawer-action { width: 100%; padding: 10px 14px; border-radius: var(--radius-pill);
   border: 2px solid var(--outline); background: var(--school-secondary); color: var(--school-on-secondary); font-weight: 800;
@@ -1764,13 +1766,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border-bottom: 4px solid var(--school-secondary); }
 .modal[data-interrupt="milestone"] > h2, .modal[data-interrupt="championship"] > h2, .modal[data-interrupt="rankings-entry"] > h2 {
   background: var(--school-secondary); color: var(--school-on-secondary); border-bottom-color: var(--school-primary);
-  font-size: 34px; padding: 22px 24px 16px; }
+  font-size: calc(34px * var(--text-scale)); padding: 22px 24px 16px; }
 /* An interrupt halts the clock, so the modal scrolls internally to keep its
    resolve button reachable on a short screen. */
 .modal::-webkit-scrollbar { width: 8px; }
 .modal::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: var(--radius-sm); }
 .modal { scrollbar-width: thin; scrollbar-color: var(--navy-line) transparent; }
-.modal h2 { margin: 0 0 10px; font-size: 26px; font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+.modal h2 { margin: 0 0 10px; font-size: calc(26px * var(--text-scale)); font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
 .modal p { margin: 0 0 16px; color: var(--ink); font-size: var(--text-md); line-height: 1.45; }
 /* Primary button (same treatment as .startup-begin-btn). */
 .modal button { background: var(--school-secondary); color: var(--school-on-secondary); border: 2px solid var(--outline); border-radius: var(--radius-pill);
@@ -1781,7 +1783,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .report-headline { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px !important;
   padding: 10px 14px; background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
 .report-headline-detail { font-size: var(--text-base); font-weight: 600; color: var(--ink-muted); }
-.rank-move { font-family: var(--display); font-size: 22px; font-weight: 800; }
+.rank-move { font-family: var(--display); font-size: calc(22px * var(--text-scale)); font-weight: 800; }
 .rank-move.up { color: var(--ok-on-light); }
 .rank-move.down { color: var(--bad-on-light); }
 .rank-move.flat { color: var(--ink-muted); font-size: var(--text-base); }
@@ -1875,7 +1877,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-lock { display: block; margin: 2px 0 18px; }
 
 /* The reveal figure (InterruptModal.tsx's REVEAL_MS): meant to be watched. */
-.figure.reveal > dd { font-size: 28px !important; }
+.figure.reveal > dd { font-size: calc(28px * var(--text-scale)) !important; }
 
 .admissions-prompt { margin: 0 0 16px; }
 
@@ -1893,17 +1895,17 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   align-items: center; justify-content: flex-start; gap: 2px; padding: 8px 3px;
   background: var(--cream); border: 2px solid var(--parchment-line); border-radius: var(--radius-md); }
 /* Reserve two lines for the name so figures align across a row. */
-.cohort-card-label { min-height: 2.3em; width: 100%; font-size: 9px; line-height: 1.15; font-weight: 800;
+.cohort-card-label { min-height: 2.3em; width: 100%; font-size: calc(9px * var(--text-scale)); line-height: 1.15; font-weight: 800;
   text-align: center; overflow-wrap: anywhere; color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: 0.02em; }
 .cohort-card-count { flex: 1; display: flex; align-items: center;
-  font-family: var(--display); font-size: 22px; font-weight: 800; }
+  font-family: var(--display); font-size: calc(22px * var(--text-scale)); font-weight: 800; }
 .cohort-card-count.cohort-up { color: var(--ok-on-light); }
 .cohort-card-count.cohort-down { color: var(--bad-on-light); }
 .cohort-card-count.cohort-flat { color: var(--ink); }
-.cohort-card-count.count-sm { font-size: 17px; }
-.cohort-card-count.count-xs { font-size: 14px; }
-.cohort-card-count.count-xxs { font-size: 12px; }
+.cohort-card-count.count-sm { font-size: calc(17px * var(--text-scale)); }
+.cohort-card-count.count-xs { font-size: calc(14px * var(--text-scale)); }
+.cohort-card-count.count-xxs { font-size: calc(12px * var(--text-scale)); }
 
 /* pointer-events: none so the tooltip can't steal the card's hover. */
 /* Below the card, not above: above would cover the panel's heading. */
@@ -2100,7 +2102,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .startup-card { background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   padding: 32px 36px; max-width: 480px; width: 100%; color: var(--ink); box-shadow: var(--shadow-3); }
 .startup-card .eyebrow { color: var(--school-primary); font-weight: 800; }
-.startup-card h1 { font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; font-size: 32px; margin: 6px 0 20px; }
+.startup-card h1 { font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; font-size: calc(32px * var(--text-scale)); margin: 6px 0 20px; }
 /* The name field; the fixed half of the name is carved into the facade. */
 .startup-name { width: 100%; font-size: var(--text-xl); padding: 10px 12px; border-radius: var(--radius-md);
   border: 1px solid var(--parchment-line); background: #f8f3e6; color: var(--ink); font-family: var(--serif); }
@@ -2235,7 +2237,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .pool-change-parts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--text-sm) !important; font-weight: 700; }
 .pool-change-parts .good { color: var(--ok-on-light); }
 .pool-change-parts .bad { color: var(--bad-on-light); }
-.cohort-card-last { font-size: 9px; font-weight: 700; color: var(--ink-muted); white-space: nowrap; }
+.cohort-card-last { font-size: calc(9px * var(--text-scale)); font-weight: 700; color: var(--ink-muted); white-space: nowrap; }
 
 /* ---------- Modal widths (modalLayout.ts) ----------
    narrow for a decision event, wide for a decision with a panel, page for
@@ -2401,7 +2403,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .pennant { position: fixed; z-index: 11; top: 0; left: 24px; display: flex; flex-direction: column; align-items: stretch;
   max-width: 320px; pointer-events: none; filter: drop-shadow(2px 2px 0 rgba(27, 42, 74, 0.35)); }
 .pennant-body { padding: 16px 22px 12px; background: var(--school-primary); color: var(--school-on-primary); }
-.pennant-name { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.pennant-name { font-family: var(--display); font-weight: 800; font-size: calc(22px * var(--text-scale)); line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .pennant-tail { height: 22px; background: var(--school-primary); clip-path: polygon(0 0, 100% 0, 50% 100%); }
 /* The building panel takes the same corner, so the pennant yields to it
    here (the open building is map-local state, not App's). */
