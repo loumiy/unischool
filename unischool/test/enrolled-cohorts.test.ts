@@ -45,7 +45,6 @@ function sum(c: CohortCounts): number {
 function dismiss(s: GameState, type: string): GameState {
   if (type === 'milestone') return reducer(s, { type: 'RESOLVE_MILESTONE' });
   if (type === 'research-complete') return reducer(s, { type: 'RESOLVE_RESEARCH_REPORT' });
-  if (type === 'demand') return reducer(s, { type: 'RESOLVE_DEMAND' });
   if (type === 'charter') return reducer(s, { type: 'RESOLVE_CHARTER', accept: false });
   if (type === 'decision-event') {
     const payload = s.pendingInterrupt!.payload as { eventId: string; ctx: DecisionEventContext };

@@ -133,7 +133,7 @@ const SCHOOLS: SchoolSeed[] = [
       { prefix: 'ELEC', name: 'Electrical Engineering', field: 'Electrical Engineering', courses: ['Circuits', 'Digital Logic Design', 'Signals & Systems', 'Electromagnetics', 'Microelectronics', 'Power Systems Analysis', 'Wireless Communications', 'Control Systems', 'VLSI Design'] },
       { prefix: 'CHEM', name: 'Chemical Engineering', field: 'Chemistry', courses: ['Principles of Chemical Engineering', 'Chemical Thermodynamics', 'Fluid Transport', 'Material & Energy Balances', 'Chemical Reaction Engineering', 'Process Safety', 'Biochemical Engineering', 'Polymer Science', 'Sustainable Energy Technology'] },
       { prefix: 'CIVE', name: 'Civil Engineering', field: 'Civil Engineering', courses: ['Statics', 'Structural Analysis', 'Soil Mechanics', 'Mechanics of Materials', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning'] },
-      { prefix: 'INDE', name: 'Industrial Engineering', field: 'Operations Research', courses: ['Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering'] },
+      { prefix: 'INDE', name: 'Industrial Engineering', field: 'Operations Research', courses: ['Introduction to Industrial Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering'] },
       { prefix: 'AERO', name: 'Aerospace Engineering', field: 'Physics', courses: ['Introduction to Flight Dynamics', 'Aerodynamics', 'Aircraft Performance', 'Spacecraft Propulsion', 'Aerospace Structures', 'Astrodynamics', 'Rocketry', 'Aircraft Design', 'Unmanned Aerial Systems'] },
     ],
   },
@@ -170,7 +170,7 @@ const SCHOOLS: SchoolSeed[] = [
       // Mathematics is one of the majors the founding offer is rigged toward
       // (programOffers.ts).
       { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods'] },
-      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Biology I', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
+      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Principles of Biology', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
       { prefix: 'CHMY', name: 'Chemistry', field: 'Chemistry', courses: ['General Chemistry', 'Inorganic Chemistry', 'Organic Chemistry', 'Analytical Chemistry', 'Physical Chemistry', 'Biochemistry', 'Spectroscopy & Structure Determination', 'Medicinal Chemistry', 'Computational Chemistry'] },
       { prefix: 'PHYS', name: 'Physics', field: 'Physics', courses: ['Classical Mechanics', 'Electricity & Magnetism', 'Waves & Optics', 'Modern Physics', 'Thermal & Statistical Physics', 'Quantum Mechanics', 'Solid State Physics', 'Astrophysics & Cosmology', 'Particle Physics'] },
       { prefix: 'ENVS', name: 'Environmental Science', field: 'Biology', courses: ['Introduction to Environmental Science', 'Earth Systems & Climate', 'Ecosystem Ecology', 'Environmental Chemistry', 'Geographic Information Systems', 'Conservation Biology', 'Hydrology & Water Resources', 'Atmospheric Science', 'Environmental Policy & Restoration'] },
@@ -308,7 +308,7 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   AERO220: ['MECH120'],           // Rocketry needs thermodynamics
   ELEC130: ['PHYS110'],           // Electromagnetics needs undergraduate electricity & magnetism
   CHEM220: ['CHMY120'],           // Biochemical Engineering needs organic chemistry. Not CHMY210: a capstone in a lab-gated major would make Engineering require the School of Science and its lab (rule 3 above)
-  CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry — "polymer science requires Chemistry II" is already what the tier-3 climb says (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
+  CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry: the tier-3 climb already requires the tier-2 chemistry (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
   CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, an entry course gating on nothing, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
   CIVE220: ['ENVS101'],           // Environmental Impact Assessment needs environmental science
   CIVE230: ['MGMT120'],           // Construction Management needs operations management. Not MGMT210, which requires Management's whole tier-2 quartet and would pull in most of a Business major
@@ -447,7 +447,10 @@ interface GraduateCourseSeed {
 }
 
 export interface GraduateProgramSeed {
-  id: string;              // also the course-code prefix and the `grad-program-complete:` milestone subject
+  id: string;              // the course-id prefix and the `grad-program-complete:` milestone subject
+  // The prefix players read, where the id is padded to four letters
+  // (MBAX, MFAX, LAWS); defaults to the id.
+  code?: string;
   name: string;
   degree: string;          // the credential, for display only
   type: GraduateProgramType;
@@ -496,7 +499,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     ],
   },
   {
-    id: 'LAWS', name: 'School of Law', degree: 'JD', type: 'professional',
+    id: 'LAWS', code: 'LAW', name: 'School of Law', degree: 'JD', type: 'professional',
     homeSchool: 'Social Sciences & Humanities', gateSchools: ['Social Sciences & Humanities'],
     prestigeWeight: 1.6,
     gateMajorsRequired: 5,
@@ -513,7 +516,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     ],
   },
   {
-    id: 'MBAX', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
+    id: 'MBAX', code: 'MBA', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
     homeSchool: 'Business', gateSchools: ['Business'],
     prestigeWeight: 1.4,
     gateMajorsRequired: 5,
@@ -591,7 +594,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     // facility gate (the Media Production Studio), the lower cost, and a
     // research credit that fits, since the studio already counts exhibited
     // work as research (researchData.ts's DISCIPLINE_VOCAB).
-    id: 'MFAX', name: 'Master of Fine Arts', degree: 'MFA', type: 'doctoral',
+    id: 'MFAX', code: 'MFA', name: 'Master of Fine Arts', degree: 'MFA', type: 'doctoral',
     homeSchool: 'Arts & Media', gateSchools: ['Arts & Media'],
     prestigeWeight: 1.0,
     blurb: 'the MFA program',
@@ -839,10 +842,10 @@ export function initialTech(): Buildable[] {
         id,
         kind: 'course',
         graduateProgram: program.id,
-        name: `${program.id} ${course.num} · ${course.title}`,
+        name: `${program.code ?? program.id} ${course.num} · ${course.title}`,
         description: i === 0
-          ? `Founds ${program.blurb} (${program.degree}). Offered once ${graduateGateDescription(program)}; takes a hall slot like any program.`
-          : `${program.degree} coursework in ${course.title}, taught inside ${program.name}.`,
+          ? `Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}. Offered once ${graduateGateDescription(program)}; takes a hall slot like any program.`
+          : `${program.degree} coursework in ${course.title}, part of the ${program.name}.`,
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
         duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
         prereqs,

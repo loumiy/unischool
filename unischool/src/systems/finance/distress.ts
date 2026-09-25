@@ -79,10 +79,6 @@ export function borrowingAllowed(s: GameState): boolean {
   return rungOf(s) < RUNG_FREEZE;
 }
 
-export function inReceivership(s: GameState): boolean {
-  return rungOf(s) === RUNG_RECEIVERSHIP;
-}
-
 // Under austerity and receivership the board holds the tuition where it is:
 // it may rise, never fall.
 export function tuitionFloor(s: GameState): number {

@@ -36,14 +36,14 @@ function assert(cond: boolean, msg: string): void {
 }
 
 const NOTHING_OPEN: ShellOverlays = {
-  overlayOpen: false, buildOpen: false, logOpen: false, interrupted: false,
+  overlayOpen: false, buildOpen: false, logOpen: false, interrupted: false, frontUp: false,
 };
 const open = (o: Partial<ShellOverlays>): ShellOverlays => ({ ...NOTHING_OPEN, ...o });
 
-// All sixteen states the shell can be in, so the claims below are made over
+// All thirty-two states the shell can be in, so the claims below are made over
 // the whole space rather than over the four cases somebody thought of.
-const FLAGS = ['overlayOpen', 'buildOpen', 'logOpen', 'interrupted'] as const;
-const ALL: ShellOverlays[] = Array.from({ length: 16 }, (_, mask) =>
+const FLAGS = ['overlayOpen', 'buildOpen', 'logOpen', 'interrupted', 'frontUp'] as const;
+const ALL: ShellOverlays[] = Array.from({ length: 1 << FLAGS.length }, (_, mask) =>
   open(Object.fromEntries(FLAGS.map((f, i) => [f, (mask & (1 << i)) !== 0]))));
 const describe = (o: ShellOverlays) => FLAGS.filter((f) => o[f]).join('+') || 'nothing open';
 
@@ -70,13 +70,13 @@ console.log('hotkey gate tests');
 
 // --- the two rules differ on the build popup, and on nothing else ------
 {
-  // The load-bearing claim. Stated as an implication over all sixteen
+  // The load-bearing claim. Stated as an implication over all thirty-two
   // states: wherever the two answers disagree, the build popup is the only
   // thing that is open.
   const disagree = ALL.filter((o) => mapBackOutLive(o) !== mapControlsLive(o));
   assert(disagree.length > 0, 'the two rules are not the same boolean wearing two names');
   const onlyBuild = disagree.every(
-    (o) => o.buildOpen && !o.overlayOpen && !o.logOpen && !o.interrupted,
+    (o) => o.buildOpen && !o.overlayOpen && !o.logOpen && !o.interrupted && !o.frontUp,
   );
   assert(
     onlyBuild,
@@ -95,8 +95,9 @@ console.log('hotkey gate tests');
 {
   // A full-screen tab covers the map, the log popup owns the keyboard, and
   // an interrupt has halted the clock and must be answered. None of those
-  // is a state to be rotating a building in.
-  for (const flag of ['overlayOpen', 'logOpen', 'interrupted'] as const) {
+  // is a state to be rotating a building in. Nor is a front screen (the
+  // title, hall, settings or credits), which covers the whole game.
+  for (const flag of ['overlayOpen', 'logOpen', 'interrupted', 'frontUp'] as const) {
     const o = open({ [flag]: true });
     assert(!mapBackOutLive(o), `${flag} closes Escape`);
     assert(!mapControlsLive(o), `${flag} closes the map's controls too`);

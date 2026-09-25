@@ -571,6 +571,9 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         },
         cost: () => 0,
         apply: (s, ctx) => {
+          // A housed chapter's beds go with its house (they were added
+          // straight to capacity when it was housed).
+          if (findChapter(s, ctx.subjectId)?.housed) s.students.capacity = Math.max(0, s.students.capacity - CHAPTER_HOUSE_CAPACITY_BONUS);
           s.orgs.chapters = s.orgs.chapters.filter((c) => c.id !== ctx.subjectId);
           if (ctx.subjectId) removeChapterHouse(s, ctx.subjectId);
           return entry(s, `${ctx.subjectName} has been dissolved and its charter withdrawn.`, 'bad');

@@ -6,7 +6,8 @@ import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import {
   athleticsSocialBonus, CHAPTER_HOUSE_CAPACITY_BONUS, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
 } from '../../data/studentLifeData';
-import { servingPopulation, totalEnrolled } from '../../state/types';
+import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
+import { extensionGain } from '../estate/estate';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
@@ -38,7 +39,7 @@ const ATTRIBUTE_SCORE_FLOOR = 12;
 // Social at 0.34: a maxed student center + rec center (8,700) covers only
 // ~25,600 enrolled, so growing schools must lean on the quad and student
 // life. Intended; do not raise it. Housing at 0.35: commuting is the norm.
-const TARGET_RATIO: SatisfactionAttributes = {
+export const TARGET_RATIO: SatisfactionAttributes = {
   academic: 0.15,
   social: 0.34,
   basicNeeds: 1.0,
@@ -205,13 +206,19 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   const enrolled = totalEnrolled(s.students);
   const dormant = attribute === 'health' && enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE;
 
-  // Housing contributors are reconstructed (done dorms plus housed chapters)
-  // because s.students.capacity is a single accumulated number.
+  // Housing contributors are reconstructed because s.students.capacity is a
+  // single accumulated number: every standing building's beds (dorms, and
+  // anything else built with beds), a dorm's added storeys, and housed
+  // chapters. The same terms demolition.ts takes back off, so the drawer
+  // adds up to the capacity.
   const contributors = attribute === 'housing'
     ? [
         ...s.tech
-          .filter((t) => t.kind === 'dorm' && t.status === 'done' && (t.effects?.capacityBonus ?? 0) > 0)
-          .map((t) => ({ label: t.name, value: t.effects!.capacityBonus! })),
+          .filter((t) => standsOnCampus(t) && (t.effects?.capacityBonus ?? 0) > 0)
+          .map((t) => ({
+            label: t.name,
+            value: t.effects!.capacityBonus! + (t.kind === 'dorm' ? (t.floorsAdded ?? 0) * extensionGain(t) : 0),
+          })),
         ...s.orgs.chapters
           .filter((c) => c.housed)
           .map((c) => ({ label: `${c.name} House`, value: CHAPTER_HOUSE_CAPACITY_BONUS })),

@@ -76,9 +76,9 @@ function FacultyCard(
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
   const load = isCandidate ? 0 : facultyLoad(s, f.id);
   const projected = isCandidate && waiting ? projectedQuality(s, waiting, f) : null;
-  // A listing shows what this school would pay: the market rate is applied
-  // at payroll (financeSystem.ts's facultyPay).
-  const pay = isCandidate ? facultyPay(s, f.salary) : f.salary;
+  // Every card shows what this school pays, listing or roster: the market
+  // rate is applied at payroll (financeSystem.ts's facultyPay).
+  const pay = facultyPay(s, f.salary);
   const quirk = quirkById(f.quirk);
 
   return (
@@ -124,7 +124,7 @@ function FacultyCard(
             <StatBar label="R" value={f.research} potential={f.researchPotential} />
           </div>
           <div className="faculty-card-foot">
-            <span className="faculty-card-salary" title={isCandidate ? `Asks ${money(f.salary)}; this school pays ${money(pay)} at its market rate` : undefined}>{moneyShort(pay)}/yr</span>
+            <span className="faculty-card-salary" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}; this school pays ${money(pay)} at its market rate`}>{moneyShort(pay)}/yr</span>
             {isCandidate ? (
               <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>withdraws in {weeksLeft}w</span>
             ) : (
@@ -150,24 +150,29 @@ function FacultyCard(
               <button
                 className={confirmingDismiss ? 'dismiss-confirm' : undefined}
                 onClick={() => {
-                  if (!confirmingDismiss && taught.length > 0) { setConfirmingDismiss(true); return; }
+                  if (!confirmingDismiss && (taught.length > 0 || commitment)) { setConfirmingDismiss(true); return; }
                   act({ type: 'FIRE_FACULTY', facultyId: f.id });
                 }}
                 onBlur={() => setConfirmingDismiss(false)}
               >
-                {confirmingDismiss ? 'Confirm — leave them unstaffed' : 'Dismiss'}
+                {confirmingDismiss ? (taught.length > 0 ? 'Confirm — leave them unstaffed' : 'Confirm — dismiss') : 'Dismiss'}
               </button>
             )}
           </div>
         </div>
       </div>
       {/* Dismissing someone orphans their courses (see the reducer's
-          FIRE_FACULTY), so the second click is preceded by a named warning.
-          Someone teaching nothing is dismissed on the first click. */}
-      {confirmingDismiss && taught.length > 0 && (
+          FIRE_FACULTY) and leaves any research team one short, so the
+          second click is preceded by a named warning. Someone teaching
+          nothing and on no project is dismissed on the first click. */}
+      {confirmingDismiss && (taught.length > 0 || commitment) && (
         <p className="faculty-dismiss-warning">
-          {f.name} teaches {taught.length} {taught.length === 1 ? 'course' : 'courses'}, which will be left
-          without an instructor: {taught.map((c) => c.name.split(' · ')[0]).join(', ')}.
+          {taught.length > 0 && <>
+            {f.name} teaches {taught.length} {taught.length === 1 ? 'course' : 'courses'}, which will be left
+            without an instructor: {taught.map((c) => c.name.split(' · ')[0]).join(', ')}.
+          </>}
+          {taught.length > 0 && commitment && ' '}
+          {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
         </p>
       )}
       {open && (

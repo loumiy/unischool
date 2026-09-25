@@ -19,11 +19,13 @@ export default function MainMenu({ act, onHall, onSettings, onTitle }: {
 
   useEffect(() => {
     if (!open) return;
+    // Captured and stopped, so the Escape that closes the menu closes
+    // nothing else (App.tsx's ladder and the map listen on window).
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setOpen(false); setConfirmingNewGame(false); }
+      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); setConfirmingNewGame(false); }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [open]);
 
   function close() {

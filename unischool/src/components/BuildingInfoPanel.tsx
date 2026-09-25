@@ -524,15 +524,8 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
   // ("program:<id>") — the targets CurriculumTab.tsx accepts.
   onOpenCurriculum?: (sectionKey: string) => void;
 }) {
-  // Escape closes the panel; binds only while mounted.
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
-
+  // Escape is not bound here: CampusMap.tsx's back-out closes the panel,
+  // in its turn after App.tsx's ladder, so one press never closes two things.
   // A developing building's effects are what it will grant once finished,
   // and the info below reads them either way, so this banner keeps it from
   // reading as already standing.

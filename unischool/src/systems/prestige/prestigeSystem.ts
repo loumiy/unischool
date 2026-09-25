@@ -10,7 +10,7 @@ import { teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
 import { athleticProgramStrength, sportEconomics, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
-import { attributeCoverage } from '../satisfaction/satisfactionSystem';
+import { TARGET_RATIO, attributeCoverage } from '../satisfaction/satisfactionSystem';
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
 import { isSchoolFounded } from '../techtree/schools';
 import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
@@ -125,10 +125,9 @@ function studentQualityScore(s: GameState): number {
   return clamp01(s.students.incomingQuality / 100);
 }
 
-// Library adequacy: a floored multiplier on curriculum breadth. The ratio
-// matches satisfactionSystem.ts's academic target, kept equal rather than
-// imported because systems don't call into each other.
-const LIBRARY_TARGET_RATIO = 0.15;
+// Library adequacy: a floored multiplier on curriculum breadth, against
+// satisfactionSystem.ts's academic target (before rising expectations).
+const LIBRARY_TARGET_RATIO = TARGET_RATIO.academic;
 const LIBRARY_ADEQUACY_FLOOR = 0.4;
 function libraryAdequacyScore(s: GameState): number {
   const enrolled = totalEnrolled(s.students);

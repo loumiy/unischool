@@ -231,7 +231,7 @@ export interface SportDefinition {
   economics: SportEconomics;
 }
 
-// One entry per (sport, fielded gender): 18 in all.
+// One entry per (sport, fielded gender): 20 in all.
 export const SPORTS: readonly SportDefinition[] = SPORT_PROFILES.flatMap((profile) =>
   profile.genders.map((gender) => {
     const name = sportDisplayName(profile, gender);

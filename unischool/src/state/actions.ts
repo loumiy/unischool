@@ -55,7 +55,9 @@ export type Action =
   // `guided`: a human founding, with the opening walkthrough (state/opening.ts).
   | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean; seed?: number }
   | { type: 'ADVANCE_OPENING' }
-  | { type: 'SKIP_OPENING' }
+  // `keepLetters`: skipping from a mid-walk card leaves the first year's
+  // letters on; the welcome's decline turns them off too.
+  | { type: 'SKIP_OPENING'; keepLetters?: boolean }
   // Courses only; placeables use PLACE_BUILDABLE. `facultyId` is omitted only
   // by the headless sim, letting the engine pick the strongest eligible teacher.
   | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
@@ -141,7 +143,6 @@ export type Action =
   | { type: 'RESOLVE_RESEARCH_REPORT' }
   // A demand is answered only by building what it asks for before the
   // deadline; there is deliberately no accept/refuse.
-  | { type: 'RESOLVE_DEMAND' }
   // The one-time College -> University charter offer; cosmetic.
   | { type: 'RESOLVE_CHARTER'; accept: boolean }
   // `candidate` is the whole person: they exist only in the interrupt
@@ -358,35 +359,35 @@ function foundState(
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(82, FOUNDING_TENURE_WEEKS), grownStat(78, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'United States', flag: '🇺🇸', gender: 'female', heritage: 'Hispanic/Latin American',
-        bio: 'Earned a doctorate in Sociology at Ravensmoor Institute; research centers on social networks and urban communities.',
+        bio: 'Earned a doctorate in Sociology at Ravensmoor Institute; research centres on social networks and urban communities.',
       },
       {
         id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(88, FOUNDING_TENURE_WEEKS), grownStat(68, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
-        bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
+        bio: 'Earned a doctorate in History at the University of Calderwood; research centres on maritime trade networks.',
       },
       {
         id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: grownStat(85, FOUNDING_TENURE_WEEKS), research: grownStat(72, FOUNDING_TENURE_WEEKS), teachingPotential: 85, researchPotential: 72,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(85, FOUNDING_TENURE_WEEKS), grownStat(72, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 3,
         nationality: 'United Kingdom', flag: '🇬🇧', gender: 'female', heritage: 'Anglo/Western European',
-        bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
+        bio: 'Earned a doctorate in English at Marchmont University; research centres on rhetoric and composition.',
       },
       {
         id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: grownStat(80, FOUNDING_TENURE_WEEKS), research: grownStat(79, FOUNDING_TENURE_WEEKS), teachingPotential: 80, researchPotential: 79,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(80, FOUNDING_TENURE_WEEKS), grownStat(79, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'India', flag: '🇮🇳', gender: 'female', heritage: 'South Asian',
-        bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
+        bio: 'Earned a doctorate in Mathematics at Ironwood University; research centres on numerical analysis.',
       },
       {
         id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: grownStat(83, FOUNDING_TENURE_WEEKS), research: grownStat(71, FOUNDING_TENURE_WEEKS), teachingPotential: 83, researchPotential: 71,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(83, FOUNDING_TENURE_WEEKS), grownStat(71, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Poland', flag: '🇵🇱', gender: 'female', heritage: 'Slavic/Eastern European',
-        bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
+        bio: 'Earned a doctorate in Philosophy at Amberfield University; research centres on ethics and moral philosophy.',
       },
     ],
     tech,

@@ -18,7 +18,7 @@ export default function TabOverlay({ title, onClose, children }: {
       <div className="tab-overlay-head">
         <h2>{title}</h2>
         <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
-          close ✕
+          Close ✕
         </button>
       </div>
       <div className="tab-overlay-body">{children}</div>

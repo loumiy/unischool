@@ -5,13 +5,14 @@ import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
 import { EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
+import { BOARD_LETTERS } from '../data/boardData';
 import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
-import { CAMPUS_GRID_WIDTH } from './types';
+import { CAMPUS_GRID_WIDTH, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
 import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
@@ -192,7 +193,10 @@ function sanitizeDistress(state: GameState): void {
       && Array.isArray(x.letters) && x.letters.every((l) => typeof l === 'string')
       && Array.isArray(x.scars) && x.scars.every((y) => Number.isInteger(y));
   })();
-  if (!ok) delete state.finance.distress;
+  if (!ok) { delete state.finance.distress; return; }
+  // A letter the game no longer has would sit first in the queue unshown
+  // and hold every later letter behind it.
+  state.finance.distress!.letters = state.finance.distress!.letters.filter((id) => id in BOARD_LETTERS);
 }
 
 function sanitizeEstate(state: GameState): void {
@@ -279,7 +283,7 @@ const KNOWN_SPORT_IDS: ReadonlySet<string> = new Set(SPORTS.map((sp) => sp.id));
 //   - an unknown venueCategory: dropped.
 //   - a sport that isn't a real sport+gender id: dropped (venueCategory
 //     can't catch this; it's never re-derived from `sport`).
-//   - 'active' with a venue that isn't 'done': reset to 'awaitingVenue',
+//   - 'active' with no standing venue (standsOnCampus): reset to 'awaitingVenue',
 //     since the team, coach and upkeep are still real.
 function sanitizeTeams(state: GameState): void {
   if (!Array.isArray(state.orgs?.teams)) {
@@ -291,8 +295,10 @@ function sanitizeTeams(state: GameState): void {
   );
   for (const team of state.orgs.teams) {
     if (team.status !== 'active') continue;
-    const venue = state.tech.find((t) => t.kind === 'facility' && t.facilityType === team.venueCategory);
-    if (venue?.status !== 'done') team.status = 'awaitingVenue';
+    // A venue open through an expansion still stands: saving mid-expansion
+    // used to demote every team of its sport on load.
+    const stands = state.tech.some((t) => t.kind === 'facility' && t.facilityType === team.venueCategory && standsOnCampus(t));
+    if (!stands) team.status = 'awaitingVenue';
   }
 }
 
@@ -609,10 +615,6 @@ export function loadGame(): GameState | null {
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);
   sanitizePromises(state);
-  // The achievements and the legacy (retired in Plan 33) are dropped from
-  // older saves.
-  delete (state as unknown as { ambitions?: unknown }).ambitions;
-  delete (state.self as unknown as { legacy?: unknown }).legacy;
   sanitizeEnding(state);
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;

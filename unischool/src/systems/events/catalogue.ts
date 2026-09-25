@@ -13,6 +13,7 @@ import { distressOf, foundingDistress } from '../finance/distress';
 import { debtOutstanding, drawRate, loanPayment } from '../finance/treasury';
 import { financeBreakdown } from '../finance/financeSystem';
 import { seatPayroll } from '../delegation/seats';
+import { warmthOf } from '../alumni/giving';
 import { collegeRival, mainSport } from '../rivals/collegeRival';
 import { playerRank } from '../rivals/rivalsSystem';
 import { milestoneSchools, programById } from '../../data/techData';
@@ -64,7 +65,8 @@ function housedPrograms(s: GameState): string[] {
 function alumniCount(s: GameState): number { return (s.alumni ?? []).reduce((t, a) => t + a.size, 0); }
 function meanWarmth(s: GameState): number {
   const a = s.alumni ?? [];
-  return a.length === 0 ? 50 : a.reduce((t, c) => t + c.warmth + c.nudged, 0) / a.length;
+  // Each class's warmth as giving reads it, capped (giving.ts's warmthOf).
+  return a.length === 0 ? 50 : a.reduce((t, c) => t + warmthOf(c), 0) / a.length;
 }
 // How deep into winter the week is, 0 to 1: this game's winter runs from
 // week 44 to week 8 and is deepest at the turn of the year.

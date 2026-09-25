@@ -8,6 +8,7 @@ import { milestoneSchools, programs } from '../../data/techData';
 import { marketRateMultiplier, rollCoachName } from '../../data/facultyData';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { isSchoolFounded } from '../techtree/schools';
+import { leaveFaculty } from '../faculty/facultySystem';
 import { random } from '../../engine/random';
 import type { DecisionEvent, DecisionEventContext } from '../../data/eventData';
 import { offeredChoices } from '../../data/eventData';
@@ -71,9 +72,7 @@ export function appointSeat(s: GameState, seatId: string, school: string | null,
   if (facultyId !== undefined) {
     const f = s.faculty.find((x) => x.id === facultyId)!;
     holder = f.name;
-    const orphaned = s.tech.filter((t) => s.courseFaculty[t.id] === f.id && (t.status === 'developing' || t.status === 'done'));
-    for (const course of orphaned) delete s.courseFaculty[course.id];
-    s.faculty = s.faculty.filter((x) => x.id !== f.id);
+    const orphaned = leaveFaculty(s, f);
     s.log.unshift({
       year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'departure', subject: f.id,
       message: `${f.name} leaves the classroom to become ${title}.${orphaned.length > 0 ? ` ${orphaned.length} ${orphaned.length === 1 ? 'course waits' : 'courses wait'} for a new instructor in ${f.field}.` : ''}`,

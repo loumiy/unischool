@@ -317,6 +317,19 @@ export interface CapitalProject {
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 
+// Finished courses, counted off `tech` so no copy can drift: the one
+// count the catalogue, the budget, the ladder and the history all read.
+export function coursesDone(s: { tech: Buildable[] }): number {
+  return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
+}
+
+// Standing: finished, or open through in-place work (a library floor, a
+// venue expansion), which flips it to 'developing' with renovatingFrom set
+// while it stays in use. A first construction does not stand.
+export function standsOnCampus(t: Buildable): boolean {
+  return t.status === 'done' || (t.status === 'developing' && t.renovatingFrom !== undefined);
+}
+
 // What a Buildable serves right now: full when done, nothing before it
 // opens, its pre-renovation figure while renovating. Shared by every sum
 // and the drawer so they agree.
@@ -869,6 +882,15 @@ export interface ReportCard {
   grades: Record<string, number>;  // input key -> the contribution it was graded
   before: number;                  // prestige the morning of the report
   after: number;                   // prestige after the step
+}
+
+// The half of the name the player writes: a trailing "College" or
+// "University" typed into it is dropped, since the game supplies the suffix
+// and later changes it (the University charter). Without this, "Blackmoor
+// University" founded as "Blackmoor University College" and chartered as
+// "Blackmoor University University".
+export function bareSchoolName(typed: string): string {
+  return typed.trim().replace(/(\s+(college|university))+$/i, '').trim();
 }
 
 // The full display name; handles an empty suffix without a stray space.

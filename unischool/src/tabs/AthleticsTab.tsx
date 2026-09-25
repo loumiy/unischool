@@ -71,10 +71,10 @@ function StaffRow({ act, team, role }: { act: (a: Action) => void; team: Varsity
       <span className="coach-name">{coach.name}</span>
       <span className="stat">quality {coach.quality}</span>
       <span className="stat">{ceilingLabel(coach)}</span>
-      <span className="stat">{coachProfile(coach).age}</span>
+      <span className="stat">age {coachProfile(coach).age}</span>
       <span className="stat">{money(coach.salary)}/yr</span>
       <span className="coach-row-spacer" />
-      <button type="button" onClick={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}>Release</button>
+      <button type="button" className="coach-release" onClick={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}>Release</button>
     </div>
   );
 }
@@ -160,7 +160,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                 </span>
                 <span className="stat">quality {c.quality}</span>
                 <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a ceiling you cannot quite see'}>
-                  {ceilingLabel(c)} · {coachProfile(c).age}
+                  {ceilingLabel(c)} · age {coachProfile(c).age}
                 </span>
                 <span className="stat">{money(c.salary)}/yr</span>
                 <span className="coach-candidate-listed">

@@ -321,10 +321,6 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   return true;
 }
 
-export function developedCourseCount(s: GameState): number {
-  return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
-}
-
 export function unlockAvailable(s: GameState): void {
   for (const t of s.tech) {
     if (
@@ -588,9 +584,12 @@ export function tickTech(s: GameState): void {
     // First finished, not renovated: the map dates its weathering from here.
     if (node.kind !== 'course' && node.builtYear === undefined) node.builtYear = s.clock.year;
     // A finished renovation serves its new figure (types.ts's servingPopulation).
+    // Its apply-once effects (beds, tuition, applicants, unlocks) were applied
+    // when it was first finished, so only a first finish applies them.
+    const renovated = node.renovatingFrom !== undefined;
     delete node.renovatingFrom;
     delete node.financing;
-    applyEffects(s, node.effects);
+    if (!renovated) applyEffects(s, node.effects);
     openHall(s, node);
     s.log.unshift({
       year: s.clock.year,

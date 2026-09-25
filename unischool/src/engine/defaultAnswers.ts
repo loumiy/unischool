@@ -1,7 +1,7 @@
 import type { Action } from '../state/actions';
 import type { Coach, GameState, SummerPayload } from '../state/types';
 import { SUMMER_LAST_BEAT } from '../state/types';
-import { findDecisionEvent } from '../data/eventData';
+import { findDecisionEvent, offeredChoices } from '../data/eventData';
 import type { DecisionEventContext } from '../data/eventData';
 import { eventById } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
@@ -71,11 +71,6 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
     case 'research-complete':
       return { type: 'RESOLVE_RESEARCH_REPORT' };
 
-    case 'demand':
-      // A demand is answered by BUILDING the thing before the deadline;
-      // the modal itself is only an acknowledgement.
-      return { type: 'RESOLVE_DEMAND' };
-
     case 'charter':
       return { type: 'RESOLVE_CHARTER', accept: true };
 
@@ -115,8 +110,10 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
         // choice anyway, and it can never wedge the clock.
         return { type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} };
       }
-      const affordable = event.choices.find((c) => c.cost(s, payload.ctx) <= s.finance.cash);
-      const choice = affordable ?? event.choices.find((c) => c.cost(s, payload.ctx) <= 0);
+      // The choices actually put to the player (the reducer accepts no other).
+      const offered = offeredChoices(s, event, payload.ctx);
+      const affordable = offered.find((c) => c.cost(s, payload.ctx) <= s.finance.cash);
+      const choice = affordable ?? offered.find((c) => c.cost(s, payload.ctx) <= 0);
       if (!choice) return { type: 'RESOLVE_DECISION_EVENT', eventId: '', choiceId: '', ctx: {} };
       return { type: 'RESOLVE_DECISION_EVENT', eventId: event.id, choiceId: choice.id, ctx: payload.ctx };
     }

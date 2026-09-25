@@ -164,7 +164,7 @@ function StandingPanel({ s }: { s: GameState }) {
         <h2>Standing</h2>
         <HelpHint
           align="end"
-          text="Each standing is a stock. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A red bar is a penalty."
+          text="Each standing is a stock. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted."
         />
       </div>
       <div className="standings">
@@ -191,7 +191,6 @@ function FinalReportPanel({ s }: { s: GameState }) {
           <h2>{REPORT_WORDS.title}</h2>
           <span className="panel-count">{written ? `written in year ${written.year}` : `the arc to year ${s.clock.year}`}</span>
         </div>
-        <HelpHint align="end" text={REPORT_WORDS.markHint} />
       </div>
       {!written && s.clock.year < REPORT_DRAFT_FROM ? (
         <p className="review-empty">{REPORT_WORDS.notYet}</p>
@@ -298,6 +297,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
       <StandingPanel s={s} />
       <FinalReportPanel s={s} />
       <PromisesPanel s={s} />
+      <ChroniclePanel s={s} />
       <section className="panel">
         <div className="panel-head">
           <div className="panel-head-title">
