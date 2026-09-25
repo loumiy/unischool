@@ -4,6 +4,8 @@ import { canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost,
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
+import { teamQuality } from '../data/studentLifeData';
+import { attendanceFor } from '../systems/athletics/gate';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
@@ -74,14 +76,25 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
       {teams.length === 0 ? (
         <p className="building-info-line">No varsity team calls this home yet.</p>
       ) : (
-        <ul className="building-info-majors">
-          {teams.map((team) => (
-            <li key={team.id}>
-              {team.name} — coach {team.headCoach?.name ?? 'vacant'}
-              {team.status === 'awaitingVenue' ? ' (awaiting this venue)' : ''}
-            </li>
-          ))}
-        </ul>
+        // A tile a team that plays here (Plan 60), as a hall shows its
+        // programs: the sport, its quality, its coach, its crowd.
+        <div className="venue-teams">
+          {teams.map((team) => {
+            const quality = teamQuality(team, s);
+            const crowd = attendanceFor(s, team);
+            return (
+              <div key={team.id} className={`venue-team${team.status === 'awaitingVenue' ? ' waiting' : ''}`}>
+                <span className="venue-team-name">{team.name.replace(/ Team$/, '')}</span>
+                <span className="venue-team-meta">
+                  {team.status === 'awaitingVenue'
+                    ? 'awaiting this venue'
+                    : `quality ${quality}${crowd > 0 ? ` · ${crowd.toLocaleString()} a game` : ''}`}
+                </span>
+                <span className="venue-team-coach">{team.headCoach ? `Coach ${team.headCoach.name}` : 'No head coach'}</span>
+              </div>
+            );
+          })}
+        </div>
       )}
     </>
   );

@@ -46,7 +46,8 @@ seconds each, five at most, each a button that opens the tab it is about (see
 right end of the ticker line runs the **next step**: during the scripted first
 year the latest letter's ask until it is done; afterwards a waiting letter's
 ask — unless it has nothing to do this week, when it gives way (Plan 58) —
-then the highest-value thing on offer: a program that can move to its
+then the highest-value thing on offer: a program gone dark that the payroll or
+the market can staff, ahead even of a letter (Plan 60); a program that can move to its
 school's hall (Plan 55), or the next hall to site when a school has no hall
 to move to; a hall with a free slot while programs are offered (an offer's
 own school's hall first), or the next hall when nothing on offer has one; a

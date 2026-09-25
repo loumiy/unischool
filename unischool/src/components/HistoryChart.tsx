@@ -12,8 +12,11 @@ const CHART_PAD_Y = 4; // vertical breathing room so peaks aren't clipped
 
 // `format` renders the end labels and the current-value caption in the
 // series' own units.
-export function HistoryChart({ label, years, values, format, note, span }: {
+export function HistoryChart({ label, years, values, format, note, span, bare = false }: {
   label: string;
+  // Without the caption, when the card around it already names the axis and
+  // its latest value (StandingsPanel.tsx).
+  bare?: boolean;
   years: number[];
   values: number[];
   format: (v: number) => string;
@@ -34,10 +37,12 @@ export function HistoryChart({ label, years, values, format, note, span }: {
 
   return (
     <figure className="history-chart">
-      <figcaption>
-        <span className="history-chart-label">{label}</span>
-        <span className="history-chart-latest">{format(latest)}</span>
-      </figcaption>
+      {!bare && (
+        <figcaption>
+          <span className="history-chart-label">{label}</span>
+          <span className="history-chart-latest">{format(latest)}</span>
+        </figcaption>
+      )}
       <svg
         className="history-chart-svg"
         viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}

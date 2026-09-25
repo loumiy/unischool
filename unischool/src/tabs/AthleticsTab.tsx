@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
+import Figure from '../components/Figure';
 import {
   ATHLETICS_BUDGET_ORDER, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
   VARSITY_PETITION_MIN_TENURE_YEARS, ceilingResolved, coachProfile, departmentPot, orderedTeams, sportById, teamQuality,
@@ -15,7 +16,7 @@ import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/riv
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
 import type { SeasonResult } from '../state/types';
-import { money } from '../format';
+import { money, moneyShort } from '../format';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -45,40 +46,41 @@ function ceilingLabel(c: Coach): string {
 
 type Role = 'head' | 'assistant' | 'trainer';
 const ROLE_LABEL: Record<Role, string> = { head: 'Head Coach', assistant: 'Assistant Coach', trainer: 'Trainer' };
+const ROLE_SHORT: Record<Role, string> = { head: 'Head', assistant: 'Asst', trainer: 'Trainer' };
 const ROLE_ORDER: readonly Role[] = ['head', 'assistant', 'trainer'];
 
 function coachInSlot(team: VarsityTeam, role: Role): Coach | null {
   return role === 'head' ? team.headCoach : role === 'assistant' ? team.assistantCoach : team.trainer;
 }
 
-// One staff role's row: the coach filling it (name, face, quality, salary, a
-// Release button), or a vacancy. Hiring happens in TheMarket below.
+// One staff chair on a program card: the coach filling it (face, name,
+// quality, ceiling, age and salary on one short line, a Release button), or
+// the vacancy. Hiring happens in TheMarket below.
 function StaffRow({ act, team, role }: { act: (a: Action) => void; team: VarsityTeam; role: Role }) {
   const coach = coachInSlot(team, role);
 
   if (!coach) {
     return (
       <div className="coach-row vacant">
-        <span className="coach-role">{ROLE_LABEL[role]}</span>
-        <span className="stat">vacant</span>
+        <span className="coach-role">{ROLE_SHORT[role]}</span>
+        <span className="coach-vacant">vacant — see the market</span>
       </div>
     );
   }
 
   return (
     <div className="coach-row">
-      <FacultyPortrait f={coachPortrait(coach)} size={26} />
-      <span className="coach-role">{ROLE_LABEL[role]}</span>
-      <span className="coach-name">{coach.name}</span>
-      <span className="stat">quality {coach.quality}</span>
-      <span className="stat">{ceilingLabel(coach)}</span>
-      <span className="stat">age {coachProfile(coach).age}</span>
-      <span className="stat">{money(coach.salary)}/yr</span>
-      <span className="coach-row-spacer" />
+      <span className="coach-role">{ROLE_SHORT[role]}</span>
+      <FacultyPortrait f={coachPortrait(coach)} size={22} />
+      <span className="coach-who">
+        <span className="coach-name">{coach.name}</span>
+        <span className="coach-stats">q {coach.quality} · {ceilingLabel(coach)} · age {coachProfile(coach).age} · {moneyShort(coach.salary)}/yr</span>
+      </span>
       <ConfirmButton
         className="coach-release"
-        label="Release"
-        armedLabel="Confirm — release"
+        label="✕"
+        armedLabel="Release"
+        title={`Release ${coach.name}`}
         warning="The chair is left open until someone is hired from the market."
         onConfirm={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}
       />
@@ -157,21 +159,21 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
               {rest.length > 0 && ' There are others listed — see below.'}
             </p>
           )}
-          <ul className="org-list coach-market">
+          <ul className="coach-market">
             {shown.map(({ c, openings }) => (
               <li key={c.id} className={`coach-candidate${openings.length > 0 ? ' wanted' : ''}`}>
-                <FacultyPortrait f={coachPortrait(c)} size={30} />
-                <span className="coach-candidate-who">
-                  <span className="org-name">{c.name}</span>
-                  <span className="coach-candidate-field">{fieldLabel(c.field)}</span>
-                </span>
-                <span className="stat">quality {c.quality}</span>
+                <div className="coach-candidate-top">
+                  <FacultyPortrait f={coachPortrait(c)} size={30} />
+                  <span className="coach-candidate-who">
+                    <span className="org-name">{c.name}</span>
+                    <span className="coach-candidate-field">{fieldLabel(c.field)}</span>
+                  </span>
+                  <span className="coach-candidate-listed">
+                    {Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed)}w left
+                  </span>
+                </div>
                 <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a ceiling you cannot quite see'}>
-                  {ceilingLabel(c)} · age {coachProfile(c).age}
-                </span>
-                <span className="stat">{money(c.salary)}/yr</span>
-                <span className="coach-candidate-listed">
-                  {Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed)}w left
+                  quality {c.quality} · {ceilingLabel(c)} · age {coachProfile(c).age} · {money(c.salary)}/yr
                 </span>
                 <span className="coach-candidate-hire">
                   {openings.length === 0
@@ -205,8 +207,8 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
   );
 }
 
-// The department: director, the teams' name, spend and standing, then the
-// budget dial.
+// The department, in the side column: the director, the two standings the
+// department moves, the subsidy dial and the pot in a few lines.
 function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   const ad = s.orgs.athleticDirector;
@@ -217,61 +219,51 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity Athletics'}</h2>
         <HelpHint
-          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the college's subsidy (the one dial here) plus what the programs earn at the gate. Programs draw their sport's cost to compete off the pot in the order you put them — drag the list — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
+          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the college's subsidy (the one dial here) plus what the programs earn at the gate. Programs draw their sport's cost to compete off the pot in the order you put them — drag the cards — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
         />
       </div>
 
-      <div className="department-grid">
-        {/* The director first; an empty chair means the offer is still coming. */}
-        <div className="department-ad">
-          {ad ? (
-            <>
-              <FacultyPortrait f={coachPortrait(ad)} size={44} />
-              <span className="department-ad-who">
-                <span className="department-ad-name">{ad.name}</span>
-                <span className="department-ad-role">Athletic Director</span>
-              </span>
-              <span className="department-ad-numbers">
-                <span className="stat">quality {ad.quality}</span>
-                <span className="stat">{money(ad.salary)}/yr</span>
-              </span>
-            </>
-          ) : (
-            <p className="empty-note department-ad-empty">
-              No Athletic Director. The trustees will put candidates forward before long.
-            </p>
-          )}
-        </div>
-
-        {/* Two standings: the department's, and campus life, which athletics moves. */}
-        <dl className="department-standings">
-          <div>
-            <dt>Athletic standing</dt>
-            <dd>{active.length > 0 ? <><strong>#{athleticRank(s)}</strong> of {s.rivals.length + 1}</> : <span className="stat">no program yet</span>}</dd>
-          </div>
-          <div>
-            <dt>Campus life</dt>
-            <dd><strong>#{rankBy(s, 'socialStanding')}</strong> of {s.rivals.length + 1}</dd>
-          </div>
-          {/* Championships only once there is one. */}
-          {s.orgs.titles.length > 0 && (
-            <div>
-              <dt>Championships</dt>
-              <dd><strong>{s.orgs.titles.length}</strong></dd>
-            </div>
-          )}
-        </dl>
+      {/* The director first; an empty chair means the offer is still coming. */}
+      <div className="department-ad">
+        {ad ? (
+          <>
+            <FacultyPortrait f={coachPortrait(ad)} size={40} />
+            <span className="department-ad-who">
+              <span className="department-ad-name">{ad.name}</span>
+              <span className="department-ad-role">Athletic Director</span>
+              <span className="stat">quality {ad.quality} · {money(ad.salary)}/yr</span>
+            </span>
+          </>
+        ) : (
+          <p className="empty-note department-ad-empty">
+            No Athletic Director. The trustees will put candidates forward before long.
+          </p>
+        )}
       </div>
+
+      {/* Two standings: the department's, and campus life, which athletics moves. */}
+      <dl className="department-standings">
+        <div>
+          <dt>Athletic standing</dt>
+          <dd>{active.length > 0 ? <><strong>#{athleticRank(s)}</strong> of {s.rivals.length + 1}</> : <span className="stat">no program yet</span>}</dd>
+        </div>
+        <div>
+          <dt>Campus life</dt>
+          <dd><strong>#{rankBy(s, 'socialStanding')}</strong> of {s.rivals.length + 1}</dd>
+        </div>
+        {/* Championships only once there is one. */}
+        {s.orgs.titles.length > 0 && (
+          <div>
+            <dt>Titles</dt>
+            <dd><strong>{s.orgs.titles.length}</strong></dd>
+          </div>
+        )}
+      </dl>
 
       {/* The pot: the school's subsidy, gate earnings, and what is left once
           the priority list has drawn on it. The tier is the subsidy in dollars. */}
       <div className="athletics-budget">
-        <span className="stat">
-          Subsidy: {s.orgs.athleticsBudget} ({money(pot.subsidy)}/yr)
-          {active.length > 0 && (
-            <> · gate {money(pot.earned)}/yr · pot {money(pot.pot)}/yr · programs draw {money(pot.drawn)}/yr · {pot.surplus > 0 ? `${money(pot.surplus)}/yr returned to the college` : 'nothing left over'}</>
-          )}
-        </span>
+        <span className="athletics-budget-label">Subsidy</span>
         <div className="athletics-budget-tiers">
           {ATHLETICS_BUDGET_ORDER.map((tier) => (
             <button
@@ -287,67 +279,52 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           ))}
         </div>
       </div>
+      <dl className="athletics-pot">
+        <Figure label="Subsidy" value={`${money(pot.subsidy)}/yr`} hint="What the college puts into the department's pot each year, set by the dial above." />
+        {active.length > 0 && (
+          <>
+            <Figure label="Gate" value={`${money(pot.earned)}/yr`} hint="What the programs earn at the gate in a year, which goes into the same pot." />
+            <Figure label="Pot" value={`${money(pot.pot)}/yr`} hint="The subsidy and the gate together: what the programs draw on, in the order of the cards." />
+            <Figure label="Programs draw" value={`${money(pot.drawn)}/yr`} hint="What the programs take from the pot to compete, each up to its sport's cost, until the pot runs out." />
+            <Figure label="Back to the college" value={pot.surplus > 0 ? `${money(pot.surplus)}/yr` : 'nothing'} hint="Whatever the programs leave in the pot, returned to the college's budget." />
+          </>
+        )}
+      </dl>
     </section>
   );
 }
 
-// The standings: one row per sport the school fields, showing its rank in
-// that sport with the schools immediately above and below by name and mascot.
-function SportStandings({ s }: { s: GameState }) {
-  const fielded = s.orgs.teams.filter((t) => t.status === 'active');
-  if (fielded.length === 0) return null;
-
+// A sport's standing, on its program card: the rank (the colleges just above
+// and below in its tooltip), last season, this season's record and the
+// rivalry. Teams still waiting on a venue are not ranked: they cannot compete.
+function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
+  const list = sportRankedList(s, team.sport);
+  const place = sportRank(s, team.sport);
+  if (place === null) return null;
+  const last = s.orgs.lastSeason[team.sport];
+  const above = list[place - 2];
+  const below = list[place];
+  const record = seasonRecordFor(s, team.sport);
+  const rival = rivalFor(s, team.sport);
+  const rivalry = s.orgs.rivalries[team.sport];
+  const neighbours = [
+    above ? `↑ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
+    below ? `↓ ${below.name} ${below.mascot}` : '',
+  ].filter(Boolean).join('\n');
   return (
-    <section className="panel">
-      <div className="panel-head">
-        <h2>By sport</h2>
-        <HelpHint
-          text="Every college and university in the country is stronger at some sports than others, and reliably so — one that is good at hockey stays good at hockey. Your own strength in a sport is that team's quality, which is its coaching staff, the recruiting budget and the Athletic Director together, so hiring a coach moves your place on this table rather than some separate figure. Teams still waiting on a venue are not ranked: they cannot compete yet."
-        />
-      </div>
-      <ul className="sport-standings">
-        {fielded.map((team) => {
-          const list = sportRankedList(s, team.sport);
-          const place = sportRank(s, team.sport);
-          if (place === null) return null;
-          const last = s.orgs.lastSeason[team.sport];
-          const above = list[place - 2];
-          const below = list[place];
-          const record = seasonRecordFor(s, team.sport);
-          const rival = rivalFor(s, team.sport);
-          const rivalry = s.orgs.rivalries[team.sport];
-          return (
-            <li key={team.id} className="sport-standing">
-              <span className="sport-standing-sport">{sportById(team.sport)?.teamName ?? team.sport}</span>
-              <span className="sport-standing-place">
-                <strong>#{place}</strong>
-                <span className="sport-standing-of">of {list.length}</span>
-              </span>
-              {/* Last season's result beside the rank, "did not qualify" included. */}
-              <span className="sport-standing-season">
-                {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
-              </span>
-              <span className="sport-standing-neighbours">
-                {above
-                  ? <span className="sport-standing-above">↑ {above.name} {above.mascot}</span>
-                  : <span className="sport-standing-above best">nobody in the country is ahead</span>}
-                {below && <span className="sport-standing-below">↓ {below.name} {below.mascot}</span>}
-              </span>
-              {/* This season's record and the rivalry. */}
-              <span className="sport-standing-rivalry">
-                {record ? <span className="stat">{record.wins}–{record.losses} this season</span> : <span className="stat">season not yet open</span>}
-                {rival && (
-                  <span className="stat" title={`${trophyFor(s, team.sport)} — the all-time series against ${rival.name}`}>
-                    rival: {rival.name} {rival.mascot}
-                    {rivalry ? ` (${rivalry.wins}–${rivalry.losses}${rivalry.streak !== 0 ? `, ${Math.abs(rivalry.streak)} straight ${rivalry.streak > 0 ? 'to you' : 'to them'}` : ''})` : ''}
-                  </span>
-                )}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+    <div className="team-card-standing">
+      <span className="sport-standing-place" title={neighbours}>
+        <strong>#{place}</strong>
+        <span className="sport-standing-of">of {list.length}</span>
+      </span>
+      {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
+      {record ? <span className="stat">{record.wins}–{record.losses}</span> : <span className="stat">season not open</span>}
+      {rival && (
+        <span className="stat team-card-rival" title={`${trophyFor(s, team.sport)} — the all-time series against ${rival.name}`}>
+          vs {rival.name}{rivalry ? ` ${rivalry.wins}–${rivalry.losses}` : ''}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -374,7 +351,11 @@ function TrophyCase({ s }: { s: GameState }) {
   );
 }
 
-function TeamCard({ s, act, team, funding }: { s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding }) {
+// A program as a card in the grid: the name and band, how it stands in its
+// sport, what it costs and draws, and its three chairs.
+function TeamCard({ s, act, team, funding, rank }: {
+  s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding; rank?: number;
+}) {
   const quality = teamQuality(team, s);
   const staffAnnual = (team.headCoach?.salary ?? 0) + (team.assistantCoach?.salary ?? 0) + (team.trainer?.salary ?? 0);
   const weeklyCost = team.upkeepPerWeek + staffAnnual / WEEKS_PER_YEAR;
@@ -382,33 +363,39 @@ function TeamCard({ s, act, team, funding }: { s: GameState; act: (a: Action) =>
   // The house: attendance and what it earns at the gate.
   const attendance = attendanceFor(s, team);
   const gate = annualGateFor(s, team);
+  const banned = team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear;
 
   return (
-    <li className="panel team-card">
+    <div className="team-card">
       <div className="team-card-head">
-        <span className="org-name">
-          {team.name}
-          <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
-            {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
-          </span>
-          {team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear && (
-            <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>
-          )}
-        </span>
-        <span className="org-meta">
-          quality {quality} · {team.status === 'active'
-            ? venue?.name ?? 'venue'
-            : `waiting on ${venue?.name ?? 'venue'}`} · {money(weeklyCost)}/wk
-          {funding && (
-            <> · draws {money(funding.drawn)} of {money(funding.cost)}/yr{funding.funded < 0.999 && funding.funded > 0 ? ` (${Math.round(funding.funded * 100)}% funded)` : ''}</>
-          )}
-          {team.status === 'active' && attendance > 0 && (
-            <> · {attendance.toLocaleString()} a game, {money(gate)}/yr at the gate</>
-          )}
+        {rank !== undefined && <span className="priority-rank" title="Drag to reorder">{rank}</span>}
+        <span className="team-card-name">{team.name.replace(/ Team$/, '')}</span>
+        <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
+          {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
         </span>
       </div>
-      {ROLE_ORDER.map((role) => <StaffRow key={role} act={act} team={team} role={role} />)}
-    </li>
+      {banned && <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>}
+      {team.status === 'active' && <SportLine s={s} team={team} />}
+      <div className="team-card-meta">
+        <span>quality <strong>{quality}</strong></span>
+        <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
+        <span>{moneyShort(weeklyCost)}/wk</span>
+        {funding && (
+          <span title={`Draws ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
+            draws {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${Math.round(funding.funded * 100)}%)` : ''}
+          </span>
+        )}
+        {team.status === 'active' && attendance > 0 && (
+          <span title={`${money(gate)}/yr at the gate`}>{attendance.toLocaleString()} a game · {moneyShort(gate)}/yr gate</span>
+        )}
+      </div>
+      {/* Three empty chairs are one line, not three. */}
+      <div className="team-card-staff">
+        {ROLE_ORDER.every((role) => !coachInSlot(team, role))
+          ? <div className="coach-row vacant"><span className="coach-vacant">no staff yet — head coach, assistant and trainer on the market</span></div>
+          : ROLE_ORDER.map((role) => <StaffRow key={role} act={act} team={team} role={role} />)}
+      </div>
+    </div>
   );
 }
 
@@ -439,7 +426,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
-        <HelpHint text="Drag a program up or down. Each draws its sport's cost to compete off the department's pot in this order until the pot runs out — the line shows where. A program above the line is a flagship and recruits at full strength; one the money reaches only part-way is competitive; one it never reaches is developmental and runs at a discount, not a zero. Dragging a program below the line it was above is a real demotion: its head coach may resign rather than take the cut. Teams waiting on a venue sit out of the queue and draw nothing." />
+        <HelpHint text="Drag a program up or down. Each draws its sport's cost to compete off the department's pot in this order until the pot runs out — the line shows where. A program above the line is a flagship and recruits at full strength; one the money reaches only part-way is competitive; one it never reaches is developmental and runs at a discount, not a zero. Dragging a program below the line it was above is a real demotion: its head coach may resign rather than take the cut. Teams waiting on a venue sit out of the queue and draw nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, the recruiting budget and the Athletic Director — so hiring a coach moves it. Hover the rank for the colleges either side." />
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">
@@ -465,27 +452,31 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
             const funding = fundingOf.get(team.id);
             const lineHere = i === pot.fundedLine && pot.fundedLine < active.length && pot.fundedLine > 0;
             return (
-              <li key={team.id} className="priority-slot">
-                {lineHere && <div className="funded-line">the money runs out here</div>}
-                <div
-                  className={`priority-card${dragging === team.id ? ' dragging' : ''}${over === team.id ? ' over' : ''}`}
-                  draggable
-                  onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDragging(team.id); }}
-                  onDragEnd={() => { setDragging(null); setOver(null); }}
-                  onDragOver={(e) => { e.preventDefault(); if (over !== team.id) setOver(team.id); }}
-                  onDrop={(e) => { e.preventDefault(); drop(team.id); setDragging(null); setOver(null); }}
-                >
-                  <span className="priority-rank" title="Drag to reorder">{i + 1}</span>
-                  <TeamCard s={s} act={act} team={team} funding={funding} />
-                </div>
-              </li>
+              <Fragment key={team.id}>
+                {lineHere && <li className="priority-slot wide"><div className="funded-line">the money runs out here</div></li>}
+                <li className="priority-slot">
+                  <div
+                    className={`priority-card${dragging === team.id ? ' dragging' : ''}${over === team.id ? ' over' : ''}`}
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDragging(team.id); }}
+                    onDragEnd={() => { setDragging(null); setOver(null); }}
+                    onDragOver={(e) => { e.preventDefault(); if (over !== team.id) setOver(team.id); }}
+                    onDrop={(e) => { e.preventDefault(); drop(team.id); setDragging(null); setOver(null); }}
+                  >
+                    <TeamCard s={s} act={act} team={team} funding={funding} rank={i + 1} />
+                  </div>
+                </li>
+              </Fragment>
             );
           })}
           {pot.fundedLine === 0 && active.length > 0 && (
-            <li className="priority-slot"><div className="funded-line">the pot funds no program in full</div></li>
+            <li className="priority-slot wide"><div className="funded-line">the pot funds no program in full</div></li>
           )}
           {/* Teams waiting on a building: construction items, not programs,
-              sorted below the queue without a second heading. */}
+              below the queue under a quiet divider. */}
+          {awaiting.length > 0 && (
+            <li className="priority-slot wide"><div className="funded-line awaiting-line">awaiting a venue · {awaiting.length}</div></li>
+          )}
           {awaiting.map((team) => (
             <li key={team.id} className="priority-slot awaiting">
               <TeamCard s={s} act={act} team={team} />
@@ -501,19 +492,20 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
   const teams = s.orgs.teams;
 
   return (
-    <div className="tab-content">
-      {/* Sections follow the order the questions arrive in: the department,
-          what it fields, how each sport is doing, then who is available. */}
-      <Department s={s} act={act} />
+    <div className="tab-content athletics-layout">
+      {/* The department and its trophies in a side column; the programs, each
+          with its standing, and then the market fill the main one. */}
+      <div className="athletics-side">
+        <Department s={s} act={act} />
+        <TrophyCase s={s} />
+      </div>
 
-      <PriorityList s={s} act={act} />
+      <div className="athletics-main">
+        <PriorityList s={s} act={act} />
 
-      <SportStandings s={s} />
-
-      <TrophyCase s={s} />
-
-      {/* The market last: you notice an empty chair, then look for someone. */}
-      {teams.length > 0 && <TheMarket s={s} act={act} />}
+        {/* The market last: you notice an empty chair, then look for someone. */}
+        {teams.length > 0 && <TheMarket s={s} act={act} />}
+      </div>
     </div>
   );
 }

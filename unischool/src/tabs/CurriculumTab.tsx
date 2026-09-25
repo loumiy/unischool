@@ -874,10 +874,14 @@ function ProgramRowView(
   const hallId = hallOfCourse(s, program.entryCourseId);
   const hall = hallId ? lookup.get(hallId) : undefined;
   const dark = unstaffedPrograms(s).has(program.id);
+  const [collapsed, toggle] = useCollapse(`program:${program.id}`, progress.done === progress.total && !dark);
 
   return (
-    <section className={`program-row${graduate ? ' graduate' : ''}`} data-program={program.id}>
+    <section className={`program-row${graduate ? ' graduate' : ''}${collapsed ? ' collapsed' : ''}`} data-program={program.id}>
       <header className="program-row-head">
+        <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={`${collapsed ? 'Show' : 'Hide'} ${program.name}`} onClick={toggle}>
+          {collapsed ? '▸' : '▾'}
+        </button>
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
         {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${Math.round(avg)} / 100`} />}
@@ -885,8 +889,8 @@ function ProgramRowView(
         {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no seats, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
         <span className="lane-count">{progress.done} / {progress.total}</span>
       </header>
-      <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} />
-      <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
+      {!collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} />}
+      {!collapsed && <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
         {program.courseIds.map((id, i) => {
           const t = lookup.get(id);
           // The rules between tier bands are their own grid tracks, so all
@@ -897,9 +901,19 @@ function ProgramRowView(
             : <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} dnd={dnd} />;
           return rule ? [rule, cell] : cell;
         })}
-      </div>
+      </div>}
     </section>
   );
+}
+
+// Collapsing (Plan 60): a school or a program starts open while incomplete
+// and folded once complete; a click overrides that, and the override is
+// remembered for the session (module state, so it survives a tab switch).
+const collapseOverrides = new Map<string, boolean>();
+function useCollapse(key: string, completeByDefault: boolean): [boolean, () => void] {
+  const [, bump] = useState(0);
+  const collapsed = collapseOverrides.get(key) ?? completeByDefault;
+  return [collapsed, () => { collapseOverrides.set(key, !collapsed); bump((n) => n + 1); }];
 }
 
 // A school's group: heading (name once founded, color and mark before; see
@@ -920,6 +934,7 @@ function SchoolGroupView(
   const unstaffedHere = school ? unstaffedIn(s, school).length : 0;
   const plan = unstaffedHere > 0 && school ? restaffPlan(s, school) : [];
   const hires = plan.filter((x) => x.hire);
+  const [collapsed, toggle] = useCollapse(`school:${group.key}`, done.total > 0 && done.done === done.total && unstaffedHere === 0);
   return (
     <section
       className={`school-group${group.founded ? ' founded' : ' unfounded'}`}
@@ -927,6 +942,9 @@ function SchoolGroupView(
       style={{ ['--school-hue' as string]: group.mark.hue }}
     >
       <header className="school-group-head">
+        <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the school' : 'Hide the school'} onClick={toggle}>
+          {collapsed ? '▸' : '▾'}
+        </button>
         <span className="school-group-mark" aria-hidden="true">{group.mark.motif}</span>
         <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
         {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
@@ -945,11 +963,13 @@ function SchoolGroupView(
           </button>
         )}
       </header>
-      <div className="program-rows">
-        {group.rows.map((row) => (
-          <ProgramRowView key={row.program.id} s={s} act={act} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
-        ))}
-      </div>
+      {!collapsed && (
+        <div className="program-rows">
+          {group.rows.map((row) => (
+            <ProgramRowView key={row.program.id} s={s} act={act} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -267,7 +267,10 @@ quiet week of each year (within its first quarter), every school with a Dean
 and an unstaffed course gets its plan put to the President once, all accepted
 in one click (`RESOLVE_DEAN_RECOMMENDATIONS`). The market keeps a candidate
 listed in every field with an unstaffed course (`tickCandidatePool`), so a
-plan always has someone to hire.
+plan always has someone to hire. While any program is dark and the plan can staff it,
+the toolbar's next step says so before anything else (Plan 60), and the
+guided player follows it: without that line its thirty-year run carried
+thirteen dark programs.
 
 **An unstaffed course scores zero, not nothing.** Aggregates count it, because a
 school gutted to fifteen professors across four hundred courses is not a

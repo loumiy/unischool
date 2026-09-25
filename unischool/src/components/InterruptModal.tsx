@@ -1268,6 +1268,20 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
 
   if (!interrupt) return null;
 
+  // The fiftieth summer's Final Report is a page, not a card (Plan 60): by
+  // now the player may be running years at full speed, clicking through each
+  // summer, and the end of the run (for now) has to stop them.
+  const summer = interrupt.type === 'summer' ? interrupt.payload as SummerPayload : null;
+  if (summer?.final && summer.beat === 0) {
+    return (
+      <div className="final-page" role="dialog" aria-modal="true" aria-label={REPORT_WORDS.title}>
+        <div className="final-page-inner">
+          <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="modal-backdrop">
       <div className={`modal modal-${modalWidth(interrupt)}`} data-interrupt={interrupt.type} role="dialog" aria-modal="true">

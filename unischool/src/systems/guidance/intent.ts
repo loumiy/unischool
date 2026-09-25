@@ -13,5 +13,7 @@ export type StepIntent =
   | { kind: 'develop'; courseId: string }
   | { kind: 'build-for'; attribute: keyof SatisfactionAttributes }
   | { kind: 'research'; labId: string }
+  // Staff a dark program's courses from the payroll and the market (Plan 60).
+  | { kind: 'restaff'; school: string | null }
   // Nothing to do but let the weeks pass.
   | { kind: 'wait' };

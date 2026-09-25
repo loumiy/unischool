@@ -24,41 +24,40 @@ export default function StandingsPanel({ s }: { s: GameState }) {
         </span>
         <span className="stat">of {field}</span>
       </div>
-      <dl className="standings-table">
+      {/* One card per axis (Plan 60): the rank, who leads, and the rank over
+          the run beneath, instead of a label table and a separate chart grid
+          that drifted apart. */}
+      <div className="standings-cards">
         {STANDINGS.map(({ axis, label }) => {
           const list = rankedListBy(s, axis);
           const rank = list.findIndex((e) => e.isPlayer) + 1;
           const leader = list[0];
           return (
-            <div key={axis}>
-              <dt>{label}</dt>
-              <dd>
-                <strong>#{rank}</strong>
-                <span className="stat">{leader.isPlayer ? ' — the leader' : ` — led by ${leader.name}`}</span>
-              </dd>
-            </div>
+            <article key={axis} className="standings-card">
+              <header className="standings-card-head">
+                <span className="standings-card-label">{label}</span>
+                <strong className="standings-card-rank">#{rank}</strong>
+              </header>
+              <p className="standings-card-leader">{leader.isPlayer ? 'The college leads.' : `Led by ${leader.name}`}</p>
+              {rows.length > 1 && (
+                <HistoryChart
+                  label={label}
+                  span={SEMICENTENNIAL_YEAR}
+                  years={rows.map((h) => h.year)}
+                  values={rows.map((h) => -(h.standings![axis] ?? field))}
+                  format={(v) => `#${Math.round(-v)}`}
+                  bare
+                />
+              )}
+            </article>
           );
         })}
-      </dl>
+      </div>
       {rival && (
         <p className="stat">
           The rival: {rival.rival.name} {rival.rival.mascot}, in {(sportById(rival.sport)?.teamName ?? rival.sport).replace(/ Team$/, '')} and in the rankings, #{rival.theirs} to the college's #{rival.mine}.
           {series && ` The series stands ${series.wins}–${series.losses}.`}
         </p>
-      )}
-      {rows.length > 1 && (
-        <div className="standings-charts">
-          {STANDINGS.map(({ axis, label }) => (
-            <HistoryChart
-              key={axis}
-              label={label}
-              span={SEMICENTENNIAL_YEAR}
-              years={rows.map((h) => h.year)}
-              values={rows.map((h) => -(h.standings![axis] ?? field))}
-              format={(v) => `#${Math.round(-v)}`}
-            />
-          ))}
-        </div>
       )}
     </section>
   );

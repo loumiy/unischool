@@ -9,11 +9,14 @@ import type { StepIntent } from './intent';
 import { absoluteWeek } from '../../data/eventData';
 import { milestoneById } from '../../data/ladderData';
 import { eventById, fill } from '../events/catalogue';
+import { unstaffedPrograms } from '../techtree/darkness';
+import { restaffPlan } from '../faculty/restaffing';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the latest undone letter ask (the letters' order must not
 // be contradicted); afterward it is a letter's ask still undone, then a
-// reading of the campus, in priority order: a program that can move to its
+// reading of the campus, in priority order: a dark program the market can
+// staff (Plan 60: it seats nobody, so it outranks a letter), a program that can move to its
 // school's hall, free hall slot, program one course from established,
 // attribute shortfall, idle lab. Recomputed every render; nothing is stored.
 
@@ -197,6 +200,22 @@ function shortfall(s: GameState): NextStep | null {
   return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${Math.round(worst.score)} — build for it`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
 }
 
+// A program gone dark with an unstaffed course (Plan 59), when the payroll
+// or the market can staff it. It seats nobody and grades as zeros until
+// then; one click in the Curriculum puts it back (Plan 60: the guided player
+// found thirteen programs dark at Year 31 with nothing on the line saying so).
+function darkProgram(s: GameState): NextStep | null {
+  const dark = unstaffedPrograms(s);
+  if (dark.size === 0) return null;
+  const plan = restaffPlan(s);
+  if (plan.length === 0) return null;
+  const names = [...dark].map((id) => programById(id)?.name ?? id);
+  const text = names.length === 1
+    ? `${names[0]} is dark — a course has no instructor; staff it from the market`
+    : `${names.length} programs are dark — ${names[0]} and more; staff them from the market`;
+  return { text, go: 'curriculum', urgent: true, intent: { kind: 'restaff', school: null } };
+}
+
 // A finished lab with nothing running in it.
 // A lab that has not seen an initiative through comes first: every lab
 // finishing one opens the Research Park (Plan 59).
@@ -224,6 +243,8 @@ export function nextStep(s: GameState): NextStep | null {
   // or a hall) gives way to a reading that can (Plan 58): "grow Science"
   // with no Science on offer and nowhere for the offers to go is a
   // deadlock only the next hall breaks, and the line has to say so.
+  const dark = darkProgram(s);
+  if (dark) return dark;
   const letter = letterAsk(s);
   if (letter && letter.intent?.kind !== 'wait') return letter;
   return awayFromHome(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s) ?? letter;
