@@ -120,7 +120,7 @@ contradicted "archetypes emerge, they are not chosen", and it no longer does.
 A note on what the removal cost, since it was measured rather than assumed:
 the appropriation turned out to be an *early-game* mechanic. It was funding the
 first decade's curriculum build-out, which is the 90-weight prestige term, which
-then compounds — so the public arc in `sim/balanceSim.ts` ended year 20 some 30
+then compounds — so the public arc in the old harness (`sim/balanceSim.ts`, since retired) ended year 20 some 30
 prestige points lower without it, while never becoming insolvent. Nothing
 replaced it.
 
@@ -267,7 +267,7 @@ direction here was to split `reputation` into underlying components; what
 happened instead is that two more standings were added *beside* it. The reason
 is that `reputation` is what the economy reads — `admitRate`, the applicant
 pool, price tolerance, every recorded `YearSnapshot`, and
-`sim/balanceSim.ts`'s strategies — so a decomposition moves all of them at
+the harness's players — so a decomposition moves all of them at
 once. `computePrestigeTarget` is untouched by the three-standings change, and
 the sim's forty-year trajectories are byte-identical across it.
 
@@ -362,8 +362,8 @@ sports page rather than a spreadsheet.
 **The field's annual drift takes exactly one draw on the global random stream
 per year**, whatever the field's size: `tickRivals` seeds a local generator from
 it and runs all 99 schools off that. This is a *harness* property rather than a
-gameplay one, and it is load-bearing — `sim/balanceSim.ts` seeds `Math.random`
-to make a run reproducible, so a per-rival draw meant that adding schools
+gameplay one, and it is load-bearing — the harness binds the game's seeded
+stream to make a run reproducible, so a per-rival draw meant that adding schools
 reshuffled every faculty potential and candidate listing in the game and made
 the balance gate unable to distinguish a rebalance from a reshuffle. Pinned at
 one draw, the rival table can grow, or gain axes of its own, without moving the

@@ -26,8 +26,8 @@ npm run scenario -- --strategy Completionist --year 22 --vernacular gothic \
 npm run shot -- /tmp/gothic.json /tmp/gothic.png --zoom=-2 --pan=-430,320
 ```
 
-`scenario` fast-forwards a `sim/balanceSim.ts` strategy — Completionist is the
-one that builds essentially the whole catalogue, so every motif is on the map —
+`scenario` fast-forwards one of the harness's players (`sim/harness/archetypes.ts`)
+— Completionist is the one that builds essentially the whole catalogue, so every motif is on the map —
 and writes a save payload. `--vernacular` overrides the campus's architecture,
 so the *same* campus can be photographed in each set and compared honestly, and
 `--clear-modal` drops whatever interrupt the run was holding (a modal backdrop
@@ -152,14 +152,14 @@ npm run scenario -- year-8-balanced    # build one, by name
 npm run scenario -- --strategy "Balanced builder" --year 12 --modal milestone
 ```
 
-A scenario is a **recipe**, not a file: a strategy, a year, and an optional
+A scenario is a **recipe**, not a file: a player, a year, and an optional
 stopping point, built on demand. Nothing generated is committed — a save is a
 few hundred KiB and goes stale the next time `SAVE_VERSION` moves, while a
 recipe survives it.
 
 See [`docs/architecture/playtesting.md`](../../docs/architecture/playtesting.md)
-for the whole harness — the scenarios, the debug flag and panel, and the sim
-scorecard.
+for the whole harness — the scenarios, the debug flag and panel, and the
+report (`npm run sim`).
 
 ## Playing it as a newcomer, and timing it
 

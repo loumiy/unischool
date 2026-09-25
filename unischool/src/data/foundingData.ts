@@ -20,9 +20,9 @@ export interface FoundingPreset {
 export const STARTING_TUITION = 13_000;
 
 // Where the tuition slider ends: a control needs a top, not a policy cap.
-// Deliberately out of reach: the highest-priced strategy in sim/balanceSim.ts
-// closes a 40-year run around 38k, so a player at this number has left the
-// part of the curve the game is balanced over.
+// Deliberately out of reach: no player the harness has closes a fifty-year
+// run anywhere near it (`npm run sim`), so a player at this number has left
+// the part of the curve the game is balanced over.
 export const TUITION_SLIDER_MAX = 100_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (at treasury.ts's DRAW_RATE_DEFAULT)
 
@@ -60,9 +60,9 @@ export const FOUNDING_COURSES_PER_PROGRAM = 2;
 // rather than a startup choice.
 export const FOUNDING_VERNACULAR: Vernacular = 'georgian';
 
-// Tunable: most sim/balanceSim.ts strategies are fitted against these
-// numbers. Re-fit the founding applicant pool together with the admit-rate
-// curve (ADMIT_PROBES) rather than nudging it alone.
+// Tunable: the harness's players (`npm run sim`) read how these play out.
+// Re-fit the founding applicant pool together with the admit-rate curve
+// rather than nudging it alone.
 //
 // The gift was $1.4M until Plan 35, which measured a founding with no slack:
 // a player charging a tenth less than the harness's price stalled for a

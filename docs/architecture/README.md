@@ -11,7 +11,7 @@ Technical documentation for the codebase. What the game *is* lives in
 | [campus-map.md](campus-map.md) | Footprints, the tile grid, trees, and the depth-sorted draw |
 | [interrupts.md](interrupts.md) | The one pause-the-clock-and-resolve mechanism |
 | [ui-shell.md](ui-shell.md) | The shell, full-bleed tabs, tab gates, and keyboard arbitration |
-| [playtesting.md](playtesting.md) | Scenarios, the debug flag and panel, the prestige breakdown, the sim scorecard, and the endpoint gate |
+| [playtesting.md](playtesting.md) | Scenarios, the debug flag and panel, the prestige breakdown, and the harness: fuzz, the guided player, the archetypes and the report |
 
 ## Working on this codebase
 
@@ -32,12 +32,11 @@ of the output, not just the exit line.
   14 deleted it) — see [game-state.md](game-state.md#discarding-is-the-rule).
   Never let save compatibility decide a name or a shape.
 - A change that moves a number the economy depends on should be checked against
-  `npm run sim` (40 years × seven scripted strategies) as well, and its result
-  quoted in the PR summary. Every table is followed by its **scorecard** — the
-  figures that have left the bands `sim/reference.ts` records — and
-  `npm run sim -- --compare last.json` will quote the move as a diff rather
-  than as the same table pasted twice. See
-  [playtesting.md](playtesting.md).
+  `npm run sim` (the four archetypes and the guided player, fifty years on
+  three seeds) as well, and its result quoted in the PR summary: the report
+  prints each figure's change from the committed baseline
+  (`sim/baseline.json`), and `npm run sim -- --save` records a move made on
+  purpose. See [playtesting.md](playtesting.md).
 - A change you want to LOOK at is what `npm run scenario` is for: it stands
   the game up at any year under any strategy, or on the exact week a modal is
   pending, and the debug panel (`?debug=1`) loads it. Also in

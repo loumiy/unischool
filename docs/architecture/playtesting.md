@@ -12,9 +12,8 @@ breakdown, which is a player feature the developer happens to need first.
 | A school at year 8, or the week a modal is pending | `npm run scenario` |
 | To read, set, jump, force, or load, in the browser | the debug panel |
 | To know why prestige is what it is | the History tab's **Standing** section |
-| To know whether a change moved a trajectory | `npm run sim`'s scorecard |
-| To know when things happen for the first time | `npm run milestones` |
-| To know how a run finishes — its legacy reading, its Final Report, its rank curve | `npm run endpoint` |
+| To know whether a change moved a trajectory | `npm run sim`, the report against its baseline |
+| To know how the intended line of play goes | `npm run guided` |
 
 ## The flag
 
@@ -48,31 +47,31 @@ npm run scenario -- year-8-balanced           # build one by name
 npm run scenario -- championship              # …including one that only exists for a week
 npm run scenario -- summer                    # the four-beat summer, stopped on its first beat
 npm run scenario -- final-report              # the fiftieth summer, stopped on the final report
-npm run scenario -- --strategy "Balanced builder" --year 12 --modal milestone
-npm run scenario -- --strategy Completionist --year 22 --vernacular gothic \
+npm run scenario -- --player Guided --year 12 --modal milestone
+npm run scenario -- --player Completionist --year 22 --vernacular gothic \
   --name Blackmoor --clear-modal /tmp/gothic.json   # a campus to photograph
 ```
 
-A scenario is a **recipe, never a file**: a strategy, a year, an optional
-stopping point and, since Plan 15's PR G, an optional `mutate` step that
-breaks the school after the run (the `crisis` scenario stands a balanced
-school up at year 15 and puts it in the hole — satisfaction 35, a body half
-again too big, cash gone — the state `test/balance-regression.test.ts` hands
-back to the Balanced builder to prove recovery is possible), in
-`tools/scenarios.ts`. `npm run scenario` plays the real
+A scenario is a **recipe, never a file**: a player (the guided player or an
+archetype, below), a year, an optional stopping point and, since Plan 15's
+PR G, an optional `mutate` step that breaks the school after the run (the
+`crisis` scenario stands the guided player's college up at year 15 and puts
+it in the hole — satisfaction 35, a body half again too big, cash gone — the
+state `test/archetypes.test.ts` hands back to the guided player to prove
+recovery is possible), in `tools/scenarios.ts`. `npm run scenario` plays the real
 reducer forward and writes a real save (`persistence.ts`'s `SavePayload` at
 the current `SAVE_VERSION`), so nothing generated is committed and nothing
 needs migrating. A committed save would be a few hundred KiB and stale the
 next time the save shape moved; a recipe survives it.
 
-Flags: `--strategy` `--year` `--modal` `--seed` `--vernacular` `--name`
+Flags: `--player` (or `--strategy`) `--year` `--modal` `--seed` `--vernacular` `--name`
 `--clear-modal` `--list`. A positional argument ending in `.json` is the
 output path; anything else is a scenario name. The default output is
 `node_modules/.tmp/<name>.json`.
 
-**Stopping inside a year** is what `play()`'s optional `stopWhen(s)` predicate
-is for (`sim/balanceSim.ts`). It is checked at the top of a week and *before*
-the scripted player answers anything, so a run halted that way hands back a
+**Stopping inside a year** is what the harness's `playUntil(g, player, years,
+stop)` is for (`sim/harness/game.ts`). The predicate is checked at the top of
+a week and *before* the player answers anything, so a run halted that way hands back a
 state with its modal still pending — which is the only way to reach "the week
 a championship modal is on screen", a state no year boundary ever lands on. A
 scenario that asks to stop somewhere and never gets there **fails and writes
@@ -81,7 +80,7 @@ nothing**, rather than quietly handing back year 40.
 Load a scenario with the debug panel's **Load** button (it is offered on the
 startup screen too, which is where a browser with no save starts), or hand it
 to `npm run shot` for a screenshot — through `npm run layout` first if the
-picture is the point, since the scripted player sites every building along
+picture is the point, since the harness's players site every building along
 one edge of the grid (see `tools/README.md`).
 
 ## The debug panel
@@ -111,9 +110,9 @@ one edge of the grid (see `tools/README.md`).
 They live in one block in `src/state/actions.ts` and one in
 `src/engine/reducer.ts`, and the panel is the only component that dispatches
 any of them. The reducer stays the one interpreter of every action; what
-makes these playtest-only is the *gate*, not a back door. `sim/balanceSim.ts`
-never dispatches one — a trajectory the sim measures has to be one a player
-could have produced.
+makes these playtest-only is the *gate*, not a back door. The harness
+(`sim/harness/`) never dispatches one — a trajectory it measures has to be
+one a player could have produced.
 
 **One component dispatches them.** If a second surface ever needs a shortcut,
 the answer is to open the panel, not to add a button elsewhere.
@@ -131,7 +130,7 @@ Two consequences worth knowing:
 ### Answering modals when nobody is looking
 
 `src/engine/defaultAnswers.ts` holds the default answer to every interrupt,
-and **both** fast-forwards ask it: the balance harness and the panel's Jump.
+and **both** fast-forwards ask it: the harness and the panel's Jump.
 Two fast-forwards that answered a championship differently would be two
 different games.
 
@@ -157,9 +156,7 @@ only reader who would notice is the one it exists for. The rows are data:
 nothing in the view names an input, so reweighting the model changes one file.
 
 `test/invariants.test.ts` asserts the identity on hand-built states (founding,
-saturated, crowded — the interesting cases are where the clamps bite);
-`test/balance-regression.test.ts` asserts it on the real year-20 state of
-every strategy.
+saturated, crowded — the interesting cases are where the clamps bite).
 
 **Readings.** Below the academic standing's inputs sits a second list, *read,
 not counted*: terms the model measures and shows but does not sum. Plan 15's
@@ -182,12 +179,12 @@ is worth now. A penalty row (crowding) is drawn in the bad colour and reads as
 a subtraction. Both are data on the breakdown (`summer`, `penalty`), so the
 view still names no row.
 
-## The rebuilt harness (Plans 56–59)
+## The harness (Plans 56–63)
 
-The harness is being rebuilt in four layers, each answering one question,
-with one rule from the owner: **only checks gate a merge; balance numbers
-are reported.** Its code is `sim/harness/`, and it replaces the sim below
-(`sim/balanceSim.ts`, `sim/reference.ts`) by Plan 59.
+The harness is four layers, each answering one question, with one rule
+from the owner: **only checks gate a merge; balance numbers are reported.**
+Its code is `sim/harness/`; the old scripted-strategy sim
+(`sim/balanceSim.ts`, its bands and its reports) went in Plan 63.
 
 - **The game** (`sim/harness/game.ts`): one headless college and the week
   loop every player drives it through — every interrupt answered (the
@@ -214,8 +211,8 @@ are reported.** Its code is `sim/harness/`, and it replaces the sim below
   `test/fuzz.test.ts` (fast) plays four foundings six years each through the
   cloning reducer, checks the rules every week and a save round trip each
   year; a random college stalls before it has a lab or a team, so
-  `test/fuzz-late.test.ts` (slow) fuzzes three years from the Balanced
-  builder's college at years 12 and 30.
+  `test/fuzz-late.test.ts` (slow) fuzzes three years from the
+  Completionist's college at years 12 and 30.
 
 - **The guided player** (`sim/harness/guided.ts`, Plan 58): does what the
   game tells it. Each week it carries out the toolbar's line — its
@@ -232,112 +229,34 @@ are reported.** Its code is `sim/harness/`, and it replaces the sim below
   rank and the body, and how often the line asked for something the player
   could not do.
 
-Next: the archetypes and the report (Plan 59).
-
-## The sim, and the scorecard
-
-```sh
-npm run sim                              # 40 years, every 2nd year, all strategies
-npm run sim -- 60 5                      # 60 years, every 5th year
-npm run sim -- 40 2 earnest              # only strategies matching "earnest"
-SIM_SEED=4242 npm run sim                # a different stream
-npm run sim -- --write-reference         # re-record the bands from this run
-npm run sim -- --save last.json          # keep this run's sampled rows
-npm run sim -- --compare last.json       # print what moved against them
-npm run milestones -- 40 earnest         # when each thing happened for the first time
-npm run endpoint -- selective            # how a run finishes at fifty, on the reference's three seeds
-```
-
-`sim/reference.ts` holds two kinds of band, read at years 5, 10, 20, 35 and
-50 — the early pinch, the build-out, the review's horizon, the end of
-build-out, the endpoint — for cash, enrolment, prestige, rank, net margin as
-a share of opex, and weeks in the red. **`TARGETS`** are hand-written: Plan
-15 §6's table for the Balanced builder and the plan's own sentences for the
-two controls (the Idle school falls; the Overbuilder is underwater by year 5),
-the design decision recorded as data, with the fitted game's deviations noted
-above them. **`REFERENCE`** is generated: where every other strategy *is*, as
-the envelope of three seeds (the default plus `REFERENCE_EXTRA_SEEDS`) at ±25%
-with an absolute floor, written by `npm run sim -- --write-reference` — a
-band fitted to one seed is a claim about that seed. Every table printed by
-`npm run sim` is followed by its scorecard: one line per figure outside its
-band.
-
-`sim/scorecard.ts` (`npm run scorecard`) plays every strategy on the default
-seed at the full fifty-year horizon and **reports** every figure outside its
-band and every guardrail that does not hold. It failed CI from Plan 15's PR G
-to Plan 56, which made it a report again: **balance numbers are measured, and
-only checks gate a merge** (the owner's rule). The recorded bands went stale
-with every intended design change and kept the slow job red; the harness
-rebuild (Plans 57–59) measures first and recommends numbers after.
-
-### Reading a strategy's run
-
-Four columns say what the year contained for the *player* rather than for
-the school: **actions** (discretionary dispatches that year), **idle weeks**
-(nothing startable at all), **money-blocked weeks** (something startable,
-nothing affordable) and **faculty-blocked weeks** (`fblk`: nothing startable
-*only* because no department had a free slot for it — an available course or
-a program on offer whose field has nobody to teach it, which is what a search
-is for). Under the table, `modals answered` counts every interrupt by type,
-and `what a year contained` reports the averages against the last decade's —
-because the finding these exist to measure is about the *shape* of a run,
-not its mean.
-
-A note on what they show: idle weeks used to be always zero — with 421
-courses there was always something startable. Since Plan 14 a run can
-genuinely have nothing to do: three programs on offer and no slot to put
-them in is an idle week, and a department nobody can hire into is a
-faculty-blocked one.
-
-### The strategies
-
-Most of the strategies in `STRATEGIES` are **archetypes** — crude, reproducible
-corners of the space (build everything, price low, overreach, sit still).
-**Earnest completionist** is a *player*: the September 2026 review's
-own policy, written down. It is the run the design plans are about, and at
-the review's own seed (4242) it reproduces that appendix closely. Since Plan
-17 it has two companions that are players too, written so that "build
-everything" is one good run among several rather than the answer: the
-**Selective college** — the admit rate never past 15% and pulled down to hold
-the body near four thousand, priced at what its standing tolerates, two or
-three schools founded and finished rather than seven (`Strategy.maxSchools`),
-every facility, every idle lab running the deepest project it can afford —
-and the **Regional engine** — cheap, admitting three quarters of what applies,
-founding whatever is offered, its labs ticking over on the cheapest project
-only (`Strategy.research: 'shallow'`). The two, the earnest completionist and
-the balanced builder are the four archetypes Plan 17's balance target names.
-
-### The endpoint
-
-`sim/endpointClaims.ts` (`npm run endpoint:claims`; a slow test suite until
-Plan 56) plays those four at the full fifty years on the reference's three
-seeds and reports, claim by claim, how each **finishes** — the legacy reading
-(`tally.legacy`, sim/legacyReading.ts, taken at the fiftieth summer), the Final
-Report the game wrote (`tally.report`), the catalogue and the campus, the rank
-curve. The
-claims are Plan 17 §E's; where the fitted game landed beside them is in
-that PR's *as implemented* note. `npm run endpoint` prints the same readings
-(`sim/endpointReading.ts` is shared by both) without judging them, which is
-where a tuning pass starts.
-
-Since Plan 15 the harness knows two things about the game it did not need
-to before. **Seats before beds:** the freshman class is capped by the
-catalogue's seats, so a prudent strategy founds programs and sites halls
-while seats are the binding constraint, and saves for those rather than for
-a dorm; the two spend-to-the-wire archetypes keep overreaching on beds. And
-**halls stay pure** for every policy but the scatterer, because a hall of
-one school is what founds it and concentration is thirty points of standing
-— which means a hall is sited whenever none of the three offers fits the
-slots there are. `play()` also takes a `from` state, so a run can continue
-where another left off; the recovery assertion is built on it.
+- **The archetypes** (`sim/harness/archetypes.ts`, Plan 63): four ways to
+  run a college, each a policy over the moves and the guided player's plain
+  sense. **Completionist** builds and develops everything it can afford,
+  fields every team and keeps its labs busy, on a thin reserve; **Selective**
+  stays narrow — twelve programs at most, its own schools' offers first —
+  prices over the market and admits fewer, on a deep reserve; **Lean**
+  spends only while the week's net is in the black and builds only for a
+  real shortfall; **Idle** does nothing. `test/archetypes.test.ts` (slow)
+  plays each fifty years on two seeds and checks only what must hold: no
+  stuck interrupt, the rules every quarter, *stall, don't die* (solvent or
+  climbing out at the end); that the Completionist finishes above the Idle
+  college; and that a college broken into crisis at year 15 climbs out under
+  the guided player.
+- **The report** (`sim/report.ts`, `npm run sim`): the archetypes and the
+  guided player, fifty years on three seeds, the median at years 10, 25 and
+  50 of rank, prestige, students, cash, satisfaction, courses, schools and
+  teams, with weeks in the red and the lowest cash — each with its change
+  from the committed baseline, `sim/baseline.json`. `npm run sim -- --save`
+  writes a new baseline; a PR that moves the numbers on purpose commits it,
+  so main's baseline is main's numbers. Measures, never fails.
 
 ## When you add something
 
 - **A new interrupt** → add its case to `defaultAnswers.ts`, or every
   fast-forward will dismiss it unread and the feature will never appear in a
   measured run.
-- **A new strategy** → re-run `npm run sim -- --write-reference`, or the
-  scorecard will report it as unmeasured.
+- **A change that moves the numbers on purpose** → `npm run sim -- --save`
+  and commit `sim/baseline.json`, so the next report diffs against it.
 - **A new prestige input** → it appears in the Standing panel by itself. Give
   it a `detail` line that says what the score actually read.
 - **A term that should be measured before it counts** → a `StandingReading`

@@ -84,7 +84,7 @@ export function tickRivals(s: GameState): void {
     // One draw on the global stream per year, whatever the field size or
     // number of axes: the drift runs off local PRNGs seeded from it, so
     // growing the field never reshuffles the rest of the seeded run
-    // (test/balance-regression.test.ts). Seeded from random() rather than
+    // (the harness's runs, sim/harness). Seeded from random() rather than
     // id/year so each run's leaderboard reshuffles differently. One stream
     // per axis (derived by xor) so adding an axis cannot change another
     // axis's trajectory.

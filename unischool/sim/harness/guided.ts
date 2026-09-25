@@ -80,7 +80,7 @@ export interface GuidedRecord {
   years: GuidedYear[];
 }
 
-function reserveOf(s: GameState, weeks = RESERVE_WEEKS): number {
+export function reserveOf(s: GameState, weeks = RESERVE_WEEKS): number {
   return weeks * financeBreakdown(s).totalExpenses;
 }
 
@@ -100,7 +100,7 @@ function hireFor(g: Game, field: string | undefined, reserve: number): boolean {
 
 // Found a program in a hall (an academic hall, or a graduate host), hiring
 // its first instructor if nobody can teach its entry course.
-function foundIn(g: Game, hallId: string, programIds: string[], reserve: number): boolean {
+export function foundIn(g: Game, hallId: string, programIds: string[], reserve: number): boolean {
   for (const programId of programIds) {
     const program = programById(programId);
     const entry = program ? g.s.tech.find((t) => t.id === program.entryCourseId) : undefined;
@@ -120,7 +120,7 @@ function foundIn(g: Game, hallId: string, programIds: string[], reserve: number)
 // What the build menu offers for an attribute: a facility that serves it,
 // the next residence hall for housing, the library's next floor for study
 // space.
-function buildFor(g: Game, attribute: keyof SatisfactionAttributes, reserve: number): boolean {
+export function buildFor(g: Game, attribute: keyof SatisfactionAttributes, reserve: number): boolean {
   const s = g.s;
   if (attribute === 'housing') {
     const dorm = buildable(s, reserve).find((x) => x.kind === 'dorm');

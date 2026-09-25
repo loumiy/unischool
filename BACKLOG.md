@@ -103,8 +103,8 @@ term that decides the run.
 The mis-shape has a known cause rather than being a tuning accident. Plan 05's
 PR C fitted those four constants to reproduce the enrolled-class sizes the OLD
 two-step funnel produced, which is a different target from "the rate a player
-should actually want" — see that PR's note. `sim/balanceSim.ts`'s `ADMIT_PROBES`
-measure the gap and are the check on any re-fit.
+should actually want" — see that PR's note. The old harness's `ADMIT_PROBES`
+measured the gap (retired with it in Plan 63); a re-fit needs its own probe.
 
 ## Named, not sequenced
 
@@ -134,7 +134,7 @@ work with a known shape; none has been turned into a sequence of PRs.*
   become a second economy". The re-fit is small and known —
   `GRANT_PER_PUBLICATION_CHANCE` and `GRANT_MIN_WEEKS`/`GRANT_MAX_WEEKS` in
   `researchData.ts`, or a cap on grants per facility per year — and wants
-  the scorecard re-recorded with it. Not done in Plan
+  the report's baseline re-recorded with it (`npm run sim -- --save`). Not done in Plan
   20 because that plan deliberately moved no research constant.
 - **A richer demand-curve finance model**, where prestige shifts the frontier
   between tuition and enrollment volume, with prestige/scale archetypes. The
