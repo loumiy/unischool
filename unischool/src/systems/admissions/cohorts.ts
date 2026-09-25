@@ -33,7 +33,7 @@ export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; dr
 // Computer Science); graduate Medicine/Law count separately.
 const PRE_PROFESSIONAL_PREFIXES = [
   'FINA', 'ACCT', 'MRKT', 'ECON', 'MGMT', 'SPCO', // Business
-  'MECH', 'ELEC', 'CHEM', 'CIVE', 'INDE', 'AERO', // Engineering
+  'MECH', 'ELEC', 'CHEN', 'CIVE', 'INDE', 'AERO', // Engineering
   'PHLT', 'NURS', 'NUTR', 'PHRM', 'KINE', 'NEUR', // Health Science
   'COMP', 'DATA', 'CYBR', 'SOFT', 'ARTF', 'INFO', // Computer Science
 ];

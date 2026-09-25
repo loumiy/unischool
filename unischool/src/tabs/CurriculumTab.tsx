@@ -224,7 +224,7 @@ function courseSchools(): Map<string, { key: string; school: string }> {
 
 // The cross-major prereqs of a course: prereqs that are themselves courses
 // from a different major. The kind check matters: tier-3 courses require
-// their major's lab (e.g. LAB-CHEM for CHEM230), which a prefix test alone
+// their major's lab (e.g. LAB-CHEN for CHEN230), which a prefix test alone
 // would call a cross-listed course.
 function crossMajorPrereqs(t: Buildable, lookup: Map<string, Buildable>): string[] {
   const prefix = t.id.replace(/[0-9]+$/, '');

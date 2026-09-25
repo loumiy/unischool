@@ -172,7 +172,7 @@ function tierOf(t: Buildable): number | null {
 // another school being FOUNDED and equipped, which no tooltip says. This
 // walks every bridge target's full closure (through facilities as well as
 // courses) and refuses any lab or school gate in it. It is the test that
-// would have caught CHEM220 -> CHMY210.
+// would have caught CHEN220 -> CHEM210.
 // =====================================================================
 {
   const closureOf = (start: string): Set<string> => {

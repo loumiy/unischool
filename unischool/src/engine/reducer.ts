@@ -4,12 +4,12 @@ import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
-import { boardHoldsBudget, tickDistress } from '../systems/finance/distress';
+import { boardHoldsBudget, constructionFrozen, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
   EXTENSION_WEEKS, RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, renovationCost, tickEstate,
 } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
-import { LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
+import { CAMPUS_GRID_WIDTH, LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
@@ -26,6 +26,8 @@ import {
 import { postSearch } from '../systems/faculty/facultySearch';
 import { endInitiative } from '../systems/research/researchSystem';
 import { researchTopic } from '../data/researchTopics';
+import { programOfCourse } from '../data/techData';
+import { isInTransit } from '../systems/techtree/programOffers';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
@@ -46,7 +48,7 @@ import { isLand, isPlaceableKind, parsePathTileKey, pathTileKey, occupantAt } fr
 import { designationRefusal, detectQuads, tileIndex } from '../state/quads';
 import { QUAD_NAME_MAX } from '../data/quadData';
 import { money } from '../format';
-import { random, withRandom } from './random';
+import { withRandom } from './random';
 import { advanceClock } from '../state/clock';
 import { resolveAdmissions } from '../systems/admissions/resolveAdmissions';
 import { startInitiative } from '../systems/research/startInitiative';
@@ -229,6 +231,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'REASSIGN_COURSE_FACULTY': {
       const course = s.tech.find((t) => t.id === action.courseId);
       if (!course || (course.status !== 'developing' && course.status !== 'done')) return s;
+      // A program between halls is not taught, so its courses keep their
+      // instructors until it settles (as canSwapInstructors refuses them).
+      const programId = programOfCourse(course.id);
+      if (programId !== undefined && isInTransit(s, programId)) return s;
       if (!eligibleInstructors(s, course, course.id).some((f) => f.id === action.facultyId)) return s;
       s.courseFaculty[course.id] = action.facultyId;
       return s;
@@ -260,8 +266,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (!isLand(row, col)) return s;
       const key = pathTileKey(action.tile);
       if (key in s.pathways || occupantAt(s.placements, row, col) !== undefined) return s;
-      // One draw whatever is asked for, so replays hold (treeData.ts's seedForSpecies).
-      if (!(key in s.trees)) s.trees[key] = seedForSpecies(Math.floor(random() * TREE_SEED_RANGE), action.species);
+      // Seeded from the tile, not the game's random stream, so decorating
+      // the map never shifts a later event's roll (woodland.ts hashes a
+      // regrown tree the same way).
+      const tileSeed = (((row * CAMPUS_GRID_WIDTH + col) * 2654435761) >>> 0) % TREE_SEED_RANGE;
+      if (!(key in s.trees)) s.trees[key] = seedForSpecies(tileSeed, action.species);
       return s;
     }
 
@@ -335,7 +344,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'EXTEND_BUILDING': {
       const node = s.tech.find((t) => t.id === action.id);
-      if (!node || !canExtend(node)) return s;
+      // A storey is construction: the distress ladder's freeze stops it.
+      if (!node || !canExtend(node) || constructionFrozen(s)) return s;
       const cost = extensionCost(node);
       if (s.finance.cash < cost) return s;
       s.finance.cash -= cost;
@@ -478,6 +488,15 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // Bookkeeping only, kept in the interrupt's payload so a save between
     // beats resumes on the right one; the Admissions beat's decision rides
     // along so the last beat commits it.
+    // Once locked, the price stays locked, reload or not; the commit carries it.
+    case 'LOCK_TUITION': {
+      if (s.pendingInterrupt?.type !== 'summer') return state;
+      const payload = s.pendingInterrupt.payload as SummerPayload;
+      if (payload.beat !== 1 || payload.lockedTuition !== undefined) return state;
+      payload.lockedTuition = Math.max(tuitionFloor(s), Math.min(action.tuition, TUITION_SLIDER_MAX));
+      return s;
+    }
+
     case 'RESOLVE_SUMMER_BEAT': {
       if (s.pendingInterrupt?.type !== 'summer') return state;
       const payload = s.pendingInterrupt.payload as SummerPayload;
@@ -486,7 +505,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       payload.beat = (payload.beat + 1) as SummerBeat;
       if (action.decision) {
         payload.decision = {
-          tuition: Math.max(0, Math.min(action.decision.tuition, TUITION_SLIDER_MAX)),
+          // A locked price is the price (LOCK_TUITION).
+          tuition: payload.lockedTuition ?? Math.max(0, Math.min(action.decision.tuition, TUITION_SLIDER_MAX)),
           admitRate: Math.max(0, Math.min(1, action.decision.admitRate)),
         };
       }
@@ -500,14 +520,16 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // Dismisses a research prize celebration. Grants nothing: the award
     // landed the week the prize was won. Advances the clock.
     case 'RESOLVE_RESEARCH_REPORT': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'research-complete') return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
     }
 
     case 'RESOLVE_CHAMPIONSHIP': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'championship') return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
@@ -516,7 +538,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // The first sport club's naming beat. An empty name leaves the question
     // for the athletic director's modal.
     case 'RESOLVE_MASCOT': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'first-sport-club') return state;
       const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
       if (mascot) s.self.mascot = mascot;
       s.orgs.mascotBeatPending = false;
@@ -533,7 +556,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'RESOLVE_ATHLETIC_DIRECTOR': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'athletic-director') return state;
       if (action.candidate) {
         s.orgs.athleticDirector = action.candidate;
         // Trimmed and capped rather than trusted from the form; an empty
@@ -566,7 +590,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // The one-time College -> University charter offer. Cosmetic: it swaps
     // the name's suffix. The flag is set either way, so declining is final.
     case 'RESOLVE_CHARTER': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'charter') return state;
       s.self.universityCharterOffered = true;
       if (action.accept) {
         s.self.suffix = 'University';
@@ -592,7 +617,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // Dismisses a milestone celebration. Its effects landed in techSystem the
     // week it was awarded. Advances the clock.
     case 'RESOLVE_MILESTONE': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'milestone') return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
@@ -604,7 +630,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // take the school below zero: an unaffordable choice is refused (every
     // event offers a zero-cost choice). Either way the clock resumes.
     case 'RESOLVE_DECISION_EVENT': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'decision-event') return state;
       const event = findDecisionEvent(action.eventId);
       const offered = event ? offeredChoices(s, event, action.ctx) : [];
       const picked = offered.find((c) => c.id === action.choiceId);
@@ -657,7 +684,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
 
     case 'RESOLVE_LETTER': {
-      if (!s.pendingInterrupt) return state;
+      // Answers only its own modal: a repeat can never answer the next one.
+      if (s.pendingInterrupt?.type !== 'letter') return state;
       if (action.skipAll) s.events.opening.skipped = true;
       s.pendingInterrupt = null;
       advanceClock(s);
@@ -762,7 +790,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // servingPopulation), so existing floors keep working during the work.
     case 'RENOVATE_LIBRARY': {
       const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
-      const plan = node ? nextLibraryFloor(node) : null;
+      const plan = node && !constructionFrozen(s) ? nextLibraryFloor(node) : null;
       if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
         const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
         node.renovatingFrom = node.effects?.servesPopulation ?? 0;
@@ -783,7 +811,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // reads seats off its expansions count (facilitiesData.ts's venueSeatsOf).
     case 'EXPAND_VENUE': {
       const node = s.tech.find((t) => t.id === action.venueId);
-      const plan = node ? nextVenueExpansion(node) : null;
+      const plan = node && !constructionFrozen(s) ? nextVenueExpansion(node) : null;
       if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
         const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
         node.renovatingFrom = node.effects?.servesPopulation ?? 0;

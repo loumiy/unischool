@@ -1,3 +1,4 @@
+import { constructionFrozen } from '../systems/finance/distress';
 import { canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, renovationCost } from '../systems/estate/estate';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
@@ -445,7 +446,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
     return <p className="building-info-line">A story going up, open throughout: {t.extensionWeeks} weeks left.</p>;
   }
   const extend = canExtend(t) ? (
-    <button type="button" className="building-info-jump" disabled={s.finance.cash < extensionCost(t)} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
+    <button type="button" className="building-info-jump" disabled={s.finance.cash < extensionCost(t) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction; nothing new goes up until it lifts.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
       Add a story · {money(extensionCost(t))}, twelve weeks, {extensionGain(t).toLocaleString()} more {t.kind === 'dorm' ? 'beds' : 'served'}
     </button>
   ) : null;

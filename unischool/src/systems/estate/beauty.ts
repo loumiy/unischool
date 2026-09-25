@@ -1,6 +1,6 @@
 import { tagTeeth } from '../identity/teeth';
 import type { GameState } from '../../state/types';
-import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../../state/types';
+import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, standsOnCampus } from '../../state/types';
 import { isPlaceableKind } from '../../state/campusMap';
 import { detectQuads } from '../../state/quads';
 import { TREE_COVERAGE } from '../../data/treeData';
@@ -53,7 +53,7 @@ function quadQuality(s: GameState): number {
 export function beautyTerms(s: GameState): BeautyTerms {
   const trees = Object.keys(s.trees).filter((k) => !(k in s.pathways)).length;
   const greenery = Math.min(1, trees / Math.max(1, FOUNDING_TREES * GREENERY_TARGET_SHARE));
-  const standing = s.tech.filter((t) => isPlaceableKind(t) && t.status === 'done' && t.id in s.placements);
+  const standing = s.tech.filter((t) => isPlaceableKind(t) && standsOnCampus(t) && t.id in s.placements);
   const marks = standing.reduce((t, b) => t + (b.effects?.beauty ?? 0) * conditionOf(b), 0);
   const landmarks = Math.min(1, marks / LANDMARK_TARGET);
   // Well-kept buildings are something a campus has to have: an empty parcel

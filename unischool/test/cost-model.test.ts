@@ -17,6 +17,7 @@ import {
 import { marketRateMultiplier } from '../src/data/facultyData';
 import { SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
 import { foundingCourseIds } from '../src/state/actions';
+import { programOfCourse } from '../src/data/techData';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
@@ -54,10 +55,16 @@ function withoutFoundingCourses(s: GameState): void {
 }
 // Exactly n courses developed: the founding six are un-taught first, so
 // the count is the count.
+// Their programs are housed (a hall of the test's own), since only a housed,
+// settled program's courses are taught (instructionCapacity.ts).
 function withCourses(s: GameState, n: number): void {
   const courses = s.tech.filter((t) => t.kind === 'course');
   courses.forEach((t) => { if (t.status === 'done') t.status = 'available'; });
-  courses.slice(0, n).forEach((t) => { t.status = 'done'; });
+  const chosen = courses.slice(0, n);
+  chosen.forEach((t) => { t.status = 'done'; });
+  const programs = new Set(chosen.map((t) => programOfCourse(t.id)).filter((id): id is string => id !== undefined));
+  const housed = new Set(Object.values(s.halls).flat().map((slot) => slot.programId));
+  s.halls['TEST-HALL'] = [...programs].filter((id) => !housed.has(id)).map((programId) => ({ programId }));
 }
 function enrol(s: GameState, n: number): void {
   s.students.classes = { freshman: n, sophomore: 0, junior: 0, senior: 0 };

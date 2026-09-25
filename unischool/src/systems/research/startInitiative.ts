@@ -15,6 +15,8 @@ export function startInitiative(s: GameState, action: Extract<Action, { type: 'S
   const lab = s.tech.find((t) => t.id === action.labId);
   if (!lab || lab.facilityType !== 'lab' || lab.status !== 'done') return;
   if (s.research.initiatives[action.labId]) return;
+  // One lab at a time on a topic (researchData.ts's initiativeOffers).
+  if (Object.values(s.research.initiatives).some((i) => i.topicId === action.topicId)) return;
 
   const topic = researchTopic(action.topicId);
   const depth = initiativeDepth(action.depth);

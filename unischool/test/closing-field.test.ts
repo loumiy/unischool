@@ -60,9 +60,12 @@ console.log('closing field tests');
 {
   const rivals = initialRivals();
   const elite = rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id));
-  assert(elite.length === 10, 'ten elite schools');
+  assert(elite.length === 11, 'eleven elite schools');
   assert(elite.every((r) => r.reputation >= 87 && r.reputation <= 99), 'authored at 87 to 99');
-  assert([...ELITE_RIVAL_IDS].sort().join(',') === ['r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15'].sort().join(','), 'and they are the authored elite tier, r6 to r15');
+  // The band is the table's: every school authored in it, and no other
+  // (Plan 46 added Ashcombe, r1, which the list had left out).
+  const inBand = rivals.filter((r) => r.reputation >= 87 && r.reputation <= 99).map((r) => r.id).sort();
+  assert([...ELITE_RIVAL_IDS].sort().join(',') === inBand.join(','), `and they are every school authored at 87 to 99 (${inBand.join(', ')})`);
 }
 
 // --- the field arrives on a leader above the gate ---------------------------------

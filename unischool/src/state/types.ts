@@ -485,6 +485,9 @@ export interface SummerPayload {
   final?: boolean;
   tuition: number;    // where the tuition slider opens: last year's listed price
   admitRate: number;  // where the admit slider opens: last year's chosen rate
+  // The tuition set blind on the admissions beat, once locked. Kept here so a
+  // reload cannot unlock it after the pool has been seen.
+  lockedTuition?: number;
   decision?: SummerDecision; // set once the admissions beat has been left; what the last beat commits
 }
 
@@ -943,6 +946,9 @@ export interface RunningCampaign {
   campaignId: string;       // data/campaignData.ts
   startedYear: number;
   dueYear: number;
+  // The week it closes, counted from founding: its full term to the week.
+  // Optional: a campaign launched before it was kept closes on dueYear.
+  dueWeek?: number;
   raised: number;
   target: number;
 }

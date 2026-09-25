@@ -92,13 +92,13 @@ const PLAN: Site[] = [
   // grid of lanes — with the founding dorm and the early dining hall on the
   // north walk. ---
   { id: 'LAB-BIOL', row: 56, col: 44 },
-  { id: 'LAB-CHMY', row: 60, col: 44 },
+  { id: 'LAB-CHEM', row: 60, col: 44 },
   { id: 'LAB-MECH', row: 64, col: 44 },
   { id: 'LAB-ELEC', row: 68, col: 44 },
   { id: 'LAB-PHYS', row: 56, col: 37 },
   { id: 'LAB-CIVE', row: 60, col: 37 },
   { id: 'LAB-AERO', row: 64, col: 37 },
-  { id: 'LAB-CHEM', row: 68, col: 37 },
+  { id: 'LAB-CHEN', row: 68, col: 37 },
   { id: 'DORM-01', row: 50, col: 43 },
   { id: 'DININGHALL-02', row: 50, col: 37 },
 

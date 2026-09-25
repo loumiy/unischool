@@ -25,19 +25,18 @@ export interface ResearchTopic {
   // The fields the work needs: one for a departmental topic; two or three
   // for a cross-disciplinary one, each of which must be on the team.
   fields: readonly string[];
-  // Which facilities may host it, by Buildable id. Set only to keep a topic
-  // out of a facility that would otherwise host it (the two shared fields:
-  // Chemistry Labs vs Chemical Engineering Labs, Physics Labs vs Aerospace
-  // Engineering Labs). Exhaustive when set, so a topic naming a second field
-  // must list that field's hosts too if it wants them. Unset means any
-  // facility hosting a field the topic names (hostableFields).
+  // Which of two twin labs takes a shared field (Chemistry Labs vs Chemical
+  // Engineering Labs, Physics Labs vs Aerospace Engineering Labs), by
+  // Buildable id. It settles the twins only: a cross topic's other field's
+  // lab is always admitted (researchData.ts's topicHostedAt). Unset means
+  // any facility hosting a field the topic names (hostableFields).
   labs?: readonly string[];
 }
 
 const PHYSICS_LABS = 'LAB-PHYS';     // the Physics Labs: pure physics
 const AEROSPACE_LAB = 'LAB-AERO';    // the Aerospace Engineering Labs: applied, and also fielded as Physics
-const CHEMISTRY_LABS = 'LAB-CHMY';   // the Chemistry Labs: pure chemistry
-const CHEM_ENG_LABS = 'LAB-CHEM';    // the Chemical Engineering Labs: applied
+const CHEMISTRY_LABS = 'LAB-CHEM';   // the Chemistry Labs: pure chemistry
+const CHEM_ENG_LABS = 'LAB-CHEN';    // the Chemical Engineering Labs: applied
 const HISTORY_INSTITUTE = 'LAB-HIST';
 const ECONOMICS_LAB = 'LAB-ECON';    // hosts Business's four unequipped departments too (hostableFields)
 const COMPUTING_CENTER = 'LAB-COMP'; // hosts AI, Information Systems and Mathematics too

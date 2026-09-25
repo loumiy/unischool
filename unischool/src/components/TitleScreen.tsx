@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { discardSetAsideSave, readSetAsideSave } from '../state/persistence';
 import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
 import { readHall } from '../state/hall';
@@ -20,6 +21,8 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
   onCredits: () => void;
 }) {
   const [hall] = useState(() => readHall());
+  // A run this version could not open (persistence.ts's set-aside save).
+  const [setAside, setSetAside] = useState(() => readSetAsideSave());
   const [confirming, setConfirming] = useState(false);
   const underway = s.started;
   return (
@@ -29,6 +32,14 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
           <h1 className="title-name">UniSchool</h1>
           <p className="title-tagline">Fifty years to build a university.</p>
         </header>
+        {setAside && (
+          <p className="title-set-aside" role="status">
+            {setAside.name ? `${setAside.name}, a college saved` : 'A college saved'}
+            {setAside.savedAt ? ` on ${new Date(setAside.savedAt).toLocaleDateString()}` : ''}, was made by an earlier version of the game and cannot be continued in this one. It has been kept aside rather than erased.
+            {' '}
+            <button type="button" className="newgame-btn" onClick={() => { discardSetAsideSave(); setSetAside(null); }}>Discard it</button>
+          </p>
+        )}
         <nav className="title-actions" aria-label="Start">
           {underway && (
             <button type="button" className="title-primary" onClick={onContinue}>

@@ -66,7 +66,9 @@ export const PROJECTS: readonly ProjectDef[] = [
   {
     id: 'PROJ-GRADUATE', name: 'The Graduate College',
     description: 'A quadrangle of its own for graduate students, with a hall to dine in and a tower to be seen from: the scholars given a college rather than a set of rooms.',
-    cost: 25_000_000, weeks: 104, upkeep: 30_000, beds: 600,
+    // No beds: the game houses no graduate students (techData.ts's graduate
+    // boundary), so its rooms add nothing the undergraduate count reads.
+    cost: 25_000_000, weeks: 104, upkeep: 30_000,
     project: { fromYear: 20, graduate: true, boosts: { academics: 4 } },
   },
   {

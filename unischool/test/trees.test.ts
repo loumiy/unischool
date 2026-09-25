@@ -61,8 +61,7 @@ function open(): { s: GameState; tile: { row: number; col: number } } {
   for (const species of SPECIES) {
     const planted = reducer(structuredClone(s), { type: 'PLANT_TREE', tile, species });
     assert(speciesOf(planted.trees[key]) === species, `planting a ${species} plants a ${species}`);
-    const plain = reducer(structuredClone(s), { type: 'PLANT_TREE', tile });
-    assert(planted.rng === plain.rng, `and draws the same one number from the run's stream as planting whatever grows (${species})`);
+    assert(planted.rng === s.rng, `and draws nothing from the run's stream, so decorating never moves a later roll (${species})`);
   }
 }
 

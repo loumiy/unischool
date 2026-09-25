@@ -134,11 +134,11 @@ export function initialRivals(): Rival[] {
 export type AuthoredRival = Omit<Rival,
   'colors' | 'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
 
-// The elite band: the ten schools authored at 87-99. Once the player is above
+// The elite band: the eleven schools authored at 87-99 (Ashcombe, r1, among them). Once the player is above
 // ELITE_CLOSE_ABOVE_PRESTIGE they close on the leader (rivalsSystem.ts's
 // eliteClosingStep). A fixed set of ids rather than a reputation reading, so
 // membership does not change with drift; a test pins it to the table.
-export const ELITE_RIVAL_IDS: ReadonlySet<string> = new Set(['r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15']);
+export const ELITE_RIVAL_IDS: ReadonlySet<string> = new Set(['r1', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15']);
 
 export function baseRivals(): AuthoredRival[] {
   return [

@@ -430,12 +430,25 @@ export function availableScholars(s: GameState, field: string): Faculty[] {
 // (ResearchTopic.labs), this one among them. The pool is derived from the
 // id so a caller cannot pass the wrong fields. An unknown id yields four
 // blocked tiers.
+// Whether a lab may lead a topic. A topic's `labs` list settles only which
+// of two twin labs takes a shared field (Physics Labs or Aerospace, Chemistry
+// or Chemical Engineering); the lab of a cross topic's other field is always
+// admitted, so no restriction shuts a partner out of its own pair.
+const TWIN_FIELDS: ReadonlySet<string> = new Set(['Physics', 'Chemistry']);
+export function topicHostedAt(topic: ResearchTopic, labId: string): boolean {
+  if (!topic.labs || topic.labs.includes(labId)) return true;
+  const hosted = hostableFields(labId);
+  return topic.fields.some((f) => !TWIN_FIELDS.has(f) && hosted.includes(f));
+}
+
 export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[] {
   const epoch = Math.floor((s.clock.year * WEEKS_PER_YEAR + s.clock.week) / OFFER_EPOCH_WEEKS);
   const fieldSet = new Set(hostableFields(labId));
 
+  // A topic runs in one lab at a time: one under way elsewhere is not offered.
+  const elsewhere = new Set(Object.values(s.research.initiatives).filter((i) => i.labId !== labId).map((i) => i.topicId));
   const runnable = RESEARCH_TOPICS.filter((topic) => (
-    topic.fields.some((f) => fieldSet.has(f)) && (!topic.labs || topic.labs.includes(labId))
+    topic.fields.some((f) => fieldSet.has(f)) && topicHostedAt(topic, labId) && !elsewhere.has(topic.id)
   ));
 
   return INITIATIVE_DEPTHS.map((depth, depthIndex) => {

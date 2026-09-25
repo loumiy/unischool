@@ -21,7 +21,7 @@ import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../sys
 import { projectConsequences } from '../systems/admissions/consequences';
 import { poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
-import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS, offeredChoices } from '../data/eventData';
+import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
@@ -50,6 +50,7 @@ function interruptBody(): { title: string; body: string } {
 interface AdmissionsDraft {
   tuition: number;
   admitRate: number;
+  lockedTuition?: number;
 }
 
 // The reveal ticks slower than any other number: it is the payoff for a price
@@ -184,7 +185,7 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, 
 // tuition blind and it locks, then sets the admit rate with every consequence
 // previewed. Selectivity and enrollment are emergent outcomes of the funnel
 // (admissionsSystem.ts). This is the only place tuition is ever set.
-function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction, cohortSignals, onCommit }: {
+function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction, cohortSignals, onLock, onCommit }: {
   payload: AdmissionsDraft;
   // For the consequence projection alone (consequences.ts), which advances a
   // copy of the classes through the real finance and satisfaction functions.
@@ -193,6 +194,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   capacity: number;
   satisfaction: number;
   cohortSignals: CohortSignals;
+  // Records the blind price in the payload, so a reload keeps it locked.
+  onLock: (tuition: number) => void;
   // Carries the decision into the payload (types.ts's SummerPayload) and
   // moves on to the Students beat, where the year turns over.
   onCommit: (decision: SummerDecision) => void;
@@ -200,11 +203,11 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // Under austerity the board lets tuition rise, never fall (distress.ts);
   // the slider starts there, so the preview is the price the reducer keeps.
   const floor = tuitionFloor(s);
-  const [tuition, setTuition] = useState(Math.max(floor, payload.tuition));
+  const [tuition, setTuition] = useState(payload.lockedTuition ?? Math.max(floor, payload.tuition));
   const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
   // Set blind, then locked with no way back: a price you could revise after
   // seeing the pool would be a lookup table, not a decision.
-  const [tuitionLocked, setTuitionLocked] = useState(false);
+  const tuitionLocked = payload.lockedTuition !== undefined;
 
   // Seats the catalog has left after graduation, from the same function
   // the reducer clips with. The admit-rate slider shrinks to fit.
@@ -257,7 +260,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
       )}
 
       {!tuitionLocked && (
-        <button type="button" className="admissions-lock" onClick={() => setTuitionLocked(true)}>
+        <button type="button" className="admissions-lock" onClick={() => onLock(tuition)}>
           Set tuition for the year →
         </button>
       )}
@@ -534,12 +537,13 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
         <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} />
       ) : payload.beat === 1 ? (
         <AdmissionsInterruptForm
-          payload={{ tuition: payload.tuition, admitRate: payload.admitRate }}
+          payload={{ tuition: payload.tuition, admitRate: payload.admitRate, lockedTuition: payload.lockedTuition }}
           s={s}
           prestige={s.self.reputation}
           capacity={s.students.capacity}
           satisfaction={trailingYearSatisfaction(s)}
           cohortSignals={deriveCohortSignals(s)}
+          onLock={(tuition) => act({ type: 'LOCK_TUITION', tuition })}
           onCommit={(d) => act({ type: 'RESOLVE_SUMMER_BEAT', decision: d })}
         />
       ) : (
@@ -1013,7 +1017,6 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
       </>
     );
   }
-  const first = OPENING_LETTERS[0].id === letter.id;
   return (
     <>
       <p className="letter-eyebrow">From the chair of the board · Week {letter.week}</p>
@@ -1024,11 +1027,11 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
         {letter.ask}
       </p>
       <button onClick={() => onResolve(false)}>Understood</button>
-      {first && (
-        <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
-          I know the way — no more letters this run
-        </button>
-      )}
+      {/* On every letter, not only the first: a guided founding marks the
+          first read at the start, so the opt-out has to travel with the rest. */}
+      <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
+        I know the way — no more letters this run
+      </button>
     </>
   );
 }

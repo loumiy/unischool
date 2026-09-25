@@ -16,7 +16,9 @@ import { CAMPUS_GRID_WIDTH, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
 import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
-import { FOUNDERS_HALL_ID, graduatePrograms, majorPrefixes } from '../data/techData';
+import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
+import { initialDorms } from '../data/campusData';
+import { initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS } from '../data/facultyData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -42,12 +44,29 @@ export const SAVE_KEY = 'unischool.save';
 // satisfy: a new required field, a renamed/retyped field, a changed meaning.
 // Additive optional fields don't need a bump.
 //
-// A save at any other version is discarded and the player starts fresh.
+// A save at any other version is not loaded and the player starts fresh; the
+// run is set aside under SET_ASIDE_KEY and the title screen says so.
 // That is the policy: the game is unreleased, and a silently half-loaded
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 72; // Plan 33: the summer's beats renumbered (Standing dropped); capital projects in the catalog
+export const SAVE_VERSION = 73; // Plan 46: Chemistry is CHEM and Chemical Engineering CHEN (were CHMY and CHEM)
+
+// The one-off carry from the previous version (the policy above): Plan 46
+// swapped two majors' codes, which are ids throughout a save (programs, their
+// courses, their labs). Remapped on the saved text before it is read. Delete
+// with the next bump.
+const MIGRATED_FROM = 72;
+function migrateChemistryCodes(raw: string): string {
+  return raw
+    .replace(/\bCHEM(?=\d{3}\b)/g, '@@CHEN')
+    .replace(/\bLAB-CHEM\b/g, 'LAB-@@CHEN')
+    .replace(/"CHEM"/g, '"@@CHEN"')
+    .replace(/\bCHMY(?=\d{3}\b)/g, 'CHEM')
+    .replace(/\bLAB-CHMY\b/g, 'LAB-CHEM')
+    .replace(/"CHMY"/g, '"CHEM"')
+    .replace(/@@CHEN/g, 'CHEN');
+}
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
 export interface SavePayload {
@@ -67,6 +86,48 @@ export function saveGame(state: GameState): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+// A save this version cannot read, kept under its own key so the next save
+// does not destroy it: the policy discards old runs, but not silently.
+export const SET_ASIDE_KEY = 'unischool.save.set-aside';
+
+export interface SetAsideSave {
+  version: number | null;
+  savedAt: number | null;
+  name: string | null;
+}
+
+function setAside(raw: string): void {
+  try {
+    if (localStorage.getItem(SET_ASIDE_KEY) !== null) return;
+    localStorage.setItem(SET_ASIDE_KEY, raw);
+  } catch {
+    // Storage refused: nothing more can be done for it.
+  }
+}
+
+export function readSetAsideSave(): SetAsideSave | null {
+  try {
+    const raw = localStorage.getItem(SET_ASIDE_KEY);
+    if (raw === null) return null;
+    const p = JSON.parse(raw) as { version?: unknown; savedAt?: unknown; state?: { self?: { name?: unknown } } };
+    return {
+      version: typeof p.version === 'number' ? p.version : null,
+      savedAt: typeof p.savedAt === 'number' ? p.savedAt : null,
+      name: typeof p.state?.self?.name === 'string' ? p.state.self.name : null,
+    };
+  } catch {
+    return { version: null, savedAt: null, name: null };
+  }
+}
+
+export function discardSetAsideSave(): void {
+  try {
+    localStorage.removeItem(SET_ASIDE_KEY);
+  } catch {
+    // Nothing to do.
   }
 }
 
@@ -367,7 +428,8 @@ function sanitizeAdvancement(state: GameState): void {
   const ok = typeof raw === 'object' && raw !== null && Array.isArray(a.closed)
     && typeof a.restrictedBuilding === 'number' && Number.isFinite(a.restrictedBuilding) && a.restrictedBuilding >= 0
     && (a.running === null || (typeof a.running === 'object' && a.running !== undefined && typeof a.running.campaignId === 'string'
-      && Number.isFinite(a.running.raised) && Number.isFinite(a.running.target) && Number.isInteger(a.running.dueYear)));
+      && Number.isFinite(a.running.raised) && Number.isFinite(a.running.target) && Number.isInteger(a.running.dueYear)
+      && (a.running.dueWeek === undefined || Number.isInteger(a.running.dueWeek))));
   if (!ok) { delete state.advancement; return; }
   if (state.advancement!.running && !campaignById(state.advancement!.running.campaignId)) state.advancement!.running = null;
 }
@@ -571,6 +633,21 @@ function looksLikeGameState(value: unknown): value is GameState {
   );
 }
 
+// A save keeps each Buildable's text, so a correction to the catalog would
+// otherwise reach new runs only. Descriptions are always the catalog's; a
+// name is the catalog's for a course (nothing renames a course), while a
+// building's may be a donor's (eventData.ts's naming rights) and is kept.
+let catalogText: Map<string, { name: string; description: string }> | null = null;
+function refreshAuthoredText(state: GameState): void {
+  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description }]));
+  for (const t of state.tech) {
+    const authored = catalogText.get(t.id);
+    if (!authored) continue;
+    t.description = authored.description;
+    if (t.kind === 'course') t.name = authored.name;
+  }
+}
+
 // Returns the saved run, or null if it is missing, unreadable, unparseable,
 // the wrong version, or not shaped like a GameState. A corrupt save must
 // never stop the app booting.
@@ -586,6 +663,10 @@ export function loadGame(): GameState | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
+    if ((parsed as Partial<SavePayload> | null)?.version === MIGRATED_FROM) {
+      parsed = JSON.parse(migrateChemistryCodes(raw));
+      (parsed as SavePayload).version = SAVE_VERSION;
+    }
   } catch {
     return null;
   }
@@ -593,8 +674,12 @@ export function loadGame(): GameState | null {
   if (typeof parsed !== 'object' || parsed === null) return null;
   const payload = parsed as Partial<SavePayload>;
   // Exactly this version: older saves aren't carried forward and newer ones
-  // aren't understood.
-  if (payload.version !== SAVE_VERSION) return null;
+  // aren't understood. The run is set aside, not lost, and the title screen
+  // says so (readSetAsideSave), before the next save overwrites the key.
+  if (payload.version !== SAVE_VERSION) {
+    setAside(raw);
+    return null;
+  }
   if (!looksLikeGameState(payload.state)) return null;
 
   const state = payload.state;
@@ -616,6 +701,7 @@ export function loadGame(): GameState | null {
   sanitizeCatalogue(state);
   sanitizePromises(state);
   sanitizeEnding(state);
+  refreshAuthoredText(state);
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;

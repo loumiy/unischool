@@ -591,7 +591,15 @@ export function tickTech(s: GameState): void {
     delete node.financing;
     if (!renovated) applyEffects(s, node.effects);
     openHall(s, node);
-    s.log.unshift({
+    // A renovation's end is logged as that, not as a new building, so the
+    // year in review does not list it as completed.
+    s.log.unshift(renovated ? {
+      year: s.clock.year,
+      week: s.clock.week,
+      message: `${node.name}: the work is finished.`,
+      kind: 'good',
+      subject: node.id,
+    } : {
       year: s.clock.year,
       week: s.clock.week,
       message: `Developed: ${node.name}.`,

@@ -128,6 +128,8 @@ export type Action =
   // `promises`: leaving the Review beat, the offered promises taken (Plan 33);
   // the rest are declined.
   | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision; promises?: string[] }
+  // Locks the blind tuition on the admissions beat (SummerPayload.lockedTuition).
+  | { type: 'LOCK_TUITION'; tuition: number }
   // Resolves the summer: sets tuition (the only place it changes) and the
   // admit rate, commits the class, and advances the clock. Accepted at any
   // beat. Pending petitions not in `approvedPetitionIds` are declined.
