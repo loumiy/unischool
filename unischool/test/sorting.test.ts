@@ -213,6 +213,49 @@ function letter(id: string) {
   assert(!fireOpeningLetter(s), '"I know the way" stands them all down');
 }
 
+// --- the line points somewhere a player can go (Plan 58) -------------------
+{
+  // Founders Hall full of four schools, Elm Hall Science's with room, and
+  // nothing on offer that it can take: only Oak Hall breaks the deadlock.
+  const s = college('Deadlock');
+  stand(s, 'HALL-01', 20);
+  s.halls['HALL-01'][0] = { programId: 'PHYS' };
+  for (const [i, id] of ['SOCY', 'FINA', 'ACCT', 'ANTH'].entries()) s.halls[FOUNDERS_HALL_ID][[1, 3, 4, 5][i]] = { programId: id };
+  s.halls[FOUNDERS_HALL_ID][3] = { programId: 'HIST' };
+  s.programOffers = ['PHIL', 'MRKT'];
+  s.tech.find((t) => t.id === 'HALL-02')!.status = 'available';
+  s.events.opening.read = ['a-school-grows'];
+  const grows = OPENING_LETTERS.find((l) => l.id === 'a-school-grows')!;
+  assert(!grows.done(s) && grows.ask(s).intent?.kind === 'wait', 'the letter asks to grow Science, and there is nothing to do toward it');
+  const step = nextStep(s);
+  assert(step?.intent?.kind === 'site' && step.intent.buildableIds[0] === 'HALL-02' && step.text.includes('Oak Hall'), `so the line gives way to the hall that breaks it (${step?.text})`);
+
+  // Every major housed and a school still in Founders Hall: the next hall.
+  const t = college('Leftover');
+  for (const [i, id] of ['CIVE', 'INDE', 'ELEC', 'CHEN', 'MECH', 'AERO'].entries()) t.halls[FOUNDERS_HALL_ID][i] = { programId: id };
+  t.tech.find((x) => x.id === 'HALL-01')!.status = 'available';
+  const line = nextStep(t);
+  assert(line?.intent?.kind === 'site' && line.text === 'Engineering has no hall of its own — site Elm Hall', `a school left in Founders Hall is told to site the next hall (${line?.text})`);
+}
+
+// --- every line that asks for something says what, as data (Plan 58) -------
+{
+  const s = college('Intents');
+  stand(s, 'HALL-01', 20);
+  const move = nextStep(s);
+  assert(move?.intent?.kind === 'move' && move.intent.programId === 'MATH' && move.intent.hallId === 'HALL-01', 'a move names the program, the hall and the slot');
+  s.students.satisfactionBreakdown.health = 20;
+  s.halls['HALL-01'][0] = { programId: 'MATH' };
+  s.halls[FOUNDERS_HALL_ID][1] = { programId: null };
+  s.halls[FOUNDERS_HALL_ID][3] = { programId: null };
+  const low = nextStep(s);
+  assert(low?.intent?.kind === 'build-for' && low.intent.attribute === 'health', `a shortfall names its attribute (${low?.text})`);
+  for (const letter of OPENING_LETTERS) {
+    const ask = letter.ask(s);
+    assert(ask.intent !== undefined, `"${letter.title}" says what it asks for as data`);
+  }
+}
+
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);

@@ -93,7 +93,7 @@ function stand(s: GameState, id: string): void {
   assert(projectOpen(fresh(15), node(fresh(15), 'HLTH-T3')), 'and from it');
   s.clock.year = 25;
   unlockAvailable(s);
-  assert(node(s, 'PROJ-GRADUATE').status === 'available', 'the graduate college opens from Year 20 once any school is taught');
+  assert(node(s, 'PROJ-GRADUATE').status === 'available', 'the graduate college opens from Year 15 once any school is taught');
   assert(node(s, 'PROJ-LAW').status === 'locked' && node(s, 'PROJ-BUSINESS').status === 'locked', 'the law and business schools wait on their own schools');
   assert(!lateTierOpen(s) && node(s, 'PROJ-MUSEUM').status === 'locked', 'the late tier waits');
   s.clock.year = 35;

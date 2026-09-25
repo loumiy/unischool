@@ -217,8 +217,22 @@ are reported.** Its code is `sim/harness/`, and it replaces the sim below
   `test/fuzz-late.test.ts` (slow) fuzzes three years from the Balanced
   builder's college at years 12 and 30.
 
-Next: the guided player (Plan 58), which does only what the game tells it
-and measures the line of play; the archetypes and the report (Plan 59).
+- **The guided player** (`sim/harness/guided.ts`, Plan 58): does what the
+  game tells it. Each week it carries out the toolbar's line — its
+  `intent`, the same reading as the words (`systems/guidance/intent.ts`) —
+  and otherwise plays with plain sense: it saves for what the line asks
+  when the cash does not cover it, fixes any satisfaction attribute under
+  25 even while saving, keeps a reserve of eight weeks' expenses for its
+  own spending, takes on nothing recurring while the week runs at a loss,
+  and prices the summer at what its standing tolerates (the admissions
+  screen's "fair"). `test/guided.test.ts` (slow) checks three fifty-year
+  runs for the rules, no stuck interrupt, and every letter delivered with
+  its ask done. `npm run guided` measures five runs: when the letters' asks
+  are done, when each school is founded, when Founders Hall empties, the
+  rank and the body, and how often the line asked for something the player
+  could not do.
+
+Next: the archetypes and the report (Plan 59).
 
 ## The sim, and the scorecard
 

@@ -65,7 +65,7 @@ export const PROJECTS: readonly ProjectDef[] = [
     // No beds: the game houses no graduate students (techData.ts's graduate
     // boundary), so its rooms add nothing the undergraduate count reads.
     cost: 25_000_000, weeks: 104, upkeep: 30_000,
-    project: { fromYear: 20, curriculum: ANY_SCHOOL, boosts: { academics: 4 } },
+    project: { fromYear: 15, curriculum: ANY_SCHOOL, boosts: { academics: 4 } },
   },
   {
     id: 'PROJ-LAW', name: 'The Law School',

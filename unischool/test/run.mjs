@@ -23,7 +23,7 @@ const OUT = join(ROOT, 'node_modules/.tmp/tests');
 // the endpoint claims were slow suites until Plan 56 made them reports
 // (`npm run scorecard`, `npm run endpoint:claims`): balance numbers are
 // measured, and only checks gate a merge.
-const SLOW = new Set(['balance-regression', 'fuzz-late']);
+const SLOW = new Set(['balance-regression', 'fuzz-late', 'guided']);
 
 const args = process.argv.slice(2);
 const mode = args.includes('--all') ? 'all' : args.includes('--slow') ? 'slow' : 'fast';
