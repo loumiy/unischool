@@ -32,10 +32,10 @@ import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSyste
 // The founding body is all commuters and enrollment is never capacity-gated,
 // so `capacity` starts at 0. The three founding programs each open with their
 // first two courses, which is what seats the founding body of 350.
-const FOUNDING_INSTRUCTOR_BY_PROGRAM: Record<string, string> = { ENGL: 'f3', HIST: 'f2', PHIL: 'f5' };
+const FOUNDING_INSTRUCTOR_BY_PROGRAM: Record<string, string> = { ENGL: 'f3', MATH: 'f4', ECON: 'f2' };
 // The founding offer draw guarantees one of these majors (programOffers.ts's
-// refillOffers): programs the roster can already staff.
-export const FOUNDING_OFFER_GUARANTEE: readonly string[] = ['SOCY', 'MATH'];
+// refillOffers): programs the roster can already staff, in two more schools.
+export const FOUNDING_OFFER_GUARANTEE: readonly string[] = ['SOCY', 'PSYC'];
 
 // The 101 and 110 of each founding program, in program order.
 export function foundingCourseIds(): string[] {
@@ -353,8 +353,10 @@ function foundState(
     },
     // Stats and salary derive from FOUNDING_TENURE_WEEKS through the curves
     // growFaculty reapplies every tick; literal figures would be overwritten.
-    // The five free slots (Bennett's third, Iyer's two, Reyes's two) are what
-    // FOUNDING_OFFER_GUARANTEE is written against.
+    // One professor for each founding program (Plan 52: Bennett teaches
+    // English, Iyer Mathematics, Okafor Economics), and two whose free slots
+    // (Reyes's in Sociology, Novak's in Psychology) are what
+    // FOUNDING_OFFER_GUARANTEE is written against, with Bennett's third.
     faculty: [
       {
         id: 'f1', name: 'Dr. Alma Reyes', field: 'Sociology', teaching: grownStat(82, FOUNDING_TENURE_WEEKS), research: grownStat(78, FOUNDING_TENURE_WEEKS), teachingPotential: 82, researchPotential: 78,
@@ -364,11 +366,11 @@ function foundState(
         bio: 'Earned a doctorate in Sociology at Ravensmoor Institute; research centers on social networks and urban communities.',
       },
       {
-        id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
+        id: 'f2', name: 'Dr. John Okafor', field: 'Economics', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(88, FOUNDING_TENURE_WEEKS), grownStat(68, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
-        bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
+        bio: 'Earned a doctorate in Economics at the University of Calderwood; research centers on trade and development.',
       },
       {
         id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: grownStat(85, FOUNDING_TENURE_WEEKS), research: grownStat(72, FOUNDING_TENURE_WEEKS), teachingPotential: 85, researchPotential: 72,
@@ -385,11 +387,11 @@ function foundState(
         bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
       },
       {
-        id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: grownStat(83, FOUNDING_TENURE_WEEKS), research: grownStat(71, FOUNDING_TENURE_WEEKS), teachingPotential: 83, researchPotential: 71,
+        id: 'f5', name: 'Dr. Elena Novak', field: 'Psychology', teaching: grownStat(83, FOUNDING_TENURE_WEEKS), research: grownStat(71, FOUNDING_TENURE_WEEKS), teachingPotential: 83, researchPotential: 71,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(83, FOUNDING_TENURE_WEEKS), grownStat(71, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Poland', flag: '🇵🇱', gender: 'female', heritage: 'Slavic/Eastern European',
-        bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
+        bio: 'Earned a doctorate in Psychology at Amberfield University; research centers on memory and decision-making.',
       },
     ],
     tech,

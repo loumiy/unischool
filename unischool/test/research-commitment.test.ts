@@ -59,7 +59,15 @@ function equipped(): { s: GameState; labId: string; field: string } {
   const lab = s.tech.find((t) => t.kind === 'facility' && t.facilityType === 'lab')!;
   lab.status = 'done';
   s.finance.cash = 5_000_000_000;
-  return { s, labId: lab.id, field: labFields(lab.id)[0] };
+  // The department starts empty, so every professor in it is one a test
+  // hired: since Plan 52 a founding professor teaches Economics, the field
+  // of the first lab in the catalog.
+  const field = labFields(lab.id)[0];
+  for (const f of s.faculty.filter((x) => x.field === field)) {
+    for (const [course, id] of Object.entries(s.courseFaculty)) if (id === f.id) delete s.courseFaculty[course];
+  }
+  s.faculty = s.faculty.filter((x) => x.field !== field);
+  return { s, labId: lab.id, field };
 }
 
 // Put `count` offered courses in `field` on the roster member `f`, taken

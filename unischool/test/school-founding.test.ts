@@ -164,20 +164,20 @@ console.log('school founding tests');
   assert(s.milestones[schoolFoundedKey('Computer Science')] === true, 'the gate the lab reads is still true');
 }
 
-// ---- Founders Hall is an ordinary hall: half a school at founding ----
+// ---- Founders Hall is an ordinary hall: three schools begun, none its own ----
 {
   let s = createInitialState('Founders');
-  const opening = programs().find((p) => p.id === FOUNDING_PROGRAMS[0])!.school;
-  assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === null, 'three of six is not dedicated');
+  const schools = new Set(FOUNDING_PROGRAMS.map((id) => programs().find((p) => p.id === id)!.school));
+  assert(schools.size === FOUNDING_PROGRAMS.length, 'each founding program is of a different school (Plan 52)');
+  assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === null, 'so Founders Hall is not dedicated');
   assert(dedicatedHalls(s).length === 0, 'a founding save has no dedicated hall');
   assert(hallDisplayName(s, s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!) === 'Founders Hall', 'and Founders Hall keeps its name');
-  const rest = majorsOf(opening).filter((id) => !FOUNDING_PROGRAMS.includes(id));
-  assert(rest.length === 3, 'three programs of the opening school remain to be founded');
+  const opening = programs().find((p) => p.id === FOUNDING_PROGRAMS[0])!.school;
+  const rest = majorsOf(opening).filter((id) => !FOUNDING_PROGRAMS.includes(id)).slice(0, 3);
   rest.forEach((id, i) => { s.halls[FOUNDERS_HALL_ID][FOUNDING_PROGRAMS.length + i] = { programId: id }; });
-  assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === opening, `filling its three rooms with the rest of the school dedicates it to ${opening}`);
+  assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === null, `filling its rooms with ${opening} programs still leaves it mixed`);
   s = finishSomething(s);
-  assert(isSchoolFounded(s, opening), 'and founds the opening school');
-  assert(hallDisplayName(s, s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!) === `${opening} Hall`, 'so Founders Hall reads as the school\'s hall on the map');
+  assert(!isSchoolFounded(s, opening), 'and founds no school: a school is a hall of its own');
 }
 
 if (failures === 0) {

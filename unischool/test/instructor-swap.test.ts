@@ -82,8 +82,8 @@ console.log('instructor swap tests');
   const s = staffed();
   const before = JSON.stringify(s.courseFaculty);
   // Wrong department.
-  assert(s.tech.find((t) => t.id === 'HIST101')!.status === 'done' && s.courseFaculty['HIST101'] === 'f2', 'fixture: a founding History course, taught by the History hire');
-  assert(!canSwapInstructors(s, 'ENGL101', 'HIST101'), 'a course in another department is not a legal target');
+  assert(s.tech.find((t) => t.id === 'MATH101')!.status === 'done' && s.courseFaculty['MATH101'] === 'f4', 'fixture: a founding Mathematics course, taught by the Mathematics hire');
+  assert(!canSwapInstructors(s, 'ENGL101', 'MATH101'), 'a course in another department is not a legal target');
   // The same course, or the same person.
   assert(!canSwapInstructors(s, 'ENGL101', 'ENGL101'), 'a course cannot swap with itself');
   s.courseFaculty['ENGL110'] = 'weak';
@@ -98,7 +98,7 @@ console.log('instructor swap tests');
   // The reducer refuses all of it silently.
   const after = reducer(JSON.parse(JSON.stringify(s)) as GameState, { type: 'SWAP_COURSE_FACULTY', courseA: 'ENGL101', courseB: 'ENGL120' });
   assert(JSON.stringify(after.courseFaculty) === JSON.stringify(s.courseFaculty), 'a refused swap writes nothing');
-  assert(JSON.stringify({ ...s.courseFaculty, HIST101: undefined }).includes('weak') && before.length > 0, 'fixture intact');
+  assert(JSON.stringify({ ...s.courseFaculty, MATH101: undefined }).includes('weak') && before.length > 0, 'fixture intact');
 }
 
 // ---- a swap never needs a slot, so a full professor can still trade ----

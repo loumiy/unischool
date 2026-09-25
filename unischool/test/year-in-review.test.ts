@@ -61,7 +61,7 @@ console.log('year in review tests');
   // (the founding programs' next courses are open from day one — Plan 19;
   // the founding faculty have one free slot among the three fields, so
   // two departments get a fixture hire).
-  for (const field of ['History', 'Philosophy']) {
+  for (const field of ['Mathematics', 'Economics']) {
     s.faculty.push({
       id: `test-${field}`, name: `Dr. Test ${field}`, field,
       teaching: 80, research: 60, teachingPotential: 90, researchPotential: 70,

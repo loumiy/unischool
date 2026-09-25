@@ -286,13 +286,13 @@ function testHallsSanitizer(): void {
   // so a housed one, an unknown one, a duplicate, and a fourth are all
   // dropped — and nothing is drawn to replace them at load.
   (state.halls as Loose)['HALL-01'] = [{ programId: 'MECH' }, { programId: null }, { programId: null }, { programId: null }, { programId: null }, { programId: null }];
-  state.programOffers = ['MECH', 'FINA', 'NOT-A-PROGRAM', 'FINA', 'ACCT', 'ECON', 'MRKT'];
+  state.programOffers = ['MECH', 'FINA', 'NOT-A-PROGRAM', 'FINA', 'ACCT', 'MGMT', 'MRKT'];
   writeSave(SAVE_VERSION, state);
   const withOffers = loadGame();
   assert(withOffers !== null, 'a save with a bad offer still loads');
   if (withOffers) {
     assert(
-      JSON.stringify(withOffers.programOffers) === JSON.stringify(['FINA', 'ACCT', 'ECON']),
+      JSON.stringify(withOffers.programOffers) === JSON.stringify(['FINA', 'ACCT', 'MGMT']),
       `the offer keeps only founding-ready, distinct programs, at most three (got ${withOffers.programOffers.join(', ')})`,
     );
   }

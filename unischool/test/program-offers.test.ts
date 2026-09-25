@@ -177,11 +177,16 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   // Same starting state, many refills: with one school started, its
   // programs should turn up more often than a flat draw would give.
   const base = foundedState('Eastwick');
-  // A school not yet started, so the count below is the weighting alone:
-  // the opening school is started already, and its two remaining programs
-  // would muddy a count of "home" draws.
-  const homeId = base.programOffers.find((id) => !startedSchools(base).has(schoolOf(id)))!;
+  // A school not yet started, so the count below is the weighting alone.
+  // Since Plan 52 three schools are started at founding, so the offer is set
+  // by hand: the program to take, and beside it a program of another
+  // unstarted school, which keeps the discovery rule satisfied so the
+  // replacement is a free weighted draw.
+  const unstarted = programs().filter((p) => p.kind === 'major' && !startedSchools(base).has(p.school));
+  const homeId = unstarted[0].id;
   const home = schoolOf(homeId);
+  const other = unstarted.find((p) => p.school !== home)!.id;
+  base.programOffers = [other, homeId, programs().find((p) => p.kind === 'major' && startedSchools(base).has(p.school) && !isHoused(base, p.id))!.id];
   let homeOffers = 0;
   let trials = 0;
   for (let t = 0; t < 300; t += 1) {
@@ -198,8 +203,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   }
   // Flat odds: 5 of the 36 unoffered programs remaining are `home`'s. With
   // the discovery rule satisfied by the standing offers, the replacement is
-  // a free weighted draw: 5x3 against the opening school's 2x3 and 29x1,
-  // i.e. ~30%.
+  // a free weighted draw, `home`'s five at triple weight among the rest.
   const share = homeOffers / trials;
   assert(share > 0.2, `a started school's programs are drawn more often than flat odds (${(share * 100).toFixed(0)}% of replacements, flat would be ~13%)`);
   assert(share < 0.5, `but not so often that discovery is crowded out (${(share * 100).toFixed(0)}%)`);

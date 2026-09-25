@@ -149,9 +149,8 @@ const SCHOOLS: SchoolSeed[] = [
     ],
   },
   {
-    // The opening school: English, History and Philosophy are housed in
-    // Founders Hall at founding, taught by the founding roster (actions.ts's
-    // createInitialState).
+    // English is housed in Founders Hall at founding, beside Mathematics and
+    // Economics (foundingData.ts's FOUNDING_PROGRAMS, Plan 52).
     name: 'Social Sciences & Humanities',
     majors: [
       { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Advanced Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing'] },
