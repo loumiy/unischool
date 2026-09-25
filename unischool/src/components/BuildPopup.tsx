@@ -503,8 +503,8 @@ function BuiltSummaryTile({ group, built, open, onToggle }: {
     >
       <span className="kind-tag">×{built.length}</span>
       <span className="build-tile-icon"><Icon /></span>
-      <span className="build-tile-name">Built</span>
-      {detail && <span className="build-tile-sub">{detail}</span>}
+      <span className="build-tile-name">{group.label}</span>
+      <span className="build-tile-sub">{detail ? `built · ${detail}` : 'built'}</span>
       <span className="build-tile-foot">{open ? 'hide ▾' : 'show ▸'}</span>
     </button>
   );

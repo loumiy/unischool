@@ -1527,7 +1527,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .dept-board .panel-head { flex-wrap: wrap; gap: 8px; }
 .dept-head, .dept-row {
   display: grid; align-items: center; gap: 10px;
-  grid-template-columns: 186px minmax(160px, 480px) 70px 58px 150px minmax(200px, 1fr);
+  grid-template-columns: 186px minmax(160px, 480px) 86px 58px 150px minmax(200px, 1fr);
 }
 /* Every cell clips so a long label can't break the column alignment. */
 .dept-head > *, .dept-row > * { overflow: hidden; }
