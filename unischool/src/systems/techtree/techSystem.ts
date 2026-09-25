@@ -3,8 +3,9 @@ import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
-  graduateCourseIds, graduateGateMet, graduatePrograms, milestoneSchools, programById, programOfCourse,
+  graduateCourseIds, graduateGateMet, graduatePrograms, isAcademicHall, milestoneSchools, programById, programOfCourse,
 } from '../../data/techData';
+import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
 import { hallOf, isHoused, isInTransit, refillOffers, slotOf } from './programOffers';
 import { dedicatedHalls, schoolFoundedKey } from './schools';
@@ -352,7 +353,15 @@ export interface Founding {
 export function canFoundProgram(s: GameState, f: Founding): boolean {
   const program = programById(f.programId);
   if (!program) return false;
-  if (!s.programOffers.includes(f.programId) || isHoused(s, f.programId)) return false;
+  if (isHoused(s, f.programId)) return false;
+  // A graduate program goes only to its host, once earned; a major only to
+  // an academic hall, from the offers (Plan 51).
+  if (program.kind === 'graduate') {
+    if (GRADUATE_HOSTS[f.programId] !== f.hallId || !graduateGateMet(s, f.programId)) return false;
+  } else {
+    const hall = s.tech.find((t) => t.id === f.hallId);
+    if (!s.programOffers.includes(f.programId) || !hall || !isAcademicHall(hall)) return false;
+  }
   const slots = s.halls[f.hallId];
   if (!slots || f.slot < 0 || f.slot >= slots.length || slots[f.slot].programId !== null) return false;
   const entry = s.tech.find((t) => t.id === program.entryCourseId);
@@ -401,8 +410,12 @@ export interface Relocation {
 }
 
 export function canRelocateProgram(s: GameState, r: Relocation): boolean {
-  // The founding programs move like any other.
-  if (programById(r.programId) === undefined) return false;
+  // The founding programs move like any other; a graduate program stays in
+  // its host, and only an academic hall takes a major (Plan 51).
+  const program = programById(r.programId);
+  if (program === undefined || program.kind === 'graduate') return false;
+  const hall = s.tech.find((t) => t.id === r.hallId);
+  if (!hall || !isAcademicHall(hall)) return false;
   const from = slotOf(s, r.programId);
   if (!from || isInTransit(s, r.programId)) return false;
   const slots = s.halls[r.hallId];

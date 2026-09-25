@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
 import type { Buildable, FacilityType, GameState } from '../state/types';
-import { FOUNDERS_HALL_ID, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
+import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
+import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
@@ -15,7 +16,7 @@ import {
   canFoundProgram, canRelocateProgram, eligibleInstructors, facultyGate,
   RELOCATION_WEEKS,
 } from '../systems/techtree/techSystem';
-import { transitWeeks } from '../systems/techtree/programOffers';
+import { hostOffers, isHoused, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
 import { money, pct } from '../format';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
@@ -48,7 +49,6 @@ const FACILITY_CAPACITY_LABEL: Partial<Record<FacilityType, string>> = {
   gym: 'fitness capacity',
   tennisCourts: 'court capacity',
   pool: 'pool capacity',
-  performingArtsCenter: 'venue capacity',
   artGallery: 'gallery capacity',
 };
 
@@ -193,7 +193,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                     : 'Every course is developed.'}
           </p>
           <OpenInCurriculum id={`program:${program.id}`} onOpenCurriculum={onOpenCurriculum} />
-          {act && (
+          {act && program.kind !== 'graduate' && (
             <details className="relocate-details">
               <summary>Move to another hall…</summary>
               <RelocateControls program={program} s={s} act={act} />
@@ -257,6 +257,10 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
 // three programs on offer as course tiles (schoolPalette.ts colors);
 // picking one opens the instructor picker, and "Found" is the one button on
 // the map that starts a course. A filled slot shows a ProgramTile.
+//
+// A graduate program's host (Plan 51) is drawn the same way, one slot a
+// program it houses: its offers are the programs it houses that are earned,
+// and the ones still waiting say what on.
 // ---------------------------------------------------------------------
 function HallSlots({ t, s, act, onOpenCurriculum }: {
   t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (sectionKey: string) => void;
@@ -285,7 +289,13 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
     );
   }
 
-  const offers = s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined);
+  const host = !isAcademicHall(t);
+  const offers = host
+    ? hostOffers(s, t.id)
+    : s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined);
+  const waiting = host
+    ? hostedPrograms(t.id).filter((id) => !isHoused(s, id) && !offers.some((p) => p.id === id)).map((id) => graduateProgram(id)).filter((p) => p !== undefined)
+    : [];
   const picked = pickedProgram ? programById(pickedProgram) : undefined;
   const entry = picked ? s.tech.find((x) => x.id === picked.entryCourseId) : undefined;
   const eligible = entry ? eligibleInstructors(s, entry) : [];
@@ -307,7 +317,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
       <p className="building-info-line">
         {free === 0
           ? 'Every slot is taken.'
-          : `${free} of ${slots.length} slots free${offers.length > 0 ? ` — ${offers.length} program${offers.length === 1 ? '' : 's'} on offer.` : '.'}`}
+          : `${free} of ${slots.length} slot${slots.length === 1 ? '' : 's'} free${offers.length > 0 ? ` — ${offers.length} program${offers.length === 1 ? '' : 's'} on offer.` : '.'}`}
       </p>
       <div className="hall-slots">
         {slots.map((slot, i) => {
@@ -342,13 +352,19 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
               onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }}
               aria-pressed={open}
               disabled={offers.length === 0}
-              title={offers.length === 0 ? 'Nothing is on offer to found here.' : 'Found a program in this slot'}
+              title={offers.length === 0 ? (host ? 'No program housed here has been earned yet.' : 'Nothing is on offer to found here.') : 'Found a program in this slot'}
             >
               +
             </button>
           );
         })}
       </div>
+
+      {waiting.map((program) => (
+        <p key={program.id} className="building-info-line">
+          {program.name}: opens once every {program.homeSchool} course is taught.
+        </p>
+      ))}
 
       {openSlot !== null && offers.length > 0 && (
         <div className="hall-offer">
@@ -529,7 +545,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
   // reading as already standing.
   const weeksLeft = s.developing[t.id];
   return (
-    <div className={`building-info-panel${isAcademicHall(t) ? ' hall' : ''}`} role="dialog" aria-label={`${t.name} info`}>
+    <div className={`building-info-panel${isAcademicHall(t) || isGraduateHost(t.id) ? ' hall' : ''}`} role="dialog" aria-label={`${t.name} info`}>
       <div className="building-info-head">
         <h3>{hallDisplayName(s, t)}</h3>
         <button type="button" className="building-info-close" onClick={onClose} aria-label="Close">✕</button>
@@ -549,6 +565,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
         </p>
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
+      {t.kind === 'facility' && isGraduateHost(t.id) && t.status === 'done' && <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
       {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
       {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}
     </div>

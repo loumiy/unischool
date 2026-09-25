@@ -37,7 +37,6 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   tennisCourts: 'grounds',
   // The rec pool is an open-air deck; the natatorium is a roofed venue.
   pool: 'grounds',
-  performingArtsCenter: 'portico',
   artGallery: 'portico',
   athleticsField: 'grounds',
   athleticsArena: 'hangar',
@@ -74,6 +73,9 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   'PROJ-RESEARCH-PARK': 'works',
   'PROJ-GRADUATE': 'residential',
   'PROJ-MUSEUM': 'portico',
+  // The professional schools (Plan 51): a courthouse, and an office block.
+  'PROJ-LAW': 'portico',
+  'PROJ-BUSINESS': 'block',
 };
 
 // What a laboratory carries on its roof to say which science it is: an
@@ -201,7 +203,6 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
   switch (facilityType) {
     case 'library':
       return serves >= RESEARCH_LIBRARY_MIN_SERVES ? 4 : 3;
-    case 'performingArtsCenter': return 3;
     case 'artGallery': return 2;
     case 'healthCenter':
       if (serves >= HOSPITAL_MIN_SERVES) return 8;
@@ -224,13 +225,14 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
 // ones are open ground or a stadium and have no stories.
 interface ProjectSpec { storeys: number; material: keyof MaterialSet }
 const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
-  'PROJ-ARTS': { storeys: facilityStoreys('performingArtsCenter', 0), material: 'limestone' },
+  'PROJ-ARTS': { storeys: 3, material: 'limestone' },   // a concert hall's three storeys
   'PROJ-RESEARCH-PARK': { storeys: facilityStoreys('lab', 0), material: 'render' },
   // A quadrangle of rooms, drawn as a 600-bed residence hall (it adds no
   // beds: the game houses no graduate students).
   'PROJ-GRADUATE': { storeys: dormStoreys(600), material: 'brickDark' },
   'PROJ-MUSEUM': { storeys: facilityStoreys('artGallery', 0), material: 'limestone' },
-  // The biggest dining hall's rung.
+  'PROJ-LAW': { storeys: 3, material: 'limestone' },
+  'PROJ-BUSINESS': { storeys: 5, material: 'curtain' },
 };
 
 // How many floors this building has. Zero means open ground, or a clear-span
@@ -395,7 +397,6 @@ export function doorFamilyOf(t: Buildable): DoorFamily | null {
     // Every lab-gated building takes a service door whatever its motif.
     case 'lab': return 'service';
     case 'library':
-    case 'performingArtsCenter': return 'formal';
     case 'grocery': return 'shopfront';
     case 'healthCenter':
       return (t.effects?.servesPopulation ?? 0) >= HOSPITAL_MIN_SERVES ? 'canopy' : 'civic';
@@ -554,7 +555,7 @@ const GEORGIAN_MATERIALS = {
   brickRed: { wall: '#a2564a', roof: SLATE },
   // Support buildings: refectories, shops, the union.
   brickBuff: { wall: '#bb9468', roof: SLATE },
-  // The civic set: library, performing arts, gallery.
+  // The civic set: library, gallery, the arts center and the law school.
   limestone: { wall: '#d8cdb4', roof: DECK },
   // Labs, works, sheds: deliberately the dullest wall on the map.
   render: { wall: '#b0a992', roof: DECK },
@@ -1122,7 +1123,6 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
       return spec ? MATERIALS[spec.material] : MATERIALS.render;
     }
     case 'library':
-    case 'performingArtsCenter':
     case 'artGallery':
       return MATERIALS.limestone;
     // The chapel is built in the campus's stone; the others stand on open

@@ -55,25 +55,33 @@ function writeSave(version: number, state: unknown): void {
   store.set(SAVE_KEY, JSON.stringify({ version, savedAt: Date.now(), state }));
 }
 
-// ---- Test: the one-off carry from version 73 (Plan 50's projects) ----
-function testProjectsCarry(): void {
+// ---- Test: the one-off carry from version 74 (Plan 51's graduate schools) ----
+function testGraduateCarry(): void {
   clearSave();
   const cur = createInitialState('Carry');
-  // The same run as version 73 wrote it: a removed project standing on its
-  // site, and the hospital under its old name and gate.
+  // The same run as version 74 wrote it: the Performing Arts Center in the
+  // catalog and in Music's capstone prereqs, no Law School, the Arts Center
+  // standing without slots, and the MFA housed in Founders Hall.
   const old = JSON.parse(JSON.stringify(cur)) as GameState;
-  const hospital = old.tech.find((t) => t.id === 'HLTH-T3')!;
-  hospital.name = 'University Hospital';
-  hospital.prereqs = ['HLTH-T2', 'MED501'];
-  delete hospital.project;
-  old.tech.push({ ...old.tech.find((t) => t.id === 'PROJ-ARTS')!, id: 'PROJ-LAWN', name: 'The Great Lawn', status: 'done' });
-  old.placements['PROJ-LAWN'] = { row: 40, col: 40, w: 16, h: 12 };
+  const gallery = old.tech.find((t) => t.id === 'ART-GALLERY')!;
+  old.tech.push({ ...gallery, id: 'ARTS-PAC', name: 'Performing Arts Center' });
+  const capstone = old.tech.find((t) => t.id === 'MUSC210')!;
+  capstone.prereqs = [...capstone.prereqs, 'ARTS-PAC'];
+  old.tech = old.tech.filter((t) => t.id !== 'PROJ-LAW');
+  const arts = old.tech.find((t) => t.id === 'PROJ-ARTS')!;
+  arts.status = 'done';
+  delete arts.slots;
+  old.placements['PROJ-ARTS'] = { row: 5, col: 5, w: 11, h: 9 };
+  const founders = old.halls[FOUNDERS_HALL_ID];
+  const free = founders.findIndex((slot) => slot.programId === null);
+  founders[free] = { programId: 'MFAX' };
   store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: old }));
   const back = loadGame();
-  assert(back !== null, 'a version-73 save loads');
-  assert(back !== null && !back.tech.some((t) => t.id === 'PROJ-LAWN') && !back.placements['PROJ-LAWN'], 'without the removed project or its site');
-  const carried = back?.tech.find((t) => t.id === 'HLTH-T3');
-  assert(carried?.name === 'Medical Center' && carried.project?.fromYear === 15 && !carried.prereqs.includes('MED501'), 'and the hospital is the Medical Center');
+  assert(back !== null, 'a version-74 save loads');
+  if (!back) return;
+  assert(!back.tech.some((t) => t.id === 'ARTS-PAC') && !back.tech.find((t) => t.id === 'MUSC210')!.prereqs.includes('ARTS-PAC'), 'without the Performing Arts Center, even in a prerequisite');
+  assert(back.tech.some((t) => t.id === 'PROJ-LAW'), 'with the Law School in the catalog');
+  assert(back.halls['PROJ-ARTS']?.[0]?.programId === 'MFAX' && !back.halls[FOUNDERS_HALL_ID].some((slot) => slot.programId === 'MFAX'), 'and the MFA moved into the Arts Center');
 }
 
 // ---- Test: the catalog's text reaches a saved run (Plan 46) ----
@@ -334,7 +342,7 @@ function testRejects(): void {
 console.log(`save/load tests (SAVE_VERSION ${SAVE_VERSION})`);
 testRoundTrip();
 testAuthoredText();
-testProjectsCarry();
+testGraduateCarry();
 testFoundingSeenExcludesStartingContent();
 testCourseFacultySanitizer();
 testChapterGlyphs();

@@ -19,8 +19,11 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    rule a player learns in one sentence and plans a decade around. Fourteen
    halls in all: **Founders Hall**, which stands at founding, and a strictly
    sequential chain of thirteen like housing — seven schools of six majors,
-   and a second hall for each of the seven schools, for the nine graduate
-   programs their six majors leave no room for. Founders Hall is an ordinary hall
+   and a second hall for each of the seven schools, built for the graduate
+   programs their six majors left no room for. Since Plan 51 graduate
+   programs are housed in capital projects instead, so the second halls are
+   room to spare; the chain is unchanged, and whether it should shrink is
+   the owner's call. Founders Hall is an ordinary hall
    in every mechanical respect (Plan 19): six slots, three of them holding the
    founding programs — English, History and Philosophy, with their first two
    courses developed and taught by the founding roster — and three rooms
@@ -277,33 +280,16 @@ the hospital gates is the last course of the program.
 
 Arts & Media's version of "every school gets a meaningful tier-3 payoff" —
 the same curated cross-kind gate `LAB_GATED_MAJOR_PREFIXES` gives the lab
-sciences (a Buildable gates a major's capstone coursework), but with each of
-two majors pointed at its **own** facility instead of a lab per major:
+sciences (a Buildable gates a major's capstone coursework):
 
-- **Performing Arts Center** (`facilitiesData.ts`'s `PERFORMING_ARTS_CENTER_ID`)
-  unlocks once **Music's** full tier-2 quartet (`MUSC110`–`MUSC140`) is done,
-  then gates Music's own tier-3 capstone courses — the concert hall and
-  theater is where those capstones perform.
 - **Art Gallery** (`ART_GALLERY_ID`) unlocks once **Studio Art's** tier-2
   quartet (`SART110`–`SART140`) is done, then gates Studio Art's tier-3
-  capstones the same way — the rotating-exhibit gallery is where those
-  capstones exhibit.
-
-Each facility's unlock and its own gate sit two tiers apart (tier-2 to
-unlock, tier-3 gated), so this can never be circular: building the facility
-can never require the facility. The two are otherwise independent of each
-other — nothing orders the gallery against the performing arts center, only
-each against its own major's coursework.
-
-**Graphic Design, the school's third major, sits outside both gates.** A
-two-building, two-major split already covers the school's performing
-(Music) and exhibited (Studio Art) halves; there's no third facility for a
-third major to specialize into, so Graphic Design's capstones take the
-plain tier-2 prereq every non-gated major's capstones get.
-
-**Both facilities also feed student satisfaction** like any other
-campus-life facility — `satisfactionAttribute: 'social'` plus a
-`servesPopulation` (1,500 for the Performing Arts Center, 500 for the Art
-Gallery), read by the same `social` ratio the rec center and student-center
-tiles feed. There is no separate arts-specific satisfaction input; it is the
-existing mechanism, not a new one.
+  capstones — the rotating-exhibit gallery is where those capstones exhibit.
+  Unlock and gate sit a tier apart, so it can never be circular. It also
+  feeds `social` satisfaction (`servesPopulation` 500), the existing
+  mechanism.
+- **The Arts Center** (a capital project, Plan 51) is the school's whole
+  payoff: it opens once **every** Arts & Media course is taught, lifts campus
+  life, and houses the MFA (see [graduate-programs.md](graduate-programs.md)).
+  It replaced the Performing Arts Center, which gated Music's capstones; Music
+  and Graphic Design's capstones now take the plain tier-2 prereq.

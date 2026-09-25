@@ -217,8 +217,8 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 
   const lab = s.tech.find((t) => t.id === 'LAB-BIOL');
   if (lab) lab.status = 'done';
-  const artsPac = s.tech.find((t) => t.id === 'ARTS-PAC');
-  if (artsPac) artsPac.status = 'done';
+  const artsCenter = s.tech.find((t) => t.id === 'PROJ-ARTS');
+  if (artsCenter) artsCenter.status = 'done';
 
   s.milestones['program-established:FINA'] = true; // Business — pre-professional
   s.milestones['program-established:MUSC'] = true;  // Arts & Media — arts-focused
@@ -245,7 +245,7 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 
   const signals = deriveCohortSignals(s);
   assert(signals.labCount === 1, `a done lab is counted (got ${signals.labCount})`);
-  assert(signals.artsFacilities === 1, `a done ARTS-PAC is counted toward arts facilities (got ${signals.artsFacilities})`);
+  assert(signals.artsFacilities === 1, `a done Arts Center is counted toward arts facilities (got ${signals.artsFacilities})`);
   assert(signals.professionalPrograms === 1, `only the professional-track established program is counted (FINA), not the Social Sciences one (got ${signals.professionalPrograms})`);
   assert(signals.artsPrograms === 1, `only the Arts & Media established program is counted (MUSC) (got ${signals.artsPrograms})`);
   assert(signals.distinguishedDepth === 1 + 2, `distinguished (1) + 2x grad-program-complete (1) = 3 (got ${signals.distinguishedDepth})`);

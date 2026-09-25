@@ -6,6 +6,7 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import { PROJECTS, PROJECT_IDS } from '../src/data/projectData';
+import { schoolCurriculumIds } from '../src/data/techData';
 import { canStartDevelopment, startDevelopment, unlockAvailable } from '../src/systems/techtree/techSystem';
 import { canPayFromEndowment, endowmentHalf, lateTierOpen, projectLift, projectLiftMax, projectOpen } from '../src/systems/estate/projects';
 import { financingFor } from '../src/systems/finance/treasury';
@@ -50,12 +51,12 @@ function stand(s: GameState, id: string): void {
 // ---- The set ----
 {
   const s = fresh();
-  assert(PROJECTS.length === 4 && new Set(PROJECT_IDS).size === 4, 'four projects, each its own');
+  assert(PROJECTS.length === 6 && new Set(PROJECT_IDS).size === 6, 'six projects, each its own');
   assert(PROJECT_IDS.every((id) => node(s, id)?.facilityType === 'project' && node(s, id).project !== undefined), 'each is a buildable the college can place');
   assert(PROJECTS.filter((p) => p.project.late).length === 1, 'one in the late tier');
   const medical = node(s, 'HLTH-T3');
   assert(medical.name === 'Medical Center' && medical.project !== undefined && medical.facilityType === 'healthCenter', 'and the health chain\'s Medical Center is one too');
-  assert(PROJECTS.some((p) => p.project.graduate && (p.beds ?? 0) === 0), 'a graduate college, adding no beds: the game houses no graduate students');
+  assert(PROJECTS.every((p) => !('beds' in p)), 'no project adds beds: the game houses no graduate students');
   assert(PROJECTS.every((p) => Object.values(p.project.boosts).some((b) => (b ?? 0) > 0)), 'every one lifts a standing');
 }
 
@@ -66,12 +67,17 @@ function stand(s: GameState, id: string): void {
   assert(PROJECT_IDS.every((id) => node(s, id).status === 'locked'), 'none is open to a founding college');
   s.clock.year = 12;
   unlockAvailable(s);
-  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available' && node(s, 'PROJ-ARTS').status === 'available', 'they open from their years');
+  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available', 'they open from their years');
+  assert(node(s, 'PROJ-ARTS').status === 'locked', 'a graduate host waits on its school\'s curriculum too');
+  for (const id of schoolCurriculumIds('Arts & Media')) node(s, id).status = 'done';
+  unlockAvailable(s);
+  assert(node(s, 'PROJ-ARTS').status === 'available', 'and opens once every Arts & Media course is taught');
   assert(!projectOpen(s, node(s, 'HLTH-T3')), 'the Medical Center not before Year 15');
   assert(projectOpen(fresh(15), node(fresh(15), 'HLTH-T3')), 'and from it');
   s.clock.year = 25;
   unlockAvailable(s);
-  assert(node(s, 'PROJ-GRADUATE').status === 'locked', 'the graduate college waits on a graduate program');
+  assert(node(s, 'PROJ-GRADUATE').status === 'available', 'the graduate college opens from Year 20 once any school is taught');
+  assert(node(s, 'PROJ-LAW').status === 'locked' && node(s, 'PROJ-BUSINESS').status === 'locked', 'the law and business schools wait on their own schools');
   assert(!lateTierOpen(s) && node(s, 'PROJ-MUSEUM').status === 'locked', 'the late tier waits');
   s.clock.year = 35;
   s.self.reputation = 110;

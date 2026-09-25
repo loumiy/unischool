@@ -175,14 +175,15 @@ console.log('campus scale and building spec');
   assert(storeysOf(chapter) === 1, 'a chapter house stands one story');
   assert(footprintOf(chapter).w === 3 && footprintOf(chapter).h === 3, 'on its own 3x3 footprint');
 
-  // Each roofed capital project is as tall as what it is a grander version of.
+  // The Arts Center, the concert hall since Plan 51, stands three storeys in
+  // the civic set's stone, like the library and the gallery.
   const arts = byId('PROJ-ARTS');
-  const pac = CATALOGUE.find((t) => t.facilityType === 'performingArtsCenter');
-  assert(!!arts && !!pac, 'the arts center and its model are in the catalog');
-  if (arts && pac) {
-    assert(storeysOf(arts) === storeysOf(pac), 'the arts center as tall as the performing arts center');
+  const gallery = CATALOGUE.find((t) => t.facilityType === 'artGallery');
+  assert(!!arts && !!gallery, 'the arts center and the gallery are in the catalog');
+  if (arts && gallery) {
+    assert(storeysOf(arts) === 3, 'the arts center stands three storeys');
     const v = FOUNDING_VERNACULAR;
-    assert(materialOf(arts, v) === materialOf(pac, v), 'the arts center in the civic set\'s stone');
+    assert(materialOf(arts, v) === materialOf(gallery, v), 'the arts center in the civic set\'s stone');
   }
 }
 

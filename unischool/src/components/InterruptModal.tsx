@@ -1028,12 +1028,14 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
         <span className="letter-ask-label">{letter.done(s) ? 'Done' : 'To do'}</span>
         {letter.ask}
       </p>
-      <button onClick={() => onResolve(false)}>Continue</button>
-      {/* On every letter, not only the first: a guided founding marks the
-          first read at the start, so the opt-out has to travel with the rest. */}
-      <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
-        I know the way — no more letters this run
-      </button>
+      <div className="letter-actions">
+        <button onClick={() => onResolve(false)}>Continue</button>
+        {/* On every letter, not only the first: a guided founding marks the
+            first read at the start, so the opt-out has to travel with the rest. */}
+        <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
+          I know the way — no more letters this run
+        </button>
+      </div>
     </>
   );
 }

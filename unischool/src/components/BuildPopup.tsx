@@ -46,7 +46,6 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   gym: 'Gym',
   tennisCourts: 'Tennis Courts',
   pool: 'Pool',
-  performingArtsCenter: 'Performing Arts Center',
   artGallery: 'Art Gallery',
   athleticsField: 'Multi-Sport Field',
   athleticsArena: 'Arena',
@@ -110,7 +109,6 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
     repeatable: true,
     match: (t) => t.facilityType === 'recCenter' || t.facilityType === 'gym' || t.facilityType === 'tennisCourts' || t.facilityType === 'pool',
   },
-  { key: 'performingArtsCenter', label: FACILITY_LABELS.performingArtsCenter, repeatable: false, match: (t) => t.facilityType === 'performingArtsCenter' },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   // Greek chapter houses share the Housing tab but are their own group:
@@ -229,7 +227,6 @@ const SECTION_ICON: Record<string, () => React.JSX.Element> = {
   healthCenter: HealthIcon,
   quad: QuadIcon,
   lab: LabIcon,
-  performingArtsCenter: ArtsIcon,
   artGallery: ArtsIcon,
   academic: AcademicIcon,
   athletics: AthleticsIcon,
@@ -255,7 +252,6 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'gym':
     case 'tennisCourts':
     case 'pool': return FitnessIcon;
-    case 'performingArtsCenter':
     case 'artGallery': return ArtsIcon;
     case 'athleticsField':
     case 'athleticsArena':
