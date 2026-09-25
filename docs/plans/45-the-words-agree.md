@@ -75,13 +75,16 @@ thing by several names.
   test that pinned American spelling now pins British.
 - **Quotes**: curly quotes and `&rsquo;` become straight ASCII.
 
-**As implemented:** everything above, except where the text lives in a file
-another plan is editing: `engine/reducer.ts` ("The Athletics view is now
-available.", "The trustees have declined the charter", the lower-case
-athletic director lines, a curly-quoted log line), `components/CampusMap.tsx`
-(the map help calls paths purely decorative and the college "the
-university"), and the faculty bios in `state/actions.ts`, which still read
-"research centers on". `BoardLetter.tsx` prints the current year because a
-letter is stored as an id with no year; left as it is. `rollVars` no longer
+**As implemented:** everything above. The text in files Plan 43 was
+editing at the same time follows the same rules there:
+- `engine/reducer.ts`: "The Athletics tab is now open", "The charter is
+  declined", the Athletic Director, straight quotes;
+- `components/CampusMap.tsx`: the map help no longer calls paths purely
+  decorative or the college "the university";
+- the founding faculty's bios in `state/actions.ts`.
+
+`BoardLetter.tsx` still prints the current year, because a letter is
+stored as an id with no year; it is left as it is. `rollVars` no longer
 rolls a random founded school for `{school}`, so the catalogue's variable
-rolls draw one fewer random number.
+rolls draw one fewer random number, and seeded runs differ slightly from
+before.
