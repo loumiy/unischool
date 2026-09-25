@@ -112,6 +112,11 @@ export default function App() {
   useAudioDirector(s.started && front !== 'title' ? s : null);
   useHotkeys((e) => { if (e.key.toLowerCase() === 'm') audio.toggleMute(); });
 
+  // A front screen covers the whole game, so nothing behind it answers a
+  // key: no tab letters, no Escape ladder, no speed keys, no map keys, and
+  // no modal or coach card drawn over it.
+  const shellLive = s.started && front === null;
+
   // C / F / L (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.
   useHotkeys((e) => {
@@ -121,7 +126,7 @@ export default function App() {
     // openTab refuses an unavailable tab, so a letter can't route to a gated
     // view.
     openTab(overlay?.tab === tab ? null : tab);
-  }, s.started);
+  }, shellLive);
 
   // A gate opening is news: the first time each gated tab (TabNav.tsx's
   // TAB_GATES) is found open, the log says so. The first render of a run
@@ -140,6 +145,22 @@ export default function App() {
       act({ type: 'NOTE_TAB_AVAILABLE', id, label: TAB_LABELS[id], announce: !firstPass });
     }
   });
+
+  // A new run starts from a clean shell: nothing of the last run's open
+  // tab, pickup, path tool, menus or reported gates survives New Game.
+  useEffect(() => {
+    if (s.started) return;
+    setOverlay(null);
+    setInspectTarget(null);
+    setInspectedId(null);
+    setPlacingIdState(null);
+    setPathToolState(null);
+    setBuildOpenState(false);
+    setLogOpen(false);
+    setLadderOpen(false);
+    reportedGates.current = null;
+    actedStage.current = null;
+  }, [s.started]);
 
   // A tab whose gate closes again (the last varsity team disbands) closes
   // with it.
@@ -162,6 +183,7 @@ export default function App() {
     buildOpen,
     logOpen: logOpen || ladderOpen,
     interrupted: s.pendingInterrupt !== null,
+    frontUp: front !== null,
   };
   const mapBackOutEnabled = mapBackOutLive(overlays);
   const mapControlsEnabled = mapControlsLive(overlays);
@@ -240,7 +262,7 @@ export default function App() {
     else if (buildOpen && placingId) setPlacingIdState(null);
     else if (buildOpen) closeBuild();
     else if (overlay) openTab(null);
-  }, s.started);
+  }, shellLive);
 
   const frontScreen = front === 'title' ? (
     <TitleScreen
@@ -323,6 +345,7 @@ export default function App() {
           onSetBuildOpen={setBuildOpen}
           speed={speed}
           setSpeed={setSpeed}
+          speedKeysLive={shellLive}
           weekProgress={weekProgress}
           placingId={placingId}
           onArmPlacement={setPlacingId}
@@ -359,18 +382,20 @@ export default function App() {
           </TabOverlay>
         )}
 
-        <InterruptModal s={s} act={act} />
+        {/* Neither draws over a front screen: the modal waits, unanswered,
+            for the player to come back to the game. */}
+        {shellLive && <InterruptModal s={s} act={act} />}
         {/* The walkthrough's card (OpeningCoach.tsx); renders nothing once
             the stage is 'play'. Opens doors through the same setters, so the
             one-slot rule holds. */}
-        <OpeningCoach
+        {shellLive && <OpeningCoach
           s={s}
           act={act}
           buildOpen={buildOpen}
           hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
           onOpenBuild={() => setBuildOpen(true)}
           onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
-        />
+        />}
       </div>
     </>
   );

@@ -10,6 +10,7 @@ import { fellTrees } from '../data/treeData';
 // same step:
 //
 //   welcome    Next, or "I know the way", which also declines the letters.
+//              Every later card can skip the rest, letters kept.
 //   site-hall  Founders Hall is not pre-placed in a guided founding; done
 //              when the hall stands on the map (siting is free).
 //   teaching   the three founding programs, with Next opening the Curriculum.
@@ -55,9 +56,11 @@ function fourthProgramFounded(s: GameState): boolean {
   return housed > FOUNDING_PROGRAMS.length;
 }
 
-// "I know the way": declines the walk and the letters, and places Founders
-// Hall at the grid centre as a headless founding would.
-export function skipOpening(s: GameState): void {
+// "I know the way": declines the walk (and, from the welcome, the letters),
+// and places Founders Hall at the grid centre as a headless founding would.
+// Every later card offers it too, so a step the player cannot finish never
+// holds the clock for good.
+export function skipOpening(s: GameState, declineLetters = true): void {
   const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID);
   if (hall && !(hall.id in s.placements)) {
     const placement = centredPlacement(footprintOf(hall));
@@ -65,5 +68,5 @@ export function skipOpening(s: GameState): void {
     fellTrees(s.trees, placement);
   }
   s.events.opening.stage = 'play';
-  s.events.opening.skipped = true;
+  if (declineLetters) s.events.opening.skipped = true;
 }

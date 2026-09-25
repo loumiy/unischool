@@ -5,6 +5,7 @@ import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
 import { EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
+import { BOARD_LETTERS } from '../data/boardData';
 import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
@@ -192,7 +193,10 @@ function sanitizeDistress(state: GameState): void {
       && Array.isArray(x.letters) && x.letters.every((l) => typeof l === 'string')
       && Array.isArray(x.scars) && x.scars.every((y) => Number.isInteger(y));
   })();
-  if (!ok) delete state.finance.distress;
+  if (!ok) { delete state.finance.distress; return; }
+  // A letter the game no longer has would sit first in the queue unshown
+  // and hold every later letter behind it.
+  state.finance.distress!.letters = state.finance.distress!.letters.filter((id) => id in BOARD_LETTERS);
 }
 
 function sanitizeEstate(state: GameState): void {

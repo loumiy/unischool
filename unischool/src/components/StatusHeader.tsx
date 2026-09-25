@@ -20,7 +20,7 @@ import { money } from '../format';
 // 1/2/3 set real/double/quad; 4 sets the sandbox speed under the playtest
 // flag only. Space toggles pause, resuming the last running speed rather than
 // always `real`. The typing guard lives in useHotkeys (hotkeys.ts).
-function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandboxAllowed: boolean, locked: (speed: Speed) => boolean) {
+function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandboxAllowed: boolean, locked: (speed: Speed) => boolean, live: boolean) {
   const resumeSpeedRef = useRef<Speed>('real');
   useEffect(() => {
     if (speed !== 'paused') resumeSpeedRef.current = speed;
@@ -39,7 +39,7 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
       e.preventDefault();
       setSpeed(speed === 'paused' ? resumeSpeedRef.current : 'paused');
     }
-  });
+  }, live);
 }
 
 // The ordinary gears are glyphs (icons.tsx), with the word as label and
@@ -121,8 +121,10 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
 }
 
 // Right: the clock, and the speed controls.
-export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
+export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
   s: GameState; speed: Speed; setSpeed: (speed: Speed) => void;
+  // False while a front screen covers the game (App.tsx).
+  keysLive: boolean;
   // The live fraction of the week, for DayTicker.tsx.
   weekProgress: () => number;
 }) {
@@ -134,7 +136,7 @@ export function SchoolAndClock({ s, speed, setSpeed, weekProgress }: {
 
   // The top speeds are earned by the administration's seats.
   const lockOf = (sp: Speed) => speedLock(s, sp);
-  useSpeedHotkeys(speed, setSpeed, showPlaytestControls, (sp) => lockOf(sp) !== null);
+  useSpeedHotkeys(speed, setSpeed, showPlaytestControls, (sp) => lockOf(sp) !== null, keysLive);
 
   // Two rows, clock above gears (styles.css's .toolbar-right).
   return (

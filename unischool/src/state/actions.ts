@@ -55,7 +55,9 @@ export type Action =
   // `guided`: a human founding, with the opening walkthrough (state/opening.ts).
   | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean; seed?: number }
   | { type: 'ADVANCE_OPENING' }
-  | { type: 'SKIP_OPENING' }
+  // `keepLetters`: skipping from a mid-walk card leaves the first year's
+  // letters on; the welcome's decline turns them off too.
+  | { type: 'SKIP_OPENING'; keepLetters?: boolean }
   // Courses only; placeables use PLACE_BUILDABLE. `facultyId` is omitted only
   // by the headless sim, letting the engine pick the strongest eligible teacher.
   | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }

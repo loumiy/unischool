@@ -51,6 +51,8 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onSetBuildOpen: (open: boolean) => void;
   speed: Speed;
   setSpeed: (speed: Speed) => void;
+  // False while a front screen covers the game, so 1-4 and Space wait.
+  speedKeysLive: boolean;
   // The live fraction of the current week for the clock's day squares
   // (StatusHeader.tsx's SchoolAndClock), read through a getter so this band
   // does not re-render as it moves.
@@ -61,7 +63,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onArmPlacement: (id: string | null) => void;
   pathTool: CampusTool | null;
   onSetPathTool: (mode: CampusTool) => void;
-}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
 
   // The opening walkthrough rings the Build button while its step is to site
   // the hall and the menu is closed (see state/opening.ts, .opening-target).
@@ -135,7 +137,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </nav>
 
       <div className="toolbar-right">
-        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} weekProgress={weekProgress} />
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} keysLive={speedKeysLive} weekProgress={weekProgress} />
       </div>
 
       {buildOpen && (

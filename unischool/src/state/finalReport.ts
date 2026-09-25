@@ -65,6 +65,9 @@ export interface FinalReport {
   eras: string[];
   rank: number;
   total: number;
+  // The founder's figures as they stood at the report. Optional: a report
+  // written before they were kept falls back to the live figures.
+  figures?: FounderFigures;
 }
 
 // The report's six (data/reportData.ts), read off rivalsSystem.ts's axes.
@@ -161,6 +164,7 @@ export function finalReport(s: GameState): FinalReport {
     finances: financialVerdict(s),
     eras: chronicleOf(s).eras.map((e) => `${e.name} (${e.from}–${e.to})`),
     rank,
+    figures: founderFigures(s),
     total,
   };
 }

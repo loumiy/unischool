@@ -14,8 +14,10 @@ import HelpHint from './HelpHint';
 const fill = (t: string, vars: Record<string, string | number>) => t.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 
 export default function FinalReportView({ s, report }: { s: GameState; report: FinalReport }) {
-  const figures = founderFigures(s);
-  const rows = s.history.filter((h) => h.standingValues !== undefined);
+  // As the report stood when written: play past the fiftieth summer grows
+  // neither the figures nor the chart.
+  const figures = report.figures ?? founderFigures(s);
+  const rows = s.history.filter((h) => h.standingValues !== undefined && h.year <= report.year);
   return (
     <div className="final-report">
       <h3 className="final-report-title">{report.title}</h3>

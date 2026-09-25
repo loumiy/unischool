@@ -11,6 +11,7 @@ import { hangInHall } from '../state/hall';
 import { REPORT_WORDS } from '../data/reportData';
 import { PromiseOffer } from '../tabs/PromisesPanel';
 import FinalReportView from './FinalReportView';
+import { tuitionFloor } from '../systems/finance/distress';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
@@ -198,7 +199,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // moves on to the Students beat, where the year turns over.
   onCommit: (decision: SummerDecision) => void;
 }) {
-  const [tuition, setTuition] = useState(payload.tuition);
+  // Under austerity the board lets tuition rise, never fall (distress.ts);
+  // the slider starts there, so the preview is the price the reducer keeps.
+  const floor = tuitionFloor(s);
+  const [tuition, setTuition] = useState(Math.max(floor, payload.tuition));
   const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
   // Set blind, then locked with no way back: a price you could revise after
   // seeing the pool would be a lookup table, not a decision.
@@ -245,11 +249,14 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
         <span>
           Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>${tuition.toLocaleString()}/yr</strong>
         </span>
-        <input type="range" min={0} max={TUITION_SLIDER_MAX} step={500} value={tuition}
+        <input type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition}
           disabled={tuitionLocked}
           onChange={(e) => setTuition(Number(e.target.value))} />
         <PriceTierTag tier={priceTierNow} />
       </label>
+      {floor > 0 && (
+        <p className="admissions-prompt">The board holds tuition where it is: it may rise, not fall.</p>
+      )}
 
       {!tuitionLocked && (
         <button type="button" className="admissions-lock" onClick={() => setTuitionLocked(true)}>

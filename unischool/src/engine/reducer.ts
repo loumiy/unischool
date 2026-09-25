@@ -160,7 +160,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
     case 'SKIP_OPENING': {
-      skipOpening(s);
+      if (s.events.opening.stage === 'play') return state;
+      skipOpening(s, !action.keepLetters);
       return s;
     }
 

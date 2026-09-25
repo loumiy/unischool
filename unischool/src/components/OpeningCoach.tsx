@@ -9,7 +9,8 @@ import { isActivationTarget, useHotkeys } from './hotkeys';
 // coach card pinned top-centre with no backdrop, since the player has to
 // work the screen under it. A step that ends on something done has no Next
 // button, but offers to reopen the door it needs (build menu, Founders
-// Hall's panel) so wandering off is never a dead end. Enter presses Next,
+// Hall's panel) so wandering off is never a dead end, and every card can
+// skip the rest, so a step the player can't finish never holds the clock. Enter presses Next,
 // guarded so a focused button keeps its own Enter.
 export default function OpeningCoach({ s, act, buildOpen, hallOpen, onOpenBuild, onOpenHall }: {
   s: GameState;
@@ -66,6 +67,9 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, onOpenBuild,
           <span className="opening-coach-wait">The clock is held until this is done</span>
         )}
       </div>
+      <button type="button" className="letter-skip" onClick={() => act({ type: 'SKIP_OPENING', keepLetters: true })}>
+        Skip the rest of the walkthrough
+      </button>
     </aside>
   );
 }
