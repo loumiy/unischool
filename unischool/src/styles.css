@@ -403,29 +403,11 @@ button { cursor: pointer; font-family: inherit; }
 /* No inner scroll box: the overlay scrolls, so tooltips have one edge to avoid. */
 .curriculum-scroll { padding-right: 6px; }
 
-.discovery-pool-caption { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 0 10px; }
-.discovery-pool { margin-bottom: 22px; padding: 12px 14px; border-radius: var(--radius-lg);
-  background: var(--cream); border: 2px solid var(--parchment-line); }
-.discovery-pool .cell-grid { gap: 9px 10px; }
-
-.discovery-section { margin-bottom: 22px; }
-.discovery-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  border-bottom: 2px solid var(--outline); padding-bottom: 5px; margin-bottom: 10px; }
-.discovery-section-head h3 { font-family: var(--display); font-weight: 800; font-size: var(--text-lg); margin: 0; color: var(--ink); }
-
-.discovery-subgroup { margin: 14px 0 0 6px; padding-left: 12px; border-left: 2px solid var(--parchment-line); }
-.discovery-subgroup h4 { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.05em;
-  margin: 0 0 8px; color: var(--school-primary); }
-
-.discovery-subgroup.graduate { border-left-color: var(--gold); border-left-width: 3px; }
-.discovery-subgroup.graduate h4 { color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
 .subgroup-degree { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); letter-spacing: 0.08em;
   padding: 2px 7px; border-radius: var(--radius-pill); background: var(--school-primary); color: var(--school-on-primary); }
-.subgroup-note { margin: -4px 0 8px; font-size: var(--text-2xs); color: var(--ink-muted); }
 /* Graduate cells: a heavier frame only; the state classes do the rest. */
 .course-cell.graduate { border-width: 2px; }
 
-.cell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 8px; }
 /* A cell's state is its edge and fill: dashed for locked, 2px outline for
    blocked, outline + offset for ready, the school's hue once offered. */
 .course-cell { position: relative; width: 100%; min-height: 58px; display: flex; flex-direction: column;
@@ -570,7 +552,6 @@ button.build-tile { font-family: inherit; }
   border-radius: 50%; width: 24px; height: 24px; line-height: 1; padding: 0; font-size: var(--text-sm); font-weight: 800; flex: none; }
 .building-info-close:hover { background: var(--outline); color: var(--cream); }
 .building-info-line { margin: 0 0 6px; font-size: var(--text-sm); line-height: 1.4; color: var(--ink); }
-.building-info-grade { display: inline-flex; align-items: center; gap: 6px; }
 .building-info-jump { display: block; width: 100%; margin-top: 8px; padding: 6px 10px;
   background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); box-shadow: var(--shadow-1);
   border-radius: var(--radius-pill); font-family: var(--display); font-weight: 800; font-size: var(--text-xs); }
@@ -653,8 +634,6 @@ button.build-tile { font-family: inherit; }
   display: flex; flex-direction: column; gap: 6px;
   background: var(--cream); border: 3px solid var(--outline); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-2); padding: 10px; }
-.main-menu-credits { font-size: var(--text-sm); line-height: 1.5; color: var(--ink-muted); padding: 7px 10px 2px; border-top: 1px solid var(--parchment-line); margin-top: 2px; }
-.main-menu-credits strong { color: var(--ink); }
 
 /* Zoom controls and the map's '?', stacked under MainMenu (see --corner-menu-height). */
 .campus-map-zoom-controls { position: fixed; z-index: 10; top: calc(var(--corner-menu-height) + 24px); right: 16px;
@@ -803,8 +782,6 @@ button.build-tile { font-family: inherit; }
 .iso-plinth { fill: rgba(250, 246, 234, 0.42); }
 .iso-cornice { fill: rgba(250, 246, 234, 0.5); }
 .iso-parapet { fill: rgba(250, 246, 234, 0.14); }
-/* An end section of wall carried above the parapet, closing the roofline. */
-.iso-end-pavilion { fill: rgba(120, 88, 40, 0.20); }
 .iso-pediment { fill: rgba(250, 246, 234, 0.62); }
 /* The clock tower's dome and finial: the campus's one gilded thing. */
 /* No colour on these two: a class rule beats a presentation attribute, and
@@ -873,16 +850,12 @@ button.build-tile { font-family: inherit; }
 .ground-line-fine { stroke: rgba(255, 253, 246, 0.6); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 .ground-lane { stroke: rgba(255, 253, 246, 0.55); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 .ground-mow { fill: rgba(255, 255, 255, 0.055); }
-.ground-walk { stroke: #cbbd8e; stroke-width: 5; fill: none; }
 /* Paving as a shape, not a stroke: stroke width is in screen units and
    would change what it covers as the camera zooms. */
 .ground-walk-fill { fill: #cbbd8e; }
 .ground-fence { fill: rgba(70, 62, 48, 0.5); }
-/* Backstop netting: lighter than the fence so the plate shows through. */
-.ground-backstop { fill: rgba(60, 62, 56, 0.42); }
 .ground-fence-rail { stroke: rgba(246, 241, 226, 0.5); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
-/* Raked stand seat rows (RakedStand): stroke colour is passed per stand. */
-.stand-seat { stroke-width: 1; vector-effect: non-scaling-stroke; }
+/* Raked stand rails and aisles (RakedStand). */
 .stand-rail { stroke: rgba(246, 241, 226, 0.55); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 .stand-aisle { fill: rgba(42, 40, 34, 0.42); }
 /* Fences, posts and the furniture that stands on open ground. */
@@ -1073,7 +1046,6 @@ button.build-tile { font-family: inherit; }
 
 /* Program rows grouped by school (--school-hue from data/schoolPalette.ts).
    Cells compress to fit; sideways scroll is only a narrow fallback. */
-.pool-caption { margin: 0 0 8px; font-size: var(--text-sm); color: var(--ink-muted); font-style: italic; }
 .school-group { margin-bottom: 20px; }
 .school-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
   padding: 8px 14px; border-radius: var(--radius-lg); background: var(--school-hue, var(--school-primary)); color: var(--school-on-primary); }
@@ -1125,7 +1097,6 @@ button.build-tile { font-family: inherit; }
 .course-drawer-more > summary { cursor: pointer; font-size: var(--text-xs); color: var(--ink-muted); }
 .course-drawer-more > summary:hover { color: var(--ink); }
 .search-running { color: var(--warn-on-light); font-weight: 700; }
-.dept-searching { font-size: var(--text-2xs); font-weight: 700; color: var(--warn-on-light); }
 .dept-body .search-post { margin-top: 6px; }
 
 .worklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 9px; }
@@ -1282,8 +1253,6 @@ button.build-tile { font-family: inherit; }
 /* A done cell is dark, so the chip carries its own light ground. */
 .course-cell.done .grade-chip { box-shadow: 0 0 0 2px var(--cream-hi); }
 
-.discovery-section-head .grade-chip { margin-left: 2px; }
-.discovery-subgroup h4 .grade-chip { margin-left: 7px; vertical-align: middle; }
 .panel-head-figure .grade-chip { margin-left: 2px; }
 
 .course-drawer-grade { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; }
@@ -1388,8 +1357,6 @@ button.build-tile { font-family: inherit; }
 .empty-note { font-style: italic; color: var(--ink-muted); font-size: var(--text-base); margin: 0; }
 .stall-note { background: var(--danger-bg); color: var(--danger-ink); border: 1px solid var(--danger-line); border-radius: var(--radius-sm);
   padding: 6px 10px; font-size: var(--text-sm); margin: 0 0 8px; }
-.developing-list { list-style: none; margin: 0; padding: 0; }
-.developing-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--parchment-line); font-size: var(--text-base); }
 
 /* Scoped to .panel: this grid assumes bare <dt>/<dd> children, and
    .admissions-outcomes wraps each pair in a <div>. */
@@ -1512,17 +1479,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 /* ---------- Research lab gate (FacultyTab's ResearchPanel) ---------- */
 
-.commitment-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
-  gap: 8px; align-items: start; }
 .commitment { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px;
   border: 2px solid var(--parchment-line); border-radius: var(--radius-md); background: var(--cream-hi); }
-.commitment-who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.commitment-name { font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
-.commitment-field { font-size: var(--text-xs); font-weight: 600; color: var(--ink-muted); }
-.commitment-what { display: flex; flex-direction: column; gap: 1px; }
-.commitment-topic { font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
-.commitment-left { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--school-primary); }
-.commitment-free { margin: 10px 0 0; }
 
 /* ---------- Department board ----------
    Rows expand in place. Header and rows share one fixed-width grid so
@@ -1854,13 +1812,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .report-other-note { color: var(--ink-muted); font-size: var(--text-xs); margin-left: auto;
   text-align: right; }
 
-.report-standings { max-height: 320px; overflow-y: auto; margin: 0 0 16px; padding-right: 6px; }
-.report-standings li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--parchment-line); font-size: var(--text-base); }
-.report-standings li.me { color: var(--school-primary); font-weight: 800; }
-.report-standings::-webkit-scrollbar { width: 8px; }
-.report-standings::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
-.report-standings { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
-
 .milestone-entry { margin: 0 0 12px; }
 .milestone-entry h3 { font-family: var(--display); font-weight: 800; font-size: var(--text-xl); letter-spacing: -0.01em; margin: 0 0 4px; color: var(--ink); }
 .milestone-detail { font-size: var(--text-base); margin: 0 0 8px !important; }
@@ -1908,8 +1859,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .price-tier-tag.price-tier-expensive { color: var(--warn-on-light); }
 .price-tier-tag.price-tier-reckless { color: var(--bad-on-light); }
 .price-tier-tag { display: block; font-size: var(--text-xs); font-weight: 700; margin-top: 4px; }
-.admissions-net-price { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; font-size: var(--text-base); color: var(--ink); font-weight: 600; }
-.admissions-net-price .price-tier-tag { display: inline; margin: 0; }
 
 /* Consequences of the decision (consequences.ts); the delta is the point. */
 .consequence-panel { margin: 4px 0 18px; padding: 10px 14px; background: var(--cream-hi);
@@ -1926,7 +1875,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-lock { display: block; margin: 2px 0 18px; }
 
 /* The reveal figure (InterruptModal.tsx's REVEAL_MS): meant to be watched. */
-.reveal-figure, .figure.reveal > dd { font-size: 28px !important; }
+.figure.reveal > dd { font-size: 28px !important; }
 
 .admissions-prompt { margin: 0 0 16px; }
 
@@ -2008,8 +1957,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border: 2px solid var(--outline); color: var(--ink); border-radius: var(--radius-pill);
   padding: 3px 11px; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); cursor: pointer; }
 .athletics-budget-tiers button.active { background: var(--outline); color: var(--cream); }
-.athletics-rank { font-weight: 600; font-size: var(--text-base); color: var(--ink-muted); margin: 0 0 10px; }
-.athletics-rank strong { color: var(--ink); }
 /* auto-fill with a min track: no breakpoint per team count. */
 .team-card-list { list-style: none; margin: 0; padding: 0; display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
@@ -2138,7 +2085,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   max-width: 45%; }
 .coach-candidate-idle { font-size: var(--text-2xs); color: var(--ink-muted); }
 .coach-market-toggle { margin-top: 8px; }
-.coach-candidates-empty { width: 100%; margin: 4px 0 0; }
 
 /* ---------- Outstanding student demand (Student Life tab) ----------
    Its own block, not a <dl> row: the dl's auto-sized value column would
@@ -2193,10 +2139,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .startup-begin-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
 /* thin scrollbars inside parchment panels */
-.available-list::-webkit-scrollbar, .log::-webkit-scrollbar { width: 8px; }
-.available-list::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
+.log::-webkit-scrollbar { width: 8px; }
+.log::-webkit-scrollbar-thumb {
   background: var(--parchment-line); border-radius: var(--radius-sm); }
-.available-list, .log { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
+.log { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* ---------- Narrower viewports ----------
    First the middle cluster tightens, then the three zones wrap onto their
@@ -2220,9 +2166,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   /* The drawer stacks above the catalogue here and stops being sticky, which
      would pin it over the cells. */
   .curriculum-layout.with-drawer { grid-template-columns: 1fr; }
-  /* Below this width the lane stacks and the chevrons turn downward. */
-  .lane-bands { grid-template-columns: minmax(0, 1fr); }
-  .lane-chevron { justify-self: center; transform: rotate(90deg); }
   .curriculum-layout.with-drawer .course-drawer { order: -1; position: static; max-height: none; }
 }
 
@@ -2281,12 +2224,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .final-report-eyebrow { color: var(--school-primary); font-weight: 800; margin-bottom: 6px; }
 .final-report-figures { grid-template-columns: 1fr 1fr; gap: 2px 24px; }
 .final-report-figures > div { padding: 4px 0; }
-.final-report-ambitions { margin: 0 0 16px; }
-.final-report-ambitions h3 { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 6px; }
-.final-report-ambitions .ambitions { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 22px; }
-.final-report-unreached { margin: 8px 0 0 !important; font-size: var(--text-xs) !important; color: var(--ink-muted) !important; font-style: italic; }
-.final-report-charts { margin: 0 0 16px; }
 @media (max-width: 560px) { .final-report-figures { grid-template-columns: 1fr; } }
 
 .history-table .history-delta { color: var(--ink-muted); font-size: var(--text-2xs); }
