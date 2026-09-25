@@ -288,115 +288,124 @@ export default function App() {
     );
   }
 
+  // A modal (an interrupt, or the walkthrough's welcome) makes everything
+  // behind it inert: no clicks, no focus, nothing read out.
+  const modalUp = shellLive && (s.pendingInterrupt !== null || stage === 'welcome');
+
   return (
     <>
-      <CampusMap
-        s={s}
-        act={act}
-        selectedId={placingId}
-        onSelect={setPlacingId}
-        pathTool={pathTool}
-        onSetPathTool={setPathTool}
-        backOutEnabled={mapBackOutEnabled}
-        controlsEnabled={mapControlsEnabled}
-        onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
-        inspectTarget={inspectTarget}
-        onInspectTargetConsumed={() => setInspectTarget(null)}
-        onInspectedChange={setInspectedId}
-        gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
-      />
-      <MainMenu act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+      <div className="shell" inert={modalUp}>
+        <CampusMap
+          s={s}
+          act={act}
+          selectedId={placingId}
+          onSelect={setPlacingId}
+          pathTool={pathTool}
+          onSetPathTool={setPathTool}
+          backOutEnabled={mapBackOutEnabled}
+          controlsEnabled={mapControlsEnabled}
+          onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
+          inspectTarget={inspectTarget}
+          onInspectTargetConsumed={() => setInspectTarget(null)}
+          onInspectedChange={setInspectedId}
+          gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
+        />
+        <MainMenu act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+        {/* The school's pennant (Pennant.tsx); the tab's title takes that
+            corner while a tab is open. */}
+        {!overlay && <Pennant s={s} />}
+
+        <div className="app">
+          {/* What waits on the map: the notes and the event panel step aside
+              while a tab is open, and the ticker's NEXT points back to them
+              (Plan 34: one notification system, V1-34). */}
+          {!overlay && (
+            <>
+              <MilestoneNote s={s} act={act} />
+              <BoardLetter s={s} act={act} />
+              <DemandNote s={s} act={act} />
+              <EventPanel s={s} act={act} />
+            </>
+          )}
+          <LogTicker
+            s={s}
+            open={logOpen}
+            onSetOpen={(o) => { setLogOpen(o); if (o) setLadderOpen(false); }}
+            ladderOpen={ladderOpen}
+            onSetLadderOpen={(o) => { setLadderOpen(o); if (o) setLogOpen(false); }}
+            onGo={(go) => { if (go === 'build') setBuildOpen(true); else if (go === 'campus') openTab(null); else openTab(go); }}
+            mapHidden={overlay !== null}
+          />
+          <Toolbar
+            ref={toolbarRef}
+            s={s}
+            act={act}
+            active={overlay?.tab ?? null}
+            onChangeTab={openTab}
+            buildOpen={buildOpen}
+            onSetBuildOpen={setBuildOpen}
+            speed={speed}
+            setSpeed={setSpeed}
+            speedKeysLive={shellLive}
+            weekProgress={weekProgress}
+            placingId={placingId}
+            onArmPlacement={setPlacingId}
+            pathTool={pathTool}
+            onSetPathTool={setPathTool}
+          />
+
+          {overlay && (
+            <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)}>
+              {overlay.tab === 'faculty' && (
+                <FacultyTab
+                  s={s}
+                  act={act}
+                  target={overlay.target}
+                  onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                  onOpenCurriculum={(target) => openTab('curriculum', target)}
+                />
+              )}
+              {overlay.tab === 'curriculum' && (
+                <CurriculumTab
+                  s={s}
+                  act={act}
+                  target={overlay.target}
+                  onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                  onInspectHall={inspectHall}
+                  onOpenFaculty={(field) => openTab('faculty', field)}
+                />
+              )}
+              {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
+              {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
+              {overlay.tab === 'students' && <StudentsTab s={s} />}
+              {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
+              {overlay.tab === 'history' && <HistoryTab s={s} act={act} />}
+            </TabOverlay>
+          )}
+
+        </div>
+      </div>
+
       {frontScreen}
-      {/* The school's pennant (Pennant.tsx); the tab's title takes that
-          corner while a tab is open. */}
-      {!overlay && <Pennant s={s} />}
       {/* Behind the playtest flag (see DebugPanel.tsx). Outside the one-slot
           rule: it stays open while you look at something else. */}
       <DebugPanel s={s} act={act} exportRun={exportRun} />
 
-      <div className="app">
-        {/* What waits on the map: the notes and the event panel step aside
-            while a tab is open, and the ticker's NEXT points back to them
-            (Plan 34: one notification system, V1-34). */}
-        {!overlay && (
-          <>
-            <MilestoneNote s={s} act={act} />
-            <BoardLetter s={s} act={act} />
-            <DemandNote s={s} act={act} />
-            <EventPanel s={s} act={act} />
-          </>
-        )}
-        <LogTicker
-          s={s}
-          open={logOpen}
-          onSetOpen={(o) => { setLogOpen(o); if (o) setLadderOpen(false); }}
-          ladderOpen={ladderOpen}
-          onSetLadderOpen={(o) => { setLadderOpen(o); if (o) setLogOpen(false); }}
-          onGo={(go) => { if (go === 'build') setBuildOpen(true); else if (go === 'campus') openTab(null); else openTab(go); }}
-          mapHidden={overlay !== null}
-        />
-        <Toolbar
-          ref={toolbarRef}
-          s={s}
-          act={act}
-          active={overlay?.tab ?? null}
-          onChangeTab={openTab}
-          buildOpen={buildOpen}
-          onSetBuildOpen={setBuildOpen}
-          speed={speed}
-          setSpeed={setSpeed}
-          speedKeysLive={shellLive}
-          weekProgress={weekProgress}
-          placingId={placingId}
-          onArmPlacement={setPlacingId}
-          pathTool={pathTool}
-          onSetPathTool={setPathTool}
-        />
-
-        {overlay && (
-          <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)}>
-            {overlay.tab === 'faculty' && (
-              <FacultyTab
-                s={s}
-                act={act}
-                target={overlay.target}
-                onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
-                onOpenCurriculum={(target) => openTab('curriculum', target)}
-              />
-            )}
-            {overlay.tab === 'curriculum' && (
-              <CurriculumTab
-                s={s}
-                act={act}
-                target={overlay.target}
-                onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
-                onInspectHall={inspectHall}
-                onOpenFaculty={(field) => openTab('faculty', field)}
-              />
-            )}
-            {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
-            {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
-            {overlay.tab === 'students' && <StudentsTab s={s} />}
-            {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
-            {overlay.tab === 'history' && <HistoryTab s={s} act={act} />}
-          </TabOverlay>
-        )}
-
-        {/* Neither draws over a front screen: the modal waits, unanswered,
-            for the player to come back to the game. */}
-        {shellLive && <InterruptModal s={s} act={act} />}
-        {/* The walkthrough's card (OpeningCoach.tsx); renders nothing once
-            the stage is 'play'. Opens doors through the same setters, so the
-            one-slot rule holds. */}
-        {shellLive && <OpeningCoach
-          s={s}
-          act={act}
-          buildOpen={buildOpen}
-          hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
-          onOpenBuild={() => setBuildOpen(true)}
-          onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
-        />}
-      </div>
+      {/* Outside .app's stacking context, so the backdrop covers the menu
+          and the pennant too. Neither draws over a front screen: the modal
+          waits, unanswered, for the player to come back to the game. */}
+      {shellLive && <InterruptModal s={s} act={act} />}
+      {/* The walkthrough's card (OpeningCoach.tsx); renders nothing once
+          the stage is 'play'. Opens doors through the same setters, so the
+          one-slot rule holds. */}
+      {shellLive && <OpeningCoach
+        s={s}
+        act={act}
+        buildOpen={buildOpen}
+        hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
+        onOpenBuild={() => setBuildOpen(true)}
+        onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
+      />}
     </>
   );
 }

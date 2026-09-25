@@ -2343,6 +2343,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   background: transparent !important; color: var(--ink-muted) !important; box-shadow: none !important;
   border: 2px dashed var(--parchment-line) !important; font-weight: 700 !important; }
 .letter-skip:hover { border-color: var(--outline) !important; color: var(--ink) !important; }
+/* On a coach card it takes its own line under the step's actions. */
+.opening-coach .letter-skip { margin: 10px 0 0; }
 
 /* ---------- The hall of fame (Plan 33, StartupScreen.tsx) ---------- */
 .hall-wall { width: min(960px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
