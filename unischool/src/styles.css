@@ -833,8 +833,6 @@ button.build-tile { font-family: inherit; }
 .ground-graded { fill: #a08965; }
 .ground-graded-scrape { stroke: rgba(74, 58, 38, 0.13); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 /* Hoarding: lit face along columns, shaded along rows (paletteFrom). */
-.site-hoarding-a { fill: #cdb98c; }
-.site-hoarding-b { fill: #a8976f; }
 .site-hoarding-post { stroke: rgba(58, 47, 14, 0.28); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 .site-hoarding-cap { stroke: rgba(58, 47, 14, 0.45); stroke-width: 1.2; fill: none; vector-effect: non-scaling-stroke; }
 /* Deeper than --grass so a pitch has a visible edge against the lawn. */

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { CampusLayout } from './campusLayout';
 import { drawnHeightOf } from './buildingMotifs';
 import { motifOf } from './buildingSpec';
-import { boxFaces, cameraAxes, heightScale, project, type Camera, type Pt } from './isoProjection';
+import { boxFaces, cameraAxes, groundSquash, heightScale, project, type Camera, type Pt } from './isoProjection';
 import { RouteTable, doors, roadsides, walkGrid, type Waypoint } from './walkRoutes';
 
 // Students walking real routes between the buildings they use (ported from
@@ -190,6 +190,9 @@ function figureScale(): number {
 
 function shapeWalker(g: SVGGElement): void {
   const s = figureScale();
+  // The shadow is a circle on the ground, as squashed as the ground is: a
+  // 2:1 ellipse at the opening camera, round looking straight down.
+  g.querySelector('.walker-shadow')?.setAttribute('ry', (4.2 * groundSquash()).toFixed(2));
   const half = 3.1 * (1 + (1 - s) * 0.55);
   const n = (v: number) => v.toFixed(2);
   g.querySelector('.walker-body')?.setAttribute('d', `M${n(-half)},0 L${n(-half)},${n(-8.5 * s)} Q0,${n(-11 * s)} ${n(half)},${n(-8.5 * s)} L${n(half)},0 Z`);
@@ -204,7 +207,6 @@ function makeWalker(shirt: string): { el: SVGGElement; mover: SVGGElement; clips
   const shadow = document.createElementNS(SVG_NS, 'ellipse');
   shadow.setAttribute('class', 'walker-shadow');
   shadow.setAttribute('rx', '4.2');
-  shadow.setAttribute('ry', '2.1');
   const body = document.createElementNS(SVG_NS, 'path');
   body.setAttribute('class', 'walker-body');
   body.setAttribute('fill', shirt);

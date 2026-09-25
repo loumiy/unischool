@@ -1,11 +1,11 @@
 import { useContext } from 'react';
 import type { FacilityType } from '../state/types';
 import { CrowdContext, VenueContext } from './mapOccasions';
-import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type Pt } from './isoProjection';
+import { boxFaces, heightScale, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type FaceDir, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
-import { TreeAt, type Species } from './trees';
+import { TreeAt, treeShadow, type Species } from './trees';
 
 // Open ground: the Buildables you walk across rather than into (quad, pool
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
@@ -53,6 +53,10 @@ export interface GroundProp {
   w: number;
   h: number;
   node: React.JSX.Element;
+  // Shadows the prop casts, as ground polygons, for CampusMap's shadow pass:
+  // drawn with the prop, a shadow would land on anything painted before it,
+  // including a building behind it.
+  shadows?: Pt[][];
 }
 
 // The box a round prop (fountain, medallion, tree crown) covers on the ground.
@@ -71,7 +75,7 @@ function aroundPoint(cc: number, cr: number, radius: number): { col: number; row
 // the bleachers beside a pitch are plain concrete.
 // ---------------------------------------------------------------------
 export function RakedStand({
-  outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall = false, frontWall = false,
+  outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall, frontWall,
   endFaces = true, aisles = 0, rail = true,
 }: {
   outer: [TilePt, TilePt];   // the back edge, furthest from the field and highest
@@ -80,8 +84,10 @@ export function RakedStand({
   rakeFill: string; wallFill: string; seatStroke: string;
   rows?: number;
   // Which vertical face the camera sees: a stand on the near side of a pitch
-  // (max row / max col) shows its outer back, one on the far side the face
-  // toward the field. Drawing the wrong one leaves the stand with no mass.
+  // shows its outer back, one on the far side the face toward the field.
+  // Drawing the wrong one leaves the stand with no mass. Which side is near
+  // turns with the camera, so by default each follows it (`climbsAway`
+  // below); pass one only to force it.
   wall?: boolean;
   frontWall?: boolean;
   // The two side profiles of the wedge, which say "raked seating" from any
@@ -107,6 +113,8 @@ export function RakedStand({
   const midO = project((o0[0] + o1[0]) / 2, (o0[1] + o1[1]) / 2);
   const midI = project((i0[0] + i1[0]) / 2, (i0[1] + i1[1]) / 2);
   const climbsAway = midI.y > midO.y;
+  const backShows = wall ?? !climbsAway;
+  const frontShows = frontWall ?? climbsAway;
 
   const tiers = Math.max(1, rows);
   const step = (topH - bottomH) / tiers;
@@ -179,10 +187,10 @@ export function RakedStand({
     <>
       {endFaces && <polygon points={polyPoints(profile(i0, o0))} fill={endFill} />}
       {endFaces && <polygon points={polyPoints(profile(i1, o1))} fill={endFill} />}
-      {wall && (
+      {backShows && (
         <polygon points={polyPoints([at(o0, 0), at(o1, 0), at(o1, topH), at(o0, topH)])} fill={wallFill} />
       )}
-      {frontWall && (
+      {frontShows && (
         <polygon points={polyPoints([at(i0, 0), at(i1, 0), at(i1, bottomH), at(i0, bottomH)])} fill={wallFill} />
       )}
       {treads}
@@ -513,7 +521,7 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
       <>
         <RakedStand outer={g.outer} inner={g.inner} bottomH={bottomH} topH={topH}
           rakeFill={CONCRETE.rake} wallFill={CONCRETE.wall} seatStroke={CONCRETE.seat}
-          rows={7} aisles={aisles} wall endFaces />
+          rows={7} aisles={aisles} endFaces />
         {extra}
       </>
     ),
@@ -560,11 +568,13 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
     ...aroundPoint(t[0], t[1], 0.2),
     node: (() => {
       const foot = project(t[0], t[1]); const top = lift(foot, up(16));
+      // The lamp bank stands up, so its depth foreshortens with the tilt.
+      const hs = heightScale();
       return (
         <>
           <line className="ground-mast" x1={foot.x} y1={foot.y} x2={top.x} y2={top.y} />
           <polygon className="ground-mast-head" points={polyPoints([
-            { x: top.x - 7, y: top.y + 1 }, { x: top.x + 7, y: top.y + 1 }, { x: top.x + 7, y: top.y - 4 }, { x: top.x - 7, y: top.y - 4 },
+            { x: top.x - 7, y: top.y + hs }, { x: top.x + 7, y: top.y + hs }, { x: top.x + 7, y: top.y - 4 * hs }, { x: top.x - 7, y: top.y - 4 * hs },
           ])} />
         </>
       );
@@ -837,7 +847,6 @@ function pitchProps(col: number, row: number, w: number, h: number): GroundProp[
           seatStroke={CONCRETE.seat}
           rows={6}
           aisles={2}
-          frontWall
         />
         <Post at={b0} from={topH} to={slabZ} className="ground-post" />
         <Post at={b1} from={topH} to={slabZ} className="ground-post" />
@@ -1185,7 +1194,8 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
     ...(gardens ? GARDEN_TREES : QUAD_TREES).map(([u, v, species, size], i) => ({
       key: `tree-${i}`,
       ...at(u, v),
-      node: <TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} />,
+      node: <TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} shadow={false} />,
+      shadows: [treeShadow(col + w * u, row + h * v, species, size)],
     })),
     gardens
       ? {
@@ -1276,6 +1286,12 @@ const HOARDING_H = up(2.1);
 // not draw their boards through each other.
 const HOARDING_INSET = 0.08;
 
+// The boards' ply, as its +row and +col faces (the two the opening camera
+// sees); faceTone gives the other two, so a board keeps its tone as the
+// camera turns.
+const HOARDING_POS_ROW = '#cdb98c';
+const HOARDING_POS_COL = '#a8976f';
+
 export function GroundSite({ col, row, w, h }: GroundProps) {
   // The grader's passes: scrape lines the long way across the plot, counted
   // from the short span so passes land about half a tile apart at any size.
@@ -1293,13 +1309,16 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
   const f = boxFaces(ic, ir, iw, ih, 0, HOARDING_H);
 
   // The two camera-facing panels are f.left and f.right; the two behind show
-  // their inner faces. Each takes the tone of the panel it parallels. Back
-  // before front.
-  const boards: Array<{ tone: string; pts: Pt[]; span: number }> = [
-    { tone: 'a', pts: [f.A, f.B, f.Bt, f.At], span: iw },
-    { tone: 'b', pts: [f.A, f.D, f.Dt, f.At], span: ih },
-    { tone: 'a', pts: f.left, span: iw },
-    { tone: 'b', pts: f.right, span: ih },
+  // their inner faces. Each is toned by the way its outer face points (its
+  // inner face is lit like the outer face of the board across from it) and
+  // set out in posts along its own length: A-B parallels the left wall and
+  // A-D the right one. Back before front.
+  const tone = (dir: FaceDir) => faceTone(dir, HOARDING_POS_ROW, HOARDING_POS_COL);
+  const boards: Array<{ fill: string; pts: Pt[]; span: number }> = [
+    { fill: tone(f.dir.CD), pts: [f.A, f.B, f.Bt, f.At], span: f.spanLeft },
+    { fill: tone(f.dir.BC), pts: [f.A, f.D, f.Dt, f.At], span: f.spanRight },
+    { fill: tone(f.dir.CD), pts: f.left, span: f.spanLeft },
+    { fill: tone(f.dir.BC), pts: f.right, span: f.spanRight },
   ];
 
   return (
@@ -1317,13 +1336,13 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
           />
         );
       })}
-      {boards.map(({ tone, pts, span }, i) => {
+      {boards.map(({ fill, pts, span }, i) => {
         // Posts every couple of tiles, so the board reads as a hoarding rather
         // than a ribbon of flat color.
         const posts = Math.max(1, Math.round(span / 2.5) - 1);
         return (
           <g key={i}>
-            <polygon className={`site-hoarding-${tone}`} points={polyPoints(pts)} />
+            <polygon className="site-hoarding" fill={fill} points={polyPoints(pts)} />
             {Array.from({ length: posts }, (_, j) => {
               const u = (j + 1) / (posts + 1);
               const foot = { x: pts[0].x + (pts[1].x - pts[0].x) * u, y: pts[0].y + (pts[1].y - pts[0].y) * u };

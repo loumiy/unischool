@@ -5,8 +5,9 @@ import { FOUNDERS_HALL_ID } from '../data/techData';
 import type { Dressing } from '../state/types';
 import { isLand, parsePathTileKey } from '../state/campusMap';
 import { isAcademicHall } from '../data/techData';
-import { lift, project, type Pt } from './isoProjection';
+import { groundSquash, lift, polyPoints, project, type Pt } from './isoProjection';
 import { up } from './campusScale';
+import { downwind, flagCloth } from './wind';
 
 // The small things along the walks: lamps and benches the player places
 // beside the paths, and bike racks that appear beside the halls and dorms
@@ -26,21 +27,36 @@ const LAMP_HEIGHT = up(4.5);
 const BENCH_SEAT = up(0.45);
 const BENCH_BACK = up(0.9);
 
-// A lamp, with a banner in the college's colors in commencement week.
+// A lamp, with a banner in the college's colors in commencement week. The
+// banner hangs from a bracket on the downwind side (wind.ts), so it stays on
+// the same side of the post over the ground as the camera turns; its foot is
+// a ground circle, as squashed as the ground is (groundSquash).
+const BANNER_BRACKET_TILES = 0.018;   // 0.8 units at the opening camera
+const BANNER_TILES = 0.126;           // 5.5 units
 function Lamp({ at }: { at: Pt }) {
   const top = lift(at, LAMP_HEIGHT);
   const banner = useContext(BannerContext);
   const hang = lift(at, LAMP_HEIGHT * 0.82);
   const foot = lift(at, LAMP_HEIGHT * 0.42);
+  const b = downwind(BANNER_BRACKET_TILES);
+  const w = downwind(BANNER_TILES);
+  // A band of the banner, `v0` to `v1` of the way down it.
+  const band = (v0: number, v1: number) => {
+    const y0 = hang.y + (foot.y - hang.y) * v0; const y1 = hang.y + (foot.y - hang.y) * v1;
+    const x = hang.x + b.x; const dy = b.y;
+    return polyPoints([
+      { x, y: y0 + dy }, { x: x + w.x, y: y0 + dy + w.y }, { x: x + w.x, y: y1 + dy + w.y }, { x, y: y1 + dy },
+    ]);
+  };
   return (
     <g className="campus-lamp">
-      <ellipse className="campus-lamp-foot" cx={at.x} cy={at.y} rx={2.4} ry={1.2} />
+      <ellipse className="campus-lamp-foot" cx={at.x} cy={at.y} rx={2.4} ry={2.4 * groundSquash()} />
       <line className="campus-lamp-post" x1={at.x} y1={at.y} x2={top.x} y2={top.y} />
       <circle className="campus-lamp-head" cx={top.x} cy={top.y} r={2.6} />
       {banner && (
         <g className="campus-lamp-banner">
-          <rect x={hang.x + 0.8} y={hang.y} width={5.5} height={foot.y - hang.y} fill={banner.primary} />
-          <rect x={hang.x + 0.8} y={hang.y + (foot.y - hang.y) * 0.62} width={5.5} height={(foot.y - hang.y) * 0.16} fill={banner.secondary} />
+          <polygon points={band(0, 1)} fill={banner.primary} />
+          <polygon points={band(0.62, 0.78)} fill={banner.secondary} />
         </g>
       )}
     </g>
@@ -49,17 +65,18 @@ function Lamp({ at }: { at: Pt }) {
 
 const FLAG_HEIGHT = up(14);
 
-// The college's flag on a pole before Founders Hall.
+// The college's flag on a pole before Founders Hall, flying downwind
+// (wind.ts) and foreshortened with the tilt.
+const FLAG_TILES = 0.37;   // the cloth's length: 16 units at the opening camera
+const FLAG_DROP = 10;
 function Flag({ at, colors }: { at: Pt; colors: CampusLayout['colors'] }) {
   const top = lift(at, FLAG_HEIGHT);
-  const w = 16;
-  const h = 10;
   return (
     <g className="campus-flag">
-      <ellipse className="campus-lamp-foot" cx={at.x} cy={at.y} rx={2.6} ry={1.3} />
+      <ellipse className="campus-lamp-foot" cx={at.x} cy={at.y} rx={2.6} ry={2.6 * groundSquash()} />
       <line className="campus-flag-pole" x1={at.x} y1={at.y} x2={top.x} y2={top.y} />
-      <path d={`M${top.x},${top.y + 1} q${w / 2},-3 ${w},0 v${h} q${-w / 2},-3 ${-w},0 Z`} fill={colors.primary} />
-      <path d={`M${top.x},${top.y + 1 + h * 0.4} q${w / 2},-3 ${w},0 v${h * 0.22} q${-w / 2},-3 ${-w},0 Z`} fill={colors.secondary} />
+      <path d={flagCloth(top, FLAG_TILES, 1, FLAG_DROP, 3)} fill={colors.primary} />
+      <path d={flagCloth(top, FLAG_TILES, 1 + FLAG_DROP * 0.4, FLAG_DROP * 0.22, 3)} fill={colors.secondary} />
       <circle className="campus-flag-finial" cx={top.x} cy={top.y - 1} r={1.4} />
     </g>
   );
