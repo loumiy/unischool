@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import type { FacilityType } from '../state/types';
 import { CrowdContext, VenueContext } from './mapOccasions';
-import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type FaceDir, type Pt } from './isoProjection';
+import { boxFaces, heightScale, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type FaceDir, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
@@ -568,11 +568,13 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
     ...aroundPoint(t[0], t[1], 0.2),
     node: (() => {
       const foot = project(t[0], t[1]); const top = lift(foot, up(16));
+      // The lamp bank stands up, so its depth foreshortens with the tilt.
+      const hs = heightScale();
       return (
         <>
           <line className="ground-mast" x1={foot.x} y1={foot.y} x2={top.x} y2={top.y} />
           <polygon className="ground-mast-head" points={polyPoints([
-            { x: top.x - 7, y: top.y + 1 }, { x: top.x + 7, y: top.y + 1 }, { x: top.x + 7, y: top.y - 4 }, { x: top.x - 7, y: top.y - 4 },
+            { x: top.x - 7, y: top.y + hs }, { x: top.x + 7, y: top.y + hs }, { x: top.x + 7, y: top.y - 4 * hs }, { x: top.x - 7, y: top.y - 4 * hs },
           ])} />
         </>
       );

@@ -158,6 +158,14 @@ export function heightScale(): number {
   return frame.heightScale;
 }
 
+// How much the ground's depth is squashed now: a circle on the ground is
+// this much as tall as it is wide on screen (a half at the opening 2:1
+// camera, a whole circle looking straight down). For the few ground marks
+// drawn as screen ellipses rather than projected (projectedCircle).
+export function groundSquash(): number {
+  return Math.sin(frame.camera.pitch);
+}
+
 // --- the projection -------------------------------------------------------
 
 // Grid corner (col, row) to world point. Corner coordinates, not tile
