@@ -3,8 +3,9 @@
 // pieces of work run out of a specific facility by specific people (see
 // researchData.ts's initiative block).
 //
-// Single-field topics: six per field (eight for the two fields split across
-// two facilities). Offers are drawn from one facility's own fields (see
+// Single-field topics: six per field (eight for Physics, split across the
+// Physics Labs and the Aerospace Engineering Labs; Chemistry's six are split
+// between its two labs). Offers are drawn from one facility's own fields (see
 // researchData.ts's initiativeOffers), so the depth here is what keeps a
 // mature campus from seeing the same few names for a decade.
 //
@@ -27,14 +28,14 @@ export interface ResearchTopic {
   // Which facilities may host it, by Buildable id. Set only to keep a topic
   // out of a facility that would otherwise host it (the two shared fields:
   // Chemistry Labs vs Chemical Engineering Labs, Physics Labs vs Aerospace
-  // Engineering Lab). Exhaustive when set, so a topic naming a second field
+  // Engineering Labs). Exhaustive when set, so a topic naming a second field
   // must list that field's hosts too if it wants them. Unset means any
   // facility hosting a field the topic names (hostableFields).
   labs?: readonly string[];
 }
 
 const PHYSICS_LABS = 'LAB-PHYS';     // the Physics Labs: pure physics
-const AEROSPACE_LAB = 'LAB-AERO';    // the Aerospace Engineering Lab: applied, and also fielded as Physics
+const AEROSPACE_LAB = 'LAB-AERO';    // the Aerospace Engineering Labs: applied, and also fielded as Physics
 const CHEMISTRY_LABS = 'LAB-CHMY';   // the Chemistry Labs: pure chemistry
 const CHEM_ENG_LABS = 'LAB-CHEM';    // the Chemical Engineering Labs: applied
 const HISTORY_INSTITUTE = 'LAB-HIST';

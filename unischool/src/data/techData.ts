@@ -170,7 +170,7 @@ const SCHOOLS: SchoolSeed[] = [
       // Mathematics is one of the majors the founding offer is rigged toward
       // (programOffers.ts).
       { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods'] },
-      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Biology I', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
+      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Principles of Biology', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
       { prefix: 'CHMY', name: 'Chemistry', field: 'Chemistry', courses: ['General Chemistry', 'Inorganic Chemistry', 'Organic Chemistry', 'Analytical Chemistry', 'Physical Chemistry', 'Biochemistry', 'Spectroscopy & Structure Determination', 'Medicinal Chemistry', 'Computational Chemistry'] },
       { prefix: 'PHYS', name: 'Physics', field: 'Physics', courses: ['Classical Mechanics', 'Electricity & Magnetism', 'Waves & Optics', 'Modern Physics', 'Thermal & Statistical Physics', 'Quantum Mechanics', 'Solid State Physics', 'Astrophysics & Cosmology', 'Particle Physics'] },
       { prefix: 'ENVS', name: 'Environmental Science', field: 'Biology', courses: ['Introduction to Environmental Science', 'Earth Systems & Climate', 'Ecosystem Ecology', 'Environmental Chemistry', 'Geographic Information Systems', 'Conservation Biology', 'Hydrology & Water Resources', 'Atmospheric Science', 'Environmental Policy & Restoration'] },
@@ -308,7 +308,7 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   AERO220: ['MECH120'],           // Rocketry needs thermodynamics
   ELEC130: ['PHYS110'],           // Electromagnetics needs undergraduate electricity & magnetism
   CHEM220: ['CHMY120'],           // Biochemical Engineering needs organic chemistry. Not CHMY210: a capstone in a lab-gated major would make Engineering require the School of Science and its lab (rule 3 above)
-  CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry — "polymer science requires Chemistry II" is already what the tier-3 climb says (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
+  CHEM230: ['CHMY120'],           // Polymer Science needs organic chemistry: the tier-3 climb already requires the tier-2 chemistry (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
   CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, an entry course gating on nothing, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
   CIVE220: ['ENVS101'],           // Environmental Impact Assessment needs environmental science
   CIVE230: ['MGMT120'],           // Construction Management needs operations management. Not MGMT210, which requires Management's whole tier-2 quartet and would pull in most of a Business major

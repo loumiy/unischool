@@ -693,9 +693,8 @@ const CANDIDATE_ARRIVALS_PER_WEEK_MAX = 4; // ceiling on new listings per week, 
 
 // How thin the academic market is in a field, as a multiplier on its
 // curriculum demand. 1.0 = ordinary; below 1 = scarce. Demand alone spreads
-// fields only ~2x, so this is what makes a niche genuinely rare. Every field
-// gets an explicit entry, even an ordinary one, so an unconsidered field
-// looks different from a deliberate 1.0.
+// fields only ~2x, so this is what makes a niche genuinely rare. A field
+// with no entry is ordinary (DEFAULT_MARKET_SUPPLY).
 const DEFAULT_MARKET_SUPPLY = 1;
 const FIELD_MARKET_SUPPLY: Record<string, number> = {
   'Clinical Health': 0.35,          // nursing and pharmacy faculty are the thinnest academic market there is: clinical practice pays far more than teaching it
