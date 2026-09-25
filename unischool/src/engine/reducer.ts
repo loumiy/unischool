@@ -447,7 +447,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: `The ${action.label} view is now available.`,
+          message: `The ${action.label} tab is now open.`,
           kind: 'good',
         });
       }
@@ -555,8 +555,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
           year: s.clock.year,
           week: s.clock.week,
           message: mascot
-            ? `${action.candidate.name} is the new athletic director. The teams will play as the ${mascot}.`
-            : `${action.candidate.name} is the new athletic director.`,
+            ? `${action.candidate.name} is the new Athletic Director. The teams will play as the ${mascot}.`
+            : `${action.candidate.name} is the new Athletic Director.`,
           kind: 'good',
         });
       } else {
@@ -565,7 +565,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: 'None of the candidates for athletic director were appointed; the search goes on.',
+          message: 'None of the candidates for Athletic Director was appointed; the search goes on.',
           kind: 'info',
         });
       }
@@ -591,7 +591,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: `The trustees have declined the charter; the school remains ${s.self.name} College.`,
+          message: `The trustees have declined the charter; it remains ${s.self.name} College.`,
           kind: 'info',
         });
       }
