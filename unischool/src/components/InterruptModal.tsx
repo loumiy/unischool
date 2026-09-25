@@ -40,6 +40,7 @@ import { CatalogueChoices, CatalogueText } from './EventPanel';
 import { eventById, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { money, ordinal, signedPct } from '../format';
+import { promisesOf } from '../systems/promises/promises';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -1256,8 +1257,11 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'summer': {
         // Only the read-and-continue beats: a key must not commit a price or
         // decline a year's petitions.
-        const beat = (interrupt.payload as SummerPayload).beat;
-        if (beat < 1) act({ type: 'RESOLVE_SUMMER_BEAT' });
+        // Not the fiftieth summer's report either (its button hangs the run
+        // in the hall of fame, state/hall.ts), nor a review with promises on
+        // offer (Enter sent none, declining whatever the player had ticked).
+        const payload = interrupt.payload as SummerPayload;
+        if (payload.beat < 1 && !payload.final && !promisesOf(s).offer) act({ type: 'RESOLVE_SUMMER_BEAT' });
         break;
       }
       case 'milestone':
@@ -1275,13 +1279,9 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'demand':
         act({ type: 'RESOLVE_DEMAND' });
         break;
-      case 'decision-event':
-        if (decision) {
-          act({ type: 'RESOLVE_DECISION_EVENT', eventId: decision.eventId, choiceId: '', ctx: decision.ctx });
-        }
-        break;
-      // the summer's decision beats, charter, the athletic director, and
-      // anything unrecognised: no-op — see above.
+      // the summer's decision beats, decision events (Enter used to dismiss
+      // one with no choice, dodging its consequence), charter, the athletic
+      // director, and anything unrecognised: no-op — see above.
     }
   }, interrupt !== null);
 

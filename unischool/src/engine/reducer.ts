@@ -616,11 +616,18 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'RESOLVE_DECISION_EVENT': {
       if (!s.pendingInterrupt) return state;
       const event = findDecisionEvent(action.eventId);
-      const choice = event && offeredChoices(s, event, action.ctx).find((c) => c.id === action.choiceId);
+      const offered = event ? offeredChoices(s, event, action.ctx) : [];
+      const picked = offered.find((c) => c.id === action.choiceId);
+      // A choice the college cannot pay for, or no choice at all (Enter on
+      // the modal), takes the event's free way out rather than skipping the
+      // event: every event has one, and it carries the event's consequence.
+      const affordable = (c: typeof offered[number]) => { const k = c.cost(s, action.ctx); return k <= 0 || k <= s.finance.cash; };
+      const choice = picked && affordable(picked) ? picked : offered.find((c) => c.cost(s, action.ctx) <= 0);
       if (choice) {
         const ctx = action.ctx;
-        const cost = choice.cost(s, ctx);
-        if (cost <= s.finance.cash) {
+        const cost = Math.max(0, choice.cost(s, ctx));
+        // A free choice is taken even in the red (the modal offers it there).
+        if (cost === 0 || cost <= s.finance.cash) {
           s.finance.cash -= cost;
           s.log.unshift(choice.apply(s, ctx));
         }
