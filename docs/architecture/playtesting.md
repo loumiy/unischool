@@ -182,6 +182,44 @@ is worth now. A penalty row (crowding) is drawn in the bad colour and reads as
 a subtraction. Both are data on the breakdown (`summer`, `penalty`), so the
 view still names no row.
 
+## The rebuilt harness (Plans 56–59)
+
+The harness is being rebuilt in four layers, each answering one question,
+with one rule from the owner: **only checks gate a merge; balance numbers
+are reported.** Its code is `sim/harness/`, and it replaces the sim below
+(`sim/balanceSim.ts`, `sim/reference.ts`) by Plan 59.
+
+- **The game** (`sim/harness/game.ts`): one headless college and the week
+  loop every player drives it through — every interrupt answered (the
+  player's answer, else `engine/defaultAnswers.ts`), then the player acts,
+  then the clock ticks. An interrupt still standing after 64 answers is an
+  error. A game can start from a checkpoint (`from`) instead of a founding.
+  It sends actions through `reduceInPlace` (engine/reducer.ts), the reducer
+  without its clone, unless a run asks for the real one (`clone`).
+- **The moves** (`sim/harness/moves.ts`): the one vocabulary every player is
+  a policy over — found an offer where it belongs, move a program home,
+  site the next hall, develop a course, hire for a blocked field, build for
+  a shortfall, build a dorm. Each reads the game's own gates and readings,
+  so a rule change updates one move. Two knobs: `pick` (first, or random)
+  and `reserve` (cash left behind).
+- **The rules** (`sim/harness/invariants.ts`, `brokenRules`): what any state
+  must keep, however it was played — every number finite, the clock on its
+  scale, halls real and the right size, every program housed once and only
+  where its kind may go, at most three distinct unhoused majors on offer,
+  placements real, on the grid and apart, development counting down only
+  what develops, every instructor on the payroll, no class below zero, every
+  score on 0–100. Never a number the owner could tune.
+- **Fuzz** (`sim/harness/fuzz.ts`): random but legal play over the moves and
+  the rest of what a player can send, some of which the game refuses.
+  `test/fuzz.test.ts` (fast) plays four foundings six years each through the
+  cloning reducer, checks the rules every week and a save round trip each
+  year; a random college stalls before it has a lab or a team, so
+  `test/fuzz-late.test.ts` (slow) fuzzes three years from the Balanced
+  builder's college at years 12 and 30.
+
+Next: the guided player (Plan 58), which does only what the game tells it
+and measures the line of play; the archetypes and the report (Plan 59).
+
 ## The sim, and the scorecard
 
 ```sh

@@ -136,6 +136,16 @@ export function reducer(state: GameState, action: Action): GameState {
   return withRandom(s, () => reduce(state, s, action));
 }
 
+// The reducer without the clone (Plan 57), for a headless player that owns
+// its state and never looks back at the one before (sim/): the clone is a
+// quarter of a fifty-year run. Mutates `s` and returns the next state, which
+// is `s` itself for every action but START_GAME. A refused action leaves `s`
+// as it was, since every early `return state` in reduce() comes before any
+// write — the debug actions aside, which a headless player never sends.
+export function reduceInPlace(s: GameState, action: Action): GameState {
+  return withRandom(s, () => reduce(s, s, action));
+}
+
 function reduce(state: GameState, s: GameState, action: Action): GameState {
   switch (action.type) {
     case 'TICK': {

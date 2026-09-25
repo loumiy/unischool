@@ -23,7 +23,7 @@
 import { transferOffers } from '../src/systems/finance/treasury';
 import { careerWeeks } from '../src/systems/faculty/facultySystem';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { reducer } from '../src/engine/reducer';
+import { reduceInPlace, reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { METRICS, TOLERANCE, describeFinding, findingsFor, metricOf, serialiseReference, type Metric, type Reference, bandsAcross, REFERENCE_HORIZON, REFERENCE_RUNS, bandsFor, type RunKey } from './reference';
 import type { Action } from '../src/state/actions';
@@ -1023,7 +1023,9 @@ export function play(
     s = createPreStartState();
     s = reducer(s, { type: 'START_GAME', name, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), seed });
   }
-  const dispatch = (a: Action) => { s = reducer(s, a); };
+  // Without the clone (Plan 57): the harness owns its state and never looks
+  // back at the one before an action.
+  const dispatch = (a: Action) => { s = reduceInPlace(s, a); };
   // The same dispatch, counted. Handed to decide() alone, so it measures
   // discretionary play, never modal answers (tallied by type).
   const dispatchCounted = (a: Action) => { year.actions += 1; dispatch(a); };
