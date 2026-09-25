@@ -1,6 +1,6 @@
 // The endpoint probe: prints what each archetype the balance target names
 // looks like at fifty years, on the reference seeds (everything
-// test/endpoint.test.ts asserts), so a tuning pass can see where runs land.
+// sim/endpointClaims.ts judges), so a tuning pass can see where runs land.
 // Diagnostic only, not part of `npm test`.
 // Run with `npm run endpoint -- [strategy-substring]`.
 

@@ -1,5 +1,5 @@
 // One fifty-year run read against the balance target, shared by the probe
-// (sim/endpoint.ts) and the gate (test/endpoint.test.ts) so they agree on
+// (sim/endpoint.ts) and the claims (sim/endpointClaims.ts) so they agree on
 // what "finishes the catalog" or "holds first place" means. Not part of
 // the game: nothing in src/ imports this.
 

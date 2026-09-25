@@ -210,13 +210,13 @@ band fitted to one seed is a claim about that seed. Every table printed by
 `npm run sim` is followed by its scorecard: one line per figure outside its
 band.
 
-`test/balance-scorecard.test.ts` plays every strategy on the default seed at
-the full fifty-year horizon and **fails** on any figure outside its band
-(Plan 15's PR G flipped it; Plan 09 wrote it to report). A failure is a
-regression, or a re-fit that has not re-recorded the reference. When a
-change moves a trajectory on purpose, re-run `--write-reference` and commit
-the envelope — and if it moves a target, edit the target and say why in the
-comment above it.
+`sim/scorecard.ts` (`npm run scorecard`) plays every strategy on the default
+seed at the full fifty-year horizon and **reports** every figure outside its
+band and every guardrail that does not hold. It failed CI from Plan 15's PR G
+to Plan 56, which made it a report again: **balance numbers are measured, and
+only checks gate a merge** (the owner's rule). The recorded bands went stale
+with every intended design change and kept the slow job red; the harness
+rebuild (Plans 57–59) measures first and recommends numbers after.
 
 ### Reading a strategy's run
 
@@ -257,12 +257,13 @@ the balanced builder are the four archetypes Plan 17's balance target names.
 
 ### The endpoint
 
-`test/endpoint.test.ts` plays those four at the full fifty years on the
-reference's three seeds and asserts how each **finishes** — the legacy reading
+`sim/endpointClaims.ts` (`npm run endpoint:claims`; a slow test suite until
+Plan 56) plays those four at the full fifty years on the reference's three
+seeds and reports, claim by claim, how each **finishes** — the legacy reading
 (`tally.legacy`, sim/legacyReading.ts, taken at the fiftieth summer), the Final
 Report the game wrote (`tally.report`), the catalogue and the campus, the rank
 curve. The
-assertions are Plan 17 §E's; where the fitted game landed beside them is in
+claims are Plan 17 §E's; where the fitted game landed beside them is in
 that PR's *as implemented* note. `npm run endpoint` prints the same readings
 (`sim/endpointReading.ts` is shared by both) without judging them, which is
 where a tuning pass starts.

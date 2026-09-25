@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "sim": "rolldown sim/balanceSim.ts -o node_modules/.tmp/balanceSim.mjs -f esm -p node && node node_modules/.tmp/balanceSim.mjs",
     "endpoint": "rolldown sim/endpoint.ts -o node_modules/.tmp/endpoint.mjs -f esm -p node && node node_modules/.tmp/endpoint.mjs",
+    "endpoint:claims": "rolldown sim/endpointClaims.ts -o node_modules/.tmp/endpointClaims.mjs -f esm -p node && node node_modules/.tmp/endpointClaims.mjs",
+    "scorecard": "rolldown sim/scorecard.ts -o node_modules/.tmp/scorecard.mjs -f esm -p node && node node_modules/.tmp/scorecard.mjs",
     "milestones": "rolldown sim/milestones.ts -o node_modules/.tmp/milestones.mjs -f esm -p node && node node_modules/.tmp/milestones.mjs",
     "guardrails": "rolldown sim/guardrails.ts -o node_modules/.tmp/guardrails.mjs -f esm -p node && node node_modules/.tmp/guardrails.mjs",
     "test": "node test/run.mjs",

@@ -1,6 +1,8 @@
 // ---------------------------------------------------------------------
 // THE BALANCE TARGET (Plan 17's PR E): four archetypes finish, and
-// completionism is one good run among them.
+// completionism is one good run among them. A test suite until Plan 56,
+// which made it a report: balance numbers are measured, and only checks
+// gate a merge.
 //
 // Plays the four strategies Plan 17 §E names at the full fifty-year
 // horizon on the three seeds the reference is written from
@@ -17,14 +19,15 @@
 // sentences is in that PR's *as implemented* note; the assertions below
 // are what it actually holds.
 //
-// Not part of the game: nothing imports it. Run with `npm test`. Slow —
-// twelve fifty-year runs.
+// Not part of the game: nothing imports it. Run with `npm run
+// endpoint:claims`. Slow — twelve fifty-year runs. Prints every claim with
+// ✓ or ✗ and never fails.
 // ---------------------------------------------------------------------
 
-import { play, STRATEGIES, DEFAULT_SIM_SEED } from '../sim/balanceSim';
-import { REFERENCE_EXTRA_SEEDS, REFERENCE_HORIZON } from '../sim/reference';
-import { endpointReading, describeEndpoint, type EndpointReading } from '../sim/endpointReading';
-import type { LegacyAxisKey, LegacyGrade } from '../sim/legacyReading';
+import { play, STRATEGIES, DEFAULT_SIM_SEED } from './balanceSim';
+import { REFERENCE_EXTRA_SEEDS, REFERENCE_HORIZON } from './reference';
+import { endpointReading, describeEndpoint, type EndpointReading } from './endpointReading';
+import type { LegacyAxisKey, LegacyGrade } from './legacyReading';
 
 let checks = 0;
 let failures = 0;
@@ -32,7 +35,7 @@ function assert(cond: boolean, msg: string): void {
   checks += 1;
   if (!cond) {
     failures += 1;
-    console.error(`  ✗ ${msg}`);
+    console.log(`  ✗ ${msg}`);
   }
 }
 
@@ -40,7 +43,7 @@ const SEEDS = [DEFAULT_SIM_SEED, ...REFERENCE_EXTRA_SEEDS];
 const RANK: Record<LegacyGrade, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 };
 const atLeast = (r: EndpointReading, key: LegacyAxisKey, grade: LegacyGrade) => RANK[r.grades[key] ?? 'F'] >= RANK[grade];
 
-console.log('endpoint tests');
+console.log('endpoint claims');
 console.log(`  four archetypes, ${REFERENCE_HORIZON} years, seeds ${SEEDS.join(', ')}`);
 
 function runs(name: string): EndpointReading[] {
@@ -172,5 +175,5 @@ regional.forEach((r, i) => assert(
   `Regional engine: a legacy of its own at seed ${SEEDS[i]} ("${r.legacy?.name}")`,
 ));
 
-console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);
-process.exit(failures === 0 ? 0 : 1);
+// Reported, never failed (Plan 56).
+console.log(failures === 0 ? `  ✓ all ${checks} claims hold` : `  ${failures} of ${checks} claims do not hold`);
