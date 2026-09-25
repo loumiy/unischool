@@ -190,7 +190,9 @@ and each was its own top-level Curriculum section. Plan 14 retired them with
 the seven school buildings: a school is a hall the player dedicated, and
 Medicine's is a second Health Science hall. The one thing that read those
 buildings — the University Hospital, a teaching hospital that needs a school
-of medicine standing — reads the MD's entry course instead.
+of medicine standing — read the MD's entry course instead, until Plan 50 made
+it the Medical Center, a capital project that opens from Year 15 and no
+longer waits on the medical school.
 
 Two judgment calls from this pass, flagged rather than resolved quietly:
 

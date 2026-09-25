@@ -12,6 +12,7 @@ import {
   REC_CENTER_TIER2_PRESTIGE_GATE,
   GRAND_LANDMARK_IDS,
 } from './facilitiesData';
+import { MEDICAL_CENTER_PROJECT } from './projectData';
 
 // The grand landmarks' milestone: a national name.
 const GRAND_LANDMARK_PRESTIGE_GATE = 90;
@@ -246,8 +247,8 @@ export const MILESTONES: readonly Milestone[] = [
     ...students(HEALTH_CENTER_TIER3_POPULATION_GATE),
     buildables: ['HLTH-T3'],
     tabs: [],
-    letter: 'The town is the university now. With a medical school, it can have a hospital.',
-    opens: ['University Hospital: with the medical school, a teaching hospital'],
+    letter: 'The town is the university now, and big enough to keep a teaching hospital busy: a medical center with the college\'s name over the door.',
+    opens: [`The Medical Center: a teaching hospital, from Year ${MEDICAL_CENTER_PROJECT.fromYear}, that lifts academics and research`],
   },
 ];
 

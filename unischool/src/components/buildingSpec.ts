@@ -70,15 +70,10 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   'AMENITY-BELLTOWER': 'landmark',
   'AMENITY-CHAPEL': 'pavilion',
   // The capital projects (Plan 33), each in the motif of what it is.
-  'PROJ-LAWN': 'grounds',
   'PROJ-ARTS': 'portico',
   'PROJ-RESEARCH-PARK': 'works',
-  'PROJ-STADIUM': 'bowl',
-  'PROJ-MEDICAL': 'block',
   'PROJ-GRADUATE': 'residential',
-  'PROJ-INSTITUTE': 'portico',
   'PROJ-MUSEUM': 'portico',
-  'PROJ-COMMONS': 'pavilion',
 };
 
 // What a laboratory carries on its roof to say which science it is: an
@@ -231,14 +226,11 @@ interface ProjectSpec { storeys: number; material: keyof MaterialSet }
 const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
   'PROJ-ARTS': { storeys: facilityStoreys('performingArtsCenter', 0), material: 'limestone' },
   'PROJ-RESEARCH-PARK': { storeys: facilityStoreys('lab', 0), material: 'render' },
-  'PROJ-MEDICAL': { storeys: facilityStoreys('healthCenter', HOSPITAL_MIN_SERVES), material: 'clinical' },
   // A quadrangle of rooms, drawn as a 600-bed residence hall (it adds no
   // beds: the game houses no graduate students).
   'PROJ-GRADUATE': { storeys: dormStoreys(600), material: 'brickDark' },
-  'PROJ-INSTITUTE': { storeys: facilityStoreys('library', 0), material: 'limestone' },
   'PROJ-MUSEUM': { storeys: facilityStoreys('artGallery', 0), material: 'limestone' },
   // The biggest dining hall's rung.
-  'PROJ-COMMONS': { storeys: facilityStoreys('diningHall', 10_000), material: 'brickBuff' },
 };
 
 // How many floors this building has. Zero means open ground, or a clear-span

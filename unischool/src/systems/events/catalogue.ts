@@ -161,14 +161,16 @@ export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>
   return true;
 }
 
-// The capital project v2 named, where this game has it (Plan 33), or the
-// nearest thing this game had before it.
+// What v2's texts named, where this game has it: a capital project (Plan 33)
+// or the nearest thing on campus. The keys keep v2's names; since Plan 50
+// the championship stadium is the football stadium and the great lawn a
+// quad.
 const stands = (s: GameState, id: string) => standing(s).some((t) => t.id === id);
 const NEEDS: Record<NeedKey, (s: GameState) => boolean> = {
   'arts-centre': (s) => stands(s, 'PROJ-ARTS') || standing(s).some((t) => t.facilityType === 'performingArtsCenter' || t.facilityType === 'artGallery'),
-  'championship-stadium': (s) => stands(s, 'PROJ-STADIUM') || standing(s).some((t) => t.facilityType === 'footballStadium'),
+  'championship-stadium': (s) => standing(s).some((t) => t.facilityType === 'footballStadium'),
   'dining-hall': (s) => standing(s).some((t) => t.facilityType === 'diningHall'),
-  'great-lawn': (s) => stands(s, 'PROJ-LAWN') || standing(s).some((t) => t.facilityType === 'quad'),
+  'great-lawn': (s) => standing(s).some((t) => t.facilityType === 'quad'),
   'health-center': (s) => standing(s).some((t) => t.facilityType === 'healthCenter'),
   lab: (s) => standing(s).some((t) => t.facilityType === 'lab'),
   library: (s) => standing(s).some((t) => t.facilityType === 'library'),
@@ -187,10 +189,8 @@ export function eligible(s: GameState, e: CatalogueEvent): boolean {
 // the pool deck, the stadium bowl) and the ornaments (statues, fountains,
 // gardens, landmarks) are never it; the chapel is the one amenity that is.
 const UNROOFED_FACILITIES: ReadonlySet<string> = new Set(['quad', 'amenity', 'landmark', 'tennisCourts', 'athleticsField', 'athleticsDiamond', 'pool', 'footballStadium']);
-const UNROOFED_IDS: ReadonlySet<string> = new Set(['PROJ-LAWN', 'PROJ-STADIUM']);
 const ROOFED_AMENITIES: ReadonlySet<string> = new Set(['AMENITY-CHAPEL']);
 function roofed(t: Buildable): boolean {
-  if (UNROOFED_IDS.has(t.id)) return false;
   if (ROOFED_AMENITIES.has(t.id)) return true;
   return !(t.kind === 'facility' && t.facilityType !== undefined && UNROOFED_FACILITIES.has(t.facilityType));
 }

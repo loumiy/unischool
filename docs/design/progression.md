@@ -40,7 +40,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | Established | A small city | 6,000 students | University Clinic |
 | Established | A research reputation | prestige 70 | Research Library |
 | Established | A market of its own | 8,000 students | Campus Grocery Store |
-| National | A university town | 20,000 students | University Hospital |
+| National | A university town | 20,000 students | Medical Center |
 
 **Four side milestones** show on the ladder but drive gates of their own:
 

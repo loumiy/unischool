@@ -73,7 +73,7 @@ const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
     { min: 0, fp: { w: 3, h: 3 } },
   ],
   healthCenter: [
-    { min: 20_000, fp: { w: 11, h: 11 } }, // University Hospital — the largest BUILDING on campus
+    { min: 20_000, fp: { w: 11, h: 11 } }, // the Medical Center — the largest BUILDING on campus
     { min: 4_000, fp: { w: 5, h: 5 } },    // University Clinic
     { min: 0, fp: { w: 3, h: 3 } },        // Health & Counseling Center
   ],
@@ -122,7 +122,7 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   athleticsArena: { w: 11, h: 9 },        // ~100m by 80m, the footprint of a real arena bowl
   athleticsDiamond: { w: 14, h: 14 },     // ~125m, a real outfield being ~120m to the fence
   athleticsNatatorium: { w: 7, h: 5 },    // a 50m competition pool, its deck and its stand
-  footballStadium: { w: 24, h: 20 },      // ~220m by 180m: the largest venue short of the championship stadium (Plan 33)
+  footballStadium: { w: 24, h: 20 },      // ~220m by 180m: the largest thing on campus
   fieldHouse: { w: 9, h: 6 },             // an indoor training floor and the rooms around it
 };
 
@@ -139,15 +139,10 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'AMENITY-CHAPEL': { w: 5, h: 3 },
   'AMENITY-BELLTOWER': { w: 3, h: 3 },
   // The capital projects (Plan 33): larger than anything else of their kind.
-  'PROJ-LAWN': { w: 16, h: 12 },
   'PROJ-ARTS': { w: 11, h: 9 },
   'PROJ-RESEARCH-PARK': { w: 13, h: 8 },
-  'PROJ-STADIUM': { w: 28, h: 24 },     // the real one: larger than the football stadium
-  'PROJ-MEDICAL': { w: 13, h: 9 },
   'PROJ-GRADUATE': { w: 11, h: 9 },
-  'PROJ-INSTITUTE': { w: 9, h: 7 },
   'PROJ-MUSEUM': { w: 11, h: 8 },
-  'PROJ-COMMONS': { w: 11, h: 8 },
 };
 
 export function footprintOf(t: Buildable): Footprint {

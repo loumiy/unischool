@@ -241,12 +241,12 @@ population thresholds:
   needs once it crosses 1,500 enrolled.
 - **University Clinic** (5x5) — real outpatient care, and the **practicum
   site** two clinical majors train in (see below).
-- **University Hospital** (11x11, the largest *building* on campus) — the
-  late-game rung, and the one facility in the game gated on **a founded
-  school**: the MD's entry course done, which is what "a School of Medicine
-  that exists" means now that the school takes a hall slot rather than a
-  building of its own. A university hospital is a teaching hospital, and a
-  campus without a medical school does not have one.
+- **Medical Center** (11x11, the largest *building* on campus) — the
+  late-game rung, and a capital project (Plan 50): it opens from Year 15,
+  lifts academics and research while it stands, and can be paid half from
+  the endowment. Until Plan 50 it was the University Hospital, gated on the
+  School of Medicine's entry course; the MD's clerkship still trains
+  there.
 
 Capacity tracks footprint at a near-flat ~220-250 students served per tile
 across all three, while cost per seat climbs (280 -> 400 -> 650) the way

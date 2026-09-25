@@ -792,7 +792,7 @@ export function athleticProgramStrength(s: GameState): number {
   const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s), 0) / active.length;
   const breadth = Math.min(1, athleticBreadth(s) / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
   // Recruits want to play at a Jock School (an identity tag's teeth, Plan 31).
-  // A championship stadium lifts every program (Plan 33, estate/projects.ts).
+  // A project that lifts athletics lifts every program (Plan 33, estate/projects.ts); none does since Plan 50.
   return Math.min(100, Math.round(avgQuality * (0.7 + 0.3 * breadth)) + tagTeeth(s, 'athletics') + projectLift(s, 'athletics'));
 }
 

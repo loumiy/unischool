@@ -1,5 +1,5 @@
 import type { Buildable, CapitalProject, GameState } from '../../state/types';
-import { DEFEND_ERA_PRESTIGE, DEFEND_ERA_YEAR, ENDOWMENT_PROJECT_SHARE, LATE_TIER_YEAR, PROJECTS } from '../../data/projectData';
+import { ALL_PROJECT_TERMS, DEFEND_ERA_PRESTIGE, DEFEND_ERA_YEAR, ENDOWMENT_PROJECT_SHARE, LATE_TIER_YEAR } from '../../data/projectData';
 import { graduatePrograms } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import { conditionOf } from './estate';
@@ -35,7 +35,7 @@ export function projectLift(s: GameState, axis: Axis): number {
 
 // The most an axis can be lifted: every project standing in full repair.
 export function projectLiftMax(axis: Axis): number {
-  return PROJECTS.reduce((sum, p) => sum + (p.project.boosts[axis] ?? 0), 0);
+  return ALL_PROJECT_TERMS.reduce((sum, p) => sum + (p.boosts[axis] ?? 0), 0);
 }
 
 export function standingProjects(s: GameState): Buildable[] {
