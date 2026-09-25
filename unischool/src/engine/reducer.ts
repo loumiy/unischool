@@ -580,7 +580,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: `The trustees have declined the charter; it remains ${s.self.name} College.`,
+          message: `The charter is declined; it remains ${s.self.name} College.`,
           kind: 'info',
         });
       }
