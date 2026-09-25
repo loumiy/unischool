@@ -112,7 +112,6 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   gym: { w: 5, h: 5 },
   tennisCourts: { w: 12, h: 4 }, // six courts in a row, which is ~110m by 36m — open ground, no door to centre
   pool: { w: 7, h: 4 },          // a 50m pool and its deck
-  performingArtsCenter: { w: 9, h: 7 },
   artGallery: { w: 5, h: 3 },
 
   // Varsity venues, sized from the real thing. The field holds a 400m track
@@ -143,6 +142,8 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'PROJ-RESEARCH-PARK': { w: 13, h: 8 },
   'PROJ-GRADUATE': { w: 11, h: 9 },
   'PROJ-MUSEUM': { w: 11, h: 8 },
+  'PROJ-LAW': { w: 11, h: 8 },
+  'PROJ-BUSINESS': { w: 9, h: 8 },
 };
 
 export function footprintOf(t: Buildable): Footprint {

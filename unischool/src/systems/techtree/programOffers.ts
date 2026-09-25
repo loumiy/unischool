@@ -1,6 +1,7 @@
 import type { GameState } from '../../state/types';
 import { graduateGateMet, programs, type ProgramInfo } from '../../data/techData';
 import { makeRivalRng } from '../../data/rivalData';
+import { hostedPrograms } from '../../data/projectData';
 import { WEEKS_PER_YEAR } from '../../state/types';
 
 // ---------------------------------------------------------------------
@@ -83,14 +84,22 @@ export function startedSchools(s: GameState): Set<string> {
 function isRevealed(s: GameState, program: ProgramInfo): boolean {
   const entry = s.tech.find((t) => t.id === program.entryCourseId);
   if (!entry) return false;
-  if (program.kind === 'graduate') {
-    // Its own gate, plus the entry course's prereqs: some name the program's
-    // own building, and it cannot be founded before that stands.
-    return graduateGateMet(s, program.id) && entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
-  }
+  // A graduate program is never drawn: its host offers it once earned
+  // (hostOffers below, Plan 51).
+  if (program.kind === 'graduate') return false;
   // Entry courses have no prereqs, so every major is revealed from founding.
   // Reads prereqs, not status: the course stays 'locked' until housed.
   return entry.prereqs.every((id) => s.tech.find((t) => t.id === id)?.status === 'done');
+}
+
+// What a graduate program's host offers (Plan 51): the programs it houses
+// that are earned (graduateGateMet) and not yet founded. Not drawn, and not
+// counted against PROGRAM_OFFER_COUNT: each has one place to go.
+export function hostOffers(s: GameState, hostId: string): ProgramInfo[] {
+  return hostedPrograms(hostId)
+    .filter((id) => graduateGateMet(s, id) && !isHoused(s, id))
+    .map((id) => programs().find((program) => program.id === id))
+    .filter((program): program is ProgramInfo => program !== undefined);
 }
 
 // Everything that could be offered now: revealed and unhoused, in seed order.

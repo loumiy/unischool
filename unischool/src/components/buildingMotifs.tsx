@@ -3155,7 +3155,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
               />
             ))
           ))}
-          {!site && t.facilityType === 'performingArtsCenter' && (() => {
+          {!site && t.id === 'PROJ-ARTS' && (() => {
             // The fly tower: a blank box over the stage that says "theater".
             const fw = w * 0.34; const fh = h * 0.56;
             const fly = boxFaces(col + w * 0.06, row + h * 0.22, fw, fh, H, STOREY * 1.6);
@@ -3246,7 +3246,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {!site && motif === 'residential' && storeysOf(t) >= 4 && (
         <Balconies f={f} storeys={storeysOf(t)} height={H} tone={stone.trim} />
       )}
-      {!site && (t.facilityType === 'library' || t.facilityType === 'performingArtsCenter') && (
+      {!site && (t.facilityType === 'library' || t.id === 'PROJ-ARTS') && (
         <RoofFlag at={lift(project(col + w * 0.82, row + h * 0.82), H)} />
       )}
       {/* Chapter letters over both doors, last: the pediment rises above

@@ -21,11 +21,11 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
-import { graduatePrograms, majorPrefixes, programById, programs } from '../src/data/techData';
+import { graduatePrograms, majorPrefixes, programById, programs, schoolCurriculumIds } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { FOUNDING_OFFER_GUARANTEE } from '../src/state/actions';
 import {
-  isHoused, offerablePrograms, PROGRAM_OFFER_COUNT, refillOffers, startedSchools,
+  hostOffers, isHoused, offerablePrograms, PROGRAM_OFFER_COUNT, refillOffers, startedSchools,
 } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
 import { bindScriptStream, drawsSoFar } from '../src/engine/random';
@@ -235,18 +235,18 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, 'and replaced');
 }
 
-// ---- 5. Graduate programs join the pool when their gate opens ----
+// ---- 5. Graduate programs are never drawn; their host offers them (Plan 51) ----
 {
   const s = foundedState('Hollowell');
-  assert(offerablePrograms(s).every((p) => p.kind === 'major'), 'no graduate program is offerable before its gate opens');
-  // Open every doctorate's gate the way the game does — a finished lab in
-  // its school — by marking the milestones and labs directly.
-  const doctorate = graduatePrograms().find((p) => p.type === 'doctoral')!;
-  for (const t of s.tech) {
-    if (t.kind === 'facility' && t.facilityType === 'lab') t.status = 'done';
-  }
-  const opened = offerablePrograms(s).filter((p) => p.kind === 'graduate');
-  assert(opened.some((p) => p.id === doctorate.id), `${doctorate.name} becomes offerable once its gate reads true`);
+  const done = (id: string) => { const t = s.tech.find((x) => x.id === id); if (t) t.status = 'done'; };
+  const doctorate = graduatePrograms().find((p) => p.id === 'PHDE')!;
+  assert(hostOffers(s, 'PROJ-GRADUATE').length === 0, 'nothing is earned at founding');
+  for (const id of schoolCurriculumIds(doctorate.homeSchool)) done(id);
+  assert(!hostOffers(s, 'PROJ-GRADUATE').some((p) => p.id === doctorate.id), 'the curriculum alone is not enough');
+  done('PROJ-GRADUATE');
+  assert(hostOffers(s, 'PROJ-GRADUATE').some((p) => p.id === doctorate.id), `${doctorate.name} is offered once Engineering is taught and the Graduate College stands`);
+  assert(!hostOffers(s, 'PROJ-GRADUATE').some((p) => p.id === 'PHDS'), 'and only it: Science is not');
+  assert(offerablePrograms(s).every((p) => p.kind === 'major'), 'a graduate program is never in the drawn offers');
 }
 
 console.log('program offer tests');

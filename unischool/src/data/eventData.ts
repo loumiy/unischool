@@ -136,7 +136,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     return {
       key,
       headline: `${subject} is fully distinguished`,
-      detail: 'Every program in the school is distinguished. A distinguished school is the heaviest single contribution curriculum breadth can make to the prestige target, and it can train its successors: graduate programs open where their schools stand.',
+      detail: 'Every program in the school is distinguished. A distinguished school is the heaviest single contribution curriculum breadth can make to the prestige target, and it can train its successors: once every one of its courses is taught, its graduate programs open in the capital project built to house them.',
       unlocks: [],
     };
   }

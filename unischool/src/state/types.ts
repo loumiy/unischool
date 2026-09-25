@@ -222,7 +222,7 @@ export type FacilityType =
   // Single-instance basicNeeds feeder beside the repeatable dining chain.
   | 'grocery'
   // One-off: gym/pool/tennis feed `health`, arts venues feed `social`.
-  | 'gym' | 'tennisCourts' | 'pool' | 'performingArtsCenter' | 'artGallery'
+  | 'gym' | 'tennisCourts' | 'pool' | 'artGallery'
   // Varsity competition venues, one per sport category, distinct from the
   // rec facilities. Hidden until a team needing one is granted varsity
   // status (Buildable.athleticsVenueReveal).
@@ -313,7 +313,9 @@ export interface Buildable {
 export interface CapitalProject {
   fromYear: number;
   late?: true;      // the late tier: opens with the defend era (data/projectData.ts)
-  graduate?: true;  // waits on a graduate program being housed
+  // Waits on a school's whole undergraduate curriculum being taught (Plan
+  // 51): a school's name, or ANY_SCHOOL for the first school to finish.
+  curriculum?: string;
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 

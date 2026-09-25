@@ -38,7 +38,7 @@ const PRE_PROFESSIONAL_PREFIXES = [
   'COMP', 'DATA', 'CYBR', 'SOFT', 'ARTF', 'INFO', // Computer Science
 ];
 const ARTS_PREFIXES = ['MDIA', 'GRDS', 'CRWR', 'MUSC', 'FILM', 'SART']; // Arts & Media
-const ARTS_FACILITY_IDS = ['ARTS-PAC', 'ART-GALLERY'];
+const ARTS_FACILITY_IDS = ['PROJ-ARTS', 'ART-GALLERY'];
 
 function establishedPrefixCount(s: GameState, prefixes: string[]): number {
   const established = new Set(

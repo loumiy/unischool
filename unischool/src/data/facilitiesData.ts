@@ -1,4 +1,4 @@
-import { MEDICAL_CENTER_PROJECT, PROJECTS } from './projectData';
+import { hostedPrograms, isGraduateHost, MEDICAL_CENTER_ID, MEDICAL_CENTER_PROJECT, PROJECTS } from './projectData';
 import type { Buildable, FacilityType } from '../state/types';
 import { FOUNDING_BODY } from './foundingData';
 
@@ -28,7 +28,6 @@ const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
   gym: 1.0,               // fitness staff and equipment upkeep, in line with the student center
   tennisCourts: 0.5,      // outdoor courts, minimal staffing
   pool: 1.5,              // lifeguards plus chemical/mechanical upkeep — pricier per head than a gym
-  performingArtsCenter: 1.0, // venue/production staff, a campus-wide draw like the student center
   artGallery: 0.7,        // curatorial and security staff, lighter than a working venue
   // Varsity venues host competition, so they cost more per head than the
   // recreational trio above.
@@ -242,21 +241,16 @@ const REC_CENTER_TIER2_WEEKS = 28;
 const REC_CENTER_TIER2_PRESTIGE = 0.10;
 export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
 
-// Each arts facility's own major's tier-2 course ids, as literals because
+// The gallery's own major's tier-2 course ids, as literals because
 // techData.ts imports from this file and importing back would be circular.
-const MUSIC_TIER2_IDS = ['MUSC110', 'MUSC120', 'MUSC130', 'MUSC140'];
 const STUDIO_ART_TIER2_IDS = ['SART110', 'SART120', 'SART130', 'SART140'];
 
-// --- Arts facilities: performing arts center (landmark), art gallery ---
-// One-off facilities feeding `social`. Each also gates its own major's
-// tier-3 courses (techData.ts's ARTS_CAPSTONE_GATE, like a science Lab);
-// Graphic Design is ungated. Both are hidden until their own major's tier-2
-// quartet is done, one tier before the capstones they gate, so the gate is
-// never circular. IDs exported for techData.ts's course-prereq wiring.
-export const PERFORMING_ARTS_CENTER_ID = 'ARTS-PAC';
-const PERFORMING_ARTS_CENTER_SERVES = 1_500;
-const PERFORMING_ARTS_CENTER_COST = 1_100_000;
-const PERFORMING_ARTS_CENTER_WEEKS = 20;
+// --- Arts facilities: the art gallery ---
+// A one-off facility feeding `social` that also gates Studio Art's tier-3
+// courses (techData.ts's ARTS_CAPSTONE_GATE, like a science Lab), hidden
+// until Studio Art's tier-2 quartet is done, so the gate is never circular.
+// The Performing Arts Center that did the same for Music is gone (Plan 51):
+// the Arts Center, a capital project, is the concert hall now.
 export const ART_GALLERY_ID = 'ART-GALLERY';
 const ART_GALLERY_SERVES = 500;
 const ART_GALLERY_COST = 220_000;
@@ -388,7 +382,6 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
   gym: 'social',
   tennisCourts: 'social',
   pool: 'social',
-  performingArtsCenter: 'social',
   artGallery: 'social',
   athleticsField: 'athletics',
   athleticsArena: 'athletics',
@@ -672,23 +665,7 @@ export function initialFacilities(): Buildable[] {
       },
     },
 
-    // Arts facilities, each gated only on its own major's tier-2 quartet.
-    {
-      id: PERFORMING_ARTS_CENTER_ID,
-      kind: 'facility',
-      facilityType: 'performingArtsCenter',
-      name: 'Performing Arts Center',
-      description: `A campus landmark: a concert hall and theater seating ${PERFORMING_ARTS_CENTER_SERVES.toLocaleString()} students, and the venue Music's capstone courses perform in.`,
-      cost: PERFORMING_ARTS_CENTER_COST,
-      duration: PERFORMING_ARTS_CENTER_WEEKS,
-      prereqs: [...MUSIC_TIER2_IDS],
-      status: 'locked',
-      effects: {
-        servesPopulation: PERFORMING_ARTS_CENTER_SERVES,
-        satisfactionAttribute: 'social',
-        upkeepPerWeek: servedUpkeep('performingArtsCenter', PERFORMING_ARTS_CENTER_SERVES),
-      },
-    },
+    // The art gallery, gated only on Studio Art's tier-2 quartet.
     {
       id: ART_GALLERY_ID,
       kind: 'facility',
@@ -862,6 +839,8 @@ export function initialFacilities(): Buildable[] {
       duration: HEALTH_CENTER_TIER3_WEEKS,
       prereqs: [HEALTH_CENTER_TIER2_ID],
       project: MEDICAL_CENTER_PROJECT,
+      // The School of Medicine's home (Plan 51).
+      slots: hostedPrograms(MEDICAL_CENTER_ID).length,
       status: 'locked',
       effects: {
         servesPopulation: HEALTH_CENTER_TIER3_SERVES,
@@ -950,9 +929,11 @@ export function initialFacilities(): Buildable[] {
       prereqs: [],
       status: 'locked',
       project: p.project,
+      // A graduate program's host has a slot for each program it houses
+      // (Plan 51), filled as a hall's are.
+      ...(isGraduateHost(p.id) ? { slots: hostedPrograms(p.id).length } : {}),
       effects: {
         upkeepPerWeek: p.upkeep,
-        ...(p.beds !== undefined ? { capacityBonus: p.beds } : {}),
         ...(p.beauty !== undefined ? { beauty: p.beauty } : {}),
       },
     })),

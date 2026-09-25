@@ -167,7 +167,7 @@ export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>
 // quad.
 const stands = (s: GameState, id: string) => standing(s).some((t) => t.id === id);
 const NEEDS: Record<NeedKey, (s: GameState) => boolean> = {
-  'arts-centre': (s) => stands(s, 'PROJ-ARTS') || standing(s).some((t) => t.facilityType === 'performingArtsCenter' || t.facilityType === 'artGallery'),
+  'arts-centre': (s) => stands(s, 'PROJ-ARTS') || standing(s).some((t) => t.facilityType === 'artGallery'),
   'championship-stadium': (s) => standing(s).some((t) => t.facilityType === 'footballStadium'),
   'dining-hall': (s) => standing(s).some((t) => t.facilityType === 'diningHall'),
   'great-lawn': (s) => standing(s).some((t) => t.facilityType === 'quad'),

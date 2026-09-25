@@ -1,7 +1,6 @@
 import type { Buildable, CapitalProject, GameState } from '../../state/types';
 import { ALL_PROJECT_TERMS, DEFEND_ERA_PRESTIGE, DEFEND_ERA_YEAR, ENDOWMENT_PROJECT_SHARE, LATE_TIER_YEAR } from '../../data/projectData';
-import { graduatePrograms } from '../../data/techData';
-import { isHoused } from '../techtree/programOffers';
+import { curriculumGateMet } from '../../data/techData';
 import { conditionOf } from './estate';
 
 // CAPITAL PROJECTS (Plan 33, data/projectData.ts): when one opens, what it
@@ -21,7 +20,8 @@ export function projectOpen(s: GameState, t: Buildable): boolean {
   if (!p) return true;
   if (p.late) return lateTierOpen(s);
   if (s.clock.year < p.fromYear) return false;
-  if (p.graduate && !graduatePrograms().some((g) => isHoused(s, g.id))) return false;
+  // A graduate program's host waits on its school's whole curriculum (Plan 51).
+  if (p.curriculum !== undefined && !curriculumGateMet(s, p.curriculum)) return false;
   return true;
 }
 

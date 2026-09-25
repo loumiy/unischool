@@ -1,7 +1,7 @@
 import type { Buildable, GameState } from '../state/types';
-import {
-  ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID, PERFORMING_ARTS_CENTER_ID,
-} from './facilitiesData';
+import { standsOnCampus } from '../state/types';
+import { ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID } from './facilitiesData';
+import { ANY_SCHOOL, GRADUATE_HOSTS, hostName } from './projectData';
 import { COURSE_DESCRIPTIONS } from './courseDescriptions';
 
 /*
@@ -388,12 +388,13 @@ function labId(prefix: string): string {
   return `LAB-${prefix}`;
 }
 
-// Music's capstones gate on the Performing Arts Center and Studio Art's on
-// the Art Gallery (facilitiesData.ts), the same facility-gates-capstone
-// mechanism as the labs. Graphic Design has no facility gate. Each facility
-// unlocks on its major's tier-2 quartet, so this cannot be circular.
+// Studio Art's capstones gate on the Art Gallery (facilitiesData.ts), the
+// same facility-gates-capstone mechanism as the labs. The gallery unlocks on
+// Studio Art's tier-2 quartet, so this cannot be circular. Music's gated on
+// the Performing Arts Center until Plan 51 retired it for the Arts Center,
+// which is earned by the whole Arts & Media curriculum and so cannot gate
+// part of it.
 const ARTS_CAPSTONE_GATE: Partial<Record<string, string>> = {
-  MUSC: PERFORMING_ARTS_CENTER_ID,
   SART: ART_GALLERY_ID,
 };
 
@@ -423,9 +424,9 @@ const CLINICAL_PRACTICUM_GATE: Partial<Record<string, string>> = {
 //      mechanically identical and differ only in the table below. Needing a
 //      rule of its own for one is the signal to reopen the design.
 //
-// The gate (graduateGateMet) has two readings: a professional school needs
-// enough established majors in each gate school (milestoneSchools()); a
-// doctorate needs a finished lab in its parent school (researchSchools()).
+// The gate (graduateGateMet, Plan 51): every undergraduate course in the
+// program's home school taught, and its host standing (projectData.ts's
+// GRADUATE_HOSTS), where it is then housed rather than in a hall.
 // ---------------------------------------------------------------------
 
 // The most expensive courses in the game, a rung above tier 3, so a mature
@@ -454,17 +455,10 @@ export interface GraduateProgramSeed {
   name: string;
   degree: string;          // the credential, for display only
   type: GraduateProgramType;
-  // The program's academic home, always one of gateSchools: where it is
-  // displayed, whose research fields it joins (researchSchools()), and the
-  // school it counts as when housed (systems/techtree/schools.ts).
+  // The program's academic home: where it is displayed, whose research
+  // fields it joins (researchSchools()), the school it counts as when housed
+  // (systems/techtree/schools.ts), and the curriculum its gate reads.
   homeSchool: string;
-  // The school(s) whose state the gate reads. One entry for every program
-  // but medicine, which reads two.
-  gateSchools: string[];
-  // Professional programs only: how many of EACH gate school's majors must
-  // be established (all tier-2 done). An explicit count, not a ratio.
-  // Doctorates gate on a lab and leave it unset.
-  gateMajorsRequired?: number;
   // Relative weight in prestige's graduate-breadth term (prestigeSystem.ts's
   // GRADUATE_PROGRAM_SHARE): a share of an already-capped input, never a
   // bonus. The only way a program may move standing beyond its course count.
@@ -473,15 +467,13 @@ export interface GraduateProgramSeed {
   courses: GraduateCourseSeed[];
 }
 
-// Nine programs, 49 courses: each a handful of high-tier courses that
+// Ten programs, 53 courses: each a handful of high-tier courses that
 // complete into a milestone, not a second nine-course major.
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   {
-    // Medicine gates on two schools, which is why gateSchools is a list.
     id: 'MED', name: 'School of Medicine', degree: 'MD', type: 'professional',
-    homeSchool: 'Health Science', gateSchools: ['Science', 'Health Science'],
+    homeSchool: 'Health Science',
     prestigeWeight: 2.0,
-    gateMajorsRequired: 5,
     blurb: 'the medical school',
     courses: [
       { num: 501, title: 'Foundations of Human Medicine', field: 'Clinical Health' },
@@ -500,9 +492,8 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'LAWS', code: 'LAW', name: 'School of Law', degree: 'JD', type: 'professional',
-    homeSchool: 'Social Sciences & Humanities', gateSchools: ['Social Sciences & Humanities'],
+    homeSchool: 'Social Sciences & Humanities',
     prestigeWeight: 1.6,
-    gateMajorsRequired: 5,
     blurb: 'the law school',
     courses: [
       { num: 501, title: 'Foundations of American Law', field: 'Law' },
@@ -517,9 +508,8 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'MBAX', code: 'MBA', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
-    homeSchool: 'Business', gateSchools: ['Business'],
+    homeSchool: 'Business',
     prestigeWeight: 1.4,
-    gateMajorsRequired: 5,
     blurb: 'the MBA program',
     courses: [
       { num: 501, title: 'Managerial Foundations', field: 'Management' },
@@ -531,7 +521,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'PHDE', name: 'Doctoral Program in Engineering', degree: 'PhD', type: 'doctoral',
-    homeSchool: 'Engineering', gateSchools: ['Engineering'],
+    homeSchool: 'Engineering',
     prestigeWeight: 1.0,
     blurb: 'the engineering doctorate',
     courses: [
@@ -543,7 +533,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'PHDS', name: 'Doctoral Program in the Natural Sciences', degree: 'PhD', type: 'doctoral',
-    homeSchool: 'Science', gateSchools: ['Science'],
+    homeSchool: 'Science',
     prestigeWeight: 1.0,
     blurb: 'the natural-sciences doctorate',
     courses: [
@@ -555,7 +545,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'PHDH', name: 'Doctoral Program in Health Science', degree: 'PhD', type: 'doctoral',
-    homeSchool: 'Health Science', gateSchools: ['Health Science'],
+    homeSchool: 'Health Science',
     prestigeWeight: 1.0,
     blurb: 'the health-science doctorate',
     courses: [
@@ -567,7 +557,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'PHDC', name: 'Doctoral Program in Computing', degree: 'PhD', type: 'doctoral',
-    homeSchool: 'Computer Science', gateSchools: ['Computer Science'],
+    homeSchool: 'Computer Science',
     prestigeWeight: 1.0,
     blurb: 'the computing doctorate',
     courses: [
@@ -579,7 +569,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'PHDL', name: 'Doctoral Program in the Humanities', degree: 'PhD', type: 'doctoral',
-    homeSchool: 'Social Sciences & Humanities', gateSchools: ['Social Sciences & Humanities'],
+    homeSchool: 'Social Sciences & Humanities',
     prestigeWeight: 1.0,
     blurb: 'the humanities doctorate',
     courses: [
@@ -590,12 +580,25 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
     ],
   },
   {
-    // The MFA takes the doctoral rung deliberately: that selects the
-    // facility gate (the Media Production Studio), the lower cost, and a
-    // research credit that fits, since the studio already counts exhibited
-    // work as research (researchData.ts's DISCIPLINE_VOCAB).
+    // Business's doctorate (Plan 51), so the Graduate College houses six,
+    // like a hall. Its research joins the economics lab's.
+    id: 'PHDB', code: 'PhD', name: 'Doctoral Program in Economics', degree: 'PhD', type: 'doctoral',
+    homeSchool: 'Business',
+    prestigeWeight: 1.0,
+    blurb: 'the economics doctorate',
+    courses: [
+      { num: 701, title: 'Doctoral Research Methods in Economics', field: 'Economics' },
+      { num: 710, title: 'Advanced Microeconomic Theory', field: 'Economics' },
+      { num: 720, title: 'Doctoral Seminar in Financial Economics', field: 'Accounting & Finance' },
+      { num: 730, title: 'Dissertation Research in Economics', field: 'Economics' },
+    ],
+  },
+  {
+    // The MFA takes the doctoral rung deliberately: that selects the lower
+    // cost, and a research credit that fits, since the studio already counts
+    // exhibited work as research (researchData.ts's DISCIPLINE_VOCAB).
     id: 'MFAX', code: 'MFA', name: 'Master of Fine Arts', degree: 'MFA', type: 'doctoral',
-    homeSchool: 'Arts & Media', gateSchools: ['Arts & Media'],
+    homeSchool: 'Arts & Media',
     prestigeWeight: 1.0,
     blurb: 'the MFA program',
     courses: [
@@ -619,62 +622,42 @@ export function graduateCourseIds(program: GraduateProgramSeed): string[] {
   return program.courses.map((course) => `${program.id}${course.num}`);
 }
 
-// Majors per gate school that must be established to found a professional
-// school: "near-established", not "school distinguished", which lands too
-// late in a run. Exported so the UI can say "5 of 6".
-export function professionalGateThreshold(program: GraduateProgramSeed): number {
-  return program.gateMajorsRequired ?? 0;
+// A school's undergraduate curriculum: every course of every one of its
+// majors, graduate programs apart.
+export function schoolCurriculumIds(school: string): string[] {
+  const seed = SCHOOLS.find((x) => x.name === school);
+  return seed ? seed.majors.flatMap((major) => NUMS.map((num) => nodeId(major.prefix, num))) : [];
 }
 
-// The graduate gate. Both branches read existing seed helpers, so it cannot
-// drift from the school structure the rest of the game reads.
+// Every one of those courses taught (Plan 51): what a graduate program, and
+// the project that houses it, wait on.
+export function curriculumComplete(s: GameState, school: string): boolean {
+  const ids = schoolCurriculumIds(school);
+  if (ids.length === 0) return false;
+  const done = new Set(s.tech.filter((t) => t.kind === 'course' && t.status === 'done').map((t) => t.id));
+  return ids.every((id) => done.has(id));
+}
+
+// The school, or with ANY_SCHOOL any school, whose curriculum is complete.
+export function curriculumGateMet(s: GameState, school: string): boolean {
+  return school === ANY_SCHOOL ? SCHOOLS.some((x) => curriculumComplete(s, x.name)) : curriculumComplete(s, school);
+}
+
+// The graduate gate (Plan 51): the home school's undergraduate curriculum
+// taught, and the program's host standing.
 export function graduateGateMet(s: GameState, programId: string): boolean {
   const program = graduateProgram(programId);
-  if (!program) return false;
-
-  if (program.type === 'professional') {
-    const schools = milestoneSchools();
-    return program.gateSchools.every((name) => {
-      const school = schools.find((x) => x.schoolName === name);
-      if (!school || school.majors.length === 0) return false;
-      const established = school.majors.filter((major) => s.milestones[`program-established:${major.prefix}`]).length;
-      return established >= professionalGateThreshold(program);
-    });
-  }
-
-  const schools = researchSchools();
-  return program.gateSchools.every((name) => {
-    const school = schools.find((x) => x.schoolName === name);
-    return !!school && school.labIds.some((id) => s.tech.find((t) => t.id === id)?.status === 'done');
-  });
+  const host = GRADUATE_HOSTS[programId];
+  if (!program || !host) return false;
+  const building = s.tech.find((t) => t.id === host);
+  return !!building && standsOnCampus(building) && curriculumComplete(s, program.homeSchool);
 }
 
 // The gate in words, for the course description and the Curriculum tab's
 // section head. Derived from the same seed the predicate reads, so the
 // sentence and the rule cannot disagree.
 export function graduateGateDescription(program: GraduateProgramSeed): string {
-  if (program.type === 'professional') {
-    const schools = milestoneSchools();
-    const parts = program.gateSchools.map((name) => {
-      const school = schools.find((x) => x.schoolName === name);
-      const needed = professionalGateThreshold(program);
-      const total = school ? school.majors.length : 0;
-      return `${needed} of ${total} ${name} programs established`;
-    });
-    return parts.join(' and ');
-  }
-  // A school with one research facility names it ("the Media Production
-  // Studio finished"); schools with several use the general form.
-  const schools = researchSchools();
-  const parts = program.gateSchools.map((name) => {
-    const school = schools.find((x) => x.schoolName === name);
-    if (school && school.labIds.length === 1) {
-      const facility = researchFacilityName(school.labIds[0]);
-      if (facility) return `the ${facility} finished`;
-    }
-    return `a finished lab in ${name}`;
-  });
-  return parts.join(' and ');
+  return `every ${program.homeSchool} course is taught and ${hostName(GRADUATE_HOSTS[program.id])} stands`;
 }
 
 // The display name of a research facility, by its Buildable id — the same
@@ -844,7 +827,7 @@ export function initialTech(): Buildable[] {
         graduateProgram: program.id,
         name: `${program.code ?? program.id} ${course.num} · ${course.title}`,
         description: i === 0
-          ? `Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}. Offered once ${graduateGateDescription(program)}; takes a hall slot like any program.`
+          ? `Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}. Offered once ${graduateGateDescription(program)}, and housed there.`
           : `${program.degree} coursework in ${course.title}, part of the ${program.name}.`,
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
         duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
