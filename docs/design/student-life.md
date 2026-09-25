@@ -399,7 +399,7 @@ shape `playerRank` already uses for the U.S. News report, just sorted on
 `teamQuality`, averaged and scaled up with how many are fielded — a
 department with five solid teams outranks one with a single elite team)
 instead of `reputation`. No annual report, movers list, or reveal
-interrupt of its own — just a live rank readout on the Athletics tab. Breadth
+interrupt of its own — just a live rank readout on the Athletics tab, and each program card's rank in its own sport (Plan 60: the colleges either side in its tooltip). Breadth
 is weighted by scale (a football program counts double a swim team) and the
 credit is full at eight. **The athletic field closes on the player** (PR I):
 the strongest ten rivals by athletic strength drift toward the player's own

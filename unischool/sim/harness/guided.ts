@@ -37,6 +37,7 @@ import { totalEnrolled } from '../../src/state/types';
 import type { Game, Player } from './game';
 import { LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
+import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site } from './moves';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
@@ -196,6 +197,11 @@ export function carry(g: Game, intent: StepIntent, reserve: number): boolean {
       if (!offer) return false;
       g.act({ type: 'START_INITIATIVE', labId: intent.labId, topicId: offer.topic.id, depth: offer.depth.key, facultyIds: offer.suggested.map((f) => f.id) });
       return true;
+    }
+    case 'restaff': {
+      const before = unstaffedIn(s).length;
+      g.act({ type: 'RESTAFF', school: intent.school });
+      return unstaffedIn(g.s).length < before;
     }
     case 'wait':
       return false;

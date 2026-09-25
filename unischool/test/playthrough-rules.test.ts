@@ -92,6 +92,19 @@ function orphanEnglish(s: GameState): void {
   assert(s.faculty.length === payroll, 'a second restaff has nothing to do');
 }
 
+// --- the line names a dark program first (Plan 60) ----------------------------
+{
+  let s = createInitialState('Line');
+  s.events.opening.skipped = true;
+  s.clock.year = 4;
+  orphanEnglish(s);
+  tickFaculty(s);
+  const line = nextStep(s);
+  assert(line?.intent?.kind === 'restaff' && line.go === 'curriculum', `a dark program is the next step (${line?.text})`);
+  s = reducer(s, { type: 'RESTAFF', school: null });
+  assert(nextStep(s)?.intent?.kind !== 'restaff', 'and once it is staffed the line moves on');
+}
+
 // --- the Deans bring their plans at year's turn -----------------------------
 {
   let s = createInitialState('Deans');

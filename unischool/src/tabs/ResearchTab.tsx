@@ -150,14 +150,27 @@ function VacantPanel(
 
   return (
     // An open offer set takes the full row width.
-    <section className={`facility-panel vacant${open ? ' expanded' : ''}`}>
+    <section
+      className={`facility-panel vacant${open ? ' expanded' : ''}`}
+      onKeyDown={(e) => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); setPicked(null); setTeam([]); } }}
+    >
       <header className="facility-head">
         <span className="facility-name">
           {lab.name}
           <span className="facility-depth vacant-tag">Vacant</span>
         </span>
-        {!open && (
+        {!open ? (
           <button type="button" className="facility-start" onClick={() => setOpen(true)}>Start research →</button>
+        ) : (
+          // Folds the options back up without starting anything (Plan 60).
+          <button
+            type="button"
+            className="facility-close"
+            aria-label={`Close ${lab.name}'s options`}
+            onClick={() => { setOpen(false); setPicked(null); setTeam([]); }}
+          >
+            Not now ✕
+          </button>
         )}
       </header>
 

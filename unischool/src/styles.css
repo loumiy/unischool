@@ -56,7 +56,7 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 16px;
-  --radius-pill: 999px;
+  --radius-pill: 20px; /* a pill on one line, a rounded rectangle when text wraps */
 
   /* Elevation: hard offsets, no blur; only pressable things sit off the page. */
   --shadow-1: 2px 2px 0 var(--outline);
@@ -1068,6 +1068,8 @@ button.build-tile { font-family: inherit; }
 .program-row-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
 .program-row-head h4 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
 .program-row-hall { font-size: var(--text-2xs); font-weight: 700; color: var(--ink-muted); }
+.collapse-toggle { border: 0; background: none; padding: 0 2px; font-size: var(--text-sm); line-height: 1; color: inherit; cursor: pointer; }
+.program-row.collapsed { padding-bottom: 6px; }
 /* An unstaffed program is dark (Plan 59). */
 .program-row-dark { font-size: var(--text-2xs); font-weight: 800; color: var(--danger-ink); text-transform: uppercase; letter-spacing: 0.04em; }
 .school-restaff { margin-left: auto; padding: 4px 12px; border-radius: 10px; border: 2px solid currentColor; background: var(--cream-hi); color: var(--ink);
@@ -1095,7 +1097,7 @@ button.build-tile { font-family: inherit; }
 
 /* Faculty chip: draggable; a valid drop cell lifts while a chip is dragged. */
 .instructor-chip { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; max-width: 100%;
-  padding: 2px 6px 2px 2px; border-radius: 999px; background: var(--cream-hi); border: 1.5px solid var(--outline);
+  padding: 2px 6px 2px 2px; border-radius: var(--radius-pill); background: var(--cream-hi); border: 1.5px solid var(--outline);
   font-size: var(--text-2xs); font-weight: 600; color: var(--ink); line-height: 1; }
 .instructor-chip.draggable { cursor: grab; }
 .instructor-chip.draggable:active { cursor: grabbing; }
@@ -1142,6 +1144,9 @@ button.build-tile { font-family: inherit; }
 /* Always stacked, so identical vacant cards stay the same height. */
 .vacant-list .facility-head { display: block; margin-bottom: 10px; }
 .vacant-list .facility-start { display: block; width: 100%; margin-top: 9px; }
+.facility-close { margin-left: auto; padding: 3px 10px; border-radius: 10px; border: 2px solid var(--outline); background: var(--cream-hi);
+  color: var(--ink); font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); cursor: pointer; }
+.facility-close:hover { background: var(--school-secondary); color: var(--school-on-secondary); }
 
 .facility-group-head { margin: 16px 0 8px; font-family: var(--display); font-weight: 800; font-size: var(--text-xs); text-transform: uppercase;
   letter-spacing: 0.09em; color: var(--school-primary); }
@@ -1789,9 +1794,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .modal h2 { margin: 0 0 10px; font-size: calc(26px * var(--text-scale)); font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
 .modal p { margin: 0 0 16px; color: var(--ink); font-size: var(--text-md); line-height: 1.45; }
 /* Primary button (same treatment as .startup-begin-btn). */
-.modal button { background: var(--school-secondary); color: var(--school-on-secondary); border: 2px solid var(--outline); border-radius: var(--radius-pill);
+.modal button, .final-page button { background: var(--school-secondary); color: var(--school-on-secondary); border: 2px solid var(--outline); border-radius: var(--radius-pill);
   padding: 8px 18px; font-family: var(--display); font-size: var(--text-md); font-weight: 800; box-shadow: var(--shadow-1); }
-.modal button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.modal button:disabled, .final-page button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 .modal-card { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
 
 .report-headline { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px !important;
@@ -1842,7 +1847,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The !importants beat `.modal button`'s secondary pill. */
 .event-choices { display: grid; gap: 8px; }
 .event-choice { display: block; width: 100%; text-align: left; background: var(--cream-hi) !important;
-  color: var(--ink) !important; border: 2px solid var(--outline) !important; border-radius: var(--radius-lg);
+  color: var(--ink) !important; border: 2px solid var(--outline) !important; border-radius: var(--radius-lg) !important;
   padding: 10px 14px !important; font-weight: 500 !important; font-family: var(--sans) !important; box-shadow: none !important; }
 .event-choice:not(:disabled):hover { box-shadow: var(--shadow-1) !important; transform: translate(-1px, -1px); }
 /* A picked choice in a multi-pick (PromisesPanel.tsx's decade offer). */
@@ -1967,31 +1972,57 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .org-list { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* ---------- Athletics (AthleticsTab.tsx) ---------- */
-.athletics-budget { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+/* Two columns on a wide screen: the department and its trophies at the side,
+   held in view, and the programs and the market beside them. One column on
+   a narrow one. */
+.athletics-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.athletics-side, .athletics-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (min-width: 1000px) {
+  .athletics-layout { grid-template-columns: 300px minmax(0, 1fr); }
+  .athletics-side { position: sticky; top: 0; }
+}
+.athletics-budget { display: flex; align-items: center; gap: 10px; margin: 12px 0 6px; flex-wrap: wrap; }
+.athletics-budget-label { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
 .athletics-budget-tiers { display: flex; gap: 6px; }
 .athletics-budget-tiers button { text-transform: uppercase; letter-spacing: 0.05em; background: transparent;
   border: 2px solid var(--outline); color: var(--ink); border-radius: var(--radius-pill);
   padding: 3px 11px; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); cursor: pointer; }
 .athletics-budget-tiers button.active { background: var(--outline); color: var(--cream); }
-/* auto-fill with a min track: no breakpoint per team count. */
+/* The pot, as a short ledger. */
+.panel .athletics-pot { margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); }
+.panel .athletics-pot > .figure { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0;
+  border-bottom: 1px dashed var(--parchment-line); }
+.athletics-pot dt { color: var(--ink-muted); }
+.athletics-pot dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Program cards: auto-fill with a min track, no breakpoint per team count. */
 .team-card-list { list-style: none; margin: 0; padding: 0; display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
-  max-height: 560px; overflow-y: auto; }
-.team-card { padding: 10px 12px; }
-.team-card-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
-.coach-row { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm);
-  padding: 4px 0; border-top: 1px dashed var(--parchment-line); flex-wrap: wrap; }
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+.team-card { flex: 1; min-width: 0; padding: 9px 11px; background: var(--cream-hi); border: 2px solid var(--outline);
+  border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 5px; }
+.team-card-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.team-card-name { font-family: var(--display); font-weight: 800; font-size: var(--text-base); letter-spacing: -0.01em;
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-card-standing { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; font-size: var(--text-2xs); }
+.team-card-standing .sport-standing-place { justify-content: flex-start; cursor: help; }
+.team-card-rival { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.team-card-meta { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: var(--text-2xs); color: var(--ink-muted); }
+.team-card-meta strong { color: var(--ink); }
+.team-card-staff { display: flex; flex-direction: column; }
+.coach-row { display: flex; align-items: center; gap: 7px; font-size: var(--text-sm); min-height: 30px;
+  padding: 3px 0; border-top: 1px dashed var(--parchment-line); }
 /* A vacancy should stand out, not fade: it is why the market exists. */
 .coach-row.vacant { color: var(--school-primary); }
-.coach-row.vacant .stat { font-style: italic; color: var(--school-primary); }
+.coach-vacant { font-style: italic; font-size: var(--text-xs); }
 .coach-role { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  font-size: var(--text-2xs); color: var(--school-primary); min-width: 92px; }
-.coach-name { font-weight: 700; }
-.coach-row-spacer { flex: 1; }
+  font-size: var(--text-2xs); color: var(--school-primary); min-width: 50px; }
+.coach-who { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+.coach-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coach-stats { font-size: var(--text-2xs); color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Releasing a coach reads like dismissing a professor (.faculty-card-foot). */
 .coach-release { background: transparent; color: var(--danger-ink);
   border: 2px solid var(--bad-on-light); border-radius: var(--radius-pill); font-family: var(--display); font-weight: 800;
-  padding: 3px 10px; font-size: var(--text-2xs); white-space: nowrap; }
+  padding: 1px 7px; font-size: var(--text-2xs); white-space: nowrap; }
 
 /* ---------- Athletic director's offer (InterruptModal.tsx) ---------- */
 .ad-candidates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
@@ -2029,45 +2060,29 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border: 2px dashed var(--parchment-line) !important; font-weight: 700 !important; }
 .ad-decline:hover { border-color: var(--outline) !important; color: var(--ink) !important; }
 
-/* ---------- Athletics department header ---------- */
-.department-grid { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
-  margin: 4px 0 12px; }
-.department-ad { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* ---------- Athletics department (the side column) ---------- */
+.department-ad { display: flex; align-items: center; gap: 10px; min-width: 0; margin: 2px 0 12px; }
 .department-ad-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .department-ad-name { font-family: var(--display); font-size: var(--text-lg); font-weight: 800; letter-spacing: -0.01em; }
 .department-ad-role { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--school-primary); }
-.department-ad-numbers { display: flex; flex-direction: column; gap: 1px; margin-left: auto;
-  text-align: right; white-space: nowrap; }
 .department-ad-empty { margin: 0; }
 
 /* Ranks use the same mono as the toolbar's rank. */
-.department-standings { display: flex; gap: 22px; margin: 0; }
+.panel .department-standings { display: flex; gap: 18px; margin: 0; flex-wrap: wrap; }
 .department-standings div { display: flex; flex-direction: column; gap: 2px; }
 .department-standings dt { font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--ink-muted); }
-.department-standings dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-base);
+.panel .department-standings dd { margin: 0; text-align: left; font-family: var(--display); font-weight: 800; font-size: var(--text-base);
   color: var(--ink-muted); }
 .department-standings dd strong { color: var(--ink); font-size: var(--text-xl); }
 
-/* ---------- Per-sport standings (AthleticsTab.tsx's SportStandings) ---------- */
-.sport-standings { list-style: none; margin: 0; padding: 0; display: flex;
-  flex-direction: column; gap: 2px; max-height: 340px; overflow-y: auto; }
-.sport-standing { display: grid; grid-template-columns: 1fr auto auto 1.4fr; gap: 12px;
-  align-items: center; padding: 6px 0; border-bottom: 1px solid var(--parchment-line); }
-.sport-standing-sport { font-weight: 700; font-size: var(--text-base); }
-.sport-standing-place { display: flex; align-items: baseline; gap: 5px; font-family: var(--display); font-weight: 800;
-  justify-content: flex-end; }
+/* A sport's rank on its program card. */
+.sport-standing-place { display: flex; align-items: baseline; gap: 5px; font-family: var(--display); font-weight: 800; }
 .sport-standing-place strong { font-size: var(--text-lg); }
 .sport-standing-of { font-size: var(--text-2xs); color: var(--ink-muted); }
-.sport-standing-neighbours { display: flex; flex-direction: column; gap: 1px;
-  font-size: var(--text-2xs); color: var(--ink-muted); min-width: 0; }
-.sport-standing-above, .sport-standing-below { overflow: hidden; text-overflow: ellipsis;
-  white-space: nowrap; }
-.sport-standing-above.best { color: var(--school-primary); font-weight: 700; }
 
 /* ---------- Last season and championships ---------- */
-.sport-standing-season { font-size: var(--text-2xs); text-align: right; white-space: nowrap; }
 .season-finish { text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); }
 .season-finish.champion { color: var(--school-on-secondary); background: var(--school-secondary); border: 1.5px solid var(--outline);
   border-radius: var(--radius-pill); padding: 1px 7px; font-weight: 800; }
@@ -2087,18 +2102,21 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .championship-worth dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-xl); color: var(--school-primary); }
 
 /* ---------- Coaching market (AthleticsTab.tsx's TheMarket) ---------- */
-.coach-market { max-height: 420px; }
-.coach-candidate { display: flex; align-items: center; gap: 10px; padding: 6px 0;
-  border-bottom: 1px solid var(--parchment-line); font-size: var(--text-sm); }
-/* Wanted rows get the parchment highlight; the rest sit behind a toggle. */
-.coach-candidate.wanted { background: var(--cream-hi); }
+/* Candidates as cards in a grid, like the programs above them. */
+.coach-market { list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.coach-candidate { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; font-size: var(--text-sm);
+  border: 1.5px solid var(--parchment-line); border-radius: var(--radius-md); }
+/* Wanted cards get the parchment highlight; the rest sit behind a toggle. */
+.coach-candidate.wanted { background: var(--cream-hi); border-color: var(--outline); }
+.coach-candidate-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .coach-candidate-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .coach-candidate-field { font-size: var(--text-2xs); color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: 0.05em; }
 .coach-candidate-listed { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs);
   color: var(--ink-muted); white-space: nowrap; }
-.coach-candidate-hire { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
-  max-width: 45%; }
+.coach-candidate .stat { font-size: var(--text-2xs); }
+.coach-candidate-hire { display: flex; gap: 4px; flex-wrap: wrap; }
 .coach-candidate-idle { font-size: var(--text-2xs); color: var(--ink-muted); }
 .coach-market-toggle { margin-top: 8px; }
 
@@ -2437,23 +2455,21 @@ body:has(.building-info-panel) .pennant { display: none; }
 .trophy-year { font-family: var(--mono); font-variant-numeric: tabular-nums; opacity: 0.8; }
 
 /* The priority list: ranked program cards with the funded line. */
-.priority-list { display: flex; flex-direction: column; gap: 8px; }
-.priority-slot { list-style: none; }
-.priority-card { display: flex; align-items: stretch; gap: 8px; cursor: grab; }
+.priority-slot { list-style: none; display: flex; min-width: 0; }
+.priority-slot.wide { grid-column: 1 / -1; display: block; }
+.priority-card { display: flex; flex: 1; min-width: 0; cursor: grab; }
 .priority-card.dragging { opacity: 0.5; }
-.priority-card.over { outline: 2px dashed var(--ink, currentColor); outline-offset: 2px; }
-.priority-card > .team-card { flex: 1; margin: 0; }
-.priority-rank { display: flex; align-items: center; justify-content: center; min-width: 28px;
-  font-family: var(--mono); font-weight: 800; opacity: 0.7; user-select: none; }
-.funded-line { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px;
+.priority-card.over { outline: 2px dashed var(--ink, currentColor); outline-offset: 2px; border-radius: var(--radius-md); }
+.priority-rank { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px;
+  border-radius: 50%; background: var(--outline); color: var(--cream); font-family: var(--mono); font-weight: 800;
+  font-size: var(--text-2xs); user-select: none; flex: none; }
+.funded-line { display: flex; align-items: center; gap: 8px; margin: 2px 0;
   font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
 .funded-line::before, .funded-line::after { content: ''; flex: 1; border-top: 2px dashed currentColor; opacity: 0.5; }
+.priority-slot.awaiting .team-card { background: transparent; border-style: dashed; }
 .org-tag.band-flagship { opacity: 1; }
 .org-tag.band-competitive { opacity: 0.8; }
 .org-tag.band-developmental { opacity: 0.55; }
-
-/* The record and the rival on a standings row. */
-.sport-standing-rivalry { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 
 /* A postseason ban on a program card. */
 .org-tag.banned { color: var(--bad-on-light); }
@@ -2494,9 +2510,14 @@ body:has(.building-info-panel) .pennant { display: none; }
 .campaign-list li p { margin: 2px 0 6px; }
 
 /* The league table (tabs/StandingsPanel.tsx). */
-.standings-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 16px; margin: 8px 0; }
-.standings-table dd { margin: 0; }
-.standings-charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+/* The standings: one card an axis, rank and chart together (Plan 60). */
+.standings-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 10px 0; }
+@media (max-width: 900px) { .standings-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.standings-card { border: 2px solid var(--outline); border-radius: var(--radius-lg); padding: 10px 12px; background: var(--cream-hi); }
+.standings-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.standings-card-label { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); }
+.standings-card-rank { font-family: var(--display); font-size: var(--text-lg); color: var(--school-primary); }
+.standings-card-leader { margin: 2px 0 6px; font-size: var(--text-2xs); color: var(--ink-muted); min-height: 1.3em; }
 
 /* What the guidebooks say (tabs/IdentityPanel.tsx). */
 .identity-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
@@ -2542,3 +2563,22 @@ body:has(.building-info-panel) .pennant { display: none; }
 .confirm-warning { font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); }
 /* In a column of full-width buttons, the confirming one stretches too. */
 .title-actions .confirm-button, .main-menu-popup .confirm-button { display: flex; align-items: stretch; }
+
+/* A venue's teams, as tiles (Plan 60, BuildingInfoPanel.tsx). */
+.venue-teams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.venue-team { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 2px solid var(--school-primary);
+  border-radius: var(--radius-lg); background: var(--cream-hi); min-width: 0; }
+.venue-team.waiting { border-style: dashed; opacity: 0.8; }
+.venue-team-name { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--school-primary); }
+.venue-team-meta, .venue-team-coach { font-size: var(--text-2xs); color: var(--ink-muted); overflow-wrap: anywhere; }
+
+/* The Final Report as a page (Plan 60): the whole screen, the school's own
+   colors, a title that cannot be mistaken for another summer. */
+.final-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; background: var(--school-primary);
+  display: flex; justify-content: center; align-items: flex-start; padding: 48px 16px 64px; }
+.final-page-inner { width: min(1080px, 100%); background: var(--cream); border-radius: 18px; padding: 40px 48px 48px;
+  box-shadow: var(--shadow-2, 0 12px 40px rgba(0,0,0,0.35)); border-top: 10px solid var(--school-secondary); }
+.final-page-inner h2 { font-size: clamp(34px, 5vw, 56px); line-height: 1.05; margin: 6px 0 18px; }
+.final-page-inner .final-report-eyebrow { font-size: var(--text-sm); letter-spacing: 0.14em; }
+.final-page-inner > button { margin-top: 24px; font-size: var(--text-lg); padding: 14px 28px; }
+@media (max-width: 700px) { .final-page-inner { padding: 24px 18px 32px; } }
