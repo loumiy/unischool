@@ -38,7 +38,7 @@ function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?
         {tag && <span className="org-tag">{tag}</span>}
       </span>
       <span className="org-meta">
-        founded {org.foundedYear} · {orgMembership(org, s).toLocaleString()} members · {money(org.upkeepPerWeek)}/wk
+        founded in Year {org.foundedYear} · {orgMembership(org, s).toLocaleString()} members · {money(org.upkeepPerWeek)}/wk
         {note && <> · {note}</>}
       </span>
     </li>
@@ -72,7 +72,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Effect on Satisfaction</h2>
+        <h2>Effect on satisfaction</h2>
         <HelpHint
           align="end"
           text="Satisfaction is a stock that drifts toward a target set by what the campus offers. Student organizations move that target, so these are the real points they are adding to it right now — read from the same computation the weekly tick runs, not a separate tally. The headline satisfaction number moves toward the target over the coming weeks."
@@ -233,7 +233,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
   return (
     <section className="panel panel-span-2">
       <div className="panel-head">
-        <h2>Satisfaction Breakdown</h2>
+        <h2>Satisfaction breakdown</h2>
         <HelpHint
           text="The five attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the percentage under each name is how much of the headline number that attribute is worth. Expand one to see exactly what's behind its score: every building serving that need, how many it serves, and any other named contributor."
         />
@@ -260,7 +260,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
   if (!demand) {
     return (
       <section className="panel">
-        <h2>Student Demands</h2>
+        <h2>Student demands</h2>
         <p className="empty-note">
           No outstanding demands. Students ask the institution for something only when
           satisfaction falls below {DEMAND_SATISFACTION_THRESHOLD}.
@@ -277,7 +277,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Student Demands</h2>
+        <h2>Student demands</h2>
         <span className={`demand-deadline${progress.weeksLeft <= DEMAND_URGENT_WEEKS ? ' urgent' : ''}`}>
           {progress.weeksLeft} week{progress.weeksLeft === 1 ? '' : 's'} left
         </span>
@@ -337,7 +337,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
         <StudentDemandPanel s={s} />
         {emptyOrgs ? (
           <section className="panel">
-            <h2>Student Organizations</h2>
+            <h2>Student organizations</h2>
             <p className="empty-note">
               {hasStudentCenter(s)
                 ? 'No student organizations yet — students will start forming clubs of their own before long.'
@@ -350,7 +350,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
 
         {pending.length > 0 && (
           <section className="panel panel-span-2">
-            <h2>Awaiting Recognition</h2>
+            <h2>Awaiting recognition</h2>
             <p className="empty-note">
               Answered together in the summer's Students beat — nothing here interrupts play.
             </p>
@@ -392,7 +392,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
 
           <section className="panel">
             <div className="panel-head">
-              <h2>Greek Chapters</h2>
+              <h2>Greek chapters</h2>
               {s.orgs.hellenicCouncilApproved && (
                 <span className="panel-count">{chapters.length} / {chapterCapacity(s)}</span>
               )}

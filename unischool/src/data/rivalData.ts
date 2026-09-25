@@ -147,7 +147,7 @@ export function baseRivals(): AuthoredRival[] {
     { id: 'r2', name: 'Northgate Institute', mascot: 'Engineers', reputation: 85, momentum: 0.5 },
     { id: 'r3', name: 'Vale State', mascot: 'Longhorns', reputation: 71, momentum: -0.3 },
     { id: 'r4', name: 'Bellhaven College', mascot: 'Herons', reputation: 58, momentum: 0.8 },
-    { id: 'r5', name: 'Portland Tech', mascot: 'Pioneers', reputation: 45, momentum: 1.1 },
+    { id: 'r5', name: 'Portside Tech', mascot: 'Pioneers', reputation: 45, momentum: 1.1 },
 
     // --- elite tier ---
     { id: 'r6', name: 'Harrowgate University', mascot: 'Ravens', reputation: 99, momentum: 0.1 },
@@ -192,7 +192,7 @@ export function baseRivals(): AuthoredRival[] {
     { id: 'r39', name: 'Pemberly Institute', mascot: 'Pilgrims', reputation: 77, momentum: -0.3 },
     { id: 'r40', name: 'Rushbrook University', mascot: 'Rivermen', reputation: 76, momentum: 0.2 },
     { id: 'r41', name: 'Wintershall College', mascot: 'Snow Leopards', reputation: 75, momentum: 0.5 },
-    { id: 'r42', name: 'Faircross State University', mascot: 'Crusaders', reputation: 74, momentum: -0.7 },
+    { id: 'r42', name: 'Faircross State University', mascot: 'Wardens', reputation: 74, momentum: -0.7 },
     { id: 'r43', name: 'Halloway University', mascot: 'Hawks', reputation: 73, momentum: 0.3 },
     { id: 'r44', name: 'Ironmark Institute of Technology', mascot: 'Forgers', reputation: 72, momentum: 0.6 },
     { id: 'r45', name: 'Quillfield College', mascot: 'Scribes', reputation: 71, momentum: -0.2 },
@@ -215,7 +215,7 @@ export function baseRivals(): AuthoredRival[] {
     // (docs/plans/07-athletics-rivals.md, section 0). It gives a founding
     // school a meaningful mid-table rank from week one (StatusHeader.tsx),
     // and somewhere to fall to.
-    { id: 'r56', name: 'Pinehurst College', mascot: 'Quakers', reputation: 44, momentum: 0.5 },
+    { id: 'r56', name: 'Pinehurst College', mascot: 'Pilots', reputation: 44, momentum: 0.5 },
     { id: 'r57', name: 'Marlowe Community College', mascot: 'Mariners', reputation: 44, momentum: -0.2 },
     { id: 'r58', name: 'Ashbury State College', mascot: 'Sentinels', reputation: 43, momentum: 0.9 },
     { id: 'r59', name: 'Dunwich Technical Institute', mascot: 'Tinkers', reputation: 42, momentum: 0.3 },
@@ -239,7 +239,7 @@ export function baseRivals(): AuthoredRival[] {
     { id: 'r77', name: 'Willowmere Technical Institute', mascot: 'Willows', reputation: 29, momentum: -0.2 },
     { id: 'r78', name: 'Barrowfield College', mascot: 'Barrowmen', reputation: 28, momentum: 0.5 },
     { id: 'r79', name: 'Crestmill State College', mascot: 'Millhands', reputation: 27, momentum: -0.4 },
-    { id: 'r80', name: 'Nightingale College', mascot: 'Nightingales', reputation: 26, momentum: 0.7 },
+    { id: 'r80', name: 'Nightjar College', mascot: 'Nightjars', reputation: 26, momentum: 0.7 },
     { id: 'r81', name: 'Stillwater Technical College', mascot: 'Stillmen', reputation: 26, momentum: 0.1 },
     { id: 'r82', name: 'Ashen Green College', mascot: 'Cinders', reputation: 25, momentum: -0.6 },
     { id: 'r83', name: 'Meadowbank College', mascot: 'Meadowlarks', reputation: 24, momentum: 0.3 },

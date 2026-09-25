@@ -19,7 +19,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
     <section className="panel standings-panel">
       <div className="panel-head">
         <span className="panel-head-title">
-          <h2>The Standings</h2>
+          <h2>The standings</h2>
           <HelpHint text="Six tables, one field. Academics is the ranking the rest of the game means by rank; the others say what the college is good at besides. Access reads the admit rate and how far the price sits under what the college's name could charge; financial strength the endowment per student." />
         </span>
         <span className="stat">of {field}</span>

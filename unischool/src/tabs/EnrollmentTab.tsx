@@ -114,7 +114,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
   return (
     <div className="tab-content">
       <section className="panel">
-        <h2>The Standing Body</h2>
+        <h2>The standing body</h2>
         <p className="history-summary">
           {enrolled.toLocaleString()} students across four classes. Each was admitted
           under the college as it stood that summer, and keeps that composition until it
@@ -159,7 +159,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
       </section>
 
       <section className="panel">
-        <h2>Last Summer's Funnel</h2>
+        <h2>Last summer's funnel</h2>
         <div className="funnel-lines">
           <FunnelLine
             label="Applicant pool"

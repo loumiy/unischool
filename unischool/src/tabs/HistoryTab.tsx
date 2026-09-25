@@ -273,7 +273,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-title">
-              <h2>Institutional History</h2>
+              <h2>Institutional history</h2>
               <span className="panel-count">{yearOfFifty(s)}</span>
             </div>
             <HelpHint align="end" text="One entry is filed each year, when the summer admissions decision resolves. Two years are needed before a trend can be drawn." />
@@ -301,7 +301,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
       <section className="panel">
         <div className="panel-head">
           <div className="panel-head-title">
-            <h2>Institutional History</h2>
+            <h2>Institutional history</h2>
             <span className="panel-count">{yearOfFifty(s)}</span>
           </div>
           <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
@@ -362,7 +362,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
       <AlumniPanel s={s} act={act} />
 
       <section className="panel">
-        <h2>Year by Year</h2>
+        <h2>Year by year</h2>
         <HistoryTable rows={history} />
       </section>
     </div>

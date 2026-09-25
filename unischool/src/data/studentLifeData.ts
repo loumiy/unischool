@@ -522,7 +522,7 @@ const MASCOT_SUGGESTIONS: readonly string[] = [
   'Eagles', 'Falcons', 'Foxes', 'Grizzlies', 'Hawks', 'Herons',
   'Ibises', 'Jackals', 'Kestrels', 'Lynx', 'Magpies', 'Mustangs',
   'Ospreys', 'Otters', 'Owls', 'Panthers', 'Pumas', 'Ravens',
-  'Stags', 'Storks', 'Terriers', 'Thunderbirds', 'Timberwolves', 'Wolverines',
+  'Stags', 'Storks', 'Terriers', 'Thunderhawks', 'Timberwolves', 'Wolverines',
   'Anchors', 'Anvils', 'Argonauts', 'Blacksmiths', 'Cartographers', 'Chancellors',
   'Comets', 'Explorers', 'Founders', 'Lamplighters', 'Mariners', 'Miners',
   'Pioneers', 'Prospectors', 'Quarriers', 'Scholars', 'Sentinels', 'Surveyors',

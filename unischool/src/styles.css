@@ -227,7 +227,7 @@ button { cursor: pointer; font-family: inherit; }
 .debug-check { display: flex; align-items: center; gap: 6px; color: var(--ink-lo); }
 .debug-note { margin: 0 0 5px; color: var(--ink-lo); line-height: 1.5; }
 .debug-note.error { color: var(--warn-on-dark); }
-/* Save / New Game in MainMenu's popup; `armed` is New Game's confirm click. */
+/* Save / New game in MainMenu's popup; New game asks through ConfirmButton. */
 .save-btn { background: var(--cream-hi); border: 2px solid var(--outline); color: var(--ink);
   border-radius: var(--radius-pill); padding: 7px 14px; font-family: var(--display); font-weight: 800; font-size: var(--text-base);
   text-align: left; width: 100%; box-shadow: var(--shadow-1); }
@@ -236,9 +236,6 @@ button { cursor: pointer; font-family: inherit; }
   border-radius: var(--radius-pill); padding: 7px 14px; font-family: var(--display); font-weight: 800; font-size: var(--text-base);
   text-align: left; width: 100%; }
 .newgame-btn:hover { color: var(--ink); border-color: var(--outline); }
-.newgame-btn.armed { border-color: var(--bad-on-light); color: var(--danger-ink); background: var(--danger-bg); }
-.newgame-btn.armed:hover { background: var(--bad-on-light); color: var(--cream); }
-.newgame-confirm-label { font-size: var(--text-xs); color: var(--danger-ink); letter-spacing: 0.02em; }
 
 /* ---------- Bottom toolbar ----------
    Left: funds + stats. Middle: tabs + build. Right: speed + clock. */
@@ -1152,7 +1149,6 @@ button.build-tile { font-family: inherit; }
 .facility-start { box-shadow: var(--shadow-1); }
 .facility-start:hover { background: var(--school-secondary); color: var(--school-on-secondary); }
 .facility-cancel { border-color: var(--parchment-line); color: var(--ink-muted); background: transparent; }
-.facility-cancel.armed { border-color: var(--bad-on-light); background: var(--danger-bg); color: var(--danger-ink); }
 
 .facility-team { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
 .scholar-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto auto; gap: 10px;
@@ -1411,7 +1407,6 @@ button.build-tile { font-family: inherit; }
   padding: 2px 0; font-size: var(--text-xs); font-weight: 600; }
 .satisfaction-contributor-total { margin-top: 4px; padding-top: 4px !important;
   border-top: 2px dashed var(--parchment-line); font-weight: 800; }
-.demand-note { margin-top: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
 .outcome-note { color: var(--school-primary); font-weight: 600; font-size: var(--text-xs); }
@@ -2270,7 +2265,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .letter-eyebrow { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 4px !important; }
 .letter-body { line-height: 1.55; }
-.milestone-note { position: fixed; z-index: 12; left: 24px; top: 150px; width: min(360px, calc(100vw - 48px)); padding: 14px 16px;
+/* The notes over the map (App.tsx), stacked so none hides another. */
+.note-stack { position: fixed; z-index: 12; left: 24px; top: 150px; width: min(360px, calc(100vw - 48px));
+  max-height: calc(100vh - 150px - var(--toolbar-height, 80px) - 40px); overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px; }
+.note-stack:empty { display: none; }
+.milestone-note { padding: 14px 16px;
   background: var(--cream); border: 2px solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); color: var(--ink); }
 .milestone-note-title { margin: 2px 0 6px; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 .milestone-note-text { margin: 0 0 10px; line-height: 1.45; }
@@ -2446,8 +2446,6 @@ body:has(.building-info-panel) .pennant { display: none; }
 .estate-worst li { display: flex; align-items: center; gap: 10px; }
 .estate-worst li > span:first-child { flex: 1; }
 .panel-action.small { padding: 2px 10px; font-size: var(--text-sm); }
-/* Promote, armed (AdministrationPanel.tsx): the same danger dress as Dismiss. */
-.seat-appoint .panel-action.dismiss-confirm { border-color: var(--danger-line); background: var(--danger-bg); color: var(--danger-ink); font-weight: 700; }
 
 /* The org chart (tabs/AdministrationPanel.tsx). */
 .seat-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
@@ -2516,3 +2514,10 @@ body:has(.building-info-panel) .pennant { display: none; }
 .species-chip:hover { background: var(--cream-lo); }
 .species-chip.active { background: var(--school-primary); color: var(--school-on-primary, var(--cream-hi)); }
 
+/* ---------- Asking before a loss (ConfirmButton.tsx, Plan 47) ---------- */
+.confirm-button { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
+.confirm-button button.confirm-armed { border-color: var(--danger-line) !important; background: var(--danger-bg) !important;
+  color: var(--danger-ink) !important; font-weight: 700; }
+.confirm-warning { font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); }
+/* In a column of full-width buttons, the confirming one stretches too. */
+.title-actions .confirm-button, .main-menu-popup .confirm-button { display: flex; align-items: stretch; }

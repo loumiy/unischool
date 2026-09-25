@@ -23,7 +23,7 @@ import LadderPanel from './LadderPanel';
 export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, mapHidden }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
-  onGo: (go: NonNullable<NextStep['go']>) => void;
+  onGo: (go: NonNullable<NextStep['go']>, hallId?: string) => void;
   mapHidden: boolean;
 }) {
   const latest = s.log[0];
@@ -68,7 +68,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           <span className={`log-ticker-next${step.urgent ? ' urgent' : ''}`}>
             <span className="log-ticker-next-label">Next</span>
             {step.go ? (
-              <button type="button" className="log-ticker-next-text" onClick={() => { if (step.go) onGo(step.go); }}>
+              <button type="button" className="log-ticker-next-text" onClick={() => { if (step.go) onGo(step.go, step.hallId); }}>
                 {step.text}
               </button>
             ) : (
@@ -78,7 +78,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
         )}
       </div>
       {open && (
-        <ToolbarPopup title="Activity Log" onClose={() => onSetOpen(false)} className="log-popup">
+        <ToolbarPopup title="Activity log" onClose={() => onSetOpen(false)} className="log-popup">
           <LogStrip s={s} />
         </ToolbarPopup>
       )}

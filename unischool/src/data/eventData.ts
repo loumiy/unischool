@@ -136,7 +136,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     return {
       key,
       headline: `${subject} is fully distinguished`,
-      detail: 'Every program in the school is distinguished. A distinguished school is the heaviest single contribution curriculum breadth can make to the prestige target.',
+      detail: 'Every program in the school is distinguished. A distinguished school is the heaviest single contribution curriculum breadth can make to the prestige target, and it can train its successors: graduate programs open where their schools stand.',
       unlocks: [],
     };
   }
@@ -1086,7 +1086,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
       return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three rooms still empty. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free room: the program's first course starts the moment you pick who teaches it. A fourth program is the first decision this college makes, and the one every decision after it is shaped like.`;
     },
-    ask: 'Found a fourth program in Founders Hall (Curriculum)',
+    ask: 'Found a fourth program (Founders Hall)',
     done: (s) => housedProgramCount(s) > FOUNDING_PROGRAMS.length,
   },
   {

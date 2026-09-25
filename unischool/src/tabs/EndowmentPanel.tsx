@@ -1,4 +1,5 @@
 import type { GameState } from '../state/types';
+import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import HelpHint from '../components/HelpHint';
 import { money, moneyShort } from '../format';
@@ -25,7 +26,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
   return (
     <section className="panel endowment-panel">
       <div className="panel-head">
-        <h2>The Endowment</h2>
+        <h2>The endowment</h2>
         <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into income every week. Draw less and it grows faster; draw more and income rises now at the cost of later. Above ${rate(DRAW_RATE_PRUDENT)} the board starts to worry. Cash moved in stays in: it pays out only at the draw rate. A building the cash cannot cover can be borrowed for, against up to ${BORROWING_SHARE * 100}% of the endowment, repaid weekly over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`} />
       </div>
       <div className="treasury-dial">
@@ -53,9 +54,14 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
         {offers.length === 0
           ? <span className="stat">not with {money(s.finance.cash)} on hand</span>
           : offers.map((amount) => (
-            <button key={amount} type="button" className="panel-action small" onClick={() => act({ type: 'MOVE_TO_ENDOWMENT', amount })}>
-              {moneyShort(amount)}
-            </button>
+            <ConfirmButton
+              key={amount}
+              className="panel-action small"
+              label={moneyShort(amount)}
+              armedLabel={`Confirm — move ${moneyShort(amount)}`}
+              warning="The endowment is one way: it pays out its draw, but the principal does not come back to cash."
+              onConfirm={() => act({ type: 'MOVE_TO_ENDOWMENT', amount })}
+            />
           ))}
       </div>
     </section>

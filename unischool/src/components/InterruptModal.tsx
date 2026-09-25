@@ -415,10 +415,12 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
 // current beat; one action per beat moves on (types.ts's SummerPayload,
 // reducer.ts's RESOLVE_SUMMER_BEAT). Only the last beat turns the calendar.
 // ---------------------------------------------------------------------
-function SummerSteps({ beat }: { beat: SummerBeat }) {
+// The fiftieth summer's first beat is the Final Report, and says so.
+function SummerSteps({ beat, final }: { beat: SummerBeat; final?: boolean }) {
+  const labels = SUMMER_BEATS.map((label, i) => (i === 0 && final ? 'Final report' : label));
   return (
     <ol className="summer-steps" aria-label="Summer">
-      {SUMMER_BEATS.map((label, i) => (
+      {labels.map((label, i) => (
         <li
           key={label}
           className={i === beat ? 'current' : i < beat ? 'done' : ''}
@@ -530,7 +532,7 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
   const decision = payload.decision ?? { tuition: payload.tuition, admitRate: payload.admitRate };
   return (
     <>
-      <SummerSteps beat={payload.beat} />
+      <SummerSteps beat={payload.beat} final={payload.final} />
       {payload.beat === 0 && payload.final ? (
         <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
       ) : payload.beat === 0 ? (
@@ -684,7 +686,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
           </table>
         </>
       )}
-      <button onClick={onDismiss}>{isFirstReveal ? 'Dismiss' : 'Continue →'}</button>
+      <button onClick={onDismiss}>Continue</button>
     </>
   );
 }
@@ -900,7 +902,7 @@ function ChampionshipView({ s, result, onDismiss }: {
         </div>
       </dl>
 
-      <button onClick={onDismiss}>Dismiss</button>
+      <button onClick={onDismiss}>Continue</button>
     </>
   );
 }
@@ -1026,7 +1028,7 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
         <span className="letter-ask-label">{letter.done(s) ? 'Done' : 'To do'}</span>
         {letter.ask}
       </p>
-      <button onClick={() => onResolve(false)}>Understood</button>
+      <button onClick={() => onResolve(false)}>Continue</button>
       {/* On every letter, not only the first: a guided founding marks the
           first read at the start, so the opt-out has to travel with the rest. */}
       <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
@@ -1072,7 +1074,8 @@ function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: 
   );
 }
 
-// A letter from the board (Plan 32): one of the catalog's seismic events.
+// A letter to the President (Plan 32): one of the catalog's seismic events.
+// "From the board" is kept for the distress ladder's notes (BoardLetter.tsx).
 // The clock waits on it; its choices are the panel's (EventPanel.tsx).
 function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId: string; act: (a: Action) => void }) {
   const p = catalogueOf(s).pending.find((x) => x.instanceId === instanceId);
@@ -1089,8 +1092,8 @@ function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId:
   const text = fill(e.text, p.vars);
   return (
     <>
-      <p className="letter-eyebrow">From the board · Year {s.clock.year}</p>
-      <h2>{e.title ? fill(e.title, p.vars) : 'A letter from the board'}</h2>
+      <p className="letter-eyebrow">A letter to the President · Year {s.clock.year}</p>
+      <h2>{e.title ? fill(e.title, p.vars) : 'A letter to the President'}</h2>
       <CatalogueText text={text} className="letter-body" />
       <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId })} />
     </>
@@ -1290,7 +1293,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           <>
             <h2>{interruptBody().title}</h2>
             <p>{interruptBody().body}</p>
-            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Resolve</button>
+            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Continue</button>
           </>
         )}
       </div>

@@ -779,7 +779,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
     return (
       <p className="row-action">
         <span className="row-action-note">
-          {soonest !== null && `${developing.length} in development · next finishes in ${soonest} wk. `}
+          {soonest !== null && `${developing.length} in development · next finishes in ${soonest} week${soonest === 1 ? '' : 's'}. `}
           {progress.waiting
             ? <><span className="cell-code">{progress.waiting.name.split(' · ')[0]}</span> needs {needs.length > 0 ? needs.join(', ') : 'its prerequisites'}.</>
             : soonest === null ? 'Every course is developed.' : null}
@@ -840,7 +840,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
         <GradeChip grade={projected.grade} title={`${next.name} would be graded ${projected.grade} with ${best.name}`} />
       </button>
-      <span className="row-action-cost">{moneyShort(next.cost)} · {next.duration} wk{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
+      <span className="row-action-cost">{moneyShort(next.cost)} · {next.duration}w{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
       <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">choose…</button>
       {batchOk && (
         <button
@@ -1282,7 +1282,7 @@ export default function CurriculumTab(
                 <span className="crumb-current">Matching courses</span>
               </h2>
             ) : (
-              <h2>The Curriculum</h2>
+              <h2>The curriculum</h2>
             )}
           </span>
           <span className="panel-head-figure">

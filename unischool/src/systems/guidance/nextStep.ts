@@ -1,6 +1,6 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
-import { milestoneSchools, programById } from '../../data/techData';
+import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
@@ -18,7 +18,10 @@ export interface NextStep {
   text: string;
   // A tab to open, the build menu, or back to the campus; absent when it is
   // only something to know.
-  go?: TabId | 'build' | 'campus';
+  // 'hall' opens a hall's panel on the map (`hallId`), where programs are
+  // founded.
+  go?: TabId | 'build' | 'campus' | 'hall';
+  hallId?: string;
   // Pulses: something is waiting that will not wait long (Plan 34).
   urgent?: true;
 }
@@ -65,7 +68,8 @@ function letterAsk(s: GameState): NextStep | null {
   // The earliest delivered letter whose ask is not done.
   for (const letter of OPENING_LETTERS) {
     if (!read.includes(letter.id) || letter.done(s)) continue;
-    return { text: letter.ask, go: letter.ask.includes('(Build)') ? 'build' : letter.ask.includes('(Curriculum)') ? 'curriculum' : undefined };
+    const hall = letter.ask.includes('(Founders Hall)');
+    return { text: letter.ask, go: letter.ask.includes('(Build)') ? 'build' : hall ? 'hall' : undefined, ...(hall ? { hallId: FOUNDERS_HALL_ID } : {}) };
   }
   return null;
 }
@@ -80,7 +84,9 @@ function freeSlot(s: GameState): NextStep | null {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
     return {
       text: `${hall.name} has a free slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
-      go: 'curriculum',
+      // A program is founded from the hall's panel (BuildingInfoPanel.tsx).
+      go: 'hall',
+      hallId,
     };
   }
   return null;

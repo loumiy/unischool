@@ -9,7 +9,7 @@ export function tickLadder(s: GameState): void {
   for (const m of MILESTONES) {
     if (s.ladder.reached[m.id] !== undefined || !m.reached(s)) continue;
     s.ladder.reached[m.id] = s.clock.year;
-    if (m.id !== CHARTER_ID) s.ladder.unread.push(m.id);
+    if (m.id !== CHARTER_ID && !m.quiet) s.ladder.unread.push(m.id);
   }
 }
 

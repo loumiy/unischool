@@ -14,7 +14,7 @@ export default function IdentityPanel({ s }: { s: GameState }) {
     <section className="panel identity-panel">
       <div className="panel-head">
         <span className="panel-head-title">
-          <h2>What the Guidebooks Say</h2>
+          <h2>What the guidebooks say</h2>
           <HelpHint text={`A college is known for at most three things. A reputation is earned by being something ${TAG_YEARS} years running, and shed the same way, so it lags what the college is doing now. Each changes who applies, how good a class it draws, and one other thing.`} />
         </span>
       </div>

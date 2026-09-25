@@ -146,7 +146,7 @@ const DEFAULT_VOCAB: DisciplineVocab = {
   publication: 'paper',
   breakthrough: 'breakthrough',
   breakthroughTail: 'published and taken up widely',
-  funders: ['the National Science Foundation', 'an industrial research consortium'],
+  funders: ['the Federal Science Council', 'an industrial research consortium'],
   prizes: ['the Kellner Award for Scientific Achievement'],
 };
 
@@ -157,7 +157,7 @@ const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
     publication: 'monograph',
     breakthrough: 'landmark work of scholarship',
     breakthroughTail: 'published to wide acclaim',
-    funders: ['the National Endowment for the Humanities', 'the Ravensmoor Library Fellowship'],
+    funders: ['the Federal Humanities Council', 'the Ravensmoor Library Fellowship'],
     prizes: ['the Ashcombe Prize for Historical Scholarship'],
   },
   'Business': {
@@ -178,7 +178,7 @@ const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
     publication: 'paper',
     breakthrough: 'breakthrough',
     breakthroughTail: 'published and taken up widely',
-    funders: ['the National Science Foundation', 'a technology research consortium'],
+    funders: ['the Federal Science Council', 'a technology research consortium'],
     prizes: ['the Vance Prize in Computing'],
   },
   'Engineering': {
