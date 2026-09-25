@@ -47,7 +47,13 @@ export const FOUNDING_CLASSES = {
 // the founding body in 480 seats, and these three are what the five founding
 // professors (actions.ts) can teach. Plain ids, so eventData.ts can read
 // them without an import cycle.
-export const FOUNDING_PROGRAMS: readonly string[] = ['ENGL', 'HIST', 'PHIL'];
+//
+// Plan 52: the pillars a college is founded on, one from each of three
+// schools rather than three from one: English (Introduction to Literary
+// Studies, British Literature Survey), Mathematics (Calculus, Linear
+// Algebra) and Economics (Microeconomics, Macroeconomics). Founders Hall is
+// every school's to begin with, and no school's.
+export const FOUNDING_PROGRAMS: readonly string[] = ['ENGL', 'MATH', 'ECON'];
 export const FOUNDING_COURSES_PER_PROGRAM = 2;
 
 // The architecture a new campus is built in. One value today, so a constant

@@ -25,10 +25,14 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    room to spare; the chain is unchanged, and whether it should shrink is
    the owner's call. Founders Hall is an ordinary hall
    in every mechanical respect (Plan 19): six slots, three of them holding the
-   founding programs — English, History and Philosophy, with their first two
-   courses developed and taught by the founding roster — and three rooms
-   free, so the three programs that would dedicate the School of Social
-   Sciences & Humanities fit in the building the college already owns. The
+   founding programs — English, Mathematics and Economics since Plan 52, the
+   pillars of three schools, with their first two courses developed and
+   taught by the founding roster (Calculus, Microeconomics, Introduction to
+   Literary Studies and their sequels) — and three rooms free. Three schools
+   begun under one roof make it no school's hall: a school is a hall of the
+   player's own. (Until Plan 52 the founding programs were English, History
+   and Philosophy, and three more Social Sciences & Humanities programs
+   dedicated Founders Hall.) The
    first purchased hall opens once the college teaches **eight developed
    courses** (the ladder's "A curriculum" milestone: the six it opens with and
    two the player chose) and is deliberately cheap; each rung after it costs a
@@ -40,12 +44,12 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    begun, and **at least one of the three is always from a school not yet
    started**, so discovery never dries up. The founding draw is rigged once:
    at least one of the first three is a program the founding roster can
-   staff — Sociology, the opening school's own depth path, or Mathematics,
-   the breadth path into a school the college is not in — so the first
-   founding decision never needs a hire. There is no reroll and no decline;
-   the three stand until one is taken, and the offer is global — the same
-   three at any free slot on campus. A graduate program joins the pool the
-   week its own gate opens (see [graduate-programs.md](graduate-programs.md)).
+   staff — Sociology or Psychology, whose professors the college opens with
+   beside the three who teach its founding programs — so the first founding
+   decision never needs a hire. There is no reroll and no decline; the three
+   stand until one is taken, and the offer is for the academic halls. A
+   graduate program is never drawn: its capital project offers it (see
+   [graduate-programs.md](graduate-programs.md)).
 3. **A school is founded, not unlocked.** Nothing is called "the School of
    Engineering" until six Engineering programs sit in one hall. A hall whose
    six slots hold one school's programs is **dedicated**; the first

@@ -9,7 +9,7 @@ import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
   CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics} from './studentLifeData';
-import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, milestoneSchools, programById, programs } from './techData';
+import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, milestoneSchools, programById } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { dedicatedHalls, dedicatedSchool } from '../systems/techtree/schools';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
@@ -1047,21 +1047,6 @@ function housedProgramCount(s: GameState): number {
   return Object.values(s.halls).reduce((n, slots) => n + slots.filter((slot) => slot.programId !== null).length, 0);
 }
 
-// The opening school's majors still to be founded, split by whether the
-// roster can teach them today, so letter two can name them.
-function openingSchoolGap(s: GameState): { school: string; staffable: string[]; unstaffed: string[] } {
-  const school = programById(FOUNDING_PROGRAMS[0])?.school ?? '';
-  const missing = programs().filter((p) => p.kind === 'major' && p.school === school && !FOUNDING_PROGRAMS.includes(p.id));
-  const staffable: string[] = [];
-  const unstaffed: string[] = [];
-  for (const program of missing) {
-    const housed = Object.values(s.halls).some((slots) => slots.some((slot) => slot.programId === program.id));
-    if (housed) continue;
-    (s.faculty.some((f) => f.field === program.field) ? staffable : unstaffed).push(program.name);
-  }
-  return { school, staffable, unstaffed };
-}
-
 function list(names: string[]): string {
   if (names.length <= 1) return names.join('');
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
@@ -1071,9 +1056,6 @@ function list(names: string[]): string {
 const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 function count(n: number): string {
   return COUNT_WORDS[n] ?? String(n);
-}
-function capitalised(t: string): string {
-  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 export const OPENING_LETTERS: readonly OpeningLetter[] = [
@@ -1094,35 +1076,23 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     week: 5,
     title: 'One school, or a building of your own',
     body: (s) => {
-      const gap = openingSchoolGap(s);
-      const want = [...gap.staffable, ...gap.unstaffed];
-      // What Founders Hall can still take (Plan 35: the letter counted the
-      // programs wanted as rooms, and named programs the player could not
-      // found). A program from another school in the hall closes the road.
+      // Founders Hall opens with three schools' first programs (Plan 52), so
+      // it is every school's beginning and no school's hall: a school is a
+      // hall of its own.
+      const founding = FOUNDING_PROGRAMS.map((id) => programById(id)).filter((p) => p !== undefined);
       const slots = s.halls[FOUNDERS_HALL_ID] ?? [];
       const rooms = slots.filter((slot) => slot.programId === null).length;
-      const strangers = slots
-        .map((slot) => (slot.programId ? programById(slot.programId) : undefined))
-        .filter((p) => p !== undefined && p.school !== gap.school)
+      const staffable = s.programOffers
+        .map((id) => programById(id))
+        .filter((p) => p !== undefined && s.faculty.some((f) => f.field === p.field))
         .map((p) => p!.name);
-      const onOffer = s.programOffers.map((id) => programById(id)).filter((p) => p?.school === gap.school).map((p) => p!.name);
-      const staffing = gap.staffable.length > 0 && gap.unstaffed.length > 0
-        ? `The roster can already teach ${list(gap.staffable)}; ${list(gap.unstaffed)} would need an appointment first.`
-        : gap.unstaffed.length > 0
-          ? `Each of them needs an appointment before its first course can start.`
-          : `The roster can teach every one of them.`;
-      const offerLine = onOffer.length > 0
-        ? `${list(onOffer)} ${onOffer.length === 1 ? 'is' : 'are'} on offer now.`
-        : `None of them is on offer yet: each program founded draws a new offer.`;
-      const road = strangers.length > 0
-        ? `Founders Hall teaches ${list(strangers)} beside the ${gap.school} programs, so it will never be one school's; the road to a school is now a hall of your own.`
-        : `${capitalised(count(FOUNDING_PROGRAMS.length))} of the six ${gap.school} programs are in Founders Hall, ${rooms === 0
-          ? 'which has no rooms left'
-          : `which has ${count(rooms)} ${rooms === 1 ? 'room' : 'rooms'} left${want.length > 0 ? `, and ${rooms < want.length ? `${count(rooms)} of ` : ''}${list(want)} would fill ${rooms === 1 ? 'it' : 'them'}` : ''}`}. ${offerLine} ${staffing}`;
-      return `Six programs of one school in one hall is what founds a school. ${road} The other road is a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches ${count(FIRST_HALL_COURSE_GATE)} courses. Depth costs professors; breadth costs a building.`;
+      const roomLine = rooms === 0
+        ? 'Founders Hall has no rooms left.'
+        : `Founders Hall has ${count(rooms)} ${rooms === 1 ? 'room' : 'rooms'} left for whatever the offers bring${staffable.length > 0 ? `, and the roster can already teach ${list(staffable)}` : ''}.`;
+      return `Founders Hall teaches ${list(founding.map((p) => `${p.name} for ${p.school}`))}: three schools begun under one roof, and so never one school's hall. Six programs of one school in one hall is what founds a school, and that takes a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches ${count(FIRST_HALL_COURSE_GATE)} courses. ${roomLine} Depth costs professors; breadth costs a building.`;
     },
-    ask: 'Fill Founders Hall with one school, or site a hall of your own (Build)',
-    done: (s) => dedicatedSchool(s, FOUNDERS_HALL_ID) !== null || sited(s, (t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID),
+    ask: 'Site a hall of your own (Build)',
+    done: (s) => sited(s, (t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID),
   },
   {
     id: 'somewhere-to-sleep',

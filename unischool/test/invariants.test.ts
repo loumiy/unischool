@@ -390,8 +390,8 @@ const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pair
   // Teach two more courses, which is what the first hall waits on (Plan
   // 19's PR B): the founding faculty have a slot for one; the other needs
   // a hire.
-  staffField(s, 'History');
-  for (const id of ['ENGL120', 'HIST120']) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  staffField(s, 'Mathematics');
+  for (const id of ['ENGL120', 'MATH120']) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   s = advanceUntil(s, (st) => isAvailIn(st, 'HALL-01'), 60);
   assert(isAvail('HALL-01'), 'the first hall opens once the college teaches eight courses');
   assert(isLocked('FINA101'), 'FINA101 stays locked — its program has no home');
@@ -597,7 +597,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
   assert(s.tech.find((t) => t.id === FOUNDERS_HALL_ID)?.slots === ACADEMIC_HALL_SLOTS, 'Founders Hall is seeded with six slots like every other hall');
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are on offer at founding (got ${s.programOffers.length})`);
   assert(s.programOffers.some((id) => FOUNDING_OFFER_GUARANTEE.includes(id)), `one of them is a program the roster can staff (${s.programOffers.join(', ')})`);
-  assert(startedSchools(s).size === 1 && startedSchools(s).has(programById(FOUNDING_PROGRAMS[0])!.school), 'the opening school is the one started school');
+  assert(startedSchools(s).size === FOUNDING_PROGRAMS.length && FOUNDING_PROGRAMS.every((id) => startedSchools(s).has(programById(id)!.school)), 'each founding program starts a school of its own (Plan 52)');
   assert(s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length === 6, 'six courses are developed at founding');
 
   // The chain: Founders Hall standing, then thirteen halls of six, strictly
@@ -614,8 +614,8 @@ function assertHallsInvariants(s: GameState, label: string): void {
   // Drive it: teach two more courses, build the first hall, and its slots
   // open empty the week it finishes — not before.
   s.finance.cash = 500_000_000;
-  staffField(s, 'History');
-  for (const id of ['ENGL120', 'HIST120']) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
+  staffField(s, 'Mathematics');
+  for (const id of ['ENGL120', 'MATH120']) s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: id });
   const first = halls[0].id;
   s = advanceUntil(s, (st) => st.tech.find((t) => t.id === first)?.status === 'available', 60);
   assert(s.tech.find((t) => t.id === first)?.status === 'available', 'the first hall opens once eight courses are taught');
