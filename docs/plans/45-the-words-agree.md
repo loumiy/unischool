@@ -2,7 +2,7 @@
 
 *Planning document only. Its job is to turn the review into a PR.*
 
-**Status: In progress.**
+**Status: Landed.**
 
 ---
 
@@ -89,3 +89,14 @@ stored as an id with no year; it is left as it is. `rollVars` no longer
 rolls a random founded school for `{school}`, so the catalog's variable
 rolls draw one fewer random number, and seeded runs differ slightly from
 before.
+
+Spelling was British at first, then American on the owner's word: the last
+commit converts every string with a space in it, JSX text and comment by
+walking each file's syntax tree, so no identifier, id or class name moves.
+
+The slow suites fail two checks here beyond Plan 43's: the Earnest
+completionist never finishes the whole catalog on any of the three seeds,
+and the Regional engine ends insolvent on two of three. `{school}` no
+longer rolling a random school shifts every later catalog roll, and the
+harness is that sensitive (the review's Q16). The owner chose to merge
+with these open; the harness plan re-fits them.
