@@ -2020,6 +2020,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   font-size: var(--text-2xs); color: var(--school-primary); min-width: 92px; }
 .coach-name { font-weight: 700; }
 .coach-row-spacer { flex: 1; }
+/* Releasing a coach reads like dismissing a professor (.faculty-card-foot). */
+.coach-release { background: transparent; color: var(--danger-ink);
+  border: 2px solid var(--bad-on-light); border-radius: var(--radius-pill); font-family: var(--display); font-weight: 800;
+  padding: 3px 10px; font-size: var(--text-2xs); white-space: nowrap; }
 
 /* ---------- Athletic director's offer (InterruptModal.tsx) ---------- */
 .ad-candidates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
