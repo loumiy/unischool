@@ -71,7 +71,7 @@ function aroundPoint(cc: number, cr: number, radius: number): { col: number; row
 // the bleachers beside a pitch are plain concrete.
 // ---------------------------------------------------------------------
 export function RakedStand({
-  outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall = false, frontWall = false,
+  outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall, frontWall,
   endFaces = true, aisles = 0, rail = true,
 }: {
   outer: [TilePt, TilePt];   // the back edge, furthest from the field and highest
@@ -80,8 +80,10 @@ export function RakedStand({
   rakeFill: string; wallFill: string; seatStroke: string;
   rows?: number;
   // Which vertical face the camera sees: a stand on the near side of a pitch
-  // (max row / max col) shows its outer back, one on the far side the face
-  // toward the field. Drawing the wrong one leaves the stand with no mass.
+  // shows its outer back, one on the far side the face toward the field.
+  // Drawing the wrong one leaves the stand with no mass. Which side is near
+  // turns with the camera, so by default each follows it (`climbsAway`
+  // below); pass one only to force it.
   wall?: boolean;
   frontWall?: boolean;
   // The two side profiles of the wedge, which say "raked seating" from any
@@ -107,6 +109,8 @@ export function RakedStand({
   const midO = project((o0[0] + o1[0]) / 2, (o0[1] + o1[1]) / 2);
   const midI = project((i0[0] + i1[0]) / 2, (i0[1] + i1[1]) / 2);
   const climbsAway = midI.y > midO.y;
+  const backShows = wall ?? !climbsAway;
+  const frontShows = frontWall ?? climbsAway;
 
   const tiers = Math.max(1, rows);
   const step = (topH - bottomH) / tiers;
@@ -179,10 +183,10 @@ export function RakedStand({
     <>
       {endFaces && <polygon points={polyPoints(profile(i0, o0))} fill={endFill} />}
       {endFaces && <polygon points={polyPoints(profile(i1, o1))} fill={endFill} />}
-      {wall && (
+      {backShows && (
         <polygon points={polyPoints([at(o0, 0), at(o1, 0), at(o1, topH), at(o0, topH)])} fill={wallFill} />
       )}
-      {frontWall && (
+      {frontShows && (
         <polygon points={polyPoints([at(i0, 0), at(i1, 0), at(i1, bottomH), at(i0, bottomH)])} fill={wallFill} />
       )}
       {treads}
@@ -513,7 +517,7 @@ function diamondProps(col: number, row: number, w: number, h: number): GroundPro
       <>
         <RakedStand outer={g.outer} inner={g.inner} bottomH={bottomH} topH={topH}
           rakeFill={CONCRETE.rake} wallFill={CONCRETE.wall} seatStroke={CONCRETE.seat}
-          rows={7} aisles={aisles} wall endFaces />
+          rows={7} aisles={aisles} endFaces />
         {extra}
       </>
     ),
@@ -837,7 +841,6 @@ function pitchProps(col: number, row: number, w: number, h: number): GroundProp[
           seatStroke={CONCRETE.seat}
           rows={6}
           aisles={2}
-          frontWall
         />
         <Post at={b0} from={topH} to={slabZ} className="ground-post" />
         <Post at={b1} from={topH} to={slabZ} className="ground-post" />

@@ -1,6 +1,6 @@
 import { memo, useContext } from 'react';
 import type { Buildable, Vernacular } from '../state/types';
-import { TILE_W, boxFaces, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
+import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
@@ -90,6 +90,49 @@ function SLOPE(roof: string) {
     posRow: shade(roof, 0.84),
     posCol: shade(roof, 0.7),
   };
+}
+
+// Sloped faces back to front. A face pointing the way of a wall the camera
+// cannot see lies behind its ridge or apex, and on a steep pyramid it rises
+// above the front faces on screen, so it must go down first; faces toward
+// the camera then paint over it. Stable, so each group keeps the order it
+// was authored in. At the opening camera the back faces were always listed
+// first, which is why a fixed order looked right there and nowhere else.
+function backSlopesFirst<T>(faces: readonly T[], dirOf: (f: T) => FaceDir): T[] {
+  const seen = visibleWalls();
+  const front = (d: FaceDir) => d === seen.left || d === seen.right;
+  return [...faces.filter((f) => !front(dirOf(f))), ...faces.filter((f) => front(dirOf(f)))];
+}
+
+// A square pyramid over the grid square (col, row) to (col + plan, row +
+// plan), springing at `base` and rising `rise`: four faces toned by the way
+// each points (SLOPE's order: -col brightest, +col darkest), back to front.
+function pyramid(col: number, row: number, plan: number, base: number, rise: number, tone: string) {
+  const NW = lift(project(col, row), base);
+  const NE = lift(project(col + plan, row), base);
+  const SE = lift(project(col + plan, row + plan), base);
+  const SW = lift(project(col, row + plan), base);
+  const tip = lift(project(col + plan / 2, row + plan / 2), base + rise);
+  const faces: Array<[Pt, Pt, number, FaceDir]> = [
+    [NW, SW, 1.10, 'negCol'], [NW, NE, 1.00, 'negRow'], [SW, SE, 0.84, 'posRow'], [NE, SE, 0.70, 'posCol'],
+  ];
+  return {
+    tip,
+    faces: backSlopesFirst(faces, (f) => f[3]).map(([a, b, k, dir]) => (
+      <polygon key={dir} points={polyPoints([a, b, tip])} fill={shade(tone, k)} />
+    )),
+  };
+}
+
+// The two long slopes of a gable whose ridge runs from `rs` (the low-coordinate
+// end) to `re`, on the eaves of box `f`, back slope first.
+function gableSlopes(f: BoxFaces, alongW: boolean, rs: Pt, re: Pt, pal: Palette) {
+  const slopes: Array<[FaceDir, Pt[]]> = alongW
+    ? [['negRow', [f.NWt, f.NEt, re, rs]], ['posRow', [f.SWt, f.SEt, re, rs]]]
+    : [['negCol', [f.NWt, f.SWt, re, rs]], ['posCol', [f.NEt, f.SEt, re, rs]]];
+  return backSlopesFirst(slopes, (s) => s[0]).map(([dir, pts]) => (
+    <polygon key={dir} points={polyPoints(pts)} fill={pal[dir]} />
+  ));
 }
 
 // Wall tones for the same sun (light.ts's WALL_LIGHT).
@@ -349,16 +392,26 @@ function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
     );
   }
   if (feature === 'glasshouse') {
-    // A glazed house along the roof's front edge, ridge and panes.
+    // A glazed house along the roof's +row half, ridge and panes. The ridge
+    // runs along col (ridgeA at -col, ridgeB at +col), so the roof is built
+    // from grid corners: the -row and +row slopes, back one first, and the
+    // one gable end the camera sees.
     const gh = boxFaces(col + w * 0.12, row + h * 0.52, w * 0.62, h * 0.36, base, up(2.6));
     const ridgeA = lift(project(col + w * 0.12, row + h * 0.7), base + up(4.2));
     const ridgeB = lift(project(col + w * 0.74, row + h * 0.7), base + up(4.2));
+    const slopes: Array<[FaceDir, Pt[]]> = [
+      ['negRow', [gh.NWt, gh.NEt, ridgeB, ridgeA]],
+      ['posRow', [gh.SWt, gh.SEt, ridgeB, ridgeA]],
+    ];
+    const end: Pt[] = wallOf(gh, 'posCol').visible ? [gh.NEt, gh.SEt, ridgeB] : [gh.NWt, gh.SWt, ridgeA];
     return (
       <g className="lab-glasshouse">
         <polygon points={polyPoints(gh.left)} className="glass-pane" />
         <polygon points={polyPoints(gh.right)} className="glass-pane" />
-        <polygon points={polyPoints([gh.Dt, gh.Ct, ridgeB, ridgeA])} className="glass-roof" />
-        <polygon points={polyPoints([gh.Ct, gh.Bt, ridgeB])} className="glass-roof" />
+        {backSlopesFirst(slopes, (x) => x[0]).map(([dir, pts]) => (
+          <polygon key={dir} points={polyPoints(pts)} className="glass-roof" />
+        ))}
+        <polygon points={polyPoints(end)} className="glass-roof" />
         <line x1={ridgeA.x} y1={ridgeA.y} x2={ridgeB.x} y2={ridgeB.y} className="glass-ridge" />
       </g>
     );
@@ -615,22 +668,28 @@ function HippedRoof({ col, row, w, h, base, rise, pal }: {
 }) {
   const alongW = w >= h;
   const inset = Math.min(w, h) / 2;
-  const At = lift(project(col, row), base);
-  const Bt = lift(project(col + w, row), base);
-  const Ct = lift(project(col + w, row + h), base);
-  const Dt = lift(project(col, row + h), base);
+  // Grid corners, not screen ones: each slope is named by the way it points.
+  const NW = lift(project(col, row), base);
+  const NE = lift(project(col + w, row), base);
+  const SE = lift(project(col + w, row + h), base);
+  const SW = lift(project(col, row + h), base);
   const rs = alongW
     ? lift(project(col + inset, row + h / 2), base + rise)
     : lift(project(col + w / 2, row + inset), base + rise);
   const re = alongW
     ? lift(project(col + w - inset, row + h / 2), base + rise)
     : lift(project(col + w / 2, row + h - inset), base + rise);
+  const slopes: Array<[FaceDir, Pt[]]> = [
+    ['negRow', alongW ? [NW, NE, re, rs] : [NW, NE, rs]],
+    ['negCol', alongW ? [NW, SW, rs] : [NW, SW, re, rs]],
+    ['posRow', alongW ? [SW, SE, re, rs] : [SW, SE, re]],
+    ['posCol', alongW ? [NE, SE, re] : [NE, SE, re, rs]],
+  ];
   return (
     <>
-      <polygon points={polyPoints(alongW ? [At, Bt, re, rs] : [At, Bt, rs])} fill={pal.negRow} />
-      <polygon points={polyPoints(alongW ? [At, Dt, rs] : [At, Dt, re, rs])} fill={pal.negCol} />
-      <polygon points={polyPoints(alongW ? [Dt, Ct, re, rs] : [Dt, Ct, re])} fill={pal.posRow} />
-      <polygon points={polyPoints(alongW ? [Bt, Ct, re] : [Bt, Ct, re, rs])} fill={pal.posCol} />
+      {backSlopesFirst(slopes, (s) => s[0]).map(([dir, pts]) => (
+        <polygon key={dir} points={polyPoints(pts)} fill={pal[dir]} />
+      ))}
       <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
     </>
   );
@@ -981,15 +1040,8 @@ function Campanile({ col, row, w, h, base, stone, pal, gilded }: {
   const belfryBase = base + CAMPANILE_RISE;
   const belfry = boxFaces(cc - plan / 2, cr - plan / 2, plan, plan, belfryBase, CAMPANILE_BELFRY_RISE);
   const capBase = belfryBase + CAMPANILE_BELFRY_RISE;
-
-  const At = lift(project(cc - plan / 2, cr - plan / 2), capBase);
-  const Bt = lift(project(cc + plan / 2, cr - plan / 2), capBase);
-  const Ct = lift(project(cc + plan / 2, cr + plan / 2), capBase);
-  const Dt = lift(project(cc - plan / 2, cr + plan / 2), capBase);
-  const tip = lift(project(cc, cr), capBase + CAMPANILE_CAP_RISE);
-  const faces: Array<[Pt, Pt, number]> = [
-    [At, Dt, 1.10], [At, Bt, 1.00], [Dt, Ct, 0.84], [Bt, Ct, 0.70],
-  ];
+  const cap = pyramid(cc - plan / 2, cr - plan / 2, plan, capBase, CAMPANILE_CAP_RISE, pal.roof);
+  const tip = cap.tip;
 
   return (
     <>
@@ -1009,9 +1061,7 @@ function Campanile({ col, row, w, h, base, stone, pal, gilded }: {
         ))
       ))}
       {/* A shallow pyramid of the same tile as the roofs below it. */}
-      {faces.map(([fa, fb], i) => (
-        <polygon key={i} points={polyPoints([fa, fb, tip])} fill={shade(pal.roof, faces[i][2])} />
-      ))}
+      {cap.faces}
       {gilded && (
         <circle className="iso-dome" cx={tip.x} cy={tip.y - 3} r={2} fill={stone.gilt} />
       )}
@@ -1258,12 +1308,7 @@ function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels
 }) {
   const f = boxFaces(col, row, plan, plan, 0, height);
   // Crenellated towers are flat-topped; plain ones get a slate pyramid.
-  const At = lift(project(col, row), height);
-  const Bt = lift(project(col + plan, row), height);
-  const Ct = lift(project(col + plan, row + plan), height);
-  const Dt = lift(project(col, row + plan), height);
-  const tip = lift(project(col + plan / 2, row + plan / 2), height + capRise);
-  const faces: Array<[Pt, Pt, number]> = [[At, Dt, 1.10], [At, Bt, 1.00], [Dt, Ct, 0.84], [Bt, Ct, 0.70]];
+  const cap = crenels ? null : pyramid(col, row, plan, height, capRise, pal.roof);
   return (
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
@@ -1273,7 +1318,7 @@ function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels
       <WallBand origin={f.D} along={f.C} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
       <WallBand origin={f.C} along={f.B} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
       <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
-      {!crenels && faces.map(([a, b, k], i) => <polygon key={i} points={polyPoints([a, b, tip])} fill={shade(pal.roof, k)} />)}
+      {cap?.faces}
       {crenels && [visibleWalls().left, visibleWalls().right].map((dir) => (
         <Merlons key={dir} col={col} row={row} w={plan} h={plan} base={height} outward={dir} pal={pal} />
       ))}
@@ -1391,17 +1436,28 @@ function Canopy({ d, col, row, w, h, outward, wallHeight, stone, hood = false, r
     // the gable end facing out.
     const rise = up(1.2);
     const f = slab;
-    const rIn = outsideWall(col, row, w, h, outward, mid, 0);
-    const rOut = outsideWall(col, row, w, h, outward, mid, CANOPY_DEPTH);
-    const ridgeIn = lift(project(rIn.col, rIn.row), top + rise);
-    const ridgeOut = lift(project(rOut.col, rOut.row), top + rise);
-    const halves: Array<[Pt[], number]> = isRowWall(outward)
-      ? [[[f.NWt, ridgeIn, ridgeOut, f.SWt], 1.12], [[f.NEt, ridgeIn, ridgeOut, f.SEt], 0.84]]
-      : [[[f.NWt, ridgeIn, ridgeOut, f.NEt], 1.0], [[f.SWt, ridgeIn, ridgeOut, f.SEt], 0.7]];
+    // A point `along` the wall (grid order) and `out` from it, at height z.
+    // Each half is built wall to eave from these rather than from the slab's
+    // corners, which run wall to eave only on a +row or +col wall and made a
+    // bow-tie on the other two.
+    const at = (along: number, out: number, z: number) => {
+      const g = outsideWall(col, row, w, h, outward, along, out);
+      return lift(project(g.col, g.row), z);
+    };
+    const eave = top + slabT;
+    const ridgeIn = at(mid, 0, top + rise);
+    const ridgeOut = at(mid, CANOPY_DEPTH, top + rise);
+    // The low-coordinate half faces -col off a row wall, -row off a col wall.
+    const lo = mid - width / 2; const hi = mid + width / 2;
+    const row_ = isRowWall(outward);
+    const halves: Array<[FaceDir, Pt[], number]> = [
+      [row_ ? 'negCol' : 'negRow', [at(lo, 0, eave), ridgeIn, ridgeOut, at(lo, CANOPY_DEPTH, eave)], row_ ? 1.12 : 1.0],
+      [row_ ? 'posCol' : 'posRow', [at(hi, 0, eave), ridgeIn, ridgeOut, at(hi, CANOPY_DEPTH, eave)], row_ ? 0.84 : 0.7],
+    ];
     const end = wallOf(f, outward);
     return (
       <>
-        {halves.map(([pts, k], i) => <polygon key={i} points={polyPoints(pts)} fill={shade(roof, k)} />)}
+        {backSlopesFirst(halves, (x) => x[0]).map(([dir, pts, k]) => <polygon key={dir} points={polyPoints(pts)} fill={shade(roof, k)} />)}
         <polygon points={polyPoints([lift(end.origin, slabT), lift(end.along, slabT), ridgeOut])} fill={shade(canopyStone, 0.8)} />
       </>
     );
@@ -1612,20 +1668,11 @@ function Spire({ cc, cr, base, stone, gilded }: {
   const belfry = boxFaces(cc - plan / 2, cr - plan / 2, plan, plan, base, TOWER_BELFRY_RISE);
   const springs = base + TOWER_BELFRY_RISE;
 
-  // The four corners the spire springs from, and its point.
-  const At = lift(project(cc - plan / 2, cr - plan / 2), springs);
-  const Bt = lift(project(cc + plan / 2, cr - plan / 2), springs);
-  const Ct = lift(project(cc + plan / 2, cr + plan / 2), springs);
-  const Dt = lift(project(cc - plan / 2, cr + plan / 2), springs);
-  const tip = lift(project(cc, cr), springs + TOWER_SPIRE_RISE);
-
-  // Same lighting order as SLOPE.
-  const faces: Array<[Pt, Pt, number]> = [
-    [At, Dt, 1.10],   // -col, up-left
-    [At, Bt, 1.00],   // -row, up-right
-    [Dt, Ct, 0.84],   // +row, down-left
-    [Bt, Ct, 0.70],   // +col, down-right
-  ];
+  // The spire off the belfry's head, in SLOPE's lighting order. It is steep:
+  // its back faces rise above its front ones on screen, so pyramid() puts
+  // them down first.
+  const spire = pyramid(cc - plan / 2, cr - plan / 2, plan, springs, TOWER_SPIRE_RISE, stone.towerStone);
+  const tip = spire.tip;
 
   return (
     <>
@@ -1664,9 +1711,7 @@ function Spire({ cc, cr, base, stone, gilded }: {
         );
       })}
 
-      {faces.map(([a, b], i) => (
-        <polygon key={i} points={polyPoints([a, b, tip])} fill={shade(stone.towerStone, faces[i][2])} />
-      ))}
+      {spire.faces}
       {/* The weathervane: a Gothic landmark's only metal (see gothic's `gilt`). */}
       {gilded && (
         <>
@@ -1814,14 +1859,7 @@ function VillageHouse({ col, row, w, h, height, ridge, pal, stone, glass, paneSh
       {door === 'col' && doorOn(f.C, f.B)}
       {ridge > 0 ? (
         <>
-          <polygon
-            points={polyPoints(alongW ? [f.NWt, f.NEt, re, rs] : [f.NWt, f.SWt, re, rs])}
-            fill={alongW ? pal.negRow : pal.negCol}
-          />
-          <polygon
-            points={polyPoints(alongW ? [f.SWt, f.SEt, re, rs] : [f.NEt, f.SEt, re, rs])}
-            fill={alongW ? pal.posRow : pal.posCol}
-          />
+          {gableSlopes(f, alongW, rs, re, pal)}
           {gableEnds(f, alongW, rs, re, pal)}
           <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
           {chimney && (
@@ -2195,19 +2233,24 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     }
 
     // The far banks climb away from the camera and show their steps; the
-    // near two show their backs and the tops of their treads.
+    // near two show their backs and the tops of their treads. Which two are
+    // far turns with the camera (cameraAxes: +row comes toward it when cosA
+    // > 0, +col when sinA > 0), and RakedStand picks the face each shows.
+    const { cosA, sinA } = cameraAxes();
+    const northFar = cosA > 0; const southFar = cosA < 0;
+    const westFar = sinA > 0; const eastFar = sinA < 0;
     const north = (
-      <RakedStand outer={[T(iCol, row), T(iCol + iW, row)]} inner={[T(iCol, iRow), T(iCol + iW, iRow)]}
+      <RakedStand key="n" outer={[T(iCol, row), T(iCol + iW, row)]} inner={[T(iCol, iRow), T(iCol + iW, iRow)]}
         bottomH={bottom} topH={H * 0.85} rows={7} aisles={3} {...fills(1.0)} />
     );
     const south = (
-      <RakedStand outer={[T(iCol, row + h), T(iCol + iW, row + h)]} inner={[T(iCol, iRow + iH), T(iCol + iW, iRow + iH)]}
-        bottomH={bottom} topH={H * 0.85} rows={7} aisles={3} wall {...fills(0.8)} />
+      <RakedStand key="s" outer={[T(iCol, row + h), T(iCol + iW, row + h)]} inner={[T(iCol, iRow + iH), T(iCol + iW, iRow + iH)]}
+        bottomH={bottom} topH={H * 0.85} rows={7} aisles={3} {...fills(0.8)} />
     );
     // The visitors' side: lower.
     const east = (
-      <RakedStand outer={[T(col + w, iRow), T(col + w, iRow + iH)]} inner={[T(iCol + iW, iRow), T(iCol + iW, iRow + iH)]}
-        bottomH={bottom} topH={H * 0.62} rows={5} aisles={2} wall {...fills(0.72)} />
+      <RakedStand key="e" outer={[T(col + w, iRow), T(col + w, iRow + iH)]} inner={[T(iCol + iW, iRow), T(iCol + iW, iRow + iH)]}
+        bottomH={bottom} topH={H * 0.62} rows={5} aisles={2} {...fills(0.72)} />
     );
     // The home side: lower deck, stepped-back upper deck, soffit, press box.
     const lowerBack = col + d * 0.42;
@@ -2216,24 +2259,42 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     const upperBase = H * 0.86;
     const upperTop = H * 1.32;
     const at = (c: number, r: number, z: number) => lift(project(c, r), z);
-    const pressBox = boxFaces(col + 0.05, row + h * 0.32, Math.min(0.75, d * 0.25), h * 0.36, upperTop, up(3.2));
+    const PRESS_H = up(3.2);
+    const pressBox = boxFaces(col + 0.05, row + h * 0.32, Math.min(0.75, d * 0.25), h * 0.36, upperTop, PRESS_H);
+    // The box looks out over the field, toward +col; its glazing shows only
+    // while that face is toward the camera.
+    const pressGlass = wallOf(pressBox, 'posCol');
+    // The upper deck oversails the lower, so it has no front wall of its
+    // own, and the lower deck's back is buried under it. Seen from the
+    // field, the upper deck is behind the lower; seen from behind, in front.
+    const upper = (
+      <RakedStand key="wu" outer={[T(col, iRow), T(col, iRow + iH)]} inner={[T(upperFront, iRow), T(upperFront, iRow + iH)]}
+        bottomH={upperBase} topH={upperTop} rows={6} aisles={3} frontWall={false} {...fills(1.04)} />
+    );
+    const soffit = (
+      <polygon key="ws" className="iso-undercroft" points={polyPoints([
+        at(lowerBack, iRow, lowerTop), at(lowerBack, iRow + iH, lowerTop),
+        at(upperFront, iRow + iH, upperBase), at(upperFront, iRow, upperBase),
+      ])} />
+    );
+    const lower = (
+      <RakedStand key="wl" outer={[T(lowerBack, iRow), T(lowerBack, iRow + iH)]} inner={[T(iCol, iRow), T(iCol, iRow + iH)]}
+        bottomH={bottom} topH={lowerTop} rows={6} aisles={3} wall={false} {...fills(1.0)} />
+    );
     const west = (
       <>
-        <RakedStand outer={[T(col, iRow), T(col, iRow + iH)]} inner={[T(upperFront, iRow), T(upperFront, iRow + iH)]}
-          bottomH={upperBase} topH={upperTop} rows={6} aisles={3} {...fills(1.04)} />
-        <polygon className="iso-undercroft" points={polyPoints([
-          at(lowerBack, iRow, lowerTop), at(lowerBack, iRow + iH, lowerTop),
-          at(upperFront, iRow + iH, upperBase), at(upperFront, iRow, upperBase),
-        ])} />
-        <RakedStand outer={[T(lowerBack, iRow), T(lowerBack, iRow + iH)]} inner={[T(iCol, iRow), T(iCol, iRow + iH)]}
-          bottomH={bottom} topH={lowerTop} rows={6} aisles={3} {...fills(1.0)} />
+        {westFar ? <>{upper}{soffit}{lower}</> : <>{lower}{upper}</>}
         {sideFaces(pressBox, shade(stone.trim, 0.82), shade(stone.trim, 0.7))}
-        <WallBand origin={pressBox.C} along={pressBox.B} wallHeight={up(3.2)} from={up(0.9)} to={up(2.6)} className="iso-undercroft" />
+        {pressGlass.visible && (
+          <WallBand origin={pressGlass.origin} along={pressGlass.along} wallHeight={PRESS_H} from={up(0.9)} to={up(2.6)} className="iso-undercroft" />
+        )}
         <polygon points={polyPoints(pressBox.top)} fill={shade(stone.trim, 0.95)} />
       </>
     );
 
-    // Floodlight masts at the concourse corners, in screen space.
+    // Floodlight masts at the concourse corners, in screen space. The head
+    // is a lamp bank standing up, so its height foreshortens with the tilt.
+    const hs = heightScale();
     const mast = (c: number, r: number, key: string) => {
       const foot = project(c, r);
       const top = lift(foot, H * 2.3);
@@ -2241,45 +2302,67 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         <g key={key}>
           <line className="ground-mast" x1={foot.x} y1={foot.y} x2={top.x} y2={top.y} />
           <polygon className="ground-mast-head" points={polyPoints([
-            { x: top.x - 8, y: top.y + 1 }, { x: top.x + 8, y: top.y + 1 }, { x: top.x + 8, y: top.y - 5 }, { x: top.x - 8, y: top.y - 5 },
+            { x: top.x - 8, y: top.y + hs }, { x: top.x + 8, y: top.y + hs }, { x: top.x + 8, y: top.y - 5 * hs }, { x: top.x - 8, y: top.y - 5 * hs },
           ])} />
         </g>
       );
     };
     const m = d * 0.45;
+    // Back corner first, the two side corners between the far and near
+    // stands (each is behind the near stand beside it and in front of the
+    // far one), the front corner last.
+    const masts = ([[col + m, row + m], [col + w - m, row + m], [col + m, row + h - m], [col + w - m, row + h - m]] as const)
+      .map(([c, r], i) => ({ y: project(c, r).y, node: mast(c, r, `m${i}`) }))
+      .sort((a, b) => a.y - b.y)
+      .map((x) => x.node);
 
-    // The scoreboard, on posts behind the north end.
+    // The scoreboard, on posts behind the north end, facing the field (+row).
     const board = (() => {
       const bw = Math.min(3.2, iW * 0.3); const bd = 0.35;
       const bc = col + w / 2 - bw / 2; const br = row + d * 0.12;
       const base = H * 0.98; const height = up(4.6);
       const f = boxFaces(bc, br, bw, bd, base, height);
+      const face = wallOf(f, 'posRow');
+      const post = (c: number) => {
+        const foot = project(c, br + bd / 2);
+        const head = lift(foot, base);
+        return <line key={c} className="ground-post" x1={foot.x} y1={foot.y} x2={head.x} y2={head.y} />;
+      };
       return (
-        <>
-          <line className="ground-post" x1={project(bc + 0.2, br + bd / 2).x} y1={project(bc + 0.2, br + bd / 2).y} x2={project(bc + 0.2, br + bd / 2).x} y2={project(bc + 0.2, br + bd / 2).y - base} />
-          <line className="ground-post" x1={project(bc + bw - 0.2, br + bd / 2).x} y1={project(bc + bw - 0.2, br + bd / 2).y} x2={project(bc + bw - 0.2, br + bd / 2).x} y2={project(bc + bw - 0.2, br + bd / 2).y - base} />
-          <polygon points={polyPoints(f.left)} fill="#3a3d40" />
-          <polygon points={polyPoints(f.right)} fill="#2d2f31" />
+        <g key="board">
+          {post(bc + 0.2)}
+          {post(bc + bw - 0.2)}
+          {sideFaces(f, '#3a3d40', '#2d2f31')}
           <polygon points={polyPoints(f.top)} fill="#4a4d50" />
-          <WallBand origin={f.D} along={f.C} wallHeight={height} from={height * 0.18} to={height * 0.82} className="ground-scoreboard-face" />
-        </>
+          {face.visible && (
+            <WallBand origin={face.origin} along={face.along} wallHeight={height} from={height * 0.18} to={height * 0.82} className="ground-scoreboard-face" />
+          )}
+        </g>
       );
     })();
+    // The board stands above the north stand's back rows: behind them while
+    // that stand is far, over them while it is near.
+    const northEnd = northFar ? <>{board}{north}</> : <>{north}{board}</>;
+
+    // Far stands, the field, the near stands: whichever two are far now.
+    const far: React.JSX.Element[] = [];
+    const near: React.JSX.Element[] = [];
+    (northFar ? far : near).push(<g key="n">{northEnd}</g>);
+    (westFar ? far : near).push(<g key="w">{west}</g>);
+    (southFar ? far : near).push(<g key="s">{south}</g>);
+    (eastFar ? far : near).push(<g key="e">{east}</g>);
 
     return (
       <>
         {/* The concourse, so the open corners show concrete. */}
         <polygon points={polyPoints(f.top)} fill={concourse} />
-        {mast(col + m, row + m, 'm0')}
-        {mast(col + w - m, row + m, 'm1')}
-        {board}
-        {north}
-        {west}
+        {masts[0]}
+        {far}
         <StadiumField col={iCol} row={iRow} w={iW} h={iH} />
-        {south}
-        {east}
-        {mast(col + m, row + h - m, 'm2')}
-        {mast(col + w - m, row + h - m, 'm3')}
+        {masts[1]}
+        {masts[2]}
+        {near}
+        {masts[3]}
       </>
     );
   }
@@ -2951,14 +3034,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       ) : gabled ? (
         <>
           {/* The two long slopes, toned by the direction each points. */}
-          <polygon
-            points={polyPoints(alongW ? [rf.NWt, rf.NEt, re, rs] : [rf.NWt, rf.SWt, re, rs])}
-            fill={alongW ? pal.negRow : pal.negCol}
-          />
-          <polygon
-            points={polyPoints(alongW ? [rf.SWt, rf.SEt, re, rs] : [rf.NEt, rf.SEt, re, rs])}
-            fill={alongW ? pal.posRow : pal.posCol}
-          />
+          {gableSlopes(rf, alongW, rs, re, pal)}
           {/* Only the visible gable end (gableEnds); drawing the far one
               makes the roof look transparent. */}
           {gableEnds(rf, alongW, rs, re, pal)}
