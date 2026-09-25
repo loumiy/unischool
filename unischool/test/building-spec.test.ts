@@ -34,6 +34,7 @@ import {
   windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
+import { SCHOOL_SIGNATURES } from '../src/components/buildingSpec';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
@@ -933,6 +934,17 @@ console.log('campus scale and building spec');
     assert(c.label.trim().length > 0 && c.blurb.trim().length > 0,
       `'${c.id}' has a name and a description to offer`);
   }
+}
+
+// ---- Every school's signature is its own (Plan 61) ----
+{
+  // Arts & Media drew as the library and Business as a hospital: no two
+  // signatures, and none of them and the library, may share a look.
+  const look = (x: { motif: string; material: string; feature?: string }) => `${x.motif}/${x.material}/${x.feature ?? ''}`;
+  const looks = Object.values(SCHOOL_SIGNATURES).map(look);
+  assert(new Set(looks).size === looks.length, `every school's hall looks different (${looks.join(', ')})`);
+  assert(!looks.includes('portico/limestone/'), "no school's hall is drawn as the library");
+  assert(SCHOOL_SIGNATURES['Arts & Media'].feature === 'studio' && SCHOOL_SIGNATURES['Business'].feature === 'exchange', 'Arts & Media is a studio, Business an exchange');
 }
 
 if (failures === 0) {

@@ -387,7 +387,8 @@ function Diamond({ col, row, w, h }: GroundProps) {
     const c = hc + r * Math.cos(a); const rr = hr + r * Math.sin(a);
     return polyPoints(boxFaces(c - size / 2, rr - size / 2, size, size, 0, 0).top);
   };
-  const base = short * 0.035;
+  // Bases a little over life size, so they read without crowding the paths.
+  const base = short * 0.02;
 
   return (
     <>
@@ -438,15 +439,6 @@ function Diamond({ col, row, w, h }: GroundProps) {
         const end = polar(R, a);
         return <line key={i} className="ground-line" x1={home.x} y1={home.y} x2={end.x} y2={end.y} />;
       })}
-      {/* Bullpens: a strip of dirt with a mound at each end, in foul
-          territory down each line past the grandstand. */}
-      {[from, to].map((a, i) => {
-        const r0 = short * 0.42; const r1 = short * 0.54; const off = 0.5; const wide = 0.32;
-        const pts: [number, number][] = a === from
-          ? [[hc - r1, hr + off], [hc - r0, hr + off], [hc - r0, hr + off + wide], [hc - r1, hr + off + wide]]
-          : [[hc + off, hr - r1], [hc + off + wide, hr - r1], [hc + off + wide, hr - r0], [hc + off, hr - r0]];
-        return <polygon key={`bp${i}`} className="ground-dirt-pale" points={polyPoints(pts.map(([c, r]) => project(c, r)))} />;
-      })}
     </>
   );
 }
@@ -493,22 +485,27 @@ function diamondProps(col: number, row: number, w: number, h: number, stage: num
   const bottomH = up(1.0);
   const topH = up(6.2);
   const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
+  // The seating stands this far back from the plate along the bisector
+  // (Plan 61: the plate stand's front edge ran in front of home), which
+  // also leaves room for the dugouts between the lines and the wings.
+  const BACK = 0.6;
+  const sc = hc + BACK; const sr = hr + BACK;
 
   // The wing down the -row line (first base): its inside face is toward -col.
   const wingA = {
-    inner: [[hc + gap, hr - L], [hc + gap, hr - s0]] as [TilePt, TilePt],
-    outer: [[hc + gap + depth, hr - L], [hc + gap + depth, hr - s0]] as [TilePt, TilePt],
+    inner: [[sc + gap, sr - L], [sc + gap, sr - s0]] as [TilePt, TilePt],
+    outer: [[sc + gap + depth, sr - L], [sc + gap + depth, sr - s0]] as [TilePt, TilePt],
   };
   // The wing down the -col line (third base): its inside face is toward -row.
   const wingB = {
-    inner: [[hc - s0, hr + gap], [hc - L, hr + gap]] as [TilePt, TilePt],
-    outer: [[hc - s0, hr + gap + depth], [hc - L, hr + gap + depth]] as [TilePt, TilePt],
+    inner: [[sc - s0, sr + gap], [sc - L, sr + gap]] as [TilePt, TilePt],
+    outer: [[sc - s0, sr + gap + depth], [sc - L, sr + gap + depth]] as [TilePt, TilePt],
   };
   // The grandstand behind the plate joins the two wings' near ends, square
   // to the bisector, with its outer edge running corner to corner.
   const plate = {
-    inner: [[hc + gap, hr - s0], [hc - s0, hr + gap]] as [TilePt, TilePt],
-    outer: [[hc + gap + depth, hr - s0], [hc - s0, hr + gap + depth]] as [TilePt, TilePt],
+    inner: [[sc + gap, sr - s0], [sc - s0, sr + gap]] as [TilePt, TilePt],
+    outer: [[sc + gap + depth, sr - s0], [sc - s0, sr + gap + depth]] as [TilePt, TilePt],
   };
   const boxOf = (pts: TilePt[]) => {
     const cols = pts.map((c) => c[0]); const rows = pts.map((c) => c[1]);
@@ -560,8 +557,8 @@ function diamondProps(col: number, row: number, w: number, h: number, stage: num
   // Light towers: two behind the plate stand's corners, one at the end of
   // each wing, two at the outfield fence.
   const towers: GroundProp[] = ([
-    [hc + gap + depth + 0.5, hr - s0 - 0.3], [hc - s0 - 0.3, hr + gap + depth + 0.5],
-    [hc + gap + depth + 0.4, hr - L - 0.4], [hc - L - 0.4, hr + gap + depth + 0.4],
+    [sc + gap + depth + 0.5, sr - s0 - 0.3], [sc - s0 - 0.3, sr + gap + depth + 0.5],
+    [sc + gap + depth + 0.4, sr - L - 0.4], [sc - L - 0.4, sr + gap + depth + 0.4],
     polar(R + 0.3, from + 0.32), polar(R + 0.3, to - 0.32),
   ] as TilePt[]).map((t, i) => ({
     key: `tower-${i}`,
@@ -582,48 +579,55 @@ function diamondProps(col: number, row: number, w: number, h: number, stage: num
   }));
 
   // --- the dugouts -----------------------------------------------------
-  // Two low covered benches just outside the foul lines, a third of the way
-  // to the fence.
+  // Two low covered benches between each foul line and its wing, running
+  // from near the plate toward the base, square to the line (Plan 61: they
+  // stood out past the wings like stray blocks).
   const dugout = (a: number, k: number): GroundProp => {
-    const r = L + 0.3;
-    const along = 1.4; const deep = 0.55;
-    // Just past the end of each wing, tucked outside the line: toward +row
-    // off the -col line, toward +col off the -row line.
-    const cx = a === from ? hc - r - along : hc + gap;
-    const cy = a === from ? hr + gap : hr - r - along;
-    const bw = a === from ? along : deep;
-    const bh = a === from ? deep : along;
+    const { BASE } = diamondGeometry(col, row, w, h);
+    const off = 0.2; const deep = 0.42;
+    const r0 = BASE * 0.3; const r1 = BASE * 0.8;
+    const cx = a === from ? hc - r1 : hc + off;
+    const cy = a === from ? hr + off : hr - r1;
+    const bw = a === from ? r1 - r0 : deep;
+    const bh = a === from ? deep : r1 - r0;
     return {
       key: `dugout-${k}`,
       col: cx, row: cy, w: bw, h: bh,
-      node: <GroundBox col={cx} row={cy} w={bw} h={bh} height={up(2.4)} side={shade(CONCRETE.wall, 0.86)} front={CONCRETE.wall} top={shade(CONCRETE.rake, 0.92)} />,
+      node: <GroundBox col={cx} row={cy} w={bw} h={bh} height={up(1.4)} side={shade(CONCRETE.wall, 0.86)} front={CONCRETE.wall} top={shade(CONCRETE.rake, 0.92)} />,
     };
   };
 
   // --- center field ----------------------------------------------------
-  // The batter's eye — a dark panel on the fence at dead center — and the
-  // scoreboard standing over it.
+  // The batter's eye, a dark stretch of the fence at dead center, and the
+  // scoreboard standing behind it, both square to the bisector so they sit
+  // on the arc (Plan 61: grid-aligned boxes stood askew to it).
   const centreField = (() => {
-    const c = polar(R * 0.99, bisect);
-    const eyeW = 1.7; const eyeD = 0.45;
-    const ec = c[0] - eyeW / 2; const er = c[1] - eyeD / 2;
-    const boardW = 1.2; const boardD = 0.3;
-    const bc = c[0] - boardW / 2; const br = c[1] - boardD / 2 - 0.05;
-    const boardBase = up(3.2); const boardH = up(2.6);
+    const c = polar(R, bisect);
+    const eye = projectedArc(hc, hr, R, bisect - 0.11, bisect + 0.11, 8);
+    const EYE_H = up(4.2);
+    // The tangent at dead center, and the board's feet either side of it.
+    const tx = -Math.sin(bisect); const ty = Math.cos(bisect);
+    const back = polar(R + 0.7, bisect);
+    const half = 0.75;
+    const p0: TilePt = [back[0] + tx * half, back[1] + ty * half];
+    const p1: TilePt = [back[0] - tx * half, back[1] - ty * half];
+    const boardBase = up(3.4); const boardH = up(3.0);
     const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
     return {
       key: 'centrefield',
       ...aroundPoint(c[0], c[1], 1.1),
       node: (
         <>
-          <Post at={[bc + 0.1, br + boardD / 2]} to={boardBase} className="ground-post" />
-          <Post at={[bc + boardW - 0.1, br + boardD / 2]} to={boardBase} className="ground-post" />
-          <GroundBox col={bc} row={br} w={boardW} h={boardD} base={boardBase} height={boardH} side="#2d2f31" front="#3a3d40" top="#4a4d50" />
-          <polygon className="ground-scoreboard-face" points={polyPoints([
-            at([bc, br + boardD], boardBase + boardH * 0.2), at([bc + boardW, br + boardD], boardBase + boardH * 0.2),
-            at([bc + boardW, br + boardD], boardBase + boardH * 0.8), at([bc, br + boardD], boardBase + boardH * 0.8),
+          <polygon fill="#2f472f" points={polyPoints([...eye, ...[...eye].reverse().map((q) => lift(q, EYE_H))])} />
+          <Post at={p0} to={boardBase} className="ground-post" />
+          <Post at={p1} to={boardBase} className="ground-post" />
+          <polygon fill="#33363a" stroke="#222" strokeWidth={0.4} points={polyPoints([
+            at(p0, boardBase), at(p1, boardBase), at(p1, boardBase + boardH), at(p0, boardBase + boardH),
           ])} />
-          <GroundBox col={ec} row={er} w={eyeW} h={eyeD} height={up(3.2)} side="#2b3f2a" front="#345034" top="#3d5c3b" />
+          <polygon className="ground-scoreboard-face" points={polyPoints([
+            at(p0, boardBase + boardH * 0.25), at(p1, boardBase + boardH * 0.25),
+            at(p1, boardBase + boardH * 0.75), at(p0, boardBase + boardH * 0.75),
+          ])} />
         </>
       ),
     };
@@ -823,19 +827,23 @@ function pitchProps(col: number, row: number, w: number, h: number, stage: numbe
     ? [col + w * a, row + h * c]
     : [col + w * c, row + h * a]);
   const trackEdge = TRACK_CENTRE_ACROSS - outerWid / across;   // the oval's far side, as a footprint fraction
-  const back = tp(0.32, 0.02);
-  const front = tp(0.68, trackEdge);
+  // The grandstand's run along the straight (Plan 61: longer, one stand).
+  const S0 = 0.24; const S1 = 0.76;
+  const back = tp(S0, 0.02);
+  const front = tp(S1, trackEdge);
   const bottomH = up(0.9);
   const topH = up(4.6);
   const at = (t: TilePt, z: number) => lift(project(t[0], t[1]), z);
   // The cover: over the back 55% of the seating.
   const mid = 0.02 + (trackEdge - 0.02) * 0.45;
-  const f0 = tp(0.34, mid); const f1 = tp(0.66, mid);
-  const b0 = tp(0.34, 0.02); const b1 = tp(0.66, 0.02);
+  const f0 = tp(S0 + 0.02, mid); const f1 = tp(S1 - 0.02, mid);
+  const b0 = tp(S0 + 0.02, 0.02); const b1 = tp(S1 - 0.02, 0.02);
   const slabZ = topH + up(3.2); const slab = up(0.35);
   const seatZ = bottomH + (topH - bottomH) * 0.55;
-  // A low open bleacher, the first expansion's; on the second the near one
-  // becomes the covered grandstand and a bleacher faces it across the field.
+  // A low open bleacher, the first expansion's; on the second it becomes a
+  // longer covered grandstand, with a scoreboard standing in the far corner
+  // (Plan 61: the second expansion's bleacher across the field sat on the
+  // track).
   const bleacher = (key: string, near: number, far: number): GroundProp => {
     const o0 = tp(0.36, near); const o1 = tp(0.64, near);
     const i0 = tp(0.36, far); const i1 = tp(0.64, far);
@@ -850,7 +858,31 @@ function pitchProps(col: number, row: number, w: number, h: number, stage: numbe
     };
   };
   if (stage === 1) return [bleacher('stand', 0.02, trackEdge)];
-  return [bleacher('stand-far', 0.98, 1 - trackEdge), {
+  // The scoreboard: on two legs in the corner the oval leaves free, across
+  // the field from the grandstand, its face square to the straight.
+  const board = (() => {
+    const p0 = tp(0.95, 0.9); const p1 = tp(0.95, 0.72);
+    const foot = { col: Math.min(p0[0], p1[0]) - 0.1, row: Math.min(p0[1], p1[1]) - 0.1, w: Math.abs(p1[0] - p0[0]) + 0.2, h: Math.abs(p1[1] - p0[1]) + 0.2 };
+    const boardBase = up(3.2); const boardH = up(3.4);
+    return {
+      key: 'scoreboard',
+      ...foot,
+      node: (
+        <>
+          <Post at={p0} to={boardBase} className="ground-post" />
+          <Post at={p1} to={boardBase} className="ground-post" />
+          <polygon fill="#33363a" stroke="#222" strokeWidth={0.4} points={polyPoints([
+            at(p0, boardBase), at(p1, boardBase), at(p1, boardBase + boardH), at(p0, boardBase + boardH),
+          ])} />
+          <polygon className="ground-scoreboard-face" points={polyPoints([
+            at(p0, boardBase + boardH * 0.25), at(p1, boardBase + boardH * 0.25),
+            at(p1, boardBase + boardH * 0.75), at(p0, boardBase + boardH * 0.75),
+          ])} />
+        </>
+      ),
+    } satisfies GroundProp;
+  })();
+  return [board, {
     key: 'stand',
     col: Math.min(back[0], front[0]),
     row: Math.min(back[1], front[1]),
@@ -859,15 +891,15 @@ function pitchProps(col: number, row: number, w: number, h: number, stage: numbe
     node: (
       <>
         <RakedStand
-          outer={[tp(0.32, 0.02), tp(0.68, 0.02)]}
-          inner={[tp(0.32, trackEdge), tp(0.68, trackEdge)]}
+          outer={[tp(S0, 0.02), tp(S1, 0.02)]}
+          inner={[tp(S0, trackEdge), tp(S1, trackEdge)]}
           bottomH={bottomH}
           topH={topH}
           rakeFill={CONCRETE.rake}
           wallFill={CONCRETE.wall}
           seatStroke={CONCRETE.seat}
           rows={6}
-          aisles={2}
+          aisles={3}
         />
         <Post at={b0} from={topH} to={slabZ} className="ground-post" />
         <Post at={b1} from={topH} to={slabZ} className="ground-post" />

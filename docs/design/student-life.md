@@ -210,7 +210,9 @@ quality and the body the school could draw — and the crowd pays the sport's
 ticket (`systems/athletics/gate.ts`). **The gate saturates**: a venue holds
 what it holds, and the only way the ceiling rises is a rung — a done venue can
 be expanded in place up to twice (`EXPAND_VENUE`, on the library's renovation
-idiom, no new footprint), each rung adding half the base seats. Every venue
+idiom, no new footprint), each rung adding half the base seats. The football
+stadium has a third rung (Plan 61): a second deck all round, priced as the
+next step and adding 60% to the full bowl's seats. Every venue
 also carries a **campus-life contribution** (`prestigeContribution`), which is
 what made campus life earnable (PR B). A **field house** — a non-competition
 facility revealed once the school fields any team — lifts every program's

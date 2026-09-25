@@ -311,14 +311,17 @@ const FIELD_HOUSE_PRESTIGE = 0.03;
 // prestige for a growing share of the original price. The only way the
 // gate's ceiling rises.
 export const VENUE_EXPANSIONS_MAX = 2;
-// Each venue's own cap (Plan 54): the fields and the stadium grow from the
-// field alone to stands to full seating in two, the arena rises two storeys,
-// and the natatorium one.
-const VENUE_EXPANSIONS_CAP: Readonly<Record<string, number>> = { 'ATH-NATATORIUM': 1 };
+// Each venue's own cap (Plan 54): the fields grow from the field alone to
+// stands to full seating in two, the arena rises two storeys, and the
+// natatorium one. The stadium has a third (Plan 61): a second deck all round.
+const VENUE_EXPANSIONS_CAP: Readonly<Record<string, number>> = { 'ATH-NATATORIUM': 1, 'ATH-STADIUM': 3 };
 export function venueExpansionsMax(id: string): number {
   return VENUE_EXPANSIONS_CAP[id] ?? VENUE_EXPANSIONS_MAX;
 }
 export const VENUE_EXPANSION_SEATS_GAIN = 0.5;
+// The stadium's second deck adds this share of the full bowl's seats, rather
+// than the base's half: a truly massive stadium (Plan 61).
+const SECOND_DECK_SEATS_GAIN = 0.6;
 const VENUE_EXPANSION_COST_SHARE = 0.45;
 const VENUE_EXPANSION_COST_GROWTH = 1.3;
 const VENUE_EXPANSION_WEEKS_SHARE = 0.5;
@@ -352,7 +355,7 @@ export function nextVenueExpansion(node: Buildable): VenueExpansionPlan | null {
   return {
     cost: Math.round(base.cost * VENUE_EXPANSION_COST_SHARE * VENUE_EXPANSION_COST_GROWTH ** done),
     weeks: Math.round(base.weeks * VENUE_EXPANSION_WEEKS_SHARE),
-    seatsGain: Math.round(seats * VENUE_EXPANSION_SEATS_GAIN),
+    seatsGain: venueSeatsOf({ ...node, expansions: done + 1 }) - venueSeatsOf(node),
     servesGain: Math.round((node.effects?.servesPopulation ?? 0) * VENUE_EXPANSION_SERVES_GAIN),
     prestigeGain: VENUE_EXPANSION_PRESTIGE_GAIN,
   };
@@ -361,7 +364,9 @@ export function nextVenueExpansion(node: Buildable): VenueExpansionPlan | null {
 // What a venue seats with its expansions (gate.ts reads this).
 export function venueSeatsOf(node: Buildable): number {
   const base = VENUE_SEATS[node.id] ?? 0;
-  return Math.round(base * (1 + VENUE_EXPANSION_SEATS_GAIN * (node.expansions ?? 0)));
+  const n = node.expansions ?? 0;
+  const bowl = base * (1 + VENUE_EXPANSION_SEATS_GAIN * Math.min(n, VENUE_EXPANSIONS_MAX));
+  return Math.round(n > VENUE_EXPANSIONS_MAX ? bowl * (1 + SECOND_DECK_SEATS_GAIN) : bowl);
 }
 
 // Categories: a UI-only grouping above FacilityType (BuildPopup.tsx's
