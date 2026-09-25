@@ -6,7 +6,7 @@ import { seatDef } from '../data/seatData';
 import { EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
-import type { Advancement, AlumniClass, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, Buildable, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
@@ -638,13 +638,16 @@ function looksLikeGameState(value: unknown): value is GameState {
 // otherwise reach new runs only. Descriptions are always the catalog's; a
 // name is the catalog's for a course (nothing renames a course), while a
 // building's may be a donor's (eventData.ts's naming rights) and is kept.
-let catalogText: Map<string, { name: string; description: string }> | null = null;
+let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project'>> | null = null;
 function refreshAuthoredText(state: GameState): void {
-  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description }]));
+  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project }]));
   for (const t of state.tech) {
     const authored = catalogText.get(t.id);
     if (!authored) continue;
     t.description = authored.description;
+    // A capital project's terms are authored too (projectData.ts): a saved
+    // run opens the Graduate College from Year 15 like a new one (Plan 58).
+    if (authored.project) t.project = authored.project;
     if (t.kind === 'course') t.name = authored.name;
   }
 }

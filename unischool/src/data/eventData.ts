@@ -11,7 +11,8 @@ import {
   CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics} from './studentLifeData';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, academicHallId, graduateProgram, milestoneSchools, programById } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
-import { claimedHalls, dedicatedHalls, dedicatedSchool, nextSchoolToMove, programsAwayFromHome, type Claim } from '../systems/techtree/schools';
+import { claimedHalls, dedicatedHalls, dedicatedSchool, nextSchoolToMove, programsAwayFromHome, suggestedMove, type Claim } from '../systems/techtree/schools';
+import type { StepIntent } from '../systems/guidance/intent';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
 import { money } from '../format';
@@ -1037,6 +1038,8 @@ export interface LetterAsk {
   text: string;
   go?: 'build' | 'hall';
   hallId?: string;
+  // The ask as data, for the guided player (systems/guidance/intent.ts).
+  intent?: StepIntent;
 }
 
 export interface OpeningLetter {
@@ -1105,6 +1108,17 @@ function twoSchoolsHoused(s: GameState): boolean {
   return new Set(claimedHalls(s).map((c) => c.school)).size >= 2;
 }
 
+// The suggested move of a school's first program away from home, if any.
+function moveIntent(s: GameState, school: string | null): StepIntent | undefined {
+  if (school === null) return undefined;
+  for (const away of programsAwayFromHome(s)) {
+    if (away.school !== school) continue;
+    const move = suggestedMove(s, away.programId);
+    if (move) return { kind: 'move', programId: away.programId, ...move };
+  }
+  return undefined;
+}
+
 // Founders Hall's panel, where a move out of it starts.
 const FOUNDERS_HALL_ASK = { go: 'hall', hallId: FOUNDERS_HALL_ID } as const;
 
@@ -1118,7 +1132,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
       return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three rooms still empty. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free room: the program's first course starts the moment you pick who teaches it. Founders Hall is where every program begins, and none of them will stay: in time each moves into a hall of its own school.`;
     },
-    ask: () => ({ text: 'Found a fourth program in Founders Hall', ...FOUNDERS_HALL_ASK }),
+    ask: () => ({ text: 'Found a fourth program in Founders Hall', ...FOUNDERS_HALL_ASK, intent: { kind: 'found', hallId: FOUNDERS_HALL_ID } }),
     done: (s) => housedProgramCount(s) > FOUNDING_PROGRAMS.length,
   },
   {
@@ -1134,7 +1148,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const elm = hallName(s, FIRST_HALL_ID);
       return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum. Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''} — and it will never be one school's hall: it is where programs start. A school is six of its programs in a hall of its own, and ${elm} is the first: six rooms, three quarters of a million, sixteen weeks to build. Site it now; when it stands, the first school moves in.`;
     },
-    ask: (s) => ({ text: `Site ${hallName(s, FIRST_HALL_ID)}`, go: 'build' }),
+    ask: (s) => ({ text: `Site ${hallName(s, FIRST_HALL_ID)}`, go: 'build', intent: { kind: 'site', buildableIds: [FIRST_HALL_ID] } }),
     done: (s) => FIRST_HALL_ID in s.placements,
   },
   {
@@ -1153,7 +1167,17 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const lack = wants.length > 0 ? ` As it stands, ${list(wants)}.` : '';
       return `Satisfaction is ${s.students.satisfaction.toFixed(0)}.${lack} Housing is not a cap on how many we admit — this college can grow with no bed at all — but a college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
     },
-    ask: () => ({ text: 'Site a residence hall and a dining hall', go: 'build' }),
+    ask: (s) => ({
+      text: 'Site a residence hall and a dining hall', go: 'build',
+      // The next of each the college has not sited yet.
+      intent: {
+        kind: 'site',
+        buildableIds: [
+          sited(s, (t) => t.kind === 'dorm') ? undefined : s.tech.find((t) => t.kind === 'dorm' && t.status === 'available')?.id,
+          sited(s, (t) => t.facilityType === 'diningHall') ? undefined : s.tech.find((t) => t.facilityType === 'diningHall' && t.status === 'available')?.id,
+        ].filter((id): id is string => id !== undefined),
+      },
+    }),
     done: (s) => sited(s, (t) => t.kind === 'dorm') && sited(s, (t) => t.facilityType === 'diningHall'),
   },
   {
@@ -1161,7 +1185,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     week: 48,
     title: 'Summer is coming',
     body: () => 'At week 52 the clock stops for the summer, and it stops once. Three beats: the year in review, admissions, and the students. Admissions asks two things — the price, and how much of the pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a college nobody has heard of cannot charge what a famous one does.',
-    ask: () => ({ text: 'Summer at week 52: the price locks for four years' }),
+    ask: () => ({ text: 'Summer at week 52: the price locks for four years', intent: { kind: 'wait' } }),
     // Done when the summer comes, not the moment the letter is read (Plan 35).
     done: (s) => s.clock.week >= WEEKS_PER_YEAR || s.pendingInterrupt?.type === 'summer',
   },
@@ -1184,7 +1208,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const elm = hallName(s, FIRST_HALL_ID);
       const school = nextSchoolToMove(s);
       const first = school ? awayNames(s, school)[0] : undefined;
-      return { text: first ? `Move ${first} into ${elm}` : `Move a program into ${elm}`, ...FOUNDERS_HALL_ASK };
+      return { text: first ? `Move ${first} into ${elm}` : `Move a program into ${elm}`, ...FOUNDERS_HALL_ASK, intent: moveIntent(s, school) ?? { kind: 'wait' } };
     },
     done: (s) => claimedHalls(s).length > 0,
   },
@@ -1205,9 +1229,13 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     },
     ask: (s) => {
       const claim = leadingClaim(s);
-      return claim
-        ? { text: `Grow ${claim.school} to three programs in ${hallName(s, claim.hallId)} (${claim.housed} of 6)`, go: 'hall', hallId: claim.hallId }
-        : { text: 'Grow a school to three programs in a hall of its own' };
+      if (!claim) return { text: 'Grow a school to three programs in a hall of its own', intent: { kind: 'wait' } };
+      // Move what is left of the school first; else found its next one.
+      const offered = s.programOffers.find((id) => programById(id)?.school === claim.school);
+      return {
+        text: `Grow ${claim.school} to three programs in ${hallName(s, claim.hallId)} (${claim.housed} of 6)`, go: 'hall', hallId: claim.hallId,
+        intent: moveIntent(s, claim.school) ?? (offered ? { kind: 'found', hallId: claim.hallId, programId: offered } : { kind: 'wait' }),
+      };
     },
     done: (s) => claimedHalls(s).some((c) => c.housed >= 3),
   },
@@ -1226,13 +1254,13 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     },
     ask: (s) => {
       const oak = hallName(s, SECOND_HALL_ID);
-      if (!(SECOND_HALL_ID in s.placements)) return { text: `Site ${oak}`, go: 'build' };
+      if (!(SECOND_HALL_ID in s.placements)) return { text: `Site ${oak}`, go: 'build', intent: { kind: 'site', buildableIds: [SECOND_HALL_ID] } };
       const next = nextSchoolToMove(s);
-      if (!standing(s, SECOND_HALL_ID)) return { text: `${oak} is rising: ${next ?? 'the next school'} moves in when it stands` };
+      if (!standing(s, SECOND_HALL_ID)) return { text: `${oak} is rising: ${next ?? 'the next school'} moves in when it stands`, intent: { kind: 'wait' } };
       const program = next ? programsAwayFromHome(s).find((p) => p.school === next) : undefined;
       return program
-        ? { text: `Move ${programById(program.programId)?.name ?? program.programId} into ${oak}`, go: 'hall', hallId: program.hallId }
-        : { text: `Move a program into ${oak}`, ...FOUNDERS_HALL_ASK };
+        ? { text: `Move ${programById(program.programId)?.name ?? program.programId} into ${oak}`, go: 'hall', hallId: program.hallId, intent: moveIntent(s, next) ?? { kind: 'wait' } }
+        : { text: `Move a program into ${oak}`, ...FOUNDERS_HALL_ASK, intent: { kind: 'wait' } };
     },
     done: twoSchoolsHoused,
   },

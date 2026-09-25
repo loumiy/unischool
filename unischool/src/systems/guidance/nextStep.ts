@@ -1,10 +1,11 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
-import { claimedHalls, claimedSchool, hallDisplayName, programsAwayFromHome, schoolHall, suggestedMove } from '../techtree/schools';
+import { claimedHalls, claimedSchool, hallDisplayName, nextSchoolToMove, programsAwayFromHome, schoolHall, suggestedMove } from '../techtree/schools';
 import { isHoused } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
+import type { StepIntent } from './intent';
 import { absoluteWeek } from '../../data/eventData';
 import { milestoneById } from '../../data/ladderData';
 import { eventById, fill } from '../events/catalogue';
@@ -26,6 +27,8 @@ export interface NextStep {
   hallId?: string;
   // Pulses: something is waiting that will not wait long (Plan 34).
   urgent?: true;
+  // The line as data, for the guided player (intent.ts); the UI ignores it.
+  intent?: StepIntent;
 }
 
 // What waits on the map while a tab hides it (Plan 34, V1-34): the board's
@@ -73,7 +76,7 @@ function letterAsk(s: GameState): NextStep | null {
     if (!read.includes(letter.id) || letter.done(s)) continue;
     if (!letter.arrives && s.clock.year !== 1) continue;
     const ask = letter.ask(s);
-    return { text: ask.text, ...(ask.go ? { go: ask.go } : {}), ...(ask.hallId ? { hallId: ask.hallId } : {}) };
+    return { text: ask.text, ...(ask.go ? { go: ask.go } : {}), ...(ask.hallId ? { hallId: ask.hallId } : {}), ...(ask.intent ? { intent: ask.intent } : {}) };
   }
   return null;
 }
@@ -95,6 +98,19 @@ function awayFromHome(s: GameState): NextStep | null {
         : `${name} stands empty: move ${program.name} into it and ${program.school} has a hall of its own`,
       go: 'hall',
       hallId: away.hallId,
+      intent: { kind: 'move', programId: away.programId, ...move },
+    };
+  }
+  // Nowhere to move to: the school next out of Founders Hall needs the next
+  // hall in the chain (Plan 58; the line used to stop here, and a school
+  // could stay in Founders Hall for good).
+  const school = nextSchoolToMove(s);
+  const nextHall = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
+  if (school !== null && nextHall) {
+    return {
+      text: `${school} has no hall of its own — site ${nextHall.name}`,
+      go: 'build',
+      intent: { kind: 'site', buildableIds: [nextHall.id] },
     };
   }
   return null;
@@ -115,7 +131,7 @@ function freeSlot(s: GameState): NextStep | null {
     const program = programById(id);
     const home = program ? schoolHall(s, program.school) : undefined;
     if (program && home && hasRoom(home)) {
-      return { text: `${nameOf(home)} has room for ${program.name}, on offer — it teaches ${program.school}`, go: 'hall', hallId: home };
+      return { text: `${nameOf(home)} has room for ${program.name}, on offer — it teaches ${program.school}`, go: 'hall', hallId: home, intent: { kind: 'found', hallId: home, programId: program.id } };
     }
   }
   const open = Object.keys(s.halls).find((hallId) => {
@@ -128,12 +144,23 @@ function freeSlot(s: GameState): NextStep | null {
       text: `${nameOf(open)} has a free slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
       go: 'hall',
       hallId: open,
+      intent: { kind: 'found', hallId: open },
+    };
+  }
+  // Nothing on offer has anywhere to go: the next hall, if the chain has
+  // one to site (Plan 58; the line used to stop at saying so).
+  const nextHall = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
+  if (nextHall) {
+    return {
+      text: `Nothing on offer has a hall to go to — site ${nextHall.name}`,
+      go: 'build',
+      intent: { kind: 'site', buildableIds: [nextHall.id] },
     };
   }
   // Every free slot is some school's, and nothing on offer is.
   const claimed = claimedHalls(s).find((c) => hasRoom(c.hallId));
   return claimed
-    ? { text: `${nameOf(FOUNDERS_HALL_ID)} is full; ${nameOf(claimed.hallId)} has room for ${claimed.school} when one is on offer` }
+    ? { text: `${nameOf(FOUNDERS_HALL_ID)} is full; ${nameOf(claimed.hallId)} has room for ${claimed.school} when one is on offer`, intent: { kind: 'wait' } }
     : null;
 }
 
@@ -151,6 +178,7 @@ function nearlyEstablished(s: GameState): NextStep | null {
         return {
           text: `The ${major.name} program is one course from being established${course ? ` — ${course.name}` : ''}`,
           go: 'curriculum',
+          ...(missing ? { intent: { kind: 'develop' as const, courseId: missing } } : {}),
         };
       }
     }
@@ -166,14 +194,14 @@ function shortfall(s: GameState): NextStep | null {
     if (score < ATTRIBUTE_SHORTFALL && (!worst || score < worst.score)) worst = { key, score };
   }
   if (!worst) return null;
-  return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${Math.round(worst.score)} — build for it`, go: 'build' };
+  return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${Math.round(worst.score)} — build for it`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
 }
 
 // A finished lab with nothing running in it.
 function idleLab(s: GameState): NextStep | null {
   const lab = s.tech.find((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id]);
   if (!lab) return null;
-  return { text: `${lab.name} is idle — commission research`, go: 'research' };
+  return { text: `${lab.name} is idle — commission research`, go: 'research', intent: { kind: 'research', labId: lab.id } };
 }
 
 // A run that skipped the scripted first year gets the readings from the start.
@@ -181,5 +209,11 @@ export function nextStep(s: GameState): NextStep | null {
   // The opening walkthrough's coach card speaks instead (opening.ts).
   if (openingHoldsClock(s)) return null;
   if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s);
-  return letterAsk(s) ?? awayFromHome(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s);
+  // A letter whose ask cannot be acted on this week (it waits on an offer
+  // or a hall) gives way to a reading that can (Plan 58): "grow Science"
+  // with no Science on offer and nowhere for the offers to go is a
+  // deadlock only the next hall breaks, and the line has to say so.
+  const letter = letterAsk(s);
+  if (letter && letter.intent?.kind !== 'wait') return letter;
+  return awayFromHome(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s) ?? letter;
 }

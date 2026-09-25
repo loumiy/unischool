@@ -100,6 +100,14 @@ function testAuthoredText(): void {
   assert(back.tech.find((t) => t.id === course.id)!.name === courseName, "a course's corrected title reaches the saved run");
   assert(back.tech.find((t) => t.id === hall.id)!.description === hallDescription, 'and every corrected description');
   assert(back.tech.find((t) => t.id === hall.id)!.name === 'The Donor Hall', "but a building's name, which naming rights can change, is kept");
+  // A capital project's terms are authored too (Plan 58: the Graduate
+  // College from Year 15, not 20).
+  const old = createInitialState('Terms');
+  // Replaced, not written through: the node shares its terms with the catalog.
+  const college = old.tech.find((t) => t.id === 'PROJ-GRADUATE')!;
+  college.project = { ...college.project!, fromYear: 20 };
+  saveGame(old);
+  assert(loadGame()!.tech.find((t) => t.id === 'PROJ-GRADUATE')!.project!.fromYear === 15, 'a saved run takes the Graduate College\'s gate from the catalog');
 }
 
 // ---- Test: a current-version save round-trips ----

@@ -87,7 +87,7 @@ two-school conjunction.
 - **The Arts Center** (Year 10) opens once every Arts & Media course is taught.
 - **The Law School** and **the Business School** (Year 15) open once every
   course of their own school is taught.
-- **The Graduate College** (Year 20) opens once any school's courses are all
+- **The Graduate College** (Year 15; Year 20 until Plan 58) opens once any school's courses are all
   taught.
 - **The Medical Center** is the health chain's third rung (Year 15, past the
   clinic and 20,000 students); it waits on no curriculum, and the School of
