@@ -105,14 +105,20 @@ const STUDENT_CENTRE_EXPANDED_MIN_SERVES = 2_000;
 // A hall dedicated to one school is drawn as that school's signature
 // building (Plan 25): a mixed hall is the generic gabled hall. The map's copy
 // of the Buildable carries the school (campusLayout.ts); state never does.
-export interface Signature { motif: Motif; material: keyof MaterialSet }
+//
+// A feature sets two signatures apart from the civic buildings they share a
+// motif with (Plan 61: Arts & Media drew as the library, Business as a
+// hospital): a studio's sawtooth north-light roof, and an exchange's
+// pedimented temple front under a dome.
+export type SignatureFeature = 'studio' | 'exchange';
+export interface Signature { motif: Motif; material: keyof MaterialSet; feature?: SignatureFeature }
 export const SCHOOL_SIGNATURES: Readonly<Record<string, Signature>> = {
   'Science': { motif: 'block', material: 'render' },
   'Engineering': { motif: 'works', material: 'render' },
   'Health Science': { motif: 'block', material: 'clinical' },
   'Computer Science': { motif: 'block', material: 'curtain' },
-  'Arts & Media': { motif: 'portico', material: 'limestone' },
-  'Business': { motif: 'portico', material: 'brickBuff' },
+  'Arts & Media': { motif: 'portico', material: 'brickRed', feature: 'studio' },
+  'Business': { motif: 'portico', material: 'limestone', feature: 'exchange' },
   'Social Sciences & Humanities': { motif: 'hall', material: 'limestone' },
 };
 
