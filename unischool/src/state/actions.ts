@@ -143,7 +143,6 @@ export type Action =
   | { type: 'RESOLVE_RESEARCH_REPORT' }
   // A demand is answered only by building what it asks for before the
   // deadline; there is deliberately no accept/refuse.
-  | { type: 'RESOLVE_DEMAND' }
   // The one-time College -> University charter offer; cosmetic.
   | { type: 'RESOLVE_CHARTER'; accept: boolean }
   // `candidate` is the whole person: they exist only in the interrupt

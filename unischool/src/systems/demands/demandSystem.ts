@@ -55,8 +55,9 @@ export interface DemandProgress {
   weeksLeft: number; // until the deadline; 0 once it has passed
 }
 
-// The one place a demand's target is compared against the world. Neither
-// metric can move backwards, so a met demand stays met.
+// The one place a demand's target is compared against the world, read
+// afresh each week: both metrics can fall (a demolished building, a
+// disbanded chapter), and the demand closes the first week it is met.
 export function demandProgress(s: GameState, demand: StudentDemand): DemandProgress {
   const current = demand.metric === 'capacity'
     ? s.students.capacity
@@ -315,8 +316,8 @@ function announceDemand(s: GameState): void {
   raiseDemand(s, demand);
 }
 
-// Announces one demand: stamps its deadline, raises the interrupt, spends
-// the cadence budget and logs it. Exported for the playtest panel's "force
+// Announces one demand: stamps its deadline, raises the note over the map,
+// spends the cadence budget and logs it. Exported for the playtest panel's "force
 // a demand" (reducer.ts's DEBUG_FORCE_DEMAND).
 export function raiseDemand(s: GameState, demand: StudentDemand): void {
   const week = absoluteWeek(s);
@@ -326,8 +327,7 @@ export function raiseDemand(s: GameState, demand: StudentDemand): void {
   s.events.pendingDemand = null;
   s.events.lastDecisionWeek = week;
   // A note over the map, not a modal (Plan 29): the clock runs on, and the
-  // Students tab keeps the demand in view until it is met or lapses. The
-  // old 'demand' interrupt still resolves for a save taken with it open.
+  // Students tab keeps the demand in view until it is met or lapses.
   s.events.demandUnread = true;
   log(s, `The student body has raised a formal demand: ${demandCopy(demand).ask(demand.askName)}, within ${DEMAND_DEADLINE_WEEKS} weeks.`, 'bad', 'demand-raised');
 }

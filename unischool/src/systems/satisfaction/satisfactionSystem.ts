@@ -39,7 +39,7 @@ const ATTRIBUTE_SCORE_FLOOR = 12;
 // Social at 0.34: a maxed student center + rec center (8,700) covers only
 // ~25,600 enrolled, so growing schools must lean on the quad and student
 // life. Intended; do not raise it. Housing at 0.35: commuting is the norm.
-const TARGET_RATIO: SatisfactionAttributes = {
+export const TARGET_RATIO: SatisfactionAttributes = {
   academic: 0.15,
   social: 0.34,
   basicNeeds: 1.0,

@@ -151,8 +151,8 @@ export interface FinanceBreakdown {
   instructionCost: number;     // sections x SECTION_COST — teaching the catalogue you have built, section by section (see instructionDetail)
   servicesCost: number;        // enrolled x SERVICES_PER_STUDENT_PER_WEEK x servicesMultiplier — advising, registrar, IT, grounds
   scaleCost: number;           // the cost of being large (scaleCostFor), rising with every doubling of the roll
-  academicUpkeep: number;      // running the courses, academic buildings and labs that are done
-  facilityUpkeep: number;      // running the dorms and campus-life facilities that are done
+  academicUpkeep: number;      // running the courses and academic buildings that are done
+  facilityUpkeep: number;      // running the dorms and the facilities (labs among them) that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
   athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week
   debtService: number;         // the buildings' loan payments (finance/treasury.ts)

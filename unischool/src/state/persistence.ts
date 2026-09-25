@@ -615,10 +615,6 @@ export function loadGame(): GameState | null {
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);
   sanitizePromises(state);
-  // The achievements and the legacy (retired in Plan 33) are dropped from
-  // older saves.
-  delete (state as unknown as { ambitions?: unknown }).ambitions;
-  delete (state.self as unknown as { legacy?: unknown }).legacy;
   sanitizeEnding(state);
   sanitizeIdentity(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;

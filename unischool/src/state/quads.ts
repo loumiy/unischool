@@ -26,7 +26,8 @@ import {
 // paths around. Before either, narrow gaps between buildings are sealed as
 // doorways (see sealDoorways).
 //
-// The map is cosmetic: this is read by the map, never by a tick system.
+// Read by the map, and by campus beauty (systems/estate/beauty.ts), whose
+// enclosure share counts the quads.
 
 export interface QuadInput {
   placements: Placements;

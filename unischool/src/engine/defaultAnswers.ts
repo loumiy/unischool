@@ -71,11 +71,6 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
     case 'research-complete':
       return { type: 'RESOLVE_RESEARCH_REPORT' };
 
-    case 'demand':
-      // A demand is answered by BUILDING the thing before the deadline;
-      // the modal itself is only an acknowledgement.
-      return { type: 'RESOLVE_DEMAND' };
-
     case 'charter':
       return { type: 'RESOLVE_CHARTER', accept: true };
 

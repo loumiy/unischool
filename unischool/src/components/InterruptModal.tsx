@@ -24,8 +24,6 @@ import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } fro
 import { findDecisionEvent, findOpeningLetter, OPENING_LETTERS, offeredChoices } from '../data/eventData';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
-import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
-import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
@@ -828,85 +826,6 @@ function ResearchReportView({ s, report, onDismiss }: {
 }
 
 // ---------------------------------------------------------------------
-// A student demand (systems/demands/demandSystem.ts), raised only when
-// satisfaction has sat below DEMAND_SATISFACTION_THRESHOLD. There is nothing
-// to choose: the answer is to build the ask before the deadline, which the
-// demand system detects. The stakes are read, not written: satisfaction
-// figures are the nudges the system would apply, and applicant figures come
-// from running projectAdmissions at today's policy.
-// ---------------------------------------------------------------------
-function DemandView({ s, onDismiss }: { s: GameState; onDismiss: () => void }) {
-  const demand = s.events.activeDemand;
-  // A save written mid-modal against content that has since changed, or an
-  // interrupt left behind by an edit: clear it rather than wedging the clock.
-  if (!demand) {
-    return (
-      <>
-        <h2>The moment has passed</h2>
-        <p>There is no outstanding demand. Nothing has changed.</p>
-        <button onClick={onDismiss}>Continue</button>
-      </>
-    );
-  }
-
-  const copy = demandCopy(demand);
-  const progress = demandProgress(s, demand);
-  const stakes = demandStakes(s);
-  const node = s.tech.find((t) => t.id === demand.askId);
-  const cost = node ? money(node.cost) : null;
-
-  return (
-    <>
-      <h2>{copy.headline}</h2>
-      <p>{copy.grievance(demand.askName)}</p>
-
-      <dl className="admissions-outcomes">
-        <div>
-          <dt>The ask</dt>
-          <dd>{copy.ask(demand.askName)}</dd>
-        </div>
-        <div>
-          <dt>The deadline</dt>
-          <dd>{DEMAND_DEADLINE_WEEKS} weeks &mdash; by year {Math.floor((demand.deadlineWeek - 1) / WEEKS_PER_YEAR) + 1}</dd>
-        </div>
-        <div>
-          <dt>Where you stand <span className="outcome-note">({copy.unit})</span></dt>
-          <dd>{Math.round(progress.current).toLocaleString()} / {Math.round(progress.target).toLocaleString()}</dd>
-        </div>
-        {cost && (
-          <div>
-            <dt>What it costs to build <span className="outcome-note">(nothing is charged now)</span></dt>
-            <dd>{cost}</dd>
-          </div>
-        )}
-        <div>
-          <dt>If it is met <span className="outcome-note">(satisfaction, then applicants)</span></dt>
-          <dd className="milestone-gain">
-            {stakes.satisfactionIfMet.toFixed(1)} &middot; {stakes.applicantsIfMet.toLocaleString()}
-          </dd>
-        </div>
-        <div>
-          <dt>If the deadline passes <span className="outcome-note">(word of mouth, at next summer&rsquo;s funnel)</span></dt>
-          <dd>{stakes.satisfactionIfFailed.toFixed(1)} &middot; {stakes.applicantsIfFailed.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>As things stand today</dt>
-          <dd>{stakes.satisfactionNow.toFixed(1)} &middot; {stakes.applicantsNow.toLocaleString()}</dd>
-        </div>
-      </dl>
-
-      <p className="digest-note">
-        There is nothing to answer here and nothing to pay: the demand is met by building what
-        it asks for, and missing the deadline costs the school goodwill and next year&rsquo;s
-        applicants &mdash; nothing more. It stays visible in the Students tab until it resolves.
-      </p>
-
-      <button onClick={onDismiss}>Understood</button>
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------
 // The athletic director's offer, fired the first quiet week after the school
 // fields a varsity team. A director has one stat, so the three cards differ
 // only in quality and salary, and the copy says the choice is about money. It
@@ -1283,9 +1202,6 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
       case 'letter':
         act({ type: 'RESOLVE_LETTER', skipAll: false });
         break;
-      case 'demand':
-        act({ type: 'RESOLVE_DEMAND' });
-        break;
       // the summer's decision beats, decision events (Enter used to dismiss
       // one with no choice, dodging its consequence), charter, the athletic
       // director, and anything unrecognised: no-op — see above.
@@ -1311,8 +1227,6 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             report={(interrupt.payload as { report: InitiativeReport }).report}
             onDismiss={() => act({ type: 'RESOLVE_RESEARCH_REPORT' })}
           />
-        ) : interrupt.type === 'demand' ? (
-          <DemandView s={s} onDismiss={() => act({ type: 'RESOLVE_DEMAND' })} />
         ) : interrupt.type === 'championship' ? (
           <ChampionshipView
             s={s}

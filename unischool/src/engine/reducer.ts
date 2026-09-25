@@ -497,17 +497,6 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       resolveAdmissions(s, action);
       return s;
 
-    // Acknowledges a student demand (see demandSystem.ts). Grants nothing:
-    // the answer is building the thing before the deadline, which the demand
-    // system detects off the campus. Advances the clock, like every other
-    // trailing interrupt.
-    case 'RESOLVE_DEMAND': {
-      if (!s.pendingInterrupt) return state;
-      s.pendingInterrupt = null;
-      advanceClock(s);
-      return s;
-    }
-
     // Dismisses a research prize celebration. Grants nothing: the award
     // landed the week the prize was won. Advances the clock.
     case 'RESOLVE_RESEARCH_REPORT': {

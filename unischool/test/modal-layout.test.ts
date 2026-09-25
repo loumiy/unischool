@@ -66,7 +66,7 @@ console.log('modal layout tests');
 
 // --- everything else, and anything unknown, is narrow ----------------------
 {
-  for (const type of ['decision-event', 'charter', 'demand', 'research-complete', 'letter', 'something-nobody-wrote']) {
+  for (const type of ['decision-event', 'charter', 'research-complete', 'letter', 'something-nobody-wrote']) {
     assert(modalWidth({ type }) === 'narrow', `${type} is narrow`);
   }
 }
