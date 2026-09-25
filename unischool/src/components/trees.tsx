@@ -84,10 +84,11 @@ export function treeStanding(): number {
   return Math.max(0, Math.min(1, heightScale()));
 }
 
-export function TreeAt({ col, row, species, scale, shadow = true }: {
+export function TreeAt({ col, row, species, scale, shadow = false }: {
   col: number; row: number; species: Species; scale: number;
-  // Woodland trees pass false: CampusMap draws their shadows in one pass
-  // under every mass so none lands on a building behind the tree.
+  // Off on the map: CampusMap draws every tree's shadow in one pass under
+  // every mass (woodlandShadow, a GroundProp's `shadows`, the village's),
+  // so none lands on a building behind the tree. For a tree drawn alone.
   shadow?: boolean;
 }) {
   const foot = project(col, row);

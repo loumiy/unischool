@@ -37,7 +37,7 @@ import {
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
 import { Crane, Scaffolding } from './siteWorks';
-import { TreeAt } from './trees';
+import { TreeAt, treeShadow } from './trees';
 
 // Architectural motifs: what makes a placed Buildable read as a building.
 // Hand-rolled inline SVG, no icon library or external art. Geometry here,
@@ -1447,9 +1447,15 @@ function Canopy({ d, col, row, w, h, outward, wallHeight, stone, hood = false, r
     const post = againstWall(col, row, w, h, outward, along0, CANOPY_POST, CANOPY_POST, -(CANOPY_DEPTH - CANOPY_POST));
     return boxFaces(post.col, post.row, post.w, post.h, 0, top);
   };
-  // The canopy's own ground shadow, away from the sun (light.ts).
+  // The canopy's own ground shadow, away from the sun (light.ts). Drawn with
+  // the canopy, after its wall, so only when the sun throws it out from the
+  // wall onto open ground: thrown back, it would lie under the building and
+  // paint across the wall's face.
   const shadowAt = shadowOffset(top);
-  const shadow = boxFaces(plate.col + shadowAt.dcol, plate.row + shadowAt.drow, plate.w, plate.h, 0, 0).top;
+  const out = outwardOf(outward);
+  const shadow = shadowAt.dcol * out.col + shadowAt.drow * out.row > 0
+    ? boxFaces(plate.col + shadowAt.dcol, plate.row + shadowAt.drow, plate.w, plate.h, 0, 0).top
+    : null;
 
   const gable = hood && roof ? (() => {
     // Ridge running out from the wall, two slopes toned by direction, and
@@ -1485,7 +1491,7 @@ function Canopy({ d, col, row, w, h, outward, wallHeight, stone, hood = false, r
 
   return (
     <>
-      <polygon className="campus-building-shadow" points={polyPoints(shadow)} />
+      {shadow && <polygon className="campus-building-shadow" points={polyPoints(shadow)} />}
       {[-1, 1].map((sign) => {
         const f = postAt(sign);
         return (
@@ -1928,6 +1934,15 @@ const VILLAGE_TREES: Array<[number, number, 'canopy' | 'ornamental' | 'conifer',
   [0.24, 0.66, 'ornamental', 0.8], [0.03, 0.97, 'conifer', 0.9], [0.96, 0.04, 'conifer', 0.85],
 ];
 
+// Their shadows, all laid on the village's lawn before any house or tree
+// stands on it: drawn with each tree, they fell across whichever house had
+// painted before it, which with a turning camera can be one behind the tree.
+// (Not CampusMap's shadow pass: the lawn is part of this motif and would
+// cover them.)
+function villageTreeShadows(col: number, row: number, w: number, h: number): Pt[][] {
+  return VILLAGE_TREES.map(([u, v, species, scale]) => treeShadow(col + w * u, row + h * v, species, scale));
+}
+
 // A chapter house's Greek letters (ΑΒΓ), on a pedimented parapet above the
 // wall: a one-story chapter house has no room under its eaves. Sized off
 // the wall, not the (domestic, narrow) door.
@@ -2170,8 +2185,11 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {/* A hedge along the plot's far edges. */}
         <polygon className="ground-hedge-top" points={polyPoints(boxFaces(col, row, w * 0.84, 0.18, 0, 0).top.map((q) => lift(q, 5)))} />
         <polygon className="ground-hedge-top" points={polyPoints(boxFaces(col, row, 0.18, h, 0, 0).top.map((q) => lift(q, 5)))} />
+        {villageTreeShadows(col, row, w, h).map((pts, i) => (
+          <polygon key={`ts${i}`} className="campus-tree-shadow" points={polyPoints(pts)} />
+        ))}
         {items.map((it, i) => (it.kind === 'tree' ? (
-          <TreeAt key={i} col={it.col + 0.5} row={it.row + 0.5} species={it.species} scale={it.scale} />
+          <TreeAt key={i} col={it.col + 0.5} row={it.row + 0.5} species={it.species} scale={it.scale} shadow={false} />
         ) : (
           <VillageHouse
             key={i}

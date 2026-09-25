@@ -5,7 +5,7 @@ import { boxFaces, lift, polyPoints, project, projectedArc, projectedCircle, pro
 import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
-import { TreeAt, type Species } from './trees';
+import { TreeAt, treeShadow, type Species } from './trees';
 
 // Open ground: the Buildables you walk across rather than into (quad, pool
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
@@ -53,6 +53,10 @@ export interface GroundProp {
   w: number;
   h: number;
   node: React.JSX.Element;
+  // Shadows the prop casts, as ground polygons, for CampusMap's shadow pass:
+  // drawn with the prop, a shadow would land on anything painted before it,
+  // including a building behind it.
+  shadows?: Pt[][];
 }
 
 // The box a round prop (fountain, medallion, tree crown) covers on the ground.
@@ -1188,7 +1192,8 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
     ...(gardens ? GARDEN_TREES : QUAD_TREES).map(([u, v, species, size], i) => ({
       key: `tree-${i}`,
       ...at(u, v),
-      node: <TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} />,
+      node: <TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} shadow={false} />,
+      shadows: [treeShadow(col + w * u, row + h * v, species, size)],
     })),
     gardens
       ? {
