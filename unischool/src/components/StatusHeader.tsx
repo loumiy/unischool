@@ -80,7 +80,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         type="button"
         className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}`}
         aria-expanded={treasuryOpen}
-        aria-label="Open Treasury"
+        aria-label="Treasury"
         aria-describedby={fundsHint}
         onClick={onOpenTreasury}
       >

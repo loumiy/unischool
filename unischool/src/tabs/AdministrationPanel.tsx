@@ -58,7 +58,8 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                       key={p.id}
                       type="button"
                       className={`panel-action small ${seat.policy === p.id ? 'on' : ''}`}
-                      aria-pressed={seat.policy === p.id}
+                      role="radio"
+                      aria-checked={seat.policy === p.id}
                       title={POLICY_RULE_NOTES[p.rule]}
                       onClick={() => act({ type: 'SET_SEAT_POLICY', seatId: def.id, school, policy: p.id })}
                     >

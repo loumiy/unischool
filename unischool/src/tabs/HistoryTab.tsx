@@ -191,7 +191,6 @@ function FinalReportPanel({ s }: { s: GameState }) {
           <h2>{REPORT_WORDS.title}</h2>
           <span className="panel-count">{written ? `written in year ${written.year}` : `the arc to year ${s.clock.year}`}</span>
         </div>
-        <HelpHint align="end" text={REPORT_WORDS.markHint} />
       </div>
       {!written && s.clock.year < REPORT_DRAFT_FROM ? (
         <p className="review-empty">{REPORT_WORDS.notYet}</p>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduatePrograms, programById, type ProgramInfo } from '../data/techData';
@@ -514,11 +515,13 @@ export function MarketInField({ s, act, field, projectedFor }: {
             <button
               type="button"
               className="course-drawer-appoint"
-              disabled={s.finance.cash < 0}
               onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
-              title={`Appoint ${c.name} to the ${field} department`}
+              title={`Appoint ${c.name} to the ${field} department; asks ${money(c.salary)}, paid ${money(Math.round(facultyPay(s, c.salary)))} at the market rate`}
             >
-              Appoint · {money(c.salary)}/yr
+              {/* No cash gate: an appointment costs nothing up front, here
+                  as on every other Appoint; what it costs is the salary,
+                  shown as this college pays it. */}
+              Appoint · {money(Math.round(facultyPay(s, c.salary)))}/yr
             </button>
           </div>
         ))

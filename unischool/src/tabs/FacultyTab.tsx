@@ -150,24 +150,29 @@ function FacultyCard(
               <button
                 className={confirmingDismiss ? 'dismiss-confirm' : undefined}
                 onClick={() => {
-                  if (!confirmingDismiss && taught.length > 0) { setConfirmingDismiss(true); return; }
+                  if (!confirmingDismiss && (taught.length > 0 || commitment)) { setConfirmingDismiss(true); return; }
                   act({ type: 'FIRE_FACULTY', facultyId: f.id });
                 }}
                 onBlur={() => setConfirmingDismiss(false)}
               >
-                {confirmingDismiss ? 'Confirm — leave them unstaffed' : 'Dismiss'}
+                {confirmingDismiss ? (taught.length > 0 ? 'Confirm — leave them unstaffed' : 'Confirm — dismiss') : 'Dismiss'}
               </button>
             )}
           </div>
         </div>
       </div>
       {/* Dismissing someone orphans their courses (see the reducer's
-          FIRE_FACULTY), so the second click is preceded by a named warning.
-          Someone teaching nothing is dismissed on the first click. */}
-      {confirmingDismiss && taught.length > 0 && (
+          FIRE_FACULTY) and leaves any research team one short, so the
+          second click is preceded by a named warning. Someone teaching
+          nothing and on no project is dismissed on the first click. */}
+      {confirmingDismiss && (taught.length > 0 || commitment) && (
         <p className="faculty-dismiss-warning">
-          {f.name} teaches {taught.length} {taught.length === 1 ? 'course' : 'courses'}, which will be left
-          without an instructor: {taught.map((c) => c.name.split(' · ')[0]).join(', ')}.
+          {taught.length > 0 && <>
+            {f.name} teaches {taught.length} {taught.length === 1 ? 'course' : 'courses'}, which will be left
+            without an instructor: {taught.map((c) => c.name.split(' · ')[0]).join(', ')}.
+          </>}
+          {taught.length > 0 && commitment && ' '}
+          {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
         </p>
       )}
       {open && (
