@@ -215,7 +215,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `“${topic?.name ?? 'A project'}” has been wound up early. Its funding is not recovered.`,
+        message: `"${topic?.name ?? 'A project'}" has been wound up early. Its funding is not recovered.`,
         kind: 'bad',
         topic: 'research-concluded',
         subject: action.labId,
