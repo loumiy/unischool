@@ -2,7 +2,7 @@
 
 *Planning document only. Its job is to turn the review into a PR.*
 
-**Status: In progress.**
+**Status: Landed.**
 
 ---
 
@@ -108,3 +108,8 @@ Decisions where the review left a choice:
   (4, brick), institute as the tier-1 library (3, limestone), museum as
   the gallery (2, limestone), commons as the largest dining hall (3, buff
   brick).
+- **Checked in the browser** against `main`'s drawing from a second
+  server, not by hot-reloading one: the first before/after set was taken
+  before the dev server had reloaded, and several pairs were identical.
+  The stadium pair in [the review](../reviews/2026-09-consistency-review.md)
+  is from two servers.
