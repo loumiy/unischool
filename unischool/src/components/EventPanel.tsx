@@ -15,7 +15,7 @@ import { money } from '../format';
 // (InterruptModal.tsx's CatalogueLetterView) and share the choice list.
 
 const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
-  board: 'The president',
+  board: 'The President',
   academic: 'Academic affairs',
   students: 'Student life',
   estate: 'The estate',

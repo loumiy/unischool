@@ -336,7 +336,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
       <div className="startup-card">
         {/* What the game is, in one line. */}
         <div className="eyebrow">Fifty years to build a university.</div>
-        <h1>Name your school</h1>
+        <h1>Name your college</h1>
         <input
           className="startup-name"
           aria-label="The college's name"

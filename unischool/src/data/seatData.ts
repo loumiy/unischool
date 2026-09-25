@@ -66,7 +66,7 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'visible', rule: 'popular', label: 'Whatever the students see' },
     ],
     defaultPolicy: 'worst-first',
-    blurb: 'Roofs, boilers, kitchens and storms: the estate\'s emergencies, answered before they reach the president\'s desk.',
+    blurb: 'Roofs, boilers, kitchens and storms: the estate\'s emergencies, answered before they reach the President\'s desk.',
   },
   {
     id: 'dean-of-students', title: 'Dean of Students', domain: 'students', perSchool: false,
@@ -77,7 +77,7 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'listen', rule: 'popular', label: 'Meet them halfway' },
     ],
     defaultPolicy: 'listen',
-    blurb: 'Student life\'s routine: the Greek council, its houses and its scandals.',
+    blurb: 'Student life\'s routine: the Hellenic Council, its houses and its scandals.',
   },
   {
     id: 'advancement', title: 'VP of Advancement', domain: 'advancement', perSchool: false,

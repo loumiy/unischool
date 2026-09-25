@@ -720,7 +720,7 @@ export function initialTech(): Buildable[] {
           kind: 'facility',
           facilityType: 'lab',
           name: researchFacilityName(labId(major.prefix))!,
-          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
+          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialised lab space'} — gates the ${major.name} program's capstone (tier-3) coursework, and lets the college produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
           // Buildable once the entry course is done and the school is

@@ -16,7 +16,7 @@ export type { CohortId };
 // a base share must sum to 1 (invariants.test.ts).
 export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; driverLabel: string }> = [
   { id: 'highAchievers', label: 'High achievers', baseShare: 0.20, driverLabel: 'distinguished & graduate programs' },
-  { id: 'preProfessional', label: 'Pre-professional', baseShare: 0.22, driverLabel: 'established career-track majors' },
+  { id: 'preProfessional', label: 'Pre-professional', baseShare: 0.22, driverLabel: 'established career-track programs' },
   { id: 'researchOriented', label: 'Research-oriented', baseShare: 0.10, driverLabel: 'publications, breakthroughs, prizes & labs' },
   { id: 'social', label: 'Social', baseShare: 0.15, driverLabel: 'clubs & Greek chapters' },
   { id: 'artsFocused', label: 'Arts-focused', baseShare: 0.08, driverLabel: 'arts programs & venues' },

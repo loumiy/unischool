@@ -503,7 +503,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
             : '.'}
         </p>
       ) : (
-        <p>What the students organised this year, and are asking the school to recognise.</p>
+        <p>What the students organised this year, and are asking the college to recognise.</p>
       )}
       <StudentLifeDigest
         petitions={petitions}
@@ -915,7 +915,7 @@ function FirstSportClubView({ s, payload, onResolve }: {
     <>
       <h2>The first sport club</h2>
       <p>
-        The {payload.clubName} is the first of the school's sport clubs to be recognised. It plays intramurals
+        The {payload.clubName} is the first of the college's sport clubs to be recognised. It plays intramurals
         for now; in a few years it may petition to go varsity, and there will be a department, a venue and a
         season behind it. The students have already started arguing about what the teams should be called —
         the colours are {institutionName(s.self)}'s own, but a name is something people shout.
@@ -951,9 +951,9 @@ function AthleticDirectorView({ s, payload, onResolve }: {
       <h2>An athletic director</h2>
       <p>
         {s.orgs.teams.length === 1
-          ? 'The school fields a varsity program now, and nobody is running it.'
-          : `The school fields ${s.orgs.teams.length} varsity programs now, and nobody is running them.`}
-        {' '}Three candidates have applied. A director lifts every team the school fields —
+          ? 'The college fields a varsity program now, and nobody is running it.'
+          : `The college fields ${s.orgs.teams.length} varsity programs now, and nobody is running them.`}
+        {' '}Three candidates have applied. A director lifts every team the college fields —
         and unlike a coach, there is only one of them, so the question is simply how much of
         the department's budget goes to the person in charge.
       </p>
@@ -1042,7 +1042,7 @@ function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: 
       <h2>A university charter</h2>
       <p>
         With laboratory research now under way on campus, the trustees have petitioned for a
-        university charter. Granting it changes what the school is called and nothing else —
+        university charter. Granting it changes what the college is called and nothing else —
         no cost, no obligation, and no effect on anything you have built.
       </p>
       <div className="event-choices">
@@ -1061,7 +1061,7 @@ function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: 
             <span className="event-choice-cost">no cost</span>
           </span>
           <span className="event-choice-detail">
-            The school keeps the name {s.self.name} College. You will not be asked again.
+            The college keeps the name {s.self.name} College. You will not be asked again.
           </span>
         </button>
       </div>
@@ -1144,7 +1144,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
               </span>
               <span className="event-choice-detail">
                 {choice.describe(s, ctx)}
-                {!affordable && ' — the school cannot cover this.'}
+                {!affordable && ' — the college cannot cover this.'}
               </span>
             </button>
           );

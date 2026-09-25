@@ -106,7 +106,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
       <p className="building-info-line">
         {t.effects?.researchRateBonus !== undefined
           ? `+${Math.round(t.effects.researchRateBonus * 100)}% research output`
-          : 'Specialized lab space.'}
+          : 'Specialised lab space.'}
         {' — no capacity figure; gates this program\'s capstone coursework instead.'}
       </p>
     );

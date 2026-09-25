@@ -55,10 +55,10 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const sectionsNote = teaching.courses === 0
     ? 'no course is offered yet'
     : teaching.overflow > 0
-      ? `every section is full and ${teaching.overflow.toLocaleString()} students are in overflow — the catalogue is smaller than the school`
+      ? `every section is full and ${teaching.overflow.toLocaleString()} students are in overflow — the catalogue is smaller than the college`
       : teaching.fill >= 0.85
         ? `sections are running ${Math.round(teaching.fill * 100)}% full`
-        : `sections are running ${Math.round(teaching.fill * 100)}% full — the catalogue is bigger than the school`;
+        : `sections are running ${Math.round(teaching.fill * 100)}% full — the catalogue is bigger than the college`;
 
   return (
     <div className="tab-content">
@@ -77,7 +77,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               amount={flow.tuitionRevenue}
             />
             <StatementLine
-              label="Reputation dividend"
+              label="Prestige dividend"
               note={`donors and grants, scaling with prestige ${Math.round(s.self.reputation)}`}
               amount={flow.prestigeRevenue}
             />
@@ -114,7 +114,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               amount={flow.weeklySalaries}
             />
             <StatementLine
-              label="Seat upkeep"
+              label="Housing upkeep"
               note={`${s.students.capacity.toLocaleString()} beds — an empty one still costs, at half rate`}
               amount={flow.seatUpkeep}
             />
@@ -137,7 +137,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             )}
             <StatementLine
               label="Academic upkeep"
-              note={`running ${coursesDone} courses and the school buildings they sit in`}
+              note={`running ${coursesDone} courses and the teaching buildings they sit in`}
               amount={flow.academicUpkeep}
             />
             <StatementLine
@@ -148,7 +148,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             {flow.athleticsSubsidy > 0 && (
               <StatementLine
                 label="Athletics subsidy"
-                note={`what the programs drew from the ${s.orgs.athleticsBudget} tier's subsidy beyond their own gate — the department's cost to the school`}
+                note={`what the programs drew from the ${s.orgs.athleticsBudget} tier's subsidy beyond their own gate — the department's cost to the college`}
                 amount={flow.athleticsSubsidy}
               />
             )}
@@ -178,7 +178,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
-          {money(annualNet)} a year at this rate. Money is the only throttle on starting development: a Buildable's cost is charged in full, up front, and you cannot start what you cannot pay for — so the wait for the next purchase is the pacing. Only an operating deficit can push cash negative. That never ends the run: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
+          {money(annualNet)} a year at this rate. Money is the only throttle on starting anything: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so the wait for the next purchase is the pacing. Only an operating deficit can push cash negative. That never ends the run: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
         </p>
       </section>
 

@@ -421,7 +421,7 @@ function foundState(
     },
     history: [],
     log: [
-      { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
+      { year: 1, week: 1, message: 'The college opens its doors.', kind: 'info' },
     ],
     pendingInterrupt: null,
     // Week 0 reads as "never".

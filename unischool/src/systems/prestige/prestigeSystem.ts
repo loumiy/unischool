@@ -565,7 +565,7 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
-      `${equipped} of the ${fields} fields the university could research in ${equipped === 1 ? 'has' : 'have'} a lab.`,
+      `${equipped} of the ${fields} fields the college could research in ${equipped === 1 ? 'has' : 'have'} a lab.`,
     ),
     ...projectInput(s, 'research'),
   ]);

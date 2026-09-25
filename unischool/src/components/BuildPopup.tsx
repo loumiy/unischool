@@ -354,14 +354,14 @@ function BuildTile({
           disabled={shortfall > 0}
           title={shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
-            : `Renovates the existing library in place — no new building. Adds ${floorPlan.servesGain.toLocaleString()} seats over ${floorPlan.weeks} weeks; the library serves no one while the work is underway.`}
+            : `Renovates the existing library in place — no new building. Adds ${floorPlan.servesGain.toLocaleString()} seats over ${floorPlan.weeks} weeks; the library keeps serving its existing floors while the new one goes up.`}
           onClick={() => act({ type: 'RENOVATE_LIBRARY' })}
         >
           {marker && <span className="kind-tag">{marker}</span>}
           <span className="build-tile-icon"><Icon /></span>
           <span className="build-tile-name">{t.name}</span>
           {detail && <span className="build-tile-sub">{detail}</span>}
-          <span className="build-tile-foot">add a floor · {money(floorPlan.cost)} · {floorPlan.weeks}w</span>
+          <span className="build-tile-foot">add a storey · {money(floorPlan.cost)} · {floorPlan.weeks}w</span>
         </button>
       );
     }
@@ -742,7 +742,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the university can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what's built, what's under construction, and what's next available. Repeatable types (housing, dining, fitness) collapse what's already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed share of the enrolled student body, so a bigger class raises the bar for campus life whether or not you've built it any beds — most students commute, and housing itself is its own need (see the Students tab's Housing attribute), not an admissions requirement. Anything not yet unlockable is left off rather than teased. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that's the moment the cost is charged and the countdown begins. A tile priced at a flat, small fee instead of a real construction cost is already-built and just needs a spot marked on the map — the university's founding buildings, mainly. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
+      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what's built, what's under construction, and what's next available. Repeatable types (housing, dining, fitness) collapse what's already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed share of the enrolled student body, so a bigger class raises the bar for campus life whether or not you've built it any beds — most students commute, and housing itself is its own need (see the Students tab's Housing attribute), not an admissions requirement. Anything not yet unlockable is left off rather than teased. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that's the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">
@@ -754,7 +754,7 @@ export default function BuildPopup({
           <p className="stall-note">The board has frozen new construction until the college has run two surplus terms with cash in the bank.</p>
         )}
         {s.finance.cash < 0 && !constructionFrozen(s) && (
-          <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
+          <p className="stall-note">Cash is negative — the college is running an operating deficit, so nothing can be paid for from cash or a loan until the balance recovers. A building the campaign fund covers in full can still start.</p>
         )}
 
         <nav className="build-mode-tabs" aria-label="Build categories">

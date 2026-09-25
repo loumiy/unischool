@@ -236,7 +236,7 @@ function events(s: GameState): ReviewSection {
     ].filter((x) => x !== '');
     lines.push({ text: `${plural(row.player + row.seat + row.timeout, 'matter')} came up: ${parts.join(', ')}` });
   }
-  return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year: nothing reached the president\'s desk.' };
+  return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year: nothing reached the President\'s desk.' };
 }
 
 // The class about to graduate (Plan 33): how it will remember its years

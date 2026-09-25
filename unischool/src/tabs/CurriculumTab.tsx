@@ -707,7 +707,7 @@ function CourseDrawer(
             {/* Case 4: nobody in the department at all. */}
             {eligible.length === 0 && inField.length === 0 && (
               <p className="course-drawer-note">
-                The university has no {t.requiresFaculty} faculty. Appoint someone to open this course.
+                The college has no {t.requiresFaculty} faculty. Appoint someone to open this course.
               </p>
             )}
 
@@ -1318,7 +1318,7 @@ export default function CurriculumTab(
         <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
 
         {s.finance.cash < 0 && (
-          <p className="stall-note">Cash is negative — the school is running an operating deficit, so nothing can be started until the balance recovers.</p>
+          <p className="stall-note">Cash is negative — the college is running an operating deficit, so no course can be started until the balance recovers.</p>
         )}
 
         <div className="curriculum-scroll">

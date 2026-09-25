@@ -73,7 +73,7 @@ export default function MainMenu({ act, onHall, onSettings, onTitle }: {
               <button
                 className="newgame-btn"
                 onClick={() => setConfirmingNewGame(true)}
-                title="Erase the saved run and found a new university."
+                title="Erase the saved run and found a new college."
               >
                 New Game
               </button>

@@ -151,7 +151,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
         {unsignalled.length > 0 && (
           <p className="empty-note demand-note">
             † {unsignalled.length === 4 ? 'Every class carries' : `${unsignalled.map(([, l]) => l).join(', ')} carry`}{' '}
-            no cohort signal: admitted when the school had built nothing for any particular
+            no cohort signal: admitted when the college had built nothing for any particular
             audience, so they read as the model's neutral mix rather than as a choice. Each is
             replaced by a class you admitted as it graduates out.
           </p>
@@ -163,7 +163,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
         <div className="funnel-lines">
           <FunnelLine
             label="Applicant pool"
-            note="What the school drew. Prestige and price set its size; beds, word of mouth and what you have built for each audience scale it; sticker shock then takes a cut, hitting the quality bands unevenly."
+            note="What the college drew. Prestige and price set its size; beds, word of mouth and what you have built for each audience scale it; sticker shock then takes a cut, hitting the quality bands unevenly."
             value={Math.round(s.students.applicantPool).toLocaleString()}
           />
           <FunnelLine

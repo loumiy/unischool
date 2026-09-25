@@ -304,7 +304,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             <h2>Institutional History</h2>
             <span className="panel-count">{yearOfFifty(s)}</span>
           </div>
-          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the school actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
+          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
@@ -344,7 +344,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             years={years}
             values={history.map((h) => h.cash)}
             format={moneyShort}
-            note="Cash on hand each summer. Troughs are the years the school committed to something expensive."
+            note="Cash on hand each summer. Troughs are the years the college committed to something expensive."
           />
           <HistoryChart
             label="Catalogue"

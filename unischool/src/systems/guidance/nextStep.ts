@@ -98,7 +98,7 @@ function nearlyEstablished(s: GameState): NextStep | null {
         const missing = major.tier2Ids.find((id) => !done.has(id));
         const course = missing ? s.tech.find((t) => t.id === missing) : undefined;
         return {
-          text: `${major.name} is one course from established${course ? ` — ${course.name}` : ''}`,
+          text: `The ${major.name} program is one course from being established${course ? ` — ${course.name}` : ''}`,
           go: 'curriculum',
         };
       }

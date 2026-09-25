@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/types';
 import type { Action } from '../../state/actions';
+import { institutionName } from '../../state/types';
 import { money } from '../../format';
 import { appointFaculty, leaveFaculty } from './facultySystem';
 import { facultyPay } from '../finance/financeSystem';
@@ -39,8 +40,8 @@ export function fireFaculty(s: GameState, action: Extract<Action, { type: 'FIRE_
     year: s.clock.year,
     week: s.clock.week,
     message: orphaned.length > 0
-      ? `${leaving.name} has left the university. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`
-      : `${leaving.name} (${leaving.field}) has left the university.`,
+      ? `${leaving.name} has left ${institutionName(s.self)}. ${orphaned.length} ${orphaned.length === 1 ? 'course is' : 'courses are'} without an instructor until ${leaving.field} is staffed again.`
+      : `${leaving.name} (${leaving.field}) has left ${institutionName(s.self)}.`,
     kind: orphaned.length > 0 ? 'bad' : 'info',
     topic: 'departure',
     subject: leaving.id,

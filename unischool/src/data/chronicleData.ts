@@ -14,7 +14,7 @@ export const ERA_NAMES: Readonly<Record<EraKind, readonly string[]>> = {
   founding: ['The Founding', 'The First Years', 'The Charter Years'],
   building: ['The Building of {building}', 'The Scaffolding Years', 'The Years of {building}'],
   troubles: ['The Troubles', 'The Lean Years', 'The Hard Winters'],
-  receivership: ['The Receivership', 'The Years Under the CFO'],
+  receivership: ['The Interim Years', 'The Years Under the CFO'],
   rise: ['The Climb', 'The Rise', 'The Ascent'],
   decline: ['The Slide', 'The Long Afternoon', 'The Slow Decline'],
   campaign: ['The {ordinal} Campaign', 'The Campaign Years'],

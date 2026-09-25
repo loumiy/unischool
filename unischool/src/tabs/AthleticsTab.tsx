@@ -136,7 +136,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>On the market</h2>
         <HelpHint
-          text="One pool for the whole department, not a separate list per chair. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a chair open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open chair always has somebody listed, but the good ones are rare. A card shows a ceiling as a range, not a number: a prospect is cheap and low now with a ceiling you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better athletic director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
+          text="One pool for the whole department, not a separate list per chair. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a chair open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open chair always has somebody listed, but the good ones are rare. A card shows a ceiling as a range, not a number: a prospect is cheap and low now with a ceiling you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
         />
       </div>
 
@@ -295,7 +295,7 @@ function SportStandings({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>By sport</h2>
         <HelpHint
-          text="Every school in the country is stronger at some sports than others, and reliably so — a school that is good at hockey stays good at hockey. Your own strength in a sport is that team's quality, which is its coaching staff, the recruiting budget and the Athletic Director together, so hiring a coach moves your place on this table rather than some separate figure. Teams still waiting on a venue are not ranked: they cannot compete yet."
+          text="Every college and university in the country is stronger at some sports than others, and reliably so — one that is good at hockey stays good at hockey. Your own strength in a sport is that team's quality, which is its coaching staff, the recruiting budget and the Athletic Director together, so hiring a coach moves your place on this table rather than some separate figure. Teams still waiting on a venue are not ranked: they cannot compete yet."
         />
       </div>
       <ul className="sport-standings">

@@ -312,7 +312,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <p className="empty-note demand-footnote">
         Missing the deadline costs goodwill and the applicants word of mouth brings — the figures
         above, at next summer's funnel. Nothing else: satisfaction is floored, so an unaffordable
-        demand left unmet stalls the school rather than sinking it.
+        demand left unmet stalls the college rather than sinking it.
       </p>
     </section>
   );

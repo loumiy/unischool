@@ -49,7 +49,7 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, onOpenBuild,
   }
 
   const doorOpen = step.door === 'build' ? buildOpen : step.door === 'hall' ? hallOpen : true;
-  const doorLabel = step.door === 'build' ? 'Open the Build menu' : 'Open Founders Hall';
+  const doorLabel = step.door === 'build' ? 'Open the build menu' : 'Open Founders Hall';
 
   return (
     <aside className="opening-coach" role="status" aria-live="polite" aria-label={step.title}>

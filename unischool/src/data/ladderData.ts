@@ -77,7 +77,7 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: [],
     tabs: [],
     letter: '',
-    opens: ['Founders Hall, the first dorm and dining hall, the Library and the Campus Quad', 'The Curriculum, Faculty and Treasury'],
+    opens: ['Founders Hall, the first residence hall and dining hall, the Library and the Campus Quad', 'The Curriculum, Faculty and Treasury'],
   },
   {
     id: 'campus-life',

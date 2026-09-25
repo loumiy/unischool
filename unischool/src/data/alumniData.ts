@@ -29,7 +29,7 @@ export const MEMORY_CLAUSES: readonly MemoryClause[] = [
   { id: 'first-of-program', when: 'firstOfProgram', text: 'the first to read a subject that did not exist before them', warmth: 6 },
   { id: 'freeze', when: 'freeze', text: 'graduated out of a freeze', warmth: -4 },
   { id: 'austerity', when: 'austerity', text: 'an austerity class', warmth: -8 },
-  { id: 'receivership', when: 'receivership', text: 'here when the receivers were', warmth: -12 },
+  { id: 'receivership', when: 'receivership', text: 'there when the interim CFO was', warmth: -12 },
   { id: 'deficits', when: 'deficits', text: 'four years of bad news from the bursary', warmth: -3 },
   { id: 'handsome', when: 'beautiful', text: 'on the handsomest campus in the county', warmth: 6 },
   { id: 'quiet', when: 'always', text: 'unremarkable, and fond of it', warmth: 2 },

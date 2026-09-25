@@ -13,7 +13,7 @@ export default function Credits({ onClose }: { onClose: () => void }) {
         <p className="credits-lede">Fifty years to build a university.</p>
         <dl className="credits-list">
           <dt>Design and direction</dt>
-          <dd>The UniSchool author, from the design documents in this repository</dd>
+          <dd>The UniSchool author</dd>
           <dt>Built with</dt>
           <dd>Claude Code, plan by plan</dd>
           <dt>Made with</dt>

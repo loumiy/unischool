@@ -605,7 +605,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     prompt: (s, ctx) => {
       const chapter = findChapter(s, ctx.subjectId);
       const size = chapter ? orgMembership(chapter, s) : 0;
-      return `${ctx.subjectName} has outgrown its meeting room: ${size} members, and an alumni committee with drawings for a dedicated chapter house on the edge of campus. The school's share of the build is ${money(ctx.amount ?? 0)}.`;
+      return `${ctx.subjectName} has outgrown its meeting room: ${size} members, and an alumni committee with drawings for a dedicated chapter house on the edge of campus. The college's share of the build is ${money(ctx.amount ?? 0)}.`;
     },
     choices: [
       {
@@ -708,7 +708,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     prompt: (s, ctx) => {
       const ad = s.orgs.athleticDirector;
       const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
-      return `${ad?.name ?? 'The athletic director'} has been on at you about ${ctx.subjectName}: it has been running without a ${role}, `
+      return `${ad?.name ?? 'The Athletic Director'} has been on at you about ${ctx.subjectName}: it has been running without a ${role}, `
         + `and they have somebody in mind who will not be on the open market for long.`;
     },
     choices: [
@@ -915,7 +915,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'hold',
         label: 'Hold the course',
-        describe: () => 'Nothing is spent. The school answers on the field, or does not.',
+        describe: () => 'Nothing is spent. The college answers on the field, or does not.',
         cost: () => 0,
         apply: (s, ctx) => entry(s, `The board's response to ${ctx.subjectName} is to hold the course.`, 'info'),
       },
@@ -943,7 +943,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
       const venueLine = venue?.status === 'done'
         ? `${venue.name} already stands and could host them immediately.`
-        : `The school has no venue for ${sport?.teamName ?? 'this sport'} yet — going varsity means building ${venue ? venue.name : 'one'} before the team can actually compete.`;
+        : `The college has no venue for ${sport?.teamName ?? 'this sport'} yet — going varsity means building ${venue ? venue.name : 'one'} before the team can actually compete.`;
       return `${ctx.subjectName} has outgrown intramural play and wants varsity status: real recruiting, a paid coach, and a conference schedule. ${venueLine} Establishing the program costs ${money(ctx.amount ?? 0)}.`;
     },
     choices: [
