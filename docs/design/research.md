@@ -116,7 +116,11 @@ in the game is out of reach for a single strong department however deep it
 goes.
 
 **Research is staged** (Plan 53). The first three depths are open from the
-first lab. The Landmark Program opens with **the Research Park**, a capital
+first lab. Two letters lead the way (Plan 59): *The laboratories*, when
+the first lab stands, asks for an initiative seen through in every lab; *The
+Research Park*, when the park opens, asks to site it. The next-step line
+names a lab that has not yet seen one through before any other idle lab.
+The Landmark Program opens with **the Research Park**, a capital
 project that itself waits on every standing lab having seen an initiative
 through (`s.research.finishedLabs`, recorded when one ends uncancelled): a
 college earns its landmark work by doing research everywhere it can first.

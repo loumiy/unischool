@@ -9,6 +9,7 @@ import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
 import { hallOf, isHoused, isInTransit, refillOffers, slotOf } from './programOffers';
 import { dedicatedHalls, schoolFoundedKey } from './schools';
+import { darkPrograms } from './darkness';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 import { ladderAllows } from '../ladder/ladderSystem';
 
@@ -589,10 +590,12 @@ export function tickTech(s: GameState): void {
   const arrived = Object.values(s.halls).some((slots) => slots.some((slot) => slot.transitWeeks !== undefined && slot.transitWeeks <= 1));
   tickTransit(s);
 
+  // A course of a dark program holds its countdown: in transit, or with a
+  // course unstaffed (darkness.ts, Plan 59).
+  const dark = darkPrograms(s);
   for (const id of Object.keys(s.developing)) {
-    // A course of a program in transit holds its countdown.
     const programId = programOfCourse(id);
-    if (programId !== undefined && isInTransit(s, programId)) continue;
+    if (programId !== undefined && dark.has(programId)) continue;
     const weeksLeft = s.developing[id] - 1;
     if (weeksLeft <= 0) {
       delete s.developing[id];

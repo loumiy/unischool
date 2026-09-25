@@ -150,6 +150,7 @@ console.log('consequences tests');
   assert(demand!.target === instructionCapacity(s) + SEATS_PER_COURSE, 'met at one more course\'s seats');
   assert(!demandProgress(s, demand!).met, 'not met yet');
   entry.status = 'done';
+  s.courseFaculty[entry.id] = s.faculty[0].id; // taught, or the program is dark (Plan 59)
   assert(demandProgress(s, demand!).met, 'developing it meets the demand');
 }
 

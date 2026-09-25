@@ -2,7 +2,7 @@ import { quirkById } from '../../data/quirkData';
 import { tickSearches } from './facultySearch';
 import type { Buildable, Faculty, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
-import { neededFacultyFields } from '../techtree/techSystem';
+import { neededFacultyFields, unstaffedCourses } from '../techtree/techSystem';
 
 // The one way somebody joins the roster, shared by HIRE_FACULTY and the
 // visiting-chair event so an appointment always means the same thing.
@@ -76,6 +76,16 @@ function tickCandidatePool(s: GameState): void {
         subject: candidate.id,
       });
     }
+  }
+  // A course that lost its instructor always has someone to take it (Plan
+  // 59): a field with an unstaffed course and nobody listed gets a listing,
+  // so restaffing (restaffing.ts) can always put the college back together.
+  const listed = new Set(s.candidates.map((c) => c.field));
+  for (const field of new Set(unstaffedCourses(s).map((t) => t.requiresFaculty!))) {
+    if (listed.has(field)) continue;
+    const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
+    s.candidates.push(generateCandidate(field, existingNames));
+    listed.add(field);
   }
   // A posted search's listing lands on top of the churn (facultySearch.ts).
   tickSearches(s);

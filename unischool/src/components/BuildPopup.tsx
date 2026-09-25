@@ -5,7 +5,7 @@ import type { Buildable, FacilityType, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { awaitsSite } from '../state/campusMap';
-import { FACILITY_CATEGORY_OF, type FacilityCategory, LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion } from '../data/facilitiesData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
@@ -318,7 +318,6 @@ function BuildTile({
   // left or a venue has an expansion left, which get an in-place offer.
   if (t.status === 'done' && t.id in s.placements) {
     const detail = builtDetail(t);
-    const floorPlan = t.id === LIBRARY_TIER1_ID ? nextLibraryFloor(t) : null;
     // A venue rung: the same in-place offer, up to its expansions cap.
     const rung = t.athleticsVenueReveal ? nextVenueExpansion(t) : null;
     if (rung) {
@@ -339,27 +338,6 @@ function BuildTile({
           <span className="build-tile-name">{t.name}</span>
           {detail && <span className="build-tile-sub">{detail}</span>}
           <span className="build-tile-foot">expand · {money(rung.cost)} · {rung.weeks}w</span>
-        </button>
-      );
-    }
-    if (floorPlan) {
-      const shortfall = floorPlan.cost - s.finance.cash;
-      const frozen = constructionFrozen(s);
-      return (
-        <button
-          type="button"
-          className="build-tile available"
-          disabled={shortfall > 0 || frozen}
-          title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
-            ? `${money(Math.ceil(shortfall))} short.`
-            : `Renovates the existing library in place — no new building. Adds ${floorPlan.servesGain.toLocaleString()} seats over ${floorPlan.weeks} weeks; the library keeps serving its existing floors while the new one goes up.`}
-          onClick={() => act({ type: 'RENOVATE_LIBRARY' })}
-        >
-          {marker && <span className="kind-tag">{marker}</span>}
-          <span className="build-tile-icon"><Icon /></span>
-          <span className="build-tile-name">{t.name}</span>
-          {detail && <span className="build-tile-sub">{detail}</span>}
-          <span className="build-tile-foot">add a story · {money(floorPlan.cost)} · {floorPlan.weeks}w</span>
         </button>
       );
     }

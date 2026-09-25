@@ -5,7 +5,7 @@ import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import { FIGURE_HINTS } from '../data/figureHints';
 import {
-  HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity,
+  HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, interestClubs, sportClubCapacity, sportClubs,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
 import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
@@ -377,7 +377,9 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           <section className="panel">
             <div className="panel-head">
               <h2>Clubs</h2>
-              <span className="panel-count">{clubs.length} / {clubCapacity(s)}</span>
+              <span className="panel-count" title="Interest clubs and sport clubs are capped apart: a sport club leaves the list when it goes varsity.">
+                {interestClubs(s).length} / {clubCapacity(s)} · sport {sportClubs(s).length} / {sportClubCapacity(s)}
+              </span>
             </div>
             {clubs.length === 0 ? (
               <p className="empty-note">No recognized clubs.</p>

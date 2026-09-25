@@ -156,7 +156,7 @@ const LIBRARY_TIER1_WEEKS = 12;
 // Maxed tier 1 (1,200 + 3 floors) plus tier 2 serves 12,325, adequate to
 // ~82,000 enrolled at the 0.15 target ratio, past the 40k-56k the strongest
 // balance strategies reach by year 40.
-const LIBRARY_FLOOR_MAX = 3;
+export const LIBRARY_FLOOR_MAX = 3;
 const LIBRARY_FLOOR_BASE_SERVES = 2_000;
 const LIBRARY_FLOOR_SERVES_GROWTH = 1.25;
 const LIBRARY_FLOOR_BASE_COST = 2_200_000;
@@ -429,12 +429,8 @@ const QUAD_TIER1_FLAT_BONUS = 8;
 const QUAD_TIER1_COST = 60_000;
 const QUAD_TIER1_WEEKS = 4;
 const QUAD_TIER1_UPKEEP = 400;
-// A second small quad, not a tier: no `tier`, so the build tray shows no chip.
-const QUAD_SECOND_ID = 'QUAD-S2';
-const QUAD_SECOND_FLAT_BONUS = 5;
-const QUAD_SECOND_COST = 90_000;
-const QUAD_SECOND_WEEKS = 4;
-const QUAD_SECOND_UPKEEP = 400;
+// The Second Quad (QUAD-S2) is gone since Plan 59; a save that built one
+// keeps it (persistence.ts).
 const QUAD_TIER2_ID = 'QUAD-T2';
 const QUAD_TIER2_FLAT_BONUS = 12;
 const QUAD_TIER2_COST = 190_000;
@@ -845,22 +841,6 @@ export function initialFacilities(): Buildable[] {
         satisfactionAttribute: 'social',
         flatSatisfactionBonus: QUAD_TIER1_FLAT_BONUS,
         upkeepPerWeek: QUAD_TIER1_UPKEEP,
-      },
-    },
-    {
-      id: QUAD_SECOND_ID,
-      kind: 'facility',
-      facilityType: 'quad',
-      name: 'Second Quad',
-      description: 'A second green, the size of the first — a campus with two open middles. The same flat, non-scaling social bonus, a little smaller.',
-      cost: QUAD_SECOND_COST,
-      duration: QUAD_SECOND_WEEKS,
-      prereqs: [QUAD_TIER1_ID],
-      status: 'locked',
-      effects: {
-        satisfactionAttribute: 'social',
-        flatSatisfactionBonus: QUAD_SECOND_FLAT_BONUS,
-        upkeepPerWeek: QUAD_SECOND_UPKEEP,
       },
     },
     {

@@ -9,6 +9,7 @@ import {
   CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
   CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics} from './studentLifeData';
+import { RESEARCH_PARK_ID } from './researchData';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, academicHallId, graduateProgram, milestoneSchools, programById } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { claimedHalls, dedicatedHalls, dedicatedSchool, nextSchoolToMove, programsAwayFromHome, suggestedMove, type Claim } from '../systems/techtree/schools';
@@ -1130,7 +1131,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     body: (s) => {
       const founding = FOUNDING_PROGRAMS.map((id) => programById(id)?.name ?? id);
       const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
-      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three rooms still empty. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free room: the program's first course starts the moment you pick who teaches it. Founders Hall is where every program begins, and none of them will stay: in time each moves into a hall of its own school.`;
+      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three rooms still empty. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free room: the program's first course starts the moment you pick who teaches it. Founders Hall is where every program begins, and most will not stay: in time they move into halls of their own school.`;
     },
     ask: () => ({ text: 'Found a fourth program in Founders Hall', ...FOUNDERS_HALL_ASK, intent: { kind: 'found', hallId: FOUNDERS_HALL_ID } }),
     done: (s) => housedProgramCount(s) > FOUNDING_PROGRAMS.length,
@@ -1146,7 +1147,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
         .map((slot) => (slot.programId ? programById(slot.programId)?.school : undefined))
         .filter((school): school is string => school !== undefined))];
       const elm = hallName(s, FIRST_HALL_ID);
-      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum. Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''} — and it will never be one school's hall: it is where programs start. A school is six of its programs in a hall of its own, and ${elm} is the first: six rooms, three quarters of a million, sixteen weeks to build. Site it now; when it stands, the first school moves in.`;
+      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum. Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''} — and it is where programs start, not where they stay. A school is six of its programs in a hall of its own, and ${elm} is the first: six rooms, three quarters of a million, sixteen weeks to build. Site it now; when it stands, the first school moves in.`;
     },
     ask: (s) => ({ text: `Site ${hallName(s, FIRST_HALL_ID)}`, go: 'build', intent: { kind: 'site', buildableIds: [FIRST_HALL_ID] } }),
     done: (s) => FIRST_HALL_ID in s.placements,
@@ -1250,7 +1251,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const next = nextSchoolToMove(s);
       const names = next ? awayNames(s, next) : [];
       const who = next ? `${next}'s ${names.length === 1 ? 'program' : 'programs'} — ${list(names)} — ${names.length === 1 ? 'goes' : 'go'} there` : 'the next school goes there';
-      return `${claim ? `${claim.school} has a hall of its own. ` : ''}${oak} is next: site it, and when it stands, ${who}. Every school leaves Founders Hall the same way, and the day Founders Hall stands empty, every program this college teaches is at home in a school of its own.`;
+      return `${claim ? `${claim.school} has a hall of its own. ` : ''}${oak} is next: site it, and when it stands, ${who}. Every school leaves Founders Hall the same way but one: there are six halls for seven schools, and the last school sorted keeps Founders Hall as its own.`;
     },
     ask: (s) => {
       const oak = hallName(s, SECOND_HALL_ID);
@@ -1264,7 +1265,46 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     },
     done: twoSchoolsHoused,
   },
+  // Research (Plan 59): once the first lab stands, the way to the Research
+  // Park — an initiative seen through in every lab — and then the park.
+  {
+    id: 'the-laboratories',
+    week: 1,
+    arrives: (s) => standingLabs(s).length > 0,
+    title: 'The laboratories',
+    body: (s) => {
+      const labs = standingLabs(s).map((t) => t.name);
+      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one initiative at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see an initiative through in every lab this college builds. When each has finished one, the Research Park opens — the home of Landmark research — and the college is a research university in fact as well as in name. Doctorates come separately: the Graduate College opens once any school teaches every one of its courses.`;
+    },
+    ask: (s) => {
+      const lab = standingLabs(s).find((t) => !finishedLab(s, t.id));
+      if (!lab) return { text: 'Every lab has seen an initiative through', intent: { kind: 'wait' } };
+      const running = !!s.research.initiatives[lab.id];
+      return running
+        ? { text: `See ${lab.name}'s initiative through`, intent: { kind: 'wait' } }
+        : { text: `Commission research in ${lab.name}`, intent: { kind: 'research', labId: lab.id } };
+    },
+    done: (s) => standingLabs(s).length > 0 && standingLabs(s).every((t) => finishedLab(s, t.id)),
+  },
+  {
+    id: 'the-research-park',
+    week: 1,
+    arrives: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'locked'),
+    title: 'The Research Park',
+    body: () => 'Every lab on campus has seen an initiative through, and the trustees have found the land: the Research Park — laboratories for rent to companies who want to be near the faculty — can be built. It is where Landmark research is commissioned, the deepest and most expensive work a university does, and the kind that wins prizes.',
+    ask: () => ({ text: 'Site the Research Park', go: 'build', intent: { kind: 'site', buildableIds: [RESEARCH_PARK_ID] } }),
+    done: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && (t.status === 'developing' || t.status === 'done')),
+  },
 ];
+
+// The labs standing on campus, and whether one has seen an initiative
+// through (research.ts records it; projects.ts's everyLabFinished reads it).
+function standingLabs(s: GameState): Buildable[] {
+  return s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done');
+}
+function finishedLab(s: GameState, labId: string): boolean {
+  return Array.isArray(s.research.finishedLabs) && s.research.finishedLabs.includes(labId);
+}
 
 export function findOpeningLetter(id: string): OpeningLetter | undefined {
   return OPENING_LETTERS.find((letter) => letter.id === id);

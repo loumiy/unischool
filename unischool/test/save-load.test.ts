@@ -55,32 +55,30 @@ function writeSave(version: number, state: unknown): void {
   store.set(SAVE_KEY, JSON.stringify({ version, savedAt: Date.now(), state }));
 }
 
-// ---- Test: the one-off carry from version 76 (Plan 55's seven halls) ----
-function testHallChainCarry(): void {
+// ---- Test: the one-off carry from version 77 (Plan 59's retirements) ----
+function testRetiredCarry(): void {
   clearSave();
   const cur = createInitialState('Carry');
-  // The same run as version 76 wrote it: thirteen purchased halls, the
-  // eighth standing with a program in it, the ninth sited and rising, the
-  // rest unbuilt.
-  const old = JSON.parse(JSON.stringify(cur)) as GameState;
-  const cedar = old.tech.find((t) => t.id === 'HALL-07')!;
-  cedar.status = 'done';
-  old.placements['HALL-07'] = { row: 5, col: 5, w: 7, h: 5 };
-  old.halls['HALL-07'] = Array.from({ length: 6 }, () => ({ programId: null }));
-  for (let i = 8; i <= 13; i += 1) {
-    const id = `HALL-${String(i).padStart(2, '0')}`;
-    old.tech.push({ ...cedar, id, name: `Hall ${i}`, status: i === 8 ? 'done' : i === 9 ? 'developing' : 'locked', prereqs: [`HALL-${String(i - 1).padStart(2, '0')}`] });
+  // The same run as version 77 wrote it: a seventh hall and a Second Quad.
+  // One run with neither sited, one with both.
+  const sycamore = cur.tech.find((t) => t.id === 'HALL-06')!;
+  const quad = cur.tech.find((t) => t.id === 'QUAD-T1')!;
+  for (const sited of [false, true]) {
+    const old = JSON.parse(JSON.stringify(cur)) as GameState;
+    old.tech.push({ ...sycamore, id: 'HALL-07', name: 'Cedar Hall', status: sited ? 'done' : 'locked', prereqs: ['HALL-06'] });
+    old.tech.push({ ...quad, id: 'QUAD-S2', name: 'Second Quad', status: sited ? 'done' : 'locked', prereqs: ['QUAD-T1'] });
+    if (sited) {
+      old.placements['HALL-07'] = { row: 5, col: 5, w: 7, h: 5 };
+      old.placements['QUAD-S2'] = { row: 5, col: 20, w: 4, h: 4 };
+      old.halls['HALL-07'] = Array.from({ length: 6 }, () => ({ programId: null }));
+    }
+    store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: old }));
+    const back = loadGame();
+    assert(back !== null, `a version-77 save loads (${sited ? 'sited' : 'unsited'})`);
+    if (!back) continue;
+    const has = (id: string) => back.tech.some((t) => t.id === id);
+    assert(has('HALL-07') === sited && has('QUAD-S2') === sited, sited ? 'a sited Cedar Hall and Second Quad stay' : 'an unsited Cedar Hall and Second Quad leave the save');
   }
-  old.placements['HALL-08'] = { row: 5, col: 20, w: 7, h: 5 };
-  old.halls['HALL-08'] = [{ programId: 'HIST' }, ...Array.from({ length: 5 }, () => ({ programId: null }))];
-  old.placements['HALL-09'] = { row: 5, col: 35, w: 7, h: 5 };
-  store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: old }));
-  const back = loadGame();
-  assert(back !== null, 'a version-76 save loads');
-  if (!back) return;
-  const halls = back.tech.filter((t) => /^HALL-\d+$/.test(t.id)).map((t) => t.id);
-  assert(halls.join(',') === 'HALL-01,HALL-02,HALL-03,HALL-04,HALL-05,HALL-06,HALL-07,HALL-08,HALL-09', `the unbuilt rungs past Cedar Hall are gone, the sited ones kept (${halls.join(',')})`);
-  assert(back.halls['HALL-08']?.[0]?.programId === 'HIST', 'and a standing one keeps its program');
 }
 
 // ---- Test: the catalog's text reaches a saved run (Plan 46) ----
@@ -349,7 +347,7 @@ function testRejects(): void {
 console.log(`save/load tests (SAVE_VERSION ${SAVE_VERSION})`);
 testRoundTrip();
 testAuthoredText();
-testHallChainCarry();
+testRetiredCarry();
 testFoundingSeenExcludesStartingContent();
 testCourseFacultySanitizer();
 testChapterGlyphs();

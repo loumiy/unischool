@@ -22,6 +22,7 @@ import { projectConsequences } from '../systems/admissions/consequences';
 import { poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
+import { restaffPlan } from '../systems/faculty/restaffing';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
@@ -1042,6 +1043,53 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
   );
 }
 
+// The Deans' year-end recommendations (Plan 59, eventSystem.ts): each
+// school's plan to restaff its unstaffed courses (restaffing.ts), read live
+// so it shows exactly what accepting commits.
+function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; schools: string[]; onResolve: (accept: boolean) => void }) {
+  const plans = schools.map((school) => ({
+    school,
+    dean: (s.seats ?? []).find((x) => x.seatId === 'dean' && x.school === school)?.holder,
+    steps: restaffPlan(s, school),
+  }));
+  const hires = plans.flatMap((p) => p.steps.filter((x) => x.hire));
+  const courseName = (id: string) => s.tech.find((t) => t.id === id)?.name ?? id;
+  const facultyName = (id: string) => s.faculty.find((f) => f.id === id)?.name ?? s.candidates.find((c) => c.id === id)?.name ?? id;
+  return (
+    <>
+      <h2>The Deans' recommendations</h2>
+      <p>
+        Courses without an instructor leave their whole program dark: no seats, no progress, and a zero in every grade.
+        Your Deans have found who can take them.
+      </p>
+      {plans.map((p) => (
+        <section key={p.school} className="dean-plan">
+          <h3>{p.school}{p.dean ? ` · Dean ${p.dean}` : ''}</h3>
+          <ul>
+            {p.steps.map((step) => (
+              <li key={step.courseId}>
+                <strong>{courseName(step.courseId)}</strong> — {facultyName(step.facultyId)}
+                {step.hire ? ` (appointed from the market, ${money(step.hire.salary)}/yr)` : ' (already on the faculty)'}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      <div className="event-choices">
+        <button className="event-choice" onClick={() => onResolve(true)}>
+          <span className="event-choice-label">
+            Accept every recommendation
+            <span className="event-choice-cost">{hires.length > 0 ? `${hires.length} appointment${hires.length === 1 ? '' : 's'}, ${money(hires.reduce((n, x) => n + x.hire!.salary, 0))}/yr` : 'no new salaries'}</span>
+          </span>
+        </button>
+        <button className="event-choice" onClick={() => onResolve(false)}>
+          <span className="event-choice-label">Not now<span className="event-choice-cost">the programs stay dark</span></span>
+        </button>
+      </div>
+    </>
+  );
+}
+
 // The College -> University charter, asked once, the first quiet week after
 // any lab finishes (systems/events/eventSystem.ts). Cosmetic: only the name
 // changes. Either answer closes the question.
@@ -1254,6 +1302,12 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
             s={s}
             payload={interrupt.payload as AthleticDirectorPayload}
             onResolve={(candidate, mascot) => act({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate, mascot })}
+          />
+        ) : interrupt.type === 'dean-recommendations' ? (
+          <DeanRecommendationsView
+            s={s}
+            schools={(interrupt.payload as { schools: string[] }).schools}
+            onResolve={(accept) => act({ type: 'RESOLVE_DEAN_RECOMMENDATIONS', accept })}
           />
         ) : interrupt.type === 'charter' ? (
           <CharterOfferView s={s} onResolve={(accept) => act({ type: 'RESOLVE_CHARTER', accept })} />

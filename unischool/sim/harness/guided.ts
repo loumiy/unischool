@@ -28,14 +28,15 @@ import { GRADUATE_HOSTS } from '../../src/data/projectData';
 import { initiativeOffers } from '../../src/data/researchData';
 import { canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors } from '../../src/systems/techtree/techSystem';
 import { hostOffers } from '../../src/systems/techtree/programOffers';
-import { schoolFoundedKey } from '../../src/systems/techtree/schools';
+import { claimedSchool, schoolFoundedKey } from '../../src/systems/techtree/schools';
 import { financeBreakdown, weeklyNet } from '../../src/systems/finance/financeSystem';
 import { priceTolerance } from '../../src/systems/admissions/admissionsSystem';
 import { playerRank } from '../../src/systems/rivals/rivalsSystem';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { totalEnrolled } from '../../src/state/types';
 import type { Game, Player } from './game';
-import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../../src/data/facilitiesData';
+import { LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
+import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site } from './moves';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
@@ -66,8 +67,9 @@ export interface GuidedRecord {
   done: Record<string, [number, number]>;
   // The year each school was founded.
   schools: Record<string, number>;
-  // The first year Founders Hall stood empty once it had begun to empty.
-  foundersEmpty: number | null;
+  // The year the last school sorted settled in Founders Hall (Plan 59):
+  // every purchased hall sited, and Founders Hall one school's.
+  foundersHome: number | null;
   // Weeks each kind of intent was the line, and weeks it was carried out.
   asked: Record<string, number>;
   carried: Record<string, number>;
@@ -116,7 +118,7 @@ function foundIn(g: Game, hallId: string, programIds: string[], reserve: number)
 
 // What the build menu offers for an attribute: a facility that serves it,
 // the next residence hall for housing, the library's next floor for study
-// space (a renovation, not a new building).
+// space.
 function buildFor(g: Game, attribute: keyof SatisfactionAttributes, reserve: number): boolean {
   const s = g.s;
   if (attribute === 'housing') {
@@ -124,10 +126,10 @@ function buildFor(g: Game, attribute: keyof SatisfactionAttributes, reserve: num
     if (dorm) return site(g, dorm);
   }
   if (attribute === 'academic') {
+    // The library's next story, from its panel (Plan 59).
     const lib = s.tech.find((x) => x.id === LIBRARY_TIER1_ID);
-    const floor = lib && lib.status === 'done' ? nextLibraryFloor(lib) : null;
-    if (floor && affords(s, floor.cost, reserve)) {
-      g.act({ type: 'RENOVATE_LIBRARY' });
+    if (lib && canExtend(lib) && affords(s, extensionCost(lib), reserve)) {
+      g.act({ type: 'EXTEND_BUILDING', id: lib.id });
       return true;
     }
   }
@@ -226,9 +228,8 @@ function background(g: Game, reserve: number): void {
 }
 
 export function createGuidedPlayer(): Player & { record: GuidedRecord } {
-  const record: GuidedRecord = { delivered: {}, done: {}, schools: {}, foundersEmpty: null, asked: {}, carried: {}, quiet: 0, saving: 0, years: [] };
+  const record: GuidedRecord = { delivered: {}, done: {}, schools: {}, foundersHome: null, asked: {}, carried: {}, quiet: 0, saving: 0, years: [] };
   let lastYear = 0;
-  let foundersPeak = 0;
 
   function observe(s: GameState): void {
     const when: [number, number] = [s.clock.year, s.clock.week];
@@ -240,8 +241,7 @@ export function createGuidedPlayer(): Player & { record: GuidedRecord } {
       if (s.milestones[schoolFoundedKey(school.schoolName)] && record.schools[school.schoolName] === undefined) record.schools[school.schoolName] = s.clock.year;
     }
     const housed = (s.halls[FOUNDERS_HALL_ID] ?? []).filter((x) => x.programId !== null).length;
-    foundersPeak = Math.max(foundersPeak, housed);
-    if (record.foundersEmpty === null && foundersPeak > 0 && housed === 0) record.foundersEmpty = s.clock.year;
+    if (record.foundersHome === null && claimedSchool(s, FOUNDERS_HALL_ID) !== null) record.foundersHome = s.clock.year;
     if (s.clock.year !== lastYear) {
       lastYear = s.clock.year;
       record.years.push({

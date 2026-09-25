@@ -56,8 +56,12 @@ function withHall(s: GameState, id: string): void {
   s.halls[id] = Array.from({ length: 6 }, () => ({ programId: null }));
 }
 
+// Developed and taught: an unstaffed course darkens its program (Plan 59).
 function finish(s: GameState, ids: string[]): void {
-  for (const id of ids) s.tech.find((t) => t.id === id)!.status = 'done';
+  for (const id of ids) {
+    s.tech.find((t) => t.id === id)!.status = 'done';
+    s.courseFaculty[id] = s.faculty[0].id;
+  }
 }
 
 // A year's worth of satisfaction at one level, as the accumulator would hold it.
@@ -144,6 +148,7 @@ console.log('standing readings tests');
 
   // A course still developing is not yet a seat.
   s.tech.find((t) => t.id === marketing.courseIds[2])!.status = 'developing';
+  s.courseFaculty[marketing.courseIds[2]] = s.faculty[0].id;
   assert(
     instructionCapacity(s) === core.seats + (finance.courseIds.length + 2) * SEATS_PER_COURSE,
     'a developing course is not a seat yet',

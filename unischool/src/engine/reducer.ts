@@ -6,7 +6,7 @@ import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
-  EXTENSION_WEEKS, RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, renovationCost, tickEstate,
+  RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
 } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
 import { CAMPUS_GRID_WIDTH, LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
@@ -28,6 +28,7 @@ import { endInitiative } from '../systems/research/researchSystem';
 import { researchTopic } from '../data/researchTopics';
 import { programOfCourse } from '../data/techData';
 import { isInTransit } from '../systems/techtree/programOffers';
+import { restaff } from '../systems/faculty/restaffing';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
@@ -359,7 +360,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       const cost = extensionCost(node);
       if (s.finance.cash < cost) return s;
       s.finance.cash -= cost;
-      node.extensionWeeks = EXTENSION_WEEKS;
+      node.extensionWeeks = extensionWeeks(node);
       return s;
     }
 
@@ -618,6 +619,23 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
           message: `The charter is declined; it remains ${s.self.name} College.`,
           kind: 'info',
         });
+      }
+      s.pendingInterrupt = null;
+      advanceClock(s);
+      return s;
+    }
+
+    case 'RESTAFF':
+      restaff(s, action.school ?? undefined);
+      return s;
+
+    // The Deans' plans, one per school (eventSystem.ts): accepted, each is
+    // committed as it stands now. Advances the clock like every answer.
+    case 'RESOLVE_DEAN_RECOMMENDATIONS': {
+      if (s.pendingInterrupt?.type !== 'dean-recommendations') return state;
+      if (action.accept) {
+        const { schools } = s.pendingInterrupt.payload as { schools: string[] };
+        for (const school of schools) restaff(s, school);
       }
       s.pendingInterrupt = null;
       advanceClock(s);

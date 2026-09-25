@@ -32,7 +32,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | Tier | Milestone | Condition | Opens |
 | --- | --- | --- | --- |
 | Founding | The charter | founding | Founders Hall, the dorm and dining chains, the Campus Quad, the Library; Curriculum, Faculty, Treasury |
-| Founding | A fourth program | a fourth program founded | Student Center, Recreation Center, Second Quad |
+| Founding | A fourth program | a fourth program founded | Student Center, Recreation Center |
 | Founding | First commencement | the first summer closes | Enrollment, Student Life, History |
 | Founding | A curriculum | eight courses developed | academic halls |
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |

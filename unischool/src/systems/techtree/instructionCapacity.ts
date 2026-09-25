@@ -1,7 +1,8 @@
 import type { GameState } from '../../state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../../state/types';
 import { programOfCourse } from '../../data/techData';
-import { isHoused, isInTransit } from './programOffers';
+import { isHoused } from './programOffers';
+import { darkPrograms } from './darkness';
 
 // Instruction capacity: SEATS_PER_COURSE for every developed course whose
 // program is housed and settled (not in transit), so depth and breadth both
@@ -21,13 +22,15 @@ export interface InstructionCapacity {
 }
 
 export function instructionCapacityDetail(s: GameState): InstructionCapacity {
+  // A dark program seats nobody: in transit, or unstaffed (darkness.ts).
+  const dark = darkPrograms(s);
   let courses = 0;
   for (const t of s.tech) {
     if (t.kind !== 'course') continue;
     const programId = programOfCourse(t.id);
     if (programId === undefined) continue;
     if (t.status !== 'done') continue;
-    if (!isHoused(s, programId) || isInTransit(s, programId)) continue;
+    if (!isHoused(s, programId) || dark.has(programId)) continue;
     courses += 1;
   }
   return { courses, seats: courses * SEATS_PER_COURSE };
