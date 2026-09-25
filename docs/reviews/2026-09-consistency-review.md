@@ -153,7 +153,41 @@ Plan 43 carries the same rules into the two files it owned (`f51a440`, `937d7ab`
 
 ## 6. The map as the camera turns (Plan 44)
 
-*[Filled in from Plan 44's result.]*
+The projection, hit-testing, depth sort and memoisation are right in every view. What was wrong was drawing that assumed the opening view. Plan 44 fixed it all, visuals only; the save is unchanged.
+
+- **Fixed paint order.**
+  - Roof slopes and pyramids now draw their back slopes first. This covers the spire, the campanile, the corner-tower caps, hipped roofs, gables, village houses and the Gothic canopy hood, which was also a bow-tie on two walls.
+  - The glasshouse roof is rebuilt from grid corners.
+  - The stadium draws its far stands, then the field, then the near stands. Its scoreboard and press box face the field and show only when that side is in view.
+  - Raked stands choose their back wall by camera.
+  - The arena closes whichever end is visible.
+- **Screen corners standing in for grid corners.**
+  - The corner tower counts as in front only at the front corner.
+  - Village doors, the hospital's cross and the site hoarding's posts use grid walls.
+  - The progress bar lies on the near edge, and the rotate button sits at the right corner.
+- **Tones.** The bowl's tint, merlons, flues, the portico pediment and the dome's lit side come from the world, not the screen's left wall. Before, whole building types brightened or darkened by up to a fifth as the view turned.
+- **Shadows.** A quad's, a garden's and a village's trees now cast in the shadow pass. That pass now runs after the flat plates, so building shadows fall across quads and pitches, where they used to vanish.
+- **Tilt and wind.** Ground ellipses flatten with the tilt, and the dome's lantern and the floodlight heads foreshorten. Flags fly one world wind instead of always to screen-right.
+- **Drawing data** (data review, section 4).
+  - Storeys were counted twice: a library's first new floor took it from 3 storeys to 5.
+  - Chapter houses fell through to default footprint, motif and height.
+  - Capital projects stood at two storeys in the default wall.
+
+![The stadium in view 2, before: the field paints over the near stands, and the scoreboard is on the wrong side](2026-09-consistency-review/stadium-view2-before.png)
+
+![After: far stands, field, near stands with their back walls, and the scoreboard facing the field](2026-09-consistency-review/stadium-view2-after.png)
+
+![A Gothic Founders Hall in view 2, after: the spire's lit slopes in front](2026-09-consistency-review/founders-gothic-view2-after.png)
+
+**Open:**
+- **Entrances and walker doors ([Q15](#q15)).**
+- **The placement ghost** hangs from its north-west tile, so in three views it hangs sideways or upward from the cursor.
+- **Small leftovers:**
+  - raised roof ends placed on fixed walls;
+  - fences ordered for view 0 only;
+  - a landmark ellipse and a pediment inset in fixed pixels;
+  - the program pips sitting across Founders Hall's clock face (visible in the shot above);
+  - labels drawn half-transparent over busy roofs.
 
 ---
 
@@ -214,3 +248,5 @@ Each is a design call. Each has a recommendation; none has been acted on.
 - Cut the catalogue copies of the recruiting scandal, the coach poached and naming rights.
 - Gate the dated texts on the year.
 - Replace the real funders, trophies and the "Crusaders" mascot with invented ones.
+
+<a id="q15"></a>**Q15. Entrances follow the camera; walkers and props assume +row is the front.** Doors, porticos, steps and porches are drawn on the walls the camera sees, so a building's "front" moves with every turn. Meanwhile walker routes, desire lines, bike racks and the Founders flag all use the +row wall. In two views of four, walkers stream to a blank back wall while the drawn doors go unused. *Recommend:* give each building a fixed grid entrance (the +row wall, or the one facing a path) and draw it only when that wall is in view, so doors and walkers agree.
