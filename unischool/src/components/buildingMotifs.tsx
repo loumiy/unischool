@@ -2,7 +2,7 @@ import { memo, useContext } from 'react';
 import type { Buildable, Vernacular } from '../state/types';
 import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
-import { WALL_LIGHT, faceTone, shadowOffset } from './light';
+import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import Landmark from './landmarks';
 import { ColorsContext } from './mapOccasions';
@@ -804,16 +804,18 @@ function Portico({ centreCol, centreRow, width, outward, stone, columns = PORTIC
         const top = ENTABLATURE;
         const frontWall = wallOf(ent, outward);
         const [fo, fa] = [frontWall.origin, frontWall.along];
-        const frontIsLeft = ent.dir.CD === outward;
+        // Toned by the way the front faces (light.ts), not by which side
+        // of the screen it is on.
+        const lit = WALL_LIGHT[outward];
         const mid = { x: (fo.x + fa.x) / 2, y: (fo.y + fa.y) / 2 };
         const apex = lift(mid, top + PEDIMENT_RISE);
         const inset = (q: Pt, sign: number) => ({ x: q.x + sign * 6, y: q.y });
         return (
           <>
-            <polygon points={polyPoints([lift(fo, top), lift(fa, top), apex])} fill={shade(stone.towerStone, frontIsLeft ? 0.98 : 0.8)} />
+            <polygon points={polyPoints([lift(fo, top), lift(fa, top), apex])} fill={shade(stone.towerStone, lit)} />
             <polygon
               points={polyPoints([inset(lift(fo, top + up(0.35)), 1), inset(lift(fa, top + up(0.35)), -1), lift(mid, top + PEDIMENT_RISE - up(0.4))])}
-              fill={shade(stone.towerStone, frontIsLeft ? 0.86 : 0.7)}
+              fill={shade(stone.towerStone, lit * 0.88)}
             />
           </>
         );
@@ -1214,9 +1216,12 @@ function Merlons({ col, row, w, h, base, outward, pal, block = across(1.1), gap 
   const m = block; const g = gap;
   const n = Math.max(1, Math.floor((span - g) / (m + g)));
   const start = (span - (n * m + (n - 1) * g)) / 2;
-  const left = fill ? shade(fill, 0.96) : pal.wallLeft;
-  const right = fill ? shade(fill, 0.8) : pal.wallRight;
-  const top = fill ? fill : shade(pal.wallLeft, 1.08);
+  // Walls by the way each faces (a balustrade's stone authored as its +row
+  // and +col tones); the top faces up and takes the +row wall's tone lifted.
+  const sides = (f: BoxFaces) => (fill
+    ? sideFaces(f, shade(fill, 0.96), shade(fill, 0.8))
+    : <><polygon points={polyPoints(f.left)} fill={pal.wallLeft} /><polygon points={polyPoints(f.right)} fill={pal.wallRight} /></>);
+  const top = fill ? fill : shade(pal.wall.posRow, 1.08);
   const rb = againstWall(col, row, w, h, outward, start, span - start * 2, depth, depth);
   const railBox = boxFaces(rb.col, rb.row, rb.w, rb.h, base + rise, rise * 0.22);
   return (
@@ -1227,16 +1232,14 @@ function Merlons({ col, row, w, h, base, outward, pal, block = across(1.1), gap 
         const f = boxFaces(b.col, b.row, b.w, b.h, base, rise);
         return (
           <g key={i}>
-            <polygon points={polyPoints(f.left)} fill={left} />
-            <polygon points={polyPoints(f.right)} fill={right} />
+            {sides(f)}
             <polygon points={polyPoints(f.top)} fill={top} />
           </g>
         );
       })}
       {rail && (
         <>
-          <polygon points={polyPoints(railBox.left)} fill={left} />
-          <polygon points={polyPoints(railBox.right)} fill={right} />
+          {sides(railBox)}
           <polygon points={polyPoints(railBox.top)} fill={top} />
         </>
       )}
@@ -1265,10 +1268,12 @@ function Dome({ col, row, w, h, base, stone }: {
   const DRUM = up(5.0); const RISE = up(6.5);
   const centre = project(cc, cr);
   const ring = projectedCircle(cc, cr, r, 48);
-  // The drum's near half, split into lit and shaded faces.
+  // The drum's near half, split into lit and shaded faces: lit on the
+  // side of the screen the sun is on (light.ts), which a turn moves.
+  const sunSide = sunScreenDir().x <= 0 ? -1 : 1;
   const front = ring.filter((p) => p.y >= centre.y - 0.01).sort((a, b) => a.x - b.x);
-  const lit = front.filter((p) => p.x <= centre.x + 0.01);
-  const dark = front.filter((p) => p.x >= centre.x - 0.01);
+  const lit = front.filter((p) => (p.x - centre.x) * sunSide >= -0.01);
+  const dark = front.filter((p) => (p.x - centre.x) * sunSide <= 0.01);
   const wall = (pts: Pt[]) => polyPoints([...pts.map((p) => lift(p, base)), ...[...pts].reverse().map((p) => lift(p, base + DRUM))]);
   const rx = (Math.max(...ring.map((p) => p.x)) - Math.min(...ring.map((p) => p.x))) / 2;
   const top = lift(centre, base + DRUM);
@@ -1286,9 +1291,9 @@ function Dome({ col, row, w, h, base, stone }: {
       <polygon points={wall(lit)} fill={shade(stone.towerStone, 0.97)} />
       <polygon points={wall(dark)} fill={shade(stone.towerStone, 0.8)} />
       <polygon points={polyPoints(ring.map((p) => lift(p, base + DRUM)))} fill={shade(stone.towerStone, 0.9)} />
-      {/* The dome, and a lit crescent on its left shoulder. */}
+      {/* The dome, and a lit crescent on its sunward shoulder. */}
       <polygon points={cap(1, 0)} fill={shade(stone.towerStone, 0.86)} />
-      <polygon points={cap(0.78, -rx * 0.12)} fill={shade(stone.towerStone, 0.96)} />
+      <polygon points={cap(0.78, sunSide * rx * 0.12)} fill={shade(stone.towerStone, 0.96)} />
       {/* The lantern, and the gilt finial on it. */}
       <rect x={lanternFoot.x - 3} y={lanternFoot.y - 7} width={6} height={8} fill={shade(stone.towerStone, 0.92)} />
       <line className="iso-finial" x1={lanternFoot.x} y1={lanternFoot.y - 7} x2={lanternFoot.x} y2={lanternFoot.y - 14} stroke={stone.gilt} />
@@ -1364,8 +1369,8 @@ function Recess({ col, row, w, h, wallHeight, outward, pal }: {
       <polygon className="iso-undercroft" points={polyPoints(cut.left)} />
       <polygon className="iso-undercroft" points={polyPoints(cut.right)} />
       <polygon className="iso-undercroft" points={polyPoints(cut.top)} />
-      {sideFaces(slab, shade(pal.wallLeft, 0.92), shade(pal.wallRight, 0.92))}
-      <polygon points={polyPoints(slab.top)} fill={shade(pal.wallLeft, 1.04)} />
+      {sideFaces(slab, shade(pal.wall.posRow, 0.92), shade(pal.wall.posCol, 0.92))}
+      <polygon points={polyPoints(slab.top)} fill={shade(pal.wall.posRow, 1.04)} />
     </>
   );
 }
@@ -2089,8 +2094,9 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const towerProudFace: FaceDir | undefined = cornerInFront ? undefined
     : seen.left === 'posRow' || seen.right === 'posRow' ? 'posRow'
       : seen.left === 'posCol' || seen.right === 'posCol' ? 'posCol' : undefined;
-  // Base tones for the solid helpers below.
-  const tint = pal.wallLeft;
+  // Base tone for the solid helpers below: the +row wall's, fixed to the
+  // world (it was the screen-left wall's, which turned with the camera).
+  const tint = pal.wall.posRow;
   const roofTint = material.roof;
 
   // Open ground has no mass; GroundMarking draws its own construction state.
@@ -3193,7 +3199,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         const st = boxFaces(col + w * u, row + h * 0.1, sp, sp, H, up(3.5));
         return (
           <g key={`flue${u}`}>
-            {sideFaces(st, shade(pal.wallLeft, 0.8), shade(pal.wallLeft, 0.66))}
+            {sideFaces(st, shade(pal.wall.posRow, 0.8), shade(pal.wall.posRow, 0.66))}
             <polygon points={polyPoints(st.top)} fill={shade(roofTint, 0.4)} />
           </g>
         );
