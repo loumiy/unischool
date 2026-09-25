@@ -8,7 +8,7 @@ import { BOARD_LETTERS } from '../data/boardData';
 export default function BoardLetter({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const id = s.finance.distress?.letters[0];
   const letter = id ? BOARD_LETTERS[id] : undefined;
-  if (!id || !letter || s.pendingInterrupt || s.ladder.unread.length > 0) return null;
+  if (!id || !letter || s.pendingInterrupt) return null;
   return (
     <aside className="milestone-note board-letter" role="note" aria-label={letter.title}>
       <p className="letter-eyebrow">From the board · Year {s.clock.year}</p>

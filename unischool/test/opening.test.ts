@@ -127,7 +127,7 @@ console.log('opening script tests');
   s = reducer(s, { type: 'TICK' });
   s = reducer(s, { type: 'RESOLVE_LETTER', skipAll: false });
   assert(nextStep(s)?.text === OPENING_LETTERS[0].ask, `after the first letter the line is its ask (${nextStep(s)?.text})`);
-  assert(nextStep(s)?.go === 'curriculum', 'and it points at the Curriculum');
+  assert(nextStep(s)?.go === 'hall' && nextStep(s)?.hallId === 'BLDG-GENSTUDIES', "and it opens Founders Hall's panel, where a program is founded");
   // Found a fourth program into one of Founders Hall's free rooms — the
   // founding draw guarantees one the roster can staff.
   const staffable = s.programOffers.find((id) => s.faculty.some((f) => f.field === programById(id)!.field))!;
@@ -158,7 +158,7 @@ console.log('opening script tests');
   // Hall, with its three free rooms (Plan 19).
   s.programOffers = offers;
   const founders = nextStep(s);
-  assert(founders?.go === 'curriculum' && founders.text.includes('Founders Hall'), `Founders Hall's free rooms are the line while programs are on offer (${founders?.text})`);
+  assert(founders?.go === 'hall' && founders.text.includes('Founders Hall'), `Founders Hall's free rooms are the line while programs are on offer (${founders?.text})`);
   for (const slot of s.halls[FOUNDERS_HALL_ID]) if (slot.programId === null) slot.programId = 'FINA';
   s.halls[FOUNDERS_HALL_ID][4] = { programId: 'ACCT' };
   s.halls[FOUNDERS_HALL_ID][5] = { programId: 'ECON' };
@@ -168,7 +168,7 @@ console.log('opening script tests');
   s.halls[hall.id] = Array.from({ length: hall.slots ?? 6 }, () => ({ programId: null }));
   s.programOffers = ['COMP'];
   const step = nextStep(s);
-  assert(step?.go === 'curriculum' && step.text.includes(hall.name) && step.text.includes('Computer Science'), `a free slot with a program on offer is the line (${step?.text})`);
+  assert(step?.go === 'hall' && step.hallId === hall.id && step.text.includes(hall.name) && step.text.includes('Computer Science'), `a free slot with a program on offer is the line (${step?.text})`);
 }
 
 // --- the walkthrough: a guided founding --------------------------------

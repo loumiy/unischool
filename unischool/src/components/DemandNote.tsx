@@ -11,7 +11,7 @@ import { absoluteWeek } from '../data/eventData';
 export default function DemandNote({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const demand = s.events.activeDemand;
   // One note at a time: a milestone's and the board's go first.
-  if (!s.events.demandUnread || !demand || s.pendingInterrupt || s.ladder.unread.length > 0 || (s.finance.distress?.letters.length ?? 0) > 0) return null;
+  if (!s.events.demandUnread || !demand || s.pendingInterrupt) return null;
   const copy = demandCopy(demand);
   const progress = demandProgress(s, demand);
   const stakes = demandStakes(s);

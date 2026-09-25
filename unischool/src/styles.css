@@ -1407,7 +1407,6 @@ button.build-tile { font-family: inherit; }
   padding: 2px 0; font-size: var(--text-xs); font-weight: 600; }
 .satisfaction-contributor-total { margin-top: 4px; padding-top: 4px !important;
   border-top: 2px dashed var(--parchment-line); font-weight: 800; }
-.demand-note { margin-top: 10px; }
 
 ul, ol { list-style: none; margin: 0; padding: 0; }
 .outcome-note { color: var(--school-primary); font-weight: 600; font-size: var(--text-xs); }
@@ -2266,7 +2265,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .letter-eyebrow { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--school-primary); margin: 0 0 4px !important; }
 .letter-body { line-height: 1.55; }
-.milestone-note { position: fixed; z-index: 12; left: 24px; top: 150px; width: min(360px, calc(100vw - 48px)); padding: 14px 16px;
+/* The notes over the map (App.tsx), stacked so none hides another. */
+.note-stack { position: fixed; z-index: 12; left: 24px; top: 150px; width: min(360px, calc(100vw - 48px));
+  max-height: calc(100vh - 150px - var(--toolbar-height, 80px) - 40px); overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px; }
+.note-stack:empty { display: none; }
+.milestone-note { padding: 14px 16px;
   background: var(--cream); border: 2px solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); color: var(--ink); }
 .milestone-note-title { margin: 2px 0 6px; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 .milestone-note-text { margin: 0 0 10px; line-height: 1.45; }

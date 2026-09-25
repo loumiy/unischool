@@ -41,6 +41,10 @@ export interface Milestone {
   // A side milestone drives a structural gate rather than a list of its own:
   // shown on the ladder so the player sees it coming, never required by one.
   side?: true;
+  // Celebrated by its own modal (eventData.ts's milestone celebrations),
+  // which says what opened: reached without a note of its own, so the moment
+  // is announced once (Plan 47).
+  quiet?: true;
   buildables: readonly string[];
   tabs: readonly TabId[];
   // What the arriving letter says, and one line per thing opened.
@@ -147,6 +151,7 @@ export const MILESTONES: readonly Milestone[] = [
     condition: 'six programs of one school in one hall',
     reached: (s) => hasMilestone(s, 'school-founded:'),
     side: true,
+    quiet: true,
     buildables: [],
     tabs: [],
     letter: "A school of its own, with a dean's worth of programs under one roof. Its laboratories can be built now: research starts there.",
@@ -216,6 +221,7 @@ export const MILESTONES: readonly Milestone[] = [
     condition: 'every course of a school complete',
     reached: (s) => hasMilestone(s, 'school-distinguished:'),
     side: true,
+    quiet: true,
     buildables: [],
     tabs: [],
     letter: 'A school with every course taught is a school that can train its successors. Graduate programs open where their schools stand.',

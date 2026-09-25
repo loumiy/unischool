@@ -1,4 +1,5 @@
 import type { CampusTool } from './state/actions';
+import { MILESTONES } from './data/ladderData';
 import { useEffect, useRef, useState } from 'react';
 import { SPEEDS, useGame } from './engine/useGame';
 import { openingHoldsClock } from './state/opening';
@@ -66,6 +67,8 @@ const TAB_HOTKEYS: Record<string, TabId> = {
 };
 
 type Front = 'title' | 'hall' | 'settings' | 'credits';
+
+const LADDER_TABS: ReadonlySet<TabId> = new Set(MILESTONES.flatMap((m) => m.tabs));
 
 export default function App() {
   const { state, act, speed, setSpeed, weekProgress, exportRun } = useGame();
@@ -142,7 +145,9 @@ export default function App() {
     for (const id of GATED_TABS) {
       if (!tabAvailable(s, id) || s.seen.tabIds[id] || reported.has(id)) continue;
       reported.add(id);
-      act({ type: 'NOTE_TAB_AVAILABLE', id, label: TAB_LABELS[id], announce: !firstPass });
+      // A tab a ladder milestone opens is announced by that milestone's note,
+      // so the log line would say it twice (Plan 47).
+      act({ type: 'NOTE_TAB_AVAILABLE', id, label: TAB_LABELS[id], announce: !firstPass && !LADDER_TABS.has(id) });
     }
   });
 
@@ -235,8 +240,8 @@ export default function App() {
 
   // The opening walkthrough drives the shell (see state/opening.ts). Each
   // transition into a stage acts once: 'site-hall' opens the build menu,
-  // 'teaching' closes it and drops the pickup, 'found' opens the
-  // Curriculum, and 'play' starts the clock (the game opens paused). On
+  // 'teaching' closes it and drops the pickup, 'found' opens Founders
+  // Hall's panel (where a program is founded), and 'play' starts the clock (the game opens paused). On
   // mount, a save resumed mid-walk acts on the door-opening stages but not
   // on 'play'. The ref holds the last stage acted on so StrictMode's double
   // effect can't act twice.
@@ -249,7 +254,8 @@ export default function App() {
     actedStage.current = stage;
     if (stage === 'site-hall') setBuildOpen(true);
     else if (stage === 'teaching') { closeBuild(); setPlacingIdState(null); }
-    else if (stage === 'found') openTab('curriculum');
+    // Founding happens in the hall's panel, so that is what opens.
+    else if (stage === 'found') inspectHall(FOUNDERS_HALL_ID);
     else if (stage === 'play' && prev !== null) setSpeed('real');
   }, [s.started, stage]);
 
@@ -327,11 +333,12 @@ export default function App() {
               {/* The left-hand notes wait while a building's panel holds
                   that side of the screen. */}
               {inspectedId === null && (
-                <>
-                  <MilestoneNote s={s} act={act} />
+                // One column, most urgent first: no unread note hides another.
+                <div className="note-stack">
                   <BoardLetter s={s} act={act} />
                   <DemandNote s={s} act={act} />
-                </>
+                  <MilestoneNote s={s} act={act} />
+                </div>
               )}
               <EventPanel s={s} act={act} />
             </>
@@ -342,7 +349,12 @@ export default function App() {
             onSetOpen={(o) => { setLogOpen(o); if (o) { setLadderOpen(false); closeBuild(); } }}
             ladderOpen={ladderOpen}
             onSetLadderOpen={(o) => { setLadderOpen(o); if (o) { setLogOpen(false); closeBuild(); } }}
-            onGo={(go) => { if (go === 'build') setBuildOpen(true); else if (go === 'campus') openTab(null); else openTab(go); }}
+            onGo={(go, hallId) => {
+            if (go === 'build') setBuildOpen(true);
+            else if (go === 'campus') openTab(null);
+            else if (go === 'hall') { if (hallId) inspectHall(hallId); }
+            else openTab(go);
+          }}
             mapHidden={overlay !== null}
           />
           <Toolbar
