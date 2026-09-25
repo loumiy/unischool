@@ -18,8 +18,8 @@
 //   npm run shot -- /tmp/out.json /tmp/campus.png --zoom=-2
 //
 // The plan below is a PRECINCT plan, the way a real campus is read: an
-// academic core round the Grand Quad with a second academic court, the
-// South Quad, on the same axis below it; a science court to the west with
+// academic core round the Grand Quad with the capital projects' court on
+// the same axis below it; a science court to the west with
 // Greek Row on the lane past it; the union to the east with the
 // residential quarter beyond; a second residential court and the medical
 // campus to the south-west; and the venues along the north edge, the
@@ -49,6 +49,7 @@ import {
   footprintIsClear, footprintOf, orientedFootprint, pathTileKey, placementFor, placementTiles,
 } from '../src/state/campusMap';
 import { seedTrees } from '../src/data/treeData';
+import { bindScriptStream } from '../src/engine/random';
 import { doorFamilyOf } from '../src/components/buildingSpec';
 
 interface Site { id: string; row: number; col: number; rotated?: boolean }
@@ -63,17 +64,15 @@ interface Site { id: string; row: number; col: number; rotated?: boolean }
 // ---------------------------------------------------------------------
 const PLAN: Site[] = [
   // --- The academic core: the Grand Quad and the halls around it. The
-  // academic halls are the chain in techData.ts (HALL-01 .. HALL-13): the
-  // first six round the Grand Quad, the next five round the South Quad
-  // with the computing lab closing the corner, and the last two (Plan
-  // 20's PR H) a row below it, either side of the lab. ---
+  // academic halls are the six in techData.ts (HALL-01 .. HALL-06, Plan
+  // 59), all round the Grand Quad. ---
   { id: 'QUAD-T2', row: 57, col: 57 },                     // 13x13, the heart of the place
   { id: 'BLDG-GENSTUDIES', row: 50, col: 60 },             // Founders Hall, at the head of the quad
   { id: 'HALL-01', row: 50, col: 51 },
   { id: 'HALL-02', row: 50, col: 70 },
   { id: 'HALL-03', row: 56, col: 50, rotated: true },      // west side, fronting the quad
   { id: 'HALL-04', row: 64, col: 50, rotated: true },
-  { id: 'LIB-T2', row: 71, col: 59 },                      // the research library closes the south side
+  { id: 'LIB-T1', row: 71, col: 59 },                      // the library closes the south side
   { id: 'HALL-05', row: 72, col: 47 },                     // on the west walk
   { id: 'HALL-06', row: 72, col: 70 },
   { id: 'SCTR-T2', row: 57, col: 72 },                     // the union, on the east side
@@ -113,19 +112,21 @@ const PLAN: Site[] = [
   { id: 'LAB-NEUR', row: 93, col: 42 },
   { id: 'HLTH-T2', row: 99, col: 42 },                     // the clinic, beside the hospital
 
-  // --- South: the South Quad on the Grand Quad's own axis, ringed by the
-  // last six halls and closed by the old library, with the computing
-  // center behind it and the market hall as the terminus of the axis. ---
-  { id: 'QUAD-S2', row: 83, col: 59 },                     // 9x9, below the research library
-  { id: 'HALL-07', row: 83, col: 52, rotated: true },      // west side, fronting the quad
-  { id: 'HALL-08', row: 83, col: 70, rotated: true },      // east side
-  { id: 'HALL-09', row: 94, col: 51 },
-  { id: 'LIB-T1', row: 93, col: 59 },                      // closes the south side
-  { id: 'HALL-10', row: 94, col: 70 },
-  { id: 'HALL-11', row: 101, col: 51 },
-  { id: 'LAB-COMP', row: 102, col: 60 },
-  { id: 'HALL-12', row: 101, col: 70 },
-  { id: 'HALL-13', row: 108, col: 51 },
+  // --- South: the capital projects' court on the Grand Quad's own axis
+  // (Plans 50–51), the landmark at its head: the graduate schools either
+  // side of the axis, the museum and the research park along its foot. ---
+  { id: 'LANDMARK-CAMPANILE', row: 80, col: 61 },          // 5x5, on the axis
+  { id: 'LANDMARK-DOME', row: 80, col: 59 },               // 9x9, whichever the run chose
+  { id: 'LANDMARK-GATE', row: 80, col: 59 },               // 9x3
+  { id: 'PROJ-GRADUATE', row: 81, col: 50 },               // 11x9
+  { id: 'PROJ-LAW', row: 82, col: 69 },                    // 11x8
+  { id: 'PROJ-ARTS', row: 92, col: 50 },                   // 11x9
+  { id: 'PROJ-BUSINESS', row: 93, col: 69 },               // 9x8
+  { id: 'PROJ-MUSEUM', row: 103, col: 50 },                // 11x8
+  { id: 'PROJ-RESEARCH-PARK', row: 103, col: 63 },         // 13x8
+  // The chapel and the fountain on the axis between them.
+  { id: 'AMENITY-CHAPEL', row: 87, col: 61 },              // 5x3
+  { id: 'AMENITY-FOUNTAIN', row: 97, col: 62 },            // 3x3
 
   // --- East: the recreation chain on the first lane behind the union, the
   // grocery and the market hall on the second — the campus's town center —
@@ -226,14 +227,11 @@ const WALKS: TileCoord[] = [
   // The union's lanes, and the lane between the two libraries' successors.
   ...run(62, 71, 62, 80), ...run(62, 77, 79, 77), ...run(67, 71, 67, 77), ...run(71, 71, 71, 77),
   ...run(71, 68, 79, 68),
-  // South: the axis from the research library to the South Quad, the
-  // quad's ring, the cross lanes between its rows of halls, and the lanes
-  // down to the market hall.
-  ...run(79, 63, 82, 63),
-  ...ring(82, 58, 92, 68),
-  ...run(90, 49, 90, 58), ...run(90, 68, 90, 79),
-  ...run(92, 49, 92, 79), ...run(99, 49, 99, 79), ...run(106, 29, 106, 79),
-  ...run(92, 58, 106, 58), ...run(92, 68, 106, 68), ...run(79, 77, 106, 77), ...run(99, 49, 106, 49),
+  // South: the projects' court — the axis down from the library past the
+  // landmark, and the cross lanes between its rows.
+  ...run(79, 63, 111, 63),
+  ...run(91, 48, 91, 80), ...run(102, 48, 102, 80), ...run(112, 29, 112, 80),
+  ...run(79, 48, 112, 48), ...run(79, 67, 112, 67), ...run(79, 77, 106, 77),
   // East: the Campus Quad's ring, and the lanes that tie the blocks into
   // loops off the east walk.
   ...ring(59, 87, 69, 97),
@@ -323,9 +321,11 @@ for (const id of [...wasPlaced].sort()) {
       continue;
     }
   }
+  // A tile clear all round, so no door in the strip faces a neighbor.
+  const padded = { w: fp.w + 2, h: fp.h + 2 };
   for (let r = OVERFLOW.row; r + fp.h <= OVERFLOW.row + OVERFLOW.h && !found; r++) {
     for (let c = OVERFLOW.col; c + fp.w <= OVERFLOW.col + OVERFLOW.w; c++) {
-      if (footprintIsClear(placements, r, c, fp)) { placements[id] = placementFor(r, c, fp); found = true; break; }
+      if (footprintIsClear(placements, r - 1, c - 1, padded)) { placements[id] = placementFor(r, c, fp); found = true; break; }
     }
   }
   if (!found) problems.push(`${id} (${node.name}): unplanned and no room in the overflow block`);
@@ -496,6 +496,8 @@ s.placements = placements;
 s.pathways = pathways;
 // The woodland the campus was founded on, regrown around the new layout:
 // the trees the sim felled were under buildings that are no longer there.
+// The woodland rolls dice: on a fixed stream, so a layout is reproducible.
+bindScriptStream(2026);
 s.trees = seedTrees(placements);
 // The founding woodland keeps its groves out of the middle, which leaves a
 // built-out campus bare between its walks. Real grounds are planted: a

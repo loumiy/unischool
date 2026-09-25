@@ -17,8 +17,8 @@
 //        CSS pixel: 2 for a print-sharp PNG at the same framing)
 //
 // Not only the map: --tab=<id> opens one of the full-screen views over it
-// (a TabNav id: curriculum, faculty, research, studentlife, athletics,
-// enrollment, history, treasury) through the toolbar's own button, so what
+// (a TabNav id: curriculum, faculty, research, students, athletics,
+// history, treasury) through the toolbar's own button, so what
 // is photographed is the tab as the player reaches it. --click=<text>
 // presses a button by its text and can repeat, which is how a modal held
 // in the save is stepped through (the summer's Continue, Continue, and
@@ -28,6 +28,8 @@
 //   npm run shot -- summer.json admissions.png --click="Continue →" \
 //     --click="Continue →" --element=.modal
 //   npm run shot -- out.json faculty.png --tab=faculty --scale=2
+//   npm run shot -- out.json curriculum.png --tab=curriculum \
+//     --press=".collapse-toggle" --press=".collapse-toggle >> nth=1"   # a school and a program opened
 // ---------------------------------------------------------------------
 import { readFileSync, existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
@@ -53,9 +55,8 @@ const TAB_LABELS = {
   curriculum: 'Curriculum',
   faculty: 'Faculty',
   research: 'Research',
-  studentlife: 'Student Life',
+  students: 'Students',
   athletics: 'Athletics',
-  enrollment: 'Enrollment',
   history: 'History',
 };
 const CANDIDATES = [
@@ -83,6 +84,9 @@ const page = await browser.newPage({
 await page.goto(URL, { waitUntil: 'domcontentloaded' });
 await page.evaluate((s) => localStorage.setItem('unischool.save', s), save);
 await page.goto(URL, { waitUntil: 'networkidle' });
+// A loaded save opens on the title screen: continue into it.
+const cont = page.locator('.title-primary');
+if (await cont.count()) { await cont.first().click(); }
 await page.waitForSelector('svg', { timeout: 20_000 });
 await page.waitForTimeout(2_500);
 
@@ -99,6 +103,9 @@ if (pan) {
   await page.mouse.move(size[0] / 2 + pan[0], size[1] / 2 + pan[1], { steps: 20 });
   await page.mouse.up();
   await page.waitForTimeout(600);
+  // A short drag reads as a click on whatever it ended over: close any panel it opened.
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
 }
 
 // Trees settle and the map finishes its entry animation; a shot taken too
@@ -118,15 +125,24 @@ for (const text of flagAll('click')) {
 // funds figure at the left, and that is what gets clicked for it.
 const tab = flag('tab', null);
 if (tab) {
-  const label = tab === 'treasury' ? 'Open Treasury' : TAB_LABELS[tab];
-  if (!label) {
+  const label = TAB_LABELS[tab];
+  if (tab !== 'treasury' && !label) {
     console.error(`no tab "${tab}". Known: ${Object.keys(TAB_LABELS).join(', ')}, treasury`);
     process.exit(2);
   }
-  await page.getByRole('button', { name: label, exact: true }).click();
+  if (tab === 'treasury') await page.locator('.toolbar-funds-btn').first().click();
+  else await page.getByRole('button', { name: label, exact: true }).click();
   await page.waitForSelector('.tab-overlay', { timeout: 10_000 });
   // The tab's own entry animations, and any chart that draws on mount.
   await page.waitForTimeout(1_200);
+}
+
+// Elements pressed by selector once the tab is open, in order (a Playwright
+// selector, `>> nth=N` included): how a collapsed school is opened for a
+// picture of its catalogue.
+for (const selector of flagAll('press')) {
+  await page.locator(selector).first().click();
+  await page.waitForTimeout(400);
 }
 
 // Park the pointer: a click leaves it over whatever it pressed, and the
