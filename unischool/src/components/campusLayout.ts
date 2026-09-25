@@ -36,6 +36,9 @@ export interface PlacedEntry {
 
 export interface CampusLayout {
   key: string;
+  // The key without the paths: what a walker's routes must replan for at
+  // once, where a path drawn tile by tile can wait until it settles (Plan 62).
+  massKey: string;
   placed: readonly PlacedEntry[];
   byId: ReadonlyMap<string, PlacedEntry>;
   placements: Placements;
@@ -98,18 +101,19 @@ export function campusLayout(s: GameState): CampusLayout {
     });
   }
   const bikeRacks = totalEnrolled(s.students) >= BIKE_RACK_ENROLMENT;
+  const paths = recordKey(s.pathways);
   const key = [
     s.self.vernacular,
     placed.map(entryKey).join('|'),
     recordKey(s.trees),
-    recordKey(s.pathways),
+    paths,
     s.quads ? JSON.stringify(s.quads) : '',
     s.dressing ? recordKey(s.dressing) : '',
     bikeRacks ? 'racks' : '',
     `${s.self.colors.primary}${s.self.colors.secondary}`,
   ].join('#');
   return {
-    key, placed, byId: new Map(placed.map((e) => [e.t.id, e])),
+    key, massKey: key.replace(paths, ''), placed, byId: new Map(placed.map((e) => [e.t.id, e])),
     placements: s.placements, trees: s.trees, pathways: s.pathways, quads: s.quads,
     dressing: s.dressing, bikeRacks, colors: s.self.colors, vernacular: s.self.vernacular,
   };

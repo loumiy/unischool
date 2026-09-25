@@ -6,6 +6,7 @@ import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
 import { TreeAt, treeShadow, type Species } from './trees';
+import { QUAD_WALK, quadCentre } from './quadGeometry';
 
 // Open ground: the Buildables you walk across rather than into (quad, pool
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
@@ -45,6 +46,8 @@ export type TilePt = [number, number];
 // file is the entry point for the second half.
 export interface GroundProp {
   key: string;
+  // A tree among the props, for the walkers to pass behind (Plan 62).
+  tree?: { col: number; row: number; species: Species; scale: number };
   // The ground this prop covers, as {col,row,w,h} like a Placement: what the
   // map depth-sorts it on (depthSort.ts). An extent, not a point, because a
   // stand or a fence covers real ground; a tree declares the tile it stands in.
@@ -1018,7 +1021,6 @@ function courtsProps(col: number, row: number, w: number, h: number): GroundProp
   ];
 }
 
-const QUAD_WALK = 0.075;
 
 function QuadWalks({ col, row, w, h }: GroundProps) {
   const half = QUAD_WALK / 2;
@@ -1108,8 +1110,7 @@ function Hedge({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
 // ring of spray. Static: animating it would force redraws on a surface that
 // is otherwise only redrawn when something changes.
 function Fountain({ col, row, w, h }: GroundProps) {
-  const cc = col + w * 0.5; const cr = row + h * 0.5;
-  const R = Math.min(w, h) * 0.20;
+  const { cc, cr, R } = quadCentre(col, row, w, h, 2);
   const centre = project(cc, cr);
   const ring = (r: number, up = 0) => polyPoints(projectedCircle(cc, cr, r, 36).map((q) => lift(q, up)));
 
@@ -1206,6 +1207,14 @@ function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
         />
       ))}
       <QuadWalks col={col} row={row} w={w} h={h} />
+      {/* The ring walk round the gardens' fountain, joining the four walks
+          (Plan 62): the way the crowd goes round. */}
+      {gardens && (() => {
+        const { cc, cr, ring } = quadCentre(col, row, w, h, tier);
+        if (!ring) return null;
+        const loop = (r: number) => projectedCircle(cc, cr, r, 48).map((q, i) => `${i === 0 ? 'M' : 'L'}${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ') + ' Z';
+        return <path className="ground-walk-fill" fillRule="evenodd" d={`${loop(ring[1])} ${loop(ring[0])}`} />;
+      })()}
 
       {/* Beds down both sides of each walk. They lie on the ground, so unlike
           the hedges they stay in this half. */}
@@ -1248,6 +1257,7 @@ function quadProps(col: number, row: number, w: number, h: number, tier: number)
       key: `tree-${i}`,
       ...at(u, v),
       node: <TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} shadow={false} />,
+      tree: { col: col + w * u, row: row + h * v, species, scale: size },
       shadows: [treeShadow(col + w * u, row + h * v, species, size)],
     })),
     gardens
