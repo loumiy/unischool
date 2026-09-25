@@ -614,6 +614,9 @@ button.build-tile { font-family: inherit; }
 .relocate-details > summary { cursor: pointer; font-size: var(--text-xs); color: var(--ink-muted); }
 .relocate-details > summary:hover { color: var(--ink); }
 .program-tile-transit { color: var(--warn-on-light); font-weight: 700; }
+/* A program away from its school's hall with somewhere to go (Plan 55). */
+.program-tile-move { color: var(--school-hue, var(--ink)); font-weight: 800; }
+.relocate-suggested { margin-top: 6px; }
 .course-cell.transit { opacity: 0.55; }
 .cell-stamp.transit { color: var(--warn-on-light); }
 .relocate { padding: 4px 0 0; text-align: left; }

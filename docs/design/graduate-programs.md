@@ -98,7 +98,8 @@ each program it houses, filled the way a hall's are; its panel offers the
 programs it houses that are earned and says what the others wait on. Graduate
 programs are never among the three drawn offers, and cannot be relocated. So a
 school's six majors fill one hall, and no school needs a second hall for its
-graduate work.
+graduate work: since Plan 55 the chain is seven purchased halls, one a
+school.
 
 **Reveal, not scarcity.** A program is invisible until its gate opens, the way
 tier-3 courses are invisible until their major completes. There is no wall of

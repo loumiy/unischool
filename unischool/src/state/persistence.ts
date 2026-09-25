@@ -50,23 +50,23 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 76; // Plan 53: the research library gone
+export const SAVE_VERSION = 77; // Plan 55: seven purchased halls
 
-// The one-off carry from the previous version (the policy above): Plan 53
-// retired the research library. Its node and site leave the save, with
-// every prerequisite that named it; the library's floors carry its seats
-// from here. (The labs that have finished an initiative are an optional
-// field, so a carried save starts with none recorded.) Delete with the next
-// bump.
-const MIGRATED_FROM = 75;
-const RETIRED_ID = 'LIB-T2';
-function carryResearchStaging(payload: SavePayload): void {
-  const state = payload.state as GameState & { placements?: Record<string, unknown>; developing?: Record<string, unknown> };
+// The one-off carry from the previous version (the policy above): Plan 55
+// shortened the hall chain to seven, one for each school. The rungs past
+// Cedar Hall leave the save unless they are sited, since a sited hall may
+// house programs; one that stands keeps its place and its slots. Delete
+// with the next bump.
+const MIGRATED_FROM = 76;
+const LAST_KEPT_HALL = 7;
+function carryHallChain(payload: SavePayload): void {
+  const state = payload.state as GameState & { placements?: Record<string, unknown> };
   if (!Array.isArray(state?.tech)) return;
-  state.tech = state.tech.filter((t) => t.id !== RETIRED_ID);
-  for (const t of state.tech) if (Array.isArray(t.prereqs)) t.prereqs = t.prereqs.filter((id) => id !== RETIRED_ID);
-  if (state.placements) delete state.placements[RETIRED_ID];
-  if (state.developing) delete state.developing[RETIRED_ID];
+  const retired = new Set(state.tech
+    .filter((t) => /^HALL-\d+$/.test(t.id) && Number(t.id.slice(5)) > LAST_KEPT_HALL && !(state.placements && t.id in state.placements))
+    .map((t) => t.id));
+  state.tech = state.tech.filter((t) => !retired.has(t.id));
+  for (const t of state.tech) if (Array.isArray(t.prereqs)) t.prereqs = t.prereqs.filter((id) => !retired.has(id));
 }
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
@@ -665,7 +665,7 @@ export function loadGame(): GameState | null {
   try {
     parsed = JSON.parse(raw);
     if ((parsed as Partial<SavePayload> | null)?.version === MIGRATED_FROM) {
-      carryResearchStaging(parsed as SavePayload);
+      carryHallChain(parsed as SavePayload);
       (parsed as SavePayload).version = SAVE_VERSION;
     }
   } catch {

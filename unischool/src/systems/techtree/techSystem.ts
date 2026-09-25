@@ -3,7 +3,7 @@ import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
-  graduateCourseIds, graduateGateMet, graduatePrograms, isAcademicHall, milestoneSchools, programById, programOfCourse,
+  FOUNDERS_HALL_ID, graduateCourseIds, graduateGateMet, graduatePrograms, isAcademicHall, milestoneSchools, programById, programOfCourse,
 } from '../../data/techData';
 import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
@@ -397,11 +397,21 @@ export function foundProgram(s: GameState, f: Founding): void {
 }
 
 // Relocation: a housed program moves to any empty slot in a standing hall,
-// free in money but dark for RELOCATION_WEEKS. In transit its courses give no
-// teaching quality (facultyAssignment.ts), cannot start or advance, and do
-// not count toward the new hall's dedication (schools.ts). The dark term stops
-// a free end-of-run reshuffle from defusing earlier slot decisions.
+// free in money but dark for RELOCATION_WEEKS, or FOUNDERS_MOVE_WEEKS out of
+// Founders Hall. In transit its courses give no teaching quality
+// (facultyAssignment.ts), cannot start or advance, and do not count toward
+// the new hall's dedication (schools.ts). The dark term stops a free
+// end-of-run reshuffle from defusing earlier slot decisions.
 export const RELOCATION_WEEKS = 12;
+// A move out of Founders Hall is shorter (Plan 55): Founders Hall is where
+// programs start, and moving them out into halls of their own is the
+// intended line of play, not a reshuffle.
+export const FOUNDERS_MOVE_WEEKS = 4;
+
+// How long a move from where the program is now would keep it dark.
+export function relocationWeeks(s: GameState, programId: string): number {
+  return slotOf(s, programId)?.hallId === FOUNDERS_HALL_ID ? FOUNDERS_MOVE_WEEKS : RELOCATION_WEEKS;
+}
 
 export interface Relocation {
   programId: string;
@@ -429,13 +439,14 @@ export function canRelocateProgram(s: GameState, r: Relocation): boolean {
 export function relocateProgram(s: GameState, r: Relocation): void {
   if (!canRelocateProgram(s, r)) return;
   const from = slotOf(s, r.programId)!;
+  const weeks = relocationWeeks(s, r.programId);
   s.halls[from.hallId][from.slot] = { programId: null };
-  s.halls[r.hallId][r.slot] = { programId: r.programId, transitWeeks: RELOCATION_WEEKS };
+  s.halls[r.hallId][r.slot] = { programId: r.programId, transitWeeks: weeks };
   const program = programById(r.programId);
   const hall = s.tech.find((t) => t.id === r.hallId);
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
-    message: `${program?.name ?? r.programId} is moving to ${hall?.name ?? 'another hall'} — dark for ${RELOCATION_WEEKS} weeks.`,
+    message: `${program?.name ?? r.programId} is moving to ${hall?.name ?? 'another hall'} — dark for ${weeks} weeks.`,
     kind: 'info',
   });
 }

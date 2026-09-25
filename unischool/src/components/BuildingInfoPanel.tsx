@@ -7,14 +7,14 @@ import { venueSeatsOf } from '../data/facilitiesData';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
-import { dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
+import { claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
   canFoundProgram, canRelocateProgram, eligibleInstructors, facultyGate,
-  RELOCATION_WEEKS,
+  FOUNDERS_MOVE_WEEKS, relocationWeeks,
 } from '../systems/techtree/techSystem';
 import { hostOffers, isHoused, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
@@ -131,7 +131,9 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
 // The program tile: a filled slot showing the program's name in its school's
 // color, courses done of nine, and aggregate grade. Clicking opens its
 // summary and one door, "Open in Curriculum". Relocation sits behind a
-// "Move…" disclosure since it happens a few times a run.
+// "Move…" disclosure since it happens a few times a run; a program away from
+// its school's hall also gets its suggested move (schools.ts), one click,
+// and an arrow on the tile saying there is one (Plan 55).
 // ---------------------------------------------------------------------
 function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   program: ProgramInfo; s: GameState; act?: (a: Action) => void; open: boolean; onToggle: () => void;
@@ -142,6 +144,8 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   const avg = averageCourseQuality(s, program.courseIds, loads);
   const progress = programProgress(s, program);
   const inTransit = transitWeeks(s, program.id);
+  const move = act && program.kind !== 'graduate' ? suggestedMove(s, program.id) : null;
+  const moveHall = move ? s.tech.find((x) => x.id === move.hallId) : undefined;
   const courseTitle = (t: Buildable) => t.name.split(' · ')[1] ?? t.name;
   const courseCode = (t: Buildable) => t.name.split(' · ')[0];
 
@@ -160,6 +164,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
           {inTransit > 0
             ? <span className="program-tile-transit" title={`In transit — ${inTransit} weeks until it is teaching again`}>moving · {inTransit}w</span>
             : <span className="program-tile-progress">{progress.done}/{progress.total}</span>}
+          {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
           {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
         </span>
       </button>
@@ -193,6 +198,17 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                     : 'Every course is developed.'}
           </p>
           <OpenInCurriculum id={`program:${program.id}`} onOpenCurriculum={onOpenCurriculum} />
+          {move && moveHall && (
+            <div className="relocate-suggested">
+              <ConfirmButton
+                className="building-info-jump"
+                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, slot ${move.slot + 1}: dark for ${relocationWeeks(s, program.id)} weeks`}
+                label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${relocationWeeks(s, program.id)} weeks`}
+                armedLabel={`Move ${program.name} — dark ${relocationWeeks(s, program.id)} weeks`}
+                onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}
+              />
+            </div>
+          )}
           {act && program.kind !== 'graduate' && (
             <details className="relocate-details">
               <summary>Move to another hall…</summary>
@@ -206,8 +222,8 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
 }
 
 // Relocation: every free slot in every standing hall, with the cost said up
-// front (the program goes dark for RELOCATION_WEEKS). A program in transit
-// cannot be moved again until it settles.
+// front (the program goes dark for relocationWeeks: fewer out of Founders
+// Hall). A program in transit cannot be moved again until it settles.
 function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameState; act?: (a: Action) => void }) {
   const inTransit = transitWeeks(s, program.id);
   const destinations = Object.entries(s.halls)
@@ -230,7 +246,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
   return (
     <div className="relocate">
       <p className="building-info-line relocate-note">
-        Free, but the program goes dark for {RELOCATION_WEEKS} weeks: no teaching, no progress, and it counts toward no school until it settles.
+        Free, but the program goes dark for {relocationWeeks(s, program.id)} weeks: no teaching, no progress, and it counts toward no school until it settles.
       </p>
       {destinations.map((d) => (
         <p key={d.hallId} className="relocate-row">
@@ -306,12 +322,27 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
   const canFound = founding !== null && canFoundProgram(s, founding);
   const free = slots.filter((slot) => slot.programId === null).length;
   const school = dedicatedSchool(s, t.id);
+  // On its way to a school (Plan 55): every program in it is one school's.
+  const claim = school ? null : claimedSchool(s, t.id);
+  // The picked offer's school has a hall of its own elsewhere.
+  const pickedHome = picked && !host ? schoolHall(s, picked.school) : undefined;
+  const pickedHomeHall = pickedHome && pickedHome !== t.id ? s.tech.find((x) => x.id === pickedHome) : undefined;
 
   return (
     <>
       {school && (
         <p className="building-info-line building-info-dedication" style={{ color: schoolMark(school).hue }}>
           {schoolMark(school).motif} Dedicated to the School of {school}.
+        </p>
+      )}
+      {claim && (
+        <p className="building-info-line building-info-dedication" style={{ color: schoolMark(claim.school).hue }}>
+          {schoolMark(claim.school).motif} {claim.school} · {claim.housed} of {claim.slots} — six found the School of {claim.school}.
+        </p>
+      )}
+      {t.id === FOUNDERS_HALL_ID && (
+        <p className="building-info-line">
+          Where programs begin: each moves on to a hall of its own school, {FOUNDERS_MOVE_WEEKS} weeks dark.
         </p>
       )}
       <p className="building-info-line">
@@ -417,6 +448,11 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
                   </p>
                   {entry.requiresFaculty && act && <MarketInField s={s} act={act} field={entry.requiresFaculty} projectedFor={entry} />}
                 </>
+              )}
+              {pickedHomeHall && (
+                <p className="building-info-line">
+                  {picked.school} has a hall of its own: {hallDisplayName(s, pickedHomeHall)}. Found it there to keep the school together.
+                </p>
               )}
               {s.finance.cash < entry.cost && (
                 <p className="building-info-line building-info-construction">
