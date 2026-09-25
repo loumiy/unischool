@@ -61,7 +61,7 @@ console.log('ladder tests');
   assert(s.ladder.unread.length === 0, 'and has no letters waiting');
   const open = s.tech.filter((t) => isPlaceableKind(t) && t.status === 'available').map((t) => t.id).sort();
   assert(JSON.stringify(open) === JSON.stringify(['DINING-01', 'DORM-01', 'LIB-T1', 'QUAD-T1']), `the founding build list is the dorm, the dining hall, the library and the quad (${open.join(', ')})`);
-  for (const id of ['SCTR-T1', 'REC-T1', 'HLTH-T1', 'HALL-01', 'REC-T2', 'LIB-T2']) {
+  for (const id of ['SCTR-T1', 'REC-T1', 'HLTH-T1', 'HALL-01', 'REC-T2', 'AMENITY-BELLTOWER']) {
     assert(status(s, id) === 'locked', `${id} waits on its milestone`);
   }
 }

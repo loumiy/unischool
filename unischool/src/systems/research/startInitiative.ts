@@ -1,6 +1,6 @@
 import type { GameState } from '../../state/types';
 import type { Action } from '../../state/actions';
-import { initiativeDepth, initiativeFundingCost } from '../../data/researchData';
+import { depthOpen, initiativeDepth, initiativeFundingCost } from '../../data/researchData';
 import { researchTopic } from '../../data/researchTopics';
 import type { Faculty } from '../../state/types';
 import { isCommitted, planCommitmentCoverage } from '../techtree/techSystem';
@@ -21,6 +21,8 @@ export function startInitiative(s: GameState, action: Extract<Action, { type: 'S
   const topic = researchTopic(action.topicId);
   const depth = initiativeDepth(action.depth);
   if (!topic || action.facultyIds.length !== depth.participants) return;
+  // A Landmark Program waits on the Research Park (Plan 53).
+  if (!depthOpen(s, depth.key)) return;
   if (depth.requiresCrossDisciplinary && topic.fields.length < 2) return;
 
   const team = action.facultyIds.map((id) => s.faculty.find((f) => f.id === id));

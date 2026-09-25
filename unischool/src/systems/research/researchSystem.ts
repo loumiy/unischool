@@ -164,6 +164,11 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     ...(cancelled ? { cancelled: true as const } : {}),
   });
   s.research.completedInitiatives = s.research.completedInitiatives.slice(0, INITIATIVE_HISTORY_LIMIT);
+  // A lab that has seen one through counts toward the Research Park (Plan 53).
+  if (!cancelled) {
+    const finished = Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : [];
+    if (!finished.includes(initiative.labId)) s.research.finishedLabs = [...finished, initiative.labId];
+  }
   delete s.research.initiatives[initiative.labId];
 }
 

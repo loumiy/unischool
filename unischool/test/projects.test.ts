@@ -13,6 +13,7 @@ import { financingFor } from '../src/systems/finance/treasury';
 import { computeResearchTarget, prestigeBreakdown } from '../src/systems/prestige/prestigeSystem';
 import { eligible, whenMet } from '../src/systems/events/catalogue';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
+import { depthOpen, initiativeOffers } from '../src/data/researchData';
 import type { GameState } from '../src/state/types';
 
 bindScriptStream(3335);
@@ -42,6 +43,14 @@ function fresh(year = 1): GameState {
   return s;
 }
 const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
+// A lab that has seen an initiative through, which is what the Research
+// Park waits on (Plan 53).
+function labFinished(s: GameState): string {
+  const lab = s.tech.find((t) => t.facilityType === 'lab')!;
+  lab.status = 'done';
+  s.research.finishedLabs = [lab.id];
+  return lab.id;
+}
 function stand(s: GameState, id: string): void {
   const t = node(s, id);
   t.status = 'done';
@@ -67,7 +76,15 @@ function stand(s: GameState, id: string): void {
   assert(PROJECT_IDS.every((id) => node(s, id).status === 'locked'), 'none is open to a founding college');
   s.clock.year = 12;
   unlockAvailable(s);
-  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available', 'they open from their years');
+  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'locked', 'the research park waits on the labs (Plan 53)');
+  const labId = labFinished(s);
+  const second = s.tech.find((t) => t.facilityType === 'lab' && t.id !== labId)!;
+  second.status = 'done';
+  unlockAvailable(s);
+  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'locked', 'every standing lab, not just one');
+  s.research.finishedLabs = [labId, second.id];
+  unlockAvailable(s);
+  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available', 'and opens once each has seen an initiative through');
   assert(node(s, 'PROJ-ARTS').status === 'locked', 'a graduate host waits on its school\'s curriculum too');
   for (const id of schoolCurriculumIds('Arts & Media')) node(s, id).status = 'done';
   unlockAvailable(s);
@@ -91,6 +108,7 @@ function stand(s: GameState, id: string): void {
 // ---- Half from the endowment ----
 {
   const s = fresh(12);
+  labFinished(s);
   unlockAvailable(s);
   const park = node(s, 'PROJ-RESEARCH-PARK');
   const half = endowmentHalf(park);
@@ -133,6 +151,16 @@ function stand(s: GameState, id: string): void {
   stand(s, 'QUAD-T1');
   const needsLawn = EVENT_CATALOGUE.find((e) => (e.needs ?? []).includes('great-lawn') && Object.keys(e.when).length === 0);
   assert(needsLawn === undefined || eligible(s, needsLawn), 'an event that needs the great lawn has the quad');
+}
+
+// ---- Research is staged on the park (Plan 53) ----
+{
+  const s = fresh(20);
+  const labId = labFinished(s);
+  assert(!initiativeOffers(s, labId).some((o) => o.depth.key === 'landmark'), 'no Landmark Program is offered before the park');
+  assert(!depthOpen(s, 'landmark') && depthOpen(s, 'program'), 'the first three depths are open, the fourth is not');
+  stand(s, 'PROJ-RESEARCH-PARK');
+  assert(initiativeOffers(s, labId).some((o) => o.depth.key === 'landmark'), 'and it is offered once the park stands');
 }
 
 if (failures === 0) {

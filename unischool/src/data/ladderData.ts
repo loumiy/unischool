@@ -8,11 +8,14 @@ import {
   HEALTH_CENTER_TIER1_POPULATION_GATE,
   HEALTH_CENTER_TIER2_POPULATION_GATE,
   HEALTH_CENTER_TIER3_POPULATION_GATE,
-  LIBRARY_TIER2_PRESTIGE_GATE,
   REC_CENTER_TIER2_PRESTIGE_GATE,
   GRAND_LANDMARK_IDS,
 } from './facilitiesData';
 import { MEDICAL_CENTER_PROJECT } from './projectData';
+
+// The research reputation rung's prestige (Plan 53: it opened the research
+// library too, until the library was retired).
+const RESEARCH_REPUTATION_PRESTIGE = 70;
 
 // The grand landmarks' milestone: a national name.
 const GRAND_LANDMARK_PRESTIGE_GATE = 90;
@@ -197,12 +200,12 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'research',
     tier: 'Established',
     name: 'A research reputation',
-    condition: `prestige ${LIBRARY_TIER2_PRESTIGE_GATE}`,
-    ...prestige(LIBRARY_TIER2_PRESTIGE_GATE),
-    buildables: ['LIB-T2', 'AMENITY-BELLTOWER'],
+    condition: `prestige ${RESEARCH_REPUTATION_PRESTIGE}`,
+    ...prestige(RESEARCH_REPUTATION_PRESTIGE),
+    buildables: ['AMENITY-BELLTOWER'],
     tabs: [],
-    letter: 'Scholars elsewhere cite the faculty now. A research library would say the college means it.',
-    opens: ['Research Library: more seats and a real collection, lifting research', 'The Bell Tower: the hours across the campus'],
+    letter: 'Scholars elsewhere cite the faculty now. A bell tower would say the college means to be here a long time.',
+    opens: ['The Bell Tower: the hours across the campus'],
   },
   {
     id: 'market',

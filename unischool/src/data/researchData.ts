@@ -1,6 +1,6 @@
 import type { Faculty, GameState, InitiativeDepth } from '../state/types';
 import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './researchTopics';
-import { WEEKS_PER_YEAR } from '../state/types';
+import { standsOnCampus, WEEKS_PER_YEAR } from '../state/types';
 import { hostableFields, researchSchools } from './techData';
 import { random } from '../engine/random';
 
@@ -252,6 +252,18 @@ export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
   },
 ];
 
+// The research park's id (projectData.ts), written out: research is staged
+// on it (Plan 53).
+export const RESEARCH_PARK_ID = 'PROJ-RESEARCH-PARK';
+
+// Which depths a college may commission: the first three always, the
+// Landmark Program only once the Research Park stands (Plan 53).
+export function depthOpen(s: GameState, depth: InitiativeDepth): boolean {
+  if (depth !== 'landmark') return true;
+  const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
+  return !!park && standsOnCampus(park);
+}
+
 export function initiativeDepth(key: InitiativeDepth): InitiativeDepthDef {
   return INITIATIVE_DEPTHS.find((d) => d.key === key) ?? INITIATIVE_DEPTHS[0];
 }
@@ -451,7 +463,7 @@ export function initiativeOffers(s: GameState, labId: string): InitiativeOffer[]
     topic.fields.some((f) => fieldSet.has(f)) && topicHostedAt(topic, labId) && !elsewhere.has(topic.id)
   ));
 
-  return INITIATIVE_DEPTHS.map((depth, depthIndex) => {
+  return INITIATIVE_DEPTHS.filter((depth) => depthOpen(s, depth.key)).map((depth, depthIndex) => {
     const pool = runnable.filter((topic) => {
       if (depth.requiresCrossDisciplinary && !isCrossDisciplinary(topic)) return false;
       // A team of N cannot cover more than N fields.

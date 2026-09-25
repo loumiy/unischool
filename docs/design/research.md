@@ -115,6 +115,12 @@ topic**, which is the structural point of the tier: the most prestigious work
 in the game is out of reach for a single strong department however deep it
 goes.
 
+**Research is staged** (Plan 53). The first three depths are open from the
+first lab. The Landmark Program opens with **the Research Park**, a capital
+project that itself waits on every standing lab having seen an initiative
+through (`s.research.finishedLabs`, recorded when one ends uncancelled): a
+college earns its landmark work by doing research everywhere it can first.
+
 **Participants teach a reduced load for the duration.** `effectiveCourseSlots`
 subtracts `RESEARCH_COMMITMENT_SLOTS` (2) with a floor at zero, so a junior hire
 with two slots stops teaching entirely while a senior professor keeps most of
@@ -140,7 +146,8 @@ breadth pays off twice: a team drawn from several departments produces
 meaningfully more than the same people would apart, which is what makes a wide
 university worth building rather than a deep one worth drilling.
 `researchRateMultiplier` is live-read off every finished Buildable carrying
-`effects.researchRateBonus` (each facility, plus the research library) — that
+`effects.researchRateBonus` (each facility; the research library that added
+to it was retired in Plan 53) — that
 field multiplies output, it never creates it.
 
 **Output is guaranteed** (Plan 15's PR C). The weekly lottery that used to
