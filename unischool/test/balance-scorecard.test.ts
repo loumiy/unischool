@@ -4,9 +4,10 @@
 // sim/reference.ts holds two kinds of band. TARGETS are hand-written —
 // Plan 15 §6's table for the Balanced builder, and the plan's own
 // sentences for the two controls — and they are the design decision
-// recorded as data. REFERENCE is generated: the envelope of three seeds
-// at ±25%, written by `npm run sim -- --write-reference`, a statement of
-// where every other strategy IS so a change that moves one is noticed.
+// recorded as data. REFERENCE is generated: the envelope of the reference's
+// runs (three seeds and a second founding name, Plan 49) at ±25%, written by
+// `npm run sim -- --write-reference`, a statement of where every other
+// strategy IS so a change that moves one is noticed.
 //
 // This suite plays every strategy on the default seed at the full
 // fifty-year horizon and FAILS on any figure outside its band. A failure
@@ -18,19 +19,43 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { play, STRATEGIES, DEFAULT_SIM_SEED } from '../sim/balanceSim';
-import { bandsFor, describeFinding, findingsFor, REFERENCE_EXTRA_SEEDS } from '../sim/reference';
+import { play, playRun, STRATEGIES, DEFAULT_SIM_SEED, type Row } from '../sim/balanceSim';
+import { bandsFor, describeFinding, findingsFor, REFERENCE_RUNS, type Finding } from '../sim/reference';
 
 const REPORT_ONLY = false;
 
-// Strategies judged across seeds rather than at the default one alone, the
-// policy test/balance-regression.test.ts's `holds` applies to the same
-// strategy. The overbuilder (Plan 22's PR D): on the old Math.random stream
-// its target bands held at seven of seven seeds; on the game's own stream
-// they hold at five of seven, and the default seed is the worst of them
-// (eight figures out, cash −82M at year 50 against a floor of −50M).
-// Flagged for Phase N of the v2 merge, which re-derives the targets.
-const SEED_JUDGED = new Set(['Overbuilder (beds ahead of demand)']);
+// The hand-written targets are judged across the reference's runs (seeds and
+// founding names, sim/reference.ts's REFERENCE_RUNS), not at the default run
+// alone: a figure is out only when it is out in most of them (Plan 49). One
+// run is one draw of the dice and one draw of program offers; the Balanced
+// builder once failed its pace on the default seed alone, and stalled for a
+// decade on one founding name while every seed grew. The generated bands
+// need no such rule: each is the envelope of those same runs.
+const RUN_JUDGED = new Set(['Balanced builder', 'Overbuilder (beds ahead of demand)']);
+const runLabel = (i: number) => {
+  const key = REFERENCE_RUNS[i];
+  return key.name ? `"${key.name}"` : key.seed ? `seed ${key.seed}` : 'the default run';
+};
+
+// Out in more than half the runs, by year and metric.
+function mostlyOut(runs: Row[][], strategy: string): Finding[] {
+  const counts = new Map<string, { finding: Finding; n: number }>();
+  for (const rows of runs) {
+    for (const finding of findingsFor(strategy, rows)) {
+      const key = `${finding.year}|${finding.metric}`;
+      const seen = counts.get(key);
+      if (seen) seen.n += 1;
+      else counts.set(key, { finding, n: 1 });
+    }
+  }
+  return [...counts.values()].filter((c) => c.n * 2 > runs.length).map((c) => c.finding);
+}
+
+// The lower median: for a "no earlier than" gate, the stricter middle.
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) / 2)];
+}
 
 // The reference is written at forty years, so this reads the same horizon:
 // a shorter run would silently skip the year-30 and year-40 bands, which
@@ -60,6 +85,22 @@ const FIRST_PLACE_NO_EARLIER = 25;
 const TWENTY_THOUSAND_NO_EARLIER = 20;
 const BUILT_BETWEEN: [number, number] = [22, 38];
 const FOUNDING_BLOCKED_MAX = 60;
+// No founding name stalls it (Plan 49): on "Test" it once had 1,239
+// students at Year 12 against 10,800 on "Test University", three offers
+// standing that fit no hall it would build. Every run grows past this by
+// Year 12 (the least of the runs so far: 5,920), and so does "Test",
+// played to that year alone.
+const GROWN_BY_YEAR_12 = 4_000;
+const STALLED_NAMES = ['Test'];
+function paceOf(rows: Row[]): { first: number; big: number; built: number; blocked: number } {
+  const most = Math.max(...rows.map((r) => r.courses));
+  return {
+    first: rows.find((r) => r.rank === 1)?.year ?? Infinity,
+    big: rows.find((r) => r.enrolled >= 20_000)?.year ?? Infinity,
+    built: rows.find((r) => r.courses >= 0.8 * most)?.year ?? Infinity,
+    blocked: rows.filter((r) => r.year <= 10).reduce((t, r) => t + r.blockedWeeks, 0),
+  };
+}
 let gateFailures = 0;
 function gate(ok: boolean, msg: string): void {
   if (ok) return;
@@ -72,36 +113,55 @@ console.log(`  ${STRATEGIES.length} strategies, ${YEARS} years, seed ${DEFAULT_S
 
 for (const strategy of STRATEGIES) {
   const { rows, tally } = play(strategy, YEARS);
+  // The other runs, played when a judgment needs them.
+  let others: Row[][] | null = null;
+  const allRuns = (): Row[][] => {
+    others ??= REFERENCE_RUNS.slice(1).map((key) => playRun(strategy, YEARS, key).rows);
+    return [rows, ...others];
+  };
   const stops = Object.values(tally.modals).reduce((a, b) => a + b, 0) / YEARS;
   gate(stops <= STOPS_PER_YEAR_MAX, `${strategy.name} stops ${stops.toFixed(1)} times a year (at most ${STOPS_PER_YEAR_MAX})`);
   const saturated = rows.filter((r) => r.satisfaction >= SATURATED).length;
   gate(saturated <= SATURATED_YEARS_MAX, `${strategy.name} has ${saturated} years at or above ${SATURATED} satisfaction (at most ${SATURATED_YEARS_MAX})`);
   finalRank.set(strategy.name, rows[rows.length - 1].rank);
   if (strategy.name === PACED) {
-    const first = rows.find((r) => r.rank === 1)?.year ?? Infinity;
-    const big = rows.find((r) => r.enrolled >= 20_000)?.year ?? Infinity;
-    const most = Math.max(...rows.map((r) => r.courses));
-    const built = rows.find((r) => r.courses >= 0.8 * most)?.year ?? Infinity;
-    const blocked = rows.filter((r) => r.year <= 10).reduce((t, r) => t + r.blockedWeeks, 0);
+    // The pace is the median run's, figure by figure (Plan 49).
+    const paces = allRuns().map(paceOf);
+    const first = median(paces.map((p) => p.first));
+    const big = median(paces.map((p) => p.big));
+    const built = median(paces.map((p) => p.built));
+    const blocked = median(paces.map((p) => p.blocked));
     gate(first >= FIRST_PLACE_NO_EARLIER, `${PACED} reaches first place in Year ${first} (no earlier than ${FIRST_PLACE_NO_EARLIER})`);
     gate(big >= TWENTY_THOUSAND_NO_EARLIER, `${PACED} reaches 20,000 students in Year ${big} (no earlier than ${TWENTY_THOUSAND_NO_EARLIER})`);
     gate(built >= BUILT_BETWEEN[0] && built <= BUILT_BETWEEN[1], `${PACED} builds four-fifths of its catalog by Year ${built} (Years ${BUILT_BETWEEN[0]}–${BUILT_BETWEEN[1]})`);
     gate(blocked <= FOUNDING_BLOCKED_MAX, `${PACED} is blocked by money ${blocked} weeks in its founding decade (at most ${FOUNDING_BLOCKED_MAX})`);
-    console.log(`  · ${PACED}'s pace: first place Y${first}, 20,000 students Y${big}, catalog four-fifths built Y${built}, ${blocked} founding weeks blocked`);
+    const fmtYear = (y: number) => (Number.isFinite(y) ? `Y${y}` : 'never');
+    console.log(`  · ${PACED}'s pace, the median of ${paces.length} runs: first place ${fmtYear(first)}, 20,000 students ${fmtYear(big)}, catalog four-fifths built ${fmtYear(built)}, ${blocked} founding weeks blocked`);
+    console.log(`    (each run: ${paces.map((p, i) => `${runLabel(i)} ${fmtYear(p.first)}/${fmtYear(p.big)}/${fmtYear(p.built)}`).join(', ')})`);
+    // Growth under every name.
+    const grown: [string, number][] = [
+      ...allRuns().map((r, i): [string, number] => [runLabel(i), r.find((x) => x.year === 12)?.enrolled ?? 0]),
+      ...STALLED_NAMES.map((name): [string, number] => [`"${name}"`, playRun(strategy, 12, { name }).rows.find((x) => x.year === 12)?.enrolled ?? 0]),
+    ];
+    for (const [label, enrolled] of grown) {
+      gate(enrolled >= GROWN_BY_YEAR_12, `${PACED} has ${enrolled.toLocaleString()} students at Year 12 on ${label} (at least ${GROWN_BY_YEAR_12.toLocaleString()})`);
+    }
+    console.log(`    students at Year 12: ${grown.map(([label, n]) => `${label} ${n.toLocaleString()}`).join(', ')}`);
   }
   if (!bandsFor(strategy.name)) {
     strategiesWithoutBands += 1;
     console.log(`  · ${strategy.name}: no bands recorded — run \`npm run sim -- --write-reference\``);
     continue;
   }
-  const out = findingsFor(strategy.name, rows);
-  if (out.length > 0 && SEED_JUDGED.has(strategy.name)) {
-    const clean = REFERENCE_EXTRA_SEEDS.filter((seed) => findingsFor(strategy.name, play(strategy, YEARS, undefined, seed).rows).length === 0);
-    if (clean.length > 0) {
-      console.log(`  ✓ ${strategy.name}: ${out.length} out of band at the default seed, every figure inside at ${clean.length} of ${REFERENCE_EXTRA_SEEDS.length} other seeds`);
-      for (const finding of out) console.log(`      ${describeFinding(finding)}`);
-      continue;
+  let out = findingsFor(strategy.name, rows);
+  if (out.length > 0 && RUN_JUDGED.has(strategy.name)) {
+    const runs = allRuns();
+    const mostly = mostlyOut(runs, strategy.name);
+    if (mostly.length < out.length) {
+      console.log(`  · ${strategy.name}: ${out.length} out of band on the default run, ${mostly.length} in most of ${runs.length} runs`);
+      for (const finding of out) console.log(`      ${describeFinding(finding)}${mostly.some((m) => m.year === finding.year && m.metric === finding.metric) ? '' : ' (inside in most runs)'}`);
     }
+    out = mostly;
   }
   findings += out.length;
   if (out.length === 0) {
