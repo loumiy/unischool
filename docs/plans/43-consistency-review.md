@@ -2,7 +2,7 @@
 
 *Planning document only. Its job is to turn the owner's request into a PR.*
 
-**Status: In progress.**
+**Status: Landed.**
 
 ---
 
@@ -80,4 +80,23 @@ lists each finding with its commit.
 No save version bump: the one new field (`FinalReport.figures`) is optional
 and falls back to the live figures.
 
-**As implemented:** *(to be written when the PR lands.)*
+**As implemented:** as above, and:
+
+- **The typed suffix is dropped on the startup screen.** At first it was
+  dropped at the founding. That renamed the balance harness's "Test
+  University" to "Test", and because program offers are seeded from the
+  name, the Balanced builder collapsed (1,348 students at Year 12 against
+  13,280). The review's Q16 comes from that.
+- **The slow suites are not all green.** `main` passes all three. This PR
+  fails two checks:
+  - the Balanced builder's four-fifths-built year on the default seed is
+    Year 45 (band 22–38);
+  - the Selective college gets an A in teaching on only one seed of three.
+
+  A bisect puts the first on the mascot fix: week 1 no longer runs twice,
+  and that one-week shift moves the default seed by ten years. On three
+  other seeds this branch builds out in Years 37, 27 and 20 against
+  `main`'s 36, 23 and 33. The owner chose to merge with these open. The
+  harness work (Q16) re-fits the bands after every change that moves the
+  dice.
+- **The owner's answers to the review's questions** become the next plans.
