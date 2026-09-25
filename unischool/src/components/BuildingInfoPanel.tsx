@@ -179,7 +179,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                   const gate = field ? facultyGate(s, field) : 'open';
                   return (
                     <>
-                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {money(progress.next.cost)} · {progress.next.duration} wk
+                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {money(progress.next.cost)} · {progress.next.duration}w
                       {gate !== 'open' && (
                         <span className="program-summary-blocked"> — no free {field} slot{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
                       )}

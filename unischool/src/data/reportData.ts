@@ -101,6 +101,6 @@ export const REPORT_WORDS = {
   chart: 'The six standings, year by year',
   draft: 'The Final Report is written at the fiftieth summer. Until then, the arc so far.',
   notYet: 'The Final Report is written at the fiftieth summer, and drafted from the tenth: a college is not graded on its first decade.',
-  epilogue: 'The run is over; the college is not. The clock runs on, and every ten years the chronicle gets an addendum. Nothing new unlocks.',
+  epilogue: 'The run is over; the college is not. This summer goes on to set Year 51\'s tuition and admit its class; then the clock runs on, and every ten years the chronicle gets an addendum. Nothing new unlocks.',
   addendum: 'Addendum, Years {from}–{to}',
 } as const;
