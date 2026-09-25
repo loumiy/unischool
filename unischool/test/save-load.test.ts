@@ -23,6 +23,7 @@ import { createInitialState } from '../src/state/actions';
 import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
+import type { GameState } from '../src/state/types';
 
 // In-memory localStorage so the persistence module works under Node. Assigned
 // before any loadGame/saveGame call (module imports run first, but nothing in
@@ -54,18 +55,25 @@ function writeSave(version: number, state: unknown): void {
   store.set(SAVE_KEY, JSON.stringify({ version, savedAt: Date.now(), state }));
 }
 
-// ---- Test: the one-off carry from version 72 (Plan 46's code swap) ----
-function testChemistryCarry(): void {
+// ---- Test: the one-off carry from version 73 (Plan 50's projects) ----
+function testProjectsCarry(): void {
   clearSave();
   const cur = createInitialState('Carry');
-  const text = JSON.stringify(cur);
-  // The same run as version 72 wrote it: Chemistry was CHMY, Chemical
-  // Engineering CHEM.
-  const old = text.replace(/CHEM/g, '@@').replace(/CHEN/g, 'CHEM').replace(/@@/g, 'CHMY');
-  store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: JSON.parse(old) }));
+  // The same run as version 73 wrote it: a removed project standing on its
+  // site, and the hospital under its old name and gate.
+  const old = JSON.parse(JSON.stringify(cur)) as GameState;
+  const hospital = old.tech.find((t) => t.id === 'HLTH-T3')!;
+  hospital.name = 'University Hospital';
+  hospital.prereqs = ['HLTH-T2', 'MED501'];
+  delete hospital.project;
+  old.tech.push({ ...old.tech.find((t) => t.id === 'PROJ-ARTS')!, id: 'PROJ-LAWN', name: 'The Great Lawn', status: 'done' });
+  old.placements['PROJ-LAWN'] = { row: 40, col: 40, w: 16, h: 12 };
+  store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: old }));
   const back = loadGame();
-  assert(back !== null, 'a version-72 save loads');
-  assert(back !== null && JSON.stringify(back.tech.map((t) => t.id)) === JSON.stringify(cur.tech.map((t) => t.id)), 'with every id in the new codes');
+  assert(back !== null, 'a version-73 save loads');
+  assert(back !== null && !back.tech.some((t) => t.id === 'PROJ-LAWN') && !back.placements['PROJ-LAWN'], 'without the removed project or its site');
+  const carried = back?.tech.find((t) => t.id === 'HLTH-T3');
+  assert(carried?.name === 'Medical Center' && carried.project?.fromYear === 15 && !carried.prereqs.includes('MED501'), 'and the hospital is the Medical Center');
 }
 
 // ---- Test: the catalog's text reaches a saved run (Plan 46) ----
@@ -326,7 +334,7 @@ function testRejects(): void {
 console.log(`save/load tests (SAVE_VERSION ${SAVE_VERSION})`);
 testRoundTrip();
 testAuthoredText();
-testChemistryCarry();
+testProjectsCarry();
 testFoundingSeenExcludesStartingContent();
 testCourseFacultySanitizer();
 testChapterGlyphs();

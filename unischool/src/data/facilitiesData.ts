@@ -1,4 +1,4 @@
-import { PROJECTS } from './projectData';
+import { MEDICAL_CENTER_PROJECT, PROJECTS } from './projectData';
 import type { Buildable, FacilityType } from '../state/types';
 import { FOUNDING_BODY } from './foundingData';
 
@@ -399,19 +399,20 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
 };
 
 // --- The health chain: Health & Counseling Center -> University Clinic ---
-// --- -> University Hospital ---
+// --- -> Medical Center ---
 // Three different buildings, each unlocked past a population threshold:
 //   - Health & Counseling Center (3x3).
 //   - University Clinic (5x5): also the practicum site for clinical majors
 //     (techData.ts's CLINICAL_PRACTICUM_GATE).
-//   - University Hospital (11x11): the largest building after the stadium,
-//     also gated on the School of Medicine standing; the MD's clerkship
-//     needs it.
+//   - Medical Center (11x11): the largest building on campus, and a capital
+//     project (projectData.ts's MEDICAL_CENTER_PROJECT): it lifts academics
+//     and research, opens from Year 15, and can be paid half from the
+//     endowment. The MD's clerkship needs it. Until Plan 50 it was the
+//     University Hospital, and waited on the School of Medicine.
 //
 // Capacity tracks footprint at about 220-250 served per tile; cost per seat
 // climbs (280 -> 400 -> 650). Fully built the chain serves 38,000 (plus the
-// fitness trio's 9,000), and 30,000 of that needs a medical school, so a
-// large campus without one feels a permanent `health` shortfall. Intended.
+// fitness trio's 9,000).
 export const HEALTH_CENTER_TIER1_POPULATION_GATE = 1_500;
 const HEALTH_CENTER_TIER1_ID = 'HLTH-T1';
 const HEALTH_CENTER_TIER1_SERVES = 2_000;
@@ -423,9 +424,6 @@ export const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
 const HEALTH_CENTER_TIER2_COST = 2_400_000; // 400/seat
 const HEALTH_CENTER_TIER2_WEEKS = 26;
-// The MD's entry course as a raw id (importing techData.ts would be
-// circular). The School of Medicine stands once this course is done.
-const MEDICAL_SCHOOL_ENTRY_ID = 'MED501';
 export const HEALTH_CENTER_TIER3_POPULATION_GATE = 20_000;
 export const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
 const HEALTH_CENTER_TIER3_SERVES = 30_000;
@@ -858,13 +856,12 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'healthCenter',
       tier: 3,
-      name: 'University Hospital',
-      description: `A teaching hospital caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students, and where the MD's clerkship year is spent. Needs the School of Medicine founded, and a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
+      name: 'Medical Center',
+      description: `A teaching hospital with the college's name over the door, caring for ${HEALTH_CENTER_TIER3_SERVES.toLocaleString()} more students: where the MD's clerkship year is spent, and a lift to the college's academics and research while it stands. Opens from Year ${MEDICAL_CENTER_PROJECT.fromYear}, for a campus past ${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students enrolled.`,
       cost: HEALTH_CENTER_TIER3_COST,
       duration: HEALTH_CENTER_TIER3_WEEKS,
-      // The medical school founded (its entry course done). Not circular with
-      // the MD capstone this gates: the entry course needs nothing of it.
-      prereqs: [HEALTH_CENTER_TIER2_ID, MEDICAL_SCHOOL_ENTRY_ID],
+      prereqs: [HEALTH_CENTER_TIER2_ID],
+      project: MEDICAL_CENTER_PROJECT,
       status: 'locked',
       effects: {
         servesPopulation: HEALTH_CENTER_TIER3_SERVES,

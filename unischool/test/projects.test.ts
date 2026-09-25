@@ -7,13 +7,12 @@ import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import { PROJECTS, PROJECT_IDS } from '../src/data/projectData';
 import { canStartDevelopment, startDevelopment, unlockAvailable } from '../src/systems/techtree/techSystem';
-import { canPayFromEndowment, endowmentHalf, lateTierOpen, projectLift, projectLiftMax } from '../src/systems/estate/projects';
+import { canPayFromEndowment, endowmentHalf, lateTierOpen, projectLift, projectLiftMax, projectOpen } from '../src/systems/estate/projects';
 import { financingFor } from '../src/systems/finance/treasury';
 import { computeResearchTarget, prestigeBreakdown } from '../src/systems/prestige/prestigeSystem';
-import { athleticProgramStrength, SPORTS } from '../src/data/studentLifeData';
 import { eligible, whenMet } from '../src/systems/events/catalogue';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
-import type { GameState, VarsityTeam } from '../src/state/types';
+import type { GameState } from '../src/state/types';
 
 bindScriptStream(3335);
 const store = new Map<string, string>();
@@ -51,9 +50,11 @@ function stand(s: GameState, id: string): void {
 // ---- The set ----
 {
   const s = fresh();
-  assert(PROJECTS.length === 9 && new Set(PROJECT_IDS).size === 9, 'nine projects, each its own');
+  assert(PROJECTS.length === 4 && new Set(PROJECT_IDS).size === 4, 'four projects, each its own');
   assert(PROJECT_IDS.every((id) => node(s, id)?.facilityType === 'project' && node(s, id).project !== undefined), 'each is a buildable the college can place');
-  assert(PROJECTS.filter((p) => p.project.late).length === 3, 'three in the late tier');
+  assert(PROJECTS.filter((p) => p.project.late).length === 1, 'one in the late tier');
+  const medical = node(s, 'HLTH-T3');
+  assert(medical.name === 'Medical Center' && medical.project !== undefined && medical.facilityType === 'healthCenter', 'and the health chain\'s Medical Center is one too');
   assert(PROJECTS.some((p) => p.project.graduate && (p.beds ?? 0) === 0), 'a graduate college, adding no beds: the game houses no graduate students');
   assert(PROJECTS.every((p) => Object.values(p.project.boosts).some((b) => (b ?? 0) > 0)), 'every one lifts a standing');
 }
@@ -65,19 +66,20 @@ function stand(s: GameState, id: string): void {
   assert(PROJECT_IDS.every((id) => node(s, id).status === 'locked'), 'none is open to a founding college');
   s.clock.year = 12;
   unlockAvailable(s);
-  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available' && node(s, 'PROJ-LAWN').status === 'available', 'v2\'s open from their years');
-  assert(node(s, 'PROJ-MEDICAL').status === 'locked', 'not before them');
+  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available' && node(s, 'PROJ-ARTS').status === 'available', 'they open from their years');
+  assert(!projectOpen(s, node(s, 'HLTH-T3')), 'the Medical Center not before Year 15');
+  assert(projectOpen(fresh(15), node(fresh(15), 'HLTH-T3')), 'and from it');
   s.clock.year = 25;
   unlockAvailable(s);
   assert(node(s, 'PROJ-GRADUATE').status === 'locked', 'the graduate college waits on a graduate program');
-  assert(!lateTierOpen(s) && node(s, 'PROJ-INSTITUTE').status === 'locked', 'the late tier waits');
+  assert(!lateTierOpen(s) && node(s, 'PROJ-MUSEUM').status === 'locked', 'the late tier waits');
   s.clock.year = 35;
   s.self.reputation = 110;
   assert(lateTierOpen(s), 'it opens with the defend era');
   const later = fresh(40);
   assert(lateTierOpen(later), 'or at Year 40 for any college');
   unlockAvailable(later);
-  assert(node(later, 'PROJ-INSTITUTE').status === 'available', 'and the institute can be built');
+  assert(node(later, 'PROJ-MUSEUM').status === 'available', 'and the museum can be built');
 }
 
 // ---- Half from the endowment ----
@@ -108,27 +110,23 @@ function stand(s: GameState, id: string): void {
   assert(Math.abs(computeResearchTarget(s) - before - 18) < 0.01 || computeResearchTarget(s) === 150, 'and the research standing\'s target with it');
   node(s, 'PROJ-RESEARCH-PARK').backlog = node(s, 'PROJ-RESEARCH-PARK').cost / 4;
   assert(Math.abs(projectLift(s, 'research') - 9) < 0.01, 'half as much at half condition');
-  stand(s, 'PROJ-MEDICAL');
+  stand(s, 'HLTH-T3');
   const input = prestigeBreakdown(s).inputs.find((i) => i.key === 'projects');
   assert(input !== undefined && Math.abs(input.contribution - 6) < 0.01, `the medical center lifts academics (${input?.contribution})`);
-  assert(projectLiftMax('academics') === PROJECTS.reduce((t, p) => t + (p.project.boosts.academics ?? 0), 0), 'the most is every project standing');
-
-  const team = { id: 'team-1', sport: SPORTS[0].id, status: 'active', headCoach: null, assistantCoach: null, trainer: null } as unknown as VarsityTeam;
-  s.orgs.teams = [team];
-  s.orgs.teamOrder = [team.id];
-  const strength = athleticProgramStrength(s);
-  stand(s, 'PROJ-STADIUM');
-  assert(athleticProgramStrength(s) === Math.min(100, strength + 18), 'the championship stadium lifts every program');
+  assert(Math.abs(projectLift(s, 'research') - 9 - 8) < 0.01, 'and research, beside the park');
+  assert(projectLiftMax('academics') === PROJECTS.reduce((t, p) => t + (p.project.boosts.academics ?? 0), 0) + 6, 'the most is every project standing, the Medical Center among them');
+  assert(projectLiftMax('athletics') === 0, 'and nothing lifts athletics since the championship stadium went');
 }
 
 // ---- The catalog and the promises read them ----
 {
   const s = fresh(20);
   assert(!whenMet(s, { projectsOver: 1 }), 'no project, no "a great project"');
-  stand(s, 'PROJ-LAWN');
+  stand(s, 'PROJ-ARTS');
   assert(whenMet(s, { projectsOver: 1 }), 'one standing counts');
+  stand(s, 'QUAD-T1');
   const needsLawn = EVENT_CATALOGUE.find((e) => (e.needs ?? []).includes('great-lawn') && Object.keys(e.when).length === 0);
-  assert(needsLawn === undefined || eligible(s, needsLawn), 'an event that needs the great lawn can have it');
+  assert(needsLawn === undefined || eligible(s, needsLawn), 'an event that needs the great lawn has the quad');
 }
 
 if (failures === 0) {

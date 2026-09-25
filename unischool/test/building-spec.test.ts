@@ -176,21 +176,12 @@ console.log('campus scale and building spec');
   assert(footprintOf(chapter).w === 3 && footprintOf(chapter).h === 3, 'on its own 3x3 footprint');
 
   // Each roofed capital project is as tall as what it is a grander version of.
-  const project = (id: string) => byId(id);
-  const medical = project('PROJ-MEDICAL');
-  const commons = project('PROJ-COMMONS');
-  const arts = project('PROJ-ARTS');
-  const hospitalStoreys = Math.max(...CATALOGUE.filter((t) => t.facilityType === 'healthCenter').map(storeysOf));
-  const diningStoreys = Math.max(...CATALOGUE.filter((t) => t.facilityType === 'diningHall').map(storeysOf));
+  const arts = byId('PROJ-ARTS');
   const pac = CATALOGUE.find((t) => t.facilityType === 'performingArtsCenter');
-  assert(!!medical && !!commons && !!arts && !!pac, 'the projects and their models are in the catalog');
-  if (medical && commons && arts && pac) {
-    assert(storeysOf(medical) === hospitalStoreys, 'the medical center stands as tall as the teaching hospital');
-    assert(storeysOf(commons) === diningStoreys, 'the great commons as tall as the largest dining hall');
+  assert(!!arts && !!pac, 'the arts center and its model are in the catalog');
+  if (arts && pac) {
     assert(storeysOf(arts) === storeysOf(pac), 'the arts center as tall as the performing arts center');
     const v = FOUNDING_VERNACULAR;
-    const hospital = CATALOGUE.find((t) => t.facilityType === 'healthCenter' && storeysOf(t) === hospitalStoreys);
-    assert(!!hospital && materialOf(medical, v) === materialOf(hospital, v), 'and in the hospital\'s wall');
     assert(materialOf(arts, v) === materialOf(pac, v), 'the arts center in the civic set\'s stone');
   }
 }
@@ -515,15 +506,14 @@ console.log('campus scale and building spec');
   check('tennisCourts', 'six tennis courts in a row', 110, 36);
   check('pool', 'an open-air 50m pool and its deck', 63, 36);
 
-  // And the pinnacle venues are still the biggest things on campus, which is
-  // the one relationship their footprints are actually load-bearing for:
-  // since Plan 33 the championship stadium, a capital project, then the
-  // football stadium.
+  // And the football stadium is still the biggest thing on campus, which is
+  // the one relationship its footprint is actually load-bearing for (the
+  // championship stadium outdid it until Plan 50).
   const stadium = CATALOGUE.find((t) => t.facilityType === 'footballStadium');
   const areas = CATALOGUE.map((t) => { const fp = footprintOf(t); return { id: t.id, a: fp.w * fp.h }; })
     .sort((x, y) => y.a - x.a);
-  assert(stadium !== undefined && areas[0].id === 'PROJ-STADIUM' && areas[1].id === stadium.id,
-    `the two stadiums cover more ground than anything else (biggest are ${areas[0].id}, ${areas[1].id})`);
+  assert(stadium !== undefined && areas[0].id === stadium.id,
+    `the football stadium covers more ground than anything else (biggest is ${areas[0].id})`);
 }
 
 // --- 14. Applied pieces fit the buildings they are applied to ------------

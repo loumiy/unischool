@@ -18,7 +18,7 @@ import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
-import { initialFacilities } from '../data/facilitiesData';
+import { HEALTH_CENTER_TIER3_ID, initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS } from '../data/facultyData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -50,22 +50,30 @@ export const SAVE_KEY = 'unischool.save';
 // run is worse than a new one. There is no migration chain; if a specific
 // run is ever worth carrying across a bump, write a one-off and delete it
 // in the next PR. See docs/architecture/game-state.md.
-export const SAVE_VERSION = 73; // Plan 46: Chemistry is CHEM and Chemical Engineering CHEN (were CHMY and CHEM)
+export const SAVE_VERSION = 74; // Plan 50: five capital projects gone; the hospital is the Medical Center
 
-// The one-off carry from the previous version (the policy above): Plan 46
-// swapped two majors' codes, which are ids throughout a save (programs, their
-// courses, their labs). Remapped on the saved text before it is read. Delete
-// with the next bump.
-const MIGRATED_FROM = 72;
-function migrateChemistryCodes(raw: string): string {
-  return raw
-    .replace(/\bCHEM(?=\d{3}\b)/g, '@@CHEN')
-    .replace(/\bLAB-CHEM\b/g, 'LAB-@@CHEN')
-    .replace(/"CHEM"/g, '"@@CHEN"')
-    .replace(/\bCHMY(?=\d{3}\b)/g, 'CHEM')
-    .replace(/\bLAB-CHMY\b/g, 'LAB-CHEM')
-    .replace(/"CHMY"/g, '"CHEM"')
-    .replace(/@@CHEN/g, 'CHEN');
+// The one-off carry from the previous version (the policy above): Plan 50
+// removed five capital projects and made the health chain's hospital a
+// project of its own. Their nodes and sites leave the save, whatever state
+// they were in (a standing one takes nothing with it but its lift), and the
+// hospital takes the catalog's terms. Delete with the next bump.
+const MIGRATED_FROM = 73;
+const REMOVED_PROJECT_IDS: ReadonlySet<string> = new Set(['PROJ-LAWN', 'PROJ-STADIUM', 'PROJ-MEDICAL', 'PROJ-INSTITUTE', 'PROJ-COMMONS']);
+function carryFewerProjects(payload: SavePayload): void {
+  const state = payload.state as GameState & { placements?: Record<string, unknown>; developing?: Record<string, unknown> };
+  if (!Array.isArray(state?.tech)) return;
+  state.tech = state.tech.filter((t) => !REMOVED_PROJECT_IDS.has(t.id));
+  for (const id of REMOVED_PROJECT_IDS) {
+    if (state.placements) delete state.placements[id];
+    if (state.developing) delete state.developing[id];
+  }
+  const hospital = state.tech.find((t) => t.id === HEALTH_CENTER_TIER3_ID);
+  const catalog = initialFacilities().find((t) => t.id === HEALTH_CENTER_TIER3_ID);
+  if (hospital && catalog) {
+    hospital.prereqs = [...catalog.prereqs];
+    hospital.project = catalog.project;
+    if (hospital.name === 'University Hospital') hospital.name = catalog.name;
+  }
 }
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
@@ -664,7 +672,7 @@ export function loadGame(): GameState | null {
   try {
     parsed = JSON.parse(raw);
     if ((parsed as Partial<SavePayload> | null)?.version === MIGRATED_FROM) {
-      parsed = JSON.parse(migrateChemistryCodes(raw));
+      carryFewerProjects(parsed as SavePayload);
       (parsed as SavePayload).version = SAVE_VERSION;
     }
   } catch {
