@@ -121,7 +121,7 @@ function stand(s: GameState, id: string): void {
   assert(athleticProgramStrength(s) === Math.min(100, strength + 18), 'the championship stadium lifts every program');
 }
 
-// ---- The catalogue and the promises read them ----
+// ---- The catalog and the promises read them ----
 {
   const s = fresh(20);
   assert(!whenMet(s, { projectsOver: 1 }), 'no project, no "a great project"');

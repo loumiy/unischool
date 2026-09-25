@@ -22,11 +22,11 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
       </div>
       {running && def ? (
         <>
-          <p><strong>{def.title}</strong>: {money(running.raised)} of {money(running.target)}, {running.dueYear - s.clock.year > 0 ? `${running.dueYear - s.clock.year} years to go` : 'closing this year'}.</p>
+          <p><strong>{def.title}</strong>: {money(running.raised)} of {money(running.target)}, {running.dueYear - s.clock.year > 1 ? `${running.dueYear - s.clock.year} years to go` : running.dueYear - s.clock.year === 1 ? 'a year to go' : 'closing this year'}.</p>
           <p className="empty-note">{def.text}</p>
         </>
       ) : !hasAdvancementOffice(s) ? (
-        <p className="empty-note">A campaign needs a VP of Advancement to run it (the Faculty tab&rsquo;s Administration).</p>
+        <p className="empty-note">A campaign needs a VP of Advancement to run it (the Faculty tab's Administration).</p>
       ) : open.length === 0 ? (
         <p className="empty-note">No campaign is ready. Each opens once the college has the alumni for it and the need it answers.</p>
       ) : (

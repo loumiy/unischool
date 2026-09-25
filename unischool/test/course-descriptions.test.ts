@@ -38,10 +38,10 @@ const titleOf = (id: string): string => byId.get(id)!.name.replace(/^[A-Z]+ \d+ 
     assert(byId.has(id), `${id} names an undergraduate course`);
     if (!byId.has(id)) continue;
     const title = titleOf(id);
-    assert(/^[A-Z]/.test(text) && text.endsWith('.'), `${id} is a capitalised sentence ending in a full stop`);
+    assert(/^[A-Z]/.test(text) && text.endsWith('.'), `${id} is a capitalized sentence ending in a full stop`);
     // One sentence: no full stop followed by a space and a capital inside
     // it. Abbreviations and initials are allowed a stop before a lower-case
-    // continuation ("e.g. the"), which the catalogue does not use anyway.
+    // continuation ("e.g. the"), which the catalog does not use anyway.
     assert(!/\. [A-Z]/.test(text), `${id} is one sentence, not several`);
     assert(!/\b[A-Z]{4}\s?\d{3}\b/.test(text), `${id} names no course code`);
     assert(!/\bthis course\b/i.test(text), `${id} does not say "this course"`);
@@ -57,13 +57,13 @@ const titleOf = (id: string): string => byId.get(id)!.name.replace(/^[A-Z]+ \d+ 
   }
 }
 
-// --- every course in the catalogue has an authored description --------
+// --- every course in the catalog has an authored description --------
 {
   const missing = courses.filter((t) => !(t.id in COURSE_DESCRIPTIONS));
   console.log(`  · ${courses.length - missing.length} of ${courses.length} undergraduate courses have an authored description`);
   assert(
     missing.length === 0,
-    `every course in the catalogue has an authored description — ${missing.length} do not: ${missing.slice(0, 8).map((t) => t.id).join(', ')}${missing.length > 8 ? ', …' : ''}`,
+    `every course in the catalog has an authored description — ${missing.length} do not: ${missing.slice(0, 8).map((t) => t.id).join(', ')}${missing.length > 8 ? ', …' : ''}`,
   );
   // And the seed really does read the table: every course's Buildable
   // carries its sentence, verbatim, and nothing generated.

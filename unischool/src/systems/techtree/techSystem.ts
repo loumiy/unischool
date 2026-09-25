@@ -36,7 +36,7 @@ export function assignedInstructor(s: GameState, t: Buildable): Faculty | undefi
 }
 
 // An offered course with a faculty field and no live instructor, as a
-// dismissal leaves it. It still counts toward the catalogue.
+// dismissal leaves it. It still counts toward the catalog.
 export function isUnstaffed(s: GameState, t: Buildable): boolean {
   return isOffered(t) && !!t.requiresFaculty && assignedInstructor(s, t) === undefined;
 }

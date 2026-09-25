@@ -173,8 +173,8 @@ export type StandingAxis = 'reputation' | 'socialStanding' | 'researchStanding' 
 export const STANDINGS: ReadonlyArray<{ axis: StandingAxis; label: string }> = [
   { axis: 'reputation', label: 'Academics' },
   { axis: 'researchStanding', label: 'Research' },
-  { axis: 'socialStanding', label: 'Student experience' },
-  { axis: 'athleticStrength', label: 'Athletics' },
+  { axis: 'socialStanding', label: 'Campus life' },
+  { axis: 'athleticStrength', label: 'Athletic standing' },
   { axis: 'access', label: 'Access' },
   { axis: 'financial', label: 'Financial strength' },
 ];

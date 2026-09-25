@@ -22,7 +22,7 @@ const ROAD_COST = 1.5;
 const QUAD_COST = 2;
 export const LAWN_COST = 4;
 
-export interface Waypoint { col: number; row: number }  // a tile centre
+export interface Waypoint { col: number; row: number }  // a tile center
 export interface Door { id: string; col: number; row: number; weight: number }
 
 const idx = (col: number, row: number) => row * W + col;
@@ -164,7 +164,7 @@ export function growTree(grid: Float32Array, from: { col: number; row: number })
   return prev;
 }
 
-// The route from a tree's root to a tile, as tile centres, or null if the
+// The route from a tree's root to a tile, as tile centers, or null if the
 // tile was never reached.
 export function routeTo(prev: Int32Array, to: { col: number; row: number }): Waypoint[] | null {
   let i = idx(to.col, to.row);
@@ -205,7 +205,7 @@ export class RouteTable {
   }
 }
 
-// Desire lines: the lawn the busiest routes cross, as runs of tile centres.
+// Desire lines: the lawn the busiest routes cross, as runs of tile centers.
 // Homes to halls and dining, the most-used few of each.
 export function desireLines(input: WalkInput, grid: Float32Array): Waypoint[][] {
   const stops = doors(input, grid);

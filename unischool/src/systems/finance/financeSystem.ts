@@ -36,11 +36,11 @@ const UPKEEP_EMPTY_SEAT_MULTIPLIER = 0.5;
 // Instruction, per section. A course costs SECTION_COST a week for every
 // SECTION_SIZE students in it, with per-course enrollment read off the
 // aggregate body (each student takes COURSES_PER_STUDENT courses, spread
-// evenly across the catalogue). Every offered course runs at least one
+// evenly across the catalog). Every offered course runs at least one
 // section and at most what its seats hold (instructionCapacity.ts). So a
-// small catalogue at a big school runs full, cheap sections and crowds its
-// students, while a big catalogue at a small school runs empty sections
-// dearly: the right catalogue size changes as the school grows.
+// small catalog at a big school runs full, cheap sections and crowds its
+// students, while a big catalog at a small school runs empty sections
+// dearly: the right catalog size changes as the school grows.
 //
 // Sections and services are charged at market rate, like salaries
 // (facultyData.ts's marketRateMultiplier): a prestige-130 school pays about
@@ -59,13 +59,13 @@ export const SERVICES_PER_STUDENT_PER_WEEK = 45; // at prestige 50
 // layers of management that coordinate them), charged per student and
 // rising with every doubling of the roll above SCALE_FREE_BELOW. Every other
 // running cost is linear in size, so without it the marginal student pays
-// as well at 20,000 as at 1,000 and growth compounds until the catalogue
+// as well at 20,000 as at 1,000 and growth compounds until the catalog
 // runs out (docs/plans/36-costs-that-grow-with-size.md). Free below the
 // threshold, so a founding college never pays it; logarithmic, so the
 // marginal student's margin falls smoothly rather than at a cliff; at the
 // prestige market rate, on top of it, never in place of it.
 // Fitted in Plan 36's PR D to the design's eras: on the default seed the
-// Balanced builder's catalogue is four-fifths built in Year 35 (Year 16
+// Balanced builder's catalog is four-fifths built in Year 35 (Year 16
 // without it), it reaches 20,000 students in Year 24 (14) and first place in
 // Year 29 (16), and the founding decade is never blocked by money.
 export const SCALE_PER_STUDENT_PER_WEEK = 5; // a week, a student, per doubling, at prestige 50
@@ -84,7 +84,7 @@ export interface InstructionDetail {
   sectionsPerCourse: number;
   sections: number;       // courses x sectionsPerCourse
   fill: number;           // how full the sections run, 0..1 (1 = every seat taken)
-  overflow: number;       // students beyond what the catalogue's sections seat — the crowding case
+  overflow: number;       // students beyond what the catalog's sections seat — the crowding case
   cost: number;           // sections x SECTION_COST, a week
 }
 
@@ -148,12 +148,12 @@ export interface FinanceBreakdown {
   // expenses
   weeklySalaries: number;      // the faculty payroll at market rate (see facultyData.ts's marketRateMultiplier), annualized salaries sliced into weeks
   seatUpkeep: number;          // capacity x UPKEEP_PER_SEAT_PER_WEEK — the physical plant, sized by beds not bodies
-  instructionCost: number;     // sections x SECTION_COST — teaching the catalogue you have built, section by section (see instructionDetail)
+  instructionCost: number;     // sections x SECTION_COST — teaching the catalog you have built, section by section (see instructionDetail)
   servicesCost: number;        // enrolled x SERVICES_PER_STUDENT_PER_WEEK x servicesMultiplier — advising, registrar, IT, grounds
   scaleCost: number;           // the cost of being large (scaleCostFor), rising with every doubling of the roll
   academicUpkeep: number;      // running the courses and academic buildings that are done
   facilityUpkeep: number;      // running the dorms and the facilities (labs among them) that are done
-  studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognised (see data/studentLifeData.ts)
+  studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognized (see data/studentLifeData.ts)
   athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week
   debtService: number;         // the buildings' loan payments (finance/treasury.ts)
   administration: number;      // the seats' salaries at market rate (delegation/seats.ts): the administrative ratchet
@@ -191,7 +191,7 @@ export function instructionCostPerStudentWith(s: GameState, extra: number): numb
 
 // What the next `extra` students would add to the running costs, per student
 // per week (Plan 36): instruction, services and the cost of being large, at
-// today's rates and catalogue. Read by the summer's projection, the
+// today's rates and catalog. Read by the summer's projection, the
 // Treasury's chart and the harness's sensible strategies (sim/balanceSim.ts).
 export function marginalStudentCost(s: GameState, extra = 1_000, scaleRate = SCALE_PER_STUDENT_PER_WEEK, at = totalEnrolled(s.students)): number {
   const rate = marketRateMultiplier(s.self.reputation);
@@ -349,7 +349,7 @@ export function tickFinance(s: GameState): void {
 // formula:
 //  1. Empty beds cost half, so over-building's cost falls as the school
 //     shrinks.
-//  2. Sections follow enrollment down to one per course; that catalogue
+//  2. Sections follow enrollment down to one per course; that catalog
 //     floor is the one fixed bill, recoverable with the levers in 4.
 //  3. Demand cannot hit zero: satisfaction is floored (satisfactionSystem.ts's
 //     ATTRIBUTE_SCORE_FLOOR) and curriculum breadth never falls.

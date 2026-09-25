@@ -68,7 +68,7 @@ export function startInitiative(s: GameState, action: Extract<Action, { type: 'S
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: `“${topic.name}” has begun at ${lab.name}.${consequence}`,
+    message: `"${topic.name}" has begun at ${lab.name}.${consequence}`,
     kind: orphaned.length > 0 ? 'info' : 'good',
     topic: 'research-started',
     subject: lab.id,

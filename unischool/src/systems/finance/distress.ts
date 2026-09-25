@@ -28,7 +28,7 @@ export const RUNG_DEFICIT: DistressRung = 2;
 export const RUNG_FREEZE: DistressRung = 3;
 export const RUNG_AUSTERITY: DistressRung = 4;
 export const RUNG_RECEIVERSHIP: DistressRung = 5;
-export const RUNG_NAMES = ['Sound', 'Tight', 'Deficit', 'Freeze', 'Austerity', 'Receivership'] as const;
+export const RUNG_NAMES = ['Sound', 'Tight', 'Deficit', 'Freeze', 'Austerity', 'Interim CFO'] as const;
 
 export const DEFICIT_TERMS = 2;
 export const SURPLUS_TERMS_TO_EXIT = 2;

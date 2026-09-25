@@ -80,7 +80,7 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // Advancement: a running campaign's week (systems/alumni/campaigns.ts).
   tickCampaigns,
   // After tickFinance (petitions are sized in this week's operating cost)
-  // and before tickSatisfaction. Raises no interrupt: organisations are
+  // and before tickSatisfaction. Raises no interrupt: organizations are
   // answered in a batch at the summer boundary.
   tickStudentLife,
   tickSatisfaction,
@@ -627,7 +627,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // An event from the catalogue (systems/events/catalogueEngine.ts). An
+    // An event from the catalog (systems/events/catalogueEngine.ts). An
     // inline one is answered while the clock runs; a letter's answer clears
     // the interrupt and resumes it. A letter answered with something the
     // college cannot pay for stays open.

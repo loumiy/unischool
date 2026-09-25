@@ -8,7 +8,7 @@
 // What is pinned: the letters arrive in order, at or after their weeks, in
 // year one and never again; each fires once; "I know the way" stands the
 // rest down; the shared defaults read them; the next-step line is the
-// latest letter's ask until it is done, and afterwards a reading of the
+// latest letter's ask until it is done, and afterward a reading of the
 // campus that goes quiet when nothing is on offer.
 //
 // AND THE WALKTHROUGH (state/opening.ts): a guided founding

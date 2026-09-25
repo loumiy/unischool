@@ -28,7 +28,7 @@ import { DEFAULT_SEED, withRandom } from '../engine/random';
 import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSystem';
 
 // A founded university opens with only Founders Hall built, pre-placed at the
-// map's centre unless the founding is guided (state/opening.ts sites it then).
+// map's center unless the founding is guided (state/opening.ts sites it then).
 // The founding body is all commuters and enrollment is never capacity-gated,
 // so `capacity` starts at 0. The three founding programs each open with their
 // first two courses, which is what seats the founding body of 350.
@@ -359,35 +359,35 @@ function foundState(
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(82, FOUNDING_TENURE_WEEKS), grownStat(78, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'United States', flag: '🇺🇸', gender: 'female', heritage: 'Hispanic/Latin American',
-        bio: 'Earned a doctorate in Sociology at Ravensmoor Institute; research centres on social networks and urban communities.',
+        bio: 'Earned a doctorate in Sociology at Ravensmoor Institute; research centers on social networks and urban communities.',
       },
       {
         id: 'f2', name: 'Dr. John Okafor', field: 'History', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(88, FOUNDING_TENURE_WEEKS), grownStat(68, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
-        bio: 'Earned a doctorate in History at the University of Calderwood; research centres on maritime trade networks.',
+        bio: 'Earned a doctorate in History at the University of Calderwood; research centers on maritime trade networks.',
       },
       {
         id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: grownStat(85, FOUNDING_TENURE_WEEKS), research: grownStat(72, FOUNDING_TENURE_WEEKS), teachingPotential: 85, researchPotential: 72,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(85, FOUNDING_TENURE_WEEKS), grownStat(72, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 3,
         nationality: 'United Kingdom', flag: '🇬🇧', gender: 'female', heritage: 'Anglo/Western European',
-        bio: 'Earned a doctorate in English at Marchmont University; research centres on rhetoric and composition.',
+        bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
       },
       {
         id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: grownStat(80, FOUNDING_TENURE_WEEKS), research: grownStat(79, FOUNDING_TENURE_WEEKS), teachingPotential: 80, researchPotential: 79,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(80, FOUNDING_TENURE_WEEKS), grownStat(79, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'India', flag: '🇮🇳', gender: 'female', heritage: 'South Asian',
-        bio: 'Earned a doctorate in Mathematics at Ironwood University; research centres on numerical analysis.',
+        bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
       },
       {
         id: 'f5', name: 'Dr. Elena Novak', field: 'Philosophy', teaching: grownStat(83, FOUNDING_TENURE_WEEKS), research: grownStat(71, FOUNDING_TENURE_WEEKS), teachingPotential: 83, researchPotential: 71,
         tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
         salary: facultySalary(grownStat(83, FOUNDING_TENURE_WEEKS), grownStat(71, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
         nationality: 'Poland', flag: '🇵🇱', gender: 'female', heritage: 'Slavic/Eastern European',
-        bio: 'Earned a doctorate in Philosophy at Amberfield University; research centres on ethics and moral philosophy.',
+        bio: 'Earned a doctorate in Philosophy at Amberfield University; research centers on ethics and moral philosophy.',
       },
     ],
     tech,
@@ -421,7 +421,7 @@ function foundState(
     },
     history: [],
     log: [
-      { year: 1, week: 1, message: 'The university opens its doors.', kind: 'info' },
+      { year: 1, week: 1, message: 'The college opens its doors.', kind: 'info' },
     ],
     pendingInterrupt: null,
     // Week 0 reads as "never".
@@ -436,7 +436,7 @@ function foundState(
     },
     orgs: {
       clubs: [], chapters: [], teams: [],
-      // Starts full and staggered so the pool churns rather than ageing out
+      // Starts full and staggered so the pool churns rather than aging out
       // in one wave.
       coachCandidates: initialCoachCandidatePool(),
       pendingPetitions: [],

@@ -278,7 +278,7 @@ function resolveActiveDemand(s: GameState): void {
   if (week >= demand.deadlineWeek) {
     nudgeSatisfaction(s, -DEMAND_FAILED_SATISFACTION_PENALTY);
     closeDemand(s, week);
-    log(s, `The deadline on the student body's demand for ${demand.askName} has passed with nothing built. Word of it will follow the school into next year's admissions.`, 'bad', 'demand-failed');
+    log(s, `The deadline on the student body's demand for ${demand.askName} has passed with nothing built. Word of it will follow the college into next year's admissions.`, 'bad', 'demand-failed');
   }
 }
 

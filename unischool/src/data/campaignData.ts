@@ -52,7 +52,7 @@ export const CAMPAIGNS: readonly CampaignDef[] = [
   {
     id: 'teaching-chairs', kind: 'endowment', title: 'The Campaign for the Faculty', years: 8,
     when: (s) => alumniCount(s) >= 400 && s.faculty.length >= 3,
-    whenText: 'four hundred alumni and a faculty',
+    whenText: 'four hundred alumni and three professors',
     resonates: ['well-taught', 'under-taught'],
     text: 'A campaign for endowed chairs: money that pays a salary forever rather than a salary this year. The letters go to the classes who remember being taught, and to the ones who remember not being.',
     kept: 'The Campaign for the Faculty closed at its number, and the fund is larger by the whole of it.',

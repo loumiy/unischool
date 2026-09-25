@@ -185,7 +185,7 @@ function wordOfMouthFactor(satisfaction: number): number {
 
 // The quality mix (top/mid/low, summing to 1). `drag` is the athlete band
 // drag (cohorts.ts's athleteBandDrag), taken off the top and added to the
-// low; zero for every reader but the realised class.
+// low; zero for every reader but the realized class.
 function qualityMix(prestige: number, tuition: number, drag: number = 0): Record<QualityBand, number> {
   const shift =
     PRESTIGE_QUALITY_SHIFT * (prestige - PRESTIGE_REFERENCE) / PRESTIGE_REFERENCE -

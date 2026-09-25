@@ -47,7 +47,7 @@ export const QUIRKS: readonly Quirk[] = [
   { id: 'shy-of-students', name: 'Shy of students', line: 'Brilliant on paper, lectures to the far wall. The far wall has learned a great deal.', effects: { teaching: -8, research: 8, salary: 0.95 } },
   { id: 'writes-the-textbook', name: 'Writes the textbook', line: 'Writes the textbook, assigns the textbook, and revises it every autumn so last year\'s will not do.', effects: { teaching: 5, research: 4, morale: -2 } },
   { id: 'sabbatical-in-spirit', name: 'On sabbatical in spirit', line: 'Attends every meeting in body and, at every meeting, is visibly somewhere with a beach.', effects: { teaching: -5, research: -5, salary: 0.9 } },
-  { id: 'marks-overnight', name: 'Marks overnight', line: 'Essays go in on Monday and come back on Tuesday, annotated in three colours.', effects: { teaching: 10, research: -4, salary: 1.05 } },
+  { id: 'marks-overnight', name: 'Marks overnight', line: 'Essays go in on Monday and come back on Tuesday, annotated in three colors.', effects: { teaching: 10, research: -4, salary: 1.05 } },
   { id: 'the-yellowed-notes', name: 'The yellowed notes', line: 'Teaches from the same notes for thirty years. They remain, annoyingly, correct.', effects: { teaching: 4, morale: -1, salary: 0.9 } },
   { id: 'always-being-courted', name: 'Always being courted', line: 'Has an offer from somewhere else every spring, and mentions it to the dean in March.', effects: { research: 8, morale: -1, salary: 1.2 } },
   { id: 'undergraduates-in-the-lab', name: 'Undergraduates in the lab', line: 'Any undergraduate who asks gets a bench, a project, and their name fourth on a paper.', effects: { teaching: 6, research: 6, morale: 2, salary: 1.15 } },

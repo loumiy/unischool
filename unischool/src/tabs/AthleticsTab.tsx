@@ -136,7 +136,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>On the market</h2>
         <HelpHint
-          text="One pool for the whole department, not a separate list per chair. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a chair open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open chair always has somebody listed, but the good ones are rare. A card shows a ceiling as a range, not a number: a prospect is cheap and low now with a ceiling you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better athletic director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
+          text="One pool for the whole department, not a separate list per chair. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a chair open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open chair always has somebody listed, but the good ones are rare. A card shows a ceiling as a range, not a number: a prospect is cheap and low now with a ceiling you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
         />
       </div>
 
@@ -210,7 +210,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity Athletics'}</h2>
         <HelpHint
-          text="A sport club (see Student Life) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the school's subsidy (the one dial here) plus what the programs earn at the gate. Programs draw their sport's cost to compete off the pot in the order you put them — drag the list — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the school. The athletic director adds a smaller lift to every team at once. Campus-life standing is one of the three the school is ranked on, and varsity athletics is the only thing on this screen that moves it."
+          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the college's subsidy (the one dial here) plus what the programs earn at the gate. Programs draw their sport's cost to compete off the pot in the order you put them — drag the list — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
         />
       </div>
 
@@ -231,7 +231,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
             </>
           ) : (
             <p className="empty-note department-ad-empty">
-              No athletic director. The trustees will put candidates forward before long.
+              No Athletic Director. The trustees will put candidates forward before long.
             </p>
           )}
         </div>
@@ -262,7 +262,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <span className="stat">
           Subsidy: {s.orgs.athleticsBudget} ({money(pot.subsidy)}/yr)
           {active.length > 0 && (
-            <> · gate {money(pot.earned)}/yr · pot {money(pot.pot)}/yr · programs draw {money(pot.drawn)}/yr · {pot.surplus > 0 ? `${money(pot.surplus)}/yr returned to the school` : 'nothing left over'}</>
+            <> · gate {money(pot.earned)}/yr · pot {money(pot.pot)}/yr · programs draw {money(pot.drawn)}/yr · {pot.surplus > 0 ? `${money(pot.surplus)}/yr returned to the college` : 'nothing left over'}</>
           )}
         </span>
         <div className="athletics-budget-tiers">
@@ -295,7 +295,7 @@ function SportStandings({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>By sport</h2>
         <HelpHint
-          text="Every school in the country is stronger at some sports than others, and reliably so — a school that is good at hockey stays good at hockey. Your own strength in a sport is that team's quality, which is its coaching staff, the recruiting budget and the athletic director together, so hiring a coach moves your place on this table rather than some separate figure. Teams still waiting on a venue are not ranked: they cannot compete yet."
+          text="Every college and university in the country is stronger at some sports than others, and reliably so — one that is good at hockey stays good at hockey. Your own strength in a sport is that team's quality, which is its coaching staff, the recruiting budget and the Athletic Director together, so hiring a coach moves your place on this table rather than some separate figure. Teams still waiting on a venue are not ranked: they cannot compete yet."
         />
       </div>
       <ul className="sport-standings">
@@ -352,7 +352,7 @@ function TrophyCase({ s }: { s: GameState }) {
     <section className="panel">
       <div className="panel-head">
         <h2>Trophy case</h2>
-        <HelpHint text="Every national title the school has won, by year and sport. A title lifts campus-life standing for good, swells the next summer's applicant pool for a few years, and for about a year makes donors easier to find and an endowment campaign worth more." />
+        <HelpHint text="Every national title the college has won, by year and sport. A title lifts Campus life for good, swells the next summer's applicant pool for a few years, and for about a year makes donors easier to find and a campaign worth more." />
       </div>
       <ul className="org-list trophy-case">
         {titles.map((title) => (
@@ -437,7 +437,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
       {ordered.length === 0 ? (
         <div className="empty-note">
           {/* Before any team: the first sport club and what comes next. */}
-          <p>No sport club has gone varsity yet. The path: a sport club forms on Student Life, and after {VARSITY_PETITION_MIN_TENURE_YEARS} years it may petition to go varsity — a program budget, a shared venue for its sport, and a place on this list.</p>
+          <p>No sport club has gone varsity yet. The path: a sport club forms on the Students tab, and after {VARSITY_PETITION_MIN_TENURE_YEARS} years it may petition to go varsity — a program budget, a shared venue for its sport, and a place on this list.</p>
           {s.orgs.clubs.filter((c) => c.sport !== null).length > 0 && (
             <ul className="org-list">
               {s.orgs.clubs.filter((c) => c.sport !== null).map((c) => {
@@ -445,7 +445,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
                 return (
                   <li key={c.id} className="org-row">
                     <span className="org-name">{c.name}</span>
-                    <span className="org-meta">{year <= s.clock.year ? 'may petition this year' : `may petition in year ${year}`}</span>
+                    <span className="org-meta">{year <= s.clock.year ? 'may petition this year' : `may petition in Year ${year}`}</span>
                   </li>
                 );
               })}

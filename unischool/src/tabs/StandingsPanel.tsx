@@ -42,7 +42,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
       </dl>
       {rival && (
         <p className="stat">
-          The rival: {rival.rival.name} {rival.rival.mascot}, in {sportById(rival.sport)?.teamName ?? rival.sport} and in the rankings, #{rival.theirs} to the college&rsquo;s #{rival.mine}.
+          The rival: {rival.rival.name} {rival.rival.mascot}, in {(sportById(rival.sport)?.teamName ?? rival.sport).replace(/ Team$/, '')} and in the rankings, #{rival.theirs} to the college's #{rival.mine}.
           {series && ` The series stands ${series.wins}–${series.losses}.`}
         </p>
       )}

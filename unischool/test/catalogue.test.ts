@@ -1,4 +1,4 @@
-// The catalogue, drawn (Plan 25): a hall dedicated to one school is drawn as
+// The catalog, drawn (Plan 25): a hall dedicated to one school is drawn as
 // that school's signature building and a mixed hall is not; research
 // buildings look like their discipline. Drawing only, so what these pin is
 // which look the map picks, and that the state never carries it.
@@ -33,7 +33,7 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-console.log('catalogue tests');
+console.log('catalog tests');
 
 // ---- Every school has a signature, and they differ ----
 {
@@ -58,7 +58,7 @@ function withHall(slots: (string | null)[]): GameState {
   const sciences = programs().filter((p) => p.school === 'Science').slice(0, 6).map((p) => p.id);
   const s = withHall(sciences);
   const entry = campusLayout(s).byId.get('HALL-01')!;
-  assert(motifOf(entry.t) === SCHOOL_SIGNATURES['Science'].motif, `a hall of six science programs is drawn as a science centre (${motifOf(entry.t)})`);
+  assert(motifOf(entry.t) === SCHOOL_SIGNATURES['Science'].motif, `a hall of six science programs is drawn as a science center (${motifOf(entry.t)})`);
   assert(materialOf(entry.t, 'georgian') !== materialOf(s.tech.find((t) => t.id === 'HALL-01')!, 'georgian'), 'in its own material');
   assert(!('signature' in s.tech.find((t) => t.id === 'HALL-01')!), 'and the state never carries the look');
 

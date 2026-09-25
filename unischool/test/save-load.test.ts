@@ -65,7 +65,7 @@ function testRoundTrip(): void {
   assert(loaded.self.reputation === cur.self.reputation, 'founding prestige survives round trip');
   assert(
     loaded.self.colors.primary === cur.self.colors.primary && loaded.self.colors.secondary === cur.self.colors.secondary,
-    'the school colours survive round trip',
+    'the school colors survive round trip',
   );
   assert(
     JSON.stringify(loaded.students.classes) === JSON.stringify(cur.students.classes),

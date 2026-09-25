@@ -14,7 +14,7 @@ import { catalogueOf } from '../systems/events/catalogueEngine';
 // interpreter.
 //
 // The policy:
-//   - summer          keep last year's price and admit rate, recognise every
+//   - summer          keep last year's price and admit rate, recognize every
 //                     petition (the most expensive answer, so the harness's
 //                     opex is an upper bound). One beat per call.
 //   - decision-event  the first affordable choice (in every authored entry,
@@ -22,7 +22,7 @@ import { catalogueOf } from '../systems/events/catalogueEngine';
 //   - athletic dir.   the middle candidate of three that differ only in salary
 //   - charter         accept
 //   - letter          read it and carry on; never "I know the way"
-//   - catalogue-letter its default, as an unanswered inline event takes
+//   - catalog-letter its default, as an unanswered inline event takes
 //   - everything else read and dismiss
 //
 // A new interrupt type falls into `default` and is silently dismissed, so
@@ -45,7 +45,7 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
   switch (pending.type) {
     // The summer, beat by beat (see types.ts's SummerPayload): walked one
     // beat per call, like a player, so the third beat's decision rides the
-    // payload into the fourth, which commits it and recognises every petition.
+    // payload into the fourth, which commits it and recognizes every petition.
     case 'summer': {
       const payload = pending.payload as Partial<SummerPayload> | undefined;
       const beat = payload?.beat ?? 0;
@@ -119,7 +119,7 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
     }
 
     case 'catalogue-letter': {
-      // A letter from the catalogue takes its default, as an inline event
+      // A letter from the catalog takes its default, as an inline event
       // does when its weeks run out.
       const payload = pending.payload as { instanceId?: string } | undefined;
       const waiting = catalogueOf(s).pending.find((p) => p.instanceId === payload?.instanceId);

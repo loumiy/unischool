@@ -5,7 +5,7 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 
 // ---------------------------------------------------------------------
 // The offer queue: the player sees three programs (s.programOffers) drawn
-// from what remains, and founding one draws a replacement, so the catalogue
+// from what remains, and founding one draws a replacement, so the catalog
 // is discovered rather than enumerated (docs/design/curriculum.md). No
 // reroll, no decline. Two rules pull against each other on purpose:
 //

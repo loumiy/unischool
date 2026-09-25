@@ -94,7 +94,7 @@ function fresh(): GameState {
   assert(heldSeat(s, 'facilities', null)!.policy === 'cheapest', 'but only to one the seat has');
 }
 
-// ---- The routine, by policy (the catalogue's inline events, Plan 32) ----
+// ---- The routine, by policy (the catalog's inline events, Plan 32) ----
 {
   const spend = (e: CatalogueEvent, id: string) => -(e.choices.find((c) => c.id === id)!.effects.cash ?? 0);
   // An estate event whose answers cost different sums.

@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }:root {
   /* ---------- Register ----------
-     School colours come from the founding pick; everything else is fixed. */
+     School colors come from the founding pick; everything else is fixed. */
   --school-primary: #7b1e2b;
   --school-secondary: #f2c14e;
   --school-on-primary: #f7f2e8;
@@ -63,7 +63,7 @@
   --shadow-2: 4px 4px 0 var(--outline);
   --shadow-3: 6px 6px 0 var(--outline);
 
-  /* Semantic colour, in pairs: one tuned for the dark chrome, one for paper. */
+  /* Semantic color, in pairs: one tuned for the dark chrome, one for paper. */
   --ok-on-dark: var(--school-secondary);
   --ok-on-light: #1f6b3a;
   --bad-on-dark: #ffb0a6;
@@ -116,7 +116,7 @@ button { cursor: pointer; font-family: inherit; }
   scroll-behavior: auto !important;
 }
 
-/* Colour-vision-safe signal colours (Plan 34): good and bad news in blue and
+/* Color-vision-safe signal colors (Plan 34): good and bad news in blue and
    orange rather than green and red. */
 :root[data-vision='safe'] {
   --ok-on-light: #1f5fa8;
@@ -240,7 +240,7 @@ button { cursor: pointer; font-family: inherit; }
    Left: funds + stats. Middle: tabs + build. Right: speed + clock. */
 /* Wraps at every width: zone contents can't shrink, so squeezing them makes
    them overlap. The height is measured, so a second line insets the map. */
-/* Side zones stack to two rows so the labelled tabs fit from 1280px up. */
+/* Side zones stack to two rows so the labeled tabs fit from 1280px up. */
 .toolbar { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
   background: var(--school-primary); color: var(--ink-hi); border-top: 4px solid var(--school-secondary);
@@ -293,7 +293,7 @@ button { cursor: pointer; font-family: inherit; }
 .toolbar-tabs { display: flex; align-items: center; gap: 4px; flex: none; }
 
 /* Shared by every icon button in the middle cluster (tabs and build). */
-/* Label under the glyph so eight labelled tabs fit in one row from 1280px. */
+/* Label under the glyph so eight labeled tabs fit in one row from 1280px. */
 .toolbar-icon-btn { position: relative; flex: none; height: 46px; min-width: 48px; padding: 0 9px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   background: transparent; border: 2px solid transparent; border-radius: var(--radius-lg); color: var(--ink-hi);
@@ -442,13 +442,13 @@ button { cursor: pointer; font-family: inherit; }
   color: var(--school-on-primary); cursor: pointer; }
 
 /* An offered course whose instructor has left (types.ts's CourseFaculty):
-   keeps its colour, adds a warning edge and '!' stamp. */
+   keeps its color, adds a warning edge and '!' stamp. */
 .course-cell.unstaffed { border-color: var(--bad-on-light); box-shadow: inset 0 0 0 2px var(--bad-on-light); }
 .cell-stamp.unstaffed { color: var(--danger-ink); opacity: 1; font-weight: 800; }
 .course-cell.done.unstaffed .cell-stamp.unstaffed { color: var(--school-on-primary); }
 .course-cell.selected { outline: 3px solid var(--school-secondary); outline-offset: 1px; }
 
-/* Pulses between pale creams so it never matches the done colour. */
+/* Pulses between pale creams so it never matches the done color. */
 @keyframes cell-pulse {
   0%, 100% { background: color-mix(in srgb, var(--school-hue, var(--school-primary)) 22%, var(--cream-hi)); }
   50% { background: var(--cream-hi); }
@@ -730,8 +730,8 @@ button.build-tile { font-family: inherit; }
 .campus-rotate-btn:hover circle { fill: #efe1b8; }
 .campus-rotate-btn text { font-size: var(--text-base); fill: var(--ink); pointer-events: none; }
 
-/* Drawn pathways (pathways.tsx), autotiled: the kerb runs only along edges
-   with no neighbour, so a run reads as a walkway and a block as a plaza. */
+/* Drawn pathways (pathways.tsx), autotiled: the curb runs only along edges
+   with no neighbor, so a run reads as a walkway and a block as a plaza. */
 .campus-paths { pointer-events: none; }
 .campus-path-fill { fill: #cbbd8e; }
 .campus-path-joint { stroke: rgba(120, 106, 66, 0.28); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
@@ -749,7 +749,7 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg.path-plant .campus-building,
 .campus-map-svg.path-fell .campus-building { pointer-events: none; }
 
-/* No fill: the motif passes the vernacular's glass colour as an attribute,
+/* No fill: the motif passes the vernacular's glass color as an attribute,
    and a class rule here would silently override it. */
 .iso-window { /* fill supplied by the motif, from the vernacular's glass */ }
 .iso-course { fill: rgba(255, 253, 246, 0.22); }
@@ -784,8 +784,8 @@ button.build-tile { font-family: inherit; }
 .iso-parapet { fill: rgba(250, 246, 234, 0.14); }
 .iso-pediment { fill: rgba(250, 246, 234, 0.62); }
 /* The clock tower's dome and finial: the campus's one gilded thing. */
-/* No colour on these two: a class rule beats a presentation attribute, and
-   colour comes from the motif (buildingSpec's VERNACULARS). */
+/* No color on these two: a class rule beats a presentation attribute, and
+   color comes from the motif (buildingSpec's VERNACULARS). */
 .iso-dome { /* fill supplied by the motif, from the vernacular's stone */ }
 .iso-finial { stroke-width: 2; vector-effect: non-scaling-stroke; }
 .iso-clock-face { fill: rgba(252, 250, 242, 0.92); stroke: rgba(60, 48, 24, 0.45); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -903,7 +903,7 @@ button.build-tile { font-family: inherit; }
 .ground-monument-cap { fill: #d8cfb4; }
 .ground-fountain-spray { fill: rgba(246, 252, 255, 0.34); }
 
-/* Flower beds: four bloom colours cycled by index. */
+/* Flower beds: four bloom colors cycled by index. */
 .ground-bed { fill: #7a6248; }
 .ground-bloom-0 { fill: #d9566a; }
 .ground-bloom-1 { fill: #e8b33f; }
@@ -1268,7 +1268,7 @@ button.build-tile { font-family: inherit; }
 .course-drawer-factors li.down .num { color: var(--danger-ink); }
 
 /* ---------- Course drawer (CurriculumTab.tsx) ----------
-   A column beside the catalogue, not a dialog; stacks above it when narrow. */
+   A column beside the catalog, not a dialog; stacks above it when narrow. */
 .curriculum-layout.with-drawer { display: grid; grid-template-columns: minmax(0, 1fr) 340px;
   gap: 16px; align-items: start; }
 
@@ -1540,7 +1540,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .dept-demand-door { background: none; border: none; padding: 0; font: inherit; font-weight: 700; color: var(--school-primary); cursor: pointer;
   text-decoration: underline; text-underline-offset: 3px; }
 .dept-demand-door:hover { color: var(--ink); }
-/* Deadline colour on a listing about to withdraw. */
+/* Deadline color on a listing about to withdraw. */
 .faculty-next { margin: 10px 0 0; }
 .next-up-meta { font-size: var(--text-2xs); font-weight: 600; color: var(--ink-muted); }
 .next-up-item.listings .next-up-door { border-left-color: var(--ok-on-light); }
@@ -1551,8 +1551,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* ---------- Capacity meter ----------
    Drawn to a scale shared across the board (facultyCapacity.ts's `scale`):
    solid = current courseload, half-tone = revealed but undeveloped, dotted
-   = the rest of the catalogue, upright rule = roster supply. The rule
-   changes colour, not position, when the department is in trouble. */
+   = the rest of the catalog, upright rule = roster supply. The rule
+   changes color, not position, when the department is in trouble. */
 .capacity-meter { display: block; min-width: 0; }
 .capacity-track { position: relative; display: flex; height: 14px; border-radius: 7px;
   background: var(--cream-lo); overflow: hidden; }
@@ -1571,7 +1571,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    never reads as "no rule". */
 .capacity-rule.at-zero { margin-left: 0; }
 .capacity-rule.gross { width: 1px; background: var(--ink-muted); opacity: 0.55; }
-/* Pinned at the end of the track: hired past the whole catalogue. */
+/* Pinned at the end of the track: hired past the whole catalog. */
 .capacity-rule.beyond { width: 4px; margin-left: -4px; background: var(--ok-on-light); }
 .capacity-meter.over .capacity-rule { background: var(--danger-ink); }
 .capacity-meter.short .capacity-rule { background: var(--warn-on-light); }
@@ -1709,7 +1709,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .standing-multiplier { font-style: italic; }
 /* Readings: rows that don't count yet. */
 .standing-readings-note { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--parchment-line); font-style: italic; }
-/* A penalty (crowding) uses the bad colour; the grade is last summer's. */
+/* A penalty (crowding) uses the bad color; the grade is last summer's. */
 .standing-penalty .standing-bar-fill { background: var(--bad-on-light); }
 .standing-penalty .standing-row-figure { color: var(--bad-on-light); }
 .standing-row-grade { color: var(--ink-muted); font-weight: 400; }
@@ -1849,7 +1849,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .admissions-outcomes dt .outcome-note { color: var(--school-primary); font-size: var(--text-xs); }
 .admissions-outcomes dd { margin: 0; color: var(--ink); font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 
-/* Price-tier colours (admissionsSystem.ts's priceTier). */
+/* Price-tier colors (admissionsSystem.ts's priceTier). */
 /* Two classes because the value is a <strong> under .admissions-field's
    `span strong` rule, which one class can't outrank. */
 .price-tier-value.price-tier-bargain { color: var(--ok-on-light); }
@@ -2110,8 +2110,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 .startup-facade { margin: 14px 0 28px; }
 .startup-facade-svg { display: block; width: 100%; height: auto; }
-/* One stone colour for every solid; depth comes from .facade-line strokes. */
-/* The facade's sky: the one surface not coloured from the vernacular. */
+/* One stone color for every solid; depth comes from .facade-line strokes. */
+/* The facade's sky: the one surface not colored from the vernacular. */
 .facade-sky { fill: #dfe2d8; }
 .facade-banner-text { fill: #6b4423; font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
 
@@ -2123,7 +2123,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .startup-vern-btn:hover { border-color: var(--outline); }
 .startup-vern-btn.active { border-color: var(--outline); background: var(--cream-hi); box-shadow: var(--shadow-1); color: var(--school-primary); }
 
-/* Colour pairs (StartupScreen.tsx): one even row of two-tone chips (primary
+/* Color pairs (StartupScreen.tsx): one even row of two-tone chips (primary
    above, secondary below), the active one ringed and lifted. */
 .startup-colors { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
 .startup-color-btn { aspect-ratio: 1; padding: 3px; background: var(--cream); border: 2px solid var(--parchment-line);
@@ -2165,7 +2165,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 @media (max-width: 760px) {
   .student-life-columns { grid-template-columns: 1fr; }
   .treasury-columns { grid-template-columns: 1fr; }
-  /* The drawer stacks above the catalogue here and stops being sticky, which
+  /* The drawer stacks above the catalog here and stops being sticky, which
      would pin it over the cells. */
   .curriculum-layout.with-drawer { grid-template-columns: 1fr; }
   .curriculum-layout.with-drawer .course-drawer { order: -1; position: static; max-height: none; }
@@ -2318,7 +2318,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .review-era { margin: -4px 0 12px; font-style: italic; color: var(--ink-muted); }
 
 /* ---------- The event panel (Plan 32, EventPanel.tsx) ----------
-   The catalogue's inline events, over the map's right edge while the clock
+   The catalog's inline events, over the map's right edge while the clock
    runs. One card open at a time; the others show a line of their text. */
 /* Clear of the map's controls down the right edge. minmax(0, 1fr) keeps a
    teaser's unbroken line from widening the column. */
@@ -2351,7 +2351,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .opening-coach-wait { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--school-primary); }
 /* The ring: an outline (so it never moves its target) in the school
-   secondary. Only its offset pulses; the colour holds, since the outline
+   secondary. Only its offset pulses; the color holds, since the outline
    ink would be indistinguishable from a tile's border. */
 .opening-target { outline: 4px solid var(--school-secondary); outline-offset: 2px; animation: opening-pulse 1.1s ease-in-out infinite; }
 @keyframes opening-pulse {

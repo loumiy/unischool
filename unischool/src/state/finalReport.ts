@@ -131,7 +131,9 @@ function financialVerdict(s: GameState): string[] {
   const distressYears = s.history.filter((h) => (h.worstRung ?? 0) >= 3).length;
   if (distressYears > 0) {
     const scars = s.finance.distress?.scars.length ?? 0;
-    out.push(VERDICTS.distress.replace('{years}', String(distressYears)).replace('{scars}', scars ? VERDICTS.scars.replace('{count}', String(scars)) : ''));
+    const years = distressYears === 1 ? 'a year' : `${distressYears} years`;
+    const times = scars === 1 ? 'once' : scars === 2 ? 'twice' : `${scars} times`;
+    out.push(VERDICTS.distress.replace('{years}', years).replace('{scars}', scars ? VERDICTS.scars.replace('{times}', times) : ''));
   }
   const debt = debtOutstanding(s);
   out.push(debt > 0 ? VERDICTS.debt.replace('{debt}', moneyShort(debt)) : VERDICTS.clean);

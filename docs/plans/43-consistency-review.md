@@ -63,7 +63,7 @@ lists each finding with its commit.
   - Promote, and dismissing a scholar on a project, warn first.
   - The build menu and log popups stop overlapping; the notes step aside
     for a building's panel.
-  - The text-size and colour-vision settings reach everything.
+  - The text-size and color-vision settings reach everything.
   - The dead styles go.
 - **The data.** Wrong descriptions, internal codes shown to the player, a
   duplicated need, missing Law research interests, and stale comments.

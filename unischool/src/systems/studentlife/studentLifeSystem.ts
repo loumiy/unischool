@@ -7,7 +7,7 @@ import {
 import { random } from '../../engine/random';
 
 // Student life tick (docs/design/student-life.md): rolls for a new student
-// organisation and raises a petition on a hit. Never sets
+// organization and raises a petition on a hit. Never sets
 // s.pendingInterrupt; petitions are answered in one batch in the summer
 // admissions interrupt. Greek beats and the varsity petition are decision
 // events in data/eventData.ts, fired by eventSystem.ts.
@@ -22,8 +22,8 @@ function raise(s: GameState, petition: OrgPetition): void {
     year: s.clock.year,
     week: s.clock.week,
     message: petition.kind === 'club'
-      ? `Students have organised the ${petition.name} and are petitioning for recognition — you will decide at summer admissions.`
-      : `A ${petition.greekKind ?? 'fraternity'} calling itself ${petition.name} has petitioned the Hellenic Council for a charter — you will decide at summer admissions.`,
+      ? `Students have organized the ${petition.name} and are petitioning for recognition — you will decide in the summer's Students beat.`
+      : `A ${petition.greekKind ?? 'fraternity'} calling itself ${petition.name} has petitioned the Hellenic Council for a charter — you will decide in the summer's Students beat.`,
     kind: 'info',
     topic: 'petition',
     subject: petition.id,
@@ -51,7 +51,7 @@ function tickVarsityVenues(s: GameState): void {
 
 export function tickStudentLife(s: GameState): void {
   tickVarsityVenues(s);
-  // The week the first student centre stands, for the sport club's pity timer.
+  // The week the first student center stands, for the sport club's pity timer.
   if (s.orgs.studentCenterWeek === 0 && hasStudentCenter(s)) s.orgs.studentCenterWeek = absoluteWeek(s);
 
   const week = absoluteWeek(s);

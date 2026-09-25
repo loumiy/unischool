@@ -1,5 +1,5 @@
-import type { GameState, Loan } from '../../state/types';
-import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
+import type { Buildable, GameState, Loan } from '../../state/types';
+import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../../state/types';
 import type { CatalogueChoice, CatalogueEvent, ConditionKey, EffectKey, NeedKey } from '../../data/eventCatalogueTypes';
 import { EVENT_CATALOGUE } from '../../data/eventCatalogue';
 import { random } from '../../engine/random';
@@ -132,6 +132,8 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   varsityAtLeast: [(s) => s.orgs.teams.filter((t) => t.status === 'active').length, 'min'],
   titlesAtLeast: [(s) => s.orgs.titles.length, 'min'],
   rivalAtLeast: [(s) => (collegeRival(s) ? 1 : 0), 'min'],
+  // 1 once the teams have a name (the first-sport interrupt asks for it).
+  mascotAtMost: [(s) => (s.self.mascot ? 1 : 0), 'max'],
   adminShareOver: [(s) => { const f = financeBreakdown(s); const pay = f.weeklySalaries + seatPayroll(s); return pay > 0 ? seatPayroll(s) / pay : 0; }, 'min'],
   payrollShareOver: [(s) => { const f = financeBreakdown(s); return f.totalExpenses > 0 ? f.weeklySalaries / f.totalExpenses : 0; }, 'min'],
   winterAtLeast: [(s) => winterDepth(s.clock.week), 'min'],
@@ -145,7 +147,7 @@ export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
   return whenMet(s, e.when);
 }
 
-// Any set of conditions in the catalogue's vocabulary (promises read theirs
+// Any set of conditions in the catalog's vocabulary (promises read theirs
 // here too).
 export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>>): boolean {
   const scale = priceScale(s);
@@ -180,6 +182,19 @@ export function eligible(s: GameState, e: CatalogueEvent): boolean {
 }
 
 // ---- Variables ----
+// {building} names something with a roof and a door: the texts put roofs,
+// boilers, lifts and foyers in it. Open ground (quads, lawns, courts, fields,
+// the pool deck, the stadium bowl) and the ornaments (statues, fountains,
+// gardens, landmarks) are never it; the chapel is the one amenity that is.
+const UNROOFED_FACILITIES: ReadonlySet<string> = new Set(['quad', 'amenity', 'landmark', 'tennisCourts', 'athleticsField', 'athleticsDiamond', 'pool', 'footballStadium']);
+const UNROOFED_IDS: ReadonlySet<string> = new Set(['PROJ-LAWN', 'PROJ-STADIUM']);
+const ROOFED_AMENITIES: ReadonlySet<string> = new Set(['AMENITY-CHAPEL']);
+function roofed(t: Buildable): boolean {
+  if (UNROOFED_IDS.has(t.id)) return false;
+  if (ROOFED_AMENITIES.has(t.id)) return true;
+  return !(t.kind === 'facility' && t.facilityType !== undefined && UNROOFED_FACILITIES.has(t.facilityType));
+}
+
 function pick<T>(xs: readonly T[]): T | undefined {
   return xs.length === 0 ? undefined : xs[Math.floor(random() * xs.length) % xs.length];
 }
@@ -189,18 +204,21 @@ export function rollVars(s: GameState): Record<string, string> {
   const latest = (s.alumni ?? [])[(s.alumni ?? []).length - 1];
   const faculty = pick(s.faculty);
   const program = pick(housedPrograms(s));
-  const building = pick(standing(s));
+  const building = pick(standing(s).filter(roofed));
   const sport = mainSport(s);
-  const schools = milestoneSchools().filter((x) => isSchoolFounded(s, x.schoolName)).map((x) => x.schoolName);
   const suitor = pick(s.rivals.filter((r) => r.reputation > s.self.reputation));
   return {
     rival: rival ? rival.name : 'the college across the river',
-    class: latest ? `the class of ${latest.classYear}` : 'the first class',
+    // The texts supply the article: "the {class}", "The {class} have written".
+    class: latest ? `class of ${latest.classYear}` : 'first class',
     faculty: faculty ? faculty.name : 'a senior professor',
     program: program ? (programById(program)?.name ?? program) : 'the founding program',
-    building: building ? building.name : 'Founders Hall',
-    sport: sport ? (sportById(sport)?.teamName ?? sport) : 'the intramural league',
-    school: pick(schools) ?? 'the college',
+    // Names read mid-sentence: "The Chapel" becomes "the Chapel".
+    building: building ? building.name.replace(/^The /, 'the ') : 'Founders Hall',
+    // The texts supply the article and the noun: "The {sport} team".
+    sport: sport ? (sportById(sport)?.teamName ?? sport).replace(/ Team$/, '') : 'intramural',
+    // The institution, by name: "{school} has appeared in a guidebook".
+    school: institutionName(s.self),
     suitor: suitor ? suitor.name : 'a larger university',
   };
 }

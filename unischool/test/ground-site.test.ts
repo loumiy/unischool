@@ -49,7 +49,7 @@ console.log('ground site tests');
 
 // --- there is something to test --------------------------------------
 {
-  assert(PLATES.length > 0, `the catalogue has open ground in it (${PLATES.length} plates)`);
+  assert(PLATES.length > 0, `the catalog has open ground in it (${PLATES.length} plates)`);
 
   // The guard against a vacuous suite: if no finished plate had props, every
   // check below would pass on a groundProps that always returned [].

@@ -40,20 +40,20 @@ interface DormRung {
 
 const DORM_RUNGS: DormRung[] = [
   // --- Early halls: 500 beds ---
-  { id: 'DORM-02', name: 'Lakeside Hall', beds: 500, cost: 3_500_000, weeks: 16, blurb: 'A four-storey residence hall.' },
-  { id: 'DORM-03', name: 'Riverside Commons', beds: 500, cost: 4_500_000, weeks: 16, blurb: 'A four-storey residence hall.' },
-  { id: 'DORM-04', name: 'Hillcrest Hall', beds: 500, cost: 5_500_000, weeks: 17, blurb: 'A four-storey residence hall.' },
-  { id: 'DORM-05', name: 'Cascade Hall', beds: 500, cost: 6_500_000, weeks: 17, blurb: 'A four-storey residence hall.' },
+  { id: 'DORM-02', name: 'Lakeside Hall', beds: 500, cost: 3_500_000, weeks: 16, blurb: 'A four-story residence hall.' },
+  { id: 'DORM-03', name: 'Riverside Commons', beds: 500, cost: 4_500_000, weeks: 16, blurb: 'A four-story residence hall.' },
+  { id: 'DORM-04', name: 'Hillcrest Hall', beds: 500, cost: 5_500_000, weeks: 17, blurb: 'A four-story residence hall.' },
+  { id: 'DORM-05', name: 'Cascade Hall', beds: 500, cost: 6_500_000, weeks: 17, blurb: 'A four-story residence hall.' },
 
-  // --- Mid-game halls: 1,000 beds, on more ground and several storeys taller ---
-  { id: 'DORM-06', name: 'Summit Commons', beds: 1_000, cost: 14_000_000, weeks: 22, blurb: 'A high-rise hall — twice the beds, on more ground and several storeys taller.' },
-  { id: 'DORM-07', name: 'Vanguard Hall', beds: 1_000, cost: 16_000_000, weeks: 22, blurb: 'A high-rise hall — twice the beds, on more ground and several storeys taller.' },
-  { id: 'DORM-08', name: 'Sterling Hall', beds: 1_000, cost: 18_000_000, weeks: 23, blurb: 'A high-rise hall — twice the beds, on more ground and several storeys taller.' },
-  { id: 'DORM-09', name: 'Crestline Hall', beds: 1_000, cost: 20_000_000, weeks: 23, blurb: 'A high-rise hall — twice the beds, on more ground and several storeys taller.' },
+  // --- Mid-game halls: 1,000 beds, on more ground and several stories taller ---
+  { id: 'DORM-06', name: 'Summit Commons', beds: 1_000, cost: 14_000_000, weeks: 22, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
+  { id: 'DORM-07', name: 'Vanguard Hall', beds: 1_000, cost: 16_000_000, weeks: 22, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
+  { id: 'DORM-08', name: 'Sterling Hall', beds: 1_000, cost: 18_000_000, weeks: 23, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
+  { id: 'DORM-09', name: 'Crestline Hall', beds: 1_000, cost: 20_000_000, weeks: 23, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
 
-  // --- Villages: one large plot, many small residences around shared green ---
-  { id: 'DORM-10', name: 'Overlook Village', beds: 1_500, cost: 40_000_000, weeks: 32, blurb: 'A residential village: a dozen small houses around shared green, on one large plot.' },
-  { id: 'DORM-11', name: 'Ridgeline Village', beds: 1_500, cost: 46_000_000, weeks: 32, blurb: 'A residential village: a dozen small houses around shared green, on one large plot.' },
+  // --- Villages: one large plot, many small residences around a shared green ---
+  { id: 'DORM-10', name: 'Overlook Village', beds: 1_500, cost: 40_000_000, weeks: 32, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
+  { id: 'DORM-11', name: 'Ridgeline Village', beds: 1_500, cost: 46_000_000, weeks: 32, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
 
   // --- Residential towers: the late-game rung, with retail at street level ---
   { id: 'DORM-12', name: 'Meridian Tower', beds: 5_000, cost: 200_000_000, weeks: 40, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
@@ -73,7 +73,7 @@ export function initialDorms(): Buildable[] {
       id: STARTING_DORM_ID,
       kind: 'dorm',
       name: 'University Hall',
-      description: 'The university’s first student housing hall — build it to give students somewhere to live on campus.',
+      description: 'The college\'s first residence hall — build it to give students somewhere to live on campus.',
       cost: STARTING_DORM_COST,
       duration: STARTING_DORM_WEEKS,
       prereqs: [],

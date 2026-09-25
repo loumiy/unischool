@@ -227,7 +227,7 @@ function VacantPanel(
             <p className={coverage.orphaned.length > 0 ? 'offer-warning' : 'offer-note'}>
               {coverage.covered.length > 0 && (
                 <>
-                  {coverage.covered.length} of this team&rsquo;s {coverage.shed.length}{' '}
+                  {coverage.covered.length} of this team's {coverage.shed.length}{' '}
                   {coverage.shed.length === 1 ? 'course' : 'courses'} would move to colleagues
                   {coverage.orphaned.length === 0 ? ', with none left uncovered.' : '. '}
                 </>
@@ -299,7 +299,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Research</h2>
-            <HelpHint text="Each research facility hosts one project at a time, so the number of things the university can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
+            <HelpHint text="Each research facility hosts one project at a time, so the number of things the college can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
           </span>
           <span className="stat">
             {/* The research-axis rank (prestigeSystem.ts's
@@ -314,7 +314,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
         {facilities.length === 0 ? (
           <p className="empty-note">
             No research facility has been finished yet. Every school can build one — a lab, an institute,
-            a studio or a computing centre — once its building and that major's entry course are done.
+            a studio or a computing center — once its building and that program's entry course are done.
           </p>
         ) : (
           <>

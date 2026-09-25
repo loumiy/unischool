@@ -168,7 +168,7 @@ export default function App() {
     if (overlay && !tabAvailable(s, overlay.tab)) setOverlay(null);
   }, [overlay, s]);
 
-  // The school's colours are the theme (see theme.ts), applied once the run
+  // The school's colors are the theme (see theme.ts), applied once the run
   // exists. The startup screen applies its own live pick before this.
   useEffect(() => {
     if (s.started) applySchoolColors(s.self.colors);

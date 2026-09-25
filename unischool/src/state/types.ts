@@ -79,7 +79,7 @@ export interface Finance {
 // tied to specific facilities, so the UI can show which building fixes it.
 export interface SatisfactionAttributes {
   academic: number;       // library seats-to-enrolled ratio
-  social: number;         // student + rec center (ratio), quad and student organisations (flat)
+  social: number;         // student + rec center (ratio), quad and student organizations (flat)
   basicNeeds: number;     // dining hall seats-to-enrolled ratio; the sharpest penalty curve
   health: number;         // health/counseling center; scores full below its population threshold
   // Dorm and housed-chapter beds. Most students commute, so housing a
@@ -104,7 +104,7 @@ export interface ClassTuition {
   senior: number;
 }
 
-// Kinds of applicant; their behaviour lives in cohorts.ts.
+// Kinds of applicant; their behavior lives in cohorts.ts.
 export type CohortId =
   | 'highAchievers' | 'preProfessional' | 'researchOriented'
   | 'social' | 'artsFocused' | 'priceSensitive' | 'athletes'
@@ -129,7 +129,7 @@ export interface StudentBody {
   // Advanced in lockstep with `classes` and finance.tuitionByClass.
   cohortsByClass: ClassCohorts;
   // Beds (dorms plus housed chapters), never an admissions ceiling; that is
-  // catalogue seats (intakeCeiling).
+  // catalog seats (intakeCeiling).
   capacity: number;
   satisfaction: number;  // 0..100, drifts toward the weighted sum of satisfactionBreakdown
   satisfactionBreakdown: SatisfactionAttributes; // this week's per-attribute scores
@@ -295,7 +295,7 @@ export interface Buildable {
   // Weeks left on a renovation, which it stays open through. Undefined means
   // none under way.
   renovationWeeks?: number;
-  // Weeks left on an added storey (systems/estate), built while it stays
+  // Weeks left on an added story (systems/estate), built while it stays
   // open; floorsAdded counts the finished ones.
   extensionWeeks?: number;
   // Declared historic (systems/estate): prestige, a dearer upkeep, ivy.
@@ -318,7 +318,7 @@ export interface CapitalProject {
 }
 
 // Finished courses, counted off `tech` so no copy can drift: the one
-// count the catalogue, the budget, the ladder and the history all read.
+// count the catalog, the budget, the ladder and the history all read.
 export function coursesDone(s: { tech: Buildable[] }): number {
   return s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length;
 }
@@ -433,7 +433,7 @@ export interface PromiseState {
   offer: { ids: string[]; decade: boolean } | null;
 }
 
-// An event from the catalogue waiting for an answer. The price scale and
+// An event from the catalog waiting for an answer. The price scale and
 // the names in its text are fixed when it fires, so what the panel shows is
 // what is applied.
 export interface PendingCatalogueEvent {
@@ -495,7 +495,7 @@ export interface SummerPayload {
 // tracks, so a demand is met by building the thing, with no acknowledge.
 export interface StudentDemand {
   id: string;
-  // Served population, bed capacity, or catalogue seats.
+  // Served population, bed capacity, or catalog seats.
   metric: 'served' | 'capacity' | 'seats';
   // The attribute for metric 'served'; null otherwise.
   attribute: keyof SatisfactionAttributes | null;
@@ -644,7 +644,7 @@ export interface ResearchState {
   pendingCompletions: InitiativeReport[]; // queued like pendingMilestones; drained one per modal (eventSystem.ts)
 }
 
-// Student organisations (docs/design/student-life.md): clubs once there is
+// Student organizations (docs/design/student-life.md): clubs once there is
 // a student center, and Greek chapters if the player approved a Hellenic
 // Council. The live lists are the source of truth for upkeep and social
 // contribution, summed weekly, so disbanding removes both.
@@ -729,7 +729,7 @@ export interface VarsityTeam extends StudentOrgBase {
   postseasonBanThroughYear?: number;
 }
 
-// A formed organisation awaiting approval in the summer digest
+// A formed organization awaiting approval in the summer digest
 // (docs/design/student-life.md), carrying everything needed to become live.
 export interface OrgPetition {
   id: string;
@@ -796,7 +796,7 @@ export interface StudentOrgState {
   // s.candidates.
   coachCandidates: Coach[];
   // Petitions raised since the last summer boundary, drained wholesale
-  // there: approved ones become organisations, the rest are declined.
+  // there: approved ones become organizations, the rest are declined.
   pendingPetitions: OrgPetition[];
   // The Greek gate: every Greek eligible() reads `approved`; `offered`
   // means the one-time question was asked, so declining closes it.
@@ -808,9 +808,9 @@ export interface StudentOrgState {
   // funded line and bands are derived from it (departmentPot), which also
   // drops unknown ids and appends unlisted teams.
   teamOrder: string[];
-  // `studentCenterWeek`: absolute week the first student centre finished
+  // `studentCenterWeek`: absolute week the first student center finished
   // (0 = not yet), for the first sport club's pity timer.
-  // `mascotBeatPending`: set the summer the first sport club is recognised;
+  // `mascotBeatPending`: set the summer the first sport club is recognized;
   // the mascot naming beat fires on the next quiet week.
   studentCenterWeek: number;
   mascotBeatPending: boolean;
@@ -840,7 +840,7 @@ export interface StudentOrgState {
 // because it is saved; buildingSpec.ts's VERNACULARS holds the palettes.
 export type Vernacular = 'georgian' | 'gothic' | 'classical' | 'mission' | 'modern';
 
-// A colour pair, presentation only. The player's pair is the game's theme
+// A color pair, presentation only. The player's pair is the game's theme
 // (components/theme.ts).
 export interface SchoolColors {
   primary: string;   // dominant: the dock, primary button outline, eyebrows
@@ -1036,7 +1036,7 @@ export interface GameState {
   // The college's rival (systems/rivals/collegeRival.ts) and whether the
   // college stood above it at the last summer. Undefined before one exists.
   rivalStanding?: { rivalId: string; above: boolean; since?: number }; // since: the year this rival was first named
-  // The event catalogue (systems/events/catalogueEngine.ts): events waiting
+  // The event catalog (systems/events/catalogueEngine.ts): events waiting
   // for an answer, the year each last fired, and when the last inline event
   // and the last letter fired. Undefined before the first fires.
   catalogue?: CatalogueState;
@@ -1060,7 +1060,7 @@ export interface GameState {
 }
 
 // Alert badges, cleared when the player looks. Ids are only ever added
-// (MARK_SEEN), bounded by the catalogue:
+// (MARK_SEEN), bounded by the catalog:
 //   - courseIds: courses the Curriculum tab has rendered (revealed, whatever
 //     their status).
 //   - buildableIds: placeable Buildables the build popup rendered while

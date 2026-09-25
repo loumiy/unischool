@@ -96,12 +96,12 @@ for (const [name, rs] of readings) {
 }
 
 // 6. Pacing (Plan 35): when a strategy first leads the field, when its
-// catalogue is four-fifths built, how long money held it in the founding
+// catalog is four-fifths built, how long money held it in the founding
 // decade, and how much of the last decade it spent at the top. The design's
 // eras (docs/design/progression.md) put the building at years 12–35.
 const PACE_FOUNDING = 10;
 const PACE_LAST_DECADE = 10;
-console.log('\n6. pacing (first year at #1; catalogue 80% built; weeks blocked by money in years 1–10; years at #1 in the last decade)');
+console.log('\n6. pacing (first year at #1; catalog 80% built; weeks blocked by money in years 1–10; years at #1 in the last decade)');
 for (const [name, rs] of readings) {
   const at = (p: (row: Row) => boolean) => rs.map((r) => r.rows.find(p)?.year ?? Infinity);
   const firstTop = at((row) => row.rank === 1);

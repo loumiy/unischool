@@ -5,9 +5,9 @@ import { useId } from 'react';
 // HistoryChart): rank in History, money in the Treasury, the classes in
 // Students, the six standings in the Final Report. Each series is named
 // and its last value printed at its end; ranks draw with one at the top;
-// the figure carries a text alternative. Colours are tokens, so the
-// colour-vision-safe set reads it, and lines past the third are dashed so
-// none is told apart by colour alone.
+// the figure carries a text alternative. Colors are tokens, so the
+// color-vision-safe set reads it, and lines past the third are dashed so
+// none is told apart by color alone.
 // ---------------------------------------------------------------------
 
 export interface Series {

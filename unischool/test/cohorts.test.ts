@@ -150,10 +150,10 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 }
 
 // =====================================================================
-// 6b. GRADUATE STUDENTS ARE ABSENT UNTIL THERE IS SOMETHING TO ENROL IN,
+// 6b. GRADUATE STUDENTS ARE ABSENT UNTIL THERE IS SOMETHING TO ENROLL IN,
 // and are ADDITIVE rather than a redistribution of the other seven. This
 // is the pair of properties no baseShare can express, and the reason this
-// cohort is modelled differently from every other one.
+// cohort is modeled differently from every other one.
 // =====================================================================
 {
   const bare = withSignal({ labCount: 2, socialOrgCount: 5 });
@@ -172,7 +172,7 @@ function withSignal(overrides: Partial<CohortSignals>): CohortSignals {
 
   // And it does not do so by taking undergraduates: every other cohort's
   // head count out of the same pool is unchanged, because their weights are
-  // untouched and only the normalising total moved... which DOES shift the
+  // untouched and only the normalizing total moved... which DOES shift the
   // apportionment, so the honest check is that none of them grew and the
   // graduate cohort accounts for the difference.
   const bareRows = cohortBreakdown(bare, TOLERANCE, TOLERANCE, 5_000);

@@ -85,9 +85,9 @@ for (const strategy of STRATEGIES) {
     const blocked = rows.filter((r) => r.year <= 10).reduce((t, r) => t + r.blockedWeeks, 0);
     gate(first >= FIRST_PLACE_NO_EARLIER, `${PACED} reaches first place in Year ${first} (no earlier than ${FIRST_PLACE_NO_EARLIER})`);
     gate(big >= TWENTY_THOUSAND_NO_EARLIER, `${PACED} reaches 20,000 students in Year ${big} (no earlier than ${TWENTY_THOUSAND_NO_EARLIER})`);
-    gate(built >= BUILT_BETWEEN[0] && built <= BUILT_BETWEEN[1], `${PACED} builds four-fifths of its catalogue by Year ${built} (Years ${BUILT_BETWEEN[0]}–${BUILT_BETWEEN[1]})`);
+    gate(built >= BUILT_BETWEEN[0] && built <= BUILT_BETWEEN[1], `${PACED} builds four-fifths of its catalog by Year ${built} (Years ${BUILT_BETWEEN[0]}–${BUILT_BETWEEN[1]})`);
     gate(blocked <= FOUNDING_BLOCKED_MAX, `${PACED} is blocked by money ${blocked} weeks in its founding decade (at most ${FOUNDING_BLOCKED_MAX})`);
-    console.log(`  · ${PACED}'s pace: first place Y${first}, 20,000 students Y${big}, catalogue four-fifths built Y${built}, ${blocked} founding weeks blocked`);
+    console.log(`  · ${PACED}'s pace: first place Y${first}, 20,000 students Y${big}, catalog four-fifths built Y${built}, ${blocked} founding weeks blocked`);
   }
   if (!bandsFor(strategy.name)) {
     strategiesWithoutBands += 1;

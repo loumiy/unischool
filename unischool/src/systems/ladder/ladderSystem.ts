@@ -28,7 +28,7 @@ export function ladderOpensTab(s: GameState, tab: TabId): boolean {
   return gate === undefined || milestoneReached(s, gate);
 }
 
-// At founding, a catalogue row seeded 'available' that a milestone names goes
+// At founding, a catalog row seeded 'available' that a milestone names goes
 // back to 'locked' until the milestone is reached; the tech tick opens it then.
 export function holdBackUnreached(s: GameState): void {
   for (const t of s.tech) {

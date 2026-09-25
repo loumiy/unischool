@@ -81,7 +81,7 @@ const fakeStorage = new Map<string, string>();
 // ---------------------------------------------------------------------
 // A strategy is a scripted player: a tuition policy plus rules for what it
 // commits cash to. Deliberately crude: reproducible, and spanning what real
-// players do (breadth first, enrolment first, overreach, sit still).
+// players do (breadth first, enrollment first, overreach, sit still).
 // ---------------------------------------------------------------------
 export interface Strategy {
   name: string;
@@ -244,7 +244,7 @@ function commissionScholarship(
         if (offer.suggested.length !== offer.depth.participants) continue;
         if (!affordable(s, offer.fundingCost, strategy)) continue;
         // Don't gut a thin department: only commit out of a field that
-        // keeps a couple of people teaching afterwards.
+        // keeps a couple of people teaching afterward.
         const wouldGut = offer.topic.fields.some((field) => {
           const inField = s.faculty.filter((f) => f.field === field).length;
           const taken = offer.suggested.filter((f) => f.field === field).length;
@@ -528,7 +528,7 @@ function freeSlot(s: GameState): { hallId: string; slot: number } | null {
 // Whether seats, not beds, stop the school growing: little room left for
 // next summer's class, and a program to found or a hall to site about it.
 function seatsAreTheConstraint(s: GameState): boolean {
-  // Tight means the catalogue holds little more than the body it has (in
+  // Tight means the catalog holds little more than the body it has (in
   // steady state the room left each summer is the class that just graduated).
   const enrolled = totalEnrolled(s.students);
   const tight = intakeCeiling(s).capacity - enrolled < Math.max(60, 0.15 * enrolled);
@@ -565,7 +565,7 @@ function siteHallIfNeeded(get: () => GameState, dispatch: (a: Action) => void, s
   if (canCommitCapital(s, strategy) && affordable(s, next.cost, strategy)) dispatchPlaceable(get, dispatch, next.id);
 }
 
-// Buildings the catalogue's events have left run down are renovated, as a
+// Buildings the catalog's events have left run down are renovated, as a
 // player who keeps the estate would (Plan 32): the harness funds maintenance
 // fully, so an event's deferred repairs are its only backlog. Below half
 // condition, and only from cash above the strategy's buffer.
@@ -637,7 +637,7 @@ function decide(
   }
 
   // Housing first when full (whatever comes first gets the week's cash), but
-  // seats before beds: the freshman class is capped by the catalogue, so while
+  // seats before beds: the freshman class is capped by the catalog, so while
   // seats bind a prudent strategy founds and sites halls first.
   const seatsBound = strategy.netMargin > 0 && seatsAreTheConstraint(get());
 
@@ -789,7 +789,7 @@ export interface Row {
   // `social` and `academic` alone: the headline blends four attributes.
   social: number;
   academic: number;
-  // Student life as the year closed: live organisations, their weekly cost,
+  // Student life as the year closed: live organizations, their weekly cost,
   // and their contribution to the satisfaction target (read off the model).
   clubs: number; chapters: number; orgUpkeep: number; orgSatisfaction: number;
   // Varsity athletics as the year closed. `sportClubs` are clubs yet to
@@ -797,7 +797,7 @@ export interface Row {
   // from `orgUpkeep`.
   sportClubs: number; varsityActive: number; varsityAwaiting: number; athleticsUpkeep: number;
   // Research as the year closed. `grantIncome` is cumulative: whether grants
-  // trivialise the cash throttle.
+  // trivialize the cash throttle.
   researchRate: number; breakthroughs: number; grantIncome: number;
   // Graduate programs (docs/design/graduate-programs.md). Graduate courses
   // are `course` Buildables, sorted last by their 5xx/7xx ids.
@@ -1023,7 +1023,7 @@ export function play(
       });
 
       if (summerCloses) {
-        // The digest is the summer's last beat. Recognising every petition
+        // The digest is the summer's last beat. Recognizing every petition
         // makes these runs an upper bound on student life's cost.
         tally.petitionsApproved += s.orgs.pendingPetitions.length;
         tally.chaptersFormed += s.orgs.pendingPetitions.filter((p) => p.kind === 'chapter').length;
@@ -1197,7 +1197,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
     `${mean(rows, (r) => r.facultyBlockedWeeks).toFixed(1)} faculty-blocked weeks/yr ` +
     `(last decade ${mean(decade, (r) => r.facultyBlockedWeeks).toFixed(1)})`,
   );
-  // Grants as a share of lifetime opex: whether they trivialise the cash
+  // Grants as a share of lifetime opex: whether they trivialize the cash
   // throttle.
   const lifetimeOpEx = rows.reduce((sum, r) => sum + r.opex * 52, 0);
   const grantShare = lifetimeOpEx > 0 ? (last.grantIncome / lifetimeOpEx) * 100 : 0;
@@ -1228,7 +1228,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
   const orgShare = last.opex > 0 ? (last.orgUpkeep / last.opex) * 100 : 0;
   console.log(
     `   student life: ${last.clubs} clubs, ${last.chapters} chapters at close ` +
-    `(${tally.petitionsApproved} recognised over the run), ${fmt(last.orgUpkeep)}/wk upkeep ` +
+    `(${tally.petitionsApproved} recognized over the run), ${fmt(last.orgUpkeep)}/wk upkeep ` +
     `(${orgShare.toFixed(2)}% of opex), +${last.orgSatisfaction.toFixed(2)} on the satisfaction target; ` +
     `${tally.greekEventsSeen} of ${tally.decisions} decision events were Greek-life ones`,
   );
@@ -1279,7 +1279,7 @@ function report(strategy: Strategy, run: { rows: Row[]; tally: EventTally; venue
 // ---------------------------------------------------------------------
 //
 // Underwater, rampTuition charges 15% more ("price before people"). Small on
-// purpose: enrolment is a four-class stock, so a jump to the cap collects
+// purpose: enrollment is a four-class stock, so a jump to the cap collects
 // from students who applied at the old price before the pool reacts.
 // The clamp to TUITION_SLIDER_MAX is purely defensive.
 const DEFICIT_SURCHARGE = 1.15;
@@ -1333,13 +1333,13 @@ export const STRATEGIES: Strategy[] = [
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0.7, facilityThreshold: 80, campaigns: true,
     // Its low net tuition does not clear instruction cost at a full
-    // catalogue (see Strategy.courseAffordabilityAware).
+    // catalog (see Strategy.courseAffordabilityAware).
     courseAffordabilityAware: true,
   },
   {
     // Balanced builder's discipline, with facilityThreshold Infinity: every
     // available facility is built regardless of satisfaction. The only
-    // strategy that reaches the whole catalogue (see sim/milestones.ts).
+    // strategy that reaches the whole catalog (see sim/milestones.ts).
     name: 'Completionist (build everything)',
     respectsMargin: true,
     tuition: rampTuition(225, 3_000),
@@ -1357,7 +1357,7 @@ export const STRATEGIES: Strategy[] = [
     buffer: () => 0,
     netMargin: -1,
     // The barest facilities, only when an attribute is dire: with welfare
-    // and attrition modelled, a campus that never feeds its students cannot
+    // and attrition modeled, a campus that never feeds its students cannot
     // recover, and "stall, don't die" is a claim about beds, not hunger.
     buildsCourses: true, buildsDorms: true, buildsFacilities: true,
     dormFillThreshold: 0, facilityThreshold: 40, campaigns: false,
@@ -1585,7 +1585,7 @@ function fmtMetric(value: number, metric: Metric): string {
   if (metric === 'netMargin') return `${(value * 100).toFixed(1)}%`;
   if (metric === 'weeksInTheRed') return value.toFixed(0);
   if (metric === 'prestige') return value.toFixed(1);
-  // Enrolment prints in full: "5k -> 5k" is worse than no line.
+  // Enrollment prints in full: "5k -> 5k" is worse than no line.
   if (metric === 'enrolled') return Math.round(value).toLocaleString();
   return fmt(value);
 }

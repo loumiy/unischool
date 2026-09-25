@@ -246,7 +246,7 @@ export function programs(): ProgramInfo[] {
   return out;
 }
 
-// Memoised: the catalogue is static, and the map's hall pips call this for
+// Memoised: the catalog is static, and the map's hall pips call this for
 // every filled slot on every render.
 let programIndex: Map<string, ProgramInfo> | null = null;
 export function programById(id: string): ProgramInfo | undefined {
@@ -256,7 +256,7 @@ export function programById(id: string): ProgramInfo | undefined {
 
 // Which program a course belongs to — the id `s.halls` would house it
 // under — or undefined for a Buildable that is not a course of any program.
-// Memoised: the catalogue is static, and meetsUnlockGates asks this for
+// Memoised: the catalog is static, and meetsUnlockGates asks this for
 // every locked course on every tick.
 let courseProgramMap: Map<string, string> | null = null;
 export function programOfCourse(courseId: string): string | undefined {
@@ -371,10 +371,10 @@ const RESEARCH_FACILITY_NAMES: Partial<Record<string, string>> = {
   FILM: 'Media Production Studio',
 };
 const RESEARCH_FACILITY_BLURBS: Partial<Record<string, string>> = {
-  ECON: 'Behavioural labs and market-simulation suites',
+  ECON: 'Behavioral labs and market-simulation suites',
   COMP: 'A compute cluster and research offices',
   HIST: 'Archives, reading rooms and a documents collection',
-  FILM: 'Sound stages, edit bays and a screening theatre',
+  FILM: 'Sound stages, edit bays and a screening theater',
 };
 const LAB_COST = 700_000;
 const LAB_WEEKS = 16;
@@ -429,7 +429,7 @@ const CLINICAL_PRACTICUM_GATE: Partial<Record<string, string>> = {
 // ---------------------------------------------------------------------
 
 // The most expensive courses in the game, a rung above tier 3, so a mature
-// school with a finished catalogue still has something academic to buy.
+// school with a finished catalog still has something academic to buy.
 // Professional schools cost more than doctorates.
 const PROFESSIONAL_COURSE_COST = 6_000_000;
 const PROFESSIONAL_COURSE_WEEKS = 40;
@@ -704,7 +704,7 @@ function nodeId(prefix: string, num: number): string {
 
 // Expand the seed data into the flat Buildable[] the engine consumes:
 // 378 course Buildables, Founders Hall, the hall chain and the graduate
-// catalogue.
+// catalog.
 export function initialTech(): Buildable[] {
   const nodes: Buildable[] = [];
 
@@ -720,7 +720,7 @@ export function initialTech(): Buildable[] {
           kind: 'facility',
           facilityType: 'lab',
           name: researchFacilityName(labId(major.prefix))!,
-          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates ${major.name}'s capstone (tier-3) coursework, and lets the school produce research.`,
+          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates the ${major.name} program's capstone (tier-3) coursework, and lets the college produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
           // Buildable once the entry course is done and the school is

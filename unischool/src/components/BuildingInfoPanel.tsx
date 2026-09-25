@@ -97,7 +97,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
         {t.effects?.flatSatisfactionBonus !== undefined
           ? `+${t.effects.flatSatisfactionBonus} flat social satisfaction`
           : 'A green centerpiece for campus life.'}
-        {' — no capacity figure; a quad doesn’t scale with enrollment.'}
+        {' — no capacity figure; a quad does not scale with enrollment.'}
       </p>
     );
   }
@@ -107,7 +107,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
         {t.effects?.researchRateBonus !== undefined
           ? `+${Math.round(t.effects.researchRateBonus * 100)}% research output`
           : 'Specialized lab space.'}
-        {' — no capacity figure; gates this major’s capstone coursework instead.'}
+        {' — no capacity figure; gates this program\'s capstone coursework instead.'}
       </p>
     );
   }
@@ -127,7 +127,7 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
 
 // ---------------------------------------------------------------------
 // The program tile: a filled slot showing the program's name in its school's
-// colour, courses done of nine, and aggregate grade. Clicking opens its
+// color, courses done of nine, and aggregate grade. Clicking opens its
 // summary and one door, "Open in Curriculum". Relocation sits behind a
 // "Move…" disclosure since it happens a few times a run.
 // ---------------------------------------------------------------------
@@ -253,7 +253,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
 
 // ---------------------------------------------------------------------
 // The hall view: a 2x3 grid of slots. Clicking an empty slot fans out the
-// three programs on offer as course tiles (schoolPalette.ts colours);
+// three programs on offer as course tiles (schoolPalette.ts colors);
 // picking one opens the instructor picker, and "Found" is the one button on
 // the map that starts a course. A filled slot shows a ProgramTile.
 // ---------------------------------------------------------------------
@@ -442,11 +442,11 @@ function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
 // renovate it (systems/estate).
 function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action) => void }) {
   if ((t.extensionWeeks ?? 0) > 0) {
-    return <p className="building-info-line">A storey going up, open throughout: {t.extensionWeeks} weeks left.</p>;
+    return <p className="building-info-line">A story going up, open throughout: {t.extensionWeeks} weeks left.</p>;
   }
   const extend = canExtend(t) ? (
     <button type="button" className="building-info-jump" disabled={s.finance.cash < extensionCost(t)} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
-      Add a storey · {money(extensionCost(t))}, twelve weeks, {extensionGain(t).toLocaleString()} more {t.kind === 'dorm' ? 'beds' : 'served'}
+      Add a story · {money(extensionCost(t))}, twelve weeks, {extensionGain(t).toLocaleString()} more {t.kind === 'dorm' ? 'beds' : 'served'}
     </button>
   ) : null;
   if ((t.renovationWeeks ?? 0) > 0) {

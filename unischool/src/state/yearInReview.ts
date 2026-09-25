@@ -10,6 +10,9 @@ import { previousYear } from './history';
 import { money } from '../format';
 import { eventById } from '../systems/events/catalogue';
 import { classYears, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
+import { CAMPAIGNS } from '../data/campaignData';
+
+const CAMPAIGN_CLOSINGS: ReadonlySet<string> = new Set(CAMPAIGNS.flatMap((c) => [c.kept, c.missed]));
 
 // ---------------------------------------------------------------------
 // The year in review: the summer's first beat. A pure reading, generated
@@ -157,7 +160,7 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
     });
   }
   const petitions = s.orgs.pendingPetitions.length;
-  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organisation')} petitioning for recognition — answered in the Students beat` });
+  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organisation')} petitioning for recognition — answered in the summer's Students beat` });
   const leaving = projectedAttrition(s);
   if (leaving > 0) {
     const reasons = attritionReasons(s);
@@ -176,8 +179,10 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
     { text: `Net over the year: ${net >= 0 ? '+' : '−'}${money(Math.abs(net))}`, tone: net >= 0 ? 'good' : 'bad' },
     { text: `Operating funds ${money(s.finance.cash)}, against ${money(before.cash)} a year ago` },
   ];
-  const campaigns = byTopic(entries, 'money').length;
-  if (campaigns > 0) lines.push({ text: `${plural(campaigns, 'endowment campaign')} closed; the endowment stands at ${money(s.finance.endowment)}` });
+  // Only a campaign's closing line counts: its launch and the building
+  // fund's lines are money lines too (alumni/campaigns.ts).
+  const campaigns = byTopic(entries, 'money').filter((e) => CAMPAIGN_CLOSINGS.has(e.message)).length;
+  if (campaigns > 0) lines.push({ text: `${plural(campaigns, 'campaign')} closed; the endowment stands at ${money(s.finance.endowment)}` });
   return { key: 'money', title: 'Money', lines, empty: '' };
 }
 
@@ -213,7 +218,7 @@ function standing(s: GameState): ReviewSection {
 }
 
 // The year's events (Plan 33): the board's letters answered, and the
-// catalogue's inline events by who answered them (the journal's records).
+// catalog's inline events by who answered them (the journal's records).
 function events(s: GameState): ReviewSection {
   const lines: ReviewLine[] = [];
   for (const l of s.catalogue?.letters ?? []) {
@@ -231,7 +236,7 @@ function events(s: GameState): ReviewSection {
     ].filter((x) => x !== '');
     lines.push({ text: `${plural(row.player + row.seat + row.timeout, 'matter')} came up: ${parts.join(', ')}` });
   }
-  return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year: nothing reached the president\'s desk.' };
+  return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year: nothing reached the President\'s desk.' };
 }
 
 // The class about to graduate (Plan 33): how it will remember its years

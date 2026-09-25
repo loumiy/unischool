@@ -1,6 +1,6 @@
 import type { SchoolColors } from '../state/types';
 
-// The school's colours: a named pair chosen at founding and never changed.
+// The school's colors: a named pair chosen at founding and never changed.
 // The pair is the game's theme (styles.css's --school-primary and
 // --school-secondary, written by components/theme.ts).
 //
@@ -30,7 +30,7 @@ export const SCHOOL_COLOR_PAIRS: SchoolColorChoice[] = [
 // default. It matches the literal defaults in styles.css.
 export const FOUNDING_COLORS: SchoolColorChoice = SCHOOL_COLOR_PAIRS[0];
 
-// The two colours only: what University and Rival store.
+// The two colors only: what University and Rival store.
 export function schoolColorsOf(choice: SchoolColorChoice): SchoolColors {
   return { primary: choice.primary, secondary: choice.secondary };
 }
@@ -64,7 +64,7 @@ function hashIndex(id: string, buckets: number): number {
 // The WCAG contrast rule, shared by the test and the picker.
 
 // Text on the primary is the register's cream (styles.css's
-// --school-on-primary), so the test checks the colour actually used.
+// --school-on-primary), so the test checks the color actually used.
 export const TEXT_ON_PRIMARY = '#f7f2e8';
 export const MIN_CONTRAST = 4.5;
 

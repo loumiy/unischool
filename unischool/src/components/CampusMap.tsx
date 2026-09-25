@@ -118,10 +118,10 @@ const MAX_PAN_FRAME_S = 0.1;
 // Home. The map rests only on those (the motifs are drawn for those exact
 // angles); a quarter turn between views is eased over TURN_MS (Plan 37,
 // see turnBy), and a tilt snaps. A camera change is a React re-render,
-// unlike a pan. It turns about the ground at the canvas centre.
+// unlike a pan. It turns about the ground at the canvas center.
 
 // The grid projects to a diamond whose left corner is at negative x, so
-// defaultView centres on WORLD's real bounds. Headroom at the top is for
+// defaultView centers on WORLD's real bounds. Headroom at the top is for
 // the tallest roof.
 const WORLD_TOP_HEADROOM = 140;
 
@@ -171,8 +171,8 @@ function otherPathTool(tool: CampusTool): CampusTool {
   }
 }
 
-// Colour comes from materialOf (buildingSpec.ts); the kind class only
-// drives behaviour rules such as the inspect dimming.
+// Color comes from materialOf (buildingSpec.ts); the kind class only
+// drives behavior rules such as the inspect dimming.
 function kindClasses(t: Buildable): string {
   return `kind-${t.kind}`;
 }
@@ -186,7 +186,7 @@ function drawnFootprint(p: Placement) {
   };
 }
 
-// Where a building's label sits and how big. `centre` is the centre of the
+// Where a building's label sits and how big. `centre` is the center of the
 // plate, not a text baseline.
 function labelLayout(label: string, t: Buildable, p: Placement, v: Vernacular) {
   const size = Math.max(
@@ -461,7 +461,7 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
 }
 
 // A lab at work (Plan 41): over a facility hosting a research project, a
-// dark disc like the hall's pips, a ring filling in the school's colour as
+// dark disc like the hall's pips, a ring filling in the school's color as
 // the project runs, and an atom turning inside it. Nothing when idle.
 const LAB_MARK_R = 12;
 const LAB_MARK_RING = 2 * Math.PI * LAB_MARK_R;
@@ -661,7 +661,7 @@ const DesireLines = memo(function DesireLines({ layout, camera }: { layout: Camp
   return d ? <path className="campus-desire" d={d} aria-hidden="true" /> : null;
 });
 
-// Hall pips: one per slot, in the colour of the school whose program holds
+// Hall pips: one per slot, in the color of the school whose program holds
 // it, plus a flag when a slot is free and a program is on offer. Always on,
 // unlike the labels, and redrawn every week, since a program can arrive or
 // stall in any week.
@@ -762,7 +762,7 @@ export default function CampusMap({
   // diffing the previous developing set, so nothing enters GameState.
   const [justFinished, setJustFinished] = useState<readonly string[]>([]);
   const wasDevelopingRef = useRef<Set<string>>(new Set());
-  // Pending expiries are cancelled on unmount only. A cleanup in the effect
+  // Pending expiries are canceled on unmount only. A cleanup in the effect
   // would cancel them on every unrelated tick and the ring would never
   // leave.
   const pulseTimersRef = useRef<number[]>([]);
@@ -818,7 +818,7 @@ export default function CampusMap({
   // mouseup is followed by a `click`, a middle one by `auxclick`, so a
   // middle pan setting the flag would swallow the next real click.
   const dragRef = useRef<{ button: number; startX: number; startY: number; startView: { x: number; y: number }; moved: boolean } | null>(null);
-  // Set when a drag is recognised as a pan, so the click fired after mouseup
+  // Set when a drag is recognized as a pan, so the click fired after mouseup
   // doesn't also place a building. Consumed by the next click or mousedown.
   const justPannedRef = useRef(false);
   const pathDragRef = useRef<CampusTool | null>(null);
@@ -853,7 +853,7 @@ export default function CampusMap({
   }
 
   // Arriving from the tab with a hall to look at: open its panel and pan the
-  // building to the canvas centre (the panel sits top-left).
+  // building to the canvas center (the panel sits top-left).
   useEffect(() => {
     if (!inspectTarget) return;
     const p = s.placements[inspectTarget];
@@ -882,7 +882,7 @@ export default function CampusMap({
     paintLabels(cursorRef.current);
   }
 
-  // Move the camera, keeping the ground at the canvas centre fixed on screen
+  // Move the camera, keeping the ground at the canvas center fixed on screen
   // (same "point stays put" formula as the wheel zoom). The projection is
   // updated synchronously so hit-tests before the re-render see the new
   // camera.
@@ -898,7 +898,7 @@ export default function CampusMap({
     setCameraState(applied);
   }
   // The quarter turn (Plan 37, from v2's): eased over TURN_MS about the
-  // ground at the canvas centre, which stays put. The azimuth runs
+  // ground at the canvas center, which stays put. The azimuth runs
   // unwrapped through the turn (setCamera wraps it); a second press mid-turn
   // retargets from where the view has got to (`at`), not from the last
   // target, which is v2's jump. Reduced motion keeps the snap.
@@ -910,7 +910,7 @@ export default function CampusMap({
     return unproject(((rect ? rect.width / 2 : 0) - v.x) / v.zoom, ((rect ? rect.height / 2 : 0) - v.y) / v.zoom);
   }
   // After each committed frame of a turn, pan so the anchor is back under
-  // the centre. After the commit, not in the frame callback: that put the
+  // the center. After the commit, not in the frame callback: that put the
   // transform a frame ahead of the geometry and the scene shook.
   useLayoutEffect(() => {
     const a = anchorRef.current;
@@ -974,19 +974,19 @@ export default function CampusMap({
     applyCamera(DEFAULT_CAMERA);
   }
 
-  // The starting view: centred at DEFAULT_ZOOM, but never so far out that
+  // The starting view: centered at DEFAULT_ZOOM, but never so far out that
   // the grid stops overflowing the canvas vertically (MIN_COVERAGE). Only
   // bites on an unusually tall, narrow canvas.
   function defaultView(rect: { width: number; height: number }) {
     const MIN_COVERAGE = 1.15;
     const zoom = Math.max(DEFAULT_ZOOM, (rect.height * MIN_COVERAGE) / MAP_HEIGHT);
-    // Centre on the world's real midpoint (the diamond starts at negative x).
+    // Center on the world's real midpoint (the diamond starts at negative x).
     const midX = (WORLD.minX + WORLD.maxX) / 2;
     const midY = (WORLD.minY + WORLD.maxY) / 2;
     return { x: rect.width / 2 - midX * zoom, y: rect.height / 2 - midY * zoom, zoom };
   }
 
-  // Centre the grid on first paint only; resizing leaves the player's
+  // Center the grid on first paint only; resizing leaves the player's
   // pan/zoom alone.
   useEffect(() => {
     const svg = svgRef.current;
@@ -1029,7 +1029,7 @@ export default function CampusMap({
 
   // Keyboard panning. Held keys drive an animation-frame loop scaled by real
   // elapsed time, so the camera glides at the same speed at any frame rate.
-  // Diagonals are normalised. Writes through applyView, like the mouse drag.
+  // Diagonals are normalized. Writes through applyView, like the mouse drag.
   useEffect(() => {
     if (!controlsEnabled) return;
     const held = new Set<string>();
@@ -1048,7 +1048,7 @@ export default function CampusMap({
         dx += kx;
         dy += ky;
       }
-      // Opposite keys cancel to zero, which must not be normalised.
+      // Opposite keys cancel to zero, which must not be normalized.
       const len = Math.hypot(dx, dy);
       if (len > 0 && dt > 0) {
         const view = viewRef.current;

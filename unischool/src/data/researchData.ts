@@ -80,7 +80,7 @@ export function weeklyResearchPoints(s: GameState): number {
 // crisis in year 3 nor a rounding error in year 40.
 const MIN_OPEX_SCALE = 45_000; // floor, matching eventData.ts, so a young school still produces sane figures
 // Every running project draws grants independently, so each is small: a
-// welcome cheque, not a funding round.
+// welcome check, not a funding round.
 const GRANT_MIN_WEEKS = 0.4;
 const GRANT_MAX_WEEKS = 1.2;
 
@@ -202,7 +202,7 @@ export function disciplineVocab(schoolName: string | null): DisciplineVocab {
 }
 
 // The school whose facility the work runs in. Null for a facility in no
-// school (not possible in the seeded catalogue); callers fall back to
+// school (not possible in the seeded catalog); callers fall back to
 // DEFAULT_VOCAB.
 export function facilitySchool(labId: string): string | null {
   for (const school of researchSchools()) {

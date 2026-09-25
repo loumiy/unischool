@@ -2,15 +2,15 @@
 // The campus's unit system (src/components/campusScale.ts) and the
 // dimensional spec derived from it (src/components/buildingSpec.ts).
 //
-// This pins the thing the art brief actually asked for: that a storey means
+// This pins the thing the art brief actually asked for: that a story means
 // the SAME THING on every building on the map, and that a building's height
 // and its floor count can never disagree. Both used to be authored in separate
-// tables with no arithmetic between them, which is how a storey came to be
+// tables with no arithmetic between them, which is how a story came to be
 // 6.1 m in a residential tower and 26.3 m in a gym.
 //
-// Run over the REAL catalogue — every placeable Buildable the game can build —
+// Run over the REAL catalog — every placeable Buildable the game can build —
 // rather than over invented examples, so a new rung added to a chain without a
-// storey count is caught here rather than by eye.
+// story count is caught here rather than by eye.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -63,23 +63,23 @@ console.log('campus scale and building spec');
   assert(near(UNITS_PER_TILE_UP, (TILE_W / Math.SQRT2) * Math.cos(PITCH)),
     'a tile of height is foreshortened by cos(pitch), not assumed to be TILE_W / 2');
   assert(near(up(METRES_PER_TILE), UNITS_PER_TILE_UP),
-    'up() and the tile agree: one tile of height is METRES_PER_TILE metres');
+    'up() and the tile agree: one tile of height is METRES_PER_TILE meters');
   assert(near(across(METRES_PER_TILE), 1), 'across() and the tile agree on the ground, too');
-  assert(near(STOREY, up(STOREY_METRES)), 'a storey is its own height in metres and nothing else');
+  assert(near(STOREY, up(STOREY_METRES)), 'a story is its own height in meters and nothing else');
   // The number this replaced. If the derivation ever drifts far from it, the
   // campus silently rescales — so the agreement is asserted, not admired.
   assert(Math.abs(STOREY - 17) < 0.1,
-    `the derived storey lands on the 17 units buildingMotifs already used for an added floor (got ${STOREY.toFixed(2)})`);
+    `the derived story lands on the 17 units buildingMotifs already used for an added floor (got ${STOREY.toFixed(2)})`);
   // And the shortcut that was wrong: TILE_W / 2 understates height by ~18%,
   // which is exactly the "stylistic" exaggeration it then needed.
   assert(Math.abs(UNITS_PER_TILE_UP / (TILE_W / 2) - 1.22) < 0.01,
     'the TILE_W/2 shortcut understates height by the 1.22x a fudge factor was compensating for');
 }
 
-// --- 2. ONE storey height, campus-wide ------------------------------------
+// --- 2. ONE story height, campus-wide ------------------------------------
 {
   const storeyed = CATALOGUE.filter((t) => storeysOf(t) > 0);
-  assert(storeyed.length > 30, `the catalogue has plenty of storeyed buildings to compare (${storeyed.length})`);
+  assert(storeyed.length > 30, `the catalog has plenty of storied buildings to compare (${storeyed.length})`);
 
   let worst: { id: string; metres: number } | null = null;
   for (const t of storeyed) {
@@ -89,7 +89,7 @@ console.log('campus scale and building spec');
     }
   }
   assert(worst !== null && near(worst.metres, STOREY_METRES, 1e-9),
-    `every building's storey is ${STOREY_METRES} m (worst: ${worst?.id} at ${worst?.metres.toFixed(3)} m)`);
+    `every building's story is ${STOREY_METRES} m (worst: ${worst?.id} at ${worst?.metres.toFixed(3)} m)`);
 }
 
 // --- 3. Height and floor count cannot disagree ----------------------------
@@ -98,23 +98,23 @@ console.log('campus scale and building spec');
     const storeys = storeysOf(t);
     if (storeys === 0) continue;
     if (!near(wallHeightOf(t), storeys * STOREY)) {
-      assert(false, `${t.id}: wall height is its storey count times STOREY`);
+      assert(false, `${t.id}: wall height is its story count times STOREY`);
       break;
     }
     if (windowRanksOf(t) !== storeys) {
-      assert(false, `${t.id}: one rank of windows per storey`);
+      assert(false, `${t.id}: one rank of windows per story`);
       break;
     }
   }
-  assert(true, 'every storeyed building: height = storeys x STOREY, and one window rank per storey');
+  assert(true, 'every storied building: height = stories x STOREY, and one window rank per story');
 }
 
 // --- 4. Clear-span volumes have a height but no floors --------------------
 {
   const clearSpan = CATALOGUE.filter((t) => ['hangar', 'bowl'].includes(motifOf(t)));
-  assert(clearSpan.length > 0, 'the catalogue has clear-span venues');
+  assert(clearSpan.length > 0, 'the catalog has clear-span venues');
   assert(clearSpan.every((t) => storeysOf(t) === 0),
-    'a gym, a pool hall and a stadium have no storeys — they are one volume');
+    'a gym, a pool hall and a stadium have no stories — they are one volume');
   assert(clearSpan.every((t) => wallHeightOf(t) > 0), 'but they still stand up');
   assert(clearSpan.every((t) => windowRanksOf(t) === 1),
     'and are lit by one continuous band rather than by ranks');
@@ -126,13 +126,13 @@ console.log('campus scale and building spec');
 // --- 5. A renovation adds a REAL floor ------------------------------------
 {
   const library = CATALOGUE.find((t) => t.facilityType === 'library');
-  assert(library !== undefined, 'the catalogue has a library');
+  assert(library !== undefined, 'the catalog has a library');
   if (library) {
     const base = storeysOf(library);
     const renovated = { ...library, floorsAdded: 3 };
-    assert(storeysOf(renovated) === base + 3, 'three added floors are three more storeys');
+    assert(storeysOf(renovated) === base + 3, 'three added floors are three more stories');
     assert(near(wallHeightOf(renovated) - wallHeightOf(library), 3 * STOREY),
-      'and they raise the building by three storeys — not by half of one, as the old 17-against-34 did');
+      'and they raise the building by three stories — not by half of one, as the old 17-against-34 did');
     assert(windowRanksOf(renovated) === base + 3, 'each added floor brings its own rank of windows');
   }
 }
@@ -144,19 +144,19 @@ console.log('campus scale and building spec');
   assert(!!founding && !!early && !!mid && !!tower, 'the housing chain covers all four size classes');
   if (founding && early && mid && tower) {
     assert(storeysOf(founding) < storeysOf(early), 'the founding hall is shorter than an ordinary one');
-    assert(storeysOf(early) === 4, 'a 500-bed hall is the four-storey residence hall campusData.ts calls it');
+    assert(storeysOf(early) === 4, 'a 500-bed hall is the four-story residence hall campusData.ts calls it');
     assert(storeysOf(early) < storeysOf(mid), 'a 1,000-bed hall is taller than a 500-bed one');
     assert(storeysOf(mid) < storeysOf(tower), 'and a tower is taller than both');
     assert(storeysOf(tower) > TOWER_PODIUM_STOREYS, 'a tower has a shaft above its podium');
   }
 
   const hall = byId('BLDG-GENSTUDIES');
-  assert(!!hall, 'Founders Hall is in the catalogue');
+  assert(!!hall, 'Founders Hall is in the catalog');
   if (hall && mid && early) {
     // A residence hall genuinely is taller than the teaching building it
     // serves. On the old table every hall stood at 84 and every dorm at 54.
     assert(wallHeightOf(mid) > wallHeightOf(hall), 'a high-rise residence hall stands over the academic halls');
-    assert(near(wallHeightOf(early), wallHeightOf(hall)), 'and a four-storey one stands level with them');
+    assert(near(wallHeightOf(early), wallHeightOf(hall)), 'and a four-story one stands level with them');
   }
 
   const hospital = CATALOGUE.find((t) => t.facilityType === 'healthCenter' && (t.effects?.servesPopulation ?? 0) >= 20_000);
@@ -166,7 +166,7 @@ console.log('campus scale and building spec');
   if (hospital && counselling && hall) {
     assert(storeysOf(hospital) > storeysOf(hall), 'the teaching hospital towers over a teaching hall');
     assert(storeysOf(counselling) < storeysOf(hospital),
-      'and a counselling centre is not the same building relabelled');
+      'and a counseling center is not the same building relabelled');
   }
 }
 
@@ -178,14 +178,14 @@ console.log('campus scale and building spec');
   // windows 5.94 m and 2.64 m wide, and rotating the building resized them.
   const widths = new Set(CATALOGUE.map((t) => windowWidthOf(t).toFixed(6)));
   assert(widths.size <= 3,
-    `the whole catalogue draws at most three window widths (got ${widths.size}: ${[...widths].join(', ')})`);
+    `the whole catalog draws at most three window widths (got ${widths.size}: ${[...widths].join(', ')})`);
   assert(CATALOGUE.every((t) => windowWidthOf(t) > 0), 'and every one of them is a real width');
 
   // Height is a single constant, so it cannot vary at all.
   assert(WINDOW_HEIGHT > 0 && Number.isFinite(WINDOW_HEIGHT), 'a window has one height, campus-wide');
 
   // Bays are set out at a fixed pitch, so a longer wall gets MORE windows
-  // rather than wider ones. Checked across every span the catalogue produces.
+  // rather than wider ones. Checked across every span the catalog produces.
   const spans = new Set<number>();
   for (const t of CATALOGUE) { const fp = footprintOf(t); spans.add(fp.w); spans.add(fp.h); }
   let worstPitch = 0;
@@ -194,7 +194,7 @@ console.log('campus scale and building spec');
     worstPitch = Math.max(worstPitch, Math.abs(pitch - BAY_METRES));
   }
   assert(worstPitch < 0.9,
-    `every wall span in the catalogue sets out near a ${BAY_METRES} m bay (worst drift ${worstPitch.toFixed(2)} m)`);
+    `every wall span in the catalog sets out near a ${BAY_METRES} m bay (worst drift ${worstPitch.toFixed(2)} m)`);
 
   // And the specific thing that was visibly wrong: one building, two walls of
   // different length, one window. A fixed REAL width means the window takes up
@@ -222,18 +222,18 @@ console.log('campus scale and building spec');
     `checked ${checkedTwoWalls} buildings with unequal walls: each gets more bays on the longer one, same window on both`);
 }
 
-// --- 8. Ranks and courses sit where the storeys are -----------------------
+// --- 8. Ranks and courses sit where the stories are -----------------------
 {
   const hall = byId('BLDG-GENSTUDIES');
   if (hall) {
     const sills = rankSills(windowRanksOf(hall));
-    assert(sills.length === storeysOf(hall), 'one sill height per storey');
+    assert(sills.length === storeysOf(hall), 'one sill height per story');
     const gaps = sills.slice(1).map((v, i) => v - sills[i]);
-    assert(gaps.every((g) => near(g, STOREY)), 'each rank sits exactly one storey above the last');
+    assert(gaps.every((g) => near(g, STOREY)), 'each rank sits exactly one story above the last');
     assert(sills[sills.length - 1] + WINDOW_HEIGHT < wallHeightOf(hall),
       'and the top rank still fits under the eaves');
     assert(floorLinesOf(hall).length === storeysOf(hall) - 1,
-      'a four-storey building shows three floor lines');
+      'a four-story building shows three floor lines');
   }
   const gym = CATALOGUE.find((t) => motifOf(t) === 'hangar');
   if (gym) {
@@ -262,7 +262,7 @@ console.log('campus scale and building spec');
     }
     sizes.set(d.family, key);
   }
-  assert(sizes.size > 0 && sizes.size <= 6, `the catalogue draws ${sizes.size} door families, one size each`);
+  assert(sizes.size > 0 && sizes.size <= 6, `the catalog draws ${sizes.size} door families, one size each`);
 
   // The proportions. Four of the six are doors you walk through and cluster
   // tightly; the two that are wide are a shop window and an ambulance bay.
@@ -278,13 +278,13 @@ console.log('campus scale and building spec');
     `the walk-through families share a proportion (spread ${(Math.max(...walkThrough) / Math.min(...walkThrough)).toFixed(2)}x)`);
   const all = aspects.map(([, a]) => a);
   assert(Math.max(...all) / Math.min(...all) < 4,
-    `and the whole catalogue spans ${(Math.max(...all) / Math.min(...all)).toFixed(1)}x, against the old table's 33x`);
+    `and the whole catalog spans ${(Math.max(...all) / Math.min(...all)).toFixed(1)}x, against the old table's 33x`);
 }
 
 // --- 10. Every door actually fits the wall it is drawn on ----------------
 {
   // The assertion that would have caught the founding dining hall rendering
-  // with no way in: its civic door was 4.05 m over a 3.9 m storey, so the
+  // with no way in: its civic door was 4.05 m over a 3.9 m story, so the
   // motif declined to draw it rather than overflowing the wall. Silent, and
   // invisible unless you go and look at that one building.
   let checked = 0;
@@ -299,7 +299,7 @@ console.log('campus scale and building spec');
     }
     checked += 1;
   }
-  assert(checked > 40, `all ${checked} doors in the catalogue fit the walls they are drawn on`);
+  assert(checked > 40, `all ${checked} doors in the catalog fit the walls they are drawn on`);
 
   // And the specific case that was wrong in the old table: a tower's shopfront
   // was a height fraction measured against the 190-unit mass and then applied
@@ -334,7 +334,7 @@ console.log('campus scale and building spec');
     'every hall is entered through the same formal portal');
   const storeyCounts = new Set(halls.map((t) => storeysOf(t)));
   assert(storeyCounts.size <= 2,
-    `halls come in ${storeyCounts.size} heights — the undergraduate one and the professional schools' extra storey`);
+    `halls come in ${storeyCounts.size} heights — the undergraduate one and the professional schools' extra story`);
 
   const towered = CATALOGUE.filter(hasClockTower);
   assert(towered.length === 1, `exactly one building on campus carries a clock tower (got ${towered.length})`);
@@ -364,16 +364,16 @@ console.log('campus scale and building spec');
   assert(true, 'every hall\'s stonework fits the wall it is applied to');
 
   // A hall's roof is a shallow HIP now, not the barn gable it was: a ridge
-  // deeper than a storey and a half is what made the campus's landmarks read
+  // deeper than a story and a half is what made the campus's landmarks read
   // as sheds.
   const hall = byId('BLDG-GENSTUDIES');
   if (hall) {
-    assert(ridgeOf(hall, FOUNDING_VERNACULAR) < STOREY, 'a hall\'s ridge rises less than one storey above its eaves');
+    assert(ridgeOf(hall, FOUNDING_VERNACULAR) < STOREY, 'a hall\'s ridge rises less than one story above its eaves');
     assert(ridgeOf(hall, FOUNDING_VERNACULAR) > 0, 'but it is still a pitched roof');
   }
 }
 
-// --- 12. Materials, not a colour chart -----------------------------------
+// --- 12. Materials, not a color chart -----------------------------------
 {
   const V = FOUNDING_VERNACULAR;
   const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
@@ -384,10 +384,10 @@ console.log('campus scale and building spec');
   // Seven, not six: 4E gave the residence halls a dark brick of their own
   // (buildingSpec's brickDark), and the bar moved to let it in. Stated here
   // rather than quietly relaxed, because a cap that follows the palette
-  // around is not a cap. What it is guarding is the 23-tint colour chart
+  // around is not a cap. What it is guarding is the 23-tint color chart
   // this replaced, and the real guard against that is the pairwise-distance
   // check below, which has NOT moved: seven materials a player can tell
-  // apart is a palette; seven near-neighbours would fail on the next line
+  // apart is a palette; seven near-neighbors would fail on the next line
   // whatever this number said.
   assert(walls.length <= 7, `the campus is built of at most seven materials (got ${walls.length})`);
   assert(roofs.length <= 3, `and roofed in at most three (got ${roofs.length})`);
@@ -420,11 +420,11 @@ console.log('campus scale and building spec');
 
   // And nothing is gilded but the one thing that should be.
   assert(!walls.includes(stoneFor(V).gilt) && !roofs.includes(stoneFor(V).gilt),
-    'the landmark gold is no longer the colour of nine whole buildings');
+    'the landmark gold is no longer the color of nine whole buildings');
 
-  // Neighbouring residence halls still differ, which is what the four hashed
+  // Neighboring residence halls still differ, which is what the four hashed
   // dorm tints used to buy — now a nudge within one brick rather than four
-  // separate colours.
+  // separate colors.
   const dormShades = new Set(CATALOGUE.filter((t) => t.kind === 'dorm').map(wallShadeOf));
   assert(dormShades.size > 1, `residence halls still vary (${dormShades.size} shades of the same brick)`);
   assert(CATALOGUE.filter((t) => t.kind !== 'dorm').every((t) => wallShadeOf(t) === 1),
@@ -436,7 +436,7 @@ console.log('campus scale and building spec');
   // These were sized from an assumed 15 m per tile, while the map draws at 9 —
   // so every venue came out two-thirds of its proper size beside the
   // buildings, and a 400 m running track had 108 m to fit a 176 m straight
-  // into. Checked in METRES against what each venue actually is, with a
+  // into. Checked in METERS against what each venue actually is, with a
   // generous tolerance: the requirement is the right ballpark, not the survey.
   const metres = (t: Buildable) => {
     const fp = footprintOf(t);
@@ -444,7 +444,7 @@ console.log('campus scale and building spec');
   };
   const check = (facilityType: string, name: string, long: number, short: number, tol = 0.3) => {
     const t = CATALOGUE.find((x) => x.facilityType === facilityType);
-    if (!t) { assert(false, `the catalogue has a ${name}`); return; }
+    if (!t) { assert(false, `the catalog has a ${name}`); return; }
     const m = metres(t);
     const ok = Math.abs(m.long - long) / long <= tol && Math.abs(m.short - short) / short <= tol;
     assert(ok, `${name} is about ${long}m by ${short}m (got ${m.long.toFixed(0)} by ${m.short.toFixed(0)})`);
@@ -471,7 +471,7 @@ console.log('campus scale and building spec');
 // --- 14. Applied pieces fit the buildings they are applied to ------------
 {
   // The recurring bug of this whole sequence, in one check. A civic door was
-  // taller than a single-storey wall; a plinth was taller than a ground-floor
+  // taller than a single-story wall; a plinth was taller than a ground-floor
   // sill; a canopy's slab sat above the roof of the building it hung on. Each
   // was invisible in the numbers and obvious on screen, and each is the same
   // mistake: a piece sized in the abstract against a wall that is too short
@@ -498,7 +498,7 @@ console.log('campus scale and building spec');
     // The colonnade is clamped at draw time; this asserts the clamp leaves
     // something worth drawing rather than a knee-high stub.
     assert(Math.min(COLONNADE_HEIGHT, wall - EAVES_COURSE * 2) > STOREY,
-      `the shortest colonnaded building (${portico.id}) can still carry a colonnade over a storey tall`);
+      `the shortest colonnaded building (${portico.id}) can still carry a colonnade over a story tall`);
   }
 
   // And every roofed motif on the campus can wear the shared courses.
@@ -512,7 +512,7 @@ console.log('campus scale and building spec');
   assert(true, 'every roofed building on the campus can wear the shared base and eaves courses');
 }
 
-// --- 7. Nothing in the catalogue is missing a spec -------------------------
+// --- 7. Nothing in the catalog is missing a spec -------------------------
 {
   for (const t of CATALOGUE) {
     const h = wallHeightOf(t);
@@ -525,21 +525,21 @@ console.log('campus scale and building spec');
 // --- 8. A door lands on a tile, not on a seam ------------------------------
 //
 // The rule campusMap.ts's footprint tables are written against: any footprint
-// whose motif draws a CENTRED DOOR has an odd width. An even width centres
+// whose motif draws a CENTERED DOOR has an odd width. An even width centers
 // the door on the boundary between two tiles, so no walkway can arrive at it
 // and the building cannot line up with the quad it faces.
 //
-// Checked over the real catalogue rather than over the tables, because the
+// Checked over the real catalog rather than over the tables, because the
 // tables are three (fixed sizes, size ladders, the two building constants)
 // and the property is about what comes out of them.
 {
   const doored = CATALOGUE.filter((t) => doorFamilyOf(t) !== null);
-  assert(doored.length > 20, `the catalogue has buildings with front doors (${doored.length})`);
+  assert(doored.length > 20, `the catalog has buildings with front doors (${doored.length})`);
 
   const seams = doored.filter((t) => footprintOf(t).w % 2 === 0);
   assert(
     seams.length === 0,
-    `every building with a door has an odd width — ${seams.length} centre theirs on a seam` +
+    `every building with a door has an odd width — ${seams.length} center theirs on a seam` +
     (seams.length ? ` (e.g. ${seams[0].id} at ${footprintOf(seams[0]).w} wide)` : ''),
   );
 
@@ -557,21 +557,21 @@ console.log('campus scale and building spec');
   // exempt rather than accidentally compliant: the tennis courts are 12 wide
   // precisely because six courts in a row is what that plot is.
   const exempt = CATALOGUE.filter((t) => doorFamilyOf(t) === null);
-  assert(exempt.length > 0, `and the catalogue has doorless plots too (${exempt.length})`);
+  assert(exempt.length > 0, `and the catalog has doorless plots too (${exempt.length})`);
   assert(
     exempt.some((t) => footprintOf(t).w % 2 === 0),
-    'at least one of which keeps an even width, because it has no door to centre',
+    'at least one of which keeps an even width, because it has no door to center',
   );
 }
 
 // --- 13. The vernacular seam changed nothing ------------------------------
-// Plan 07's PR D moved the campus's colours behind a per-vernacular table so
+// Plan 07's PR D moved the campus's colors behind a per-vernacular table so
 // PRs G/H/I can add a second, third and fourth set. The whole claim of that
 // PR is that it is INVISIBLE, and a claim like that is worth pinning rather
 // than trusting: these are the literal values the campus was drawn with
 // before the table existed, written out by hand here so that a typo made
 // while moving them shows up as a failing test rather than as a slightly
-// wrong-coloured library nobody notices for three PRs.
+// wrong-colored library nobody notices for three PRs.
 //
 // When a second vernacular lands, this block does NOT grow a second copy for
 // it — that would be asserting that a new palette equals itself. It stays
@@ -656,11 +656,11 @@ console.log('campus scale and building spec');
 
   // The residence-hall ladder: a house, an institutional hall, and — since
   // the same review — a block that keeps the institutional hip rather than
-  // going flat, because a six-storey hall on a brick-and-slate campus is
+  // going flat, because a six-story hall on a brick-and-slate campus is
   // still roofed.
   for (const [storeys, metres] of [[3, 4.2], [4, 2.4], [5, 2.4], [6, 2.2], [9, 2.2]] as const) {
     assert(roof.residentialRidgeMetres(storeys) === metres,
-      `a ${storeys}-storey residence hall's ridge is unchanged (got ${roof.residentialRidgeMetres(storeys)}, was ${metres})`);
+      `a ${storeys}-story residence hall's ridge is unchanged (got ${roof.residentialRidgeMetres(storeys)}, was ${metres})`);
   }
 
   assert(parapetOf('georgian') === up(0.85), `georgian's parapet is unchanged (got ${parapetOf('georgian')})`);
@@ -677,7 +677,7 @@ console.log('campus scale and building spec');
     `and they are the same four, in the same order (got ${JSON.stringify(rect)})`);
 
   // EVERY shape stays inside the bay it was given. An arch that bulged past
-  // its own bay would collide with its neighbour and a lancet that rose past
+  // its own bay would collide with its neighbor and a lancet that rose past
   // the head would punch through the floor course above — both invisible in
   // the numbers and obvious on the map, so the bound is what gets pinned.
   for (const shape of ['rect', 'arched', 'lancet', 'slot'] as const) {
@@ -809,7 +809,7 @@ console.log('campus scale and building spec');
     // whose whole argument is that the building is a single poured mass.
     //
     // Not skipped for those, INVERTED: they must stay close, or the "no
-    // roof" claim is not being honoured either. Both directions are checked,
+    // roof" claim is not being honored either. Both directions are checked,
     // so neither can be quietly relaxed into the other.
     let worstRoof = { d: Infinity, id: '' };
     let widestRoof = { d: 0, id: '' };
@@ -832,7 +832,7 @@ console.log('campus scale and building spec');
 
     const gilt = stoneFor(vname).gilt;
     assert(!walls.includes(gilt) && !roofs.includes(gilt),
-      `'${vname}': its landmark metal is not also the colour of a building`);
+      `'${vname}': its landmark metal is not also the color of a building`);
   }
 
   // THE INVARIANT MOTIFS ARE MADE OF INVARIANT MATERIALS.
@@ -842,7 +842,7 @@ console.log('campus scale and building spec');
   // vernacular restyles are still drawn with materialOf, so a set that
   // recolours every entry in its MaterialSet repaints the gym and the
   // teaching hospital along with the halls — and a campus whose sports hall
-  // changed colour with its founding century would be claiming the 1970s
+  // changed color with its founding century would be claiming the 1970s
   // shed was built in 1890.
   //
   // Measured off the CATALOGUE rather than asserted against a hand-listed
@@ -853,7 +853,7 @@ console.log('campus scale and building spec');
   // hospital) — and note two of the three ALSO serve varying motifs, so
   // "recolour everything the halls don't use" is not a safe shortcut either.
   const invariantBuildings = CATALOGUE.filter((t) => !variesByVernacular(motifOf(t)));
-  assert(invariantBuildings.length > 0, 'the catalogue has invariant buildings to check');
+  assert(invariantBuildings.length > 0, 'the catalog has invariant buildings to check');
   for (const t of invariantBuildings) {
     const base = materialOf(t, 'georgian');
     for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {

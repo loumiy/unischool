@@ -3,12 +3,12 @@
 // wherever a program is drawn as belonging to a school before the school has
 // a name (hall panel tiles, Curriculum rows). Mid-saturation hues that sit
 // on parchment and stay distinct at row height; the motif keeps the grouping
-// legible for colour-blind players and on tiles too small for a swatch. A
+// legible for color-blind players and on tiles too small for a swatch. A
 // school's name appears only once it is founded (docs/design/curriculum.md).
 // ---------------------------------------------------------------------
 
 export interface SchoolMark {
-  hue: string;   // the school's colour, as a CSS colour
+  hue: string;   // the school's color, as a CSS color
   motif: string; // one glyph, drawn beside or instead of the hue
 }
 

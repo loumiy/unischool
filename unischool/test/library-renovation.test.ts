@@ -159,11 +159,11 @@ console.log('library renovation tests');
   assert(standing > 0, 'a library mid-renovation is drawn standing');
   assert(
     Math.abs(standing - (wallHeightOf(node) - STOREY)) < 0.001,
-    `at the height of the floors it has — one storey short of the floors it will have (${standing.toFixed(1)} of ${wallHeightOf(node).toFixed(1)})`,
+    `at the height of the floors it has — one story short of the floors it will have (${standing.toFixed(1)} of ${wallHeightOf(node).toFixed(1)})`,
   );
   assert(
     standing >= finished - STOREY - 0.001,
-    'which is within one storey of how it stood the week before, rather than 16% of it',
+    'which is within one story of how it stood the week before, rather than 16% of it',
   );
 
   // The two halves of the fix read the same field, and this is the check

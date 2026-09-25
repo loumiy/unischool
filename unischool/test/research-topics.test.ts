@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------
-// The research topic catalogue (src/data/researchTopics.ts).
+// The research topic catalog (src/data/researchTopics.ts).
 //
 // Authored content, so the failures worth guarding against are authoring
 // failures: a field nobody wrote topics for, a typo'd field name that

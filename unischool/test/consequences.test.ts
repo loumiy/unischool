@@ -132,7 +132,7 @@ console.log('consequences tests');
 
   const s = createInitialState('Seats');
   // The founding programs' next courses are open from day one (Plan 19),
-  // so lock them: the case under test is a catalogue with nothing to start.
+  // so lock them: the case under test is a catalog with nothing to start.
   for (const t of s.tech) if (t.kind === 'course' && t.status === 'available') t.status = 'locked';
   assert(shortfallDemandFor(s, 'instruction') === null, 'with no course to start in a housed program there is nothing to ask for');
 
@@ -144,7 +144,7 @@ console.log('consequences tests');
   entry.status = 'available';
   s.students.classes = { freshman: 1_000, sophomore: 0, junior: 0, senior: 0 };
   const demand = shortfallDemandFor(s, 'instruction');
-  assert(demand !== null && demand.metric === 'seats', 'a crowded catalogue with a course to start raises the instruction shortfall');
+  assert(demand !== null && demand.metric === 'seats', 'a crowded catalog with a course to start raises the instruction shortfall');
   assert(demand!.askId === entry.id, 'and asks for the next course in a housed program');
   assert(demandSubject(demand!) === 'instruction', 'read as the instruction subject');
   assert(demand!.target === instructionCapacity(s) + SEATS_PER_COURSE, 'met at one more course\'s seats');

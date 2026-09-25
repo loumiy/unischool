@@ -32,7 +32,7 @@ export interface ThemeDef {
 
 export interface VoiceDef {
   wave: Wave | 'noise';
-  freq: number; // Hz; for noise, the band's centre
+  freq: number; // Hz; for noise, the band's center
   to?: number; // a pitch drop, Hz
   attack: number;
   decay: number;

@@ -154,7 +154,7 @@ function checkSums(s: GameState, when: string): void {
 // Build a great deal between one admissions boundary and the next, so the
 // school's cohort PULL moves a long way. The class admitted before that
 // build must read exactly as it did, unchanged: a school that opens an
-// arts centre does not retroactively fill last year's seniors with arts
+// arts center does not retroactively fill last year's seniors with arts
 // students. If this fails, something has started deriving the split.
 // =====================================================================
 {

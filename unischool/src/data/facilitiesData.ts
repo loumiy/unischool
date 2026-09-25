@@ -88,7 +88,7 @@ function diningChain(): Buildable[] {
       kind: 'facility',
       facilityType: 'diningHall',
       name: 'The Original Dining Hall',
-      description: `The university's first dining hall — build it to feed the founding class. Serves ${DINING_STARTING_SERVES.toLocaleString()} students.`,
+      description: `The college's first dining hall — build it to feed the founding class. Serves ${DINING_STARTING_SERVES.toLocaleString()} students.`,
       cost: DINING_STARTING_COST,
       duration: DINING_STARTING_WEEKS,
       prereqs: [],
@@ -160,7 +160,7 @@ const LIBRARY_TIER2_RESEARCH_RATE_BONUS = 0.15;
 // Buildable: engine/reducer.ts's RENOVATE_LIBRARY returns the placed node to
 // 'developing' and on completion raises its servesPopulation/upkeepPerWeek
 // in place. Existing floors keep serving during the work (types.ts's
-// servingPopulation). The map shows a storey per floor added
+// servingPopulation). The map shows a story per floor added
 // (buildingMotifs.tsx's addedFloors).
 //
 // Maxed tier 1 (1,200 + 3 floors) plus tier 2 serves 12,325, adequate to
@@ -307,7 +307,7 @@ export const VENUE_SEATS: Readonly<Record<string, number>> = {
 
 // Venue prestigeContribution, sized to the building. The five (0.40) plus the
 // rec chain (0.15) reach 0.55 of prestigeSystem.ts's campus-life term; the
-// rest comes from organisations, programs and titles.
+// rest comes from organizations, programs and titles.
 const ATHLETICS_FIELD_PRESTIGE = 0.06;
 const ATHLETICS_ARENA_PRESTIGE = 0.10;
 const ATHLETICS_DIAMOND_PRESTIGE = 0.04;
@@ -629,7 +629,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'pool',
       name: 'Swimming Pool',
-      description: `An outdoor 50 m pool and its deck, for ${POOL_SERVES.toLocaleString()} students.`,
+      description: `An outdoor Olympic-length pool and its deck, for ${POOL_SERVES.toLocaleString()} students.`,
       cost: POOL_COST,
       duration: POOL_WEEKS,
       prereqs: [GYM_ID],
@@ -804,7 +804,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'fieldHouse',
       name: 'Field House',
-      description: `Weight rooms, an indoor training floor and treatment rooms for every varsity program at once — ${FIELD_HOUSE_SERVES.toLocaleString()} students' worth of social capacity, and a lift to every team the school fields.`,
+      description: `Weight rooms, an indoor training floor and treatment rooms for every varsity program at once — ${FIELD_HOUSE_SERVES.toLocaleString()} students' worth of social capacity, and a lift to every team the college fields.`,
       cost: FIELD_HOUSE_COST,
       duration: FIELD_HOUSE_WEEKS,
       prereqs: [],

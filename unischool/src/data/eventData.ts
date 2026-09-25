@@ -116,7 +116,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
       headline: `${program.name} is founded`,
       detail: program.type === 'professional'
         ? `Every course in the ${program.degree} program is finished. A professional school counts toward curriculum breadth — the largest input to the prestige target — and is weighted there above its course count, though still inside that input's cap.`
-        : `Every course in the ${program.degree} program is finished. A research degree counts toward curriculum breadth AND toward the school's research standing, both as capped inputs to the prestige target.`,
+        : `Every course in the ${program.degree} program is finished. A research degree counts toward curriculum breadth AND toward the college's research standing, both as capped inputs to the prestige target.`,
       unlocks: [],
     };
   }
@@ -125,7 +125,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     return {
       key,
       headline: `This is the School of ${subject}`,
-      detail: `Six programs, one building. Until now these were ${subject}'s programs in a colour with no name; housed together, they are a school, and the hall they share is ${subject} Hall. The name is permanent, and a donor may now put a family name on it.`,
+      detail: `Six programs, one building. Until now these were ${subject}'s programs in a color with no name; housed together, they are a school, and the hall they share is ${subject} Hall. The name is permanent, and a donor may now put a family name on it.`,
       unlocks: s.tech
         .filter((t) => t.schoolGate === subject && t.status !== 'locked')
         .map((t) => t.name),
@@ -148,7 +148,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         return {
           key,
           headline: `${major.name} is now an established program`,
-          detail: `Every tier-2 course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its tier-3 catalogue is open.`,
+          detail: `Every tier-2 course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its tier-3 catalog is open.`,
           unlocks: major.tier3Ids.map((id) => nameOf(s, id)),
         };
       }
@@ -353,7 +353,7 @@ const TRUSTEE_CAMPAIGN_MULTIPLIER = 2.2;
 const AD_SHORTAGE_COST_WEEKS = 0.8;
 const AD_SHORTAGE_COACH_ROLLS = 3;
 
-// --- student organisations (see data/studentLifeData.ts) ---------------
+// --- student organizations (see data/studentLifeData.ts) ---------------
 //
 // Clubs and new chapters never stop the clock (they are answered in a batch
 // at summer admissions). The consequential Greek beats are authored here so
@@ -393,7 +393,7 @@ export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
 // The table. Triggers are state-driven, not calendar-driven: a donor shows
 // up once the school is worth donating to. Since Plan 32 it holds only the
 // questions that belong to a system (naming, Greek life, athletics, the
-// rival); the texture is the catalogue's (data/eventCatalogue.ts). A saved
+// rival); the texture is the catalog's (data/eventCatalogue.ts). A saved
 // interrupt naming a retired event resolves as "an event has passed".
 // =====================================================================
 export const DECISION_EVENTS: readonly DecisionEvent[] = [
@@ -437,8 +437,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       };
     },
     prompt: (_s, ctx) => (ctx.subjectField === 'venue'
-      ? `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name over the gate of the ${ctx.subjectName} — permanently. It would become ${ctx.newName}. The cheque clears immediately. The student section has opinions.`
-      : `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name on the School of ${ctx.subjectName} — permanently. It would become the ${ctx.newName}. The cheque clears immediately. The student paper has already written the editorial.`),
+      ? `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name over the gate of the ${ctx.subjectName} — permanently. It would become ${ctx.newName}. The check clears immediately. The student section has opinions.`
+      : `An alumnus, ${ctx.donorName}, offers ${money(ctx.amount ?? 0)} to put the family name on the School of ${ctx.subjectName} — permanently. It would become the ${ctx.newName}. The check clears immediately. The student paper has already written the editorial.`),
     choices: [
       {
         id: 'sign',
@@ -491,30 +491,30 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     maxFires: 1,
     eligible: (s) => !s.orgs.hellenicCouncilOffered && s.orgs.clubs.length >= HELLENIC_COUNCIL_MIN_CLUBS,
     prompt: (s) =>
-      `The ${s.orgs.clubs.length} recognised student societies have sent a joint delegation: they want the school to charter a Hellenic Council and permit Greek-letter organisations on campus. Fraternities and sororities would bring a great deal of student life with them, and a great deal of everything that comes with student life.`,
+      `The ${s.orgs.clubs.length} recognized student societies have sent a joint delegation: they want the college to charter a Hellenic Council and permit Greek-letter organizations on campus. Fraternities and sororities would bring a great deal of student life with them, and a great deal of everything that comes with student life.`,
     choices: [
       {
         id: 'charter',
         mood: 1,
         label: 'Charter the council',
         describe: () =>
-          `Chapters begin forming from here on, each petitioning for recognition at summer admissions like any other society. A chapter is worth ${CHAPTER_SOCIAL_BONUS} points of social satisfaction against a club's fraction of that, carries a real recurring cost, and will eventually bring you its own problems.`,
+          `Chapters begin forming from here on, each petitioning for recognition in the summer's Students beat like any other society. A chapter is worth ${CHAPTER_SOCIAL_BONUS} points of social satisfaction against a club's fraction of that, carries a real recurring cost, and will eventually bring you its own problems.`,
         cost: () => 0,
         apply: (s) => {
           s.orgs.hellenicCouncilApproved = true;
           s.orgs.hellenicCouncilOffered = true;
-          return entry(s, 'A Hellenic Council has been chartered; Greek-letter organisations may now form on campus.', 'good');
+          return entry(s, 'A Hellenic Council has been chartered; Greek-letter organizations may now form on campus.', 'good');
         },
       },
       {
         id: 'decline',
         label: 'Decline — no Greek life here',
         describe: () =>
-          'Nothing changes, permanently. No fraternity or sorority will ever form at this school, and you will not be asked again. Clubs are unaffected.',
+          'Nothing changes, permanently. No fraternity or sorority will ever form at the college, and you will not be asked again. Clubs are unaffected.',
         cost: () => 0,
         apply: (s) => {
           s.orgs.hellenicCouncilOffered = true;
-          return entry(s, 'The trustees have declined to charter a Hellenic Council. This school will not have Greek life.', 'info');
+          return entry(s, `The Hellenic Council is declined; ${institutionName(s.self)} will have no Greek life.`, 'info');
         },
       },
     ],
@@ -540,7 +540,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     prompt: (s, ctx) => {
       const chapter = findChapter(s, ctx.subjectId);
       const size = chapter ? orgMembership(chapter, s) : 0;
-      return `${ctx.subjectName} — ${size} members, chartered in ${chapter?.foundedYear ?? '?'} — is on the front page, and not for its philanthropy. Counsel and a communications firm will see the chapter through for ${money(ctx.amount ?? 0)}. The alternative is to pull its charter.`;
+      return `${ctx.subjectName} — ${size} members, chartered in ${chapter ? `Year ${chapter.foundedYear}` : 'an earlier year'} — is on the front page, and not for its philanthropy. Counsel and a communications firm will see the chapter through for ${money(ctx.amount ?? 0)}. The alternative is to pull its charter.`;
     },
     choices: [
       {
@@ -552,7 +552,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           dentSatisfaction(s, GREEK_SCANDAL_PR_SATISFACTION_HIT);
-          return entry(s, `The university has stood behind ${ctx.subjectName}; the campus is divided.`, 'info');
+          return entry(s, `${institutionName(s.self)} has stood behind ${ctx.subjectName}; the campus is divided.`, 'info');
         },
       },
       {
@@ -605,7 +605,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     prompt: (s, ctx) => {
       const chapter = findChapter(s, ctx.subjectId);
       const size = chapter ? orgMembership(chapter, s) : 0;
-      return `${ctx.subjectName} has outgrown its meeting room: ${size} members, and an alumni committee with drawings for a dedicated chapter house on the edge of campus. The school's share of the build is ${money(ctx.amount ?? 0)}.`;
+      return `${ctx.subjectName} has outgrown its meeting room: ${size} members, and an alumni committee with drawings for a dedicated chapter house on the edge of campus. The college's share of the build is ${money(ctx.amount ?? 0)}.`;
     },
     choices: [
       {
@@ -708,7 +708,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     prompt: (s, ctx) => {
       const ad = s.orgs.athleticDirector;
       const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
-      return `${ad?.name ?? 'The athletic director'} has been on at you about ${ctx.subjectName}: it has been running without a ${role}, `
+      return `${ad?.name ?? 'The Athletic Director'} has been on at you about ${ctx.subjectName}: it has been running without a ${role}, `
         + `and they have somebody in mind who will not be on the open market for long.`;
     },
     choices: [
@@ -764,19 +764,19 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       };
     },
     prompt: (s, ctx) =>
-      `A booster's payments to recruits for ${ctx.subjectName} have reached the papers, and the association has opened an inquiry. ${s.orgs.athleticDirector?.name ?? 'The athletic director'} says the program can self-report and take the season's ban, or the school can fight it — ${money(ctx.amount ?? 0)} in lawyers, and no promise.`,
+      `A booster's payments to recruits for ${ctx.subjectName} have reached the papers, and the association has opened an inquiry. ${s.orgs.athleticDirector?.name ?? 'The Athletic Director'} says the program can self-report and take the season's ban, or the college can fight it — ${money(ctx.amount ?? 0)} in lawyers, and no promise.`,
     choices: [
       {
         id: 'cooperate',
         label: 'Self-report and take the ban',
-        describe: (s, ctx) => `Nothing spent. ${ctx.subjectName} sits out this season's postseason${s.clock.week >= PLAYOFF_WEEK ? "'s and next" : ''}; a ${SCANDAL_SATISFACTION_HIT}-point dent in satisfaction that heals.`,
+        describe: (s, ctx) => `Nothing spent. ${ctx.subjectName} is barred from the postseason through Year ${s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year}; a ${SCANDAL_SATISFACTION_HIT}-point dent in satisfaction that heals.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
           const through = s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year;
           if (team) team.postseasonBanThroughYear = through;
           dentSatisfaction(s, SCANDAL_SATISFACTION_HIT);
-          return entry(s, `${ctx.subjectName} self-reported and is barred from the postseason through ${through}.`, 'bad');
+          return entry(s, `${ctx.subjectName} self-reported and is barred from the postseason through Year ${through}.`, 'bad');
         },
       },
       {
@@ -915,7 +915,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'hold',
         label: 'Hold the course',
-        describe: () => 'Nothing is spent. The school answers on the field, or does not.',
+        describe: () => 'Nothing is spent. The college answers on the field, or does not.',
         cost: () => 0,
         apply: (s, ctx) => entry(s, `The board's response to ${ctx.subjectName} is to hold the course.`, 'info'),
       },
@@ -943,7 +943,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
       const venueLine = venue?.status === 'done'
         ? `${venue.name} already stands and could host them immediately.`
-        : `The school has no venue for ${sport?.teamName ?? 'this sport'} yet — going varsity means building ${venue ? venue.name : 'one'} before the team can actually compete.`;
+        : `The college has no venue for ${sport?.teamName ?? 'this sport'} yet — going varsity means building ${venue ? venue.name : 'one'} before the team can actually compete.`;
       return `${ctx.subjectName} has outgrown intramural play and wants varsity status: real recruiting, a paid coach, and a conference schedule. ${venueLine} Establishing the program costs ${money(ctx.amount ?? 0)}.`;
     },
     choices: [
@@ -957,7 +957,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           return `${money(ctx.amount ?? 0)} up front for a program budget — the coaching staff is hired separately, from the Athletics tab's own candidate pool. ` + (
             ready
               ? `${venue!.name} is already standing, so the team is varsity-active immediately.`
-              : `${venue ? venue.name : 'A shared venue'} is revealed for construction on the build rail — the team is varsity-active once it is built, and shared with any other team in the same category.`
+              : `${venue ? venue.name : 'A shared venue'} is revealed for construction in the build menu — the team is varsity-active once it is built, and shared with any other team in the same category.`
           );
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -986,7 +986,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'decline',
         label: 'Stay a club',
-        describe: () => `No cash spent. ${VARSITY_DECLINE_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. The club keeps everything it already contributes and will petition again in ${VARSITY_PETITION_MIN_TENURE_YEARS} years.`,
+        describe: () => `No cash spent, and a ${VARSITY_DECLINE_SATISFACTION_HIT}-point satisfaction dent that heals over the following weeks. The club keeps everything it already contributes and will petition again in ${VARSITY_PETITION_MIN_TENURE_YEARS} years.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const club = s.orgs.clubs.find((c) => c.id === ctx.subjectId);
@@ -1072,6 +1072,9 @@ const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'
 function count(n: number): string {
   return COUNT_WORDS[n] ?? String(n);
 }
+function capitalised(t: string): string {
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 export const OPENING_LETTERS: readonly OpeningLetter[] = [
   {
@@ -1113,8 +1116,10 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
         : `None of them is on offer yet: each program founded draws a new offer.`;
       const road = strangers.length > 0
         ? `Founders Hall teaches ${list(strangers)} beside the ${gap.school} programs, so it will never be one school's; the road to a school is now a hall of your own.`
-        : `${count(FOUNDING_PROGRAMS.length)} of the six ${gap.school} programs are in Founders Hall, which has ${count(rooms)} ${rooms === 1 ? 'room' : 'rooms'} left, and ${rooms < want.length ? `${count(rooms)} of ` : ''}${list(want)} would fill ${rooms === 1 ? 'it' : 'them'}. ${offerLine} ${staffing}`;
-      return `Six programs of one school in one hall is what founds a school. ${road} The other road is a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches ${count(FIRST_HALL_COURSE_GATE)} courses. Depth costs professors; breadth costs a building. Where you put it matters only to the eye.`;
+        : `${capitalised(count(FOUNDING_PROGRAMS.length))} of the six ${gap.school} programs are in Founders Hall, ${rooms === 0
+          ? 'which has no rooms left'
+          : `which has ${count(rooms)} ${rooms === 1 ? 'room' : 'rooms'} left${want.length > 0 ? `, and ${rooms < want.length ? `${count(rooms)} of ` : ''}${list(want)} would fill ${rooms === 1 ? 'it' : 'them'}` : ''}`}. ${offerLine} ${staffing}`;
+      return `Six programs of one school in one hall is what founds a school. ${road} The other road is a hall of your own: the first academic hall holds six programs, costs three quarters of a million, and opens once this college teaches ${count(FIRST_HALL_COURSE_GATE)} courses. Depth costs professors; breadth costs a building.`;
     },
     ask: 'Fill Founders Hall with one school, or site a hall of your own (Build)',
     done: (s) => dedicatedSchool(s, FOUNDERS_HALL_ID) !== null || sited(s, (t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID),
@@ -1123,7 +1128,18 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     id: 'somewhere-to-sleep',
     week: 9,
     title: 'Somewhere to sleep, somewhere to eat',
-    body: (s) => `Satisfaction is ${s.students.satisfaction.toFixed(0)} and falling, and the students are right: every one of the ${s.students.classes.freshman + s.students.classes.sophomore + s.students.classes.junior + s.students.classes.senior} commutes, there is nowhere on campus to eat, and there is no library. Housing is not a cap on how many we admit — this college can grow with no bed at all — but a school with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`,
+    body: (s) => {
+      // What the students lack as the letter is written: each complaint only
+      // while it is true.
+      const has = (test: (t: Buildable) => boolean) => s.tech.some((t) => test(t) && t.status === 'done');
+      const wants = [
+        has((t) => t.kind === 'dorm') ? '' : 'most of them go home at night',
+        has((t) => t.facilityType === 'diningHall') ? '' : 'there is nowhere on campus to eat',
+        has((t) => t.facilityType === 'library') ? '' : 'there is no library',
+      ].filter((w) => w !== '');
+      const lack = wants.length > 0 ? ` As it stands, ${list(wants)}.` : '';
+      return `Satisfaction is ${s.students.satisfaction.toFixed(0)}.${lack} Housing is not a cap on how many we admit — this college can grow with no bed at all — but a college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
+    },
     ask: 'Site a residence hall and a dining hall (Build)',
     done: (s) => sited(s, (t) => t.kind === 'dorm') && sited(s, (t) => t.facilityType === 'diningHall'),
   },
@@ -1131,7 +1147,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     id: 'summer-is-coming',
     week: 48,
     title: 'Summer is coming',
-    body: () => 'At week 52 the clock stops for the summer, and it stops once. Three beats: the year in review, admissions, and the students. Admissions asks two things — the price, and how much of the pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a school nobody has heard of cannot charge what a famous one does.',
+    body: () => 'At week 52 the clock stops for the summer, and it stops once. Three beats: the year in review, admissions, and the students. Admissions asks two things — the price, and how much of the pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a college nobody has heard of cannot charge what a famous one does.',
     ask: 'Summer at week 52: the price locks for four years',
     // Done when the summer comes, not the moment the letter is read (Plan 35).
     done: (s) => s.clock.week >= WEEKS_PER_YEAR || s.pendingInterrupt?.type === 'summer',

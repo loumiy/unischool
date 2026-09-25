@@ -5,7 +5,7 @@ import { effectiveCourseSlots, isCommitted } from '../techtree/techSystem';
 // ---------------------------------------------------------------------
 // The figures the Faculty tab's capacity meter draws: what a department
 // supplies and teaches now, and what its revealed curriculum and whole
-// catalogue would cost, so a player can judge whether a hire is worth it.
+// catalog would cost, so a player can judge whether a hire is worth it.
 // All derived: `supply` and `offered` match techSystem.ts's
 // totalFacultySlots/usedFacultySlots. Computed in one pass because the tab
 // renders every department.
@@ -30,7 +30,7 @@ export interface FieldCapacity {
   offered: number;
   /** Revealed courses not yet developed — what the next clicks would cost. */
   available: number;
-  /** Every course in the catalogue that asks for this field, at any status. */
+  /** Every course in the catalog that asks for this field, at any status. */
   catalogue: number;
   hired: number;
   listed: number;
@@ -52,8 +52,8 @@ export interface FacultyCapacity {
     catalogue: number; shortfall: number;
   };
   /**
-   * The longest catalogue on the board, which every meter's track is drawn
-   * to so lengths compare across departments. Not max(catalogue, supply):
+   * The longest catalog on the board, which every meter's track is drawn
+   * to so lengths compare across departments. Not max(catalog, supply):
    * supply is unbounded, and a rule past the track end is drawn as such
    * (CapacityMeter's `beyond`).
    */
@@ -75,7 +75,7 @@ function stateOf(c: FieldCapacity): FieldCapacityState {
   return 'ok';
 }
 
-// One pass over the catalogue and one over the roster; FacultyTab.tsx
+// One pass over the catalog and one over the roster; FacultyTab.tsx
 // memoises it.
 export function facultyCapacity(s: GameState): FacultyCapacity {
   const byField = new Map<string, FieldCapacity>();

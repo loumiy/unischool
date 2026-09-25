@@ -1,6 +1,6 @@
 // The chronicle (Plan 33, systems/chronicle/chronicle.ts): each closed year
 // read from the history rows and the journal, given a kind; runs of a kind
-// become named, summarised eras.
+// become named, summarized eras.
 
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';

@@ -1,4 +1,4 @@
-// One place to darken or lighten a hex colour by a factor. Both drawing
+// One place to darken or lighten a hex color by a factor. Both drawing
 // modules need it — buildingMotifs.tsx shades every wall and roof face off
 // one material, and groundMarkings.tsx shades a stand's risers off its
 // treads — and groundMarkings cannot import from buildingMotifs without a

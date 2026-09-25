@@ -35,7 +35,7 @@ const TABLE_VISIBLE_ROWS = 12;
 // a shortfall (a small library, a small student body) is costing.
 // ---------------------------------------------------------------------
 
-// A penalty row (crowding) is drawn in the penalty colour as a subtraction.
+// A penalty row (crowding) is drawn in the penalty color as a subtraction.
 // `grade`, when present, is what the input was worth at last summer's report
 // card (prestigeSystem.ts's gradeYear), shown beside its worth now.
 function StandingRow({ input, max, grade }: { input: StandingInput; max: number; grade?: number }) {
@@ -102,11 +102,11 @@ function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
 // the step works, and last summer's card if there is one.
 function summerNote(breakdown: StandingBreakdown, gap: number): string {
   const { riseRate, fallRate, reportCard } = breakdown.summer!;
-  const grading = `This year is grading ${breakdown.target.toFixed(1)}; at the summer prestige closes `
+  const grading = `This year is grading ${breakdown.target.toFixed(1)}; at the summer, prestige closes `
     + `${Math.round(riseRate * 100)}% of a gap upward and ${Math.round(fallRate * 100)}% downward`
     + (Math.abs(gap) < 0.05 ? '.' : ` — ${gap > 0 ? '+' : '−'}${(Math.abs(gap) * (gap > 0 ? riseRate : fallRate)).toFixed(1)} if nothing changes.`);
   const last = reportCard
-    ? ` Last summer graded ${reportCard.score.toFixed(0)} for year ${reportCard.year}: ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`
+    ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`
     : ' No summer has graded it yet.';
   return grading + last;
 }
@@ -189,7 +189,7 @@ function FinalReportPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <div className="panel-head-title">
           <h2>{REPORT_WORDS.title}</h2>
-          <span className="panel-count">{written ? `written in year ${written.year}` : `the arc to year ${s.clock.year}`}</span>
+          <span className="panel-count">{written ? `written in Year ${written.year}` : `the arc to Year ${s.clock.year}`}</span>
         </div>
       </div>
       {!written && s.clock.year < REPORT_DRAFT_FROM ? (
@@ -304,12 +304,12 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             <h2>Institutional History</h2>
             <span className="panel-count">{yearOfFifty(s)}</span>
           </div>
-          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the school actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
+          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
           {Math.round(first.prestige)} → {Math.round(latest.prestige)}, enrollment{' '}
-          {first.enrolled.toLocaleString()} → {latest.enrolled.toLocaleString()}, catalogue{' '}
+          {first.enrolled.toLocaleString()} → {latest.enrolled.toLocaleString()}, catalog{' '}
           {first.coursesDone} → {latest.coursesDone} of {totalCourses} courses.
         </p>
 
@@ -320,7 +320,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             years={years}
             values={history.map((h) => h.prestige)}
             format={(v) => `${Math.round(v)}`}
-            note="A slow-moving stock: it drifts a little each week toward a target set by curriculum breadth, selectivity, student quality, faculty and research."
+            note="A slow-moving stock: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade reads the curriculum, the teaching, the students, research, satisfaction, campus life, the estate and the endowment."
           />
           <MultiChart
             title="Place in the guide, by year"
@@ -344,7 +344,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             years={years}
             values={history.map((h) => h.cash)}
             format={moneyShort}
-            note="Cash on hand each summer. Troughs are the years the school committed to something expensive."
+            note="Cash on hand each summer. Troughs are the years the college committed to something expensive."
           />
           <HistoryChart
             label="Catalogue"

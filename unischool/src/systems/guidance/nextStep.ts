@@ -10,7 +10,7 @@ import { eventById, fill } from '../events/catalogue';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the latest undone letter ask (the letters' order must not
-// be contradicted); afterwards it is a reading of the campus, in priority
+// be contradicted); afterward it is a reading of the campus, in priority
 // order: free hall slot, program one course from established, attribute
 // shortfall, idle lab. Recomputed every render; nothing is stored.
 
@@ -98,7 +98,7 @@ function nearlyEstablished(s: GameState): NextStep | null {
         const missing = major.tier2Ids.find((id) => !done.has(id));
         const course = missing ? s.tech.find((t) => t.id === missing) : undefined;
         return {
-          text: `${major.name} is one course from established${course ? ` — ${course.name}` : ''}`,
+          text: `The ${major.name} program is one course from being established${course ? ` — ${course.name}` : ''}`,
           go: 'curriculum',
         };
       }

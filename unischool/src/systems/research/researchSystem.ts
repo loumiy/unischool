@@ -49,11 +49,11 @@ function pullCandidate(s: GameState, participants: Faculty[], why: string): void
 function publish(s: GameState, initiative: Initiative, participants: Faculty[]): void {
   const vocab = disciplineVocab(facilitySchool(initiative.labId));
   const topic = researchTopic(initiative.topicId);
-  const where = topic ? `“${topic.name}”` : 'the project';
+  const where = topic ? `"${topic.name}"` : 'the project';
 
   initiative.publications += 1;
   s.research.publications += 1;
-  log(s, `${article(vocab.publication)} new ${vocab.publication} out of ${where}.`, 'info', 'publication', initiative.labId);
+  log(s, `A new ${vocab.publication} out of ${where}.`, 'info', 'publication', initiative.labId);
 
   // A grant rides on the paper, scaled by team strength.
   if (random() < GRANT_PER_PUBLICATION_CHANCE) {
@@ -63,7 +63,8 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
     s.research.grants += 1;
     s.research.grantIncome += scaled;
     initiative.grantIncome += scaled;
-    log(s, `${rollGrantFunder(vocab)} has awarded ${money(scaled)} to ${where}.`, 'good', 'grant', initiative.labId);
+    const funder = rollGrantFunder(vocab);
+    log(s, `${funder.charAt(0).toUpperCase()}${funder.slice(1)} has awarded ${money(scaled)} to ${where}.`, 'good', 'grant', initiative.labId);
   }
 
   if (initiative.publications % PUBLICATIONS_PER_CANDIDATE_PULL === 0) {
@@ -75,7 +76,7 @@ function rollBreakthrough(s: GameState, initiative: Initiative, participants: Fa
   if (random() >= annualBreakthroughChance(initiative.depth, teamStrength(participants))) return;
   const vocab = disciplineVocab(facilitySchool(initiative.labId));
   const topic = researchTopic(initiative.topicId);
-  const where = topic ? `“${topic.name}”` : 'the project';
+  const where = topic ? `"${topic.name}"` : 'the project';
   initiative.breakthroughs += 1;
   s.research.breakthroughs += 1;
   log(s, `${article(vocab.breakthrough)} ${vocab.breakthrough} out of ${where} has been ${vocab.breakthroughTail}.`, 'good', 'breakthrough', initiative.labId);
@@ -115,7 +116,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
         // Named for the facility's discipline.
         const prizeName = rollPrizeName(disciplineVocab(facilitySchool(initiative.labId)));
         award = { facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName };
-        log(s, `${winner.name} has been awarded ${prizeName} for “${name}”.`, 'good', 'prize', winner.id);
+        log(s, `${winner.name} has been awarded ${prizeName} for "${name}".`, 'good', 'prize', winner.id);
       }
     }
     const papers = initiative.publications;
@@ -124,7 +125,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     const notable = award !== null || initiative.breakthroughs > 0;
     log(
       s,
-      `“${name}” has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years: `
+      `"${name}" has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years: `
         + `${papers} ${papers === 1 ? 'publication' : 'publications'}, `
         + `${initiative.breakthroughs} ${initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'}.`,
       'good',
@@ -133,7 +134,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     );
 
     // Queued rather than raised, since only one interrupt can be pending;
-    // the award's effects have already applied. A cancelled run or a run
+    // the award's effects have already applied. A canceled run or a run
     // with papers alone queues nothing, so the modal is kept for a
     // breakthrough or an award.
     if (notable) s.research.pendingCompletions.push({
@@ -190,7 +191,7 @@ export function tickResearch(s: GameState): void {
     const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
     if (participants.length === 0) {
       const topic = researchTopic(initiative.topicId);
-      log(s, `“${topic?.name ?? 'A project'}” has been abandoned — nobody is left on it.`, 'bad', 'research-concluded', initiative.labId);
+      log(s, `"${topic?.name ?? 'A project'}" has been abandoned — nobody is left on it.`, 'bad', 'research-concluded', initiative.labId);
       concludeInitiative(s, initiative, true);
       continue;
     }

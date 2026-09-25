@@ -487,7 +487,7 @@ const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pair
 {
   const schools = researchSchools();
 
-  // Every facility in the catalogue belongs to exactly the school that lists it.
+  // Every facility in the catalog belongs to exactly the school that lists it.
   for (const school of schools) {
     for (const labId of school.labIds) {
       assert(facilitySchool(labId) === school.schoolName,
@@ -675,7 +675,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
 // whatever clears the interrupt has to advance it, or the next ordinary
 // TICK would silently re-run that same week's systems a second time).
 // RESOLVE_INTERRUPT is InterruptModal.tsx's fallback for a type its own
-// switch doesn't recognise — normally unreachable, but a real bug once
+// switch doesn't recognize — normally unreachable, but a real bug once
 // (it cleared the interrupt without advancing, which would have wedged
 // the clock on that exact week forever if a future interrupt type ever
 // fell through to it by accident).
@@ -684,7 +684,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
   const s = fresh();
   const week = s.clock.week;
   const year = s.clock.year;
-  // A type nothing in InterruptModal.tsx's switch recognises — PendingInterrupt.type
+  // A type nothing in InterruptModal.tsx's switch recognizes — PendingInterrupt.type
   // is a plain string, so this is exactly the "content drift" case its own
   // module comment describes, not a real interrupt this test is faking.
   s.pendingInterrupt = { type: 'test-unrecognised-interrupt' };
@@ -885,7 +885,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
       );
       assert(rowsHonest, `${name} breakdown's rows each contribute weight x score x multiplier (negated for a penalty) on a ${label} school`);
       const clampedScores = made.inputs.every((input) => input.score >= 0 && input.score <= 1);
-      assert(clampedScores, `${name} breakdown's inputs are all normalised to 0..1 on a ${label} school`);
+      assert(clampedScores, `${name} breakdown's inputs are all normalized to 0..1 on a ${label} school`);
       // READINGS COUNT FOR NOTHING (Plan 15's PR A): the sum above is over
       // `inputs` alone, and a reading's key is never also an input's, so a
       // term cannot be counted under one name and shown under another.
@@ -896,7 +896,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
       );
       assert(
         made.readings.every((item) => item.score >= 0 && item.score <= 1 && Math.abs(item.reach - (item.weight ?? 0) * item.score) < 1e-9),
-        `${name} breakdown's readings are normalised to 0..1 and reach weight x score on a ${label} school`,
+        `${name} breakdown's readings are normalized to 0..1 and reach weight x score on a ${label} school`,
       );
     }
   }

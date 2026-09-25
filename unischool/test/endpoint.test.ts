@@ -8,7 +8,7 @@
 // asserts how each FINISHES — off the legacy read at the fiftieth summer
 // (sim/legacyReading.ts, a harness reading since Plan 33 retired it from the
 // game for the Final Report, which each run must also write),
-// the catalogue and the campus, and the rank curve
+// the catalog and the campus, and the rank curve
 // (sim/endpointReading.ts, which `npm run endpoint` prints).
 //
 // The claims are the plan's, and each holds only if it holds on EVERY
@@ -74,13 +74,13 @@ for (const [name, readings] of [['Earnest completionist', completionist], ['Bala
 // Plan 36's cost of being large: the earnest completionist builds whatever
 // it can, has no endowment to carry a big campus, and on two seeds of three
 // runs into the red and the board's construction freeze before the end
-// (89% and 91% of the catalogue, 64% and 86% of the halls; 98% and every
+// (89% and 91% of the catalog, 64% and 86% of the halls; 98% and every
 // hall on the third). The design's sentence is that completing every school
 // is barely possible in the window (progression.md), and now it is: whole
 // on one seed, most of it on every seed. Before, every seed finished 90% of
-// the catalogue and every hall, and built seven in ten placeables.
-every('Earnest completionist', completionist, 'finishes 85% or more of the catalogue', (r) => r.catalogueShare >= 0.85);
-assert(completionist.some((r) => r.catalogueShare >= 0.95 && r.hallsShare === 1), `Earnest completionist: the whole catalogue and every hall on at least one seed (${completionist.map((r) => `${Math.round(r.catalogueShare * 100)}%/${Math.round(r.hallsShare * 100)}%`).join(', ')})`);
+// the catalog and every hall, and built seven in ten placeables.
+every('Earnest completionist', completionist, 'finishes 85% or more of the catalog', (r) => r.catalogueShare >= 0.85);
+assert(completionist.some((r) => r.catalogueShare >= 0.95 && r.hallsShare === 1), `Earnest completionist: the whole catalog and every hall on at least one seed (${completionist.map((r) => `${Math.round(r.catalogueShare * 100)}%/${Math.round(r.hallsShare * 100)}%`).join(', ')})`);
 every('Earnest completionist', completionist, 'builds three in five of its academic halls', (r) => r.hallsShare >= 0.6);
 // Seven in ten since Plan 35 (Plan 33's nine capital projects count as
 // placeables the harness never builds); on at least one seed since Plan 36,
@@ -96,7 +96,7 @@ every('Earnest completionist', completionist, 'holds #1 in at least half of year
 // department can no longer max every sport by waiting (its Finding 5). The
 // earnest completionist fields ten to fifteen programs and funds a few of
 // them, so "a title in every sport fielded" is a specialist's ambition now
-// and the run misses it on every seed; "the catalogue" it has always
+// and the run misses it on every seed; "the catalog" it has always
 // missed; and on one seed it misses a first title too, having spread its
 // pot across eleven programs. Measured at the plan's end: 17, 18 and 17 of
 // 20 on the three seeds. The two or three it misses are the ones the plan

@@ -29,7 +29,7 @@ import {
 // wholesale, so anything not ticked is declined and the digest never
 // accumulates. Approving activates the petition as rolled, so the digest's
 // figures are the ones applied. The satisfaction nudges here are transient,
-// on top of the durable contribution a live organisation makes to the
+// on top of the durable contribution a live organization makes to the
 // target (satisfactionSystem.ts).
 function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
   const petitions = s.orgs.pendingPetitions;
@@ -62,7 +62,7 @@ function resolveStudentLifeDigest(s: GameState, approvedIds: string[]): void {
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: `Student life: ${recognised} organisation${recognised === 1 ? '' : 's'} recognised, ${declined} declined.`,
+    message: `Student life: ${recognised} organization${recognised === 1 ? '' : 's'} recognized, ${declined} declined.`,
     kind: declined > recognised ? 'bad' : 'good',
     topic: 'organisations',
   });
@@ -110,7 +110,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // admit rate; capacity only scales the pool. outcome.admitRate is the
   // realized admits/applicants, which can fall short of the choice.
   const chosenAdmitRate = Math.max(0, Math.min(1, action.admitRate));
-  // The class is clipped to the seats the housed catalogue has left after
+  // The class is clipped to the seats the housed catalog has left after
   // graduation, from the same function the reveal shows.
   const ceiling = intakeCeiling(s);
   const outcome = projectAdmissions(
@@ -212,14 +212,14 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `The catalogue had room for ${ceiling.seatsLeft.toLocaleString()} more; the class was held to it.`,
+      message: `The catalog had room for ${ceiling.seatsLeft.toLocaleString()} more; the class was held to it.`,
       kind: 'info',
     });
   }
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: `Report card for year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
+    message: `Report card for Year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
     kind: reportCard.after >= reportCard.before ? 'good' : 'bad',
     topic: 'report-card',
   });

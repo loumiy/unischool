@@ -3,7 +3,7 @@
 // notes). Behavioral checks against the real data/reducer code — not a
 // reimplementation — covering the three things the feature actually
 // promises:
-//   - the catalogue itself: three gender profiles, named consistently;
+//   - the catalog itself: three gender profiles, named consistently;
 //   - a men-only sport can never roll a women's club, and vice versa;
 //   - a two-gender sport's men's and women's programs are independent
 //     lineages that can coexist and graduate on their own timelines, and
@@ -51,7 +51,7 @@ function makeSportClub(id: string, sportId: string): StudentClub {
   };
 }
 
-// ---- SPORTS catalogue shape ----
+// ---- SPORTS catalog shape ----
 function testCatalogueShape(): void {
   assert(SPORTS.length === 20, `SPORTS has 20 gendered entries — water polo joined the natatorium at Plan 21's PR Q (got ${SPORTS.length})`);
 
@@ -125,7 +125,7 @@ function testNaming(): void {
 // ---- A men-only sport never rolls a women's club (and vice versa) ----
 // Structurally guaranteed (there is only ever one SPORTS entry for a
 // one-gender sport), but swept here against the REAL formation roll rather
-// than trusted from the catalogue shape alone.
+// than trusted from the catalog shape alone.
 function testFormationNeverCrossesGender(): void {
   const s = fresh();
   const drawn = new Set<string>();

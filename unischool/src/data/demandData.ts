@@ -20,7 +20,7 @@ import type { SatisfactionAttributes, StudentDemand } from '../state/types';
 // DECISION_EVENT_FIRST_YEAR).
 export const DEMAND_FIRST_YEAR = 3;
 
-// The trigger: satisfaction below this and the student body organises.
+// The trigger: satisfaction below this and the student body organizes.
 // Under the founding value of 70 (WORD_OF_MOUTH_NEUTRAL), so a merely
 // imperfect school never sees a demand.
 export const DEMAND_SATISFACTION_THRESHOLD = 60;
@@ -57,33 +57,40 @@ export interface DemandCopy {
   unit: string;                      // what `target` counts, for the progress line
 }
 
+// A building's name as a sentence carries it: "the Library", "the Original
+// Dining Hall". The asks are buildings not yet built, named by what they
+// will be called.
+function theName(name: string): string {
+  return name.startsWith('The ') ? `the ${name.slice(4)}` : `the ${name}`;
+}
+
 export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
   basicNeeds: {
     headline: 'Students demand somewhere to eat',
     grievance: (ask) =>
-      `The queue at the dining halls runs out of the door and round the building, and a petition with most of the student body's names on it has been handed to your office. They want ${ask} open, and they want a date.`,
-    ask: (ask) => `Open ${ask}`,
+      `The queue at the dining halls runs out of the door and round the building, and a petition with most of the student body's names on it has been handed to your office. They want ${theName(ask)} open, and they want a date.`,
+    ask: (ask) => `Open ${theName(ask)}`,
     unit: 'students served by dining',
   },
   academic: {
     headline: 'Students demand somewhere to study',
     grievance: (ask) =>
-      `There is nowhere to sit and read. Students are working in corridors and stairwells, and a sit-in in the reading room has produced a single written demand: ${ask}.`,
-    ask: (ask) => `Build ${ask}`,
+      `There is nowhere to sit and read. Students are working in corridors and stairwells, and a sit-in in the reading room has produced a single written demand: ${theName(ask)}.`,
+    ask: (ask) => `Build ${theName(ask)}`,
     unit: 'students served by study space',
   },
   social: {
     headline: 'Students demand somewhere to be',
     grievance: (ask) =>
-      `A campus with nothing on it after five o'clock is the complaint, and it is a fair one. The student body has asked, formally, for ${ask}.`,
-    ask: (ask) => `Build ${ask}`,
+      `A campus with nothing on it after five o'clock is the complaint, and it is a fair one. The student body has asked, formally, for ${theName(ask)}.`,
+    ask: (ask) => `Build ${theName(ask)}`,
     unit: 'students served by student life space',
   },
   health: {
     headline: 'Students demand somewhere to be seen',
     grievance: (ask) =>
-      `The wait for an appointment at the health service is measured in weeks, and the student government has stopped asking politely. They want ${ask}.`,
-    ask: (ask) => `Build ${ask}`,
+      `The wait for an appointment at the health service is measured in weeks, and the student government has stopped asking politely. They want ${theName(ask)}.`,
+    ask: (ask) => `Build ${theName(ask)}`,
     unit: 'students served by health services',
   },
   housing: {
@@ -93,14 +100,14 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
     ask: (ask) => `Build ${ask}`,
     unit: 'beds of campus housing',
   },
-  // Measured against the catalogue's seats (instructionCapacity.ts); the ask
+  // Measured against the catalog's seats (instructionCapacity.ts); the ask
   // is a course.
   instruction: {
     headline: 'Students demand a seat in class',
     grievance: (ask) =>
-      `Every section is over its room and students are following lectures from the corridor. The registrar has forwarded a petition with one demand on it: open ${ask}, and stop admitting people there is no seat for.`,
+      `Every section is over its room and students are following lectures from the corridor. The Registrar has forwarded a petition with one demand on it: open ${ask}, and stop admitting people there is no seat for.`,
     ask: (ask) => `Develop ${ask}`,
-    unit: 'seats across the catalogue',
+    unit: 'seats across the catalog',
   },
 };
 

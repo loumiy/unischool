@@ -1,12 +1,12 @@
 // THE CHRONICLE's words (Plan 33, from v2's chronicle.json; V2 #53): the
 // names an era may be given, by the kind of years it was, and the sentences
-// that summarise it. systems/chronicle/chronicle.ts decides which apply.
+// that summarize it. systems/chronicle/chronicle.ts decides which apply.
 
 export type EraKind =
   | 'founding' | 'building' | 'troubles' | 'receivership' | 'rise' | 'decline'
   | 'campaign' | 'rivalry' | 'golden' | 'quiet' | 'eventful';
 
-export const ERA_MIN_YEARS = 4;   // shorter runs fold into a neighbour
+export const ERA_MIN_YEARS = 4;   // shorter runs fold into a neighbor
 export const ERA_MAX = 9;         // no more eras than a chronicle can hold
 export const ERA_MAX_YEARS = 12;  // a longer run is split where the most happened
 
@@ -14,7 +14,7 @@ export const ERA_NAMES: Readonly<Record<EraKind, readonly string[]>> = {
   founding: ['The Founding', 'The First Years', 'The Charter Years'],
   building: ['The Building of {building}', 'The Scaffolding Years', 'The Years of {building}'],
   troubles: ['The Troubles', 'The Lean Years', 'The Hard Winters'],
-  receivership: ['The Receivership', 'The Years Under the CFO'],
+  receivership: ['The Interim Years', 'The Years Under the CFO'],
   rise: ['The Climb', 'The Rise', 'The Ascent'],
   decline: ['The Slide', 'The Long Afternoon', 'The Slow Decline'],
   campaign: ['The {ordinal} Campaign', 'The Campaign Years'],
@@ -40,7 +40,9 @@ export const CHRONICLE_LINES = {
   tags: 'The guidebooks started calling it {tags}.',
   rival: '{rival} became the rival.',
   kept: 'It kept its promise: {list}.',
+  keptMany: 'It kept its promises: {list}.',
   missed: 'It missed its promise: {list}.',
+  missedMany: 'It missed its promises: {list}.',
   weathered: 'It weathered {list}.',
   firsts: 'Firsts: {list}.',
 } as const;
@@ -53,6 +55,7 @@ export const CHRONICLE_WORDS = {
   rivalNone: 'No rival yet.',
   sagaNamed: '{rival} became the rival in Year {year}.',
   sagaGames: 'The teams have met {count} times: {won} won, {lost} lost.',
+  sagaGame: 'The teams have met once: {won} won, {lost} lost.',
   sagaStanding: 'In the rankings the college stands {mine}, and {rival} {theirs}.',
   now: 'The historians will call these years {era}.',
   none: 'The first year has not closed yet: there is nothing for the historians to divide.',

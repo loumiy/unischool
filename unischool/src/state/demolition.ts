@@ -14,13 +14,13 @@ import { money } from '../format';
 // A building under construction can be called off: its cost comes back to
 // where it was paid from (the building fund, the endowment's half, or cash,
 // less whatever is still owed on its loan, which is settled), its site is
-// cleared, and it is in the catalogue again. The trees its siting felled
+// cleared, and it is in the catalog again. The trees its siting felled
 // stay felled.
 //
 // A standing building can be demolished: free, with nothing back. Its site
-// is cleared and it is in the catalogue again as it first was, so building
+// is cleared and it is in the catalog again as it first was, so building
 // it again costs what it costs and starts it new. What it granted once is
-// taken back where that can be counted (a dorm's beds, its storeys'
+// taken back where that can be counted (a dorm's beds, its stories'
 // included); what it opened stays open, since nothing available ever
 // re-locks (techSystem.ts).
 
@@ -92,7 +92,7 @@ export function demolish(s: GameState, id: string): void {
   const fresh = t ? templateOf(id) : undefined;
   if (!t || !fresh || demolitionBlock(s, t) !== null) return;
   // Beds from any building (a residence hall, the Graduate College), and a
-  // residence hall's added storeys.
+  // residence hall's added stories.
   const storeyBeds = t.kind === 'dorm' ? (t.floorsAdded ?? 0) * extensionGain(t) : 0;
   s.students.capacity = Math.max(0, s.students.capacity - (t.effects?.capacityBonus ?? 0) - storeyBeds);
   // A venue's teams wait for another venue of their sport, as a load would
@@ -113,7 +113,7 @@ export function demolish(s: GameState, id: string): void {
   });
 }
 
-// The catalogue's own entry for a building, as it stood before anything
+// The catalog's own entry for a building, as it stood before anything
 // was built, a fresh copy each time. Chapter houses are made at runtime and
 // have none.
 let templates: Map<string, Buildable> | null = null;

@@ -64,6 +64,7 @@ the repository root, and the game as it actually is lives in `docs/design/` and
 | 41 | [Labs at work](41-labs-at-work.md) | The owner's request: a lab hosting research shows it on the map, without text: a ring filling in its school's colour as the project runs, and an atom turning inside it (still under reduced motion). One PR. | Landed |
 | 42 | [Walkers behind walls](42-walkers-behind-walls.md) | The owner's report that walkers still clip through buildings: a walker was cut by the first nearer building whose box came close, which often covered nothing; now by every nearer building whose outline is over it (up to three), through turns too. One PR. | Landed |
 | 43 | [The consistency review](43-consistency-review.md) | The owner's request for a review of everything but the balance: the logic, the flow, the screens and the data, each read against the code, fixed where there was one right answer ([the review](../reviews/2026-09-consistency-review.md) lists every finding and the questions left open). The map and the words are Plans 44 and 45. One PR. | Landed |
+| 45 | [The words agree](45-the-words-agree.md) | A review of the player-facing text: placeholders that filled wrong ("the the class of 7"), lines assembled wrong, text that contradicted the code (promise goals, the prestige hints, what can pay for a building), and one thing under several names; now the college, the guide, the offices and American spelling, one name each. One PR. | Landed |
 
 ## Naming
 

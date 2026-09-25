@@ -40,15 +40,15 @@ function badText(text: string | undefined): boolean {
 
 console.log('content tests');
 
-// ---- The catalogue: courses, halls, dorms, facilities ----
+// ---- The catalog: courses, halls, dorms, facilities ----
 const catalogue = [...initialTech(), ...initialDorms(), ...initialFacilities()];
 const byId = new Map(catalogue.map((t) => [t.id, t]));
 const fields = new Set(FACULTY_FIELDS);
 
-assert(duplicates(catalogue.map((t) => t.id)).length === 0, `catalogue ids are unique (${duplicates(catalogue.map((t) => t.id)).join(', ')})`);
+assert(duplicates(catalogue.map((t) => t.id)).length === 0, `catalog ids are unique (${duplicates(catalogue.map((t) => t.id)).join(', ')})`);
 {
   const missing = catalogue.flatMap((t) => t.prereqs.filter((p) => !byId.has(p)).map((p) => `${t.id} -> ${p}`));
-  assert(missing.length === 0, `every prereq names a catalogue row (${missing.slice(0, 10).join(', ')})`);
+  assert(missing.length === 0, `every prereq names a catalog row (${missing.slice(0, 10).join(', ')})`);
   const selfish = catalogue.filter((t) => t.prereqs.includes(t.id)).map((t) => t.id);
   assert(selfish.length === 0, `no row is its own prereq (${selfish.join(', ')})`);
   const unstaffable = catalogue.filter((t) => t.requiresFaculty && !fields.has(t.requiresFaculty)).map((t) => `${t.id}: ${t.requiresFaculty}`);
@@ -80,7 +80,7 @@ const programIds = new Set(programList.map((p) => p.id));
 assert(duplicates(programList.map((p) => p.id)).length === 0, 'program ids are unique');
 for (const p of programList) {
   const unknown = p.courseIds.filter((id) => byId.get(id)?.kind !== 'course');
-  assert(unknown.length === 0, `${p.id}: every course id is a course in the catalogue (${unknown.join(', ')})`);
+  assert(unknown.length === 0, `${p.id}: every course id is a course in the catalog (${unknown.join(', ')})`);
   assert(p.courseIds.includes(p.entryCourseId), `${p.id}: its entry course is one of its courses`);
   assert(p.field === null || fields.has(p.field), `${p.id}: its faculty field exists (${p.field})`);
   assert(!badText(p.name), `${p.id}: has a clean name`);
@@ -90,7 +90,7 @@ for (const p of programList) {
   assert(unknown.length === 0, `every founding program exists (${unknown.join(', ')})`);
   const bridges = Object.entries(CROSS_MAJOR_BRIDGES).flatMap(([course, needs]) =>
     [course, ...needs].filter((id) => !byId.has(id)).map((id) => `${course}: ${id}`));
-  assert(bridges.length === 0, `every cross-major bridge names catalogue rows (${bridges.join(', ')})`);
+  assert(bridges.length === 0, `every cross-major bridge names catalog rows (${bridges.join(', ')})`);
 }
 
 // ---- Course descriptions ----
@@ -108,7 +108,7 @@ for (const p of programList) {
   const badFields = RESEARCH_TOPICS.flatMap((t) => t.fields.filter((f) => !fields.has(f)).map((f) => `${t.id}: ${f}`));
   assert(badFields.length === 0, `every topic's fields exist (${badFields.slice(0, 10).join(', ')})`);
   const badLabs = RESEARCH_TOPICS.flatMap((t) => (t.labs ?? []).filter((l) => !byId.has(l)).map((l) => `${t.id}: ${l}`));
-  assert(badLabs.length === 0, `every topic's labs are catalogue rows (${badLabs.slice(0, 10).join(', ')})`);
+  assert(badLabs.length === 0, `every topic's labs are catalog rows (${badLabs.slice(0, 10).join(', ')})`);
   const unnamed = RESEARCH_TOPICS.filter((t) => badText(t.name)).map((t) => t.id);
   assert(unnamed.length === 0, `every topic has a clean name (${unnamed.join(', ')})`);
 }

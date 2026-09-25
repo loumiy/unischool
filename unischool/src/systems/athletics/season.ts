@@ -60,7 +60,7 @@ export function trophyFor(s: GameState, sportId: string): string {
 // An opponent within a few places on the sport's own table, drawn on the
 // local generator. The schedule climbs with the college's name (Plan 31,
 // V1-19): when it stands higher in the rankings than its team does on the
-// field, the neighbourhood is pulled a third of the way up toward that
+// field, the neighborhood is pulled a third of the way up toward that
 // place, so a rising college is scheduled against better-known schools
 // before its team has earned them.
 const NEIGHBOURHOOD = 4;
@@ -112,8 +112,8 @@ function resolveOccasion(s: GameState, team: VarsityTeam, occasion: Occasion, ro
       : `${upset ? 'An upset: ' : ''}${name} lost ${trophy} to ${them}${run > 1 ? ` for the ${ordinal(run)} year running` : ''}. The series stands ${rivalry.wins}–${rivalry.losses}.`;
   } else if (occasion === 'opener') {
     message = won
-      ? `${upset ? 'An upset to open the season: ' : ''}${name} open the season with a win over ${them}.`
-      : `${upset ? 'An upset to open the season: ' : ''}${name} open the season with a loss to ${them}.`;
+      ? `${upset ? 'An upset to open the season: ' : ''}${name} opens the season with a win over ${them}.`
+      : `${upset ? 'An upset to open the season: ' : ''}${name} opens the season with a loss to ${them}.`;
   } else {
     message = won
       ? `${upset ? 'An upset on homecoming weekend: ' : ''}${name} sent the homecoming crowd home happy, beating ${them}. ${record.wins}–${record.losses} on the year.`

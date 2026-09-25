@@ -156,13 +156,13 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   // Library ratio plus course-quality bonus, clamped to the shared band.
   const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, expectedRatio(s, 'academic'), 1);
   const academicFacultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
-  // Sensible neighbours (systems/estate/pairing.ts), a couple of points at most.
+  // Sensible neighbors (systems/estate/pairing.ts), a couple of points at most.
   const pairing = pairingBumps(s);
   const academic = clamp(academicLibraryRatio + academicFacultyBonus + pairing.academic + facultyMorale(s), ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, expectedRatio(s, 'social'), SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
-  // Student organisations add a flat bonus (it does not dilute as the campus
+  // Student organizations add a flat bonus (it does not dilute as the campus
   // grows), read live off s.orgs each week like BuildableEffects.
   const social = clamp(
     socialRatio + flatBonusFor(s, 'social') + pride + studentLifeSocialBonus(s),
@@ -208,7 +208,7 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
 
   // Housing contributors are reconstructed because s.students.capacity is a
   // single accumulated number: every standing building's beds (dorms, and
-  // anything else built with beds), a dorm's added storeys, and housed
+  // anything else built with beds), a dorm's added stories, and housed
   // chapters. The same terms demolition.ts takes back off, so the drawer
   // adds up to the capacity.
   const contributors = attribute === 'housing'

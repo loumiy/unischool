@@ -32,7 +32,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
       <div className="panel-head">
         <span className="panel-head-title">
           <h3>Administration</h3>
-          <HelpHint text={`Each seat takes its domain's routine off your desk: when one of its events comes up, it answers by the policy you set and the log says so. Anything that would move more than four weeks of operating cost, or that the seat's choice cannot pay for, still comes to you, and so does anything that is the president's alone. A seat is for good: its salary, paid at the market rate prestige sets, is permanent. A professor of ${SEAT_SENIOR_YEARS} years can be promoted into a seat for less than an outside hire, and leaves the classroom to take it.`} />
+          <HelpHint text={`Each seat takes its domain's routine off your desk: when one of its events comes up, it answers by the policy you set and the log says so. Anything that would move more than four weeks of operating cost, or that the seat's choice cannot pay for, still comes to you, and so does anything that is the President's alone. A seat is for good: its salary, paid at the market rate prestige sets, is permanent. A professor of ${SEAT_SENIOR_YEARS} years can be promoted into a seat for less than an outside hire, and leaves the classroom to take it.`} />
         </span>
         <span className="stat">{money(seatPayroll(s))}/wk</span>
       </div>

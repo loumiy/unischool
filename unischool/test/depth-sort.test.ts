@@ -11,7 +11,7 @@
 // order agrees. That is the definition of correct, so the test cannot drift
 // from the implementation by sharing an assumption with it.
 //
-// Layouts are built from the REAL footprint catalogue (footprintOf over
+// Layouts are built from the REAL footprint catalog (footprintOf over
 // initialTech) at a fixed seed, not from invented rectangles, so the shapes
 // under test are the shapes the game can actually place.
 //
@@ -44,7 +44,7 @@ function rnd(): number {
   return seed / 4294967296;
 }
 
-// Every footprint the catalogue can actually put on the map.
+// Every footprint the catalog can actually put on the map.
 const CATALOGUE = [...initialTech(), ...initialDorms(), ...initialFacilities()]
   .filter(isPlaceableKind)
   .map(footprintOf);
@@ -125,7 +125,7 @@ console.log('campus map painter\'s order');
   // that direction is the safe one; see the note in depthSort.ts.)
   const far: DepthBox = { col: 4, row: 0, w: 2, h: 2 };
   const near: DepthBox = { col: 4, row: 2, w: 2, h: 2 };
-  assert(occludes(near, far) === 1, 'a building directly in front of its neighbour is nearer');
+  assert(occludes(near, far) === 1, 'a building directly in front of its neighbor is nearer');
   const [first, second] = depthOrder([near, far]);
   assert(first === far && second === near, 'so the nearer one is drawn last');
 }
@@ -285,7 +285,7 @@ console.log('campus map painter\'s order');
   const boxes = new Set(banks.map((b) => `${b.col.toFixed(3)},${b.row.toFixed(3)},${b.w.toFixed(3)},${b.h.toFixed(3)}`));
   assert(boxes.size === banks.length, 'each bank declares its own ground rather than a shared box');
 
-  // And they sort: the sweep is centred on the camera, so the bank behind
+  // And they sort: the sweep is centered on the camera, so the bank behind
   // the plate is nearer than the ones out along the lines and must be
   // painted after them.
   const order = depthOrder(banks.map((b) => ({ col: b.col, row: b.row, w: b.w, h: b.h })));

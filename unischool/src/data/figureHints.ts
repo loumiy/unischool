@@ -9,7 +9,7 @@ export const FIGURE_HINTS = {
   funds: 'Operating funds, and what the week adds or takes at today\'s rates; only a deficit can push them below zero, and the board reads every term.',
   rank: (field: number): Sentence => `Place among ${field} colleges on the academic table, sorted by prestige; one is the top.`,
   enrolled: 'Students on the books across all four classes, set each summer by the class you admit and who does not return.',
-  prestige: 'The college\'s name, drifting each week toward a target set by the catalogue\'s breadth, selectivity, student quality, faculty, research and the capital projects.',
+  prestige: 'The college\'s name: graded each summer and stepped toward the grade, drifting a little between; the grade reads curriculum, teaching, students, research, satisfaction, campus life and the estate.',
   satisfaction: 'How content the students are, out of 100, drifting toward what the campus, the price and student life can offer; below a line, fewer come back each summer.',
 
   // The Treasury.
@@ -25,14 +25,14 @@ export const FIGURE_HINTS = {
   greek: 'Points the Greek chapters add to the satisfaction target right now, from the same sum the weekly tick runs.',
   varsity: 'Points varsity teams add to the satisfaction target right now, from the same sum the weekly tick runs.',
   satisfactionTarget: 'Where satisfaction is heading: the target without student life, then with it.',
-  satisfactionToday: 'Satisfaction this week; it follows the target over the weeks that follow.',
-  orgCost: 'What student organisations cost each week, and over a year, in upkeep and athletic staff.',
+  satisfactionToday: 'Satisfaction this week; it moves toward the target over the coming weeks.',
+  orgCost: 'What student organizations cost each week, and over a year, in upkeep and athletic staff.',
 
   // The summer.
   applicants: 'Everyone who applied at this price: prestige, the price against the college\'s name, and word of mouth set it.',
-  room: 'Seats the catalogue can teach next year, less the students who stay on; the class cannot outgrow it.',
-  freshmen: 'The class that enrols: the admit rate times the pool, held to the room.',
-  incomingQuality: 'The average preparation of the class that enrols, out of 100; a lower admit rate takes the stronger applicants.',
+  room: 'Seats the catalog can teach next year, less the students who stay on; the class cannot outgrow it.',
+  freshmen: 'The class that enrolls: the admit rate times the pool, held to the room.',
+  incomingQuality: 'The average preparation of the class that enrolls, out of 100; a lower admit rate takes the stronger applicants.',
   projectedNet: 'The week\'s net once this class and the three above it pay their locked prices, against today\'s.',
   projectedSatisfaction: 'The satisfaction target with this many students on the campus, against today\'s.',
   tightestNeed: 'The service that will be most stretched, as a share of what the students will need, now and with this class.',

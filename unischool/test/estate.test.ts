@@ -94,7 +94,7 @@ const buildingOf = (s: GameState) => s.tech.find((t) => t.id === 'DINING-01')!;
   assert(buildingOf(s).status === 'done', 'open throughout');
 }
 
-// ---- Added storeys ----
+// ---- Added stories ----
 {
   let s = createInitialState('Storeys');
   s.pendingInterrupt = null;
@@ -105,14 +105,14 @@ const buildingOf = (s: GameState) => s.tech.find((t) => t.id === 'DINING-01')!;
   const beds = s.students.capacity;
   s = reducer(s, { type: 'EXTEND_BUILDING', id: 'DORM-01' });
   const d = () => s.tech.find((t) => t.id === 'DORM-01')!;
-  assert(d().extensionWeeks === EXTENSION_WEEKS && s.finance.cash === 1e9 - extensionCost(d()), 'a storey starts, paid up front');
+  assert(d().extensionWeeks === EXTENSION_WEEKS && s.finance.cash === 1e9 - extensionCost(d()), 'a story starts, paid up front');
   for (let i = 0; i < EXTENSION_WEEKS; i++) tickEstate(s);
   assert(d().floorsAdded === 1 && s.students.capacity === beds + Math.round((d().effects!.capacityBonus ?? 0) * 0.25), 'and adds a quarter of its beds when done');
   for (let k = 1; k < EXTENSION_MAX_STOREYS + 1; k++) {
     s = reducer(s, { type: 'EXTEND_BUILDING', id: 'DORM-01' });
     for (let i = 0; i < EXTENSION_WEEKS; i++) tickEstate(s);
   }
-  assert(d().floorsAdded === EXTENSION_MAX_STOREYS, `never more than ${EXTENSION_MAX_STOREYS} storeys`);
+  assert(d().floorsAdded === EXTENSION_MAX_STOREYS, `never more than ${EXTENSION_MAX_STOREYS} stories`);
 
   const dining = s.tech.find((t) => t.id === 'DINING-01')!;
   dining.status = 'done';

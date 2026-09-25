@@ -4,7 +4,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import { OCCASIONS } from '../systems/athletics/season';
 
 // What the calendar puts on the map for a week: crowds in the stands of a
-// venue whose team plays that week, and the college's colours on the lamps in
+// venue whose team plays that week, and the college's colors on the lamps in
 // commencement week. Read through contexts, so a game week redraws the stands
 // and a commencement the lamps, never the rest of the scene.
 
@@ -13,14 +13,14 @@ import { OCCASIONS } from '../systems/athletics/season';
 export const DevelopingContext = createContext<GameState['developing']>({});
 // The college's name, for what carries it (the triumphal gate).
 export const CollegeNameContext = createContext('');
-// The college's colours, for the flags on its civic buildings.
+// The college's colors, for the flags on its civic buildings.
 export const ColorsContext = createContext<SchoolColors>({ primary: '#7a2e26', secondary: '#e0b64a' });
 
 // The venues with a crowd this week, by Buildable id. Empty most weeks.
 export const CrowdContext = createContext<ReadonlySet<string>>(new Set());
 // The venue a stand belongs to, set round each building and its props.
 export const VenueContext = createContext<string | null>(null);
-// The college's colours in commencement week, else null.
+// The college's colors in commencement week, else null.
 export const BannerContext = createContext<SchoolColors | null>(null);
 
 // The season's dated home occasions (athletics/season.ts's OCCASIONS).

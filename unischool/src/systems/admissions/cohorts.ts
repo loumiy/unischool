@@ -16,7 +16,7 @@ export type { CohortId };
 // a base share must sum to 1 (invariants.test.ts).
 export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; driverLabel: string }> = [
   { id: 'highAchievers', label: 'High achievers', baseShare: 0.20, driverLabel: 'distinguished & graduate programs' },
-  { id: 'preProfessional', label: 'Pre-professional', baseShare: 0.22, driverLabel: 'established career-track majors' },
+  { id: 'preProfessional', label: 'Pre-professional', baseShare: 0.22, driverLabel: 'established career-track programs' },
   { id: 'researchOriented', label: 'Research-oriented', baseShare: 0.10, driverLabel: 'publications, breakthroughs, prizes & labs' },
   { id: 'social', label: 'Social', baseShare: 0.15, driverLabel: 'clubs & Greek chapters' },
   { id: 'artsFocused', label: 'Arts-focused', baseShare: 0.08, driverLabel: 'arts programs & venues' },
@@ -107,7 +107,7 @@ export function athleticResultsFor(s: GameState): { results: number; label: stri
     results += (FINISH_RESULT_WEIGHT[result.finish] ?? 0) * sportEconomics(result.sport).payoffMultiplier;
   }
   recent.sort((a, b) => b.year - a.year);
-  const name = (t: { sport: string; year: number }) => `the ${t.year} title in ${sportById(t.sport)?.teamName.replace(/ Team$/, '') ?? t.sport}`;
+  const name = (t: { sport: string; year: number }) => `the Year ${t.year} title in ${sportById(t.sport)?.teamName.replace(/ Team$/, '') ?? t.sport}`;
   const label = recent.length === 0
     ? (results > 0 ? "last season's postseason runs" : '')
     : recent.length === 1
@@ -167,7 +167,7 @@ export function revenueShareOf(sportIds: readonly string[]): number {
   return total > 0 ? revenue / total : 0;
 }
 
-// The cost of a big programme: the admitted class's band mix shifts
+// The cost of a big program: the admitted class's band mix shifts
 // slightly with the athlete share of the pool, weighted by revenue share.
 // Returned as the shift admissionsSystem.ts's qualityMix moves from the top
 // band to the low one: at most ATHLETE_BAND_DRAG, when athletes have doubled

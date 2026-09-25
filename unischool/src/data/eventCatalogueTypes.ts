@@ -1,5 +1,5 @@
-// The shape of the event catalogue (Plan 32, ported from v2's events.json).
-// The catalogue itself is data (eventCatalogue.ts); systems/events/
+// The shape of the event catalog (Plan 32, ported from v2's events.json).
+// The catalog itself is data (eventCatalogue.ts); systems/events/
 // catalogue.ts reads its conditions and applies its effects.
 
 import type { EventDomain } from './seatData';
@@ -22,7 +22,7 @@ export type ConditionKey =
   | 'beautyOver' | 'beautyUnder'
   | 'warmthOver' | 'warmthUnder'
   | 'confidenceOver' | 'confidenceUnder' | 'rungAtLeast' | 'rungAtMost'
-  | 'varsityAtLeast' | 'titlesAtLeast' | 'rivalAtLeast'
+  | 'varsityAtLeast' | 'titlesAtLeast' | 'rivalAtLeast' | 'mascotAtMost'
   | 'adminShareOver' | 'payrollShareOver'
   | 'winterAtLeast';
 

@@ -450,7 +450,7 @@ const AMERICAN_NATIONALITY_CHANCE = 0.72;
 const AMERICAN_NATIONALITY = { nationality: 'United States', flag: '🇺🇸' };
 
 // Non-American nationalities by origin pool. Chinese, Korean and Japanese
-// each map to one country so a name never gets a wrong neighbouring
+// each map to one country so a name never gets a wrong neighboring
 // nationality.
 export const ORIGIN_NATIONALITIES: Record<string, Array<{ nationality: string; flag: string }>> = {
   'Chinese': [
@@ -550,7 +550,7 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   'Accounting & Finance': ['asset pricing', 'audit quality', 'corporate disclosure'],
   Marketing: ['consumer choice', 'brand equity', 'digital attribution'],
   Law: ['constitutional interpretation', 'contract theory', 'law and technology'],
-  Management: ['corporate strategy', 'entrepreneurship', 'organizational behavior'],
+  Management: ['corporate strategy', 'entrepreneurship', 'organisational behavior'],
 };
 
 function rollBio(field: string): string {
@@ -640,7 +640,7 @@ export function facultySalary(teaching: number, research: number, tenureWeeks: n
 //
 // 4-6 base slots keeps early payroll heavy but survivable (at 2-4 a
 // founding school needed about one professor per course and couldn't save
-// for a dorm). Slots are occupied forever, so a full catalogue still needs
+// for a dorm). Slots are occupied forever, so a full catalog still needs
 // a roster in the dozens.
 // ---------------------------------------------------------------------
 const FACULTY_BASE_SLOTS_MIN = 4;
@@ -796,7 +796,7 @@ function clampPotential(v: number): number {
 }
 
 // The market the week the university is founded: a full pool. weeksListed
-// is staggered so the pool doesn't age out in one synchronised wave.
+// is staggered so the pool doesn't age out in one synchronized wave.
 export function initialCandidatePool(): Faculty[] {
   const pool: Faculty[] = [];
   const names: string[] = [];
