@@ -466,6 +466,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // are raised mid-TICK, which skips advanceClock to hold the week, so not
     // advancing would re-run that week's systems.
     case 'RESOLVE_INTERRUPT': {
+      // Answering nothing (a second click or key repeat) must not advance the clock.
+      if (!s.pendingInterrupt) return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
@@ -499,6 +501,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // system detects off the campus. Advances the clock, like every other
     // trailing interrupt.
     case 'RESOLVE_DEMAND': {
+      if (!s.pendingInterrupt) return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
@@ -507,12 +510,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // Dismisses a research prize celebration. Grants nothing: the award
     // landed the week the prize was won. Advances the clock.
     case 'RESOLVE_RESEARCH_REPORT': {
+      if (!s.pendingInterrupt) return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
     }
 
     case 'RESOLVE_CHAMPIONSHIP': {
+      if (!s.pendingInterrupt) return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
@@ -521,10 +526,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // The first sport club's naming beat. An empty name leaves the question
     // for the athletic director's modal.
     case 'RESOLVE_MASCOT': {
+      if (!s.pendingInterrupt) return state;
       const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
       if (mascot) s.self.mascot = mascot;
       s.orgs.mascotBeatPending = false;
       s.pendingInterrupt = null;
+      // Raised mid-TICK like every other beat, so the held week moves on
+      // here; without it the week's systems ran twice.
+      advanceClock(s);
       s.log.unshift({
         year: s.clock.year, week: s.clock.week,
         message: mascot ? `The school's teams will play as the ${mascot}.` : 'The students could not agree on a name for the teams; the question will come back.',
@@ -534,6 +543,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'RESOLVE_ATHLETIC_DIRECTOR': {
+      if (!s.pendingInterrupt) return state;
       if (action.candidate) {
         s.orgs.athleticDirector = action.candidate;
         // Trimmed and capped rather than trusted from the form; an empty
@@ -566,6 +576,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // The one-time College -> University charter offer. Cosmetic: it swaps
     // the name's suffix. The flag is set either way, so declining is final.
     case 'RESOLVE_CHARTER': {
+      if (!s.pendingInterrupt) return state;
       s.self.universityCharterOffered = true;
       if (action.accept) {
         s.self.suffix = 'University';
@@ -591,6 +602,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // Dismisses a milestone celebration. Its effects landed in techSystem the
     // week it was awarded. Advances the clock.
     case 'RESOLVE_MILESTONE': {
+      if (!s.pendingInterrupt) return state;
       s.pendingInterrupt = null;
       advanceClock(s);
       return s;
@@ -602,6 +614,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // take the school below zero: an unaffordable choice is refused (every
     // event offers a zero-cost choice). Either way the clock resumes.
     case 'RESOLVE_DECISION_EVENT': {
+      if (!s.pendingInterrupt) return state;
       const event = findDecisionEvent(action.eventId);
       const choice = event && offeredChoices(s, event, action.ctx).find((c) => c.id === action.choiceId);
       if (choice) {
@@ -634,6 +647,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'RESOLVE_REPORT': {
+      if (!s.pendingInterrupt) return state;
       s.pendingInterrupt = null;
       advanceClock(s); // a trailing interrupt: that week's systems already ran
       return s;
@@ -646,6 +660,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
 
     case 'RESOLVE_LETTER': {
+      if (!s.pendingInterrupt) return state;
       if (action.skipAll) s.events.opening.skipped = true;
       s.pendingInterrupt = null;
       advanceClock(s);
