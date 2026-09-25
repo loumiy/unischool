@@ -317,6 +317,13 @@ export interface CapitalProject {
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 
+// Standing: finished, or open through in-place work (a library floor, a
+// venue expansion), which flips it to 'developing' with renovatingFrom set
+// while it stays in use. A first construction does not stand.
+export function standsOnCampus(t: Buildable): boolean {
+  return t.status === 'done' || (t.status === 'developing' && t.renovatingFrom !== undefined);
+}
+
 // What a Buildable serves right now: full when done, nothing before it
 // opens, its pre-renovation figure while renovating. Shared by every sum
 // and the drawer so they agree.

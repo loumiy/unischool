@@ -175,6 +175,46 @@ const facility = (s: GameState) => {
   if (hallId) assert(demolitionBlock(s, node(s, hallId)) !== null, 'which stays up while they are');
 }
 
+// ---- Beds on a facility, a venue's teams, an older loan (Plan 43) ----
+{
+  let s = fresh();
+  const grad = s.tech.find((x) => x.kind === 'facility' && (x.effects?.capacityBonus ?? 0) > 0);
+  assert(grad !== undefined, 'a facility carries beds (the Graduate College)');
+  if (grad) {
+    grad.status = 'available';
+    s.finance.cash = grad.cost * 2;
+    s.finance.endowment = grad.cost * 10;
+    const before = s.students.capacity;
+    s = finish(place(s, grad), grad.id);
+    if (node(s, grad.id).status === 'done') {
+      s = reducer(s, { type: 'DEMOLISH_BUILDING', id: grad.id });
+      assert(s.students.capacity === before, 'demolishing a facility with beds takes them back');
+    }
+  }
+
+  let v = fresh();
+  const venue = facility(v);
+  v.finance.cash = venue.cost * 2;
+  v = finish(place(v, venue), venue.id);
+  v.orgs.teams.push({ id: 't-test', sport: 'x', name: 'Test Team', venueCategory: venue.facilityType!, status: 'active' } as never);
+  v = reducer(v, { type: 'DEMOLISH_BUILDING', id: venue.id });
+  assert(v.orgs.teams.find((t) => t.id === 't-test')?.status === 'awaitingVenue', "a demolished venue's teams wait for another, as a reload would have them");
+
+  let l = fresh();
+  const dorm = l.tech.find((x) => x.kind === 'dorm' && x.status === 'available')!;
+  l.finance.endowment = 50_000_000;
+  l.finance.cash = dorm.cost - 100_000;
+  l = finish(place(l, dorm, { borrow: true }), dorm.id);
+  const owed = debtOutstanding(l);
+  assert(owed > 0, 'a residence hall borrowed for leaves a loan');
+  l = reducer(l, { type: 'DEMOLISH_BUILDING', id: dorm.id });
+  l.finance.cash = dorm.cost * 2;
+  l = place(l, dorm);
+  const cash = l.finance.cash;
+  l = reducer(l, { type: 'CANCEL_CONSTRUCTION', id: dorm.id });
+  assert(l.finance.cash === cash + dorm.cost && debtOutstanding(l) === owed, "calling off a cash rebuild leaves the demolished building's loan alone");
+}
+
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);

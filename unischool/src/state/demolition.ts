@@ -1,4 +1,5 @@
 import type { Buildable, GameState } from './types';
+import { standsOnCampus } from './types';
 import { isPlaceableKind } from './campusMap';
 import { FOUNDERS_HALL_ID, initialTech } from '../data/techData';
 import { initialDorms } from '../data/campusData';
@@ -41,13 +42,21 @@ export function cancelConstruction(s: GameState, id: string): void {
     s.finance.cash += t.cost - endowmentHalf(t);
   } else {
     s.finance.cash += t.cost;
-    // A loan taken for it is settled out of the refund: the college is left
-    // as if it had never borrowed, less the interest already paid.
-    const loans = s.finance.loans ?? [];
-    for (const l of loans.filter((x) => x.buildingId === id)) s.finance.cash -= l.balance;
-    const rest = loans.filter((x) => x.buildingId !== id);
-    if (rest.length > 0) s.finance.loans = rest;
-    else delete s.finance.loans;
+    // The loan taken for this construction is settled out of the refund: the
+    // college is left as if it had never borrowed, less the interest already
+    // paid. Only when it was borrowed for: an earlier building of the same
+    // id, demolished with its loan still running, keeps its own.
+    if (t.financing === 'loan') {
+      const loans = s.finance.loans ?? [];
+      const mine = loans.filter((x) => x.buildingId === id);
+      const settled = mine[mine.length - 1];
+      if (settled) {
+        s.finance.cash -= settled.balance;
+        const rest = loans.filter((x) => x !== settled);
+        if (rest.length > 0) s.finance.loans = rest;
+        else delete s.finance.loans;
+      }
+    }
   }
   delete t.financing;
   delete s.developing[id];
@@ -82,8 +91,14 @@ export function demolish(s: GameState, id: string): void {
   const t = s.tech[index];
   const fresh = t ? templateOf(id) : undefined;
   if (!t || !fresh || demolitionBlock(s, t) !== null) return;
-  if (t.kind === 'dorm') {
-    s.students.capacity = Math.max(0, s.students.capacity - (t.effects?.capacityBonus ?? 0) - (t.floorsAdded ?? 0) * extensionGain(t));
+  // Beds from any building (a residence hall, the Graduate College), and a
+  // residence hall's added storeys.
+  const storeyBeds = t.kind === 'dorm' ? (t.floorsAdded ?? 0) * extensionGain(t) : 0;
+  s.students.capacity = Math.max(0, s.students.capacity - (t.effects?.capacityBonus ?? 0) - storeyBeds);
+  // A venue's teams wait for another venue of their sport, as a load would
+  // have them do (persistence.ts's sanitizeTeams).
+  if (t.facilityType && !s.tech.some((o) => o !== t && o.facilityType === t.facilityType && standsOnCampus(o))) {
+    for (const team of s.orgs.teams) if (team.status === 'active' && team.venueCategory === t.facilityType) team.status = 'awaitingVenue';
   }
   delete s.placements[id];
   delete s.halls[id];

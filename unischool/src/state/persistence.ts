@@ -11,7 +11,7 @@ import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
-import { CAMPUS_GRID_WIDTH } from './types';
+import { CAMPUS_GRID_WIDTH, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
 import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
@@ -279,7 +279,7 @@ const KNOWN_SPORT_IDS: ReadonlySet<string> = new Set(SPORTS.map((sp) => sp.id));
 //   - an unknown venueCategory: dropped.
 //   - a sport that isn't a real sport+gender id: dropped (venueCategory
 //     can't catch this; it's never re-derived from `sport`).
-//   - 'active' with a venue that isn't 'done': reset to 'awaitingVenue',
+//   - 'active' with no standing venue (standsOnCampus): reset to 'awaitingVenue',
 //     since the team, coach and upkeep are still real.
 function sanitizeTeams(state: GameState): void {
   if (!Array.isArray(state.orgs?.teams)) {
@@ -291,8 +291,10 @@ function sanitizeTeams(state: GameState): void {
   );
   for (const team of state.orgs.teams) {
     if (team.status !== 'active') continue;
-    const venue = state.tech.find((t) => t.kind === 'facility' && t.facilityType === team.venueCategory);
-    if (venue?.status !== 'done') team.status = 'awaitingVenue';
+    // A venue open through an expansion still stands: saving mid-expansion
+    // used to demote every team of its sport on load.
+    const stands = state.tech.some((t) => t.kind === 'facility' && t.facilityType === team.venueCategory && standsOnCampus(t));
+    if (!stands) team.status = 'awaitingVenue';
   }
 }
 
