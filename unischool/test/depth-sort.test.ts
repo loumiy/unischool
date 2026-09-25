@@ -260,7 +260,7 @@ console.log('campus map painter\'s order');
   let total = 0;
   for (const t of PLATES) {
     const fp = footprintOf(t);
-    for (const prop of groundProps(t.facilityType, 0, 0, fp.w, fp.h, t.tier)) {
+    for (const prop of groundProps(t.facilityType, 0, 0, fp.w, fp.h, t.tier, false, t.id, 2)) {
       total += 1;
       if (prop.w > 0 && prop.h > 0) real += 1;
       // Half a tile of slack: a tree's crown legitimately overhangs the edge
@@ -280,7 +280,7 @@ console.log('campus map painter\'s order');
   // box spanning the whole sweep can never express.
   const diamond = PLATES.find((t) => t.facilityType === 'athleticsDiamond')!;
   const df = footprintOf(diamond);
-  const banks = groundProps('athleticsDiamond', 0, 0, df.w, df.h).filter((p) => p.key.startsWith('stand-'));
+  const banks = groundProps('athleticsDiamond', 0, 0, df.w, df.h, undefined, false, undefined, 2).filter((p) => p.key.startsWith('stand-'));
   assert(banks.length > 1, `the diamond's seating is banks, not a bowl (${banks.length} of them)`);
   const boxes = new Set(banks.map((b) => `${b.col.toFixed(3)},${b.row.toFixed(3)},${b.w.toFixed(3)},${b.h.toFixed(3)}`));
   assert(boxes.size === banks.length, 'each bank declares its own ground rather than a shared box');

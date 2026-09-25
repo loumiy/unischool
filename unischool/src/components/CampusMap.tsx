@@ -580,7 +580,9 @@ const CampusScene = memo(function CampusScene({ layout, quads, inspectedId, just
         // Each prop enters the sort on the ground it covers. A site has no
         // props yet.
         const d = drawnFootprint(p);
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing, t.id)) {
+        // A venue expanding in place keeps its props (Plan 54), and they
+        // grow with its expansions.
+        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0)) {
           entries.push({
             kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id, shadows: prop.shadows,
             col: prop.col, row: prop.row, w: prop.w, h: prop.h,
