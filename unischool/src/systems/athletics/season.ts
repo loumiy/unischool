@@ -47,9 +47,9 @@ export function rivalFor(s: GameState, sportId: string): Rival | undefined {
 }
 
 const TROPHY_NAMES: readonly string[] = [
-  'the Old Oak Trophy', 'the Iron Skillet', "the Founders' Cup", 'the River Bell', "the Governor's Cup",
-  'the Copper Kettle', 'the Little Brown Jug', 'the Paddle', 'the Lantern', 'the Bronze Boot',
-  'the Keg of Nails', 'the Wagon Wheel', 'the Victory Bell', 'the Axe', 'the Blue Line Trophy',
+  'the Old Oak Trophy', 'the Iron Gate', "the Founders' Cup", 'the River Bell', "the Governor's Cup",
+  'the Copper Kettle', 'the Stone Jar', 'the Paddle', 'the Lantern', 'the Bronze Boot',
+  'the Anvil', 'the Weathervane', 'the Chapel Bell', 'the Oar', 'the Blue Line Trophy',
 ];
 
 // Derived like the rival, so the trophy is the same every year.
