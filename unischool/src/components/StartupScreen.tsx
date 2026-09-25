@@ -391,7 +391,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         <button
           className="startup-begin-btn"
           disabled={bareSchoolName(name).length === 0}
-          onClick={() => onStart(name.trim(), vernacular, colors)}
+          onClick={() => onStart(bareSchoolName(name), vernacular, colors)}
         >
           Open the Doors
         </button>
