@@ -22,9 +22,15 @@ export function isPlaceableKind(t: Buildable): boolean {
 // nothing. A placement stores the footprint it was made with, so retuning
 // these only affects buildings placed afterward.
 
-// Defensive fallback for a facilityType with no entry; every current type
-// has one. Sized like a lab.
+// Defensive fallback for a landmark, amenity or project id with no entry in
+// LANDMARK_FOOTPRINTS, or a facilityType with none in FACILITY_FOOTPRINTS;
+// every current one has one. Sized like a lab.
 const DEFAULT_FACILITY_FOOTPRINT: Footprint = { w: 3, h: 3 };
+
+// A chapter house (eventData.ts: a facility with no facilityType): a house
+// of about 27 m a side, drawn as a one-storey pavilion (buildingSpec.ts).
+// The size it always had, now said rather than fallen through to.
+const CHAPTER_HOUSE_FOOTPRINT: Footprint = { w: 3, h: 3 };
 
 // Size ladders, for things whose instances differ in scale (a 350-seat dining
 // hall vs a 16,000-seat one), read off servesPopulation or capacityBonus.
@@ -147,6 +153,7 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
 export function footprintOf(t: Buildable): Footprint {
   if (t.facilityType === 'landmark' || t.facilityType === 'amenity' || t.facilityType === 'project') return LANDMARK_FOOTPRINTS[t.id] ?? DEFAULT_FACILITY_FOOTPRINT;
   if (t.kind === 'building') return SCHOOL_BUILDING_FOOTPRINT;
+  if (t.chapterHouse) return CHAPTER_HOUSE_FOOTPRINT;
   if (t.kind === 'dorm') return rungFootprint(DORM_FOOTPRINTS, t.effects?.capacityBonus ?? 0);
   if (t.kind === 'facility' && t.facilityType) {
     if (t.facilityType === 'quad') return rungFootprint(QUAD_FOOTPRINTS, t.tier ?? 1);

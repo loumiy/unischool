@@ -1,5 +1,8 @@
 import type { Buildable, FacilityType, Vernacular } from '../state/types';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
+import { initialTech } from '../data/techData';
+import { initialDorms } from '../data/campusData';
+import { initialFacilities } from '../data/facilitiesData';
 
 // What a placed Buildable is, dimensionally: its architectural motif, its
 // story count and therefore its height. Free of JSX on purpose — this module
@@ -123,6 +126,9 @@ export function signatureOf(t: Buildable): Signature | undefined {
 
 export function motifOf(t: Buildable): Motif {
   if (t.kind === 'building') return signatureOf(t)?.motif ?? 'hall';
+  // A chapter house (eventData.ts) is a facility with no facilityType: a
+  // small house, drawn as a one-storey pavilion under its letters.
+  if (t.chapterHouse) return 'pavilion';
   if (t.kind === 'dorm') {
     const beds = t.effects?.capacityBonus ?? 0;
     if (beds >= DORM_TOWER_MIN_BEDS) return 'tower';
@@ -175,9 +181,29 @@ function dormStoreys(beds: number): number {
   return 3;
 }
 
-function facilityStoreys(t: Buildable): number {
-  const serves = t.effects?.servesPopulation ?? 0;
-  switch (t.facilityType) {
+// The catalogue's own entry for a Buildable, as it was first built: what its
+// storeys are read from. A library renovation or a dining hall's extension
+// raises servesPopulation AND floorsAdded, so reading the live figure (as
+// this did) counted the new floor twice, once by crossing a size rung and
+// once as an added floor. Chapter houses are made at runtime and have none;
+// they keep their own. Built once, on first use (as demolition.ts's
+// templateOf).
+let asBuiltById: Map<string, Buildable> | null = null;
+function asBuilt(t: Buildable): Buildable {
+  asBuiltById ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((x) => [x.id, x]));
+  return asBuiltById.get(t.id) ?? t;
+}
+
+// A chapter house is a house: one storey, the letters on a parapet over it
+// (buildingMotifs.tsx's ChapterPediment).
+const CHAPTER_HOUSE_STOREYS = 1;
+
+function facilityStoreysOf(t: Buildable): number {
+  return facilityStoreys(t.facilityType, asBuilt(t).effects?.servesPopulation ?? 0);
+}
+
+function facilityStoreys(facilityType: FacilityType | undefined, serves: number): number {
+  switch (facilityType) {
     case 'library':
       return serves >= RESEARCH_LIBRARY_MIN_SERVES ? 4 : 3;
     case 'performingArtsCenter': return 3;
@@ -198,6 +224,22 @@ function facilityStoreys(t: Buildable): number {
   }
 }
 
+// The capital projects (Plan 33, facilityType 'project'), each as tall as,
+// and in the wall of, the building it is a grander version of. Unlisted
+// ones are open ground or a stadium and have no storeys.
+interface ProjectSpec { storeys: number; material: keyof MaterialSet }
+const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
+  'PROJ-ARTS': { storeys: facilityStoreys('performingArtsCenter', 0), material: 'limestone' },
+  'PROJ-RESEARCH-PARK': { storeys: facilityStoreys('lab', 0), material: 'render' },
+  'PROJ-MEDICAL': { storeys: facilityStoreys('healthCenter', HOSPITAL_MIN_SERVES), material: 'clinical' },
+  // Its 600 graduate beds, as a residence hall of that size.
+  'PROJ-GRADUATE': { storeys: dormStoreys(600), material: 'brickDark' },
+  'PROJ-INSTITUTE': { storeys: facilityStoreys('library', 0), material: 'limestone' },
+  'PROJ-MUSEUM': { storeys: facilityStoreys('artGallery', 0), material: 'limestone' },
+  // The biggest dining hall's rung.
+  'PROJ-COMMONS': { storeys: facilityStoreys('diningHall', 10_000), material: 'brickBuff' },
+};
+
 // How many floors this building has. Zero means open ground, or a clear-span
 // volume whose height comes from CLEAR_SPAN_METRES instead.
 export function storeysOf(t: Buildable): number {
@@ -208,7 +250,9 @@ export function storeysOf(t: Buildable): number {
     return ACADEMIC_HALL_STOREYS + addedFloors(t);
   }
   if (t.kind === 'dorm') return dormStoreys(t.effects?.capacityBonus ?? 0) + addedFloors(t);
-  if (t.kind === 'facility') return facilityStoreys(t) + addedFloors(t);
+  if (t.chapterHouse) return CHAPTER_HOUSE_STOREYS;
+  if (t.facilityType === 'project') return (PROJECT_SPECS[t.id]?.storeys ?? facilityStoreys('project', 0)) + addedFloors(t);
+  if (t.kind === 'facility') return facilityStoreysOf(t) + addedFloors(t);
   return 2;
 }
 
@@ -1077,7 +1121,13 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
   if (t.kind === 'dorm') {
     return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickDark;
   }
+  // A chapter house is housing, in the residence halls' wall.
+  if (t.chapterHouse) return MATERIALS.brickDark;
   switch (t.facilityType) {
+    case 'project': {
+      const spec = PROJECT_SPECS[t.id];
+      return spec ? MATERIALS[spec.material] : MATERIALS.render;
+    }
     case 'library':
     case 'performingArtsCenter':
     case 'artGallery':

@@ -135,6 +135,64 @@ console.log('campus scale and building spec');
       'and they raise the building by three stories — not by half of one, as the old 17-against-34 did');
     assert(windowRanksOf(renovated) === base + 3, 'each added floor brings its own rank of windows');
   }
+
+  // A renovation raises what the building serves along with its floors
+  // (RENOVATE_LIBRARY, an extension's finishExtension). Crossing a size rung
+  // must not count the floor a second time: storeys come from the building
+  // as built, plus the floors added.
+  const lib1 = byId('LIB-T1');
+  assert(!!lib1, 'the tier-1 library is in the catalogue');
+  if (lib1) {
+    const base = storeysOf(lib1);
+    const oneFloor = {
+      ...lib1, floorsAdded: 1,
+      effects: { ...lib1.effects, servesPopulation: (lib1.effects?.servesPopulation ?? 0) + 50_000 },
+    };
+    assert(storeysOf(oneFloor) === base + 1,
+      `one library floor is one more storey, however far it lifts what the library serves (got ${storeysOf(oneFloor)} from ${base})`);
+  }
+  const dining = CATALOGUE.filter((t) => t.facilityType === 'diningHall')
+    .sort((a, b) => (a.effects?.servesPopulation ?? 0) - (b.effects?.servesPopulation ?? 0))[0];
+  if (dining) {
+    const base = storeysOf(dining);
+    const extended = {
+      ...dining, floorsAdded: 2,
+      effects: { ...dining.effects, servesPopulation: (dining.effects?.servesPopulation ?? 0) * 40 },
+    };
+    assert(storeysOf(extended) === base + 2, 'two dining-hall storeys added are two more, not a rung more as well');
+  }
+}
+
+// --- 5b. What is made at runtime, and the capital projects ------------------
+{
+  // A chapter house (eventData.ts) has no facilityType and no catalogue
+  // entry; it is a one-storey house, not whatever a default gives.
+  const chapter: Buildable = {
+    id: 'CHAPTER-HOUSE-test', kind: 'facility', name: 'Test House', description: '',
+    cost: 0, duration: 0, prereqs: [], status: 'available', chapterHouse: true,
+  };
+  assert(motifOf(chapter) === 'pavilion', 'a chapter house is drawn as a pavilion');
+  assert(storeysOf(chapter) === 1, 'a chapter house stands one storey');
+  assert(footprintOf(chapter).w === 3 && footprintOf(chapter).h === 3, 'on its own 3x3 footprint');
+
+  // Each roofed capital project is as tall as what it is a grander version of.
+  const project = (id: string) => byId(id);
+  const medical = project('PROJ-MEDICAL');
+  const commons = project('PROJ-COMMONS');
+  const arts = project('PROJ-ARTS');
+  const hospitalStoreys = Math.max(...CATALOGUE.filter((t) => t.facilityType === 'healthCenter').map(storeysOf));
+  const diningStoreys = Math.max(...CATALOGUE.filter((t) => t.facilityType === 'diningHall').map(storeysOf));
+  const pac = CATALOGUE.find((t) => t.facilityType === 'performingArtsCenter');
+  assert(!!medical && !!commons && !!arts && !!pac, 'the projects and their models are in the catalogue');
+  if (medical && commons && arts && pac) {
+    assert(storeysOf(medical) === hospitalStoreys, 'the medical center stands as tall as the teaching hospital');
+    assert(storeysOf(commons) === diningStoreys, 'the great commons as tall as the largest dining hall');
+    assert(storeysOf(arts) === storeysOf(pac), 'the arts center as tall as the performing arts center');
+    const v = FOUNDING_VERNACULAR;
+    const hospital = CATALOGUE.find((t) => t.facilityType === 'healthCenter' && storeysOf(t) === hospitalStoreys);
+    assert(!!hospital && materialOf(medical, v) === materialOf(hospital, v), 'and in the hospital\'s wall');
+    assert(materialOf(arts, v) === materialOf(pac, v), 'the arts center in the civic set\'s stone');
+  }
 }
 
 // --- 6. The chains are legible as HEIGHT, not just as numbers -------------
