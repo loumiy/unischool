@@ -123,6 +123,31 @@ function crownOf(species: Species, scale: number, standing: number) {
   return { trunkH, crownR, trunkW };
 }
 
+// A tree's outline on screen at the current camera, as points about which
+// Walkers.tsx takes a hull (Plan 62: a walker behind a tree was drawn over
+// it). The same geometry TreeBody draws: the trunk's foot, the crown's
+// circles sampled round, or a conifer's tiers to its tip.
+export function treeOutline(col: number, row: number, species: Species, scale: number): Pt[] {
+  const foot = project(col, row);
+  const standing = treeStanding();
+  const hs = heightScale();
+  const { trunkH, crownR, trunkW } = crownOf(species, scale, standing);
+  const rise = CONIFER_FLOOR + (1 - CONIFER_FLOOR) * standing;
+  const top = -trunkH * hs;
+  const pts: Pt[] = [{ x: -trunkW, y: 0 }, { x: trunkW, y: 0 }];
+  const ring = (cx: number, cy: number, r: number) => {
+    for (let i = 0; i < 10; i++) pts.push({ x: cx + Math.cos((i / 10) * Math.PI * 2) * r, y: cy + Math.sin((i / 10) * Math.PI * 2) * r });
+  };
+  if (species === 'conifer') {
+    pts.push({ x: -crownR, y: top }, { x: crownR, y: top }, { x: 0, y: top - crownR * 0.75 * 2 * rise - crownR * 1.5 * rise });
+  } else if (species === 'ornamental') {
+    ring(0, top - crownR * 0.55 * standing, crownR);
+  } else {
+    for (const b of CANOPY_BLOBS) ring(b.dx * crownR, top - crownR * 0.62 * standing + b.dy * crownR, b.r * crownR);
+  }
+  return pts.map((q) => ({ x: foot.x + q.x, y: foot.y + q.y }));
+}
+
 // Everything of a tree but its lit cap, drawn about its foot at the origin.
 // It depends on the tilt and not the turn, so a turn redraws none of it.
 // `hs` is the camera's height factor unclamped, which `standing` is not.

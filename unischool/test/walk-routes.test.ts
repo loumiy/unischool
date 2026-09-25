@@ -6,6 +6,7 @@
 
 import { doors, desireLines, entrancesOf, growTree, routeTo, walkGrid, RouteTable, LAWN_COST, PATH_COST } from '../src/components/walkRoutes';
 import { MAX_WALKERS, doorOpacity, doorsHeld, walkerCount } from '../src/components/Walkers';
+import { quadCentre } from '../src/components/quadGeometry';
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
@@ -172,6 +173,23 @@ function stand(s: GameState, id: string, row: number, col: number, w: number, h:
   const after = desireLines(s, paved).reduce((t, run) => t + run.length, 0);
   const before = lines.reduce((t, run) => t + run.length, 0);
   assert(after < before, `a path laid along it takes the wear (${before} → ${after})`);
+}
+
+// ---- Round the Grand Quad's fountain, on its ring walk (Plan 62) ----
+{
+  const s = bare();
+  const quad = s.tech.find((t) => t.id === 'QUAD-T2')!;
+  stand(s, 'QUAD-T2', 20, 20, 12, 12);
+  const grid = walkGrid(s);
+  const { cc, cr, R, ring } = quadCentre(20, 20, 12, 12, quad.tier ?? 2);
+  assert(grid[Math.floor(cr) * 126 + Math.floor(cc)] === -1, 'no one steps into the fountain');
+  // Across the quad along its walk, from one edge's middle to the other's.
+  const route = routeTo(growTree(grid, { col: 25, row: 19 }), { col: 25, row: 32 })!;
+  assert(route !== null && route.length > 1, 'the walk still crosses the quad');
+  const nearest = Math.min(...route.map((w) => Math.hypot(w.col - cc, w.row - cr)));
+  assert(nearest >= R, `and goes round the fountain, never inside its curb (${nearest.toFixed(2)} ≥ ${R.toFixed(2)})`);
+  const onRing = route.filter((w) => { const d = Math.hypot(w.col - cc, w.row - cr); return ring && d >= ring[0] - 0.6 && d <= ring[1] + 0.6; }).length;
+  assert(onRing >= 3, `by the ring walk (${onRing} steps on it)`);
 }
 
 if (failures === 0) {

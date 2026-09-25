@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import type { CampusLayout } from './campusLayout';
 import { drawnHeightOf } from './buildingMotifs';
 import { motifOf } from './buildingSpec';
+import { groundProps } from './groundMarkings';
+import { treeOutline, treeShape } from './trees';
+import { parsePathTileKey } from '../state/campusMap';
 import { boxFaces, cameraAxes, groundSquash, heightScale, project, type Camera, type Pt } from './isoProjection';
 import { RouteTable, doors, pointStop, roadsides, walkGrid, type Entrance, type Stop, type Waypoint } from './walkRoutes';
 
@@ -51,6 +54,8 @@ const DOOR_FADE = 0.35;
 const DOOR_OPEN_NEAR = 0.9;
 // Screen pixels past the map's edge a walker is still drawn within.
 const OFFSCREEN_MARGIN = 24;
+// How long the paths must stand still before the walkers replan for them.
+const PATH_SETTLE_MS = 700;
 
 // The map's own randomness (mulberry32), never the sim's stream.
 function rng(seed: number): () => number {
@@ -109,13 +114,38 @@ function hullOf(pts: Pt[]): Pt[] {
   return [...half(ps), ...half([...ps].reverse())];
 }
 
+// Everything a walker can pass behind: the buildings, and the trees
+// (Plan 62), the woodland's and those planted on the grounds.
 function silhouettes(layout: CampusLayout): Silhouette[] {
   const out: Silhouette[] = [];
   for (const { t, p, developing } of layout.placed) {
-    if (motifOf(t) === 'grounds') continue;
+    if (motifOf(t) === 'grounds') {
+      for (const prop of groundProps(t.facilityType, p.col, p.row, p.w, p.h, t.tier, developing, t.id, t.expansions ?? 0)) {
+        if (prop.tree) out.push(treeSilhouette(prop.tree.col, prop.tree.row, treeOutline(prop.tree.col, prop.tree.row, prop.tree.species, prop.tree.scale)));
+      }
+      continue;
+    }
     out.push(silhouetteOf(p.col, p.row, p.w, p.h, drawnHeightOf(t, developing, layout.vernacular)));
   }
+  for (const [key, seed] of Object.entries(layout.trees)) {
+    if (key in layout.pathways) continue;
+    const tile = parsePathTileKey(key);
+    if (!tile) continue;
+    const { species, u, v, scale } = treeShape(seed);
+    out.push(treeSilhouette(tile.col + u, tile.row + v, treeOutline(tile.col + u, tile.row + v, species, scale)));
+  }
   return out;
+}
+
+// A tree stands at a point: no width on the grid, so which of it and a
+// walker is nearer is the points' own depth (nearerThanWalker).
+export function treeSilhouette(col: number, row: number, pts: Pt[]): Silhouette {
+  return {
+    col, row, w: 0, h: 0,
+    minX: Math.min(...pts.map((q) => q.x)), maxX: Math.max(...pts.map((q) => q.x)),
+    minY: Math.min(...pts.map((q) => q.y)), maxY: Math.max(...pts.map((q) => q.y)),
+    hull: hullOf(pts),
+  };
 }
 
 // A box's outline on screen at the current camera.
@@ -132,6 +162,8 @@ export function silhouetteOf(col: number, row: number, w: number, h: number, hei
 // Is the building nearer the camera than a walker at this point? The
 // relation depthSort.ts paints by, for a point rather than a box.
 export function nearerThanWalker(s: Silhouette, wc: number, wr: number, sinA: number, cosA: number): boolean {
+  // A point (a tree): nearer when further along the way toward the camera.
+  if (s.w === 0 && s.h === 0) return s.col * sinA + s.row * cosA > wc * sinA + wr * cosA;
   if (s.col >= wc) return sinA > 0;
   if (wc >= s.col + s.w) return sinA < 0;
   if (s.row >= wr) return cosA > 0;
@@ -168,10 +200,16 @@ function insideHull(h: Pt[], x: number, y: number): boolean {
 // figure. Plan 42: this was the first nearer building whose box came within
 // twenty units, which could name one that covered nothing and leave the one
 // that did unapplied, so the walker was drawn over it.
-export function coveringBuildings(shapes: readonly Silhouette[], p: Pt, pos: { col: number; row: number }, sinA: number, cosA: number, figureH = FIGURE_H): number[] {
+export function coveringBuildings(
+  shapes: readonly Silhouette[], p: Pt, pos: { col: number; row: number }, sinA: number, cosA: number, figureH = FIGURE_H,
+  // The shapes worth testing (a ShapeIndex's), else all of them.
+  candidates?: readonly number[],
+): number[] {
   const out: number[] = [];
   const top = p.y - figureH;
-  for (let i = 0; i < shapes.length && out.length < MAX_CLIPS; i++) {
+  const n = candidates ? candidates.length : shapes.length;
+  for (let j = 0; j < n && out.length < MAX_CLIPS; j++) {
+    const i = candidates ? candidates[j] : j;
     const s = shapes[i];
     if (p.x + FIGURE_HALF_W < s.minX || p.x - FIGURE_HALF_W > s.maxX) continue;
     if (p.y < s.minY || top > s.maxY) continue;
@@ -187,6 +225,35 @@ export function coveringBuildings(shapes: readonly Silhouette[], p: Pt, pos: { c
     if (covers) out.push(i);
   }
   return out;
+}
+
+// The shapes by where they fall on screen, in cells a figure wide: a campus
+// has hundreds of trees, and a walker need only test the few whose outline
+// could reach it.
+const INDEX_CELL = 48;
+export class ShapeIndex {
+  private cells = new Map<number, number[]>();
+  constructor(shapes: readonly Silhouette[]) {
+    shapes.forEach((s, i) => {
+      for (let cx = Math.floor(s.minX / INDEX_CELL); cx <= Math.floor(s.maxX / INDEX_CELL); cx++) {
+        for (let cy = Math.floor(s.minY / INDEX_CELL); cy <= Math.floor(s.maxY / INDEX_CELL); cy++) {
+          const k = cx * 100_003 + cy;
+          const list = this.cells.get(k);
+          if (list) list.push(i); else this.cells.set(k, [i]);
+        }
+      }
+    });
+  }
+  // Every shape in a cell the figure at `p` touches, each once, in order.
+  near(p: Pt, figureH: number): number[] {
+    const seen = new Set<number>();
+    for (let cx = Math.floor((p.x - FIGURE_HALF_W) / INDEX_CELL); cx <= Math.floor((p.x + FIGURE_HALF_W) / INDEX_CELL); cx++) {
+      for (let cy = Math.floor((p.y - figureH) / INDEX_CELL); cy <= Math.floor(p.y / INDEX_CELL); cy++) {
+        for (const i of this.cells.get(cx * 100_003 + cy) ?? []) seen.add(i);
+      }
+    }
+    return [...seen].sort((a, b) => a - b);
+  }
 }
 
 // One clipPath per building: the whole field with its outline punched out.
@@ -318,6 +385,16 @@ export default function Walkers({ layout, students, gait, camera }: {
 }) {
   const layerRef = useRef<SVGGElement>(null);
   const walkersRef = useRef<Walker[]>([]);
+  // The layout the routes are planned on. A building or a tree moves them
+  // at once; a path waits until the drawing stops (Plan 62: every tile of a
+  // stroke replanned the whole crowd, and it stood still while it waited).
+  const [routeLayout, setRouteLayout] = useState(layout);
+  useEffect(() => {
+    if (layout === routeLayout) return undefined;
+    if (layout.massKey !== routeLayout.massKey) { setRouteLayout(layout); return undefined; }
+    const timer = setTimeout(() => setRouteLayout(layout), PATH_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [layout, routeLayout]);
   const randomRef = useRef(rng(0x5eed));
   // In tens past the first few dozen: a week that loses a student must not
   // rebuild the crowd and its routes.
@@ -332,6 +409,7 @@ export default function Walkers({ layout, students, gait, camera }: {
   // A turn changes these every frame; it must not send every walker back to
   // re-plan its way.
   const shapesRef = useRef<ReturnType<typeof silhouettes>>([]);
+  const indexRef = useRef(new ShapeIndex([]));
   const axRef = useRef(cameraAxes());
   const figureRef = useRef(figureScale());
   // Set when the camera moves: the doors the scene drew are new ones.
@@ -341,11 +419,11 @@ export default function Walkers({ layout, students, gait, camera }: {
     const layer = layerRef.current;
     if (!layer) return;
     const random = randomRef.current;
-    const input = { placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways };
+    const input = { placements: routeLayout.placements, tech: routeLayout.placed.map((e) => e.t), pathways: routeLayout.pathways };
     const grid = walkGrid(input);
     // A sports ground or a village green has no wall to go in by: a walker
     // stops at its edge, in the open.
-    const open = new Set(layout.placed.filter((e) => motifOf(e.t) === 'grounds' || motifOf(e.t) === 'village').map((e) => e.t.id));
+    const open = new Set(routeLayout.placed.filter((e) => motifOf(e.t) === 'grounds' || motifOf(e.t) === 'village').map((e) => e.t.id));
     const stops = doors(input, grid).map((st) => (st.id && open.has(st.id)
       ? { ...st, entrances: st.entrances.map((e) => ({ ...e, face: { col: e.col + 0.5, row: e.row + 0.5 }, side: null })) }
       : st));
@@ -542,7 +620,7 @@ export default function Walkers({ layout, students, gait, camera }: {
         w.mover.setAttribute('transform', `translate(${p.x.toFixed(1)},${(p.y - bob).toFixed(1)})`);
         // Every building between this walker and the camera cuts it.
         const ax = axRef.current;
-        const cover = coveringBuildings(shapesRef.current, p, pos, ax.sinA, ax.cosA, FIGURE_H * s);
+        const cover = coveringBuildings(shapesRef.current, p, pos, ax.sinA, ax.cosA, FIGURE_H * s, indexRef.current.near(p, FIGURE_H * s));
         for (let k = 0; k < MAX_CLIPS; k++) {
           const id = k < cover.length ? `url(#${clipName(cover[k])})` : null;
           if (w.clipIds[k] === id) continue;
@@ -564,7 +642,7 @@ export default function Walkers({ layout, students, gait, camera }: {
       setDoors(new Set(), true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layout, want]);
+  }, [routeLayout, want]);
 
   // The camera's part: each walker's figure answers the tilt, and the
   // outlines that clip them are rebuilt for the view, through a turn too
@@ -578,6 +656,7 @@ export default function Walkers({ layout, students, gait, camera }: {
     axRef.current = cameraAxes();
     figureRef.current = figureScale();
     shapesRef.current = silhouettes(layout);
+    indexRef.current = new ShapeIndex(shapesRef.current);
     writeClips(layer, shapesRef.current);
   }, [layout, camera, want]);
 

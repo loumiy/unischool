@@ -105,7 +105,12 @@ placements.
 
 Walkers (`Walkers.tsx`) walk routes between doors (`walkRoutes.ts`),
 preferring paths. They are drawn imperatively on the frame clock, clipped
-by the buildings in front of them, and more numerous as the college grows.
+by the buildings and trees in front of them (found through a screen-cell
+index, `ShapeIndex`), and more numerous as the college grows. A quad's
+walks are paths to them and its centerpiece is not walkable
+(`quadGeometry.ts`): on the Grand Quad they go round the fountain on its
+ring walk. A path drawn tile by tile replans their routes once it has
+stood still for a moment, not at every tile.
 Desire lines wear the lawn where the busiest routes cross it. The player's
 lamps and benches (`GameState.dressing`), bike racks by the doors of a big
 college, and the flag at Founders Hall are props in the depth-sorted scene.

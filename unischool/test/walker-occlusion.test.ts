@@ -4,7 +4,8 @@
 // be the first nearer building whose box came within twenty units, which
 // could cover nothing and leave the building that did cover it unapplied.
 
-import { MAX_CLIPS, coveringBuildings, silhouetteOf } from '../src/components/Walkers';
+import { MAX_CLIPS, ShapeIndex, coveringBuildings, silhouetteOf, treeSilhouette } from '../src/components/Walkers';
+import { treeOutline } from '../src/components/trees';
 import { DEFAULT_CAMERA, cameraAxes, project, setCamera, VIEWS } from '../src/components/isoProjection';
 
 let checks = 0;
@@ -98,6 +99,25 @@ const at = (col: number, row: number) => ({ pos: { col, row }, p: project(col, r
     assert(most >= 2 && most <= MAX_CLIPS, `behind a block of tall buildings a walker can be cut by two at once (view ${azimuth.toFixed(2)}: ${most})`);
   }
   setCamera(DEFAULT_CAMERA);
+}
+
+// ---- Trees cut walkers too (Plan 62) ----
+{
+  setCamera(DEFAULT_CAMERA);
+  const { sinA, cosA } = ax();
+  // A canopy tree at (40.5, 40.5); a walker a tile behind it (further from
+  // the camera) passes under its crown, and one a tile in front is clear.
+  const tree = treeSilhouette(40.5, 40.5, treeOutline(40.5, 40.5, 'canopy', 1.0));
+  const behind = at(39.6, 39.6);
+  const front = at(41.4, 41.4);
+  assert(coveringBuildings([tree], behind.p, behind.pos, sinA, cosA).length === 1, 'a walker behind a tree is cut by it');
+  assert(coveringBuildings([tree], front.p, front.pos, sinA, cosA).length === 0, 'one in front of it is not');
+  // The screen index finds the same shapes as the full scan.
+  const shapes = [silhouetteOf(20, 20, 6, 6, 60), tree, silhouetteOf(60, 10, 4, 4, 30)];
+  const index = new ShapeIndex(shapes);
+  const full = coveringBuildings(shapes, behind.p, behind.pos, sinA, cosA);
+  const fast = coveringBuildings(shapes, behind.p, behind.pos, sinA, cosA, undefined, index.near(behind.p, 16));
+  assert(full.join() === fast.join(), `the screen index agrees with the full scan (${full} / ${fast})`);
 }
 
 if (failures === 0) {

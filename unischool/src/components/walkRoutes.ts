@@ -3,6 +3,7 @@ import type { FaceDir } from './isoProjection';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import { ROAD_FIRST_ROW, parsePathTileKey } from '../state/campusMap';
 import { isAcademicHall } from '../data/techData';
+import { quadTile } from './quadGeometry';
 
 // Routes for the walkers and the desire lines (ported from v2's routes.ts):
 // the cheapest way over the grid between two buildings, paths first, lawn
@@ -24,7 +25,8 @@ const W = CAMPUS_GRID_WIDTH;
 const H = CAMPUS_GRID_HEIGHT;
 const N = W * H;
 
-// What a step onto a tile costs. A Campus Quad is lawn with its own walks.
+// What a step onto a tile costs. A Campus Quad is lawn with its own walks
+// (quadGeometry.ts), at a path's cost, round a centerpiece no one crosses.
 export const PATH_COST = 1;
 const ROAD_COST = 1.5;
 const QUAD_COST = 2;
@@ -50,7 +52,7 @@ const idx = (col: number, row: number) => row * W + col;
 
 export interface WalkInput {
   placements: Placements;
-  tech: ReadonlyArray<Pick<Buildable, 'id' | 'kind' | 'facilityType' | 'status' | 'slots'>>;
+  tech: ReadonlyArray<Pick<Buildable, 'id' | 'kind' | 'facilityType' | 'status' | 'slots' | 'tier'>>;
   pathways: Pathways;
 }
 
@@ -60,8 +62,19 @@ export function walkGrid(input: WalkInput): Float32Array {
   for (let r = ROAD_FIRST_ROW; r < H; r++) for (let c = 0; c < W; c++) g[idx(c, r)] = ROAD_COST;
   const byId = new Map(input.tech.map((t) => [t.id, t]));
   for (const [id, p] of Object.entries(input.placements)) {
-    const cost = byId.get(id)?.facilityType === 'quad' ? QUAD_COST : -1;
-    for (let r = p.row; r < p.row + p.h; r++) for (let c = p.col; c < p.col + p.w; c++) g[idx(c, r)] = cost;
+    const t = byId.get(id);
+    if (t?.facilityType === 'quad') {
+      // Lawn, its walks, and the centerpiece no one walks through (Plan 62:
+      // the crowd crossed the Grand Quad through its fountain).
+      for (let r = p.row; r < p.row + p.h; r++) {
+        for (let c = p.col; c < p.col + p.w; c++) {
+          const kind = quadTile(p.col, p.row, p.w, p.h, t.tier ?? 1, c, r);
+          g[idx(c, r)] = kind === 'blocked' ? -1 : kind === 'walk' ? PATH_COST : QUAD_COST;
+        }
+      }
+      continue;
+    }
+    for (let r = p.row; r < p.row + p.h; r++) for (let c = p.col; c < p.col + p.w; c++) g[idx(c, r)] = -1;
   }
   for (const key of Object.keys(input.pathways)) {
     const t = parsePathTileKey(key);
