@@ -499,13 +499,19 @@ function doorBay(d: DoorDimensions, span: number, wallHeight: number): FaceRect 
 const SURROUND = 0.018;   // how far the frame stands proud of the opening, in u
 const LINTEL = 0.05;      // the lintel's depth above the head, in v
 
-// The entrance, drawn in the wall's (u, v). Both visible walls get one,
-// since either may face a path. Surround, two leaves with a mull, and a
-// fanlight; smaller details are sub-pixel. Steps are EntranceSteps.
-function Door({ d, origin, along, wallHeight, span, shape = 'rect' }: {
+// The entrance, drawn in the wall's (u, v). Every wall has one in
+// principle (walkRoutes.ts), and both visible walls draw theirs. Surround,
+// two leaves with a mull, and a fanlight; smaller details are sub-pixel.
+// Steps are EntranceSteps.
+//
+// Each door is tagged with its grid wall (`side`), and the walkers open it
+// by class while someone is on its step (Walkers.tsx): the leaves swing in
+// to their hinges and the hall behind shows.
+function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
   d: DoorDimensions;
   origin: Pt; along: Pt; wallHeight: number;
   span: number;   // this wall's length in tiles, so the door is the same real size on both
+  side: FaceDir;  // the grid wall it is on
   // Round-headed where the vernacular's windows are.
   shape?: 'rect' | 'arched';
 }) {
@@ -526,6 +532,14 @@ function Door({ d, origin, along, wallHeight, span, shape = 'rect' }: {
   const mull = dw * 0.035;          // the center post between the two leaves
   const reveal = dw * 0.08;         // how far the leaves sit inside the opening
   const bar = h * 0.045;            // the transom bar itself
+  // Open, each leaf is seen edge-on against its hinge: a sliver.
+  const swung = (0.5 - mull - (u0 + reveal)) * 0.22;
+  const openLeaves = (
+    <>
+      <polygon className="iso-door-leaf-open" points={quad(u0 + reveal, u0 + reveal + swung, v0 + h * 0.02, transom - bar)} />
+      <polygon className="iso-door-leaf-open" points={quad(u1 - reveal - swung, u1 - reveal, v0 + h * 0.02, transom - bar)} />
+    </>
+  );
 
   if (shape === 'arched') {
     const arch = (a: number, b: number, c: number, e: number) =>
@@ -536,19 +550,20 @@ function Door({ d, origin, along, wallHeight, span, shape = 'rect' }: {
         .map(([u, v]) => at(u, Math.max(v, transom + bar * 0.5))),
     );
     return (
-      <>
+      <g className="iso-door-way" data-door={side}>
         <polygon className="iso-door-surround" points={arch(u0 - SURROUND, u1 + SURROUND, v0, v1 + 0.012)} />
         <polygon className="iso-door" points={arch(u0, u1, v0, v1)} />
         <polygon className="iso-door-leaf" points={quad(u0 + reveal, 0.5 - mull, v0 + h * 0.02, transom - bar)} />
         <polygon className="iso-door-leaf" points={quad(0.5 + mull, u1 - reveal, v0 + h * 0.02, transom - bar)} />
+        {openLeaves}
         <polygon className="iso-door-bar" points={quad(u0, u1, transom - bar, transom)} />
         <polygon className="iso-door-glass" points={fan} />
-      </>
+      </g>
     );
   }
 
   return (
-    <>
+    <g className="iso-door-way" data-door={side}>
       {/* The surround, then the opening cut into it. */}
       <polygon className="iso-door-surround" points={quad(u0 - SURROUND, u1 + SURROUND, v0, v1 + 0.012)} />
       <polygon className="iso-door" points={quad(u0, u1, v0, v1)} />
@@ -556,6 +571,7 @@ function Door({ d, origin, along, wallHeight, span, shape = 'rect' }: {
       {/* Two leaves either side of the mull. */}
       <polygon className="iso-door-leaf" points={quad(u0 + reveal, 0.5 - mull, v0 + h * 0.02, transom - bar)} />
       <polygon className="iso-door-leaf" points={quad(0.5 + mull, u1 - reveal, v0 + h * 0.02, transom - bar)} />
+      {openLeaves}
 
       {/* The transom bar, and the fanlight over it. */}
       <polygon className="iso-door-bar" points={quad(u0, u1, transom - bar, transom)} />
@@ -569,7 +585,7 @@ function Door({ d, origin, along, wallHeight, span, shape = 'rect' }: {
         className="iso-door-lintel"
         points={quad(u0 - SURROUND - 0.012, u1 + SURROUND + 0.012, v1 + 0.012, v1 + LINTEL)}
       />
-    </>
+    </g>
   );
 }
 
@@ -755,7 +771,7 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
       <WallBand origin={front.o} along={front.a} wallHeight={top} from={0} to={PLINTH} className="iso-plinth" />
       <WallBand origin={front.o} along={front.a} wallHeight={top} from={wallHeight - CORNICE} to={wallHeight} className="iso-cornice" />
       {windows(front.o, front.a, top, width, sills, paneW, 'pv', paneShape, glass, door ? doorBay(door, width, top) : undefined)}
-      {door && <Door d={door} origin={front.o} along={front.a} wallHeight={top} span={width} />}
+      {door && <Door d={door} origin={front.o} along={front.a} wallHeight={top} span={width} side={outward} />}
       <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
       {/* The pediment, on the door's face. */}
       <polygon className="iso-pediment" points={polyPoints([frontTopL, frontTopR, apex])} />
@@ -2243,8 +2259,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {sideFaces(pod, shade(tint, 0.88), shade(tint, 0.70))}
         {windows(pod.D, pod.C, PODIUM_H, pod.spanLeft, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', paneShape, stone.glass, doorBay(podiumDoor, pod.spanLeft, PODIUM_H))}
         {windows(pod.C, pod.B, PODIUM_H, pod.spanRight, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', paneShape, stone.glass, doorBay(podiumDoor, pod.spanRight, PODIUM_H))}
-        <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} />
-        <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} />
+        <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} side={pod.dir.CD} />
+        <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} side={pod.dir.BC} />
         <polygon points={polyPoints(pod.top)} fill={pal.roofDeck} />
 
         {/* The shaft, ranked floor by floor. */}
@@ -2520,7 +2536,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         )}
 
         {/* The way in, under the glazed front. */}
-        {door && <Door d={door} origin={wingWall.origin} along={wingWall.along} wallHeight={wingH} span={wingSpan} />}
+        {door && <Door d={door} origin={wingWall.origin} along={wingWall.along} wallHeight={wingH} span={wingSpan} side={wingFront} />}
         {door && (
           <Canopy stone={stone}
             d={door} col={wing.col} row={wing.row} w={wing.w} h={wing.h}
@@ -2700,8 +2716,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         )}
         {entrance === 'canopy' && door && (
           <>
-            <Door d={door} origin={hf.D} along={hf.C} wallHeight={WH} span={hf.spanLeft} shape={doorShape} />
-            <Door d={door} origin={hf.C} along={hf.B} wallHeight={WH} span={hf.spanRight} shape={doorShape} />
+            <Door d={door} origin={hf.D} along={hf.C} wallHeight={WH} span={hf.spanLeft} side={hf.dir.CD} shape={doorShape} />
+            <Door d={door} origin={hf.C} along={hf.B} wallHeight={WH} span={hf.spanRight} side={hf.dir.BC} shape={doorShape} />
             {fronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={material.roof} />)}
           </>
         )}
@@ -2773,8 +2789,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     );
     const doors = door && (
       <>
-        <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} />
-        <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} />
+        <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} side={f.dir.CD} />
+        <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} side={f.dir.BC} />
         {fronts.map((dir) => {
           const span = wallSpan(w, h, dir);
           const at = outsideWall(col, row, w, h, dir, span / 2, 0);
@@ -3019,8 +3035,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <CurtainWall origin={f.C} along={f.B} wallHeight={H} spanTiles={f.spanRight} from={BASE_COURSE} to={Math.min(STOREY * 0.85, H - EAVES_COURSE * 2)} floors={[]} id="sfr" u0={0.04} u1={0.96} />
         </>
       )}
-      {!site && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} shape={doorShape} />}
-      {!site && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} shape={doorShape} />}
+      {!site && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} side={f.dir.CD} shape={doorShape} />}
+      {!site && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} side={f.dir.BC} shape={doorShape} />}
       {/* A smaller cross over the clinic and counselling centre doors. */}
       {!site && t.facilityType === 'healthCenter' && door && (
         <>
