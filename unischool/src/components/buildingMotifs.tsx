@@ -1301,12 +1301,27 @@ function Dome({ col, row, w, h, base, stone }: {
 // stone, standing slightly proud of both walls and rising past the eaves,
 // with lancets and either a crenellated head (halls) or a slate pyramid.
 // Always at the near corner, so neither drawn face lies inside the mass.
-function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels, capRise }: {
+function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels, capRise, face }: {
   col: number; row: number; plan: number; height: number;
   pal: Palette; glass: string; sills: number[]; paneW: number;
   crenels: boolean; capRise: number;
+  // Only this one wall, windows and cornice: the face standing proud of the
+  // mass, repainted after it when the tower's corner is a side corner (see
+  // towerProudFace).
+  face?: FaceDir;
 }) {
   const f = boxFaces(col, row, plan, plan, 0, height);
+  if (face) {
+    const wall = wallOf(f, face);
+    const span = wallSpan(plan, plan, face);
+    return (
+      <>
+        <polygon points={polyPoints(wall.poly)} fill={pal.wall[face]} />
+        {windows(wall.origin, wall.along, height, span, sills, paneW * 0.6, 'tp', 'lancet', glass)}
+        <WallBand origin={wall.origin} along={wall.along} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
+      </>
+    );
+  }
   // Crenellated towers are flat-topped; plain ones get a slate pyramid.
   const cap = crenels ? null : pyramid(col, row, plan, height, capRise, pal.roof);
   return (
@@ -1847,16 +1862,20 @@ function VillageHouse({ col, row, w, h, height, ridge, pal, stone, glass, paneSh
       facePoint(o, a, height, 0.56, Math.min(0.9, up(2.1) / height)), facePoint(o, a, height, 0.44, Math.min(0.9, up(2.1) / height)),
     ])} />
   );
+  // The door is on a grid wall, +row or +col (the lots face the green that
+  // way), not on whichever wall is on the left: turned away, it is not drawn,
+  // and that wall keeps its middle window.
+  const doorDir: FaceDir | null = door === 'row' ? 'posRow' : door === 'col' ? 'posCol' : null;
+  const doorWall = doorDir ? wallOf(f, doorDir) : null;
   const plan = across(1.0);
   const stackAt = alongW ? { cc: col + w * 0.3, cr: row + h / 2 } : { cc: col + w / 2, cr: row + h * 0.3 };
   return (
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      {pane(f.D, f.C, f.spanLeft, 'l', door === 'row')}
-      {pane(f.C, f.B, f.spanRight, 'r', door === 'col')}
-      {door === 'row' && doorOn(f.D, f.C)}
-      {door === 'col' && doorOn(f.C, f.B)}
+      {pane(f.D, f.C, f.spanLeft, 'l', f.dir.CD === doorDir)}
+      {pane(f.C, f.B, f.spanRight, 'r', f.dir.BC === doorDir)}
+      {doorWall?.visible && doorOn(doorWall.origin, doorWall.along)}
       {ridge > 0 ? (
         <>
           {gableSlopes(f, alongW, rs, re, pal)}
@@ -2059,9 +2078,17 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   // The visible walls, left then right, where entrances and attachments go.
   const seen = visibleWalls();
   const fronts: FaceDir[] = [seen.left, seen.right];
-  // Whether the corner tower's (+col, +row) corner is nearer the camera than
-  // the mass's middle: if so it paints after the mass, else before.
-  const cornerInFront = project(col + w, row + h).y > project(col + w / 2, row + h / 2).y;
+  // Whether the corner tower's (+col, +row) corner is the front corner (the
+  // one both visible walls meet at): then it paints after the mass, else
+  // before. Comparing its screen height with the middle's put it in front
+  // at a side corner too, so it painted over the mass in two views of four.
+  const cornerInFront = seen.left === 'posRow' && seen.right === 'posCol';
+  // At a side corner one of the tower's visible walls stands proud of the
+  // mass's own wall (TOWER_PROUD) and so in front of the mass: that face is
+  // painted again after it. At the back corner neither is.
+  const towerProudFace: FaceDir | undefined = cornerInFront ? undefined
+    : seen.left === 'posRow' || seen.right === 'posRow' ? 'posRow'
+      : seen.left === 'posCol' || seen.right === 'posCol' ? 'posCol' : undefined;
   // Base tones for the solid helpers below.
   const tint = pal.wallLeft;
   const roofTint = material.roof;
@@ -2398,6 +2425,11 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     const wingFront = seen.left === 'negRow' ? seen.right : seen.left;
     const wingWall = wallOf(wf, wingFront);
     const wingSpan = wallSpan(wing.w, wing.h, wingFront);
+    // The cross goes on the wing's other visible wall: not the glazed
+    // entrance front, and not -row, which stands against the slab. With the
+    // camera on the -row side there is no such wall, and no cross.
+    const crossDir = [seen.left, seen.right].find((d) => d !== wingFront && d !== 'negRow');
+    const crossWall = crossDir ? wallOf(wf, crossDir) : null;
     const slabNode = (
       <>
         {/* The ward slab, across the back. */}
@@ -2451,10 +2483,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {eaves(wf.D, wf.C, wingH)}
         {eaves(wf.C, wf.B, wingH)}
         <polygon points={polyPoints(wf.top)} fill={pal.roofDeck} />
-        <RedCross
-          origin={wf.C} along={wf.B} wallHeight={wingH} spanTiles={wf.spanRight}
-          centreU={0.5} centreV={(wingH - STOREY * 1.1) / wingH}
-        />
+        {crossDir && crossWall && (
+          <RedCross
+            origin={crossWall.origin} along={crossWall.along} wallHeight={wingH} spanTiles={wallSpan(wing.w, wing.h, crossDir)}
+            centreU={0.5} centreV={(wingH - STOREY * 1.1) / wingH}
+          />
+        )}
 
         {/* The way in, under the glazed front. */}
         {door && <Door d={door} origin={wingWall.origin} along={wingWall.along} wallHeight={wingH} span={wingSpan} />}
@@ -2517,12 +2551,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         <WallBand key={`${key}r`} origin={hf.C} along={hf.B} wallHeight={WH} from={from} to={to} className={className} />
       </>
     );
-    const turretNode = (
-      <CornerTower pal={pal} glass={stone.glass} paneW={paneW}
-        col={col + w - towerPlan + TOWER_PROUD} row={row + h - towerPlan + TOWER_PROUD} plan={towerPlan}
-        height={WH + STOREY * 1.9} sills={rankSills(ranks + 2)} crenels={crenellations} capRise={up(5.0)}
-      />
-    );
+    const turretProps = {
+      pal, glass: stone.glass, paneW,
+      col: col + w - towerPlan + TOWER_PROUD, row: row + h - towerPlan + TOWER_PROUD, plan: towerPlan,
+      height: WH + STOREY * 1.9, sills: rankSills(ranks + 2), crenels: crenellations, capRise: up(5.0),
+    };
+    const turretNode = <CornerTower {...turretProps} />;
     return (
       <>
         {turrets && !cornerInFront && turretNode}
@@ -2585,6 +2619,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
 
         {/* The corner tower, after the roof and before the porch. */}
         {turrets && cornerInFront && turretNode}
+        {turrets && towerProudFace && <CornerTower {...turretProps} face={towerProudFace} />}
         {/* The bell-gable, on every hall but the campanile's. */}
         {bellGable && !hasClockTower(t) && (
           <BellGable pal={pal} stone={stone}
@@ -2745,8 +2780,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     })();
 
     if (kind === 'arena') {
-      // A faceted barrel vault down the long axis, closed at the near end,
-      // over a glazed ground-floor concourse.
+      // A faceted barrel vault down the long axis, closed at whichever end
+      // faces the camera, over a glazed ground-floor concourse.
       const VAULT = up(6.5);
       const N = 7;
       const along0 = 0.015; const along1 = 0.985;
@@ -2754,7 +2789,14 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         alongW ? project(col + w * a, row + h * c) : project(col + w * c, row + h * a), z,
       );
       const zAt = (c: number) => H + VAULT * Math.sin(Math.PI * c);
-      const facets = Array.from({ length: N }, (_, i) => {
+      // The vault's two long sides fall toward -row and +row (or -col and
+      // +col): facets on the far side go down first, since near the
+      // springing they are steeper than the view and would paint over
+      // the near side's.
+      const lowSide: FaceDir = alongW ? 'negRow' : 'negCol';
+      const facetOrder = Array.from({ length: N }, (_, i) => i);
+      if (wallOf(f, lowSide).visible) facetOrder.reverse();
+      const facets = facetOrder.map((i) => {
         const c0 = i / N; const c1 = (i + 1) / N; const cm = (c0 + c1) / 2;
         return (
           <polygon
@@ -2764,10 +2806,15 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           />
         );
       });
+      // The end wall's lunette, at the end the camera sees (+col or +row at
+      // the opening camera, the other end half the time).
+      const highEnd: FaceDir = alongW ? 'posCol' : 'posRow';
+      const endDir = wallOf(f, highEnd).visible ? highEnd : opposite(highEnd);
+      const endAt = endDir === highEnd ? along1 : along0;
       const endFace = (
         <polygon
-          points={polyPoints(Array.from({ length: N + 1 }, (_, i) => pt(along1, i / N, zAt(i / N))))}
-          fill={alongW ? pal.wallRight : pal.wallLeft}
+          points={polyPoints(Array.from({ length: N + 1 }, (_, i) => pt(endAt, i / N, zAt(i / N))))}
+          fill={pal.wall[endDir]}
         />
       );
       return (
@@ -2901,12 +2948,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const rc = col - eaves; const rr = row - eaves; const rw = w + eaves * 2; const rh = h + eaves * 2;
   const rf = boxFaces(rc, rr, rw, rh, 0, H);
   // Painted after the roof when its corner faces the camera, else before the walls.
-  const residentialTurret = turretPlan > 0 && (
-    <CornerTower pal={pal} glass={stone.glass} paneW={paneW}
-      col={col + w - turretPlan + TOWER_PROUD} row={row + h - turretPlan + TOWER_PROUD} plan={turretPlan}
-      height={H + STOREY * 0.8} sills={rankSills(ranks + 1)} crenels={false} capRise={up(4.2)}
-    />
-  );
+  const residentialTurretProps = {
+    pal, glass: stone.glass, paneW,
+    col: col + w - turretPlan + TOWER_PROUD, row: row + h - turretPlan + TOWER_PROUD, plan: turretPlan,
+    height: H + STOREY * 0.8, sills: rankSills(ranks + 1), crenels: false, capRise: up(4.2),
+  };
+  const residentialTurret = turretPlan > 0 && <CornerTower {...residentialTurretProps} />;
   const rs = lift(alongW ? project(rc, rr + rh / 2) : project(rc + rw / 2, rr), H + ridge);
   const re = lift(alongW ? project(rc + rw, rr + rh / 2) : project(rc + rw / 2, rr + rh), H + ridge);
 
@@ -3117,6 +3164,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       )}
       {/* The residence turret, after the roof. */}
       {!site && turretPlan > 0 && cornerInFront && residentialTurret}
+      {!site && turretPlan > 0 && towerProudFace && <CornerTower {...residentialTurretProps} face={towerProudFace} />}
       {/* Merlons on the flat-roofed civic set. */}
       {!site && crenellations && !gabled && motif === 'portico' && (
         <>
