@@ -18,7 +18,7 @@ export default function StudentsTab({ s }: { s: GameState }) {
       {classes.length >= 2 && (
         <div className="tab-content">
           <section className="panel">
-            <h2>The Classes Over the Years</h2>
+            <h2>The classes over the years</h2>
             <div className="history-charts">
               <MultiChart
                 title="Each class as it graduated"

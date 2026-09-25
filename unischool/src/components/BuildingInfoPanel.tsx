@@ -1,4 +1,5 @@
 import { constructionFrozen } from '../systems/finance/distress';
+import ConfirmButton from './ConfirmButton';
 import { canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, renovationCost } from '../systems/estate/estate';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
@@ -235,16 +236,15 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
         <p key={d.hallId} className="relocate-row">
           <span className="relocate-hall">{hallDisplayName(s, d.hall!)}</span>
           {d.free.map((slot) => (
-            <button
+            <ConfirmButton
               key={slot}
-              type="button"
               className="relocate-slot"
               disabled={!act}
               title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, slot ${slot + 1}`}
-              onClick={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
-            >
-              {slot + 1}
-            </button>
+              label={slot + 1}
+              armedLabel={`Move to slot ${slot + 1}`}
+              onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
+            />
           ))}
         </p>
       ))}
@@ -456,9 +456,13 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
   const historic = t.historic
     ? <p className="building-info-line">Historic: a landmark of the college's own past.</p>
     : canDeclareHistoric(s, t) ? (
-      <button type="button" className="building-info-jump" onClick={() => act({ type: 'DECLARE_HISTORIC', id: t.id })}>
-        Declare historic · lends prestige, costs a quarter more to keep
-      </button>
+      <ConfirmButton
+        className="building-info-jump"
+        label="Declare historic · lends prestige, costs a quarter more to keep"
+        armedLabel="Confirm — declare historic"
+        warning="For good: it can never be demolished, and its upkeep stays a quarter higher."
+        onConfirm={() => act({ type: 'DECLARE_HISTORIC', id: t.id })}
+      />
     ) : null;
   if ((t.backlog ?? 0) <= 0) return <>{historic}{extend}</>;
   const cost = renovationCost(t);
@@ -477,41 +481,34 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
 }
 
 // Calling off a building going up, or pulling down a standing one (Plan 39).
-// Each asks once more before it acts; neither can be undone.
+// Each asks once more before it acts (ConfirmButton); neither can be undone.
 function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a: Action) => void; onClose: () => void }) {
-  const [asking, setAsking] = useState(false);
   if (canCancelConstruction(s, t)) {
     const back = t.financing === 'gift' ? 'to the building fund'
       : t.financing === 'endowment' ? 'half to the endowment, half to cash'
         : t.financing === 'loan' ? 'to cash, its loan settled'
           : 'to cash';
-    return asking ? (
-      <div className="building-info-takedown">
-        <p className="building-info-line">Call off {t.name}? {money(t.cost)} comes back {back}; the site is cleared.</p>
-        <div className="building-info-confirm">
-          <button type="button" className="building-info-jump danger" onClick={() => { act({ type: 'CANCEL_CONSTRUCTION', id: t.id }); onClose(); }}>Call it off</button>
-          <button type="button" className="building-info-jump" onClick={() => setAsking(false)}>Keep building</button>
-        </div>
-      </div>
-    ) : (
-      <button type="button" className="building-info-jump quiet" onClick={() => setAsking(true)}>
-        Call off construction · {money(t.cost)} returned
-      </button>
+    return (
+      <ConfirmButton
+        className="building-info-jump quiet"
+        label={<>Call off construction · {money(t.cost)} returned</>}
+        armedLabel="Confirm — call it off"
+        warning={<>{money(t.cost)} comes back {back}; the site is cleared.</>}
+        onConfirm={() => { act({ type: 'CANCEL_CONSTRUCTION', id: t.id }); onClose(); }}
+      />
     );
   }
   if (t.status !== 'done') return null;
   const blocked = demolitionBlock(s, t);
   if (blocked) return <p className="building-info-line building-info-note">Not for demolition. {blocked}</p>;
-  return asking ? (
-    <div className="building-info-takedown">
-      <p className="building-info-line">Demolish {t.name}? It is free, nothing is returned, and it cannot be undone.</p>
-      <div className="building-info-confirm">
-        <button type="button" className="building-info-jump danger" onClick={() => { act({ type: 'DEMOLISH_BUILDING', id: t.id }); onClose(); }}>Demolish</button>
-        <button type="button" className="building-info-jump" onClick={() => setAsking(false)}>Keep it</button>
-      </div>
-    </div>
-  ) : (
-    <button type="button" className="building-info-jump quiet" onClick={() => setAsking(true)}>Demolish…</button>
+  return (
+    <ConfirmButton
+      className="building-info-jump quiet"
+      label="Demolish"
+      armedLabel="Confirm — demolish"
+      warning={<>It is free, nothing is returned, and it cannot be undone.</>}
+      onConfirm={() => { act({ type: 'DEMOLISH_BUILDING', id: t.id }); onClose(); }}
+    />
   );
 }
 

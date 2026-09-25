@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
@@ -74,7 +75,13 @@ function StaffRow({ act, team, role }: { act: (a: Action) => void; team: Varsity
       <span className="stat">age {coachProfile(coach).age}</span>
       <span className="stat">{money(coach.salary)}/yr</span>
       <span className="coach-row-spacer" />
-      <button type="button" className="coach-release" onClick={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}>Release</button>
+      <ConfirmButton
+        className="coach-release"
+        label="Release"
+        armedLabel="Confirm — release"
+        warning="The chair is left open until someone is hired from the market."
+        onConfirm={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}
+      />
     </div>
   );
 }
@@ -357,7 +364,7 @@ function TrophyCase({ s }: { s: GameState }) {
       <ul className="org-list trophy-case">
         {titles.map((title) => (
           <li key={`${title.sport}:${title.year}`} className="trophy">
-            <span className="trophy-year">{title.year}</span>
+            <span className="trophy-year">Year {title.year}</span>
             <span className="org-name">{sportById(title.sport)?.teamName.replace(/ Team$/, '') ?? title.sport}</span>
             <span className="stat">national champions</span>
           </li>

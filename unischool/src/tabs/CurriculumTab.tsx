@@ -1282,7 +1282,7 @@ export default function CurriculumTab(
                 <span className="crumb-current">Matching courses</span>
               </h2>
             ) : (
-              <h2>The Curriculum</h2>
+              <h2>The curriculum</h2>
             )}
           </span>
           <span className="panel-head-figure">

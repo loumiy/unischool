@@ -31,7 +31,7 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
   return (
     <section className="panel estate-panel">
       <div className="panel-head">
-        <h2>The Estate</h2>
+        <h2>The estate</h2>
         <HelpHint align="end" text="Every building has an upkeep. Pay all of it and the estate stays as built. Pay less and the difference becomes each building's backlog, which grows six percent a year and wears the building down: streaks, lost slates, boarded windows, and at the end a fence round a ruin. A renovation pays a building's backlog off, plus a fee, over eight weeks under scaffolding, and it stays open throughout." />
       </div>
       <div className="estate-funding">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmButton from './ConfirmButton';
 import { discardSetAsideSave, readSetAsideSave } from '../state/persistence';
 import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
@@ -23,7 +24,6 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
   const [hall] = useState(() => readHall());
   // A run this version could not open (persistence.ts's set-aside save).
   const [setAside, setSetAside] = useState(() => readSetAsideSave());
-  const [confirming, setConfirming] = useState(false);
   const underway = s.started;
   return (
     <div className="front-screen title-screen" role="dialog" aria-modal="true" aria-label="UniSchool">
@@ -47,17 +47,14 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
               <span className="title-sub">{institutionName(s.self)} · Year {s.clock.year}, week {s.clock.week}</span>
             </button>
           )}
-          {confirming ? (
-            <>
-              <span className="newgame-confirm-label">Erase {institutionName(s.self)} and found another?</span>
-              <button type="button" className="newgame-btn armed" onClick={onNewCollege}>Erase &amp; found a new college</button>
-              <button type="button" className="newgame-btn" onClick={() => setConfirming(false)}>Cancel</button>
-            </>
-          ) : (
-            <button type="button" className={underway ? 'save-btn' : 'title-primary'} onClick={() => (underway ? setConfirming(true) : onNewCollege())}>
-              Found a new college
-            </button>
-          )}
+          <ConfirmButton
+            className={underway ? 'save-btn' : 'title-primary'}
+            label="Found a new college"
+            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            warning={`${institutionName(s.self)} is erased and another is founded.`}
+            needsConfirm={underway}
+            onConfirm={onNewCollege}
+          />
           <button type="button" className="save-btn" onClick={onSettings}>Settings</button>
           <button type="button" className="save-btn" onClick={onCredits}>Credits</button>
         </nav>

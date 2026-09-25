@@ -78,7 +78,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
         )}
       </div>
       {open && (
-        <ToolbarPopup title="Activity Log" onClose={() => onSetOpen(false)} className="log-popup">
+        <ToolbarPopup title="Activity log" onClose={() => onSetOpen(false)} className="log-popup">
           <LogStrip s={s} />
         </ToolbarPopup>
       )}

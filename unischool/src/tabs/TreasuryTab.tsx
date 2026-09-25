@@ -64,7 +64,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
     <div className="tab-content">
       <section className="panel">
         <div className="panel-head">
-          <h2>Weekly Income Statement</h2>
+          <h2>Weekly income statement</h2>
           <HelpHint align="end" text="Every figure here is per week, and is exactly what the weekly tick charges or collects. Tuition is set once a year, at the summer admissions decision." />
         </div>
 
@@ -186,7 +186,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         <AdvancementPanel s={s} act={act} />
 
         <section className="panel">
-          <h2>Balance & Policy</h2>
+          <h2>Balance</h2>
           <dl>
             <Figure label="Cash" value={money(s.finance.cash)} hint={FIGURE_HINTS.cash} />
             <Figure
@@ -233,7 +233,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         const sizes = Array.from({ length: 21 }, (_, i) => Math.round((last / 20) * i));
         return (
           <section className="panel">
-            <h2>The Cost of Being Large</h2>
+            <h2>The cost of being large</h2>
             <MultiChart
               title="What the next student costs a year, by size"
               xLabel="Students"
@@ -249,7 +249,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
       })()}
       {s.history.length >= 2 && (
         <section className="panel">
-          <h2>Over the Years</h2>
+          <h2>Over the years</h2>
           <MultiChart
             title="The endowment and the year's net"
             series={[

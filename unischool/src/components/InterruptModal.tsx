@@ -684,7 +684,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
           </table>
         </>
       )}
-      <button onClick={onDismiss}>{isFirstReveal ? 'Dismiss' : 'Continue →'}</button>
+      <button onClick={onDismiss}>Continue</button>
     </>
   );
 }
@@ -900,7 +900,7 @@ function ChampionshipView({ s, result, onDismiss }: {
         </div>
       </dl>
 
-      <button onClick={onDismiss}>Dismiss</button>
+      <button onClick={onDismiss}>Continue</button>
     </>
   );
 }
@@ -1026,7 +1026,7 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
         <span className="letter-ask-label">{letter.done(s) ? 'Done' : 'To do'}</span>
         {letter.ask}
       </p>
-      <button onClick={() => onResolve(false)}>Understood</button>
+      <button onClick={() => onResolve(false)}>Continue</button>
       {/* On every letter, not only the first: a guided founding marks the
           first read at the start, so the opt-out has to travel with the rest. */}
       <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
@@ -1290,7 +1290,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
           <>
             <h2>{interruptBody().title}</h2>
             <p>{interruptBody().body}</p>
-            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Resolve</button>
+            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Continue</button>
           </>
         )}
       </div>

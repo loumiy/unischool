@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState, Initiative } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
@@ -61,7 +62,6 @@ function RunningPanel(
   { s, act, lab, initiative }:
   { s: GameState; act: (a: Action) => void; lab: Buildable; initiative: Initiative },
 ) {
-  const [confirmCancel, setConfirmCancel] = useState(false);
   const topic = researchTopic(initiative.topicId);
   const depth = initiativeDepth(initiative.depth);
   const team = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
@@ -83,17 +83,12 @@ function RunningPanel(
             </span>
           )}
         </span>
-        <button
-          type="button"
-          className={`facility-cancel${confirmCancel ? ' armed' : ''}`}
-          onClick={() => {
-            if (!confirmCancel) { setConfirmCancel(true); return; }
-            act({ type: 'CANCEL_INITIATIVE', labId: lab.id });
-          }}
-          onBlur={() => setConfirmCancel(false)}
-        >
-          {confirmCancel ? 'Confirm — funding is forfeit' : 'Wind up'}
-        </button>
+        <ConfirmButton
+          className="facility-cancel"
+          label="Wind up"
+          armedLabel="Confirm — funding is forfeit"
+          onConfirm={() => act({ type: 'CANCEL_INITIATIVE', labId: lab.id })}
+        />
       </header>
 
       <h3 className="facility-topic">{topic?.name ?? 'Unknown project'}</h3>
@@ -355,7 +350,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
               const topic = researchTopic(done.topicId);
               return (
                 <div key={`${done.topicId}-${done.year}-${i}`} className={`record${done.cancelled ? ' cancelled' : ''}`}>
-                  <span className="record-year">Y{done.year}</span>
+                  <span className="record-year">Year {done.year}</span>
                   <span className="record-body">
                     <span className="record-topic">{topic?.name ?? done.topicId}</span>
                     <span className="record-team">{done.facultyNames.join(', ') || '—'}</span>
