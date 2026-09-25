@@ -549,6 +549,7 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   'Operations Research': ['stochastic optimization', 'supply chain modeling', 'queueing theory'],
   'Accounting & Finance': ['asset pricing', 'audit quality', 'corporate disclosure'],
   Marketing: ['consumer choice', 'brand equity', 'digital attribution'],
+  Law: ['constitutional interpretation', 'contract theory', 'law and technology'],
   Management: ['corporate strategy', 'entrepreneurship', 'organizational behavior'],
 };
 

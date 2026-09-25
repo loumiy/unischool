@@ -1554,7 +1554,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     weight: 3,
     cooldownYears: 5,
     when: { enrolledOver: 150, yearAtLeast: 3 },
-    needs: ['dining-hall', 'dining-hall'],
+    needs: ['dining-hall'],
     favours: ['artsy'],
     text: 'The dining hall added a vegan dish to the lunch counter this term, and it has sold out by half past twelve every day since. The catering manager would like to know whether the college intends to plan for this, or to go on being surprised by it at half past twelve.',
     timeoutWeeks: 3,
