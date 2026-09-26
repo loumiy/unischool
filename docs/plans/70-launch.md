@@ -279,6 +279,20 @@ and the balance was just tuned in Plans 67–69.
 - **Checks:** a Playwright test on a touch-emulated viewport that pans,
   pinches, selects a building, and places one.
 
+**As implemented** (PR F):
+- **The pinch is continuous, not stepped.** The plan said pinch steps
+  "through the same zoom levels as Z/X". Z/X tilt the view; zoom is
+  continuous (the wheel), so the pinch is too, clamped at the same bounds.
+- **The touch bar sits at the top center, not above the ticker.** The build
+  tray stays open while a building is picked up and covered a bottom bar.
+- **Taps that act.** Quad, lamp and bench tools act on a tap. Lifting a
+  lamp or a bench (the right button) has no touch gesture yet.
+- **The browser check is a tool, not a CI test.** CI has no browser;
+  `tools/touchCheck.mjs` runs against a dev server. The pinch arithmetic is
+  unit-tested in `test/map-gestures.test.ts`.
+- A mouse run was checked alongside: a drag pans and a click still places
+  at once.
+
 ## PR 70G — Touch II: the screens at phone width
 
 - **Every tab, modal, and the dock at 390×844 and 820×1180**, fixed until

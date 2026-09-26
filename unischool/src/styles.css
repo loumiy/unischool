@@ -669,9 +669,9 @@ button.build-tile { font-family: inherit; }
 .campus-map-zoom-controls.touch-ui button, .campus-map-zoom-controls.touch-ui .help-hint-btn { width: 40px; height: 40px; }
 
 /* Placing a building on touch (Plan 70F): the ghost is set down with a tap
-   or a drag, and built with Place. Above the ticker, centered. */
-.map-touch-bar { position: fixed; z-index: 12; left: 50%; transform: translateX(-50%);
-  bottom: calc(var(--toolbar-height) + var(--log-ticker-height, 28px) + 12px);
+   or a drag, and built with Place. Top center, where neither the build tray
+   (which stays open below) nor the pennant and menu reach. */
+.map-touch-bar { position: fixed; z-index: 12; left: 50%; transform: translateX(-50%); top: 12px;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
   max-width: calc(100vw - 32px); padding: 8px 10px;
   background: var(--cream); border: 3px solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-2); }
