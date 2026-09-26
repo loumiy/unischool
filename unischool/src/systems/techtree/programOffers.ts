@@ -1,6 +1,5 @@
 import type { GameState } from '../../state/types';
-import { graduateGateMet, programById, programs, type ProgramInfo } from '../../data/techData';
-import { FOUNDING_PROGRAMS } from '../../data/foundingData';
+import { graduateGateMet, programs, type ProgramInfo } from '../../data/techData';
 import { makeRivalRng } from '../../data/rivalData';
 import { hostedPrograms } from '../../data/projectData';
 import { WEEKS_PER_YEAR } from '../../state/types';
@@ -9,12 +8,13 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // The offer queue: the player sees three programs (s.programOffers) drawn
 // from what remains, and founding one draws a replacement, so the catalog
 // is discovered rather than enumerated (docs/design/curriculum.md). No
-// reroll, no decline. Two rules pull against each other on purpose:
+// reroll, no decline.
 //
-//   - Programs from started schools are STARTED_SCHOOL_WEIGHT times likelier,
-//     so a school the player has begun converges on being founded.
-//   - At least one offer comes from an unstarted school whenever one exists,
-//     so discovery never dries up.
+// The mix (Plan 71, the owner's rule): two offers from schools the college
+// has started and one from a school it has not, for as long as both kinds
+// remain. A started school converges on being founded, and a new school is
+// always in view, so a fourth hall has a reason before the first three are
+// full. When one kind runs out, the other fills the table.
 //
 // Offerable: revealed and not yet housed. The dice are a local PRNG seeded
 // from the state (name, week, housed count), with no draw on the game's
@@ -23,39 +23,8 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // ---------------------------------------------------------------------
 
 export const PROGRAM_OFFER_COUNT = 3;
-export const STARTED_SCHOOL_WEIGHT = 3;
-
-// New majors come at a pace (Plan 68): a college may house the founding
-// programs and OPENING_MAJORS more at once, and one more every
-// WEEKS_PER_NEW_MAJOR after that, so the undergraduate catalogue fills over
-// about thirty years instead of five. The offer shows only as many
-// programs as the college may yet found; graduate programs are not counted
-// (their own gates pace them). Read off the clock, so nothing is saved.
-export const OPENING_MAJORS = 9;
-export const WEEKS_PER_NEW_MAJOR = 54;
-
-function weeksSinceFounding(s: GameState): number {
-  return (s.clock.year - 1) * WEEKS_PER_YEAR + (s.clock.week - 1);
-}
-
-export function majorAllowance(s: GameState): number {
-  return FOUNDING_PROGRAMS.length + OPENING_MAJORS + Math.floor(weeksSinceFounding(s) / WEEKS_PER_NEW_MAJOR);
-}
-
-export function majorsHoused(s: GameState): number {
-  return Object.values(s.halls).flat()
-    .filter((slot) => slot.programId !== null && programById(slot.programId)?.kind !== 'graduate').length;
-}
-
-// Majors the college may still found now; 0 means it waits.
-export function majorsOpen(s: GameState): number {
-  return Math.max(0, majorAllowance(s) - majorsHoused(s));
-}
-
-// Weeks until the allowance next grows.
-export function weeksToNextMajor(s: GameState): number {
-  return WEEKS_PER_NEW_MAJOR - (weeksSinceFounding(s) % WEEKS_PER_NEW_MAJOR);
-}
+// Of the three: offers from a school not yet started.
+export const NEW_SCHOOL_OFFERS = 1;
 
 // FNV-1a with a finalizer, as rivalData.ts hashes a rival's id: a
 // one-character difference in the key is an unrelated seed.
@@ -151,54 +120,31 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
   const byId = new Map(offerable.map((program) => [program.id, program]));
   s.programOffers = s.programOffers.filter((id) => byId.has(id));
 
-  // No more on the table than the college may yet found (Plan 68).
-  const room = Math.min(PROGRAM_OFFER_COUNT, majorsOpen(s));
-  if (s.programOffers.length > room) s.programOffers = s.programOffers.slice(0, room);
-
   let pool = offerable.filter((program) => !s.programOffers.includes(program.id));
-  if (s.programOffers.length >= room || pool.length === 0) return;
+  if (s.programOffers.length >= PROGRAM_OFFER_COUNT || pool.length === 0) return;
 
   const started = startedSchools(s);
-  const isUnstarted = (program: ProgramInfo) => !started.has(program.school);
+  const isNew = (program: ProgramInfo) => !started.has(program.school);
   const housedCount = Object.values(s.halls).reduce((n, slots) => n + slots.filter((slot) => slot.programId !== null).length, 0);
   const roll = makeRivalRng(offerSeed(`${s.self.name}|${(s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week}|${housedCount}`));
+  const pickFrom = (candidates: ProgramInfo[]) => candidates[Math.min(candidates.length - 1, Math.floor(roll() * candidates.length))];
+  const take = (chosen: ProgramInfo) => {
+    s.programOffers.push(chosen.id);
+    pool = pool.filter((program) => program.id !== chosen.id);
+  };
 
   const guaranteed = pool.filter((program) => guarantee.includes(program.id));
-  if (guaranteed.length > 0 && !s.programOffers.some((id) => guarantee.includes(id))) {
-    const chosen = guaranteed[Math.min(guaranteed.length - 1, Math.floor(roll() * guaranteed.length))];
-    s.programOffers.push(chosen.id);
-    pool = pool.filter((program) => program.id !== chosen.id);
-  }
+  if (guaranteed.length > 0 && !s.programOffers.some((id) => guarantee.includes(id))) take(pickFrom(guaranteed));
 
-  // A school is under way while it is started and some major of it is still
-  // to be housed (Plan 68).
-  const underWay = new Set(offerable.filter((program) => started.has(program.school)).map((program) => program.school));
-  while (s.programOffers.length < room && pool.length > 0) {
-    // One school at a time (Plan 68): while a started school has majors
-    // left, the draw is confined to the schools under way, so a college
-    // founding a major a year completes a school every few years rather
-    // than scattering one program across each. The discovery rule applies
-    // only once every started school is complete: if nothing offered is
-    // from an unstarted school and something could be, this draw is
-    // confined to those.
-    const offeredUnstarted = s.programOffers.some((id) => {
-      const program = byId.get(id);
-      return program !== undefined && isUnstarted(program);
-    });
-    const continuing = pool.filter((program) => underWay.has(program.school));
-    const candidates = continuing.length > 0 ? continuing
-      : !offeredUnstarted && pool.some(isUnstarted) ? pool.filter(isUnstarted) : pool;
-
-    const weights = candidates.map((program) => (started.has(program.school) ? STARTED_SCHOOL_WEIGHT : 1));
-    const total = weights.reduce((sum, w) => sum + w, 0);
-    let pick = roll() * total;
-    let chosen = candidates[candidates.length - 1];
-    for (let i = 0; i < candidates.length; i += 1) {
-      pick -= weights[i];
-      if (pick < 0) { chosen = candidates[i]; break; }
-    }
-
-    s.programOffers.push(chosen.id);
-    pool = pool.filter((program) => program.id !== chosen.id);
+  while (s.programOffers.length < PROGRAM_OFFER_COUNT && pool.length > 0) {
+    // Two from started schools, one from a new one, while both kinds remain.
+    const newOnTable = s.programOffers.filter((id) => { const program = byId.get(id); return program !== undefined && isNew(program); }).length;
+    const wantNew = newOnTable < NEW_SCHOOL_OFFERS;
+    const newPool = pool.filter(isNew);
+    const startedPool = pool.filter((program) => !isNew(program));
+    const candidates = wantNew
+      ? (newPool.length > 0 ? newPool : startedPool)
+      : (startedPool.length > 0 ? startedPool : newPool);
+    take(pickFrom(candidates));
   }
 }

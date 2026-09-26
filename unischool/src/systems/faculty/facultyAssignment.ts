@@ -114,6 +114,19 @@ export function averageCourseQuality(s: GameState, ids: string[], loads?: Facult
   return n === 0 ? null : sum / n;
 }
 
+// Every graded course's score on campus (Plan 71: academic satisfaction and
+// prestige's teaching standard read each course, not only the mean).
+export function campusCourseScores(s: GameState): number[] {
+  const loads = facultyLoads(s);
+  const unstaffed = unstaffedPrograms(s);
+  const out: number[] = [];
+  for (const t of s.tech) {
+    const score = aggregateScore(s, t, loads, unstaffed);
+    if (score !== null) out.push(score);
+  }
+  return out;
+}
+
 // Every graded course on campus as one mean, read by both satisfaction and
 // prestige so they agree.
 export function campusAverageCourseQuality(s: GameState): number | null {

@@ -5,13 +5,13 @@ import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduatePrograms, programById, type ProgramInfo } from '../data/techData';
-import { hallOf, isHoused, isInTransit, majorAllowance, majorsHoused, majorsOpen, offerablePrograms, weeksToNextMajor } from '../systems/techtree/programOffers';
+import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers';
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
-  COURSE_DEVELOPMENT_SLOTS, canStartDevelopment, courseSlotsFree, coursesInDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, committeeSeats, courseSlotsFree, coursesInDevelopment, isUndergraduateCourse, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -738,6 +738,9 @@ function CourseDrawer(
         {state === 'blocked' && shortfall > 0 && (
           <p className="course-drawer-warning">{money(Math.ceil(shortfall))} short of the development cost.</p>
         )}
+        {t.status === 'available' && isUndergraduateCourse(t) && courseSlotsFree(s) === 0 && (
+          <p className="course-drawer-warning">The curriculum committee is writing {committeeSeats(s)} courses already; this one starts when a seat frees.</p>
+        )}
         {state === 'locked' && (
           <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
         )}
@@ -836,7 +839,8 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         disabled={!canStart}
         title={canStart
           ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, ${money(next.cost)}`
-          : shortfall > 0 ? `${money(Math.ceil(shortfall))} short of the development cost` : 'Cannot start this course right now'}
+          : shortfall > 0 ? `${money(Math.ceil(shortfall))} short of the development cost`
+            : courseSlotsFree(s) === 0 ? `Every committee seat is taken (${committeeSeats(s)}); a seat frees when a course is done` : 'Cannot start this course right now'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: next.id, facultyId: best.id })}
       >
         Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
@@ -1116,35 +1120,11 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
   }
   const wall = [...wallCounts.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
 
-  // The two paces (Plan 68): new majors come one at a time, and the
-  // curriculum committee writes a few courses at once.
-  const waitingForMajor = offers.length === 0 && majorsOpen(s) === 0 && offerablePrograms(s).length > 0;
-  const committeeBusy = coursesInDevelopment(s);
-  const committeeFull = courseSlotsFree(s) === 0;
-
-  if (offers.length === 0 && !waitingForMajor && near.length === 0 && ready.length === 0 && wall.length === 0 && !committeeFull) return null;
-
   return (
-    <div className="next-up" aria-label="What next">
-      {waitingForMajor && (
-        <div className="next-up-item offers">
-          <span className="next-up-label">New majors</span>
-          <span className="next-up-body">
-            <span className="next-up-note">
-              {majorsHoused(s)} of {majorAllowance(s)} approved so far; the next can be founded in {weeksToNextMajor(s)} {weeksToNextMajor(s) === 1 ? 'week' : 'weeks'}.
-            </span>
-          </span>
-        </div>
-      )}
-      {committeeFull && (
-        <div className="next-up-item">
-          <span className="next-up-label">Committee</span>
-          <span className="next-up-body">
-            <span className="next-up-note" title="The curriculum committee writes at most this many courses at once. A course finishing frees its seat.">
-              Writing {committeeBusy} of {COURSE_DEVELOPMENT_SLOTS} courses at once; the next starts when one finishes.
-            </span>
-          </span>
-        </div>
+    <div className="next-up with-committee" aria-label="What next">
+      <div className="next-up-main">
+      {offers.length === 0 && near.length === 0 && ready.length === 0 && wall.length === 0 && (
+        <div className="next-up-item"><span className="next-up-note">Nothing waiting: every revealed course is under way or done.</span></div>
       )}
       {offers.length > 0 && (
         <div className="next-up-item offers">
@@ -1227,7 +1207,59 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
           </span>
         </div>
       )}
+      </div>
+      <CommitteePanel s={s} />
     </div>
+  );
+}
+
+// The curriculum committee (techSystem.ts's committeeSeats): a seat for each
+// undergraduate course it can write at once, four to start and one more at
+// each prestige step, up to eight. A filled seat shows its course and how
+// far along it is; an open seat is free to use; a locked one says what
+// opens it.
+function CommitteePanel({ s }: { s: GameState }) {
+  const seats = committeeSeats(s);
+  const writing = coursesInDevelopment(s);
+  const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length;
+  const next = nextCommitteeSeatAt(s);
+  return (
+    <section className="committee" aria-label="Curriculum committee">
+      <header className="committee-head">
+        <span className="next-up-label">Committee</span>
+        <span className="committee-count">{writing.length} of {seats} seats</span>
+        <HelpHint
+          align="end"
+          text={`Writing a course takes the college's attention: the curriculum committee develops up to ${seats} undergraduate courses at once. A seat frees when its course is done. The committee grows by a seat at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}. Graduate courses are written by their schools and take no seat.`}
+        />
+      </header>
+      <ol className="committee-seats">
+        {Array.from({ length: maxSeats }, (_, i) => {
+          if (i >= seats) {
+            const at = COMMITTEE_PRESTIGE_STEPS[i - COURSE_DEVELOPMENT_SLOTS];
+            return (
+              <li key={i} className="committee-seat locked" title={`Opens at prestige ${at}`}>
+                <span className="committee-seat-left">at prestige</span>
+                <span className="committee-seat-name">{at}</span>
+              </li>
+            );
+          }
+          const t = writing[i];
+          if (!t) return <li key={i} className="committee-seat open"><span className="committee-seat-name">Open</span></li>;
+          const left = s.developing[t.id] ?? t.duration;
+          const done = t.duration > 0 ? 1 - left / t.duration : 1;
+          const code = t.name.split(' · ')[0];
+          return (
+            <li key={i} className="committee-seat busy" title={`${t.name}: ${left} week${left === 1 ? '' : 's'} left`}>
+              <span className="committee-seat-name">{code}</span>
+              <span className="committee-seat-bar" aria-hidden="true"><span style={{ width: `${Math.round(done * 100)}%` }} /></span>
+              <span className="committee-seat-left">{left}w</span>
+            </li>
+          );
+        })}
+      </ol>
+      {next !== null && <p className="committee-note">Another seat at prestige {next}.</p>}
+    </section>
   );
 }
 

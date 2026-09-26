@@ -7,7 +7,7 @@ import {
 } from '../../data/techData';
 import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
-import { hallOf, isHoused, isInTransit, majorsOpen, refillOffers, slotOf } from './programOffers';
+import { hallOf, isHoused, isInTransit, refillOffers, slotOf } from './programOffers';
 import { dedicatedHalls, schoolFoundedKey } from './schools';
 import { darkPrograms } from './darkness';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
@@ -217,18 +217,26 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // the faculty gate to that person; omitted, any free slot in the field will do.
 // `financing`: a loan for the shortfall, or campaign-raised building money
 // (finance/treasury.ts), for placeables only; courses are paid in cash.
-// The curriculum committee (Plan 68): at most COURSE_DEVELOPMENT_SLOTS
-// undergraduate courses in development at once, however much money and
-// faculty the college has, so a catalogue of several hundred courses takes
-// decades to write rather than a few years. Graduate courses have their own
-// gates and are not counted.
+// The curriculum committee (Plan 68; the owner kept it in Plan 71): only so
+// many undergraduate courses can be in development at once, since writing a
+// curriculum takes the college's attention. Four seats, and one more at each
+// of COMMITTEE_PRESTIGE_STEPS, up to eight. Graduate courses have their own
+// gates and are not counted. The Curriculum tab shows the seats.
 export const COURSE_DEVELOPMENT_SLOTS = 4;
-const isUndergraduateCourse = (t: Buildable) => t.kind === 'course' && t.graduateProgram === undefined;
-export function coursesInDevelopment(s: GameState): number {
-  return s.tech.filter((t) => isUndergraduateCourse(t) && t.status === 'developing').length;
+export const COMMITTEE_PRESTIGE_STEPS: readonly number[] = [70, 80, 90, 100];
+export function committeeSeats(s: GameState): number {
+  return COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.filter((p) => s.self.reputation >= p).length;
+}
+// The prestige at which the next seat opens, or null at eight.
+export function nextCommitteeSeatAt(s: GameState): number | null {
+  return COMMITTEE_PRESTIGE_STEPS.find((p) => s.self.reputation < p) ?? null;
+}
+export const isUndergraduateCourse = (t: Buildable) => t.kind === 'course' && t.graduateProgram === undefined;
+export function coursesInDevelopment(s: GameState): Buildable[] {
+  return s.tech.filter((t) => isUndergraduateCourse(t) && t.status === 'developing');
 }
 export function courseSlotsFree(s: GameState): number {
-  return Math.max(0, COURSE_DEVELOPMENT_SLOTS - coursesInDevelopment(s));
+  return Math.max(0, committeeSeats(s) - coursesInDevelopment(s).length);
 }
 
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): boolean {
@@ -377,8 +385,6 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   } else {
     const hall = s.tech.find((t) => t.id === f.hallId);
     if (!s.programOffers.includes(f.programId) || !hall || !isAcademicHall(hall)) return false;
-    // New majors come at a pace (programOffers.ts, Plan 68).
-    if (majorsOpen(s) <= 0) return false;
   }
   const slots = s.halls[f.hallId];
   if (!slots || f.slot < 0 || f.slot >= slots.length || slots[f.slot].programId !== null) return false;

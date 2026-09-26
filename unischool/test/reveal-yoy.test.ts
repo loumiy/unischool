@@ -36,7 +36,7 @@ function assert(cond: boolean, msg: string): void {
 const near = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
 
 function product(f: FunnelFactors): number {
-  return f.prestigePool * f.priceFactor * f.capacityFactor * f.wordOfMouth * f.cohortDemand * f.stickerShock * (f.beauty ?? 1) * (f.tags ?? 1);
+  return f.prestigePool * f.priceFactor * f.capacityFactor * f.wordOfMouth * f.cohortDemand * f.stickerShock * (f.beauty ?? 1) * (f.tags ?? 1) * (f.crowding ?? 1);
 }
 
 function toSummer(start: GameState): GameState {
@@ -73,12 +73,15 @@ console.log('reveal year-over-year tests');
   let s = toSummer(createInitialState('Compose'));
   assert(poolChange(projectAdmissions(50, 16_000, 0, 70), s.students.lastFunnel) === null, 'the first summer has nothing to be read against');
 
+  // No crowding, so the second summer's projection (neutral signals) reads
+  // the same factor (crowding has its own test, crowding-pool.test.ts).
+  s.students.crowdingYearSum = 0;
   s = reducer(s, { type: 'RESOLVE_ADMISSIONS', tuition: 16_000, admitRate: s.students.admitRate, approvedPetitionIds: [] });
   const last = s.students.lastFunnel;
   assert(last !== null && last.year === 1, 'the boundary records the funnel it ran');
   if (!last) throw new Error('no record');
   assert(last.applicants === s.students.applicantPool, 'the pool it drew');
-  assert(near(product(last.factors), last.applicants, 0.5), 'and the six factors behind it');
+  assert(near(product(last.factors), last.applicants, 0.5), 'and the factors behind it');
   const split = COHORTS.reduce((sum, c) => sum + last.cohorts[c.id], 0);
   assert(split === last.applicants, `the pool's cohort split sums to the pool (${split} vs ${last.applicants})`);
 

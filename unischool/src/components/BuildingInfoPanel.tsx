@@ -19,7 +19,7 @@ import {
   canFoundProgram, canRelocateProgram, eligibleInstructors, facultyGate,
   FOUNDERS_MOVE_WEEKS, relocationWeeks,
 } from '../systems/techtree/techSystem';
-import { hostOffers, isHoused, majorsOpen, transitWeeks, weeksToNextMajor } from '../systems/techtree/programOffers';
+import { hostOffers, isHoused, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
 import { money, pct } from '../format';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
@@ -368,9 +368,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
           ? 'Every slot is taken.'
           : `${free} of ${slots.length} slot${slots.length === 1 ? '' : 's'} free${offers.length > 0
             ? ` — ${offers.length} program${offers.length === 1 ? '' : 's'} on offer.`
-            : !host && majorsOpen(s) === 0
-              ? ` — the next new major can be founded in ${weeksToNextMajor(s)} week${weeksToNextMajor(s) === 1 ? '' : 's'}.`
-              : '.'}`}
+            : '.'}`}
       </p>
       <div className="hall-slots">
         {slots.map((slot, i) => {

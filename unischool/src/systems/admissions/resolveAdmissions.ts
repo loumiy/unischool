@@ -14,7 +14,7 @@ import { SEMICENTENNIAL_YEAR } from '../../state/types';
 import { advanceClasses, attritionRate, priceTolerance, projectAdmissions, trailingYearSatisfaction } from './admissionsSystem';
 import { cohortCounts, deriveCohortSignals } from './cohorts';
 import { attritionReasons } from './consequences';
-import { applyReportCard, gradeYear } from '../prestige/prestigeSystem';
+import { applyReportCard, crowdingScore, gradeYear } from '../prestige/prestigeSystem';
 import { intakeCeiling } from '../techtree/instructionCapacity';
 import {
   activatePetition,
@@ -100,6 +100,8 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // year's applicant pool. Record it, then reset this year's accumulators
   // (including the crowding one the report card just read).
   const priorYearAvgSatisfaction = trailingYearSatisfaction(s);
+  // The year's overcrowding, read before its accumulators reset (Plan 71).
+  const crowding = crowdingScore(s);
   s.students.priorYearAvgSatisfaction = priorYearAvgSatisfaction;
   s.students.satisfactionYearSum = 0;
   s.students.satisfactionYearWeeks = 0;
@@ -118,7 +120,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     s.finance.listedTuition,
     s.students.capacity,
     priorYearAvgSatisfaction,
-    deriveCohortSignals(s),
+    { ...deriveCohortSignals(s), crowding },
     chosenAdmitRate,
     ceiling.seatsLeft,
   );

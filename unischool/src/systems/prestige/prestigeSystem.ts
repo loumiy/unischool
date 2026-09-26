@@ -5,8 +5,8 @@ import { isPlaceableKind } from '../../state/campusMap';
 import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
-import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
-import { teachingQualityScore } from '../../data/courseQuality';
+import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
+import { gradeFor, teachingQualityScore, type Grade } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
 import { athleticProgramStrength, sportEconomics, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
@@ -267,6 +267,9 @@ export interface StandingBreakdown {
   current: number;          // the stock today — what the target is pulling on
   driftRate: number;        // the share of the gap that closes each week between summers
   summer?: SummerModel;     // set on the standing that steps at the summer (academic)
+  // A cap on the target set by something no sum of inputs can buy past
+  // (Plan 71: academic standing and the teaching standard). Absent: none.
+  ceiling?: { value: number; label: string; detail: string };
   min: number;
   max: number;
 }
@@ -299,12 +302,12 @@ function projectInput(s: GameState, axis: 'academics' | 'research' | 'experience
 // Computes its own target, so no caller can disagree with the sum.
 function breakdown(
   label: string, baseline: number, current: number, inputs: StandingInput[],
-  readings: StandingReading[] = [], summer?: SummerModel,
+  readings: StandingReading[] = [], summer?: SummerModel, ceiling?: StandingBreakdown['ceiling'],
 ): StandingBreakdown {
   const total = inputs.reduce((sum, input) => sum + input.contribution, baseline);
   return {
-    label, baseline, inputs, readings, current, summer,
-    target: clamp(total, PRESTIGE_MIN, PRESTIGE_MAX),
+    label, baseline, inputs, readings, current, summer, ceiling,
+    target: Math.min(clamp(total, PRESTIGE_MIN, PRESTIGE_MAX), ceiling?.value ?? PRESTIGE_MAX),
     driftRate: summer ? PRESTIGE_TREMOR_RATE : PRESTIGE_DRIFT_RATE,
     min: PRESTIGE_MIN,
     max: PRESTIGE_MAX,
@@ -329,6 +332,31 @@ function scaleMultiplier(s: GameState): StandingMultiplier {
     label: 'scale',
     value: admissionsScaleScore(s),
     detail: `${enrolled.toLocaleString()} enrolled of the ${ADMISSIONS_SCALE_FOR_FULL_CREDIT.toLocaleString()} a national reading counts in full`,
+  };
+}
+
+// The teaching standard (Plan 71): no college becomes highly prestigious on
+// mediocre teaching. The courses' grades, as points (A 1, B 0.65, C 0.35,
+// D 0.1, F 0), cap the academic target: TEACHING_CEILING_FLOOR at nothing
+// but F's, the full PRESTIGE_MAX only when every course is an A. A campus of
+// B's tops out in the mid-120s.
+const GRADE_POINTS: Record<Grade, number> = { A: 1, B: 0.65, C: 0.35, D: 0.1, F: 0 };
+const TEACHING_CEILING_FLOOR = 95;
+const TEACHING_CEILING_CURVE = 1.3;
+export function teachingStandardShare(s: GameState): number {
+  const scores = campusCourseScores(s);
+  if (scores.length === 0) return 0;
+  return scores.reduce((sum, score) => sum + GRADE_POINTS[gradeFor(score)], 0) / scores.length;
+}
+export function teachingCeiling(s: GameState): NonNullable<StandingBreakdown['ceiling']> {
+  const share = teachingStandardShare(s);
+  const value = TEACHING_CEILING_FLOOR + (PRESTIGE_MAX - TEACHING_CEILING_FLOOR) * share ** TEACHING_CEILING_CURVE;
+  const scores = campusCourseScores(s);
+  const aShare = scores.length > 0 ? scores.filter((x) => gradeFor(x) === 'A').length / scores.length : 0;
+  return {
+    value,
+    label: 'The teaching standard',
+    detail: `${Math.round(aShare * 100)}% of courses graded A: standing can reach ${value.toFixed(0)}. Only a campus teaching A's everywhere reaches ${PRESTIGE_MAX}.`,
   };
 }
 
@@ -394,7 +422,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     maxRise: PRESTIGE_MAX_RISE,
     fallRate: PRESTIGE_FALL_RATE,
     reportCard: s.self.reportCard,
-  });
+  }, teachingCeiling(s));
 }
 
 // Welfare: trailing-year average satisfaction; 40 earns nothing, 80 pays in full.
@@ -457,10 +485,16 @@ interface CoverageReading {
   coverage: number; // 0..1
 }
 
+// Crowding reads the needs a class physically overruns (Plan 71): beds,
+// dining, health and class seats. The library and social space score in
+// satisfaction (and the library in breadth's adequacy), and a college that
+// has not built one is short of it, not overcrowded.
+const CROWDED_NEEDS: ReadonlyArray<keyof SatisfactionAttributes> = ['housing', 'basicNeeds', 'health'];
+
 export function crowdingCoverages(s: GameState): CoverageReading[] {
   const enrolled = totalEnrolled(s.students);
   const out: CoverageReading[] = [];
-  for (const attribute of Object.keys(COVERAGE_LABELS) as Array<keyof SatisfactionAttributes>) {
+  for (const attribute of CROWDED_NEEDS) {
     const dormant = attribute === 'health' && enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE;
     out.push({ label: COVERAGE_LABELS[attribute], coverage: dormant ? 1 : attributeCoverage(s, attribute) });
   }

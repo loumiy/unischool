@@ -94,6 +94,10 @@ export function projectConsequences(
   s: GameState,
   incoming: number,
   incomingPrice: number,
+  // The incoming class's quality (the funnel's avgIncomingQuality): academic
+  // satisfaction measures teaching against what the students expect
+  // (Plan 71). Omitted, today's reading stands.
+  incomingQuality: number = s.students.incomingQuality,
 ): AdmissionsConsequence {
   // Nothing measured here reads the cohort split, so the incoming mix is the
   // neutral prior; RESOLVE_ADMISSIONS writes the real one.
@@ -114,7 +118,7 @@ export function projectConsequences(
   const projected: GameState = {
     ...s,
     self: { ...s.self, reputation: stepped },
-    students: { ...s.students, classes: advanced.classes, cohortsByClass: advanced.cohortsByClass },
+    students: { ...s.students, classes: advanced.classes, cohortsByClass: advanced.cohortsByClass, incomingQuality },
     finance: { ...s.finance, tuitionByClass: advanced.tuitionByClass, listedTuition: incomingPrice },
   };
 

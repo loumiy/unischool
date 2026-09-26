@@ -1,5 +1,6 @@
 import { tagPoolFactor, tagQualityShift } from '../identity/tags';
 import { campusBeauty } from '../estate/beauty';
+import { crowdingScore } from '../prestige/prestigeSystem';
 import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { graduateCourseIds, graduatePrograms } from '../../data/techData';
@@ -81,6 +82,10 @@ export interface CohortSignals {
   // size as a factor, and points on the incoming class. Absent reads 1 and 0.
   tagPool?: number;
   tagQuality?: number;
+  // The year's crowding shortfall, 0..1 (prestigeSystem.ts's crowdingScore),
+  // which shrinks the next pool (admissionsSystem.ts's crowdingPoolFactor).
+  // Absent reads none.
+  crowding?: number;
 }
 
 // Athletic results reach the pool as research output does: a title is worth
@@ -124,6 +129,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
   return {
     beauty: campusBeauty(s),
     tagPool: tagPoolFactor(s),
+    crowding: crowdingScore(s),
     tagQuality: tagQualityShift(s),
     distinguishedDepth: milestoneCountWithPrefix(s, 'program-distinguished:') + 2 * milestoneCountWithPrefix(s, 'grad-program-complete:'),
     professionalPrograms: establishedPrefixCount(s, PRE_PROFESSIONAL_PREFIXES),

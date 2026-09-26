@@ -233,7 +233,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // What committing this pair would do to money and mood, for the three
   // continuing classes plus the incoming one; the same advance the reducer
   // commits with.
-  const consequence = projectConsequences(s, outcome.enrolled, tuition);
+  const consequence = projectConsequences(s, outcome.enrolled, tuition, outcome.avgIncomingQuality);
   const netDelta = consequence.weeklyNet - consequence.weeklyNetNow;
   const moodDelta = consequence.satisfactionTarget - consequence.satisfactionTargetNow;
   // What prestige lets the school charge before demand falls away, shown so

@@ -25,6 +25,9 @@ import { totalEnrolled } from '../src/state/types';
 import { playerRank, selfFinancial } from '../src/systems/rivals/rivalsSystem';
 import { financeBreakdown, weeklyNet } from '../src/systems/finance/financeSystem';
 import { milestoneSchools, programs } from '../src/data/techData';
+import { campusCourseScores } from '../src/systems/faculty/facultyAssignment';
+import { gradeFor } from '../src/data/courseQuality';
+import { teachingCeiling } from '../src/systems/prestige/prestigeSystem';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { foundGame, playYears, type Player } from './harness/game';
 
@@ -49,6 +52,14 @@ export interface PaceYear {
   funding: number;
   endowment: number;
   financial: number;
+  // Teaching and demand (Plan 71): academic satisfaction, the share of
+  // courses graded A, the teaching standard's cap on academic standing, the
+  // last summer's pool and its crowding factor.
+  academic: number;
+  aShare: number;
+  teachingCap: number;
+  applicants: number;
+  crowding: number;
   // The guardrails.
   cash: number;
   opexPerWeek: number;
@@ -80,6 +91,11 @@ function readYear(s: GameState, year: number, netPerWeek: number): PaceYear {
     schools: milestoneSchools().filter((m) => s.milestones[schoolFoundedKey(m.schoolName)]).length,
     distinguished: milestoneSchools().filter((m) => s.milestones[`school-distinguished:${m.schoolName}`]).length,
     gradCourses: s.tech.filter((t) => t.graduateProgram !== undefined && t.status === 'done').length,
+    academic: s.students.satisfactionBreakdown.academic,
+    aShare: (() => { const sc = campusCourseScores(s); return sc.length ? sc.filter((x) => gradeFor(x) === 'A').length / sc.length : 0; })(),
+    teachingCap: teachingCeiling(s).value,
+    applicants: s.students.applicantPool,
+    crowding: s.students.lastFunnel?.factors.crowding ?? 1,
     grantIncome: s.research.grantIncome,
     funding: s.research.funding ?? 0,
     endowment: s.finance.endowment,

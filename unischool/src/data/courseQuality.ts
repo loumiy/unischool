@@ -19,6 +19,8 @@ export const GRADE_A = 78;
 export const GRADE_B = 62;
 export const GRADE_C = 44;
 const GRADE_D = 30;
+// Exported for academic satisfaction's credit floor (Plan 71).
+export const GRADE_D_SCORE = GRADE_D;
 
 export function gradeFor(score: number): Grade {
   if (score >= GRADE_A) return 'A';
