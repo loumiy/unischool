@@ -36,7 +36,7 @@ import { chromium } from 'playwright-core';
 
 const [savePath, outPath, ...flags] = process.argv.slice(2);
 if (!savePath || !outPath) {
-  console.error('usage: shoot <save.json> <out.png> [--zoom=N] [--pan=DX,DY] [--clip=x,y,w,h] [--size=W,H] [--scale=N]');
+  console.error('usage: shoot <save.json> <out.png> [--zoom=N] [--pan=DX,DY] [--clip=x,y,w,h] [--size=W,H | --phone | --tablet] [--scale=N]');
   process.exit(2);
 }
 const flag = (name, fallback) => {
@@ -73,10 +73,14 @@ if (!executablePath) {
 
 const save = readFileSync(savePath, 'utf8');
 const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
-const size = nums(flag('size', null)) ?? [1600, 1000];
+// --phone and --tablet (Plan 70G): the two sizes the touch pass is checked
+// at, as a touch device, so the page lays out as it would on one.
+const device = flags.includes('--phone') ? [390, 844] : flags.includes('--tablet') ? [820, 1180] : null;
+const size = nums(flag('size', null)) ?? device ?? [1600, 1000];
 const page = await browser.newPage({
   viewport: { width: size[0], height: size[1] },
   deviceScaleFactor: Number(flag('scale', 1)),
+  ...(device ? { isMobile: true, hasTouch: true } : {}),
 });
 
 // Two loads on purpose: the first is only there to give localStorage an

@@ -7,6 +7,7 @@ import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from 
 import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
+import TouchTitles from './components/TouchTitles';
 import TitleScreen from './components/TitleScreen';
 import { applySettings } from './settings';
 import HallOfFame from './components/HallOfFame';
@@ -306,6 +307,7 @@ export default function App() {
 
   return (
     <>
+      <TouchTitles />
       <div className="shell" inert={modalUp}>
         <CampusMap
           s={s}

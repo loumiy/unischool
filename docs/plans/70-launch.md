@@ -309,6 +309,34 @@ and the balance was just tuned in Plans 67–69.
   - a screenshot set of every tab at both sizes goes in the PR;
   - a Playwright check that no page scrolls sideways.
 
+**As implemented** (PR G):
+- **Nothing runs past the edge** at 390×844 or 820×1180 on any tab, the
+  Treasury, the build tray, the menu, the summer's four beats, a decision
+  event or a milestone. The fixes were grids whose `1fr` columns could not
+  shrink below their content (the Students and Treasury columns, the
+  administration's seats, the facility and satisfaction cards), plus a
+  phone block (560px and under): the tab row scrolls with Build pinned at
+  its end, a program's nine cells three to a row, the departments' rows on
+  two lines, seats' appointment buttons that wrap, and committee course
+  codes that break rather than lose their number.
+- **Hints on a touch screen.**
+  - A `Figure`'s sentence opens on a tap's focus and closes on the next tap
+    elsewhere, never on a sticky hover (the funds figure's sentence stayed
+    open over the Treasury it opened). The funds figure, a button, opens
+    the Treasury and shows no sentence.
+  - `HelpHint`'s `?` gets a 40px hit area, and its explanation slides back
+    on screen when it would open past an edge.
+  - **`title=` tooltips, all 118, by one component** rather than one by
+    one: `TouchTitles.tsx` shows a title in a bubble by the finger when a
+    tap lands on a disabled control or on something that is not a control;
+    a working control only acts.
+- **Hotkeys.** Home (the opening view) and N (every quad's name) were
+  keyboard-only; they join the map's touch buttons as ⌂ and Aa. The speed
+  keys and Space already had buttons.
+- **The check is a tool, as in F:** `npm run phone` (`tools/phoneCheck.mjs`)
+  against a dev server; `npm run shot` has `--phone` and `--tablet`. The
+  screenshot set is `docs/reviews/2026-09-phone/`.
+
 ## PR 70H — The feel pass: sound and motion
 
 **Sound, for every moment the audit found silent.**
