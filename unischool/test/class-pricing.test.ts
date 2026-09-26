@@ -244,7 +244,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
     s.students.admitRate,
     intakeCeiling(s).seatsLeft,
   );
-  const projected = projectConsequences(s, outcome.enrolled, PRICE);
+  const projected = projectConsequences(s, outcome.enrolled, PRICE, outcome.avgIncomingQuality);
 
   const after = reducer(s, {
     type: 'RESOLVE_ADMISSIONS',

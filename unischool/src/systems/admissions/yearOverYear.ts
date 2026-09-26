@@ -30,6 +30,7 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['stickerShock', 'sticker shock'],
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
+  ['crowding', 'overcrowding'],
 ];
 
 // Moves smaller than this are rounding and are left off the line.

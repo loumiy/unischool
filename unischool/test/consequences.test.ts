@@ -95,13 +95,15 @@ console.log('consequences tests');
 {
   const atSummer = toSummer(createInitialState('Attrition'));
   withYearAverage(atSummer, 30);
+  // Crowding's pull on the pool is its own test (crowding-pool.test.ts).
+  atSummer.students.crowdingYearSum = 0;
   const before = atSummer.students.classes;
   const staying = before.freshman + before.sophomore + before.junior;
   const outcome = projectAdmissions(
     atSummer.self.reputation, atSummer.finance.listedTuition, atSummer.students.capacity, 30,
     undefined, atSummer.students.admitRate, intakeCeiling(atSummer).seatsLeft,
   );
-  const projected = projectConsequences(atSummer, outcome.enrolled, atSummer.finance.listedTuition);
+  const projected = projectConsequences(atSummer, outcome.enrolled, atSummer.finance.listedTuition, outcome.avgIncomingQuality);
   assert(projected.notReturning > 0, `the projection says who will not return (${projected.notReturning})`);
   assert(projected.attritionReasons.length > 0, `and why (${projected.attritionReasons.join(', ')})`);
 

@@ -47,17 +47,15 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    fixed ratio more.
 2. **Programs arrive three at a time.** From week one, the player is never
    shown forty-two doors. They are shown **three** (`s.programOffers`), drawn
-   from what remains; founding one draws a replacement. The draw is weighted
-   toward schools the player has already started, so a school converges once
-   begun. Since [Plan 68](../plans/68-catalogue-pacing.md) the college finishes
-   one school at a time: while a started school has majors left, the draw is
-   confined to the schools under way, and only once every started school is
-   complete is **one of the three from a school not yet started**, so
-   discovery never dries up. **New majors come at a pace** (Plan 68): a
-   college may house its founding programs and nine more at once, then one
-   more every 54 weeks (`programOffers.ts`'s `majorAllowance`), and the offer
-   never holds more than it may yet found; the Curriculum tab and the hall
-   panel say when the next is due. The founding draw is rigged once:
+   from what remains; founding one draws a replacement. Since
+   [Plan 71](../plans/71-economy.md) (the owner's rule) **two of the three
+   come from schools the college has started and one from a school it has
+   not**, for as long as both kinds remain; when one kind runs out the other
+   fills the table. Among started schools the draw favors the ones further
+   along (weight: majors housed, squared, `STARTED_PROGRESS_WEIGHT`), so
+   schools fill one after another rather than all seven at once. There is no
+   allowance on new majors (Plan 68's one per 54 weeks is gone): money is the
+   pace. The founding draw is rigged once:
    at least one of the first three is a program the founding roster can
    staff — Sociology or Psychology, whose professors the college opens with
    beside the three who teach its founding programs — so the first founding
@@ -65,11 +63,13 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    stand until one is taken, and the offer is for the academic halls. A
    graduate program is never drawn: its capital project offers it (see
    [graduate-programs.md](graduate-programs.md)).
-   **The curriculum committee** (Plan 68) writes at most four undergraduate
-   courses at once (`techSystem.ts`'s `COURSE_DEVELOPMENT_SLOTS`), whatever
-   the money and faculty: the catalogue's 378 courses take about thirty years
-   to write, not seven. Graduate courses have their own gates and are not
-   counted.
+   **The curriculum committee** (Plan 68; seats since Plan 71) writes a
+   limited number of undergraduate courses at once: four seats
+   (`techSystem.ts`'s `COURSE_DEVELOPMENT_SLOTS`), and one more at prestige
+   70, 80, 90 and 100 (`COMMITTEE_PRESTIGE_STEPS`), up to eight. The
+   Curriculum tab's "What next" box shows every seat — busy (course, progress,
+   weeks left), open, or locked with the prestige that opens it. Graduate
+   courses have their own gates and are not counted.
 3. **A school is founded, not unlocked.** Nothing is called "the School of
    Engineering" until six Engineering programs sit in one hall. A hall whose
    six slots hold one school's programs is **dedicated**; the first
@@ -212,7 +212,7 @@ compress to fit rather than scrolling; horizontal scroll is a narrow-viewport
 fallback only.
 
 A cell still ahead of the player carries its cost and the strongest free
-teacher with their grade ("$180k · Iyer B"), or "no free slot"; a developed
+teacher with their grade ("$900k · Iyer B"), or "no free slot"; a developed
 cell is drawn quietly, so what the eye lands on across a row is what can
 still happen in it.
 

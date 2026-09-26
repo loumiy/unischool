@@ -72,7 +72,8 @@ beat, which disagree on purpose about how much the player is allowed to know:
    what moved the pool and by how much — *"1,760 applicants (+22%) — beds +12%,
    prestige +5%, word of mouth +3%, price +1%"*. The funnel is a product of six
    factors (`types.ts`'s `FunnelFactors`: the prestige pool, price, beds, word
-   of mouth, the cohort pulls, sticker shock), last summer's six are recorded
+   of mouth, the cohort pulls, sticker shock; overcrowding a seventh since
+   Plan 71), last summer's six are recorded
    at the boundary (`students.lastFunnel`), and the line is this year's divided
    by last year's, biggest move first, a factor that did not move left off
    (`systems/admissions/yearOverYear.ts`). The decomposition is exact: the six
@@ -98,6 +99,21 @@ modeled as aggregate applicant *statistics*, never individual applicants:
 
 - **Applications** are driven by **price**, **current prestige**, and the
   **average student satisfaction over the preceding year** (word of mouth).
+  Since [Plan 71](../plans/71-economy.md):
+  - **Prestige's pool is a curve, not a line**: 1,000 plus 55,000 × ((prestige
+    − 24) / 116)^1.5, so a new college draws a trickle (about a third of the
+    old line's pool at founding) and the same pool as before at prestige 140.
+  - **Past the price tolerance applicants fall away faster**: the price
+    factor is exp(−ratio − 0.75 × (ratio − 1)) above the tolerance, unchanged
+    at or below it, so a high price takes in less per applicant than a fair
+    one and is a choice about who comes, not a money machine.
+  - **Overcrowding shrinks the next pool** (the owner's self-correcting
+    rule): the year's crowding shortfall (the worst of beds, dining, health
+    and class seats below 85% coverage, [progression.md](progression.md))
+    multiplies the pool by (1 − shortfall)^2.5, never below a tenth. A college
+    admitting everyone into a campus that cannot hold them takes a smaller
+    class next year, and the pool grows back once the campus catches up. It
+    is the seventh factor of the year-over-year line ("overcrowding").
   Higher prestige and a lower price grow the pool; a happy student body grows
   it further (±60% at the extremes of satisfaction, wide enough to notice
   across two summers). Word of mouth reads the **average satisfaction over the preceding year** —
@@ -324,8 +340,8 @@ The settled v1 rules:
   full size (`admissionsSystem.ts`'s `capacityFactor`), so a school with no
   dorms at all still draws a real pool, while one that invests in housing
   draws a bigger one. Beds, dining and health stay soft — crowding, which
-  costs standing and services, never a cap — so "I over-admitted and paid for
-  it" is still a story the game can tell. An older design capped the class at
+  costs standing and services and shrinks next year's pool, never a cap — so
+  "I over-admitted and paid for it" is still a story the game can tell. An older design capped the class at
   open *beds*; that was removed once a build-nothing school was found growing
   to five figures with no throttle, and Plan 15 put the ceiling where the
   teaching is.

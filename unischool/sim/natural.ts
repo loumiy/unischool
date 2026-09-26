@@ -23,6 +23,7 @@ import { isAcademicHall } from '../src/data/techData';
 import { foundGame, playYears, DEFAULT_SEED } from './harness/game';
 import { createNaturalPlayer, SORT_AT_HALLS } from './harness/natural';
 import { playerNamed } from './harness/archetypes';
+import { TEACHING } from './harness/moves';
 import { PACING_PLAYERS, PACING_SEEDS, scorecard, scorecardText, trackYears, type PacingPlayer, type PaceYear } from './pacing';
 
 const arg = (flag: string) => {
@@ -37,15 +38,21 @@ const out = arg('--out');
 const YEARS = 50;
 
 // ---- The pacing scorecard (Plans 66 and 68) ----
-// Three players on three seeds: nine fifty-year runs, about four minutes.
+// Three players on three seeds, and the guided player teaching-blind on the
+// same three: twelve fifty-year runs, about five minutes.
 if (process.argv.includes('--pacing')) {
   const t = Date.now();
   const runs = Object.fromEntries(PACING_PLAYERS.map((p) => [p, PACING_SEEDS.map((sd) => trackYears(playerNamed(p)!, sd))])) as Record<PacingPlayer, PaceYear[][]>;
+  // The guided player again, hiring the cheapest and never tending the
+  // teaching (Plan 71's teaching-blind rows).
+  TEACHING.care = false;
+  const blind = PACING_SEEDS.map((sd) => trackYears(playerNamed('Guided')!, sd));
+  TEACHING.care = true;
   const text = [
     `# Pacing scorecard`,
     '',
     `The natural line (\`sim/harness/natural.ts\`, priced just short of the red tier), the guided player and the Completionist (both priced at "fair"), seeds ${PACING_SEEDS.join(', ')}, against the targets in \`sim/pacing.ts\` (Plans 66 and 68). Written by \`npm run natural -- --pacing\` in ${((Date.now() - t) / 1000).toFixed(0)} s.`,
-    scorecardText(scorecard(runs)),
+    scorecardText(scorecard(runs, blind)),
     '',
   ].join('\n');
   if (out) {

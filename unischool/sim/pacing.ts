@@ -25,6 +25,9 @@ import { totalEnrolled } from '../src/state/types';
 import { playerRank, selfFinancial } from '../src/systems/rivals/rivalsSystem';
 import { financeBreakdown, weeklyNet } from '../src/systems/finance/financeSystem';
 import { milestoneSchools, programs } from '../src/data/techData';
+import { campusCourseScores } from '../src/systems/faculty/facultyAssignment';
+import { gradeFor } from '../src/data/courseQuality';
+import { teachingCeiling } from '../src/systems/prestige/prestigeSystem';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { foundGame, playYears, type Player } from './harness/game';
 
@@ -49,6 +52,14 @@ export interface PaceYear {
   funding: number;
   endowment: number;
   financial: number;
+  // Teaching and demand (Plan 71): academic satisfaction, the share of
+  // courses graded A, the teaching standard's cap on academic standing, the
+  // last summer's pool and its crowding factor.
+  academic: number;
+  aShare: number;
+  teachingCap: number;
+  applicants: number;
+  crowding: number;
   // The guardrails.
   cash: number;
   opexPerWeek: number;
@@ -80,6 +91,11 @@ function readYear(s: GameState, year: number, netPerWeek: number): PaceYear {
     schools: milestoneSchools().filter((m) => s.milestones[schoolFoundedKey(m.schoolName)]).length,
     distinguished: milestoneSchools().filter((m) => s.milestones[`school-distinguished:${m.schoolName}`]).length,
     gradCourses: s.tech.filter((t) => t.graduateProgram !== undefined && t.status === 'done').length,
+    academic: s.students.satisfactionBreakdown.academic,
+    aShare: (() => { const sc = campusCourseScores(s); return sc.length ? sc.filter((x) => gradeFor(x) === 'A').length / sc.length : 0; })(),
+    teachingCap: teachingCeiling(s).value,
+    applicants: s.students.applicantPool,
+    crowding: s.students.lastFunnel?.factors.crowding ?? 1,
     grantIncome: s.research.grantIncome,
     funding: s.research.funding ?? 0,
     endowment: s.finance.endowment,
@@ -163,18 +179,29 @@ export const STEADY = {
   netFalls: { max: 0 },
 };
 
-// The catalogue (Plan 68), the same for every player: the year each reaches
-// its mark, and the last year anything was added (nothing may be left to
-// found or develop only before year 35).
+// The catalogue (Plan 68): the year each reaches its mark, and the last year
+// anything was added (nothing may be left to found or develop only before
+// year 35). The same for every player, except where `byPrice` splits it.
+//
+// Programs and schools founded (Plan 71, the owner's reset): the old bands
+// were set by the allowance of new majors, which the owner removed. With
+// money the only limit, a college at "fair" founds majors early (a major is
+// the cheapest thing in the catalogue) and a high-price one, with a smaller
+// early pool, a decade later, so each price has its own band.
 type Catalogue = 'programs' | 'courses' | 'schools' | 'distinguished' | 'gradCourses';
-export const CATALOGUE: Array<{ label: string; key: Catalogue; mark: (end: number, first: PaceYear) => number; band: Band }> = [
-  { label: 'Programs: half founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) / 2, band: { min: 12, max: 18 } },
-  { label: 'Programs: 90% founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) * 0.9, band: { min: 30, max: 36 } },
+export const CATALOGUE: Array<{ label: string; key: Catalogue; mark: (end: number, first: PaceYear) => number } & ({ band: Band; byPrice?: never } | { band?: never; byPrice: Record<'high' | 'fair', Band> })> = [
+  { label: 'Programs: half founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) / 2,
+    byPrice: { high: { min: 15, max: 23 }, fair: { min: 6, max: 14 } } },
+  { label: 'Programs: 90% founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) * 0.9,
+    byPrice: { high: { min: 25, max: 33 }, fair: { min: 22, max: 32 } } },
   { label: 'Courses: half taught', key: 'courses', mark: (end, first) => first.courses + (end - first.courses) / 2, band: { min: 15, max: 20 } },
   { label: 'Courses: 90% taught', key: 'courses', mark: (end, first) => first.courses + (end - first.courses) * 0.9, band: { min: 34, max: 40 } },
-  { label: 'Schools: the first founded', key: 'schools', mark: () => 1, band: { min: 3, max: 6 } },
-  { label: 'Schools: the fourth founded', key: 'schools', mark: () => 4, band: { min: 12, max: 18 } },
-  { label: 'Schools: the seventh founded', key: 'schools', mark: () => 7, band: { min: 26, max: 34 } },
+  { label: 'Schools: the first founded', key: 'schools', mark: () => 1,
+    byPrice: { high: { min: 8, max: 13 }, fair: { min: 3, max: 10 } } },
+  { label: 'Schools: the fourth founded', key: 'schools', mark: () => 4,
+    byPrice: { high: { min: 14, max: 23 }, fair: { min: 6, max: 15 } } },
+  { label: 'Schools: the seventh founded', key: 'schools', mark: () => 7,
+    byPrice: { high: { min: 17, max: 25 }, fair: { min: 8, max: 18 } } },
   { label: 'Schools: the first distinguished', key: 'distinguished', mark: () => 1, band: { min: 8, max: 14 } },
   { label: 'Schools: all seven distinguished', key: 'distinguished', mark: () => 7, band: { min: 32, max: 38 } },
   { label: 'Graduate courses: the first', key: 'gradCourses', mark: () => 1, band: { min: 15, max: 20 } },
@@ -189,6 +216,11 @@ export const BUFFER = { enrolledShare: { min: 0.85 }, prestigeShare: { min: 0.85
 export const PRICE_MATTERS = { fairEnrolledOverNatural: { min: 1.1 }, naturalNetOverFair: { min: 1.25 } };
 export const WELFARE = { yearsBelow50AfterY5: { max: 0 } };
 export const MONEY = { cashY40InDecadesOfOpex: { max: 1 }, grantsOverFunding: { min: 1.7, max: 2.3 }, financialY50: { min: 60 } };
+// Teaching (Plan 71, the owner's rule): building everything with no regard
+// to who teaches reaches the top 25 and no further; the top ten and above
+// take hand-picked faculty. Read off the guided player with TEACHING.care
+// off (sim/harness/moves.ts).
+export const TEACHING_BLIND = { rankY50: { min: 11, max: 25 }, left: { max: 0 } };
 
 // ---- The scoring ----
 
@@ -230,7 +262,7 @@ function growth(run: PaceYear[], m: Measure, year: number): number {
 }
 const firstYear = (run: PaceYear[], test: (y: PaceYear) => boolean) => run.find(test)?.year ?? Infinity;
 
-export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] {
+export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>, blind: PaceYear[][] = []): ScoreRow[] {
   const rows: ScoreRow[] = [];
   const add = (section: string, label: string, band: Band, format: (n: number) => string, values: number[], watch?: true) => {
     const m = median(values);
@@ -266,7 +298,7 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] 
     add(section, 'Left to build at Y50 (programs, courses, schools to distinguish)', { max: 0 }, num, rs.map((run) => at(run, 50)?.left ?? NaN));
 
     for (const c of CATALOGUE) {
-      add(`${player}: the catalogue`, c.label, c.band, yr, rs.map((run) => {
+      add(`${player}: the catalogue`, c.label, c.byPrice ? c.byPrice[PRICE[player]] : c.band, yr, rs.map((run) => {
         const target = c.mark(at(run, 50)?.[c.key] ?? NaN, run[0]);
         return firstYear(run, (y) => y[c.key] >= target - 1e-9);
       }));
@@ -306,6 +338,10 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] 
 
   // Guardrails.
   const y50 = (run: PaceYear[]) => at(run, 50);
+  if (blind.length > 0) {
+    add('Guardrails', 'Teaching-blind guided: rank at Y50', TEACHING_BLIND.rankY50, num, blind.map((run) => y50(run)?.rank ?? NaN));
+    add('Guardrails', 'Teaching-blind guided: left to build at Y50', TEACHING_BLIND.left, num, blind.map((run) => y50(run)?.left ?? NaN));
+  }
   const g = runs.Guided;
   add('Guardrails', 'Buffer: guided Y50 enrollment, share of natural', BUFFER.enrolledShare, pct, g.map((run, i) => (y50(run)?.enrolled ?? NaN) / (y50(nat[i])?.enrolled ?? NaN)));
   add('Guardrails', 'Buffer: guided Y50 prestige, share of natural', BUFFER.prestigeShare, pct, g.map((run, i) => (y50(run)?.prestige ?? NaN) / (y50(nat[i])?.prestige ?? NaN)));

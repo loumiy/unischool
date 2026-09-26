@@ -137,6 +137,12 @@ function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
               + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
       </p>
+      {breakdown.ceiling && (
+        <p className={`standing-note standing-ceiling${breakdown.ceiling.value <= breakdown.target + 0.05 ? ' binding' : ''}`}>
+          <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}
+          {breakdown.ceiling.value <= breakdown.target + 0.05 && ' It is holding the target down now.'}
+        </p>
+      )}
       <ul className="standing-rows">
         {breakdown.inputs.map((input) => (
           <StandingRow key={input.key} input={input} max={max} grade={breakdown.summer?.reportCard?.grades[input.key]} />

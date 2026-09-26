@@ -3,11 +3,12 @@ import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
-  FOUNDERS_HALL_ID, graduateCourseIds, graduateGateMet, graduatePrograms, isAcademicHall, milestoneSchools, programById, programOfCourse,
+  baseCourseCost, CATALOGUE_PRICE_GROWTH, FOUNDERS_HALL_ID, graduateCourseIds, graduateGateMet, graduatePrograms, isAcademicHall, milestoneSchools,
+  programById, programOfCourse,
 } from '../../data/techData';
 import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
-import { hallOf, isHoused, isInTransit, majorsOpen, refillOffers, slotOf } from './programOffers';
+import { hallOf, isHoused, isInTransit, refillOffers, slotOf } from './programOffers';
 import { dedicatedHalls, schoolFoundedKey } from './schools';
 import { darkPrograms } from './darkness';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
@@ -217,18 +218,26 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // the faculty gate to that person; omitted, any free slot in the field will do.
 // `financing`: a loan for the shortfall, or campaign-raised building money
 // (finance/treasury.ts), for placeables only; courses are paid in cash.
-// The curriculum committee (Plan 68): at most COURSE_DEVELOPMENT_SLOTS
-// undergraduate courses in development at once, however much money and
-// faculty the college has, so a catalogue of several hundred courses takes
-// decades to write rather than a few years. Graduate courses have their own
-// gates and are not counted.
+// The curriculum committee (Plan 68; the owner kept it in Plan 71): only so
+// many undergraduate courses can be in development at once, since writing a
+// curriculum takes the college's attention. Four seats, and one more at each
+// of COMMITTEE_PRESTIGE_STEPS, up to eight. Graduate courses have their own
+// gates and are not counted. The Curriculum tab shows the seats.
 export const COURSE_DEVELOPMENT_SLOTS = 4;
-const isUndergraduateCourse = (t: Buildable) => t.kind === 'course' && t.graduateProgram === undefined;
-export function coursesInDevelopment(s: GameState): number {
-  return s.tech.filter((t) => isUndergraduateCourse(t) && t.status === 'developing').length;
+export const COMMITTEE_PRESTIGE_STEPS: readonly number[] = [70, 80, 90, 100];
+export function committeeSeats(s: GameState): number {
+  return COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.filter((p) => s.self.reputation >= p).length;
+}
+// The prestige at which the next seat opens, or null at eight.
+export function nextCommitteeSeatAt(s: GameState): number | null {
+  return COMMITTEE_PRESTIGE_STEPS.find((p) => s.self.reputation < p) ?? null;
+}
+export const isUndergraduateCourse = (t: Buildable) => t.kind === 'course' && t.graduateProgram === undefined;
+export function coursesInDevelopment(s: GameState): Buildable[] {
+  return s.tech.filter((t) => isUndergraduateCourse(t) && t.status === 'developing');
 }
 export function courseSlotsFree(s: GameState): number {
-  return Math.max(0, COURSE_DEVELOPMENT_SLOTS - coursesInDevelopment(s));
+  return Math.max(0, committeeSeats(s) - coursesInDevelopment(s).length);
 }
 
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): boolean {
@@ -254,6 +263,31 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
   return node.status === 'available' && facultyOk && canAfford;
 }
 
+// Undergraduate courses on offer (developing or taught): the catalogue's
+// size, which prices every one not yet started (techData.ts's
+// CATALOGUE_PRICE_GROWTH).
+export function coursesOnOffer(s: GameState): number {
+  return s.tech.filter((t) => isUndergraduateCourse(t) && (t.status === 'developing' || t.status === 'done')).length;
+}
+
+export function cataloguePriceScale(s: GameState): number {
+  return CATALOGUE_PRICE_GROWTH ** coursesOnOffer(s);
+}
+
+const CATALOGUE_PRICE_ROUNDING = 10_000;
+
+// Re-lists every undergraduate course not yet started at the catalogue's
+// current scale. A started course keeps the price it was started at. Run after a start and
+// every week, so a loaded save is priced before anything is bought.
+export function repriceCatalogue(s: GameState): void {
+  const scale = cataloguePriceScale(s);
+  for (const t of s.tech) {
+    if (t.kind !== 'course' || (t.status !== 'locked' && t.status !== 'available')) continue;
+    const base = baseCourseCost(t.id);
+    if (base !== undefined) t.cost = Math.round((base * scale) / CATALOGUE_PRICE_ROUNDING) * CATALOGUE_PRICE_ROUNDING;
+  }
+}
+
 export function startDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
@@ -277,6 +311,7 @@ export function startDevelopment(s: GameState, node: Buildable, facultyId?: stri
     const chosen = facultyId ?? eligibleInstructors(s, node)[0]?.id;
     if (chosen) s.courseFaculty[node.id] = chosen;
   }
+  if (isUndergraduateCourse(node)) repriceCatalogue(s);
 }
 
 // Applies the apply-once completion effects (see BuildableEffects in
@@ -377,8 +412,6 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   } else {
     const hall = s.tech.find((t) => t.id === f.hallId);
     if (!s.programOffers.includes(f.programId) || !hall || !isAcademicHall(hall)) return false;
-    // New majors come at a pace (programOffers.ts, Plan 68).
-    if (majorsOpen(s) <= 0) return false;
   }
   const slots = s.halls[f.hallId];
   if (!slots || f.slot < 0 || f.slot >= slots.length || slots[f.slot].programId !== null) return false;
@@ -656,6 +689,7 @@ export function tickTech(s: GameState): void {
 
   // Every tick: the dynamic gates in meetsUnlockGates can cross any week.
   unlockAvailable(s);
+  repriceCatalogue(s);
   if (finished.length > 0 || arrived) checkMilestones(s);
   // Every week: a graduate gate may have opened, or the allowance of new
   // majors grown (Plan 68). A no-op while the offer is full.

@@ -6,9 +6,13 @@ Money is the game's clock. This document is what `financeSystem.ts`,
 ## Pacing model: money is the throttle, and the growth loop is what makes it bite
 
 **Money is the primary pacing resource, and it is a bottleneck, not a threat.**
-It is also the *only* throttle: there is no development-slot mechanic, and none
-is coming back. Any number of Buildables can be developing at once, and the
-single gate on starting one more is that **the school can actually pay for it** —
+It is the throttle for the first half of the game (the owner's rule, restated
+by [Plan 71](../plans/71-economy.md)): the thing that keeps a player waiting is
+saving for the next thing they want. The one other limit is the curriculum
+committee's seats on undergraduate courses (four, up to eight with prestige —
+see [curriculum.md](curriculum.md)), a bandwidth the owner kept on purpose; there
+is no allowance on new majors. Buildings are never queued, and the gate on
+starting one more is that **the school can actually pay for it** —
 cost is charged in full, up front, and a purchase it can't cover is simply not
 offered (plus the faculty course-slot gate on the curated `requiresFaculty`
 courses, which is a per-field capacity rule, not a pacing throttle). The pacing
@@ -35,10 +39,11 @@ is what the **growth loop** is for, and it is the shape everything in
    more* applicants at all. It is also what the school *pays*: salaries,
    sections and services all carry the market rate its standing commands.
 3. **Demand** — the applicant pool is prestige x price x word of mouth
-   (satisfaction). The prestige pool is a straight line, 490 applicants a
-   point above prestige 24 ([Plans 67](../plans/67-pacing-tuning.md) and 68; it was a
-   steep logistic that quadrupled between prestige 75 and 100), and beds throttle
-   it only in the founding years (full at 2,500). Enrollment is earned, never automatic — and the freshman
+   (satisfaction) x overcrowding. The prestige pool is a curve that trickles
+   early and reaches 56,000 at prestige 140 ([Plan 71](../plans/71-economy.md);
+   a straight line since [Plan 67](../plans/67-pacing-tuning.md), a steep logistic
+   before that), a price past the tolerance costs applicants faster than one
+   under it, and beds throttle it only in the founding years (full at 2,500). Enrollment is earned, never automatic — and the freshman
    class cannot exceed the seats the catalogue has left after graduation.
 4. **Revenue** — every class at the price it was admitted under, summed; the
    dominant income line (see
@@ -65,6 +70,38 @@ its first section from the week it finishes), while every payoff waits for the
 annual summer admissions boundary, and the prestige payoff waits for the
 summer report card on top of that. Adding capacity and students is supposed
 to hurt before the tuition heals it.
+
+### The catalogue's price (Plan 71)
+
+Income grows with the college — roughly tenfold between years 5 and 30 — so a
+fixed price list is dear in the first decade and pocket change by the third.
+Plan 71 prices the catalogue so money paces the first half:
+
+| Item | Before | Plan 71 |
+|---|---|---|
+| Undergraduate course, tier 1 / 2 / 3 (list) | $80k / $180k / $400k | $300k / $900k / $2.2M |
+| Their upkeep a week | $130 / $380 / $800 | $300 / $800 / $1,800 |
+| Graduate course, professional / doctoral | $6M / $4M | $9M / $6M |
+| Academic hall, first and ratio | $750k, ×1.3 | $2.5M, ×1.45 |
+| Academic hall, weeks (first / rest) | 16 / 24 | 26 / 36 |
+| Lab | $700k, 16 weeks | $3M, 26 weeks |
+| Dorms and facilities, weeks | — | ×1.3 |
+
+**The catalogue's price grows with the catalogue.** Every undergraduate course
+on offer raises the price of every one not yet started by 0.3%
+(`techData.ts`'s `CATALOGUE_PRICE_GROWTH`; `techSystem.ts`'s
+`repriceCatalogue`): the 378th course costs about three times its list price.
+A started course keeps the price it was started at. Founding a major is its
+entry course, so majors grow dearer too. Graduate courses keep their list
+price: a school's whole curriculum gates them already.
+
+**How long money binds** (the pacing scorecard's three players, three seeds,
+[`2026-09-pacing-economy.md`](../reviews/2026-09-pacing-economy.md)): a college
+at a fair price teaches half its courses by year 15–16 and adds its last
+graduate course between years 31 and 49; one charging just short of the red
+tier has a smaller early pool and more per student, teaches half by year 19–20
+and finishes by year 44–47. Every one reaches #1 by year 50 when it hand-picks
+faculty, and a teaching-blind one finishes around #16.
 
 ### The cost side (Plan 15)
 

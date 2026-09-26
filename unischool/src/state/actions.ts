@@ -8,7 +8,7 @@ import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { centredPlacement, footprintOf, isPlaceableKind } from './campusMap';
 import { initialTech, FOUNDERS_HALL_REPUTATION_BONUS, FOUNDERS_HALL_ID, ACADEMIC_HALL_SLOTS, programById } from '../data/techData';
-import { unlockAvailable } from '../systems/techtree/techSystem';
+import { repriceCatalogue, unlockAvailable } from '../systems/techtree/techSystem';
 import { refillOffers } from '../systems/techtree/programOffers';
 import { initialDorms } from '../data/campusData';
 import { seedTrees } from '../data/treeData';
@@ -489,6 +489,7 @@ function foundState(
   }
 
   refillOffers(state, FOUNDING_OFFER_GUARANTEE);
+  repriceCatalogue(state);
   return state;
 }
 

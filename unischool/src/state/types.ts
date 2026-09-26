@@ -172,6 +172,8 @@ export interface FunnelFactors {
   beauty?: number;
   // The identity tags' pull (Plan 31), 1 at none. Absent before it.
   tags?: number;
+  // Last year's overcrowding (Plan 71), 1 at none. Absent before it.
+  crowding?: number;
 }
 
 export interface FunnelRecord {

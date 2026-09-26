@@ -215,7 +215,10 @@ holds the whole model; `facultyAssignment.ts` holds the aggregates.
 
 This is what makes academic satisfaction more than "develop everything". A
 catalogue of 421 courses staffed by whoever was free is a school full of Ds, and
-it now reads as one.
+it now reads as one. Since [Plan 71](../plans/71-economy.md) the grades are most
+of academic satisfaction (80 of its 100 points, the library the other 20) and
+they cap prestige (see [progression.md](progression.md)), so hand-picking
+faculty is how a college climbs past the top 25.
 
 **The inputs are all things the player decided about a person:**
 
@@ -244,8 +247,8 @@ is the system working, a D on a veteran's course means the player overloaded
 them**, and those must stay distinguishable.
 
 **Campus facilities are deliberately NOT an input.** The library already reaches
-academic satisfaction through seats-per-student and already reaches prestige as
-a multiplier on curriculum breadth. A third path would let one building move the
+academic satisfaction through seats-per-student (20 of its 100 points since
+Plan 71) and already reaches prestige as a multiplier on curriculum breadth. A third path would let one building move the
 dominant input three ways at once.
 
 **An unstaffed course darkens its program** (Plan 59, `techtree/darkness.ts`).

@@ -43,7 +43,7 @@ import { LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { canPostSearch, searchCost } from '../../src/systems/faculty/facultySearch';
-import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site } from './moves';
+import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder } from './moves';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
 // What the line asks for needs only ASK_RESERVE_WEEKS: a player told to
@@ -103,7 +103,7 @@ function affords(s: GameState, cost: number, reserve: number): boolean {
 // a player looks for someone rather than waiting on the market forever.
 function hireFor(g: Game, field: string | undefined, reserve: number): boolean {
   if (!field || weeklyNet(g.s) <= 0) return false;
-  const c = cheapest(g.s.candidates.filter((x) => x.field === field).map((x) => ({ ...x, cost: x.salary })));
+  const c = hiringOrder(g.s.candidates.filter((x) => x.field === field))[0];
   if (!c) {
     if (canPostSearch(g.s, field) && affords(g.s, searchCost(g.s), reserve)) g.act({ type: 'POST_SEARCH', field });
     return false;
@@ -237,6 +237,7 @@ function background(g: Game, reserve: number): void {
   const growing = () => weeklyNet(g.s) > 0;
   foundOffer(g, { reserve });
   if (growing()) hireForBlocked(g, { reserve });
+  if (g.s.clock.week % TEND_EVERY_WEEKS === 0) tendTeaching(g, { reserve });
   if (growing()) developCourse(g, { reserve, pick: (items) => cheapest(items as readonly Buildable[]) as never });
   buildDorm(g, 0.9, { reserve });
   // The campus livable, when the line is busy with something else: the
@@ -297,6 +298,12 @@ export function createGuidedPlayer(): Player & { record: GuidedRecord } {
     act(g) {
       observe(g.s);
       const reserve = reserveOf(g.s, ASK_RESERVE_WEEKS);
+      // An overcrowded campus is fixed first, and saved for (Plan 71).
+      if (relieveCrowding(g, buildFor) === 'short') {
+        record.saving += 1;
+        observe(g.s);
+        return;
+      }
       const step = nextStep(g.s);
       if (!step) record.quiet += 1;
       // Saving: the line asks for something the cash does not cover yet, so

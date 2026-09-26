@@ -8,7 +8,8 @@ import {
 } from '../../data/studentLifeData';
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { extensionGain } from '../estate/estate';
-import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
+import { campusCourseScores } from '../faculty/facultyAssignment';
+import { GRADE_A, GRADE_C, gradeFor } from '../../data/courseQuality';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
@@ -95,9 +96,36 @@ function affordabilityBonus(s: GameState): number {
   return clamp(1 - ratio, 0, 1) * AFFORDABILITY_MAX_BONUS;
 }
 
-// Additive, capped bonus to `academic` from course quality, on top of the
-// library ratio, so either input alone carries the attribute only partway.
-const FACULTY_QUALITY_MAX_BONUS = 15; // added to `academic` when every course offered is graded at the top of the scale (see teachingSatisfaction)
+// Academic satisfaction (Plan 71) is mostly what students meet in class.
+// ACADEMIC_TEACHING_POINTS come from the courses, each measured against the
+// standard these students expect (academicStandard): better students demand
+// better teachers. The library's seats are worth ACADEMIC_LIBRARY_POINTS.
+// Full marks need every course at the standard, which is always an A: a
+// late-game reading, as new instructors start at C or D and mature over
+// years.
+export const ACADEMIC_TEACHING_POINTS = 80;
+export const ACADEMIC_LIBRARY_POINTS = 20;
+// Credit per course runs from nothing at a C to full at the standard, and
+// the mean is curved, so a campus of B's reads well short and full marks
+// need nearly every course at an A.
+const ACADEMIC_CREDIT_CURVE = 2;
+// The standard: an A for an intake of average quality or below, rising to a
+// strong A for the best students.
+const STANDARD_LOW_QUALITY = 40;
+const STANDARD_HIGH_QUALITY = 85;
+const STANDARD_AT_HIGH = GRADE_A + 8;
+export function academicStandard(s: GameState): number {
+  const q = clamp((s.students.incomingQuality - STANDARD_LOW_QUALITY) / (STANDARD_HIGH_QUALITY - STANDARD_LOW_QUALITY), 0, 1);
+  return GRADE_A + (STANDARD_AT_HIGH - GRADE_A) * q;
+}
+// 0..1: how close the courses on offer come to the standard, curved.
+export function teachingAgainstStandard(s: GameState): number {
+  const scores = campusCourseScores(s);
+  if (scores.length === 0) return 0;
+  const standard = academicStandard(s);
+  const credit = scores.reduce((sum, score) => sum + clamp((score - GRADE_C) / (standard - GRADE_C), 0, 1), 0) / scores.length;
+  return credit ** ACADEMIC_CREDIT_CURVE;
+}
 
 // Satisfaction's one consequence is word of mouth on the next admissions
 // pool (admissionsSystem.ts's WORD_OF_MOUTH_STRENGTH), so a class arriving
@@ -135,14 +163,6 @@ function ratioScore(servesPopulation: number, enrolled: number, targetRatio: num
   return clamp(100 * ratio ** curvature, ATTRIBUTE_SCORE_FLOOR, 100);
 }
 
-// Mean quality grade across every course currently offered, 0..1
-// (data/courseQuality.ts): what students actually experience, so improving
-// a weak course moves `academic` as much as opening one. No courses reads 0.
-function teachingSatisfaction(s: GameState): number {
-  const avg = campusAverageCourseQuality(s);
-  return avg === null ? 0 : clamp(avg / 100, 0, 1);
-}
-
 // How the students take the faculty's quirks (data/quirkData.ts): their
 // morale summed across the roster, scaled and capped either way.
 export function facultyMorale(s: GameState): number {
@@ -150,15 +170,23 @@ export function facultyMorale(s: GameState): number {
   return Math.max(-QUIRK_MORALE_CAP, Math.min(QUIRK_MORALE_CAP, sum * QUIRK_MORALE_PER_POINT));
 }
 
+// The library's share of `academic`: its seats against the students, up to
+// ACADEMIC_LIBRARY_POINTS. An empty campus reads full.
+function libraryPoints(s: GameState): number {
+  const enrolled = totalEnrolled(s.students);
+  if (enrolled <= 0) return ACADEMIC_LIBRARY_POINTS;
+  return clamp(servedPopulationFor(s, 'academic') / (enrolled * expectedRatio(s, 'academic')), 0, 1) * ACADEMIC_LIBRARY_POINTS;
+}
+
 export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttributes {
   const enrolled = totalEnrolled(s.students);
 
-  // Library ratio plus course-quality bonus, clamped to the shared band.
-  const academicLibraryRatio = ratioScore(servedPopulationFor(s, 'academic'), enrolled, expectedRatio(s, 'academic'), 1);
-  const academicFacultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
+  // Teaching against the standard, plus the library's seats (Plan 71).
+  const academicLibrary = libraryPoints(s);
+  const academicTeaching = teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS;
   // Sensible neighbors (systems/estate/pairing.ts), a couple of points at most.
   const pairing = pairingBumps(s);
-  const academic = clamp(academicLibraryRatio + academicFacultyBonus + pairing.academic + facultyMorale(s), ATTRIBUTE_SCORE_FLOOR, 100);
+  const academic = clamp(academicTeaching + academicLibrary + pairing.academic + facultyMorale(s), ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, expectedRatio(s, 'social'), SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
@@ -235,8 +263,9 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   const flat = flatBonusFor(s, attribute);
   if (flat > 0) bonuses.push({ label: 'Quad & other flat contributors', value: flat });
   if (attribute === 'academic') {
-    const facultyBonus = teachingSatisfaction(s) * FACULTY_QUALITY_MAX_BONUS;
-    if (facultyBonus > 0) bonuses.push({ label: 'Course quality', value: facultyBonus });
+    const teaching = teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS;
+    bonuses.push({ label: `Teaching, against a standard of ${gradeFor(academicStandard(s))} (${Math.round(academicStandard(s))}) for these students`, value: teaching });
+    bonuses.push({ label: 'Library seats', value: libraryPoints(s) });
   }
   if (attribute === 'social') {
     const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;

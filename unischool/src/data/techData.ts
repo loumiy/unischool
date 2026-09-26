@@ -34,13 +34,13 @@ const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
 
 // Development cost by tier (docs/design/economy.md). Tier 1 is priced so the
 // tier-1 build-out visibly tightens the surplus.
-const TIER_COURSE_COST: Record<number, number> = { 1: 80_000, 2: 180_000, 3: 400_000 };
+const TIER_COURSE_COST: Record<number, number> = { 1: 300_000, 2: 900_000, 3: 2_200_000 };
 
 // Weekly running cost of a finished course. Opening a tier raises opex at
 // once while the prestige it earns drifts in over years (the cost-leads-
 // revenue lag). financeSystem.ts sums effects.upkeepPerWeek live off every
 // 'done' Buildable.
-const COURSE_UPKEEP_PER_WEEK: Record<number, number> = { 1: 130, 2: 380, 3: 800 };
+const COURSE_UPKEEP_PER_WEEK: Record<number, number> = { 1: 300, 2: 800, 3: 1_800 };
 
 // Founders Hall is an ordinary six-slot academic hall, seeded 'done' and
 // pre-placed, so its cost is only shown in the build tray, never paid.
@@ -74,10 +74,10 @@ export const ACADEMIC_HALL_SLOTS = 6;
 // The first purchased hall waits on this many developed courses: the six the
 // college opens with plus two the player chose (the ladder's 'curriculum' milestone).
 export const FIRST_HALL_COURSE_GATE = 8;
-const ACADEMIC_HALL_FIRST_COST = 750_000;
-const ACADEMIC_HALL_COST_RATIO = 1.3;
-const ACADEMIC_HALL_FIRST_WEEKS = 16;
-const ACADEMIC_HALL_WEEKS = 24;
+const ACADEMIC_HALL_FIRST_COST = 2_500_000;
+const ACADEMIC_HALL_COST_RATIO = 1.45;
+const ACADEMIC_HALL_FIRST_WEEKS = 26;
+const ACADEMIC_HALL_WEEKS = 36;
 const ACADEMIC_HALL_UPKEEP_PER_WEEK = 3_000;
 // Named for the founding woodland (treeData.ts), not for a school or a
 // direction: a hall takes its school's name only once dedicated, and the map
@@ -377,8 +377,8 @@ const RESEARCH_FACILITY_BLURBS: Partial<Record<string, string>> = {
   HIST: 'Archives, reading rooms and a documents collection',
   FILM: 'Sound stages, edit bays and a screening theater',
 };
-const LAB_COST = 700_000;
-const LAB_WEEKS = 16;
+const LAB_COST = 3_000_000;
+const LAB_WEEKS = 26;
 const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expensive to keep running, and a lab serves one major's students rather than the whole campus
 // Each standing lab adds this to the campus-wide research-output multiplier,
 // read live off effects.researchRateBonus. Small on purpose: the gate is the
@@ -433,10 +433,10 @@ const CLINICAL_PRACTICUM_GATE: Partial<Record<string, string>> = {
 // The most expensive courses in the game, a rung above tier 3, so a mature
 // school with a finished catalog still has something academic to buy.
 // Professional schools cost more than doctorates.
-const PROFESSIONAL_COURSE_COST = 6_000_000;
+const PROFESSIONAL_COURSE_COST = 9_000_000;
 const PROFESSIONAL_COURSE_WEEKS = 40;
 const PROFESSIONAL_COURSE_UPKEEP_PER_WEEK = 12_000;
-const DOCTORAL_COURSE_COST = 4_000_000;
+const DOCTORAL_COURSE_COST = 6_000_000;
 const DOCTORAL_COURSE_WEEKS = 32;
 const DOCTORAL_COURSE_UPKEEP_PER_WEEK = 7_000;
 
@@ -689,6 +689,24 @@ function nodeId(prefix: string, num: number): string {
 // Expand the seed data into the flat Buildable[] the engine consumes:
 // 378 course Buildables, Founders Hall, the hall chain and the graduate
 // catalog.
+// The deeper the catalogue, the costlier each addition (Plan 71): every
+// undergraduate course on offer raises the price of every one not yet
+// started by this factor (techSystem.ts's repriceCatalogue). Income grows
+// with the college, so a fixed price list goes cheap by mid-game; a price
+// that grows with the catalogue keeps money the pace of the first half. The
+// list above is the price with nothing on offer. Graduate courses keep their
+// list price: a school's whole curriculum gates them already.
+export const CATALOGUE_PRICE_GROWTH = 1.003;
+
+let baseCourseCosts: Map<string, number> | null = null;
+
+// An undergraduate course's listed price before the catalogue's growth;
+// undefined for anything else.
+export function baseCourseCost(id: string): number | undefined {
+  baseCourseCosts ??= new Map(initialTech().filter((t) => t.kind === 'course' && t.graduateProgram === undefined).map((t) => [t.id, t.cost]));
+  return baseCourseCosts.get(id);
+}
+
 export function initialTech(): Buildable[] {
   const nodes: Buildable[] = [];
 

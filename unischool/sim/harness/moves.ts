@@ -16,11 +16,14 @@
 // ---------------------------------------------------------------------
 
 import type { Buildable, GameState, SatisfactionAttributes } from '../../src/state/types';
-import { totalEnrolled } from '../../src/state/types';
+import { totalEnrolled, WEEKS_PER_YEAR } from '../../src/state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById, type ProgramInfo } from '../../src/data/techData';
 import {
-  canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, hasFreeFacultySlot,
+  canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, hasFreeFacultySlot, hasFreeSlot,
 } from '../../src/systems/techtree/techSystem';
+import { courseQuality, facultyLoads, projectedQuality } from '../../src/systems/faculty/facultyAssignment';
+import { GRADE_A, qualityOf, tierOf } from '../../src/data/courseQuality';
+import { CROWDING_GRACE, crowdingCoverages } from '../../src/systems/prestige/prestigeSystem';
 import { claimedSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
 import type { Game } from './game';
@@ -137,7 +140,7 @@ export function hireForBlocked(g: Game, { pick = first, reserve = 0 }: MoveOptio
       .map((t) => t.requiresFaculty!)
       .filter((field) => !hasFreeFacultySlot(s, field)),
   );
-  const choice = pick(s.candidates.filter((c) => blocked.has(c.field) && affords(s, c.salary, reserve)));
+  const choice = pick(hiringOrder(s.candidates.filter((c) => blocked.has(c.field) && affords(s, c.salary, reserve))));
   if (!choice) return false;
   g.act({ type: 'HIRE_FACULTY', facultyId: choice.id });
   return true;
@@ -162,4 +165,103 @@ export function buildDorm(g: Game, fill: number, { reserve = 0 }: MoveOptions = 
   const wanted = s.students.capacity === 0 ? enrolled > 0 : enrolled / s.students.capacity >= fill;
   const next = buildable(s, reserve).find((t) => t.kind === 'dorm');
   return wanted && next ? site(g, next) : false;
+}
+
+// Tend the teaching (Plan 71): prestige is held under a ceiling set by how
+// many courses earn an A, and academic satisfaction reads every course's
+// grade, so a player aiming for the top manages who teaches what. Three
+// steps, weakest courses first:
+//   1. a course below an A moves to someone on the roster who would teach
+//      it at least TEND_MARGIN points better now;
+//   2. if its teacher will never reach an A on it (their potential is too
+//      low), hire a candidate who will, at most `hires` a call — step 1
+//      moves the course to them once they have grown past its teacher;
+//   3. anyone left teaching nothing, and not on a research team, is let go.
+// Whether the players hand-pick faculty (Plan 71). Off, a player hires the
+// cheapest candidate and never tends the teaching: the teaching-blind line
+// the scorecard reads against the owner's rule that building everything
+// alone reaches the top 25, and only chosen faculty go further.
+export const TEACHING = { care: true };
+
+// Candidates in the order a player would take them: the best teacher first
+// when it cares, the cheapest when it does not.
+export function hiringOrder<T extends { teachingPotential: number; salary: number }>(candidates: readonly T[]): T[] {
+  return [...candidates].sort((a, b) => (TEACHING.care ? b.teachingPotential - a.teachingPotential : a.salary - b.salary));
+}
+
+export const TEND_EVERY_WEEKS = 4;
+const TEND_MARGIN = 4;
+const TEND_IDLE_YEARS = 8;
+
+// What `f` will score on `t` at their potential, under `load` of `slots`.
+function eventualScore(t: Buildable, f: { teachingPotential: number; acclaim: number; courseSlots: number }, load: number): number {
+  return qualityOf({ teaching: f.teachingPotential, acclaim: f.acclaim, load, slots: f.courseSlots, tier: tierOf(t.id) }).score;
+}
+
+export function tendTeaching(g: Game, { reserve = 0, hires = 2 }: MoveOptions & { hires?: number } = {}): boolean {
+  if (!TEACHING.care) return false;
+  // Every action returns a new state, so each read below is of g.s, never a
+  // copy taken before an action.
+  let acted = false;
+  let hired = 0;
+  const weak = g.s.tech
+    .map((t) => ({ t, q: courseQuality(g.s, t) }))
+    .filter((x): x is { t: Buildable; q: NonNullable<typeof x.q> } => x.q !== null && x.q.score < GRADE_A)
+    .sort((a, b) => a.q.score - b.q.score);
+  for (const { t, q } of weak) {
+    const loads = facultyLoads(g.s);
+    const current = g.s.courseFaculty[t.id];
+    const better = eligibleInstructors(g.s, t, t.id)
+      .filter((f) => f.id !== current)
+      .map((f) => ({ f, score: projectedQuality(g.s, t, f, loads).score }))
+      .sort((a, b) => b.score - a.score)[0];
+    if (better && better.score >= q.score + TEND_MARGIN) {
+      g.act({ type: 'REASSIGN_COURSE_FACULTY', courseId: t.id, facultyId: better.f.id });
+      acted = true;
+      continue;
+    }
+    if (hired >= hires) continue;
+    const teacher = g.s.faculty.find((f) => f.id === current);
+    if (teacher && eventualScore(t, teacher, loads.get(teacher.id) ?? 1) >= GRADE_A) continue;
+    // Someone in the field already on the way up counts as the hire.
+    const coming = g.s.faculty.some((f) => f.field === t.requiresFaculty && f.id !== current
+      && hasFreeSlot(g.s, f) && eventualScore(t, f, (loads.get(f.id) ?? 0) + 1) >= GRADE_A);
+    if (coming) continue;
+    const candidate = g.s.candidates
+      .filter((c) => c.field === t.requiresFaculty && eventualScore(t, c, 2) >= GRADE_A)
+      // A salary is a weekly cost: the week's pay against the reserve.
+      .filter((c) => affords(g.s, c.salary / WEEKS_PER_YEAR, reserve))
+      .sort((a, b) => b.teachingPotential - a.teachingPotential)[0];
+    if (!candidate) continue;
+    g.act({ type: 'HIRE_FACULTY', facultyId: candidate.id });
+    hired += 1;
+    acted = true;
+  }
+  const researching = new Set(Object.values(g.s.research.initiatives).flatMap((i) => i?.participantIds ?? []));
+  const teaching = new Set(Object.values(g.s.courseFaculty));
+  const idle = g.s.faculty.filter((f) => !teaching.has(f.id) && !researching.has(f.id)
+    // A recent hire is waiting to take a course over (step 2).
+    && f.tenureWeeks >= WEEKS_PER_YEAR * TEND_IDLE_YEARS);
+  for (const f of idle) {
+    g.act({ type: 'FIRE_FACULTY', facultyId: f.id });
+    acted = true;
+  }
+  return acted;
+}
+
+// Relieve crowding (Plan 71): a campus short of beds, dining or health
+// shrinks next year's pool steeply, so the worst such need is built for
+// before anything else. Returns 'built', 'short' (crowded, and the fix is not
+// affordable: save for it) or 'fine'.
+export function relieveCrowding(
+  g: Game,
+  buildFor: (g: Game, attribute: keyof SatisfactionAttributes, reserve: number) => boolean,
+  reserve = 0,
+): 'built' | 'short' | 'fine' {
+  const worst = crowdingCoverages(g.s).find((c) => c.attribute !== undefined && c.coverage < CROWDING_GRACE);
+  if (!worst?.attribute) return 'fine';
+  // Something for it is already going up.
+  const underway = g.s.tech.some((t) => t.status === 'developing' && (t.kind === 'dorm' ? worst.attribute === 'housing' : t.effects?.satisfactionAttribute === worst.attribute));
+  if (underway) return 'fine';
+  return buildFor(g, worst.attribute, reserve) ? 'built' : 'short';
 }

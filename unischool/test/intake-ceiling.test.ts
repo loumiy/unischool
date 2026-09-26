@@ -132,6 +132,9 @@ console.log('intake ceiling tests');
 {
   const start = fresh();
   const atSummer = toSummer(start);
+  // A college that has built nothing is overcrowded, which shrinks the pool
+  // (crowding-pool.test.ts); this reads the ceiling alone.
+  atSummer.students.crowdingYearSum = 0;
   const ceiling = intakeCeiling(atSummer);
   const wide = projectAdmissions(atSummer.self.reputation, atSummer.finance.listedTuition, atSummer.students.capacity, atSummer.students.priorYearAvgSatisfaction, undefined, 1);
   assert(wide.enrolled > ceiling.seatsLeft, `taking the whole pool would overrun the room (${wide.enrolled} against ${ceiling.seatsLeft})`);
