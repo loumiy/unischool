@@ -16,7 +16,7 @@ import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
   applyReportCard, computePrestigeTarget, gradeYear, prestigeBreakdown,
-  PRESTIGE_FALL_RATE, PRESTIGE_RISE_RATE, setPrestigeForPlaytest,
+  PRESTIGE_FALL_RATE, PRESTIGE_MAX_RISE, PRESTIGE_RISE_RATE, setPrestigeForPlaytest,
 } from '../src/systems/prestige/prestigeSystem';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
@@ -73,7 +73,11 @@ console.log('report card tests');
   setPrestigeForPlaytest(s, target - 30);
   const up = gradeYear(s);
   assert(near(up.score, target), 'the card grades the live target');
-  assert(near(up.after - up.before, 30 * PRESTIGE_RISE_RATE), `thirty below its grade, a school climbs ${30 * PRESTIGE_RISE_RATE} (${(up.after - up.before).toFixed(2)})`);
+  const climb = Math.min(30 * PRESTIGE_RISE_RATE, PRESTIGE_MAX_RISE);
+  assert(near(up.after - up.before, climb), `thirty below its grade, a school climbs ${climb}: the rise rate's share, at most ${PRESTIGE_MAX_RISE} (${(up.after - up.before).toFixed(2)})`);
+  setPrestigeForPlaytest(s, target - 5);
+  const near5 = gradeYear(s);
+  assert(near(near5.after - near5.before, Math.min(5 * PRESTIGE_RISE_RATE, PRESTIGE_MAX_RISE)), 'five below it, the rise rate alone decides');
 
   setPrestigeForPlaytest(s, target + 30);
   const down = gradeYear(s);
@@ -104,7 +108,12 @@ console.log('report card tests');
     assert(s.self.reputation > last, `year ${year}: a low school with a good grade climbs (${last.toFixed(1)} -> ${s.self.reputation.toFixed(1)})`);
     last = s.self.reputation;
   }
-  assert(target - s.self.reputation < (target - 20) * (1 - PRESTIGE_RISE_RATE) ** 10 + 1e-9, 'and closes the gap at the rise rate, undiminished');
+  // Plan 67: the climb is at most PRESTIGE_MAX_RISE a summer, so ten
+  // summers close no more than ten times that, and no less than the rise
+  // rate or the cap allows each year.
+  let expected = 20;
+  for (let year = 1; year <= 10; year += 1) expected += Math.min((target - expected) * PRESTIGE_RISE_RATE, PRESTIGE_MAX_RISE);
+  assert(near(s.self.reputation, expected), `and climbs at the rise rate, capped (${s.self.reputation.toFixed(1)} against ${expected.toFixed(1)})`);
 }
 
 // ---- the card carries a grade per input, keyed as the breakdown keys them ----

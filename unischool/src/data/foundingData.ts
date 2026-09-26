@@ -17,7 +17,7 @@ export interface FoundingPreset {
 // price tolerance), so the opening has no false cash scare, while raising it
 // at the first summer is still a real decision because it shrinks the pool
 // (admissionsSystem.ts's PRICE_SENSITIVITY).
-export const STARTING_TUITION = 13_000;
+export const STARTING_TUITION = 16_000;
 
 // Where the tuition slider ends: a control needs a top, not a policy cap.
 // Deliberately out of reach: no player the harness has closes a fifty-year

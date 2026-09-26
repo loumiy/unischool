@@ -37,6 +37,11 @@ const PRESTIGE_DRIFT_RATE = 0.0025;
 // The summer step, as shares of the gap to the year score.
 export const PRESTIGE_RISE_RATE = 0.20;
 export const PRESTIGE_FALL_RATE = 0.30;
+// The most one summer can add (Plan 67): standing is earned a year at a time,
+// however far the college has outgrown it. Without it a college that filled
+// its catalog in a decade reached the cap in fifteen years; with it the
+// climb from the founding's low fifties to 150 takes about forty.
+export const PRESTIGE_MAX_RISE = 2.0;
 
 // Weekly movement between summers; the summer step is the beat.
 const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
@@ -237,6 +242,7 @@ export interface StandingInput {
 
 export interface SummerModel {
   riseRate: number;
+  maxRise: number;
   fallRate: number;
   reportCard: ReportCard | null;
 }
@@ -385,6 +391,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
   ], prestigeReadings(s), {
     riseRate: PRESTIGE_RISE_RATE,
+    maxRise: PRESTIGE_MAX_RISE,
     fallRate: PRESTIGE_FALL_RATE,
     reportCard: s.self.reportCard,
   });
@@ -511,7 +518,8 @@ export function gradeYear(s: GameState): ReportCard {
   const before = s.self.reputation;
   const gap = made.target - before;
   const rate = gap >= 0 ? PRESTIGE_RISE_RATE : PRESTIGE_FALL_RATE;
-  const after = clamp(before + gap * rate, PRESTIGE_MIN, PRESTIGE_MAX);
+  const step = gap >= 0 ? Math.min(gap * rate, PRESTIGE_MAX_RISE) : gap * rate;
+  const after = clamp(before + step, PRESTIGE_MIN, PRESTIGE_MAX);
   return { year: s.clock.year, score: made.target, grades, before, after };
 }
 

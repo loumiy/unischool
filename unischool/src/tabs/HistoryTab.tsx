@@ -101,10 +101,11 @@ function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
 // The summer model, in a sentence: what the year is grading toward, how
 // the step works, and last summer's card if there is one.
 function summerNote(breakdown: StandingBreakdown, gap: number): string {
-  const { riseRate, fallRate, reportCard } = breakdown.summer!;
+  const { riseRate, maxRise, fallRate, reportCard } = breakdown.summer!;
+  const step = gap > 0 ? Math.min(gap * riseRate, maxRise) : Math.abs(gap) * fallRate;
   const grading = `This year is grading ${breakdown.target.toFixed(1)}; at the summer, prestige closes `
-    + `${Math.round(riseRate * 100)}% of a gap upward and ${Math.round(fallRate * 100)}% downward`
-    + (Math.abs(gap) < 0.05 ? '.' : ` — ${gap > 0 ? '+' : '−'}${(Math.abs(gap) * (gap > 0 ? riseRate : fallRate)).toFixed(1)} if nothing changes.`);
+    + `${Math.round(riseRate * 100)}% of a gap upward (at most ${maxRise} points) and ${Math.round(fallRate * 100)}% downward`
+    + (Math.abs(gap) < 0.05 ? '.' : ` — ${gap > 0 ? '+' : '−'}${step.toFixed(1)} if nothing changes.`);
   const last = reportCard
     ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`
     : ' No summer has graded it yet.';
