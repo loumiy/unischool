@@ -8,6 +8,7 @@ import type { GameState } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
+import Toasts from './components/Toasts';
 import TitleScreen from './components/TitleScreen';
 import { applySettings } from './settings';
 import HallOfFame from './components/HallOfFame';
@@ -325,6 +326,8 @@ export default function App() {
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
         <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+        {/* The week's small news (Plan 70H), and a school's banner. */}
+        <Toasts s={shellLive ? s : null} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
         {!overlay && <Pennant s={s} />}

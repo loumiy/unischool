@@ -4,12 +4,12 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import { CUES, SFX, THEMES, audioProblems, chordNotes, midiToHz, sectionAt, themeById } from '../src/data/audioData';
-import { CEREMONIAL_FROM, ambienceFor, cuesFor, linesSince, themeFor, winterDepth } from '../src/components/audio/director';
+import { CEREMONIAL_FROM, SILENT_TOPICS, ambienceFor, cuesFor, linesSince, stateCues, themeFor, winterDepth } from '../src/components/audio/director';
 import { DEFAULT_AUDIO, normaliseAudio } from '../src/components/audio/settings';
 import { AudioEngine } from '../src/components/audio/engine';
 import { RUNG_FREEZE, RUNG_TIGHT, foundingDistress } from '../src/systems/finance/distress';
 import { OCCASIONS } from '../src/systems/athletics/season';
-import type { GameState, LogEntry, VarsityTeam } from '../src/state/types';
+import { LOG_TOPICS, type GameState, type LogEntry, type VarsityTeam } from '../src/state/types';
 
 bindScriptStream(3340);
 
@@ -126,7 +126,13 @@ for (const theme of THEMES) {
     line('a loss', { topic: 'team', kind: 'bad' }),
     line('texture'),
   ]);
-  assert(cues.join() === 'complete,tick,coin,cheer', `each effect once, in order, a win cheered and a loss not (${cues.join()})`);
+  assert(cues.join() === 'complete,tick,coin,cheer,loss', `each effect once, in order, a win cheered and a loss lamented (${cues.join()})`);
+  assert(cuesFor([line('the red', { topic: 'money', kind: 'bad' })]).join() === 'alarm', 'money going the wrong way is an alarm, not a coin');
+  assert(cuesFor([line('a venue', { topic: 'team', kind: 'info' })]).length === 0, 'a venue finishing is its building\'s line, not the team\'s');
+  // Plan 70H: no topic is silent by accident.
+  const unheard = LOG_TOPICS.filter((t) => CUES[t] === undefined && SILENT_TOPICS[t] === undefined);
+  assert(unheard.length === 0, `every log topic cues an effect or is listed as silent, with its reason (${unheard.join(', ')})`);
+  assert(Object.keys(SILENT_TOPICS).every((t) => CUES[t as keyof typeof CUES] === undefined), 'a silent topic has no cue');
   const log = [line('c'), line('b'), line('a')];
   assert(linesSince(log, undefined) === null, 'nothing heard yet is a load, not news');
   assert(linesSince(log, { ...log[1] })?.length === 1, 'the lines newer than the last heard, by their words');
@@ -147,7 +153,28 @@ for (const theme of THEMES) {
 }
 
 if (failures === 0) {
-  console.log(`  ✓ all ${checks} checks passed`);
+  // ---- What the state says that no line does (Plan 70H) ----
+{
+  const before = at(6);
+  const after = structuredClone(before);
+  assert(stateCues(before, after).length === 0, 'a week with nothing new is silent');
+  after.placements['X-NEW'] = { row: 1, col: 1, w: 1, h: 1 };
+  assert(stateCues(before, after).includes('place'), 'ground broken is a thump');
+  assert(stateCues(after, before).includes('demolish'), 'a building gone is its demolition');
+  const red = structuredClone(before);
+  before.finance.cash = 10;
+  red.finance.cash = -10;
+  assert(stateCues(before, red).includes('alarm'), 'cash going into the red is an alarm');
+  assert(!stateCues(red, red).includes('alarm'), 'and staying there is not, week after week');
+  const title = structuredClone(before);
+  title.orgs.titles.push({ sport: 'football', year: 6 });
+  assert(stateCues(before, title).includes('fanfare'), 'a title is a fanfare');
+  const up = structuredClone(before);
+  up.self.reputation += 40;
+  assert(stateCues(before, up).includes('rankUp') && stateCues(up, before).includes('rankDown'), 'the rank moving is heard both ways');
+}
+
+console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);
 } else {
   console.error(`\n${failures} of ${checks} checks FAILED`);

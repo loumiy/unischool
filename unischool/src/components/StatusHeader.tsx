@@ -76,6 +76,24 @@ function termName(week: number): string {
 // The two halves of the bottom Toolbar band (Toolbar.tsx composes them).
 // Left: operating funds (also the Treasury button) and the headline stats,
 // bare figures only.
+// The rank's move, for a moment after it changes (Plan 70H): 'rank-up' or
+// 'rank-down', a flash on the pill; the ordinal itself does not count
+// through places. The first reading is where the run stands, not a move.
+const RANK_FLASH_MS = 1_600;
+function useRankFlash(rank: number): string {
+  const [flash, setFlash] = useState('');
+  const last = useRef<number | null>(null);
+  useEffect(() => {
+    const was = last.current;
+    last.current = rank;
+    if (was === null || was === rank) return;
+    setFlash(rank < was ? 'rank-up' : 'rank-down');
+    const timer = window.setTimeout(() => setFlash(''), RANK_FLASH_MS);
+    return () => window.clearTimeout(timer);
+  }, [rank]);
+  return flash;
+}
+
 export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
   s: GameState; onOpenTreasury: () => void; treasuryOpen: boolean;
 }) {
@@ -85,6 +103,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
   // 50 is still the event (rivalsSystem.ts's TOP_50_CUTOFF).
   const rank = playerRank(s);
   const fundsHint = useId();
+  const rankFlash = useRankFlash(rank);
 
   return (
     <>
@@ -105,7 +124,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
       <div className="toolbar-stats">
-        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.rank(s.rivals.length + 1)}>
+        <FigureBox className={`toolbar-stat ${rankFlash}`} above hint={FIGURE_HINTS.rank(s.rivals.length + 1)}>
           <RankIcon />
           <span className="stat-label">Rank</span>
           <span className="stat-value">#{rank}</span>

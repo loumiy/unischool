@@ -1114,27 +1114,32 @@ export interface SeenState {
 // What a log line reports, set on lines the year in review
 // (state/yearInReview.ts) and the toasts group by. Tagged at write time so
 // rewording a message cannot break them. Untagged lines are texture.
-export type LogTopic =
-  | 'course'              // a course finished developing
-  | 'building'            // a hall, dorm or facility finished
-  | 'program'             // a program founded in a hall
-  | 'milestone'           // a milestone awarded (established, distinguished, a school founded)
-  | 'ambition'            // a promise made, kept or missed (systems/promises)
-  | 'appointment'         // somebody joined the faculty
-  | 'departure'           // somebody left it
-  | 'prize'               // a research prize
-  | 'research-started'    // an initiative commissioned
-  | 'research-concluded'  // an initiative ended with nothing worth a modal (papers, or nothing)
-  | 'research-reported'   // an initiative ended and a report is queued
-  | 'publication'
-  | 'breakthrough'
-  | 'grant'
-  | 'demand-raised' | 'demand-met' | 'demand-failed'
-  | 'petition'            // a club or chapter petitioned for recognition
-  | 'organisations'       // the summer digest's answer
-  | 'candidate'           // somebody worth noticing listed on the market
-  | 'team'                // a varsity team's venue finished
-  | 'admissions' | 'attrition' | 'report-card' | 'money';
+// Every topic, as a list the sound test can walk (Plan 70H: a topic with
+// no cue must say so, see audio/director.ts's SILENT_TOPICS).
+export const LOG_TOPICS = [
+  'course',              // a course finished developing
+  'building',            // a hall, dorm or facility finished
+  'program',             // a program founded in a hall
+  'milestone',           // a milestone awarded (established, distinguished, a school founded)
+  'ambition',            // a promise made, kept or missed (systems/promises)
+  'appointment',         // somebody joined the faculty
+  'departure',           // somebody left it
+  'prize',               // a research prize
+  'research-started',    // an initiative commissioned
+  'research-concluded',  // an initiative ended with nothing worth a modal (papers, or nothing)
+  'research-reported',   // an initiative ended and a report is queued
+  'publication',
+  'breakthrough',
+  'grant',
+  'demand-raised', 'demand-met', 'demand-failed',
+  'petition',            // a club or chapter petitioned for recognition
+  'organisations',       // the summer digest's answer
+  'candidate',           // somebody worth noticing listed on the market
+  'team',                // a varsity team's venue finished, or a game played
+  'event',               // a catalogue event answered (Plan 70H)
+  'admissions', 'attrition', 'report-card', 'money',
+] as const;
+export type LogTopic = (typeof LOG_TOPICS)[number];
 
 export interface LogEntry {
   year: number;
