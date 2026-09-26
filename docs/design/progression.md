@@ -180,10 +180,23 @@ the summer. The inputs, with their weights:
   PR B met it: every athletics venue carries a contribution, so the score
   reads 0.55 at a full build rather than the rec chain's 0.15, and the weight
   is restored.
-- **crowding** — a *penalty* of up to 25, not an input: the worst of the five
-  coverage ratios and the instruction-capacity ratio, averaged over the year
-  as a shortfall below 85% coverage. A subtraction rather than a weighted
-  input, so it can take a school *below* what its curriculum earned.
+- **crowding** — a *penalty* of up to 25, not an input: the worst of the
+  housing, dining and health coverage ratios and the instruction-capacity
+  ratio, averaged over the year as a shortfall below 85% coverage (Plan 71
+  dropped the library and social space: a college that has not built one is
+  short of it, not overcrowded). A subtraction rather than a weighted input,
+  so it can take a school *below* what its curriculum earned. The same
+  reading shrinks next year's applicant pool (see
+  [admissions.md](admissions.md)).
+
+**The teaching standard caps the target** ([Plan 71](../plans/71-economy.md),
+the owner's rule: "you don't become a highly prestigious school with mediocre
+teaching"). Every graded course scores grade points (A 1, B 0.65, C 0.35,
+D 0.1, F 0); their mean sets a ceiling of 88 + 62 × mean^1.3
+(`prestigeSystem.ts`'s `teachingCeiling`), and the target is the lower of that
+and the weighted sum. Mostly B's and C's hold a college near 113 — about the
+top 25 once the curriculum is built — and only A's everywhere reach 150. The
+History tab names the ceiling and says when it binds.
 
 **Faculty quality is no longer an input of its own.** It used to average every
 hire's teaching and research straight off the roster, which was the right
