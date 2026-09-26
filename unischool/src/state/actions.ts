@@ -99,6 +99,9 @@ export type Action =
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
   | { type: 'SET_DRAW_RATE'; rate: number }
   | { type: 'MOVE_TO_ENDOWMENT'; amount: number }
+  // The standing sweep (systems/finance/sweep.ts): weeks of expenses kept
+  // as cash, one of SWEEP_STEPS, or null for off.
+  | { type: 'SET_SWEEP'; weeks: number | null }
   | { type: 'READ_BOARD_LETTER' }
   | { type: 'READ_DEMAND' }
   | { type: 'HOLD_REUNION'; classYear: number }

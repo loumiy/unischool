@@ -22,7 +22,7 @@
 
 import type { GameState } from '../src/state/types';
 import { totalEnrolled } from '../src/state/types';
-import { playerRank } from '../src/systems/rivals/rivalsSystem';
+import { playerRank, selfFinancial } from '../src/systems/rivals/rivalsSystem';
 import { financeBreakdown, weeklyNet } from '../src/systems/finance/financeSystem';
 import { milestoneSchools, programs } from '../src/data/techData';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
@@ -43,6 +43,12 @@ export interface PaceYear {
   // What is still to build: majors and graduate programs to found, courses
   // to teach, schools to distinguish (Plan 69). 0 means everything.
   left: number;
+  // Money (Plan 70D): lifetime grants and initiative funding, the
+  // endowment, and Financial strength on the report's 0–100 scale.
+  grantIncome: number;
+  funding: number;
+  endowment: number;
+  financial: number;
   // The guardrails.
   cash: number;
   opexPerWeek: number;
@@ -74,6 +80,10 @@ function readYear(s: GameState, year: number, netPerWeek: number): PaceYear {
     schools: milestoneSchools().filter((m) => s.milestones[schoolFoundedKey(m.schoolName)]).length,
     distinguished: milestoneSchools().filter((m) => s.milestones[`school-distinguished:${m.schoolName}`]).length,
     gradCourses: s.tech.filter((t) => t.graduateProgram !== undefined && t.status === 'done').length,
+    grantIncome: s.research.grantIncome,
+    funding: s.research.funding ?? 0,
+    endowment: s.finance.endowment,
+    financial: selfFinancial(s) * (100 / 150),
     cash: s.finance.cash,
     opexPerWeek: financeBreakdown(s).totalExpenses,
     lowestAttribute: Math.min(...Object.values(scores)),
@@ -172,11 +182,13 @@ export const CATALOGUE: Array<{ label: string; key: Catalogue; mark: (end: numbe
 ];
 
 // Guardrails: the guided player's buffer, price mattering both ways, the
-// natural line's welfare, and (watched only) the money it piles up.
+// natural line's welfare, research as a modest profit (Plan 70D: lifetime
+// grants over lifetime initiative funding), and (watched only) the money it
+// piles up and each player's Financial strength.
 export const BUFFER = { enrolledShare: { min: 0.85 }, prestigeShare: { min: 0.85 }, rank: { max: 10 } };
 export const PRICE_MATTERS = { fairEnrolledOverNatural: { min: 1.1 }, naturalNetOverFair: { min: 1.25 } };
 export const WELFARE = { yearsBelow50AfterY5: { max: 0 } };
-export const MONEY = { cashY40InDecadesOfOpex: { max: 1 } };
+export const MONEY = { cashY40InDecadesOfOpex: { max: 1 }, grantsOverFunding: { min: 1.7, max: 2.3 }, financialY50: { min: 60 } };
 
 // ---- The scoring ----
 
@@ -303,8 +315,13 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] 
   add('Guardrails', 'Price matters: fair-price Y50 enrollment over natural', PRICE_MATTERS.fairEnrolledOverNatural, times, nat.map((run, i) => fairEnrolled(i) / (y50(run)?.enrolled ?? NaN)));
   add('Guardrails', 'Price matters: natural Y50 net over fair-price', PRICE_MATTERS.naturalNetOverFair, times, nat.map((run, i) => (y50(run)?.netPerWeek ?? NaN) / fairNet(i)));
   add('Guardrails', 'Welfare: natural years after Y5 with an attribute under 50', WELFARE.yearsBelow50AfterY5, num, nat.map((run) => run.filter((y) => y.year > 5 && y.lowestAttribute < 50).length));
+  add('Guardrails', 'Research: natural lifetime grants over initiative funding', MONEY.grantsOverFunding, times,
+    nat.map((run) => (y50(run)?.grantIncome ?? NaN) / (y50(run)?.funding ?? NaN)));
   add('Guardrails', 'Money (watched): natural Y40 cash, in decades of opex', MONEY.cashY40InDecadesOfOpex, dec,
     nat.map((run) => (at(run, 40)?.cash ?? NaN) / ((at(run, 40)?.opexPerWeek ?? NaN) * 520)), true);
+  for (const player of PACING_PLAYERS) {
+    add('Guardrails', `Financial strength (watched): ${player} Y50, of 100`, MONEY.financialY50, num, runs[player].map((run) => y50(run)?.financial ?? NaN), true);
+  }
   return rows;
 }
 

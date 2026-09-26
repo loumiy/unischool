@@ -199,6 +199,28 @@ operating margin — the week's net less the endowment payout and the annual
 fund, over operating cost — is the figure a mature college is read by. What the money is *for* late in a
 run (the capital projects, the endowment's half of them) is Plan 33's.
 
+### Idle cash, and the standing sweep (Plan 70D)
+
+Financial strength, one of the report's six standings, reads the endowment
+per student (full marks at $80,000), not cash. A player who never moved money
+in was graded F however rich: the natural line finished with $49B in cash and
+an F. Two things answer that, and the endowment stays a choice
+(`systems/finance/sweep.ts`):
+
+- **A standing sweep** in the Treasury: keep 13, 26 or 52 weeks of expenses
+  as cash and move the rest into the endowment at each quarter's close, **until
+  the endowment reaches the full mark**. Off until set.
+- **The board's letter,** the first time cash has sat above a year of
+  expenses for a year with no sweep set; its button (and the next-step line)
+  sets the sweep at 26 weeks. A reminder comes at most once a decade.
+
+The cap at the full mark is the owner's call. Uncapped, swept cash
+compounded: the payout came back as income and was swept again, and the
+natural line's endowment reached $80B and its weekly net $80M by year 50,
+growing 44% in the last decade instead of coasting. Capped, the natural line
+grades full marks from about year 10, its net is where Plans 67–69 left it,
+and cash above the mark piles up as before (watched on the scorecard).
+
 The same plan measured the other end. **The founding has no slack of its
 own**: the economy is a threshold system, and a player who charges a tenth
 less than the harness's price, or whose costs run a tenth higher, stalled

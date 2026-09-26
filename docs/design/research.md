@@ -172,10 +172,21 @@ draw an output at 0.5–3.4% a week is gone; three legible rules replace it:
   never writes `s.self.reputation` — that would be exactly the
   completion-bonus flow the prestige model exists to forbid.
 - **Grants ride on publications.** Each paper has a one-in-five chance of
-  bringing a grant with it -> cash, sized at 0.4–1.2 weeks of opex and
+  bringing a grant with it -> cash, sized at 0.4–1.2 weeks of opex,
   **scaled by team strength**, so a grant is a thing the work did rather than
-  a thing that happened. A grant is a welcome cheque, not a funding round; it
-  must never become a second economy.
+  a thing that happened, and **scaled by the run's depth**
+  (`GRANT_DEPTH_SCALE`, Plan 70D). A grant is a welcome cheque, not a funding
+  round; it must never become a second economy.
+  - **Research is a modest profit:** over a run, every depth returns about
+    twice its funding in grants on an ordinary team. A deeper run publishes
+    far more per dollar (about 3×, 6× and 10× a pilot's papers per dollar for
+    a Funded Project, a Major Program and a Landmark), so before Plan 70D a
+    Landmark returned about five times its cost and a pilot under half: the
+    natural line, which funds the deepest work, drew 5× its research spend
+    back in grants while the guided player, funding pilots, lost money on
+    research.
+  - The pacing scorecard counts the natural line's lifetime grants over its
+    lifetime funding (`research.funding`), in 1.7–2.3×.
 
 **The odds are shown before the commitment.** Every offer carries
 `initiativeOdds` — expected publications, the at-least-one-breakthrough chance

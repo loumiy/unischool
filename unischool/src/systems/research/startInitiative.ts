@@ -35,6 +35,7 @@ export function startInitiative(s: GameState, action: Extract<Action, { type: 'S
   const cost = initiativeFundingCost(s, depth);
   if (s.finance.cash < cost) return;
   s.finance.cash -= cost;
+  s.research.funding = (s.research.funding ?? 0) + cost;
 
   s.research.initiatives[action.labId] = {
     labId: action.labId,

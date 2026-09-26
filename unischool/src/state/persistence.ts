@@ -8,6 +8,7 @@ import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
+import { isSweepStep } from '../systems/finance/sweep';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
@@ -295,6 +296,14 @@ function sanitizeEstate(state: GameState): void {
     else delete state.finance.loans;
   }
   sanitizeDistress(state);
+  // The standing sweep and the idle-cash watch (Plan 70D): a sweep that is
+  // not one of the steps is off; a watch that is not a whole week or year is
+  // dropped, which only restarts the watch.
+  if (state.finance.sweepWeeks !== undefined && !isSweepStep(state.finance.sweepWeeks)) delete state.finance.sweepWeeks;
+  if (state.finance.idleSince !== undefined && !Number.isInteger(state.finance.idleSince)) delete state.finance.idleSince;
+  if (state.finance.idleLetterYear !== undefined && !Number.isInteger(state.finance.idleLetterYear)) delete state.finance.idleLetterYear;
+  const funding = state.research?.funding;
+  if (funding !== undefined && !(typeof funding === 'number' && Number.isFinite(funding) && funding >= 0)) delete state.research.funding;
   const d = state.finance.drawRate;
   if (d !== undefined) {
     if (typeof d !== 'number' || !Number.isFinite(d)) delete state.finance.drawRate;

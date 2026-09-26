@@ -209,7 +209,7 @@ export const STANDINGS: ReadonlyArray<{ axis: StandingAxis; label: string }> = [
 // against $80,000, the stewardship axis's full mark. Both on the 0–150
 // scale the other axes use.
 const ACCESS_SCALE = 150;
-const FINANCIAL_FULL_PER_STUDENT = 80_000;
+export const FINANCIAL_FULL_PER_STUDENT = 80_000;
 export function selfAccess(s: GameState): number {
   const tolerance = priceTolerance(s.self.reputation);
   const affordability = tolerance > 0 ? Math.max(0, Math.min(1, 1 - s.finance.listedTuition / (2 * tolerance))) : 0;
