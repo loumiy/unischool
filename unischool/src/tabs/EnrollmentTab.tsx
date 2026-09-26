@@ -152,7 +152,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
           <p className="empty-note demand-note">
             † {unsignalled.length === 4 ? 'Every class carries' : `${unsignalled.map(([, l]) => l).join(', ')} carry`}{' '}
             no cohort signal: admitted when the college had built nothing for any particular
-            audience, so they read as the model's neutral mix rather than as a choice. Each is
+            audience, so they are an even mix of every kind of student rather than the draw of a choice you made. Each is
             replaced by a class you admitted as it graduates out.
           </p>
         )}

@@ -49,6 +49,11 @@ function listingFor(s: GameState, candidate: Faculty, waiting: Buildable[]): Lis
   };
 }
 
+// A listing that would teach its waiting course at a D or an F is not worth
+// taking (the merge review, Plan 70E): the department row still offers
+// them, but the strip recommends only a C or better.
+const NOT_WORTH: ReadonlySet<Grade> = new Set(['D', 'F']);
+
 // Listings in short departments, soonest to withdraw first, strongest teacher next.
 export function worthTaking(s: GameState): Listing[] {
   const needed = neededFacultyFields(s);
@@ -56,7 +61,9 @@ export function worthTaking(s: GameState): Listing[] {
   for (const field of needed) {
     const waiting = waitingCourses(s, field);
     for (const c of s.candidates) {
-      if (c.field === field) out.push(listingFor(s, c, waiting));
+      if (c.field !== field) continue;
+      const listing = listingFor(s, c, waiting);
+      if (listing.grade === null || !NOT_WORTH.has(listing.grade)) out.push(listing);
     }
   }
   return out.sort((a, b) => a.weeksLeft - b.weeksLeft || b.candidate.teaching - a.candidate.teaching);

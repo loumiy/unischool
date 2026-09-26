@@ -298,7 +298,11 @@ button { cursor: pointer; font-family: inherit; }
 .day-ticker-cell { width: 14px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.3); }
 .day-ticker-cell.lit { background: var(--school-secondary); }
 
-.toolbar-speed { flex: none; display: flex; align-items: center; gap: 6px; }
+.toolbar-speed { flex: none; display: flex; align-items: center; gap: 6px; position: relative; }
+/* Why a locked speed's key did nothing (Plan 70E), floated above the gears. */
+.speed-locked-note { position: absolute; right: 0; bottom: calc(100% + 6px); max-width: 280px; padding: 4px 10px;
+  background: var(--cream); color: var(--ink); border: 2px solid var(--outline); border-radius: var(--radius-lg);
+  font-size: var(--text-sm); line-height: 1.35; box-shadow: var(--shadow-1); white-space: normal; z-index: 5; }
 
 .toolbar-tabs { display: flex; align-items: center; gap: 4px; flex: none; }
 
