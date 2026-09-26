@@ -43,7 +43,7 @@ import { LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { canPostSearch, searchCost } from '../../src/systems/faculty/facultySearch';
-import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding } from './moves';
+import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder } from './moves';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
 // What the line asks for needs only ASK_RESERVE_WEEKS: a player told to
@@ -103,8 +103,7 @@ function affords(s: GameState, cost: number, reserve: number): boolean {
 // a player looks for someone rather than waiting on the market forever.
 function hireFor(g: Game, field: string | undefined, reserve: number): boolean {
   if (!field || weeklyNet(g.s) <= 0) return false;
-  // The best teacher on the market (Plan 71: prestige waits on A grades).
-  const c = g.s.candidates.filter((x) => x.field === field).sort((a, b) => b.teachingPotential - a.teachingPotential)[0];
+  const c = hiringOrder(g.s.candidates.filter((x) => x.field === field))[0];
   if (!c) {
     if (canPostSearch(g.s, field) && affords(g.s, searchCost(g.s), reserve)) g.act({ type: 'POST_SEARCH', field });
     return false;

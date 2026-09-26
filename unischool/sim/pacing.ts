@@ -205,6 +205,11 @@ export const BUFFER = { enrolledShare: { min: 0.85 }, prestigeShare: { min: 0.85
 export const PRICE_MATTERS = { fairEnrolledOverNatural: { min: 1.1 }, naturalNetOverFair: { min: 1.25 } };
 export const WELFARE = { yearsBelow50AfterY5: { max: 0 } };
 export const MONEY = { cashY40InDecadesOfOpex: { max: 1 }, grantsOverFunding: { min: 1.7, max: 2.3 }, financialY50: { min: 60 } };
+// Teaching (Plan 71, the owner's rule): building everything with no regard
+// to who teaches reaches the top 25 and no further; the top ten and above
+// take hand-picked faculty. Read off the guided player with TEACHING.care
+// off (sim/harness/moves.ts).
+export const TEACHING_BLIND = { rankY50: { min: 11, max: 25 }, left: { max: 0 } };
 
 // ---- The scoring ----
 
@@ -246,7 +251,7 @@ function growth(run: PaceYear[], m: Measure, year: number): number {
 }
 const firstYear = (run: PaceYear[], test: (y: PaceYear) => boolean) => run.find(test)?.year ?? Infinity;
 
-export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] {
+export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>, blind: PaceYear[][] = []): ScoreRow[] {
   const rows: ScoreRow[] = [];
   const add = (section: string, label: string, band: Band, format: (n: number) => string, values: number[], watch?: true) => {
     const m = median(values);
@@ -322,6 +327,10 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] 
 
   // Guardrails.
   const y50 = (run: PaceYear[]) => at(run, 50);
+  if (blind.length > 0) {
+    add('Guardrails', 'Teaching-blind guided: rank at Y50', TEACHING_BLIND.rankY50, num, blind.map((run) => y50(run)?.rank ?? NaN));
+    add('Guardrails', 'Teaching-blind guided: left to build at Y50', TEACHING_BLIND.left, num, blind.map((run) => y50(run)?.left ?? NaN));
+  }
   const g = runs.Guided;
   add('Guardrails', 'Buffer: guided Y50 enrollment, share of natural', BUFFER.enrolledShare, pct, g.map((run, i) => (y50(run)?.enrolled ?? NaN) / (y50(nat[i])?.enrolled ?? NaN)));
   add('Guardrails', 'Buffer: guided Y50 prestige, share of natural', BUFFER.prestigeShare, pct, g.map((run, i) => (y50(run)?.prestige ?? NaN) / (y50(nat[i])?.prestige ?? NaN)));

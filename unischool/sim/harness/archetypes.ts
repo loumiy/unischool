@@ -102,9 +102,14 @@ interface Policy {
   answer?(g: Game): Action | null;
 }
 
+// Two weeks' expenses held back (Plan 71: at four, a late college sat on
+// $89M with 26 courses ready and nothing in development, because four weeks
+// of a large budget outgrew every price).
+const COMPLETIONIST_RESERVE_WEEKS = 2;
+
 const COMPLETIONIST: Policy = {
   act(g) {
-    const reserve = reserveOf(g.s, 4);
+    const reserve = reserveOf(g.s, COMPLETIONIST_RESERVE_WEEKS);
     restaffIfDark(g);
     moveHome(g);
     // An overcrowded campus is fixed first, and saved for (Plan 71).

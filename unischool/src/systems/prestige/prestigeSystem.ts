@@ -341,7 +341,7 @@ function scaleMultiplier(s: GameState): StandingMultiplier {
 // but F's, the full PRESTIGE_MAX only when every course is an A. A campus of
 // B's tops out in the mid-120s.
 const GRADE_POINTS: Record<Grade, number> = { A: 1, B: 0.65, C: 0.35, D: 0.1, F: 0 };
-const TEACHING_CEILING_FLOOR = 95;
+const TEACHING_CEILING_FLOOR = 88;
 const TEACHING_CEILING_CURVE = 1.3;
 export function teachingStandardShare(s: GameState): number {
   const scores = campusCourseScores(s);

@@ -140,10 +140,7 @@ export function hireForBlocked(g: Game, { pick = first, reserve = 0 }: MoveOptio
       .map((t) => t.requiresFaculty!)
       .filter((field) => !hasFreeFacultySlot(s, field)),
   );
-  // Best teacher first (Plan 71: prestige waits on A grades).
-  const choice = pick(s.candidates
-    .filter((c) => blocked.has(c.field) && affords(s, c.salary, reserve))
-    .sort((a, b) => b.teachingPotential - a.teachingPotential));
+  const choice = pick(hiringOrder(s.candidates.filter((c) => blocked.has(c.field) && affords(s, c.salary, reserve))));
   if (!choice) return false;
   g.act({ type: 'HIRE_FACULTY', facultyId: choice.id });
   return true;
@@ -180,6 +177,18 @@ export function buildDorm(g: Game, fill: number, { reserve = 0 }: MoveOptions = 
 //      low), hire a candidate who will, at most `hires` a call — step 1
 //      moves the course to them once they have grown past its teacher;
 //   3. anyone left teaching nothing, and not on a research team, is let go.
+// Whether the players hand-pick faculty (Plan 71). Off, a player hires the
+// cheapest candidate and never tends the teaching: the teaching-blind line
+// the scorecard reads against the owner's rule that building everything
+// alone reaches the top 25, and only chosen faculty go further.
+export const TEACHING = { care: true };
+
+// Candidates in the order a player would take them: the best teacher first
+// when it cares, the cheapest when it does not.
+export function hiringOrder<T extends { teachingPotential: number; salary: number }>(candidates: readonly T[]): T[] {
+  return [...candidates].sort((a, b) => (TEACHING.care ? b.teachingPotential - a.teachingPotential : a.salary - b.salary));
+}
+
 export const TEND_EVERY_WEEKS = 4;
 const TEND_MARGIN = 4;
 const TEND_IDLE_YEARS = 8;
@@ -190,6 +199,7 @@ function eventualScore(t: Buildable, f: { teachingPotential: number; acclaim: nu
 }
 
 export function tendTeaching(g: Game, { reserve = 0, hires = 2 }: MoveOptions & { hires?: number } = {}): boolean {
+  if (!TEACHING.care) return false;
   // Every action returns a new state, so each read below is of g.s, never a
   // copy taken before an action.
   let acted = false;
