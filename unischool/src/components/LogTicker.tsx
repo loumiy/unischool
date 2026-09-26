@@ -4,6 +4,7 @@ import LogStrip from './LogStrip';
 import { LogIcon } from './icons';
 import { nextStep, waitingOnMap, type NextStep } from '../systems/guidance/nextStep';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
+import type { Progress } from '../data/ladderData';
 import LadderPanel from './LadderPanel';
 
 // One line, always on screen above the toolbar (styles.css's .log-ticker):
@@ -20,6 +21,17 @@ import LadderPanel from './LadderPanel';
 // While a tab hides the map (`mapHidden`), NEXT first points back to what
 // waits there (nextStep.ts's waitingOnMap: the board, an event, a
 // milestone, a demand), pulsing when it will not wait long (Plan 34).
+// A milestone's progress as a count: "12/13 courses", "96.4/100 prestige".
+function figure(n: number, unit: string): string {
+  return unit === 'prestige' ? n.toFixed(1) : Math.floor(n).toLocaleString();
+}
+function progressShort(p: Progress): string {
+  return `${figure(Math.min(p.value, p.target), p.unit)}/${figure(p.target, p.unit)}`;
+}
+function progressText(p: Progress): string {
+  return `${figure(Math.min(p.value, p.target), p.unit)} of ${figure(p.target, p.unit)} ${p.unit}`;
+}
+
 export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, mapHidden }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
@@ -56,12 +68,14 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
             type="button"
             className="log-ticker-ladder"
             aria-expanded={ladderOpen}
-            title="The ladder: every milestone and what it opens"
+            title={`${milestone.name}: ${milestone.condition}${progress ? ` — ${progressText(progress)} so far` : ''}. Click for the ladder: every milestone and what it opens.`}
             onClick={() => onSetLadderOpen(!ladderOpen)}
           >
             <span className="log-ticker-next-label">Milestone</span>
             {milestone.name}
-            {progress && <span className="log-ticker-ladder-progress">{Math.min(100, Math.floor((progress.value / progress.target) * 100))}%</span>}
+            {/* The count, not a percentage (the merge review, Plan 70E): a
+                percentage near the top barely moved for years. */}
+            {progress && <span className="log-ticker-ladder-progress">{progressShort(progress)}</span>}
           </button>
         )}
         {step && (

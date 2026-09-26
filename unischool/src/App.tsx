@@ -334,8 +334,9 @@ export default function App() {
           {!overlay && (
             <>
               {/* The left-hand notes wait while a building's panel holds
-                  that side of the screen. */}
-              {inspectedId === null && (
+                  that side of the screen, and while the build tray is open
+                  (Plan 70E: a note sat over the tray's header). */}
+              {inspectedId === null && !buildOpen && (
                 // One column, most urgent first: no unread note hides another.
                 <div className="note-stack">
                   <BoardLetter s={s} act={act} />

@@ -200,6 +200,36 @@ what remains:
 - clipped labels in Faculty and the Build tray, and dining labels with no
   plate.
 
+**As implemented** (PR E), item by item against `main`:
+- **The milestone chip** shows the count, not a percentage (51.6/55.0
+  prestige, 12/13 courses), and its hover states the condition and the
+  count so far. A percentage near the top barely moved for years.
+- **Milestone notes arriving late:** no longer reproduces. A milestone is
+  queued the week it is reached (`tickLadder`) and its note shows at once
+  unless an interrupt, a tab or a building's panel covers the map, when
+  the ticker's NEXT points to it.
+  - The check found a real overlap instead: a note sat over the build
+    tray's header. Notes now step aside while the tray is open, as they
+    already did for a building's panel.
+- **"Worth taking"** leaves out a listing that would teach its waiting
+  course at a D or an F (the department row still offers it).
+  `test/worth-taking.test.ts` reads it on the launch fixture.
+- **A locked speed key** now shows why for a few seconds (for example,
+  "Appoint a Provost and the Deans of 3 founded schools to run the year at
+  eight times").
+- **The tuition tag** in "fair" says where in the band the price sits: on
+  the gentle side, or at the top of it.
+- **Developer phrasing:**
+  - "the model's neutral mix" (the Enrollment tab) now reads "an even mix
+    of every kind of student".
+  - A sweep of every tab's rendered text, titles and labels on the year-25
+    fixture found no other code words.
+  - "a Buildable's cost" was already gone.
+- **Clipped labels:**
+  - None found in Faculty or the build tray at 1280×800.
+  - Every building's label draws its plate, dining halls included.
+  - Phone and tablet widths are PR G's.
+
 The admit rate's early slope stays in the backlog. It is a balance change,
 and the balance was just tuned in Plans 67–69.
 

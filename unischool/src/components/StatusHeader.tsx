@@ -1,5 +1,5 @@
 import { speedLock } from '../systems/delegation/seats';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
 import {
@@ -20,7 +20,17 @@ import { money } from '../format';
 // 1/2/3 set real/double/quad; 4 sets the sandbox speed under the playtest
 // flag only. Space toggles pause, resuming the last running speed rather than
 // always `real`. The typing guard lives in useHotkeys (hotkeys.ts).
-function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandboxAllowed: boolean, locked: (speed: Speed) => boolean, live: boolean) {
+// A locked speed's key says why instead of doing nothing (Plan 70E):
+// `lockOf` gives the reason, and `onLocked` shows it.
+function useSpeedHotkeys(
+  speed: Speed, setSpeed: (speed: Speed) => void, sandboxAllowed: boolean,
+  lockOf: (speed: Speed) => string | null, onLocked: (reason: string) => void, live: boolean,
+) {
+  const tryLocked = (sp: Speed) => {
+    const lock = lockOf(sp);
+    if (lock) onLocked(lock);
+    else setSpeed(sp);
+  };
   const resumeSpeedRef = useRef<Speed>('real');
   useEffect(() => {
     if (speed !== 'paused') resumeSpeedRef.current = speed;
@@ -29,8 +39,8 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
   useHotkeys((e) => {
     if (e.key === '1') setSpeed('real');
     else if (e.key === '2') setSpeed('double');
-    else if (e.key === '3' && !locked('quad')) setSpeed('quad');
-    else if (e.key === '4' && !locked('octo')) setSpeed('octo');
+    else if (e.key === '3') tryLocked('quad');
+    else if (e.key === '4') tryLocked('octo');
     else if (e.key === '5' && sandboxAllowed) setSpeed('fast');
     else if (e.key === ' ') {
       // A Tab-focused button's native Space click wins. preventDefault stops
@@ -41,6 +51,8 @@ function useSpeedHotkeys(speed: Speed, setSpeed: (speed: Speed) => void, sandbox
     }
   }, live);
 }
+
+const LOCKED_NOTE_MS = 3500;
 
 // The ordinary gears are glyphs (icons.tsx), with the word as label and
 // title. The sandbox gear keeps its word so it looks like the odd one out.
@@ -136,7 +148,14 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
 
   // The top speeds are earned by the administration's seats.
   const lockOf = (sp: Speed) => speedLock(s, sp);
-  useSpeedHotkeys(speed, setSpeed, showPlaytestControls, (sp) => lockOf(sp) !== null, keysLive);
+  // Why a locked speed's key did nothing, shown for a few seconds.
+  const [lockedNote, setLockedNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!lockedNote) return;
+    const id = setTimeout(() => setLockedNote(null), LOCKED_NOTE_MS);
+    return () => clearTimeout(id);
+  }, [lockedNote]);
+  useSpeedHotkeys(speed, setSpeed, showPlaytestControls, lockOf, setLockedNote, keysLive);
 
   // Two rows, clock above gears (styles.css's .toolbar-right).
   return (
@@ -169,6 +188,7 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
             );
           })}
         </div>
+        {lockedNote && <span className="speed-locked-note" role="status">{lockedNote}</span>}
       </div>
     </>
   );
