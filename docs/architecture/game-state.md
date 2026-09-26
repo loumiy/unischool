@@ -29,8 +29,10 @@ boundary** — the one point where a meaningful chunk of progress has just been
 committed — when a university is founded, and whenever the player hits
 **Save**. On mount, `useGame.ts` resumes a valid save instead of showing the
 startup screen; a save that is missing, unreadable, corrupt, or written under a
-different `SAVE_VERSION` falls back to a new game rather than crashing. **New
-Game** erases the save and returns to the startup screen.
+`SAVE_VERSION` the migration chain cannot reach falls back to a new game rather
+than crashing. **New Game** erases the save and returns to the startup screen.
+The main menu can also **download the run as a file** and **load a save file**
+(Plan 70B), through the same path as the boot load.
 
 This stays a ten-line module only because **`GameState` is plain data** — no
 functions, no `Date`s, no `Map`/`Set`, no references between slices — so every
@@ -46,25 +48,31 @@ hundreds of KiB.
 field is added-as-required, renamed, retyped, or given a new meaning. Additive
 *optional* fields don't need a bump.
 
-An older save is **discarded**, never half-loaded: `loadGame` returns `null`
-for any version but the current one and the player gets an obviously new game,
-not a run quietly missing a slice. That is one branch in the load path, it is
-covered by `testRejects` in `test/save-load.test.ts`, and it is what makes
-discarding safe enough to be the rule.
+### Migrating is the rule, from launch
 
-### Discarding is the rule
+**From launch on (Plan 70B), every bump ships a migration.** A public build has
+players with runs in progress, and a run is an evening; an update must not end
+it. `persistence.ts` holds the chain:
 
-**The bump is the whole obligation.** A shape change does not owe anything a
-migration. The game is in development and is not deployed anywhere: there is no
-build anyone else is playing, and every save that exists is sitting in a
-developer's own browser, so a discarded one costs a single in-progress test run
-and nothing else. The harness (`sim/harness/`) reproduces fifty-year runs headlessly and
-`npm run scenario` stands the game up at any named state, which is what most
-"but I'd lose the run" instincts actually want.
+- `LAUNCH_SAVE_VERSION` is the version the public build first shipped with.
+- `MIGRATIONS[v]` takes a version-v state to v+1, in place, assuming only what
+  version v wrote. `readSave` walks a save up the chain, then runs the
+  sanitizers below, and is the one path for the boot load and an imported
+  file.
+- A save older than the chain (a pre-launch run) or from a newer build is not
+  loaded. It is **set aside**, not erased: the title screen names it and
+  offers it as a download.
+- **Every link has a fixture.** `test/fixtures/save-launch.json` is a year-25
+  run written at launch; each later link adds `save-vN.json`, written by
+  version N before the bump. `test/save-migrations.test.ts` fails if a
+  version since launch has no link or no fixture, and checks every fixture
+  loads, holds the rules (`sim/harness/invariants.ts`), and (the launch one)
+  plays a year on.
 
-If a specific run is ever worth carrying across a bump — a playtest in the
-middle of answering something — write the few lines that carry it as a one-off
-in that PR and delete them in the next. Never a table.
+Before launch the rule was the opposite: discarding was the rule, because every
+save in existence sat in a developer's browser. The paragraph below is why the
+old chain was deleted; what it cost is the reason the new one starts at launch,
+not before, and asks only for what a real player's run needs.
 
 ### The chain that was deleted (v3 -> v51)
 

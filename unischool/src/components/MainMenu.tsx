@@ -2,13 +2,19 @@ import { useEffect, useState } from 'react';
 import ConfirmButton from './ConfirmButton';
 import type { Action } from '../state/actions';
 import { MenuIcon } from './icons';
+import ImportSave from './ImportSave';
+import { downloadFile } from './download';
+import { exportSave } from '../state/persistence';
+import type { GameState } from '../state/types';
 
-// The top-right hamburger menu: Save, the hall of fame, Settings, the title
-// screen and New Game (Plan 34 added the middle three, from v2's). Sits
+// The top-right hamburger menu: Save, the run as a file and back (Plan 70B),
+// the hall of fame, Settings, the title screen and New Game (Plan 34 added
+// the hall, Settings and the title screen, from v2's). Sits
 // directly above the map's zoom/'?' pill (see styles.css's
 // --corner-menu-height). New game asks once more (ConfirmButton), as every
 // destructive action does.
-export default function MainMenu({ act, onHall, onSettings, onTitle }: {
+export default function MainMenu({ s, act, onHall, onSettings, onTitle }: {
+  s: GameState;
   act: (a: Action) => void;
   onHall: () => void;
   onSettings: () => void;
@@ -53,6 +59,14 @@ export default function MainMenu({ act, onHall, onSettings, onTitle }: {
           >
             Save
           </button>
+          <button
+            className="save-btn"
+            title="Download the run as a file, to keep or to continue in another browser."
+            onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); close(); }}
+          >
+            Download save
+          </button>
+          <ImportSave current={s} />
           <button className="save-btn" onClick={() => { close(); onHall(); }}>Hall of fame</button>
           <button className="save-btn" onClick={() => { close(); onSettings(); }}>Settings</button>
           <button className="save-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>

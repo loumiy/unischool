@@ -319,7 +319,7 @@ export default function App() {
           onInspectedChange={setInspectedId}
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
-        <MainMenu act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+        <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
         {!overlay && <Pennant s={s} />}
