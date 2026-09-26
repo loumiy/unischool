@@ -142,7 +142,11 @@ button { cursor: pointer; font-family: inherit; }
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
-.title-set-aside .newgame-btn { display: block; width: auto; margin: 8px 0 0; padding: 4px 12px; }
+.title-set-aside .newgame-btn, .title-set-aside .save-btn { display: inline-block; width: auto; margin: 8px 8px 0 0; padding: 4px 12px; }
+/* Load a save file (Plan 70B): the button, and what the chosen file is. */
+.import-save { display: flex; flex-direction: column; gap: 6px; }
+.import-save-note { margin: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--ink-muted); display: flex; flex-direction: column; gap: 6px; }
+.import-save-note p { margin: 0; color: var(--ink); font-weight: 600; }
 .title-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .title-primary { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 16px; border: 3px solid var(--outline);
   border-radius: var(--radius-lg); background: var(--school-secondary); color: var(--school-on-secondary); font-family: var(--display);

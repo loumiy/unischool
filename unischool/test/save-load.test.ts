@@ -316,7 +316,7 @@ function testRejects(): void {
   // The version before this one: real content, but a shape this build does
   // not carry forward. Null, never half-loaded.
   writeSave(SAVE_VERSION - 2, cur);
-  assert(loadGame() === null, 'two versions back -> null (no migration chain)');
+  assert(loadGame() === null, 'two versions back -> null (older than the chain)');
   // ...but set aside, not lost: the title screen names it (Plan 46).
   const aside = readSetAsideSave();
   assert(aside !== null && aside.version === SAVE_VERSION - 2, 'and the unreadable run is kept aside for the title screen to name');

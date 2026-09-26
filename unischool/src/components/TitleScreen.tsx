@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import ConfirmButton from './ConfirmButton';
-import { discardSetAsideSave, readSetAsideSave } from '../state/persistence';
+import { discardSetAsideSave, readSetAsideRaw, readSetAsideSave } from '../state/persistence';
+import ImportSave from './ImportSave';
+import { downloadFile } from './download';
 import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
 import { readHall } from '../state/hall';
@@ -37,6 +39,13 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
             {setAside.name ? `${setAside.name}, a college saved` : 'A college saved'}
             {setAside.savedAt ? ` on ${new Date(setAside.savedAt).toLocaleDateString()}` : ''}, was made by an earlier version of the game and cannot be continued in this one. It has been kept aside rather than erased.
             {' '}
+            <button
+              type="button"
+              className="save-btn"
+              onClick={() => { const raw = readSetAsideRaw(); if (raw) downloadFile(`${(setAside.name ?? 'college').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-set-aside.unischool.json`, raw); }}
+            >
+              Download it
+            </button>
             <button type="button" className="newgame-btn" onClick={() => { discardSetAsideSave(); setSetAside(null); }}>Discard it</button>
           </p>
         )}
@@ -55,6 +64,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
             needsConfirm={underway}
             onConfirm={onNewCollege}
           />
+          <ImportSave current={s} />
           <button type="button" className="save-btn" onClick={onSettings}>Settings</button>
           <button type="button" className="save-btn" onClick={onCredits}>Credits</button>
         </nav>

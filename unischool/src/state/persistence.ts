@@ -44,27 +44,47 @@ export const SAVE_KEY = 'unischool.save';
 // satisfy: a new required field, a renamed/retyped field, a changed meaning.
 // Additive optional fields don't need a bump.
 //
-// A save at any other version is not loaded and the player starts fresh; the
-// run is set aside under SET_ASIDE_KEY and the title screen says so.
-// That is the policy: the game is unreleased, and a silently half-loaded
-// run is worse than a new one. There is no migration chain; if a specific
-// run is ever worth carrying across a bump, write a one-off and delete it
-// in the next PR. See docs/architecture/game-state.md.
+// From launch on (Plan 70B) every bump ships a migration: MIGRATIONS[v]
+// takes a version-v state to v+1, and a save from any version the chain
+// reaches loads after each step up. A save older than the chain (a
+// pre-launch run) is not loaded: it is set aside under SET_ASIDE_KEY, the
+// title screen says so, and the player can still download it. Each new link
+// gets a fixture written by the version before it (test/save-migrations
+// .test.ts, test/fixtures/). See docs/architecture/game-state.md.
 export const SAVE_VERSION = 78; // Plan 59: six purchased halls, no Second Quad
+// The version the public build first shipped with. Saves from it on must
+// keep loading; test/fixtures/save-launch.json is one.
+export const LAUNCH_SAVE_VERSION = 78;
 
-// The one-off carry from the previous version (the policy above): Plan 59
-// shortened the hall chain to six and retired the Second Quad. Either leaves
-// the save unless it is sited, since a sited hall may house programs and a
-// sited quad is ground the player laid out; one that stands keeps its place,
-// its slots and its effects. Delete with the next bump.
-const MIGRATED_FROM = 77;
-const RETIRED_IDS = ['HALL-07', 'QUAD-S2'];
-function carryRetired(payload: SavePayload): void {
-  const state = payload.state as GameState & { placements?: Record<string, unknown> };
-  if (!Array.isArray(state?.tech)) return;
-  const retired = new Set(RETIRED_IDS.filter((id) => !(state.placements && id in state.placements)));
-  state.tech = state.tech.filter((t) => !retired.has(t.id));
-  for (const t of state.tech) if (Array.isArray(t.prereqs)) t.prereqs = t.prereqs.filter((id) => !retired.has(id));
+// 77 -> 78, Plan 59: the hall chain shortened to six and the Second Quad
+// retired. Either leaves the save unless it is sited, since a sited hall may
+// house programs and a sited quad is ground the player laid out; one that
+// stands keeps its place, its slots and its effects.
+function carryRetired(state: GameState): void {
+  const retiredIds = ['HALL-07', 'QUAD-S2'];
+  const placed = state as GameState & { placements?: Record<string, unknown> };
+  if (!Array.isArray(placed?.tech)) return;
+  const retired = new Set(retiredIds.filter((id) => !(placed.placements && id in placed.placements)));
+  placed.tech = placed.tech.filter((t) => !retired.has(t.id));
+  for (const t of placed.tech) if (Array.isArray(t.prereqs)) t.prereqs = t.prereqs.filter((id) => !retired.has(id));
+}
+
+// The chain: from-version -> the step to the next. A step mutates the parsed
+// state in place and may assume only what its from-version wrote.
+export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
+  77: carryRetired,
+};
+
+// Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
+// link is missing (too old) or the version is from the future.
+function migrate(payload: SavePayload): boolean {
+  while (payload.version < SAVE_VERSION) {
+    const step = MIGRATIONS[payload.version];
+    if (!step) return false;
+    step(payload.state);
+    payload.version += 1;
+  }
+  return payload.version === SAVE_VERSION;
 }
 
 // What goes in localStorage. `savedAt` is epoch milliseconds.
@@ -650,9 +670,46 @@ function refreshAuthoredText(state: GameState): void {
   }
 }
 
-// Returns the saved run, or null if it is missing, unreadable, unparseable,
-// the wrong version, or not shaped like a GameState. A corrupt save must
-// never stop the app booting.
+// Why a save could not be read, in the player's words (the import dialog
+// shows it).
+export type SaveRefusal = 'unreadable' | 'too-old' | 'too-new' | 'not-a-save';
+export const REFUSAL_TEXT: Record<SaveRefusal, string> = {
+  unreadable: 'The file is not a UniSchool save, or it was cut short.',
+  'too-old': 'The save was made by a version of the game from before its release, which this one cannot continue.',
+  'too-new': 'The save was made by a newer version of the game. Reload the page to get it.',
+  'not-a-save': 'The file reads, but it holds no founded college.',
+};
+
+// Parse, migrate and sanitize one save's text: the whole load path, shared by
+// the boot load and an imported file.
+export function readSave(raw: string): { state: GameState; savedAt: number | null } | { refused: SaveRefusal } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { refused: 'unreadable' };
+  }
+  if (typeof parsed !== 'object' || parsed === null) return { refused: 'unreadable' };
+  const payload = parsed as Partial<SavePayload>;
+  if (typeof payload.version !== 'number' || !Number.isInteger(payload.version)) return { refused: 'unreadable' };
+  if (payload.version > SAVE_VERSION) return { refused: 'too-new' };
+  if (typeof payload.state !== 'object' || payload.state === null) return { refused: 'not-a-save' };
+  try {
+    if (!migrate(payload as SavePayload)) return { refused: 'too-old' };
+  } catch {
+    // A step met a state its version should not have written.
+    return { refused: 'unreadable' };
+  }
+  if (!looksLikeGameState(payload.state)) return { refused: 'not-a-save' };
+  sanitize(payload.state);
+  return { state: payload.state, savedAt: typeof payload.savedAt === 'number' ? payload.savedAt : null };
+}
+
+// Returns the saved run, or null if it is missing, unreadable, too old or
+// too new, or not shaped like a GameState. A corrupt save must never stop
+// the app booting. A run this version cannot read is set aside, not lost,
+// and the title screen says so (readSetAsideSave), before the next save
+// overwrites the key.
 export function loadGame(): GameState | null {
   let raw: string | null;
   try {
@@ -661,30 +718,41 @@ export function loadGame(): GameState | null {
     return null;
   }
   if (raw === null) return null;
+  const read = readSave(raw);
+  if ('refused' in read) {
+    if (read.refused === 'too-old' || read.refused === 'too-new') setAside(raw);
+    return null;
+  }
+  return read.state;
+}
 
-  let parsed: unknown;
+// ---- Export and import (Plan 70B) ----
+
+// The run as a file: the same payload the browser keeps, named for the
+// college and the year.
+export function exportSave(state: GameState): { filename: string; text: string } {
+  const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state };
+  const slug = (state.self?.name ?? 'college').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'college';
+  return { filename: `${slug}-year-${state.clock.year}.unischool.json`, text: JSON.stringify(payload) };
+}
+
+// The set-aside run's own text, for the title screen's download.
+export function readSetAsideRaw(): string | null {
   try {
-    parsed = JSON.parse(raw);
-    if ((parsed as Partial<SavePayload> | null)?.version === MIGRATED_FROM) {
-      carryRetired(parsed as SavePayload);
-      (parsed as SavePayload).version = SAVE_VERSION;
-    }
+    return localStorage.getItem(SET_ASIDE_KEY);
   } catch {
     return null;
   }
+}
 
-  if (typeof parsed !== 'object' || parsed === null) return null;
-  const payload = parsed as Partial<SavePayload>;
-  // Exactly this version: older saves aren't carried forward and newer ones
-  // aren't understood. The run is set aside, not lost, and the title screen
-  // says so (readSetAsideSave), before the next save overwrites the key.
-  if (payload.version !== SAVE_VERSION) {
-    setAside(raw);
-    return null;
-  }
-  if (!looksLikeGameState(payload.state)) return null;
+// Makes an imported file the run in this browser, once readSave accepts it.
+// The caller has already confirmed with the player and reloads after, so the
+// run boots through loadGame like any other.
+export function adoptSave(state: GameState): boolean {
+  return saveGame(state);
+}
 
-  const state = payload.state;
+function sanitize(state: GameState): void {
   sanitizePlacements(state);
   // Halls after placements (a hall's slots are real only while it stands),
   // offers after halls (an offer is real only while its program is unhoused).
@@ -713,5 +781,4 @@ export function loadGame(): GameState | null {
   sanitizeChapters(state);
   sanitizeSeen(state);
   sanitizeCourseFaculty(state);
-  return state;
 }
