@@ -25,6 +25,10 @@ export interface HallEntry {
   eras: { name: string; from: number; to: number; lines: string[] }[];
   year: number;          // the year the report was written
   finishedAt: number;    // epoch milliseconds
+  // For the report card (Plan 70J); absent on runs hung before it.
+  markScore?: number;
+  rank?: number;
+  total?: number;
 }
 
 export function readHall(): HallEntry[] {
@@ -39,13 +43,10 @@ export function readHall(): HallEntry[] {
   }
 }
 
-// Hangs the run once: the same college's report is not hung twice.
-export function hangInHall(s: GameState, report: FinalReport, now = Date.now()): boolean {
-  const id = `${institutionName(s.self)}|${report.year}|${report.title}|${report.markScore}`;
-  const hall = readHall();
-  if (hall.some((e) => e.id === id)) return false;
-  const entry: HallEntry = {
-    id,
+// The run as the hall keeps it, and as its report card draws it.
+export function hallEntryFor(s: GameState, report: FinalReport, now = Date.now()): HallEntry {
+  return {
+    id: `${institutionName(s.self)}|${report.year}|${report.title}|${report.markScore}`,
     college: report.college,
     name: s.self.name,
     suffix: s.self.suffix,
@@ -57,7 +58,17 @@ export function hangInHall(s: GameState, report: FinalReport, now = Date.now()):
     eras: chronicleOf(s).eras.map((e) => ({ name: e.name, from: e.from, to: e.to, lines: e.lines })),
     year: report.year,
     finishedAt: now,
+    markScore: report.markScore,
+    rank: report.rank,
+    total: report.total,
   };
+}
+
+// Hangs the run once: the same college's report is not hung twice.
+export function hangInHall(s: GameState, report: FinalReport, now = Date.now()): boolean {
+  const entry = hallEntryFor(s, report, now);
+  const hall = readHall();
+  if (hall.some((e) => e.id === entry.id)) return false;
   try {
     localStorage.setItem(HALL_KEY, JSON.stringify([entry, ...hall].slice(0, HALL_MAX)));
     return true;

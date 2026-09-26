@@ -103,4 +103,8 @@ export const REPORT_WORDS = {
   notYet: 'The Final Report is written at the fiftieth summer, and drafted from the tenth: a college is not graded on its first decade.',
   epilogue: 'The run is over; the college is not. This summer goes on to set Year 51\'s tuition and admit its class; then the clock runs on, and every ten years the chronicle gets an addendum. Nothing new unlocks.',
   addendum: 'Addendum, Years {from}–{to}',
+  // Play again (Plan 70J): what Found another college says before it acts.
+  newCollege: 'This run hangs in the hall of fame, and the college closes its books for good: no Epilogue, no addenda. A new name, a new campus, Year 1.',
+  newCollegeMidRun: 'This ends the college you are running. Only a run that reached its fiftieth summer hangs here; this one will not.',
+  newCollegeFresh: 'Name a new college and start again from Year 1.',
 } as const;

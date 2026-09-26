@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { HallEntry } from '../state/hall';
 import { readHall } from '../state/hall';
+import { REPORT_WORDS } from '../data/reportData';
 import { SchoolFacade } from './StartupScreen';
 import { useHotkeys } from './hotkeys';
+import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 
 // THE HALL OF FAME (Plan 33, Plan 34; state/hall.ts): finished runs as
 // framed portraits (each college's own facade) with plaques. The title
@@ -24,7 +26,10 @@ export function HallFrame({ entry, open, onClick }: { entry: HallEntry; open?: b
   );
 }
 
-export default function HallOfFame({ onClose }: { onClose: () => void }) {
+// Found another college (Plan 70J) sits under the wall. `running` names the
+// college in progress, if any: warned it will not hang, unless it already
+// does.
+export default function HallOfFame({ onClose, onNewCollege, running }: { onClose: () => void; onNewCollege?: () => void; running?: string }) {
   const [hall] = useState(() => readHall());
   const [open, setOpen] = useState<string | null>(hall[0]?.id ?? null);
   useHotkeys((e) => { if (e.key === 'Escape') onClose(); });
@@ -53,6 +58,7 @@ export default function HallOfFame({ onClose }: { onClose: () => void }) {
                 <span key={g.label}><span className={`grade-chip sm grade-${g.grade.toLowerCase()}`}>{g.grade}</span> {g.label}</span>
               ))}
             </p>
+            <ReportCardActions entry={shown} />
             <ol className="chronicle-eras">
               {shown.eras.map((era) => (
                 <li key={era.from} className="chronicle-era">
@@ -61,6 +67,11 @@ export default function HallOfFame({ onClose }: { onClose: () => void }) {
                 </li>
               ))}
             </ol>
+          </div>
+        )}
+        {onNewCollege && (
+          <div className="hall-leave">
+            <NewCollegeButton note={running && !hall.some((e) => e.college === running) ? REPORT_WORDS.newCollegeMidRun : REPORT_WORDS.newCollegeFresh} onConfirm={onNewCollege} />
           </div>
         )}
       </section>

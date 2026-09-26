@@ -5,6 +5,7 @@ import { SPEEDS, useGame } from './engine/useGame';
 import { openingHoldsClock } from './state/opening';
 import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
 import type { GameState } from './state/types';
+import { institutionName } from './state/types';
 import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
@@ -279,16 +280,20 @@ export default function App() {
     else if (overlay) openTab(null);
   }, shellLive);
 
+  // A new college (the title screen, the hall of fame, the Final Report's
+  // Found another college, Plan 70J): the startup screen.
+  const newCollege = () => { if (s.started) act({ type: 'RESET' }); setFrontState(null); };
+
   const frontScreen = front === 'title' ? (
     <TitleScreen
       s={s}
       onContinue={() => setFrontState(null)}
-      onNewCollege={() => { if (s.started) act({ type: 'RESET' }); setFrontState(null); }}
+      onNewCollege={newCollege}
       onHall={() => setFront('hall')}
       onSettings={() => setFront('settings')}
       onCredits={() => setFront('credits')}
     />
-  ) : front === 'hall' ? <HallOfFame onClose={closeFront} />
+  ) : front === 'hall' ? <HallOfFame onClose={closeFront} onNewCollege={newCollege} running={s.started ? institutionName(s.self) : undefined} />
     : front === 'settings' ? <SettingsPanel onClose={closeFront}><SoundControls /></SettingsPanel>
       : front === 'credits' ? <Credits onClose={closeFront} />
         : null;
@@ -426,7 +431,7 @@ export default function App() {
       {/* Outside .app's stacking context, so the backdrop covers the menu
           and the pennant too. Neither draws over a front screen: the modal
           waits, unanswered, for the player to come back to the game. */}
-      {shellLive && <InterruptModal s={s} act={act} />}
+      {shellLive && <InterruptModal s={s} act={act} onNewCollege={newCollege} />}
       {/* The walkthrough's card (OpeningCoach.tsx); renders nothing once
           the stage is 'play'. Opens doors through the same setters, so the
           one-slot rule holds. */}
