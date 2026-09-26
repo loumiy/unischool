@@ -661,6 +661,22 @@ button.build-tile { font-family: inherit; }
   background: transparent; border: 2px solid transparent; color: var(--ink); font-size: var(--text-md); }
 .campus-map-zoom-controls .help-hint-btn:hover { background: var(--outline); color: var(--cream); }
 .campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; width: 320px; }
+/* On touch the camera's buttons join the pill (Plan 70F), a little larger. */
+.campus-map-zoom-controls.touch-ui button, .campus-map-zoom-controls.touch-ui .help-hint-btn { width: 40px; height: 40px; }
+
+/* Placing a building on touch (Plan 70F): the ghost is set down with a tap
+   or a drag, and built with Place. Above the ticker, centered. */
+.map-touch-bar { position: fixed; z-index: 12; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--toolbar-height) + var(--log-ticker-height, 28px) + 12px);
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  max-width: calc(100vw - 32px); padding: 8px 10px;
+  background: var(--cream); border: 3px solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-2); }
+.map-touch-bar-name { display: flex; flex-direction: column; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); margin-right: 4px; }
+.map-touch-bar-note { font-family: var(--sans); font-weight: 600; font-size: var(--text-sm); color: var(--ink-muted); }
+.map-touch-bar button { min-height: 44px; padding: 0 16px; border: 2px solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--cream-hi); color: var(--ink); font-family: var(--display); font-weight: 800; font-size: var(--text-md); }
+.map-touch-bar button.primary { background: var(--school-secondary); color: var(--school-on-secondary); }
+.map-touch-bar button:disabled { opacity: 0.5; }
 
 /* ---------- Isometric campus ----------
    Geometry and building tints live in isoProjection.ts / buildingMotifs.tsx. */
