@@ -9,7 +9,7 @@ import {
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { extensionGain } from '../estate/estate';
 import { campusCourseScores } from '../faculty/facultyAssignment';
-import { GRADE_A, GRADE_D_SCORE, gradeFor } from '../../data/courseQuality';
+import { GRADE_A, GRADE_C, gradeFor } from '../../data/courseQuality';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
@@ -105,9 +105,10 @@ function affordabilityBonus(s: GameState): number {
 // years.
 export const ACADEMIC_TEACHING_POINTS = 80;
 export const ACADEMIC_LIBRARY_POINTS = 20;
-// Credit per course runs from nothing at GRADE_D to full at the standard,
-// and the mean is curved, so a campus of B's still reads well short.
-const ACADEMIC_CREDIT_CURVE = 1.5;
+// Credit per course runs from nothing at a C to full at the standard, and
+// the mean is curved, so a campus of B's reads well short and full marks
+// need nearly every course at an A.
+const ACADEMIC_CREDIT_CURVE = 2;
 // The standard: an A for an intake of average quality or below, rising to a
 // strong A for the best students.
 const STANDARD_LOW_QUALITY = 40;
@@ -122,7 +123,7 @@ export function teachingAgainstStandard(s: GameState): number {
   const scores = campusCourseScores(s);
   if (scores.length === 0) return 0;
   const standard = academicStandard(s);
-  const credit = scores.reduce((sum, score) => sum + clamp((score - GRADE_D_SCORE) / (standard - GRADE_D_SCORE), 0, 1), 0) / scores.length;
+  const credit = scores.reduce((sum, score) => sum + clamp((score - GRADE_C) / (standard - GRADE_C), 0, 1), 0) / scores.length;
   return credit ** ACADEMIC_CREDIT_CURVE;
 }
 
