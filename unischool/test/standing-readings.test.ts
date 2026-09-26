@@ -170,13 +170,13 @@ console.log('standing readings tests');
   assert(near(instructionCoverage(s), 1), 'nobody enrolled is fully covered rather than divided by zero');
 }
 
-// ---- crowding: the worst of six coverages, as a shortfall below 90% ----
+// ---- crowding: the worst of four coverages, as a shortfall below 85% ----
 {
   const s = fresh();
   // Founding: nothing built, nothing developed — every ratio but the dormant
   // one is short, and the reading says so in full.
   const coverages = crowdingCoverages(s);
-  assert(coverages.length === 6, 'six ratios: five attributes and instruction');
+  assert(coverages.length === 4, 'four ratios: housing, dining, health and instruction (Plan 71)');
   assert(coverages[0].coverage <= coverages[coverages.length - 1].coverage, 'sorted worst first');
   assert(totalEnrolled(s.students) < HEALTH_CENTER_TIER1_POPULATION_GATE, 'the founding body is below the health gate');
   assert(coverages.find((c) => c.label === 'health')!.coverage === 1, 'health below its gate reads covered, not short');

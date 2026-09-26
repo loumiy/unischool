@@ -16,6 +16,10 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 // always in view, so a fourth hall has a reason before the first three are
 // full. When one kind runs out, the other fills the table.
 //
+// Among started schools, the further along a school is, the likelier its
+// next major (STARTED_PROGRESS_WEIGHT): drawn evenly, every school filled at
+// the same pace and all seven were founded in the same year.
+//
 // Offerable: revealed and not yet housed. The dice are a local PRNG seeded
 // from the state (name, week, housed count), with no draw on the game's
 // random stream, so the offer never shifts the rest of a seeded run; a
@@ -25,6 +29,8 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 export const PROGRAM_OFFER_COUNT = 3;
 // Of the three: offers from a school not yet started.
 export const NEW_SCHOOL_OFFERS = 1;
+// A started school's weight is its majors housed, to this power.
+export const STARTED_PROGRESS_WEIGHT = 2;
 
 // FNV-1a with a finalizer, as rivalData.ts hashes a rival's id: a
 // one-character difference in the key is an unrelated seed.
@@ -128,6 +134,19 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
   const housedCount = Object.values(s.halls).reduce((n, slots) => n + slots.filter((slot) => slot.programId !== null).length, 0);
   const roll = makeRivalRng(offerSeed(`${s.self.name}|${(s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week}|${housedCount}`));
   const pickFrom = (candidates: ProgramInfo[]) => candidates[Math.min(candidates.length - 1, Math.floor(roll() * candidates.length))];
+  const housedIn = new Map<string, number>();
+  for (const program of programs()) {
+    if (program.kind !== 'graduate' && isHoused(s, program.id)) housedIn.set(program.school, (housedIn.get(program.school) ?? 0) + 1);
+  }
+  const pickWeighted = (candidates: ProgramInfo[]) => {
+    const weights = candidates.map((program) => Math.max(1, housedIn.get(program.school) ?? 0) ** STARTED_PROGRESS_WEIGHT);
+    let r = roll() * weights.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < candidates.length; i += 1) {
+      r -= weights[i];
+      if (r < 0) return candidates[i];
+    }
+    return candidates[candidates.length - 1];
+  };
   const take = (chosen: ProgramInfo) => {
     s.programOffers.push(chosen.id);
     pool = pool.filter((program) => program.id !== chosen.id);
@@ -142,9 +161,7 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
     const wantNew = newOnTable < NEW_SCHOOL_OFFERS;
     const newPool = pool.filter(isNew);
     const startedPool = pool.filter((program) => !isNew(program));
-    const candidates = wantNew
-      ? (newPool.length > 0 ? newPool : startedPool)
-      : (startedPool.length > 0 ? startedPool : newPool);
-    take(pickFrom(candidates));
+    if (wantNew) take(newPool.length > 0 ? pickFrom(newPool) : pickWeighted(startedPool));
+    else take(startedPool.length > 0 ? pickWeighted(startedPool) : pickFrom(newPool));
   }
 }

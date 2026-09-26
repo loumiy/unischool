@@ -59,7 +59,7 @@ const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly
 // Cheap and quick, so feeding the founding class does not swallow the
 // opening budget.
 const DINING_STARTING_COST = 250_000;
-const DINING_STARTING_WEEKS = 12;
+const DINING_STARTING_WEEKS = 16;
 
 // One rung per hall after the founding one, in build order.
 interface DiningRung {
@@ -135,7 +135,7 @@ export const GROCERY_POPULATION_GATE = 8_000;
 const GROCERY_ID = 'GROCERY-01';
 const GROCERY_SERVES = 17_500;
 const GROCERY_COST = 15_750_000; // 900/seat
-const GROCERY_WEEKS = 20;
+const GROCERY_WEEKS = 26;
 
 // --- Library: single building, academic ---
 // One building, its capacity grown by renovation (floors on tier 1). The
@@ -144,7 +144,7 @@ const GROCERY_WEEKS = 20;
 export const LIBRARY_TIER1_ID = 'LIB-T1';
 const LIBRARY_TIER1_SERVES = 1_200;
 const LIBRARY_TIER1_COST = 360_000;
-const LIBRARY_TIER1_WEEKS = 12;
+const LIBRARY_TIER1_WEEKS = 16;
 
 // Renovations add floors to the existing tier-1 building rather than a new
 // Buildable: engine/reducer.ts's RENOVATE_LIBRARY returns the placed node to
@@ -161,7 +161,7 @@ const LIBRARY_FLOOR_BASE_SERVES = 2_000;
 const LIBRARY_FLOOR_SERVES_GROWTH = 1.25;
 const LIBRARY_FLOOR_BASE_COST = 2_200_000;
 const LIBRARY_FLOOR_COST_GROWTH = 1.35;
-const LIBRARY_FLOOR_BASE_WEEKS = 26;
+const LIBRARY_FLOOR_BASE_WEEKS = 34;
 const LIBRARY_FLOOR_WEEKS_GROWTH = 1.08;
 
 export interface LibraryFloorPlan {
@@ -186,11 +186,11 @@ export function nextLibraryFloor(node: Buildable): LibraryFloorPlan | null {
 const STUDENT_CENTER_TIER1_ID = 'SCTR-T1';
 const STUDENT_CENTER_TIER1_SERVES = 1_000;
 const STUDENT_CENTER_TIER1_COST = 330_000;
-const STUDENT_CENTER_TIER1_WEEKS = 10;
+const STUDENT_CENTER_TIER1_WEEKS = 13;
 const STUDENT_CENTER_TIER2_ID = 'SCTR-T2';
 const STUDENT_CENTER_TIER2_SERVES = 3_000;
 const STUDENT_CENTER_TIER2_COST = 1_150_000;
-const STUDENT_CENTER_TIER2_WEEKS = 20;
+const STUDENT_CENTER_TIER2_WEEKS = 26;
 
 // --- The fitness chain: Gym -> Pool -> Tennis Courts -> Athletics Complex ---
 // Four one-off facilities chained strictly in order, like the dorm and
@@ -210,26 +210,26 @@ const STUDENT_CENTER_TIER2_WEEKS = 20;
 const REC_CENTER_TIER1_ID = 'REC-T1';
 const REC_CENTER_TIER1_SERVES = 1_200;
 const REC_CENTER_TIER1_COST = 450_000;
-const REC_CENTER_TIER1_WEEKS = 12;
+const REC_CENTER_TIER1_WEEKS = 16;
 const REC_CENTER_TIER1_PRESTIGE = 0.05;
 // Gym/pool/tennis serve figures carry real `health` capacity, priced at the
 // same $/seat each was built at.
 const GYM_ID = 'GYM';
 const GYM_SERVES = 4_000;
 const GYM_COST = 1_400_000;
-const GYM_WEEKS = 22;
+const GYM_WEEKS = 29;
 const POOL_ID = 'POOL';
 const POOL_SERVES = 3_000;
 const POOL_COST = 1_370_000;
-const POOL_WEEKS = 20;
+const POOL_WEEKS = 26;
 const TENNIS_COURTS_ID = 'TENNIS-COURTS';
 const TENNIS_COURTS_SERVES = 2_000;
 const TENNIS_COURTS_COST = 700_000;
-const TENNIS_COURTS_WEEKS = 14;
+const TENNIS_COURTS_WEEKS = 18;
 const REC_CENTER_TIER2_ID = 'REC-T2';
 const REC_CENTER_TIER2_SERVES = 3_500;
 const REC_CENTER_TIER2_COST = 1_900_000;
-const REC_CENTER_TIER2_WEEKS = 28;
+const REC_CENTER_TIER2_WEEKS = 36;
 const REC_CENTER_TIER2_PRESTIGE = 0.10;
 export const REC_CENTER_TIER2_PRESTIGE_GATE = 55;
 
@@ -246,7 +246,7 @@ const STUDIO_ART_TIER2_IDS = ['SART110', 'SART120', 'SART130', 'SART140'];
 export const ART_GALLERY_ID = 'ART-GALLERY';
 const ART_GALLERY_SERVES = 500;
 const ART_GALLERY_COST = 220_000;
-const ART_GALLERY_WEEKS = 8;
+const ART_GALLERY_WEEKS = 10;
 
 // --- Varsity athletics venues: shared competition facilities, HIDDEN until demanded ---
 // Sport -> category mapping: studentLifeData.ts's SPORTS; reveal:
@@ -256,29 +256,29 @@ const ART_GALLERY_WEEKS = 8;
 const ATHLETICS_FIELD_ID = 'ATH-FIELD';
 const ATHLETICS_FIELD_SERVES = 700;
 const ATHLETICS_FIELD_COST = 650_000;
-const ATHLETICS_FIELD_WEEKS = 16;
+const ATHLETICS_FIELD_WEEKS = 21;
 
 const ATHLETICS_ARENA_ID = 'ATH-ARENA';
 const ATHLETICS_ARENA_SERVES = 1_400;
 const ATHLETICS_ARENA_COST = 1_800_000;
-const ATHLETICS_ARENA_WEEKS = 24;
+const ATHLETICS_ARENA_WEEKS = 31;
 
 const ATHLETICS_DIAMOND_ID = 'ATH-DIAMOND';
 const ATHLETICS_DIAMOND_SERVES = 500;
 const ATHLETICS_DIAMOND_COST = 480_000;
-const ATHLETICS_DIAMOND_WEEKS = 12;
+const ATHLETICS_DIAMOND_WEEKS = 16;
 
 const ATHLETICS_NATATORIUM_ID = 'ATH-NATATORIUM';
 const ATHLETICS_NATATORIUM_SERVES = 550;
 const ATHLETICS_NATATORIUM_COST = 950_000;
-const ATHLETICS_NATATORIUM_WEEKS = 18;
+const ATHLETICS_NATATORIUM_WEEKS = 23;
 
 // The pinnacle venue: most expensive, largest footprint (campusMap.ts's
 // footprintOf), revealed only by football's own petition.
 const FOOTBALL_STADIUM_ID = 'ATH-STADIUM';
 const FOOTBALL_STADIUM_SERVES = 2_500;
 const FOOTBALL_STADIUM_COST = 6_500_000;
-const FOOTBALL_STADIUM_WEEKS = 40;
+const FOOTBALL_STADIUM_WEEKS = 52;
 
 // Seats per venue, for the gate. Keyed by id rather than stored in effects
 // so saves need no migration. The stadium is far larger than any early
@@ -304,7 +304,7 @@ const FOOTBALL_STADIUM_PRESTIGE = 0.15;
 // program's coaching (studentLifeData.ts's fieldHouseLift, where its id lives).
 const FIELD_HOUSE_SERVES = 800;
 const FIELD_HOUSE_COST = 1_200_000;
-const FIELD_HOUSE_WEEKS = 14;
+const FIELD_HOUSE_WEEKS = 18;
 const FIELD_HOUSE_PRESTIGE = 0.03;
 
 // Venue expansions, in place like library renovations, up to
@@ -414,18 +414,18 @@ export const HEALTH_CENTER_TIER1_POPULATION_GATE = 1_500;
 const HEALTH_CENTER_TIER1_ID = 'HLTH-T1';
 const HEALTH_CENTER_TIER1_SERVES = 2_000;
 const HEALTH_CENTER_TIER1_COST = 560_000;
-const HEALTH_CENTER_TIER1_WEEKS = 14;
+const HEALTH_CENTER_TIER1_WEEKS = 18;
 // Exported for techData.ts's CLINICAL_PRACTICUM_GATE.
 export const HEALTH_CENTER_TIER2_POPULATION_GATE = 6_000;
 export const HEALTH_CENTER_TIER2_ID = 'HLTH-T2';
 const HEALTH_CENTER_TIER2_SERVES = 6_000;
 const HEALTH_CENTER_TIER2_COST = 2_400_000; // 400/seat
-const HEALTH_CENTER_TIER2_WEEKS = 26;
+const HEALTH_CENTER_TIER2_WEEKS = 34;
 export const HEALTH_CENTER_TIER3_POPULATION_GATE = 20_000;
 export const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
 const HEALTH_CENTER_TIER3_SERVES = 30_000;
 const HEALTH_CENTER_TIER3_COST = 19_500_000; // 650/seat
-const HEALTH_CENTER_TIER3_WEEKS = 48;
+const HEALTH_CENTER_TIER3_WEEKS = 62;
 
 // --- Green space/quad: single, cheap, FLAT (non-population-scaling) bonus ---
 // Worth the same at any enrollment, which is why it is cheap and worth
@@ -433,14 +433,14 @@ const HEALTH_CENTER_TIER3_WEEKS = 48;
 const QUAD_TIER1_ID = 'QUAD-T1';
 const QUAD_TIER1_FLAT_BONUS = 8;
 const QUAD_TIER1_COST = 60_000;
-const QUAD_TIER1_WEEKS = 4;
+const QUAD_TIER1_WEEKS = 5;
 const QUAD_TIER1_UPKEEP = 400;
 // The Second Quad (QUAD-S2) is gone since Plan 59; a save that built one
 // keeps it (persistence.ts).
 const QUAD_TIER2_ID = 'QUAD-T2';
 const QUAD_TIER2_FLAT_BONUS = 12;
 const QUAD_TIER2_COST = 190_000;
-const QUAD_TIER2_WEEKS = 8;
+const QUAD_TIER2_WEEKS = 10;
 const QUAD_TIER2_UPKEEP = 1_000;
 
 // The grand landmarks: a long build and a large payoff, a share of prestige's
@@ -477,11 +477,11 @@ export const GRAND_LANDMARK_IDS: readonly string[] = GRAND_LANDMARKS.map((l) => 
 // campus beauty (systems/estate/beauty.ts), opened along the ladder. None has
 // a satisfaction attribute, so no harness strategy builds one.
 export const AMENITIES: ReadonlyArray<{ id: string; name: string; description: string; cost: number; weeks: number; upkeep: number; beauty: number }> = [
-  { id: 'AMENITY-STATUE', name: "The Founder's Statue", description: 'The founder in bronze on a stone plinth, a little larger than life, and a meeting place from the day it goes up.', cost: 150_000, weeks: 8, upkeep: 300, beauty: 0.6 },
-  { id: 'AMENITY-FOUNTAIN', name: 'The Fountain', description: 'A basin and a jet on a paved round: somewhere to sit, and the first photograph on every tour.', cost: 400_000, weeks: 10, upkeep: 800, beauty: 1 },
-  { id: 'AMENITY-GARDEN', name: 'The Formal Garden', description: 'Clipped hedges, gravel walks and beds that change with the terms.', cost: 300_000, weeks: 12, upkeep: 1_500, beauty: 1.5 },
-  { id: 'AMENITY-CHAPEL', name: 'The Chapel', description: 'A small stone chapel, used for concerts and quiet as often as for services.', cost: 1_500_000, weeks: 30, upkeep: 2_000, beauty: 1.5 },
-  { id: 'AMENITY-BELLTOWER', name: 'The Bell Tower', description: 'A slim tower with a peal of bells that marks the hours across the campus.', cost: 1_800_000, weeks: 36, upkeep: 1_500, beauty: 2 },
+  { id: 'AMENITY-STATUE', name: "The Founder's Statue", description: 'The founder in bronze on a stone plinth, a little larger than life, and a meeting place from the day it goes up.', cost: 150_000, weeks: 10, upkeep: 300, beauty: 0.6 },
+  { id: 'AMENITY-FOUNTAIN', name: 'The Fountain', description: 'A basin and a jet on a paved round: somewhere to sit, and the first photograph on every tour.', cost: 400_000, weeks: 13, upkeep: 800, beauty: 1 },
+  { id: 'AMENITY-GARDEN', name: 'The Formal Garden', description: 'Clipped hedges, gravel walks and beds that change with the terms.', cost: 300_000, weeks: 16, upkeep: 1_500, beauty: 1.5 },
+  { id: 'AMENITY-CHAPEL', name: 'The Chapel', description: 'A small stone chapel, used for concerts and quiet as often as for services.', cost: 1_500_000, weeks: 39, upkeep: 2_000, beauty: 1.5 },
+  { id: 'AMENITY-BELLTOWER', name: 'The Bell Tower', description: 'A slim tower with a peal of bells that marks the hours across the campus.', cost: 1_800_000, weeks: 47, upkeep: 1_500, beauty: 2 },
 ];
 
 export function initialFacilities(): Buildable[] {

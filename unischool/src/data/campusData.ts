@@ -19,7 +19,7 @@ export const STARTING_DORM_ID = 'DORM-01';
 export const STARTING_DORM_CAPACITY = 350; // the founding hall's bed count, granted via its capacityBonus effect when built
 // A cheap, quick starter, but still a real decision rather than a freebie.
 const STARTING_DORM_COST = 350_000;
-const STARTING_DORM_WEEKS = 12;
+const STARTING_DORM_WEEKS = 16;
 
 // basicNeeds capacity of one tower's street-level retail, via the ordinary
 // servesPopulation/satisfactionAttribute pair: a top-up, not a replacement.
@@ -40,26 +40,26 @@ interface DormRung {
 
 const DORM_RUNGS: DormRung[] = [
   // --- Early halls: 500 beds ---
-  { id: 'DORM-02', name: 'Lakeside House', beds: 500, cost: 3_500_000, weeks: 16, blurb: 'A four-story residence hall.' },
-  { id: 'DORM-03', name: 'Riverside House', beds: 500, cost: 4_500_000, weeks: 16, blurb: 'A four-story residence hall.' },
-  { id: 'DORM-04', name: 'Hillcrest House', beds: 500, cost: 5_500_000, weeks: 17, blurb: 'A four-story residence hall.' },
-  { id: 'DORM-05', name: 'Cascade House', beds: 500, cost: 6_500_000, weeks: 17, blurb: 'A four-story residence hall.' },
+  { id: 'DORM-02', name: 'Lakeside House', beds: 500, cost: 3_500_000, weeks: 21, blurb: 'A four-story residence hall.' },
+  { id: 'DORM-03', name: 'Riverside House', beds: 500, cost: 4_500_000, weeks: 21, blurb: 'A four-story residence hall.' },
+  { id: 'DORM-04', name: 'Hillcrest House', beds: 500, cost: 5_500_000, weeks: 22, blurb: 'A four-story residence hall.' },
+  { id: 'DORM-05', name: 'Cascade House', beds: 500, cost: 6_500_000, weeks: 22, blurb: 'A four-story residence hall.' },
 
   // --- Mid-game halls: 1,000 beds, on more ground and several stories taller ---
-  { id: 'DORM-06', name: 'Summit House', beds: 1_000, cost: 14_000_000, weeks: 22, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
-  { id: 'DORM-07', name: 'Vanguard House', beds: 1_000, cost: 16_000_000, weeks: 22, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
-  { id: 'DORM-08', name: 'Sterling House', beds: 1_000, cost: 18_000_000, weeks: 23, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
-  { id: 'DORM-09', name: 'Crestline House', beds: 1_000, cost: 20_000_000, weeks: 23, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
+  { id: 'DORM-06', name: 'Summit House', beds: 1_000, cost: 14_000_000, weeks: 29, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
+  { id: 'DORM-07', name: 'Vanguard House', beds: 1_000, cost: 16_000_000, weeks: 29, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
+  { id: 'DORM-08', name: 'Sterling House', beds: 1_000, cost: 18_000_000, weeks: 30, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
+  { id: 'DORM-09', name: 'Crestline House', beds: 1_000, cost: 20_000_000, weeks: 30, blurb: 'A high-rise hall — twice the beds, on more ground and several stories taller.' },
 
   // --- Villages: one large plot, many small residences around a shared green ---
-  { id: 'DORM-10', name: 'Overlook Village', beds: 1_500, cost: 40_000_000, weeks: 32, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
-  { id: 'DORM-11', name: 'Ridgeline Village', beds: 1_500, cost: 46_000_000, weeks: 32, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
+  { id: 'DORM-10', name: 'Overlook Village', beds: 1_500, cost: 40_000_000, weeks: 42, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
+  { id: 'DORM-11', name: 'Ridgeline Village', beds: 1_500, cost: 46_000_000, weeks: 42, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
 
   // --- Residential towers: the late-game rung, with retail at street level ---
-  { id: 'DORM-12', name: 'Meridian Tower', beds: 5_000, cost: 200_000_000, weeks: 40, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
-  { id: 'DORM-13', name: 'Beacon Tower', beds: 5_000, cost: 250_000_000, weeks: 40, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
-  { id: 'DORM-14', name: 'Horizon Tower', beds: 5_000, cost: 300_000_000, weeks: 44, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
-  { id: 'DORM-15', name: 'Aurora Tower', beds: 5_000, cost: 360_000_000, weeks: 44, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
+  { id: 'DORM-12', name: 'Meridian Tower', beds: 5_000, cost: 200_000_000, weeks: 52, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
+  { id: 'DORM-13', name: 'Beacon Tower', beds: 5_000, cost: 250_000_000, weeks: 52, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
+  { id: 'DORM-14', name: 'Horizon Tower', beds: 5_000, cost: 300_000_000, weeks: 57, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
+  { id: 'DORM-15', name: 'Aurora Tower', beds: 5_000, cost: 360_000_000, weeks: 57, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
 ];
 
 // Priced at the grocery rate (facilitiesData.ts's

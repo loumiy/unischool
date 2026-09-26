@@ -64,7 +64,7 @@ import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { TUITION_SLIDER_MAX } from '../../src/data/foundingData';
 import type { Game, Player } from './game';
-import { homeFor, moveHome, site } from './moves';
+import { homeFor, moveHome, site, tendTeaching, TEND_EVERY_WEEKS } from './moves';
 import { foundIn } from './guided';
 
 // Rule 3 waits for this many academic halls, Founders Hall included: seven
@@ -244,7 +244,8 @@ function consolidate(g: Game): void {
 
 function hireInto(g: Game, field: string | undefined): boolean {
   if (!field) return false;
-  const c = [...g.s.candidates].filter((x) => x.field === field).sort((a, b) => a.salary - b.salary)[0];
+  // The best teacher on the market (Plan 71: prestige waits on A grades).
+  const c = [...g.s.candidates].filter((x) => x.field === field).sort((a, b) => b.teachingPotential - a.teachingPotential)[0];
   if (!c) return false;
   g.act({ type: 'HIRE_FACULTY', facultyId: c.id });
   return true;
@@ -452,6 +453,7 @@ export function createNaturalPlayer(): Player & { record: NaturalRecord } {
       const saving = buildProjects(g);
       satisfaction(g, record);
       if (unstaffedIn(g.s).length > 0) g.act({ type: 'RESTAFF', school: null });
+      if (g.s.clock.week % TEND_EVERY_WEEKS === 0) tendTeaching(g);
       if (saving) {
         record.projectSaving += 1;
         observe(g.s);

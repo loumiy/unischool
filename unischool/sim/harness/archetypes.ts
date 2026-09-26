@@ -31,7 +31,7 @@ import { playerRank } from '../../src/systems/rivals/rivalsSystem';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import type { Game, Player } from './game';
-import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, homeFor, moveHome, site, siteNextHall } from './moves';
+import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, homeFor, moveHome, site, siteNextHall, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding } from './moves';
 import { buildFor, carry, createGuidedPlayer, foundIn, reserveOf } from './guided';
 import { createNaturalPlayer } from './natural';
 
@@ -107,16 +107,23 @@ const COMPLETIONIST: Policy = {
     const reserve = reserveOf(g.s, 4);
     restaffIfDark(g);
     moveHome(g);
+    // An overcrowded campus is fixed first, and saved for (Plan 71).
+    if (relieveCrowding(g, buildFor) === 'short') return;
     foundOffer(g, { reserve });
     foundGraduate(g, reserve);
     hireForBlocked(g, { reserve });
+    if (g.s.clock.week % TEND_EVERY_WEEKS === 0) tendTeaching(g, { reserve });
     developCourse(g, { reserve });
     buildDorm(g, 0.85, { reserve });
     const [worst, score] = worstAttribute(g.s);
     if (score < 70) buildFor(g, worst, reserve);
     siteNextHall(g, { reserve });
-    // Everything else the menu offers, the cheapest first: labs, projects,
-    // venues, the rest of the estate.
+    // A capital project first: it houses graduate programs and takes years
+    // to build (Plan 71: cheapest-first left it to the end).
+    const project = cheapest(buildable(g.s, reserve).filter((t) => t.project !== undefined));
+    if (project) site(g, project);
+    // Everything else the menu offers, the cheapest first: labs, venues, the
+    // rest of the estate.
     const next = cheapest(buildable(g.s, reserve).filter((t) => t.kind === 'facility'));
     if (next) site(g, next);
     keepLabsBusy(g, reserve);

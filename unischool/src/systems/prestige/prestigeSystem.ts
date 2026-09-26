@@ -470,7 +470,7 @@ export function concentrationScore(s: GameState): number {
 // Crowding: the worst coverage ratio as a shortfall below CROWDING_GRACE,
 // averaged over the year. Health below its population gate counts as fully
 // covered, as in the satisfaction and demand systems.
-const CROWDING_GRACE = 0.85;
+export const CROWDING_GRACE = 0.85;
 
 const COVERAGE_LABELS: Record<keyof SatisfactionAttributes, string> = {
   academic: 'library',
@@ -483,6 +483,7 @@ const COVERAGE_LABELS: Record<keyof SatisfactionAttributes, string> = {
 interface CoverageReading {
   label: string;
   coverage: number; // 0..1
+  attribute?: keyof SatisfactionAttributes; // the need's satisfaction attribute; none for instruction
 }
 
 // Crowding reads the needs a class physically overruns (Plan 71): beds,
@@ -496,7 +497,7 @@ export function crowdingCoverages(s: GameState): CoverageReading[] {
   const out: CoverageReading[] = [];
   for (const attribute of CROWDED_NEEDS) {
     const dormant = attribute === 'health' && enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE;
-    out.push({ label: COVERAGE_LABELS[attribute], coverage: dormant ? 1 : attributeCoverage(s, attribute) });
+    out.push({ label: COVERAGE_LABELS[attribute], coverage: dormant ? 1 : attributeCoverage(s, attribute), attribute });
   }
   out.push({ label: 'instruction', coverage: instructionCoverage(s) });
   return out.sort((a, b) => a.coverage - b.coverage);

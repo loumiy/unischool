@@ -55,8 +55,10 @@ const TUITION_REFERENCE = 20_000;   // price scale the quality-mix shift uses
 // logistic (half its 260,000 ceiling at prestige 103), which quadrupled the
 // pool between prestige 75 and 100 and made the middle decade a sprint; a line
 // grows the college as steadily as its standing grows.
-const APPLICANTS_PER_PRESTIGE_POINT = 480;
 const APPLICANT_VOLUME_ZERO_PRESTIGE = 24;
+const APPLICANT_VOLUME_REFERENCE_PRESTIGE = 140;
+const APPLICANTS_AT_REFERENCE = 55_000;
+const APPLICANT_VOLUME_CURVE = 1.5;
 const APPLICANT_VOLUME_FLOOR = 1_000;         // even an unknown college draws a few
 
 // Overcrowding (Plan 71): a campus that took more students than it could
@@ -184,8 +186,8 @@ export function priceTier(price: number, tolerance: number): PriceTier {
 // Applicant volume as its three factors, kept apart so the reveal can report
 // each one's year-over-year move; the funnel reads their product.
 function applicantVolumeParts(prestige: number, price: number, capacity: number): Pick<FunnelFactors, 'prestigePool' | 'priceFactor' | 'capacityFactor'> {
-  const prestigePool = APPLICANT_VOLUME_FLOOR
-    + APPLICANTS_PER_PRESTIGE_POINT * Math.max(0, prestige - APPLICANT_VOLUME_ZERO_PRESTIGE);
+  const prestigePool = APPLICANT_VOLUME_FLOOR + APPLICANTS_AT_REFERENCE
+    * (Math.max(0, prestige - APPLICANT_VOLUME_ZERO_PRESTIGE) / (APPLICANT_VOLUME_REFERENCE_PRESTIGE - APPLICANT_VOLUME_ZERO_PRESTIGE)) ** APPLICANT_VOLUME_CURVE;
   const priceFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(price, 0) / priceTolerance(prestige));
   return { prestigePool, priceFactor, capacityFactor: capacityFactor(capacity) };
 }

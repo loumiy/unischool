@@ -3,7 +3,8 @@ import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
-  FOUNDERS_HALL_ID, graduateCourseIds, graduateGateMet, graduatePrograms, isAcademicHall, milestoneSchools, programById, programOfCourse,
+  baseCourseCost, CATALOGUE_PRICE_GROWTH, FOUNDERS_HALL_ID, graduateCourseIds, graduateGateMet, graduatePrograms, isAcademicHall, milestoneSchools,
+  programById, programOfCourse,
 } from '../../data/techData';
 import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
@@ -262,6 +263,31 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
   return node.status === 'available' && facultyOk && canAfford;
 }
 
+// Undergraduate courses on offer (developing or taught): the catalogue's
+// size, which prices every one not yet started (techData.ts's
+// CATALOGUE_PRICE_GROWTH).
+export function coursesOnOffer(s: GameState): number {
+  return s.tech.filter((t) => isUndergraduateCourse(t) && (t.status === 'developing' || t.status === 'done')).length;
+}
+
+export function cataloguePriceScale(s: GameState): number {
+  return CATALOGUE_PRICE_GROWTH ** coursesOnOffer(s);
+}
+
+const CATALOGUE_PRICE_ROUNDING = 10_000;
+
+// Re-lists every undergraduate course not yet started at the catalogue's
+// current scale. A started course keeps the price it was started at. Run after a start and
+// every week, so a loaded save is priced before anything is bought.
+export function repriceCatalogue(s: GameState): void {
+  const scale = cataloguePriceScale(s);
+  for (const t of s.tech) {
+    if (t.kind !== 'course' || (t.status !== 'locked' && t.status !== 'available')) continue;
+    const base = baseCourseCost(t.id);
+    if (base !== undefined) t.cost = Math.round((base * scale) / CATALOGUE_PRICE_ROUNDING) * CATALOGUE_PRICE_ROUNDING;
+  }
+}
+
 export function startDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): void {
   node.status = 'developing';
   s.developing[node.id] = node.duration;
@@ -285,6 +311,7 @@ export function startDevelopment(s: GameState, node: Buildable, facultyId?: stri
     const chosen = facultyId ?? eligibleInstructors(s, node)[0]?.id;
     if (chosen) s.courseFaculty[node.id] = chosen;
   }
+  if (isUndergraduateCourse(node)) repriceCatalogue(s);
 }
 
 // Applies the apply-once completion effects (see BuildableEffects in
@@ -662,6 +689,7 @@ export function tickTech(s: GameState): void {
 
   // Every tick: the dynamic gates in meetsUnlockGates can cross any week.
   unlockAvailable(s);
+  repriceCatalogue(s);
   if (finished.length > 0 || arrived) checkMilestones(s);
   // Every week: a graduate gate may have opened, or the allowance of new
   // majors grown (Plan 68). A no-op while the offer is full.

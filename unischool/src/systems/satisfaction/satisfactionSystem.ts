@@ -9,7 +9,7 @@ import {
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { extensionGain } from '../estate/estate';
 import { campusCourseScores } from '../faculty/facultyAssignment';
-import { GRADE_A, GRADE_B, GRADE_D_SCORE, gradeFor } from '../../data/courseQuality';
+import { GRADE_A, GRADE_D_SCORE, gradeFor } from '../../data/courseQuality';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
@@ -100,22 +100,22 @@ function affordabilityBonus(s: GameState): number {
 // ACADEMIC_TEACHING_POINTS come from the courses, each measured against the
 // standard these students expect (academicStandard): better students demand
 // better teachers. The library's seats are worth ACADEMIC_LIBRARY_POINTS.
-// Full marks need every course at the standard, which for a strong intake
-// is an A: a late-game reading, as new instructors start at C or D and
-// mature over years.
+// Full marks need every course at the standard, which is always an A: a
+// late-game reading, as new instructors start at C or D and mature over
+// years.
 export const ACADEMIC_TEACHING_POINTS = 80;
 export const ACADEMIC_LIBRARY_POINTS = 20;
 // Credit per course runs from nothing at GRADE_D to full at the standard,
 // and the mean is curved, so a campus of B's still reads well short.
 const ACADEMIC_CREDIT_CURVE = 1.5;
-// The standard: a B for an intake of average quality or below, rising to a
+// The standard: an A for an intake of average quality or below, rising to a
 // strong A for the best students.
 const STANDARD_LOW_QUALITY = 40;
 const STANDARD_HIGH_QUALITY = 85;
-const STANDARD_AT_HIGH = GRADE_A + 6;
+const STANDARD_AT_HIGH = GRADE_A + 8;
 export function academicStandard(s: GameState): number {
   const q = clamp((s.students.incomingQuality - STANDARD_LOW_QUALITY) / (STANDARD_HIGH_QUALITY - STANDARD_LOW_QUALITY), 0, 1);
-  return GRADE_B + (STANDARD_AT_HIGH - GRADE_B) * q;
+  return GRADE_A + (STANDARD_AT_HIGH - GRADE_A) * q;
 }
 // 0..1: how close the courses on offer come to the standard, curved.
 export function teachingAgainstStandard(s: GameState): number {
