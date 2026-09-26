@@ -466,7 +466,133 @@ const AUDIO: AudioFile = {
           "freq": 880,
           "attack": 0.001,
           "decay": 0.05,
+          "gain": 0.025
+        }
+      ]
+    },
+    {
+      "id": "loss",
+      "voices": [
+        {
+          "wave": "triangle",
+          "freq": 329.63,
+          "attack": 0.01,
+          "decay": 0.5,
+          "gain": 0.12
+        },
+        {
+          "wave": "triangle",
+          "freq": 261.63,
+          "to": 246.94,
+          "attack": 0.01,
+          "decay": 0.9,
+          "gain": 0.12,
+          "delay": 0.22
+        }
+      ]
+    },
+    {
+      "id": "fanfare",
+      "voices": [
+        {
+          "wave": "square",
+          "freq": 523.25,
+          "attack": 0.01,
+          "decay": 0.25,
           "gain": 0.05
+        },
+        {
+          "wave": "square",
+          "freq": 659.25,
+          "attack": 0.01,
+          "decay": 0.25,
+          "gain": 0.05,
+          "delay": 0.14
+        },
+        {
+          "wave": "square",
+          "freq": 783.99,
+          "attack": 0.01,
+          "decay": 0.3,
+          "gain": 0.05,
+          "delay": 0.28
+        },
+        {
+          "wave": "triangle",
+          "freq": 1046.5,
+          "attack": 0.02,
+          "decay": 1.6,
+          "gain": 0.12,
+          "delay": 0.44
+        },
+        {
+          "wave": "noise",
+          "freq": 1200,
+          "attack": 0.4,
+          "decay": 1.6,
+          "gain": 0.12,
+          "delay": 0.44
+        }
+      ]
+    },
+    {
+      "id": "rankUp",
+      "voices": [
+        {
+          "wave": "sine",
+          "freq": 587.33,
+          "attack": 0.005,
+          "decay": 0.18,
+          "gain": 0.12
+        },
+        {
+          "wave": "sine",
+          "freq": 880,
+          "attack": 0.005,
+          "decay": 0.5,
+          "gain": 0.12,
+          "delay": 0.1
+        }
+      ]
+    },
+    {
+      "id": "rankDown",
+      "voices": [
+        {
+          "wave": "sine",
+          "freq": 587.33,
+          "attack": 0.005,
+          "decay": 0.18,
+          "gain": 0.1
+        },
+        {
+          "wave": "sine",
+          "freq": 440,
+          "to": 415.3,
+          "attack": 0.005,
+          "decay": 0.5,
+          "gain": 0.1,
+          "delay": 0.1
+        }
+      ]
+    },
+    {
+      "id": "alarm",
+      "voices": [
+        {
+          "wave": "triangle",
+          "freq": 155.56,
+          "attack": 0.02,
+          "decay": 0.35,
+          "gain": 0.2
+        },
+        {
+          "wave": "triangle",
+          "freq": 155.56,
+          "attack": 0.02,
+          "decay": 0.6,
+          "gain": 0.2,
+          "delay": 0.4
         }
       ]
     }
@@ -491,6 +617,12 @@ const AUDIO: AudioFile = {
     "demand-raised": "letter",
     "demand-failed": "letter",
     "research-reported": "letter",
+    "publication": "tick",
+    "team": "cheer",
+    "event": "letter",
+    "organisations": "letter",
+    "attrition": "loss",
+    "report-card": "letter",
     "admissions": "yearTurn"
   },
   "ambience": {

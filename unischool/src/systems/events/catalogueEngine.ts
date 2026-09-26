@@ -156,7 +156,7 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   const who = by === 'seat'
     ? (() => { const seat = handlerFor(s, e.domain)!; return `${seatTitle(seatDef(seat.seatId)!, seat.school)} ${seat.holder} answered`; })()
     : by === 'timeout' ? 'Nobody answered in time' : 'Answered';
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `${title} — ${who}: ${choice.label}.` });
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'event', message: `${title} — ${who}: ${choice.label}.` });
   return true;
 }
 

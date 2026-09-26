@@ -373,6 +373,39 @@ and the balance was just tuned in Plans 67–69.
 - **Checks:** a test that every log topic maps to a cue or is listed as
   deliberately silent, so a new topic cannot be silent by accident.
 
+**As implemented** (PR H):
+- **Sound.**
+  - Five new effects: a loss (a falling third), a fanfare (a rising triad
+    and a swell), a rank up and down (a two-note rise and fall), and an
+    alarm (two low pulses). UI clicks play the existing `click`, at half
+    its old level, on any enabled button or tab.
+  - By topic: publications tick; club decisions, catalogue answers (a new
+    `event` topic on their log lines) and the report card are letters;
+    attrition is the loss. A game lost is the loss, not silence; money
+    going the wrong way is the alarm, not a coin; a school distinguished is
+    the fanfare.
+  - From the state, not the log (`director.ts`'s `stateCues`): ground
+    broken (`place`) and a building pulled down (`demolish`), the rank
+    moving, cash going into the red or the board's distress deepening (the
+    alarm), a title won and the Final Report (the fanfare).
+  - `LOG_TOPICS` is now a list in `types.ts`, and the audio test holds
+    every topic to a cue or to `SILENT_TOPICS` with its reason (none is
+    silent today).
+- **Motion.**
+  - `Toasts.tsx`: at most four, bottom right above the ticker, six seconds
+    each, dismissable. A program or school founded, the rank moving, cash
+    going into the red, and a building finished where the map is not
+    showing it (the map answers through `mapProbe.ts`).
+  - A school distinguished: a banner across the map in the school's hue
+    and motif, 4.5 seconds, with the fanfare.
+  - A dust puff at a footprint placed; modals rise in over 150 ms; the
+    rank's pill flashes green or red when it moves; the funds figure
+    pulses once when it goes red and stays red.
+  - Reduced motion: the stylesheet's blanket rule stills every animation,
+    and the puff is not drawn at all.
+- **Checks:** the audio test (every topic heard, and the state's cues) and
+  `test/toasts.test.ts`.
+
 ## PR 70I — Words that don't repeat
 
 - **Catalogue events:** each of the 27 with a cooldown of five years or

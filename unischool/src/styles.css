@@ -2705,3 +2705,57 @@ body:has(.building-info-panel) .pennant { display: none; }
   .alumni-list li { flex-wrap: wrap; }
   .alumni-figures { flex-shrink: 1; flex-wrap: wrap; }
 }
+
+/* ---------- Motion (Plan 70H) ----------
+   All of it under the blanket reduced-motion rule at the top of this file:
+   with motion reduced the toasts and banner appear without moving, the puff
+   is not drawn at all (CampusMap.tsx), and nothing pulses. */
+
+/* Toasts: one line each, stacked above the ticker at the right. */
+.toasts { position: fixed; z-index: 14; right: 16px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height, 28px) + 12px);
+  width: min(360px, calc(100vw - 32px)); margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px;
+  background: var(--cream); color: var(--ink); border: 2px solid var(--outline); border-left-width: 6px;
+  border-radius: var(--radius-md); box-shadow: var(--shadow-1); font-size: var(--text-sm); font-weight: 700;
+  animation: toast-in 220ms ease-out; }
+.toast.good { border-left-color: var(--green); }
+.toast.bad { border-left-color: var(--danger-ink); }
+.toast-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast-close { flex: none; width: 28px; height: 28px; border-radius: 50%; border: none; background: transparent;
+  color: var(--ink-muted); font-size: var(--text-lg); line-height: 1; padding: 0; }
+.toast-close:hover { background: var(--parchment-line); color: var(--ink); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* A school distinguished: a banner across the map in its colors. */
+.school-banner { position: fixed; z-index: 13; left: 50%; top: 28%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px);
+  padding: 14px 28px; background: var(--school-hue, var(--school-primary)); color: #fff;
+  border: 3px solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-2, var(--shadow-1));
+  font-family: var(--display); font-weight: 800; font-size: var(--text-xl); text-align: center;
+  animation: banner-in 4.5s ease-in-out both; pointer-events: none; }
+.school-banner-motif { font-size: 1.4em; }
+@keyframes banner-in {
+  0% { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
+  8%, 85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, 0) scale(1); }
+}
+
+/* Ground broken: a puff of dust at the footprint. */
+.dust-puff circle { fill: rgba(196, 176, 140, 0.55); transform-box: fill-box; transform-origin: center;
+  animation: dust-puff 900ms ease-out both; }
+@keyframes dust-puff { from { opacity: 0.9; transform: scale(0.3); } to { opacity: 0; transform: scale(1.5); } }
+
+/* Modals rise into place. */
+.modal { animation: modal-in 150ms ease-out; }
+@keyframes modal-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* The rank's pill flashes the way it moved. */
+.toolbar-stat.rank-up { animation: rank-up 1.6s ease-out; }
+.toolbar-stat.rank-down { animation: rank-down 1.6s ease-out; }
+@keyframes rank-up { 0%, 40% { box-shadow: 0 0 0 4px var(--green); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes rank-down { 0%, 40% { box-shadow: 0 0 0 4px var(--danger-ink); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* Cash going red pulses once, then stays red. */
+.toolbar-funds-btn .money-negative { display: inline-block; animation: red-pulse 900ms ease-out 1; }
+@keyframes red-pulse { 0% { transform: scale(1); } 30% { transform: scale(1.18); } 100% { transform: scale(1); } }

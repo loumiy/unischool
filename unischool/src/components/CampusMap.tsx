@@ -39,6 +39,10 @@ import {
   turnStep, unproject, type Camera, type Pt,
 } from './isoProjection';
 import { reducedMotion } from '../settings';
+import { setMapProbe } from './mapProbe';
+
+// How long a dust puff hangs over a footprint just placed (Plan 70H).
+const DUST_MS = 900;
 
 // The campus map: the game's base layer, always on screen (see App.tsx).
 // It reads `s.placements` + `s.tech` and dispatches PLACE_BUILDABLE; it owns
@@ -814,6 +818,40 @@ export default function CampusMap({
   useEffect(() => () => {
     for (const timer of pulseTimersRef.current) window.clearTimeout(timer);
   }, []);
+
+  // Ground broken (Plan 70H): a puff of dust at a footprint the week it is
+  // placed. The first reading is where the run stands, not news.
+  const [justPlaced, setJustPlaced] = useState<readonly string[]>([]);
+  const wasPlacedRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const now = new Set(Object.keys(s.placements));
+    const was = wasPlacedRef.current;
+    wasPlacedRef.current = now;
+    if (!was || reducedMotion()) return;
+    const fresh = [...now].filter((id) => !was.has(id));
+    if (fresh.length === 0 || fresh.length > 3) return;
+    setJustPlaced((cur) => [...cur, ...fresh]);
+    pulseTimersRef.current.push(window.setTimeout(
+      () => setJustPlaced((cur) => cur.filter((id) => !fresh.includes(id))),
+      DUST_MS,
+    ));
+  }, [s.placements]);
+
+  // Whether a placed building is on the screen now (Plan 70H: a toast
+  // speaks for one finished out of sight). Read by Toasts.tsx through
+  // mapProbe.ts, so the map need not know about toasts.
+  useEffect(() => setMapProbe((id) => {
+    const p = s.placements[id];
+    const svg = svgRef.current;
+    if (!p || !svg) return false;
+    const rect = svg.getBoundingClientRect();
+    const v = viewRef.current;
+    const w = project(p.col + p.w / 2, p.row + p.h / 2);
+    const x = w.x * v.zoom + v.x;
+    const y = w.y * v.zoom + v.y;
+    return rect.width > 0 && x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+  }), [s.placements]);
+  useEffect(() => () => setMapProbe(null), []);
 
   // `selectedId` can change from outside (BuildPopup.tsx), so a fresh pickup
   // resets rotation here.
@@ -1595,6 +1633,19 @@ export default function CampusMap({
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
+            {justPlaced.map((id) => {
+              const p = s.placements[id];
+              if (!p) return null;
+              const c = project(p.col + p.w / 2, p.row + p.h / 2);
+              const spread = Math.max(p.w, p.h) * 9;
+              return (
+                <g key={id} className="dust-puff" transform={`translate(${c.x} ${c.y})`} aria-hidden="true">
+                  {[-1, -0.4, 0.3, 1].map((k, i) => (
+                    <circle key={i} cx={k * spread} cy={(i % 2 ? -0.3 : 0.2) * spread * 0.5} r={spread * 0.35} style={{ animationDelay: `${i * 40}ms` }} />
+                  ))}
+                </g>
+              );
+            })}
           </g>
         </svg>
 

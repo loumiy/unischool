@@ -1,5 +1,6 @@
 import { AMBIENCE, CUES, type ThemeId } from '../../data/audioData';
-import { WEEKS_PER_YEAR, totalEnrolled, type GameState, type LogEntry } from '../../state/types';
+import { WEEKS_PER_YEAR, totalEnrolled, type GameState, type LogEntry, type LogTopic } from '../../state/types';
+import { playerRank } from '../../systems/rivals/rivalsSystem';
 import { RUNG_FREEZE, distressOf } from '../../systems/finance/distress';
 import { OCCASIONS } from '../../systems/athletics/season';
 import { PLAYOFF_WEEK } from '../../systems/athletics/playoffs';
@@ -62,16 +63,47 @@ export function ambienceFor(s: GameState | null): AmbienceLevels {
   };
 }
 
+// Topics that play nothing, on purpose, each with its reason (Plan 70H: a
+// test holds every topic to a cue or a line here, so a new one cannot be
+// silent by accident). Empty for now: every topic has a sound.
+export const SILENT_TOPICS: Partial<Record<LogTopic, string>> = {};
+
+// Where bad news on a topic sounds different from good (Plan 70H): a game
+// lost, and money going the wrong way.
+const BAD_NEWS: Partial<Record<LogTopic, string>> = { team: 'loss', money: 'alarm' };
+
 // The effects new log lines cue, each named once: a week that finishes a
 // building, a course and a hire plays the three, not the bell three times.
-// A team's good news is a cheer.
+// A team's win is a cheer and its loss a loss; its venue's news is the
+// building's own line.
 export function cuesFor(lines: readonly LogEntry[]): string[] {
   const out: string[] = [];
   for (const l of lines) {
-    const id = l.topic === 'team' ? (l.kind === 'good' ? 'cheer' : undefined) : l.topic ? CUES[l.topic] : undefined;
+    if (!l.topic || (l.topic === 'team' && l.kind === 'info')) continue;
+    // A school distinguished is the fanfare, with its banner (Toasts.tsx).
+    const id = l.topic === 'milestone' && l.subject?.startsWith('school-distinguished:') ? 'fanfare'
+      : l.kind === 'bad' ? (BAD_NEWS[l.topic] ?? CUES[l.topic]) : CUES[l.topic];
     if (id && !out.includes(id)) out.push(id);
   }
   return out;
+}
+
+// What changed between two weeks that no log line says (Plan 70H): ground
+// broken or a building pulled down, the rank moving, cash going into the
+// red, the board's letters, a title won, and the Final Report.
+export function stateCues(before: GameState, after: GameState): string[] {
+  const out: string[] = [];
+  const placed = (s: GameState) => Object.keys(s.placements).length;
+  if (placed(after) > placed(before)) out.push('place');
+  else if (placed(after) < placed(before)) out.push('demolish');
+  const [was, now] = [playerRank(before), playerRank(after)];
+  if (now < was) out.push('rankUp');
+  else if (now > was) out.push('rankDown');
+  if (before.finance.cash >= 0 && after.finance.cash < 0) out.push('alarm');
+  else if (distressOf(after).rung > distressOf(before).rung) out.push('alarm');
+  if (after.orgs.titles.length > before.orgs.titles.length) out.push('fanfare');
+  if (!before.ending && after.ending) out.push('fanfare');
+  return [...new Set(out)];
 }
 
 // The log's lines newer than the last one heard. The log is newest first
