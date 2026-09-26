@@ -13,6 +13,11 @@ going to happen but has not, it belongs here.
 
 ## Sequenced enough to start
 
+*[Plan 70](docs/plans/70-launch.md) sequences the launch (PRs A–L). By the
+owner's decision it takes none of the expansions below: faculty poaching,
+the event table, the map reading the college, the budget and the admit
+rate's early slope all wait until after launch.*
+
 *The [September 2026 design review](docs/reviews/2026-09-design-review.md) set the
 order for what comes next. Plan 09 (the playtest harness) has **landed** — the
 scenarios, the debug flag and panel, the prestige breakdown and the sim
