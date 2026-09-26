@@ -24,9 +24,12 @@
 //      every vacant coaching chair filled with the best candidate listed.
 //   5. Research. Every idle lab funds the deepest initiative whose team
 //      would leave no course without an instructor.
-//   6. Everything else on the build menu: labs, capital projects, the
-//      landmark, amenities, the field house; and a graduate program
-//      wherever a host offers one.
+//   6. Everything else on the build menu: labs, the landmark, amenities,
+//      chapter houses; and a graduate program wherever a host offers one.
+//
+// A capital project goes up the week it reaches the menu, before any of
+// the rules; while one waits on money the player saves for it, spending
+// only on satisfaction (rule 1) and restaffing.
 //
 // At admissions, tuition is the highest the slider allows short of the
 // red "sticker shock" tier; every club and chapter petition is approved.
@@ -90,8 +93,10 @@ export interface NaturalRecord {
   // Buildable id -> the year it was first put up; standing at founding.
   built: Record<string, number>;
   founding: Set<string>;
-  // Buildable ids ever offered on the build menu.
-  offered: Set<string>;
+  // Buildable id -> the year it was first offered on the build menu.
+  offered: Record<string, number>;
+  // Weeks spent saving for a capital project on the menu.
+  projectSaving: number;
   // Research: what the initiatives cost up front, and how many by depth.
   invested: number;
   initiatives: Record<string, number>;
@@ -344,6 +349,18 @@ function fundResearch(g: Game, record: NaturalRecord): void {
   }
 }
 
+// ---- Capital projects: first, and saved for ----
+
+// Every capital project on the menu, the cheapest first. True if one is
+// waiting on money: the player then saves for it.
+function buildProjects(g: Game): boolean {
+  const waiting = menu(g.s).filter((t) => t.facilityType === 'project').sort((a, b) => a.cost - b.cost);
+  for (const t of waiting) {
+    if (!place(g, t)) return true;
+  }
+  return false;
+}
+
 // ---- Rule 6: everything else ----
 
 function buildTheRest(g: Game): void {
@@ -374,7 +391,7 @@ export function naturalTuition(s: GameState): number {
 
 export function createNaturalPlayer(): Player & { record: NaturalRecord } {
   const record: NaturalRecord = {
-    years: [], built: {}, founding: new Set<string>(), offered: new Set<string>(), invested: 0, initiatives: {}, builtFor: {}, extensions: {},
+    years: [], built: {}, founding: new Set<string>(), offered: {}, projectSaving: 0, invested: 0, initiatives: {}, builtFor: {}, extensions: {},
     hallsAt: {}, sortedFrom: null, varsity: { accepted: 0, refused: 0, coaches: 0 }, weeksInRed: 0, forCourses: new Set<string>(),
   };
   let lastYear = 0;
@@ -387,7 +404,7 @@ export function createNaturalPlayer(): Player & { record: NaturalRecord } {
     }
     for (const t of s.tech) {
       if (!isPlaceableKind(t)) continue;
-      if (t.status === 'available') record.offered.add(t.id);
+      if (t.status === 'available') record.offered[t.id] ??= s.clock.year;
       if ((t.id in s.placements || t.status === 'done' || t.status === 'developing') && record.built[t.id] === undefined) record.built[t.id] = s.clock.year;
     }
     // A new year: the summer has just committed the last one.
@@ -421,8 +438,16 @@ export function createNaturalPlayer(): Player & { record: NaturalRecord } {
       netWeeks += 1;
       if (g.s.finance.cash < 0) record.weeksInRed += 1;
 
+      // A capital project on the menu is built before anything else, and
+      // saved for: only satisfaction and restaffing spend meanwhile.
+      const saving = buildProjects(g);
       satisfaction(g, record);
       if (unstaffedIn(g.s).length > 0) g.act({ type: 'RESTAFF', school: null });
+      if (saving) {
+        record.projectSaving += 1;
+        observe(g.s);
+        return;
+      }
       if (academicHalls(g.s) >= SORT_AT_HALLS) {
         record.sortedFrom ??= g.s.clock.year;
         for (let i = 0; i < MAX_PER_RULE && moveHome(g); i += 1);

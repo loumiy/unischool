@@ -68,7 +68,9 @@ say(`2. **Programs.** Every program on offer is founded where it belongs, hiring
 say(`3. **Schools.** From ${SORT_AT_HALLS} academic halls, Founders Hall included, programs move to their schools' halls as the game suggests, and a school spread over two halls is merged into one when another school's offer has nowhere to go (the game never suggests that move).`);
 say(`4. **Varsity.** Every petition is accepted, its venue built at once, and every coaching chair filled with the best candidate listed.`);
 say(`5. **Research.** Every idle lab funds the deepest initiative whose team would leave no course without an instructor.`);
-say(`6. **Everything else** on the build menu (labs, capital projects, the landmark, amenities, chapter houses) as soon as it is affordable, and a graduate program wherever a host offers one.`);
+say(`6. **Everything else** on the build menu (labs, the landmark, amenities, chapter houses) as soon as it is affordable, and a graduate program wherever a host offers one.`);
+say();
+say(`**Capital projects come first:** one on the build menu is built before any rule spends, and while it waits on money the player saves for it, spending only on satisfaction (rule 1) and restaffing.`);
 say();
 say(`At admissions, tuition is the highest the slider allows short of the red tier (1.6× what prestige supports), the admit rate is left as the screen opens it, and every club and chapter petition is approved. Every other decision takes the game's default.`);
 say();
@@ -133,7 +135,7 @@ say();
 say(`| Building | Serves | Cost | Ever on the menu |`);
 say(`|---|---|---|---|`);
 for (const t of neverSat.sort((a, b) => (serves(a) ?? '').localeCompare(serves(b) ?? '') || a.cost - b.cost)) {
-  say(`| ${t.name} | ${ATTR_NAME[serves(t)!]} | ${money(t.cost)} | ${r.offered.has(t.id) ? 'yes' : 'no'} |`);
+  say(`| ${t.name} | ${ATTR_NAME[serves(t)!]} | ${money(t.cost)} | ${r.offered[t.id] !== undefined ? 'yes' : 'no'} |`);
 }
 say();
 say(`**Everything else never built (${neverOther.length}):**`);
@@ -141,7 +143,7 @@ say();
 say(`| Building | Kind | Cost | Ever on the menu |`);
 say(`|---|---|---|---|`);
 for (const t of neverOther.sort((a, b) => kindOf(a).localeCompare(kindOf(b)) || a.cost - b.cost)) {
-  say(`| ${t.name} | ${kindOf(t)} | ${money(t.cost)} | ${r.offered.has(t.id) ? 'yes' : 'no'} |`);
+  say(`| ${t.name} | ${kindOf(t)} | ${money(t.cost)} | ${r.offered[t.id] !== undefined ? 'yes' : 'no'} |`);
 }
 say();
 say(`**Built (${built.length}), by year:**`);
@@ -150,18 +152,32 @@ say(`| Year | Building | Kind | Why |`);
 say(`|---|---|---|---|`);
 for (const t of built.sort((a, b) => r.built[a.id] - r.built[b.id] || a.name.localeCompare(b.name))) {
   const why = r.founding.has(t.id) ? 'stood at founding'
-    : r.builtFor[t.id] ? `rule 1: ${ATTR_NAME[r.builtFor[t.id]]}`
-      : r.forCourses.has(t.id) ? 'rule 2: a course waited on it'
-        : isAcademicHall(t) ? 'rule 2: program slots'
-          : t.athleticsVenueReveal ? 'rule 4: a varsity team'
-            : t.chapterHouse ? 'rule 6: a chapter asked for it'
-              : 'rule 6: on the menu';
+    : t.facilityType === 'project' ? 'capital project: first'
+      : r.builtFor[t.id] ? `rule 1: ${ATTR_NAME[r.builtFor[t.id]]}`
+        : r.forCourses.has(t.id) ? 'rule 2: a course waited on it'
+          : isAcademicHall(t) ? 'rule 2: program slots'
+            : t.athleticsVenueReveal ? 'rule 4: a varsity team'
+              : t.chapterHouse ? 'rule 6: a chapter asked for it'
+                : 'rule 6: on the menu';
   say(`| ${r.built[t.id]} | ${t.name} | ${kindOf(t)} | ${why} |`);
 }
 const stories = Object.entries(r.extensions);
 if (stories.length > 0) {
   say();
   say(`Stories added under rule 1: ${stories.map(([id, n]) => `${s.tech.find((t) => t.id === id)?.name ?? id} ×${n}`).join(', ')}.`);
+}
+say();
+
+// ---- Capital projects ----
+const projects = placeables.filter((t) => t.facilityType === 'project');
+say(`## Capital projects`);
+say();
+say(`Built as soon as each reached the build menu, saving for it when the cash fell short: ${r.projectSaving} weeks spent saving.`);
+say();
+say(`| Project | Cost | On the menu | Put up | Built |`);
+say(`|---|---|---|---|---|`);
+for (const t of projects.sort((a, b) => (r.offered[a.id] ?? 99) - (r.offered[b.id] ?? 99) || a.cost - b.cost)) {
+  say(`| ${t.name} | ${money(t.cost)} | ${r.offered[t.id] !== undefined ? `year ${r.offered[t.id]}` : 'never'} | ${r.built[t.id] !== undefined ? `year ${r.built[t.id]}` : 'never'} | ${t.status === 'done' ? 'yes' : t.status === 'developing' ? 'going up' : 'no'} |`);
 }
 say();
 

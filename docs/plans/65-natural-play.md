@@ -36,6 +36,10 @@ Asked, the owner chose:
   projects, the landmark, graduate programs.
 - **Halls:** the next academic hall as soon as it is affordable whenever
   an offer has no slot.
+- **Capital projects** (added after the first run): build each as soon as
+  it is available. One on the menu is built before any rule spends, and
+  while it waits on money the player saves for it, spending only on
+  satisfaction and restaffing.
 - **The report:** a markdown file in the repo, plus a summary in chat.
 
 ## 1. The PR
@@ -57,6 +61,11 @@ Asked, the owner chose:
   must be founded. The slow job goes from 109 s to 154 s.
 
 **As implemented:**
+
+- *Capital projects first changes nothing measurable.* The six go up the
+  year each is offered (10, 12, 15 ×3, 35) because the unlocks, not money,
+  set the dates; seed 12345 saved 54 weeks for the Arts Center, and the
+  mark stays B · 68.
 
 - *Rule 4 needed a move the game never suggests.* On two of three seeds
   the first version stopped at 21–23 programs from year 6 for good. Science
