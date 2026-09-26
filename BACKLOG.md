@@ -18,6 +18,29 @@ owner's decision it takes none of the expansions below: faculty poaching,
 the event table, the map reading the college, the budget and the admit
 rate's early slope all wait until after launch.*
 
+### On hold from Plan 70: analytics (K) and launch (L)
+
+*Held by the owner's decision (September 2026), after Plan 70's PRs A–J
+landed. Both specs stay in [Plan 70](docs/plans/70-launch.md); they wait
+here until they are picked up again.*
+
+- **70K — analytics.** Not started. PostHog through `posthog-js`, in
+  production builds only, memory persistence and no cookies, autocapture
+  off; page views and six run events with no free text (`run_started`,
+  `year_reached`, `run_finished`, `report_shared`, `save_exported` /
+  `save_imported`, `crashed`); *Share anonymous play statistics* in
+  Settings; two sentences in the Credits. **Needs the owner** to set
+  `VITE_POSTHOG_KEY` in Vercel's production environment before it reports
+  anything.
+- **70L — launch.** Not started. The owner plays a full run on a fresh
+  browser and a second session on a tablet, against a short checklist in
+  `docs/reviews/` (the first hour, the first school, the first summer, a
+  save exported and re-imported, a rank change, the Final Report, play
+  again); small findings are fixed in the PR, larger ones come here. Then
+  1.0.0: `package.json`, `LAUNCH_SAVE_VERSION` confirmed as the public
+  build's, the README re-shot, and this file updated with what launch left
+  for later. Depends on K only if analytics should ship with 1.0.
+
 *The [September 2026 design review](docs/reviews/2026-09-design-review.md) set the
 order for what comes next. Plan 09 (the playtest harness) has **landed** — the
 scenarios, the debug flag and panel, the prestige breakdown and the sim

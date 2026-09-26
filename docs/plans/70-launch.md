@@ -103,6 +103,10 @@ would hurt real players on day one:
 Each PR has its own branch (`plan-70x-subject`) and merges once `check` and
 `slow` pass.
 
+**K and L are on hold** by the owner's decision (September 2026), after A–J
+landed. Neither is started; both are in `BACKLOG.md` until they are picked
+up.
+
 ---
 
 ## PR 70B — Saves that survive updates
