@@ -1,21 +1,16 @@
-import type { GameState } from '../state/types';
+import { DEV_BUILD } from '../engine/devBuild';
 
 // ---------------------------------------------------------------------
 // The playtest gate: one place decides whether the developer shortcuts (the
 // sandbox Fast speed, DebugPanel.tsx and what it dispatches) are reachable.
-// A flag set by `?debug=1` on the URL, the `unischool.debug` localStorage
-// key, or a school named "test" (so scenario saves under any name work).
-// The first two are read once at module load so the panel cannot appear or
-// vanish mid-session; the name is checked per call.
+// Development builds only (Plan 70C): in the public build the gate is always
+// closed. There, a flag set by `?debug=1` on the URL or the `unischool.debug`
+// localStorage key opens it, read once at module load so the panel cannot
+// appear or vanish mid-session. (A college named "Test" used to open it too;
+// Plan 70C retired that, since a player could name one so.)
 // ---------------------------------------------------------------------
 
 export const DEBUG_FLAG_KEY = 'unischool.debug';
-
-// Checks the player-written half of the name only (types.ts's University),
-// so both Test College and Test University count.
-export function isTestUniversity(name: string): boolean {
-  return name.trim().toLowerCase() === 'test';
-}
 
 // `?debug=1` also writes the localStorage key (and `?debug=0` clears it), so
 // the flag survives the panel's Load-and-reload. Storage access is wrapped
@@ -48,8 +43,8 @@ function readFlagAtBoot(): boolean {
 }
 
 // `typeof window` guards headless callers (the balance sim and tests in Node).
-const FLAG_AT_BOOT = typeof window === 'undefined' ? false : readFlagAtBoot();
+const FLAG_AT_BOOT = !DEV_BUILD || typeof window === 'undefined' ? false : readFlagAtBoot();
 
-export function playtestEnabled(s: GameState): boolean {
-  return FLAG_AT_BOOT || isTestUniversity(s.self.name);
+export function playtestEnabled(): boolean {
+  return DEV_BUILD && FLAG_AT_BOOT;
 }

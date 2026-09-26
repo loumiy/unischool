@@ -1,6 +1,6 @@
 import type { CampusTool } from './state/actions';
 import { MILESTONES } from './data/ladderData';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { SPEEDS, useGame } from './engine/useGame';
 import { openingHoldsClock } from './state/opening';
 import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
@@ -13,7 +13,6 @@ import HallOfFame from './components/HallOfFame';
 import SettingsPanel from './components/SettingsPanel';
 import Credits from './components/Credits';
 import Pennant from './components/Pennant';
-import DebugPanel from './components/DebugPanel';
 import SoundControls from './components/audio/SoundControls';
 import { useAudioDirector } from './components/audio/useAudio';
 import { audio } from './components/audio/engine';
@@ -41,6 +40,10 @@ import HistoryTab from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import { freshSeed } from './engine/random';
 import './styles.css';
+
+// The playtest panel is in development builds only (Plan 70C): the public
+// bundle does not contain it.
+const DebugPanel = import.meta.env.DEV ? lazy(() => import('./components/DebugPanel')) : null;
 
 // The dashboard shell. The campus map fills the viewport behind everything
 // and every piece of chrome floats over it. CampusMap renders as a sibling
@@ -292,7 +295,7 @@ export default function App() {
     return (
       <>
         {frontScreen ?? <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />}
-        <DebugPanel s={s} act={act} exportRun={exportRun} />
+        {DebugPanel && <Suspense fallback={null}><DebugPanel s={s} act={act} exportRun={exportRun} /></Suspense>}
       </>
     );
   }
@@ -410,7 +413,7 @@ export default function App() {
       {frontScreen}
       {/* Behind the playtest flag (see DebugPanel.tsx). Outside the one-slot
           rule: it stays open while you look at something else. */}
-      <DebugPanel s={s} act={act} exportRun={exportRun} />
+      {DebugPanel && <Suspense fallback={null}><DebugPanel s={s} act={act} exportRun={exportRun} /></Suspense>}
 
       {/* Outside .app's stacking context, so the backdrop covers the menu
           and the pennant too. Neither draws over a front screen: the modal

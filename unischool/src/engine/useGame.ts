@@ -9,6 +9,7 @@ import { clearSave, loadGame, saveGame } from '../state/persistence';
 import { startRunLog, type RunLog } from './actionLog';
 import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 import { openingHoldsClock } from '../state/opening';
+import { registerCrashSource } from './crashContext';
 
 // Milliseconds per week-tick; 0 = paused. `real` makes a 50-year run take a
 // few hours of play so a development choice feels like a commitment;
@@ -157,6 +158,9 @@ export function useGame() {
 
   // The session's run as JSON, for a bug report (see actionLog.ts).
   const exportRun = useCallback(() => JSON.stringify(runLog.current), []);
+  // The crash screen's copy of both (crashContext.ts), should the game fall
+  // over.
+  registerCrashSource({ state: () => stateRef.current, runLog: exportRun });
 
   // A stable getter, so reading progress costs callers no re-renders.
   const weekProgress = useCallback(() => weekProgressRef.current, []);
