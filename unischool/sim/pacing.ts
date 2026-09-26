@@ -24,7 +24,7 @@ import type { GameState } from '../src/state/types';
 import { totalEnrolled } from '../src/state/types';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
 import { financeBreakdown, weeklyNet } from '../src/systems/finance/financeSystem';
-import { milestoneSchools } from '../src/data/techData';
+import { milestoneSchools, programs } from '../src/data/techData';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { foundGame, playYears, type Player } from './harness/game';
 
@@ -40,6 +40,9 @@ export interface PaceYear {
   schools: number;
   distinguished: number;
   gradCourses: number;
+  // What is still to build: majors and graduate programs to found, courses
+  // to teach, schools to distinguish (Plan 69). 0 means everything.
+  left: number;
   // The guardrails.
   cash: number;
   opexPerWeek: number;
@@ -54,7 +57,13 @@ const YEARS = 50;
 
 function readYear(s: GameState, year: number, netPerWeek: number): PaceYear {
   const scores = s.students.satisfactionBreakdown;
+  const courses = s.tech.filter((t) => t.kind === 'course');
+  const housed = Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
+  const left = (programs().length - housed)
+    + courses.filter((t) => t.status !== 'done').length
+    + milestoneSchools().filter((m) => !s.milestones[`school-distinguished:${m.schoolName}`]).length;
   return {
+    left,
     year,
     enrolled: totalEnrolled(s.students),
     prestige: s.self.reputation,
@@ -220,9 +229,13 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] 
     const rs = runs[player];
     const when = WHEN[PRICE[player]];
     const section = `${player}: when`;
+    // A college at "fair" runs a flat net (Plan 69, the owner's call): its
+    // net's shape is watched, not counted.
+    const netWatched = PRICE[player] === 'fair' ? true : undefined;
     for (const m of ['enrolled', 'prestige', 'netPerWeek'] as const) {
-      add(section, `${MEASURE_NAME[m]}: half its growth`, when.measures[m].half, yr, rs.map((run) => firstYear(run, (y) => growth(run, m, y.year) >= 0.5)));
-      add(section, `${MEASURE_NAME[m]}: 90% of its growth`, when.measures[m].ninety, yr, rs.map((run) => firstYear(run, (y) => growth(run, m, y.year) >= 0.9)));
+      const watch = m === 'netPerWeek' ? netWatched : undefined;
+      add(section, `${MEASURE_NAME[m]}: half its growth`, when.measures[m].half, yr, rs.map((run) => firstYear(run, (y) => growth(run, m, y.year) >= 0.5)), watch);
+      add(section, `${MEASURE_NAME[m]}: 90% of its growth`, when.measures[m].ninety, yr, rs.map((run) => firstYear(run, (y) => growth(run, m, y.year) >= 0.9)), watch);
     }
     for (const { top, band } of when.rank) {
       add(section, top === 1 ? 'Rank: first #1' : `Rank: first in the top ${top}`, band, yr, rs.map((run) => firstYear(run, (y) => y.rank <= top)));
@@ -235,7 +248,10 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>): ScoreRow[] 
         if (run[i].year > 5 && run[i].netPerWeek < run[i - 1].netPerWeek && run[i - 1].netPerWeek < run[i - 2].netPerWeek) falls += 1;
       }
       return falls;
-    }));
+    }), netWatched);
+    // Whatever the price, the top and the whole catalogue by year 50 (Plan 69).
+    add(section, 'Rank at Y50', { max: 1 }, num, rs.map((run) => at(run, 50)?.rank ?? NaN));
+    add(section, 'Left to build at Y50 (programs, courses, schools to distinguish)', { max: 0 }, num, rs.map((run) => at(run, 50)?.left ?? NaN));
 
     for (const c of CATALOGUE) {
       add(`${player}: the catalogue`, c.label, c.band, yr, rs.map((run) => {

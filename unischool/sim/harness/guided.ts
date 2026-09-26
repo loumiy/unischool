@@ -3,7 +3,9 @@
 // carries out the toolbar's next step — the line's intent
 // (systems/guidance/nextStep.ts, intent.ts), which is a letter's ask while
 // one is open — and otherwise plays with plain money sense: a cash reserve
-// of RESERVE_WEEKS of expenses, nothing recurring while the week runs at a
+// of RESERVE_WEEKS of expenses (three since Plan 69: eight starved a college
+// priced at "fair", whose margin is thin), research only from what lies
+// above RESEARCH_RESERVE_WEEKS, nothing recurring while the week runs at a
 // loss, the cheapest course next, a dorm when the beds are nearly full, a
 // lab or a capital project when it opens and can be paid for, a graduate
 // program where its host offers one. The summer is priced at what the
@@ -11,7 +13,9 @@
 // fair; the intake is the screen's own.
 //
 // It never plans past what it is told, so what it reaches is what the
-// guidance leads a player to. It records what it saw (GuidedRecord) for the
+// guidance leads a player to; told to develop a course nobody can teach
+// and nobody is listed, it posts a faculty search (Plan 69). It records
+// what it saw (GuidedRecord) for the
 // report and the checks (test/guided.test.ts, `npm run guided`).
 //
 // Not part of the game: nothing in src/ imports this.
@@ -38,13 +42,17 @@ import type { Game, Player } from './game';
 import { LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
+import { canPostSearch, searchCost } from '../../src/systems/faculty/facultySearch';
 import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site } from './moves';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
 // What the line asks for needs only ASK_RESERVE_WEEKS: a player told to
 // site a dining hall with the money in hand sites it.
-export const RESERVE_WEEKS = 8;
+export const RESERVE_WEEKS = 3;
 export const ASK_RESERVE_WEEKS = 2;
+// A research initiative the line asks for is funded only from above this
+// (Plan 69), so the catalogue's courses and hires are paid first.
+export const RESEARCH_RESERVE_WEEKS = 5;
 // Plain sense keeps every satisfaction attribute above this, and treats
 // one under EMERGENCY as worth breaking the saving for.
 export const LIVABLE = 60;
@@ -90,10 +98,17 @@ function affords(s: GameState, cost: number, reserve: number): boolean {
 
 // Hire someone who can teach a course waiting on its field, if the market
 // has anyone and the week's net can carry the salary.
+// When the market lists nobody in the field, it posts a search, as the
+// course drawer offers (Plan 69): told to develop a course nobody can teach,
+// a player looks for someone rather than waiting on the market forever.
 function hireFor(g: Game, field: string | undefined, reserve: number): boolean {
   if (!field || weeklyNet(g.s) <= 0) return false;
   const c = cheapest(g.s.candidates.filter((x) => x.field === field).map((x) => ({ ...x, cost: x.salary })));
-  if (!c || !affords(g.s, c.salary / 52, reserve)) return false;
+  if (!c) {
+    if (canPostSearch(g.s, field) && affords(g.s, searchCost(g.s), reserve)) g.act({ type: 'POST_SEARCH', field });
+    return false;
+  }
+  if (!affords(g.s, c.salary / 52, reserve)) return false;
   g.act({ type: 'HIRE_FACULTY', facultyId: c.id });
   return true;
 }
@@ -194,8 +209,11 @@ export function carry(g: Game, intent: StepIntent, reserve: number): boolean {
     case 'build-for':
       return buildFor(g, intent.attribute, reserve);
     case 'research': {
+      // Funded down to the ask's reserve, research drained a college at
+      // "fair" below what the catalogue's courses and hires need (Plan 69).
+      const floor = reserveOf(s, RESEARCH_RESERVE_WEEKS);
       const offer = [...initiativeOffers(s, intent.labId)]
-        .filter((o) => !o.blockedReason && affords(s, o.fundingCost, reserve))
+        .filter((o) => !o.blockedReason && affords(s, o.fundingCost, floor))
         .sort((a, b) => a.fundingCost - b.fundingCost)[0];
       if (!offer) return false;
       g.act({ type: 'START_INITIATIVE', labId: intent.labId, topicId: offer.topic.id, depth: offer.depth.key, facultyIds: offer.suggested.map((f) => f.id) });
@@ -223,8 +241,12 @@ function background(g: Game, reserve: number): void {
   const scores = g.s.students.satisfactionBreakdown;
   const worst = (Object.keys(scores) as Array<keyof SatisfactionAttributes>).sort((a, b) => scores[a] - scores[b])[0];
   if (scores[worst] < LIVABLE) buildFor(g, worst, reserve);
-  // What opens and nothing on the line mentions: a lab, a capital project.
-  const opened = buildable(g.s, reserve).filter((t) => t.facilityType === 'lab' || t.project !== undefined);
+  // What opens and nothing on the line mentions: a lab, a capital project,
+  // and a building a course waits on (Plan 69: the Art Gallery, the Clinic).
+  const waitedOn = new Set(g.s.tech
+    .filter((t) => t.kind === 'course' && t.status === 'locked')
+    .flatMap((t) => t.prereqs));
+  const opened = buildable(g.s, reserve).filter((t) => t.facilityType === 'lab' || t.project !== undefined || waitedOn.has(t.id));
   const next = cheapest(opened);
   if (next) site(g, next);
   // A graduate program its host offers.
@@ -283,7 +305,10 @@ export function createGuidedPlayer(): Player & { record: GuidedRecord } {
         if (carry(g, step.intent, reserve)) record.carried[kind] = (record.carried[kind] ?? 0) + 1;
         else {
           const cost = intentCost(g.s, step.intent);
-          saving = cost !== undefined && g.s.finance.cash - cost < reserve;
+          // A research ask is not worth freezing the college for (Plan 69):
+          // saving for one starved the courses the line had stopped asking
+          // about.
+          saving = kind !== 'research' && cost !== undefined && g.s.finance.cash - cost < reserve;
           if (saving) record.saving += 1;
         }
       }
