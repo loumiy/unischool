@@ -1,4 +1,5 @@
 import { tagTeeth } from '../identity/teeth';
+import { tickSweep } from './sweep';
 import { annualGiving } from '../alumni/giving';
 import { seatPayroll } from '../delegation/seats';
 import { upkeepShare } from '../estate/estate';
@@ -338,6 +339,8 @@ export function tickFinance(s: GameState): void {
   // which stalls development rather than ending the run: no auto-draw, no
   // game over.
   s.finance.endowment *= 1 + (ENDOWMENT_ANNUAL_RETURN - drawRate(s)) / WEEKS_PER_YEAR;
+  // Idle cash: the standing sweep and the board's watch (sweep.ts).
+  tickSweep(s);
 }
 
 // "Stall, don't die": why no run can spiral beyond recovery. Since Plan 27

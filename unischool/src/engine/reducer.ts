@@ -1,4 +1,5 @@
 import { answerPromises, tickPromises } from '../systems/promises/promises';
+import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
@@ -325,6 +326,16 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'MOVE_TO_ENDOWMENT': {
       moveToEndowment(s, action.amount);
+      return s;
+    }
+
+    case 'SET_SWEEP': {
+      if (action.weeks === null) delete s.finance.sweepWeeks;
+      else if (isSweepStep(action.weeks)) s.finance.sweepWeeks = action.weeks;
+      else return state;
+      // Answering the board's letter by setting it puts the letter away.
+      const d = s.finance.distress;
+      if (d && action.weeks !== null) d.letters = d.letters.filter((id) => id !== IDLE_CASH_LETTER && id !== IDLE_CASH_AGAIN_LETTER);
       return s;
     }
 

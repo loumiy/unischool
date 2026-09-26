@@ -11,12 +11,14 @@ import { milestoneById } from '../../data/ladderData';
 import { eventById, fill } from '../events/catalogue';
 import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
+import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the latest undone letter ask (the letters' order must not
 // be contradicted); afterward it is a letter's ask still undone, then a
 // reading of the campus, in priority order: a dark program the market can
-// staff (Plan 60: it seats nobody, so it outranks a letter), a program that can move to its
+// staff (Plan 60: it seats nobody, so it outranks a letter), the board's ask
+// about idle cash (Plan 70D), a program that can move to its
 // school's hall, free hall slot, program one course from established,
 // attribute shortfall, idle lab. Recomputed every render; nothing is stored.
 
@@ -234,6 +236,17 @@ function idleLab(s: GameState): NextStep | null {
   };
 }
 
+// The board's ask about idle cash (Plan 70D), until a sweep is set or the
+// cash is spent: one click in the Treasury.
+function idleCash(s: GameState): NextStep | null {
+  if (!idleCashAsk(s)) return null;
+  return {
+    text: 'Idle cash counts for nothing — set a standing sweep into the endowment',
+    go: 'treasury',
+    intent: { kind: 'sweep', weeks: SWEEP_DEFAULT_WEEKS },
+  };
+}
+
 // A run that skipped the scripted first year gets the readings from the start.
 export function nextStep(s: GameState): NextStep | null {
   // The opening walkthrough's coach card speaks instead (opening.ts).
@@ -247,5 +260,5 @@ export function nextStep(s: GameState): NextStep | null {
   if (dark) return dark;
   const letter = letterAsk(s);
   if (letter && letter.intent?.kind !== 'wait') return letter;
-  return awayFromHome(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s) ?? letter;
+  return idleCash(s) ?? awayFromHome(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s) ?? letter;
 }

@@ -34,7 +34,8 @@
 //
 // At admissions, tuition is the highest the slider allows short of the
 // red "sticker shock" tier; every club and chapter petition is approved.
-// Every other interrupt takes the game's default.
+// Every other interrupt takes the game's default, and so does the board's
+// letter about idle cash (Plan 70D): its button sets the standing sweep.
 //
 // It records what the report needs (NaturalRecord); the report is
 // sim/natural.ts (`npm run natural`). Not part of the game: nothing in
@@ -42,6 +43,7 @@
 // ---------------------------------------------------------------------
 
 import type { Action } from '../../src/state/actions';
+import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../../src/systems/finance/sweep';
 import type { Buildable, GameState, SatisfactionAttributes } from '../../src/state/types';
 import { standsOnCampus, totalEnrolled } from '../../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
@@ -443,6 +445,7 @@ export function createNaturalPlayer(): Player & { record: NaturalRecord } {
       netSum += weeklyNet(g.s);
       netWeeks += 1;
       if (g.s.finance.cash < 0) record.weeksInRed += 1;
+      if (idleCashAsk(g.s)) g.act({ type: 'SET_SWEEP', weeks: SWEEP_DEFAULT_WEEKS });
 
       // A capital project on the menu is built before anything else, and
       // saved for: only satisfaction and restaffing spend meanwhile.

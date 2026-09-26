@@ -70,6 +70,14 @@ export interface Finance {
   loans?: Loan[];
   // The distress ladder. Undefined means Sound, with no history.
   distress?: Distress;
+  // The standing sweep into the endowment, in weeks of expenses kept as
+  // cash (systems/finance/sweep.ts's SWEEP_STEPS). Undefined: off.
+  sweepWeeks?: number;
+  // The board's watch on idle cash (sweep.ts): the absolute week cash first
+  // sat above a year of expenses, cleared when it drops back, and the year
+  // the board last wrote about it.
+  idleSince?: number;
+  idleLetterYear?: number;
   // Lifetime count of weeks cash closed below zero, counted by tickFinance.
   // Read by the "Never in the red" ambition and the legacy's stewardship axis.
   weeksInTheRed: number;
@@ -645,6 +653,9 @@ export interface ResearchState {
   publications: number;
   grants: number;
   grantIncome: number;     // shown in the Treasury as a running total
+  // What initiatives have cost up front, lifetime (Plan 70D), against which
+  // the grants are read. Optional: a save from before it reads as none.
+  funding?: number;
   breakthroughs: number;
   prizes: number;
   // Keyed by hosting facility; a facility is vacant when it has no key.
