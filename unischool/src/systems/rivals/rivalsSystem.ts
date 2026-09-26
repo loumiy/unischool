@@ -3,7 +3,7 @@ import { priceTolerance } from '../admissions/admissionsSystem';
 import type { GameState, Rival, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
-import { ELITE_RIVAL_IDS, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
+import { ELITE_RIVAL_IDS, baseRivals, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { clamp } from '../../math';
 import { random } from '../../engine/random';
 
@@ -24,6 +24,23 @@ const RIVAL_REPUTATION_MAX = 150;
 // 0..100 unclamped, or the top of every sport's table collapses into a tie.
 const ATHLETIC_STRENGTH_MIN = 5;
 const ATHLETIC_STRENGTH_MAX = 85;
+
+// The field rises on its own (Plan 67): every rival gains a little each year,
+// the strongest most (FIELD_RISE_RATE at an authored reputation of 100,
+// scaled by the fourth power of its founding standing, so the order holds),
+// easing to nothing as it nears FIELD_CEILING. The top of the field climbs
+// from the high 90s toward the ceiling over about forty years, so first
+// place is a late-game prize and not the first decade's, and the tenth and
+// twenty-fifth places rise with it.
+export const FIELD_RISE_RATE = 1.05;
+export const FIELD_CEILING = 138;
+const FIELD_EASE = 12;
+const AUTHORED = new Map(baseRivals().map((r) => [r.id, r.reputation]));
+export function fieldRise(id: string, reputation: number): number {
+  const authored = AUTHORED.get(id) ?? reputation;
+  const ease = clamp((FIELD_CEILING - reputation) / FIELD_EASE, 0, 1);
+  return FIELD_RISE_RATE * (Math.max(authored, 0) / 100) ** 4 * ease;
+}
 
 // The top has to be held. Above ELITE_CLOSE_ABOVE_PRESTIGE, the elite band
 // (rivalData.ts's ELITE_RIVAL_IDS) is pulled toward the player's standing
@@ -106,7 +123,14 @@ export function tickRivals(s: GameState): void {
       // The elite band's pull (eliteClosingStep) on top of momentum and shock.
       const elite = ELITE_RIVAL_IDS.has(r.id) && s.self.reputation > ELITE_CLOSE_ABOVE_PRESTIGE;
       const closing = elite ? eliteClosingStep(r.reputation, s.self.reputation) : 0;
-      let next = r.reputation + r.momentum + shock + closing;
+      let next = r.reputation + r.momentum + shock + fieldRise(r.id, r.reputation);
+      // Nothing climbs past the field's ceiling on its own (Plan 67): a rival
+      // there may fall and recover, never drift beyond it, so the top of the
+      // field is the ceiling and first place goes to the college that
+      // outgrows it. The elite's closing on a leader (below) is not drift: a
+      // leader above the ceiling is still chased, and passed if it coasts.
+      if (next > FIELD_CEILING && next > r.reputation) next = Math.max(r.reputation, FIELD_CEILING);
+      next += closing;
       // No leapfrogging (ELITE_NO_LEAPFROG_GAP).
       const ceiling = s.self.reputation - ELITE_NO_LEAPFROG_GAP;
       if (elite && r.reputation <= ceiling) next = Math.min(next, ceiling);

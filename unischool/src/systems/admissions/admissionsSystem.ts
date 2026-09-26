@@ -49,20 +49,22 @@ export function trailingYearSatisfaction(s: GameState): number {
 const PRESTIGE_REFERENCE = 50;      // "average" prestige
 const TUITION_REFERENCE = 20_000;   // price scale the quality-mix shift uses
 
-// Applicant volume: a logistic in prestige, discounted by price and housing.
-// Steep through the low-middle range, so a founding school (prestige ~50)
-// draws a couple of thousand and twenty points later several times that;
-// that multiplier is the growth loop's payoff.
-const APPLICANT_VOLUME_CEILING = 260_000;   // asymptotic max pool size, approached only near max prestige
-const APPLICANT_VOLUME_MIDPOINT = 103;      // prestige at which the pool sits at half the ceiling
-const APPLICANT_VOLUME_STEEPNESS = 0.069;   // curve steepness around the midpoint
+// Applicant volume: a straight line in prestige (Plan 67), from
+// APPLICANT_VOLUME_FLOOR at APPLICANT_VOLUME_ZERO_PRESTIGE up
+// APPLICANTS_PER_PRESTIGE_POINT for every point above it. It was a steep
+// logistic (half its 260,000 ceiling at prestige 103), which quadrupled the
+// pool between prestige 75 and 100 and made the middle decade a sprint; a line
+// grows the college as steadily as its standing grows.
+const APPLICANTS_PER_PRESTIGE_POINT = 480;
+const APPLICANT_VOLUME_ZERO_PRESTIGE = 30;
+const APPLICANT_VOLUME_FLOOR = 1_000;         // even an unknown college draws a few
 
 // Capacity factor: the one place dorm space touches admissions. Without an
 // investment-linked throttle a school that builds nothing still grows
 // indefinitely. A commuter school still draws a real pool (the floor), and
 // beds past the reference buy nothing further.
 const CAPACITY_FACTOR_FLOOR = 0.35;      // a school with zero dorms still draws this share of the "full" pool
-const CAPACITY_FACTOR_REFERENCE = 6_000; // beds at which the factor reaches 1.0 — matches prestigeSystem.ts's own admissions-scale reference
+const CAPACITY_FACTOR_REFERENCE = 2_500; // beds at which the factor reaches 1.0: a founding-years throttle (Plan 67), not a loop through the whole game
 function capacityFactor(capacity: number): number {
   return CAPACITY_FACTOR_FLOOR + (1 - CAPACITY_FACTOR_FLOOR) * clamp(capacity / CAPACITY_FACTOR_REFERENCE, 0, 1);
 }
@@ -72,8 +74,8 @@ function capacityFactor(capacity: number): number {
 // pricing power -> revenue) and stops "tuition to the ceiling" from
 // trivializing year one. With PRICE_SENSITIVITY 1.0 the revenue-maximizing
 // price is exactly the tolerance.
-const PRICE_TOLERANCE_BASE = 5_500;             // what a school with no reputation at all can charge
-const PRICE_TOLERANCE_PER_PRESTIGE_POINT = 240; // added per point of prestige
+const PRICE_TOLERANCE_BASE = 12_000;            // what a school with no reputation at all can charge
+const PRICE_TOLERANCE_PER_PRESTIGE_POINT = 190; // added per point of prestige
 const PRICE_SENSITIVITY = 1.0;                  // applicants ~ exp(-sensitivity x netPrice/tolerance)
 
 // Sticker shock: price moves who applies, not just how many. Past the
@@ -168,8 +170,8 @@ export function priceTier(price: number, tolerance: number): PriceTier {
 // Applicant volume as its three factors, kept apart so the reveal can report
 // each one's year-over-year move; the funnel reads their product.
 function applicantVolumeParts(prestige: number, price: number, capacity: number): Pick<FunnelFactors, 'prestigePool' | 'priceFactor' | 'capacityFactor'> {
-  const prestigePool = APPLICANT_VOLUME_CEILING /
-    (1 + Math.exp(-APPLICANT_VOLUME_STEEPNESS * (prestige - APPLICANT_VOLUME_MIDPOINT)));
+  const prestigePool = APPLICANT_VOLUME_FLOOR
+    + APPLICANTS_PER_PRESTIGE_POINT * Math.max(0, prestige - APPLICANT_VOLUME_ZERO_PRESTIGE);
   const priceFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(price, 0) / priceTolerance(prestige));
   return { prestigePool, priceFactor, capacityFactor: capacityFactor(capacity) };
 }

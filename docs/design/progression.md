@@ -133,7 +133,11 @@ once a year**: at the summer admissions boundary the inputs below are scored
 for the year just ended and summed into a year score on the same 5..150
 scale, and prestige steps toward that score by a share of the gap —
 `PRESTIGE_RISE_RATE` (0.20) above it, `PRESTIGE_FALL_RATE` (0.30) below (see
-`src/systems/prestige/prestigeSystem.ts`'s `gradeYear`). It never jumps to
+`src/systems/prestige/prestigeSystem.ts`'s `gradeYear`). A climb is capped at
+`PRESTIGE_MAX_RISE` (2.0) a summer ([Plan 67](../plans/67-pacing-tuning.md)):
+a college that has outgrown its standing earns it a year at a time, so the
+climb from the founding's low fifties to 150 takes about forty years whatever
+order the catalogue fills in. It never jumps to
 the score: a long-established school's prestige is sticky, and a school that
 falls short falls faster than it climbs. Between summers a weekly tremor, a
 tenth of the old drift, keeps the toolbar number alive. Welfare and crowding
@@ -461,6 +465,16 @@ deterministic and only ever upward on the rival, so the field's one draw a year
 is untouched. The player can still be first — the field arrives. With
 prestige able to fall (above), a school that coasts in the defend era now loses
 *rank* for it, which is the whole mechanism of the era and needs no new system.
+
+**The field rises on its own** ([Plan 67](../plans/67-pacing-tuning.md)).
+Every rival gains a little each year, in proportion to the fourth power of
+its authored standing (`FIELD_RISE_RATE`, 1.05 a year at an authored 100),
+easing to nothing at the field's ceiling (`FIELD_CEILING`, 138), past which
+no rival drifts. The top of the field climbs from the high 90s to the
+ceiling over about forty years, the tenth and twenty-fifth places with it, so
+the top 25, the top ten and first place come in the build era's second half
+and the defend era, not the found era. The elite's closing on a leader is not
+drift: a leader above the ceiling is still chased, and passed if it coasts.
 
 A rival that passes the school says so — on the Standing beat, and in the year
 in review's Standing section — and, once per rival and only in the defend era,
