@@ -95,6 +95,8 @@ await page.waitForSelector('svg', { timeout: 20_000 });
 await page.waitForTimeout(2_500);
 
 const zoom = Number(flag('zoom', 0));
+// The zoom buttons sit behind the map's tools button (Plan 70G).
+if (zoom !== 0) await page.click('.map-tools-toggle');
 for (let i = 0; i < Math.abs(zoom); i++) {
   await page.click(zoom > 0 ? 'button:has-text("+")' : 'button:has-text("−")');
   await page.waitForTimeout(200);

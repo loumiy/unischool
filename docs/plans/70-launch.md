@@ -333,6 +333,11 @@ and the balance was just tuned in Plans 67–69.
 - **Hotkeys.** Home (the opening view) and N (every quad's name) were
   keyboard-only; they join the map's touch buttons as ⌂ and Aa. The speed
   keys and Space already had buttons.
+- **The map's tools fold into one button** (the owner, on the PR: the stack
+  took too much of the screen). The sliders button at the top right opens
+  the '?', zoom and, on touch, the camera buttons; open, they stay open
+  until it is folded again (×). `npm run shot`'s `--zoom` and
+  `tools/touchCheck.mjs` open it first.
 - **The check is a tool, as in F:** `npm run phone` (`tools/phoneCheck.mjs`)
   against a dev server; `npm run shot` has `--phone` and `--tablet`. The
   screenshot set is `docs/reviews/2026-09-phone/`.

@@ -668,6 +668,13 @@ button.build-tile { font-family: inherit; }
 /* On touch the camera's buttons join the pill (Plan 70F), a little larger. */
 .campus-map-zoom-controls.touch-ui button, .campus-map-zoom-controls.touch-ui .help-hint-btn { width: 40px; height: 40px; }
 .campus-map-zoom-controls button[aria-pressed="true"] { background: var(--outline); color: var(--cream); }
+/* Folded (Plan 70G): one round button, the tools under it when open. */
+.campus-map-zoom-controls button { -webkit-tap-highlight-color: transparent; }
+/* A tap is not a hover: the last button tapped does not stay filled. */
+@media (hover: none) {
+  .campus-map-zoom-controls button:not([aria-pressed="true"]):hover { background: transparent; color: var(--ink); }
+}
+.campus-map-zoom-controls .map-tools-toggle { font-size: var(--text-xl); }
 
 /* Placing a building on touch (Plan 70F): the ghost is set down with a tap
    or a drag, and built with Place. Top center, where neither the build tray

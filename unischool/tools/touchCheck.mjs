@@ -89,7 +89,8 @@ await pinch([512, 380], 100, 200);
 await page.waitForTimeout(150);
 const v2 = await view();
 check(v1 && v2 && v2.zoom > v1.zoom * 1.6, `two fingers spread to twice the gap zoom in (${v1?.zoom.toFixed(2)} → ${v2?.zoom.toFixed(2)})`);
-check(await page.locator('.campus-map-zoom-controls.touch-ui [aria-label="Turn the view left"]').count() === 1, 'the camera buttons show once the map is touched');
+await page.locator('.map-tools-toggle').tap();
+check(await page.locator('.campus-map-zoom-controls.touch-ui [aria-label="Turn the view left"]').count() === 1, 'the camera buttons show once the map is touched and its tools are open');
 
 // A tap opens a building: the first hall's slot marks.
 const mark = page.locator('.campus-hall-marks').first();
