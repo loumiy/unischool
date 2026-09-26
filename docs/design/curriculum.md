@@ -49,8 +49,15 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    shown forty-two doors. They are shown **three** (`s.programOffers`), drawn
    from what remains; founding one draws a replacement. The draw is weighted
    toward schools the player has already started, so a school converges once
-   begun, and **at least one of the three is always from a school not yet
-   started**, so discovery never dries up. The founding draw is rigged once:
+   begun. Since [Plan 68](../plans/68-catalogue-pacing.md) the college finishes
+   one school at a time: while a started school has majors left, the draw is
+   confined to the schools under way, and only once every started school is
+   complete is **one of the three from a school not yet started**, so
+   discovery never dries up. **New majors come at a pace** (Plan 68): a
+   college may house its founding programs and nine more at once, then one
+   more every 54 weeks (`programOffers.ts`'s `majorAllowance`), and the offer
+   never holds more than it may yet found; the Curriculum tab and the hall
+   panel say when the next is due. The founding draw is rigged once:
    at least one of the first three is a program the founding roster can
    staff — Sociology or Psychology, whose professors the college opens with
    beside the three who teach its founding programs — so the first founding
@@ -58,6 +65,11 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    stand until one is taken, and the offer is for the academic halls. A
    graduate program is never drawn: its capital project offers it (see
    [graduate-programs.md](graduate-programs.md)).
+   **The curriculum committee** (Plan 68) writes at most four undergraduate
+   courses at once (`techSystem.ts`'s `COURSE_DEVELOPMENT_SLOTS`), whatever
+   the money and faculty: the catalogue's 378 courses take about thirty years
+   to write, not seven. Graduate courses have their own gates and are not
+   counted.
 3. **A school is founded, not unlocked.** Nothing is called "the School of
    Engineering" until six Engineering programs sit in one hall. A hall whose
    six slots hold one school's programs is **dedicated**; the first

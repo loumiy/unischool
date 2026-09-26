@@ -26,7 +26,7 @@ import { OPENING_LETTERS } from '../../src/data/eventData';
 import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../src/data/techData';
 import { GRADUATE_HOSTS } from '../../src/data/projectData';
 import { initiativeOffers } from '../../src/data/researchData';
-import { canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors } from '../../src/systems/techtree/techSystem';
+import { canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, hasFreeFacultySlot } from '../../src/systems/techtree/techSystem';
 import { hostOffers } from '../../src/systems/techtree/programOffers';
 import { claimedSchool, schoolFoundedKey } from '../../src/systems/techtree/schools';
 import { financeBreakdown, weeklyNet } from '../../src/systems/finance/financeSystem';
@@ -183,6 +183,9 @@ export function carry(g: Game, intent: StepIntent, reserve: number): boolean {
       const t = s.tech.find((x) => x.id === intent.courseId);
       if (!t || t.status !== 'available' || !affords(s, t.cost, reserve)) return false;
       if (!canStartDevelopment(s, t)) {
+        // Hire only when faculty is what blocks it (Plan 68: the committee's
+        // seats are not a hiring problem).
+        if (!t.requiresFaculty || hasFreeFacultySlot(s, t.requiresFaculty)) return false;
         if (!hireFor(g, t.requiresFaculty, reserve) || !canStartDevelopment(g.s, t)) return false;
       }
       g.act({ type: 'START_DEVELOPMENT', nodeId: t.id });

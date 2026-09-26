@@ -192,10 +192,11 @@ const STUDENT_CENTER_TIER2_SERVES = 3_000;
 const STUDENT_CENTER_TIER2_COST = 1_150_000;
 const STUDENT_CENTER_TIER2_WEEKS = 20;
 
-// --- The recreation/fitness chain: Recreation Center -> Gym -> Pool -> ---
-// --- Tennis Courts -> Athletics Complex, strictly sequential ---
-// Five one-off facilities chained strictly in order, like the dorm and
-// dining chains, so recreation reads as a queue. BuildPopup.tsx's
+// --- The fitness chain: Gym -> Pool -> Tennis Courts -> Athletics Complex ---
+// Four one-off facilities chained strictly in order, like the dorm and
+// dining chains, so recreation reads as a queue. The gym opens behind the
+// Health & Counseling Center, not the Recreation Center (Plan 68): a college
+// short of health could not see the way to it through a social building. BuildPopup.tsx's
 // TYPE_MATCHERS groups them under 'recCenter'. Costs are not monotonic
 // along the chain; the order is judgment. The Athletics Complex also needs
 // REC_CENTER_TIER2_PRESTIGE_GATE (techSystem.ts's meetsUnlockGates).
@@ -588,7 +589,10 @@ export function initialFacilities(): Buildable[] {
       description: `Weight room and cardio floor for ${GYM_SERVES.toLocaleString()} students.`,
       cost: GYM_COST,
       duration: GYM_WEEKS,
-      prereqs: [REC_CENTER_TIER1_ID],
+      // The health chain starts at the health center (Plan 68): behind the
+      // Recreation Center, a social building, a college short of health
+      // could not see the way to it.
+      prereqs: [HEALTH_CENTER_TIER1_ID],
       status: 'locked',
       effects: {
         servesPopulation: GYM_SERVES,

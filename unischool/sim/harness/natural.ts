@@ -48,7 +48,7 @@ import { isAcademicHall, programById, programOfCourse } from '../../src/data/tec
 import { GRADUATE_HOSTS } from '../../src/data/projectData';
 import { initiativeOffers } from '../../src/data/researchData';
 import { TRAINER_FIELD, venueForCategory } from '../../src/data/studentLifeData';
-import { canRelocateProgram, canStartDevelopment, planCommitmentCoverage } from '../../src/systems/techtree/techSystem';
+import { canRelocateProgram, canStartDevelopment, hasFreeFacultySlot, planCommitmentCoverage } from '../../src/systems/techtree/techSystem';
 import { claimedSchool, schoolHall } from '../../src/systems/techtree/schools';
 import { hostOffers } from '../../src/systems/techtree/programOffers';
 import { weeklyNet } from '../../src/systems/finance/financeSystem';
@@ -286,7 +286,10 @@ function developDeeper(g: Game): void {
       .sort((a, b) => depthOf(a.id) - depthOf(b.id) || a.cost - b.cost);
     let started = false;
     for (const course of courses) {
-      if (!canStartDevelopment(g.s, course) && !(hireInto(g, course.requiresFaculty) && canStartDevelopment(g.s, course))) continue;
+      // Hire only when faculty is what blocks it: the committee's seats
+      // (Plan 68) are not a hiring problem.
+      const facultyBlocks = !!course.requiresFaculty && !hasFreeFacultySlot(g.s, course.requiresFaculty);
+      if (!canStartDevelopment(g.s, course) && !(facultyBlocks && hireInto(g, course.requiresFaculty) && canStartDevelopment(g.s, course))) continue;
       g.act({ type: 'START_DEVELOPMENT', nodeId: course.id });
       started = true;
       break;

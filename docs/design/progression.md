@@ -134,7 +134,7 @@ for the year just ended and summed into a year score on the same 5..150
 scale, and prestige steps toward that score by a share of the gap —
 `PRESTIGE_RISE_RATE` (0.20) above it, `PRESTIGE_FALL_RATE` (0.30) below (see
 `src/systems/prestige/prestigeSystem.ts`'s `gradeYear`). A climb is capped at
-`PRESTIGE_MAX_RISE` (2.0) a summer ([Plan 67](../plans/67-pacing-tuning.md)):
+`PRESTIGE_MAX_RISE` (2.1) a summer ([Plan 67](../plans/67-pacing-tuning.md), 2.1 since Plan 68):
 a college that has outgrown its standing earns it a year at a time, so the
 climb from the founding's low fifties to 150 takes about forty years whatever
 order the catalogue fills in. It never jumps to

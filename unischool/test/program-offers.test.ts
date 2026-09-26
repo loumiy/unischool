@@ -6,12 +6,16 @@
 //
 //   1. Founding all forty-two majors in sequence, taking whatever is
 //      offered, the offer is always three until fewer than three remain,
-//      never repeats a founded program, never offers a gated one, and —
-//      while a school the player has not started still has programs to
-//      offer — always includes one from such a school.
+//      never repeats a founded program, never offers a gated one, and
+//      completes one school at a time (Plan 68): while a started school
+//      has majors left, every offer is from a school under way; once none
+//      has, an unstarted school is represented.
 //   2. A player who only ever takes the same school's offers still sees
 //      every school eventually: the weighting toward started schools
 //      never starves discovery.
+//   3. New majors come at a pace (Plan 68): the offer never holds more than
+//      the college may yet found, and one more opens every
+//      WEEKS_PER_NEW_MAJOR.
 //
 // Founding is simulated by writing a program into a hall slot directly and
 // asking for a refill — PR C's FOUND_PROGRAM is this plus the entry course
@@ -25,7 +29,8 @@ import { graduatePrograms, majorPrefixes, programById, programs, schoolCurriculu
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import { FOUNDING_OFFER_GUARANTEE } from '../src/state/actions';
 import {
-  hostOffers, isHoused, offerablePrograms, PROGRAM_OFFER_COUNT, refillOffers, startedSchools,
+  hostOffers, isHoused, majorAllowance, majorsHoused, majorsOpen, offerablePrograms, OPENING_MAJORS, PROGRAM_OFFER_COUNT,
+  refillOffers, startedSchools, WEEKS_PER_NEW_MAJOR,
 } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
 import { bindScriptStream, drawsSoFar } from '../src/engine/random';
@@ -63,6 +68,14 @@ function foundedState(name = 'Offers'): GameState {
 }
 const UNHOUSED_MAJOR_COUNT = MAJOR_COUNT - FOUNDING_PROGRAMS.length;
 
+// A college old enough that the pace of new majors (Plan 68) no longer
+// binds, for the tests of the draw itself.
+function unpaced(s: GameState): GameState {
+  s.clock.year = 80;
+  refillOffers(s);
+  return s;
+}
+
 // House a program somewhere — a fresh six-slot hall per six programs — and
 // draw its replacement. The halls here are fixtures, not built ones; what
 // is under test is the draw, and hallOf/isHoused read only s.halls.
@@ -89,7 +102,9 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood', 'Dunmore', 'Eastwi
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `seed ${rngSeed}: three on offer at founding`);
   assert(s.programOffers.some((id) => FOUNDING_OFFER_GUARANTEE.includes(id)), `seed ${rngSeed}: one of them is guaranteed staffable (${s.programOffers.join(', ')})`);
   assert(s.programOffers.every((id) => !FOUNDING_PROGRAMS.includes(id)), `seed ${rngSeed}: none of them is a founding program`);
-  assert(s.programOffers.some((id) => !startedSchools(s).has(schoolOf(id))), `seed ${rngSeed}: and one is from a school not yet started`);
+  // Plan 68: the founding programs' schools are under way, so the first
+  // offer finishes them before it discovers another.
+  assert(s.programOffers.every((id) => startedSchools(s).has(schoolOf(id))), `seed ${rngSeed}: and all are from the schools the founding started`);
   // The guarantee is spent with the founding draw: a refill after it is an
   // ordinary draw, so taking the guaranteed program does not summon the
   // other one.
@@ -109,7 +124,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood', 'Dunmore', 'Eastwi
 
 // ---- 1. Found everything, taking the first offer each time ----
 for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
-  const s = foundedState(rngSeed);
+  const s = unpaced(foundedState(rngSeed));
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `seed ${rngSeed}: three on offer at founding`);
   assert(s.programOffers.every((id) => programById(id)?.kind === 'major'), `seed ${rngSeed}: the first offer is all majors`);
 
@@ -120,12 +135,6 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   let alwaysFull = true;
 
   while (s.programOffers.length > 0) {
-    // The discovery rule, checked BEFORE taking: while some unstarted
-    // school still has an offerable program, one of the three is from
-    // such a school.
-    const started = startedSchools(s);
-    const unstartedRemains = offerablePrograms(s).some((p) => !started.has(p.school));
-    if (unstartedRemains && !s.programOffers.some((id) => !started.has(schoolOf(id)))) unstartedRuleHeld = false;
 
     const remaining = offerablePrograms(s).length;
     if (remaining >= PROGRAM_OFFER_COUNT && s.programOffers.length !== PROGRAM_OFFER_COUNT) alwaysFull = false;
@@ -139,8 +148,25 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
     }
 
     const id = s.programOffers[0];
+    const before = [...s.programOffers];
     take(s, id);
     founded.push(id);
+
+    // One school at a time, then discovery, checked on what the refill drew
+    // (the draw houses nothing, so the schools under way are read after
+    // it): while a started school has majors left, the new draw is from
+    // such a school; once none has, one of the three is from an unstarted
+    // school.
+    const drawn = s.programOffers.filter((x) => !before.includes(x));
+    const kept = before.filter((x) => x !== id);
+    const started = startedSchools(s);
+    // What the draw could have picked from a school under way: its majors
+    // not already on the table.
+    const underWayLeft = offerablePrograms(s).filter((p) => started.has(p.school) && !kept.includes(p.id));
+    const underWay = new Set(underWayLeft.map((p) => p.school));
+    const unstartedRemains = offerablePrograms(s).some((p) => !started.has(p.school));
+    if (underWay.size > 0 && drawn.length > 0 && !underWay.has(schoolOf(drawn[0]))) unstartedRuleHeld = false;
+    if (underWayLeft.length === 0 && unstartedRemains && !s.programOffers.some((x) => !started.has(schoolOf(x)))) unstartedRuleHeld = false;
   }
 
   assert(founded.length === UNHOUSED_MAJOR_COUNT, `seed ${rngSeed}: every major not housed at founding is eventually offered and founded (${founded.length} of ${UNHOUSED_MAJOR_COUNT})`);
@@ -148,14 +174,14 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   assert(alwaysFull, `seed ${rngSeed}: the offer is always three until fewer than three remain`);
   assert(neverRepeated, `seed ${rngSeed}: a founded program is never offered again`);
   assert(neverGated, `seed ${rngSeed}: a gated program is never offered`);
-  assert(unstartedRuleHeld, `seed ${rngSeed}: an unstarted school is always represented while one remains`);
+  assert(unstartedRuleHeld, `seed ${rngSeed}: schools are completed one at a time, and an unstarted one is offered whenever none is under way`);
   assert(s.programOffers.length === 0, `seed ${rngSeed}: nothing is left to offer once every major is housed`);
   assert(offerablePrograms(s).length === 0, `seed ${rngSeed}: and nothing is offerable`);
 }
 
 // ---- 2. Taking only one school's offers still shows every school ----
 {
-  const s = foundedState('Dunmore');
+  const s = unpaced(foundedState('Dunmore'));
   const home = schoolOf(s.programOffers[0]);
   const seen = new Set<string>();
   let takes = 0;
@@ -172,11 +198,27 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
   assert(seen.size === schools.size, `a player who only takes ${home} still sees every school on the table (${seen.size} of ${schools.size})`);
 }
 
+// ---- 2b. New majors come at a pace (Plan 68) ----
+{
+  const s = foundedState('Ashgrove');
+  assert(majorAllowance(s) === FOUNDING_PROGRAMS.length + OPENING_MAJORS, `a new college may house its founding programs and ${OPENING_MAJORS} more`);
+  // House majors until the allowance is spent.
+  while (majorsOpen(s) > 0 && s.programOffers.length > 0) take(s, s.programOffers[0]);
+  assert(majorsHoused(s) === majorAllowance(s), `the allowance is spent (${majorsHoused(s)} of ${majorAllowance(s)})`);
+  assert(s.programOffers.length === 0, 'and then nothing is on offer');
+  const weeks = WEEKS_PER_NEW_MAJOR;
+  s.clock.week += weeks % 52;
+  s.clock.year += Math.floor(weeks / 52);
+  if (s.clock.week > 52) { s.clock.week -= 52; s.clock.year += 1; }
+  refillOffers(s);
+  assert(majorsOpen(s) === 1 && s.programOffers.length === 1, `${weeks} weeks later, one more is (${s.programOffers.length} on offer)`);
+}
+
 // ---- 3. The weighting is real: a started school is offered more ----
 {
   // Same starting state, many refills: with one school started, its
   // programs should turn up more often than a flat draw would give.
-  const base = foundedState('Eastwick');
+  const base = unpaced(foundedState('Eastwick'));
   // A school not yet started, so the count below is the weighting alone.
   // Since Plan 52 three schools are started at founding, so the offer is set
   // by hand: the program to take, and beside it a program of another

@@ -41,7 +41,7 @@ export const PRESTIGE_FALL_RATE = 0.30;
 // however far the college has outgrown it. Without it a college that filled
 // its catalog in a decade reached the cap in fifteen years; with it the
 // climb from the founding's low fifties to 150 takes about forty.
-export const PRESTIGE_MAX_RISE = 2.0;
+export const PRESTIGE_MAX_RISE = 2.1;
 
 // Weekly movement between summers; the summer step is the beat.
 const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;

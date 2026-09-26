@@ -5,13 +5,13 @@ import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
 import { discoverySchools, graduatePrograms, programById, type ProgramInfo } from '../data/techData';
-import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers';
+import { hallOf, isHoused, isInTransit, majorAllowance, majorsHoused, majorsOpen, offerablePrograms, weeksToNextMajor } from '../systems/techtree/programOffers';
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
-  canStartDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
+  COURSE_DEVELOPMENT_SLOTS, canStartDevelopment, courseSlotsFree, coursesInDevelopment, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -1116,10 +1116,36 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
   }
   const wall = [...wallCounts.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
 
-  if (offers.length === 0 && near.length === 0 && ready.length === 0 && wall.length === 0) return null;
+  // The two paces (Plan 68): new majors come one at a time, and the
+  // curriculum committee writes a few courses at once.
+  const waitingForMajor = offers.length === 0 && majorsOpen(s) === 0 && offerablePrograms(s).length > 0;
+  const committeeBusy = coursesInDevelopment(s);
+  const committeeFull = courseSlotsFree(s) === 0;
+
+  if (offers.length === 0 && !waitingForMajor && near.length === 0 && ready.length === 0 && wall.length === 0 && !committeeFull) return null;
 
   return (
     <div className="next-up" aria-label="What next">
+      {waitingForMajor && (
+        <div className="next-up-item offers">
+          <span className="next-up-label">New majors</span>
+          <span className="next-up-body">
+            <span className="next-up-note">
+              {majorsHoused(s)} of {majorAllowance(s)} approved so far; the next can be founded in {weeksToNextMajor(s)} {weeksToNextMajor(s) === 1 ? 'week' : 'weeks'}.
+            </span>
+          </span>
+        </div>
+      )}
+      {committeeFull && (
+        <div className="next-up-item">
+          <span className="next-up-label">Committee</span>
+          <span className="next-up-body">
+            <span className="next-up-note" title="The curriculum committee writes at most this many courses at once. A course finishing frees its seat.">
+              Writing {committeeBusy} of {COURSE_DEVELOPMENT_SLOTS} courses at once; the next starts when one finishes.
+            </span>
+          </span>
+        </div>
+      )}
       {offers.length > 0 && (
         <div className="next-up-item offers">
           <span className="next-up-label">On offer</span>
@@ -1174,7 +1200,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
               {ready.length} {ready.length === 1 ? 'course' : 'courses'} · {moneyShort(readyCost)} to start them all
             </button>
             {revealed.length > ready.length && (
-              <span className="next-up-note">{revealed.length - ready.length} more revealed, short of cash or a slot</span>
+              <span className="next-up-note">{revealed.length - ready.length} more revealed, short of cash, a faculty slot or a committee seat</span>
             )}
           </span>
         </div>

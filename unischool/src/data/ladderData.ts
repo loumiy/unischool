@@ -98,7 +98,7 @@ export const MILESTONES: readonly Milestone[] = [
     letter: 'The college teaches four subjects now, and has chosen its first on its own. The board thinks the students have earned somewhere to be when they are not in class.',
     opens: [
       'Student Center: somewhere to be between classes, and a lift to social life',
-      'Recreation Center: health and fitness, and the start of a sports chain',
+      'Recreation Center: somewhere to play, and a lift to social life',
       "The Founder's Statue: a first landmark, and a little campus beauty",
     ],
   },

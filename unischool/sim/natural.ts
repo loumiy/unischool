@@ -8,22 +8,22 @@
 //   npm run natural                          seed 12345, printed
 //   npm run natural -- --seed 4242           another seed
 //   npm run natural -- --out <file.md>       and written to a file
-//   npm run natural -- --pacing              the pacing scorecard (Plan 66):
-//                                            three seeds against sim/pacing.ts
+//   npm run natural -- --pacing              the pacing scorecard (Plans 66, 68):
+//                                            three players, three seeds, against
+//                                            sim/pacing.ts
 //
 // Measures, never fails. Not part of the game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
 
 import { writeFileSync } from 'node:fs';
 import type { Buildable, SatisfactionAttributes } from '../src/state/types';
-import { institutionName, totalEnrolled } from '../src/state/types';
+import { institutionName } from '../src/state/types';
 import { isPlaceableKind } from '../src/state/campusMap';
 import { isAcademicHall } from '../src/data/techData';
 import { foundGame, playYears, DEFAULT_SEED } from './harness/game';
 import { createNaturalPlayer, SORT_AT_HALLS } from './harness/natural';
-import { createGuidedPlayer } from './harness/guided';
-import { scorecard, scorecardText, type PaceFinish, type PaceYear } from './pacing';
-import { playerRank } from '../src/systems/rivals/rivalsSystem';
+import { playerNamed } from './harness/archetypes';
+import { PACING_PLAYERS, PACING_SEEDS, scorecard, scorecardText, trackYears, type PacingPlayer, type PaceYear } from './pacing';
 
 const arg = (flag: string) => {
   const i = process.argv.indexOf(flag);
@@ -35,26 +35,17 @@ const seed = Number(arg('--seed') ?? DEFAULT_SEED);
 const name = arg('--name') ?? 'Blackmoor';
 const out = arg('--out');
 const YEARS = 50;
-const PACING_SEEDS = [12345, 4242, 777] as const;
 
-// ---- The pacing scorecard (Plan 66) ----
+// ---- The pacing scorecard (Plans 66 and 68) ----
+// Three players on three seeds: nine fifty-year runs, about four minutes.
 if (process.argv.includes('--pacing')) {
   const t = Date.now();
-  const runs: PaceYear[][] = [];
-  const guided: PaceFinish[] = [];
-  for (const s of PACING_SEEDS) {
-    const natural = createNaturalPlayer();
-    playYears(foundGame({ seed: s, name }), natural, YEARS);
-    runs.push(natural.record.years);
-    const g = foundGame({ seed: s, name });
-    playYears(g, createGuidedPlayer(), YEARS);
-    guided.push({ enrolled: totalEnrolled(g.s.students), prestige: g.s.self.reputation, rank: playerRank(g.s) });
-  }
+  const runs = Object.fromEntries(PACING_PLAYERS.map((p) => [p, PACING_SEEDS.map((sd) => trackYears(playerNamed(p)!, sd))])) as Record<PacingPlayer, PaceYear[][]>;
   const text = [
     `# Pacing scorecard`,
     '',
-    `The natural player (\`sim/harness/natural.ts\`), seeds ${PACING_SEEDS.join(', ')}, against Plan 66's targets (\`sim/pacing.ts\`); the buffer rows play the guided player on the same seeds. Written by \`npm run natural -- --pacing\` in ${((Date.now() - t) / 1000).toFixed(0)} s.`,
-    scorecardText(scorecard(runs, guided), PACING_SEEDS),
+    `The natural line (\`sim/harness/natural.ts\`, priced just short of the red tier), the guided player and the Completionist (both priced at "fair"), seeds ${PACING_SEEDS.join(', ')}, against the targets in \`sim/pacing.ts\` (Plans 66 and 68). Written by \`npm run natural -- --pacing\` in ${((Date.now() - t) / 1000).toFixed(0)} s.`,
+    scorecardText(scorecard(runs)),
     '',
   ].join('\n');
   if (out) {
