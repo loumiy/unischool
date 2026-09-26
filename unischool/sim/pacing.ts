@@ -179,18 +179,29 @@ export const STEADY = {
   netFalls: { max: 0 },
 };
 
-// The catalogue (Plan 68), the same for every player: the year each reaches
-// its mark, and the last year anything was added (nothing may be left to
-// found or develop only before year 35).
+// The catalogue (Plan 68): the year each reaches its mark, and the last year
+// anything was added (nothing may be left to found or develop only before
+// year 35). The same for every player, except where `byPrice` splits it.
+//
+// Programs and schools founded (Plan 71, the owner's reset): the old bands
+// were set by the allowance of new majors, which the owner removed. With
+// money the only limit, a college at "fair" founds majors early (a major is
+// the cheapest thing in the catalogue) and a high-price one, with a smaller
+// early pool, a decade later, so each price has its own band.
 type Catalogue = 'programs' | 'courses' | 'schools' | 'distinguished' | 'gradCourses';
-export const CATALOGUE: Array<{ label: string; key: Catalogue; mark: (end: number, first: PaceYear) => number; band: Band }> = [
-  { label: 'Programs: half founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) / 2, band: { min: 12, max: 18 } },
-  { label: 'Programs: 90% founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) * 0.9, band: { min: 30, max: 36 } },
+export const CATALOGUE: Array<{ label: string; key: Catalogue; mark: (end: number, first: PaceYear) => number } & ({ band: Band; byPrice?: never } | { band?: never; byPrice: Record<'high' | 'fair', Band> })> = [
+  { label: 'Programs: half founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) / 2,
+    byPrice: { high: { min: 15, max: 23 }, fair: { min: 6, max: 14 } } },
+  { label: 'Programs: 90% founded', key: 'programs', mark: (end, first) => first.programs + (end - first.programs) * 0.9,
+    byPrice: { high: { min: 25, max: 33 }, fair: { min: 22, max: 32 } } },
   { label: 'Courses: half taught', key: 'courses', mark: (end, first) => first.courses + (end - first.courses) / 2, band: { min: 15, max: 20 } },
   { label: 'Courses: 90% taught', key: 'courses', mark: (end, first) => first.courses + (end - first.courses) * 0.9, band: { min: 34, max: 40 } },
-  { label: 'Schools: the first founded', key: 'schools', mark: () => 1, band: { min: 3, max: 6 } },
-  { label: 'Schools: the fourth founded', key: 'schools', mark: () => 4, band: { min: 12, max: 18 } },
-  { label: 'Schools: the seventh founded', key: 'schools', mark: () => 7, band: { min: 26, max: 34 } },
+  { label: 'Schools: the first founded', key: 'schools', mark: () => 1,
+    byPrice: { high: { min: 8, max: 13 }, fair: { min: 3, max: 10 } } },
+  { label: 'Schools: the fourth founded', key: 'schools', mark: () => 4,
+    byPrice: { high: { min: 14, max: 23 }, fair: { min: 6, max: 15 } } },
+  { label: 'Schools: the seventh founded', key: 'schools', mark: () => 7,
+    byPrice: { high: { min: 17, max: 25 }, fair: { min: 8, max: 18 } } },
   { label: 'Schools: the first distinguished', key: 'distinguished', mark: () => 1, band: { min: 8, max: 14 } },
   { label: 'Schools: all seven distinguished', key: 'distinguished', mark: () => 7, band: { min: 32, max: 38 } },
   { label: 'Graduate courses: the first', key: 'gradCourses', mark: () => 1, band: { min: 15, max: 20 } },
@@ -287,7 +298,7 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>, blind: PaceY
     add(section, 'Left to build at Y50 (programs, courses, schools to distinguish)', { max: 0 }, num, rs.map((run) => at(run, 50)?.left ?? NaN));
 
     for (const c of CATALOGUE) {
-      add(`${player}: the catalogue`, c.label, c.band, yr, rs.map((run) => {
+      add(`${player}: the catalogue`, c.label, c.byPrice ? c.byPrice[PRICE[player]] : c.band, yr, rs.map((run) => {
         const target = c.mark(at(run, 50)?.[c.key] ?? NaN, run[0]);
         return firstYear(run, (y) => y[c.key] >= target - 1e-9);
       }));

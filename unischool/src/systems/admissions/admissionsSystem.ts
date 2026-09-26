@@ -93,6 +93,12 @@ function capacityFactor(capacity: number): number {
 const PRICE_TOLERANCE_BASE = 12_000;            // what a school with no reputation at all can charge
 const PRICE_TOLERANCE_PER_PRESTIGE_POINT = 190; // added per point of prestige
 const PRICE_SENSITIVITY = 1.0;                  // applicants ~ exp(-sensitivity x netPrice/tolerance)
+// Past the tolerance, applicants fall away faster still (Plan 71): each
+// tenth over it costs a further exp(-0.1 x this). Charging past the
+// tolerance takes in more per student but loses more students than it
+// gains, so a high price is a choice about who comes, not a money machine.
+// At or under the tolerance nothing changes.
+const PRICE_OVERREACH_SENSITIVITY = 0.75;
 
 // Sticker shock: price moves who applies, not just how many. Past the
 // tolerance, the low and mid bands self-select away far harder than the top
@@ -188,7 +194,8 @@ export function priceTier(price: number, tolerance: number): PriceTier {
 function applicantVolumeParts(prestige: number, price: number, capacity: number): Pick<FunnelFactors, 'prestigePool' | 'priceFactor' | 'capacityFactor'> {
   const prestigePool = APPLICANT_VOLUME_FLOOR + APPLICANTS_AT_REFERENCE
     * (Math.max(0, prestige - APPLICANT_VOLUME_ZERO_PRESTIGE) / (APPLICANT_VOLUME_REFERENCE_PRESTIGE - APPLICANT_VOLUME_ZERO_PRESTIGE)) ** APPLICANT_VOLUME_CURVE;
-  const priceFactor = Math.exp(-PRICE_SENSITIVITY * Math.max(price, 0) / priceTolerance(prestige));
+  const ratio = Math.max(price, 0) / priceTolerance(prestige);
+  const priceFactor = Math.exp(-PRICE_SENSITIVITY * ratio - PRICE_OVERREACH_SENSITIVITY * Math.max(0, ratio - 1));
   return { prestigePool, priceFactor, capacityFactor: capacityFactor(capacity) };
 }
 
