@@ -68,6 +68,30 @@ Three consequences, each in its own place:
   against a wall that has turned away. Composite masses (a hospital's slab
   and wing, a corner tower) order their parts by the camera.
 
+## Touch (Plan 70F)
+
+The map reads **pointer events of type `touch` only**; the mouse keeps its own
+handlers, unchanged. Right after a touch the browser's emulated mouse events
+are ignored (`TOUCH_MOUSE_GRACE_MS`), and a tap's click never places.
+
+- **One finger** pans. While a building is picked up it moves the ghost
+  instead, and under a path tool it paints, as a left-button stroke does
+  (the quad, lamp and bench tools act on a tap).
+- **Two fingers** pinch and pan together: the ground under their midpoint
+  stays under it, and the zoom follows their spread, clamped
+  (`mapGestures.ts`'s `pinchView`, checked in `test/map-gestures.test.ts`).
+  When one lifts, the other carries on as a pan.
+- **A tap** opens a building, as a click does, and lights the names near the
+  finger as the cursor would.
+- **Placing:** a tap or a drag sets the ghost down, and a bar at the top of
+  the screen offers *Rotate*, *Place* and *Cancel*, with the ghost's reason
+  when the site is refused. Nothing is built without *Place*.
+- **The camera's keys** (Q/E, Z/X) get buttons in the zoom pill once the map
+  has been touched.
+
+`node tools/touchCheck.mjs` drives all of it in Chromium with touch emulated
+against a running dev server.
+
 ## The static layer, and what moves
 
 The reducer clones the state every week, so every record arrives with a
