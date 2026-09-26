@@ -2674,6 +2674,25 @@ body:has(.building-info-panel) .pennant { display: none; }
 .final-page-inner > button { margin-top: 24px; font-size: var(--text-lg); padding: 14px 28px; }
 @media (max-width: 700px) { .final-page-inner { padding: 24px 18px 32px; } }
 
+/* The end of a run (Plan 70J): the report card's two buttons, and Found
+   another college with its confirm. */
+.report-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; }
+.report-card-actions button { background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); border-radius: var(--radius-pill);
+  padding: 6px 14px; font-family: var(--display); font-size: var(--text-sm); font-weight: 800; cursor: pointer; }
+.report-card-actions button:hover { background: var(--school-secondary); color: var(--school-on-secondary); }
+.report-card-said { font-size: var(--text-sm); color: var(--ink-muted); }
+.final-page-leave { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-top: 24px; }
+.final-page-leave > button { font-size: var(--text-lg); padding: 14px 28px; }
+.new-college-btn { background: var(--cream-hi) !important; color: var(--ink) !important; }
+.new-college-confirm { flex: 1 1 280px; border: 2px solid var(--outline); border-radius: var(--radius-lg); background: var(--cream-hi); padding: 12px 14px; }
+.new-college-confirm p { margin: 0 0 10px; font-size: var(--text-sm); color: var(--ink); line-height: 1.4; }
+.new-college-confirm button { margin-right: 8px; }
+.new-college-confirm button:not(.primary) { background: var(--cream); color: var(--ink); }
+.hall-leave { margin-top: 18px; border-top: 2px solid var(--parchment-line); padding-top: 14px; }
+.hall-leave .new-college-btn, .hall-leave .new-college-confirm button { border: 2px solid var(--outline); border-radius: var(--radius-pill);
+  padding: 6px 14px; font-family: var(--display); font-weight: 800; cursor: pointer; }
+.hall-leave .new-college-confirm button.primary { background: var(--school-secondary); color: var(--school-on-secondary); }
+
 /* ---------- Phones (Plan 70G) ----------
    Checked at 390x844 and 820x1180 (tools/phoneCheck.mjs): nothing scrolls
    sideways and every control is reachable. */

@@ -12,6 +12,8 @@ import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
 import { REPORT_DRAFT_FROM, REPORT_WORDS } from '../data/reportData';
 import FinalReportView from '../components/FinalReportView';
+import ReportCardActions from '../components/ReportCardActions';
+import { hallEntryFor } from '../state/hall';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import {
   prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
@@ -209,6 +211,8 @@ function FinalReportPanel({ s }: { s: GameState }) {
             </p>
           )}
           {report && <FinalReportView s={s} report={report} />}
+          {/* The card once the report is written (Plan 70J). */}
+          {written && report && <ReportCardActions entry={hallEntryFor(s, report)} />}
         </>
       )}
       {(s.ending?.addenda ?? []).map((a) => (

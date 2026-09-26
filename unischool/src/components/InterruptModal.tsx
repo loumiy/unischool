@@ -7,7 +7,8 @@ import type {
 import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { buildYearInReview } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
-import { hangInHall } from '../state/hall';
+import { hallEntryFor, hangInHall } from '../state/hall';
+import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { REPORT_WORDS } from '../data/reportData';
 import { PromiseOffer } from '../tabs/PromisesPanel';
 import FinalReportView from './FinalReportView';
@@ -484,16 +485,27 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
 // the year in review. A pure reading (state/finalReport.ts), taken exactly
 // as RESOLVE_ADMISSIONS will write it. Read-and-continue: the run goes on,
 // into the Epilogue.
-function FinalReportBeat({ s, onContinue }: { s: GameState; onContinue: () => void }) {
+// Play again (Plan 70J): the report card's two buttons, and Found another
+// college, which hangs the run too before it ends it.
+function FinalReportBeat({ s, onContinue, onNewCollege }: { s: GameState; onContinue: () => void; onNewCollege?: () => void }) {
   const report = finalReport(s);
   return (
     <>
       <div className="eyebrow final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
       <h2>{REPORT_WORDS.title}</h2>
       <FinalReportView s={s} report={report} />
+      <ReportCardActions entry={hallEntryFor(s, report)} />
       <p className="review-empty">{REPORT_WORDS.epilogue}</p>
       {/* Leaving the report hangs the run in the hall of fame (state/hall.ts). */}
-      <button onClick={() => { hangInHall(s, report); onContinue(); }}>Continue into the Epilogue →</button>
+      <div className="final-page-leave">
+        <button onClick={() => { hangInHall(s, report); onContinue(); }}>Continue into the Epilogue →</button>
+        {onNewCollege && (
+          <NewCollegeButton
+            note={REPORT_WORDS.newCollege}
+            onConfirm={() => { hangInHall(s, report); onNewCollege(); }}
+          />
+        )}
+      </div>
     </>
   );
 }
@@ -1223,7 +1235,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 
 // Renders whichever modal s.pendingInterrupt calls for, on top of every tab
 // (docs/architecture/interrupts.md).
-export default function InterruptModal({ s, act }: { s: GameState; act: (a: Action) => void }) {
+export default function InterruptModal({ s, act, onNewCollege }: { s: GameState; act: (a: Action) => void; onNewCollege?: () => void }) {
   const interrupt = s.pendingInterrupt;
 
   // The two payloads that carry structured content are read once here,
@@ -1285,7 +1297,7 @@ export default function InterruptModal({ s, act }: { s: GameState; act: (a: Acti
     return (
       <div className="final-page" role="dialog" aria-modal="true" aria-label={REPORT_WORDS.title}>
         <div className="final-page-inner">
-          <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
+          <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onNewCollege={onNewCollege} />
         </div>
       </div>
     );

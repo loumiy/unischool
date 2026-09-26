@@ -466,6 +466,32 @@ and the balance was just tuned in Plans 67–69.
   - a test that the card renders for a year-50 save with every grade band;
   - a snapshot of the SVG's text.
 
+**As implemented** (PR J):
+- **The card** (`state/reportCard.ts`, pure): 1200×630 SVG from the run's
+  hall entry, so the Final Report and the Hall of Fame draw the same card.
+  A band in the college's primary color holds a crest (a shield in its two
+  colors, with its initial), the mark and its score, and the rank; beside
+  it, the name, the title (without the name it opens on, since the card
+  already carries it), the six grades, the chronicle's last line and the
+  site. System fonts, since an image cannot load the page's own. The hall
+  entry (`hallEntryFor`) now keeps the mark's score and the rank; runs hung
+  before this draw without them.
+- **The buttons** (`components/ReportCardActions.tsx`): *Download card*
+  draws the SVG to a canvas and saves `<college>-report-card.png`; *Copy
+  summary* copies the one line with the page's address. On the Final
+  Report page, in the History tab once the report is written, and under
+  each run in the Hall of Fame.
+- **Found another college**: on the Final Report page beside *Continue into
+  the Epilogue*, and at the foot of the Hall of Fame. It confirms inline
+  first. On the report it hangs the run (as Continue does), then starts
+  over at the startup screen; in the hall, a college in progress that has
+  not hung is told it will not. Words in `data/reportData.ts`.
+- **Checks:** `test/share-card.test.ts` (every grade band on a year-50 save,
+  the text in order, escaping, older entries, the summary line). Tried in a
+  browser on the `final-report` scenario at 1280 and 390 wide: the download,
+  the copy, and the new college, which lands on the startup screen with the
+  run in the hall.
+
 ## PR 70K — Analytics
 
 - **PostHog,** through `posthog-js`.
