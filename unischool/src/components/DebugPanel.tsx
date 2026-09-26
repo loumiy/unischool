@@ -70,7 +70,7 @@ export default function DebugPanel({ s, act, exportRun }: { s: GameState; act: (
   const [demandSubject, setDemandSubject] = useState<DemandSubject>('housing');
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  if (!playtestEnabled(s)) return null;
+  if (!playtestEnabled()) return null;
 
   // Before founding, the panel renders with Load as its only section.
   const running = s.started;

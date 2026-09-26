@@ -129,7 +129,7 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
   weekProgress: () => number;
 }) {
   // The sandbox speed's gate (playtest.ts).
-  const showPlaytestControls = playtestEnabled(s);
+  const showPlaytestControls = playtestEnabled();
   const visibleSpeeds = (Object.keys(SPEEDS) as Speed[]).filter(
     (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
   );

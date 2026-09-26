@@ -143,6 +143,11 @@ button { cursor: pointer; font-family: inherit; }
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
 .title-set-aside .newgame-btn, .title-set-aside .save-btn { display: inline-block; width: auto; margin: 8px 8px 0 0; padding: 4px 12px; }
+/* The crash screen (Plan 70C). */
+.crash-screen p { line-height: 1.5; color: var(--ink); }
+.crash-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.crash-actions .save-btn, .crash-actions .title-primary { width: auto; }
+.crash-detail { font-family: var(--mono); font-size: var(--text-sm); color: var(--ink-muted) !important; overflow-wrap: anywhere; }
 /* Load a save file (Plan 70B): the button, and what the chosen file is. */
 .import-save { display: flex; flex-direction: column; gap: 6px; }
 .import-save-note { margin: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--ink-muted); display: flex; flex-direction: column; gap: 6px; }
