@@ -1,5 +1,6 @@
 import type { GameState } from '../../state/types';
-import { graduateGateMet, programs, type ProgramInfo } from '../../data/techData';
+import { graduateGateMet, programById, programs, type ProgramInfo } from '../../data/techData';
+import { FOUNDING_PROGRAMS } from '../../data/foundingData';
 import { makeRivalRng } from '../../data/rivalData';
 import { hostedPrograms } from '../../data/projectData';
 import { WEEKS_PER_YEAR } from '../../state/types';
@@ -23,6 +24,38 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 
 export const PROGRAM_OFFER_COUNT = 3;
 export const STARTED_SCHOOL_WEIGHT = 3;
+
+// New majors come at a pace (Plan 68): a college may house the founding
+// programs and OPENING_MAJORS more at once, and one more every
+// WEEKS_PER_NEW_MAJOR after that, so the undergraduate catalogue fills over
+// about thirty years instead of five. The offer shows only as many
+// programs as the college may yet found; graduate programs are not counted
+// (their own gates pace them). Read off the clock, so nothing is saved.
+export const OPENING_MAJORS = 9;
+export const WEEKS_PER_NEW_MAJOR = 54;
+
+function weeksSinceFounding(s: GameState): number {
+  return (s.clock.year - 1) * WEEKS_PER_YEAR + (s.clock.week - 1);
+}
+
+export function majorAllowance(s: GameState): number {
+  return FOUNDING_PROGRAMS.length + OPENING_MAJORS + Math.floor(weeksSinceFounding(s) / WEEKS_PER_NEW_MAJOR);
+}
+
+export function majorsHoused(s: GameState): number {
+  return Object.values(s.halls).flat()
+    .filter((slot) => slot.programId !== null && programById(slot.programId)?.kind !== 'graduate').length;
+}
+
+// Majors the college may still found now; 0 means it waits.
+export function majorsOpen(s: GameState): number {
+  return Math.max(0, majorAllowance(s) - majorsHoused(s));
+}
+
+// Weeks until the allowance next grows.
+export function weeksToNextMajor(s: GameState): number {
+  return WEEKS_PER_NEW_MAJOR - (weeksSinceFounding(s) % WEEKS_PER_NEW_MAJOR);
+}
 
 // FNV-1a with a finalizer, as rivalData.ts hashes a rival's id: a
 // one-character difference in the key is an unrelated seed.
@@ -118,8 +151,12 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
   const byId = new Map(offerable.map((program) => [program.id, program]));
   s.programOffers = s.programOffers.filter((id) => byId.has(id));
 
+  // No more on the table than the college may yet found (Plan 68).
+  const room = Math.min(PROGRAM_OFFER_COUNT, majorsOpen(s));
+  if (s.programOffers.length > room) s.programOffers = s.programOffers.slice(0, room);
+
   let pool = offerable.filter((program) => !s.programOffers.includes(program.id));
-  if (s.programOffers.length >= PROGRAM_OFFER_COUNT || pool.length === 0) return;
+  if (s.programOffers.length >= room || pool.length === 0) return;
 
   const started = startedSchools(s);
   const isUnstarted = (program: ProgramInfo) => !started.has(program.school);
@@ -133,14 +170,24 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
     pool = pool.filter((program) => program.id !== chosen.id);
   }
 
-  while (s.programOffers.length < PROGRAM_OFFER_COUNT && pool.length > 0) {
-    // The discovery rule: if nothing offered is from an unstarted school and
-    // something could be, this draw is confined to those.
+  // A school is under way while it is started and some major of it is still
+  // to be housed (Plan 68).
+  const underWay = new Set(offerable.filter((program) => started.has(program.school)).map((program) => program.school));
+  while (s.programOffers.length < room && pool.length > 0) {
+    // One school at a time (Plan 68): while a started school has majors
+    // left, the draw is confined to the schools under way, so a college
+    // founding a major a year completes a school every few years rather
+    // than scattering one program across each. The discovery rule applies
+    // only once every started school is complete: if nothing offered is
+    // from an unstarted school and something could be, this draw is
+    // confined to those.
     const offeredUnstarted = s.programOffers.some((id) => {
       const program = byId.get(id);
       return program !== undefined && isUnstarted(program);
     });
-    const candidates = !offeredUnstarted && pool.some(isUnstarted) ? pool.filter(isUnstarted) : pool;
+    const continuing = pool.filter((program) => underWay.has(program.school));
+    const candidates = continuing.length > 0 ? continuing
+      : !offeredUnstarted && pool.some(isUnstarted) ? pool.filter(isUnstarted) : pool;
 
     const weights = candidates.map((program) => (started.has(program.school) ? STARTED_SCHOOL_WEIGHT : 1));
     const total = weights.reduce((sum, w) => sum + w, 0);

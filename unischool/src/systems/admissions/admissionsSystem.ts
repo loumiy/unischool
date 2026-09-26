@@ -56,7 +56,7 @@ const TUITION_REFERENCE = 20_000;   // price scale the quality-mix shift uses
 // pool between prestige 75 and 100 and made the middle decade a sprint; a line
 // grows the college as steadily as its standing grows.
 const APPLICANTS_PER_PRESTIGE_POINT = 480;
-const APPLICANT_VOLUME_ZERO_PRESTIGE = 30;
+const APPLICANT_VOLUME_ZERO_PRESTIGE = 24;
 const APPLICANT_VOLUME_FLOOR = 1_000;         // even an unknown college draws a few
 
 // Capacity factor: the one place dorm space touches admissions. Without an

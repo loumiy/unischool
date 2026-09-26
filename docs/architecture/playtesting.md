@@ -260,10 +260,14 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   built and why, and what never was; research grants against what the
   initiatives cost; the Final Report's mark
   (`docs/reviews/2026-09-natural-play.md` is seed 12345).
-  `npm run natural -- --pacing` is Plan 66's pacing scorecard: the natural
-  player on three seeds (and the guided player, for the buffer) against the
-  targets in `sim/pacing.ts` — when enrollment, prestige, net and rank get
-  there, checkpoints at years 10 to 50, steadiness. A report, not a gate.
+  `npm run natural -- --pacing` is the pacing scorecard (Plans 66 and 68):
+  the natural player, the guided player and the Completionist on three seeds
+  each (about four minutes) against the targets in `sim/pacing.ts` — when
+  enrollment, prestige, net and rank get there for each player at its price;
+  the catalogue (programs, courses, schools founded and distinguished,
+  graduate courses); the natural line's checkpoints and decades; and the
+  guardrails (the guided player's buffer, price mattering, welfare, and the
+  money, watched). A report, not a gate.
 - **The report** (`sim/report.ts`, `npm run sim`): the archetypes and the
   guided player, fifty years on three seeds, the median at years 10, 25 and
   50 of rank, prestige, students, cash, satisfaction, courses, schools and

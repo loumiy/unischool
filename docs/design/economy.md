@@ -36,7 +36,7 @@ is what the **growth loop** is for, and it is the shape everything in
    sections and services all carry the market rate its standing commands.
 3. **Demand** — the applicant pool is prestige x price x word of mouth
    (satisfaction). The prestige pool is a straight line, 490 applicants a
-   point above prestige 30 ([Plan 67](../plans/67-pacing-tuning.md); it was a
+   point above prestige 24 ([Plans 67](../plans/67-pacing-tuning.md) and 68; it was a
    steep logistic that quadrupled between prestige 75 and 100), and beds throttle
    it only in the founding years (full at 2,500). Enrollment is earned, never automatic — and the freshman
    class cannot exceed the seats the catalogue has left after graduation.
