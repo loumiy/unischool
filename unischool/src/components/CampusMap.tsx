@@ -1,4 +1,5 @@
 import { financingFor } from '../systems/finance/treasury';
+import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, GameState, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
@@ -115,6 +116,8 @@ const MAX_ZOOM = 2.5;
 const DEFAULT_ZOOM = 0.4;
 const ZOOM_SPEED = 0.0016;       // wheel deltaY -> zoom factor
 const PAN_CLICK_THRESHOLD = 4;   // px of movement before a mousedown counts as a drag, not a click
+const TOUCH_SLOP = 8;            // px a finger may wander and still be a tap
+const TOUCH_MOUSE_GRACE_MS = 800; // how long after a touch the emulated mouse events are ignored
 
 // Keyboard panning (W/A/S/D and arrows) matters because the mouse is often
 // busy holding a path stroke or carrying a building. Offsets are what the
@@ -855,6 +858,23 @@ export default function CampusMap({
   // Where the current stroke began and the tiles it has laid, for the
   // Shift-held straight run.
   const strokeRef = useRef<{ anchor: TileCoord; laid: Set<string> } | null>(null);
+  // Touch (Plan 70F), read from pointer events of type 'touch' only, so the
+  // mouse keeps exactly the handlers above. One finger pans, moves the
+  // ghost while a building is picked up, or paints with a path tool; two
+  // pinch and pan. The fingers down, in canvas pixels, and the gesture.
+  const touchesRef = useRef(new Map<number, Point>());
+  const gestureRef = useRef<
+    | { mode: 'pan' | 'ghost' | 'paint' | 'tap-tool'; start: Point; startView: View; moved: boolean }
+    | { mode: 'pinch'; startView: View; startMid: Point; startDist: number }
+    | null
+  >(null);
+  // When a touch last touched the map. A tap is followed by the browser's
+  // emulated mouse events; for a moment after a touch those are ignored, and
+  // a click does not place (the touch bar's Place does).
+  const lastTouchRef = useRef(0);
+  const recentTouch = () => performance.now() - lastTouchRef.current < TOUCH_MOUSE_GRACE_MS;
+  // Once the map has been touched, the touch bar and camera buttons show.
+  const [touchUi, setTouchUi] = useState(false);
 
   // Light each label by the cursor's distance to the building's footprint
   // (not the label), converted to screen pixels via the zoom.
@@ -1138,6 +1158,8 @@ export default function CampusMap({
   // Hover drives the ghost: the picked-up footprint, or the single tile a
   // path tool would paint. While a stroke is held down it also paints.
   function onMapMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (recentTouch()) return;
+    if (touchUi) setTouchUi(false);
     // Labels track the cursor in every mode, including mid-pan.
     cursorRef.current = worldFromEvent(e);
     paintLabels(cursorRef.current);
@@ -1196,6 +1218,7 @@ export default function CampusMap({
   }
 
   function onMapMouseDown(e: React.MouseEvent<SVGSVGElement>) {
+    if (recentTouch()) return;
     // The middle button always pans, in every mode, checked first: under a
     // path tool the left button is busy painting. preventDefault suppresses
     // the browser's autoscroll widget.
@@ -1232,6 +1255,102 @@ export default function CampusMap({
     if (e.button !== 0) return;
     justPannedRef.current = false;
     startPanDrag(e);
+  }
+
+  // ---- Touch (Plan 70F) ----
+  function canvasPoint(e: { clientX: number; clientY: number }): Point {
+    const rect = svgRef.current?.getBoundingClientRect();
+    return { x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) };
+  }
+  function endStroke() {
+    pathDragRef.current = null;
+    pathLastRef.current = null;
+    strokeRef.current = null;
+  }
+  function onMapPointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    if (e.pointerType !== 'touch') return;
+    lastTouchRef.current = performance.now();
+    if (!touchUi) setTouchUi(true);
+    svgRef.current?.setPointerCapture?.(e.pointerId);
+    const touches = touchesRef.current;
+    touches.set(e.pointerId, canvasPoint(e));
+    if (touches.size === 2) {
+      // A second finger turns whatever the first was doing into a pinch.
+      endStroke();
+      const [a, b] = [...touches.values()];
+      gestureRef.current = { mode: 'pinch', startView: { ...viewRef.current }, startMid: midpoint(a, b), startDist: distance(a, b) };
+      svgRef.current?.classList.add('panning');
+      return;
+    }
+    if (touches.size > 2) return;
+    const tile = tileFromEvent(e);
+    const strokeTool = pathTool !== null && pathTool !== 'quad' && pathTool !== 'lamp' && pathTool !== 'bench';
+    const mode = strokeTool ? 'paint' : pathTool ? 'tap-tool' : selected ? 'ghost' : 'pan';
+    gestureRef.current = { mode, start: canvasPoint(e), startView: { ...viewRef.current }, moved: false };
+    if (mode === 'paint' && tile && pathTool) {
+      pathDragRef.current = pathTool;
+      pathLastRef.current = null;
+      strokeRef.current = { anchor: tile, laid: new Set() };
+      paintStroke({ clientX: e.clientX, clientY: e.clientY, shiftKey: false }, pathTool);
+    }
+    if (mode === 'ghost' && tile) setHover(tile);
+    // A building's name shows for the finger, as it does for the cursor.
+    cursorRef.current = worldFromEvent(e);
+    paintLabels(cursorRef.current);
+  }
+  function onMapPointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (e.pointerType !== 'touch') return;
+    const touches = touchesRef.current;
+    if (!touches.has(e.pointerId)) return;
+    lastTouchRef.current = performance.now();
+    const p = canvasPoint(e);
+    touches.set(e.pointerId, p);
+    const g = gestureRef.current;
+    if (!g) return;
+    if (g.mode === 'pinch') {
+      if (touches.size < 2) return;
+      const [a, b] = [...touches.values()];
+      applyView(pinchView(g.startView, g.startMid, g.startDist, midpoint(a, b), distance(a, b), MIN_ZOOM, MAX_ZOOM));
+      return;
+    }
+    const dx = p.x - g.start.x;
+    const dy = p.y - g.start.y;
+    if (!g.moved && Math.hypot(dx, dy) > TOUCH_SLOP) {
+      g.moved = true;
+      if (g.mode === 'pan') svgRef.current?.classList.add('panning');
+    }
+    if (g.mode === 'pan' && g.moved) applyView({ x: g.startView.x + dx, y: g.startView.y + dy, zoom: viewRef.current.zoom });
+    if (g.mode === 'ghost') {
+      const tile = tileFromEvent(e);
+      if (tile) setHover((cur) => (cur && cur.row === tile.row && cur.col === tile.col ? cur : tile));
+    }
+    if (g.mode === 'paint' && pathDragRef.current) paintStroke({ clientX: e.clientX, clientY: e.clientY, shiftKey: false }, pathDragRef.current);
+    cursorRef.current = worldFromEvent(e);
+    paintLabels(cursorRef.current);
+  }
+  function onMapPointerUp(e: React.PointerEvent<SVGSVGElement>) {
+    if (e.pointerType !== 'touch') return;
+    lastTouchRef.current = performance.now();
+    const touches = touchesRef.current;
+    if (!touches.delete(e.pointerId)) return;
+    const g = gestureRef.current;
+    if (g?.mode === 'pinch') {
+      // One finger left: it carries on as a pan from here.
+      const rest = [...touches.values()][0];
+      gestureRef.current = rest ? { mode: 'pan', start: rest, startView: { ...viewRef.current }, moved: true } : null;
+      if (!rest) svgRef.current?.classList.remove('panning');
+      return;
+    }
+    if (touches.size > 0) return;
+    // A tap with the quad, lamp or bench tool, which act on a tap, not a stroke.
+    if (g?.mode === 'tap-tool' && !g.moved && e.type === 'pointerup') {
+      const tile = tileFromEvent(e);
+      if (tile && pathTool === 'quad') act({ type: 'MARK_QUAD', tile });
+      else if (tile && (pathTool === 'lamp' || pathTool === 'bench')) act({ type: 'PLACE_DRESSING', tile, kind: pathTool });
+    }
+    endStroke();
+    gestureRef.current = null;
+    svgRef.current?.classList.remove('panning');
   }
 
   function startPanDrag(e: React.MouseEvent<SVGSVGElement>) {
@@ -1342,6 +1461,8 @@ export default function CampusMap({
   };
   const onGroundClick = (row: number, col: number) => {
     if (consumePanClick()) return;
+    // A tap sets the ghost down; the touch bar's Place places it.
+    if (selected && recentTouch()) return;
     if (selected) { placeById(selected.id, row, col); return; }
     if (inspectedId) setInspectedId(null);
     // Open ground inside a quad opens its card; anywhere else closes it.
@@ -1424,6 +1545,10 @@ export default function CampusMap({
           }}
           onMouseMove={onMapMouseMove}
           onMouseDown={onMapMouseDown}
+          onPointerDown={onMapPointerDown}
+          onPointerMove={onMapPointerMove}
+          onPointerUp={onMapPointerUp}
+          onPointerCancel={onMapPointerUp}
           onClick={onMapClick}
           onContextMenu={onMapContextMenu}
           onWheel={onWheel}
@@ -1546,14 +1671,37 @@ export default function CampusMap({
         {/* Zoom stays on the map, not in the toolbar: it is a viewport
             control, and a map bigger than the screen must be zoomable
             without a wheel. */}
-        <div className="campus-map-zoom-controls">
+        {/* Placing on touch (Plan 70F): a tap or a drag sets the ghost
+            down, and nothing is built without Place. */}
+        {touchUi && selected && (
+          <div className="map-touch-bar" role="toolbar" aria-label={`Place ${selected.name}`}>
+            <span className="map-touch-bar-name">
+              {selected.name}
+              <span className="map-touch-bar-note">{!hover ? 'Tap the ground to set it down' : preview?.refusal ?? (preview?.ok ? 'Drag to move it' : 'Not affordable yet')}</span>
+            </span>
+            {canRotateSelected && <button type="button" onClick={() => setRotated((r) => !r)}>Rotate</button>}
+            <button type="button" className="primary" disabled={!hover || !preview?.ok} onClick={() => { if (hover) placeById(selected.id, hover.row, hover.col); }}>Place</button>
+            <button type="button" onClick={() => selectBuilding(null)}>Cancel</button>
+          </div>
+        )}
+
+        <div className={`campus-map-zoom-controls${touchUi ? ' touch-ui' : ''}`}>
           <HelpHint
             align="end"
-            text="Where the college physically grows. Pick a building, residence hall or facility from the Build menu (the toolbar's Build button); placing it here is how it starts: the cost is charged at once, and it goes up right where you put it, reserving those tiles until it is done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground, and a way to walk to it from the road along the campus's south edge; a building that would wall another off is refused, and the ghost says why. Courses are never sited: a course is not a place, and develops from the Curriculum tab. Press P (or use the Build menu's Draw path tile) to lay walkways, free: drag with the left button to pave, the right button to lift, and hold Shift for a straight run from where you started, diagonals included. Paths shape the quads the campus finds, and a paved tile holds no tree, so both count toward campus beauty. Every tab (Curriculum, Faculty, Research and the rest) opens as a full screen over this one; the Campus button, the tab's own Close, or Escape brings you back here. Open ground the buildings close in is found as a quad and named; click one to rename it, press N to show every name, and use the Build menu's Mark a quad to make one of a space the campus has not. Keys: W/A/S/D or the arrows pan; Q/E turn the view a quarter turn, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses and resumes, 1 to 4 set the speed, and M mutes. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll or pinch to zoom."
+            text="Where the college physically grows. Pick a building, residence hall or facility from the Build menu (the toolbar's Build button); placing it here is how it starts: the cost is charged at once, and it goes up right where you put it, reserving those tiles until it is done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground, and a way to walk to it from the road along the campus's south edge; a building that would wall another off is refused, and the ghost says why. Courses are never sited: a course is not a place, and develops from the Curriculum tab. Press P (or use the Build menu's Draw path tile) to lay walkways, free: drag with the left button to pave, the right button to lift, and hold Shift for a straight run from where you started, diagonals included. Paths shape the quads the campus finds, and a paved tile holds no tree, so both count toward campus beauty. Every tab (Curriculum, Faculty, Research and the rest) opens as a full screen over this one; the Campus button, the tab's own Close, or Escape brings you back here. Open ground the buildings close in is found as a quad and named; click one to rename it, press N to show every name, and use the Build menu's Mark a quad to make one of a space the campus has not. Keys: W/A/S/D or the arrows pan; Q/E turn the view a quarter turn, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses and resumes, 1 to 4 set the speed, and M mutes. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the ⟲ ⟳ buttons turn the view."
           />
           <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-          {/* The camera is keys only (Q/E, Z/X, Home). */}
+          {/* The camera's keys (Q/E, Z/X) as buttons, once the map has been
+              touched (Plan 70F); a keyboard player has the keys. */}
+          {touchUi && (
+            <>
+              <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left">⟲</button>
+              <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right">⟳</button>
+              <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down">⤓</button>
+              <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up">⤒</button>
+            </>
+          )}
         </div>
       </div>
     </section>

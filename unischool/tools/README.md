@@ -193,6 +193,11 @@ letter, and any stall: a clock that stopped for 20 seconds with nothing on
 screen asking for anything. It writes a screenshot of each stall to
 `node_modules/.tmp/` and exits non-zero if it stalled or never reached year 2.
 
+`node tools/touchCheck.mjs [save.json]` (Plan 70F) plays the map by touch in
+Chromium with touch emulated: a one-finger pan, a pinch, a tap on a hall, and
+a building picked up, set down with a tap and built with the touch bar's
+Place. It exits non-zero on the first failed check.
+
 `profile` loads a save and samples frames at Paused, Play, 2x and 4x. Headless
 Chromium draws in software, so compare its numbers with each other (before
 and after a change) rather than with a player's machine.
