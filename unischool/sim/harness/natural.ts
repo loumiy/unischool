@@ -16,10 +16,11 @@
 //      course that waits on a building gets the building. Dark courses are
 //      restaffed from the payroll and the market (the next-step line's
 //      ask), so a program keeps seating students.
-//   3. At seven academic halls, Founders Hall included, the programs are
-//      sorted so every school has its hall: strays moved home as the game
-//      suggests, and a school spread over two halls merged into one when
-//      another school's offer has nowhere to go.
+//   3. At four academic halls (seven until Plan 69), Founders Hall
+//      included, the programs are sorted so every school has its hall:
+//      strays moved home as the game suggests, and a school spread over
+//      two halls merged into one when another school's offer has nowhere
+//      to go.
 //   4. Varsity. Every petition is accepted, its venue built at once, and
 //      every vacant coaching chair filled with the best candidate listed.
 //   5. Research. Every idle lab funds the deepest initiative whose team
@@ -64,8 +65,10 @@ import type { Game, Player } from './game';
 import { homeFor, moveHome, site } from './moves';
 import { foundIn } from './guided';
 
-// Rule 3 waits for this many academic halls, Founders Hall included.
-export const SORT_AT_HALLS = 7;
+// Rule 3 waits for this many academic halls, Founders Hall included: seven
+// until Plan 69, when the owner moved it to four so the line founds its
+// schools a decade sooner under the paced catalogue.
+export const SORT_AT_HALLS = 4;
 // The admissions slider's step (InterruptModal.tsx).
 const TUITION_STEP = 500;
 // A bound on actions per rule per week, so a rule that keeps succeeding

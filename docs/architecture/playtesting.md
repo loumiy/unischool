@@ -220,10 +220,12 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   game tells it. Each week it carries out the toolbar's line — its
   `intent`, the same reading as the words (`systems/guidance/intent.ts`) —
   and otherwise plays with plain sense: it saves for what the line asks
-  when the cash does not cover it, fixes any satisfaction attribute under
-  25 even while saving, keeps a reserve of eight weeks' expenses for its
-  own spending, takes on nothing recurring while the week runs at a loss,
-  and prices the summer at what its standing tolerates (the admissions
+  when the cash does not cover it (never for a research initiative), fixes
+  any satisfaction attribute under 25 even while saving, keeps a reserve of
+  three weeks' expenses for its own spending and funds research only above
+  five, takes on nothing recurring while the week runs at a loss, posts a
+  faculty search when a course waits on a field nobody is listed in, builds
+  what a waiting course needs, and prices the summer at what its standing tolerates (the admissions
   screen's "fair"). `test/guided.test.ts` (slow) checks three fifty-year
   runs for the rules, no stuck interrupt, and every letter delivered with
   its ask done. `npm run guided` measures five runs: when the letters' asks
@@ -249,7 +251,7 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   fix any satisfaction attribute under 100 a building would raise; found
   every program on offer (market hires only, never a posted search), the
   next hall when slots run out, deeper courses meanwhile, the building a
-  course waits on; sort the schools at seven halls; accept every varsity
+  course waits on; sort the schools at four halls (seven until Plan 69); accept every varsity
   petition, build its venue and fill its chairs; fund every lab's deepest
   initiative that leaves no course dark; build everything else the menu
   offers; price just short of the red tier and approve every club.
@@ -265,9 +267,11 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   each (about four minutes) against the targets in `sim/pacing.ts` — when
   enrollment, prestige, net and rank get there for each player at its price;
   the catalogue (programs, courses, schools founded and distinguished,
-  graduate courses); the natural line's checkpoints and decades; and the
-  guardrails (the guided player's buffer, price mattering, welfare, and the
-  money, watched). A report, not a gate.
+  graduate courses); the rank at year 50 and anything left to build then;
+  the natural line's checkpoints and decades; and the guardrails (the
+  guided player's buffer, price mattering, welfare, and the money,
+  watched). The fair-price players' net shape is watched, not counted
+  (Plan 69). A report, not a gate.
 - **The report** (`sim/report.ts`, `npm run sim`): the archetypes and the
   guided player, fifty years on three seeds, the median at years 10, 25 and
   50 of rank, prestige, students, cash, satisfaction, courses, schools and
