@@ -4,7 +4,7 @@ import { totalEnrolled } from '../state/types';
 import type { Action } from '../state/actions';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
 import { absoluteWeek } from '../data/eventData';
-import { eventById, fill, scaledEffects } from '../systems/events/catalogue';
+import { eventById, eventText, fill, scaledEffects } from '../systems/events/catalogue';
 import { catalogueOf, choiceCost } from '../systems/events/catalogueEngine';
 import { money } from '../format';
 
@@ -101,7 +101,7 @@ export default function EventPanel({ s, act }: { s: GameState; act: (a: Action) 
     <aside className="event-panel" aria-label="Events waiting for an answer">
       {waiting.map(({ p, e }) => {
         const weeksLeft = Math.max(0, e.timeoutWeeks - (week - p.firedWeek));
-        const text = fill(e.text, p.vars);
+        const text = fill(eventText(e, p), p.vars);
         const expanded = p.instanceId === shown.p.instanceId;
         return (
           <section key={p.instanceId} className={`event-card${expanded ? ' is-open' : ''}`}>

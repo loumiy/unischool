@@ -3,7 +3,7 @@ import { totalEnrolled } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR } from '../../data/eventData';
 import { random, newId } from '../../engine/random';
-import { EVENT_CATALOGUE, applyEffects, eligible, eventById, fill, priceScale, rollVars, scaledEffects } from './catalogue';
+import { EVENT_CATALOGUE, applyEffects, eligible, eventById, eventText, fill, pickTelling, priceScale, rollVars, scaledEffects } from './catalogue';
 import { hasTag } from '../identity/tags';
 import { handlerFor, seatTitle } from '../delegation/seats';
 import { weeksOfOpEx } from '../../data/moneyScale';
@@ -110,9 +110,11 @@ export function tickCatalogue(s: GameState): void {
 
 function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   const c = s.catalogue!;
-  const p: PendingCatalogueEvent = { instanceId: newId(), eventId: e.id, firedWeek: absoluteWeek(s), vars: rollVars(s), scale: priceScale(s) };
+  const variant = pickTelling(e, s.clock.year, c.lastVariant?.[e.id]);
+  const p: PendingCatalogueEvent = { instanceId: newId(), eventId: e.id, firedWeek: absoluteWeek(s), vars: rollVars(s), scale: priceScale(s), variant };
   c.pending.push(p);
   c.lastFired[e.id] = s.clock.year;
+  (c.lastVariant ??= {})[e.id] = variant;
   return p;
 }
 
@@ -152,7 +154,7 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   applyEffects(s, scaledEffects(choice.effects, p.scale));
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
   journal(c, e, choiceId, by, s.clock.year);
-  const title = e.title ?? firstSentence(fill(e.text, p.vars));
+  const title = e.title ?? firstSentence(fill(eventText(e, p), p.vars));
   const who = by === 'seat'
     ? (() => { const seat = handlerFor(s, e.domain)!; return `${seatTitle(seatDef(seat.seatId)!, seat.school)} ${seat.holder} answered`; })()
     : by === 'timeout' ? 'Nobody answered in time' : 'Answered';
