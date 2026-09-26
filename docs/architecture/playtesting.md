@@ -19,27 +19,27 @@ breakdown, which is a player feature the developer happens to need first.
 
 ## The flag
 
-Playtest controls are gated in one place: `src/components/playtest.ts`. Three
-ways to turn them on, all setting the same thing:
+Playtest controls are gated in one place: `src/components/playtest.ts`, and
+**only in a development build** (`npm run dev`; Plan 70C). The public build
+has no panel at all (App.tsx lazy-imports `DebugPanel.tsx` behind
+`import.meta.env.DEV`), no Fast speed, and a reducer that refuses `DEBUG_`
+actions (`src/engine/devBuild.ts`). In a development build, two ways to turn
+them on, setting the same thing:
 
 ```
 ?debug=1                          on the URL — sticks, see below
 localStorage['unischool.debug']   = '1'
-a school named "test"             the original gate, still working
 ```
 
 `?debug=1` also writes the localStorage key (and `?debug=0` clears it), which
 is what makes the URL form usable at all: the panel's own Load button reloads
 the page, and a flag that lived only in the query string would be one every
-reload had to re-type. The URL and storage forms are read **once, at module
-load** — a gate that flickered mid-session would mean a panel appearing and
-disappearing under the player. The name check is per-call, since the name
-lives in the state.
+reload had to re-type. Both forms are read **once, at module load** — a gate
+that flickered mid-session would mean a panel appearing and disappearing
+under the player.
 
-The name gate had to stop being the *only* gate the moment scenarios
-arrived: a scenario save carries the name the run was played under, so every
-state a playtest wanted would otherwise have to be renamed "test" by hand,
-which is exactly what the September 2026 review's scripts were doing.
+A college named "test" used to open the gate too. Plan 70C retired it: a
+public player could name a college so.
 
 ## Scenarios
 

@@ -1,5 +1,6 @@
 import { answerPromises, tickPromises } from '../systems/promises/promises';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
+import { DEV_BUILD } from './devBuild';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
@@ -132,6 +133,9 @@ function debugSet(
 }
 
 export function reducer(state: GameState, action: Action): GameState {
+  // The playtest actions exist in development builds only (Plan 70C): the
+  // public build has no panel to send them, and refuses them if anything does.
+  if (!DEV_BUILD && action.type.startsWith('DEBUG_')) return state;
   // Clone so systems can mutate freely, and bind the clone's random stream
   // for every draw this action makes.
   const s: GameState = structuredClone(state);
