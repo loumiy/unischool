@@ -15,6 +15,7 @@ breakdown, which is a player feature the developer happens to need first.
 | To know whether a change moved a trajectory | `npm run sim`, the report against its baseline |
 | To know how the intended line of play goes | `npm run guided` |
 | To know how the owner's natural line of play goes, year by year | `npm run natural` |
+| To know whether the game is paced to the targets | `npm run natural -- --pacing` |
 
 ## The flag
 
@@ -259,6 +260,10 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   built and why, and what never was; research grants against what the
   initiatives cost; the Final Report's mark
   (`docs/reviews/2026-09-natural-play.md` is seed 12345).
+  `npm run natural -- --pacing` is Plan 66's pacing scorecard: the natural
+  player on three seeds (and the guided player, for the buffer) against the
+  targets in `sim/pacing.ts` — when enrollment, prestige, net and rank get
+  there, checkpoints at years 10 to 50, steadiness. A report, not a gate.
 - **The report** (`sim/report.ts`, `npm run sim`): the archetypes and the
   guided player, fifty years on three seeds, the median at years 10, 25 and
   50 of rank, prestige, students, cash, satisfaction, courses, schools and
