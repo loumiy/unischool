@@ -5,6 +5,7 @@ import { sportById, teamQuality } from '../../data/studentLifeData';
 import { playerRank, sportRankedList } from '../rivals/rivalsSystem';
 import { PLAYOFF_WEEK, SPREAD, wins } from './playoffs';
 import { ordinal } from '../../format';
+import { GAME_LINES, UPSET_LEAD, fillLine, pickLine } from '../../data/logWords';
 import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
@@ -99,26 +100,28 @@ function resolveOccasion(s: GameState, team: VarsityTeam, occasion: Occasion, ro
 
   const name = sport?.teamName ?? team.name;
   const them = `${opponent.name} ${opponent.mascot}`;
-  let message: string;
+  // The words are data (data/logWords.ts), three tellings a result, picked
+  // by a hash of the team, the occasion and the year (Plan 70I).
+  const vars: Record<string, string> = { team: name, them, record: `${record.wins}–${record.losses}`, streak: '' };
   if (occasion === 'rivalry') {
     const rivalry = s.orgs.rivalries[team.sport] ?? { wins: 0, losses: 0, streak: 0 };
     if (won) { rivalry.wins += 1; rivalry.streak = rivalry.streak > 0 ? rivalry.streak + 1 : 1; }
     else { rivalry.losses += 1; rivalry.streak = rivalry.streak < 0 ? rivalry.streak - 1 : -1; }
     s.orgs.rivalries[team.sport] = rivalry;
-    const trophy = trophyFor(s, team.sport);
     const run = Math.abs(rivalry.streak);
-    message = won
-      ? `${upset ? 'An upset: ' : ''}${name} beat ${them} for ${trophy}${run > 1 ? ` — the ${ordinal(run)} straight year` : ''}. The series stands ${rivalry.wins}–${rivalry.losses}.`
-      : `${upset ? 'An upset: ' : ''}${name} lost ${trophy} to ${them}${run > 1 ? ` for the ${ordinal(run)} year running` : ''}. The series stands ${rivalry.wins}–${rivalry.losses}.`;
-  } else if (occasion === 'opener') {
-    message = won
-      ? `${upset ? 'An upset to open the season: ' : ''}${name} opens the season with a win over ${them}.`
-      : `${upset ? 'An upset to open the season: ' : ''}${name} opens the season with a loss to ${them}.`;
-  } else {
-    message = won
-      ? `${upset ? 'An upset on homecoming weekend: ' : ''}${name} sent the homecoming crowd home happy, beating ${them}. ${record.wins}–${record.losses} on the year.`
-      : `${upset ? 'An upset on homecoming weekend: ' : ''}${name} lost to ${them} in front of the homecoming crowd. ${record.wins}–${record.losses} on the year.`;
+    vars.trophy = trophyFor(s, team.sport);
+    vars.series = `${rivalry.wins}–${rivalry.losses}`;
+    if (run > 1) vars.streak = won ? ` — the ${ordinal(run)} straight year` : ` for the ${ordinal(run)} year running`;
   }
+  const tellings = GAME_LINES[occasion][won ? 'won' : 'lost'];
+  const telling = tellings[pickLine(`${team.id}:${occasion}:${won ? 'won' : 'lost'}`, s.clock.year, tellings.length)];
+  // A sentence starts with a capital ("the Founders' Cup" opening one does
+  // not); after an upset's lead-in, a telling that opens on a plain word
+  // ("Homecoming") is lowered, and a name keeps its capital.
+  const body = fillLine(telling, vars);
+  const message = upset
+    ? `${UPSET_LEAD[occasion]}${telling.startsWith('{') ? body : body[0].toLowerCase() + body.slice(1)}`
+    : body[0].toUpperCase() + body.slice(1);
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: won ? 'good' : 'bad', topic: 'team', subject: team.id });
 }
 

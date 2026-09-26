@@ -456,11 +456,16 @@ export interface PendingCatalogueEvent {
   firedWeek: number;              // absolute (eventData.ts's absoluteWeek)
   vars: Record<string, string>;
   scale: number;
+  // Which telling it reads (Plan 70I, systems/events/catalogue.ts's
+  // pickTelling). Absent before then: the first.
+  variant?: number;
 }
 
 export interface CatalogueState {
   pending: PendingCatalogueEvent[];
   lastFired: Record<string, number>; // event id -> year
+  // The telling each event read last (Plan 70I), so the next is another.
+  lastVariant?: Record<string, number>;
   lastInlineWeek: number;            // absolute
   lastSeismicWeek: number;           // absolute
   // The journal (Plan 33): every letter answered, and each year's inline

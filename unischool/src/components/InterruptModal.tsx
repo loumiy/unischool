@@ -37,7 +37,7 @@ import { modalWidth } from './modalLayout';
 import { currentEra } from '../systems/chronicle/chronicle';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventPanel';
-import { eventById, fill } from '../systems/events/catalogue';
+import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { money, ordinal, signedPct } from '../format';
 import { promisesOf } from '../systems/promises/promises';
@@ -1150,7 +1150,7 @@ function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId:
       </>
     );
   }
-  const text = fill(e.text, p.vars);
+  const text = fill(eventText(e, p), p.vars);
   return (
     <>
       <p className="letter-eyebrow">A letter to the President · Year {s.clock.year}</p>

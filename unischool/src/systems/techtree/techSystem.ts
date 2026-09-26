@@ -13,6 +13,7 @@ import { dedicatedHalls, schoolFoundedKey } from './schools';
 import { darkPrograms } from './darkness';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 import { ladderAllows } from '../ladder/ladderSystem';
+import { COMPLETION_LINES, fillLine, pickLine } from '../../data/logWords';
 
 // Milestone bonuses reward aggregate conditions (docs/design/curriculum.md).
 // They grant no reputation directly (prestigeSystem.ts reads s.milestones);
@@ -440,7 +441,7 @@ export function foundProgram(s: GameState, f: Founding): void {
   const hall = s.tech.find((t) => t.id === f.hallId);
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
-    message: `Founded ${program.name} in ${hall?.name ?? 'an academic hall'}.`,
+    message: completionLine('program', f.programId, s.clock.year, { name: program.name, hall: hall?.name ?? 'an academic hall' }),
     kind: 'good',
     topic: 'program',
     subject: f.programId,
@@ -551,6 +552,13 @@ export function swapInstructors(s: GameState, courseA: string, courseB: string):
   const fa = s.courseFaculty[courseA];
   s.courseFaculty[courseA] = s.courseFaculty[courseB];
   s.courseFaculty[courseB] = fa;
+}
+
+// A completion's line (Plan 70I): one of three tellings, picked by a hash of
+// what finished and the year (data/logWords.ts).
+function completionLine(kind: keyof typeof COMPLETION_LINES, id: string, year: number, vars: Record<string, string>): string {
+  const tellings = COMPLETION_LINES[kind];
+  return fillLine(tellings[pickLine(`${kind}:${id}`, year, tellings.length)], vars);
 }
 
 export function hallOfCourse(s: GameState, courseId: string): string | undefined {
@@ -679,7 +687,7 @@ export function tickTech(s: GameState): void {
     } : {
       year: s.clock.year,
       week: s.clock.week,
-      message: `Developed: ${node.name}.`,
+      message: completionLine(node.kind === 'course' ? 'course' : 'building', node.id, s.clock.year, { name: node.name }),
       kind: 'good',
       // Tagged so the year in review can file it (types.ts's LogTopic).
       topic: node.kind === 'course' ? 'course' : 'building',
