@@ -57,7 +57,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
 
   // A grant rides on the paper, scaled by team strength.
   if (random() < GRANT_PER_PUBLICATION_CHANCE) {
-    const amount = rollGrantAmount(s);
+    const amount = rollGrantAmount(s, initiative.depth);
     const scaled = Math.round(amount * (0.7 + teamStrength(participants)));
     s.finance.cash += scaled;
     s.research.grants += 1;

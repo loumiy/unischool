@@ -1,5 +1,5 @@
 // The board's letters on the distress ladder (systems/finance/distress.ts),
-// one for each step that matters. Shown as a note over the map
+// one for each step that matters, and on idle cash (sweep.ts). Shown as a note over the map
 // (components/BoardLetter.tsx) that never stops the clock.
 
 export interface BoardLetter {
@@ -31,6 +31,17 @@ export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
   'exit-5': {
     title: 'The interim CFO departs',
     text: 'The interim CFO\'s three years are up. The draw and the maintenance budget are the administration\'s again, set where they were before the appointment. The board thanks her, and hopes not to need her again.',
+  },
+  // Idle cash (systems/finance/sweep.ts, Plan 70D): not the distress
+  // ladder's, but the board's all the same. The letter's button sets the
+  // standing sweep.
+  'idle-cash': {
+    title: 'Money doing nothing',
+    text: 'The college has held more than a year of its expenses in cash for a year now. Cash earns nothing, and the guidebooks do not count it: they read a college\'s strength in its endowment. The board suggests a standing sweep: keep half a year of expenses on hand and move the rest into the endowment each quarter, until the endowment is as strong as the guidebooks measure. The Treasury can set it, or change it later.',
+  },
+  'idle-cash-again': {
+    title: 'Still doing nothing',
+    text: 'The cash has piled up again, and still earns nothing. The board repeats its suggestion of a standing sweep into the endowment, and will not raise it again for a decade.',
   },
   recovered: {
     title: 'On a sound footing',

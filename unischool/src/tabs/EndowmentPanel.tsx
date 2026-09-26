@@ -9,9 +9,12 @@ import {
 } from '../systems/finance/treasury';
 import { ENDOWMENT_ANNUAL_RETURN as ENDOWMENT_RETURN } from '../systems/finance/financeSystem';
 import { DRAW_RATE_PRUDENT, boardHoldsBudget } from '../systems/finance/distress';
+import { SWEEP_STEPS, fullMarkEndowment, sweepWeeksOf } from '../systems/finance/sweep';
+import { FINANCIAL_FULL_PER_STUDENT } from '../systems/rivals/rivalsSystem';
 
-// The endowment's two levers (systems/finance/treasury.ts): the draw rate,
-// and cash moved into it by hand.
+// The endowment's levers (systems/finance/treasury.ts): the draw rate, cash
+// moved into it by hand, and the standing sweep of idle cash (sweep.ts,
+// Plan 70D).
 
 function rate(v: number): string {
   return `${(v * 100).toFixed(1)}%`;
@@ -23,6 +26,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
   const offers = transferOffers(s);
   const growth = ENDOWMENT_RETURN - draw;
   const held = boardHoldsBudget(s);
+  const sweep = sweepWeeksOf(s);
   return (
     <section className="panel endowment-panel">
       <div className="panel-head">
@@ -63,6 +67,22 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
               onConfirm={() => act({ type: 'MOVE_TO_ENDOWMENT', amount })}
             />
           ))}
+      </div>
+      <div className="treasury-transfer treasury-sweep" role="group" aria-label="Standing sweep">
+        <span>Standing sweep</span>
+        {[null, ...SWEEP_STEPS].map((weeks) => (
+          <button
+            key={weeks ?? 'off'}
+            type="button"
+            className={`panel-action small${sweep === weeks ? ' active' : ''}`}
+            aria-pressed={sweep === weeks}
+            title={weeks === null ? 'Leave cash where it is.' : `Each quarter, keep ${weeks} weeks of expenses as cash and move the rest into the endowment, until it reaches the full mark.`}
+            onClick={() => act({ type: 'SET_SWEEP', weeks })}
+          >
+            {weeks === null ? 'Off' : `Keep ${weeks} wk`}
+          </button>
+        ))}
+        <HelpHint align="end" text={`Cash earns nothing, and the guidebooks read a college's financial strength in its endowment per student, not its bank balance: full marks at ${money(FINANCIAL_FULL_PER_STUDENT)} a student, ${money(fullMarkEndowment(s))} today. A standing sweep moves what is above the reserve into the endowment at each quarter's close, until it reaches that mark.`} />
       </div>
     </section>
   );

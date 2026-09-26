@@ -186,6 +186,33 @@ Each PR has its own branch (`plan-70x-subject`) and merges once `check` and
 - `sim/baseline.json` is re-saved. `docs/design/research.md` and
   `economy.md` carry the new rules.
 
+**As implemented** (PR D):
+- **Grants were uneven by depth, not too high overall.** The first
+  measurement found the natural line's research returning 4.6–5.0× its
+  funding, and the guided player's and the Completionist's 0.4–0.6×. A
+  deeper run publishes about 10× as many papers per dollar as a pilot.
+  - So the re-fit is per depth (`GRANT_DEPTH_SCALE`: pilot 5.3, project
+    1.5, program 0.55, landmark 0.32), not a flat cut. Grant sizes changed,
+    not chances, so the random stream draws the same.
+  - Result: natural 2.1× (median, band 1.7–2.3), guided 1.3–2.4×,
+    Completionist 1.3–2.1×.
+- **The sweep compounded, and the owner capped it.** Uncapped, the natural
+  line's endowment reached $80B and its net $80M a week by year 50, which
+  failed ten of its net-pacing rows (96 → 89).
+  - Asked in chat, the owner chose to cap the sweep at Financial strength's
+    full mark ($80k a student).
+- **The scorecard is 100 of 112** (96 of 111 at Plan 69, plus the new
+  grants row).
+  - Every player is still #1 with nothing left to build at year 50, on
+    every seed.
+  - The natural line's Financial strength is 100 from about year 10.
+  - Its final mark is A · 78 (it was B · 68).
+  - The Completionist, which never sweeps, still reads F (watched).
+- **The next-step line** carries the board's ask above the campus readings,
+  so the guided player takes it the week it appears.
+- `research.funding` (lifetime initiative funding) is new, optional state.
+  It needs no migration.
+
 ## PR 70E — The merge review's leftovers
 
 The merge review's "still open" list. Check each against `main`, and fix

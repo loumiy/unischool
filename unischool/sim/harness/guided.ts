@@ -224,6 +224,9 @@ export function carry(g: Game, intent: StepIntent, reserve: number): boolean {
       g.act({ type: 'RESTAFF', school: intent.school });
       return unstaffedIn(g.s).length < before;
     }
+    case 'sweep':
+      g.act({ type: 'SET_SWEEP', weeks: intent.weeks });
+      return g.s.finance.sweepWeeks === intent.weeks;
     case 'wait':
       return false;
   }

@@ -269,8 +269,9 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   the catalogue (programs, courses, schools founded and distinguished,
   graduate courses); the rank at year 50 and anything left to build then;
   the natural line's checkpoints and decades; and the guardrails (the
-  guided player's buffer, price mattering, welfare, and the money,
-  watched). The fair-price players' net shape is watched, not counted
+  guided player's buffer, price mattering, welfare, research returning
+  1.7–2.3× its funding (Plan 70D), and the money and each player's
+  Financial strength, watched). The fair-price players' net shape is watched, not counted
   (Plan 69). A report, not a gate.
 - **The report** (`sim/report.ts`, `npm run sim`): the archetypes and the
   guided player, fifty years on three seeds, the median at years 10, 25 and

@@ -84,9 +84,19 @@ const MIN_OPEX_SCALE = 45_000; // floor, matching eventData.ts, so a young schoo
 const GRANT_MIN_WEEKS = 0.4;
 const GRANT_MAX_WEEKS = 1.2;
 
-export function rollGrantAmount(s: GameState): number {
+// Per depth (Plan 70D), so every depth returns about twice its funding in
+// grants over its life on an ordinary team: a modest profit, never a second
+// economy. A deeper run publishes far more per dollar of funding (more
+// scholars, longer, at a higher intensity: about 3×, 6× and 10× a pilot's
+// papers per dollar), so without this a Landmark Program returned about five
+// times its cost and a pilot under half.
+export const GRANT_DEPTH_SCALE: Record<InitiativeDepth, number> = {
+  pilot: 5.3, project: 1.5, program: 0.55, landmark: 0.32,
+};
+
+export function rollGrantAmount(s: GameState, depth: InitiativeDepth): number {
   const weeks = GRANT_MIN_WEEKS + random() * (GRANT_MAX_WEEKS - GRANT_MIN_WEEKS);
-  return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * weeks);
+  return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * weeks * GRANT_DEPTH_SCALE[depth]);
 }
 
 // Grant funders and prize names are flavor only, authored per discipline

@@ -15,5 +15,7 @@ export type StepIntent =
   | { kind: 'research'; labId: string }
   // Staff a dark program's courses from the payroll and the market (Plan 60).
   | { kind: 'restaff'; school: string | null }
+  // Set the standing sweep into the endowment, as the board asked (Plan 70D).
+  | { kind: 'sweep'; weeks: number }
   // Nothing to do but let the weeks pass.
   | { kind: 'wait' };
