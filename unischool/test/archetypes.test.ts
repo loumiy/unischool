@@ -15,12 +15,18 @@
 //   - recovery is possible: a college broken into crisis at year 15 and
 //     played on by the guided player climbs out of it.
 //
-// Not part of the game: nothing imports it. Slow — eight fifty-year runs.
+// And the natural player (Plan 65): the rules every quarter, and every
+// school founded.
+//
+// Not part of the game: nothing imports it. Slow — nine fifty-year runs.
 // ---------------------------------------------------------------------
 
 import { foundGame, playYears } from '../sim/harness/game';
 import { ARCHETYPES, createArchetype, type ArchetypeName, type ArchetypeRecord } from '../sim/harness/archetypes';
 import { createGuidedPlayer } from '../sim/harness/guided';
+import { createNaturalPlayer } from '../sim/harness/natural';
+import { milestoneSchools } from '../src/data/techData';
+import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { brokenRules } from '../sim/harness/invariants';
 import { intoCrisis } from '../tools/scenarios';
 import { weeklyNet } from '../src/systems/finance/financeSystem';
@@ -68,6 +74,34 @@ for (const seed of SEEDS) {
     const last = player.record.years[player.record.years.length - 1];
     console.log(`  · ${label}: rank ${last.rank}, prestige ${last.prestige.toFixed(0)}, ${last.enrolled.toLocaleString()} students, $${(last.cash / 1e6).toFixed(0)}M, ${player.record.weeksInRed} weeks in the red`);
   }
+}
+
+// ---- The natural line of play (Plan 65) ----
+// The owner's natural player, one seed: it keeps the rules, and every
+// school gets founded (a school split over two halls is merged when
+// another has nowhere to go).
+{
+  const player = createNaturalPlayer();
+  const g = foundGame({ seed: SEEDS[0] });
+  let firstBreak: string | null = null;
+  let weeks = 0;
+  try {
+    playYears(g, player, YEARS, (g) => {
+      weeks += 1;
+      if (firstBreak === null && weeks % 13 === 0) {
+        const broken = brokenRules(g.s);
+        if (broken.length > 0) firstBreak = `year ${g.s.clock.year}, week ${g.s.clock.week}: ${broken.slice(0, 3).join('; ')}`;
+      }
+    });
+    assert(true, `Natural: ${YEARS} years played`);
+  } catch (e) {
+    assert(false, `Natural: the run threw in year ${g.s.clock.year}, week ${g.s.clock.week}: ${(e as Error).message}`);
+  }
+  assert(firstBreak === null, `Natural: every quarter keeps the rules${firstBreak ? ` — first broken at ${firstBreak}` : ''}`);
+  const unfounded = milestoneSchools().filter((m) => !g.s.milestones[schoolFoundedKey(m.schoolName)]).map((m) => m.schoolName);
+  assert(unfounded.length === 0, `Natural: every school founded by year ${YEARS}${unfounded.length ? ` — not ${unfounded.join(', ')}` : ''}`);
+  const last = player.record.years.at(-1);
+  if (last) console.log(`  · Natural, seed ${SEEDS[0]}: rank ${last.rank}, prestige ${last.prestige.toFixed(0)}, ${last.enrolled.toLocaleString()} students, $${(last.cash / 1e6).toFixed(0)}M, mark ${g.s.ending?.report.mark ?? '-'}`);
 }
 
 // ---- Growth isn't optional ----

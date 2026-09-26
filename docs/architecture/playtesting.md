@@ -14,6 +14,7 @@ breakdown, which is a player feature the developer happens to need first.
 | To know why prestige is what it is | the History tab's **Standing** section |
 | To know whether a change moved a trajectory | `npm run sim`, the report against its baseline |
 | To know how the intended line of play goes | `npm run guided` |
+| To know how the owner's natural line of play goes, year by year | `npm run natural` |
 
 ## The flag
 
@@ -242,6 +243,22 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   climbing out at the end); that the Completionist finishes above the Idle
   college; and that a college broken into crisis at year 15 climbs out under
   the guided player.
+- **The natural player** (`sim/harness/natural.ts`, Plan 65): the line of
+  play the owner thinks a new player falls into, spending cash to zero —
+  fix any satisfaction attribute under 100 a building would raise; found
+  every program on offer (market hires only, never a posted search), the
+  next hall when slots run out, deeper courses meanwhile, the building a
+  course waits on; sort the schools at seven halls; accept every varsity
+  petition, build its venue and fill its chairs; fund every lab's deepest
+  initiative that leaves no course dark; build everything else the menu
+  offers; price just short of the red tier and approve every club.
+  `test/archetypes.test.ts` plays it fifty years and checks the rules hold
+  and every school is founded. `npm run natural` writes one run as a
+  markdown report (`-- --seed N`, `-- --out file.md`): every year's
+  enrollment, applicants, net, programs, prestige and satisfaction; what was
+  built and why, and what never was; research grants against what the
+  initiatives cost; the Final Report's mark
+  (`docs/reviews/2026-09-natural-play.md` is seed 12345).
 - **The report** (`sim/report.ts`, `npm run sim`): the archetypes and the
   guided player, fifty years on three seeds, the median at years 10, 25 and
   50 of rank, prestige, students, cash, satisfaction, courses, schools and

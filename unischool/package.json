@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "sim": "rolldown sim/report.ts -o node_modules/.tmp/report.mjs -f esm -p node && node node_modules/.tmp/report.mjs",
     "guided": "rolldown sim/guided.ts -o node_modules/.tmp/guided.mjs -f esm -p node && node node_modules/.tmp/guided.mjs",
+    "natural": "rolldown sim/natural.ts -o node_modules/.tmp/natural.mjs -f esm -p node && node node_modules/.tmp/natural.mjs",
     "test": "node test/run.mjs",
     "test:slow": "node test/run.mjs --slow",
     "test:all": "node test/run.mjs --all",

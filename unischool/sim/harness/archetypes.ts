@@ -33,6 +33,7 @@ import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import type { Game, Player } from './game';
 import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, homeFor, moveHome, site, siteNextHall } from './moves';
 import { buildFor, carry, createGuidedPlayer, foundIn, reserveOf } from './guided';
+import { createNaturalPlayer } from './natural';
 
 export const ARCHETYPES = ['Completionist', 'Selective', 'Lean', 'Idle'] as const;
 export type ArchetypeName = (typeof ARCHETYPES)[number];
@@ -217,11 +218,11 @@ export function createArchetype(name: ArchetypeName): Player & { record: Archety
 }
 
 // Every player the harness has, by name (the tools' `--player`): the four
-// archetypes and the guided player.
-export const PLAYERS = ['Guided', ...ARCHETYPES] as const;
+// archetypes, the guided player and the natural one (natural.ts).
+export const PLAYERS = ['Guided', 'Natural', ...ARCHETYPES] as const;
 export function playerNamed(name: string): Player | undefined {
   const lower = name.toLowerCase();
   const hit = PLAYERS.find((p) => p.toLowerCase().startsWith(lower));
   if (!hit) return undefined;
-  return hit === 'Guided' ? createGuidedPlayer() : createArchetype(hit);
+  return hit === 'Guided' ? createGuidedPlayer() : hit === 'Natural' ? createNaturalPlayer() : createArchetype(hit);
 }
