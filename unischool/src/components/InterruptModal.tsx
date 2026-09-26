@@ -135,9 +135,18 @@ const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> =
   reckless: { label: 'far beyond your prestige — sticker shock will bite', className: 'price-tier-reckless' },
 };
 
-function PriceTierTag({ tier }: { tier: PriceTier }) {
+// "Fair" spans 0.7 to 1.15 of what prestige supports, about $6,000 at most
+// standings, so the tag says where in it the price sits (the merge review,
+// Plan 70E), still without naming the number.
+function fairPosition(ratio: number): string {
+  if (ratio < 0.9) return ' — on the gentle side';
+  if (ratio > 1.05) return ' — at the top of it';
+  return '';
+}
+
+function PriceTierTag({ tier, ratio }: { tier: PriceTier; ratio: number }) {
   const copy = PRICE_TIER_COPY[tier];
-  return <span className={`price-tier-tag ${copy.className}`}>{copy.label}</span>;
+  return <span className={`price-tier-tag ${copy.className}`}>{copy.label}{tier === 'fair' ? fairPosition(ratio) : ''}</span>;
 }
 
 // Font steps measured against the card: the mono figure runs ~12px per
@@ -254,7 +263,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
         <input type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition}
           disabled={tuitionLocked}
           onChange={(e) => setTuition(Number(e.target.value))} />
-        <PriceTierTag tier={priceTierNow} />
+        <PriceTierTag tier={priceTierNow} ratio={tolerance > 0 ? tuition / tolerance : 1} />
       </label>
       {floor > 0 && (
         <p className="admissions-prompt">The board holds tuition where it is: it may rise, not fall.</p>
