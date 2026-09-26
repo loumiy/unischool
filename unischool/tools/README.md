@@ -121,6 +121,23 @@ npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png 
   --click="Set tuition for the year →" --element=.modal --scale=2
 ```
 
+### Phones and tablets
+
+`--phone` and `--tablet` give the driver a 390x844 or 820x1180 touch
+viewport (Plan 70G). `npm run phone` (`phoneCheck.mjs`) is the check the
+phone pass was fixed against: against a running dev server it opens the
+title, the map, every tab, the Treasury, the build tray and the menu at both
+sizes as a touch device, taps every `?` on each screen, and reports anything
+that runs past the screen's edge (exit 1). A save held at a modal is walked
+through the modal's steps instead. `--out=<dir>` keeps a screenshot of every
+screen; `docs/reviews/2026-09-phone/` is the set from Plan 70G.
+
+```sh
+npm run phone                                   # the launch fixture, year 25
+npm run scenario -- --player Guided --year 8 --modal summer node_modules/.tmp/summer.json
+npm run phone -- node_modules/.tmp/summer.json --out=node_modules/.tmp/phone
+```
+
 ### Every motif on one page
 
 The campus renders show the assets together; they cannot show every motif, and

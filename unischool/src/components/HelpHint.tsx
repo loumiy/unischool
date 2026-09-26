@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 // A small, dismissible '?' toggle for panel explainer copy that's useful
 // once but busy if it's always on screen (see
@@ -9,7 +9,18 @@ import { useEffect, useRef, useState } from 'react';
 // TreasuryTab.tsx) where the default would run off-screen.
 export default function HelpHint({ text, align = 'start' }: { text: string; align?: 'start' | 'end' }) {
   const [open, setOpen] = useState(false);
+  const [nudge, setNudge] = useState(0);
   const root = useRef<HTMLSpanElement>(null);
+  const popup = useRef<HTMLParagraphElement>(null);
+  // Kept on screen (Plan 70G): at phone width a hint near either edge would
+  // open past it, so it slides back by what it overhangs, 8px in.
+  useLayoutEffect(() => {
+    if (!open || !popup.current) { setNudge(0); return; }
+    const r = popup.current.getBoundingClientRect();
+    const over = r.right - (window.innerWidth - 8);
+    const under = 8 - r.left;
+    setNudge(over > 0 ? -over : under > 0 ? under : 0);
+  }, [open]);
   // Escape or a click anywhere else closes it (Plan 35: the map's long hint
   // stayed open over everything).
   useEffect(() => {
@@ -36,7 +47,15 @@ export default function HelpHint({ text, align = 'start' }: { text: string; alig
       >
         ?
       </button>
-      {open && <p className={`help-hint-text ${align === 'end' ? 'align-end' : ''}`}>{text}</p>}
+      {open && (
+        <p
+          ref={popup}
+          className={`help-hint-text ${align === 'end' ? 'align-end' : ''}`}
+          style={nudge ? { transform: `translateX(${nudge}px)` } : undefined}
+        >
+          {text}
+        </p>
+      )}
     </span>
   );
 }
