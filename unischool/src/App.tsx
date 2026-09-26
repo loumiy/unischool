@@ -9,6 +9,7 @@ import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
 import Toasts from './components/Toasts';
+import FoundingNotes from './components/FoundingNotes';
 import TitleScreen from './components/TitleScreen';
 import { applySettings } from './settings';
 import HallOfFame from './components/HallOfFame';
@@ -347,6 +348,7 @@ export default function App() {
                   <BoardLetter s={s} act={act} />
                   <DemandNote s={s} act={act} />
                   <MilestoneNote s={s} act={act} />
+                  <FoundingNotes s={s} />
                 </div>
               )}
               <EventPanel s={s} act={act} />

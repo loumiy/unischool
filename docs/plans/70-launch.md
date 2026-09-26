@@ -422,6 +422,29 @@ and the balance was just tuned in Plans 67–69.
   residence), so the opening is not "a quiet year" twice. They are new
   content, not new mechanics.
 
+**As implemented** (PR I):
+- **Catalogue events:** 56 have a cooldown of five years or less (the
+  catalogue grew after the audit counted 27), and each has two more
+  tellings in `data/eventVariants.ts`: 112 texts, same placeholders, same
+  choices set up. The pick (`catalogue.ts`'s `pickTelling`) hashes the event
+  and the year and steps past the telling read last; the pending event
+  keeps which it read (`variant`), and the catalogue which each event read
+  last (`lastVariant`), both optional, so older saves read their first.
+- **Game results and completions** (`data/logWords.ts`): three tellings for
+  each occasion and outcome, and for a building, a course and a program
+  founded. `pickLine` hashes what the line is about and the year, and never
+  repeats the year before's, worked out from year 1 so nothing is stored.
+  An upset keeps its lead-in; a line that opens on a trophy is capitalized.
+- **The founding years:** two notes in the map's note stack
+  (`FoundingNotes.tsx`, words in `data/foundingNotes.ts`), read off the log:
+  the first program the college chose, and its first residence, each up for
+  ten weeks after it happens in years 1 and 2. Notes, not letters: a letter
+  holds the clock and takes a quiet week from the events, which would move
+  the run.
+- **Checks:** `test/content-variants.test.ts` (every telling names its
+  first's placeholders, none empty or copied, picks never repeat). `npm run
+  sim` reads the same as `sim/baseline.json`.
+
 ## PR 70J — The end of a run
 
 - **Play again.** *Found another college* on the Final Report and in the

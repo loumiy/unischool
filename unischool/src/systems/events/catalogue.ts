@@ -1,7 +1,9 @@
-import type { Buildable, GameState, Loan } from '../../state/types';
+import type { Buildable, GameState, Loan, PendingCatalogueEvent } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../../state/types';
 import type { CatalogueChoice, CatalogueEvent, ConditionKey, EffectKey, NeedKey } from '../../data/eventCatalogueTypes';
 import { EVENT_CATALOGUE } from '../../data/eventCatalogue';
+import { EVENT_VARIANTS } from '../../data/eventVariants';
+import { hashUnit } from '../../data/rivalData';
 import { random } from '../../engine/random';
 import { isPlaceableKind } from '../../state/campusMap';
 import { conditionOf } from '../estate/estate';
@@ -221,6 +223,29 @@ export function rollVars(s: GameState): Record<string, string> {
     school: institutionName(s.self),
     suitor: suitor ? suitor.name : 'a larger university',
   };
+}
+
+// Every telling of an event (Plan 70I): its text, then its variants
+// (data/eventVariants.ts).
+export function eventTexts(e: CatalogueEvent): readonly string[] {
+  return [e.text, ...(EVENT_VARIANTS[e.id] ?? [])];
+}
+
+// Which telling a firing reads: a hash of the event and the year, never the
+// run's stream, so a replay reads the same words and balance cannot move;
+// and never the one it read last time, stepping on to the next.
+export function pickTelling(e: CatalogueEvent, year: number, last?: number): number {
+  const n = eventTexts(e).length;
+  if (n <= 1) return 0;
+  const i = Math.floor(hashUnit(`${e.id}:${year}`) * n) % n;
+  return i === last ? (i + 1) % n : i;
+}
+
+// The telling a pending event reads; one fired before Plan 70I reads its
+// first.
+export function eventText(e: CatalogueEvent, p: PendingCatalogueEvent): string {
+  const texts = eventTexts(e);
+  return texts[Math.min(p.variant ?? 0, texts.length - 1)];
 }
 
 export function fill(text: string, vars: Record<string, string>): string {
