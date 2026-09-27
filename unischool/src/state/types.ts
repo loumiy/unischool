@@ -438,9 +438,12 @@ export interface Ending {
 
 // Promises (Plan 33). `offer` is this summer's, answered on the Review
 // beat: one promise, or at a decade's close a list to take up to two from.
+// `scale` is the price scale of the summer a promise was made (Plan 76C):
+// its sums are judged, and printed, at that scale. A promise made before it
+// was kept reads the live one.
 export interface PromiseState {
-  active: { id: string; madeYear: number; dueYear: number }[];
-  settled: { id: string; year: number; kept: boolean }[];
+  active: { id: string; madeYear: number; dueYear: number; scale?: number }[];
+  settled: { id: string; year: number; kept: boolean; scale?: number }[];
   declined: { id: string; year: number }[];
   offer: { ids: string[]; decade: boolean } | null;
 }

@@ -6,7 +6,7 @@ import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCa
 import { absoluteWeek } from '../data/eventData';
 import { eventById, eventText, fill, scaledEffects } from '../systems/events/catalogue';
 import { catalogueOf, choiceCost } from '../systems/events/catalogueEngine';
-import { money } from '../format';
+import { money, signed, signedMoney } from '../format';
 
 // THE PANEL (Plan 32): the catalog's inline events, waiting over the map
 // while the clock runs. Each shows its weeks left and what each answer
@@ -22,8 +22,6 @@ const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
   advancement: 'Advancement',
 };
 
-const signed = (v: number) => (v > 0 ? `+${v}` : `${v}`);
-
 // What an answer does, a phrase per lever.
 function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
   const out: string[] = [];
@@ -31,7 +29,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
     if (!v) continue;
     switch (k) {
       case 'cash': out.push(v < 0 ? `costs ${money(-v)}` : `brings ${money(v)}`); break;
-      case 'endowment': out.push(`endowment ${v < 0 ? '−' : '+'}${money(Math.abs(v))}`); break;
+      case 'endowment': out.push(`endowment ${signedMoney(v)}`); break;
       case 'debt': out.push(v > 0 ? `borrows ${money(v)}` : `repays ${money(-v)} of debt`); break;
       case 'backlog': out.push(v > 0 ? `${money(v)} of repairs deferred` : `${money(-v)} of repairs done`); break;
       case 'mood': out.push(`satisfaction ${signed(v)}`); break;

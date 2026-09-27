@@ -16,7 +16,7 @@ import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/riv
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
 import type { SeasonResult } from '../state/types';
-import { money, moneyShort } from '../format';
+import { count, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
@@ -169,11 +169,11 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                     <span className="coach-candidate-field">{fieldLabel(c.field)}</span>
                   </span>
                   <span className="coach-candidate-listed">
-                    {Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed)}w left
+                    {weeksShort(Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed))} left
                   </span>
                 </div>
                 <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a ceiling you cannot quite see'}>
-                  quality {c.quality} · {ceilingLabel(c)} · age {coachProfile(c).age} · {money(c.salary)}/yr
+                  quality {c.quality} · {ceilingLabel(c)} · age {coachProfile(c).age} · {moneyShort(c.salary)}/yr
                 </span>
                 <span className="coach-candidate-hire">
                   {openings.length === 0
@@ -219,7 +219,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity Athletics'}</h2>
         <HelpHint
-          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the college's subsidy (the one dial here) plus what the programs earn at the gate. Programs draw their sport's cost to compete off the pot in the order you put them — drag the cards — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
+          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the college's subsidy plus what the programs earn at the gate. The one dial here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). Programs draw their sport's cost to compete off the pot in the order you put them — drag the cards — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
         />
       </div>
 
@@ -231,7 +231,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
             <span className="department-ad-who">
               <span className="department-ad-name">{ad.name}</span>
               <span className="department-ad-role">Athletic Director</span>
-              <span className="stat">quality {ad.quality} · {money(ad.salary)}/yr</span>
+              <span className="stat">quality {ad.quality} · {moneyShort(ad.salary)}/yr</span>
             </span>
           </>
         ) : (
@@ -271,7 +271,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
               type="button"
               className={tier === s.orgs.athleticsBudget ? 'active' : ''}
               aria-pressed={tier === s.orgs.athleticsBudget}
-              title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's pot`}
+              title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's pot; staff pay ×${ATHLETICS_BUDGET_TIERS[tier].upkeepMultiplier}; the teams' lift to student life ×${ATHLETICS_BUDGET_TIERS[tier].socialMultiplier}`}
               onClick={() => act({ type: 'SET_ATHLETICS_BUDGET', tier })}
             >
               {tier.charAt(0).toUpperCase() + tier.slice(1)}
@@ -382,11 +382,11 @@ function TeamCard({ s, act, team, funding, rank }: {
         <span>{moneyShort(weeklyCost)}/wk</span>
         {funding && (
           <span title={`Draws ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
-            draws {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${Math.round(funding.funded * 100)}%)` : ''}
+            draws {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${pct(funding.funded)})` : ''}
           </span>
         )}
         {team.status === 'active' && attendance > 0 && (
-          <span title={`${money(gate)}/yr at the gate`}>{attendance.toLocaleString()} a game · {moneyShort(gate)}/yr gate</span>
+          <span title={`${money(gate)}/yr at the gate`}>{count(attendance)} a game · {moneyShort(gate)}/yr gate</span>
         )}
       </div>
       {/* Three empty chairs are one line, not three. */}

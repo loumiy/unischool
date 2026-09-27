@@ -23,7 +23,7 @@ import {
 } from '../systems/faculty/hiringNext';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { FACULTY_SORTS, compareFaculty, showsDepartment, type FacultyFilter, type FacultySort } from './facultySort';
-import { money, moneyShort, surnameOf } from '../format';
+import { money, moneyShort, pct, surnameOf, weeksShort } from '../format';
 
 // The department board: every department the university could have (all 29,
 // in the eight FACULTY_FIELD_GROUPS divisions), what each can teach, and who
@@ -105,7 +105,7 @@ function FacultyCard(
               <span className="faculty-commitment" title={`${commitment.topic} · ${commitment.labName}`}>
                 On <strong>{commitment.topic}</strong>
                 <span className="faculty-commitment-left">
-                  {' '}· {commitment.weeksRemaining}w left
+                  {' '}· {weeksShort(commitment.weeksRemaining)} left
                 </span>
               </span>
             ) : isCandidate ? (
@@ -126,7 +126,7 @@ function FacultyCard(
           <div className="faculty-card-foot">
             <span className="faculty-card-salary" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}; the college pays ${money(pay)} at its market rate`}>{moneyShort(pay)}/yr</span>
             {isCandidate ? (
-              <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>withdraws in {weeksLeft}w</span>
+              <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>withdraws in {weeksShort(weeksLeft)}</span>
             ) : (
               <span
                 className={load >= slots ? 'faculty-card-load full' : 'faculty-card-load'}
@@ -178,7 +178,7 @@ function FacultyCard(
             <dt>Nationality</dt><dd>{f.nationality}</dd>
             <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
             <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
-            <dt>Salary</dt><dd>{money(f.salary)}/yr <span className="outcome-note">({money(Math.round(facultyPay(s, f.salary)))} paid, at the college's market rate)</span></dd>
+            <dt>Salary</dt><dd>{money(f.salary)}/yr <span className="outcome-note">({money(facultyPay(s, f.salary))} paid, at the college's market rate)</span></dd>
             <dt>Course slots</dt><dd>{f.courseSlots}</dd>
             {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)} years</dd></>}
             {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}
@@ -305,16 +305,16 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
         type="button"
         className="dept-action appoint"
         onClick={(e) => { e.stopPropagation(); act({ type: 'HIRE_FACULTY', facultyId: l.candidate.id }); }}
-        title={`Appoint ${l.candidate.name} (teaching ${l.candidate.teaching}) at ${moneyShort(l.pay)}/yr${l.unblocks.length > 0 ? ` — opens ${l.unblocks.join(', ')}` : ''}; the listing withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}`}
+        title={`Appoint ${l.candidate.name} (teaching ${l.candidate.teaching}) at ${money(l.pay)}/yr${l.unblocks.length > 0 ? ` — opens ${l.unblocks.join(', ')}` : ''}; the listing withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}`}
       >
         Appoint {surnameOf(l.candidate.name)}
         {l.grade && <GradeChip grade={l.grade} />}
-        <span className="dept-action-meta">{moneyShort(l.pay)} · {l.weeksLeft}w</span>
+        <span className="dept-action-meta">{moneyShort(l.pay)} · {weeksShort(l.weeksLeft)}</span>
       </button>
     );
   }
   if (action.kind === 'searching') {
-    return <span className="dept-note short">searching · {action.weeksLeft}w</span>;
+    return <span className="dept-note short">searching · {weeksShort(action.weeksLeft)}</span>;
   }
   if (action.kind === 'search') {
     return (
@@ -323,7 +323,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
         className="dept-action search"
         disabled={!action.canPost}
         onClick={(e) => { e.stopPropagation(); act({ type: 'POST_SEARCH', field: c.field }); }}
-        title={`Nobody is listed in ${c.field}. A search runs half a year with a much better chance every week that somebody is: ${moneyShort(action.cost)}.`}
+        title={`Nobody is listed in ${c.field}. A search runs half a year with a much better chance every week that somebody is: ${money(action.cost)}.`}
       >
         Post a search <span className="dept-action-meta">{moneyShort(action.cost)}</span>
       </button>
@@ -352,7 +352,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
 // revealed cannot start. Inside the solid: a course is unstaffed. A fainter
 // second rule marks where supply would be without research commitments.
 function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
-  const pct = (n: number) => `${(Math.max(0, Math.min(scale, n)) / scale) * 100}%`;
+  const widthOf = (n: number) => `${(Math.max(0, Math.min(scale, n)) / scale) * 100}%`;
   const locked = Math.max(0, c.catalogue - c.offered - c.available);
   const taken = c.grossSupply - c.supply;
   // A department hired past everything it will ever teach: the rule pins to
@@ -369,13 +369,13 @@ function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
   return (
     <span className={`capacity-meter ${c.state}`} role="img" aria-label={title} title={title}>
       <span className="capacity-track">
-        <span className="capacity-seg offered" style={{ width: pct(c.offered) }} />
-        <span className="capacity-seg available" style={{ width: pct(c.available) }} />
-        <span className="capacity-seg locked" style={{ width: pct(locked) }} />
-        {taken > 0 && !beyond && <span className="capacity-rule gross" style={{ left: pct(c.grossSupply) }} />}
+        <span className="capacity-seg offered" style={{ width: widthOf(c.offered) }} />
+        <span className="capacity-seg available" style={{ width: widthOf(c.available) }} />
+        <span className="capacity-seg locked" style={{ width: widthOf(locked) }} />
+        {taken > 0 && !beyond && <span className="capacity-rule gross" style={{ left: widthOf(c.grossSupply) }} />}
         <span
           className={`capacity-rule${beyond ? ' beyond' : ''}${c.supply === 0 ? ' at-zero' : ''}`}
-          style={{ left: pct(c.supply) }}
+          style={{ left: widthOf(c.supply) }}
         />
       </span>
     </span>
@@ -524,11 +524,11 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
                 type="button"
                 className={`next-up-door${l.weeksLeft <= 2 ? ' soon' : ''}`}
                 onClick={() => appoint(l)}
-                title={`${l.candidate.name}, ${facultyQualityTier(l.candidate)} in ${l.field}: teaching ${l.candidate.teaching}, ${moneyShort(l.pay)}/yr at the college's rate${l.course ? `; would earn a ${l.grade} on ${l.course.name}` : ''}${l.unblocks.length > 0 ? `; opens ${l.unblocks.join(', ')}` : ''}. Withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
+                title={`${l.candidate.name}, ${facultyQualityTier(l.candidate)} in ${l.field}: teaching ${l.candidate.teaching}, ${money(l.pay)}/yr at the college's rate${l.course ? `; would earn a ${l.grade} on ${l.course.name}` : ''}${l.unblocks.length > 0 ? `; opens ${l.unblocks.join(', ')}` : ''}. Withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
               >
                 Appoint {surnameOf(l.candidate.name)} · {l.field}
                 {l.grade && <GradeChip grade={l.grade} />}
-                <span className="next-up-meta">{moneyShort(l.pay)} · {l.weeksLeft}w</span>
+                <span className="next-up-meta">{moneyShort(l.pay)} · {weeksShort(l.weeksLeft)}</span>
               </button>
             ))}
             {listings.length > 5 && <span className="next-up-note">+{listings.length - 5} more listed in short departments</span>}
@@ -541,7 +541,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
           <span className="next-up-doors">
             {searches.slice(0, 4).map((x) => (
               x.running > 0
-                ? <span key={x.field} className="next-up-note">{x.field} · searching, {x.running}w left</span>
+                ? <span key={x.field} className="next-up-note">{x.field} · searching, {weeksShort(x.running)} left</span>
                 : (
                   <button
                     key={x.field}
@@ -549,7 +549,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
                     className="next-up-door"
                     disabled={s.finance.cash < searchCost(s)}
                     onClick={() => act({ type: 'POST_SEARCH', field: x.field })}
-                    title={`${x.waiting} ${x.waiting === 1 ? 'course is' : 'courses are'} waiting on ${x.field} and nobody is on the market. A search runs half a year: ${moneyShort(searchCost(s))}.`}
+                    title={`${x.waiting} ${x.waiting === 1 ? 'course is' : 'courses are'} waiting on ${x.field} and nobody is on the market. A search runs half a year: ${money(searchCost(s))}.`}
                   >
                     Post a search · {x.field} <span className="next-up-meta">{moneyShort(searchCost(s))} · {x.waiting} waiting</span>
                   </button>
@@ -571,8 +571,8 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
       <div className="next-up-item">
         <span className="next-up-label">Payroll</span>
         <span className="next-up-body">
-          <span className="next-up-meta">{moneyShort(pay.weekly)}/wk · {Math.round(pay.share * 100)}% of expenses</span>
-          {pay.wouldAdd > 0 && <span className="next-up-note"> — the appointments above would add {moneyShort(pay.wouldAdd)}/wk</span>}
+          <span className="next-up-meta">{moneyShort(pay.weekly)}/wk · {pct(pay.share)} of expenses</span>
+          {pay.wouldAdd > 0 && <span className="next-up-note"> — the appointments above would add {money(pay.wouldAdd)}/wk</span>}
         </span>
       </div>
     </div>

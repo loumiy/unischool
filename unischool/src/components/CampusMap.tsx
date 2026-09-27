@@ -44,6 +44,7 @@ import { reducedMotion } from '../settings';
 import { fullResidences } from './residenceFill';
 import { setMapProbe } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
+import { pct, weeksShort } from '../format';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
 const DUST_MS = 900;
@@ -276,7 +277,7 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
         className="campus-building-progress-fill"
         points={polyPoints(frontEdgeStrip(p, 0, Math.max(0, elapsedFraction)))}
       />
-      {t.facilityType !== 'quad' && <title>{`${label} · under construction · ${weeksLeft}w left`}</title>}
+      {t.facilityType !== 'quad' && <title>{`${label} · under construction · ${weeksShort(weeksLeft)} left`}</title>}
     </>
   );
 }
@@ -526,8 +527,8 @@ function LabMark({ t, p, run, vernacular, onInspect }: {
   const still = reducedMotion();
   return (
     <g className="campus-lab-mark" role="button" onClick={onInspect} transform={`translate(${centre.x.toFixed(2)} ${y.toFixed(2)})`}
-      aria-label={`${t.name}: ${topic}, ${Math.round(done * 100)}% done`}>
-      <title>{`${topic} · ${run.weeksRemaining} week${run.weeksRemaining === 1 ? '' : 's'} to go`}</title>
+      aria-label={`${t.name}: ${topic}, ${pct(done)} done`}>
+      <title>{`${topic} · ${weeksShort(run.weeksRemaining)} left`}</title>
       <circle className="campus-lab-plate" r={LAB_MARK_R + 4.5} />
       <circle className="campus-lab-track" r={LAB_MARK_R} />
       <circle

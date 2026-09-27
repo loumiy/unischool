@@ -1,5 +1,6 @@
 import { reducedMotion } from '../settings';
 import { useEffect, useRef, useState } from 'react';
+import { count } from '../format';
 
 // Tweens from what is on screen to a new `value` rather than snapping.
 // Cosmetic only: the settled display always equals `value`, and a new value
@@ -64,5 +65,5 @@ export default function AnimatedNumber({
 }
 
 function defaultFormat(n: number): string {
-  return Math.round(n).toLocaleString();
+  return count(n);
 }

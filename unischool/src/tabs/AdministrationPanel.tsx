@@ -2,7 +2,7 @@ import ConfirmButton from '../components/ConfirmButton';
 import type { GameState } from '../state/types';
 import type { Action } from '../state/actions';
 import HelpHint from '../components/HelpHint';
-import { money } from '../format';
+import { moneyShort } from '../format';
 import { DEANS_FOR_FASTEST, POLICY_RULE_NOTES, SEAT_SENIOR_YEARS } from '../data/seatData';
 import { marketRateMultiplier } from '../data/facultyData';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
@@ -29,9 +29,9 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
       <div className="panel-head">
         <span className="panel-head-title">
           <h3>Administration</h3>
-          <HelpHint text={`Each seat takes its domain's routine off your desk: when one of its events comes up, it answers by the policy you set and the log says so. Anything that would move more than four weeks of operating cost, or that the seat's choice cannot pay for, still comes to you, and so does anything that is the President's alone. A seat is for good: its salary, paid at the market rate prestige sets, is permanent. A professor of ${SEAT_SENIOR_YEARS} years can be promoted into a seat for less than an outside hire, and leaves the classroom to take it.`} />
+          <HelpHint text={`Each seat takes its domain's routine off your desk: when one of its events comes up, it answers by the policy you set and the log says so. Anything that would cost more than four weeks of operating cost, or that the seat's choice cannot pay for, still comes to you, and so does anything that is the President's alone. A seat is for good: its salary, paid at the market rate prestige sets, is permanent. A professor of ${SEAT_SENIOR_YEARS} years can be promoted into a seat for less than an outside hire, and leaves the classroom to take it.`} />
         </span>
-        <span className="stat">{money(seatPayroll(s))}/wk</span>
+        <span className="stat">{moneyShort(seatPayroll(s))}/wk</span>
       </div>
       <p className="empty-note">{speeds}</p>
       <ul className="seat-list">
@@ -47,7 +47,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                 <div className="seat-head">
                   <strong>{title}</strong>
                   <span>{seat.holder}</span>
-                  <span className="stat">{seat.internal ? 'from the faculty' : 'from outside'} · {money(seat.salary * market)}/yr</span>
+                  <span className="stat">{seat.internal ? 'from the faculty' : 'from outside'} · {moneyShort(seat.salary * market)}/yr</span>
                 </div>
                 <div className="seat-policies" role="radiogroup" aria-label={`${title}'s policy`}>
                   {def.policies.map((p) => (
@@ -82,7 +82,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                     <ConfirmButton
                       key={f.id}
                       className="panel-action small"
-                      label={`Promote ${f.name} (${f.field}) · ${money(def.internalSalary * market)}/yr`}
+                      label={`Promote ${f.name} (${f.field}) · ${moneyShort(def.internalSalary * market)}/yr`}
                       armedLabel={`Confirm — promote ${f.name}`}
                       warning={<>A seat is for good, and {f.name} leaves the classroom{taught.length > 0 ? <>: {taught.map((c) => c.name.split(' · ')[0]).join(', ')} will be left without an instructor</> : ''}.</>}
                       onConfirm={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school, facultyId: f.id })}
@@ -91,7 +91,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                 })}
                 <ConfirmButton
                   className="panel-action small"
-                  label={`Hire from outside · ${money(def.outsideSalary * market)}/yr`}
+                  label={`Hire from outside · ${moneyShort(def.outsideSalary * market)}/yr`}
                   armedLabel="Confirm — hire from outside"
                   warning="A seat is for good: its salary is paid every year from now on."
                   onConfirm={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school })}

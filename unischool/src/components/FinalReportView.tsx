@@ -5,6 +5,7 @@ import { REPORT_WORDS } from '../data/reportData';
 import { STANDINGS } from '../systems/rivals/rivalsSystem';
 import { MultiChart } from './MultiChart';
 import HelpHint from './HelpHint';
+import { count } from '../format';
 
 // The Final Report (Plan 33, state/finalReport.ts), as the fiftieth summer
 // shows it and the History tab keeps it: the title and the mark, the six
@@ -55,10 +56,10 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
       <p>{report.eras.join(' · ')}</p>
 
       <dl className="admissions-outcomes final-report-figures">
-        <div><dt>Students taught</dt><dd>{figures.studentsTaught.toLocaleString()}</dd></div>
-        <div><dt>Faculty who served</dt><dd>{figures.facultyServed.toLocaleString()}</dd></div>
-        <div><dt>Prizes</dt><dd>{figures.prizes.toLocaleString()}</dd></div>
-        <div><dt>National titles</dt><dd>{figures.titles.toLocaleString()}</dd></div>
+        <div><dt>Students taught</dt><dd>{count(figures.studentsTaught)}</dd></div>
+        <div><dt>Faculty who served</dt><dd>{count(figures.facultyServed)}</dd></div>
+        <div><dt>Prizes</dt><dd>{count(figures.prizes)}</dd></div>
+        <div><dt>National titles</dt><dd>{count(figures.titles)}</dd></div>
       </dl>
 
       {rows.length >= 2 && (

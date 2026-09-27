@@ -12,7 +12,7 @@ export type PolicyRule = 'thrifty' | 'thorough' | 'popular';
 export const POLICY_RULE_NOTES: Readonly<Record<PolicyRule, string>> = {
   thrifty: 'Takes the choice that spends least.',
   thorough: 'Takes the choice that spends most, which is usually the one that fixes it.',
-  popular: 'Takes the choice the people it serves feel best about.',
+  popular: 'Takes the choice the students feel best about.',
 };
 
 export interface PolicyDef {
@@ -41,10 +41,10 @@ export const SEATS: readonly SeatDef[] = [
     policies: [
       { id: 'economical', rule: 'thrifty', label: 'Hold the line on spending' },
       { id: 'invest', rule: 'thorough', label: 'Spend on the academic side' },
-      { id: 'collegial', rule: 'popular', label: 'Keep the faculty with you' },
+      { id: 'collegial', rule: 'popular', label: 'Keep the students on side' },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments, the faculty\'s routine. The first seat a college fills, and the one that lets the year run at four times.',
+    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments, the faculty\'s routine. Usually the first seat a college fills, and the one that opens game speed 4×.',
   },
   {
     id: 'dean', title: 'Dean', domain: 'academic', perSchool: true,
@@ -52,21 +52,21 @@ export const SEATS: readonly SeatDef[] = [
     policies: [
       { id: 'economical', rule: 'thrifty', label: 'Run the school lean' },
       { id: 'invest', rule: 'thorough', label: 'Back the school\'s requests' },
-      { id: 'collegial', rule: 'popular', label: 'Keep the department happy' },
+      { id: 'collegial', rule: 'popular', label: 'Keep the students happy' },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'One for each school the college has founded. Takes the academic routine when there is no Provost; with a Provost, three of them let the year run at eight times.',
+    blurb: 'One for each school the college has founded. Takes the academic routine when there is no Provost; with a Provost, three of them open game speed 8×.',
   },
   {
     id: 'facilities', title: 'Facilities Director', domain: 'estate', perSchool: false,
     outsideSalary: 240_000, internalSalary: 150_000,
     policies: [
       { id: 'cheapest', rule: 'thrifty', label: 'Cheapest fix first' },
-      { id: 'worst-first', rule: 'thorough', label: 'Worst first, properly' },
+      { id: 'worst-first', rule: 'thorough', label: 'Fix it properly' },
       { id: 'visible', rule: 'popular', label: 'Whatever the students see' },
     ],
     defaultPolicy: 'worst-first',
-    blurb: 'Roofs, boilers, kitchens and storms: the estate\'s emergencies, answered before they reach the President\'s desk.',
+    blurb: 'Roofs, boilers, pipes and snow: the estate\'s routine emergencies, answered before they reach the President\'s desk. Storms, fires, floods and a hard freeze still reach it.',
   },
   {
     id: 'dean-of-students', title: 'Dean of Students', domain: 'students', perSchool: false,
@@ -74,7 +74,7 @@ export const SEATS: readonly SeatDef[] = [
     policies: [
       { id: 'firm', rule: 'thrifty', label: 'Hold the line' },
       { id: 'generous', rule: 'thorough', label: 'Fix what they are asking about' },
-      { id: 'listen', rule: 'popular', label: 'Meet them halfway' },
+      { id: 'listen', rule: 'popular', label: 'Go with the students\' mood' },
     ],
     defaultPolicy: 'listen',
     blurb: 'Student life\'s routine: the Hellenic Council, its houses and its scandals.',
@@ -84,8 +84,8 @@ export const SEATS: readonly SeatDef[] = [
     outsideSalary: 280_000, internalSalary: 175_000,
     policies: [
       { id: 'careful', rule: 'thrifty', label: 'Ask sparingly' },
-      { id: 'ambitious', rule: 'thorough', label: 'Ask properly, and often' },
-      { id: 'personal', rule: 'popular', label: 'Ask about them first' },
+      { id: 'ambitious', rule: 'thorough', label: 'Spend to ask properly' },
+      { id: 'personal', rule: 'popular', label: 'Whatever the students prefer' },
     ],
     defaultPolicy: 'personal',
     blurb: 'Gifts and bequests: the routine of being given money.',

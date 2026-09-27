@@ -1,6 +1,7 @@
 import type { CohortCounts, CohortId, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { COHORTS, baseShareCohortCounts } from '../systems/admissions/cohorts';
+import { count, pct, satisfactionFigure } from '../format';
 
 // ---------------------------------------------------------------------
 // Enrollment (a section of the Students tab, Plan 29): who attends, and what the funnel is doing. Each
@@ -70,7 +71,7 @@ function ClassBar({ label, total, counts, unsignalled, widest }: {
     <div className="body-row">
       <div className="body-row-head">
         <span className="body-row-label">{label}{unsignalled && <span className="body-row-mark" aria-hidden="true">†</span>}</span>
-        <span className="body-row-total">{total.toLocaleString()}</span>
+        <span className="body-row-total">{count(total)}</span>
       </div>
       {/* Bar length is the class's size against the largest class, not a
           normalised row, so size differences stay visible beside the mix. */}
@@ -88,7 +89,7 @@ function ClassBar({ label, total, counts, unsignalled, widest }: {
                   key={c.id}
                   className="body-bar-seg"
                   style={{ flexGrow: counts[c.id], background: COHORT_COLOR[c.id] }}
-                  title={`${c.label}: ${counts[c.id].toLocaleString()}`}
+                  title={`${c.label}: ${count(counts[c.id])}`}
                 />
               )
             ))}
@@ -115,7 +116,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
       <section className="panel">
         <h2>The standing body</h2>
         <p className="history-summary">
-          {enrolled.toLocaleString()} students across four classes. Each was admitted
+          {count(enrolled)} students across four classes. Each was admitted
           under the college as it stood that summer, and keeps that composition until it
           graduates — so the bars differ by exactly as much as the college has changed.
         </p>
@@ -129,7 +130,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
             >
               <span className="body-legend-swatch" style={{ background: COHORT_COLOR[c.id] }} />
               {c.label}
-              <span className="body-legend-count">{c.count.toLocaleString()}</span>
+              <span className="body-legend-count">{count(c.count)}</span>
             </span>
           ))}
         </div>
@@ -163,27 +164,27 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
           <FunnelLine
             label="Applicant pool"
             note="What the college drew. Prestige and price set its size; beds, word of mouth and what you have built for each audience scale it; sticker shock then takes a cut, hitting the quality bands unevenly."
-            value={Math.round(s.students.applicantPool).toLocaleString()}
+            value={count(s.students.applicantPool)}
           />
           <FunnelLine
             label="Admit rate"
             note="Your decision, not a reading. Admitting deeper reaches further down the quality distribution, so it buys class size with incoming quality."
-            value={`${Math.round(s.students.admitRate * 100)}%`}
+            value={pct(s.students.admitRate)}
           />
           <FunnelLine
             label="Incoming quality"
             note="The weighted average of the class that enrolled — everyone admitted comes; there is no yield step. Feeds prestige, which is what makes admitting deep cost something."
-            value={`${Math.round(s.students.incomingQuality)} / 100`}
+            value={`${count(s.students.incomingQuality)}/100`}
           />
           <FunnelLine
             label="Satisfaction"
             note="Next summer's word of mouth: the trailing-year average scales the pool above. The five attributes behind this number are in the Satisfaction Breakdown, above."
-            value={`${Math.round(s.students.satisfaction)}`}
+            value={satisfactionFigure(s.students.satisfaction)}
           />
           <FunnelLine
             label="Enrolled"
             note="The four classes summed. Set once a year at the summer decision, and held until the next. The one ceiling is the catalog's seats: the freshman class cannot exceed what the housed courses have room to teach."
-            value={enrolled.toLocaleString()}
+            value={count(enrolled)}
             net
           />
         </div>

@@ -60,7 +60,7 @@ export function tagIndicators(s: GameState): Record<string, number> {
   const academics = s.self.reputation;
   const housed = Object.values(s.halls).flat().map((slot) => slot.programId).filter((id): id is string => id !== null);
   const arts = housed.filter((id) => programById(id)?.school === 'Arts & Media').length;
-  const artsClubs = s.orgs.clubs.filter((c) => /art|music|theat|film|dance|choir|design|writ|poet|photo|comic|anime/i.test(c.name)).length;
+  const artsClubs = s.orgs.clubs.filter((c) => /\bart|music|theat|film|dance|choir|design|writ|poet|photo|comic|anime|jazz|orchestra|cappella|drama|improv|ceramic|band|ballroom/i.test(c.name)).length;
   const tolerance = priceTolerance(s.self.reputation);
   const priceRatio = tolerance > 0 ? s.finance.listedTuition / tolerance : 1;
   const perStudent = s.finance.endowment / students;

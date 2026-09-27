@@ -6,6 +6,7 @@ import { SchoolFacade } from './StartupScreen';
 import { useHotkeys } from './hotkeys';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { CloseIcon } from './icons';
+import { calendarDate } from '../format';
 
 // THE HALL OF FAME (Plan 33, Plan 34; state/hall.ts): finished runs as
 // framed portraits (each college's own facade) with plaques. The title
@@ -18,9 +19,11 @@ export function HallFrame({ entry, open, onClick }: { entry: HallEntry; open?: b
       <span className="hall-portrait"><SchoolFacade name={entry.name} vernacular={entry.vernacular} colors={entry.colors} suffix={entry.suffix} /></span>
       <span className="hall-plaque">
         <span className="hall-plaque-name">{entry.college}</span>
-        <span className="hall-plaque-meta">
+        <span className="hall-plaque-meta" title={`Finished ${calendarDate(entry.finishedAt)}`}>
           <span className={`grade-chip sm grade-${entry.mark.toLowerCase()}`}>{entry.mark}</span>
-          Years 1–{entry.year} · {new Date(entry.finishedAt).getFullYear()}
+          {/* Game years only: a real calendar year beside them read as a
+              date in the college's history. */}
+          Years 1–{entry.year}
         </span>
       </span>
     </button>

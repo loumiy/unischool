@@ -628,7 +628,7 @@ function checkMilestones(s: GameState): void {
       s,
       `grad-program-complete:${program.id}`,
       GRAD_PROGRAM_COMPLETE_APPLICANT_BONUS,
-      `${program.name} is now founded — the first ${program.degree} class can be admitted.`,
+      `${program.name} is complete: every course of the ${program.degree} is taught.`,
     );
   }
 }

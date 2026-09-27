@@ -12,6 +12,7 @@ import {
   GRAND_LANDMARK_IDS,
 } from './facilitiesData';
 import { MEDICAL_CENTER_PROJECT } from './projectData';
+import { count } from '../format';
 
 // The research reputation rung's prestige (Plan 53: it opened the research
 // library too, until the library was retired).
@@ -129,7 +130,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'town',
     tier: 'Growing',
     name: "A town's worth",
-    condition: `${HEALTH_CENTER_TIER1_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
     buildables: ['HLTH-T1', 'AMENITY-GARDEN'],
     tabs: [],
@@ -144,8 +145,8 @@ export const MILESTONES: readonly Milestone[] = [
     ...prestige(REC_CENTER_TIER2_PRESTIGE_GATE),
     buildables: ['REC-T2', 'AMENITY-CHAPEL'],
     tabs: [],
-    letter: 'People outside the county know the name now, and the recreation chain can be finished with something varsity-grade.',
-    opens: ['Athletics Complex: the top of the recreation chain, varsity-grade', 'The Chapel: a small stone landmark'],
+    letter: 'People outside the county know the name now, and the recreation buildings can be finished with an athletics complex.',
+    opens: ['Athletics Complex: the top of the recreation buildings', 'The Chapel: a small stone landmark'],
   },
   {
     id: 'school',
@@ -188,7 +189,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'city',
     tier: 'Established',
     name: 'A small city',
-    condition: `${HEALTH_CENTER_TIER2_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(HEALTH_CENTER_TIER2_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER2_POPULATION_GATE),
     buildables: ['HLTH-T2'],
     tabs: [],
@@ -198,23 +199,23 @@ export const MILESTONES: readonly Milestone[] = [
   {
     id: 'research',
     tier: 'Established',
-    name: 'A research reputation',
+    name: 'A name scholars know',
     condition: `prestige ${RESEARCH_REPUTATION_PRESTIGE}`,
     ...prestige(RESEARCH_REPUTATION_PRESTIGE),
     buildables: ['AMENITY-BELLTOWER'],
     tabs: [],
-    letter: 'Scholars elsewhere cite the faculty now. A bell tower would say the college means to be here a long time.',
+    letter: 'Scholars elsewhere know the college\'s name now. A bell tower would say the college means to be here a long time.',
     opens: ['The Bell Tower: the hours across the campus'],
   },
   {
     id: 'market',
     tier: 'Established',
     name: 'A market of its own',
-    condition: `${GROCERY_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(GROCERY_POPULATION_GATE)} students`,
     ...students(GROCERY_POPULATION_GATE),
     buildables: ['GROCERY-01'],
     tabs: [],
-    letter: 'Enough students live here now that a grocery store would pay its way, and spare the dining halls.',
+    letter: 'Enough students live here now that a grocery store would be worth its keep, and spare the dining halls.',
     opens: ['Campus Grocery Store: a second way to feed students'],
   },
   {
@@ -227,7 +228,7 @@ export const MILESTONES: readonly Milestone[] = [
     quiet: true,
     buildables: [],
     tabs: [],
-    letter: 'A school with every course taught is a school that can train its successors. Graduate programs open where their schools stand.',
+    letter: 'A school with every course taught is a school that can train its successors. Graduate programs open once their host building stands.',
     opens: ['Graduate programs, school by school'],
   },
   {
@@ -245,7 +246,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'university-town',
     tier: 'National',
     name: 'A university town',
-    condition: `${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(HEALTH_CENTER_TIER3_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER3_POPULATION_GATE),
     buildables: ['HLTH-T3'],
     tabs: [],

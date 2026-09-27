@@ -5,6 +5,7 @@ import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { graduateCourseIds, graduatePrograms } from '../../data/techData';
 import { departmentPot, sportById, sportEconomics, teamQuality } from '../../data/studentLifeData';
+import { count } from '../../format';
 
 // Student cohorts: an additive lens on admissionsSystem.ts's applicant
 // pool. Their pulls blend into one extra multiplier on the pool
@@ -340,7 +341,7 @@ function athleticsNote(signals: CohortSignals, pull: number, applicants: number)
   const fromResults = Math.round(applicants * (pull - without) / pull);
   if (fromResults <= 0) return undefined;
   const label = signals.athleticResultsLabel;
-  return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${label.includes(' and ') ? 'are' : 'is'} worth ${fromResults.toLocaleString()} of these.`;
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${label.includes(' and ') ? 'are' : 'is'} worth ${count(fromResults)} of these.`;
 }
 
 // cohortBreakdown's counts keyed by id, the shape cohortsByClass stores.

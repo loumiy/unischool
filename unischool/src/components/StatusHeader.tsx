@@ -1,7 +1,7 @@
 import { speedLock } from '../systems/delegation/seats';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { GameState } from '../state/types';
-import { WEEKS_PER_YEAR, totalEnrolled } from '../state/types';
+import { totalEnrolled } from '../state/types';
 import {
   RankIcon, StudentsIcon, PrestigeIcon, SatisfactionIcon,
   PauseIcon, PlayIcon, DoubleSpeedIcon, QuadSpeedIcon, OctoSpeedIcon,
@@ -15,7 +15,7 @@ import { FigureBox } from './Figure';
 import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
-import { money } from '../format';
+import { gameDate, money, prestigeFigure, satisfactionFigure, signedMoney } from '../format';
 
 // 1/2/3 set real/double/quad; 4 sets the sandbox speed under the playtest
 // flag only. Space toggles pause, resuming the last running speed rather than
@@ -69,10 +69,6 @@ const SPEED_HINTS: Record<Speed, string> = {
 // effect is admissionsSystem.ts's continuous word-of-mouth curve.
 const SATISFACTION_WARN = 55;
 
-function termName(week: number): string {
-  return week <= WEEKS_PER_YEAR / 2 ? 'Fall term' : 'Spring term';
-}
-
 // The two halves of the bottom Toolbar band (Toolbar.tsx composes them).
 // Left: operating funds (also the Treasury button) and the headline stats,
 // bare figures only.
@@ -120,7 +116,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         <span className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>
           <AnimatedNumber value={s.finance.cash} format={money} />
         </span>
-        <span className="toolbar-funds-net">{netWeekly >= 0 ? '+' : '−'}{money(Math.abs(netWeekly))}/wk</span>
+        <span className="toolbar-funds-net">{signedMoney(netWeekly)}/wk</span>
         <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
       <div className="toolbar-stats">
@@ -137,13 +133,15 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.prestige}>
           <PrestigeIcon />
           <span className="stat-label">Prestige</span>
-          <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} /></span>
+          <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} format={prestigeFigure} /></span>
         </FigureBox>
         <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.satisfaction}>
           <SatisfactionIcon />
           <span className="stat-label">Satisfaction</span>
-          <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'money-negative' : ''}`}>
-            <AnimatedNumber value={s.students.satisfaction} />
+          {/* The warning is the paper red: the chip is cream, and the dock's
+              own red is tuned for the dark band. */}
+          <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'stat-warn' : ''}`}>
+            <AnimatedNumber value={s.students.satisfaction} format={satisfactionFigure} />
           </span>
         </FigureBox>
       </div>
@@ -180,7 +178,7 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
   return (
     <>
       <div className="toolbar-school">
-        <span className="toolbar-clock">Year {s.clock.year} · {termName(s.clock.week)} · Week {s.clock.week}</span>
+        <span className="toolbar-clock">{gameDate(s.clock.year, s.clock.week)}</span>
         <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
       </div>
       <div className="toolbar-speed">
