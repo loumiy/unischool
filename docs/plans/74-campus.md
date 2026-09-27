@@ -102,7 +102,7 @@ funding never pays down.
 - **Checks:** at full funding a backlog falls and never compounds; below
   it, it compounds as before; a renovation still clears it.
 
-**As implemented (#TBD).**
+**As implemented (#209).**
 
 - `estate.ts`: while maintenance is fully funded a backlog is paid down by
   `BACKLOG_PAYDOWN_RATE` (a tenth a year, weekly) and cleared outright
