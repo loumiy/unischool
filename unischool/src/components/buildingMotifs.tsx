@@ -37,6 +37,7 @@ import {
 } from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
+import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
 import { Crane, Scaffolding } from './siteWorks';
 import { flagCloth } from './wind';
 import { TreeAt, treeShadow } from './trees';
@@ -248,6 +249,18 @@ export function paletteFrom(m: Material, shadeFactor = 1): Palette {
     wall: walls,
     wallLeft: walls[seen.left],
     wallRight: walls[seen.right],
+  };
+}
+
+// Snow lying on a palette's roofs: every slope and deck mixed toward white,
+// the lit slopes most (Plan 74I). The walls are untouched.
+export function snowOnRoofs(p: Palette, snow: number): Palette {
+  if (snow <= 0) return p;
+  const lay = (c: string, k: number) => mixColor(c, SNOW_COLOR, snow * k);
+  return {
+    ...p,
+    roof: lay(p.roof, 0.8), roofDeck: lay(p.roofDeck, 0.82),
+    negCol: lay(p.negCol, 0.85), negRow: lay(p.negRow, 0.8), posRow: lay(p.posRow, 0.72), posCol: lay(p.posCol, 0.66),
   };
 }
 
@@ -2562,7 +2575,9 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   // the work goes on; only a first construction is a site.
   const site = developing && inFlight === 0 && t.renovatingFrom === undefined;
   const { row, col, w, h } = p;
-  const pal = paletteFrom(material, wallShadeOf(t));
+  // Snow on the roofs in the depth of winter (Plan 74I).
+  const snow = useContext(SnowContext);
+  const pal = snowOnRoofs(paletteFrom(material, wallShadeOf(t)), snow);
   // The visible walls, left then right, where entrances and attachments go.
   const seen = visibleWalls();
   const fronts: FaceDir[] = [seen.left, seen.right];
