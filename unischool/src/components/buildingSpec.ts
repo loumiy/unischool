@@ -1388,3 +1388,54 @@ export const UNDERCROFT_STOREYS = 1;
 // The red cross on the slab's front.
 export const CROSS_ARM_METRES = 4.2;
 export const CROSS_BAR_METRES = 1.5;
+
+// The Triumphal Gate (landmarks.tsx), its passages cut through (Plan 75B):
+// the body inset from its plot, the great arch through the long faces and
+// the lesser arch through the ends, as shares of the body's faces and of the
+// gate's height. The map's walkers route through the passages
+// (walkRoutes.ts) and are hidden by the masonry either side and over them
+// (Walkers.tsx), so all three read the gate from here.
+export const GATE_ID = 'LANDMARK-GATE';
+export const GATE_INSET = 0.2;
+export const GATE_BODY_SHARE = 0.8;       // of the height; the attic is the rest
+export const GATE_ARCH_HALF = 0.14;       // of the long face's width
+export const GATE_ARCH_TOP = 0.6;         // of the height
+export const GATE_SIDE_ARCH_HALF = 0.18;  // of the end face's width
+export const GATE_SIDE_ARCH_TOP = 0.4;    // of the height
+
+export interface GateBox { col: number; row: number; w: number; h: number; z0: number; z1: number }
+
+// The gate's masonry as boxes: four piers from the ground to the top, and
+// the spans over the two passages from each arch's crown to the top.
+export function gatePieces(p: { col: number; row: number; w: number; h: number }, height: number): GateBox[] {
+  const alongW = p.w >= p.h;
+  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  const l0 = (alongW ? p.col : p.row) + GATE_INSET; const l1 = l0 + L - GATE_INSET * 2;
+  const s0 = (alongW ? p.row : p.col) + GATE_INSET; const s1 = s0 + S - GATE_INSET * 2;
+  const lc = (l0 + l1) / 2; const sc = (s0 + s1) / 2;
+  const lh = GATE_ARCH_HALF * (l1 - l0); const sh = GATE_SIDE_ARCH_HALF * (s1 - s0);
+  const box = (a0: number, a1: number, b0: number, b1: number, z0: number, z1: number): GateBox => (alongW
+    ? { col: a0, row: b0, w: a1 - a0, h: b1 - b0, z0, z1 }
+    : { col: b0, row: a0, w: b1 - b0, h: a1 - a0, z0, z1 });
+  return [
+    box(l0, lc - lh, s0, sc - sh, 0, height), box(l0, lc - lh, sc + sh, s1, 0, height),
+    box(lc + lh, l1, s0, sc - sh, 0, height), box(lc + lh, l1, sc + sh, s1, 0, height),
+    box(lc - lh, lc + lh, s0, s1, height * GATE_ARCH_TOP, height),
+    box(l0, l1, sc - sh, sc + sh, height * GATE_SIDE_ARCH_TOP, height),
+  ];
+}
+
+// The tiles a walker crosses the gate on: the great passage across its
+// middle and the lesser one down its length.
+export function gatePassageTiles(p: { col: number; row: number; w: number; h: number }): { col: number; row: number }[] {
+  const alongW = p.w >= p.h;
+  const out: { col: number; row: number }[] = [];
+  for (let r = p.row; r < p.row + p.h; r++) {
+    for (let c = p.col; c < p.col + p.w; c++) {
+      const across = alongW ? c - p.col === Math.floor(p.w / 2) : r - p.row === Math.floor(p.h / 2);
+      const down = alongW ? r - p.row === Math.floor(p.h / 2) : c - p.col === Math.floor(p.w / 2);
+      if (across || down) out.push({ col: c, row: r });
+    }
+  }
+  return out;
+}

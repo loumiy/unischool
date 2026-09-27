@@ -10,6 +10,8 @@ import { quadCentre } from '../src/components/quadGeometry';
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
+import { GATE_ID, gatePassageTiles, gatePieces } from '../src/components/buildingSpec';
+import { CAMPUS_GRID_WIDTH } from '../src/state/types';
 
 bindScriptStream(2428);
 const store = new Map<string, string>();
@@ -190,6 +192,23 @@ function stand(s: GameState, id: string, row: number, col: number, w: number, h:
   assert(nearest >= R, `and goes round the fountain, never inside its curb (${nearest.toFixed(2)} ≥ ${R.toFixed(2)})`);
   const onRing = route.filter((w) => { const d = Math.hypot(w.col - cc, w.row - cr); return ring && d >= ring[0] - 0.6 && d <= ring[1] + 0.6; }).length;
   assert(onRing >= 3, `by the ring walk (${onRing} steps on it)`);
+}
+
+// ---- Walkers go through the Triumphal Gate (Plan 75B) ----
+{
+  const gate = { col: 40, row: 40, w: 9, h: 3 };
+  const tech = [{ id: GATE_ID, kind: 'facility' as const, facilityType: 'landmark' as const, status: 'done' as const }];
+  const g = walkGrid({ placements: { [GATE_ID]: { ...gate } }, tech, pathways: {} });
+  const at = (c: number, r: number) => g[r * CAMPUS_GRID_WIDTH + c]!;
+  assert([0, 1, 2].every((dr) => at(44, 40 + dr) === PATH_COST), 'the great passage crosses the gate at its middle');
+  assert(Array.from({ length: 9 }, (_, dc) => at(40 + dc, 41)).every((c) => c === PATH_COST), 'the lesser passage runs its length');
+  assert(at(40, 40) === -1 && at(48, 42) === -1, 'and the piers are solid');
+  assert(gatePassageTiles({ col: 0, row: 0, w: 3, h: 9 }).length === 11, 'a turned gate has the same passages');
+  const building = walkGrid({ placements: { [GATE_ID]: { ...gate } }, tech: [{ ...tech[0]!, status: 'developing' as const }], pathways: {} });
+  assert(building[42 * CAMPUS_GRID_WIDTH + 44] === -1, 'a gate still going up is walked round');
+  const pieces = gatePieces(gate, 100);
+  assert(pieces.filter((b) => b.z0 === 0).length === 4 && pieces.filter((b) => b.z0 > 0).length === 2, 'four piers, and the masonry over each passage');
+  assert(pieces.every((b) => b.col >= gate.col && b.row >= gate.row && b.col + b.w <= gate.col + gate.w + 1e-9 && b.row + b.h <= gate.row + gate.h + 1e-9), 'all inside the plot');
 }
 
 if (failures === 0) {
