@@ -1,7 +1,7 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
-import { claimedHalls, claimedSchool, hallDisplayName, nextSchoolToMove, programsAwayFromHome, schoolHall, suggestedMove } from '../techtree/schools';
+import { claimedHalls, claimedSchool, hallDisplayName, nextSchoolToMove, programsAwayFromHome, schoolHall, schoolToMerge, suggestedMove } from '../techtree/schools';
 import { isHoused } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
@@ -87,20 +87,25 @@ function letterAsk(s: GameState): NextStep | null {
 }
 
 // A program away from home that can move now (Plan 55): into its school's
-// hall, or, for the next school to move, into an empty one. Pointed at the
+// hall, or, for the next school to move, into an empty one; or, for a
+// school split over two halls, into the larger (Plan 72L). Pointed at the
 // hall it is in, whose panel carries the move.
 function awayFromHome(s: GameState): NextStep | null {
+  const merge = schoolToMerge(s);
   for (const away of programsAwayFromHome(s)) {
     const move = suggestedMove(s, away.programId);
     if (!move) continue;
     const program = programById(away.programId);
     const hall = s.tech.find((t) => t.id === move.hallId);
-    if (!program || !hall) continue;
+    const from = s.tech.find((t) => t.id === away.hallId);
+    if (!program || !hall || !from) continue;
     const name = hallDisplayName(s, hall);
     return {
-      text: claimedSchool(s, move.hallId)
-        ? `${program.name} could move to ${name}, which teaches ${program.school}`
-        : `${name} stands empty: move ${program.name} into it and ${program.school} has a hall of its own`,
+      text: merge?.from === away.hallId
+        ? `${program.school} is split over two halls: move ${program.name} into ${name} and ${hallDisplayName(s, from)} is free for another school`
+        : claimedSchool(s, move.hallId)
+          ? `${program.name} could move to ${name}, which teaches ${program.school}`
+          : `${name} stands empty: move ${program.name} into it and ${program.school} has a hall of its own`,
       go: 'hall',
       hallId: away.hallId,
       intent: { kind: 'move', programId: away.programId, ...move },
