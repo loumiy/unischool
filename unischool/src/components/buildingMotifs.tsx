@@ -26,6 +26,7 @@ import {
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
   rankSills, ridgeOf, parapetOf, eavesOf, stoneFor, paneShapeOf, windowOutline,
   entrancePartOf, rooflineEndPartOf, signatureOf, apexPartOf, partsFor, type ApexPart, massingOf,
+  crestOf, surfaceRoofOf, type CrestPart,
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
   ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
@@ -643,10 +644,12 @@ function RoofBox({ col, row, w, h, base, height, tint }: {
 // A band of stonework across a wall (plinth, cornice, parapet, course), in
 // the wall's (u, v). Not drawn when `trim === 'none'` (Brutalist: the wall
 // is one undivided thing).
-function WallBand({ origin, along, wallHeight, from, to, className, u0 = 0, u1 = 1 }: {
+function WallBand({ origin, along, wallHeight, from, to, className, u0 = 0, u1 = 1, fill }: {
   origin: Pt; along: Pt; wallHeight: number; from: number; to: number; className: string;
   // A u range lets the parapet be raised over the end bays alone.
   u0?: number; u1?: number;
+  // A color over the class's own (a cornice cut in the vernacular's trim).
+  fill?: string;
 }) {
   if (wallHeight <= 0) return null;
   const v0 = Math.max(0, from) / wallHeight;
@@ -655,6 +658,7 @@ function WallBand({ origin, along, wallHeight, from, to, className, u0 = 0, u1 =
   return (
     <polygon
       className={className}
+      style={fill ? { fill } : undefined}
       points={polyPoints([
         facePoint(origin, along, wallHeight, u0, v0),
         facePoint(origin, along, wallHeight, u1, v0),
@@ -1365,6 +1369,45 @@ function Balustrade({ col, row, w, h, base, outward, pal, stone }: {
   return (
     <Merlons col={col} row={row} w={w} h={h} base={base} outward={outward} pal={pal}
       block={across(0.32)} gap={across(0.5)} rise={up(0.95)} depth={across(0.32)} fill={stone.trim} rail />
+  );
+}
+
+// A coping along a flat parapet's head: stone in the trim, or clay tile
+// (Plan 74E).
+function CrestCoping({ col, row, w, h, base, outward, fill }: {
+  col: number; row: number; w: number; h: number; base: number; outward: FaceDir; fill: string;
+}) {
+  const span = wallSpan(w, h, outward);
+  const depth = across(0.55);
+  const b = againstWall(col, row, w, h, outward, -depth * 0.3, span + depth * 0.6, depth, depth);
+  const f = boxFaces(b.col, b.row, b.w, b.h, base, up(0.9));
+  return (
+    <>
+      {sideFaces(f, shade(fill, 0.96), shade(fill, 0.8))}
+      <polygon points={polyPoints(f.top)} fill={shade(fill, 1.06)} />
+    </>
+  );
+}
+
+// The crest a vernacular puts on a block's, a lab's or a shed's parapet
+// (buildingSpec's crestOf), along each visible wall.
+function Crest({ crest, col, row, w, h, base, fronts, pal, stone, tile }: {
+  crest: CrestPart; col: number; row: number; w: number; h: number; base: number;
+  fronts: FaceDir[]; pal: Palette; stone: StonePalette; tile: string;
+}) {
+  if (crest === 'none') return null;
+  const trimmed = stone.trim !== 'none';
+  return (
+    <>
+      {fronts.map((dir) => {
+        switch (crest) {
+          case 'merlons': return <Merlons key={dir} col={col} row={row} w={w} h={h} base={base} outward={dir} pal={pal} block={across(1.5)} gap={across(1.1)} rise={up(1.6)} depth={across(0.6)} />;
+          case 'balustrade': return trimmed ? <Balustrade key={dir} col={col} row={row} w={w} h={h} base={base} outward={dir} pal={pal} stone={stone} /> : null;
+          case 'coping': return <CrestCoping key={dir} col={col} row={row} w={w} h={h} base={base} outward={dir} fill={trimmed ? stone.trim : shade(pal.wall.posRow, 1.1)} />;
+          case 'tile': return <CrestCoping key={dir} col={col} row={row} w={w} h={h} base={base} outward={dir} fill={tile} />;
+        }
+      })}
+    </>
   );
 }
 
@@ -2230,6 +2273,13 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   // world (it was the screen-left wall's, which turned with the camera).
   const tint = pal.wall.posRow;
   const roofTint = material.roof;
+  // A block, lab or shed keeps its massing and takes the vernacular's
+  // surface (Plan 74E): its crest, its roof color on the plant screens, its
+  // trim on the cornice.
+  const crest = crestOf(t, vernacular);
+  const surface = motif === 'block' || motif === 'works' || motif === 'hangar';
+  const plantTint = surface ? surfaceRoofOf(vernacular) : roofTint;
+  const surfaceCornice = surface && trim ? stone.trim : undefined;
 
   // Open ground has no mass; GroundMarking draws its own construction state.
   if (motif === 'grounds') {
@@ -2665,7 +2715,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       <WallBand origin={o} along={a} wallHeight={wh} from={0} to={undercroft} className="iso-undercroft" />
     );
     const eaves = (o: Pt, a: Pt, wh: number) => (
-      <WallBand origin={o} along={a} wallHeight={wh} from={wh - EAVES_COURSE} to={wh} className="iso-cornice" />
+      <WallBand origin={o} along={a} wallHeight={wh} from={wh - EAVES_COURSE} to={wh} className="iso-cornice" fill={surfaceCornice} />
     );
 
     // Nearer volume paints second; the wing's entrance goes on a visible
@@ -2697,7 +2747,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           .map(([fx, fy, fw, fh], i) => (
             <RoofBox
               key={i} col={slab.col + slab.w * fx} row={slab.row + slab.h * fy}
-              w={slab.w * fw} h={slab.h * fh} base={slabH} height={15} tint={roofTint}
+              w={slab.w * fw} h={slab.h * fh} base={slabH} height={15} tint={plantTint}
             />
           ))}
         {(() => {
@@ -2716,6 +2766,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
             </>
           );
         })()}
+        <Crest crest={crest} {...slab} base={slabH} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
       </>
     );
     const wingNode = (
@@ -2732,6 +2783,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {eaves(wf.D, wf.C, wingH)}
         {eaves(wf.C, wf.B, wingH)}
         <polygon points={polyPoints(wf.top)} fill={pal.roofDeck} />
+        <Crest crest={crest} {...wing} base={wingH} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
         {crossDir && crossWall && (
           <RedCross
             origin={crossWall.origin} along={crossWall.along} wallHeight={wingH} spanTiles={wallSpan(wing.w, wing.h, crossDir)}
@@ -2916,7 +2968,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <>
             <Door d={door} origin={hf.D} along={hf.C} wallHeight={WH} span={hf.spanLeft} side={hf.dir.CD} shape={doorShape} />
             <Door d={door} origin={hf.C} along={hf.B} wallHeight={WH} span={hf.spanRight} side={hf.dir.BC} shape={doorShape} />
-            {fronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={material.roof} />)}
+            {fronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={surface ? plantTint : material.roof} />)}
           </>
         )}
         {entrance === 'porch' && (
@@ -2977,7 +3029,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     const courses = ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
       <g key={`b${i}`}>
         <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
-        <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />
+        <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={surfaceCornice} />
       </g>
     ));
     const piers = (
@@ -3139,6 +3191,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           {doors}
           <polygon points={polyPoints(f.top)} fill={pal.roof} />
           {monitor}
+          <Crest crest={crest} col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
         </>
       );
     }
@@ -3167,9 +3220,20 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {bay(left, 'gl')}
         {bay(right, 'gr')}
         {doors}
-        {door && fronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} />)}
+        {door && fronts.map((dir) => {
+          // The vernacular's way in (Plan 74E): an arched porch in Mission,
+          // a small portico in Classical, a canopy (hooded in Gothic) else.
+          if (entrance === 'archway') return <Archway key={dir} pal={pal} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} />;
+          if (entrance === 'portico') {
+            const span = wallSpan(w, h, dir);
+            const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
+            return <Portico key={dir} stone={stone} centreCol={at.col} centreRow={at.row} width={Math.min(door.widthTiles * 3.2, span * 0.6)} outward={dir} height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} />;
+          }
+          return <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={plantTint} />;
+        })}
         <polygon points={polyPoints(f.top)} fill={pal.roof} />
         {monitor}
+        <Crest crest={crest} col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
       </>
     );
   }
@@ -3211,7 +3275,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {!site && trim && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
         <g key={`b${i}`}>
           <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
-          <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />
+          <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={surfaceCornice} />
         </g>
       ))}
       {/* Each wall's bays come from its own length, so windows match. */}
@@ -3292,7 +3356,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       )}
       {!site && (entrance === 'canopy' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'canopy')) && door && (
         <>
-          {fronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={material.roof} />)}
+          {fronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={surface ? plantTint : material.roof} />)}
         </>
       )}
       {!site && (entrance === 'archway' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'archway')) && door && (
@@ -3404,7 +3468,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
                 col={col + w * unit.col} row={row + h * unit.row}
                 w={Math.min(w * unit.w, across(5.5))} h={Math.min(h * unit.h, across(4.5))}
                 base={H} height={motif === 'works' ? 12 : motif === 'block' ? 15 : 9}
-                tint={roofTint}
+                tint={plantTint}
               />
             ))
           )}
@@ -3429,6 +3493,10 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         <>
           {fronts.map((dir) => <Merlons key={dir} col={col} row={row} w={w} h={h} base={H} outward={dir} pal={pal} />)}
         </>
+      )}
+      {/* A block's or a lab's crest (Plan 74E). */}
+      {!site && !gabled && surface && (
+        <Crest crest={crest} col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
       )}
       {/* The Classical set's balustrade. */}
       {!site && balustrade && !gabled && motif === 'portico' && (

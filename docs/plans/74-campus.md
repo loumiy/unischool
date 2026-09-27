@@ -192,6 +192,49 @@ campus looks the same whatever architecture was chosen.
   review's probe (`npm run review:probe -- vernacular`) is rerun and
   quoted.
 
+**As implemented (#TBD).**
+
+- **Massing stays, surface follows.** `buildingSpec.ts` adds
+  `SURFACE_FOLLOWS_MOTIFS` (block, works, hangar). These three keep their
+  invariant massing and materials, but wear the vernacular's surface:
+  - Windows: `paneShapeOf` gives the vernacular's shape (Gothic lancets,
+    Mission arches, Modern ribbons). The sheds' clerestory stays a ribbon.
+  - Entrance: each vernacular's row names a `surfaceEntrance`. Georgian and
+    Modern use a canopy, Gothic a canopy with its pitched hood, Classical
+    a small portico, and Mission an arched porch. `entrancePartOf` returns
+    it for the three motifs, and the fitness sheds draw it in place of
+    their fixed canopy.
+  - Crest: each row also names a `crest` on the parapet. Georgian has a
+    stone coping in the trim, Gothic merlons, Classical a balustrade,
+    Mission a clay-tile coping, and Modern none. It is drawn on blocks,
+    labs, the flat-roofed sheds and both volumes of the Medical Center.
+  - Roof color: the vernacular's hall roof (`surfaceRoofOf`) colors the
+    plant screens, the tile coping and a hooded door.
+  - Trim: the cornice is cut in the vernacular's trim.
+- The stadium, the fields, the towers and the landmarks are unchanged. So
+  are the arena's vault and the natatorium's monopitch, which carry no
+  crest.
+- **Checks:** `test/building-spec.test.ts`'s invariance rules are split in
+  two:
+  - The seven motifs still never take a ridge, and their materials never
+    change.
+  - Block, works and hangar take the vernacular's windows, surface
+    entrance and crest in every set. The other four keep rectangular
+    openings, no entrance part and no crest.
+  - Every named surface entrance and crest is one something draws.
+  - No two vernaculars dress a block alike.
+- **The review's probe** (`npm run review:probe -- vernacular`, now with a
+  surface line), on a year-51 Completionist campus: 38 of 71 buildings
+  (54%, 49% of footprint area) vary their massing by vernacular, as
+  before, and 64 of 71 (90%, 78% of the area) now wear its surface.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `surface-by-vernacular.png`: the four school signature halls, two
+    labs, the gym and the Medical Center in all five vernaculars.
+  - `surface-late-campus.png`: the review's late-campus arrangement in
+    four vernaculars.
+
 ## PR 74F — One signifier per building
 
 *A1-2.* The engineering sheds, the pavilions, the civic porticos and some
