@@ -203,6 +203,17 @@ is opened or dismissed (Plan 78B), since the first year's guidance is in
 those letters. None arrives while the inbox is open, and opening the inbox
 puts away the arrivals already showing.
 
+A matter to decide does not stop the clock the way an interrupt does, but
+the shell can pause it (Plan 78E, `src/systems/inbox/unseen.ts`). With
+Settings' **Pause when a matter arrives** on (the default), a new matter
+pauses the clock and its arrival toast stays until it is opened or
+dismissed. Whatever the setting, a matter that reaches its final week
+unopened pauses the clock once. Both are the pause button pressed for the
+player, in `App.tsx`: the reducer, the save and every replay are
+unchanged, and neither acts while an interrupt or the walkthrough holds the
+clock. With the setting off, Plan 35's ease to 1× on arrival
+(`useGame.ts`) stays.
+
 ## Widths
 
 An interrupt is one of three widths, chosen by what it is

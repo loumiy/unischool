@@ -373,6 +373,60 @@ is this plan.
   - the harness is untouched: the pause is a UI action and the simulation
     does not change.
 
+**As implemented (#235):**
+- **The rule** is one pure function, `systems/inbox/unseen.ts`'s
+  `unseenPause`. App.tsx runs it on every snapshot and pauses the clock
+  with `setSpeed('paused')`, as the pause button does. Space resumes at the
+  last speed.
+  - A matter is any row in the "To decide" tier: an inline event, a student
+    demand, or the board's idle-cash ask.
+  - An arrival is a matter that was not in the last snapshot. A load or a
+    new game is not an arrival.
+  - The final week is `weeksLeft` 1. It pauses once per matter, and only if
+    the matter was never opened.
+  - Neither rule acts while a stop or the walkthrough holds the clock. A
+    matter that arrives under a stop is already listed in the stop's inbox,
+    so it does not pause again afterwards. A final week reached under a
+    hold pauses once the hold lifts.
+  - One pause covers a matter that arrives already in its final week.
+- **The setting** is `pauseOnArrival` in `settings.ts`. It is on by
+  default, and a browser whose saved settings lack the key reads it as on.
+  Settings has a row for it, "Pause when a matter arrives", with On and
+  Off.
+- **The arrival notice** for a matter stays while the setting is on. It
+  goes when Open or its close is pressed, when the matter is opened in the
+  inbox, or when the matter is answered or lapses. Letters keep eight
+  seconds. A full stack drops news before a held notice.
+- **"Opened"** is UI state in App.tsx, not the save. A matter is opened
+  when the reading pane shows it (picked, or chosen by the pane itself) or
+  when Open is pressed on its notice. A noted demand also counts as opened.
+  A reload forgets the set, so at worst a matter's final week pauses once
+  more. `GameState` and `SAVE_VERSION` are unchanged.
+- **The Inbox button** already turns red and pulses for a matter in its
+  final week (`inboxBadge`'s `urgent`). The replay confirms it.
+- **One countdown label:** `dueLabel` gives "Final week" at one week left
+  and "This week" at zero. Both the list and the reading pane's side panel
+  use it, for events and demands.
+- **The "To decide" filter** counts only the "To decide" tier. It does not
+  count the stop, or a demand already noted (as on the button). The filter
+  still lists the stop, pinned under "The clock waits".
+  - The toolbar's button still counts the stop, as Plan 77 C decided: it
+    counts everything that wants an answer, and it is red during a stop.
+- **Plan 35's ease to 1×** stays when the setting is off. With it on the
+  pause replaces the ease, except under a hold, where the ease still acts.
+- **Checks:** `test/unseen.test.ts` covers the setting's default, the
+  arrival (on, off, at a load), the demand, the final week (once, setting
+  off, opened, a noted demand), the hold, the label, the filter count and
+  the notice stack. `npm run sim` matches `sim/baseline.json`.
+- **The replay** used a Guided year-6 scenario at 2×. A student-life matter
+  arrived in week 24, and the clock paused with its notice held. After a
+  dismiss and Play, the clock paused again in week 25, the matter's final
+  week. The list and the pane both said "Final week", and NEXT said
+  "Lapses this week". With the setting off, a later matter eased the clock
+  to 1× and its notice went after eight seconds.
+  ([`unseen-arrival-paused.jpg`](../reviews/2026-10-ui-fixes/unseen-arrival-paused.jpg)
+  shows the paused arrival and the Settings row.)
+
 ## PR 78F — Plain words at first use
 
 *A3-6, A3-7, with Plan 47's glossary.*
