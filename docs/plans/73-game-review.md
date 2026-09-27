@@ -300,6 +300,20 @@ points are real on screen.
 pain points, easy points, tedium), a table comparing the seven, and
 whether the goals diverge.
 
+**As implemented** (PR F): `docs/reviews/2026-10-game-review/4-strategy.md`,
+with the players' full tables in `4a-goal-players.md`.
+- 70 games: seven goals, five seeds, two names, fifty years each, as
+  planned. The phased goals switch at year 20.
+- The hand checks used the area 3 session for a first decade and the
+  year-25 scenario for a late game. The goal players write no saves, so
+  their runs could not be replayed exactly. The pain points checked out on
+  screen: the blind price, and the teaching cap with no worklist.
+- Six findings, four major:
+  - four of the seven goals end as the same college;
+  - the teaching standard is the late game, with only a manual lever;
+  - most weeks ask nothing while modals crowd the rest;
+  - the Final Report misreads the two goals that differ.
+
 ### Area 5 — The critical improvements
 
 **Method.** Every finding from areas 2, 3 and 4 is gathered and grouped
