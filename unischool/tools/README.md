@@ -240,6 +240,8 @@ npm run review:doors                       # doors, props and overhangs over tho
 npm run review:probe -- vernacular save.json   # how much of a campus the vernacular restyles; repeated looks
 npm run review:probe -- backlog            # the estate's backlog over 50 years at full maintenance
 npm run review:gallery -- node_modules/.tmp/sc/*.json   # every tab, menu and held modal, counted, at two sizes
+npm run review:sweep -- --seeds 1-10 --years 50   # invariants every week, a save round trip every year
+node tools/review/twoTabs.mjs save.json    # the repro for one save open in two tabs
 npm run sheet -- --every                   # every placeable, each school's hall, each venue expansion
 ```
 
@@ -253,6 +255,11 @@ npm run sheet -- --every                   # every placeable, each school's hall
   or comparisons), tags each with its screen, and flags British spelling and
   idiom, jargon and marks against the house style. `strings.md` is the
   summary.
+- **`sweep.ts`** plays harness games over many seeds, players and odd
+  college names (non-Latin, right-to-left, 72 characters), checks the
+  invariants every week, and at the start of every year writes the save as
+  the browser does, reads it back through the whole load path and compares
+  field by field.
 - **`gallery.mjs`** opens each save in a fresh browser at desktop and phone
   size, steps through any modal it holds, opens every tab, the Build menu,
   the main menu, Settings and Founders Hall's panel, and counts the words

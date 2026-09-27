@@ -418,6 +418,26 @@ claim sourced.
 **Deliverable:** `7-bugs.md`, ranked by severity. A blocker is raised
 with the owner the day it is found.
 
+**As implemented** (PR G): `docs/reviews/2026-10-game-review/7-bugs.md`.
+- **No blocker.** 60 sweep games, 70 goal-player games and 347 gallery
+  captures ran with no crash, no failed load and no page error.
+- **The sweep** is a new tool, `tools/review/sweep.ts`
+  (`npm run review:sweep`). It checked the invariants every week and a
+  save round trip every year, over six players, ten seeds and odd names.
+- **The worst finding is a data loss**: a stale second tab overwrites the
+  newer game when it closes. `tools/review/twoTabs.mjs` reproduces it.
+  It was reported to the owner the day it was found.
+- **Save, load, export and import** were tested through `readSave`, the
+  path export and import share. The file download itself was not
+  clicked.
+- **Nineteen entries, five of them major:**
+  - two tabs on one save;
+  - event backlog that compounds at full maintenance;
+  - the winter model half a year off;
+  - a Teaching College attrition point the preview shows but the summer
+    never applies;
+  - a Final Report athletics axis that can't reach an A.
+
 ## 4. The map
 
 Each PR adds its area's file to the review folder and merges once `check`
