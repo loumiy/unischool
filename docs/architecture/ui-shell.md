@@ -64,7 +64,9 @@ prestige, satisfaction — a glyph and a figure each, the word in the tooltip);
 the right zone stacks the clock over four round gears (pause, play, 2×, 4×);
 and between them, in one row at every width, the labelled tab row — the word
 under each glyph — and Build. The two side zones stack precisely so that row
-always fits. The school's name is not in the band: it hangs as a **pennant**
+always fits. On a phone the band folds to its figures while a tab or a
+popup is open, and the tabs scroll beside Build (Plan 76I). The school's
+name is not in the band: it hangs as a **pennant**
 in the map's top-left corner in the school's colours (`Pennant.tsx`), one
 name in one face, withheld while a tab is open because the tab's own title
 takes that corner.

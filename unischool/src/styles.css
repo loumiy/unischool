@@ -305,6 +305,8 @@ button { cursor: pointer; font-family: inherit; }
   font-size: var(--text-sm); line-height: 1.35; box-shadow: var(--shadow-1); white-space: normal; z-index: 5; }
 
 .toolbar-tabs { display: flex; align-items: center; gap: 4px; flex: none; }
+/* A box of its own only on a phone (see Phones below). */
+.toolbar-tab-scroll { display: contents; }
 
 /* Shared by every icon button in the middle cluster (tabs and build). */
 /* Label under the glyph so eight labeled tabs fit in one row from 1280px. */
@@ -1091,7 +1093,7 @@ button.build-tile { font-family: inherit; }
   font-size: calc(32px * var(--text-scale)); line-height: 1; color: var(--ink); }
 .tab-overlay-close { background: var(--cream); border: 2px solid var(--outline); color: var(--ink);
   border-radius: var(--radius-pill); padding: 6px 14px; font-size: var(--text-sm); font-family: var(--display); font-weight: 700;
-  box-shadow: var(--shadow-1); }
+  box-shadow: var(--shadow-1); flex: none; white-space: nowrap; }
 .tab-overlay-close:hover { background: var(--outline); color: var(--cream); }
 /* The dock is opaque, so reserve its height (same figures as
    .campus-map-canvas) plus 40px so the last row clears the ticker. */
@@ -2620,7 +2622,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .pennant { position: fixed; z-index: 11; top: 0; left: 24px; display: flex; flex-direction: column; align-items: stretch;
   max-width: 320px; pointer-events: none; filter: drop-shadow(2px 2px 0 rgba(27, 42, 74, 0.35)); }
 .pennant-body { padding: 16px 22px 12px; background: var(--school-primary); color: var(--school-on-primary); }
-.pennant-name { font-family: var(--display); font-weight: 800; font-size: calc(22px * var(--text-scale)); line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+/* Two lines at most (Plan 76I): a long name ran to four and covered the
+   menu. The whole name is in the title, and so hoverable. */
+.pennant-name { font-family: var(--display); font-weight: 800; font-size: calc(22px * var(--text-scale)); line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere;
+  min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; pointer-events: auto; }
 .pennant-tail { height: 22px; background: var(--school-primary); clip-path: polygon(0 0, 100% 0, 50% 100%); }
 /* The rename (Plan 72E): the pennant's one live control. */
 .pennant-body { display: flex; align-items: flex-start; gap: 8px; }
@@ -2820,12 +2825,40 @@ body:has(.building-info-panel) .pennant { display: none; }
    Checked at 390x844 and 820x1180 (tools/phoneCheck.mjs): nothing scrolls
    sideways and every control is reachable. */
 @media (max-width: 560px) {
-  /* The tab row keeps its words and scrolls sideways; Build stays pinned at
-     its right edge, so it is never scrolled out of reach. */
-  .toolbar-tabs { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
-    justify-content: flex-start; padding: 3px 2px; }
-  .toolbar-tabs::-webkit-scrollbar { display: none; }
-  .toolbar-build-btn { position: sticky; right: 0; z-index: 1; box-shadow: -10px 0 10px -4px var(--school-primary); }
+  /* The tabs keep their words and scroll sideways in their own box, with
+     Build beside it rather than pinned over it (Plan 76I: it covered the
+     last tab in view). The fade says the row goes on; the end padding lets
+     the last tab clear the fade. */
+  .toolbar-tabs { width: 100%; gap: 0; }
+  .toolbar-tab-scroll { display: flex; align-items: center; gap: 2px; flex: 1 1 auto; min-width: 0;
+    overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 3px 18px 3px 2px;
+    mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent); }
+  .toolbar-tab-scroll::-webkit-scrollbar { display: none; }
+  /* Folded (Plan 76I): while a tab or a popup is open the dock keeps only
+     its figures, so the panel gets the screen. Each panel has its own
+     close, and closing it brings back the tabs and the clock. */
+  .app.dock-folded .toolbar-tabs, .app.dock-folded .toolbar-right { display: none; }
+  /* The room the fold gives goes to the build menu: its 340px cap cut the
+     cards in half here, under the menu's wrapped categories. */
+  .build-popup { max-height: min(560px, calc(100vh - var(--toolbar-height) - 140px)); }
+  /* A tab's title gives way to its Close, which wrapped at the largest text. */
+  .tab-overlay-head h2 { font-size: calc(26px * var(--text-scale)); }
+  /* The pennant clears the menu and map tools, at two lines at most. */
+  .pennant { left: 12px; max-width: calc(100vw - 84px); }
+  .pennant-body { padding: 12px 16px 10px; }
+  /* The summer's beats: the number over the word, so a beat's name never
+     runs into the next one's at the larger text sizes. */
+  .summer-steps li { flex: 1 1 auto; white-space: normal; padding: 0 4px 6px; }
+  .summer-steps li::before { display: block; content: counter(beat); }
+  /* Admissions' audiences two to a row, so each name fits whole. Four to a
+     row left 60px for a name, and "Pre-professional" broke mid-word. */
+  .cohort-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .cohort-card { aspect-ratio: auto; display: grid; grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline; justify-items: start; column-gap: 8px; padding: 6px 8px; }
+  .cohort-card-label { grid-column: 1 / -1; text-align: left; overflow-wrap: break-word; }
+  .cohort-card-last { justify-self: end; }
+  .cohort-card:nth-child(n) .cohort-card-tip { left: 0; right: auto; transform: none; }
+  .cohort-card:nth-child(2n) .cohort-card-tip { left: auto; right: 0; }
   .toolbar-icon-btn { min-width: 44px; }
   /* A program's nine cells, three to a row; the tier rules step aside. */
   .program-row-cells, .program-row-cells.graduate { grid-template-columns: repeat(3, minmax(0, 1fr)); }

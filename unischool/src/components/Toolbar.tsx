@@ -81,42 +81,47 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </div>
 
       <nav className="toolbar-tabs">
-        {/* Home leads the row: always in the same place, and active when
-            nothing (tab or build popup) is open over the map. */}
-        <button
-          type="button"
-          className={`toolbar-icon-btn ${active === null && !buildOpen ? 'active' : ''}`}
-          aria-label="Campus map"
-          title="Campus map"
-          onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
-        >
-          <HomeIcon />
-          <span className="toolbar-tab-label">Campus</span>
-        </button>
+        {/* The tabs' own box, so on a phone they scroll beside Build rather
+            than under it (styles.css's phone rules); on wider screens it is
+            display: contents and the row is one flex line. */}
+        <div className="toolbar-tab-scroll">
+          {/* Home leads the row: always in the same place, and active when
+              nothing (tab or build popup) is open over the map. */}
+          <button
+            type="button"
+            className={`toolbar-icon-btn ${active === null && !buildOpen ? 'active' : ''}`}
+            aria-label="Campus map"
+            title="Campus map"
+            onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
+          >
+            <HomeIcon />
+            <span className="toolbar-tab-label">Campus</span>
+          </button>
 
-        {ICON_TAB_ORDER.filter((id) => tabAvailable(s, id)).map((id) => {
-          const Icon = TAB_ICONS[id];
-          const isActive = active === id;
-          // Suppressed on the active tab, so the badge never flashes for the
-          // render before the tab marks its ids seen.
-          const hasAlert = !isActive && (TAB_ALERT[id]?.(s) ?? false);
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
-              aria-expanded={isActive}
-              aria-label={TAB_LABELS[id]}
-              title={TAB_LABELS[id]}
-              onClick={() => onChangeTab(isActive ? null : id)}
-            >
-              <Icon />
-              {/* The word under the glyph, at every width: several icons look alike. */}
-              <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
-              {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
-            </button>
-          );
-        })}
+          {ICON_TAB_ORDER.filter((id) => tabAvailable(s, id)).map((id) => {
+            const Icon = TAB_ICONS[id];
+            const isActive = active === id;
+            // Suppressed on the active tab, so the badge never flashes for the
+            // render before the tab marks its ids seen.
+            const hasAlert = !isActive && (TAB_ALERT[id]?.(s) ?? false);
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
+                aria-expanded={isActive}
+                aria-label={TAB_LABELS[id]}
+                title={TAB_LABELS[id]}
+                onClick={() => onChangeTab(isActive ? null : id)}
+              >
+                <Icon />
+                {/* The word under the glyph, at every width: several icons look alike. */}
+                <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
+                {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
+              </button>
+            );
+          })}
+        </div>
 
         <button
           type="button"
