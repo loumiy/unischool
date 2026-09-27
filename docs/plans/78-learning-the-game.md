@@ -324,6 +324,86 @@ is this plan.
   - a test that every Review term has a detail line;
   - `npm run phone`.
 
+**As implemented (#TBD):**
+
+- **Clickable chips.**
+  - Rank and prestige open History › Standing. Satisfaction opens Students ›
+    the satisfaction breakdown, scrolled to it.
+  - They are buttons named with their figure: "Prestige 51.5 — open
+    History, Standing". Their sentence stays the tooltip. Hover marks them
+    as it marks the funds figure.
+  - The map is data: `data/statChips.ts`'s `chipDoor`. Each door is a
+    section of a tab (`TabSection`, B's type), so it lands from the first
+    week. Enrolled has no door.
+  - A tab handed a section scrolls to its `data-section` and clears it
+    (`components/sectionTarget.ts`), as Curriculum and Faculty do with
+    theirs.
+  - A click while a stop waits does nothing, as with the funds figure.
+- **History opens from the first week.**
+  - The first commencement no longer opens the tab. It opens
+    `history.record`, a section, with B's mechanism. The milestone, its
+    letter and its "What this opens" are unchanged, and its letter still
+    carries "Open History": a milestone's door now also reads the tab of a
+    section it opens.
+  - Before the first commencement History shows Standing, then one note:
+    the record of the years starts at the first commencement. The Final
+    Report's draft, the promises, the chronicle, the charts and the table
+    wait for it. Each already had an empty state; together they were four
+    empty panels.
+  - Before the first summer Standing's note ends: "Prestige is graded at
+    the end of each year; the first grade comes at the first summer." It
+    replaces "No summer has graded it yet". `gradeYear` runs at the summer
+    only.
+  - Student quality's line said "the class that enrolled last summer" in
+    year one. It now says "The founding class" until a summer has enrolled
+    one.
+  - History is no longer a gated tab. Two tabs are gated now: Research and
+    Athletics.
+- **The rank chip's tooltip:** "Place among 100 colleges in the guide's
+  academic ranking, #1 the top; the rank follows prestige, which moves
+  mostly at the summer and rises then by at most 2.1 points." The step is
+  `PRESTIGE_MAX_RISE`, through `prestigeFigure`. "Mostly": prestige also
+  trembles toward its target between summers.
+- **The summer Review** shows each term's line under it, smaller and
+  muted.
+  - One function words it: `standingDetailLine` in `prestigeSystem.ts`, the
+    term's detail and then its multiplier. History › Standing draws the
+    same two parts, the multiplier through the shared `multiplierLine`.
+  - The Review reads the state before the summer applies, so the lines
+    describe the year being graded.
+- **The chips carry their word.**
+  - On a wide screen each chip is its word over its figure: `--display` at
+    `--text-2xs` over the figure at `--text-md`, in the same 30 px pill.
+  - The word takes the glyph's place. With the glyph kept too, the chips
+    grew 51 px and the band wrapped at 1440 with every tab open. This way
+    the left zone is 9 px narrower than before.
+  - On a phone (560 px and under) the word is hidden and the glyph and
+    figure sit in a row, as before.
+  - Measured with every tab open: at 1440×900 the band keeps one row. At
+    1280×800 it wraps the clock to a second line, as it already did
+    before this PR. In year one at 1280 and 1440, with History now in the
+    tab row, it keeps one row.
+- **Checks:**
+  - `test/stat-chips.test.ts`: each chip's tab and section, the buttons'
+    names, every door lands in week one, and the rank sentence reads
+    `PRESTIGE_MAX_RISE`.
+  - `test/year-in-review.test.ts`: every term in the Review has a detail
+    line, and it is History's line.
+  - `test/tab-gates.test.ts`: History is open in week one with its
+    Standing, and its record waits for the first commencement.
+- **Results:** `check` passes, `npm run sim` matches the baseline, and
+  `npm run phone` passes. `review:strings` is unchanged on second person
+  (40), British spellings (0) and engine words (0).
+- **Screenshots:**
+  `docs/reviews/2026-10-ui-fixes/chips-history-desktop.jpg` (History from
+  the prestige chip in week one) and `chips-review-phone.jpg` (the summer
+  Review's Standing on a phone).
+- **Left:**
+  - Enrolled has no door. Students' enrollment panel would be the natural
+    one.
+  - The chips show no "open" state while their tab is open. The funds
+    figure does.
+
 ## PR 78D — The move to school halls
 
 *A3-1, A3-2, A4-5's "decline an offer" (default 4). Moves the balance.*

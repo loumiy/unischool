@@ -14,7 +14,7 @@ import { TARGET_RATIO, attributeCoverage } from '../satisfaction/satisfactionSys
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
 import { isSchoolFounded } from '../techtree/schools';
 import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
-import { count, money, pct, satisfactionFigure } from '../../format';
+import { count, money, multiplier, pct, satisfactionFigure } from '../../format';
 import { clamp, clamp01 } from '../../math';
 
 // Prestige (s.self.reputation) is a slow-moving stock pulled toward a target
@@ -230,6 +230,18 @@ export interface StandingMultiplier {
   detail: string;  // what the ratio is, in the units a reader recognizes
 }
 
+// A multiplier as its row reads it: "×0.85 library adequacy — 200 seats for
+// 350 students". One wording for History › Standing and the summer Review.
+export function multiplierLine(m: StandingMultiplier): string {
+  return `${multiplier(m.value)} ${m.label} — ${m.detail}`;
+}
+
+// What moves a term, in one line: its detail, then its multiplier if it has
+// one. History › Standing and the summer Review both read it (Plan 78C).
+export function standingDetailLine(input: StandingInput): string {
+  return input.multiplier ? `${input.detail} ${multiplierLine(input.multiplier)}` : input.detail;
+}
+
 export interface StandingInput {
   key: string;
   label: string;
@@ -383,7 +395,9 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'students', 'Student quality', STUDENT_QUALITY_WEIGHT, studentQualityScore(s),
-      `The class that enrolled last summer averaged ${s.students.incomingQuality.toFixed(0)} of 100.`,
+      // No summer has enrolled a class until the first (Plan 78C: Standing
+      // shows from the first week).
+      `${s.history.length === 0 ? 'The founding class' : 'The class that enrolled last summer'} averaged ${s.students.incomingQuality.toFixed(0)} of 100.`,
       scaleMultiplier(s),
     ),
     weigh(

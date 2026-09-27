@@ -4,6 +4,7 @@ import EnrollmentTab from './EnrollmentTab';
 import IdentityPanel from './IdentityPanel';
 import { MultiChart } from '../components/MultiChart';
 import { sectionAvailable } from '../components/TabNav';
+import { useSectionTarget } from '../components/sectionTarget';
 import { count } from '../format';
 
 // The Students tab (Plan 29, V1-33): what used to be Student Life and
@@ -12,8 +13,13 @@ import { count } from '../format';
 // classes that have left close it (Plan 34). Open from the first week (Plan
 // 78B): the guidebooks, the clubs and last summer's funnel wait for the
 // first commencement (ladderData.ts's sections).
-export default function StudentsTab({ s }: { s: GameState }) {
+// `target`: a section to land on (the satisfaction chip opens the
+// breakdown, Plan 78C).
+export default function StudentsTab({ s, target, onTargetConsumed }: {
+  s: GameState; target?: string; onTargetConsumed?: () => void;
+}) {
   const classes = s.alumni ?? [];
+  useSectionTarget(target, onTargetConsumed);
   return (
     <div className="students-tab">
       {sectionAvailable(s, 'students.guidebook') && <div className="tab-content"><IdentityPanel s={s} /></div>}
