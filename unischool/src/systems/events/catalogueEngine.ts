@@ -151,7 +151,7 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   // default, which is always there to take; the clock's default and a
   // seat's answer are paid however they can be.
   if (by === 'player' && choiceId !== e.default && choiceCost(e, choiceId, p.scale) > Math.max(0, s.finance.cash)) return false;
-  applyEffects(s, scaledEffects(choice.effects, p.scale));
+  applyEffects(s, scaledEffects(choice.effects, p.scale), p.vars);
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
   journal(c, e, choiceId, by, s.clock.year);
   const title = e.title ?? firstSentence(fill(eventText(e, p), p.vars));
