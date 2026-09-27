@@ -97,9 +97,9 @@ for (const theme of THEMES) {
   assert(ambienceFor(s).crowd < term.crowd, 'thinner over the summer');
   s.students.classes = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
   assert(ambienceFor(s).crowd === 0, 'silent with nobody there');
-  assert(winterDepth(1) > 0.8 && winterDepth(52) > 0.8 && winterDepth(26) === 0, 'winter is deepest at the turn of the year');
-  const deep = ambienceFor(at(10, 2));
-  const warm = ambienceFor(at(10, 36));
+  assert(winterDepth(26) === 1 && winterDepth(27) === 1 && winterDepth(1) === 0 && winterDepth(52) === 0, 'winter is deepest at the turn of the terms, and summer has none');
+  const deep = ambienceFor(at(10, 26));
+  const warm = ambienceFor(at(10, 44));
   assert(deep.wind > warm.wind && warm.birds > deep.birds, 'wind in the winter, birds out of it');
 }
 
