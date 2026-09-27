@@ -6,7 +6,7 @@ import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
 import { MultiChart } from '../components/MultiChart';
-import { moneyShort } from '../format';
+import { count, fraction, moneyShort, multiplier, pct, prestigeFigure, satisfactionFigure, signed } from '../format';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
@@ -44,7 +44,7 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
   const reach = input.weight * input.score;
   const worth = Math.abs(input.contribution);
   const sign = input.penalty ? '−' : '+';
-  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  const widthOf = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   return (
     <li className={`standing-row${input.penalty ? ' standing-penalty' : ''}`}>
       <div className="standing-row-head">
@@ -57,8 +57,8 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
         </span>
       </div>
       <div className="standing-bar" aria-hidden="true">
-        <div className="standing-bar-reach" style={{ width: pct(reach) }} />
-        <div className="standing-bar-fill" style={{ width: pct(worth) }} />
+        <div className="standing-bar-reach" style={{ width: widthOf(reach) }} />
+        <div className="standing-bar-fill" style={{ width: widthOf(worth) }} />
       </div>
       <p className="standing-detail">
         {input.detail}
@@ -66,7 +66,7 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
           <>
             {' '}
             <span className="standing-multiplier">
-              × {input.multiplier.value.toFixed(2)} {input.multiplier.label} — {input.multiplier.detail}
+              {multiplier(input.multiplier.value)} {input.multiplier.label} — {input.multiplier.detail}
             </span>
           </>
         )}
@@ -79,20 +79,20 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
 // StandingReading): only the pale layer, at its proposed weight. A reading
 // with no weight is a ratio and is shown as a percentage.
 function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
-  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  const widthOf = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   return (
     <li className="standing-row standing-reading">
       <div className="standing-row-head">
         <span className="standing-row-label">{item.label}</span>
         <span className="standing-row-figure">
           {item.weight === undefined
-            ? `${Math.round(item.score * 100)}%`
+            ? pct(item.score)
             : <>{item.penalty ? '−' : '+'}{item.reach.toFixed(1)}<span className="standing-row-of"> of {item.weight}, not yet counted</span></>}
         </span>
       </div>
       {item.weight !== undefined && (
         <div className="standing-bar" aria-hidden="true">
-          <div className="standing-bar-reach" style={{ width: pct(item.reach) }} />
+          <div className="standing-bar-reach" style={{ width: widthOf(item.reach) }} />
         </div>
       )}
       <p className="standing-detail">{item.detail}</p>
@@ -105,11 +105,11 @@ function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
 function summerNote(breakdown: StandingBreakdown, gap: number): string {
   const { riseRate, maxRise, fallRate, reportCard } = breakdown.summer!;
   const step = gap > 0 ? Math.min(gap * riseRate, maxRise) : Math.abs(gap) * fallRate;
-  const grading = `This year is grading ${breakdown.target.toFixed(1)}; at the summer, prestige closes `
-    + `${Math.round(riseRate * 100)}% of a gap upward (at most ${maxRise} points) and ${Math.round(fallRate * 100)}% downward`
-    + (Math.abs(gap) < 0.05 ? '.' : ` — ${gap > 0 ? '+' : '−'}${step.toFixed(1)} if nothing changes.`);
+  const grading = `This year is grading ${prestigeFigure(breakdown.target)}; at the summer, prestige closes `
+    + `${pct(riseRate)} of a gap upward (at most ${maxRise} points) and ${pct(fallRate)} downward`
+    + (Math.abs(gap) < 0.05 ? '.' : ` — ${signed(gap > 0 ? step : -step, 1)} if nothing changes.`);
   const last = reportCard
-    ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`
+    ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${prestigeFigure(reportCard.before)} → ${prestigeFigure(reportCard.after)}.`
     : ' No summer has graded it yet.';
   return grading + last;
 }
@@ -124,9 +124,9 @@ function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
       <div className="standing-head">
         <h3>{breakdown.label}</h3>
         <span className="standing-figure">
-          {breakdown.current.toFixed(1)}
+          {prestigeFigure(breakdown.current)}
           <span className="standing-arrow"> → </span>
-          {breakdown.target.toFixed(1)}
+          {prestigeFigure(breakdown.target)}
         </span>
       </div>
       <p className="standing-note">
@@ -134,7 +134,7 @@ function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
           ? summerNote(breakdown, gap)
           : Math.abs(gap) < 0.05
             ? 'Sitting at its target.'
-            : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${breakdown.target.toFixed(1)}, by `
+            : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${prestigeFigure(breakdown.target)}, by `
               + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week — about `
               + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
@@ -248,19 +248,19 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
           {[...rows].reverse().map((h) => (
             <tr key={h.year}>
               <td>{h.year}</td>
-              <td>{Math.round(h.prestige)}</td>
+              <td>{prestigeFigure(h.prestige)}</td>
               <td>#{h.rank}</td>
-              <td>{h.enrolled.toLocaleString()}</td>
+              <td>{count(h.enrolled)}</td>
               <td>{moneyShort(h.cash)}</td>
               {/* The year's own figures, as the summer's review beat reads
                   them: what the year did, not only what it was. */}
               <td className={h.net < 0 ? 'bad' : ''}>{h.net >= 0 ? '+' : ''}{moneyShort(h.net)}</td>
-              <td>{h.applicants.toLocaleString()}</td>
-              <td>{Math.round(h.admitRate * 100)}%</td>
+              <td>{count(h.applicants)}</td>
+              <td>{pct(h.admitRate)}</td>
               <td>{h.coursesDone}<span className="history-delta"> +{h.coursesFinished}</span></td>
               <td>{h.programsEstablished}</td>
-              <td>{Math.round(h.satisfaction)}<span className="history-delta"> avg {Math.round(h.satisfactionAverage)}</span></td>
-              <td className={h.attrition > 0 ? 'bad' : ''}>{h.attrition > 0 ? h.attrition.toLocaleString() : '—'}</td>
+              <td>{satisfactionFigure(h.satisfaction)}<span className="history-delta"> avg {satisfactionFigure(h.satisfactionAverage)}</span></td>
+              <td className={h.attrition > 0 ? 'bad' : ''}>{h.attrition > 0 ? count(h.attrition) : '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -319,8 +319,8 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
-          {Math.round(first.prestige)} → {Math.round(latest.prestige)}, enrollment{' '}
-          {first.enrolled.toLocaleString()} → {latest.enrolled.toLocaleString()}, catalog{' '}
+          {prestigeFigure(first.prestige)} → {prestigeFigure(latest.prestige)}, enrollment{' '}
+          {count(first.enrolled)} → {count(latest.enrolled)}, catalog{' '}
           {first.coursesDone} → {latest.coursesDone} of {totalCourses} courses.
         </p>
 
@@ -330,7 +330,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.prestige)}
-            format={(v) => `${Math.round(v)}`}
+            format={prestigeFigure}
             note="A slow-moving stock: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade reads the curriculum, the teaching, the students, research, satisfaction, campus life, the estate and the endowment."
           />
           <MultiChart
@@ -346,7 +346,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.enrolled)}
-            format={(v) => Math.round(v).toLocaleString()}
+            format={(v) => count(v)}
             note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard cap on enrollment."
           />
           <HistoryChart
@@ -362,7 +362,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.coursesDone)}
-            format={(v) => `${Math.round(v)} / ${totalCourses}`}
+            format={(v) => fraction(v, totalCourses)}
             note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established. Breadth is what lifts the prestige ceiling — the decades-long half of the climb.`}
           />
         </div>

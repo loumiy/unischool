@@ -404,6 +404,72 @@ claims and 107 vague ones.*
   - a test that `format.ts`'s helpers read the same under `de-DE`;
   - a scan that no player-facing money bypasses the helpers.
 
+**As implemented** (#TBD):
+- **The rules** are the register's new "Numbers" section
+  (`docs/architecture/ui-shell.md`). `format.ts` holds one `en-US`
+  formatter and the helpers: `count`, `decimal`, `money`, `moneyShort`,
+  `signed`, `signedMoney`, `pct(v, digits)`, `signedPct`, `multiplier`,
+  `prestigeFigure`, `satisfactionFigure`, `fraction`, `weeksShort`,
+  `weeksProse`, `gameDate`, `calendarDate`.
+- **Money by surface.** Short on the build tiles (cost and loan note
+  alike), the hall panel's course lines and offer tiles, every salary tag
+  (the Athletics team row, market and AD; the AD modal; the Faculty
+  cards; the administration's seats), event choice chips, research offer
+  cards, org and alumni rows, and priced buttons (Renovate, Add a story,
+  Found, Commission, Post a search, Appoint). Long in sentences,
+  tooltips, the statement and the `<dl>` ledgers: the Faculty tab's
+  tooltips move from short to long. The admissions tuition line and the
+  campaign log line now go through `money`.
+- **Counts.** 134 player-facing `toLocaleString()` calls are `count()`;
+  the debug panel keeps its own. The title screen's save date is
+  `calendarDate`.
+- **Precision.** Prestige is floored to one decimal everywhere: the dock,
+  the ticker, the ladder, History, the milestone modal, the review, the
+  report-card log line. Flooring, not rounding, is the review's own
+  alternative applied at one decimal, since 69.96 rounded still reads
+  "70.0". Satisfaction is floored to whole points everywhere, the Students
+  tab's effects included; each layer's effect is the move in the target as
+  shown, so the lines agree with it. The admissions modal, the milestone
+  modal and the summer review build their deltas from the shown figures.
+  The dock's prestige chip fits at "68.0" on a phone.
+- **The low-satisfaction chip** is `.stat-warn`, `--bad-on-light` on
+  cream (5.9:1). Color-safe mode's `--bad-on-light` read 4.3:1 on cream,
+  so it deepens from `#b35a00` to `#9a4d00` (5.5:1); that reaches every
+  safe-mode use of the token, all of them on paper.
+- **The rest of §4.7.** Fractions are tight ("5/9"), since the code did
+  not lean either way. Rates of money read one decimal wherever they
+  appear; other percentages are whole. The research depth chip, the
+  Renovate and Add a story buttons, the Move button, the Endowment's
+  "Keep 8w", the board letter's sweep button and both map labels ("8w
+  left", construction and research) read "Nw" from their constants; the
+  Estate's help text reads `RENOVATION_WEEKS` instead of "eight". The
+  research log line and prose say "26 weeks" or "3 years". The event
+  panel's own `signed` wrote a hyphen for a loss and is gone. The Hall of
+  fame's plaque drops the calendar year and keeps it in a tooltip.
+- **One date.** The dock, the title screen, the chair's letter, the letter
+  to the President, the board's letters and the demand deadline read
+  `gameDate`.
+- **Departure.** The chronicle and the final report keep `moneyShort` in
+  their sentences: they sum up fifty years, and the register names them as
+  the exception.
+- **Checks:** `test/number-format.test.ts` (56 checks), with
+  `test/fixtures/german-browser.ts` making de-DE the default for every
+  unguarded formatter before `format.ts` loads. It reads each helper, the
+  precisions and the date, and scans `src/` (less `format.ts` and the
+  debug panel) for `toLocaleString`, a "$" written by hand before a
+  template or JSX figure, and a short money figure built with `toFixed`.
+  Each scan rule carries an example it must catch. With the formatter's
+  locale removed, 20 checks fail.
+- `npm run sim` reads the same as the baseline.
+- `npm run review:strings`: 6,840 strings and 47,122 words before, 6,814
+  and 47,083 after (the helpers fold "Year {n}" and "{n}w" fragments into
+  calls). House style unchanged: 38 British spellings, 68 idioms, 22
+  repeated sentences, 58 second person, 4 contractions, no exclamation
+  marks.
+- Screenshots: `docs/reviews/2026-10-ui-fixes/numbers-build-and-dock.jpg`,
+  `numbers-dock-phone.jpg` (satisfaction set to 40) and
+  `numbers-athletics.jpg`.
+
 ## PR 76F — One voice
 
 *A2-4, and every row of 2d §1–6 and 2c §4.6.*

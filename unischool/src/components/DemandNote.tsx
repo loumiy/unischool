@@ -3,6 +3,7 @@ import type { Action } from '../state/actions';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { absoluteWeek } from '../data/eventData';
+import { count, satisfactionFigure } from '../format';
 
 // A student demand (systems/demands/demandSystem.ts), announced as a note
 // over the map rather than a modal (Plan 29, V1-16): what they ask, by
@@ -22,8 +23,8 @@ export default function DemandNote({ s, act }: { s: GameState; act: (a: Action) 
       <h3 className="milestone-note-title">{copy.headline}</h3>
       <p className="milestone-note-text">{copy.grievance(demand.askName)}</p>
       <p className="milestone-note-text">
-        <strong>{copy.ask(demand.askName)}</strong>: {Math.round(progress.current).toLocaleString()} of {Math.round(progress.target).toLocaleString()} {copy.unit}.
-        {' '}Met, satisfaction heads for {stakes.satisfactionIfMet.toFixed(0)}; missed, next summer's pool is {stakes.applicantsIfFailed.toLocaleString()} rather than {stakes.applicantsIfMet.toLocaleString()}.
+        <strong>{copy.ask(demand.askName)}</strong>: {count(progress.current)} of {count(progress.target)} {copy.unit}.
+        {' '}Met, satisfaction heads for {satisfactionFigure(stakes.satisfactionIfMet)}; missed, next summer's pool is {count(stakes.applicantsIfFailed)} rather than {count(stakes.applicantsIfMet)}.
       </p>
       <div className="opening-coach-actions">
         <button type="button" onClick={() => act({ type: 'READ_DEMAND' })}>Noted</button>

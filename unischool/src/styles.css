@@ -120,7 +120,8 @@ button { cursor: pointer; font-family: inherit; }
    orange rather than green and red. */
 :root[data-vision='safe'] {
   --ok-on-light: #1f5fa8;
-  --bad-on-light: #b35a00;
+  /* Deep enough for 4.5:1 on cream; #b35a00 read 4.3:1. */
+  --bad-on-light: #9a4d00;
   --bad-on-dark: #ffc27a;
   --danger-ink: #b35a00;
   --danger-bg: #fdebd6;
@@ -183,6 +184,8 @@ button { cursor: pointer; font-family: inherit; }
 .toolbar-funds-btn .stat-value { font-family: var(--mono); font-size: calc(22px * var(--text-scale)); letter-spacing: -0.01em; color: var(--ink-hi); }
 .stat-value.money { color: var(--ink-hi); }
 .stat-value.money-negative { color: var(--bad-on-dark); }
+/* A stat chip is cream, so its warning takes the paper red, not the band's. */
+.stat-value.stat-warn { color: var(--bad-on-light); }
 .stat-value.gold { color: var(--ink); }
 
 /* ---------- Speed / save controls ---------- */

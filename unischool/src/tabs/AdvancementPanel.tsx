@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import { absoluteWeek } from '../data/eventData';
 import type { Action } from '../state/actions';
 import HelpHint from '../components/HelpHint';
-import { money } from '../format';
+import { money, moneyShort } from '../format';
 import { campaignById } from '../data/campaignData';
 import { advancementOf, hasAdvancementOffice, openCampaigns, yearlyResponse } from '../systems/alumni/campaigns';
 
@@ -47,7 +47,7 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
         <ul className="campaign-list">
           {open.map((c) => (
             <li key={c.id}>
-              <div><strong>{c.title}</strong> <span className="stat">{c.kind === 'endowment' ? 'for the endowment' : 'for buildings'} · {c.years} years · about {money(yearlyResponse(s, c))}/yr</span></div>
+              <div><strong>{c.title}</strong> <span className="stat">{c.kind === 'endowment' ? 'for the endowment' : 'for buildings'} · {c.years} years · about {moneyShort(yearlyResponse(s, c))}/yr</span></div>
               <p className="empty-note">{c.text}</p>
               <button type="button" className="panel-action small" onClick={() => act({ type: 'LAUNCH_CAMPAIGN', id: c.id })}>Launch</button>
             </li>

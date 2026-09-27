@@ -3,6 +3,7 @@ import StudentLifeTab from './StudentLifeTab';
 import EnrollmentTab from './EnrollmentTab';
 import IdentityPanel from './IdentityPanel';
 import { MultiChart } from '../components/MultiChart';
+import { count } from '../format';
 
 // The Students tab (Plan 29, V1-33): what used to be Student Life and
 // Enrollment, on one screen. What students think comes first, since it
@@ -24,7 +25,7 @@ export default function StudentsTab({ s }: { s: GameState }) {
                 title="Each class as it graduated"
                 xLabel="Class of"
                 yMin={0}
-                series={[{ name: 'Graduates', points: classes.map((a) => ({ x: a.classYear, y: a.size })), format: (v) => Math.round(v).toLocaleString() }]}
+                series={[{ name: 'Graduates', points: classes.map((a) => ({ x: a.classYear, y: a.size })), format: (v) => count(v) }]}
               />
               <MultiChart
                 title="Satisfaction as they left"
