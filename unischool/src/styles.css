@@ -740,6 +740,11 @@ button.build-tile { font-family: inherit; }
 /* A site's shell rising in scaffolding (CampusMap.tsx's SiteProgress). */
 .campus-site-shell polygon { fill: rgba(214, 206, 188, 0.78); stroke: rgba(90, 84, 70, 0.5); stroke-width: 0.8; }
 .campus-site-shell polygon.campus-site-hatch { fill: url(#campus-scaffold); stroke: none; }
+/* A building's frame going up (siteWorks.tsx's SiteFrame, Plan 74H). */
+.campus-site-frame { pointer-events: none; }
+.campus-site-column { fill: #6c706f; }
+.campus-site-slab { fill: rgba(206, 200, 188, 0.5); stroke: rgba(96, 94, 88, 0.55); stroke-width: 0.6; }
+.campus-site-edge { fill: #8f8b82; }
 /* A biology lab's rooftop glasshouse (buildingMotifs.tsx's LabRoofFeature). */
 .glass-pane { fill: rgba(196, 226, 232, 0.72); stroke: rgba(80, 104, 110, 0.6); stroke-width: 0.8; }
 .glass-roof { fill: rgba(214, 238, 242, 0.8); stroke: rgba(80, 104, 110, 0.6); stroke-width: 0.8; }

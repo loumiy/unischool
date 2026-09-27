@@ -27,7 +27,8 @@ import { isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import { researchTopic } from '../data/researchTopics';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
-import { floorsUnderConstruction, materialOf, motifOf, wallHeightOf } from './buildingSpec';
+import { floorsUnderConstruction, materialOf, motifOf, storeysOf, wallHeightOf } from './buildingSpec';
+import { SiteFrame, siteStageOf } from './siteWorks';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
@@ -241,12 +242,22 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
   const weeksLeft = useContext(DevelopingContext)[t.id];
   if (weeksLeft === undefined) return null;
   const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
-  const rises = motifOf(t) !== 'grounds' && motifOf(t) !== 'landmark' && floorsUnderConstruction(t) === 0;
+  const motif = motifOf(t);
+  const rises = motif !== 'grounds' && motif !== 'landmark' && floorsUnderConstruction(t) === 0;
+  // A plot of houses or a bowl fills in as it goes; a building rises in the
+  // landmarks' three stages (Plan 74H): footings (the motif's own site),
+  // then the frame to full height, then the closed shell in scaffolding.
+  const staged = rises && motif !== 'village' && motif !== 'bowl';
+  const stage = siteStageOf(elapsedFraction);
   const d = drawnFootprint(p);
-  const shell = rises ? boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * elapsedFraction) : null;
+  const shellHeight = !rises ? 0 : staged ? (stage === 2 ? wallHeightOf(t) : 0) : wallHeightOf(t) * elapsedFraction;
+  const shell = shellHeight > 0 && (staged || elapsedFraction > 0.05) ? boxFaces(d.col, d.row, d.w, d.h, 0, shellHeight) : null;
   return (
     <>
-      {shell && elapsedFraction > 0.05 && (
+      {staged && stage === 1 && (
+        <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={wallHeightOf(t)} floors={storeysOf(t)} />
+      )}
+      {shell && (
         <g className="campus-site-shell">
           <polygon points={polyPoints(shell.left)} />
           <polygon points={polyPoints(shell.right)} />
