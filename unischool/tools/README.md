@@ -260,8 +260,10 @@ npm run sheet -- --every                   # every placeable, each school's hall
 - **`drive.mjs`** plays the running game a few steps at a time from a
   persistent browser profile (`node tools/review/drive.mjs <profile> fresh
   "click=Found a new college" shot=a.png text`); the review's hands-on
-  sessions were played with it. It fires `pagehide` before closing, since
-  that is when the game saves.
+  sessions were played with it. `load=<save.json>` starts from a scenario
+  save, and `move=x,y` moves the pointer without clicking, which is how a
+  building is carried to its site. It fires `pagehide` before closing,
+  since that is when the game saves.
 
 `npm run newplayer` stopped working when the title screen was put in front
 of the founding form: it waits for the form and never sees it. `drive.mjs`

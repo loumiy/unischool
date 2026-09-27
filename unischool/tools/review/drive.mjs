@@ -20,6 +20,7 @@
 //   fill=<selector>|<v>   type into a field
 //   key=<key>             a keyboard press (Space, Escape, 1, e, …)
 //   mouse=<x>,<y>         click at viewport coordinates
+//   move=<x>,<y>          move the pointer there without clicking (a ghost follows it)
 //   hover=<selector>      hover (for a tooltip)
 //   wait=<ms>             wait (the clock runs if it is running)
 //   shot=<path>           screenshot the viewport; shot=<path>@<selector> an element
@@ -101,6 +102,7 @@ for (const step of steps) {
       case 'fill': { const [sel, value] = arg.split('|'); await page.fill(sel, value); break; }
       case 'key': await page.keyboard.press(arg); await page.waitForTimeout(250); break;
       case 'mouse': { const [x, y] = arg.split(',').map(Number); await page.mouse.click(x, y); await page.waitForTimeout(350); break; }
+      case 'move': { const [x, y] = arg.split(',').map(Number); await page.mouse.move(x, y, { steps: 8 }); await page.waitForTimeout(300); break; }
       case 'hover': await page.locator(arg).first().hover(); await page.waitForTimeout(500); break;
       case 'wait': await page.waitForTimeout(Number(arg)); break;
       case 'shot': {

@@ -242,6 +242,27 @@ table's findings and the description audit by school.
 trace per problem (a "can a player find it?" verdict each), and the
 charter recommendation.
 
+**As implemented** (PR E): `docs/reviews/2026-10-game-review/3-intuitive-gameplay.md`,
+with four images.
+- The session was played by hand with `drive.mjs` from a clean browser to
+  year four: 80 screenshots and a logged doubt at each. `npm run newplayer`
+  was not used because it no longer starts (area 7).
+- Four of the nine problems came up in the session itself: the program
+  that can't be founded, the split-school trap, the course that can't be
+  developed, and basic needs. The rest were traced from scenario saves,
+  loaded with the new `load=` step.
+- The `crisis` scenario turned out to be synthetic: cash is set to −$2M
+  against a +$5.2M week, so no rung of the board's ladder had begun. The
+  cash trace is read from the Treasury's own text and the ladder's code.
+- Seven findings, four of them major:
+  - the second hall can deadlock a new player;
+  - the NEXT line points at the wrong panel;
+  - events pass while the clock runs;
+  - year one is quiet while satisfaction falls unexplained.
+- The charter recommendation: keep the milestone, caption the founding
+  form, and let the player choose at the charter whether to take
+  "University".
+
 ### Area 4 — Strategy
 
 **Method.** New goal-directed players (`tools/review/goalPlayers.ts`),
