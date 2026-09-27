@@ -200,6 +200,22 @@ as a bare field until its second expansion.
   and the third adds the second deck, so every expansion still adds
   something you can see. Seats, costs and weeks stay as they are.
 
+**As implemented (#211).**
+
+- `buildingMotifs.tsx`'s bowl motif now draws the stages like this:
+  - As built, low stands run down both touchlines (what the first
+    expansion used to add).
+  - The first expansion adds a lower stand behind each end zone.
+  - The second closes the corners into the full bowl.
+  - The third adds the second deck all round.
+- Seats, costs and weeks are unchanged (`facilitiesData.ts`).
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `stadium-stages.png`: as built, expanded once, twice and three times,
+    and the site.
+  - `stadium-stages-behind.png`: the same from the opposite camera.
+
 ## PR 74E — The vernacular's surface on the invariant buildings
 
 *A1-1.* Seven motifs never restyle by design (`VERNACULAR_INVARIANT_MOTIFS`),
