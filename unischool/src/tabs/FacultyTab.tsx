@@ -20,6 +20,7 @@ import {
   deptAction, payroll, searchable, waitingCourses, worthTaking, type Listing,
 } from '../systems/faculty/hiringNext';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
+import { FACULTY_SORTS, compareFaculty, showsDepartment, type FacultyFilter, type FacultySort } from './facultySort';
 import { money, moneyShort, surnameOf } from '../format';
 
 // The department board: every department the university could have (all 29,
@@ -583,6 +584,10 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
   );
 }
 
+// The sort and filter (Plan 72F), kept for the session: closing the tab
+// unmounts it, and the choice should be there when it opens again.
+const session: { sort: FacultySort; filter: FacultyFilter } = { sort: 'teaching', filter: { field: null, shortOnly: false } };
+
 // Roster-only, market-only, or both (the default).
 type View = 'both' | 'roster' | 'market';
 
@@ -606,16 +611,22 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   const commitments = useMemo(() => commitmentsByFaculty(s), [s.research.initiatives, s.tech]);
   const demand = useMemo(() => courseDemandByField(s), [s.tech]);
 
-  // Strongest teacher first in a department; strongest listing first on the market.
+  // The player's sort (Plan 72F; strongest teacher first until they pick
+  // another), on the roster and the market alike.
+  const [sort, setSortState] = useState<FacultySort>(session.sort);
+  const [filter, setFilterState] = useState<FacultyFilter>(session.filter);
+  const setSort = (next: FacultySort) => { session.sort = next; setSortState(next); };
+  const setFilter = (next: FacultyFilter) => { session.filter = next; setFilterState(next); };
+
   const hired = useMemo(() => {
     const map = new Map<string, Faculty[]>();
     for (const f of s.faculty) {
       if (!map.has(f.field)) map.set(f.field, []);
       map.get(f.field)!.push(f);
     }
-    for (const list of map.values()) list.sort((a, b) => b.teaching - a.teaching || a.name.localeCompare(b.name));
+    for (const list of map.values()) list.sort(compareFaculty(sort));
     return map;
-  }, [s.faculty]);
+  }, [s.faculty, sort]);
 
   const listed = useMemo(() => {
     const map = new Map<string, Faculty[]>();
@@ -623,16 +634,18 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
       if (!map.has(c.field)) map.set(c.field, []);
       map.get(c.field)!.push(c);
     }
-    for (const list of map.values()) list.sort((a, b) => (b.teaching + b.research) - (a.teaching + a.research));
+    for (const list of map.values()) list.sort(compareFaculty(sort));
     return map;
-  }, [s.candidates]);
+  }, [s.candidates, sort]);
 
   const [view, setView] = useState<View>('both');
   // Only the departments the college uses (Plan 29): a course offered or
   // revealed, or somebody on the roster. The rest wait behind a toggle, so
   // the market scans without scrolling every field there is.
   const [everyField, setEveryField] = useState(false);
-  const developed = (c: FieldCapacity) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.field === target;
+  const developed = (c: FieldCapacity) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.field === target || c.field === filter.field;
+  const shown = (c: FieldCapacity) => (everyField || developed(c)) && showsDepartment(filter, c.field, c.state);
+  const departments = cap.fields.filter(developed).map((c) => c.field).sort();
   const hiddenFields = cap.fields.filter((c) => !developed(c)).length;
   // Expansion is stored as per-row overrides over a default (collapsed), so
   // "Expand all" and a row's own toggle compose.
@@ -708,6 +721,37 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           </span>
         </div>
 
+        {/* Sort and filter (Plan 72F). */}
+        <div className="dept-tools">
+          <label className="dept-tool">
+            Sort people by
+            <select value={sort} onChange={(e) => setSort(e.target.value as FacultySort)}>
+              {FACULTY_SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </select>
+          </label>
+          <label className="dept-tool">
+            Department
+            <select
+              value={filter.field ?? ''}
+              onChange={(e) => {
+                const field = e.target.value === '' ? null : e.target.value;
+                setFilter({ ...filter, field });
+                if (field) setOverrides((o) => ({ ...o, [field]: true }));
+              }}
+            >
+              <option value="">All</option>
+              {departments.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </label>
+          <label className="dept-tool dept-tool-check">
+            <input type="checkbox" checked={filter.shortOnly} onChange={(e) => setFilter({ ...filter, shortOnly: e.target.checked })} />
+            Short-staffed only
+          </label>
+          {(filter.field !== null || filter.shortOnly) && !cap.fields.some(shown) && (
+            <span className="dept-tool-empty">No department matches.</span>
+          )}
+        </div>
+
         <div className="dept-head">
           <span className="dept-name">Department</span>
           <span className="capacity-legend">
@@ -722,10 +766,10 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           <span className="dept-note">next</span>
         </div>
 
-        {FACULTY_FIELD_GROUPS.filter((group) => everyField || group.fields.some((field) => developed(cap.byField.get(field)!))).map((group) => (
+        {FACULTY_FIELD_GROUPS.filter((group) => group.fields.some((field) => shown(cap.byField.get(field)!))).map((group) => (
           <section key={group.name} className="dept-group">
             <h4>{group.name}</h4>
-            {group.fields.filter((field) => everyField || developed(cap.byField.get(field)!)).map((field) => {
+            {group.fields.filter((field) => shown(cap.byField.get(field)!)).map((field) => {
               const c = cap.byField.get(field)!;
               return (
                 <DepartmentRow

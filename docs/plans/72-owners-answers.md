@@ -206,11 +206,40 @@ scorecard they move.
   department and by *short-staffed*. The choice is kept for the session.
 - **Checks:** the phone check at 390 wide; a test of the sort orders.
 
+**As implemented** (PR F):
+- Above the department board: *Sort people by* (teaching, research,
+  salary, years left, name), *Department* (all, or any the college uses),
+  and *Short-staffed only* (departments short, or with more on offer than
+  the roster teaches). The sort applies to the roster and the market
+  alike; ties go by name, so a week's growth never shuffles equals. Years
+  left counts to retirement (`careerWeeks`). Picking a department opens
+  it. The choice is kept for the session in the tab's module, not in the
+  save. The market used to be ordered by teaching and research together;
+  it now follows the chosen sort, teaching by default.
+- The logic is pure (`tabs/facultySort.ts`) and tested
+  (`test/faculty-sort.test.ts`); the phone check passes the tab at 390 and
+  820 wide.
+
 ## PR 72G — A full residence on the map
 
 - A residence at capacity shows a small mark on the map (no text), in the
   style of the labs' ring (Plan 41); gone when a bed frees. Reduced motion
   respected.
+
+**As implemented** (PR G):
+- Beds are one pool in the simulation, so which residence is full is a
+  reading (`components/residenceFill.ts`): the students who want a bed,
+  the enrolled body at the housing standard satisfaction holds the college
+  to (`expectedRatio(s, 'housing')`, 35% rising with prestige), take beds
+  in the order the residences opened, oldest first. A residence whose
+  every bed is taken is full. Short of beds, every one is; with room, the
+  newest are not; one going up holds nobody.
+- The mark is the labs' dark disc with a ring in the school's second
+  color and a bed on it, over the residence's name, with "Full: every bed
+  taken" on hover. It is still, so reduced motion has nothing to stop.
+  Nothing is stored and nothing moves in the sim.
+- **Checks:** `test/full-residence.test.ts`. The launch fixture's
+  residential quarter: `docs/reviews/2026-09-residences/full-mark.png`.
 
 ## PR 72H — Clubs with diminishing returns
 

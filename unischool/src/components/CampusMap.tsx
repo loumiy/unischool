@@ -39,6 +39,7 @@ import {
   turnStep, unproject, type Camera, type Pt,
 } from './isoProjection';
 import { reducedMotion } from '../settings';
+import { fullResidences } from './residenceFill';
 import { setMapProbe } from './mapProbe';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
@@ -544,6 +545,44 @@ function LabMarksLayer({ s, layout, onInspect }: {
     <>
       {layout.placed.filter(({ t }) => s.research.initiatives[t.id]).map(({ t, p }) => (
         <LabMark key={`lab-${t.id}`} t={t} p={p} run={s.research.initiatives[t.id]} vernacular={layout.vernacular} onInspect={() => onInspect(t.id)} />
+      ))}
+    </>
+  );
+}
+
+// A full residence (Plan 72G): the lab's dark disc with a bed on it, over
+// a residence whose every bed is taken (residenceFill.ts), and nothing once
+// one frees. Still, so reduced motion has nothing to stop.
+const HOUSE_MARK_R = 11;
+
+function FullMark({ t, p, vernacular, onInspect }: {
+  t: Buildable; p: Placement; vernacular: Vernacular; onInspect: () => void;
+}) {
+  const { size, centre } = labelLayout(t.name, t, p, vernacular);
+  const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
+  const r = HOUSE_MARK_R;
+  return (
+    <g className="campus-full-mark" role="button" onClick={onInspect} transform={`translate(${centre.x.toFixed(2)} ${y.toFixed(2)})`}
+      aria-label={`${t.name}: full, every bed taken`}>
+      <title>Full: every bed taken</title>
+      <circle className="campus-lab-plate" r={r + 4.5} />
+      <circle className="campus-full-ring" r={r} />
+      {/* A bed: headboard, mattress, pillow, legs. */}
+      <path className="campus-full-bed" d={`M ${-r * 0.6} ${-r * 0.4} V ${r * 0.42} M ${-r * 0.6} ${r * 0.1} H ${r * 0.62} V ${r * 0.42}`} />
+      <rect className="campus-full-pillow" x={-r * 0.46} y={-r * 0.16} width={r * 0.34} height={r * 0.22} rx={r * 0.06} />
+      <path className="campus-full-bed" d={`M ${-r * 0.08} ${-r * 0.06} H ${r * 0.62}`} />
+    </g>
+  );
+}
+
+function FullMarksLayer({ s, layout, onInspect }: {
+  s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
+}) {
+  const full = useMemo(() => fullResidences(s), [s.tech, s.students, s.self.reputation]);
+  return (
+    <>
+      {layout.placed.filter(({ t }) => full.has(t.id)).map(({ t, p }) => (
+        <FullMark key={`full-${t.id}`} t={t} p={p} vernacular={layout.vernacular} onInspect={() => onInspect(t.id)} />
       ))}
     </>
   );
@@ -1632,6 +1671,7 @@ export default function CampusMap({
             <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} />
+            <FullMarksLayer s={s} layout={layout} onInspect={onInspect} />
             <QuadOverlay quads={quads} hovered={hoveredQuad} inspected={inspectedQuadKey} showAll={showQuadNames} camera={camera} />
             {justPlaced.map((id) => {
               const p = s.placements[id];
