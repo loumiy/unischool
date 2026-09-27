@@ -35,7 +35,8 @@ export type EffectKey =
   | 'warmth'      // every alumni class's (alumni/ledger.ts)
   | 'quality'     // the incoming class's quality
   | 'enrollment'  // students gained or lost, as a share of a founding college's body
-  | 'trees';      // stands planted or felled
+  | 'trees'       // stands planted or felled
+  | 'departs';    // the professor the event names ({faculty}) leaves (Plan 72B)
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
