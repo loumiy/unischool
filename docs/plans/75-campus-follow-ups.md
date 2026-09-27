@@ -102,7 +102,7 @@ C lands last, so the gallery shows A's and B's drawings.
   only by the pier nearer the camera, so it is seen walking through the
   arch.
 
-**As implemented (#TBD).**
+**As implemented (#218).**
 
 - The gate's proportions live in `buildingSpec.ts` (`GATE_*`,
   `gatePieces`, `gatePassageTiles`), so the drawing, the walkers' routes
