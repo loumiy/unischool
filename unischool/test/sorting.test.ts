@@ -158,7 +158,7 @@ function letter(id: string) {
   assert(home?.hallId === 'HALL-01' && home.text === 'Elm Hall has room for Physics, on offer — it teaches Science', `an offer of a school with a hall goes to that hall (${home?.text})`);
   s.programOffers = ['HIST'];
   const founders = nextStep(s);
-  assert(founders?.hallId === FOUNDERS_HALL_ID && founders.text.startsWith('Founders Hall has a free slot'), `anything else goes to Founders Hall (${founders?.text})`);
+  assert(founders?.hallId === FOUNDERS_HALL_ID && founders.text.startsWith('Founders Hall has a free program slot'), `anything else goes to Founders Hall (${founders?.text})`);
   for (const [i, id] of ['SOCY', 'FINA', 'ACCT', 'ANTH'].entries()) s.halls[FOUNDERS_HALL_ID][[1, 3, 4, 5][i]] = { programId: id };
   const full = nextStep(s);
   assert(full?.go === undefined && full?.text === 'Founders Hall is full; Elm Hall has room for Science when one is on offer', `and when Founders Hall is full, the line says whose room is left (${full?.text})`);

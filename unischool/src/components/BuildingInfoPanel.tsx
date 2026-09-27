@@ -208,7 +208,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                     <>
                       Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {moneyShort(progress.next.cost)} · {weeksShort(progress.next.duration)}
                       {gate !== 'open' && (
-                        <span className="program-summary-blocked"> — no free {field} course slot{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
+                        <span className="program-summary-blocked"> — needs {field} faculty{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
                       )}
                     </>
                   );
@@ -263,7 +263,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
     );
   }
   if (destinations.length === 0) {
-    return <p className="building-info-line relocate-note">No free slot anywhere to move this program to.</p>;
+    return <p className="building-info-line relocate-note">No free program slot anywhere to move this program to.</p>;
   }
   return (
     <div className="relocate">
@@ -278,7 +278,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
               key={slot}
               className="relocate-slot"
               disabled={!act}
-              title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, slot ${slot + 1}`}
+              title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, program slot ${slot + 1}`}
               label={slot + 1}
               armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
               onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
@@ -369,8 +369,8 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
       )}
       <p className="building-info-line">
         {free === 0
-          ? 'Every slot is taken.'
-          : `${free} of ${slots.length} slot${slots.length === 1 ? '' : 's'} free${offers.length > 0
+          ? 'Every program slot is taken.'
+          : `${free} of ${slots.length} program slot${slots.length === 1 ? '' : 's'} free${offers.length > 0
             ? ` — ${offers.length} program${offers.length === 1 ? '' : 's'} on offer.`
             : '.'}`}
       </p>
@@ -407,7 +407,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
               onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }}
               aria-pressed={open}
               disabled={offers.length === 0}
-              title={offers.length === 0 ? (host ? 'No program for this hall is on offer yet.' : 'Nothing is on offer to found here.') : 'Found a program in this slot'}
+              title={offers.length === 0 ? (host ? 'No program for this hall is on offer yet.' : 'Nothing is on offer to found here.') : 'Found a program here'}
             >
               +
             </button>
@@ -468,7 +468,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
               ) : (
                 <>
                   <p className="building-info-line">
-                    No {entry.requiresFaculty} professor has a free course slot. Appoint one to found this program.
+                    Needs {entry.requiresFaculty} faculty: every professor in the field is teaching a full load. Appoint one to found this program.
                   </p>
                   {entry.requiresFaculty && act && <MarketInField s={s} act={act} field={entry.requiresFaculty} projectedFor={entry} />}
                 </>

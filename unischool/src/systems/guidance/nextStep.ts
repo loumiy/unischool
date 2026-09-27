@@ -161,7 +161,7 @@ function freeSlot(s: GameState): NextStep | null {
   if (open) {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
     return {
-      text: `${nameOf(open)} has a free slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
+      text: `${nameOf(open)} has a free program slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
       go: 'hall',
       hallId: open,
       intent: { kind: 'found', hallId: open },
