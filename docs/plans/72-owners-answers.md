@@ -205,6 +205,20 @@ scorecard they move.
   department and by *short-staffed*. The choice is kept for the session.
 - **Checks:** the phone check at 390 wide; a test of the sort orders.
 
+**As implemented** (PR F):
+- Above the department board: *Sort people by* (teaching, research,
+  salary, years left, name), *Department* (all, or any the college uses),
+  and *Short-staffed only* (departments short, or with more on offer than
+  the roster teaches). The sort applies to the roster and the market
+  alike; ties go by name, so a week's growth never shuffles equals. Years
+  left counts to retirement (`careerWeeks`). Picking a department opens
+  it. The choice is kept for the session in the tab's module, not in the
+  save. The market used to be ordered by teaching and research together;
+  it now follows the chosen sort, teaching by default.
+- The logic is pure (`tabs/facultySort.ts`) and tested
+  (`test/faculty-sort.test.ts`); the phone check passes the tab at 390 and
+  820 wide.
+
 ## PR 72G — A full residence on the map
 
 - A residence at capacity shows a small mark on the map (no text), in the
