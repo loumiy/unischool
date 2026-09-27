@@ -32,6 +32,7 @@ import { SiteFrame, siteStageOf } from './siteWorks';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
+import { SnowContext, seasonOf, seasonStyle } from './seasons';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
 import { castShadow } from './light';
@@ -1613,12 +1614,17 @@ export default function CampusMap({
       }
     : null;
 
+  // The season on the map (Plan 74I): CSS variables for the grass and the
+  // leaves, and the snow on the roofs. Changes by the week, never animates.
+  const week = s.clock.week;
+  const season = useMemo(() => seasonStyle(week), [week]);
+  const snow = useMemo(() => seasonOf(week).snow, [week]);
   // The path tool's ghost: the tile the next click would pave or lift.
   // Needs no `ok`, since a path tile can never be refused.
   const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
 
   return (
-    <section className="campus-map">
+    <section className="campus-map" style={season}>
       <div className="campus-map-canvas">
         <svg
           ref={svgRef}
@@ -1665,6 +1671,7 @@ export default function CampusMap({
             <ColorsContext.Provider value={layout.colors}>
             <CollegeNameContext.Provider value={s.self.name}>
             <DevelopingContext.Provider value={s.developing}>
+            <SnowContext.Provider value={snow}>
               <CampusScene
                 layout={layout}
                 quads={quads}
@@ -1674,6 +1681,7 @@ export default function CampusMap({
                 labelLayerRef={labelLayerRef}
                 camera={camera}
               />
+            </SnowContext.Provider>
             </DevelopingContext.Provider>
             </CollegeNameContext.Provider>
             </ColorsContext.Provider>
