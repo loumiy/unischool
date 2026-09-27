@@ -158,6 +158,38 @@ funding never pays down.
 - The staged construction (footings, half, all but the crown) keeps
   working, each stage showing what stands.
 
+**As implemented (#210).**
+
+- **The dome whole.** `landmarks.tsx`'s `Dome` is now drawn as the image of
+  a hemisphere: its outline is the far great-circle arc over the crown
+  plus the near half of its base ring, worked out from the camera, so it
+  is right from every view. The drum under it draws no top.
+- **The dome.** The drum's near half is a peristyle of twenty columns
+  standing proud of a darker cella wall, on a base course and under an
+  entablature. The dome has sixteen ribs, drawn as meridians only where
+  they face the camera. The lantern is a small drum with a gilded cupola
+  and a finial. At the third stage ("all but the crown") the ribs show on
+  the bare stone shell.
+- **The campanile.** A string course at the head of each of the shaft's
+  three stages, a slit window in the lower two, and a clock face on both
+  visible faces of the top one. Two round-arched bell openings on each
+  face of the belfry, a cornice under the spire, and a gilded finial.
+- **The gate.** Four pilasters with capitals on the long face. The great
+  arch has an archivolt and a keystone. Two relief panels, each a sunk
+  field with a laurel wreath over a plain panel, sit between the
+  pilasters. The short face has a lesser arch between two pilasters.
+  There is a cornice under the attic and a coping on it; the name stays
+  on the attic.
+- Openings and discs are laid out in meters (`faceAspect`), so arches
+  and clocks are round on the wall, not stretched.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` over the 60 arrangement campuses (whose "big"
+  set has all three landmarks) reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `landmarks-close.png`: the three alone.
+  - `landmark-stages.png`: footings, half, all but the crown, finished.
+  - `landmark-views.png`: the finished three in all four views.
+
 ## PR 74D — The stadium opens with stands
 
 *A1-5.* The Football Stadium seats 40,000 from the day it opens and draws
@@ -167,6 +199,22 @@ as a bare field until its second expansion.
   stands behind both ends, the second closes the corners into the bowl,
   and the third adds the second deck, so every expansion still adds
   something you can see. Seats, costs and weeks stay as they are.
+
+**As implemented (#211).**
+
+- `buildingMotifs.tsx`'s bowl motif now draws the stages like this:
+  - As built, low stands run down both touchlines (what the first
+    expansion used to add).
+  - The first expansion adds a lower stand behind each end zone.
+  - The second closes the corners into the full bowl.
+  - The third adds the second deck all round.
+- Seats, costs and weeks are unchanged (`facilitiesData.ts`).
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `stadium-stages.png`: as built, expanded once, twice and three times,
+    and the site.
+  - `stadium-stages-behind.png`: the same from the opposite camera.
 
 ## PR 74E — The vernacular's surface on the invariant buildings
 

@@ -2458,28 +2458,41 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     const northFar = cosA > 0; const southFar = cosA < 0;
     const westFar = sinA > 0; const eastFar = sinA < 0;
 
-    // The stadium grows with its expansions (Plan 54): the field alone, then
-    // a low stand down each touchline, then the full bowl, closed at the
-    // corners (Plan 61), then a second deck all round (Plan 61). The field
-    // keeps its place and size throughout, so the bowl grows around it.
+    // The stadium grows with its expansions (Plan 54, Plan 74D): it opens
+    // with a low stand down each touchline, since it seats 40,000 from the
+    // day it opens; the first expansion adds stands behind both ends, the
+    // second closes the corners into the full bowl (Plan 61), and the third
+    // adds a second deck all round (Plan 61). The field keeps its place and
+    // size throughout, so the bowl grows around it.
     const stage = Math.min(3, t.expansions ?? 0);
     if (stage < 2) {
       const ground = polyPoints(boxFaces(col, row, w, h, 0, 0).top);
+      const sideDepth = d * 0.55;
       const touchline = (key: string, outerRow: number, innerRow: number, fill: number) => (
         <RakedStand key={key} outer={[T(iCol, outerRow), T(iCol + iW, outerRow)]} inner={[T(iCol, innerRow), T(iCol + iW, innerRow)]}
           bottomH={H * 0.06} topH={H * 0.34} rows={3} aisles={3} {...fills(fill)} />
       );
-      const sideDepth = d * 0.55;
+      const endStand = (key: string, outerCol: number, innerCol: number, fill: number) => (
+        <RakedStand key={key} outer={[T(outerCol, iRow), T(outerCol, iRow + iH)]} inner={[T(innerCol, iRow), T(innerCol, iRow + iH)]}
+          bottomH={H * 0.06} topH={H * 0.3} rows={3} aisles={2} {...fills(fill)} />
+      );
       const northStand = touchline('n', iRow - sideDepth, iRow, 1.0);
       const southStand = touchline('s', iRow + iH + sideDepth, iRow + iH, 0.8);
+      const ends = stage >= 1;
+      const westStand = endStand('w', iCol - sideDepth, iCol, 0.9);
+      const eastStand = endStand('e', iCol + iW + sideDepth, iCol + iW, 0.72);
       return (
         <>
           <polygon className="ground-lawn" points={ground} />
-          {stage === 1 && northFar && northStand}
-          {stage === 1 && southFar && southStand}
+          {northFar && northStand}
+          {southFar && southStand}
+          {ends && westFar && westStand}
+          {ends && eastFar && eastStand}
           <StadiumField col={iCol} row={iRow} w={iW} h={iH} />
-          {stage === 1 && !northFar && northStand}
-          {stage === 1 && !southFar && southStand}
+          {ends && !westFar && westStand}
+          {ends && !eastFar && eastStand}
+          {!northFar && northStand}
+          {!southFar && southStand}
         </>
       );
     }
