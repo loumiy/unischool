@@ -10,7 +10,6 @@ import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
 import Toasts from './components/Toasts';
-import FoundingNotes from './components/FoundingNotes';
 import TitleScreen from './components/TitleScreen';
 import { applySettings } from './settings';
 import HallOfFame from './components/HallOfFame';
@@ -26,10 +25,8 @@ import CampusMap from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
-import MilestoneNote from './components/MilestoneNote';
-import BoardLetter from './components/BoardLetter';
-import DemandNote from './components/DemandNote';
-import EventPanel from './components/EventPanel';
+import InboxTab from './components/InboxTab';
+import { inboxBadge, inboxItems } from './systems/inbox/inbox';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -64,13 +61,14 @@ const DebugPanel = import.meta.env.DEV ? lazy(() => import('./components/DebugPa
 // insets by it, keeping every tile reachable. LogTicker is a fixed-height
 // strip above it.
 
-// The three views with a letter of their own: the ones a player dips in and
+// The four views with a letter of their own: the ones a player dips in and
 // out of constantly. Every extra letter here is one the map can't use. Each
 // key toggles, like clicking the tab's toolbar icon twice.
 const TAB_HOTKEYS: Record<string, TabId> = {
   c: 'curriculum',
   f: 'faculty',
   l: 'students',
+  i: 'inbox',
 };
 
 type Front = 'title' | 'hall' | 'settings' | 'credits';
@@ -115,6 +113,11 @@ export default function App() {
   // Escape has to see it.
   const [logOpen, setLogOpen] = useState(false);
   const [ladderOpen, setLadderOpen] = useState(false);
+  // The founding notes read this session: the one letter the save does not
+  // mark (systems/inbox/foundingNote.ts). Everything else the inbox holds
+  // is read off the state (Plan 76).
+  const [foundingRead, setFoundingRead] = useState<ReadonlySet<string>>(new Set());
+  const inbox = inboxItems(s, { read: foundingRead });
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // Sound (Plan 34): the director hears the run, not the title screen; M
@@ -127,7 +130,7 @@ export default function App() {
   // no modal or coach card drawn over it.
   const shellLive = s.started && front === null;
 
-  // C / F / L (see TAB_HOTKEYS). Held back while an interrupt is pending,
+  // C / F / L / I (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.
   useHotkeys((e) => {
     if (s.pendingInterrupt) return;
@@ -170,6 +173,7 @@ export default function App() {
     setBuildOpenState(false);
     setLogOpen(false);
     setLadderOpen(false);
+    setFoundingRead(new Set());
     reportedGates.current = null;
     actedStage.current = null;
   }, [s.started]);
@@ -332,33 +336,14 @@ export default function App() {
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
         <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
-        {/* The week's small news (Plan 70H), and a school's banner. */}
-        <Toasts s={shellLive ? s : null} />
+        {/* The week's small news (Plan 70H), a school's banner, and what
+            arrives in the inbox (Plan 76), each with a way to open it. */}
+        <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => openTab('inbox', id)} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
         {!overlay && <Pennant s={s} act={act} />}
 
         <div className="app">
-          {/* What waits on the map: the notes and the event panel step aside
-              while a tab is open, and the ticker's NEXT points back to them
-              (Plan 34: one notification system, V1-34). */}
-          {!overlay && (
-            <>
-              {/* The left-hand notes wait while a building's panel holds
-                  that side of the screen, and while the build tray is open
-                  (Plan 70E: a note sat over the tray's header). */}
-              {inspectedId === null && !buildOpen && (
-                // One column, most urgent first: no unread note hides another.
-                <div className="note-stack">
-                  <BoardLetter s={s} act={act} />
-                  <DemandNote s={s} act={act} />
-                  <MilestoneNote s={s} act={act} />
-                  <FoundingNotes s={s} />
-                </div>
-              )}
-              <EventPanel s={s} act={act} />
-            </>
-          )}
           <LogTicker
             s={s}
             open={logOpen}
@@ -371,7 +356,7 @@ export default function App() {
             else if (go === 'hall') { if (hallId) inspectHall(hallId); }
             else openTab(go);
           }}
-            mapHidden={overlay !== null}
+            inboxOpen={overlay?.tab === 'inbox'}
           />
           <Toolbar
             ref={toolbarRef}
@@ -389,10 +374,11 @@ export default function App() {
             onArmPlacement={setPlacingId}
             pathTool={pathTool}
             onSetPathTool={setPathTool}
+            inbox={inboxBadge(inbox)}
           />
 
           {overlay && (
-            <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)}>
+            <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)} split={overlay.tab === 'inbox'}>
               {overlay.tab === 'faculty' && (
                 <FacultyTab
                   s={s}
@@ -417,6 +403,18 @@ export default function App() {
               {overlay.tab === 'students' && <StudentsTab s={s} />}
               {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
               {overlay.tab === 'history' && <HistoryTab s={s} act={act} />}
+              {overlay.tab === 'inbox' && (
+                <InboxTab
+                  s={s}
+                  act={act}
+                  target={overlay.target}
+                  onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                  read={foundingRead}
+                  onRead={(id) => setFoundingRead((cur) => new Set([...cur, id]))}
+                  onOpenTab={(tab) => (tab === 'build' ? setBuildOpen(true) : openTab(tab))}
+                  onShowOnMap={inspectHall}
+                />
+              )}
             </TabOverlay>
           )}
 

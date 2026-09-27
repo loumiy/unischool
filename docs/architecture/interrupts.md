@@ -101,8 +101,8 @@ Everything that needs to stop time rides on this one mechanism:
   `src/systems/events/catalogueEngine.ts` on a week nothing else claimed,
   keeping the decision events' global quiet stretch and a year apart from
   each other. The catalogue's inline events never stop the clock: they
-  wait in the event panel over the map (`EventPanel.tsx`) and take their
-  default when their weeks run out, or a seat answers them by policy.
+  wait in the inbox (`InboxTab.tsx`, Plan 76) and take their default when
+  their weeks run out, or a seat answers them by policy.
 - **A research prize** — the one research output momentous enough to stop the
   clock, awarded when an initiative concludes (see
   [research.md](../design/research.md)).
@@ -136,8 +136,9 @@ Everything that needs to stop time rides on this one mechanism:
   compound that; a weight competes for the budget instead. Clubs and new chapters never stop it at all: they queue as
   petitions and are answered in a digest folded into the summer admissions
   interrupt.
-- **A student demand** — the one stop-the-clock beat student life gets of its
-  own (see [student-life.md](../design/student-life.md)'s "Student demands"),
+- **A student demand** — no longer a stop (Plan 29): it arrives in the inbox
+  to be decided (Plan 76) while the clock runs (see
+  [student-life.md](../design/student-life.md)'s "Student demands"),
   and only at a school whose satisfaction
   has fallen below the trigger threshold, so a well-run run never sees one. It
   queues like a milestone rather than firing on the spot, and it shares the
@@ -170,6 +171,15 @@ line it writes (`types.ts`'s `LogTopic`), the toast stack and the summer's
 review beat both read the tag — so what toasts is what a system said it did,
 never a parse of the sentence. Everything an interrupt announces stays out of
 the stack.
+
+Everything addressed to the president that does not stop the clock waits in
+the **inbox** (Plan 76, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
+full-screen tab in three tiers: **to decide** (the catalogue's inline events,
+a student demand, a board letter with an ask), **letters** (milestones, the
+board's distress letters, the founding notes) and **bulletins** (the toasts'
+news, kept for a term). It is read off state the game already keeps, never
+stored. Only the first tier counts on the toolbar's button, red while one is
+in its last week; an arrival is also a toast with an Open button.
 
 ## Widths
 

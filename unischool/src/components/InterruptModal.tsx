@@ -37,7 +37,7 @@ import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
 import { currentEra } from '../systems/chronicle/chronicle';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
-import { CatalogueChoices, CatalogueText } from './EventPanel';
+import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { money, ordinal, signedPct } from '../format';

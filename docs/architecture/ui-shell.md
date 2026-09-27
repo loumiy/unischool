@@ -2,7 +2,7 @@
 
 The **campus map** holds the middle of the screen at all times. The build menu
 opens over it, and every other view — Curriculum, Faculty, Research, Student
-Life, Athletics, Enrollment, History, Treasury — opens as a dismissible
+Life, Athletics, Enrollment, History, the Inbox, Treasury — opens as a dismissible
 **full-bleed screen** on top of it: the tab takes the viewport and the dock
 (log ticker + toolbar) lays over it. Every tab, the same way. The map is what a
 player returns to, by the home button at the head of the toolbar's icon row,
@@ -57,6 +57,20 @@ recomputed from state on every render (`src/systems/guidance/nextStep.ts`). A
 reading, never a queue: nothing is ticked off, and the line goes quiet when
 nothing is on offer. The log on the left says what just happened; the step on
 the right says what to do about it.
+
+## The inbox
+
+Everything addressed to the president that does not stop the clock is in one
+tab (Plan 76, `InboxTab.tsx`), laid out like a mail client: a list on the
+left, every item collapsed to its sender, subject and a line of preview and
+grouped by tier (to decide, letters, bulletins), with a search and filters,
+and on the right a reading pane that shows the selected item whole, with its
+answers. A row to decide carries a navy rule down its edge, red in its last
+week, and its weeks left where a letter has its date; an unread letter has a
+gold dot and a bold subject. Opening a letter reads it. The toolbar's Inbox
+button counts only what wants an answer, and `I` opens it. Nothing floats
+over the map any more: the event panel and the note stack it replaced both
+stepped aside whenever a tab was open.
 
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,
@@ -125,7 +139,7 @@ it.
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review beat and a letter included — not its Admissions or Students beats, which are real choices). |
-| `C` `F` `L` | Open (or close) Curriculum, Faculty, Student Life. |
+| `C` `F` `L` `I` | Open (or close) Curriculum, Faculty, Student Life, the Inbox. |
 
 The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
 listener, the "not while the player is typing" guard, the rule that a key held

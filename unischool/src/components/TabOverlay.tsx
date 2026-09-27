@@ -8,9 +8,12 @@ import { type ReactNode } from 'react';
 // Unlike InterruptModal.tsx this is a dismissible view, and the interrupt
 // modal's higher layer still covers it. Escape is not bound here: App.tsx
 // owns the one Escape ladder for the whole shell.
-export default function TabOverlay({ title, onClose, children }: {
+// `split`: the body does not scroll as one page; its child fills it and
+// scrolls its own panes (the inbox's list and reading pane, Plan 76).
+export default function TabOverlay({ title, onClose, split = false, children }: {
   title: string;
   onClose: () => void;
+  split?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -21,7 +24,7 @@ export default function TabOverlay({ title, onClose, children }: {
           Close ✕
         </button>
       </div>
-      <div className="tab-overlay-body">{children}</div>
+      <div className={`tab-overlay-body${split ? ' split' : ''}`}>{children}</div>
     </div>
   );
 }

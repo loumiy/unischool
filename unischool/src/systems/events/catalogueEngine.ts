@@ -175,7 +175,7 @@ function journal(c: CatalogueState, e: CatalogueEvent, choiceId: string, by: 'pl
 }
 
 // A sentence ends at a stop that is not a title's ("Dr. Novotny", Plan 35).
-function firstSentence(text: string): string {
+export function firstSentence(text: string): string {
   const cut = text.search(/(?<!\b(?:Dr|Mr|Mrs|Ms|Prof|St))[.!?](\s|$)/);
   const first = cut === -1 ? text : text.slice(0, cut + 1);
   return first.length > 90 ? `${first.slice(0, 87)}…` : first;

@@ -2,7 +2,7 @@ import type { GameState } from '../state/types';
 import ToolbarPopup from './ToolbarPopup';
 import LogStrip from './LogStrip';
 import { LogIcon } from './icons';
-import { nextStep, waitingOnMap, type NextStep } from '../systems/guidance/nextStep';
+import { inboxPointer, nextStep, type NextStep } from '../systems/guidance/nextStep';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import type { Progress } from '../data/ladderData';
 import LadderPanel from './LadderPanel';
@@ -18,9 +18,9 @@ import LadderPanel from './LadderPanel';
 // end: the log says what just happened, the step says what to do about it.
 // Suppressed while an interrupt is up.
 //
-// While a tab hides the map (`mapHidden`), NEXT first points back to what
-// waits there (nextStep.ts's waitingOnMap: the board, an event, a
-// milestone, a demand), pulsing when it will not wait long (Plan 34).
+// NEXT first points at the inbox for what will not wait (Plan 76,
+// nextStep.ts's inboxPointer: the board's letter, an event in its last
+// week), pulsing, except while the inbox itself is open.
 // A milestone's progress as a count: "12/13 courses", "96.4/100 prestige".
 function figure(n: number, unit: string): string {
   return unit === 'prestige' ? n.toFixed(1) : Math.floor(n).toLocaleString();
@@ -32,14 +32,14 @@ function progressText(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)} of ${figure(p.target, p.unit)} ${p.unit}`;
 }
 
-export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, mapHidden }: {
+export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, inboxOpen }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
   onGo: (go: NonNullable<NextStep['go']>, hallId?: string) => void;
-  mapHidden: boolean;
+  inboxOpen: boolean;
 }) {
   const latest = s.log[0];
-  const step = s.pendingInterrupt ? null : (mapHidden ? waitingOnMap(s) : null) ?? nextStep(s);
+  const step = s.pendingInterrupt ? null : (inboxOpen ? null : inboxPointer(s)) ?? nextStep(s);
   const milestone = nextMilestone(s);
   const progress = milestone?.progress?.(s);
 

@@ -6,10 +6,11 @@ import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
+import type { InboxBadge } from '../systems/inbox/inbox';
 import {
   FacultyIcon, CurriculumIcon,
   StudentLifeIcon, HistoryIcon, AthleticsIcon, BuildIcon,
-  ResearchIcon, HomeIcon,
+  ResearchIcon, HomeIcon, InboxIcon,
 } from './icons';
 
 // Tabs whose icon can carry the red alert badge, and how each decides it has
@@ -34,6 +35,7 @@ const TAB_ICONS: Record<Exclude<TabId, 'treasury'>, () => React.JSX.Element> = {
   students: StudentLifeIcon,
   history: HistoryIcon,
   athletics: AthleticsIcon,
+  inbox: InboxIcon,
 };
 
 // The docked bottom band: funds and headline stats on the left, Home, tab
@@ -63,7 +65,10 @@ const Toolbar = forwardRef<HTMLDivElement, {
   onArmPlacement: (id: string | null) => void;
   pathTool: CampusTool | null;
   onSetPathTool: (mode: CampusTool) => void;
-}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool }, ref) => {
+  // What the inbox's button says (systems/inbox/inbox.ts's inboxBadge),
+  // counted by App.tsx, which also keeps the session's read letters.
+  inbox: InboxBadge;
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox }, ref) => {
 
   // The opening walkthrough rings the Build button while its step is to site
   // the hall and the menu is closed (see state/opening.ts, .opening-target).
@@ -100,20 +105,28 @@ const Toolbar = forwardRef<HTMLDivElement, {
           // Suppressed on the active tab, so the badge never flashes for the
           // render before the tab marks its ids seen.
           const hasAlert = !isActive && (TAB_ALERT[id]?.(s) ?? false);
+          // The inbox counts what wants an answer, red while any is in its
+          // last week, and dots unread letters (Plan 76).
+          const inboxLabel = id !== 'inbox' ? TAB_LABELS[id]
+            : inbox.count > 0 ? `Inbox, ${inbox.count} to decide`
+              : inbox.unreadLetters > 0 ? `Inbox, ${inbox.unreadLetters} unread` : 'Inbox';
           return (
             <button
               key={id}
               type="button"
               className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
               aria-expanded={isActive}
-              aria-label={TAB_LABELS[id]}
-              title={TAB_LABELS[id]}
+              aria-label={inboxLabel}
+              title={inboxLabel}
               onClick={() => onChangeTab(isActive ? null : id)}
             >
               <Icon />
               {/* The word under the glyph, at every width: several icons look alike. */}
               <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
               {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
+              {id === 'inbox' && (inbox.count > 0
+                ? <span className={`inbox-badge${inbox.urgent ? ' urgent' : ''}`} aria-hidden="true">{inbox.count}</span>
+                : inbox.unreadLetters > 0 && <span className="inbox-badge dot" aria-hidden="true" />)}
             </button>
           );
         })}

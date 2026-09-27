@@ -1,10 +1,10 @@
 // The founding years' notes (Plan 70I): the first two years had little of
 // their own to say, so two moments the college reaches early are marked
-// with a note over the map, read off its state. Content, not mechanics:
-// they ask for nothing and change nothing. {program} and {dorm} are filled
-// by components/FoundingNotes.tsx.
+// with a letter in the inbox (Plan 76), read off its state. Content, not
+// mechanics: they ask for nothing and change nothing. {program} and {dorm}
+// are filled by systems/inbox/foundingNote.ts.
 
-// How long a note stays up after its moment, in weeks.
+// How long after its moment a note arrives unread, in weeks.
 export const FOUNDING_NOTE_WEEKS = 10;
 
 export const FOUNDING_NOTES = {
