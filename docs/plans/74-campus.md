@@ -306,7 +306,7 @@ without a click.
 - **Checks:** a test that no two placeables share motif, material,
   footprint and feature (the review's repeat probe, as a rule).
 
-**As implemented (#TBD).**
+**As implemented (#213).**
 
 - `buildingSpec.ts` adds `signifierOf`, by id and by facility type, in the
   way `LAB_FEATURES` marks the sciences. `buildingMotifs.tsx` draws each
