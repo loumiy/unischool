@@ -53,6 +53,7 @@ answers:
 | H | Clubs with diminishing returns | 11 | yes |
 | I | A first place that can be taken | 2 | yes |
 | J | The scorecard: the high-price line's targets, re-read after H and I | 1 | targets only |
+| K | The Japanese garden, in place of a formal garden drawn as a small Grand Quad | the owner, later | no |
 
 B through G can land in any order; H and I before J, since J re-reads the
 scorecard they move.
@@ -264,6 +265,29 @@ scorecard they move.
   produces, since slow growth is the cost of charging high (Plan 71's
   option 2). The scorecard is re-read after H and I, and every change to a
   target is listed with its reason.
+
+## PR 72K — The Japanese garden
+
+*Added after the plan, from the owner:* "I think I saw some repeated assets
+with the quad/decorations — might have been grand quad and formal garden?
+Check if those look the same. If they do, replace one of them with a
+Japanese garden."
+
+They did: the formal garden (`AMENITY-GARDEN`) was drawn as the Grand
+Quad itself at a sixth of the size (`groundMarkings.tsx` said so: "the
+garden is a small Grand Quad"), with the same lawn, walks, beds, hedges,
+trees and fountain.
+
+**As implemented:**
+- `AMENITY-GARDEN` becomes **the Japanese Garden**, drawn on its own: moss,
+  a bed of raked gravel with three upright stones in rings, a koi pond
+  with a red arched bridge, stepping stones, a stone lantern, two pines
+  and two maples in autumn red. Everything authored in the plot's u/v, so
+  it turns with the camera.
+- The id, footprint, cost, weeks, upkeep and beauty are the garden's, so
+  saves carry it (the catalog's text refreshes on load) and the sim reads
+  the same. The ladder's line names it.
+- Screenshot: `docs/reviews/2026-09-garden/japanese-garden.png`.
 
 ## What this plan does not do
 

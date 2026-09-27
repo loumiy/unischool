@@ -956,6 +956,28 @@ button.build-tile { font-family: inherit; }
 .ground-bloom-2 { fill: #e9e3ee; }
 .ground-bloom-3 { fill: #b070c4; }
 .ground-hedge { fill: #3f6b34; }
+/* The Japanese garden (Plan 72). */
+.ground-moss { fill: #6d8a4a; }
+.ground-gravel { fill: #e3dccb; }
+.ground-rake { stroke: rgba(120, 108, 84, 0.45); stroke-width: 0.8; }
+.ground-rake-ring { fill: none; stroke: rgba(120, 108, 84, 0.5); stroke-width: 0.8; }
+.ground-pond-edge { fill: #8e8a7c; }
+.ground-koi { fill: #e0782f; }
+.ground-koi-white { fill: #f4efe4; }
+.ground-step-stone { fill: #a9a497; stroke: rgba(60, 56, 48, 0.35); stroke-width: 0.6; }
+.ground-rock-top { fill: #8f8c84; }
+.ground-rock-left { fill: #6f6c66; }
+.ground-rock-right { fill: #5c5a55; }
+.ground-lantern-top { fill: #c9c3b4; }
+.ground-lantern-left { fill: #aaa495; }
+.ground-lantern-right { fill: #928c7e; }
+.ground-lantern-light-top { fill: #c9c3b4; }
+.ground-lantern-light-left { fill: #f2d98a; }
+.ground-lantern-light-right { fill: #d9bd6c; }
+.jg-maple .campus-tree.ornamental .campus-tree-crown { fill: #b4452c; }
+.jg-maple .campus-tree.ornamental .campus-tree-crown-top { fill: #d4643c; }
+.ground-bridge { fill: #b83a2a; stroke: #7e2519; stroke-width: 0.8; }
+.ground-bridge-rail { fill: none; stroke: #8e2a1d; stroke-width: 1.6; stroke-linecap: round; }
 .ground-hedge-top { fill: #55863f; }
 
 /* ---------- Labels ---------- */
