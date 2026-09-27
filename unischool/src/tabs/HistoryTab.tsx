@@ -315,7 +315,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             <h2>Institutional history</h2>
             <span className="panel-count">{yearOfFifty(s)}</span>
           </div>
-          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the record is sealed." />
+          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the Final Report is written." />
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}

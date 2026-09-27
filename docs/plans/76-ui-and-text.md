@@ -204,6 +204,103 @@ seats, the ladder, the figure hints and the help hints.*
   - no letter names a price or a week count that its Buildable
     contradicts.
 
+**As implemented (#TBD):**
+- **Effects:**
+  - The summer applies the attrition teeth through the preview's own
+    `summerAttrition`, passed the year's average it has already read
+    (G7-4).
+  - The Jock School's six points moved from the department total into
+    `teamQuality`, so every team plays them, and the department total
+    reads them through the teams.
+  - The Final Report reads athletic strength on its own 0–100 scale
+    (G7-5).
+  - Renovations, stories and library floors take the building fund
+    first and cash for the rest (`treasury.ts`'s `payForWorks`). The
+    Restoration campaign can now do what it says, and the Library
+    campaign's "wing" became a new floor, which the fund can pay for.
+    Venue expansions stay cash only.
+  - The alumni "deficits" memory reads years the board's scale reached
+    Deficit, not years cash fell. Building or sweeping a surplus no
+    longer counts as bad news, and the clause reads "there for the lean
+    years".
+  - The Artsy tag's club test also reads jazz, orchestra, a cappella,
+    drama, improv, ceramics, band and ballroom.
+  - "Out of the hole" no longer also needs board confidence of 70, which
+    no text stated.
+  - "Turning people away" is offered below a 50% admit rate, so "admits
+    most of those who apply" is true.
+- **Promises:**
+  - An open promise keeps the price scale of the summer it was made, in
+    an optional `scale` on its record. No version bump: the field is
+    additive, and a promise made before it reads the live scale.
+  - Its sums are judged at that scale and printed at it: `{sum}` in the
+    four money titles and their lines.
+  - `{years}` fills the four terms that were typed as "a decade" or
+    "fifteen years".
+- **Words filled in from the code:**
+  - "A hall of its own" reads the hall's cost and weeks (G7-14).
+  - Every capital project's "Opens…" sentence is built from its gates
+    (`projectOpens`), so the Research Park and Graduate College letters
+    and descriptions name Year 12 and Year 15, and the Museum its late
+    tier.
+  - The varsity petition names its weekly running cost.
+  - The chair's and the coach's pay are shown at the rate the payroll
+    charges.
+- **The Treasury** has a Student life line (clubs, chapters, teams and
+  their staff at the athletics tier), so its lines add up to Total
+  expenses.
+- **Words changed:** the false and vague rows of the first two reports,
+  as proposed, except these:
+  - The Deficit letter's "would like to see a surplus before it sees
+    another building" is kept: it states the board's wish, not a rule,
+    and the voice appendix names that letter among the best.
+  - Seat policy labels now name what the rule reads (the students' mood)
+    rather than being reweighted.
+  - The research offer card's "~0.4 publications" is left for the voice
+    pass.
+  - The dead applicant bonuses (the landmarks' 1,500 and the milestones'
+    30–60) are code with no text promising them; they are named here
+    and left.
+  - The report tags whose claimed standing their test does not read
+    (commuter, country club, pressure cooker) are left as the review
+    found them.
+- **The Final Report:**
+  - "and a very good one" became "with no glaring weakness", which is
+    what the shape tests.
+  - The Bargain's phrase is "a bargain college".
+  - The finance, experience, academics and athletics weaknesses say
+    what their standings read.
+- **Also in the strings touched:** the British words the appendices
+  list for these files: the dorm blurbs, the quirks, "prospectus", "the
+  fee", "the Bursar", "the Clerk", "table" for rankings, "Signalling"
+  and "Handover".
+- **`test/text-true.test.ts`** (15 checks):
+  - the summer's attrition matches the preview's for a Pressure Cooker
+    and a Teaching College;
+  - a Jock School team plays six points stronger;
+  - the building fund pays a renovation, and must cover it with the cash;
+  - a promise's title names the sum it is judged on, and the goal holds
+    at that scale;
+  - "A hall of its own" quotes the hall's price and weeks.
+  
+  The alumni, chronicle, figures, final-report and promises tests follow
+  the new words.
+- **`npm run review:strings`:**
+  - British spellings 38 → 37;
+  - idioms 68 → 67;
+  - second person 58 → 56;
+  - contractions 4 → 3.
+- **Balance** (`npm run sim`, re-recorded):
+  - Completionist ends year 50 at prestige 141.7 (−1.4) with $404M
+    (−$169M).
+  - Guided ends at 143.8 (+1.5).
+  - Lean's year-50 median moves most: 4,657 enrolled (−7,577), prestige
+    99.5 (−6.2). Lean's enrollment swings by thousands of students within
+    two years on either build: with only the attrition fix reverted, one
+    seed still ends year 41 at 7,114 after reaching 12,306. The median
+    records which of its three runs diverged, not a steady loss.
+  - Selective and Idle are unchanged.
+
 ## PR 76D — The events made true
 
 *A2-2, the third report: 154 events, 112 tellings, 373 choices; 66 false

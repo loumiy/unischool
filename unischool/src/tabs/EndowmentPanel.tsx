@@ -31,7 +31,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
     <section className="panel endowment-panel">
       <div className="panel-head">
         <h2>The endowment</h2>
-        <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into income every week. Draw less and it grows faster; draw more and income rises now at the cost of later. Above ${rate(DRAW_RATE_PRUDENT)} the board starts to worry. Cash moved in stays in: it pays out only at the draw rate. A building the cash cannot cover can be borrowed for, against up to ${BORROWING_SHARE * 100}% of the endowment, repaid weekly over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`} />
+        <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into income every week. Draw less and it grows faster; draw more and income rises now at the cost of later. Above ${rate(DRAW_RATE_PRUDENT)} the board starts to worry. Cash moved in stays in: it pays out only at the draw rate, or to pay half a capital project. A building the cash cannot cover can be borrowed for, against up to ${BORROWING_SHARE * 100}% of the endowment, repaid weekly over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`} />
       </div>
       <div className="treasury-dial">
         <span>Draw rate</span>

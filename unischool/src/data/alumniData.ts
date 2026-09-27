@@ -21,16 +21,16 @@ export interface MemoryClause {
 export const MEMORY_CLAUSES: readonly MemoryClause[] = [
   { id: 'thinned', when: 'thinned', text: 'thinned by the years', warmth: -6 },
   { id: 'under-taught', when: 'poorlyTaught', text: 'under-taught', warmth: -8 },
-  { id: 'well-taught', when: 'wellTaught', text: 'properly taught', warmth: 8 },
+  { id: 'well-taught', when: 'wellTaught', text: 'well taught', warmth: 8 },
   { id: 'happy', when: 'happy', text: 'happy in it', warmth: 9 },
   { id: 'unhappy', when: 'unhappy', text: 'miserable in it', warmth: -10 },
   { id: 'building-years', when: 'building', text: 'there for the building years', warmth: 6 },
   { id: 'new-school', when: 'newSchool', text: 'there when a new school was founded', warmth: 5 },
-  { id: 'first-of-program', when: 'firstOfProgram', text: 'the first to read a subject that did not exist before them', warmth: 6 },
+  { id: 'first-of-program', when: 'firstOfProgram', text: 'there when a program came into its own', warmth: 6 },
   { id: 'freeze', when: 'freeze', text: 'graduated out of a freeze', warmth: -4 },
   { id: 'austerity', when: 'austerity', text: 'an austerity class', warmth: -8 },
   { id: 'receivership', when: 'receivership', text: 'there when the interim CFO was', warmth: -12 },
-  { id: 'deficits', when: 'deficits', text: 'four years of bad news from the bursary', warmth: -3 },
+  { id: 'deficits', when: 'deficits', text: 'there for the lean years', warmth: -3 },
   { id: 'handsome', when: 'beautiful', text: 'on the handsomest campus in the county', warmth: 6 },
   { id: 'quiet', when: 'always', text: 'unremarkable, and fond of it', warmth: 2 },
 ];
@@ -42,7 +42,7 @@ export const MEMORY_CLAUSE_LIMIT = 3;
 // The thresholds the conditions read.
 export const MEMORY_THINNED_SHARE = 0.18;   // attrition across their years, of the class
 export const MEMORY_BUILDINGS = 2;          // buildings finished while they were here
-export const MEMORY_DEFICIT_YEARS = 2;      // years that closed with less cash than they opened
+export const MEMORY_DEFICIT_YEARS = 2;      // years in which the board's scale reached Deficit
 export const MEMORY_POORLY_TAUGHT = 40;     // mean course quality
 export const MEMORY_WELL_TAUGHT = 60;
 export const MEMORY_HAPPY = 70;             // their years' mean satisfaction

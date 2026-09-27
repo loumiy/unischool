@@ -49,19 +49,19 @@ export const ANY_SCHOOL = '*';
 export const PROJECTS: readonly ProjectDef[] = [
   {
     id: 'PROJ-ARTS', name: 'The Arts Center',
-    description: 'A concert hall, two theaters and the studios behind them, under one roof and open late: the building the town comes to the college for, and the home of the MFA. Opens once every Arts & Media course is taught.',
+    description: 'A concert hall, two theaters and the studios behind them, under one roof and open late: the building the town comes to the college for, and the home of the MFA.',
     cost: 35_000_000, weeks: 144, upkeep: 40_000, beauty: 2,
     project: { fromYear: 10, curriculum: 'Arts & Media', boosts: { experience: 6 } },
   },
   {
     id: 'PROJ-RESEARCH-PARK', name: 'The Research Park',
-    description: 'Laboratories for rent at the edge of campus, to companies who want to be near the faculty, and faculty who want to be near the money: where Landmark Programs are commissioned. Opens once every lab on campus has seen an initiative through.',
+    description: 'Laboratories at the edge of campus where faculty and industry work side by side. Once it stands, any lab can take on a Landmark Program.',
     cost: 45_000_000, weeks: 144, upkeep: 45_000,
     project: { fromYear: 12, everyLabFinished: true, boosts: { research: 18 } },
   },
   {
     id: 'PROJ-GRADUATE', name: 'The Graduate College',
-    description: 'A quadrangle of its own for graduate students, with a hall to dine in and a tower to be seen from: the home of the six doctorates. Opens once any school\'s undergraduate courses are all taught.',
+    description: 'A quadrangle of its own for graduate students, with a hall to dine in and a tower to be seen from: the home of the six doctorates.',
     // No beds: the game houses no graduate students (techData.ts's graduate
     // boundary), so its rooms add nothing the undergraduate count reads.
     cost: 25_000_000, weeks: 104, upkeep: 30_000,
@@ -69,25 +69,37 @@ export const PROJECTS: readonly ProjectDef[] = [
   },
   {
     id: 'PROJ-LAW', name: 'The Law School',
-    description: 'A courthouse of a building, with a moot court, a law library and a portico to argue under: the home of the School of Law. Opens once every Social Sciences & Humanities course is taught.',
+    description: 'A courthouse of a building, with a moot court, a law library and a portico to argue under: the home of the School of Law.',
     cost: 35_000_000, weeks: 130, upkeep: 35_000, beauty: 1,
     project: { fromYear: 15, curriculum: 'Social Sciences & Humanities', boosts: { academics: 3 } },
   },
   {
     id: 'PROJ-BUSINESS', name: 'The Business School',
-    description: 'Glass, a trading floor and an atrium where recruiters wait: the home of the MBA. Opens once every Business course is taught.',
+    description: 'Glass, a trading floor and an atrium where recruiters wait: the home of the MBA.',
     cost: 35_000_000, weeks: 130, upkeep: 35_000,
     project: { fromYear: 15, curriculum: 'Business', boosts: { academics: 3 } },
   },
   {
     id: 'PROJ-MUSEUM', name: 'The University Museum',
-    description: 'Fifty years of gifts, loans and bequests finally in one place and on show: a museum that schoolchildren are taken to and graduates bring their own children back to.',
+    description: 'Decades of gifts, loans and bequests finally in one place and on show: a museum that schoolchildren are taken to and graduates bring their own children back to.',
     cost: 60_000_000, weeks: 144, upkeep: 55_000, beauty: 3,
     project: { fromYear: LATE_TIER_YEAR, late: true, boosts: { experience: 6, academics: 3 } },
   },
 ];
 
 export const PROJECT_IDS: readonly string[] = PROJECTS.map((p) => p.id);
+
+// When a project opens, read off its gates (Plan 76C), so the sentence
+// cannot drift from them as the typed "Opens once…" lines did.
+export function projectOpens(p: CapitalProject): string {
+  const year = p.late
+    ? `Year ${p.fromYear}, or Year ${DEFEND_ERA_YEAR} for a college at prestige ${DEFEND_ERA_PRESTIGE}`
+    : `Year ${p.fromYear}`;
+  const once = p.everyLabFinished ? 'every lab on campus has finished a research project'
+    : p.curriculum === ANY_SCHOOL ? 'any school\'s undergraduate courses are all taught'
+      : p.curriculum ? `every ${p.curriculum} course is taught` : null;
+  return once ? `Opens from ${year}, once ${once}.` : `Opens from ${year}.`;
+}
 
 // The Medical Center's id: facilitiesData.ts's HEALTH_CENTER_TIER3_ID,
 // written out here because facilitiesData.ts imports this file.

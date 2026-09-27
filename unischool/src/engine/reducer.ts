@@ -5,7 +5,7 @@ import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueE
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
-import { clampDrawRate, moveToEndowment } from '../systems/finance/treasury';
+import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
   RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
@@ -346,9 +346,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'RENOVATE_BUILDING': {
       const node = s.tech.find((t) => t.id === action.id);
       if (!node || !canRenovate(node)) return s;
-      const cost = renovationCost(node);
-      if (s.finance.cash < cost) return s;
-      s.finance.cash -= cost;
+      if (!payForWorks(s, renovationCost(node))) return s;
       node.renovationWeeks = RENOVATION_WEEKS;
       return s;
     }
@@ -372,9 +370,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       const node = s.tech.find((t) => t.id === action.id);
       // A storey is construction: the distress ladder's freeze stops it.
       if (!node || !canExtend(node) || constructionFrozen(s)) return s;
-      const cost = extensionCost(node);
-      if (s.finance.cash < cost) return s;
-      s.finance.cash -= cost;
+      if (!payForWorks(s, extensionCost(node))) return s;
       node.extensionWeeks = extensionWeeks(node);
       return s;
     }
@@ -821,12 +817,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'RENOVATE_LIBRARY': {
       const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
       const plan = node && !constructionFrozen(s) ? nextLibraryFloor(node) : null;
-      if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
+      if (node && plan && node.status === 'done' && payForWorks(s, plan.cost)) {
         const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
         node.renovatingFrom = node.effects?.servesPopulation ?? 0;
         node.status = 'developing';
         s.developing[node.id] = plan.weeks;
-        s.finance.cash -= plan.cost;
         node.floorsAdded = (node.floorsAdded ?? 0) + 1;
         node.effects = {
           ...node.effects,

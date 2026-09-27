@@ -6,7 +6,7 @@ import {
 } from '../../data/alumniData';
 import { campusBeauty } from '../estate/beauty';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
-import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_RECEIVERSHIP } from '../finance/distress';
+import { RUNG_AUSTERITY, RUNG_DEFICIT, RUNG_FREEZE, RUNG_RECEIVERSHIP } from '../finance/distress';
 
 // THE ALUMNI LEDGER (Plan 30, from v2's alumni.ts): the game's long memory.
 // A class is stamped at commencement with the clauses its four years
@@ -41,7 +41,9 @@ export function classYears(s: GameState, year: number): ClassYears {
     thinned: 1 - years.reduce((kept, h) => kept * (1 - (h.enrolled > 0 ? Math.min(1, h.attrition / (h.enrolled + h.attrition)) : 0)), 1),
     buildings: s.tech.filter((t) => t.kind !== 'course' && t.status === 'done' && t.builtYear !== undefined && t.builtYear > year - 4 && t.builtYear <= year).length,
     worstRung: Math.max(0, ...years.map((h) => h.worstRung ?? 0)),
-    deficitYears: years.filter((h) => h.net < 0).length,
+    // Years the board's scale reached Deficit: the operating record, not the
+    // change in cash, which building or the sweep would count (Plan 76C).
+    deficitYears: years.filter((h) => (h.worstRung ?? 0) >= RUNG_DEFICIT).length,
     schoolsFounded: last && first ? (last.schoolsFounded ?? 0) - (first.schoolsFounded ?? 0) : 0,
     programsEstablished: last && first ? last.programsEstablished - first.programsEstablished : 0,
   };

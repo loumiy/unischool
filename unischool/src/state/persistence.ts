@@ -550,6 +550,11 @@ function sanitizePromises(state: GameState): void {
     declined: p.declined.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.year)),
     offer: null,
   };
+  // A promise's scale (Plan 76C) is optional; one that is not a positive
+  // number is dropped, and the promise reads the live scale.
+  for (const a of [...ok.active, ...ok.settled]) {
+    if (a.scale !== undefined && !(typeof a.scale === 'number' && Number.isFinite(a.scale) && a.scale > 0)) delete a.scale;
+  }
   const offer = p.offer as { ids?: unknown; decade?: unknown } | null | undefined;
   if (offer && Array.isArray(offer.ids) && typeof offer.decade === 'boolean') {
     const ids = offer.ids.filter(known);

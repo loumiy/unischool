@@ -68,7 +68,7 @@ function run(years: number, over: (y: number) => Partial<YearSnapshot> = () => (
   assert(new Set(c.eras.map((e) => e.name)).size === c.eras.length, `every era has its own name (${c.eras.map((e) => e.name).join(' · ')})`);
   assert(c.eras.every((e) => e.lines[0].startsWith('Year')), 'each summary opens on its span');
   const troubles = c.eras.find((e) => e.kind === 'troubles')!;
-  assert(troubles.lines.some((l) => l.includes('rung 3')), 'the troubles say how far the board climbed');
+  assert(troubles.lines.some((l) => l.includes('as far as Freeze')), 'the troubles say how far the board climbed');
   assert(currentEra(s)?.to === 24, 'the era being lived is the last');
 }
 
@@ -82,7 +82,7 @@ function run(years: number, over: (y: number) => Partial<YearSnapshot> = () => (
   s.orgs.titles = [{ sport: 'football', year: 9 } as never];
   const lines = chronicleOf(s).eras.flatMap((e) => e.lines).join(' ');
   assert(lines.includes(`It weathered ${letter.title!.charAt(0).toLowerCase()}${letter.title!.slice(1)}`), 'a letter answered is weathered');
-  assert(lines.includes('Old Money'), 'a tag earned is what the guidebooks started calling it');
+  assert(lines.includes('an old-money college'), 'a tag earned is what the guidebooks started calling it');
   assert(lines.includes('It kept its promise: owing nothing to anybody'), 'a promise kept is kept');
   assert(lines.includes('The teams won a title'), 'a title is won');
   const quiet = chronicleOf(s).eras.find((e) => e.from <= 6 && e.to >= 6)!;
@@ -94,7 +94,7 @@ function run(years: number, over: (y: number) => Partial<YearSnapshot> = () => (
 {
   const s = run(30);
   const lines = summariseYears(s, 21, 30);
-  assert(lines[0] === 'Years 21 to 30.' && lines.some((l) => l.startsWith('The books closed')), `a decade in the chronicle's sentences (${lines.join(' ')})`);
+  assert(lines[0] === 'Years 21 to 30.' && lines.some((l) => l.startsWith('Cash on hand')), `a decade in the chronicle's sentences (${lines.join(' ')})`);
   assert(moneyShort(3.2e9) === '$3.2B' && moneyShort(12e9) === '$12B', 'billions read as billions');
 }
 

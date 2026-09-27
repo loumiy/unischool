@@ -46,7 +46,7 @@ function fresh(year: number): GameState {
 {
   assert(PROMISES.length === 26, `v2's twenty-six (${PROMISES.length})`);
   assert(PROMISES.every((p) => p.years >= 2 && Object.keys(p.reward).length > 0 && Object.keys(p.penalty).length > 0), 'every promise has a deadline, a reward and a penalty');
-  assert(PROMISES.every((p) => !/\{(?!college\})\w+\}/.test(p.text + p.kept + p.missed)), 'the only name in the words is the college\'s');
+  assert(PROMISES.every((p) => !/\{(?!college\}|sum\}|years\})\w+\}/.test(p.title + p.text + p.kept + p.missed)), 'the only fill-ins are the college, the sum and the years');
   assert(PROMISES.every((p) => Object.keys(p.goal).length > 0 && Object.keys(p.deal).length > 0), 'every promise has terms and a goal');
 }
 

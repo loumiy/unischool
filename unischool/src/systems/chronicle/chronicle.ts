@@ -1,12 +1,15 @@
 import type { GameState } from '../../state/types';
 import { CHRONICLE_LINES, CHRONICLE_WORDS, ERA_MAX, ERA_MAX_YEARS, ERA_MIN_YEARS, ERA_NAMES, type EraKind } from '../../data/chronicleData';
 import { milestoneById } from '../../data/ladderData';
-import { promiseById } from '../../data/promiseData';
+import { settledTitle } from '../promises/promises';
 import { tagById } from '../../data/tagData';
 import { eventById } from '../events/catalogue';
 import { mainSport } from '../rivals/collegeRival';
 import { rankedListBy } from '../rivals/rivalsSystem';
 import { moneyShort } from '../../format';
+import { sportById } from '../../data/studentLifeData';
+import { RUNG_NAMES } from '../finance/distress';
+import { TAG_PHRASES } from '../../data/reportData';
 
 // THE CHRONICLE (Plan 33, from v2's chronicle.ts; V2 #53): the run written
 // as eras named from what happened. Every closed year is read from what the
@@ -45,6 +48,7 @@ export interface Era {
 export interface RivalSaga {
   name: string;
   since: number;
+  sport: string;       // the series the record is of: the main sport's
   won: number;
   lost: number;
   mine: number;
@@ -70,9 +74,9 @@ export function yearRecords(s: GameState): YearRecord[] {
       campaigns: (s.advancement?.closed ?? []).filter((c) => c.year === y).length,
       titles: s.orgs.titles.filter((t) => t.year === y).length,
       rivalNamed: s.rivalStanding?.since === y ? rivalName : null,
-      tags: (s.identity?.log ?? []).filter((e) => e.earned && e.year === y).map((e) => tagById(e.id)?.name ?? e.id),
-      kept: (s.promises?.settled ?? []).filter((p) => p.kept && p.year === y).map((p) => promiseById(p.id)?.title ?? p.id),
-      missed: (s.promises?.settled ?? []).filter((p) => !p.kept && p.year === y).map((p) => promiseById(p.id)?.title ?? p.id),
+      tags: (s.identity?.log ?? []).filter((e) => e.earned && e.year === y).map((e) => TAG_PHRASES[e.id] ?? tagById(e.id)?.name ?? e.id),
+      kept: (s.promises?.settled ?? []).filter((p) => p.kept && p.year === y).map((p) => settledTitle(s, p)),
+      missed: (s.promises?.settled ?? []).filter((p) => !p.kept && p.year === y).map((p) => settledTitle(s, p)),
       net: h.net,
       endowment: h.endowment ?? null,
       graduated: h.graduated,
@@ -237,7 +241,9 @@ function summarise(span: Span, recs: YearRecord[]): string[] {
   const closed = years.filter((r) => r.net !== null);
   if (closed.length) {
     const net = closed.reduce((t, r) => t + (r.net ?? 0), 0);
-    const netWords = `${net >= 0 ? 'in the black by' : 'in the red by'} ${moneyShort(Math.abs(net))}`;
+    // The change in cash, which counts building and the sweep: said as what
+    // it is, not as the books (Plan 76C).
+    const netWords = `${net >= 0 ? 'rose' : 'fell'} by ${moneyShort(Math.abs(net))}`;
     const first = closed[0].endowment;
     const last = closed[closed.length - 1].endowment;
     lines.push(first !== null && last !== null
@@ -245,7 +251,7 @@ function summarise(span: Span, recs: YearRecord[]): string[] {
       : fill(L.moneyPlain, { net: netWords }));
   }
   const worst = Math.max(...years.map((r) => r.rungMax));
-  if (worst >= 3) lines.push(fill(L.troubles, { rung: `rung ${worst}` }));
+  if (worst >= 3) lines.push(fill(L.troubles, { rung: RUNG_NAMES[worst] ?? `rung ${worst}` }));
   const classes = years.filter((r) => r.graduated > 0).length;
   if (classes) lines.push(fill(L.classes, { classes: classes === 1 ? 'One class' : `${classes} classes` }));
   const weathered = years.flatMap((r) => r.seismic);
@@ -303,6 +309,7 @@ function rivalSaga(s: GameState): RivalSaga | null {
   return {
     name: rival.name,
     since: standing.since ?? s.clock.year,
+    sport: sport ? (sportById(sport)?.teamName ?? sport).replace(/ Team$/, '') : 'varsity',
     won: record?.wins ?? 0,
     lost: record?.losses ?? 0,
     mine: list.findIndex((e) => e.isPlayer) + 1,
@@ -319,7 +326,7 @@ export function currentEra(s: GameState): Era | null {
 export function sagaLines(saga: RivalSaga): string[] {
   const W = CHRONICLE_WORDS;
   const lines = [fill(W.sagaNamed, { rival: saga.name, year: saga.since })];
-  if (saga.won + saga.lost > 0) lines.push(fill(saga.won + saga.lost === 1 ? W.sagaGame : W.sagaGames, { count: saga.won + saga.lost, won: saga.won, lost: saga.lost }));
+  if (saga.won + saga.lost > 0) lines.push(fill(saga.won + saga.lost === 1 ? W.sagaGame : W.sagaGames, { count: saga.won + saga.lost, won: saga.won, lost: saga.lost, sport: saga.sport }));
   lines.push(fill(W.sagaStanding, { mine: rankWord(saga.mine), rival: saga.name, theirs: rankWord(saga.theirs) }));
   return lines;
 }
