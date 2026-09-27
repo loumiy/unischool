@@ -1148,7 +1148,7 @@ function Fountain({ col, row, w, h }: GroundProps) {
 // The Japanese garden (Plan 72, in place of the formal garden, which was
 // drawn as a small Grand Quad; redrawn denser in 72M, after a picture the
 // owner chose): grass, a koi pond with lily pads under a red bridge, a
-// vermilion torii over a path of stepping stones, a small temple hall,
+// vermilion torii over a path of stepping stones, a three-tiered pagoda,
 // cherry trees in blossom with their petals on the grass and the water,
 // azaleas, pines, rocks round the pond and a stone lantern. Everything is
 // authored in the plot's own u/v, so it turns with the camera and never
@@ -1160,7 +1160,7 @@ const JG_ROCKS: Array<[u: number, v: number, size: number, height: number]> = [
 ];
 const JG_STEPS: Array<[number, number]> = [[0.04, 0.6], [0.1, 0.61], [0.17, 0.6], [0.24, 0.61], [0.3, 0.6], [0.36, 0.6], [0.88, 0.61], [0.94, 0.6]];
 const JG_TORII = { u: 0.17, v0: 0.49, v1: 0.71 };
-const JG_TEMPLE = { u: 0.2, v: 0.18, half: 0.1 };
+const JG_TEMPLE = { u: 0.2, v: 0.18, half: 0.09 };
 const JG_BRIDGE = { a: { u: 0.38, v: 0.6 }, b: { u: 0.85, v: 0.6 } };
 const JG_BRIDGE_HALF = 0.035;
 // Cherry trees (ornamental and canopy, pink in styles.css's jg-sakura) and
@@ -1340,29 +1340,97 @@ function GardenTorii({ col, row, w, h }: GroundProps) {
   );
 }
 
-// The temple hall: a stone platform, vermilion walls, and a pyramid roof of
-// dark tiles (hōgyō-zukuri, the small square hall's roof) with a finial.
+// The pagoda (72M, after a picture the owner chose): a stepped stone base
+// with a red runner up its steps, then three tiers, each of white walls
+// framed by red posts and a red beam under a flared roof of dark blue tiles,
+// narrower as they rise, and a gold spire. Built from the eaves' corners in
+// camera order (boxFaces' A at the back, C at the front), so it turns with
+// the camera: the two back faces of a roof first, the two front over them.
+const JG_PAGODA_TIERS = [
+  { half: 1, wall: 15, roof: 3 },
+  { half: 0.74, wall: 12, roof: 3 },
+  { half: 0.5, wall: 10, roof: 6 },
+];
 function GardenTemple({ col, row, w, h }: GroundProps) {
   const { u, v, half } = JG_TEMPLE;
   const cc = col + w * u; const cr = row + h * v;
   const k = Math.min(w, h) * half;
-  const WALL = 15; const PLINTH = 3; const PEAK = 12; const OVER = 0.16;
-  const eaves = boxFaces(cc - k - OVER, cr - k - OVER, (k + OVER) * 2, (k + OVER) * 2, PLINTH + WALL, 0);
-  const apex = lift(project(cc, cr), PLINTH + WALL + PEAK);
-  // The eaves' corners in camera order (A at the back, C at the front):
-  // the two back faces first, the two front faces over them.
-  const face = (p: Pt, q: Pt, cls: string) => <polygon className={cls} points={polyPoints([p, q, apex])} />;
-  return (
-    <>
-      <JgBox c0={cc - k - 0.12} r0={cr - k - 0.12} cw={(k + 0.12) * 2} rh={(k + 0.12) * 2} base={0} height={PLINTH} cls="ground-plinth" />
-      <JgBox c0={cc - k} r0={cr - k} cw={k * 2} rh={k * 2} base={PLINTH} height={WALL} cls="jg-hall" />
-      {face(eaves.A, eaves.B, 'jg-roof-back')}
-      {face(eaves.D, eaves.A, 'jg-roof-back')}
-      {face(eaves.D, eaves.C, 'jg-roof-left')}
-      {face(eaves.C, eaves.B, 'jg-roof-right')}
-      <polygon className="jg-finial" points={polyPoints(projectedCircle(cc, cr, 0.06, 8).map((p) => lift(p, PLINTH + WALL + PEAK + 2)))} />
-    </>
-  );
+  const BASE = 4;
+  const out: React.JSX.Element[] = [];
+  // The base: two grey steps.
+  out.push(<JgBox key="base0" c0={cc - k - 0.22} r0={cr - k - 0.22} cw={(k + 0.22) * 2} rh={(k + 0.22) * 2} base={0} height={2} cls="jg-base" />);
+  out.push(<JgBox key="base1" c0={cc - k - 0.1} r0={cr - k - 0.1} cw={(k + 0.1) * 2} rh={(k + 0.1) * 2} base={2} height={2} cls="jg-base" />);
+  // The red runner up the steps, on the side facing the path and the pond.
+  out.push(<polygon key="runner" className="jg-runner" points={polyPoints([
+    lift(project(cc - 0.14, cr + k + 0.22), 0), lift(project(cc + 0.14, cr + k + 0.22), 0),
+    lift(project(cc + 0.14, cr + k + 0.1), BASE), lift(project(cc - 0.14, cr + k + 0.1), BASE),
+  ])} />);
+  let z = BASE;
+  JG_PAGODA_TIERS.forEach((tier, i) => {
+    const hk = k * tier.half;
+    const wall = boxFaces(cc - hk, cr - hk, hk * 2, hk * 2, z, tier.wall);
+    // White walls, red posts on each visible face, a red beam along the top.
+    out.push(<polygon key={`wl${i}`} className="jg-wall-left" points={polyPoints(wall.left)} />);
+    out.push(<polygon key={`wr${i}`} className="jg-wall-right" points={polyPoints(wall.right)} />);
+    for (const [face, fk] of [[wall.left, 'l'], [wall.right, 'r']] as const) {
+      const [p0, p1, p1t, p0t] = face;
+      const at = (t: number, top: boolean) => {
+        const a = top ? p0t : p0; const b = top ? p1t : p1;
+        return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+      };
+      for (const t of [0.04, 0.35, 0.65, 0.96]) {
+        const lo = at(t, false); const hi = at(t, true);
+        out.push(<line key={`post${i}${fk}${t}`} className="jg-post" x1={lo.x} y1={lo.y} x2={hi.x} y2={hi.y} />);
+      }
+      // The beam: the top fifth of the wall.
+      out.push(<polygon key={`beam${i}${fk}`} className="jg-beam" points={polyPoints([
+        { x: p0t.x, y: p0t.y + (p0.y - p0t.y) * 0.18 }, { x: p1t.x, y: p1t.y + (p1.y - p1t.y) * 0.18 }, p1t, p0t,
+      ])} />);
+      // The ground floor's arched door, in the middle of each visible face.
+      if (i === 0) {
+        const n = 8;
+        const bl = at(0.4, false); const br = at(0.6, false);
+        const tall = (p0.y - p0t.y) * 0.62;
+        const arch = Array.from({ length: n + 1 }, (_, j) => {
+          const a = Math.PI * (j / n);
+          const mx = (bl.x + br.x) / 2; const my = (bl.y + br.y) / 2;
+          const rx = (br.x - bl.x) / 2; const ry = (br.y - bl.y) / 2;
+          const lift0 = tall * 0.7 + Math.sin(a) * tall * 0.3;
+          return { x: mx - Math.cos(a) * rx, y: my - Math.cos(a) * ry - lift0 };
+        });
+        out.push(<polygon key={`door${fk}`} className="jg-door" points={polyPoints([bl, ...arch, br])} />);
+      }
+    }
+    z += tier.wall;
+    // The roof: from eaves well out past the walls, corners turned up, to a
+    // collar the next tier stands on (or the spire's foot at the top).
+    const OVER = 0.14 * k + 0.06;
+    const eaves = boxFaces(cc - hk - OVER, cr - hk - OVER, (hk + OVER) * 2, (hk + OVER) * 2, z, 0);
+    const next = JG_PAGODA_TIERS[i + 1];
+    const topHalf = next ? k * next.half * 0.9 : k * 0.06;
+    const top = boxFaces(cc - topHalf, cr - topHalf, topHalf * 2, topHalf * 2, z + tier.roof, 0);
+    const UP = 2.2;
+    const face = (p: Pt, q: Pt, pt: Pt, qt: Pt, cls: string, key: string) => {
+      const mid = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 + UP * 0.4 };
+      return <polygon key={key} className={cls} points={polyPoints([lift(p, UP), mid, lift(q, UP), qt, pt])} />;
+    };
+    out.push(face(eaves.A, eaves.B, top.A, top.B, 'jg-roof-back', `ra${i}`));
+    out.push(face(eaves.D, eaves.A, top.D, top.A, 'jg-roof-back', `rd${i}`));
+    out.push(face(eaves.D, eaves.C, top.D, top.C, 'jg-roof-left', `rl${i}`));
+    out.push(face(eaves.C, eaves.B, top.C, top.B, 'jg-roof-right', `rr${i}`));
+    z += tier.roof;
+  });
+  // The spire: a post with three rings and a jewel.
+  const foot = project(cc, cr);
+  out.push(<polygon key="spire" className="jg-finial" points={polyPoints([
+    { x: foot.x - 1, y: lift(foot, z).y }, { x: foot.x + 1, y: lift(foot, z).y },
+    { x: foot.x + 0.6, y: lift(foot, z + 12).y }, { x: foot.x - 0.6, y: lift(foot, z + 12).y },
+  ])} />);
+  [3, 6, 9].forEach((dz, j) => out.push(
+    <polygon key={`ring${j}`} className="jg-finial" points={polyPoints(projectedCircle(cc, cr, 0.1 - j * 0.02, 10).map((p) => lift(p, z + dz)))} />,
+  ));
+  out.push(<polygon key="jewel" className="jg-finial" points={polyPoints(projectedCircle(cc, cr, 0.05, 8).map((p) => lift(p, z + 13)))} />);
+  return <>{out}</>;
 }
 
 // An azalea: a low mound, darker below, lighter on top.

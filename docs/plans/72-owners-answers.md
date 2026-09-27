@@ -413,8 +413,10 @@ picture they chose.
   with lily pads (two in flower) and a mossy margin, rocks round it, and
   the red bridge now crossing its width with posts along the rails; a
   vermilion torii with a black lintel over a path of stepping stones that
-  runs to the bridge; a small temple hall (vermilion walls on a stone
-  platform, a pyramid roof of dark tiles with a gilt finial); twelve
+  runs to the bridge; a three-tiered pagoda (redrawn after a second
+  picture from the owner: white walls framed by red posts and beams, flared
+  roofs of dark blue tiles narrowing as they rise, a gold spire, a grey
+  stepped base with a red runner and an arched door); twelve
   cherry trees in blossom and three pines; azaleas; the stone lantern; and
   petals on the grass and the water, placed by a fixed hash so the run's
   stream is untouched. The catalog's and the ladder's lines say what it
