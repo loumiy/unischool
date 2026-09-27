@@ -29,7 +29,7 @@ import {
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
   ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
-  hasTrim, hasGilt,
+  hasBalconies, hasTrim, hasGilt,
   storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
@@ -3457,7 +3457,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           </g>
         );
       })}
-      {!site && motif === 'residential' && storeysOf(t) >= 4 && (
+      {!site && hasBalconies(t) && (
         <Balconies f={f} storeys={storeysOf(t)} height={H} tone={stone.trim} />
       )}
       {!site && (t.facilityType === 'library' || t.id === 'PROJ-ARTS') && (

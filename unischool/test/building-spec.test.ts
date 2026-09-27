@@ -26,7 +26,7 @@ import {
   materialOf, materialsFor, stoneFor, roofFor, parapetOf, paneShapeOf,
   windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
-  VERNACULAR_CHOICES,
+  VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf,
@@ -945,6 +945,29 @@ console.log('campus scale and building spec');
   assert(new Set(looks).size === looks.length, `every school's hall looks different (${looks.join(', ')})`);
   assert(!looks.includes('portico/limestone/'), "no school's hall is drawn as the library");
   assert(SCHOOL_SIGNATURES['Arts & Media'].feature === 'studio' && SCHOOL_SIGNATURES['Business'].feature === 'exchange', 'Arts & Media is a studio, Business an exchange');
+}
+
+// ---- The residence halls are v2's residence types (Plan 72D) ----
+{
+  // Every 500- and 1,000-bed rung takes a form; neighbouring rungs (the
+  // order they unlock) never share one; each form draws differently; and
+  // every rung says something of its own on the build tile.
+  const halls = initialDorms().filter((t) => /^DORM-0[2-9]$/.test(t.id));
+  assert(halls.length === 8, `eight hall rungs (${halls.length})`);
+  for (const t of halls) assert(RESIDENCE_FORMS[t.id] !== undefined, `${t.id} has a residence form`);
+  for (let i = 1; i < halls.length; i++) {
+    assert(RESIDENCE_FORMS[halls[i].id] !== RESIDENCE_FORMS[halls[i - 1].id], `${halls[i - 1].id} and ${halls[i].id} are different forms`);
+  }
+  const drawn = new Map<string, string>();
+  for (const t of halls) {
+    const look = `${motifOf(t)}/${materialOf(t, 'georgian').wall}/${hasBalconies(t)}/${doorFamilyOf(t)}`;
+    const form = RESIDENCE_FORMS[t.id];
+    assert(!drawn.has(form) || drawn.get(form) === look, `${form} draws the same wherever it stands`);
+    drawn.set(form, look);
+  }
+  assert(new Set(drawn.values()).size === drawn.size, `every form draws differently (${[...drawn.entries()].map(([f, l]) => `${f}: ${l}`).join('; ')})`);
+  const blurbs = halls.map((t) => t.description);
+  assert(new Set(blurbs).size === blurbs.length, 'every hall rung has its own blurb');
 }
 
 if (failures === 0) {
