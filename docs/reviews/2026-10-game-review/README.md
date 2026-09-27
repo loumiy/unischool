@@ -163,7 +163,7 @@ Small and certain, and each either loses data or makes the game contradict itsel
 - **G7-4: tag teeth.** One attrition function for the preview and the summer.
 - **G7-5: the athletics axis.** Scale it once.
 - **G7-14: the stale hall price** in the letter every player reads.
-- **G7-17a: the committed `node_modules` symlink.**
+- **G7-17a: the committed `node_modules` symlink.** Already done on the review branch, the one fix the review made.
 
 ## The tools the review added
 

@@ -456,6 +456,12 @@ with the owner the day it is found.
 - **Save, load, export and import** were tested through `readSave`, the
   path export and import share. The file download itself was not
   clicked.
+- **One fix was made.** The committed `unischool/node_modules` symlink
+  (G7-17a) was removed from the index and `.gitignore` corrected, in a
+  separate commit that can be dropped. It is a repository fault, not the
+  game's. The environment had already replaced the link with a real
+  folder, so the review could not end with a clean tree without it. This
+  is the plan's small-and-sure exception (§5).
 - **Nineteen entries, five of them major:**
   - two tabs on one save;
   - event backlog that compounds at full maintenance;

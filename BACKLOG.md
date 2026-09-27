@@ -28,7 +28,7 @@ comes off when Plan 74 is written.*
   - the tag attrition point is previewed but never applied (G7-4);
   - the athletics axis is scaled twice (G7-5);
   - the stale hall price in the second-year letter (G7-14);
-  - the committed `node_modules` symlink (G7-17a).
+  - the committed `node_modules` symlink (G7-17a), already removed on the review branch.
 - **The ten ranked improvements**, in the README's order:
   1. the first year explains itself;
   2. the move to school halls is unstuck;
