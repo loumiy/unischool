@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
-import { FOUNDING_VERNACULAR } from '../data/foundingData';
+import { FOUNDING_VERNACULAR, UNIVERSITY_CAPTION } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
 import type { SchoolColors, Vernacular } from '../state/types';
-import { COLLEGE_NAME_MAX, bareSchoolName } from '../state/types';
+import { COLLEGE_NAME_MAX, bareSchoolName, typedUniversity } from '../state/types';
 
 // Shown once, before play begins: name the school, and choose its
 // architecture and colors. Every other founding condition comes from
@@ -14,8 +14,10 @@ import { COLLEGE_NAME_MAX, bareSchoolName } from '../state/types';
 //
 // The player writes only half the name: every school opens as a College,
 // and the suffix is fixed because the game later offers to change it (the
-// University charter, see eventSystem.ts). The facade shows the whole name
-// carved in stone, so no caption is needed; the field starts empty.
+// University charter, see systems/events/charter.ts). A "College" or
+// "University" typed after the name is dropped (types.ts's bareSchoolName),
+// and the facade shows the whole name carved in stone. A typed "University"
+// gets a caption saying when it comes (Plan 78G); the field starts empty.
 
 // The facade: Founders Hall seen head-on, in the chosen vernacular. Every
 // color and part is read from buildingSpec.ts's VERNACULARS, so this preview
@@ -485,6 +487,9 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         />
         <div className="startup-facade">
           <SchoolFacade name={name} vernacular={vernacular} colors={colors} />
+          {typedUniversity(name) && (
+            <p className="startup-facade-caption" role="note">{UNIVERSITY_CAPTION}</p>
+          )}
         </div>
         {/* The architecture: one row of five names (blurbs are tooltips);
             the facade redraws as the player moves between them. Permanent. */}

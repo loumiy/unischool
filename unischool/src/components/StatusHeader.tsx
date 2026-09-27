@@ -12,7 +12,7 @@ import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
 import { FigureBox } from './Figure';
-import { FIGURE_HINTS } from '../data/figureHints';
+import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
 import { gameDate, money, prestigeFigure, satisfactionFigure, signedMoney } from '../format';
@@ -135,7 +135,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
           <span className="stat-label">Prestige</span>
           <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} format={prestigeFigure} /></span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.satisfaction}>
+        <FigureBox className="toolbar-stat" above hint={satisfactionHint(s)}>
           <SatisfactionIcon />
           <span className="stat-label">Satisfaction</span>
           {/* The warning is the paper red: the chip is cream, and the dock's

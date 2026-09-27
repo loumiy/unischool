@@ -263,7 +263,7 @@ function idleCash(s: GameState): NextStep | null {
 export function nextStep(s: GameState): NextStep | null {
   // The opening walkthrough's coach card speaks instead (opening.ts).
   if (openingHoldsClock(s)) return null;
-  if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s);
+  if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s) ?? shortfall(s);
   // A letter whose ask cannot be acted on this week (it waits on an offer
   // or a hall) gives way to a reading that can (Plan 58): "grow Science"
   // with no Science on offer and nowhere for the offers to go is a

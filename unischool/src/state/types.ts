@@ -931,6 +931,12 @@ export function bareSchoolName(typed: string): string {
   return typed.trim().replace(/(\s+(college|university))+$/i, '').trim();
 }
 
+// Whether a typed name ends in "University" after a name of its own: the
+// founding screen then says why the facade reads College (Plan 78G).
+export function typedUniversity(typed: string): boolean {
+  return /\suniversity$/i.test(typed.trim()) && bareSchoolName(typed) !== '';
+}
+
 // The full display name; handles an empty suffix without a stray space.
 export function institutionName(u: University): string {
   return u.suffix ? `${u.name} ${u.suffix}` : u.name;

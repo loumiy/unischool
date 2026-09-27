@@ -56,8 +56,8 @@ console.log('unlocks tests');
   if (gallery) gallery.status = 'done';
   assert(JSON.stringify(recordUnlocks(s)) === '["italianate"]', 'opening the gallery earns Italianate, and only it is new');
 
-  s.self.suffix = 'University';
-  assert(JSON.stringify(recordUnlocks(s)) === '["secondEmpire"]', 'the charter earns Second Empire');
+  s.self.universityCharterOffered = true;
+  assert(JSON.stringify(recordUnlocks(s)) === '["secondEmpire"]', 'the charter earns Second Empire, whichever name the college keeps');
 
   const stadium = s.tech.find((t) => t.facilityType === 'footballStadium');
   if (stadium) stadium.status = 'done';

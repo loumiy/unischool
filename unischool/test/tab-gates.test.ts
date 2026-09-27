@@ -1,9 +1,11 @@
 // ---------------------------------------------------------------------
 // When a tab is worth offering (src/components/TabNav.tsx's tabAvailable).
 //
-// Five tabs open from milestones on the ladder (data/ladderData.ts):
-// Enrollment, Student Life and History at the first commencement, Research
-// with the first finished lab, Athletics with the first sport club.
+// Three tabs open from milestones on the ladder (data/ladderData.ts):
+// History at the first commencement, Research with the first finished lab,
+// Athletics with the first sport club. Students is open from the first week
+// (Plan 78B), and its guidebook, clubs and funnel sections wait for the
+// first commencement.
 // The risk this pins down is not that a gate is wrong on day one — it is
 // that a gate silently stops being reachable. A predicate that returns
 // false forever hides a whole system behind a screen nobody can open, and
@@ -20,7 +22,8 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
-import { GATED_TABS, TAB_ORDER, tabAvailable, type TabId } from '../src/components/TabNav';
+import { GATED_TABS, TAB_ORDER, sectionAvailable, tabAvailable, type TabId } from '../src/components/TabNav';
+import { MILESTONES, tabOfSection, type TabSection } from '../src/data/ladderData';
 import type { GameState, VarsityTeam } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
 import { tickLadder } from '../src/systems/ladder/ladderSystem';
@@ -53,7 +56,8 @@ console.log('tab gate tests');
 {
   const s = fresh();
 
-  assert(GATED_TABS.length === 4, 'exactly four tabs are gated (Students absorbed Student Life and Enrollment, Plan 29)');
+  assert(GATED_TABS.length === 3, 'exactly three tabs are gated (Students opens from the first week, Plan 78B)');
+  assert(!GATED_TABS.includes('students') && tabAvailable(s, 'students'), 'Students is available in week 1');
   for (const id of GATED_TABS) {
     assert(!tabAvailable(s, id), `${id} is not offered at founding`);
   }
@@ -108,14 +112,29 @@ console.log('tab gate tests');
   assert(tabAvailable(s, 'athletics'), 'and it stays open if the last team goes: a milestone is never undone');
 }
 
-// --- enrollment, student life, history: the first commencement ---------
+// --- the sections a milestone opens -----------------------------------
+{
+  const sections = MILESTONES.flatMap((m) => m.sections ?? []);
+  assert(sections.length >= 2, 'the ladder holds back sections of open tabs');
+  for (const id of sections) {
+    assert(TAB_ORDER.includes(tabOfSection(id)), `${id} names a tab`);
+    assert(!GATED_TABS.includes(tabOfSection(id)), `${id} is a section of a tab open from the charter`);
+  }
+}
+
+// --- history, and Students' guidebook and clubs: the first commencement --
 {
   const s = fresh();
+  const held: TabSection[] = ['students.guidebook', 'students.clubs', 'students.funnel'];
+  tickLadder(s);
+  assert(tabAvailable(s, 'students'), 'Students is open in week 1');
+  for (const id of held) assert(!sectionAvailable(s, id), `${id} is not shown in week 1`);
   s.clock.week = 52;
   tickLadder(s);
-  for (const id of ['students', 'history'] as TabId[]) {
+  for (const id of ['history'] as TabId[]) {
     assert(!tabAvailable(s, id), `${id} stays closed through the first year`);
   }
+  for (const id of held) assert(!sectionAvailable(s, id), `${id} stays hidden through the first year`);
   s.history.push({ ...({} as GameState['history'][number]), year: 1 });
   s.clock.year = 2;
   s.clock.week = 1;
@@ -123,6 +142,7 @@ console.log('tab gate tests');
   for (const id of ['students', 'history'] as TabId[]) {
     assert(tabAvailable(s, id), `${id} opens once the first summer has closed`);
   }
+  for (const id of held) assert(sectionAvailable(s, id), `${id} shows once the first summer has closed`);
   assert(s.ladder.reached.commencement === 2, 'the milestone records the year it was reached');
   assert(s.ladder.unread.includes('commencement'), 'and queues its letter');
 }
