@@ -149,6 +149,28 @@ under `tools/`, none imported by the game.
 **Deliverable:** `1-aesthetics.md`, with contact sheets and annotated
 crops, a finding per defect, and the decorative list ranked.
 
+**As implemented** (PR C): `docs/reviews/2026-10-game-review/1-aesthetics.md`,
+with nine images in `img/`.
+- Ten findings: six major, four minor. None is a blocker.
+- The contact sheets were drawn from two cameras (45° and 225°) at the
+  opening pitch, not four views at two pitches. The four views came from
+  the arrangement photographs, which show every asset in context anyway.
+- Two findings reach beyond looks:
+  - A1-6: most of a grown campus ends derelict at full maintenance
+    funding, because event backlog compounds and nothing but a renovation
+    pays it down.
+  - A1-1: the vernacular restyles only about half of a year-50 campus.
+
+  Both go to areas 3 and 7 as well.
+- A September review of the map's assets
+  (`2026-09-map-assets-visual-review.md`) had already rebuilt the venues,
+  sheds and roofs, so this one covers what that review did not:
+  - how a grown campus looks;
+  - the school signature halls;
+  - the grand landmarks;
+  - the venue stages;
+  - doors.
+
 ### Area 2 — UI and text
 
 **Method.**
