@@ -420,6 +420,33 @@ pavilions get the slab alone. Only the grand landmarks rise in stages.
   closed shell in scaffolding. The crane stays on the large ones. Read off
   the build countdown the landmarks already use.
 
+**As implemented (#215).**
+
+- The map already raised a hatched shell in step with the countdown
+  (`CampusMap.tsx`'s `SiteProgress`). The contact sheets the review read
+  have no countdown, so they showed only the slab. That shell now rises in
+  the landmarks' three stages (`siteWorks.tsx`'s `siteStageOf`, read off
+  the same countdown):
+  - **Footings** for the first third: the motif's own site, a hatched slab
+    with its low scaffold and, on a building five tiles or more across,
+    the tower crane.
+  - **The frame** for the second third (`SiteFrame`): columns at the
+    corners and about every tile and a half along the near walls, and a
+    slab at every floor, to the building's full height.
+  - **The closed shell** in scaffolding for the last third, at full
+    height.
+- The crane stays through all three. A residence village and the stadium
+  bowl still fill in with the countdown as before, since a frame means
+  nothing on a plot of houses or an earthwork. Added stories on a
+  standing building are unchanged.
+- **Checks:** `test/ground-site.test.ts` pins the stage boundaries (never
+  going back a stage) and that the frame draws.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshot: `docs/reviews/2026-10-campus-fixes/construction-stages.png`
+  shows five halls, the library, a tower and a clinic going up at 15%,
+  50% and 80%.
+
 ## PR 74I — Seasons on the map
 
 *A1-10*, and the review's first decorative asset. The owner declined
