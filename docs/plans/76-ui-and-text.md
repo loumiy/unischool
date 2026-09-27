@@ -332,6 +332,45 @@ claims and 107 vague ones.*
   - a check that a sentence does not restate its title;
   - a cap on "from X to Y" spans per school.
 
+**As implemented (#TBD):**
+- 132 sentences replaced:
+  - 123 of the 126 flagged rows;
+  - COMP240, the other half of the fix to the operating-systems and
+    web-development levels;
+  - POLS210, so "the Court" matches LAWS530;
+  - SPCO110, "transportation";
+  - the appendix's four copyedits (FINA101, MRKT140, ARTF120, CYBR210);
+  - GRDS101 and NURS101, two stock-phrase 101s from the appendix's
+    patterns.
+  ENGL140, ACCT230 and FINA130 keep their sentences, as the appendix says.
+- Seven titles changed, in display text only. A save picks up the new names
+  on load, so there is no schema bump.
+  - Rhetoric & Composition (ENGL140)
+  - Introduction to Aerospace Engineering (AERO101)
+  - Intermediate Financial Reporting (ACCT220)
+  - Cost Accounting (ACCT230)
+  - Intermediate Microeconomics (ECON130)
+  - Statistical Learning (ARTF140)
+  - Gerontological Nursing (NURS230)
+- Where the appendix renumbers or swaps courses, the ids stay and the
+  sentences are rewritten so each level reads right: CHEN110/130,
+  CIVE110/130, COMP130/240 and MGMT140. MATH101 and MED570 are shortened to
+  match their neighbors. These swaps and bridges go to the backlog with
+  the rest of default 5: FINA130/210, ACCT140/240, MED550/600, the JD's
+  540/570, and the ACCT110 and MATH130 bridges.
+- American spelling throughout: every "Analyses", and the -ise and -isation
+  forms, "signalling", "counselling", "post-war", "take-off" and
+  "re-tests". British spellings across the catalog fell from 38 to 5 in
+  `npm run review:strings`, none of them in the course descriptions.
+- The house test gains three checks over all 431 sentences:
+  - the event catalogue's spelling regex, plus the British forms found
+    here;
+  - a title check: a sentence keeps at least four words of its own, and
+    five when it names its whole title;
+  - "from X to Y" held to three per program and twelve per school (51
+    sentences now, 88 before).
+  Against the old file the suite fails 55 checks.
+
 ## PR 76H — Buttons, headings and the register
 
 *A2-6 and A2-8, with 2c §4.1–4.5 and §4.9.*
