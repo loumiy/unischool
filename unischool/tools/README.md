@@ -222,3 +222,63 @@ and after a change) rather than with a player's machine.
 The debug panel (`?debug=1`) also has **+$1B cash** and **export run**, which
 downloads the session's start and every action since; `engine/actionLog.ts`'s
 `replay` reproduces it exactly.
+
+## Reviewing the whole game
+
+`tools/review/` holds the instruments Plan 73's review was done with
+(`docs/reviews/2026-10-game-review/`). Each is a script, not a test: it writes
+a table or a set of pictures to `node_modules/.tmp/` for a person to read.
+
+```sh
+npm run review:goals                       # seven goal players × 5 seeds × 2 names, 50 years each
+npm run review:goals -- --goals prestige,satisfaction --seeds 12345 --years 30
+npm run review:strings                     # every player-facing string, by screen, with the house-style checks
+npm run review:arrangements -- --list      # the 12 test layouts (a straight walk, a tee, a crowded row …)
+npm run review:arrangements                # one save per layout and vernacular
+npm run review:views -- node_modules/.tmp/arrangements/*.json --zoom=3   # each save from all four corners
+npm run review:doors                       # doors, props and overhangs over those saves
+npm run review:probe -- vernacular save.json   # how much of a campus the vernacular restyles; repeated looks
+npm run review:probe -- backlog            # the estate's backlog over 50 years at full maintenance
+npm run review:gallery -- node_modules/.tmp/sc/*.json   # every tab, menu and held modal, counted, at two sizes
+npm run review:sweep -- --seeds 1-10 --years 50   # invariants every week, a save round trip every year
+node tools/review/twoTabs.mjs save.json    # the repro for one save open in two tabs
+npm run sheet -- --every                   # every placeable, each school's hall, each venue expansion
+```
+
+- **`goalPlayers.ts`** plays the game toward one goal at a time (the most
+  revenue, the highest prestige, the happiest students, every asset,
+  championships, good-then-big, big-then-good) through the harness's own
+  moves, and keeps a journal of what each goal wanted and could not do. It
+  runs one child process per core; `--resume` skips finished runs.
+- **`strings.ts`** walks `src/` with the TypeScript compiler, keeps the text
+  a player can read (literals, templates and JSX text, not ids, class names
+  or comparisons), tags each with its screen, and flags British spelling and
+  idiom, jargon and marks against the house style. `strings.md` is the
+  summary.
+- **`sweep.ts`** plays harness games over many seeds, players and odd
+  college names (non-Latin, right-to-left, 72 characters), checks the
+  invariants every week, and at the start of every year writes the save as
+  the browser does, reads it back through the whole load path and compares
+  field by field.
+- **`gallery.mjs`** opens each save in a fresh browser at desktop and phone
+  size, steps through any modal it holds, opens every tab, the Build menu,
+  the main menu, Settings and Founders Hall's panel, and counts the words
+  and controls on each (`gallery.md`). `--settings '{"textScale":1.3}'`
+  plays with the player's settings set. For a modal that recurs, such as
+  a late summer, `npm run scenario` takes `--from-year N`.
+- **`arrangements.ts`** lays a finished save's buildings out in a set pattern
+  round the middle of the canvas, so `shootViews.mjs` can photograph the same
+  layout in every vernacular from every corner; **`doorsAndDepth.ts`** checks
+  those layouts for doors onto grass, seams, walls, trees and props, and for
+  anything painted out of depth order.
+- **`drive.mjs`** plays the running game a few steps at a time from a
+  persistent browser profile (`node tools/review/drive.mjs <profile> fresh
+  "click=Found a new college" shot=a.png text`); the review's hands-on
+  sessions were played with it. `load=<save.json>` starts from a scenario
+  save, and `move=x,y` moves the pointer without clicking, which is how a
+  building is carried to its site. It fires `pagehide` before closing,
+  since that is when the game saves.
+
+`npm run newplayer` stopped working when the title screen was put in front
+of the founding form: it waits for the form and never sees it. `drive.mjs`
+covers the same ground by hand until it is fixed.

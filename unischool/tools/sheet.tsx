@@ -7,6 +7,7 @@
 //   npm run sheet -- --vernacular gothic --scale 2  # one set, closer
 //   npm run sheet -- --only 'hangar|bowl|grounds'   # a regex on the labels
 //   npm run sheet -- --azimuth 225 --pitch 30       # from another camera
+//   npm run sheet -- --every --azimuth 135          # every placeable, not one per form (Plan 73)
 //   npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html out/ --cells
 //
 // `--scale` is screen pixels per world unit (default 1.4). Each cell is a
@@ -17,13 +18,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, materialOf } from '../src/components/buildingMotifs';
 import { groundProps } from '../src/components/groundMarkings';
-import { motifOf } from '../src/components/buildingSpec';
+import { SCHOOL_SIGNATURES, motifOf } from '../src/components/buildingSpec';
 import { boxFaces, polyPoints, project, setCamera } from '../src/components/isoProjection';
 import { depthOrder } from '../src/components/depthSort';
 import { castShadow } from '../src/components/light';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
-import { initialFacilities } from '../src/data/facilitiesData';
+import { initialFacilities, nextVenueExpansion, venueExpansionsMax } from '../src/data/facilitiesData';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import type { Buildable, Vernacular } from '../src/state/types';
 
@@ -36,6 +37,10 @@ const flag = (name: string, fallback: string): string => {
   return eq >= 0 ? args[i].slice(eq + 1) : (args[i + 1] ?? fallback);
 };
 const VERNS = flag('vernacular', 'georgian,gothic,classical,mission,modern').split(',') as Vernacular[];
+// --every: every placeable Buildable in the catalogue (Plan 73), not one of
+// each form; the file names carry the camera so several sheets can sit in
+// one folder.
+const EVERY = args.includes('--every');
 const SCALE = Number(flag('scale', '1.4'));
 const ONLY = flag('only', '') ? new RegExp(flag('only', '')) : null;
 const OUT = flag('out', 'node_modules/.tmp/sheets');
@@ -55,7 +60,7 @@ const byId = (id: string) => CATALOGUE.find((t) => t.id === id);
 const byType = (ft: string, pick: (t: Buildable) => boolean = () => true) =>
   CATALOGUE.filter((t) => t.facilityType === ft && pick(t));
 
-interface Sample { label: string; t: Buildable; developing?: boolean; rotated?: boolean; glyphs?: string }
+interface Sample { label: string; t: Buildable; developing?: boolean; rotated?: boolean; glyphs?: string; suffix?: string }
 
 // One of everything, by motif, plus the states worth looking at: a
 // rotated footprint, a site, a chapter house wearing letters.
@@ -154,14 +159,43 @@ function cell(sample: Sample, v: Vernacular) {
       {props.map((pr) => <g key={pr.key}>{pr.node}</g>)}
     </svg>
   );
-  const id = `${v}-${t.id}${sample.rotated ? '-rot' : ''}${sample.developing ? '-dev' : ''}`;
+  const id = `${v}-${t.id}${sample.suffix ?? ''}${sample.rotated ? '-rot' : ''}${sample.developing ? '-dev' : ''}`;
   return `<div class="cell" id="${id}"><div class="cap">${sample.label} · ${t.name} · ${fp.w}x${fp.h} · ${v}</div>${renderToStaticMarkup(svg)}</div>`;
 }
 
 const css = readFileSync(join(ROOT, 'src', 'styles.css'), 'utf8')
   .split('\n').filter((l) => !l.includes('@import')).join('\n');
 mkdirSync(OUT, { recursive: true });
-const all = samples();
+// Every placeable, in catalogue order, plus a chapter house, each school's
+// signature hall (a hall given over to one school draws as it,
+// campusLayout.ts), each venue at each of its expansions (Plan 54) and one
+// building of each form under construction.
+function everySample(): Sample[] {
+  const chapter: Buildable = {
+    id: 'CHAPTER-HOUSE-SAMPLE', kind: 'facility', name: 'Alpha Beta Gamma House', description: '',
+    cost: 0, duration: 0, prereqs: [], status: 'done', chapterHouse: true,
+  };
+  const out: Sample[] = CATALOGUE.map((t) => ({ label: `${motifOf(t)}: ${t.id}`, t }));
+  out.push({ label: 'pavilion: chapter house', t: chapter, glyphs: 'ΑΒΓ' });
+  const hall = CATALOGUE.find((t) => t.id === 'HALL-01');
+  for (const school of hall ? Object.keys(SCHOOL_SIGNATURES) : []) {
+    const t = { ...hall, signature: school } as Buildable;
+    out.push({ label: `${motifOf(t)}: ${school} hall`, t, suffix: `-sig-${school.split(/\W/)[0].toLowerCase()}` });
+  }
+  for (const t of CATALOGUE.filter((x) => nextVenueExpansion(x) !== null)) {
+    for (let n = 1; n <= venueExpansionsMax(t.id); n++) out.push({ label: `${motifOf(t)}: ${t.id} expanded ${n}×`, t: { ...t, expansions: n }, suffix: `-x${n}` });
+  }
+  const seen = new Set<string>();
+  for (const t of CATALOGUE) {
+    const m = motifOf(t);
+    if (seen.has(m)) continue;
+    seen.add(m);
+    out.push({ label: `${m}: under construction`, t, developing: true });
+  }
+  return out;
+}
+const all = EVERY ? everySample() : samples();
+const cameraTag = EVERY ? `-a${flag('azimuth', '45')}-p${flag('pitch', '30')}` : '';
 for (const v of VERNS) {
   const cells = all.filter((s) => !ONLY || ONLY.test(s.label) || ONLY.test(s.t.id)).map((s) => cell(s, v));
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>UniSchool motifs · ${v}</title><style>${css}
@@ -169,7 +203,7 @@ for (const v of VERNS) {
   .cell{display:inline-block;vertical-align:top;margin:8px;background:#6d8c52;border:1px solid #333;padding:4px}
   .cap{font:12px/1.3 sans-serif;color:#111;background:#fff;padding:2px 4px;margin-bottom:3px}
   svg{display:block}</style></head><body>${cells.join('\n')}</body></html>`;
-  const path = join(OUT, `sheet-${v}.html`);
+  const path = join(OUT, `sheet-${v}${cameraTag}.html`);
   writeFileSync(path, html);
   console.log(`wrote ${path} (${cells.length} cells)`);
 }

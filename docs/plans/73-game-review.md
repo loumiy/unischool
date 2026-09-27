@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's brief into a review
 that can be done, checked and acted on.*
 
-**Status: Proposed.**
+**Status: Landed.** A as its own PR. B–I in one PR, one commit each, with the review in `docs/reviews/2026-10-game-review/`. The review read `58fa3fd`; Plans 72J–M landed after it, and 72L (the game suggests merging a split school) touches area 3's A3-1.
 
 ---
 
@@ -86,6 +86,32 @@ under `tools/`, none imported by the game.
 | **`tools/review/strings.ts`** | new | every player-facing string, pulled from `src/data/` and the components into one table with where it appears, its word count and a screen tag, so voice, jargon, repetition and per-screen load can be read and counted (2) |
 | **`tools/review/goalPlayers.ts`** | new | the strategy players of area 4 (below), each with a goal, a logged reason for every decision, and a record of every moment it wanted something the game would not let it do (4) |
 
+**As implemented** (PR B):
+- The four tools are in `tools/review/`, run through `npm run review:*`
+  (`tools/README.md`, "Reviewing the whole game"). Four more were needed on
+  the way:
+  - `shootViews.mjs` photographs a save from all four corners.
+  - `drive.mjs` plays the running game a few steps at a time from a kept
+    browser profile. The hands-on sessions of areas 2, 3 and 7 were played
+    with it.
+  - `probes.ts` prints the small tables area 1 quotes: how much of a
+    campus the vernacular restyles, weathering bands, the catalogue by
+    motif, and the estate's backlog over fifty years.
+  - `sheet.tsx` gained `--every`, which draws every placeable, each
+    school's signature hall, each venue at each expansion, and one site per
+    motif. The file names carry the camera, so several sheets can share a
+    folder.
+- The door checker ran over 63 saves, not the arrangements plus three
+  year-50 campuses: 60 arrangement saves, the laid-out `all` and `guided50`
+  campuses, and `natural50` as played. `tools/layout.ts` cannot lay out
+  `natural50`, whose extended buildings have outgrown their footprints.
+- The goal players ran 70 games: seven goals, five seeds and two names,
+  fifty years each. That took 15 minutes on the container's cores.
+- `npm run newplayer` no longer works. It waits for the founding form, but
+  the title screen now comes first (`tools/newPlayer.mjs:48`). The
+  new-player session was played by hand with `drive.mjs` instead, and the
+  tool is listed in area 7.
+
 ## 3. The areas
 
 ### Area 1 — Campus and asset aesthetics
@@ -123,6 +149,28 @@ under `tools/`, none imported by the game.
 **Deliverable:** `1-aesthetics.md`, with contact sheets and annotated
 crops, a finding per defect, and the decorative list ranked.
 
+**As implemented** (PR C): `docs/reviews/2026-10-game-review/1-aesthetics.md`,
+with nine images in `img/`.
+- Ten findings: six major, four minor. None is a blocker.
+- The contact sheets were drawn from two cameras (45° and 225°) at the
+  opening pitch, not four views at two pitches. The four views came from
+  the arrangement photographs, which show every asset in context anyway.
+- Two findings reach beyond looks:
+  - A1-6: most of a grown campus ends derelict at full maintenance
+    funding, because event backlog compounds and nothing but a renovation
+    pays it down.
+  - A1-1: the vernacular restyles only about half of a year-50 campus.
+
+  Both go to areas 3 and 7 as well.
+- A September review of the map's assets
+  (`2026-09-map-assets-visual-review.md`) had already rebuilt the venues,
+  sheds and roofs, so this one covers what that review did not:
+  - how a grown campus looks;
+  - the school signature halls;
+  - the grand landmarks;
+  - the venue stages;
+  - doors.
+
 ### Area 2 — UI and text
 
 **Method.**
@@ -157,6 +205,31 @@ crops, a finding per defect, and the decorative list ranked.
 
 **Deliverable:** `2-ui-and-text.md`, with the screen gallery, the string
 table's findings and the description audit by school.
+
+**As implemented** (PR D): `docs/reviews/2026-10-game-review/2-ui-and-text.md`,
+with four appendices and the data they cite.
+- **The appendices:**
+  - `2a`: the course descriptions, by school;
+  - `2b`: flavor against the code, with 1,261 claims and row-by-row
+    verdicts in `data/`;
+  - `2c`: consistency against the register;
+  - `2d`: the voice.
+- **The screen gallery** is a new tool, `tools/review/gallery.mjs`
+  (`npm run review:gallery`). It made 284 captures over eleven scenario
+  saves at two sizes, then a second pass at the largest text size with
+  colour-safe signals and reduced motion. Its table is `data/gallery.md`.
+- **A year-30 summer** was needed for the load measure. `npm run scenario`
+  gained `--from-year`, since a `--modal summer` stop otherwise catches
+  the first summer.
+- **Three named scenarios fail to reach their stopping point:**
+  `research-report`, `championship` and `demand`. This is listed in
+  area 7.
+- **Eight findings, three major:**
+  - the Curriculum tab is the heaviest screen and the one a player must
+    use;
+  - 109 false claims in the flavor text;
+  - money and figures written several ways, with a low-satisfaction
+    figure that fades.
 
 ### Area 3 — Intuitive gameplay
 
@@ -193,6 +266,27 @@ table's findings and the description audit by school.
 **Deliverable:** `3-intuitive-gameplay.md`: the new-player log, one
 trace per problem (a "can a player find it?" verdict each), and the
 charter recommendation.
+
+**As implemented** (PR E): `docs/reviews/2026-10-game-review/3-intuitive-gameplay.md`,
+with four images.
+- The session was played by hand with `drive.mjs` from a clean browser to
+  year four: 80 screenshots and a logged doubt at each. `npm run newplayer`
+  was not used because it no longer starts (area 7).
+- Four of the nine problems came up in the session itself: the program
+  that can't be founded, the split-school trap, the course that can't be
+  developed, and basic needs. The rest were traced from scenario saves,
+  loaded with the new `load=` step.
+- The `crisis` scenario turned out to be synthetic: cash is set to −$2M
+  against a +$5.2M week, so no rung of the board's ladder had begun. The
+  cash trace is read from the Treasury's own text and the ladder's code.
+- Seven findings, four of them major:
+  - the second hall can deadlock a new player;
+  - the NEXT line points at the wrong panel;
+  - events pass while the player reads a tab;
+  - year one is quiet while satisfaction falls unexplained.
+- The charter recommendation: keep the milestone, caption the founding
+  form, and let the player choose at the charter whether to take
+  "University".
 
 ### Area 4 — Strategy
 
@@ -231,6 +325,20 @@ points are real on screen.
 pain points, easy points, tedium), a table comparing the seven, and
 whether the goals diverge.
 
+**As implemented** (PR F): `docs/reviews/2026-10-game-review/4-strategy.md`,
+with the players' full tables in `4a-goal-players.md`.
+- 70 games: seven goals, five seeds, two names, fifty years each, as
+  planned. The phased goals switch at year 20.
+- The hand checks used the area 3 session for a first decade and the
+  year-25 scenario for a late game. The goal players write no saves, so
+  their runs could not be replayed exactly. The pain points checked out on
+  screen: the blind price, and the teaching cap with no worklist.
+- Six findings, four major:
+  - four of the seven goals end as the same college;
+  - the teaching standard is the late game, with only a manual lever;
+  - most weeks ask nothing while modals crowd the rest;
+  - the Final Report misreads the two goals that differ.
+
 ### Area 5 — The critical improvements
 
 **Method.** Every finding from areas 2, 3 and 4 is gathered and grouped
@@ -244,6 +352,17 @@ say why" may explain a dozen findings. Each group is ranked by:
 **Deliverable:** the top of `README.md`: the ten most critical
 improvements, each with the findings behind it, a proposed fix and its
 size. These feed Plan 74.
+
+**As implemented** (PR H): `docs/reviews/2026-10-game-review/README.md`.
+- **Scope of the grouping.** The findings of areas 2–4 were grouped by the
+  player problem underneath them, as planned. Findings from areas 1 and 7
+  joined a group when they shared its problem: the derelict campus joins
+  "a campus worth a screenshot", and the athletics axis joins "a fair
+  Final Report".
+- **A "fix first" list** of six small, certain bugs sits beside the ten
+  improvements, because ranking them among design changes would bury
+  them.
+- **`BACKLOG.md`** points at the list until Plan 74 is written.
 
 ### Area 6 — Marketability
 
@@ -283,6 +402,21 @@ view of a small studio's greenlight meeting.
 **Deliverable:** `6-marketability.md`: the studio memo, with every
 claim sourced.
 
+**As implemented** (PR I): `docs/reviews/2026-10-game-review/6-marketability.md`.
+- **Sources.** The research is dated 27 September 2026. The container's
+  network policy blocked the Steam store, SteamDB, Steamworks, itch.io,
+  Wikipedia, PC Gamer and GameSpot, so every figure comes from a search
+  extract of the cited page and is flagged for checking before use. The
+  search budget ran out before session-length data for the comparables
+  could be gathered.
+- **The recommendation:**
+  - a free web demo of the first decade;
+  - a Steam page from that day;
+  - Next Fest in June 2027, or February if the fixes land by January;
+  - $14.99 premium;
+  - plain disclosure of the AI-assisted writing, with human-made capsule
+    art, trailer music and a hand edit of the most-read text.
+
 ### Area 7 — Bugs
 
 **Method.**
@@ -309,6 +443,32 @@ claim sourced.
 
 **Deliverable:** `7-bugs.md`, ranked by severity. A blocker is raised
 with the owner the day it is found.
+
+**As implemented** (PR G): `docs/reviews/2026-10-game-review/7-bugs.md`.
+- **No blocker.** 60 sweep games, 70 goal-player games and 366 gallery
+  captures ran with no crash, no failed load and no page error.
+- **The sweep** is a new tool, `tools/review/sweep.ts`
+  (`npm run review:sweep`). It checked the invariants every week and a
+  save round trip every year, over six players, ten seeds and odd names.
+- **The worst finding is a data loss**: a stale second tab overwrites the
+  newer game when it closes. `tools/review/twoTabs.mjs` reproduces it.
+  It was reported to the owner the day it was found.
+- **Save, load, export and import** were tested through `readSave`, the
+  path export and import share. The file download itself was not
+  clicked.
+- **One fix was made.** The committed `unischool/node_modules` symlink
+  (G7-17a) was removed from the index and `.gitignore` corrected, in a
+  separate commit that can be dropped. It is a repository fault, not the
+  game's. The environment had already replaced the link with a real
+  folder, so the review could not end with a clean tree without it. This
+  is the plan's small-and-sure exception (§5).
+- **Nineteen entries, five of them major:**
+  - two tabs on one save;
+  - event backlog that compounds at full maintenance;
+  - the winter model half a year off;
+  - a Teaching College attrition point the preview shows but the summer
+    never applies;
+  - a Final Report athletics axis that can't reach an A.
 
 ## 4. The map
 

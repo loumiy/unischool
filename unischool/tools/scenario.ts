@@ -6,12 +6,15 @@
 //   npm run scenario -- --list
 //   npm run scenario -- year-8-balanced [out.json]
 //   npm run scenario -- --player Guided --year 12 --modal milestone
+//   npm run scenario -- --player Completionist --year 31 --from-year 30 \
+//     --modal summer /tmp/summer30.json       # a modal that recurs, caught late
 //   npm run scenario -- --player Completionist --year 22 --vernacular gothic \
 //     --name Blackmoor --clear-modal /tmp/gothic.json    # a campus to photograph
 //   npm run scenario -- --player Completionist --year 50 --build-all \
 //     --clear-modal /tmp/all.json           # every placeable asset standing
 //
 // Flags: --player <name> (or --strategy) --year N --modal <interrupt type>
+//        --from-year N (the stopping point counts from that year on)
 //        --seed N --vernacular <v> --colors <pair id> --name <school>
 //        --clear-modal --build-all --list
 //
@@ -30,7 +33,7 @@ import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../sr
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 
 // `--k v` and `--k=v` both work; other arguments are positional.
-const VALUE_FLAGS = ['player', 'strategy', 'year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
+const VALUE_FLAGS = ['player', 'strategy', 'year', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
 const BOOL_FLAGS = ['list', 'clear-modal', 'build-all', 'help'];
 
 function parseArgs(argv: string[]): { flags: Record<string, string>; positional: string[] } {
@@ -96,7 +99,11 @@ const seed = flags.seed ? Number(flags.seed) : DEFAULT_SEED;
 const outPath = pathArg ?? flags.out ?? `node_modules/.tmp/${recipe.name}.json`;
 
 const game = foundGame({ seed });
-playUntil(game, player, recipe.year, recipe.stopWhen ?? (() => false));
+// --from-year N: the stopping point counts only from that year on, so a
+// modal that recurs (the summer) can be caught late in a run (Plan 73).
+const fromYear = Number(flags['from-year'] ?? 0);
+const stop = recipe.stopWhen;
+playUntil(game, player, recipe.year, stop ? (st) => st.clock.year >= fromYear && stop(st) : () => false);
 const state: GameState = game.s;
 // A recipe that breaks the school after the run (see Scenario.mutate).
 named?.mutate?.(state);
