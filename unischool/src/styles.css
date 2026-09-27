@@ -948,6 +948,19 @@ button.build-tile { font-family: inherit; }
 .ground-monument { fill: #b9ad8a; }
 .ground-monument-cap { fill: #d8cfb4; }
 .ground-fountain-spray { fill: rgba(246, 252, 255, 0.34); }
+/* The Fountain and the Founder's Statue (Plan 72M). */
+.ground-fountain-veil { fill: rgba(236, 246, 252, 0.38); }
+.ground-fountain-paving { fill: #cfc5aa; }
+.ground-statue-walk { fill: #d6ccb2; }
+.ground-plinth-top { fill: #ddd4bd; }
+.ground-plinth-left { fill: #bdb39a; }
+.ground-plinth-right { fill: #a39a82; }
+.ground-bench-top { fill: #b4aa91; }
+.ground-bench-left { fill: #978e77; }
+.ground-bench-right { fill: #847c67; }
+.ground-bronze { fill: #5e6b4e; }
+.ground-bronze-dark { fill: #454f3a; }
+.ground-bronze-light { fill: #7b8c68; }
 
 /* Flower beds: four bloom colors cycled by index. */
 .ground-bed { fill: #7a6248; }
@@ -958,12 +971,14 @@ button.build-tile { font-family: inherit; }
 .ground-hedge { fill: #3f6b34; }
 /* The Japanese garden (Plan 72). */
 .ground-moss { fill: #6d8a4a; }
-.ground-gravel { fill: #e3dccb; }
-.ground-rake { stroke: rgba(120, 108, 84, 0.45); stroke-width: 0.8; }
-.ground-rake-ring { fill: none; stroke: rgba(120, 108, 84, 0.5); stroke-width: 0.8; }
+.ground-garden-grass { fill: #7fa652; }
 .ground-pond-edge { fill: #8e8a7c; }
 .ground-koi { fill: #e0782f; }
 .ground-koi-white { fill: #f4efe4; }
+.ground-lily { fill: #5f9a45; }
+.ground-lily-flower { fill: #f3b5cc; }
+.ground-petal { fill: #f2b3c9; }
+.ground-petal-light { fill: #fbe1ea; }
 .ground-step-stone { fill: #a9a497; stroke: rgba(60, 56, 48, 0.35); stroke-width: 0.6; }
 .ground-rock-top { fill: #8f8c84; }
 .ground-rock-left { fill: #6f6c66; }
@@ -974,10 +989,33 @@ button.build-tile { font-family: inherit; }
 .ground-lantern-light-top { fill: #c9c3b4; }
 .ground-lantern-light-left { fill: #f2d98a; }
 .ground-lantern-light-right { fill: #d9bd6c; }
-.jg-maple .campus-tree.ornamental .campus-tree-crown { fill: #b4452c; }
-.jg-maple .campus-tree.ornamental .campus-tree-crown-top { fill: #d4643c; }
-.ground-bridge { fill: #b83a2a; stroke: #7e2519; stroke-width: 0.8; }
-.ground-bridge-rail { fill: none; stroke: #8e2a1d; stroke-width: 1.6; stroke-linecap: round; }
+.jg-sakura .campus-tree.ornamental .campus-tree-crown,
+.jg-sakura .campus-tree.canopy .campus-tree-crown { fill: #e79bb8; }
+.jg-sakura .campus-tree.ornamental .campus-tree-crown-top,
+.jg-sakura .campus-tree.canopy .campus-tree-crown-top { fill: #f7c6d8; }
+.jg-sakura .campus-tree.ornamental .campus-tree-trunk,
+.jg-sakura .campus-tree.canopy .campus-tree-trunk { fill: #5a3b33; }
+.ground-bridge { fill: #c8402c; stroke: #8a2a1c; stroke-width: 0.8; }
+.ground-bridge-rail { fill: none; stroke: #9e3020; stroke-width: 1.6; stroke-linecap: round; }
+.jg-torii-top { fill: #d24a33; }
+.jg-torii-left { fill: #c3412b; }
+.jg-torii-right { fill: #a33322; }
+.jg-kasagi-top { fill: #3a3431; }
+.jg-kasagi-left { fill: #2b2624; }
+.jg-kasagi-right { fill: #221e1c; }
+.jg-hall-top { fill: #c8402c; }
+.jg-hall-left { fill: #b43c29; }
+.jg-hall-right { fill: #942f20; }
+.jg-roof-back { fill: #3f4448; }
+.jg-roof-left { fill: #565d62; }
+.jg-roof-right { fill: #454b50; }
+.jg-finial { fill: #c9a24a; }
+.jg-shrub-pink { fill: #d9829f; }
+.jg-shrub-pink-top { fill: #f0a8c0; }
+.jg-shrub-magenta { fill: #b5487a; }
+.jg-shrub-magenta-top { fill: #d5679a; }
+.jg-shrub-green { fill: #3f6b34; }
+.jg-shrub-green-top { fill: #58884a; }
 .ground-hedge-top { fill: #55863f; }
 
 /* ---------- Labels ---------- */

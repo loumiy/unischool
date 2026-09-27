@@ -1146,59 +1146,86 @@ function Fountain({ col, row, w, h }: GroundProps) {
 }
 
 // The Japanese garden (Plan 72, in place of the formal garden, which was
-// drawn as a small Grand Quad): moss, a bed of raked gravel with rings round
-// its stones, a koi pond with a red bridge over it, stepping stones, a
-// stone lantern, and maples and pines. Everything is authored, in the
-// plot's own u/v, so it turns with the camera and never shifts.
-const JG_GRAVEL = { u0: 0.08, v0: 0.08, u1: 0.56, v1: 0.5 };
+// drawn as a small Grand Quad; redrawn denser in 72M, after a picture the
+// owner chose): grass, a koi pond with lily pads under a red bridge, a
+// vermilion torii over a path of stepping stones, a small temple hall,
+// cherry trees in blossom with their petals on the grass and the water,
+// azaleas, pines, rocks round the pond and a stone lantern. Everything is
+// authored in the plot's own u/v, so it turns with the camera and never
+// shifts; the petals are placed by a fixed hash, never the run's stream.
+const JG_POND = { u: 0.61, v: 0.6, ru: 0.19, rv: 0.27 };
 const JG_ROCKS: Array<[u: number, v: number, size: number, height: number]> = [
-  [0.24, 0.22, 0.045, 11], [0.44, 0.3, 0.035, 8], [0.3, 0.4, 0.025, 6],
+  [0.44, 0.36, 0.03, 7], [0.8, 0.42, 0.035, 8], [0.8, 0.82, 0.028, 6], [0.44, 0.84, 0.025, 5], [0.86, 0.7, 0.022, 5],
+  [0.38, 0.52, 0.02, 4], [0.84, 0.52, 0.02, 4],
 ];
-const JG_POND = { u: 0.66, v: 0.66, r: 0.2 };
-const JG_STEPS: Array<[number, number]> = [[0.12, 0.62], [0.2, 0.68], [0.28, 0.73], [0.37, 0.76], [0.44, 0.8]];
+const JG_STEPS: Array<[number, number]> = [[0.04, 0.6], [0.1, 0.61], [0.17, 0.6], [0.24, 0.61], [0.3, 0.6], [0.36, 0.6], [0.88, 0.61], [0.94, 0.6]];
+const JG_TORII = { u: 0.17, v0: 0.49, v1: 0.71 };
+const JG_TEMPLE = { u: 0.2, v: 0.18, half: 0.1 };
+const JG_BRIDGE = { a: { u: 0.38, v: 0.6 }, b: { u: 0.85, v: 0.6 } };
+// Cherry trees (ornamental and canopy, pink in styles.css's jg-sakura) and
+// pines.
 const JG_TREES: QuadPlanting[] = [
-  [0.86, 0.14, 'ornamental', 0.95], [0.68, 0.2, 'conifer', 0.85],
-  [0.12, 0.88, 'ornamental', 0.8], [0.9, 0.9, 'conifer', 0.9],
+  [0.44, 0.1, 'canopy', 0.85], [0.66, 0.16, 'ornamental', 1.05], [0.88, 0.1, 'canopy', 0.8],
+  [0.92, 0.34, 'ornamental', 0.9], [0.06, 0.8, 'canopy', 0.8], [0.18, 0.92, 'ornamental', 0.85],
+  [0.94, 0.94, 'ornamental', 0.75], [0.06, 0.28, 'ornamental', 0.7], [0.76, 0.26, 'ornamental', 0.55],
+  [0.96, 0.5, 'ornamental', 0.6], [0.62, 0.96, 'canopy', 0.7], [0.36, 0.96, 'ornamental', 0.6],
+  [0.36, 0.26, 'conifer', 0.7], [0.3, 0.84, 'conifer', 0.65], [0.96, 0.74, 'conifer', 0.6],
 ];
+// Azaleas: low mounds, magenta and pink, and a few clipped green ones.
+const JG_SHRUBS: Array<[u: number, v: number, r: number, tone: 'pink' | 'magenta' | 'green']> = [
+  [0.36, 0.4, 0.035, 'magenta'], [0.54, 0.28, 0.03, 'pink'], [0.9, 0.82, 0.03, 'green'], [0.7, 0.92, 0.03, 'magenta'],
+  [0.24, 0.76, 0.032, 'green'], [0.1, 0.4, 0.028, 'pink'], [0.48, 0.92, 0.026, 'pink'], [0.3, 0.08, 0.03, 'green'],
+  [0.08, 0.7, 0.026, 'magenta'], [0.9, 0.4, 0.028, 'pink'], [0.6, 0.12, 0.026, 'magenta'],
+];
+const JG_LILIES: Array<[u: number, v: number, r: number, flower: boolean]> = [
+  [0.62, 0.46, 0.03, true], [0.7, 0.72, 0.022, false], [0.52, 0.74, 0.026, false], [0.64, 0.8, 0.028, true], [0.54, 0.4, 0.02, false],
+];
+const JG_LANTERN = { u: 0.3, v: 0.47 };
+
+// A fixed, stream-free hash in [0, 1), for the petals.
+function jgHash(i: number, k: number): number {
+  const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
 
 // The pond's edge: a circle bent by two harmonics, so it reads as dug by hand.
 function pondOutline(col: number, row: number, w: number, h: number, grow = 0): Pt[] {
   const out: Pt[] = [];
   for (let i = 0; i < 40; i++) {
     const a = (i / 40) * Math.PI * 2;
-    const r = (JG_POND.r + grow) * (1 + 0.16 * Math.sin(2 * a + 0.7) + 0.08 * Math.cos(3 * a));
-    out.push(project(col + w * (JG_POND.u + r * Math.cos(a)), row + h * (JG_POND.v + r * 0.85 * Math.sin(a))));
+    const bend = 1 + 0.1 * Math.sin(2 * a + 0.7) + 0.06 * Math.cos(3 * a);
+    out.push(project(col + w * (JG_POND.u + (JG_POND.ru + grow) * bend * Math.cos(a)), row + h * (JG_POND.v + (JG_POND.rv + grow) * bend * Math.sin(a))));
   }
   return out;
 }
 
 function JapaneseGarden({ col, row, w, h }: GroundProps) {
-  const { u0, v0, u1, v1 } = JG_GRAVEL;
-  const rakes = [];
-  for (let v = v0 + 0.025; v < v1; v += 0.03) {
-    rakes.push(<line key={`r${v.toFixed(3)}`} className="ground-rake" {...uvLine(col, row, w, h, u0 + 0.01, v, u1 - 0.01, v)} />);
-  }
-  const rings = JG_ROCKS.flatMap(([u, v, size], i) => [1.8, 2.6].map((k) => (
-    <polygon key={`ring${i}-${k}`} className="ground-rake-ring" points={polyPoints(projectedCircle(col + w * u, row + h * v, Math.min(w, h) * size * k, 28))} />
-  )));
+  const k = Math.min(w, h);
+  const disc = (u: number, v: number, r: number, n = 10) => polyPoints(projectedCircle(col + w * u, row + h * v, k * r, n));
+  // Petals: most under the cherries' side of the garden, a few on the water.
+  const petals = Array.from({ length: 70 }, (_, i) => ({ u: 0.03 + jgHash(i, 1) * 0.94, v: 0.03 + jgHash(i, 2) * 0.94, i }));
   return (
     <>
-      <polygon className="ground-moss" points={uvPoly(col, row, w, h, [[0, 0], [1, 0], [1, 1], [0, 1]])} />
-      <polygon className="ground-gravel" points={uvPoly(col, row, w, h, [[u0, v0], [u1, v0], [u1, v1], [u0, v1]])} />
-      {rakes}
-      {/* The rings round each stone lie over the straight rake, as a rake would leave them. */}
-      {JG_ROCKS.map(([u, v, size], i) => (
-        <polygon key={`clear${i}`} className="ground-gravel" points={polyPoints(projectedCircle(col + w * u, row + h * v, Math.min(w, h) * size * 2.9, 28))} />
+      <polygon className="ground-garden-grass" points={uvPoly(col, row, w, h, [[0, 0], [1, 0], [1, 1], [0, 1]])} />
+      <polygon className="ground-moss" points={polyPoints(pondOutline(col, row, w, h, 0.07))} />
+      {JG_STEPS.map(([u, v], i) => (
+        <polygon key={`step${i}`} className="ground-step-stone" points={disc(u, v, 0.028)} />
       ))}
-      {rings}
       <polygon className="ground-pond-edge" points={polyPoints(pondOutline(col, row, w, h, 0.02))} />
       <polygon className="ground-water" points={polyPoints(pondOutline(col, row, w, h))} />
-      {[[0.6, 0.72, 0], [0.72, 0.58, 1], [0.7, 0.76, 2]].map(([u, v, i]) => (
+      {[[0.54, 0.5, 0], [0.68, 0.68, 1], [0.62, 0.38, 2]].map(([u, v, i]) => (
         <polygon key={`koi${i}`} className={i === 1 ? 'ground-koi-white' : 'ground-koi'}
-          points={polyPoints(projectedCircle(col + w * u, row + h * v, Math.min(w, h) * 0.018, 10).map((p, k) => (k % 2 ? p : { x: p.x + 1.2, y: p.y })))} />
+          points={polyPoints(projectedCircle(col + w * u, row + h * v, k * 0.016, 10).map((p, j) => (j % 2 ? p : { x: p.x + 1.2, y: p.y })))} />
       ))}
-      {JG_STEPS.map(([u, v], i) => (
-        <polygon key={`step${i}`} className="ground-step-stone" points={polyPoints(projectedCircle(col + w * u, row + h * v, Math.min(w, h) * 0.032, 10))} />
+      {JG_LILIES.map(([u, v, r, flower], i) => (
+        <g key={`lily${i}`}>
+          {/* A pad with its notch: a disc missing one wedge. */}
+          <polygon className="ground-lily" points={polyPoints(projectedCircle(col + w * u, row + h * v, k * r, 16).slice(2).concat([project(col + w * u, row + h * v)]))} />
+          {flower && <polygon className="ground-lily-flower" points={disc(u + 0.004, v - 0.004, r * 0.35, 8)} />}
+        </g>
+      ))}
+      {petals.map(({ u, v, i }) => (
+        <polygon key={`petal${i}`} className={i % 3 === 0 ? 'ground-petal-light' : 'ground-petal'} points={disc(u, v, 0.0045, 5)} />
       ))}
     </>
   );
@@ -1249,12 +1276,12 @@ function GardenLantern({ cc, cr }: { cc: number; cr: number }) {
   );
 }
 
-// The bridge: a red arched deck across the pond's narrow, with a rail each
-// side, drawn as a strip of lifted points.
+// The bridge: a red arched deck across the pond, with a rail each side,
+// drawn as a strip of lifted points.
 function GardenBridge({ col, row, w, h }: GroundProps) {
-  const a = { u: 0.5, v: 0.72 }; const b = { u: 0.8, v: 0.58 };
+  const { a, b } = JG_BRIDGE;
   const half = 0.035;
-  const RISE = 9;
+  const RISE = 10;
   const n = 12;
   // Across the deck: perpendicular to its run, in u/v.
   const du = b.u - a.u; const dv = b.v - a.v;
@@ -1266,47 +1293,266 @@ function GardenBridge({ col, row, w, h }: GroundProps) {
   });
   const near = edge(1); const far = edge(-1);
   const rail = (side: number) => `M ${edge(side, 5).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')}`;
+  // Posts along each rail.
+  const posts = [0, 3, 6, 9, 12].flatMap((i) => [1, -1].map((side) => {
+    const p = edge(side)[i]; const q = edge(side, 5)[i];
+    return <line key={`post${i}${side}`} className="ground-bridge-rail" x1={p.x} y1={p.y} x2={q.x} y2={q.y} />;
+  }));
   return (
     <>
       <polygon className="ground-bridge" points={polyPoints([...near, ...far.reverse()])} />
+      {posts}
       <path className="ground-bridge-rail" d={rail(-1)} />
       <path className="ground-bridge-rail" d={rail(1)} />
     </>
   );
 }
 
+// A box standing on the grid, its three visible faces in one class family.
+function JgBox({ c0, r0, cw, rh, base, height, cls }: { c0: number; r0: number; cw: number; rh: number; base: number; height: number; cls: string }) {
+  const f = boxFaces(c0, r0, cw, rh, base, height);
+  return (
+    <>
+      <polygon className={`${cls}-left`} points={polyPoints(f.left)} />
+      <polygon className={`${cls}-right`} points={polyPoints(f.right)} />
+      <polygon className={`${cls}-top`} points={polyPoints(f.top)} />
+    </>
+  );
+}
+
+// The torii: two vermilion posts across the path, the tie beam (nuki)
+// between them, and the black-capped lintel (kasagi) running past both.
+function GardenTorii({ col, row, w, h }: GroundProps) {
+  const { u, v0, v1 } = JG_TORII;
+  const c = col + w * u;
+  const post = 0.07;
+  const r0 = row + h * v0; const r1 = row + h * v1;
+  const over = 0.16;
+  return (
+    <>
+      <JgBox c0={c - post} r0={r0 - post} cw={post * 2} rh={post * 2} base={0} height={24} cls="jg-torii" />
+      <JgBox c0={c - post} r0={r1 - post} cw={post * 2} rh={post * 2} base={0} height={24} cls="jg-torii" />
+      <JgBox c0={c - 0.04} r0={r0 - 0.04} cw={0.08} rh={r1 - r0 + 0.08} base={18} height={2} cls="jg-torii" />
+      <JgBox c0={c - 0.07} r0={r0 - over} cw={0.14} rh={r1 - r0 + over * 2} base={24} height={2.5} cls="jg-torii" />
+      <JgBox c0={c - 0.08} r0={r0 - over - 0.04} cw={0.16} rh={r1 - r0 + (over + 0.04) * 2} base={26.5} height={1.8} cls="jg-kasagi" />
+    </>
+  );
+}
+
+// The temple hall: a stone platform, vermilion walls, and a pyramid roof of
+// dark tiles (hōgyō-zukuri, the small square hall's roof) with a finial.
+function GardenTemple({ col, row, w, h }: GroundProps) {
+  const { u, v, half } = JG_TEMPLE;
+  const cc = col + w * u; const cr = row + h * v;
+  const k = Math.min(w, h) * half;
+  const WALL = 15; const PLINTH = 3; const PEAK = 12; const OVER = 0.16;
+  const eaves = boxFaces(cc - k - OVER, cr - k - OVER, (k + OVER) * 2, (k + OVER) * 2, PLINTH + WALL, 0);
+  const apex = lift(project(cc, cr), PLINTH + WALL + PEAK);
+  // The eaves' corners in camera order (A at the back, C at the front):
+  // the two back faces first, the two front faces over them.
+  const face = (p: Pt, q: Pt, cls: string) => <polygon className={cls} points={polyPoints([p, q, apex])} />;
+  return (
+    <>
+      <JgBox c0={cc - k - 0.12} r0={cr - k - 0.12} cw={(k + 0.12) * 2} rh={(k + 0.12) * 2} base={0} height={PLINTH} cls="ground-plinth" />
+      <JgBox c0={cc - k} r0={cr - k} cw={k * 2} rh={k * 2} base={PLINTH} height={WALL} cls="jg-hall" />
+      {face(eaves.A, eaves.B, 'jg-roof-back')}
+      {face(eaves.D, eaves.A, 'jg-roof-back')}
+      {face(eaves.D, eaves.C, 'jg-roof-left')}
+      {face(eaves.C, eaves.B, 'jg-roof-right')}
+      <polygon className="jg-finial" points={polyPoints(projectedCircle(cc, cr, 0.06, 8).map((p) => lift(p, PLINTH + WALL + PEAK + 2)))} />
+    </>
+  );
+}
+
+// An azalea: a low mound, darker below, lighter on top.
+function GardenShrub({ cc, cr, r, tone }: { cc: number; cr: number; r: number; tone: string }) {
+  const ring = (rr: number, up: number) => polyPoints(projectedCircle(cc, cr, rr, 14).map((p) => lift(p, up)));
+  return (
+    <>
+      <polygon className={`jg-shrub-${tone}`} points={ring(r, 0)} />
+      <polygon className={`jg-shrub-${tone}`} points={ring(r * 0.95, 2.5)} />
+      <polygon className={`jg-shrub-${tone}-top`} points={ring(r * 0.62, 4)} />
+    </>
+  );
+}
+
 function japaneseGardenProps(col: number, row: number, w: number, h: number): GroundProp[] {
+  const k = Math.min(w, h);
   const at = (u: number, v: number) => ({ col: col + w * u - 0.5, row: row + h * v - 0.5, w: 1, h: 1 });
   return [
     ...JG_ROCKS.map(([u, v, size, height], i) => ({
       key: `rock-${i}`,
-      ...aroundPoint(col + w * u, row + h * v, Math.min(w, h) * size),
+      ...aroundPoint(col + w * u, row + h * v, k * size),
       node: <GardenRock col={col} row={row} w={w} h={h} u={u} v={v} size={size} height={height} />,
     })),
-    { key: 'lantern', ...aroundPoint(col + w * 0.44, row + h * 0.58, 0.25), node: <GardenLantern cc={col + w * 0.44} cr={row + h * 0.58} /> },
-    { key: 'bridge', col: col + w * 0.5, row: row + h * 0.55, w: w * 0.3, h: h * 0.2, node: <GardenBridge col={col} row={row} w={w} h={h} /> },
+    ...JG_SHRUBS.map(([u, v, r, tone], i) => ({
+      key: `shrub-${i}`,
+      ...aroundPoint(col + w * u, row + h * v, k * r),
+      node: <GardenShrub cc={col + w * u} cr={row + h * v} r={k * r} tone={tone} />,
+    })),
+    { key: 'lantern', ...aroundPoint(col + w * JG_LANTERN.u, row + h * JG_LANTERN.v, 0.25), node: <GardenLantern cc={col + w * JG_LANTERN.u} cr={row + h * JG_LANTERN.v} /> },
+    {
+      key: 'bridge',
+      col: col + w * Math.min(JG_BRIDGE.a.u, JG_BRIDGE.b.u), row: row + h * Math.min(JG_BRIDGE.a.v, JG_BRIDGE.b.v),
+      w: w * Math.abs(JG_BRIDGE.b.u - JG_BRIDGE.a.u), h: h * Math.abs(JG_BRIDGE.b.v - JG_BRIDGE.a.v),
+      node: <GardenBridge col={col} row={row} w={w} h={h} />,
+    },
+    {
+      key: 'torii',
+      col: col + w * JG_TORII.u - 0.1, row: row + h * JG_TORII.v0 - 0.2, w: 0.2, h: h * (JG_TORII.v1 - JG_TORII.v0) + 0.4,
+      node: <GardenTorii col={col} row={row} w={w} h={h} />,
+    },
+    {
+      key: 'temple',
+      ...aroundPoint(col + w * JG_TEMPLE.u, row + h * JG_TEMPLE.v, k * JG_TEMPLE.half + 0.3),
+      node: <GardenTemple col={col} row={row} w={w} h={h} />,
+    },
     ...JG_TREES.map(([u, v, species, size], i) => ({
       key: `tree-${i}`,
       ...at(u, v),
-      // The ornamentals are maples, in their autumn red (styles.css).
-      node: <g className="jg-maple"><TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} shadow={false} /></g>,
+      // The broadleaves are cherries in blossom (styles.css's jg-sakura).
+      node: <g className="jg-sakura"><TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} shadow={false} /></g>,
       tree: { col: col + w * u, row: row + h * v, species, scale: size },
       shadows: [treeShadow(col + w * u, row + h * v, species, size)],
     })),
   ];
 }
 
-// The amenities that stand on open ground (Plan 26): the statue is the
-// quad's monument and the fountain the Grand Quad's, each drawn at the size
-// of its own plot; the garden is the Japanese garden above.
+// The amenities that stand on open ground (Plan 26). Each has its own
+// drawing (Plan 72M): they used to reuse the quads' centerpieces, the
+// statue the tier-1 quad's column and the fountain the Grand Quad's pool.
 function amenityProps(id: string | undefined, col: number, row: number, w: number, h: number): GroundProp[] {
   if (id === 'AMENITY-GARDEN') return japaneseGardenProps(col, row, w, h);
-  // Scaled so the centerpiece fills its plot rather than a quad's middle.
-  const k = id === 'AMENITY-STATUE' ? 3.2 : 2.2;
   const cc = col + w / 2; const cr = row + h / 2;
-  const plot = { col: cc - (w * k) / 2, row: cr - (h * k) / 2, w: w * k, h: h * k };
-  const node = id === 'AMENITY-STATUE' ? <Monument {...plot} /> : <Fountain {...plot} />;
-  return [{ key: 'centre', col, row, w, h, node }];
+  if (id === 'AMENITY-STATUE') {
+    return [{ key: 'statue', ...aroundPoint(cc, cr, Math.min(w, h) * 0.24), node: <FoundersStatue col={col} row={row} w={w} h={h} /> }];
+  }
+  return [{ key: 'fountain', ...aroundPoint(cc, cr, Math.min(w, h) * 0.42), node: <TieredFountain col={col} row={row} w={w} h={h} /> }];
+}
+
+// A mass of stone standing on the ground, lit like a building's faces.
+function StoneBox({ cc, cr, half, base, height, cls }: { cc: number; cr: number; half: number; base: number; height: number; cls: string }) {
+  const f = boxFaces(cc - half, cr - half, half * 2, half * 2, base, height);
+  return (
+    <>
+      <polygon className={`${cls}-left`} points={polyPoints(f.left)} />
+      <polygon className={`${cls}-right`} points={polyPoints(f.right)} />
+      <polygon className={`${cls}-top`} points={polyPoints(f.top)} />
+    </>
+  );
+}
+
+// The Founder's Statue's ground: a lawn crossed by two paved walks, a paved
+// square round the plinth.
+function StatueGround({ col, row, w, h }: GroundProps) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const walk = Math.min(w, h) * 0.09;
+  const pave = Math.min(w, h) * 0.3;
+  return (
+    <>
+      <polygon className="ground-lawn" points={polyPoints(boxFaces(col + 0.05, row + 0.05, w - 0.1, h - 0.1, 0, 0).top)} />
+      <polygon className="ground-statue-walk" points={polyPoints(boxFaces(cc - walk, row + 0.05, walk * 2, h - 0.1, 0, 0).top)} />
+      <polygon className="ground-statue-walk" points={polyPoints(boxFaces(col + 0.05, cr - walk, w - 0.1, walk * 2, 0, 0).top)} />
+      <polygon className="ground-statue-walk" points={polyPoints(boxFaces(cc - pave, cr - pave, pave * 2, pave * 2, 0, 0).top)} />
+    </>
+  );
+}
+
+// The founder in bronze: a stepped stone plinth, and on it a standing
+// figure in a long coat, a book in hand. The
+// plinth turns with the camera; the figure, like a tree's crown, is drawn
+// in screen space and faces the viewer from every side.
+function FoundersStatue({ col, row, w, h }: GroundProps) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const k = Math.min(w, h) / 2;
+  const top = 17; // the plinth's top
+  const c = lift(project(cc, cr), top);
+  // The figure's own units, half again a walker's height: a little larger
+  // than life.
+  const F = 1.45;
+  const at = (dx: number, dy: number) => ({ x: c.x + dx * F, y: c.y - dy * F * heightScale() });
+  return (
+    <>
+      <StoneBox cc={cc} cr={cr} half={0.34 * k} base={0} height={3} cls="ground-plinth" />
+      <StoneBox cc={cc} cr={cr} half={0.24 * k} base={3} height={12} cls="ground-plinth" />
+      <StoneBox cc={cc} cr={cr} half={0.28 * k} base={15} height={2} cls="ground-plinth" />
+      {/* Legs, then the coat (wider at the hem), the far arm, the head,
+          and the near arm at the side with a book in the hand. Both arms
+          stay down: a raised arm read as a salute. */}
+      <polygon className="ground-bronze-dark" points={polyPoints([at(-2.2, 0), at(-0.4, 0), at(-0.6, 8), at(-2, 8)])} />
+      <polygon className="ground-bronze-dark" points={polyPoints([at(0.4, 0), at(2.2, 0), at(2, 8), at(0.6, 8)])} />
+      <polygon className="ground-bronze" points={polyPoints([at(-3.6, 5), at(3.6, 5), at(2.6, 17), at(-2.6, 17)])} />
+      <polygon className="ground-bronze-dark" points={polyPoints([at(-2.6, 16.5), at(-3.6, 16), at(-4.4, 9), at(-3.2, 9)])} />
+      <polygon className="ground-bronze" points={polyPoints(projectedEllipse(at(0, 19.8), 1.9 * F, 2.3 * F))} />
+      <polygon className="ground-bronze-light" points={polyPoints([at(2.3, 16.6), at(3.5, 16.1), at(4.1, 10.2), at(2.9, 10.2)])} />
+      <polygon className="ground-bronze-dark" points={polyPoints([at(2.6, 11.2), at(5.2, 11.2), at(5.2, 7.2), at(2.6, 7.2)])} />
+      <polygon className="ground-bronze-light" points={polyPoints([at(2.6, 11.2), at(3.1, 11.2), at(3.1, 7.2), at(2.6, 7.2)])} />
+    </>
+  );
+}
+
+// A screen-space ellipse, for the statue's head.
+function projectedEllipse(c: Pt, rx: number, ry: number, n = 14): Pt[] {
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    return { x: c.x + Math.cos(a) * rx, y: c.y + Math.sin(a) * ry * heightScale() };
+  });
+}
+
+// The Fountain's ground: a paved round with four benches at its diagonals.
+function FountainGround({ col, row, w, h }: GroundProps) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const R = Math.min(w, h) * 0.47;
+  return <polygon className="ground-fountain-paving" points={polyPoints(projectedCircle(cc, cr, R, 40))} />;
+}
+
+// The Fountain (Plan 72M): an octagonal basin with a low stone wall, and in
+// it a two-tier fountain, a wide bowl on a pedestal and a small one above,
+// water falling from each in a veil, a finial jet on top. The Grand Quad's
+// is a round pool with one tall jet; this one is carved stone.
+function TieredFountain({ col, row, w, h }: GroundProps) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const R = Math.min(w, h) * 0.36;
+  const oct = (r: number, z: number) => polyPoints(projectedCircle(cc, cr, r, 8).map((q) => lift(q, z)));
+  const round = (r: number, z: number) => polyPoints(projectedCircle(cc, cr, r, 28).map((q) => lift(q, z)));
+  const centre = project(cc, cr);
+  const stem = (z0: number, z1: number, half0: number, half1: number) => polyPoints([
+    { x: centre.x - half0, y: lift(centre, z0).y }, { x: centre.x + half0, y: lift(centre, z0).y },
+    { x: centre.x + half1, y: lift(centre, z1).y }, { x: centre.x - half1, y: lift(centre, z1).y },
+  ]);
+  // Half a ring's width on screen, so each veil hangs from its bowl's rim.
+  const span = (r: number) => {
+    const xs = projectedCircle(cc, cr, r, 28).map((q) => q.x);
+    return (Math.max(...xs) - Math.min(...xs)) / 2;
+  };
+  const benches = [0.25, 0.75, 1.25, 1.75].map((t) => {
+    const a = t * Math.PI;
+    const r = Math.min(w, h) * 0.43;
+    return { c: cc + Math.cos(a) * r, r: cr + Math.sin(a) * r };
+  });
+  return (
+    <>
+      {benches.map((b, i) => <StoneBox key={i} cc={b.c} cr={b.r} half={0.11} base={0} height={2.5} cls="ground-bench" />)}
+      {/* The basin: its wall's outer face, the coping, then the water. */}
+      <polygon className="ground-plinth-left" points={oct(R, 0)} />
+      <polygon className="ground-fountain-kerb" points={oct(R, 3.5)} />
+      <polygon className="ground-fountain-water" points={oct(R * 0.9, 3)} />
+      <polygon className="ground-fountain-spray" points={round(R * 0.42, 4)} />
+      <polygon className="ground-plinth-right" points={stem(3, 15, 3.6, 2.4)} />
+      {/* The lower bowl, its veil falling to the basin. */}
+      <polygon className="ground-fountain-veil" points={stem(4, 15, span(R * 0.34) * 1.08, span(R * 0.34))} />
+      <polygon className="ground-plinth-left" points={round(R * 0.3, 13)} />
+      <polygon className="ground-fountain-kerb" points={round(R * 0.34, 15)} />
+      <polygon className="ground-fountain-basin" points={round(R * 0.28, 15.5)} />
+      <polygon className="ground-plinth-right" points={stem(15.5, 27, 2, 1.3)} />
+      {/* The upper bowl and its veil. */}
+      <polygon className="ground-fountain-veil" points={stem(16, 27, span(R * 0.16) * 1.1, span(R * 0.16))} />
+      <polygon className="ground-plinth-left" points={round(R * 0.14, 25.5)} />
+      <polygon className="ground-fountain-kerb" points={round(R * 0.16, 27)} />
+      <polygon className="ground-fountain-basin" points={round(R * 0.12, 27.5)} />
+      <polygon className="ground-fountain-jet" points={stem(27.5, 37, 1.3, 0.45)} />
+    </>
+  );
 }
 
 // The tier-1 quad's centerpiece: a paved roundel, a stepped plinth and a
@@ -1581,8 +1827,8 @@ export function GroundSite({ col, row, w, h }: GroundProps) {
 // StadiumField below, drawn by the bowl motif inside its stands.
 export default function GroundMarking({ facilityType, col, row, w, h, tier, developing, id }: GroundProps & {
   facilityType?: FacilityType;
-  // Which amenity (Plan 26): the statue and the fountain stand on paving,
-  // the garden is a small formal green.
+  // Which amenity (Plan 26): the statue, the fountain and the Japanese
+  // garden each have their own ground (Plan 72).
   id?: string;
   // Only the quad has tiers, and its two are different places.
   tier?: number;
@@ -1598,7 +1844,8 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
     case 'quad': return <Quad col={col} row={row} w={w} h={h} tier={tier ?? 1} />;
     case 'amenity':
       if (id === 'AMENITY-GARDEN') return <JapaneseGarden col={col} row={row} w={w} h={h} />;
-      return <polygon className="ground-apron" points={polyPoints(boxFaces(col + 0.1, row + 0.1, w - 0.2, h - 0.2, 0, 0).top)} />;
+      if (id === 'AMENITY-STATUE') return <StatueGround col={col} row={row} w={w} h={h} />;
+      return <FountainGround col={col} row={row} w={w} h={h} />;
     default:
       return <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />;
   }
