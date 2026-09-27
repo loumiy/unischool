@@ -278,6 +278,27 @@ scorecard they move.
 - **Balance:** the harness players still finish #1; measured and written
   down.
 
+**As implemented** (PR I):
+- `rivalsSystem.ts`: `CONTEST_YEARS = 15` and `CONTEST_SLIP = 3`.
+  `standingContested(s)` holds after year 35 when the college's standing is
+  more than three points below its best (`bestStanding`, the highest in
+  its history, so no new state and no save change). While it holds, the
+  elite band chases the best less the slip, not today's standing, and the
+  no-leapfrog cap is off; once the college climbs back within the slip,
+  the old rules return. The rival's draw is untouched, so the stream reads
+  the same.
+- The loss is news already: the rank toast says *Down to #N in the
+  rankings* with its sound (`Toasts.tsx`), and the Standing beat names the
+  rival that passed. Nothing new was needed.
+- `docs/design/progression.md` gains the rule under *The top has to be
+  held*.
+- **Balance** (`npm run sim`, re-recorded): every player finishes where it
+  did (Completionist and Guided #1 at year 50); the one move is Guided's
+  year-50 satisfaction, +2.3.
+- **Checks:** `test/first-place.test.ts` (late and six points below its
+  best, a leader is passed within eight years; within the slip, or the
+  same slip before the last fifteen years, it keeps first place).
+
 ## PR 72J — The scorecard
 
 - The high-price line's year 10–30 targets are reset to what that line now
