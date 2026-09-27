@@ -42,27 +42,27 @@ interface DormRung {
 const DORM_RUNGS: DormRung[] = [
   // --- Early halls: 500 beds. Each rung is one of v2's residence types
   // (Plan 72D; buildingSpec.ts's RESIDENCE_FORMS draws it) ---
-  { id: 'DORM-02', name: 'Lakeside House', beds: 500, cost: 3_500_000, weeks: 21, blurb: 'A house of staircases rather than corridors, with a tutor on the ground floor of each. First-years ask for these by name.' },
+  { id: 'DORM-02', name: 'Lakeside House', beds: 500, cost: 3_500_000, weeks: 21, blurb: 'A house of entryways rather than corridors, with an RA on the first floor of each. Freshmen ask for these by name.' },
   { id: 'DORM-03', name: 'Riverside House', beds: 500, cost: 4_500_000, weeks: 21, blurb: 'A residence hall: four stories of ranked windows and balconies under one long roof.' },
-  { id: 'DORM-04', name: 'Hillcrest House', beds: 500, cost: 5_500_000, weeks: 22, blurb: 'Suites behind a proper front door: quieter than the halls, with a kitchen to each floor and a common room nobody books.' },
-  { id: 'DORM-05', name: 'Cascade House', beds: 500, cost: 6_500_000, weeks: 22, blurb: 'An apartment block, flat-roofed and balconied: kitchens and a lock on every door, housing for the upper years.' },
+  { id: 'DORM-04', name: 'Hillcrest House', beds: 500, cost: 5_500_000, weeks: 22, blurb: 'Suites behind a real front door: quieter than the halls, with a kitchenette to each floor and a lounge nobody books.' },
+  { id: 'DORM-05', name: 'Cascade House', beds: 500, cost: 6_500_000, weeks: 22, blurb: 'An apartment building, flat-roofed and balconied: kitchens and a lock on every door, the kind of housing upperclassmen ask for.' },
 
   // --- Mid-game halls: 1,000 beds, on more ground and several stories taller,
   // again one type each ---
-  { id: 'DORM-06', name: 'Summit House', beds: 1_000, cost: 14_000_000, weeks: 29, blurb: 'A residential college: a thousand beds round one formal front door, built in the stone the college keeps for its best. The old answer to everything, at the old price.' },
-  { id: 'DORM-07', name: 'Vanguard House', beds: 1_000, cost: 16_000_000, weeks: 29, blurb: 'A six-story apartment block with a balcony to every other flat, and the end of the dining hall\'s hold on the upper years.' },
+  { id: 'DORM-06', name: 'Summit House', beds: 1_000, cost: 14_000_000, weeks: 29, blurb: 'A residential college: a thousand beds around one formal front door, built in the stone the college keeps for its best. The old answer to everything, at the old price.' },
+  { id: 'DORM-07', name: 'Vanguard House', beds: 1_000, cost: 16_000_000, weeks: 29, blurb: 'A six-story apartment building with a balcony to every other apartment.' },
   { id: 'DORM-08', name: 'Sterling House', beds: 1_000, cost: 18_000_000, weeks: 30, blurb: 'A high-rise residence hall: twice the beds on more ground, six stories of ranked windows and balconies.' },
-  { id: 'DORM-09', name: 'Crestline House', beds: 1_000, cost: 20_000_000, weeks: 30, blurb: 'Six stories of suites behind a formal door: the residence the college shows visitors, and the one the seniors choose.' },
+  { id: 'DORM-09', name: 'Crestline House', beds: 1_000, cost: 20_000_000, weeks: 30, blurb: 'Six stories of suites behind a formal door: the residence seniors ask for.' },
 
   // --- Villages: one large plot, many small residences around a shared green ---
   { id: 'DORM-10', name: 'Overlook Village', beds: 1_500, cost: 40_000_000, weeks: 42, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
-  { id: 'DORM-11', name: 'Ridgeline Village', beds: 1_500, cost: 46_000_000, weeks: 42, blurb: 'A residential village: a dozen small houses around a shared green, on one large plot.' },
+  { id: 'DORM-11', name: 'Ridgeline Village', beds: 1_500, cost: 46_000_000, weeks: 42, blurb: 'A residential village in brick: a dozen houses and a common house around a shared green, on one large plot.' },
 
   // --- Residential towers: the late-game rung, with retail at street level ---
   { id: 'DORM-12', name: 'Meridian Tower', beds: 5_000, cost: 200_000_000, weeks: 52, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
-  { id: 'DORM-13', name: 'Beacon Tower', beds: 5_000, cost: 250_000_000, weeks: 52, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
-  { id: 'DORM-14', name: 'Horizon Tower', beds: 5_000, cost: 300_000_000, weeks: 57, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
-  { id: 'DORM-15', name: 'Aurora Tower', beds: 5_000, cost: 360_000_000, weeks: 57, blurb: 'A residential tower with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
+  { id: 'DORM-13', name: 'Beacon Tower', beds: 5_000, cost: 250_000_000, weeks: 52, blurb: 'A residential tower lit at the top, with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
+  { id: 'DORM-14', name: 'Horizon Tower', beds: 5_000, cost: 300_000_000, weeks: 57, blurb: 'A residential tower with a roof terrace, and shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
+  { id: 'DORM-15', name: 'Aurora Tower', beds: 5_000, cost: 360_000_000, weeks: 57, blurb: 'The tallest residential tower on campus, under a glass crown, with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
 ];
 
 // Priced at the grocery rate (facilitiesData.ts's

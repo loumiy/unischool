@@ -225,6 +225,103 @@ seats, the ladder, the figure hints and the help hints.*
   - no letter names a price or a week count that its Buildable
     contradicts.
 
+**As implemented (#TBD):**
+- **Effects:**
+  - The summer applies the attrition teeth through the preview's own
+    `summerAttrition`, passed the year's average it has already read
+    (G7-4).
+  - The Jock School's six points moved from the department total into
+    `teamQuality`, so every team plays them, and the department total
+    reads them through the teams.
+  - The Final Report reads athletic strength on its own 0–100 scale
+    (G7-5).
+  - Renovations, stories and library floors take the building fund
+    first and cash for the rest (`treasury.ts`'s `payForWorks`). The
+    Restoration campaign can now do what it says, and the Library
+    campaign's "wing" became a new floor, which the fund can pay for.
+    Venue expansions stay cash only.
+  - The alumni "deficits" memory reads years the board's scale reached
+    Deficit, not years cash fell. Building or sweeping a surplus no
+    longer counts as bad news, and the clause reads "there for the lean
+    years".
+  - The Artsy tag's club test also reads jazz, orchestra, a cappella,
+    drama, improv, ceramics, band and ballroom.
+  - "Out of the hole" no longer also needs board confidence of 70, which
+    no text stated.
+  - "Turning people away" is offered below a 50% admit rate, so "admits
+    most of those who apply" is true.
+- **Promises:**
+  - An open promise keeps the price scale of the summer it was made, in
+    an optional `scale` on its record. No version bump: the field is
+    additive, and a promise made before it reads the live scale.
+  - Its sums are judged at that scale and printed at it: `{sum}` in the
+    four money titles and their lines.
+  - `{years}` fills the four terms that were typed as "a decade" or
+    "fifteen years".
+- **Words filled in from the code:**
+  - "A hall of its own" reads the hall's cost and weeks (G7-14).
+  - Every capital project's "Opens…" sentence is built from its gates
+    (`projectOpens`), so the Research Park and Graduate College letters
+    and descriptions name Year 12 and Year 15, and the Museum its late
+    tier.
+  - The varsity petition names its weekly running cost.
+  - The chair's and the coach's pay are shown at the rate the payroll
+    charges.
+- **The Treasury** has a Student life line (clubs, chapters, teams and
+  their staff at the athletics tier), so its lines add up to Total
+  expenses.
+- **Words changed:** the false and vague rows of the first two reports,
+  as proposed, except these:
+  - The Deficit letter's "would like to see a surplus before it sees
+    another building" is kept: it states the board's wish, not a rule,
+    and the voice appendix names that letter among the best.
+  - Seat policy labels now name what the rule reads (the students' mood)
+    rather than being reweighted.
+  - The research offer card's "~0.4 publications" is left for the voice
+    pass.
+  - The dead applicant bonuses (the landmarks' 1,500 and the milestones'
+    30–60) are code with no text promising them; they are named here
+    and left.
+  - The report tags whose claimed standing their test does not read
+    (commuter, country club, pressure cooker) are left as the review
+    found them.
+- **The Final Report:**
+  - "and a very good one" became "with no glaring weakness", which is
+    what the shape tests.
+  - The Bargain's phrase is "a bargain college".
+  - The finance, experience, academics and athletics weaknesses say
+    what their standings read.
+- **Also in the strings touched:** the British words the appendices
+  list for these files: the dorm blurbs, the quirks, "prospectus", "the
+  fee", "the Bursar", "the Clerk", "table" for rankings, "Signalling"
+  and "Handover".
+- **`test/text-true.test.ts`** (15 checks):
+  - the summer's attrition matches the preview's for a Pressure Cooker
+    and a Teaching College;
+  - a Jock School team plays six points stronger;
+  - the building fund pays a renovation, and must cover it with the cash;
+  - a promise's title names the sum it is judged on, and the goal holds
+    at that scale;
+  - "A hall of its own" quotes the hall's price and weeks.
+  
+  The alumni, chronicle, figures, final-report and promises tests follow
+  the new words.
+- **`npm run review:strings`:**
+  - British spellings 38 → 37;
+  - idioms 68 → 67;
+  - second person 58 → 56;
+  - contractions 4 → 3.
+- **Balance** (`npm run sim`, re-recorded):
+  - Completionist ends year 50 at prestige 141.7 (−1.4) with $404M
+    (−$169M).
+  - Guided ends at 143.8 (+1.5).
+  - Lean's year-50 median moves most: 4,657 enrolled (−7,577), prestige
+    99.5 (−6.2). Lean's enrollment swings by thousands of students within
+    two years on either build: with only the attrition fix reverted, one
+    seed still ends year 41 at 7,114 after reaching 12,306. The median
+    records which of its three runs diverged, not a steady loss.
+  - Selective and Idle are unchanged.
+
 ## PR 76D — The events made true
 
 *A2-2, the third report: 154 events, 112 tellings, 373 choices; 66 false
@@ -419,6 +516,45 @@ claims and 107 vague ones.*
   - a check that a sentence does not restate its title;
   - a cap on "from X to Y" spans per school.
 
+**As implemented (#TBD):**
+- 132 sentences replaced:
+  - 123 of the 126 flagged rows;
+  - COMP240, the other half of the fix to the operating-systems and
+    web-development levels;
+  - POLS210, so "the Court" matches LAWS530;
+  - SPCO110, "transportation";
+  - the appendix's four copyedits (FINA101, MRKT140, ARTF120, CYBR210);
+  - GRDS101 and NURS101, two stock-phrase 101s from the appendix's
+    patterns.
+  ENGL140, ACCT230 and FINA130 keep their sentences, as the appendix says.
+- Seven titles changed, in display text only. A save picks up the new names
+  on load, so there is no schema bump.
+  - Rhetoric & Composition (ENGL140)
+  - Introduction to Aerospace Engineering (AERO101)
+  - Intermediate Financial Reporting (ACCT220)
+  - Cost Accounting (ACCT230)
+  - Intermediate Microeconomics (ECON130)
+  - Statistical Learning (ARTF140)
+  - Gerontological Nursing (NURS230)
+- Where the appendix renumbers or swaps courses, the ids stay and the
+  sentences are rewritten so each level reads right: CHEN110/130,
+  CIVE110/130, COMP130/240 and MGMT140. MATH101 and MED570 are shortened to
+  match their neighbors. These swaps and bridges go to the backlog with
+  the rest of default 5: FINA130/210, ACCT140/240, MED550/600, the JD's
+  540/570, and the ACCT110 and MATH130 bridges.
+- American spelling throughout: every "Analyses", and the -ise and -isation
+  forms, "signalling", "counselling", "post-war", "take-off" and
+  "re-tests". British spellings across the catalog fell from 38 to 5 in
+  `npm run review:strings`, none of them in the course descriptions.
+- The house test gains three checks over all 431 sentences:
+  - the event catalogue's spelling regex, plus the British forms found
+    here;
+  - a title check: a sentence keeps at least four words of its own, and
+    five when it names its whole title;
+  - "from X to Y" held to three per program and twelve per school (51
+    sentences now, 88 before).
+  Against the old file the suite fails 55 checks.
+
 ## PR 76H — Buttons, headings and the register
 
 *A2-6 and A2-8, with 2c §4.1–4.5 and §4.9.*
@@ -470,6 +606,52 @@ claims and 107 vague ones.*
 - The pennant is capped at two lines with an ellipsis.
 - **Checks:** the gallery at 390×844, at normal and at the largest text
   size.
+
+**As implemented (#TBD):**
+
+- Everything below applies at 560px wide and under (the phone rules in
+  `styles.css`), except the pennant's two-line cap, which holds at every
+  width.
+- **The dock folds.** `App.tsx` sets `dock-folded` on `.app` while a tab,
+  the Build menu, the log or the milestones popup is open. On a phone that
+  hides the tab row and the clock row. The funds figure and the four stat
+  chips stay. Each of those panels has its own close (and Escape), and
+  closing it brings the tabs and the clock back. The dock goes from 206px
+  to 85px at normal text, and from 218px to 92px at the largest.
+  `--toolbar-height` is measured, so the tab screens and popups take the
+  room without further rules. `docs/architecture/ui-shell.md` says so.
+- **The Build menu** is capped at `min(560px, 100vh − dock − 140px)` on a
+  phone instead of 340px, so the room the fold gives goes to its cards,
+  which now show whole.
+- **The Build button** no longer sits over the tabs. `Toolbar.tsx` wraps
+  Home and the tabs in `.toolbar-tab-scroll`, which is `display: contents`
+  on wider screens, so desktop is unchanged. On a phone that box scrolls
+  sideways beside Build, with a fade at its right edge to show the row
+  goes on.
+- **The cohort cards** go two to a row on a phone, with the name on top
+  and the two counts under it. Four to a row left 60px for a name, too
+  narrow for most of the eight in capitals at the largest text. This
+  replaces the plan's hyphenate-or-shorten: every name now fits whole, so
+  none is shortened. It also stops "last year" running past the card at
+  the largest text.
+- **The beat headers** put the number over the word on a phone ("2" over
+  "ADMISSIONS"), and each beat takes the width its word needs.
+- **The pennant** is clamped to two lines with an ellipsis, with the full
+  name in its `title`. The name now takes the pointer so the title shows;
+  the rest of the pennant stays inert. On a phone it sits 12px from the
+  left edge and stops 84px short of the right, clear of the menu and map
+  tools.
+- **Also from G7-12:** a tab's "Close ✕" wrapped onto two lines at the
+  largest text. It no longer wraps, and on a phone the tab's title is set
+  smaller to make room.
+- `tools/phoneCheck.mjs` closes the Build menu with the menu's own close,
+  since the Build button is folded away while the menu is open.
+- **Checked:** `npm run phone` (the launch fixture and a summer save) and
+  the gallery at 390×844, at text sizes 1 and 1.3, with no page errors.
+  Desktop at 1440×900 is unchanged apart from the pennant. `check` passes,
+  and `npm run sim` reads the same as the baseline. No player-facing words
+  changed, so `review:strings` was not rerun. Screenshots are in
+  `docs/reviews/2026-10-ui-fixes/phone-*.jpg`.
 
 ## What this plan does not do
 

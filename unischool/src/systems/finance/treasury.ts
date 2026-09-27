@@ -59,6 +59,21 @@ export function giftFunds(s: GameState): number {
   return s.advancement?.restrictedBuilding ?? 0;
 }
 
+// Works on a standing building, a renovation or a story (Plan 76C), take
+// the building money first and cash for the rest: the Restoration and
+// Library campaigns raise it for exactly this.
+export function canPayForWorks(s: GameState, cost: number): boolean {
+  return s.finance.cash >= cost - Math.min(giftFunds(s), cost);
+}
+
+export function payForWorks(s: GameState, cost: number): boolean {
+  if (!canPayForWorks(s, cost)) return false;
+  const gift = Math.min(giftFunds(s), cost);
+  if (gift > 0 && s.advancement) s.advancement.restrictedBuilding -= gift;
+  s.finance.cash -= cost - gift;
+  return true;
+}
+
 // How the map and the build popup pay for a building: gifts that cover it
 // first, then cash, then a loan for the shortfall; null when none will.
 // `can` is techSystem's canStartDevelopment, passed in to keep this module

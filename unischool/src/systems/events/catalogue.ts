@@ -144,7 +144,7 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
 
 // Money thresholds were written for v2's founding college and scale as its
 // prices do.
-const MONEY_CONDITIONS: ReadonlySet<ConditionKey> = new Set(['endowmentOver', 'endowmentUnder', 'cashOver', 'cashUnder', 'debtOver', 'debtUnder', 'deficitOver', 'backlogOver', 'backlogUnder']);
+export const MONEY_CONDITIONS: ReadonlySet<ConditionKey> = new Set(['endowmentOver', 'endowmentUnder', 'cashOver', 'cashUnder', 'debtOver', 'debtUnder', 'deficitOver', 'backlogOver', 'backlogUnder']);
 
 export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
   return whenMet(s, e.when);
@@ -152,8 +152,7 @@ export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
 
 // Any set of conditions in the catalog's vocabulary (promises read theirs
 // here too).
-export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>>): boolean {
-  const scale = priceScale(s);
+export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>>, scale = priceScale(s)): boolean {
   for (const [key, raw] of Object.entries(when) as [ConditionKey, number][]) {
     const [read, bound] = READINGS[key];
     const target = MONEY_CONDITIONS.has(key) ? raw * scale : raw;

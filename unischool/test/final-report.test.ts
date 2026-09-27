@@ -42,7 +42,7 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
 {
   assert(reportGrade(75) === 'A' && reportGrade(74.9) === 'B' && reportGrade(48) === 'C' && reportGrade(10) === 'F', 'v2\'s bands');
   const flat = gradeAxes(run(90, 90));
-  assert(flat.length === 6 && flat.every((a) => Math.abs(a.mean - 60) < 0.1 && a.first === a.last), 'a college that stood still reads the same first and last (90 of 150 is 60 of 100)');
+  assert(flat.length === 6 && flat.every((a) => Math.abs(a.mean - (a.axis === 'athletics' ? 90 : 60)) < 0.1 && a.first === a.last), 'a college that stood still reads the same first and last (90 of 150 is 60 of 100; athletics already runs to 100)');
   const climb = gradeAxes(run(30, 120));
   const coast = gradeAxes(run(120, 120));
   assert(climb[0].last > climb[0].first, 'the last decade and the first are read apart');
@@ -56,12 +56,12 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
 {
   const s = run(100, 120, { athleticStrength: [10, 20] });
   const title = composeTitle(s, gradeAxes(s));
-  assert(title.startsWith('Report') && title.includes('never won a game that mattered'), `the weakest standing is named when it lags ("${title}")`);
+  assert(title.startsWith('Report') && title.includes('never fielded a team anyone feared'), `the weakest standing is named when it lags ("${title}")`);
   s.identity = { tags: ['jock-school'], earning: {}, shedding: {} };
   const tagged = composeTitle(s, gradeAxes(s));
-  assert(tagged.includes('a jock school') && !tagged.includes('never won a game'), `never the weakness the tag itself claims ("${tagged}")`);
+  assert(tagged.includes('an athletics school') && !tagged.includes('never fielded a team'), `never the weakness the tag itself claims ("${tagged}")`);
   const good = run(120, 130);
-  assert(composeTitle(good, gradeAxes(good)).endsWith('and a very good one'), 'a college with no weak standing is a good one');
+  assert(composeTitle(good, gradeAxes(good)).endsWith('with no glaring weakness'), 'a college with no weak standing is a good one');
 }
 
 // ---- The whole report ----

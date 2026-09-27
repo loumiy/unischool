@@ -654,7 +654,10 @@ const UNDERFUNDING_PENALTY = 0.15; // a program drawing nothing runs at 85% of w
 export function teamQuality(team: VarsityTeam, s: GameState, pot?: DepartmentPot): number {
   const funded = pot ? fundedFrom(pot, team) : fundedFractionFor(s, team);
   const quality = (coachingQuality(team, s) + FUNDED_QUALITY_BONUS * funded) * (1 - UNDERFUNDING_PENALTY * (1 - funded));
-  return Math.max(0, Math.min(100, Math.round(quality)));
+  // Recruits want to play at a Jock School (an identity tag's teeth, Plan
+  // 31): every team, as the tag says, not only the department's total
+  // (Plan 76C).
+  return Math.max(0, Math.min(100, Math.round(quality) + tagTeeth(s, 'athletics')));
 }
 
 // The priority list and the pot. Programs sit in one ordered list
@@ -811,9 +814,9 @@ export function athleticProgramStrength(s: GameState): number {
   const pot = departmentPot(s);
   const avgQuality = active.reduce((sum, t) => sum + teamQuality(t, s, pot), 0) / active.length;
   const breadth = Math.min(1, athleticBreadth(s) / ATHLETIC_BREADTH_FOR_FULL_CREDIT);
-  // Recruits want to play at a Jock School (an identity tag's teeth, Plan 31).
+  // A Jock School's teeth are in every team's quality (teamQuality).
   // A project that lifts athletics lifts every program (Plan 33, estate/projects.ts); none does since Plan 50.
-  return Math.min(100, Math.round(avgQuality * (0.7 + 0.3 * breadth)) + tagTeeth(s, 'athletics') + projectLift(s, 'athletics'));
+  return Math.min(100, Math.round(avgQuality * (0.7 + 0.3 * breadth)) + projectLift(s, 'athletics'));
 }
 
 // Every empty chair on an active team, for eventData.ts's 'ad-shortage'.

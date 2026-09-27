@@ -145,6 +145,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note="libraries, dining, rec and labs, each carrying its own running cost"
               amount={flow.facilityUpkeep}
             />
+            {flow.studentLifeUpkeep > 0 && (
+              <StatementLine
+                label="Student life"
+                note={`${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} tier`}
+                amount={flow.studentLifeUpkeep}
+              />
+            )}
             {flow.athleticsSubsidy > 0 && (
               <StatementLine
                 label="Athletics subsidy"
@@ -178,7 +185,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
-          {money(annualNet)} a year at this rate. Money is the only throttle on starting anything: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so the wait for the next purchase is the pacing. Only an operating deficit can push cash negative. That never ends the run: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
+          {money(annualNet)} a year at this rate. Nothing starts until it is paid for: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so cash sets how fast the college grows. An operating deficit, or a matter left to its default, can push cash negative. A deficit never closes the college: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
         </p>
       </section>
 

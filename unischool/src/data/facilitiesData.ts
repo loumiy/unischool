@@ -1,4 +1,4 @@
-import { hostedPrograms, isGraduateHost, MEDICAL_CENTER_ID, MEDICAL_CENTER_PROJECT, PROJECTS } from './projectData';
+import { hostedPrograms, isGraduateHost, MEDICAL_CENTER_ID, MEDICAL_CENTER_PROJECT, PROJECTS, projectOpens } from './projectData';
 import type { Buildable, FacilityType } from '../state/types';
 import { FOUNDING_BODY } from './foundingData';
 import { count } from '../format';
@@ -464,7 +464,7 @@ export const GRAND_LANDMARKS: ReadonlyArray<{ id: string; name: string; descript
   {
     id: 'LANDMARK-DOME',
     name: 'The Great Dome',
-    description: 'A domed rotunda over a reading room, the kind of room people travel to stand in.',
+    description: 'A domed rotunda over a great hall, the kind of room people travel to stand in.',
   },
   {
     id: 'LANDMARK-GATE',
@@ -570,7 +570,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'recCenter',
       name: 'Recreation Center',
-      description: `Fitness and intramural space for ${count(REC_CENTER_TIER1_SERVES)} students; a small draw on its own.`,
+      description: `Recreation and intramural space for ${count(REC_CENTER_TIER1_SERVES)} students: social life, and a little prestige.`,
       cost: REC_CENTER_TIER1_COST,
       duration: REC_CENTER_TIER1_WEEKS,
       prereqs: [],
@@ -638,7 +638,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'recCenter',
       name: 'Athletics Complex',
-      description: `The chain's capstone: a varsity-grade complex adding ${count(REC_CENTER_TIER2_SERVES)} more capacity and a bigger prestige draw. Unlocks at prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}+.`,
+      description: `The last of the recreation buildings: a complex adding ${count(REC_CENTER_TIER2_SERVES)} more social capacity and a bigger prestige lift, though not a competition venue. Can be built at prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}.`,
       cost: REC_CENTER_TIER2_COST,
       duration: REC_CENTER_TIER2_WEEKS,
       prereqs: [TENNIS_COURTS_ID],
@@ -675,7 +675,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'athleticsField',
       name: 'Multi-Sport Field',
-      description: `A competition-grade outdoor field for ${count(ATHLETICS_FIELD_SERVES)} students' worth of social capacity, shared by every varsity team that plays on grass.`,
+      description: `A competition-grade outdoor field for ${count(ATHLETICS_FIELD_SERVES)} students' worth of social capacity, shared by soccer, lacrosse, field hockey, and track and field.`,
       cost: ATHLETICS_FIELD_COST,
       duration: ATHLETICS_FIELD_WEEKS,
       prereqs: [],
@@ -859,7 +859,7 @@ export function initialFacilities(): Buildable[] {
       facilityType: 'quad',
       tier: 2,
       name: 'Grand Quad & Gardens',
-      description: 'A landscaped centerpiece expansion — more flat, non-scaling social satisfaction.',
+      description: 'A landscaped centerpiece expansion: more social life, at any size.',
       cost: QUAD_TIER2_COST,
       duration: QUAD_TIER2_WEEKS,
       prereqs: [QUAD_TIER1_ID],
@@ -893,7 +893,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'project',
       name: p.name,
-      description: p.description,
+      description: `${p.description} ${projectOpens(p.project)}`,
       cost: p.cost,
       duration: p.weeks,
       prereqs: [],

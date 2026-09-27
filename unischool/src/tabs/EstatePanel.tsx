@@ -4,6 +4,7 @@ import { isPlaceableKind } from '../state/campusMap';
 import {
   MAINTENANCE_FUNDING_STEP, RENOVATION_WEEKS, canRenovate, conditionOf, maintenanceFunding, renovationCost,
 } from '../systems/estate/estate';
+import { canPayForWorks } from '../systems/finance/treasury';
 import HelpHint from '../components/HelpHint';
 import { count, money, moneyShort, pct, weeksShort } from '../format';
 import { beautyTerms } from '../systems/estate/beauty';
@@ -61,7 +62,7 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
                   <button
                     type="button"
                     className="panel-action small"
-                    disabled={!canRenovate(t) || s.finance.cash < renovationCost(t)}
+                    disabled={!canRenovate(t) || !canPayForWorks(s, renovationCost(t))}
                     onClick={() => act({ type: 'RENOVATE_BUILDING', id: t.id })}
                   >
                     Renovate · {moneyShort(renovationCost(t))} · {weeksShort(RENOVATION_WEEKS)}

@@ -1,12 +1,14 @@
 import { constructionFrozen } from '../systems/finance/distress';
 import ConfirmButton from './ConfirmButton';
 import { RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, extensionWeeks, renovationCost } from '../systems/estate/estate';
+import { canPayForWorks } from '../systems/finance/treasury';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
 import { teamQuality } from '../data/studentLifeData';
 import { attendanceFor } from '../systems/athletics/gate';
 import type { Buildable, FacilityType, GameState } from '../state/types';
+import { NEED_WORD } from '../data/needWords';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
@@ -105,13 +107,14 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
   if (ft && ATHLETICS_VENUE_TYPES.includes(ft)) return <AthleticsVenueInfo t={t} s={s} />;
   const label = ft ? FACILITY_CAPACITY_LABEL[ft] : undefined;
   if (label && t.effects?.servesPopulation !== undefined) {
-    return <p className="building-info-line">Serves {count(t.effects.servesPopulation)} {label}</p>;
+    const need = t.effects.satisfactionAttribute;
+    return <p className="building-info-line">Serves {count(t.effects.servesPopulation)} {label}{need ? ` · ${NEED_WORD[need]}` : ''}</p>;
   }
   if (ft === 'quad') {
     return (
       <p className="building-info-line">
         {t.effects?.flatSatisfactionBonus !== undefined
-          ? `+${t.effects.flatSatisfactionBonus} flat social satisfaction`
+          ? `+${t.effects.flatSatisfactionBonus} social life, at any size`
           : 'A green centerpiece for campus life.'}
         {' — no capacity figure; a quad does not scale with enrollment.'}
       </p>
@@ -518,7 +521,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
     return <p className="building-info-line">A story going up, open throughout: {t.extensionWeeks} weeks left.</p>;
   }
   const extend = canExtend(t) ? (
-    <button type="button" className="building-info-jump" disabled={s.finance.cash < extensionCost(t) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction; nothing new goes up until it lifts.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
+    <button type="button" className="building-info-jump" disabled={!canPayForWorks(s, extensionCost(t)) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction; nothing new goes up until it lifts.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
       Add a story · {moneyShort(extensionCost(t))} · {weeksShort(extensionWeeks(t))} · {count(extensionGain(t))} more {t.kind === 'dorm' ? 'beds' : 'served'}
     </button>
   ) : null;
@@ -543,7 +546,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
       <p className="building-info-line">
         Condition {pct(conditionOf(t))}, with {money(t.backlog ?? 0)} of maintenance owed.
       </p>
-      <button type="button" className="building-info-jump" disabled={!canRenovate(t) || s.finance.cash < cost} onClick={() => act({ type: 'RENOVATE_BUILDING', id: t.id })}>
+      <button type="button" className="building-info-jump" disabled={!canRenovate(t) || !canPayForWorks(s, cost)} onClick={() => act({ type: 'RENOVATE_BUILDING', id: t.id })}>
         Renovate · {moneyShort(cost)} · {weeksShort(RENOVATION_WEEKS)}
       </button>
       {historic}
