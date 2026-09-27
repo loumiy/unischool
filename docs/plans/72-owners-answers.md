@@ -225,6 +225,21 @@ scorecard they move.
   style of the labs' ring (Plan 41); gone when a bed frees. Reduced motion
   respected.
 
+**As implemented** (PR G):
+- Beds are one pool in the simulation, so which residence is full is a
+  reading (`components/residenceFill.ts`): the students who want a bed,
+  the enrolled body at the housing standard satisfaction holds the college
+  to (`expectedRatio(s, 'housing')`, 35% rising with prestige), take beds
+  in the order the residences opened, oldest first. A residence whose
+  every bed is taken is full. Short of beds, every one is; with room, the
+  newest are not; one going up holds nobody.
+- The mark is the labs' dark disc with a ring in the school's second
+  color and a bed on it, over the residence's name, with "Full: every bed
+  taken" on hover. It is still, so reduced motion has nothing to stop.
+  Nothing is stored and nothing moves in the sim.
+- **Checks:** `test/full-residence.test.ts`. The launch fixture's
+  residential quarter: `docs/reviews/2026-09-residences/full-mark.png`.
+
 ## PR 72H — Clubs with diminishing returns
 
 - The social bonus's hard cap (`STUDENT_LIFE_SOCIAL_BONUS_CAP = 30`)
