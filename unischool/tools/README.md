@@ -162,6 +162,39 @@ vernacular, each looked at, each defect tied back to the code that draws it.
 Cells include the states worth checking as well as the buildings — a rotated
 footprint, a site, a chapter house wearing its letters.
 
+### Fifty years in thirty seconds
+
+The trailer's opening shot (see `docs/reviews/2026-10-game-review/6-marketability.md`):
+one campus from its first week to year 50, the camera fixed, the interface
+gone. `timelapse.ts` plays one run and keeps a snapshot every `--every` weeks
+(13 by default, four a year); `timelapseShoot.mjs` photographs each and joins
+them into a WebM.
+
+```sh
+npm run dev                                          # in one shell
+npm run timelapse -- --name Blackmoor --colors navy-gold --out node_modules/.tmp/timelapse
+npm run timelapse:shoot -- node_modules/.tmp/timelapse --fps=8 --png
+```
+
+The frames share one plan: the run's final campus goes through `layout.ts`,
+and each frame stands the buildings the run had by then, finished or still
+a site, at their final places. That is what keeps a hall from jumping
+across the map between frames. The walks grow out from Founders Hall (each
+building gets the final network's route back to the founding buildings, so
+every walk drawn is connected), and the founding woodland is felled where
+buildings and walks arrive. `--vernacular` runs the same college in another
+set; since a seeded run replays exactly, the five time-lapses are one campus
+in five styles.
+
+The shooter takes `--zoom`, `--pan`, `--size` and `--scale` as `shot` does
+(the default framing, `--zoom=-1 --pan=60,-10` at 1920 by 1080, holds the
+year-50 campus), captions the year and term unless `--no-caption`, and keeps
+a PNG a frame with `--png` for an editor. `--from=N --to=N` retakes a range;
+the video is rebuilt from every shot on disk. The ffmpeg Playwright ships
+writes only VP8, so the result is a WebM; convert it for Steam (H.264 MP4)
+with any full ffmpeg. Two hundred frames take some fifteen minutes on four
+cores.
+
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB
 nobody asked for. Point `CHROME_PATH` at any Chromium or Chrome build; failing
