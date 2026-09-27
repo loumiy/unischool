@@ -65,8 +65,11 @@ read **live** off `s.orgs` every week rather than applied once:
   expense line, so disbanding a chapter removes its cost the same week —
   there is no total stored anywhere to leave behind;
 - it adds a **flat** contribution to the `social` satisfaction attribute
-  (the same non-population-scaling shape the quad's bonus has), capped in
-  aggregate so student life can never carry the attribute on its own.
+  (the same non-population-scaling shape the quad's bonus has), shared in
+  aggregate on a curve so student life can never carry the attribute on its
+  own: the first 20 points count in full and each point past them less
+  than the one before, toward 40 (Plan 72H; until then a hard cap at 30,
+  past which a new club counted for nothing).
 
 Both key off *"an organisation exists"*, flat per org — **never off member
 count**. Membership is display-and-flavour only: it is *derived* from three
@@ -370,7 +373,7 @@ above may lose its head coach on the reorder. `'awaitingVenue'` teams sit out
 of the queue. The tier still scales the department's social contribution and
 staff upkeep, as it always did.
 
-**Where athletics reaches now.** Satisfaction, through the same capped social
+**Where athletics reaches now.** Satisfaction, through the same shared social
 contribution clubs and Greek life use. **Campus-life standing**, one of the
 three the school is ranked on (see [progression.md](progression.md)'s "Three
 standings"), through the venues, the programs and the titles — and through
