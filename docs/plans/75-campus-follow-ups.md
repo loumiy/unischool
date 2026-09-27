@@ -151,7 +151,7 @@ C lands last, so the gallery shows A's and B's drawings.
   rows and assets in columns, and an index page that lists each image and
   what it shows.
 
-**As implemented (#TBD).**
+**As implemented (#219).**
 
 - `unischool/tools/assetGallery.mjs` (`npm run gallery:assets`) works in
   three steps:
