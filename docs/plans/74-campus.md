@@ -440,7 +440,7 @@ so it can be dropped without touching the rest.
 - **Checks:** the season at each week is tested; screenshots of one campus
   through a year.
 
-**As implemented (#TBD).**
+**As implemented (#216).**
 
 - `src/components/seasons.ts` holds the year on the map. It is written
   apart from the events' winter model, so G7-3's fix can read the same
