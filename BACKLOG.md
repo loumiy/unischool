@@ -15,6 +15,34 @@ last section lists what came off and where it went.*
 
 ---
 
+## Awaiting the owner's triage: the October 2026 review (Plan 73)
+
+*The review's findings are in
+[`docs/reviews/2026-10-game-review/`](docs/reviews/2026-10-game-review/README.md).
+The owner triages them, and what is accepted becomes Plan 74. This entry
+comes off when Plan 74 is written.*
+
+- **Fix first:**
+  - two tabs on one save lose progress (G7-1);
+  - the winter model is half a year off (G7-3);
+  - the tag attrition point is previewed but never applied (G7-4);
+  - the athletics axis is scaled twice (G7-5);
+  - the stale hall price in the second-year letter (G7-14);
+  - the committed `node_modules` symlink (G7-17a).
+- **The ten ranked improvements**, in the README's order:
+  1. the first year explains itself;
+  2. the move to school halls is unstuck;
+  3. decisions stop happening unseen;
+  4. the text is made true;
+  5. the late game gets a worklist and a lever;
+  6. a usable Curriculum;
+  7. strategies that end in different colleges (a plan of its own);
+  8. a fair Final Report;
+  9. one way to write a number;
+  10. a campus worth a screenshot.
+
+---
+
 ## On hold from Plan 70: analytics (K) and launch (L)
 
 *Held by the owner's decision (September 2026), after Plan 70's PRs A–J

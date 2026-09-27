@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's brief into a review
 that can be done, checked and acted on.*
 
-**Status: In progress.** A has landed; B onward are on `claude/plan-73-rqmosd`, one commit per PR, as each area is written.
+**Status: In progress.** A has landed. B–I are written, one commit per PR, on `claude/plan-73-rqmosd`, and wait for the owner's review and merge.
 
 ---
 
@@ -353,6 +353,17 @@ say why" may explain a dozen findings. Each group is ranked by:
 improvements, each with the findings behind it, a proposed fix and its
 size. These feed Plan 74.
 
+**As implemented** (PR H): `docs/reviews/2026-10-game-review/README.md`.
+- **Scope of the grouping.** The findings of areas 2–4 were grouped by the
+  player problem underneath them, as planned. Findings from areas 1 and 7
+  joined a group when they shared its problem: the derelict campus joins
+  "a campus worth a screenshot", and the athletics axis joins "a fair
+  Final Report".
+- **A "fix first" list** of six small, certain bugs sits beside the ten
+  improvements, because ranking them among design changes would bury
+  them.
+- **`BACKLOG.md`** points at the list until Plan 74 is written.
+
 ### Area 6 — Marketability
 
 **Method.** Desk research with cited sources: store pages, sales
@@ -434,7 +445,7 @@ claim sourced.
 with the owner the day it is found.
 
 **As implemented** (PR G): `docs/reviews/2026-10-game-review/7-bugs.md`.
-- **No blocker.** 60 sweep games, 70 goal-player games and 347 gallery
+- **No blocker.** 60 sweep games, 70 goal-player games and 366 gallery
   captures ran with no crash, no failed load and no page error.
 - **The sweep** is a new tool, `tools/review/sweep.ts`
   (`npm run review:sweep`). It checked the invariants every week and a

@@ -7,7 +7,7 @@ Plan 73, area 7. Commit read: `58fa3fd`. Ranked by severity, then by how many pl
 **No blocker was found.** Nothing crashed, and no save failed to load, in any of:
 - 70 goal-player games (area 4);
 - 60 sweep games;
-- 284 gallery captures, plus 63 at the largest text size;
+- 366 gallery captures: 284 at two sizes, 56 at the largest text size and 26 of a year-30 summer;
 - the hands-on sessions.
 
 The worst finding is a data loss that needs two tabs (G7-1). It was raised with the owner the day it was found, as the plan asks.
