@@ -102,6 +102,42 @@ C lands last, so the gallery shows A's and B's drawings.
   only by the pier nearer the camera, so it is seen walking through the
   arch.
 
+**As implemented (#TBD).**
+
+- The gate's proportions live in `buildingSpec.ts` (`GATE_*`,
+  `gatePieces`, `gatePassageTiles`), so the drawing, the walkers' routes
+  and the walkers' hiding all read one gate.
+- **The drawing** (`landmarks.tsx`):
+  - Both visible walls are drawn with their arch cut out: the great arch
+    through the long face and the lesser one through the end.
+  - Behind each, the arch's outline is swept from its near mouth to its
+    far one (the same arch on the parallel hidden face). Only the strips
+    facing the camera are drawn: the passage's side wall and the vault
+    within, never the vault's back.
+  - The passage floor is left open, so the lawn, a path, the gate's own
+    shadow and anything beyond show through the arches.
+  - The archivolt is a ring round the opening rather than a disc behind
+    it.
+- **The walkers:**
+  - `walkRoutes.ts` paves the passage tiles of a finished gate, at a
+    path's cost. These are the tile across the middle of its length and
+    the row down its middle.
+  - `Walkers.tsx` hides a walker behind the gate's four piers and the
+    masonry over each passage, instead of one box. A walker in the
+    passage shows through the arch and is hidden only by the pier nearer
+    the camera.
+- **Checks:** `test/walk-routes.test.ts` checks that:
+  - both passages are walkable and the piers solid;
+  - a turned gate has the same passages;
+  - a gate still going up is walked round;
+  - the gate is four piers and two spans, all inside the plot.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `gate-passages-views.png`: the gate from all four cameras.
+  - `gate-passage-path.png`: a path running through the passage beside
+    Founders Hall.
+
 ## PR 75C — The asset gallery
 
 - One tool, `npm run gallery:assets`, renders every buildable asset in all

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import type { CampusLayout } from './campusLayout';
 import { drawnHeightOf } from './buildingMotifs';
-import { motifOf } from './buildingSpec';
+import { GATE_ID, gatePieces, motifOf, wallHeightOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { treeOutline, treeShape } from './trees';
 import { parsePathTileKey } from '../state/campusMap';
@@ -125,6 +125,13 @@ function silhouettes(layout: CampusLayout): Silhouette[] {
       }
       continue;
     }
+    // The gate is its piers and the spans over its passages, so a walker
+    // going through is hidden only by the masonry nearer the camera
+    // (Plan 75B).
+    if (t.id === GATE_ID && !developing) {
+      for (const b of gatePieces(p, wallHeightOf(t))) out.push(silhouetteOf(b.col, b.row, b.w, b.h, b.z1, b.z0));
+      continue;
+    }
     out.push(silhouetteOf(p.col, p.row, p.w, p.h, drawnHeightOf(t, developing, layout.vernacular)));
   }
   for (const [key, seed] of Object.entries(layout.trees)) {
@@ -148,9 +155,9 @@ export function treeSilhouette(col: number, row: number, pts: Pt[]): Silhouette 
   };
 }
 
-// A box's outline on screen at the current camera.
-export function silhouetteOf(col: number, row: number, w: number, h: number, height: number): Silhouette {
-  const pts = [...boxFaces(col, row, w, h, 0, height).top, ...boxFaces(col, row, w, h, 0, 0).top];
+// A box's outline on screen at the current camera, from `base` up.
+export function silhouetteOf(col: number, row: number, w: number, h: number, height: number, base = 0): Silhouette {
+  const pts = [...boxFaces(col, row, w, h, 0, height).top, ...boxFaces(col, row, w, h, 0, base).top];
   return {
     col, row, w, h,
     minX: Math.min(...pts.map((q) => q.x)), maxX: Math.max(...pts.map((q) => q.x)),
