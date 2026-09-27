@@ -868,7 +868,9 @@ export interface StudentOrgState {
 
 // The campus architecture, chosen at founding and permanent. Lives here
 // because it is saved; buildingSpec.ts's VERNACULARS holds the palettes.
-export type Vernacular = 'georgian' | 'gothic' | 'classical' | 'mission' | 'modern';
+export type Vernacular = 'georgian' | 'gothic' | 'classical' | 'mission' | 'modern'
+  // Bonus sets (prototype): drawn and tested, not yet offered at founding.
+  | 'tudor' | 'italianate' | 'secondEmpire' | 'romanesque' | 'artDeco' | 'brutalist' | 'prairie';
 
 // A color pair, presentation only. The player's pair is the game's theme
 // (components/theme.ts).
