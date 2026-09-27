@@ -352,6 +352,54 @@ is this plan.
   - the save gains no field unless the choice needs remembering, in which
     case it gets a version bump and a migration.
 
+**As implemented (#233):**
+- **At founding:**
+  - A typed name ending in "University" shows a caption under the facade:
+    "Every college opens as a College; the board grants 'University' with its
+    first research lab." A name ending in "College", or no suffix, shows none.
+  - "The board", not "the trustees": Plan 47's glossary retired "the
+    trustees" as the body.
+  - The caption's words are data (`foundingData.ts`); the test is
+    `types.ts`'s `typedUniversity`.
+- **At the charter:** a catalog inline event, `CHARTER_EVENT` in
+  `eventCatalogue.ts`, with a `charter` effect (1 takes University, -1 keeps
+  the name).
+  - It sits outside `EVENT_CATALOGUE`, so no draw, seat or catalog test
+    sees it; `eventById` finds it, so the inbox, the answers, the timeout
+    and the Answered list are the catalog's own.
+  - `fireCharter` raises it with a fixed instance id and names read off
+    the state (`charter.ts`), so it draws nothing from the stream. It still
+    takes the week it lands, and holds no place in the inline queue's limit
+    of three.
+  - The answer goes through `RESOLVE_CATALOGUE_EVENT`; the four-week
+    default is `timeOutCatalogue`, in the tick.
+  - From "The board". The reading pane's line now lowercases a sender's
+    "The" ("From the board to the President").
+  - The log line stays, written when it is answered: "... is now X
+    University", or "..., and X College keeps its name". It carries the
+    subject `charter`, so the inbox files it as a bulletin.
+  - A rename from the pennant while it waits renames its answers.
+- **The harness** takes the default, so its colleges become Universities
+  four weeks later than before. No system reads the name, and the matter
+  draws nothing, so `npm run sim` matches the baseline on every line.
+- **No save field.** The charter waits in the catalog's queue, and
+  `universityCharterOffered` already keeps it from recurring. The save's
+  catalog check now keeps a waiting charter. `SAVE_VERSION` stays 79.
+- **Words made true for a college that kept its name:**
+  - Second Empire is earned by the charter, whichever name is kept ("Win a
+    university charter.").
+  - The laboratories letter: "a research university in fact, whatever its
+    name".
+  - The chronicle, the Final Report and the hall of fame read the name as
+    it stands, and needed nothing.
+- **Tools:** a `charter` scenario (`npm run scenario -- charter`), and
+  `--name` renames a waiting charter's answers.
+- **Checks:** `test/charter.test.ts`: keeping the name leaves it and the
+  pennant alone, the default renames after four weeks, raising it draws
+  nothing, old saves load (one chartered before this change is never asked),
+  a waiting charter survives a save, and the caption shows only for a typed
+  "University". Screenshots: `docs/reviews/2026-10-ui-fixes/charter-*.jpg`.
+
 ## What this plan does not do
 
 - **The stops that take the full screen** (research reports and milestone

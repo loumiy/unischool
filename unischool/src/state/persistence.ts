@@ -3,7 +3,7 @@ import { campaignById } from '../data/campaignData';
 import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
-import { EVENT_CATALOGUE } from '../data/eventCatalogue';
+import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
@@ -499,7 +499,7 @@ function sanitizeCatalogue(state: GameState): void {
   state.catalogue!.pending = (c.pending as unknown[]).filter((p): p is PendingCatalogueEvent => {
     const e = p as Partial<PendingCatalogueEvent> | null;
     return typeof e === 'object' && e !== null && typeof e.instanceId === 'string' && typeof e.eventId === 'string'
-      && EVENT_CATALOGUE.some((x) => x.id === e.eventId) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
+      && (e.eventId === CHARTER_EVENT.id || EVENT_CATALOGUE.some((x) => x.id === e.eventId)) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
       && typeof e.vars === 'object' && e.vars !== null;
   });
   // The journal: malformed entries are dropped.

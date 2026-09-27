@@ -4,6 +4,11 @@ import type { Vernacular } from '../state/types';
 // startup screen asks only for a name (StartupScreen.tsx); anything that
 // should vary between schools belongs in play.
 
+// Under the founding facade when the typed name ends in "University"
+// (StartupScreen.tsx, Plan 78G): the facade reads College, and this says
+// when that changes (systems/events/charter.ts).
+export const UNIVERSITY_CAPTION = 'Every college opens as a College; the board grants "University" with its first research lab.';
+
 export interface FoundingPreset {
   startingCash: number;
   startingReputation: number;
