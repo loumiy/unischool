@@ -352,7 +352,7 @@ is this plan.
   - the save gains no field unless the choice needs remembering, in which
     case it gets a version bump and a migration.
 
-**As implemented (#TBD):**
+**As implemented (#233):**
 - **At founding:**
   - A typed name ending in "University" shows a caption under the facade:
     "Every college opens as a College; the board grants 'University' with its
