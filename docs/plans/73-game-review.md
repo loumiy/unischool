@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's brief into a review
 that can be done, checked and acted on.*
 
-**Status: Proposed.**
+**Status: In progress.** A has landed; B onward are on `claude/plan-73-rqmosd`, one commit per PR, as each area is written.
 
 ---
 
@@ -85,6 +85,32 @@ under `tools/`, none imported by the game.
 | **`tools/review/doorsAndDepth.ts`** | new | a checker, not a picture: every door is tested against neighbouring footprints, trees, props and paths (reachable and unobscured), and every pair of overlapping sprites against `depthSort`'s order, over the arrangement campuses and three year-50 scenario campuses, so clipping and blocked doors are found by rule and then looked at (1, 7) |
 | **`tools/review/strings.ts`** | new | every player-facing string, pulled from `src/data/` and the components into one table with where it appears, its word count and a screen tag, so voice, jargon, repetition and per-screen load can be read and counted (2) |
 | **`tools/review/goalPlayers.ts`** | new | the strategy players of area 4 (below), each with a goal, a logged reason for every decision, and a record of every moment it wanted something the game would not let it do (4) |
+
+**As implemented** (PR B):
+- The four tools are in `tools/review/`, run through `npm run review:*`
+  (`tools/README.md`, "Reviewing the whole game"). Four more were needed on
+  the way:
+  - `shootViews.mjs` photographs a save from all four corners.
+  - `drive.mjs` plays the running game a few steps at a time from a kept
+    browser profile. The hands-on sessions of areas 2, 3 and 7 were played
+    with it.
+  - `probes.ts` prints the small tables area 1 quotes: how much of a
+    campus the vernacular restyles, weathering bands, the catalogue by
+    motif, and the estate's backlog over fifty years.
+  - `sheet.tsx` gained `--every`, which draws every placeable, each
+    school's signature hall, each venue at each expansion, and one site per
+    motif. The file names carry the camera, so several sheets can share a
+    folder.
+- The door checker ran over 63 saves, not the arrangements plus three
+  year-50 campuses: 60 arrangement saves, the laid-out `all` and `guided50`
+  campuses, and `natural50` as played. `tools/layout.ts` cannot lay out
+  `natural50`, whose extended buildings have outgrown their footprints.
+- The goal players ran 70 games: seven goals, five seeds and two names,
+  fifty years each. That took 15 minutes on the container's cores.
+- `npm run newplayer` no longer works. It waits for the founding form, but
+  the title screen now comes first (`tools/newPlayer.mjs:48`). The
+  new-player session was played by hand with `drive.mjs` instead, and the
+  tool is listed in area 7.
 
 ## 3. The areas
 
