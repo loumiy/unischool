@@ -25,7 +25,10 @@ are under *Named, not sequenced* with the area's decorative assets.
 **Area 2 (the screens and the words) is
 [Plan 76](docs/plans/76-ui-and-text.md)**, which also takes G7-3, G7-4,
 G7-5 and G7-14, the effect side of area 2's false claims; what it leaves
-is under *Named, not sequenced*. The rest waits for triage; this entry
+is under *Named, not sequenced*. **Area 3 (teaching the game) is
+[Plan 78](docs/plans/78-learning-the-game.md)**, weighed against the inbox
+(Plan 77), with area 4's A4-5 (decline an offer). The rest waits for
+triage; this entry
 comes off when every area is answered.*
 
 - **Fix first:**
@@ -36,9 +39,10 @@ comes off when every area is answered.*
   - the stale hall price in the second-year letter (G7-14, Plan 76C);
   - the committed `node_modules` symlink (G7-17a), already removed on the review branch.
 - **The ten ranked improvements**, in the README's order:
-  1. the first year explains itself;
-  2. the move to school halls is unstuck;
-  3. decisions stop happening unseen;
+  1. the first year explains itself (Plan 78B, C, F);
+  2. the move to school halls is unstuck (Plan 78D);
+  3. decisions stop happening unseen (Plan 78E; A4-3's digest waits for
+     area 4);
   4. the text is made true;
   5. the late game gets a worklist and a lever;
   6. a usable Curriculum;
