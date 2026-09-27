@@ -401,7 +401,18 @@ export function ridgeOf(t: Buildable, v: Vernacular): number {
   const roof = roofFor(v);
   const motif = motifOf(t);
   if (motif === 'residential') return up(roof.residentialRidgeMetres(storeysOf(t)));
+  if (gothicCivicOf(t, v)) return up(GOTHIC_CIVIC_RIDGE_METRES);
   return up(roof.ridgeMetres[motif] ?? 0);
+}
+
+// Collegiate Gothic's library and gallery (Plan 74G, review A1-9): the
+// signature buildings of the style (think Sterling or Harper), so they leave
+// the pale flat portico for a steep roof, lancets, a Gothic porch, and on
+// the library a crenellated tower.
+const GOTHIC_CIVIC_RIDGE_METRES = 11.0;
+export function gothicCivicOf(t: Buildable, v: Vernacular): 'library' | 'gallery' | undefined {
+  if (v !== 'gothic') return undefined;
+  return t.facilityType === 'library' ? 'library' : t.facilityType === 'artGallery' ? 'gallery' : undefined;
 }
 
 // Bays and windows. A window is a fixed real size; a wall gets as many bays as
@@ -552,7 +563,7 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 export const ARCADE_HEIGHT = up(7.2);
 export const ARCADE_DEPTH = across(2.6);
 export const ARCADE_PIER = across(0.75);
-export const ARCADE_BAY_METRES = 6.0;   // wider than a window bay
+export const ARCADE_BAY_METRES = 7.5;   // wider than a window bay: bold enough to read at the opening zoom (Plan 74G)
 export const ARCADE_MAX = 10;
 // The campanile (Mission apex): a square bell tower with an open belfry.
 export const CAMPANILE_PLAN = across(7.0);
@@ -693,6 +704,10 @@ export interface VernacularRoof {
   // Ridge rise above the eaves in meters, by motif. Absent means flat.
   ridgeMetres: Partial<Record<Motif, number>>;
   residentialRidgeMetres(storeys: number): number;
+  // Every pitched roof on a hall or civic building in this color, whatever
+  // the wall material under it (Plan 74G: Mission's tile reaches the
+  // limestone halls). Absent means each material keeps its own roof.
+  pitchedRoof?: string;
   // Wall height above the cornice, in units. Zero means no parapet (the roof
   // springs from the eaves).
   parapet: number;
@@ -859,6 +874,8 @@ const GOTHIC: VernacularSpec = {
       village: 6.0,
       pavilion: 5.0,
     },
+    // Slate over the limestone halls and the library too (Plan 74G).
+    pitchedRoof: GOTHIC_SLATE,
     residentialRidgeMetres: (storeys: number) => {
       if (storeys <= 3) return 7.5;
       return 6.5;
@@ -1027,6 +1044,7 @@ const MISSION: VernacularSpec = {
   roof: {
     // A tile roof cannot be steep; the eaves are deep instead.
     ridgeMetres: { hall: 3.4, village: 3.6, pavilion: 3.0 },
+    pitchedRoof: CLAY_TILE,
     residentialRidgeMetres: (storeys: number) => {
       if (storeys <= 3) return 3.6;
       return 3.0;
@@ -1150,6 +1168,7 @@ export function partsFor(v: Vernacular): VernacularParts {
 // nothing for the other invariant motifs.
 export function entrancePartOf(t: Buildable, v: Vernacular): EntrancePart {
   const motif = motifOf(t);
+  if (gothicCivicOf(t, v)) return 'porch';
   if (!variesByVernacular(motif)) return surfaceFollowsVernacular(motif) ? partsFor(v).surfaceEntrance : 'none';
   return partsFor(v).entrance[motif] ?? 'none';
 }
@@ -1206,8 +1225,10 @@ const ARCH_STEPS = 6;
 // A concrete slot is inset from its bay; the reveal reads as a thick wall.
 const SLOT_INSET = 0.22;
 // A ribbon fills its bay edge to edge and is short, so a row reads as one band.
-const RIBBON_HEIGHT = 0.46;
-const RIBBON_DROP = 0.30;   // where the band sits within its own rank
+// Tall enough that a Modern front reads as glass between its bands, not as
+// a parking garage's open decks (Plan 74G).
+const RIBBON_HEIGHT = 0.66;
+const RIBBON_DROP = 0.18;   // where the band sits within its own rank
 
 export function windowOutline(
   shape: WindowShape, u0: number, u1: number, v0: number, v1: number,
@@ -1253,6 +1274,20 @@ export function stoneFor(v: Vernacular): StonePalette {
 }
 
 export function materialOf(t: Buildable, v: Vernacular): Material {
+  const own = baseMaterialOf(t, v);
+  const pitched = roofFor(v).pitchedRoof;
+  // The halls and the civic porticos; housing and the pavilions keep their
+  // own roofs.
+  const motif = motifOf(t);
+  if (!pitched || own.roof === pitched || (motif !== 'hall' && motif !== 'portico') || ridgeOf(t, v) <= 0) return own;
+  // One stable object per material, so BuildingMotif's memo still holds.
+  let tiled = PITCHED_ROOFED.get(own);
+  if (!tiled) { tiled = { ...own, roof: pitched }; PITCHED_ROOFED.set(own, tiled); }
+  return tiled;
+}
+const PITCHED_ROOFED = new Map<Material, Material>();
+
+function baseMaterialOf(t: Buildable, v: Vernacular): Material {
   const MATERIALS = materialsFor(v);
   if (t.kind === 'building') {
     const signature = signatureOf(t);

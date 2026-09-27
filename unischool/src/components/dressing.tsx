@@ -83,20 +83,24 @@ function Flag({ at, colors }: { at: Pt; colors: CampusLayout['colors'] }) {
 }
 
 // A bench runs along the tile's row or column, whichever way the path it
-// faces runs.
+// faces runs: a slatted seat with depth and a backrest panel, so it keeps
+// its shape at the opening zoom (Plan 74G), on two legs.
 function Bench({ col, row, along }: { col: number; row: number; along: 'col' | 'row' }) {
   const half = 0.28;
-  const [a, b] = along === 'col'
-    ? [project(col + 0.5 - half, row + 0.5), project(col + 0.5 + half, row + 0.5)]
-    : [project(col + 0.5, row + 0.5 - half), project(col + 0.5, row + 0.5 + half)];
-  const seat = [lift(a, BENCH_SEAT), lift(b, BENCH_SEAT)];
-  const back = [lift(a, BENCH_BACK), lift(b, BENCH_BACK)];
+  const depth = 0.085;
+  // u along the bench, v across it (the back at -v).
+  const P = (u: number, v: number, z: number) => (along === 'col'
+    ? lift(project(col + 0.5 + u, row + 0.5 + v), z)
+    : lift(project(col + 0.5 + v, row + 0.5 + u), z));
+  const seat = [P(-half, -depth, BENCH_SEAT), P(half, -depth, BENCH_SEAT), P(half, depth, BENCH_SEAT), P(-half, depth, BENCH_SEAT)];
+  const back = [P(-half, -depth, BENCH_SEAT), P(half, -depth, BENCH_SEAT), P(half, -depth, BENCH_BACK), P(-half, -depth, BENCH_BACK)];
+  const legs = [-half * 0.8, half * 0.8].map((u) => [P(u, 0, 0), P(u, 0, BENCH_SEAT)] as const);
+  const pts = (q: Pt[]) => q.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   return (
     <g className="campus-bench">
-      <line className="campus-bench-leg" x1={a.x} y1={a.y} x2={seat[0].x} y2={seat[0].y} />
-      <line className="campus-bench-leg" x1={b.x} y1={b.y} x2={seat[1].x} y2={seat[1].y} />
-      <line className="campus-bench-seat" x1={seat[0].x} y1={seat[0].y} x2={seat[1].x} y2={seat[1].y} />
-      <line className="campus-bench-back" x1={back[0].x} y1={back[0].y} x2={back[1].x} y2={back[1].y} />
+      {legs.map(([a, b], i) => <line key={i} className="campus-bench-leg" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />)}
+      <polygon className="campus-bench-back" points={pts(back)} />
+      <polygon className="campus-bench-seat" points={pts(seat)} />
     </g>
   );
 }

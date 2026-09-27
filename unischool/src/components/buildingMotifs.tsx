@@ -26,7 +26,7 @@ import {
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
   rankSills, ridgeOf, parapetOf, eavesOf, stoneFor, paneShapeOf, windowOutline,
   entrancePartOf, rooflineEndPartOf, signatureOf, apexPartOf, partsFor, type ApexPart, massingOf,
-  crestOf, surfaceRoofOf, type CrestPart, signifierOf, type Signifier,
+  crestOf, surfaceRoofOf, type CrestPart, signifierOf, type Signifier, gothicCivicOf, roofFor,
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
   ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
@@ -1076,6 +1076,21 @@ function Arcade({ col, row, w, h, outward, pal, stone, height = ARCADE_HEIGHT }:
           </g>
         );
       })}
+      {/* The arcade's front wall, whitewashed, with the arches cut through it
+          (Plan 74G): without spandrels a row of dark bays read as a barcode
+          at the opening zoom. */}
+      <path
+        fillRule="evenodd"
+        fill={faceTone(outward, shade(stone.trim, 0.94), shade(stone.trim, 0.76))}
+        d={[
+          `M${[o, a, facePoint(o, a, height, 1, 1), facePoint(o, a, height, 0, 1)].map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join('L')}Z`,
+          ...Array.from({ length: bays }, (_, i) => {
+            const pts = windowOutline('arched', (i + 0.09) / bays, (i + 0.91) / bays, 0, 0.84)
+              .map(([u, v]) => facePoint(o, a, height, u, v));
+            return `M${pts.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join('L')}Z`;
+          }),
+        ].join('')}
+      />
       <polygon points={polyPoints(roof.endCap)} fill={roof.endCapFill} />
       <polygon points={polyPoints(roof.leanTo)} fill={roof.leanToFill} />
       <WallBand origin={o} along={a} wallHeight={height} from={height - COPING * 0.7} to={height} className="iso-cornice" />
@@ -3181,6 +3196,15 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {/* Reserve the door's bay here even though the door is on the pavilion. */}
         {windows(hf.D, hf.C, WH, hf.spanLeft, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, hf.spanLeft, WH) : undefined, lights)}
         {windows(hf.C, hf.B, WH, hf.spanRight, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, hf.spanRight, WH) : undefined, lights)}
+        {/* Modern: a recessed, glazed ground floor under the banded floors
+            above (Plan 74G), so the hall does not read as a parking garage. */}
+        {glazedCivic && (
+          <>
+            <CurtainWall origin={hf.D} along={hf.C} wallHeight={WH} spanTiles={hf.spanLeft} from={PLINTH} to={STOREY * 0.9} floors={[]} id="gfl" u0={0.03} u1={0.97} />
+            <CurtainWall origin={hf.C} along={hf.B} wallHeight={WH} spanTiles={hf.spanRight} from={PLINTH} to={STOREY * 0.9} floors={[]} id="gfr" u0={0.03} u1={0.97} />
+            {band(STOREY * 0.9, STOREY * 1.02, 'iso-undercroft', 'gs')}
+          </>
+        )}
 
         {buttresses && (
           <>
@@ -3561,11 +3585,16 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const gabled = ridge > 0;
   const alongW = w >= h;
   // A residence hall's stair turret: smaller, plain-capped, only on long walls.
-  const turretPlan = turrets && motif === 'residential' && Math.min(w, h) >= 2.8 && gabled
-    ? Math.min(across(4.8), Math.min(w, h) * 0.2)
-    : 0;
+  // Collegiate Gothic's library carries a crenellated tower at its corner
+  // (Plan 74G), taller than a residence's turret.
+  const libraryTower = gothicCivicOf(t, vernacular) === 'library' && gabled;
+  const turretPlan = libraryTower
+    ? Math.min(across(6.5), Math.min(w, h) * 0.26)
+    : turrets && motif === 'residential' && Math.min(w, h) >= 2.8 && gabled
+      ? Math.min(across(4.8), Math.min(w, h) * 0.2)
+      : 0;
   // Whether the door is reached through an archway porch (own or fallback).
-  const porched = entrance === 'archway' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'archway');
+  const porched = entrance === 'archway' || entrance === 'porch' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'archway');
   // Where this door's flight lands: the porch front, the portico's columns,
   // or the wall.
   const stepStandoff = porched ? PAVILION_DEPTH : entrance === 'portico' ? PORTICO_STANDOFF + PORTICO_COLUMN_PLAN : 0;
@@ -3578,7 +3607,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const residentialTurretProps = {
     pal, glass: stone.glass, paneW,
     col: col + w - turretPlan + TOWER_PROUD, row: row + h - turretPlan + TOWER_PROUD, plan: turretPlan,
-    height: H + STOREY * 0.8, sills: rankSills(ranks + 1), crenels: false, capRise: up(4.2),
+    height: H + STOREY * (libraryTower ? 2.2 : 0.8), sills: rankSills(ranks + (libraryTower ? 2 : 1)),
+    crenels: libraryTower, capRise: up(libraryTower ? 5.0 : 4.2),
   };
   const residentialTurret = turretPlan > 0 && <CornerTower {...residentialTurretProps} />;
   const rs = lift(alongW ? project(rc, rr + rh / 2) : project(rc + rw / 2, rr), H + ridge);
@@ -3686,6 +3716,9 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           {fronts.map((dir) => <Archway key={dir} pal={pal} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} />)}
         </>
       )}
+      {!site && entrance === 'porch' && fronts.map((dir) => (
+        <Porch key={`po${dir}`} pal={pal} stone={stone} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} />
+      ))}
       {/* Steps after the walls and doors, landing at the entrance's face;
           none behind an arcade (entered at grade) or a colonnade (Plan 61:
           they ran out under the columns). */}
@@ -3817,6 +3850,11 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         <>
           {fronts.map((dir) => <Merlons key={dir} col={col} row={row} w={w} h={h} base={H} outward={dir} pal={pal} />)}
         </>
+      )}
+      {/* Mission's exchange: its flat deck edged in the vernacular's tile
+          (Plan 74G), so it stops reading as a gray box among red roofs. */}
+      {!site && feature === 'exchange' && roofFor(vernacular).pitchedRoof && (
+        <Crest crest="tile" col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={roofFor(vernacular).pitchedRoof!} />
       )}
       {/* A block's or a lab's crest (Plan 74E). */}
       {!site && !gabled && surface && (

@@ -363,6 +363,52 @@ without a click.
 - **Benches and arcades at the opening zoom:** benches keep a seat and a
   back, and a Mission arcade shows its arches rather than a barcode.
 
+**As implemented (#214).**
+
+- **Tile and slate reach the halls.** A vernacular's roof table can name a
+  `pitchedRoof` for every pitched hall and civic portico, whatever the
+  wall. `materialOf` hands back one stable tiled copy of each material, so
+  the motif memo holds.
+  - Mission names clay tile, so the limestone Social Sciences hall is
+    under tile.
+  - Collegiate Gothic names slate, so its limestone halls and new library
+    roofs match the brick halls.
+  - Housing and pavilions keep their own roofs.
+  - Mission's Business exchange keeps its flat deck and dome, but its
+    parapet takes a tile coping (74E's crest) so it stops reading as a
+    gray box.
+- **A Gothic library.** `gothicCivicOf` marks Collegiate Gothic's library
+  and gallery.
+  - Both take an 11 m steep roof (hipped or gabled by footprint), a
+    Gothic porch (now drawn on any motif) and lancets (already
+    theirs), with buttresses along their walls.
+  - The library also has a crenellated corner tower two stories above
+    its eaves.
+  - Every other vernacular keeps the flat portico.
+- **The Modern hall.** It has a recessed, glazed ground floor with a
+  shadow band above it. Every ribbon window is taller (0.66 of its rank,
+  from 0.46), so a Modern front reads as glass between the bands rather
+  than as open decks.
+- **Benches** have a seat with depth and a backrest panel on two legs, in
+  place of three strokes.
+- **Arcades.** The front wall is whitewashed, with the arches cut
+  through it, so they read as arches rather than dark bays. Arcade bays
+  widen from 6 m to 7.5 m.
+- **Checks:** `test/building-spec.test.ts` adds that:
+  - every pitched hall or portico wears its vernacular's pitched roof,
+    and its material is a stable object;
+  - the Mission Social Sciences hall is under tile;
+  - the Gothic library and gallery are steep-roofed, porched and
+    lancet-lit, and the other four vernaculars keep them flat.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `style-slips.png`: the generic hall, the Social Sciences and Business
+    halls, the library and the gallery, in Georgian, Gothic, Mission and
+    Modern.
+  - `arcade-and-benches-opening-zoom.png`: a Mission quarter at the
+    opening zoom.
+
 ## PR 74H — Construction sites that grow
 
 *Area 1, "Sites don't grow".* A hall or residence under construction is a
