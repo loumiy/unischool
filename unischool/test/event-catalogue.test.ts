@@ -11,7 +11,7 @@ import type { CatalogueEvent } from '../src/data/eventCatalogueTypes';
 import { DECISION_EVENT_FIRST_YEAR, DECISION_EVENTS } from '../src/data/eventData';
 import { tagById } from '../src/data/tagData';
 import {
-  applyEffects, conditionsMet, eventById, fill, priceScale, rollVars, scaledEffects,
+  applyEffects, conditionsMet, eventById, eventTexts, fill, priceScale, rollVars, scaledEffects,
 } from '../src/systems/events/catalogue';
 import { catalogueOf, resolveCatalogueEvent, sizeFactor, tickCatalogue, timeOutCatalogue } from '../src/systems/events/catalogueEngine';
 import { tickEvents } from '../src/systems/events/eventSystem';
@@ -79,9 +79,12 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   const vars = rollVars(fresh());
   const unfilled = EVENT_CATALOGUE.filter((e) => /\{\w+\}/.test(fill(e.text, vars)) || e.choices.some((c) => /\{\w+\}/.test(fill(c.label, vars))));
   assert(unfilled.length === 0, `every name in the text is one the game fills (${unfilled.map((e) => e.id).join(', ')})`);
-  const text = EVENT_CATALOGUE.map((e) => `${e.text} ${e.choices.map((c) => c.label).join(' ')}`).join(' ');
+  // Every telling (data/eventVariants.ts), the letters' titles and every answer.
+  const text = EVENT_CATALOGUE.map((e) => `${e.title ?? ''} ${eventTexts(e).join(' ')} ${e.choices.map((c) => c.label).join(' ')}`).join(' ');
   // American spelling throughout (Plan 45).
   assert(!/\b(programmes?|colours?|coloured|behaviours?|organisations?|theatres?|catalogues?|defence|analys(e|ed|es|ing)|specialised|enrolment|centres?|storeys?|neighbours?|cheques?)\b/i.test(text), 'in American spelling');
+  // and in American vocabulary (Plan 76D, the review's pattern 7).
+  assert(!/\b(grey|labelled|car parks?|rota|porters?|trolley|queues?|resits?|solicitors?|timetables?|prospectus(es)?|bursar(y|ies)?|gritting|tarpaulin|caravan|rag week|halls of residence|first-years?|second-years?|autumn|takeaways?|minuted|loss adjuster|clerk of works|heritage officer|plant room|common room|fume cupboard|inverted commas|standing order|in-tray|covering letter|got round|going round)\b|students' union|\b(Mr|Mrs|Ms|Dr) /i.test(text), 'in American vocabulary');
   assert(!/\badjunct|\bcharter\b/i.test(text), 'and about nothing this game does not have');
   assert(DECISION_EVENTS.every((e) => !['roof-failure', 'heating-plant', 'estate-gift', 'winter-storm'].includes(e.id)), 'this game\'s texture events are retired');
   assert(DECISION_EVENTS.some((e) => e.id === 'hellenic-council') && DECISION_EVENTS.some((e) => e.id === 'naming-rights'), 'the questions that belong to a system stay');
