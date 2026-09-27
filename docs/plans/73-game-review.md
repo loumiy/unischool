@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's brief into a review
 that can be done, checked and acted on.*
 
-**Status: In progress.** A has landed. B–I are written, one commit per PR, on `claude/plan-73-rqmosd`, and wait for the owner's review and merge.
+**Status: Landed.** A as its own PR. B–I in one PR, one commit each, with the review in `docs/reviews/2026-10-game-review/`. The review read `58fa3fd`; Plans 72J–M landed after it, and 72L (the game suggests merging a split school) touches area 3's A3-1.
 
 ---
 
