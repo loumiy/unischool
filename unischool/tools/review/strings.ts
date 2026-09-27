@@ -121,6 +121,11 @@ const NAMING_PROPS = new Set([
   'mascotSuggestion', 'tab', 'tabId', 'inputMode', 'autoComplete', 'enterKeyHint', 'autoCapitalize', 'spellCheck', 'lang',
   'strokeLinecap', 'strokeLinejoin', 'fillRule', 'clipRule', 'preserveAspectRatio', 'gradientUnits', 'offset', 'stopColor',
 ]);
+// Names a player reads as text: a faculty quirk's `name` is its badge on
+// the Faculty tab (2d-voice's "Not in the table", Plan 76F).
+const SAYING_NAMES: Array<[RegExp, string]> = [
+  [/data\/quirkData\.ts$/, 'name'],
+];
 // Props whose value is player-facing even when it is one word.
 const SAYING_PROPS = new Set([
   'title', 'label', 'text', 'message', 'description', 'blurb', 'prompt', 'hint', 'note', 'line', 'detail', 'placeholder',
@@ -194,12 +199,16 @@ function contextOf(node: ts.Node): { context: string; naming: boolean; saying: b
     }
     if (ts.isPropertyAssignment(p) && p.initializer === child) {
       const name = nameOf(p.name);
+      const file = relative(ROOT, node.getSourceFile().fileName);
+      if (SAYING_NAMES.some(([re, prop]) => prop === name && re.test(file))) return { context: `.${name}`, naming: false, saying: true };
       return { context: `.${name}`, naming: NAMING_PROPS.has(name), saying: SAYING_PROPS.has(name) };
     }
     if (ts.isPropertyAssignment(p) && p.name === child) return { context: 'property name', naming: true, saying: false };
     if (ts.isCallExpression(p)) {
       const callee = nameOf(p.expression);
-      if (CALLS_THAT_NAME.has(callee)) return { context: `${callee}()`, naming: true, saying: false };
+      // Only the call's own arguments name: an array of sentences filtered
+      // or joined (the summer review's "answered by" parts) is still prose.
+      if (CALLS_THAT_NAME.has(callee) && p.arguments.includes(child as ts.Expression)) return { context: `${callee}()`, naming: true, saying: false };
       // A string as a call's argument, inside some other context: keep looking
       // only if it is the argument itself (a template inside a call's argument).
       if (p.arguments.includes(child as ts.Expression)) return { context: `${callee}()`, naming: false, saying: false };
@@ -277,7 +286,7 @@ export function collect(): StringRow[] {
 // American spelling (Plan 47's one voice); each is [British, American].
 const BRITISH: Array<[RegExp, string]> = [
   [/\bcolour(s|ed|ful|ing)?\b/i, 'color'], [/\bcentre(s|d)?\b/i, 'center'], [/\bprogramme(s)?\b/i, 'program'],
-  [/\borganis(e|ed|es|ing|ation|ations)\b/i, 'organiz-'], [/\brecognis(e|ed|es|ing)\b/i, 'recogniz-'], [/\breali[s](e|ed|es|ing)\b/i, 'realiz-'],
+  [/\borganis(e|ed|es|ing|ation|ations|ational)\b/i, 'organiz-'], [/\brecognis(e|ed|es|ing)\b/i, 'recogniz-'], [/\breali[s](e|ed|es|ing)\b/i, 'realiz-'],
   [/\bapologis(e|ed|es|ing)\b/i, 'apologiz-'], [/\bprioritis(e|ed|es|ing)\b/i, 'prioritiz-'], [/\bemphasis(e|ed|es|ing)\b/i, 'emphasiz-'],
   [/\banalys(e|ed|es|ing)\b/i, 'analyz-'], [/\blicence\b/i, 'license'], [/\bdefence\b/i, 'defense'], [/\boffence\b/i, 'offense'],
   [/\b(fav|hon|lab|behavi|neighb|harb|rum|hum|vap|vig|od|arm|col|flav|sav|rig|endeav|glam|clam|sav)our(s|ed|ing|ite|ites|able|hood)?\b/i, '-or'],
@@ -318,17 +327,46 @@ function iseSpelling(text: string): string | null {
 }
 // Idioms an American reader notices (the voice is a senior American
 // administrator's); each hit is for a person to judge, not a defect.
-const IDIOMS: Array<[RegExp, string]> = [
+// A third pattern, when given, excuses a string that matches it.
+const IDIOMS: Array<[RegExp, string, RegExp?]> = [
   [/\b(a|the|their|his|her|its) flat\b/i, 'apartment'], [/\bporters?\b/i, 'custodian, doorman'], [/\b(fire )?brigade\b/i, 'fire department'],
   [/\binto administration\b/i, 'bankruptcy'], [/\bautumn\b/i, 'fall'], [/\bfortnight/i, 'two weeks'], [/\brota\b/i, 'schedule'],
   [/\bqueue[ds]?\b/i, 'line'], [/\bholidays?\b/i, 'vacation, break'], [/\bcar park/i, 'parking lot'], [/\blorr(y|ies)\b/i, 'truck'],
   [/\bpavement\b/i, 'sidewalk'], [/\bgot round to\b/i, 'got around to'], [/\bat the weekend\b/i, 'on the weekend'], [/\bin hospital\b/i, 'in the hospital'],
-  [/\bRegistry\b/, 'Registrar\'s office'], [/\btimetable/i, 'schedule'], [/\bpost(ed)? (to|through)\b|\bthe post\b/i, 'mail'],
+  [/\bRegistry\b/, 'Registrar\'s office'], [/\btimetable/i, 'schedule'], [/\bpost(ed)? (to|through)\b|\bin the post\b|\bby post\b/i, 'mail'],
   [/\bmobile phone/i, 'cell phone'], [/\bpetrol\b/i, 'gas'], [/\bheadmaster/i, 'principal'], [/\bsixth form/i, 'high school'],
   [/\bhalls of residence\b/i, 'dorms'], [/\bfreshers?\b/i, 'freshmen'], [/\buni\b/i, 'college'], [/\bmaths\b/i, 'math'],
   [/\bthe (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/, 'on Monday'], [/\brather more\b/i, 'quite a bit more'],
-  [/\bwhilst\b/i, 'while'], [/\bamongst\b/i, 'among'], [/\bsorted\b/i, 'handled'], [/\bbrolly|\bnaff\b|\bbloke\b|\bquid\b/i, 'slang'],
+  [/\bwhilst\b/i, 'while'], [/\bamongst\b/i, 'among'], [/\bsorted\b(?! by)/i, 'handled'], [/\bbrolly|\bnaff\b|\bbloke\b|\bquid\b/i, 'slang'],
+  // What 2d-voice §4 found that the list above missed (Plan 76F).
+  [/\bthe estate\b/i, 'buildings and grounds', /\b(bequest|executors?|heirs?|bankruptcy|will)\b/i], [/\b(academic|league) tables?\b|\bsix tables\b/i, 'rankings, the guide'],
+  [/\bround (the|a|an|one|two|three|its|their)\b/i, 'around'], [/\bapartment block/i, 'apartment building'],
+  [/\bbiscuits?\b/i, 'cookies'], [/\bfull marks?\b|\bfinal mark\b|\bthe mark ·|\bmarks (undergraduate|essays|papers|exams)\b|\bmarks overnight\b/i, 'grade, the top score'],
+  [/\bbursary\b/i, 'bursar\'s office, grant'], [/\bread(s|ing)? (a|the|his|her|their) subject\b/i, 'major in'],
+  [/\ba dear\b|\bdear sticker\b/i, 'expensive, steep'], [/\bwelfare\b/i, 'well-being'], [/\bhandover\b/i, 'handoff'],
+  [/\b(research|medical) charity\b/i, 'foundation'], [/\bfirst-years?\b/i, 'freshmen'], [/\bupper years\b/i, 'upperclassmen'],
+  [/\bthe faculty have\b/i, 'the faculty has'], [/\bcommon room\b/i, 'faculty lounge'], [/\bproper\b/i, 'real'],
+  [/\bconsultancy\b/i, 'consulting firm'], [/\ba wood\b/i, 'woodland'], [/\bsporting college\b/i, 'athletic college'],
+  [/\bout of the door\b/i, 'out the door'], [/\bprospectus\b/i, 'catalog, viewbook'], [/\bthe Bursar\b/, 'the business office'],
+  [/\blost the (semi|quarter)\b/i, 'semifinal, quarterfinal'], [/\blift\b(?= (is|was) (out|broken|stuck))/i, 'elevator'],
 ];
+// The engine's words in the prose (2d-voice §1 and §3, Plan 76F): what the
+// code calls a thing, where the college has a word of its own. The menu,
+// Settings, the crash screen and the credits may speak of the game and the
+// run; nothing else should. Each hit is for a person to judge.
+const ENGINE: Array<[RegExp, string]> = [
+  [/\bweekly tick\b|\bthe tick\b/i, 'each week'], [/\bthe run\b|\bthis run\b|\bany run\b|\bevery run\b/i, 'the college, the fifty years'],
+  [/\b(students|summer's|standing|first|third|fourth) beats?\b|\bthree beats\b/i, 'step'], [/\binterrupts? play\b/i, 'waits on a decision'],
+  [/\bunlock(s|ed|able)?\b/i, 'opens, can be built'], [/\breveal(s|ed)\b/i, 'open, listed'], [/\bthrottle\b/i, 'what limits'],
+  [/\bpacing\b/i, 'how fast'], [/^the wall$/i, 'waiting on faculty'], [/\bhoused (catalog|programs?|courses?|here)\b/i, 'with a hall, now taught'],
+  [/\brecreation chain\b|\bthe chain\b/i, 'the recreation buildings'], [/\bflat (contributors|bonus)\b|\+\S* flat\b/i, 'at any size'],
+  [/\bcohort signal\b/i, 'particular pull'], [/\bvarsity-active\b/i, 'plays varsity'], [/\binitiatives?\b/i, 'research project'],
+  [/\bstock\b(?! (market|exchange))/i, 'moves slowly'], [/\bfloored\b/i, 'cannot fall below'], [/\bpts\b/i, 'name the unit'],
+  [/\bthe rest of the game\b|\b(era|part|stage) of the game\b/i, 'the college'], [/\bthe ladder\b|\bboard's ladder\b/i, 'the board\'s scale, milestones'],
+  [/\bscrolled off\b/i, 'the log no longer reaches'], [/\bthe slider\b/i, 'name the figure'], [/\byield step\b/i, 'everyone admitted enrolls'],
+  [/\bthe pot\b/i, 'the department\'s fund'], [/\bcommittee seats?\b/i, 'the committee writes N at once'],
+];
+const ENGINE_OK_SCREENS = new Set(['Menu', 'Settings', 'Crash screen', 'Credits', 'Title screen', 'Founding screen', 'Debug panel (developer only)', 'Audio (not read)', 'Course descriptions', 'Names (people, rivals, mascots)']);
 
 // Words a new player may not know, as the game uses them.
 const JARGON = [
@@ -416,14 +454,30 @@ export function summarize(rows: StringRow[]): string {
   const byIdiom = new Map<string, number>();
   for (const r of rows) {
     const t = bare(r.text);
-    for (const [re, us] of IDIOMS) {
+    for (const [re, us, unless] of IDIOMS) {
       const m = t.match(re);
-      if (!m) continue;
+      if (!m || unless?.test(t)) continue;
       idioms.push(`- “${m[0]}” (${us}) — ${r.screen}, \`${r.file}:${r.line}\`: ${r.text.slice(0, 140)}${r.text.length > 140 ? '…' : ''}`);
       byIdiom.set(m[0].toLowerCase(), (byIdiom.get(m[0].toLowerCase()) ?? 0) + 1);
     }
   }
   lines.push(idioms.length === 0 ? 'None found.' : `${idioms.length} found. By phrase: ${[...byIdiom.entries()].sort((a, b) => b[1] - a[1]).map(([w, n]) => `${w} ×${n}`).join(', ')}.`, '', ...idioms.slice(0, 150), '');
+
+  // The engine's words.
+  lines.push('## Engine words in the prose (for a person to judge)', '');
+  const engine: string[] = [];
+  const byEngine = new Map<string, number>();
+  for (const r of rows) {
+    if (ENGINE_OK_SCREENS.has(r.screen)) continue;
+    const t = bare(r.text);
+    for (const [re, word] of ENGINE) {
+      const m = t.match(re);
+      if (!m) continue;
+      engine.push(`- “${m[0]}” (${word}) — ${r.screen}, \`${r.file}:${r.line}\`: ${r.text.slice(0, 140)}${r.text.length > 140 ? '…' : ''}`);
+      byEngine.set(m[0].toLowerCase(), (byEngine.get(m[0].toLowerCase()) ?? 0) + 1);
+    }
+  }
+  lines.push(engine.length === 0 ? 'None found.' : `${engine.length} found. By word: ${[...byEngine.entries()].sort((a, b) => b[1] - a[1]).map(([w, n]) => `${w} ×${n}`).join(', ')}.`, '', ...engine.slice(0, 150), '');
 
   // Marks.
   const marks: Array<[string, RegExp]> = [

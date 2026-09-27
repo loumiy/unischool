@@ -3,6 +3,7 @@ import { WEEKS_PER_YEAR, totalEnrolled, type GameState, type LogEntry, type LogT
 import { playerRank } from '../../systems/rivals/rivalsSystem';
 import { RUNG_FREEZE, distressOf } from '../../systems/finance/distress';
 import { OCCASIONS } from '../../systems/athletics/season';
+import { winterDepth } from '../../state/winter';
 import { PLAYOFF_WEEK } from '../../systems/athletics/playoffs';
 
 // What the college sounds like, read off the state (Plan 34, v2's director
@@ -32,13 +33,9 @@ export interface AmbienceLevels {
   roar: boolean; // a game this week
 }
 
-// How deep into winter the week is, 0 to 1: this game's winter runs from
-// week 44 to week 8 and is deepest at the turn of the year (as the
-// catalog's winter condition reads it).
-export function winterDepth(week: number): number {
-  const fromNewYear = week <= WEEKS_PER_YEAR / 2 ? week : week - WEEKS_PER_YEAR;
-  return Math.max(0, 1 - Math.abs(fromNewYear) / 9);
-}
+// How deep into winter the week is: the catalog's own reading
+// (state/winter.ts), deepest at the turn of the terms.
+export { winterDepth };
 
 // A game on this week: one of the season's dated occasions, or the
 // postseason, once the college has a varsity team.

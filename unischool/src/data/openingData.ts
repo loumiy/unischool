@@ -28,7 +28,7 @@ export const OPENING_STEPS: Record<Exclude<OpeningStage, 'play'>, OpeningStep> =
   welcome: {
     eyebrow: 'From the chair of the board',
     title: 'The doors open',
-    body: (s) => `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll teaching ${foundingNames()}, and as of this morning the one building they teach in has not been set down on its ground. That is yours to fix, and so is what comes after it; the clock will not run until you have. Two things first: where the college stands, and what it teaches next.`,
+    body: (s) => `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll teaching ${foundingNames()}, and as of this morning the one building they teach in has not been set down on its ground. That is yours to fix, and so is what comes after it; and nothing else can start until you have. Two things first: where the college stands, and what it teaches next.`,
     next: 'Next',
   },
   'site-hall': {
@@ -40,13 +40,13 @@ export const OPENING_STEPS: Record<Exclude<OpeningStage, 'play'>, OpeningStep> =
   teaching: {
     eyebrow: 'Step two',
     title: 'The college already teaches',
-    body: () => `Founders Hall stands, and inside it ${foundingNames()} are being taught: three programs, two courses each, and a professor on every one. A program is a row of nine courses; each is developed — paid for once to develop, built over some weeks, then carried each week and taught by one of your professors from then on — and the next of each row is ready to start. The Curriculum is where you see all of that.`,
+    body: () => `Founders Hall stands, and inside it ${foundingNames()} are being taught: three programs, two courses each and a professor on every one. A program is a row of nine courses; each is developed — paid for once to develop, built over some weeks, then carried each week and taught by one of your professors from then on — and the next of each row is ready to start. The Curriculum is where you see all of that.`,
     next: 'Next',
   },
   found: {
     eyebrow: 'Step three',
     title: 'Found a fourth program',
-    body: (s) => `Founders Hall has three rooms still empty. A program is founded into a room from the hall's own panel on the map: ${s.programOffers.length > 1 ? `${s.programOffers.length} programs are on offer` : s.programOffers.length === 1 ? 'one program is on offer' : 'programs are offered three at a time'}, and founding one starts its first course with the professor you pick. When nobody on the payroll teaches that field, the panel shows the market — appointing someone there is how a department starts. Its panel is open: click a ringed room, and choose.`,
+    body: (s) => `Founders Hall has three program slots still empty. A program is founded into a slot from the hall's own panel on the map: ${s.programOffers.length > 1 ? `${s.programOffers.length} programs are on offer` : s.programOffers.length === 1 ? 'one program is on offer' : 'programs are offered three at a time'}, and founding one starts its first course with the professor you pick. When nobody on the payroll teaches that field, the panel shows the market — appointing someone there is how a department starts. Its panel is open: click a ringed slot, and choose.`,
     door: 'hall',
   },
 };

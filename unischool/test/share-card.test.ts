@@ -81,7 +81,7 @@ console.log('report card tests');
   const expected = [
     'B',
     'B',
-    'The mark · 68',
+    'The grade · 68',
     '#4 of 100 after fifty years',
     'Blackmoor &amp; Vale College',
     'A research powerhouse that never quite learned to teach,',
@@ -99,7 +99,7 @@ console.log('report card tests');
   // A run hung before the card: no score, no rank.
   const legacy: HallEntry = { ...entry, markScore: undefined, rank: undefined, total: undefined, year: 50 };
   const old = textOf(reportCardSvg(legacy, ''));
-  assert(!old.some((w) => w.startsWith('The mark ·')) && old.includes('After fifty years'), 'an older entry draws without the score and the rank');
+  assert(!old.some((w) => w.startsWith('The grade ·')) && old.includes('After fifty years'), 'an older entry draws without the score and the rank');
   assert(old[old.length - 1] === 'UniSchool', 'and without a site, the footer is the name alone');
   assert(reportCardSummary(legacy, 'site') === 'Blackmoor & Vale College — B after fifty years. UniSchool site', 'and its summary too');
   assert(chronicleLine({ ...entry, eras: [{ name: 'x', from: 1, to: 50, lines: [] }] }) === '', 'no chronicle, no quote');

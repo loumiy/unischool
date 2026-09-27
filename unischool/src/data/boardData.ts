@@ -46,6 +46,6 @@ export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
   },
   recovered: {
     title: 'On a sound footing',
-    text: 'The college is paying its way again, with reserves to cover a term. The board notes it with relief, and with its confidence.',
+    text: 'The college is paying its way again, with reserves to cover a term. The board notes it with relief, and its confidence rises with each surplus term.',
   },
 };

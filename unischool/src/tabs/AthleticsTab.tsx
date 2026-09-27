@@ -6,7 +6,7 @@ import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import {
-  ATHLETICS_BUDGET_ORDER, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
+  ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
   VARSITY_PETITION_MIN_TENURE_YEARS, ceilingResolved, coachProfile, departmentPot, orderedTeams, sportById, teamQuality,
   varsityEligibleYear, venueForCategory,
 } from '../data/studentLifeData';
@@ -17,6 +17,7 @@ import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
 import type { SeasonResult } from '../state/types';
 import { count, money, moneyShort, pct, weeksShort } from '../format';
+import { ReleaseIcon } from '../components/icons';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -24,8 +25,8 @@ function seasonLabel(r: SeasonResult): string {
   switch (r.finish) {
     case 'champion': return 'champions';
     case 'final': return 'lost the final';
-    case 'semifinal': return 'lost the semi';
-    case 'quarterfinal': return 'lost the quarter';
+    case 'semifinal': return 'lost the semifinal';
+    case 'quarterfinal': return 'lost the quarterfinal';
     default: return r.banned ? 'postseason ban' : 'did not qualify';
   }
 }
@@ -34,8 +35,8 @@ function seasonLabel(r: SeasonResult): string {
 // has not yet resolved it, the number once it has. The age sits beside it.
 function ceilingLabel(c: Coach): string {
   const p = coachProfile(c);
-  if (ceilingResolved(c)) return `ceiling ${c.qualityPotential}`;
-  return p.scouted[0] === p.scouted[1] ? `ceiling ${p.scouted[0]}` : `ceiling ${p.scouted[0]}–${p.scouted[1]}`;
+  if (ceilingResolved(c)) return `potential ${c.qualityPotential}`;
+  return p.scouted[0] === p.scouted[1] ? `potential ${p.scouted[0]}` : `potential ${p.scouted[0]}–${p.scouted[1]}`;
 }
 
 // Varsity athletics: teams with three hireable staff roles each (head coach,
@@ -45,7 +46,6 @@ function ceilingLabel(c: Coach): string {
 // which is only offered through the 'varsity-petition' decision event.
 
 type Role = 'head' | 'assistant' | 'trainer';
-const ROLE_LABEL: Record<Role, string> = { head: 'Head Coach', assistant: 'Assistant Coach', trainer: 'Trainer' };
 const ROLE_SHORT: Record<Role, string> = { head: 'Head', assistant: 'Asst', trainer: 'Trainer' };
 const ROLE_ORDER: readonly Role[] = ['head', 'assistant', 'trainer'];
 
@@ -78,10 +78,10 @@ function StaffRow({ act, team, role }: { act: (a: Action) => void; team: Varsity
       </span>
       <ConfirmButton
         className="coach-release"
-        label="✕"
-        armedLabel="Release"
+        label={<ReleaseIcon />}
+        ariaLabel={`Release ${coach.name}`}
+        armedLabel="Confirm — release; the post stays open"
         title={`Release ${coach.name}`}
-        warning="The chair is left open until someone is hired from the market."
         onConfirm={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}
       />
     </div>
@@ -145,7 +145,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>On the market</h2>
         <HelpHint
-          text="One pool for the whole department, not a separate list per chair. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a chair open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open chair always has somebody listed, but the good ones are rare. A card shows a ceiling as a range, not a number: a prospect is cheap and low now with a ceiling you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
+          text="One pool for the whole department, not a separate list per post. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a post open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open post always has somebody listed, but the good ones are rare. A card shows a coach's potential as a range, not a number: a prospect is cheap and low now with a potential you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
         />
       </div>
 
@@ -155,7 +155,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <>
           {wanted.length === 0 && !showAll && (
             <p className="empty-note">
-              Nobody on the market coaches a sport you field with a chair open.
+              Nobody on the market coaches a sport you field with a post open.
               {rest.length > 0 && ' There are others listed — see below.'}
             </p>
           )}
@@ -172,24 +172,24 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                     {weeksShort(Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed))} left
                   </span>
                 </div>
-                <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a ceiling you cannot quite see'}>
+                <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a potential you cannot quite see'}>
                   quality {c.quality} · {ceilingLabel(c)} · age {coachProfile(c).age} · {moneyShort(c.salary)}/yr
                 </span>
                 <span className="coach-candidate-hire">
                   {openings.length === 0
-                    ? <span className="coach-candidate-idle">no chair open</span>
+                    ? <span className="coach-candidate-idle">no post open</span>
                     : openings.map(({ team, role }) => (
                       <button
                         key={`${team.id}:${role}`}
                         type="button"
                         className="panel-action"
-                        title={`${team.name} — ${ROLE_LABEL[role]}`}
+                        title={`${team.name} — ${CHAIR_LABEL[role]}`}
                         onClick={() => act({ type: 'HIRE_COACH', candidateId: c.id, teamId: team.id, role })}
                       >
                         {/* The tag is the button: clicking the team that wants them hires. */}
                         {openings.length === 1 && openings[0].role !== 'trainer'
-                          ? `Hire — ${ROLE_LABEL[role]}`
-                          : `${team.name}${role === 'trainer' ? '' : ` · ${ROLE_LABEL[role]}`}`}
+                          ? `Hire as ${CHAIR_LABEL[role]}`
+                          : `${team.name}${role === 'trainer' ? '' : ` · ${CHAIR_LABEL[role]}`}`}
                       </button>
                     ))}
                 </span>
@@ -197,7 +197,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
             ))}
           </ul>
           {rest.length > 0 && (
-            <button type="button" className="coach-market-toggle" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+            <button type="button" className="panel-action coach-market-toggle" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
               {showAll ? 'Show only who you need' : `Show the rest of the market (${rest.length})`}
             </button>
           )}
@@ -217,9 +217,9 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
   return (
     <section className="panel department">
       <div className="panel-head">
-        <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity Athletics'}</h2>
+        <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity athletics'}</h2>
         <HelpHint
-          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant chair is a real gap rather than a hard block. The department runs on a pot: the college's subsidy plus what the programs earn at the gate. The one dial here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). Programs draw their sport's cost to compete off the pot in the order you put them — drag the cards — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
+          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant post is a real gap rather than a hard block. The department runs on its own fund: the college's subsidy plus what the programs earn at the gate. The subsidy level here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). Programs take their sport's cost to compete from the fund in the order you put them — drag the cards — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
         />
       </div>
 
@@ -236,7 +236,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           </>
         ) : (
           <p className="empty-note department-ad-empty">
-            No Athletic Director. The trustees will put candidates forward before long.
+            No Athletic Director. The board will put candidates forward before long.
           </p>
         )}
       </div>
@@ -264,29 +264,29 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           the priority list has drawn on it. The tier is the subsidy in dollars. */}
       <div className="athletics-budget">
         <span className="athletics-budget-label">Subsidy</span>
-        <div className="athletics-budget-tiers">
+        <div className="athletics-budget-tiers segmented">
           {ATHLETICS_BUDGET_ORDER.map((tier) => (
             <button
               key={tier}
               type="button"
               className={tier === s.orgs.athleticsBudget ? 'active' : ''}
               aria-pressed={tier === s.orgs.athleticsBudget}
-              title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's pot; staff pay ×${ATHLETICS_BUDGET_TIERS[tier].upkeepMultiplier}; the teams' lift to student life ×${ATHLETICS_BUDGET_TIERS[tier].socialMultiplier}`}
+              title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's fund; staff pay ×${ATHLETICS_BUDGET_TIERS[tier].upkeepMultiplier}; the teams' lift to student life ×${ATHLETICS_BUDGET_TIERS[tier].socialMultiplier}`}
               onClick={() => act({ type: 'SET_ATHLETICS_BUDGET', tier })}
             >
-              {tier}
+              {tier.charAt(0).toUpperCase() + tier.slice(1)}
             </button>
           ))}
         </div>
       </div>
       <dl className="athletics-pot">
-        <Figure label="Subsidy" value={`${money(pot.subsidy)}/yr`} hint="What the college puts into the department's pot each year, set by the dial above." />
+        <Figure label="Subsidy" value={`${money(pot.subsidy)}/yr`} hint="What the college puts into the department's fund each year, set by the subsidy level above." />
         {active.length > 0 && (
           <>
-            <Figure label="Gate" value={`${money(pot.earned)}/yr`} hint="What the programs earn at the gate in a year, which goes into the same pot." />
-            <Figure label="Pot" value={`${money(pot.pot)}/yr`} hint="The subsidy and the gate together: what the programs draw on, in the order of the cards." />
-            <Figure label="Programs draw" value={`${money(pot.drawn)}/yr`} hint="What the programs take from the pot to compete, each up to its sport's cost, until the pot runs out." />
-            <Figure label="Back to the college" value={pot.surplus > 0 ? `${money(pot.surplus)}/yr` : 'nothing'} hint="Whatever the programs leave in the pot, returned to the college's budget." />
+            <Figure label="Gate" value={`${money(pot.earned)}/yr`} hint="What the programs earn at the gate in a year, which goes into the same fund." />
+            <Figure label="Fund" value={`${money(pot.pot)}/yr`} hint="The subsidy and the gate together: what the programs take from, in the order of the cards." />
+            <Figure label="Programs take" value={`${money(pot.drawn)}/yr`} hint="What the programs take from the fund to compete, each up to its sport's cost, until the fund runs out." />
+            <Figure label="Back to the college" value={pot.surplus > 0 ? `${money(pot.surplus)}/yr` : 'nothing'} hint="The subsidy the programs do not take is never charged, and the gate they leave is paid to the college each week, as the Treasury's Athletics surplus." />
           </>
         )}
       </dl>
@@ -381,8 +381,8 @@ function TeamCard({ s, act, team, funding, rank }: {
         <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
         <span>{moneyShort(weeklyCost)}/wk</span>
         {funding && (
-          <span title={`Draws ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
-            draws {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${pct(funding.funded)})` : ''}
+          <span title={`Takes ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
+            takes {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${pct(funding.funded)})` : ''}
           </span>
         )}
         {team.status === 'active' && attendance > 0 && (
@@ -426,7 +426,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
-        <HelpHint text="Drag a program up or down. Each draws its sport's cost to compete off the department's pot in this order until the pot runs out — the line shows where. A program above the line is a flagship and recruits at full strength; one the money reaches only part-way is competitive; one it never reaches is developmental and runs at a discount, not a zero. Dragging a program below the line it was above is a real demotion: its head coach may resign rather than take the cut. Teams waiting on a venue sit out of the queue and draw nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, the recruiting budget and the Athletic Director — so hiring a coach moves it. Hover the rank for the colleges either side." />
+        <HelpHint text="Drag a program up or down. Each takes its sport's cost to compete from the department's fund in this order until the fund runs out — the line shows where. A program above the line is a flagship and recruits at full strength; one the money reaches only part-way is competitive; one it never reaches is developmental and runs at a discount, not a zero. Dragging a program below the line it was above is a real demotion: its head coach may resign rather than take the cut. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, the recruiting budget and the Athletic Director — so hiring a coach moves it. Hover the rank for the colleges either side." />
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">
@@ -470,7 +470,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
             );
           })}
           {pot.fundedLine === 0 && active.length > 0 && (
-            <li className="priority-slot wide"><div className="funded-line">the pot funds no program in full</div></li>
+            <li className="priority-slot wide"><div className="funded-line">the fund pays for no program in full</div></li>
           )}
           {/* Teams waiting on a building: construction items, not programs,
               below the queue under a quiet divider. */}

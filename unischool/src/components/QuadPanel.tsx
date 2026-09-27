@@ -3,6 +3,7 @@ import type { Action } from '../state/actions';
 import type { Quad } from '../state/quads';
 import { QUAD_NAME_MAX } from '../data/quadData';
 import { pct, count } from '../format';
+import { CloseIcon } from './icons';
 
 // A quad's card, opened by clicking it on the map: its name, which the
 // player can change, what it is, and the mark that made it if the player
@@ -19,7 +20,7 @@ export default function QuadPanel({ quad, act, onClose }: {
     <aside className="building-info-panel quad-panel" aria-label={quad.name}>
       <div className="building-info-head">
         <h3>{quad.name}</h3>
-        <button type="button" className="building-info-close" onClick={onClose} aria-label="Close">×</button>
+        <button type="button" className="close-btn" onClick={onClose} aria-label="Close"><CloseIcon /></button>
       </div>
       <p className="building-info-line">
         {quad.designated ? 'Marked as a quad.' : 'A quad the buildings enclose.'}{' '}

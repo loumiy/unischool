@@ -67,6 +67,15 @@ const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = {
   housing: 'Housing',
 };
 
+// What would raise each, named in the line (the build menu opens on it).
+const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, string> = {
+  academic: 'a library would raise it',
+  social: 'a student center or a recreation building would raise it',
+  basicNeeds: 'a dining hall would raise it',
+  health: 'a health center or a gym would raise it',
+  housing: 'a residence hall would raise it',
+};
+
 // Shortfall line on the 0..100 attribute scale.
 export const ATTRIBUTE_SHORTFALL = 50;
 
@@ -149,7 +158,7 @@ function freeSlot(s: GameState): NextStep | null {
   if (open) {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
     return {
-      text: `${nameOf(open)} has a free slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
+      text: `${nameOf(open)} has a free program slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
       go: 'hall',
       hallId: open,
       intent: { kind: 'found', hallId: open },
@@ -202,7 +211,7 @@ function shortfall(s: GameState): NextStep | null {
     if (score < ATTRIBUTE_SHORTFALL && (!worst || score < worst.score)) worst = { key, score };
   }
   if (!worst) return null;
-  return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${satisfactionFigure(worst.score)} — build for it`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
+  return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${satisfactionFigure(worst.score)}: ${ATTRIBUTE_BUILD[worst.key]}`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
 }
 
 // A program gone dark with an unstaffed course (Plan 59), when the payroll
@@ -232,7 +241,7 @@ function idleLab(s: GameState): NextStep | null {
   const lab = unproven ?? idle[0];
   return {
     text: unproven
-      ? `${lab.name} has not seen an initiative through — every lab that does brings the Research Park closer`
+      ? `${lab.name} has not finished a research project — every lab that does brings the Research Park closer`
       : `${lab.name} is idle — commission research`,
     go: 'research',
     intent: { kind: 'research', labId: lab.id },

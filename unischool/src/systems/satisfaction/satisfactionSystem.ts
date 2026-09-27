@@ -261,7 +261,7 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
 
   const bonuses: AttributeContributor[] = [];
   const flat = flatBonusFor(s, attribute);
-  if (flat > 0) bonuses.push({ label: 'Quad & other flat contributors', value: flat });
+  if (flat > 0) bonuses.push({ label: 'Quads and the like, at any size', value: flat });
   if (attribute === 'academic') {
     const teaching = teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS;
     bonuses.push({ label: `Teaching, against a standard of ${gradeFor(academicStandard(s))} (${Math.round(academicStandard(s))}) for these students`, value: teaching });
@@ -275,15 +275,15 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   }
   if (attribute === 'basicNeeds') {
     const affordability = affordabilityBonus(s);
-    if (affordability > 0) bonuses.push({ label: 'Affordability (price vs. standing)', value: affordability });
+    if (affordability > 0) bonuses.push({ label: 'Affordability (the price against prestige)', value: affordability });
   }
   if (attribute === 'academic') {
     const morale = facultyMorale(s);
-    if (morale !== 0) bonuses.push({ label: 'The faculty\'s characters', value: morale });
+    if (morale !== 0) bonuses.push({ label: 'Faculty personalities', value: morale });
   }
   if (attribute === 'academic' || attribute === 'housing') {
     const pairing = pairingBumps(s)[attribute];
-    if (pairing > 0) bonuses.push({ label: attribute === 'academic' ? 'Halls near a library' : 'Residences near a dining hall', value: pairing });
+    if (pairing > 0) bonuses.push({ label: attribute === 'academic' ? 'Academic halls near a library' : 'Residence halls near a dining hall', value: pairing });
   }
 
   return {

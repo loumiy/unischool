@@ -5,7 +5,7 @@ import { MenuIcon } from './icons';
 import ImportSave from './ImportSave';
 import { downloadFile } from './download';
 import { exportSave } from '../state/persistence';
-import type { GameState } from '../state/types';
+import { institutionName, type GameState } from '../state/types';
 
 // The top-right hamburger menu: Save, the run as a file and back (Plan 70B),
 // the hall of fame, Settings, the title screen and New Game (Plan 34 added
@@ -53,29 +53,29 @@ export default function MainMenu({ s, act, onHall, onSettings, onTitle }: {
       {open && (
         <div className="main-menu-popup" role="dialog" aria-label="Main menu">
           <button
-            className="save-btn"
+            className="menu-btn"
             onClick={() => { act({ type: 'SAVE_GAME' }); close(); }}
             title="Write the run to this browser now. The game also saves itself every summer, at admissions."
           >
             Save
           </button>
           <button
-            className="save-btn"
+            className="menu-btn"
             title="Download the run as a file, to keep or to continue in another browser."
             onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); close(); }}
           >
             Download save
           </button>
           <ImportSave current={s} />
-          <button className="save-btn" onClick={() => { close(); onHall(); }}>Hall of fame</button>
-          <button className="save-btn" onClick={() => { close(); onSettings(); }}>Settings</button>
-          <button className="save-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>
+          <button className="menu-btn" onClick={() => { close(); onHall(); }}>Hall of fame</button>
+          <button className="menu-btn" onClick={() => { close(); onSettings(); }}>Settings</button>
+          <button className="menu-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>
           <ConfirmButton
-            className="newgame-btn"
-            title="Erase the saved run and found a new college."
+            className="menu-btn btn-quiet"
+            title="Erase the saved college and found a new one."
             label="New game"
-            armedLabel="Confirm — erase this run"
-            warning="The run is erased and a new college is founded."
+            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            warning={`${institutionName(s.self)} is erased and a new college is founded.`}
             onConfirm={() => act({ type: 'RESET' })}
           />
         </div>

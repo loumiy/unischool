@@ -144,7 +144,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
       <div className="inbox-list">
         <div className="inbox-tools">
           <input id="inbox-search" className="inbox-search" type="search" aria-label="Search the inbox" placeholder="Search letters and matters" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <div className="inbox-filters" role="group" aria-label="Show">
+          <div className="inbox-filters segmented" role="group" aria-label="Show">
             {FILTERS.map((f) => (
               <button key={f.id} type="button" className={filter === f.id ? 'active' : ''} aria-pressed={filter === f.id} onClick={() => { setFilter(f.id); setSelectedId(f.id === 'answered' ? 'answer:0' : null); }}>
                 {f.label}
@@ -157,7 +157,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
 
         <div className="inbox-rows">
           {filter === 'answered' ? (
-            answers.length === 0 ? <p className="inbox-empty">{q ? 'Nothing answered matches.' : 'Nothing answered yet. Every matter settled, by you, a seat or the clock, is kept here.'}</p> : (
+            answers.length === 0 ? <p className="inbox-empty">{q ? 'Nothing answered matches.' : 'Nothing answered yet. Every matter settled, by the President, a seat or the clock, is kept here.'}</p> : (
               <>
                 <div className="inbox-group"><span>Answered</span><span>newest first</span></div>
                 {answers.map((l, i) => {
@@ -211,7 +211,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
                   {i.tier === 'hold'
                     ? <span className="inbox-due">Clock stopped</span>
                     : i.weeksLeft !== undefined
-                    ? <span className="inbox-due">{i.urgent ? (i.weeksLeft === 0 ? 'This week' : 'Last week') : weeksShort(i.weeksLeft)}</span>
+                    ? <span className="inbox-due">{i.urgent ? (i.weeksLeft === 0 ? 'This week' : 'Final week') : weeksShort(i.weeksLeft)}</span>
                       : <span className="inbox-when">{i.kind === 'milestone' ? `Y${Math.floor((i.week - 1) / WEEKS_PER_YEAR) + 1}` : stamp(i.week)}</span>}
                   <span className="inbox-subject">{i.subject}</span>
                   {i.kind === 'demand' && s.events.activeDemand
@@ -225,15 +225,15 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
       </div>
 
       <div className="inbox-read" aria-live="polite">
-        <button type="button" className="inbox-back" onClick={() => setReading(false)}>← All mail</button>
+        <button type="button" className="inbox-back btn-quiet" onClick={() => setReading(false)}>← All mail</button>
         {filter === 'answered'
           ? (answer ? <AnswerView l={answer} /> : null)
           : selected ? (
             <ReadingPane key={selected.id} s={s} act={act} item={selected} onOpenTab={onOpenTab} />
           ) : (
             <div className="inbox-quiet">
-              <h3>Nothing to read</h3>
-              <p>Events that want an answer, the board’s letters, milestones and the week’s news all arrive here. The button in the toolbar counts what needs deciding.</p>
+              <h3 className="heading-panel">Nothing to read</h3>
+              <p>Events that want an answer, the board's letters, milestones and the week's news all arrive here. The button in the toolbar counts what needs deciding.</p>
             </div>
           )}
       </div>
@@ -250,7 +250,7 @@ function ReadHead({ tier, from, subject, meta }: { tier: InboxTier; from: string
         <span className={`inbox-tag ${tier}`}>{tier === 'letter' ? 'Letter' : 'To decide'}</span>
         <span className="letter-eyebrow">{from}</span>
       </div>
-      <h3>{subject}</h3>
+      <h3 className="heading-dialog">{subject}</h3>
       <p className="inbox-meta">{meta}</p>
     </header>
   );
@@ -284,14 +284,14 @@ function ReadingPane({ s, act, item, onOpenTab }: {
         <div className="inbox-read-grid">
           <div className="inbox-read-main">
             <div className="inbox-body"><CatalogueText text={text} className="inbox-para" /></div>
-            <p className="inbox-section-label">Your answer</p>
+            <p className="inbox-section-label eyebrow">Answers</p>
             <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId: p.instanceId, choiceId })} />
           </div>
           <aside className="inbox-side">
-            <span className="inbox-side-key">Time to answer</span>
+            <span className="inbox-side-key eyebrow">Time to answer</span>
             <span className={`inbox-side-big${item.urgent ? ' urgent' : ''}`}>{left === 0 ? 'This week' : weeks(left)}</span>
             <span className="inbox-meter"><i style={{ width: `${Math.round((1 - left / e.timeoutWeeks) * 100)}%` }} /></span>
-            {def && (<><span className="inbox-side-key">If nobody answers</span><span className="inbox-side-value">{fill(def.label, p.vars)}</span></>)}
+            {def && (<><span className="inbox-side-key eyebrow">If nobody answers</span><span className="inbox-side-value">{fill(def.label, p.vars)}</span></>)}
           </aside>
         </div>
       </article>
@@ -311,22 +311,22 @@ function ReadingPane({ s, act, item, onOpenTab }: {
         <div className="inbox-read-grid">
           <div className="inbox-read-main">
             <div className="inbox-body"><p className="inbox-para">{copy.grievance(demand.askName)}</p></div>
-            <p className="inbox-section-label">What would meet it</p>
+            <p className="inbox-section-label section-head">What would meet it</p>
             <div className="inbox-goal">
               <strong>{copy.ask(demand.askName)}</strong>
               <span className="inbox-meter wide"><i style={{ width: `${Math.round(progress.fraction * 100)}%` }} /></span>
               <span>{count(progress.current)} of {count(progress.target)} {copy.unit}.</span>
-              <span className="inbox-goal-stakes">Met, satisfaction heads for {satisfactionFigure(stakes.satisfactionIfMet)}; missed, next summer’s pool is {count(stakes.applicantsIfFailed)} rather than {count(stakes.applicantsIfMet)}.</span>
+              <span className="inbox-goal-stakes">Met, satisfaction heads for {satisfactionFigure(stakes.satisfactionIfMet)}; missed, next summer's applicant pool is {count(stakes.applicantsIfFailed)} rather than {count(stakes.applicantsIfMet)}.</span>
             </div>
-            <div className="opening-coach-actions">
+            <div className="modal-actions inbox-actions">
               <button type="button" onClick={() => onOpenTab('build')}>Open Build</button>
-              {tabAvailable(s, 'students') && <button type="button" className="secondary" onClick={() => onOpenTab('students')}>See it in Students</button>}
+              {tabAvailable(s, 'students') && <button type="button" className="btn-quiet" onClick={() => onOpenTab('students')}>See it in Students</button>}
             </div>
           </div>
           <aside className="inbox-side">
-            <span className="inbox-side-key">Deadline</span>
+            <span className="inbox-side-key eyebrow">Deadline</span>
             <span className={`inbox-side-big${item.urgent ? ' urgent' : ''}`}>{left === 0 ? 'This week' : weeks(left)}</span>
-            <span className="inbox-side-key">Met by</span>
+            <span className="inbox-side-key eyebrow">Met by</span>
             <span className="inbox-side-value">Building it: the demand closes the week it is met</span>
           </aside>
         </div>
@@ -343,17 +343,17 @@ function ReadingPane({ s, act, item, onOpenTab }: {
         <ReadHead tier={item.tier} from={item.from} subject={letter.title} meta={`From the board to the President · ${gameDate(s.clock.year, s.clock.week)}`} />
         <div className="inbox-read-main">
           <div className="inbox-body"><p className="inbox-para">{letter.text}</p></div>
-          <div className="opening-coach-actions">
+          <div className="modal-actions inbox-actions">
             {boardAsks(id) ? (
               <>
                 {/* The letter's ask (Plan 70D): setting the sweep puts it away. */}
                 <button type="button" onClick={() => act({ type: 'SET_SWEEP', weeks: SWEEP_DEFAULT_WEEKS })}>Sweep above {weeksShort(SWEEP_DEFAULT_WEEKS)}</button>
-                <button type="button" className="secondary" onClick={() => act({ type: 'READ_BOARD_LETTER' })}>Not now</button>
+                <button type="button" className="btn-quiet" onClick={() => act({ type: 'READ_BOARD_LETTER' })}>Not now</button>
               </>
             ) : (
               <>
                 <button type="button" onClick={() => act({ type: 'READ_BOARD_LETTER' })}>Noted</button>
-                <button type="button" className="secondary" onClick={() => onOpenTab('treasury')}>Open Treasury</button>
+                <button type="button" className="btn-quiet" onClick={() => onOpenTab('treasury')}>Open Treasury</button>
               </>
             )}
           </div>
@@ -373,14 +373,14 @@ function ReadingPane({ s, act, item, onOpenTab }: {
           <div className="inbox-body"><p className="inbox-para">{m.letter}</p></div>
           {m.opens.length > 0 && (
             <>
-              <p className="inbox-section-label">What this opens</p>
+              <p className="inbox-section-label section-head">What this opens</p>
               <ul className="milestone-opens">{m.opens.map((line) => <li key={line}>{line}</li>)}</ul>
             </>
           )}
           {(m.buildables.length > 0 || tab) && (
-            <div className="opening-coach-actions">
+            <div className="modal-actions inbox-actions">
               {m.buildables.length > 0 && <button type="button" onClick={() => onOpenTab('build')}>Open Build</button>}
-              {tab && <button type="button" className={m.buildables.length > 0 ? 'secondary' : ''} onClick={() => onOpenTab(tab)}>Open {TAB_LABELS[tab]}</button>}
+              {tab && <button type="button" className={m.buildables.length > 0 ? 'btn-quiet' : undefined} onClick={() => onOpenTab(tab)}>Open {TAB_LABELS[tab]}</button>}
             </div>
           )}
         </div>
@@ -407,7 +407,7 @@ function AnswerView({ l }: { l: LogEntry }) {
     <article className="inbox-letter">
       <header className="inbox-read-head">
         <div className="inbox-tags"><span className="inbox-tag answered">Answered</span></div>
-        <h3>{a.subject}</h3>
+        <h3 className="heading-dialog">{a.subject}</h3>
         <p className="inbox-meta">{gameDate(l.year, l.week)}</p>
       </header>
       <p className={`inbox-para${a.lapsed ? ' lapsed' : ''}`}>{a.how}</p>

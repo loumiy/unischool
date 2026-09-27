@@ -81,7 +81,7 @@ function grantHeldCharter(state: GameState): void {
   state.self.suffix = 'University';
   state.log.unshift({
     year: state.clock.year, week: state.clock.week, kind: 'good', topic: 'milestone',
-    message: `The trustees have granted a university charter: ${was} is now ${institutionName(state.self)}. The name can be changed from its pennant.`,
+    message: `The board has granted a university charter: ${was} is now ${institutionName(state.self)}.`,
   });
   state.pendingInterrupt = null;
   // As clock.ts's advanceClock, written out: persistence is imported early,

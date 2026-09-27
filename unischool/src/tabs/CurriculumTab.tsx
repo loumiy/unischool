@@ -23,6 +23,7 @@ import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import { CloseIcon, StatusIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
@@ -358,7 +359,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
           {moneyShort(t.cost)}
           {best
             ? <> · {surnameOf(best.name)} <span className={`instructor-chip-grade grade-${bestGrade!.toLowerCase()}`}>{bestGrade}</span></>
-            : t.requiresFaculty ? ' · no free slot' : ''}
+            : t.requiresFaculty ? ' · needs faculty' : ''}
         </span>
       )}
       {/* The chip replaces the done-tick on a staffed course. */}
@@ -378,15 +379,15 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
       )}
       {state === 'done' && !instructor && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
       {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
-      {transit && !unstaffed && <span className="cell-stamp transit" title="Its program is moving halls — dark until it settles">⇄</span>}
+      {transit && !unstaffed && <span className="cell-stamp transit" title="Its program is moving halls — closed until it settles">⇄</span>}
       {/* Yellow: one appointment away. Red: nobody to appoint, only time fixes it. */}
       {showGateDot && (
         <span
           className={`cell-gate-dot ${gate}`}
           aria-hidden="true"
           title={gate === 'hireable'
-            ? `No free ${t.requiresFaculty} slot — a candidate is on the market`
-            : `No free ${t.requiresFaculty} slot, and nobody on the market`}
+            ? `Needs ${t.requiresFaculty} faculty: every professor in the field is teaching a full load, and a candidate is on the market`
+            : `Needs ${t.requiresFaculty} faculty: every professor in the field is teaching a full load, and nobody is on the market`}
         />
       )}
       {state === 'developing' && (
@@ -500,7 +501,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
       <h5>On the market in {field}</h5>
       {listed.length === 0 ? (
         <p className="course-drawer-note quiet">
-          No {field} candidates are listed this week. The market turns over constantly — or pay for a search.
+          No {field} candidates are listed this week. The market turns over every week — or pay for a search.
         </p>
       ) : (
         listed.map((c) => (
@@ -570,7 +571,7 @@ function CourseDrawer(
           <span className="course-drawer-code">{code}</span>
           <h3>{title}</h3>
         </div>
-        <button type="button" className="course-drawer-close" onClick={onClose} aria-label="Close course detail">✕</button>
+        <button type="button" className="close-btn" onClick={onClose} aria-label="Close course detail"><CloseIcon /></button>
       </div>
 
       <div className="course-drawer-body">
@@ -583,7 +584,7 @@ function CourseDrawer(
           {(() => {
             const hallId = hallOfCourse(s, t.id);
             const hall = hallId ? lookup.get(hallId) : undefined;
-            return hall ? <div><dt>Housed in</dt><dd>{hall.name}</dd></div> : null;
+            return hall ? <div><dt>Taught in</dt><dd>{hall.name}</dd></div> : null;
           })()}
           {state === 'developing' && <div><dt>Remaining</dt><dd>{weeksLeft} weeks</dd></div>}
         </dl>
@@ -624,7 +625,7 @@ function CourseDrawer(
                   return (
                     <li key={id} className={met ? 'met' : 'unmet'}>
                       <span className="prereq-static">
-                        {met ? '✓' : '✗'} {p?.name ?? id}
+                        <StatusIcon status={met ? 'done' : 'failed'} /> {p?.name ?? id}
                         <span className="prereq-bridge" title="Built on the campus map, not developed here">build</span>
                       </span>
                     </li>
@@ -633,7 +634,7 @@ function CourseDrawer(
                 return (
                   <li key={id} className={met ? 'met' : 'unmet'}>
                     <button type="button" className="prereq-link" onClick={() => onGoToCourse(id)}>
-                      {met ? '✓' : '✗'} {p.name}
+                      <StatusIcon status={met ? 'done' : 'failed'} /> {p.name}
                       {bridge && <span className="prereq-bridge" title="A prerequisite from another program">cross-listed</span>}
                       <span className="prereq-go" aria-hidden="true">→</span>
                     </button>
@@ -689,7 +690,7 @@ function CourseDrawer(
             {eligible.length === 0 && inField.length > 0 && (
               <>
                 <p className="course-drawer-note">
-                  Every {t.requiresFaculty} professor is at capacity. Free a slot by moving one of their
+                  Every {t.requiresFaculty} professor is teaching a full load. Make room by moving one of their
                   courses, or appoint someone new.
                 </p>
                 <div className="instructor-options">
@@ -731,7 +732,7 @@ function CourseDrawer(
           <p className="course-drawer-warning">{money(Math.ceil(shortfall))} short of the development cost.</p>
         )}
         {t.status === 'available' && isUndergraduateCourse(t) && courseSlotsFree(s) === 0 && (
-          <p className="course-drawer-warning">The curriculum committee is writing {committeeSeats(s)} courses already; this one starts when a seat frees.</p>
+          <p className="course-drawer-warning">The curriculum committee is writing {committeeSeats(s)} courses already, its most; this one starts when one of them is done.</p>
         )}
         {state === 'locked' && (
           <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
@@ -764,7 +765,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
   const worth = (
     <span className="row-action-worth">
       {milestoneLine(progress)}
-      {progress.toMilestone > 0 && <> · +{SEATS_PER_COURSE} seats</>}
+      {progress.toMilestone > 0 && <> · +{SEATS_PER_COURSE} places</>}
     </span>
   );
 
@@ -834,14 +835,14 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
         title={canStart
           ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, ${money(next.cost)}`
           : shortfall > 0 ? `${money(Math.ceil(shortfall))} short of the development cost`
-            : courseSlotsFree(s) === 0 ? `Every committee seat is taken (${committeeSeats(s)}); a seat frees when a course is done` : 'Cannot start this course right now'}
+            : courseSlotsFree(s) === 0 ? `The committee is writing its most (${committeeSeats(s)}); the next starts when a course is done` : 'Cannot start this course right now'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: next.id, facultyId: best.id })}
       >
         Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
         <GradeChip grade={projected.grade} title={`${next.name} would be graded ${projected.grade} with ${best.name}`} />
       </button>
       <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
-      {!compact && <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">choose…</button>}
+      {!compact && <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">Choose…</button>}
       {!compact && batchOk && (
         <button
           type="button"
@@ -849,7 +850,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
           title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)} — grades ${batchGrades.join(' ')} as their load climbs`}
           onClick={() => { for (const t of batch) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: best.id }); }}
         >
-          all {batch.length} with {surnameOf(best.name)} → {batchGrades.join(' ')}
+          All {batch.length} with {surnameOf(best.name)} → {batchGrades.join(' ')}
         </button>
       )}
       {worth}
@@ -885,8 +886,8 @@ function ProgramRowView(
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
         {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
-        {hall && <span className="program-row-hall" title="Where it is housed">{hallDisplayName(s, hall)}</span>}
-        {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no seats, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
+        {hall && <span className="program-row-hall" title="The hall it is taught in">{hallDisplayName(s, hall)}</span>}
+        {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no places, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
         {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} compact />}
         <span className="lane-count">{fraction(progress.done, progress.total)}</span>
       </header>
@@ -1040,7 +1041,7 @@ function FilterBar(
           onClick={() => onChange({ ...filters, field: null })}
           title="Courses waiting on this department — click to clear"
         >
-          waiting on {filters.field} ×
+          Waiting on {filters.field} ×
         </button>
       )}
       {resultCount !== null && (
@@ -1098,7 +1099,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
     <div className="next-up with-committee" aria-label="What next">
       <div className="next-up-main">
       {offers.length === 0 && near.length === 0 && ready.length === 0 && wall.length === 0 && (
-        <div className="next-up-item"><span className="next-up-note">Nothing waiting: every revealed course is under way or done.</span></div>
+        <div className="next-up-item"><span className="next-up-note">Nothing waiting: every course the college can offer is under way or done.</span></div>
       )}
       {offers.length > 0 && (
         <div className="next-up-item offers">
@@ -1117,7 +1118,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
           </span>
           <span className="next-up-doors">
             {hallsWithRoom.length === 0
-              ? <span className="next-up-note">no free slot — site an academic hall</span>
+              ? <span className="next-up-note">no free program slot — site an academic hall</span>
               : hallsWithRoom.map(({ hall, free }) => (
                 <button
                   key={hall.id}
@@ -1125,7 +1126,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
                   className="next-up-door"
                   disabled={!onInspectHall}
                   onClick={() => onInspectHall?.(hall.id)}
-                  title={`Open ${hallDisplayName(s, hall)} on the map and found a program in one of its ${free} free slot${free === 1 ? '' : 's'}`}
+                  title={`Open ${hallDisplayName(s, hall)} on the map and found a program in one of its ${free} free program slot${free === 1 ? '' : 's'}`}
                 >
                   Found in {hallDisplayName(s, hall)} · {free} free
                 </button>
@@ -1150,28 +1151,28 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
         <div className="next-up-item">
           <span className="next-up-label">Ready now</span>
           <span className="next-up-doors">
-            <button type="button" className="next-up-door" onClick={() => onFilter({ status: 'available', field: null })} title="Every course that could start this week: a free slot and the cash for it">
+            <button type="button" className="next-up-door" onClick={() => onFilter({ status: 'available', field: null })} title="Every course that could start this week: a professor free to teach it, room on the committee and the cash for it">
               {ready.length} {ready.length === 1 ? 'course' : 'courses'} · {moneyShort(readyCost)} to start them all
             </button>
             {revealed.length > ready.length && (
-              <span className="next-up-note">{revealed.length - ready.length} more revealed, short of cash, a faculty slot or a committee seat</span>
+              <span className="next-up-note">{revealed.length - ready.length} more waiting, short of cash, faculty or room on the committee</span>
             )}
           </span>
         </div>
       )}
       {wall.length > 0 && (
         <div className="next-up-item wall">
-          <span className="next-up-label">The wall</span>
+          <span className="next-up-label">Waiting on faculty</span>
           <span className="next-up-doors">
             {wall.slice(0, 3).map(([field, n]) => {
               const gate = facultyGate(s, field);
               return (
                 <span key={field} className="next-up-pair">
-                  <button type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} revealed ${n === 1 ? 'course is' : 'courses are'} waiting on a free ${field} slot${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
+                  <button type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} ${n === 1 ? 'course is' : 'courses are'} waiting on ${field} faculty${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
                     {field} short · {n} waiting{gate === 'hireable' ? ' · candidate listed' : ''}
                   </button>
                   {onOpenFaculty && (
-                    <button type="button" className="next-up-door quiet" onClick={() => onOpenFaculty(field)} title={`Open the Faculty board on ${field}: its people, the market, a search`}>
+                    <button type="button" className="next-up-door quiet" onClick={() => onOpenFaculty(field)} title={`Open the Faculty tab on ${field}: its people, the market, a search`}>
                       {gate === 'hireable' ? 'Appoint →' : 'Department →'}
                     </button>
                   )}
@@ -1201,10 +1202,10 @@ function CommitteePanel({ s }: { s: GameState }) {
     <section className="committee" aria-label="Curriculum committee">
       <header className="committee-head">
         <span className="next-up-label">Committee</span>
-        <span className="committee-count">{writing.length} of {seats} seats</span>
+        <span className="committee-count">writing {writing.length} of {seats}</span>
         <HelpHint
           align="end"
-          text={`Writing a course takes the college's attention: the curriculum committee develops up to ${seats} undergraduate courses at once. A seat frees when its course is done. The committee grows by a seat at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}. Graduate courses are written by their schools and take no seat.`}
+          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} undergraduate courses at once, and takes up the next when one is done. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}. Graduate courses are written by their schools and do not count against it.`}
         />
       </header>
       <ol className="committee-seats">
@@ -1232,7 +1233,7 @@ function CommitteePanel({ s }: { s: GameState }) {
           );
         })}
       </ol>
-      {next !== null && <p className="committee-note">Another seat at prestige {next}.</p>}
+      {next !== null && <p className="committee-note">One more at a time from prestige {next}.</p>}
     </section>
   );
 }
@@ -1352,7 +1353,7 @@ export default function CurriculumTab(
             {/* While filtering, the crumb shows the whole-catalogue search. */}
             {filtering ? (
               <h2 className="curriculum-crumbs">
-                <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>The Curriculum</button>
+                <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>The curriculum</button>
                 <span className="crumb-sep" aria-hidden="true">›</span>
                 <span className="crumb-current">Matching courses</span>
               </h2>

@@ -5,7 +5,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
-import { facultyResearchOutput, labEquippedFields } from '../data/researchData';
+import { PUBLICATION_POINTS, facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
 import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSystem';
@@ -13,6 +13,8 @@ import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/facult
 import { facultyPay } from '../systems/finance/financeSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import ConfirmButton from '../components/ConfirmButton';
+import { DisclosureIcon } from '../components/icons';
 import { GradeChip, SearchOffer } from './CurriculumTab';
 import { searchCost } from '../systems/faculty/facultySearch';
 import { projectedQuality } from '../systems/faculty/facultyAssignment';
@@ -69,9 +71,6 @@ function FacultyCard(
 ) {
   const [open, setOpen] = useState(false);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
-  // Two-step dismissal, armed only when there is something to lose, and
-  // reset on blur.
-  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
   const weeksLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
   const researches = !isCandidate && labEquippedFields(s).has(f.field);
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
@@ -143,39 +142,35 @@ function FacultyCard(
               aria-expanded={open}
               aria-label={open ? `Show less about ${f.name}` : `Show more about ${f.name}`}
             >
-              {open ? '▾ less' : '▸ more'}
+              <DisclosureIcon open={open} /> {open ? 'Less' : 'More'}
             </button>
             {isCandidate ? (
               <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
             ) : (
-              <button
-                className={confirmingDismiss ? 'dismiss-confirm' : undefined}
-                onClick={() => {
-                  if (!confirmingDismiss && (taught.length > 0 || commitment)) { setConfirmingDismiss(true); return; }
-                  act({ type: 'FIRE_FACULTY', facultyId: f.id });
-                }}
-                onBlur={() => setConfirmingDismiss(false)}
-              >
-                {confirmingDismiss ? (taught.length > 0 ? 'Confirm — leave them unstaffed' : 'Confirm — dismiss') : 'Dismiss'}
-              </button>
+              // Dismissing someone orphans their courses (the reducer's
+              // FIRE_FACULTY) and leaves any research team one short, so it
+              // asks first and names the loss. Someone teaching nothing and
+              // on no project is dismissed on the first click.
+              <ConfirmButton
+                className="btn-danger"
+                label="Dismiss"
+                armedLabel={taught.length > 0
+                  ? `Confirm — ${taught.length} ${taught.length === 1 ? 'course' : 'courses'} left unstaffed`
+                  : `Confirm — the ${commitment?.topic ?? 'research'} team one short`}
+                warning={<>
+                  {taught.length > 0 && <>
+                    {f.name} teaches {taught.map((c) => c.name.split(' · ')[0]).join(', ')}, which will be left without an instructor.
+                  </>}
+                  {taught.length > 0 && commitment && ' '}
+                  {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
+                </>}
+                needsConfirm={taught.length > 0 || !!commitment}
+                onConfirm={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}
+              />
             )}
           </div>
         </div>
       </div>
-      {/* Dismissing someone orphans their courses (see the reducer's
-          FIRE_FACULTY) and leaves any research team one short, so the
-          second click is preceded by a named warning. Someone teaching
-          nothing and on no project is dismissed on the first click. */}
-      {confirmingDismiss && (taught.length > 0 || commitment) && (
-        <p className="faculty-dismiss-warning">
-          {taught.length > 0 && <>
-            {f.name} teaches {taught.length} {taught.length === 1 ? 'course' : 'courses'}, which will be left
-            without an instructor: {taught.map((c) => c.name.split(' · ')[0]).join(', ')}.
-          </>}
-          {taught.length > 0 && commitment && ' '}
-          {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
-        </p>
-      )}
       {open && (
         <div className="faculty-card-detail">
           <p className="faculty-bio">{f.bio}{quirk && <> <em>{quirk.line}</em></>}</p>
@@ -193,7 +188,7 @@ function FacultyCard(
                 <dt>Scholarly output</dt>
                 <dd>
                   {researches
-                    ? `${facultyResearchOutput(f).toFixed(2)} pts/wk`
+                    ? `${facultyResearchOutput(f).toFixed(2)} a week, of the ${PUBLICATION_POINTS} a paper takes`
                     : `none — no research facility in ${f.field}'s school`}
                 </dd>
               </>
@@ -284,13 +279,13 @@ function courseDemandByField(s: GameState): Map<string, DemandByMajor> {
 function demandSentence(field: string, demand: DemandByMajor | undefined, catalogue: number): string {
   if (!demand || demand.length === 0) {
     return catalogue > 0
-      ? `No ${field} course has been revealed yet — ${catalogue} in the catalog are waiting behind buildings and prerequisites.`
+      ? `No ${field} course is open yet — ${catalogue} in the catalog are waiting behind buildings and prerequisites.`
       : `Nothing in the catalog asks for ${field}.`;
   }
   const count = demand.reduce((n, g) => n + g.courses.length, 0);
-  return `${count} revealed ${count === 1 ? 'course pulls' : 'courses pull'} on ${field}: `
+  return `${count} open ${count === 1 ? 'course pulls' : 'courses pull'} on ${field}: `
     + demand.map((g) => `${g.group} (${g.courses.join(', ')})`).join('; ')
-    + `. Each one occupies a slot in this department for as long as it is offered, whether or not somebody is teaching it.`;
+    + `. Each one occupies a course slot in this department for as long as it is offered, whether or not somebody is teaching it.`;
 }
 
 // The row's action (hiringNext.ts's deptAction): appoint the listing, post a
@@ -366,8 +361,8 @@ function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
 
   const title = [
     `${c.field}: ${c.supply} course ${c.supply === 1 ? 'slot' : 'slots'} supplied by ${c.hired} ${c.hired === 1 ? 'professor' : 'professors'}.`,
-    `${c.offered} taken by courses on offer now, ${c.available} more revealed and not yet developed, ${c.catalogue} in the catalog all told.`,
-    taken > 0 ? `${taken} ${taken === 1 ? 'slot is' : 'slots are'} with a research project.` : '',
+    `${c.offered} taken by courses on offer now, ${c.available} more open and not yet developed, ${c.catalogue} in the catalog all told.`,
+    taken > 0 ? `${taken} ${taken === 1 ? 'course slot is' : 'course slots are'} with a research project.` : '',
     beyond ? 'The department can already teach its whole catalog.' : '',
   ].filter(Boolean).join(' ');
 
@@ -418,7 +413,7 @@ function DepartmentRow(
         aria-expanded={open}
       >
         <span className="dept-name">
-          <span className="dept-caret">{open ? '▾' : '▸'}</span>
+          <span className="dept-caret"><DisclosureIcon open={open} /></span>
           {c.field}
         </span>
         <CapacityMeter c={c} scale={scale} />
@@ -450,7 +445,7 @@ function DepartmentRow(
                   {waiting.length === 0
                     ? 'Open in Curriculum →'
                     : c.state === 'short' || c.state === 'over'
-                      ? `${waiting.length} waiting on a slot →`
+                      ? `${waiting.length} waiting on faculty →`
                       : `${waiting.length} still ahead →`}
                 </button>
               </>
@@ -565,7 +560,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
       )}
       {over.length > 0 && (
         <div className="next-up-item wall">
-          <span className="next-up-label">Over</span>
+          <span className="next-up-label">Short-staffed</span>
           <span className="next-up-doors">
             <button type="button" className="next-up-door" onClick={() => onOpenCurriculum?.('unstaffed')} title="Departments teaching more than they supply — every course without an instructor, in the Curriculum">
               {over.map((c) => c.field).join(', ')} · {unstaffed} {unstaffed === 1 ? 'course' : 'courses'} unstaffed →
@@ -677,7 +672,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text="Every department the college could have, whether or not anybody is in it. The meter on each row is drawn to one scale across the whole board: the solid part is the slots its courses take now, the half-tone the courses revealed but not yet developed, the dotted tail the rest of the catalog — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
+            <HelpHint text="Every department the college could have, whether or not anybody is in it. The meter on each row is drawn to one scale across every department: the solid part is the course slots its courses take now, the half-tone the courses open but not yet developed, the dotted tail the rest of the catalog — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
           </span>
           <span className="stat">{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
@@ -688,9 +683,9 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <p className="faculty-horizon">
           <strong>{cap.total.supply}</strong> course slots supplied,
           {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
-          {' '}<strong>{cap.total.available}</strong> more revealed and waiting.
+          {' '}<strong>{cap.total.available}</strong> more open and waiting.
           {toFinish > 0
-            ? ` Teaching the whole catalog takes ${cap.total.catalogue} slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the slots a new hire brings, fewer if you keep them long enough to grow.`
+            ? ` Teaching the whole catalog takes ${cap.total.catalogue} course slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the course slots a new hire brings, fewer if you keep them long enough to grow.`
             : ' Every department can already teach its whole catalog.'}
         </p>
       </section>
@@ -698,12 +693,12 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
       <section className="panel dept-board">
         <div className="panel-head">
           <span className="panel-head-title"><h3>Departments</h3></span>
-          <span className="dept-views">
+          <span className="dept-views segmented">
             {VIEWS.map((v) => (
               <button
                 key={v.id}
                 type="button"
-                className={view === v.id ? 'dept-view on' : 'dept-view'}
+                className={view === v.id ? 'on' : undefined}
                 onClick={() => { setView(v.id); setOverrides({}); }}
               >
                 {v.label}
@@ -756,9 +751,9 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           <span className="dept-name">Department</span>
           <span className="capacity-legend">
             <span className="capacity-key-pair"><span className="capacity-key offered" />offered</span>
-            <span className="capacity-key-pair"><span className="capacity-key available" />revealed</span>
+            <span className="capacity-key-pair"><span className="capacity-key available" />open</span>
             <span className="capacity-key-pair"><span className="capacity-key locked" />catalog</span>
-            <span className="capacity-key-pair"><span className="capacity-key rule" />slots supplied</span>
+            <span className="capacity-key-pair"><span className="capacity-key rule" />course slots supplied</span>
           </span>
           <span className="dept-slots">used/have</span>
           <span className="dept-catalogue">all</span>

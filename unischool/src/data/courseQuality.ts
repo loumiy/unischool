@@ -121,7 +121,7 @@ export function qualityOf(
 
   const tierCost = tierPenalty(tier);
   if (tierCost > 0) {
-    const what = tier === 'graduate' ? 'Graduate coursework' : tier === 3 ? 'Capstone tier' : 'Upper tier';
+    const what = tier === 'graduate' ? 'Graduate coursework' : tier === 3 ? 'Capstone course' : 'Upper-level course';
     factors.push({ label: what, value: -tierCost });
   }
 

@@ -5,6 +5,7 @@ import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR 
 import { random, newId } from '../../engine/random';
 import { EVENT_CATALOGUE, applyEffects, eligible, eventById, eventText, fill, pickTelling, priceScale, rollVars, scaledEffects } from './catalogue';
 import { hasTag } from '../identity/tags';
+import { makePromise } from '../promises/promises';
 import { handlerFor, seatTitle } from '../delegation/seats';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { ESCALATION_WEEKS_OF_OPEX, seatDef } from '../../data/seatData';
@@ -111,7 +112,7 @@ export function tickCatalogue(s: GameState): void {
 function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   const c = s.catalogue!;
   const variant = pickTelling(e, s.clock.year, c.lastVariant?.[e.id]);
-  const p: PendingCatalogueEvent = { instanceId: newId(), eventId: e.id, firedWeek: absoluteWeek(s), vars: rollVars(s), scale: priceScale(s), variant };
+  const p: PendingCatalogueEvent = { instanceId: newId(), eventId: e.id, firedWeek: absoluteWeek(s), vars: rollVars(s, e), scale: priceScale(s), variant };
   c.pending.push(p);
   c.lastFired[e.id] = s.clock.year;
   (c.lastVariant ??= {})[e.id] = variant;
@@ -152,13 +153,16 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   // seat's answer are paid however they can be.
   if (by === 'player' && choiceId !== e.default && choiceCost(e, choiceId, p.scale) > Math.max(0, s.finance.cash)) return false;
   applyEffects(s, scaledEffects(choice.effects, p.scale), p.vars);
+  // What an answer does beyond the levers (Plan 76D).
+  if (choice.promise) makePromise(s, choice.promise);
+  if (choice.mascot && !s.self.mascot) s.self.mascot = choice.mascot;
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
   journal(c, e, choiceId, by, s.clock.year);
   const title = e.title ?? firstSentence(fill(eventText(e, p), p.vars));
   const who = by === 'seat'
     ? (() => { const seat = handlerFor(s, e.domain)!; return `${seatTitle(seatDef(seat.seatId)!, seat.school)} ${seat.holder} answered`; })()
     : by === 'timeout' ? 'Nobody answered in time' : 'Answered';
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'event', message: `${title} — ${who}: ${choice.label}.` });
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'event', message: `${title} — ${who}: ${fill(choice.label, p.vars)}.` });
   return true;
 }
 

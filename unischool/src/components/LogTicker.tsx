@@ -69,7 +69,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
             type="button"
             className="log-ticker-ladder"
             aria-expanded={ladderOpen}
-            title={`${milestone.name}: ${milestone.condition}${progress ? ` — ${progressText(progress)} so far` : ''}. Click for the ladder: every milestone and what it opens.`}
+            title={`${milestone.name}: ${milestone.condition}${progress ? ` — ${progressText(progress)} so far` : ''}. Click for every milestone and what it opens.`}
             onClick={() => onSetLadderOpen(!ladderOpen)}
           >
             <span className="log-ticker-next-label">Milestone</span>

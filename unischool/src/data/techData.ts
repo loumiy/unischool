@@ -722,7 +722,7 @@ export function initialTech(): Buildable[] {
           kind: 'facility',
           facilityType: 'lab',
           name: researchFacilityName(labId(major.prefix))!,
-          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — gates the ${major.name} program's capstone (tier-3) coursework, and lets the college produce research.`,
+          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — required for the ${major.name} program's capstone courses, and lets the college produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
           // Buildable once the entry course is done and the school is
@@ -811,7 +811,7 @@ export function initialTech(): Buildable[] {
       id: academicHallId(i),
       kind: 'building',
       name,
-      description: `An academic hall with ${ACADEMIC_HALL_SLOTS} program slots. Six programs of one school, housed together, found that school.`,
+      description: `An academic hall with ${ACADEMIC_HALL_SLOTS} program slots. Six programs of one school in one hall found that school.`,
       cost,
       duration: i === 0 ? ACADEMIC_HALL_FIRST_WEEKS : ACADEMIC_HALL_WEEKS,
       prereqs: i === 0 ? [] : [academicHallId(i - 1)],
@@ -847,7 +847,7 @@ export function initialTech(): Buildable[] {
         name: `${program.code ?? program.id} ${course.num} · ${course.title}`,
         // Authored (Plan 72C); the entry course adds its gate.
         description: i === 0
-          ? `${GRADUATE_COURSE_DESCRIPTIONS[id]} Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}; offered once ${graduateGateDescription(program)}, and housed there.`
+          ? `${GRADUATE_COURSE_DESCRIPTIONS[id]} Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}; offered once ${graduateGateDescription(program)}, and taught there.`
           : GRADUATE_COURSE_DESCRIPTIONS[id],
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
         duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,

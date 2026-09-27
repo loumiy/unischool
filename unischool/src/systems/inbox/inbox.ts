@@ -79,7 +79,7 @@ export function interruptItem(s: GameState): InboxItem | null {
   const [from, subject] = interruptWords(s, i.type, i.payload);
   return {
     id: INTERRUPT_ITEM_ID, kind: 'interrupt', tier: 'hold', ref: i.type, from, subject,
-    preview: 'The clock waits for your answer.', week: absoluteWeek(s), unread: true, urgent: true,
+    preview: 'The clock waits for an answer.', week: absoluteWeek(s), unread: true, urgent: true,
   };
 }
 
@@ -90,19 +90,19 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
       const beat = (payload as SummerPayload | undefined)?.beat ?? 0;
       return ['The summer', `Year ${year}: ${SUMMER_BEATS[beat] ?? 'The summer'}`];
     }
-    case 'rankings-entry': return ['The rankings', 'The college enters the rankings'];
-    case 'annual-report': return ['The rankings', `The rankings for Year ${year}`];
+    case 'rankings-entry': return ['The guide', 'The college enters the guide'];
+    case 'annual-report': return ['The guide', `The guide for Year ${year}`];
     case 'milestone': {
       const entries = (payload as MilestonePayload | undefined)?.entries ?? [];
       return ['A celebration', entries.length === 1 ? entries[0].headline : `${entries.length} things to celebrate`];
     }
     case 'research-complete': {
       const r = (payload as { report?: InitiativeReport } | undefined)?.report;
-      return ['Research', r ? `${r.topicName} has reported` : 'An initiative has reported'];
+      return ['Research', r ? `${r.topicName} has reported` : 'A research project has reported'];
     }
     case 'championship': return ['Athletics', 'The postseason'];
     case 'first-sport-club': return ['Athletics', 'The first sport club'];
-    case 'athletic-director': return ['Athletics', 'An athletic director'];
+    case 'athletic-director': return ['Athletics', 'An Athletic Director'];
     case 'dean-recommendations': return ['The Deans', 'The Deans\' recommendations'];
     case 'letter': {
       const id = (payload as { id?: string } | undefined)?.id ?? '';
@@ -112,7 +112,7 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
       const instanceId = (payload as { instanceId?: string } | undefined)?.instanceId;
       const p = catalogueOf(s).pending.find((x) => x.instanceId === instanceId);
       const e = p ? eventById(p.eventId) : undefined;
-      return ['From the board', e ? eventSubject(e, fill(eventText(e, p!), p!.vars)) : 'A letter from the board'];
+      return ['A letter to the President', e ? eventSubject(e, fill(eventText(e, p!), p!.vars)) : 'A letter to the President'];
     }
     case 'decision-event': {
       const id = (payload as { eventId?: string } | undefined)?.eventId ?? '';
@@ -129,7 +129,7 @@ export const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
   board: 'The President',
   academic: 'Academic affairs',
   students: 'Student life',
-  estate: 'The estate',
+  estate: 'Buildings and grounds',
   advancement: 'Advancement',
 };
 

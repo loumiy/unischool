@@ -152,7 +152,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         return {
           key,
           headline: `${major.name} is now an established program`,
-          detail: `Every tier-2 course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its tier-3 catalog is open.`,
+          detail: `Every upper-level course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its capstone courses are open.`,
           unlocks: major.tier3Ids.map((id) => nameOf(s, id)),
         };
       }
@@ -616,7 +616,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'build',
         label: 'Build the chapter house',
         describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes up to a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social life from the week it opens and adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both effective immediately — the house itself is revealed in the build menu, under Housing, for you to place on campus.`,
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes up to a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social life from the week it opens and adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both effective immediately — the house itself goes on the build menu, under Housing, for you to place on campus.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -884,7 +884,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       };
     },
     prompt: (s, ctx) =>
-      `${ctx.subjectName} has passed ${institutionName(s.self)} in this year's rankings, and the board has noticed. `
+      `${ctx.subjectName} has passed ${institutionName(s.self)} in this year's guide, and the board has noticed. `
       + `A trustee is proposing a response, and either would cost ${money(ctx.amount ?? 0)}: a funded chair in ${ctx.subjectField}, `
       + `or a campaign the board would put its own name to.`,
     choices: [
@@ -962,8 +962,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const ready = venue?.status === 'done';
           return `${money(ctx.amount ?? 0)} up front for a program budget, and ${money(weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX))} a week to run it from now on, whether or not it has a venue yet — the coaching staff is hired separately, from the Athletics tab's own candidate pool. ` + (
             ready
-              ? `${venue!.name} is already standing, so the team is varsity-active immediately.`
-              : `${venue ? venue.name : 'A shared venue'} is revealed for construction in the build menu — the team is varsity-active once it is built, and shared with any other team in the same category.`
+              ? `${venue!.name} is already standing, so the team plays varsity at once.`
+              : `${venue ? venue.name : 'A shared venue'} goes on the build menu — the team plays varsity once it is built, and shares it with any other team in the same category.`
           );
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -983,8 +983,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           return entry(
             s,
             status === 'active'
-              ? `${team.name} is now a varsity program — head coach, assistant coach, and trainer all still to be hired from the Athletics tab.`
-              : `${team.name} is now a varsity program, awaiting its venue before it can compete — head coach, assistant coach, and trainer all still to be hired from the Athletics tab.`,
+              ? `${team.name} is now a varsity program — head coach, assistant coach and trainer all still to be hired from the Athletics tab.`
+              : `${team.name} is now a varsity program, awaiting its venue before it can compete — head coach, assistant coach and trainer all still to be hired from the Athletics tab.`,
             'good',
           );
         },
@@ -1192,7 +1192,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     id: 'summer-is-coming',
     week: 48,
     title: 'Summer is coming',
-    body: () => 'At week 52 the clock stops for the summer, and it stops once. Three beats: the year in review, admissions, and the students. Admissions asks two things — the price, and how much of the pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a college nobody has heard of cannot charge what a famous one does.',
+    body: () => 'At week 52 the clock stops for the summer, and it stops once. Three steps: the year in review, admissions and the students. Admissions asks two things — the price, and how much of the applicant pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a college nobody has heard of cannot charge what a famous one does.',
     ask: () => ({ text: 'Summer at week 52: the price locks for four years', intent: { kind: 'wait' } }),
     // Done when the summer comes, not the moment the letter is read (Plan 35).
     done: (s) => s.clock.week >= WEEKS_PER_YEAR || s.pendingInterrupt?.type === 'summer',
@@ -1258,7 +1258,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const next = nextSchoolToMove(s);
       const names = next ? awayNames(s, next) : [];
       const who = next ? `${next}'s ${names.length === 1 ? 'program' : 'programs'} — ${list(names)} — ${names.length === 1 ? 'goes' : 'go'} there` : 'the next school goes there';
-      return `${claim ? `${claim.school} has a hall of its own. ` : ''}${oak} is next: site it, and when it stands, ${who}. Every school leaves Founders Hall the same way but one: there are six halls for seven schools, and the last school sorted keeps Founders Hall as its own.`;
+      return `${claim ? `${claim.school} has a hall of its own. ` : ''}${oak} is next: site it, and when it stands, ${who}. Every school leaves Founders Hall the same way but one: there are six halls for seven schools, and the last school without a hall of its own keeps Founders Hall.`;
     },
     ask: (s) => {
       const oak = hallName(s, SECOND_HALL_ID);
@@ -1285,14 +1285,14 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const park = PROJECTS.find((p) => p.id === RESEARCH_PARK_ID)?.project;
       const parkOpens = park ? `from Year ${park.fromYear}` : 'in time';
       const graduateYear = PROJECTS.find((p) => p.id === 'PROJ-GRADUATE')?.project.fromYear ?? 15;
-      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one initiative at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see an initiative through in every lab this college builds. When each has finished one, the Research Park opens (${parkOpens}), which opens Landmark research to every lab, and the college is a research university in fact as well as in name. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
+      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one research project at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see a project through in every lab this college builds. When each has finished one, the Research Park opens (${parkOpens}), which opens Landmark research to every lab, and the college is a research university in fact as well as in name. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
     },
     ask: (s) => {
       const lab = standingLabs(s).find((t) => !finishedLab(s, t.id));
-      if (!lab) return { text: 'Every lab has seen an initiative through', intent: { kind: 'wait' } };
+      if (!lab) return { text: 'Every lab has finished a research project', intent: { kind: 'wait' } };
       const running = !!s.research.initiatives[lab.id];
       return running
-        ? { text: `See ${lab.name}'s initiative through`, intent: { kind: 'wait' } }
+        ? { text: `See ${lab.name}'s project through`, intent: { kind: 'wait' } }
         : { text: `Commission research in ${lab.name}`, intent: { kind: 'research', labId: lab.id } };
     },
     done: (s) => standingLabs(s).length > 0 && standingLabs(s).every((t) => finishedLab(s, t.id)),
@@ -1302,7 +1302,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     week: 1,
     arrives: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'locked'),
     title: 'The Research Park',
-    body: () => 'Every lab on campus has seen an initiative through, and the trustees have found the land: the Research Park, laboratories where faculty and industry work side by side, can be built. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes.',
+    body: () => 'Every lab on campus has finished a research project, and the board has found the land: the Research Park, laboratories where faculty and industry work side by side, can be built. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes.',
     ask: () => ({ text: 'Site the Research Park', go: 'build', intent: { kind: 'site', buildableIds: [RESEARCH_PARK_ID] } }),
     done: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && (t.status === 'developing' || t.status === 'done')),
   },

@@ -352,7 +352,7 @@ published* is the event.
 
 - The player starts **unaware of the report**, though not of their own rank.
 - Reaching enough prestige to crack the **top 50** (which should take some time)
-  fires a one-time **"you've entered the rankings"** interrupt — entering is the
+  fires a one-time **"The college enters the guide"** interrupt — entering is the
   event, and it keeps its own moment.
 - Thereafter the report is the **Standing beat of every summer** (see
   [admissions.md](admissions.md)'s "The summer"), rather than an interrupt of

@@ -109,6 +109,19 @@ a sequence of PRs.*
     decade", the writing course debated again, term limits adopted and
     the trustee of twenty-six years back, the strip sold and offered
     again, the guidebook's "first time" three times a game.
+  - what Plan 76D left of the vague rows: the star lecture and the grant
+    windfall choosing a professor by teaching or research strength, a
+    library lever for the acquisition, the booster club's gift routed to
+    athletics, the essay ring's enrollment cost spread over the class
+    years, repair letters that load backlog onto the named building, and
+    the sinkhole and the ivy drawn on the map.
+- **The Selective archetype restaffs** (found by Plan 76D). When a
+  professor leaves, the Selective harness player hires only for blocked
+  courses. Its academic score can sit below the 65 at which it builds
+  for its worst need, and since nothing on the build menu serves
+  academic, it stops building for the rest of the game and banks the
+  cash (seed 12345, from year 16). It should restaff or retune a weak
+  course the way the Guided player does (`tendTeaching`).
 - **Confidence the board acts on** (A2-2). Board confidence moves under
   many answers and is read by six events, one promise and the Treasury;
   no rung, budget or dismissal reads it. Plan 76 says what it does where

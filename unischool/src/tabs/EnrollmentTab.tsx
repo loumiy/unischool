@@ -20,17 +20,16 @@ const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]
   ['senior', 'Seniors'],
 ];
 
-// Categorical colors as muted, mid-dark pigments so they sit on parchment
-// and white segment labels stay legible on each.
+// The eight cohorts' colors are tokens in styles.css (--cohort-1…8).
 const COHORT_COLOR: Record<CohortId, string> = {
-  highAchievers: '#8a6d14',    // brass — the same finished-work tone as --brass-deep
-  preProfessional: '#3c4d6b',  // ink blue
-  researchOriented: '#4a6b46', // moss
-  social: '#8c4a3f',           // oxblood
-  artsFocused: '#a9683a',      // terracotta
-  priceSensitive: '#6a4a63',   // plum
-  athletes: '#a98a3c',         // ochre
-  gradBound: '#33706a',        // verdigris — aged copper, the eighth pigment
+  highAchievers: 'var(--cohort-1)',
+  preProfessional: 'var(--cohort-2)',
+  researchOriented: 'var(--cohort-3)',
+  social: 'var(--cohort-4)',
+  artsFocused: 'var(--cohort-5)',
+  priceSensitive: 'var(--cohort-6)',
+  athletes: 'var(--cohort-7)',
+  gradBound: 'var(--cohort-8)',
 };
 
 // A class whose mix is exactly the base shares: no cohort pull from anything
@@ -115,7 +114,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
   return (
     <div className="tab-content">
       <section className="panel">
-        <h2>The standing body</h2>
+        <h2>The student body</h2>
         <p className="history-summary">
           {count(enrolled)} students across four classes. Each was admitted
           under the college as it stood that summer, and keeps that composition until it
@@ -152,9 +151,9 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
         {unsignalled.length > 0 && (
           <p className="empty-note demand-note">
             † {unsignalled.length === 4 ? 'Every class carries' : `${unsignalled.map(([, l]) => l).join(', ')} carry`}{' '}
-            no cohort signal: admitted when the college had built nothing for any particular
-            audience, so they are an even mix of every kind of student rather than the draw of a choice you made. Each is
-            replaced by a class you admitted as it graduates out.
+            no particular pull: admitted when the college had built nothing for any particular
+            audience, so they are an even mix of every kind of student rather than the pull of a choice the college made. Each is
+            replaced by a class admitted since as it graduates out.
           </p>
         )}
       </section>
@@ -174,17 +173,17 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
           />
           <FunnelLine
             label="Incoming quality"
-            note="The weighted average of the class that enrolled — everyone admitted comes; there is no yield step. Feeds prestige, which is what makes admitting deep cost something."
+            note="The weighted average of the class that enrolled — everyone admitted enrolls. Feeds prestige, which is what makes admitting deep cost something."
             value={`${count(s.students.incomingQuality)}/100`}
           />
           <FunnelLine
             label="Satisfaction"
-            note="Next summer's word of mouth: the trailing-year average scales the pool above. The five attributes behind this number are in the Satisfaction Breakdown, above."
+            note="Next summer's word of mouth: the trailing-year average scales the applicant pool above. The five needs behind this number are in the Satisfaction breakdown, above."
             value={satisfactionFigure(s.students.satisfaction)}
           />
           <FunnelLine
             label="Enrolled"
-            note="The four classes summed. Set once a year at the summer decision, and held until the next. The one ceiling is the catalog's seats: the freshman class cannot exceed what the housed courses have room to teach."
+            note="The four classes summed. Set once a year at the summer decision, and held until the next. The one hard limit is the catalog's places: the freshman class cannot exceed what the courses now taught have room for."
             value={count(enrolled)}
             net
           />

@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { CloseIcon } from './icons';
 
 // The full-viewport frame every view other than the campus map renders in
 // (see App.tsx): a titled header, a close button and a scroll container.
@@ -24,7 +25,7 @@ export default function TabOverlay({ title, onClose, split = false, children }: 
         <h2>{title}</h2>
         {onClose ? (
           <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
-            Close ✕
+            Close <CloseIcon />
           </button>
         ) : (
           <span className="tab-overlay-held">Answer to go on</span>

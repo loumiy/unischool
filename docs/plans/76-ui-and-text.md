@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's answer on area 2
 of the October review into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** A to I merged (#221–#226, #228–#230).
 
 ---
 
@@ -155,7 +155,7 @@ page, and 3,649 words and 474 controls by year 16.
     after at years 8, 16 and 25;
   - a test that each filter returns the courses it names.
 
-**As implemented (#TBD):**
+**As implemented (#222):**
 - Every program starts folded to its one line: the grade, the hall, the next
   course's Develop button with its grade, the cost, the milestone and
   "n / 9". A folded line leaves out "choose…" and the batch start; the ▸
@@ -225,7 +225,7 @@ seats, the ladder, the figure hints and the help hints.*
   - no letter names a price or a week count that its Buildable
     contradicts.
 
-**As implemented (#TBD):**
+**As implemented (#224):**
 - **Effects:**
   - The summer applies the attrition teeth through the preview's own
     `summerAttrition`, passed the year's average it has already read
@@ -376,6 +376,98 @@ claims and 107 vague ones.*
   - the named building is the derelict one;
   - the heating bill fires in the Fall Term's last weeks.
 
+**As implemented (#228):**
+- **Winter** is `state/winter.ts`'s `winterDepth`: it sets in from week
+  17, is deepest from week 24 to week 29, and is gone by week 36. The
+  events' `winterAtLeast` and the ambience's wind both read it. The
+  heating bill arrives in the Fall Term's last weeks. The dark term
+  reads a new `springWeekAtMost`, so it is the Spring Term's start.
+- **New condition keys:**
+  - `springWeekAtMost`;
+  - `rankAtMost`, for the rankings-slip and guide events;
+  - `titleRecentAtLeast`: the championship run fires on a new title.
+- **New effect keys:**
+  - `replant`: fell-and-replant plants;
+  - `buildingFund`: a gift for a building goes to the restricted fund
+    and scales with prices;
+  - `historic`: a welcomed listing declares the named building historic.
+  
+  Each has its line in `EventPanel.tsx`.
+- **New fields on a choice:** `promise` makes a promise (a new
+  `a-rise-in-the-guide`: a top-20 rank within five years), and `mascot`
+  names the teams (the heron became the swan, "the Swans").
+- **Named buildings and classes:** `names` on an event picks `{building}`
+  and `{class}` from the college without changing the random stream:
+  - the derelict building for the derelict letter;
+  - the worst-kept roofed building in the repair letters (boiler, pipe,
+    roof, slates, buckets, elevator, sinkhole, ivy, asbestos);
+  - the oldest building that can be listed, for the listing;
+  - Founders Hall for its clock;
+  - a reunion class for the reunion gift and the class letter;
+  - a class twenty or more years out for a famous graduate.
+- **Gates:**
+  - Retirements, long-serving trustees and the thirty-one-year secretary
+    wait for a year when that is possible.
+  - The guidebook's "for the first time" fires once.
+  - The all-nighter needs a library.
+  - The two dead events: `nothing-to-study` is deleted, and `bad-run`
+    reads satisfaction on this game's 0–100 scale, as does `rag-week`'s
+    floor, which was always true.
+- **Effects corrected** as listed above.
+  - The key-card answer no longer clears $80,000 of repairs.
+  - Clearing more debt than is owed returns the rest as cash.
+  - The rendered line caps a draw at what the endowment holds and
+    "repays" only what is owed.
+- **Words:**
+  - Every false claim whose fix is a word is fixed, along with 81 of the
+    107 vague rows; 16 more were already true after the winter and gate
+    fixes.
+  - Answers are relabeled to what they do: "Pay a retention bonus",
+    "Tarp it and wait", "Offer a one-term stipend" and so on.
+  - Named officers who are not seats in this game read as offices: the
+    facilities office, Student Affairs, Academic Affairs, the Dean's
+    office.
+  - The British vocabulary is gone from every telling: car park, porter,
+    lift, rota, Bursar, prospectus, timetable, first-year, fume cupboard
+    and the rest.
+- **Left, each needing a memory of answers or a new system** (added to
+  the BACKLOG's *Events that do what they say*):
+  - five events that recur after an answer settles them;
+  - the star lecture and the grant windfall want a faculty member chosen
+    by strength;
+  - the library acquisition wants a library lever;
+  - the booster club's gift wants routing to athletics;
+  - the essay ring's enrollment cost wants spreading over the years;
+  - repair letters still spread backlog over the whole campus, and the
+    sinkhole and the ivy are not drawn.
+- **Checks:**
+  - `test/event-truth.test.ts`, 1,055 checks, including:
+    - every event can fire within fifty years, in a week the catalog
+      ticks;
+    - the lever test;
+    - the named-building and class checks;
+    - the new keys.
+  - `test/event-catalogue.test.ts` now checks spelling and a list of
+    British words across every telling and every letter's title.
+- **The sim** is re-recorded. Events now do what they say: winter
+  letters arrive, a denied tenure case loses the professor, a bequest for
+  a building goes to the building fund, and boosters pay the supplier, not
+  the college.
+  - Guided still ends first, at prestige 143.8.
+  - Completionist and Lean move by run divergence.
+  - Idle's early years dip as the winter letters reach a college with
+    nothing to spend.
+  - Selective falls from rank 14 to 23 at year 50, with prestige −9.6 and
+    satisfaction −10.
+    - On seed 12345, its academic score drops below the 65 at which it
+      builds for its worst need, after professors leave. Nothing on the
+      build menu serves academic, so from year 16 it builds nothing more
+      and banks the cash.
+    - Restoring the tenure case's old effect recovers part of the gap;
+      restoring the gifts' cash recovers part of seed 4242's.
+    - This is the archetype's blind spot, not the game's: a player
+      restaffs. It is recorded in the BACKLOG, not tuned here.
+
 ## PR 76E — One way to write a number
 
 *A2-3, and 2c §4.7 and C1.*
@@ -404,7 +496,7 @@ claims and 107 vague ones.*
   - a test that `format.ts`'s helpers read the same under `de-DE`;
   - a scan that no player-facing money bypasses the helpers.
 
-**As implemented** (#TBD):
+**As implemented (#226):**
 - **The rules** are the register's new "Numbers" section
   (`docs/architecture/ui-shell.md`). `format.ts` holds one `en-US`
   formatter and the helpers: `count`, `decimal`, `money`, `moneyShort`,
@@ -504,6 +596,119 @@ claims and 107 vague ones.*
   `tools/review/strings.ts`'s checks, and the quirk names and the summer
   review's answered-by lines are extracted.
 
+**As implemented (#230):**
+- **The glossary** is Plan 47's new §2, with the voice, the one-name list,
+  a table of the code's words and what the college says instead, the engine
+  words kept out, lists and case.
+  - A hall's places are **program slots**, not rooms: the game already said
+    "slot" in about twenty strings, and "room" already meant the places
+    left for a new class. The walkthrough's and the first-hall letter's
+    "rooms" became slots.
+  - A professor's capacity is a **course slot**, always qualified.
+  - **Seat** is an administration post only. Teaching capacity is
+    **places** ("the catalog's places", "+80 places"); **room** is the
+    places left for the incoming class. The curriculum committee lost its
+    seats: it "writes up to four courses at once".
+  - **The guide** is the ranking ("#12 in the guide", "Six rankings, one
+    field"); **the board's scale** is the distress ladder; **Stage** is a
+    program's standing in the hall panel.
+- **Code names:** the wall (Waiting on faculty), housed, the recreation
+  chain, flat, cohort signal, varsity-active, initiative (research
+  project), revealed and unlocks (open; can be built once), earned, tier
+  (Level N; capstone and upper-level courses; subsidy level), the pot (the
+  department's fund), chair (a coaching post), ceiling (limit; a coach's
+  potential), attribute (need), stock, floored, and "dark" for a program
+  moving halls (closed while it moves).
+- **The engine out of the prose:** the weekly tick, "the rest of the game",
+  the Students beat, "interrupts play", "scrolled off the log", "the
+  slider", the Treasury's "Being large" cited by name, the pennant pointer
+  in the charter line, "pts/wk" (now "0.85 a week, of the 90 a paper
+  takes"), "interdisciplinary bonus" (lift), "No new era of the game
+  opens". The speed control reads "game speed 4×" and "Game speed 8× (4)";
+  the sandbox gear is "Fastest, for the sandbox (5)". The save-failure
+  lines say "the game", not "the run".
+- **The rankings and admissions modals:** "The college enters the guide",
+  "This year's standings: the college is #12", "The largest moves", "no
+  college in the country is ahead", "What will the college charge next
+  year?", and the price tags read the college's prestige, not "your
+  prestige" ("expect sticker shock"). The admissions cohort's driver and
+  the Deans' letter follow. No contractions are left in the game.
+- **The American pass:** every row of 2d §4 that PR C or D had not already
+  taken: Catalog, sorted, car park, queue ×2, rota, timetable,
+  organisational, the academic table and "Six tables", the estate
+  (Buildings and grounds, the campus), round, full marks, Welfare
+  (Student well-being), the faculty have and the common room, the Bursar
+  (the business office), a wood. The quirk names were already American;
+  "the dean's" is "the Dean's". "Final mark" and "The mark" on the share
+  card are grades.
+- **Plan 47's own rules:**
+  - The summer review's letters read "{title}, a letter to the President:
+    {answer}", and its tally "answered by the President, by the
+    administration, left unanswered".
+  - "Nw": PR E had done the rest; the demand deadline chip and the
+    research card's progress join it.
+  - Every armed label names its loss: "Confirm — it can never come down"
+    (historic), "Confirm — the site is cleared", "Confirm — {building}
+    comes down", "Confirm — $2M never comes back to cash", "Confirm —
+    {name} leaves the classroom for good", "Confirm — a salary for good",
+    and the menu's "Confirm — erase {college}".
+  - Sentence case: the Build menu's groups, Varsity athletics, Basic
+    needs, Satisfaction breakdown, "The curriculum" crumb, the Curriculum's
+    and the director's buttons (Choose…, All N with…, Waiting on…,
+    Another), "An Athletic Director", "Fall term" and "Spring term",
+    "Satisfaction" for "Satisf.". "The Final Report" is a name and keeps
+    its capitals everywhere, the fiftieth summer's step included.
+  - "New game" on the title screen, the Final Report and the hall of fame,
+    where they said "Found a new college" and "Found another college".
+- **The vague lines** of 2d §6 say what they mean: the attrition hint
+  names the line (50) from its constant, the next-step line names what to
+  build, the athletics surplus says when it is paid, the board's relief
+  letter says its confidence rises, the Students section's empty line
+  names what did not happen, the dorm without a bed count shows no line,
+  and the rest as the rows propose.
+- **Lists** take no serial comma unless one is needed for sense, as most
+  of the game already wrote them; the noun lists outside the events that
+  had one lost it.
+- **The scanner** (`tools/review/strings.ts`):
+  - 25 idioms from 2d §4 join the list (the estate, the academic table,
+    round, apartment block, biscuits, full marks, bursary, "read a
+    subject", dear, welfare, handover, research charity, first-years,
+    upper years, the faculty have, common room, proper, consultancy, a
+    wood, sporting college, out of the door, prospectus, the Bursar, "lost
+    the semi", the lift), and "organisational" the spellings. An idiom can
+    carry a pattern that excuses it: an estate beside a bequest is a
+    dead man's, not a campus.
+  - "sorted by" and a post (a job) no longer flag.
+  - A new section, **Engine words in the prose**: tick, the run, beat,
+    unlocks, revealed, throttle, pacing, the wall, housed, the recreation
+    chain, flat, cohort signal, varsity-active, initiative, stock, floored,
+    pts, "of the game", the ladder, the slider, yield step, the pot,
+    committee seats. The menu, Settings, the title and founding screens,
+    the crash screen and the credits are exempt.
+  - Quirk names are read (`SAYING_NAMES`), and a string that is the object
+    of a naming call (`[…].filter(…)`, `.join(…)`) is no longer dropped,
+    which brings in the summer review's answered-by parts.
+- **Left:**
+  - The research depth "Landmark Program" keeps its name beside the Grand
+    Landmark buildings; renaming it (2d suggests "Signature Programs") is
+    the owner's.
+  - "One pool for the whole department" (the coaching market) keeps its
+    pool: it is labeled where it sits.
+  - The event catalogue's "proper" ×5 and the "Monday" and "flat roofs"
+    flags are PR D's text and read American.
+  - `Credits.tsx` credits "Louis Miyani": for the owner to confirm.
+- **Checks:** `npm run check` passes (116 suites). `year-in-review` checks
+  the new tally and that the summer's letters are letters to the
+  President; `number-format`, `share-card` and `course-quality` read the
+  new words. `npm run sim` reads the same as the baseline.
+- **`npm run review:strings`** (the new scanner on both trees, so the
+  counts compare): British spellings 2 → 0; idioms 41 → 10 (the rest in
+  the events and the course descriptions); engine words 68 → 0; second
+  person 56 → 40; contractions 3 → 0; exclamation marks 0 → 0; 21 → 22
+  repeated sentences (the lapsed-letter fallback now has one title,
+  twice). With the old scanner: British spellings 1 → 0, idioms 16 → 8,
+  repeated 21 → 22, second person 55 → 40, contractions 3 → 0.
+
 ## PR 76G — The course descriptions
 
 *A2-5.* 126 of 431 sentences flagged.
@@ -516,7 +721,7 @@ claims and 107 vague ones.*
   - a check that a sentence does not restate its title;
   - a cap on "from X to Y" spans per school.
 
-**As implemented (#TBD):**
+**As implemented (#223):**
 - 132 sentences replaced:
   - 123 of the 126 flagged rows;
   - COMP240, the other half of the fix to the operating-systems and
@@ -594,6 +799,63 @@ claims and 107 vague ones.*
   Plans 18 and 22 are not edited; the register says what replaced their
   claims.
 
+**As implemented (#229):**
+
+- **One button base**, drawn once in `styles.css`'s new block "The
+  register's parts": 2 px of outline ink, `--shadow-1`, a pill, the display
+  face at 800, sentence case. The fill is by role: `.btn-primary` (the
+  secondary fill, one per card), cream (`.btn` and the existing pill
+  classes), `.btn-quiet` (no fill, the same outline and offset) and
+  `.btn-danger` (a red outline; pink once armed). Component rules keep only
+  their geometry. A dialog's action row is `.modal-actions`: its bare buttons
+  are primary and a classed button keeps its role, so `.modal button` and its
+  `!important` overrides are gone. `.save-btn`/`.newgame-btn` became
+  `.menu-btn` (+ `.btn-quiet`). One `.segmented` control (Faculty views,
+  build categories, subsidy, Settings, species, a seat's policy, the
+  sweep): cream pills, the picked one in the secondary fill.
+- **One close control**: `.close-btn`, a round ✕ from `icons.tsx`'s
+  `CloseIcon`, on every popup, panel, drawer, toast, the Settings, Credits
+  and Hall of fame cards, the quad panel, the research card's "Not now" and
+  the folded map tools; the tab keeps its "Close ✕" pill.
+- **`ConfirmButton` everywhere**: Faculty Dismiss ("Confirm — 6 courses left
+  unstaffed"), Found another college (its Stay is now blur or Escape), the
+  coach release ("Confirm — release; the post stays open"), the program moves
+  ("Confirm — {program} closes {n} weeks") and the import ("Confirm — replace
+  {college}"). `ConfirmButton` already disarmed on blur and Escape; it gains
+  `ariaLabel` for an icon label.
+- **A heading scale**: display tokens `--text-2xl…5xl` (22, 26, 32, 44 px);
+  `.heading-screen` (32), `.heading-dialog` (26), `.heading-panel` (17),
+  `.section-head` (14), `.eyebrow` (11, capitals, three words or fewer) and
+  `.dateline` for longer lines above a title, each grouped over the rules
+  that were one-offs. `body` is `--text-base` and controls inherit it.
+- **Done**: F1 (mono for the funds counter only; trophy years, priority
+  ranks and the crash detail in the display face), F3–F6, S1–S7, C2–C8,
+  B1–B11, I1 (close, disclosure, rename, release, remove, the camera turn,
+  the map tools, status marks into `icons.tsx`), I2 (✕ is close only; the
+  camera turn has its own arc), I3 (Students tab on `StudentsIcon`, redrawn
+  as three heads), I4 (→ dropped from in-dialog steps and "Start research"),
+  I5 (one done/pending/failed set on the ladder, promises and
+  prerequisites), K2, K4, K5, P1–P3 (the scale; both insets on the panels
+  and inner cards; the trophy's rem and the ladder's em in px), O1, O2.
+- **Skipped**: F2 (the share card's fonts need the woff2 files embedded in
+  the SVG; not straightforward). I3's own glyphs for fell, lamps and benches,
+  and I5's two sets of rank arrows (new drawings, left for later). The
+  Curriculum's collapse chevrons (PR B rewrites those rows). The tilt and
+  home glyphs on the touch camera buttons stay Unicode. SVG text in charts
+  and the satisfaction dial is sized in the drawing's units, so it stays off
+  the type scale. The inline "?" stays flat. `.modal p`'s margin
+  `!important`s are not buttons and stay.
+- **Register** (`docs/architecture/ui-shell.md`): the tabs (one Students tab,
+  four gated), the five gears with 8× on `4` and `5` for the sandbox, the
+  toasts (6 s, at most 4), the camera buttons and Map tools, `L` for
+  Students; "The register" rewritten as Tokens (the palette as it is, three
+  faces, the type and spacing scales), The two rules (R10: one primary
+  action per card), Buttons, The close control, Headings, Floating layers,
+  Icons, and What this replaces (Plans 18 and 22 left as written).
+- **Checks**: `npm run check` passes; `npm run sim` reads the same as the
+  baseline; `npm run phone` passes at 390×844 and 820×1180. Screenshots:
+  `docs/reviews/2026-10-ui-fixes/buttons-*.jpg` and `headings-*.jpg`.
+
 ## PR 76I — The phone
 
 *A2-7.*
@@ -607,7 +869,7 @@ claims and 107 vague ones.*
 - **Checks:** the gallery at 390×844, at normal and at the largest text
   size.
 
-**As implemented (#TBD):**
+**As implemented (#225):**
 
 - Everything below applies at 560px wide and under (the phone rules in
   `styles.css`), except the pennant's two-line cap, which holds at every
@@ -652,6 +914,26 @@ claims and 107 vague ones.*
   and `npm run sim` reads the same as the baseline. No player-facing words
   changed, so `review:strings` was not rerun. Screenshots are in
   `docs/reviews/2026-10-ui-fixes/phone-*.jpg`.
+
+## PR 76J — Needs faculty (a follow-up)
+
+*The owner's note after Plan 76 landed: a course blocked on teaching
+capacity said "no open slot", and "slot" meant three things (a hall's
+program slots, the committee's places, a professor's course slots).*
+
+**As implemented (#231):**
+- A course waiting on a professor says **"needs faculty"**: the compact
+  tag on its Curriculum row ("· needs faculty"), its gate dot's tooltip,
+  the Build menu's reason, the hall panel's next-course line and
+  founding note, the "Waiting on faculty" door, the Faculty tab's
+  "N waiting on faculty", and the drawer's "Every … professor is teaching
+  a full load".
+- Every bare "slot" meaning a hall's place now reads "program slot": the
+  map's hall tooltip, the hall panel's count, the move buttons, the
+  Curriculum's "Found in…" door and the next-step line.
+- The Faculty tab's remaining bare "slots" read "course slots".
+- The committee already had neither (Plan 76F).
+- Plan 47's glossary says so.
 
 ## What this plan does not do
 

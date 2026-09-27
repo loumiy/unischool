@@ -161,7 +161,7 @@ async function session(savePath, size) {
   const ctx = { name, size, n: 0 };
   await capture(page, ctx, 'title screen');
   if (!savePath) {
-    await page.locator('.title-primary, button:has-text("Found a new college")').first().click().catch(() => {});
+    await page.locator('.title-primary, button:has-text("New game")').first().click().catch(() => {});
     await capture(page, ctx, 'founding form');
   } else {
     await page.locator('.title-primary').first().click().catch(() => {});

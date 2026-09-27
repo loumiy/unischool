@@ -101,10 +101,10 @@ export const REPORT_WORDS = {
   chart: 'The six standings, year by year',
   draft: 'The Final Report is written at the fiftieth summer. Until then, the arc so far.',
   notYet: 'The Final Report is written at the fiftieth summer, and drafted from the tenth: the first decade is too early to judge.',
-  epilogue: 'The fifty years are over; the college is not. This summer goes on to set Year 51\'s tuition and admit its class; then the clock runs on, and every ten years the chronicle gets an addendum. No new era of the game opens.',
+  epilogue: 'The fifty years are over; the college is not. This summer goes on to set Year 51\'s tuition and admit its class; then the clock runs on, and every ten years the chronicle gets an addendum. Nothing new opens.',
   addendum: 'Addendum, Years {from}–{to}',
-  // Play again (Plan 70J): what Found another college says before it acts.
-  newCollege: 'This run hangs in the hall of fame, and the college closes its books for good: no Epilogue, no addenda. A new name, a new campus, Year 1.',
-  newCollegeMidRun: 'This ends the college you are running. Only a run that reached its fiftieth summer hangs here; this one will not.',
+  // Play again (Plan 70J): what New game says before it acts.
+  newCollege: 'The college hangs in the hall of fame and closes its books for good: no Epilogue, no addenda. A new name, a new campus, Year 1.',
+  newCollegeMidRun: 'This ends the college now under way. Only a college that reached its fiftieth summer hangs here; this one will not.',
   newCollegeFresh: 'Name a new college and start again from Year 1.',
 } as const;

@@ -102,3 +102,40 @@ player decides.
 As above. The Final Report stays a page: it ends the run and is built as
 one. The walkthrough's welcome card is the tutorial, not a stop, and is
 unchanged.
+
+## Merged with Plan 76
+
+The inbox was built on main after Plan 76E. D, H, F and J landed while it was
+under review; the merge keeps each of them in the inbox's own code:
+
+- **D (events):** the answers' effect lines (repays only what is owed, a draw
+  capped at the fund, "+1 freshman", the new keys) carry into
+  `EventChoices.tsx`.
+- **F (voice):**
+  - the domain "Buildings and grounds";
+  - "the guide" for the rankings rows;
+  - "A research project has reported";
+  - "An Athletic Director";
+  - "applicant pool";
+  - no "you" in the inbox's own lines;
+  - straight apostrophes.
+  
+  The catalog's letters read "A letter to the President"; "From the board"
+  stays on the board's own letters, as Plan 47 has it.
+- **H (the register):**
+  - the filters are the segmented control;
+  - the reading pane's buttons sit in a `.modal-actions` row with the button
+    roles, not the walkthrough's classes;
+  - the back button is quiet;
+  - the subject is a dialog title, and the labels are eyebrows and section
+    heads;
+  - the close is the drawn glyph;
+  - no raw white.
+  
+  The register (`ui-shell.md`) keeps H's text. It adds the inbox and the
+  arrivals, which stay eight seconds, and drops the notes over the map.
+  Plan 47's rules on notes now speak of the inbox's letters.
+- **J:** "program slot" in the next step's hall line.
+- A matter in its last week reads "Final week", not "Last week".
+- `npm run phone` now visits the Inbox tab.
+

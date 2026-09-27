@@ -125,7 +125,7 @@ export function fraction(n: number, of: number): string {
 
 // The half of the college year a week falls in.
 export function termName(week: number): string {
-  return week <= WEEKS_PER_YEAR / 2 ? 'Fall Term' : 'Spring Term';
+  return week <= WEEKS_PER_YEAR / 2 ? 'Fall term' : 'Spring term';
 }
 
 // The game date, one form wherever a moment is dated: the dock, the title

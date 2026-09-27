@@ -160,6 +160,18 @@ export function answerPromises(s: GameState, take: readonly string[]): void {
   s.promises = next;
 }
 
+// A promise made by an answer to one of the catalog's matters (Plan 76D:
+// "Promise a rise within five years"), not by the summer's offer: public,
+// dated and judged like any other. One already open is not made twice.
+export function makePromise(s: GameState, id: string): void {
+  const def = promiseById(id);
+  const p = promisesOf(s);
+  if (!def || p.active.some((a) => a.id === id)) return;
+  const scale = priceScale(s);
+  s.promises = { ...p, active: [...p.active, { id, madeYear: s.clock.year, dueYear: s.clock.year + def.years, scale }] };
+  log(s, PROMISE_LINES.accepted.replace('{title}', promiseTitle(s, def, scale)).replace('{years}', String(def.years)), 'info');
+}
+
 export function fillCollege(s: GameState, text: string): string {
   return text.replace(/\{college\}/g, institutionName(s.self));
 }

@@ -1,4 +1,4 @@
-import type { Buildable, GameState, Loan, PendingCatalogueEvent } from '../../state/types';
+import type { AlumniClass, Buildable, GameState, Loan, PendingCatalogueEvent } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../../state/types';
 import type { CatalogueChoice, CatalogueEvent, ConditionKey, EffectKey, NeedKey } from '../../data/eventCatalogueTypes';
 import { EVENT_CATALOGUE } from '../../data/eventCatalogue';
@@ -6,10 +6,11 @@ import { EVENT_VARIANTS } from '../../data/eventVariants';
 import { hashUnit } from '../../data/rivalData';
 import { random } from '../../engine/random';
 import { isPlaceableKind } from '../../state/campusMap';
-import { conditionOf } from '../estate/estate';
+import { canDeclareHistoric, conditionOf } from '../estate/estate';
 import { campusBeauty } from '../estate/beauty';
 import { changeTrees, treeCount } from '../estate/woodland';
 import { detectQuads } from '../../state/quads';
+import { springTermWeek, winterDepth } from '../../state/winter';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { leaveFaculty } from '../faculty/facultySystem';
 import { distressOf, foundingDistress } from '../finance/distress';
@@ -19,9 +20,9 @@ import { seatPayroll } from '../delegation/seats';
 import { warmthOf } from '../alumni/giving';
 import { collegeRival, mainSport } from '../rivals/collegeRival';
 import { playerRank } from '../rivals/rivalsSystem';
-import { milestoneSchools, programById } from '../../data/techData';
+import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../data/techData';
 import { isSchoolFounded } from '../techtree/schools';
-import { sportById } from '../../data/studentLifeData';
+import { inTitleYear, sportById } from '../../data/studentLifeData';
 
 // THE CATALOGUE (Plan 32, from v2's events.ts): v2's events, read against
 // this game's state. An inline event waits in the panel and, if nobody
@@ -38,7 +39,7 @@ const PRICE_REFERENCE_BUDGET = 15_000_000;
 const PRICE_SCALE_MIN = 0.2;
 const PRICE_SCALE_MAX = 12;
 const PRICE_FIXED_BELOW = 25_000;
-const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog']);
+const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog', 'buildingFund']);
 
 export function priceScale(s: GameState): number {
   const budget = Math.max(s.finance.weeklyOpEx, 1) * WEEKS_PER_YEAR;
@@ -62,6 +63,9 @@ export function scaledEffects(effects: CatalogueChoice['effects'], scale: number
 // ---- Conditions ----
 function enrolled(s: GameState): number { return totalEnrolled(s.students); }
 function standing(s: GameState) { return s.tech.filter((t) => isPlaceableKind(t) && t.status === 'done'); }
+// Below this condition a building is derelict (estate.ts's look, and the
+// town's letter about it).
+const DERELICT_CONDITION = 0.1;
 function housedPrograms(s: GameState): string[] {
   return Object.values(s.halls).flat().map((slot) => slot.programId).filter((id): id is string => id !== null);
 }
@@ -70,12 +74,6 @@ function meanWarmth(s: GameState): number {
   const a = s.alumni ?? [];
   // Each class's warmth as giving reads it, capped (giving.ts's warmthOf).
   return a.length === 0 ? 50 : a.reduce((t, c) => t + warmthOf(c), 0) / a.length;
-}
-// How deep into winter the week is, 0 to 1: this game's winter runs from
-// week 44 to week 8 and is deepest at the turn of the year.
-function winterDepth(week: number): number {
-  const fromNewYear = week <= 26 ? week : week - WEEKS_PER_YEAR;
-  return Math.max(0, 1 - Math.abs(fromNewYear) / 9);
 }
 // v2's reputation runs to 100, this game's prestige to 150.
 const REPUTATION_SCALE = 150 / 100;
@@ -93,7 +91,7 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   studentsPerFacultyOver: [(s) => enrolled(s) / Math.max(1, s.faculty.length), 'min'],
   buildingsOver: [(s) => standing(s).length, 'min'],
   oldestBuildingOver: [(s) => Math.max(0, ...standing(s).map((t) => (t.builtYear === undefined ? 0 : s.clock.year - t.builtYear))), 'min'],
-  derelictOver: [(s) => standing(s).filter((t) => conditionOf(t) < 0.1).length, 'min'],
+  derelictOver: [(s) => standing(s).filter((t) => conditionOf(t) < DERELICT_CONDITION).length, 'min'],
   quadsOver: [(s) => detectQuads(s).length, 'min'],
   treesUnder: [treeCount, 'max'],
   programsOver: [(s) => housedPrograms(s).length, 'min'],
@@ -124,6 +122,7 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   reputationOver: [(s) => s.self.reputation / REPUTATION_SCALE, 'min'],
   reputationUnder: [(s) => s.self.reputation / REPUTATION_SCALE, 'max'],
   rankAtLeast: [playerRank, 'min'],
+  rankAtMost: [playerRank, 'max'],
   beautyOver: [campusBeauty, 'min'],
   beautyUnder: [campusBeauty, 'max'],
   warmthOver: [meanWarmth, 'min'],
@@ -134,12 +133,18 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   rungAtMost: [(s) => distressOf(s).rung, 'max'],
   varsityAtLeast: [(s) => s.orgs.teams.filter((t) => t.status === 'active').length, 'min'],
   titlesAtLeast: [(s) => s.orgs.titles.length, 'min'],
+  // A title this year or last (studentLifeData.ts's inTitleYear): a run, not
+  // a trophy won decades ago (Plan 76D).
+  titleRecentAtLeast: [(s) => (inTitleYear(s) ? 1 : 0), 'min'],
   rivalAtLeast: [(s) => (collegeRival(s) ? 1 : 0), 'min'],
   // 1 once the teams have a name (the first-sport interrupt asks for it).
   mascotAtMost: [(s) => (s.self.mascot ? 1 : 0), 'max'],
   adminShareOver: [(s) => { const f = financeBreakdown(s); const pay = f.weeklySalaries + seatPayroll(s); return pay > 0 ? seatPayroll(s) / pay : 0; }, 'min'],
   payrollShareOver: [(s) => { const f = financeBreakdown(s); return f.totalExpenses > 0 ? f.weeklySalaries / f.totalExpenses : 0; }, 'min'],
   winterAtLeast: [(s) => winterDepth(s.clock.week), 'min'],
+  // The Spring Term's first weeks (Plan 76D): 0 in the Fall Term, which
+  // the bound reads as never.
+  springWeekAtMost: [(s) => springTermWeek(s.clock.week) || Infinity, 'max'],
 };
 
 // Money thresholds were written for v2's founding college and scale as its
@@ -201,12 +206,38 @@ function pick<T>(xs: readonly T[]): T | undefined {
   return xs.length === 0 ? undefined : xs[Math.floor(random() * xs.length) % xs.length];
 }
 
-export function rollVars(s: GameState): Record<string, string> {
+// The building an event means (Plan 76D, CatalogueEvent.names): read, not
+// drawn, so the stream reads the same whichever the event is.
+function namedBuilding(s: GameState, which: NonNullable<CatalogueEvent['names']>['building']): Buildable | undefined {
+  const byCondition = (xs: Buildable[]) => xs.slice().sort((a, b) => conditionOf(a) - conditionOf(b) || a.id.localeCompare(b.id))[0];
+  switch (which) {
+    case 'derelict': return byCondition(standing(s).filter((t) => conditionOf(t) < DERELICT_CONDITION));
+    case 'worst': return byCondition(standing(s).filter(roofed));
+    case 'listable': return standing(s).filter((t) => canDeclareHistoric(s, t)).sort((a, b) => (a.builtYear ?? 0) - (b.builtYear ?? 0) || a.id.localeCompare(b.id))[0];
+    case 'founders': return standing(s).find((t) => t.id === FOUNDERS_HALL_ID);
+    default: return undefined;
+  }
+}
+
+// The class an event means: the latest to graduate, or the latest whose
+// years out suit the story (a reunion falls every fifth year, giving.ts).
+function namedClass(s: GameState, which: NonNullable<CatalogueEvent['names']>['class']): AlumniClass | undefined {
+  const alumni = s.alumni ?? [];
+  const out = (a: AlumniClass) => s.clock.year - a.classYear;
+  const fits = which === 'reunion' ? (a: AlumniClass) => out(a) >= REUNION_YEARS && out(a) % REUNION_YEARS === 0
+    : which === 'veteran' ? (a: AlumniClass) => out(a) >= VETERAN_YEARS : () => true;
+  return [...alumni].reverse().find(fits);
+}
+const REUNION_YEARS = 5;
+const VETERAN_YEARS = 20;
+
+export function rollVars(s: GameState, e?: CatalogueEvent): Record<string, string> {
   const rival = collegeRival(s) ?? pick(s.rivals);
-  const latest = (s.alumni ?? [])[(s.alumni ?? []).length - 1];
+  const latest = (e?.names?.class ? namedClass(s, e.names.class) : undefined) ?? (s.alumni ?? [])[(s.alumni ?? []).length - 1];
   const faculty = pick(s.faculty);
   const program = pick(housedPrograms(s));
-  const building = pick(standing(s).filter(roofed));
+  const drawn = pick(standing(s).filter(roofed));
+  const building = (e?.names?.building ? namedBuilding(s, e.names.building) : undefined) ?? drawn;
   const sport = mainSport(s);
   const suitor = pick(s.rivals.filter((r) => r.reputation > s.self.reputation));
   return {
@@ -220,6 +251,8 @@ export function rollVars(s: GameState): Record<string, string> {
     program: program ? (programById(program)?.name ?? program) : 'the founding program',
     // Names read mid-sentence: "The Chapel" becomes "the Chapel".
     building: building ? building.name.replace(/^The /, 'the ') : 'Founders Hall',
+    // Which it is, for an effect that acts on it ('historic').
+    buildingId: building ? building.id : '',
     // The texts supply the article and the noun: "The {sport} team".
     sport: sport ? (sportById(sport)?.teamName ?? sport).replace(/ Team$/, '') : 'intramural',
     // The institution, by name: "{school} has appeared in a guidebook".
@@ -303,6 +336,9 @@ function changeDebt(s: GameState, amount: number): void {
     l.balance -= paid;
     left -= paid;
   }
+  // What the college did not owe comes back as cash (Plan 76D): "clear the
+  // debt" never throws money away.
+  if (left > 0) s.finance.cash += left;
   if (s.finance.loans) s.finance.loans = s.finance.loans.filter((l) => l.balance > 0);
   if (s.finance.loans?.length === 0) delete s.finance.loans;
 }
@@ -326,7 +362,18 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
       case 'quality': s.students.incomingQuality = Math.max(0, Math.min(100, s.students.incomingQuality + v)); break;
       case 'enrollment': changeEnrollment(s, v); break;
       case 'trees': changeTrees(s, v); break; // estate/woodland.ts
+      case 'replant': if (v > 0) changeTrees(s, v); break;
       case 'departs': if (v > 0) departs(s, vars); break;
+      case 'buildingFund': {
+        const adv = s.advancement ??= { running: null, closed: [], restrictedBuilding: 0 };
+        adv.restrictedBuilding = Math.max(0, adv.restrictedBuilding + v);
+        break;
+      }
+      case 'historic': {
+        const t = s.tech.find((x) => x.id === vars.buildingId);
+        if (v > 0 && t && canDeclareHistoric(s, t)) t.historic = true;
+        break;
+      }
     }
   }
 }
@@ -341,7 +388,7 @@ function departs(s: GameState, vars: Readonly<Record<string, string>>): void {
   const orphaned = leaveFaculty(s, f);
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: orphaned.length > 0 ? 'bad' : 'info', topic: 'departure', subject: f.id,
-    message: `${f.name} (${f.field}) takes the offer and leaves the college.${orphaned.length > 0 ? ` ${orphaned.length} ${orphaned.length === 1 ? 'course waits' : 'courses wait'} for a new instructor.` : ''}`,
+    message: `${f.name} (${f.field}) leaves the college.${orphaned.length > 0 ? ` ${orphaned.length} ${orphaned.length === 1 ? 'course waits' : 'courses wait'} for a new instructor.` : ''}`,
   });
 }
 

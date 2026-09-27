@@ -489,7 +489,7 @@ export function relocateProgram(s: GameState, r: Relocation): void {
   const hall = s.tech.find((t) => t.id === r.hallId);
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
-    message: `${program?.name ?? r.programId} is moving to ${hall?.name ?? 'another hall'} — dark for ${weeks} weeks.`,
+    message: `${program?.name ?? r.programId} is moving to ${hall?.name ?? 'another hall'} — closed for ${weeks} weeks.`,
     kind: 'info',
   });
 }
