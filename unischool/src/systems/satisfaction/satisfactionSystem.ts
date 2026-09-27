@@ -57,7 +57,7 @@ export const EXPECTATION_PER_PRESTIGE = 0.001;
 export function expectation(s: GameState): number {
   return 1 + EXPECTATION_PER_PRESTIGE * Math.max(0, s.self.reputation - 50);
 }
-function expectedRatio(s: GameState, attribute: keyof SatisfactionAttributes): number {
+export function expectedRatio(s: GameState, attribute: keyof SatisfactionAttributes): number {
   const rises = attribute === 'academic' || attribute === 'social' || attribute === 'housing';
   return TARGET_RATIO[attribute] * (rises ? expectation(s) : 1);
 }
