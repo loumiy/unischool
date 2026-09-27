@@ -5,7 +5,7 @@ import { FOUNDING_VERNACULAR } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
 import type { SchoolColors, Vernacular } from '../state/types';
-import { bareSchoolName } from '../state/types';
+import { COLLEGE_NAME_MAX, bareSchoolName } from '../state/types';
 
 // Shown once, before play begins: name the school, and choose its
 // architecture and colors. Every other founding condition comes from
@@ -344,7 +344,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Blackmoor"
-          maxLength={60}
+          maxLength={COLLEGE_NAME_MAX}
         />
         <div className="startup-facade">
           <SchoolFacade name={name} vernacular={vernacular} colors={colors} />

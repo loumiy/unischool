@@ -149,7 +149,7 @@ export type Action =
   // A demand is answered only by building what it asks for before the
   // deadline; there is deliberately no accept/refuse.
   // The one-time College -> University charter offer; cosmetic.
-  | { type: 'RESOLVE_CHARTER'; accept: boolean }
+  | { type: 'RENAME_COLLEGE'; name: string; suffix: 'College' | 'University' }
   // Restaffing (Plan 59, systems/faculty/restaffing.ts): every unstaffed
   // course of a school, or of the college when school is null.
   | { type: 'RESTAFF'; school: string | null }

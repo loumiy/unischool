@@ -139,12 +139,65 @@ scorecard they move.
 - **Checks:** every rung has a distinct form and blurb; screenshots of a
   campus with all of them in each vernacular.
 
+**As implemented** (PR D):
+- Five forms after v2's residence types (`buildingSpec.ts`'s
+  `RESIDENCE_FORMS`, keyed by rung id, so nothing is stored), each a roof,
+  a wall, balconies or none, and a front door:
+
+  | Form | From v2 | Roof | Wall | Balconies | Door |
+  |---|---|---|---|---|---|
+  | Residence Hall | Residence Hall | gabled | the residences' dark brick | yes | residential |
+  | House | House | gabled | red brick | no | residential |
+  | Suites | Graduate House | gabled | buff brick | no | formal |
+  | Apartment Block | Apartment Block | flat | render | yes | residential |
+  | Residential College | Residential College | gabled | the civic stone | no | formal |
+
+  The eight rungs, in the order they unlock: House, Residence Hall, Suites,
+  Apartment Block; then Residential College, Apartment Block, Residence
+  Hall, Suites. Walls vary by vernacular as every wall does, except the
+  apartments': a flat block is modern in every vernacular (the rule the
+  hospital follows), so it takes render where v2 has buff brick. v2's
+  Suites are limestone and its college red brick; here they are swapped
+  to buff and stone, since red brick is already the House's.
+- Each rung has its own blurb, adapted from v2's, naming no material
+  (walls change with the vernacular). Beds, costs, build weeks and
+  footprints are unchanged; Meadow House, the villages and the towers keep
+  their own forms. `npm run sim` reads the same.
+- **Checks:** `test/building-spec.test.ts`: every hall rung has a form, no
+  two neighbouring rungs share one, every form draws differently and the
+  same wherever it stands, and every rung has its own blurb. Screenshots
+  of all eight in each vernacular: `docs/reviews/2026-09-residences/`.
+
 ## PR 72E — The charter, and two unused effects
 
 - **The charter** stops being a modal: a log line, and a rename button
   where the college's name is shown.
 - **`tuitionBonus` and `unlockIds`** are deleted from `BuildableEffects`
   and `techSystem.ts`; no building sets them.
+
+**As implemented** (PR E):
+- **The charter** is granted, not asked: the first quiet week after a lab
+  is at work, the trustees grant it with a log line naming the new name
+  and where to change it. It still takes that week as its own, as the
+  modal did, so `npm run sim` reads the same. The modal, its action and
+  its default answer are gone.
+- **Renaming, from the pennant** (`RENAME_COLLEGE`): a small button on the
+  college's pennant opens a form with the name the founding screen took
+  (same rules: a typed "College" or "University" is dropped, 60 letters
+  at most) and College or, once chartered, University. Either way, as
+  often as the player likes, with a log line.
+- **Saves:** version 79. A version-78 save held at the old modal loads
+  chartered, the week moved on as answering it did
+  (`test/fixtures/save-v78-charter.json`).
+- **`tuitionBonus` and `unlockIds`** are gone from `BuildableEffects` and
+  `techSystem.ts`; the admissions doc no longer mentions the first.
+- **Found on the way:** `prestigeSystem.ts` read satisfaction's
+  `TARGET_RATIO` at module load, and the two modules import each other,
+  so a test bundle that loaded prestige first failed (`save-load` alone,
+  even on `main`). It reads it when used now.
+- **Checks:** `test/charter.test.ts` (the grant, with no modal, once; the
+  rename's rules; the version-78 fixture migrates); `save-load`'s version
+  checks no longer assume the version before this one is 77.
 
 ## PR 72F — Faculty tab: sort and filter
 

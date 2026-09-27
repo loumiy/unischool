@@ -2521,6 +2521,22 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .pennant-body { padding: 16px 22px 12px; background: var(--school-primary); color: var(--school-on-primary); }
 .pennant-name { font-family: var(--display); font-weight: 800; font-size: calc(22px * var(--text-scale)); line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .pennant-tail { height: 22px; background: var(--school-primary); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+/* The rename (Plan 72E): the pennant's one live control. */
+.pennant-body { display: flex; align-items: flex-start; gap: 8px; }
+.pennant-rename { pointer-events: auto; margin-left: auto; flex: none; width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid currentColor; background: transparent; color: inherit; font-size: 13px; line-height: 1; cursor: pointer; opacity: 0.75; }
+.pennant-rename:hover, .pennant-rename:focus-visible { opacity: 1; }
+.pennant-form { pointer-events: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 12px;
+  background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); border-top: none; }
+.pennant-form-label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-sm); font-weight: 700; }
+.pennant-form-label input { font: inherit; font-weight: 600; padding: 6px 8px; border: 2px solid var(--outline); border-radius: var(--radius-sm); background: #fff; }
+.pennant-form-suffix { display: flex; gap: 6px; }
+.pennant-form-suffix button, .pennant-form-actions button { font-family: var(--display); font-weight: 800; font-size: var(--text-sm);
+  padding: 5px 12px; border: 2px solid var(--outline); border-radius: var(--radius-pill); background: var(--cream); color: var(--ink); cursor: pointer; }
+.pennant-form-suffix button.is-on { background: var(--school-primary); color: var(--school-on-primary); }
+.pennant-form-suffix button:disabled, .pennant-form-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+.pennant-form-actions { display: flex; gap: 6px; }
+.pennant-form-actions .primary { background: var(--school-secondary); color: var(--school-on-secondary); }
 /* The building panel takes the same corner, so the pennant yields to it
    here (the open building is map-local state, not App's). */
 body:has(.building-info-panel) .pennant { display: none; }
