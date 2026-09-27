@@ -13,7 +13,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { COURSE_DESCRIPTIONS } from '../src/data/courseDescriptions';
+import { COURSE_DESCRIPTIONS, GRADUATE_COURSE_DESCRIPTIONS } from '../src/data/courseDescriptions';
 import { initialTech } from '../src/data/techData';
 
 let checks = 0;
@@ -72,6 +72,32 @@ const titleOf = (id: string): string => byId.get(id)!.name.replace(/^[A-Z]+ \d+ 
   }
   assert(!courses.some((t) => /^(Builds on|A closer look at|Extends first-year|Applies .* fundamentals to|Advanced, capstone-level|A specialized deep dive|Capstone coursework in|Senior-level study of)/.test(t.description)),
     'no course carries one of the eight retired template sentences');
+}
+
+// --- the graduate courses (Plan 72C): the same rules, every one --------
+{
+  const grads = initialTech().filter((t) => t.kind === 'course' && t.graduateProgram !== undefined);
+  const gradIds = new Set(grads.map((t) => t.id));
+  const seen = new Set<string>();
+  for (const [id, text] of Object.entries(GRADUATE_COURSE_DESCRIPTIONS)) {
+    assert(gradIds.has(id), `${id} names a graduate course`);
+    assert(/^[A-Z]/.test(text) && text.endsWith('.') && !/\. [A-Z]/.test(text), `${id} is one capitalized sentence`);
+    assert(!/\b[A-Z]{2,4}\s?\d{3}\b/.test(text) && !/\bthis course\b/i.test(text), `${id} names no course code and does not say "this course"`);
+    assert(text.length >= 60, `${id} says enough (${text.length} chars)`);
+    assert(!seen.has(text), `${id} is not a copy of another`);
+    seen.add(text);
+  }
+  const missing = grads.filter((t) => !(t.id in GRADUATE_COURSE_DESCRIPTIONS));
+  console.log(`  · ${grads.length - missing.length} of ${grads.length} graduate courses have an authored description`);
+  assert(missing.length === 0, `every graduate course has one — missing: ${missing.map((t) => t.id).join(', ')}`);
+  for (const t of grads) {
+    const authored = GRADUATE_COURSE_DESCRIPTIONS[t.id];
+    // The entry course (no prereqs: its gate is dynamic) adds the gate.
+    const entry = t.prereqs.length === 0;
+    assert(entry ? t.description.startsWith(`${authored} Founds `) : t.description === authored,
+      `${t.id}'s Buildable carries its sentence${entry ? ', then its gate' : ''}`);
+    assert(!/coursework in .*, part of the/.test(t.description), `${t.id} no longer carries the generated line`);
+  }
 }
 
 if (failures === 0) {

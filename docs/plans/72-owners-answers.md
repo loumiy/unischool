@@ -109,6 +109,20 @@ scorecard they move.
 - **Checks:** the description test covers every graduate course; none
   empty, none repeated.
 
+**As implemented** (PR C):
+- There are 53 graduate courses, not 49 (the MD has twelve, law eight, the
+  MBA five, and each of the six doctorates and the MFA four). Each has an
+  authored sentence in `GRADUATE_COURSE_DESCRIPTIONS`
+  (`data/courseDescriptions.ts`), in the undergraduate register. The entry
+  course of each program follows it with its gate ("Founds the law school
+  (JD); offered once …"), composed in `techData.ts` from the seed as
+  before. Saves pick the new text up on load (Plan 46's catalog refresh).
+- **Checks:** `test/course-descriptions.test.ts` covers the graduate
+  courses: every one has a sentence, one capitalized sentence each, no
+  course code or "this course", none copied, and the Buildable carries it
+  (the entry course with its gate after). `docs/design/curriculum.md` says
+  so.
+
 ## PR 72D — Residences from v2
 
 - v2 (`loumiy/unischool-v2`, `src/content/buildings.json`) has several

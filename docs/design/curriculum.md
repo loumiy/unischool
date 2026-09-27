@@ -242,9 +242,10 @@ and a test holds two rules: one sentence, present tense, no course code, no
 "this course"; and it must say something the title does not. For 336 of them
 the drawer used to show one of eight rotating templates with the title
 swapped in, so every major's first tier-2 course read the same as every
-other major's; the templates are gone. Graduate courses keep a generated
-line, deliberately: 49 courses in a far more uniform register, and the
-obvious next increment. Every
+other major's; the templates are gone. The 53 graduate courses have one
+too (Plan 72C, `GRADUATE_COURSE_DESCRIPTIONS`), under the same rules; each
+program's entry course follows its sentence with the gate it waits on,
+composed from the seed so the words and the rule cannot disagree. Every
 prerequisite in it is a link that scrolls to the course. When nobody in a
 department can take a course, the drawer offers a **search** rather than a
 dead end (see [faculty.md](faculty.md)).
