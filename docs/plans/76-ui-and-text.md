@@ -155,6 +155,27 @@ page, and 3,649 words and 474 controls by year 16.
     after at years 8, 16 and 25;
   - a test that each filter returns the courses it names.
 
+**As implemented (#TBD):**
+- Every program starts folded to its one line: the grade, the hall, the next
+  course's Develop button with its grade, the cost, the milestone and
+  "n / 9". A folded line leaves out "choose…" and the batch start; the ▸
+  opens the full row and its cells as before.
+- The open lines are remembered for the session, as Plan 60's collapsing
+  already was. They are not kept in settings.
+- "Below A" and "No instructor" sit beside "Needs attention". The filters
+  moved to `tabs/curriculumFilter.ts`, and `test/curriculum-filter.test.ts`
+  reads them on a guided college at year 8.
+- The head (the offers, the committee and the filters) is pinned where the
+  screen is at least 900 by 700 px. On a phone it scrolls with the page,
+  since pinned it would take most of the screen; PR I is the phone's.
+- The tab, measured with the screen gallery's count on guided saves:
+
+  | Save | Before | After |
+  |---|---|---|
+  | Year 8 | 2,244 words, 282 controls | 885 words, 52 controls |
+  | Year 16 | 3,548 words, 473 controls | 991 words, 57 controls |
+  | Year 25 | 1,881 words, 254 controls | 830 words, 73 controls |
+
 ## PR 76C — The text made true, outside the events
 
 *A2-2, the first two of the appendix's three reports: 43 false claims and
