@@ -3,7 +3,8 @@
 // one does not typecheck. Keyed by where the figure sits.
 
 import type { GameState, SatisfactionAttributes } from '../state/types';
-import { satisfactionFigure } from '../format';
+import { prestigeFigure, satisfactionFigure } from '../format';
+import { PRESTIGE_MAX_RISE } from '../systems/prestige/prestigeSystem';
 
 export type Sentence = `${string}.`;
 
@@ -19,7 +20,8 @@ export const NEED_LABELS: Record<keyof SatisfactionAttributes, string> = {
 export const FIGURE_HINTS = {
   // The status bar.
   funds: 'Operating funds, and what the week adds or takes at today\'s rates; a deficit, or a matter left unanswered, can push them below zero, and the board reviews them every term.',
-  rank: (field: number): Sentence => `Place among ${field} colleges in the guide's academic ranking, ordered by prestige; #1 is the top.`,
+  // Rank follows prestige's summer step (Plan 78C), read from prestigeSystem.ts.
+  rank: (field: number): Sentence => `Place among ${field} colleges in the guide's academic ranking, #1 the top; the rank follows prestige, which moves mostly at the summer and rises then by at most ${prestigeFigure(PRESTIGE_MAX_RISE)} points.`,
   enrolled: 'Students on the books across all four classes, set each summer by the class you admit and who does not return.',
   prestige: 'Prestige, graded each summer and stepped toward the grade; it reads curriculum, teaching, students, research, satisfaction, campus life, the buildings and grounds, and the endowment, less crowding.',
   // The lowest need and its figure (Plan 78B), so the chip says where to look.

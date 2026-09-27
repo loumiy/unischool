@@ -7,7 +7,7 @@ import { foundingNotes } from '../systems/inbox/foundingNote';
 import { dueLabel, toDecideCount } from '../systems/inbox/unseen';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
-import { milestoneById } from '../data/ladderData';
+import { milestoneById, tabOfSection } from '../data/ladderData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
@@ -372,7 +372,9 @@ function ReadingPane({ s, act, item, onOpenTab }: {
   if (item.kind === 'milestone') {
     const m = milestoneById(item.ref!);
     if (!m) return null;
-    const tab = m.tabs.find((t) => tabAvailable(s, t));
+    // The door: a tab the milestone opens, else the tab of a section it opens
+    // (the first commencement opens History's record, Plan 78C).
+    const tab = [...m.tabs, ...(m.sections ?? []).map(tabOfSection)].find((t) => tabAvailable(s, t));
     return (
       <article className="inbox-letter">
         <ReadHead tier="letter" from={item.from} subject={m.name} meta={`Reached in Year ${s.ladder.reached[m.id]} · ${m.condition}`} />
