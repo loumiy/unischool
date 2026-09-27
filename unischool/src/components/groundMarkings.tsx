@@ -1162,6 +1162,7 @@ const JG_STEPS: Array<[number, number]> = [[0.04, 0.6], [0.1, 0.61], [0.17, 0.6]
 const JG_TORII = { u: 0.17, v0: 0.49, v1: 0.71 };
 const JG_TEMPLE = { u: 0.2, v: 0.18, half: 0.1 };
 const JG_BRIDGE = { a: { u: 0.38, v: 0.6 }, b: { u: 0.85, v: 0.6 } };
+const JG_BRIDGE_HALF = 0.035;
 // Cherry trees (ornamental and canopy, pink in styles.css's jg-sakura) and
 // pines.
 const JG_TREES: QuadPlanting[] = [
@@ -1280,7 +1281,7 @@ function GardenLantern({ cc, cr }: { cc: number; cr: number }) {
 // drawn as a strip of lifted points.
 function GardenBridge({ col, row, w, h }: GroundProps) {
   const { a, b } = JG_BRIDGE;
-  const half = 0.035;
+  const half = JG_BRIDGE_HALF;
   const RISE = 10;
   const n = 12;
   // Across the deck: perpendicular to its run, in u/v.
@@ -1393,8 +1394,10 @@ function japaneseGardenProps(col: number, row: number, w: number, h: number): Gr
     { key: 'lantern', ...aroundPoint(col + w * JG_LANTERN.u, row + h * JG_LANTERN.v, 0.25), node: <GardenLantern cc={col + w * JG_LANTERN.u} cr={row + h * JG_LANTERN.v} /> },
     {
       key: 'bridge',
-      col: col + w * Math.min(JG_BRIDGE.a.u, JG_BRIDGE.b.u), row: row + h * Math.min(JG_BRIDGE.a.v, JG_BRIDGE.b.v),
-      w: w * Math.abs(JG_BRIDGE.b.u - JG_BRIDGE.a.u), h: h * Math.abs(JG_BRIDGE.b.v - JG_BRIDGE.a.v),
+      // The deck's run, widened by its width so a straight bridge still
+      // covers ground.
+      col: col + w * (Math.min(JG_BRIDGE.a.u, JG_BRIDGE.b.u) - JG_BRIDGE_HALF), row: row + h * (Math.min(JG_BRIDGE.a.v, JG_BRIDGE.b.v) - JG_BRIDGE_HALF),
+      w: w * (Math.abs(JG_BRIDGE.b.u - JG_BRIDGE.a.u) + 2 * JG_BRIDGE_HALF), h: h * (Math.abs(JG_BRIDGE.b.v - JG_BRIDGE.a.v) + 2 * JG_BRIDGE_HALF),
       node: <GardenBridge col={col} row={row} w={w} h={h} />,
     },
     {
