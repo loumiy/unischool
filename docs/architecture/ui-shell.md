@@ -53,7 +53,11 @@ seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
 it is about; an **arrival** (a matter or a letter reaching the inbox) carries
 an Open button and stays eight seconds (in year one a founding note or a
 milestone stays until opened or dismissed, Plan 78B), and none arrives while
-the inbox is open (see
+the inbox is open. With Settings' "Pause when a matter arrives" on (the
+default), a matter's arrival also pauses the clock and stays until it is
+opened or dismissed; whatever the setting, a matter's final week, unopened,
+pauses the clock once and the Inbox button pulses red (Plan 78E,
+`systems/inbox/unseen.ts`; see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
 right end of the ticker line runs the **next step**: during the scripted first
 year the latest letter's ask until it is done, and between letters a
@@ -81,9 +85,11 @@ left, every item collapsed to its sender, subject and a line of preview and
 grouped by tier (to decide, letters, bulletins), with a search and filters,
 and on the right a reading pane that shows the selected item whole, with its
 answers. A row to decide carries a navy rule down its edge, red in its last
-week, and its weeks left where a letter has its date; an unread letter has a
+week, and its weeks left where a letter has its date ("Final week" in the
+last, in the list and the reading pane alike); an unread letter has a
 gold dot and a bold subject. Opening a letter reads it. The toolbar's Inbox
-button counts only what wants an answer, and `I` opens it. Nothing floats
+button counts only what wants an answer, the stop included, and `I` opens
+it; the "To decide" filter counts the matters alone (Plan 78E). Nothing floats
 over the map any more: the event panel and the note stack it replaced both
 stepped aside whenever a tab was open.
 
