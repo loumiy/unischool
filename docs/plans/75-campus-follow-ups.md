@@ -58,7 +58,7 @@ C lands last, so the gallery shows A's and B's drawings.
 - A farther box's marks are masked by the nearer boxes.
 - The hoarding and weeds stay round the whole plot.
 
-**As implemented (#TBD).**
+**As implemented (#217).**
 
 - `src/components/weatherVolumes.ts` says which boxes each form stands in:
   - most forms: one box of the footprint, as before;
