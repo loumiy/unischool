@@ -23,7 +23,7 @@ answers:
 | 7 | A full residence marked on the map | **Yes** |
 | 8–10 | A budget and a CFO; poaching and retention as a plan; events that reach further | **Deferred,** kept in the backlog |
 | 11 | Clubs stop counting at the social cap | **Yes:** diminishing returns in place of the cap |
-| 12 | The split-school trap | **Explained;** waiting on the owner |
+| 12 | The split-school trap | **Yes,** after an explanation: the game suggests merging a split school |
 | 13–14 | The admit rate's early slope; the partly answered notes | **Deferred** |
 | 15–16 | Events in the founding years; night and seasons on the map | **No,** and off the backlog |
 | 17–21 | Athletics deferrals; Plan 70's deferrals; direction items; 70K; 70L | **Deferred** |
@@ -54,9 +54,11 @@ answers:
 | I | A first place that can be taken | 2 | yes |
 | J | The scorecard: the high-price line's targets, re-read after H and I | 1 | targets only |
 | K | The Japanese garden, in place of a formal garden drawn as a small Grand Quad | the owner, later | no |
+| L | The split-school trap: the game suggests the merge | 12 | a little (the harness players already merged) |
+| M | The Fountain and the Founder's Statue drawn on their own | the owner, later | no |
 
 B through G can land in any order; H and I before J, since J re-reads the
-scorecard they move.
+scorecard they move. L and M came after J, from the owner's later answers.
 
 ---
 
@@ -306,6 +308,46 @@ scorecard they move.
   option 2). The scorecard is re-read after H and I, and every change to a
   target is listed with its reason.
 
+**As implemented** (PR J):
+- Re-read after H and I: 73 of 114. The high-price line's prestige and
+  rank at years 10, 20 and 30 were already met; its misses in those years
+  were enrollment and the net, which start slow and catch up in years
+  20–40. Each target that measures that start is reset to the median
+  across the three seeds, in a band as wide as Plan 66's (`sim/pacing.ts`):
+
+  | Target (the natural line) | Was | Now | Median |
+  |---|---|---|---|
+  | Enrollment reaches half its growth | Y18–22 | Y24–28 | Y26 |
+  | Net reaches half its growth | Y20–24 | Y29–33 | Y31 |
+  | Year 10 enrollment, share of year 50 | 17–29% | 3–10% | 6% |
+  | Year 10 net, share of year 50 | 10–20% | 1–7% | 3% |
+  | Year 20 enrollment, share | 43–55% | 18–30% | 24% |
+  | Year 20 net, share | 35–50% | 8–20% | 13% |
+  | Year 30 enrollment, share | 70–81% | 58–72% | 65% |
+  | Year 30 net, share | 65–80% | 42–58% | 50% |
+  | Enrollment growth, years 1–10 | 15–35% | 2–10% | 5% |
+  | Enrollment growth, years 20–30 | 15–35% | 32–50% | 42% |
+  | Net growth, years 1–10 | 15–35% | 1–8% | 3% |
+  | Net growth, years 10–20 | 15–35% | 5–15% | 9% |
+  | Net growth, years 20–30 | 15–35% | 28–45% | 37% |
+
+  The reason is the same for every row: charging well over the going rate
+  costs applicants (Plan 71), so a high-price college fills slowly, and the
+  owner chose to keep that. The decades override Plan 66's band for this
+  line only (`SLOW_START_DECADES`); the fair-price players keep theirs.
+- **86 of 114** ([`2026-09-pacing-high-price.md`](../reviews/2026-09-pacing-high-price.md)).
+  Every reset row passes, and no other row moved. What still misses is
+  left as it is, since the answer was about years 10–30: the knock-on in
+  years 30–50 (the net's growth in years 30–40, 37% against 15–35%, and
+  its coast; enrollment still 7% up after year 40; prestige a point or
+  two under 145 and 149.5 at years 40 and 50), the net's two straight
+  falls, the catalogue for every player (90% of courses taught at years
+  24–27 against 34–40, the first distinguished school at 18–26 against
+  8–14), and the fair-price players' 90% marks, which come early.
+- `docs/design/economy.md` says the slow start is the price of charging
+  high, with the new scorecard. `BACKLOG.md` loses the split-school trap
+  (now L) and names L and M among what Plan 72 took.
+
 ## PR 72K — The Japanese garden
 
 *Added after the plan, from the owner:* "I think I saw some repeated assets
@@ -329,10 +371,36 @@ trees and fountain.
   the same. The ladder's line names it.
 - Screenshot: `docs/reviews/2026-09-garden/japanese-garden.png`.
 
+## PR 72L — The split-school trap
+
+*The owner's answer to 12, after an explanation.* A school whose programs
+end up in two halls stays split: the sorting suggestions only bring strays
+home, so nothing frees the second hall, and a school with no hall can have
+its offers stand forever. Plan 65's natural player merged such a school on
+its own; the game never suggested it.
+
+- When a school with a program on offer has no hall, no purchased hall
+  stands empty, and some school holds two halls whose smaller fits in the
+  larger's free slots, the programs in the smaller are suggested into the
+  larger: the program tile's arrow and *Move to* button, and a next-step
+  line that says the school is split and which hall the merge frees.
+- The natural player's own merge rule goes; it follows the suggestion.
+- **Checks:** the trap is recognized and the moves free the hall; nothing
+  is suggested without a homeless offer, with a hall already empty, or
+  when the smaller hall would not fit.
+- **Balance:** measured; the baseline re-recorded if it moves.
+
+## PR 72M — The Fountain and the Founder's Statue
+
+*The owner's answer, later.* Both amenities reused the quads' centerpieces:
+the statue the tier-1 quad's column, the fountain the Grand Quad's pool.
+Each gets its own drawing, the statue a figure in bronze on a stepped
+plinth, the fountain a tiered one in an octagonal basin. Nothing else
+changes.
+
 ## What this plan does not do
 
 - The budget and a CFO, poaching and retention as a whole (a retention
   offer, a person page), and events that reach further (answers 8–10).
 - The admit rate's early slope (13), and anything the owner's playtest
   (70L) should decide first.
-- The split-school trap (12), until the owner answers.
