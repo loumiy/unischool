@@ -351,7 +351,7 @@ is this plan.
   - `npm run sim`, re-recorded, with the move described here.
 
 
-**As implemented (#TBD):**
+**As implemented (#236):**
 - **A claimed hall's "+"** offers its own school first.
   - It is a sim change, not a UI list. `programOffers.ts`'s
     `schoolOffers` reads every revealed, unhoused major of the school a
