@@ -100,7 +100,7 @@ function RunningPanel(
           <span className="facility-fill" style={{ width: pct(fraction) }} />
         </span>
         <span className="facility-progress-meta">
-          <span>{elapsed} of {initiative.weeksTotal} weeks</span>
+          <span>{weeksShort(elapsed)} of {weeksShort(initiative.weeksTotal)}</span>
           <span>
             <b>{initiative.breakthroughs}</b> {initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'} banked
             {initiative.publications > 0 && ` · ${initiative.publications} published`}
@@ -193,7 +193,7 @@ function VacantPanel(
               <span className="offer-blurb">{offer.blockedReason ?? offer.depth.blurb}</span>
               {!offer.blockedReason && (
                 <span className="offer-odds">
-                  ~{decimal(offer.odds.publications, offer.odds.publications < 10 ? 1 : 0)} publications
+                  about {decimal(offer.odds.publications, offer.odds.publications < 10 ? 1 : 0)} papers expected
                   {' · '}breakthrough {pct(offer.odds.breakthroughChance)}
                   {' · '}award {pct(offer.odds.awardChance)}
                 </span>
@@ -252,7 +252,7 @@ function VacantPanel(
           )}
           {chosenTeam.length > 0 && (
             <p className="offer-note">
-              Team strength {decimal(teamStrength(chosenTeam) * 100)} · interdisciplinary bonus
+              Team strength {decimal(teamStrength(chosenTeam) * 100)} · interdisciplinary lift
               {' '}{multiplier(interdisciplinaryBonus(chosenTeam))}
             </p>
           )}
@@ -307,7 +307,7 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Research</h2>
-            <HelpHint text="Each research facility hosts one project at a time, so the number of things the college can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays off bigger — and the Landmark tier needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
+            <HelpHint text="Each research facility hosts one project at a time, so the number of things the college can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays more — and a Landmark Program needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
           </span>
           <span className="stat">
             {/* The research-axis rank (prestigeSystem.ts's

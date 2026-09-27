@@ -550,7 +550,7 @@ const FIELD_RESEARCH_INTERESTS: Record<string, string[]> = {
   'Accounting & Finance': ['asset pricing', 'audit quality', 'corporate disclosure'],
   Marketing: ['consumer choice', 'brand equity', 'digital attribution'],
   Law: ['constitutional interpretation', 'contract theory', 'law and technology'],
-  Management: ['corporate strategy', 'entrepreneurship', 'organisational behavior'],
+  Management: ['corporate strategy', 'entrepreneurship', 'organizational behavior'],
 };
 
 function rollBio(field: string): string {

@@ -66,7 +66,7 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'visible', rule: 'popular', label: 'Whatever the students see' },
     ],
     defaultPolicy: 'worst-first',
-    blurb: 'Roofs, boilers, pipes and snow: the estate\'s routine emergencies, answered before they reach the President\'s desk. Storms, fires, floods and a hard freeze still reach it.',
+    blurb: 'Roofs, boilers, pipes and snow: the campus\'s routine emergencies, answered before they reach the President\'s desk. Storms, fires, floods and a hard freeze still reach it.',
   },
   {
     id: 'dean-of-students', title: 'Dean of Students', domain: 'students', perSchool: false,

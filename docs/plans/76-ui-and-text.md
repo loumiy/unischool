@@ -596,6 +596,119 @@ claims and 107 vague ones.*
   `tools/review/strings.ts`'s checks, and the quirk names and the summer
   review's answered-by lines are extracted.
 
+**As implemented (#TBD):**
+- **The glossary** is Plan 47's new §2, with the voice, the one-name list,
+  a table of the code's words and what the college says instead, the engine
+  words kept out, lists and case.
+  - A hall's places are **program slots**, not rooms: the game already said
+    "slot" in about twenty strings, and "room" already meant the places
+    left for a new class. The walkthrough's and the first-hall letter's
+    "rooms" became slots.
+  - A professor's capacity is a **course slot**, always qualified.
+  - **Seat** is an administration post only. Teaching capacity is
+    **places** ("the catalog's places", "+80 places"); **room** is the
+    places left for the incoming class. The curriculum committee lost its
+    seats: it "writes up to four courses at once".
+  - **The guide** is the ranking ("#12 in the guide", "Six rankings, one
+    field"); **the board's scale** is the distress ladder; **Stage** is a
+    program's standing in the hall panel.
+- **Code names:** the wall (Waiting on faculty), housed, the recreation
+  chain, flat, cohort signal, varsity-active, initiative (research
+  project), revealed and unlocks (open; can be built once), earned, tier
+  (Level N; capstone and upper-level courses; subsidy level), the pot (the
+  department's fund), chair (a coaching post), ceiling (limit; a coach's
+  potential), attribute (need), stock, floored, and "dark" for a program
+  moving halls (closed while it moves).
+- **The engine out of the prose:** the weekly tick, "the rest of the game",
+  the Students beat, "interrupts play", "scrolled off the log", "the
+  slider", the Treasury's "Being large" cited by name, the pennant pointer
+  in the charter line, "pts/wk" (now "0.85 a week, of the 90 a paper
+  takes"), "interdisciplinary bonus" (lift), "No new era of the game
+  opens". The speed control reads "game speed 4×" and "Game speed 8× (4)";
+  the sandbox gear is "Fastest, for the sandbox (5)". The save-failure
+  lines say "the game", not "the run".
+- **The rankings and admissions modals:** "The college enters the guide",
+  "This year's standings: the college is #12", "The largest moves", "no
+  college in the country is ahead", "What will the college charge next
+  year?", and the price tags read the college's prestige, not "your
+  prestige" ("expect sticker shock"). The admissions cohort's driver and
+  the Deans' letter follow. No contractions are left in the game.
+- **The American pass:** every row of 2d §4 that PR C or D had not already
+  taken: Catalog, sorted, car park, queue ×2, rota, timetable,
+  organisational, the academic table and "Six tables", the estate
+  (Buildings and grounds, the campus), round, full marks, Welfare
+  (Student well-being), the faculty have and the common room, the Bursar
+  (the business office), a wood. The quirk names were already American;
+  "the dean's" is "the Dean's". "Final mark" and "The mark" on the share
+  card are grades.
+- **Plan 47's own rules:**
+  - The summer review's letters read "{title}, a letter to the President:
+    {answer}", and its tally "answered by the President, by the
+    administration, left unanswered".
+  - "Nw": PR E had done the rest; the demand deadline chip and the
+    research card's progress join it.
+  - Every armed label names its loss: "Confirm — it can never come down"
+    (historic), "Confirm — the site is cleared", "Confirm — {building}
+    comes down", "Confirm — $2M never comes back to cash", "Confirm —
+    {name} leaves the classroom for good", "Confirm — a salary for good",
+    and the menu's "Confirm — erase {college}".
+  - Sentence case: the Build menu's groups, Varsity athletics, Basic
+    needs, Satisfaction breakdown, "The curriculum" crumb, the Curriculum's
+    and the director's buttons (Choose…, All N with…, Waiting on…,
+    Another), "An Athletic Director", "Fall term" and "Spring term",
+    "Satisfaction" for "Satisf.". "The Final Report" is a name and keeps
+    its capitals everywhere, the fiftieth summer's step included.
+  - "New game" on the title screen, the Final Report and the hall of fame,
+    where they said "Found a new college" and "Found another college".
+- **The vague lines** of 2d §6 say what they mean: the attrition hint
+  names the line (50) from its constant, the next-step line names what to
+  build, the athletics surplus says when it is paid, the board's relief
+  letter says its confidence rises, the Students section's empty line
+  names what did not happen, the dorm without a bed count shows no line,
+  and the rest as the rows propose.
+- **Lists** take no serial comma unless one is needed for sense, as most
+  of the game already wrote them; the noun lists outside the events that
+  had one lost it.
+- **The scanner** (`tools/review/strings.ts`):
+  - 25 idioms from 2d §4 join the list (the estate, the academic table,
+    round, apartment block, biscuits, full marks, bursary, "read a
+    subject", dear, welfare, handover, research charity, first-years,
+    upper years, the faculty have, common room, proper, consultancy, a
+    wood, sporting college, out of the door, prospectus, the Bursar, "lost
+    the semi", the lift), and "organisational" the spellings. An idiom can
+    carry a pattern that excuses it: an estate beside a bequest is a
+    dead man's, not a campus.
+  - "sorted by" and a post (a job) no longer flag.
+  - A new section, **Engine words in the prose**: tick, the run, beat,
+    unlocks, revealed, throttle, pacing, the wall, housed, the recreation
+    chain, flat, cohort signal, varsity-active, initiative, stock, floored,
+    pts, "of the game", the ladder, the slider, yield step, the pot,
+    committee seats. The menu, Settings, the title and founding screens,
+    the crash screen and the credits are exempt.
+  - Quirk names are read (`SAYING_NAMES`), and a string that is the object
+    of a naming call (`[…].filter(…)`, `.join(…)`) is no longer dropped,
+    which brings in the summer review's answered-by parts.
+- **Left:**
+  - The research depth "Landmark Program" keeps its name beside the Grand
+    Landmark buildings; renaming it (2d suggests "Signature Programs") is
+    the owner's.
+  - "One pool for the whole department" (the coaching market) keeps its
+    pool: it is labeled where it sits.
+  - The event catalogue's "proper" ×5 and the "Monday" and "flat roofs"
+    flags are PR D's text and read American.
+  - `Credits.tsx` credits "Louis Miyani": for the owner to confirm.
+- **Checks:** `npm run check` passes (116 suites). `year-in-review` checks
+  the new tally and that the summer's letters are letters to the
+  President; `number-format`, `share-card` and `course-quality` read the
+  new words. `npm run sim` reads the same as the baseline.
+- **`npm run review:strings`** (the new scanner on both trees, so the
+  counts compare): British spellings 2 → 0; idioms 41 → 10 (the rest in
+  the events and the course descriptions); engine words 68 → 0; second
+  person 56 → 40; contractions 3 → 0; exclamation marks 0 → 0; 21 → 22
+  repeated sentences (the lapsed-letter fallback now has one title,
+  twice). With the old scanner: British spellings 1 → 0, idioms 16 → 8,
+  repeated 21 → 22, second person 55 → 40, contractions 3 → 0.
+
 ## PR 76G — The course descriptions
 
 *A2-5.* 126 of 431 sentences flagged.

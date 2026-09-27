@@ -61,8 +61,8 @@ const SPEED_ICONS: Partial<Record<Speed, () => React.JSX.Element>> = {
   paused: PauseIcon, real: PlayIcon, double: DoubleSpeedIcon, quad: QuadSpeedIcon, octo: OctoSpeedIcon,
 };
 const SPEED_HINTS: Record<Speed, string> = {
-  paused: 'Pause (Space)', real: 'Play (1)', double: 'Double speed (2)', quad: 'Quadruple speed (3)',
-  octo: 'Eight times speed (4)', fast: 'Playtesting only — not intended for normal play (5)',
+  paused: 'Pause (Space)', real: 'Play (1)', double: 'Game speed 2× (2)', quad: 'Game speed 4× (3)',
+  octo: 'Game speed 8× (4)', fast: 'Fastest, for the sandbox (5)',
 };
 
 // Display threshold only: below it satisfaction shows in red. Its mechanical

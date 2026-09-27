@@ -59,7 +59,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
           )}
           <ConfirmButton
             className={underway ? 'menu-btn' : 'title-primary'}
-            label="Found a new college"
+            label="New game"
             armedLabel={`Confirm — erase ${institutionName(s.self)}`}
             warning={`${institutionName(s.self)} is erased and another is founded.`}
             needsConfirm={underway}

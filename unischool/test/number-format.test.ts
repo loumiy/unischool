@@ -84,10 +84,10 @@ console.log('number format tests');
 
 // ---- The game date ----
 {
-  reads(gameDate(9, 2), 'Year 9 · Fall Term · Week 2', 'the dock\'s date');
-  reads(gameDate(9, 30), 'Year 9 · Spring Term · Week 30', 'the spring term');
-  reads(gameDateOfWeek(8 * WEEKS_PER_YEAR + 2), 'Year 9 · Fall Term · Week 2', 'a date from a week count');
-  reads(gameDateOfWeek(WEEKS_PER_YEAR), 'Year 1 · Spring Term · Week 52', 'the year\'s last week');
+  reads(gameDate(9, 2), 'Year 9 · Fall term · Week 2', 'the dock\'s date');
+  reads(gameDate(9, 30), 'Year 9 · Spring term · Week 30', 'the spring term');
+  reads(gameDateOfWeek(8 * WEEKS_PER_YEAR + 2), 'Year 9 · Fall term · Week 2', 'a date from a week count');
+  reads(gameDateOfWeek(WEEKS_PER_YEAR), 'Year 1 · Spring term · Week 52', 'the year\'s last week');
   reads(calendarDate(Date.UTC(2026, 8, 15, 12)), 'September 15, 2026', 'a save\'s date, in English');
 }
 

@@ -22,7 +22,7 @@ export const COHORTS: Array<{ id: CohortId; label: string; baseShare: number; dr
   { id: 'researchOriented', label: 'Research-oriented', baseShare: 0.10, driverLabel: 'publications, breakthroughs, prizes & labs' },
   { id: 'social', label: 'Social', baseShare: 0.15, driverLabel: 'clubs & Greek chapters' },
   { id: 'artsFocused', label: 'Arts-focused', baseShare: 0.08, driverLabel: 'arts programs & venues' },
-  { id: 'priceSensitive', label: 'Price-sensitive', baseShare: 0.15, driverLabel: 'your price vs. what your prestige supports' },
+  { id: 'priceSensitive', label: 'Price-sensitive', baseShare: 0.15, driverLabel: 'the price against what the college\'s prestige supports' },
   { id: 'athletes', label: 'Athletes', baseShare: 0.10, driverLabel: 'active varsity teams, coaching & recent titles' },
   // Undergraduates who chose the school for its graduate schools, not
   // graduate students (who would not fit a four-year class; see
@@ -341,7 +341,7 @@ function athleticsNote(signals: CohortSignals, pull: number, applicants: number)
   const fromResults = Math.round(applicants * (pull - without) / pull);
   if (fromResults <= 0) return undefined;
   const label = signals.athleticResultsLabel;
-  return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${label.includes(' and ') ? 'are' : 'is'} worth ${count(fromResults)} of these.`;
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${label.includes(' and ') ? 'are' : 'is'} worth ${count(fromResults)} athlete applicants.`;
 }
 
 // cohortBreakdown's counts keyed by id, the shape cohortsByClass stores.

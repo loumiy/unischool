@@ -74,7 +74,7 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
           : t.description}
       </p>
       {(t.expansions ?? 0) > 0 && (
-        <p className="building-info-line">Expanded {t.expansions === 1 ? 'once' : `${t.expansions} times`}: {count(venueSeatsOf(t))} seats at the gate.</p>
+        <p className="building-info-line">Expanded {t.expansions === 1 ? 'once' : `${t.expansions} times`}: {count(venueSeatsOf(t))} seats in the stands.</p>
       )}
       {teams.length === 0 ? (
         <p className="building-info-line">No varsity team calls this home yet.</p>
@@ -127,7 +127,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
         {t.effects?.researchRateBonus !== undefined
           ? `${signedPct(t.effects.researchRateBonus)} research output`
           : 'Specialized lab space.'}
-        {' — no capacity figure; gates this program\'s capstone coursework instead.'}
+        {' — no capacity figure; this program\'s capstone courses require it instead.'}
       </p>
     );
   }
@@ -193,8 +193,8 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
       {open && (
         <div className="program-summary">
           <dl className="program-summary-facts">
-            <div><dt>Standing</dt><dd>{milestoneLine(progress)}</dd></div>
-            <div><dt>Teaching</dt><dd>{count(progress.seats)} seats</dd></div>
+            <div><dt>Stage</dt><dd>{milestoneLine(progress)}</dd></div>
+            <div><dt>Teaching</dt><dd>{count(progress.seats)} places</dd></div>
             {progress.developing > 0 && <div><dt>In development</dt><dd>{progress.developing}</dd></div>}
           </dl>
           <p className="building-info-line program-summary-next">
@@ -208,7 +208,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                     <>
                       Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {moneyShort(progress.next.cost)} · {weeksShort(progress.next.duration)}
                       {gate !== 'open' && (
-                        <span className="program-summary-blocked"> — no free {field} slot{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
+                        <span className="program-summary-blocked"> — no free {field} course slot{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
                       )}
                     </>
                   );
@@ -224,7 +224,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
             <div className="relocate-suggested">
               <ConfirmButton
                 className="building-info-jump"
-                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, slot ${move.slot + 1}: dark for ${relocationWeeks(s, program.id)} weeks`}
+                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, slot ${move.slot + 1}: closed for ${relocationWeeks(s, program.id)} weeks`}
                 label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${weeksShort(relocationWeeks(s, program.id))}`}
                 armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
                 onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}
@@ -268,7 +268,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
   return (
     <div className="relocate">
       <p className="building-info-line relocate-note">
-        Free, but the program goes dark for {relocationWeeks(s, program.id)} weeks: no teaching, no progress, and it counts toward no school until it settles.
+        Free, but the program closes for {relocationWeeks(s, program.id)} weeks: no teaching, no progress, and it counts toward no school until it settles.
       </p>
       {destinations.map((d) => (
         <p key={d.hallId} className="relocate-row">
@@ -364,7 +364,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
       )}
       {t.id === FOUNDERS_HALL_ID && (
         <p className="building-info-line">
-          Where programs begin: they move on to halls of their own school, {FOUNDERS_MOVE_WEEKS} weeks dark, and the last school sorted keeps this one.
+          Where programs begin: they move on to halls of their own school, closed for {FOUNDERS_MOVE_WEEKS} weeks on the way, and the last school without a hall of its own keeps this one.
         </p>
       )}
       <p className="building-info-line">
@@ -407,7 +407,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
               onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }}
               aria-pressed={open}
               disabled={offers.length === 0}
-              title={offers.length === 0 ? (host ? 'No program housed here has been earned yet.' : 'Nothing is on offer to found here.') : 'Found a program in this slot'}
+              title={offers.length === 0 ? (host ? 'No program for this hall is on offer yet.' : 'Nothing is on offer to found here.') : 'Found a program in this slot'}
             >
               +
             </button>
@@ -535,7 +535,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
       <ConfirmButton
         className="building-info-jump"
         label="Declare historic · lends prestige, costs a quarter more to keep"
-        armedLabel="Confirm — declare historic"
+        armedLabel="Confirm — it can never come down"
         warning="For good: it can never be demolished, and its upkeep stays a quarter higher."
         onConfirm={() => act({ type: 'DECLARE_HISTORIC', id: t.id })}
       />
@@ -568,7 +568,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
       <ConfirmButton
         className="building-info-jump btn-danger"
         label={<>Call off construction · {moneyShort(t.cost)} returned</>}
-        armedLabel="Confirm — call it off"
+        armedLabel="Confirm — the site is cleared"
         warning={<>{money(t.cost)} comes back {back}; the site is cleared.</>}
         onConfirm={() => { act({ type: 'CANCEL_CONSTRUCTION', id: t.id }); onClose(); }}
       />
@@ -581,7 +581,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
     <ConfirmButton
       className="building-info-jump btn-danger"
       label="Demolish"
-      armedLabel="Confirm — demolish"
+      armedLabel={`Confirm — ${hallDisplayName(s, t)} comes down`}
       warning={<>It is free, nothing is returned, and it cannot be undone.</>}
       onConfirm={() => { act({ type: 'DEMOLISH_BUILDING', id: t.id }); onClose(); }}
     />
@@ -616,13 +616,9 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
           Under construction — {weeksLeft} of {t.duration} week{t.duration === 1 ? '' : 's'} left.
         </p>
       )}
-      {t.kind === 'dorm' && (
-        <p className="building-info-line">
-          {(() => {
-            const capacity = dormCapacity(t);
-            return capacity !== null ? `${count(capacity)} beds` : 'Capacity unknown.';
-          })()}
-        </p>
+      {/* A dorm with no bed count (an entry the loader could not size) shows no line. */}
+      {t.kind === 'dorm' && dormCapacity(t) !== null && (
+        <p className="building-info-line">{count(dormCapacity(t)!)} beds</p>
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
       {t.kind === 'facility' && isGraduateHost(t.id) && t.status === 'done' && <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}

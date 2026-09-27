@@ -47,7 +47,7 @@ export function checkRivalStanding(s: GameState): void {
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: above ? 'good' : 'bad',
     message: above
-      ? `The college has passed ${r.rival.name}, its rival in ${sport}, in the rankings: #${r.mine} to their #${r.theirs}.`
-      : `${r.rival.name}, the rival in ${sport}, has passed the college in the rankings: #${r.theirs} to its #${r.mine}.`,
+      ? `The college has passed ${r.rival.name}, its rival in ${sport}, in the guide: #${r.mine} to their #${r.theirs}.`
+      : `${r.rival.name}, the rival in ${sport}, has passed the college in the guide: #${r.theirs} to its #${r.mine}.`,
   });
 }

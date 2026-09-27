@@ -65,7 +65,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
       <section className="panel">
         <div className="panel-head">
           <h2>Weekly income statement</h2>
-          <HelpHint align="end" text="Every figure here is per week, and is exactly what the weekly tick charges or collects. Tuition is set once a year, at the summer admissions decision." />
+          <HelpHint align="end" text="Every figure here is per week, and is exactly what the college pays or collects each week. Tuition is set once a year, at the summer admissions decision." />
         </div>
 
         <div className="income-statement">
@@ -96,7 +96,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             {(flow.athleticsSurplus > 0 || flow.gateRevenue > 0) && (
               <StatementLine
                 label="Athletics surplus"
-                note={`${money(flow.gateRevenue)}/wk at the gate over ${HOME_DATES_PER_SEASON} home dates a season, into the department's pot first; this is what was left once every program drew its cost`}
+                note={`${money(flow.gateRevenue)}/wk at the gate over ${HOME_DATES_PER_SEASON} home dates a season, into the department's fund first; this is what was left once every program took its cost`}
                 amount={flow.athleticsSurplus}
               />
             )}
@@ -148,14 +148,14 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             {flow.studentLifeUpkeep > 0 && (
               <StatementLine
                 label="Student life"
-                note={`${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} tier`}
+                note={`${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`}
                 amount={flow.studentLifeUpkeep}
               />
             )}
             {flow.athleticsSubsidy > 0 && (
               <StatementLine
                 label="Athletics subsidy"
-                note={`what the programs drew from the ${s.orgs.athleticsBudget} tier's subsidy beyond their own gate — the department's cost to the college`}
+                note={`what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate — the department's cost to the college`}
                 amount={flow.athleticsSubsidy}
               />
             )}
@@ -185,7 +185,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
-          {money(annualNet)} a year at this rate. Nothing starts until it is paid for: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so cash sets how fast the college grows. An operating deficit, or a matter left to its default, can push cash negative. A deficit never closes the college: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
+          {money(annualNet)} a year at this rate. Nothing starts until it is paid for: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so cash sets how fast the college grows. An operating deficit, or a matter left unanswered, can push cash negative. A deficit never closes the college: it walks the college down the board's scale (tight, deficit, a construction freeze, austerity and, at the bottom, an interim CFO), a term at a time, and back up as the books recover.
         </p>
       </section>
 

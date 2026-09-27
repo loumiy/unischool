@@ -42,7 +42,7 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, onOpenBuild,
           <div className="modal-actions letter-actions">
             <button type="button" onClick={() => act({ type: 'ADVANCE_OPENING' })}>{step.next}</button>
             <button type="button" className="letter-skip" onClick={() => act({ type: 'SKIP_OPENING' })}>
-              I know the way — skip the walkthrough and the letters
+              Skip the walkthrough and the letters
             </button>
           </div>
         </div>

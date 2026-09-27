@@ -332,7 +332,7 @@ function scaleMultiplier(s: GameState): StandingMultiplier {
   return {
     label: 'scale',
     value: admissionsScaleScore(s),
-    detail: `${count(enrolled)} enrolled of the ${count(ADMISSIONS_SCALE_FOR_FULL_CREDIT)} a national reading counts in full`,
+    detail: `${count(enrolled)} enrolled; the guide gives full credit from ${count(ADMISSIONS_SCALE_FOR_FULL_CREDIT)}`,
   };
 }
 
@@ -388,14 +388,14 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'research', 'Research output', RESEARCH_WEIGHT, researchScore(s),
-      `${researchCredits(s).toFixed(1)} credits of ${RESEARCH_CREDITS_FOR_FULL_SCORE} — publications, finished projects, breakthroughs, prizes and doctorates.`,
+      `${researchCredits(s).toFixed(1)} research credits of the ${RESEARCH_CREDITS_FOR_FULL_SCORE} for the top score: each publication, finished project, breakthrough, prize and doctorate earns some.`,
     ),
     weigh(
       'campus', 'Campus life', CAMPUS_LIFE_WEIGHT, campusLifeScore(s),
-      'What the recreation chain and the athletics venues contribute on their own.',
+      'What the recreation buildings and the athletics venues contribute on their own.',
     ),
     weigh(
-      'welfare', 'Welfare', WELFARE_WEIGHT, welfareScore(s),
+      'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
       `Students have averaged ${satisfactionFigure(average)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
     ),
     weigh(
@@ -408,8 +408,8 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
     ...projectInput(s, 'academics'),
     penalise(
-      'condition', 'Estate condition', CONDITION_PENALTY, conditionScore(s),
-      'The buildings\' mean condition: a fully maintained estate costs nothing, a run-down one up to four points.',
+      'condition', 'Condition of the buildings', CONDITION_PENALTY, conditionScore(s),
+      'The buildings\' mean condition: a fully maintained campus costs nothing, a run-down one up to four points.',
     ),
     penalise(
       'crowding', 'Crowding', CROWDING_PENALTY, crowdingScore(s),
@@ -539,7 +539,7 @@ export function prestigeReadings(s: GameState): StandingReading[] {
   return [
     reading(
       'capacity', 'Instruction capacity', instructionCoverage(s),
-      `${count(capacity.courses)} developed course${capacity.courses === 1 ? '' : 's'} in housed programs × ${SEATS_PER_COURSE} seats = room for ${count(capacity.seats)}, against ${count(enrolled)} enrolled.`,
+      `${count(capacity.courses)} developed course${capacity.courses === 1 ? '' : 's'} in programs with a hall × ${SEATS_PER_COURSE} places = room for ${count(capacity.seats)}, against ${count(enrolled)} enrolled.`,
     ),
   ];
 }
@@ -608,7 +608,7 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
       clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),
-      `${researchCredits(s).toFixed(1)} credits of ${RESEARCH_STANDING_CREDITS_FOR_FULL} — the same tally the academic standing reads, against a national denominator.`,
+      `${researchCredits(s).toFixed(1)} research credits of ${RESEARCH_STANDING_CREDITS_FOR_FULL} — the same tally the academic standing reads, against a national denominator.`,
     ),
     weigh(
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
@@ -646,7 +646,7 @@ export function socialStandingBreakdown(s: GameState): StandingBreakdown {
   return breakdown('Campus life standing', SOCIAL_STANDING_BASELINE, s.self.socialStanding, [
     weigh(
       'facilities', 'Places built for it', SOCIAL_FACILITIES_WEIGHT, campusLifeScore(s),
-      'The recreation chain, read off the same contribution the academic standing reads.',
+      'The recreation buildings, read off the same contribution the academic standing reads.',
     ),
     weigh(
       'organisations', 'Clubs and chapters', SOCIAL_ORGANISATIONS_WEIGHT, socialOrganisationsScore(s),
@@ -659,7 +659,7 @@ export function socialStandingBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'satisfaction', 'What students report', SOCIAL_SATISFACTION_WEIGHT,
       clamp01(s.students.satisfactionBreakdown.social / 100),
-      `The social attribute of student satisfaction, at ${satisfactionFigure(s.students.satisfactionBreakdown.social)} of 100.`,
+      `The social need in student satisfaction, at ${satisfactionFigure(s.students.satisfactionBreakdown.social)} of 100.`,
     ),
     weigh(
       'titles', 'Championships', SOCIAL_TITLES_WEIGHT, titlesScore(s),

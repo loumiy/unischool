@@ -33,7 +33,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
         </fieldset>
         <fieldset className="settings-row segmented">
           <legend>Motion</legend>
-          <button type="button" className={s.motion === 'system' ? 'active' : undefined} aria-pressed={s.motion === 'system'} onClick={() => setSettings({ motion: 'system' })}>As the system says</button>
+          <button type="button" className={s.motion === 'system' ? 'active' : undefined} aria-pressed={s.motion === 'system'} onClick={() => setSettings({ motion: 'system' })}>Match the device setting</button>
           <button type="button" className={s.motion === 'reduce' ? 'active' : undefined} aria-pressed={s.motion === 'reduce'} onClick={() => setSettings({ motion: 'reduce' })}>Reduced</button>
           <p className="settings-note">Reduced stills the walkers, the counting numbers and the pulses.</p>
         </fieldset>

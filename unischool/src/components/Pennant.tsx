@@ -53,7 +53,7 @@ function RenameForm({ s, act, onDone }: { s: GameState; act: (a: Action) => void
             key={x} type="button" role="radio" aria-checked={suffix === x}
             className={suffix === x ? 'is-on' : ''}
             disabled={x === 'University' && !chartered}
-            title={x === 'University' && !chartered ? 'The trustees grant a university charter once a lab is at work.' : undefined}
+            title={x === 'University' && !chartered ? 'The board grants a university charter once a lab is at work.' : undefined}
             onClick={() => setSuffix(x)}
           >{x}</button>
         ))}

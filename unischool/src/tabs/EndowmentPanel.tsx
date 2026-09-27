@@ -64,7 +64,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
               key={amount}
               className="panel-action small"
               label={moneyShort(amount)}
-              armedLabel={`Confirm — move ${moneyShort(amount)}`}
+              armedLabel={`Confirm — ${moneyShort(amount)} never comes back to cash`}
               warning="The endowment is one way: it pays out its draw, but the principal does not come back to cash."
               onConfirm={() => act({ type: 'MOVE_TO_ENDOWMENT', amount })}
             />
@@ -78,13 +78,13 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
             type="button"
             className={`panel-action small${sweep === weeks ? ' active' : ''}`}
             aria-pressed={sweep === weeks}
-            title={weeks === null ? 'Leave cash where it is.' : `Each quarter, keep ${weeks} weeks of expenses as cash and move the rest into the endowment, until it reaches the full mark.`}
+            title={weeks === null ? 'Leave cash where it is.' : `Each quarter, keep ${weeks} weeks of expenses as cash and move the rest into the endowment, until it reaches the top score's figure.`}
             onClick={() => act({ type: 'SET_SWEEP', weeks })}
           >
             {weeks === null ? 'Off' : `Keep ${weeksShort(weeks)}`}
           </button>
         ))}
-        <HelpHint align="end" text={`Cash earns nothing, and the guidebooks read a college's financial strength in its endowment per student, not its bank balance: full marks at ${money(FINANCIAL_FULL_PER_STUDENT)} a student, ${money(fullMarkEndowment(s))} today. A standing sweep moves what is above the reserve into the endowment at each quarter's close, until it reaches that mark.`} />
+        <HelpHint align="end" text={`Cash earns nothing, and the guide reads a college's financial strength in its endowment per student, not its bank balance: the top score at ${money(FINANCIAL_FULL_PER_STUDENT)} a student, ${money(fullMarkEndowment(s))} today. A standing sweep moves what is above the reserve into the endowment at each quarter's close, until it reaches that figure.`} />
       </div>
     </section>
   );

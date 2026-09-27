@@ -54,9 +54,9 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   athleticsNatatorium: 'Natatorium',
   footballStadium: 'Football Stadium',
   fieldHouse: 'Field House',
-  landmark: 'Grand Landmark',
-  amenity: 'Monuments & Gardens',
-  project: 'Capital Projects',
+  landmark: 'Grand landmark',
+  amenity: 'Monuments & gardens',
+  project: 'Capital projects',
 };
 
 // How many finished instances a repeatable group needs before they collapse;
@@ -97,7 +97,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // sequential group. In a guided founding Founders Hall is 'done' but
   // unsited, which keeps it out of the collapse (see BuildGroupTiles) and
   // ringed for the walkthrough. Library and labs share the Academic tab.
-  { key: 'hall', label: 'Academic Halls', repeatable: true, match: (t) => isAcademicHall(t) },
+  { key: 'hall', label: 'Academic halls', repeatable: true, match: (t) => isAcademicHall(t) },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
   // Labs collapse like halls, but are independent (one per lab-gated major,
   // any order), so no "#N".
@@ -114,7 +114,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   // Greek chapter houses share the Housing tab but are their own group:
   // each belongs to a specific chapter, so no "#N" and no collapse.
-  { key: 'chapterHouse', label: 'Chapter Houses', repeatable: false, match: (t) => !!t.chapterHouse },
+  { key: 'chapterHouse', label: 'Chapter houses', repeatable: false, match: (t) => !!t.chapterHouse },
   // The grocery folds into Dining: one more basicNeeds option.
   { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' || t.facilityType === 'grocery' },
   // The health chain is three differently named buildings upgraded in place,
@@ -212,7 +212,7 @@ function buildSections(s: GameState): BuildSection[] {
     // merges same-category runs), so its lone group names the tab.
     : { id: b.groups[0].key, label: b.groups[0].label, kind: 'build', groups: b.groups });
   return [
-    { id: TOOLS_SECTION_ID, label: 'Campus Tools', kind: 'tools', groups: groups.filter((g) => GROUNDS_GROUP_KEYS.has(g.key)) },
+    { id: TOOLS_SECTION_ID, label: 'Campus tools', kind: 'tools', groups: groups.filter((g) => GROUNDS_GROUP_KEYS.has(g.key)) },
     ...built,
   ];
 }
@@ -298,7 +298,7 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
 // The corner chip: a tier for upgradeable buildings, a chain position for a
 // sequential chain, nothing for one-of-a-kind types.
 function rowMarker(t: Buildable, group: TypeGroup, index: number): string | undefined {
-  if (t.tier !== undefined) return `Tier ${t.tier}`;
+  if (t.tier !== undefined) return `Level ${t.tier}`;
   if (group.repeatable && group.sequential !== false) return `#${index + 1}`;
   return undefined;
 }
@@ -333,7 +333,7 @@ function BuildTile({
           disabled={shortfall > 0 || frozen}
           title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
-            : `Expands the ${t.name} in place — no new building. Adds ${count(rung.seatsGain)} seats for the gate and their prestige at once, and ${count(rung.servesGain)} of social capacity when the ${rung.weeks} weeks of work are done; the teams keep playing while the work is under way.`}
+            : `Expands the ${t.name} in place — no new building. Adds ${count(rung.seatsGain)} seats in the stands, and their prestige, at once, and ${count(rung.servesGain)} of social capacity when the ${rung.weeks} weeks of work are done; the teams keep playing while the work is under way.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
           {marker && <span className="kind-tag">{marker}</span>}
@@ -425,7 +425,7 @@ function BuildTile({
       : shortfall > 0
         ? `${money(Math.ceil(shortfall))} short.`
         : missingFaculty
-          ? `No free ${t.requiresFaculty} slot.`
+          ? `No free ${t.requiresFaculty} course slot.`
           : undefined;
   const startable = financing !== null;
   const armed = placingId === t.id;
@@ -610,11 +610,11 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'fell' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'fell'}
         onClick={() => onSetPathTool('fell')}
-        title="Fell trees — with either tree tool armed the right mouse button fells too, so this is for clearing a wood rather than a correction"
+        title="Fell trees — with either tree tool armed the right mouse button fells too, so this is for clearing woodland rather than a correction"
       >
         <span className="build-tile-icon"><EraseIcon /></span>
         <span className="build-tile-name">Fell trees</span>
-        <span className="build-tile-foot">clear a wood</span>
+        <span className="build-tile-foot">clear woodland</span>
       </button>
       {/* Quads are found on their own (state/quads.ts); this marks an open
           space the finder passed over. */}
@@ -721,7 +721,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what is built, what is under construction, and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life whether or not the college has built it any beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though beds widen the applicant pool up to 2,500 of them. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
+      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what is built, what is under construction and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life whether or not the college has built it any beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though beds widen the applicant pool up to 2,500 of them. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">

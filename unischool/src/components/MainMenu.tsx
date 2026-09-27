@@ -5,7 +5,7 @@ import { MenuIcon } from './icons';
 import ImportSave from './ImportSave';
 import { downloadFile } from './download';
 import { exportSave } from '../state/persistence';
-import type { GameState } from '../state/types';
+import { institutionName, type GameState } from '../state/types';
 
 // The top-right hamburger menu: Save, the run as a file and back (Plan 70B),
 // the hall of fame, Settings, the title screen and New Game (Plan 34 added
@@ -72,10 +72,10 @@ export default function MainMenu({ s, act, onHall, onSettings, onTitle }: {
           <button className="menu-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>
           <ConfirmButton
             className="menu-btn btn-quiet"
-            title="Erase the saved run and found a new college."
+            title="Erase the saved college and found a new one."
             label="New game"
-            armedLabel="Confirm — erase this run"
-            warning="The run is erased and a new college is founded."
+            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            warning={`${institutionName(s.self)} is erased and a new college is founded.`}
             onConfirm={() => act({ type: 'RESET' })}
           />
         </div>

@@ -5,7 +5,7 @@ import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
-import { facultyResearchOutput, labEquippedFields } from '../data/researchData';
+import { PUBLICATION_POINTS, facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
 import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSystem';
@@ -188,7 +188,7 @@ function FacultyCard(
                 <dt>Scholarly output</dt>
                 <dd>
                   {researches
-                    ? `${facultyResearchOutput(f).toFixed(2)} pts/wk`
+                    ? `${facultyResearchOutput(f).toFixed(2)} a week, of the ${PUBLICATION_POINTS} a paper takes`
                     : `none — no research facility in ${f.field}'s school`}
                 </dd>
               </>
@@ -279,13 +279,13 @@ function courseDemandByField(s: GameState): Map<string, DemandByMajor> {
 function demandSentence(field: string, demand: DemandByMajor | undefined, catalogue: number): string {
   if (!demand || demand.length === 0) {
     return catalogue > 0
-      ? `No ${field} course has been revealed yet — ${catalogue} in the catalog are waiting behind buildings and prerequisites.`
+      ? `No ${field} course is open yet — ${catalogue} in the catalog are waiting behind buildings and prerequisites.`
       : `Nothing in the catalog asks for ${field}.`;
   }
   const count = demand.reduce((n, g) => n + g.courses.length, 0);
-  return `${count} revealed ${count === 1 ? 'course pulls' : 'courses pull'} on ${field}: `
+  return `${count} open ${count === 1 ? 'course pulls' : 'courses pull'} on ${field}: `
     + demand.map((g) => `${g.group} (${g.courses.join(', ')})`).join('; ')
-    + `. Each one occupies a slot in this department for as long as it is offered, whether or not somebody is teaching it.`;
+    + `. Each one occupies a course slot in this department for as long as it is offered, whether or not somebody is teaching it.`;
 }
 
 // The row's action (hiringNext.ts's deptAction): appoint the listing, post a
@@ -361,7 +361,7 @@ function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
 
   const title = [
     `${c.field}: ${c.supply} course ${c.supply === 1 ? 'slot' : 'slots'} supplied by ${c.hired} ${c.hired === 1 ? 'professor' : 'professors'}.`,
-    `${c.offered} taken by courses on offer now, ${c.available} more revealed and not yet developed, ${c.catalogue} in the catalog all told.`,
+    `${c.offered} taken by courses on offer now, ${c.available} more open and not yet developed, ${c.catalogue} in the catalog all told.`,
     taken > 0 ? `${taken} ${taken === 1 ? 'slot is' : 'slots are'} with a research project.` : '',
     beyond ? 'The department can already teach its whole catalog.' : '',
   ].filter(Boolean).join(' ');
@@ -560,7 +560,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
       )}
       {over.length > 0 && (
         <div className="next-up-item wall">
-          <span className="next-up-label">Over</span>
+          <span className="next-up-label">Short-staffed</span>
           <span className="next-up-doors">
             <button type="button" className="next-up-door" onClick={() => onOpenCurriculum?.('unstaffed')} title="Departments teaching more than they supply — every course without an instructor, in the Curriculum">
               {over.map((c) => c.field).join(', ')} · {unstaffed} {unstaffed === 1 ? 'course' : 'courses'} unstaffed →
@@ -672,7 +672,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text="Every department the college could have, whether or not anybody is in it. The meter on each row is drawn to one scale across the whole board: the solid part is the slots its courses take now, the half-tone the courses revealed but not yet developed, the dotted tail the rest of the catalog — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
+            <HelpHint text="Every department the college could have, whether or not anybody is in it. The meter on each row is drawn to one scale across every department: the solid part is the course slots its courses take now, the half-tone the courses open but not yet developed, the dotted tail the rest of the catalog — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
           </span>
           <span className="stat">{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
@@ -683,7 +683,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <p className="faculty-horizon">
           <strong>{cap.total.supply}</strong> course slots supplied,
           {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
-          {' '}<strong>{cap.total.available}</strong> more revealed and waiting.
+          {' '}<strong>{cap.total.available}</strong> more open and waiting.
           {toFinish > 0
             ? ` Teaching the whole catalog takes ${cap.total.catalogue} slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the slots a new hire brings, fewer if you keep them long enough to grow.`
             : ' Every department can already teach its whole catalog.'}
@@ -751,7 +751,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           <span className="dept-name">Department</span>
           <span className="capacity-legend">
             <span className="capacity-key-pair"><span className="capacity-key offered" />offered</span>
-            <span className="capacity-key-pair"><span className="capacity-key available" />revealed</span>
+            <span className="capacity-key-pair"><span className="capacity-key available" />open</span>
             <span className="capacity-key-pair"><span className="capacity-key locked" />catalog</span>
             <span className="capacity-key-pair"><span className="capacity-key rule" />slots supplied</span>
           </span>

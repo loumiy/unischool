@@ -29,7 +29,7 @@ export const GAME_LINES = {
     won: [
       '{team} opens the season with a win over {them}.',
       '{team} beat {them} in the season opener.',
-      '{team} started the year the right way, beating {them}.',
+      '{team} opened the year by beating {them}.',
     ],
     lost: [
       '{team} opens the season with a loss to {them}.',
@@ -39,7 +39,7 @@ export const GAME_LINES = {
   },
   homecoming: {
     won: [
-      '{team} sent the homecoming crowd home happy, beating {them}. {record} on the year.',
+      '{team} beat {them} before the homecoming crowd. {record} on the year.',
       '{team} beat {them} at homecoming, and the alumni stayed late. {record} on the year.',
       'Homecoming belonged to {team}, winners over {them}. {record} on the year.',
     ],
@@ -58,8 +58,8 @@ export const UPSET_LEAD = {
 } as const;
 
 export const COMPLETION_LINES = {
-  building: ['Developed: {name}.', '{name} is finished, and open.', 'The builders are out of {name}.'],
-  course: ['Developed: {name}.', '{name} is written and on the timetable.', 'A new course: {name}.'],
+  building: ['Built: {name}.', '{name} is finished, and open.', 'The builders are out of {name}.'],
+  course: ['Developed: {name}.', '{name} is written and on the schedule.', 'A new course: {name}.'],
   program: ['Founded {name} in {hall}.', '{name} has a home in {hall}.', '{hall} takes in a new program: {name}.'],
 } as const;
 
