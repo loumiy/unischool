@@ -168,7 +168,7 @@ as a bare field until its second expansion.
   and the third adds the second deck, so every expansion still adds
   something you can see. Seats, costs and weeks stay as they are.
 
-**As implemented (#TBD).**
+**As implemented (#211).**
 
 - `buildingMotifs.tsx`'s bowl motif now draws the stages like this:
   - As built, low stands run down both touchlines (what the first
