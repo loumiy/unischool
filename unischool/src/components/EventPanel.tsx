@@ -7,6 +7,9 @@ import { absoluteWeek } from '../data/eventData';
 import { eventById, eventText, fill, scaledEffects } from '../systems/events/catalogue';
 import { catalogueOf, choiceCost } from '../systems/events/catalogueEngine';
 import { money } from '../format';
+import { debtOutstanding } from '../systems/finance/treasury';
+import { promiseById } from '../data/promiseData';
+import { promiseTitle } from '../systems/promises/promises';
 
 // THE PANEL (Plan 32): the catalog's inline events, waiting over the map
 // while the clock runs. Each shows its weeks left and what each answer
@@ -32,19 +35,33 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
     switch (k) {
       case 'cash': out.push(v < 0 ? `costs ${money(-v)}` : `brings ${money(v)}`); break;
       case 'endowment': out.push(`endowment ${v < 0 ? '−' : '+'}${money(Math.abs(v))}`); break;
-      case 'debt': out.push(v > 0 ? `borrows ${money(v)}` : `repays ${money(-v)} of debt`); break;
-      case 'backlog': out.push(v > 0 ? `${money(v)} of repairs deferred` : `${money(-v)} of repairs done`); break;
+      case 'debt': {
+        // Repays what is owed; the rest comes back as cash (catalogue.ts).
+        const owed = debtOutstanding(s);
+        out.push(v > 0 ? `borrows ${money(v)}` : owed >= -v ? `repays ${money(-v)} of debt` : owed > 0 ? `repays the ${money(owed)} owed, the rest to cash` : `brings ${money(-v)}`);
+        break;
+      }
+      case 'backlog': {
+        // Repairs done stop at the backlog there is (catalogue.ts's spreadBacklog).
+        const owed = s.tech.reduce((t, b) => t + (b.backlog ?? 0), 0);
+        if (v > 0) out.push(`${money(v)} of repairs deferred`);
+        else if (owed > 0) out.push(`${money(Math.min(-v, owed))} of repairs done`);
+        break;
+      }
       case 'mood': out.push(`satisfaction ${signed(v)}`); break;
       case 'confidence': out.push(`board confidence ${signed(v)}`); break;
       case 'warmth': out.push(`alumni warmth ${signed(v)}`); break;
       case 'quality': out.push(`incoming quality ${signed(v)}`); break;
       case 'enrollment': {
         const n = Math.round((v / 2000) * totalEnrolled(s.students));
-        if (n !== 0) out.push(`${signed(n)} freshmen`);
+        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'freshman' : 'freshmen'}`);
         break;
       }
       case 'trees': out.push(v > 0 ? `${v} trees planted` : `${-v} trees felled`); break;
+      case 'replant': out.push(`${v} trees planted`); break;
       case 'departs': out.push(`${vars.faculty ?? 'they'} leaves`); break;
+      case 'buildingFund': out.push(`${money(v)} to the building fund`); break;
+      case 'historic': out.push(`${vars.building ?? 'the building'} declared historic`); break;
     }
   }
   return out;
@@ -72,7 +89,11 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
       {e.choices.map((c) => {
         const cost = choiceCost(e, c.id, p.scale);
         const affordable = c.id === e.default || cost <= Math.max(0, s.finance.cash);
-        const phrases = effectPhrases(s, scaledEffects(c.effects, p.scale), p.vars);
+        const phrases = [
+          ...effectPhrases(s, scaledEffects(c.effects, p.scale), p.vars),
+          ...(c.promise ? [`promises: ${(() => { const d = promiseById(c.promise); return d ? promiseTitle(s, d) : c.promise; })()}`] : []),
+          ...(c.mascot && !s.self.mascot ? [`the ${c.mascot} it is`] : []),
+        ];
         return (
           <button key={c.id} type="button" className="event-choice" disabled={!affordable} onClick={() => onChoose(c.id)}>
             <span className="event-choice-label">

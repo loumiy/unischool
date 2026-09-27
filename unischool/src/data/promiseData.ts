@@ -371,6 +371,21 @@ export const PROMISES: readonly PromiseDef[] = [
     kept: "The great project stands, and the photographers have found the angle the chair's model was built from.",
     missed: "The model is still in the boardroom, and the donors have stopped asking when.",
   },
+  {
+    // Made only by an answer to the catalog's 'the-rankings-slip' (Plan
+    // 76D), never offered at a summer: its deal cannot be met.
+    id: 'a-rise-in-the-guide',
+    title: "Into the guide's top twenty",
+    weight: 0,
+    deal: { yearAtLeast: 999 },
+    goal: { rankAtMost: 20 },
+    years: 5,
+    text: "The board chair brought the guide to the meeting with the college's line underlined twice, and the President answered with a date: into the top twenty within {years} years.",
+    reward: { confidence: 6, warmth: 2 },
+    penalty: { confidence: -6 },
+    kept: "The college is in the guide's top twenty, and the chair has stopped bringing the guide to meetings.",
+    missed: "The guide still has the college outside the top twenty, and the chair has kept the page.",
+  },
 ];
 
 export const PROMISE_LINES = {

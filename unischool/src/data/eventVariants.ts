@@ -48,20 +48,20 @@ export const EVENT_VARIANTS: Readonly<Record<string, readonly [string, string]>>
     'The external auditors intend to qualify their opinion. It is one paragraph, and they have offered a meeting to discuss it, with the whole Audit Committee in attendance, as a courtesy.',
   ],
   'frozen-post': [
-    'The post left open when {faculty} went on leave has now been frozen longer than it was ever filled. The department has stopped raising it at meetings, which the Dean says is how you know it matters.',
-    'Three years into the hiring freeze, the vacancy left by {faculty}\'s leave has become a line in the budget labeled \'held\'. The students on the program would like to know who is teaching them in the spring.',
+    'A vacant teaching post has now been held open longer than it was ever filled. The department has stopped raising it at meetings, which the Dean says is how you know it matters.',
+    'Under the construction freeze, a vacant teaching post has become a line in the budget labeled \'held\'. The students on the program would like to know who is teaching them in the spring.',
   ],
   'press-inquiry': [
     'A journalist has sent eleven questions and a deadline. The questions are specific in the way that means somebody has already told them the answers. The Communications Officer would like to know what to say, today.',
     'A reporter from the regional paper has been ringing the Bursar\'s office, and the questions have the figures in them. The piece runs on Friday. The college can be in it, or be described in it.',
   ],
   'tenure-case': [
-    'A tenure file has come up to the President, which is where files come when nobody below wants to be the one to decide. The department is for, the committee against, and the external reviewer is admiring but unhelpful.',
-    'The tenure case has reached your desk with two recommendations that disagree and an external letter that praises the candidate for a page and a half and then stops, without a verdict, as though interrupted.',
+    'The tenure file of {faculty} has come up to the President, which is where files come when nobody below wants to be the one to decide. The department is for, the committee against, and the external reviewer is admiring but unhelpful.',
+    'The tenure case of {faculty} has reached the President with two recommendations that disagree and an external letter that praises the candidate for a page and a half and then stops, without a verdict, as though interrupted.',
   ],
   'sabbatical-overrun': [
-    '{faculty}\'s sabbatical ended in September. {faculty} did not. There has been a letter, warm and full of progress, asking for another year, and the colleague covering the teaching has asked for a word.',
-    'The year\'s leave granted to {faculty} is now in its second year. The research is, by all accounts, going very well; the courses are being taught by somebody else, who would like to know for how much longer.',
+    'A sabbatical ended in September. The professor on it did not. There has been a letter, warm and full of progress, asking for another year, and the colleague covering the teaching has asked for a word.',
+    'A year\'s leave granted to a professor is now in its second year. The research is, by all accounts, going very well; the courses are being taught by somebody else, who would like to know for how much longer.',
   ],
   'teaching-review': [
     'This year\'s teaching evaluations are the lowest the college has on file. The Dean has read every comment and reports that the tone is not anger but resignation, which she finds much harder to answer.',

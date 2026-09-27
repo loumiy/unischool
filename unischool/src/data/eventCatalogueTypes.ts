@@ -18,13 +18,13 @@ export type ConditionKey =
   | 'satisfactionOver' | 'satisfactionUnder' | 'moodOver' | 'moodUnder'
   | 'teachingOver' | 'teachingUnder'
   | 'selectivityOver' | 'selectivityUnder' | 'tuitionOver'
-  | 'reputationOver' | 'reputationUnder' | 'rankAtLeast'
+  | 'reputationOver' | 'reputationUnder' | 'rankAtLeast' | 'rankAtMost'
   | 'beautyOver' | 'beautyUnder'
   | 'warmthOver' | 'warmthUnder'
   | 'confidenceOver' | 'confidenceUnder' | 'rungAtLeast' | 'rungAtMost'
-  | 'varsityAtLeast' | 'titlesAtLeast' | 'rivalAtLeast' | 'mascotAtMost'
+  | 'varsityAtLeast' | 'titlesAtLeast' | 'titleRecentAtLeast' | 'rivalAtLeast' | 'mascotAtMost'
   | 'adminShareOver' | 'payrollShareOver'
-  | 'winterAtLeast';
+  | 'winterAtLeast' | 'springWeekAtMost';
 
 // v2's effect levers this game applies. v2's standing payroll effects are
 // not among them: events add no standing costs (V2 #11).
@@ -36,7 +36,10 @@ export type EffectKey =
   | 'quality'     // the incoming class's quality
   | 'enrollment'  // students gained or lost, as a share of a founding college's body
   | 'trees'       // stands planted or felled
-  | 'departs';    // the professor the event names ({faculty}) leaves (Plan 72B)
+  | 'replant'     // stands planted after any felling (Plan 76D: "fell and replant")
+  | 'departs'     // the professor the event names ({faculty}) leaves (Plan 72B)
+  | 'buildingFund' // money into the restricted building fund, not cash (Plan 76D)
+  | 'historic';   // the building the event names ({building}) is declared historic (Plan 76D)
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
@@ -48,6 +51,11 @@ export interface CatalogueChoice {
   id: string;
   label: string;
   effects: Partial<Record<EffectKey, number>>;
+  // What an answer does beyond the levers (Plan 76D): a promise made in
+  // the game's promise system, by id (data/promiseData.ts), and the mascot
+  // it adopts.
+  promise?: string;
+  mascot?: string;
 }
 
 export interface CatalogueEvent {
@@ -65,6 +73,13 @@ export interface CatalogueEvent {
   // May name {rival}, {class}, {faculty}, {program}, {building}, {sport},
   // {school} or {suitor}; systems/events/catalogue.ts fills them.
   text: string;
+  // Which building and which class the text means (Plan 76D): the one that
+  // made the event fire, not any. 'derelict' is the worst-kept building
+  // below the derelict line, 'worst' the worst-kept roofed building,
+  // 'listable' one old enough to be declared historic, 'founders' Founders
+  // Hall; a 'reunion' class is five, ten or more years out, a 'veteran'
+  // one twenty or more.
+  names?: { building?: 'derelict' | 'worst' | 'listable' | 'founders'; class?: 'reunion' | 'veteran' };
   timeoutWeeks: number;
   choices: CatalogueChoice[];
   default: string;
