@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's answer on area 2
 of the October review into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** A to I merged.
 
 ---
 
@@ -155,7 +155,7 @@ page, and 3,649 words and 474 controls by year 16.
     after at years 8, 16 and 25;
   - a test that each filter returns the courses it names.
 
-**As implemented (#TBD):**
+**As implemented (#222):**
 - Every program starts folded to its one line: the grade, the hall, the next
   course's Develop button with its grade, the cost, the milestone and
   "n / 9". A folded line leaves out "choose…" and the batch start; the ▸
@@ -225,7 +225,7 @@ seats, the ladder, the figure hints and the help hints.*
   - no letter names a price or a week count that its Buildable
     contradicts.
 
-**As implemented (#TBD):**
+**As implemented (#224):**
 - **Effects:**
   - The summer applies the attrition teeth through the preview's own
     `summerAttrition`, passed the year's average it has already read
@@ -496,7 +496,7 @@ claims and 107 vague ones.*
   - a test that `format.ts`'s helpers read the same under `de-DE`;
   - a scan that no player-facing money bypasses the helpers.
 
-**As implemented** (#TBD):
+**As implemented (#226):**
 - **The rules** are the register's new "Numbers" section
   (`docs/architecture/ui-shell.md`). `format.ts` holds one `en-US`
   formatter and the helpers: `count`, `decimal`, `money`, `moneyShort`,
@@ -721,7 +721,7 @@ claims and 107 vague ones.*
   - a check that a sentence does not restate its title;
   - a cap on "from X to Y" spans per school.
 
-**As implemented (#TBD):**
+**As implemented (#223):**
 - 132 sentences replaced:
   - 123 of the 126 flagged rows;
   - COMP240, the other half of the fix to the operating-systems and
@@ -869,7 +869,7 @@ claims and 107 vague ones.*
 - **Checks:** the gallery at 390×844, at normal and at the largest text
   size.
 
-**As implemented (#TBD):**
+**As implemented (#225):**
 
 - Everything below applies at 560px wide and under (the phone rules in
   `styles.css`), except the pennant's two-line cap, which holds at every
