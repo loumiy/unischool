@@ -123,7 +123,12 @@ or arriving, is that school's (`claimedSchool`); a full claim with nothing in
 transit is a dedication. The **next school to move** is the one with no hall of
 its own and the most programs away from home (`nextSchoolToMove`). A program
 away from home has a **suggested move** (`suggestedMove`): a free slot in its
-school's hall, or, for the next school to move, an empty hall. The readings
+school's hall, or, for the next school to move, an empty hall. A school
+**split** over two halls is merged when it traps another (Plan 72L,
+`schoolToMerge`): while a school with a program on offer has no hall and no
+purchased hall stands empty, the programs in a split school's smaller hall
+count as away from home and are suggested into its larger one, if they fit,
+so the smaller hall comes free. The readings
 reach the player four ways: the program tile's one-click move, with an arrow
 on the tile; a claimed hall's label and panel ("Elm Hall · Science · 3 of
 6"); the hall panel's note when a picked offer's school has a hall of its own

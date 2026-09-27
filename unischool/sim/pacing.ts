@@ -144,11 +144,12 @@ const MEASURE_NAME: Record<Measure, string> = { enrolled: 'Enrollment', prestige
 // first reaches the top 25, the top 10 and first place. The high-price line
 // is Plan 66's; a player priced at "fair" may fill a little sooner.
 const WHEN: Record<'high' | 'fair', { measures: Record<Measure, { half: Band; ninety: Band }>; rank: Array<{ top: number; band: Band }> }> = {
+  // Enrollment's and the net's halves reset by Plan 72J (see CHECKPOINTS).
   high: {
     measures: {
-      enrolled: { half: { min: 18, max: 22 }, ninety: { min: 36, max: 40 } },
+      enrolled: { half: { min: 24, max: 28 }, ninety: { min: 36, max: 40 } },
       prestige: { half: { min: 18, max: 22 }, ninety: { min: 36, max: 40 } },
-      netPerWeek: { half: { min: 20, max: 24 }, ninety: { min: 37, max: 41 } },
+      netPerWeek: { half: { min: 29, max: 33 }, ninety: { min: 37, max: 41 } },
     },
     rank: [{ top: 25, band: { min: 12, max: 16 } }, { top: 10, band: { min: 20, max: 25 } }, { top: 1, band: { min: 34, max: 40 } }],
   },
@@ -164,10 +165,18 @@ const WHEN: Record<'high' | 'fair', { measures: Record<Measure, { half: Band; ni
 const PRICE: Record<PacingPlayer, 'high' | 'fair'> = { Natural: 'high', Guided: 'fair', Completionist: 'fair' };
 
 // The high-price line's checkpoints, decades and coast (Plan 66).
+//
+// Years 10–30 reset by Plan 72J (the owner's answer to Plan 71 §3): a
+// college that charges well over the going rate fills slowly, and that is
+// the price of charging it, so its enrollment and net targets for those
+// years are what the line produces (medians across the seeds after Plan
+// 72H and I, bands as wide as Plan 66's). Prestige and rank there were
+// already met and are unchanged. Plan 66's were 17–29%, 43–55% and 70–81%
+// of year-50 enrollment and 10–20%, 35–50% and 65–80% of year-50 net.
 export const CHECKPOINTS: Array<{ year: number; enrolledShare: Band; prestige: Band; rank: Band; netShare: Band }> = [
-  { year: 10, enrolledShare: { min: 0.17, max: 0.29 }, prestige: { min: 72, max: 82 }, rank: { min: 25, max: 40 }, netShare: { min: 0.1, max: 0.2 } },
-  { year: 20, enrolledShare: { min: 0.43, max: 0.55 }, prestige: { min: 96, max: 106 }, rank: { min: 8, max: 15 }, netShare: { min: 0.35, max: 0.5 } },
-  { year: 30, enrolledShare: { min: 0.7, max: 0.81 }, prestige: { min: 120, max: 130 }, rank: { min: 2, max: 5 }, netShare: { min: 0.65, max: 0.8 } },
+  { year: 10, enrolledShare: { min: 0.03, max: 0.1 }, prestige: { min: 72, max: 82 }, rank: { min: 25, max: 40 }, netShare: { min: 0.01, max: 0.07 } },
+  { year: 20, enrolledShare: { min: 0.18, max: 0.3 }, prestige: { min: 96, max: 106 }, rank: { min: 8, max: 15 }, netShare: { min: 0.08, max: 0.2 } },
+  { year: 30, enrolledShare: { min: 0.58, max: 0.72 }, prestige: { min: 120, max: 130 }, rank: { min: 2, max: 5 }, netShare: { min: 0.42, max: 0.58 } },
   { year: 40, enrolledShare: { min: 0.94 }, prestige: { min: 145 }, rank: { max: 1 }, netShare: { min: 0.9 } },
 ];
 export const COAST = { enrolledOverY40: { max: 0.05 }, netOverY40: { max: 0.1 }, prestigeY50: { min: 149.5 }, rankY50: { max: 1 } };
@@ -177,6 +186,13 @@ export const STEADY = {
   decade: { min: 0.15, max: 0.35 },
   lastDecade: { max: 0.1 },
   netFalls: { max: 0 },
+};
+// The high-price line's decades in years 1–30 where its slow start sets
+// them (Plan 72J, as CHECKPOINTS): a decade here overrides STEADY.decade.
+// The later decades keep Plan 66's bands.
+export const SLOW_START_DECADES: Partial<Record<Measure, Record<number, Band>>> = {
+  enrolled: { 1: { min: 0.02, max: 0.1 }, 3: { min: 0.32, max: 0.5 } },
+  netPerWeek: { 1: { min: 0.01, max: 0.08 }, 2: { min: 0.05, max: 0.15 }, 3: { min: 0.28, max: 0.45 } },
 };
 
 // The catalogue (Plan 68): the year each reaches its mark, and the last year
@@ -331,7 +347,7 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>, blind: PaceY
     nat.map((run) => Math.max(...run.slice(1).map((y, i) => y.prestige - run[i].prestige))));
   for (const m of ['enrolled', 'prestige', 'netPerWeek'] as const) {
     for (let d = 1; d <= 5; d += 1) {
-      add('Natural: steady', `${MEASURE_NAME[m]}: growth in years ${d === 1 ? 1 : (d - 1) * 10}–${d * 10}`, d === 5 ? STEADY.lastDecade : STEADY.decade, pct,
+      add('Natural: steady', `${MEASURE_NAME[m]}: growth in years ${d === 1 ? 1 : (d - 1) * 10}–${d * 10}`, SLOW_START_DECADES[m]?.[d] ?? (d === 5 ? STEADY.lastDecade : STEADY.decade), pct,
         nat.map((run) => growth(run, m, d * 10) - (d === 1 ? 0 : growth(run, m, (d - 1) * 10))));
     }
   }

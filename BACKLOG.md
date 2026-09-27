@@ -74,7 +74,9 @@ the high-price line's targets reset, a first place that can be taken late,
 a poached professor who actually leaves, the graduate course descriptions,
 v2's residence types, the charter as a log line, the two unused building
 effects removed, sort and filter on the Faculty tab, a full residence on
-the map, and clubs with diminishing returns. The entries below keep only
+the map, and clubs with diminishing returns; and, from later answers, the
+Japanese garden, the split-school trap (the game suggests the merge) and
+the statue and fountain drawn on their own. The entries below keep only
 what Plan 72 leaves.*
 
 ## Named, not sequenced
@@ -101,12 +103,6 @@ a sequence of PRs.*
   funnel's class sizes rather than the rate a player should want. A
   re-fit wants its own probe (the old `ADMIT_PROBES` went with Plan 63)
   and a pass of the scorecard after it. Deferred by Plan 70.
-- **The split-school trap** ([Plan 65](docs/plans/65-natural-play.md)'s
-  note for the owner). A school whose programs end up in two halls stays
-  split: only the harness players merge one, and nothing in
-  `techtree/schools.ts` or on screen offers the player a way to. Put to
-  the owner with a proposed fix (suggest consolidating the split school
-  when another has no hall and none is empty); waiting on the answer.
 - **A school-wide budget, and a CFO to run it.** Most expense lines are
   still derived from what the college owns and enrolls, so underfunding
   can only have a consequence where there is a lever. The levers that
