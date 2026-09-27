@@ -921,7 +921,7 @@ claims and 107 vague ones.*
 capacity said "no open slot", and "slot" meant three things (a hall's
 program slots, the committee's places, a professor's course slots).*
 
-**As implemented (#TBD):**
+**As implemented (#231):**
 - A course waiting on a professor says **"needs faculty"**: the compact
   tag on its Curriculum row ("· needs faculty"), its gate dot's tooltip,
   the Build menu's reason, the hall panel's next-course line and
