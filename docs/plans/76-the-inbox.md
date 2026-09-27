@@ -3,7 +3,7 @@
 *Planning document. Its job is to turn the owner's pick from the inbox
 proposal (`docs/design/inbox.html`) into PRs.*
 
-**Status: A landed; B proposed.**
+**Status: A and C landed; B proposed.**
 
 ---
 
@@ -25,7 +25,8 @@ whenever a tab was open, so NEXT was borrowed to point back at them; a note
 | PR | Subject |
 |---|---|
 | A | The inbox tab, in place of the event panel and the note stack |
-| B | The read-only modals into the inbox, and a pause-on-arrival setting |
+| B | A pause-on-arrival setting, and the year's defaults in the review |
+| C | The stops, answered in the inbox |
 
 ## Rules for every PR in this plan
 
@@ -69,8 +70,35 @@ subject is the log's own cut at 90 characters.
 
 ## B — Proposed
 
-- The research-complete, championship and Deans'-recommendations interrupts
-  become inbox items that do not stop the clock, behind a setting, "Stop the
-  clock for reports", which keeps today's behaviour.
 - A setting, "Pause when a matter arrives", off by default.
 - The summer's review lists the year's matters that took their default.
+
+(The first draft of B also moved the research, championship and Deans'
+interrupts into the inbox *without* stopping the clock. The owner's answer,
+PR C, keeps every stop a stop.)
+
+## C — The stops, answered in the inbox
+
+The owner's answer after A: what paused the game and forced a decision still
+does, but from the inbox, which comes up by itself and stays up until the
+player decides.
+
+- `inbox.ts`'s `interruptItem`: the pending interrupt is a row in a new tier,
+  **hold** ("The clock waits"), pinned first, counted on the button and red,
+  named by its type (the summer by its beat, a letter by its title).
+- `InterruptModal.tsx` splits in two: `InterruptContent`, the view for each
+  interrupt type in its modal card, which the reading pane shows; and the
+  component itself, which keeps the Enter key and the Final Report's page.
+- `App.tsx` opens the inbox on a stop (again on each summer beat), refuses
+  every other view and the build menu while it waits, drops the Close button
+  for "Answer to go on", and puts the player back where they were once it is
+  answered. The shell is no longer made inert for a stop, only for the Final
+  Report and the walkthrough's welcome.
+- The toolbar disables its other buttons while a stop waits; arrivals skip
+  the stop, since the inbox opens on it.
+
+### As implemented
+
+As above. The Final Report stays a page: it ends the run and is built as
+one. The walkthrough's welcome card is the tutorial, not a stop, and is
+unchanged.

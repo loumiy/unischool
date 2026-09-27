@@ -72,6 +72,13 @@ button counts only what wants an answer, and `I` opens it. Nothing floats
 over the map any more: the event panel and the note stack it replaced both
 stepped aside whenever a tab was open.
 
+What stops the clock is answered here too. A pending interrupt is pinned first
+under **The clock waits** and shown in the reading pane in its modal card; the
+shell opens the inbox on it, shuts every other way off it (the toolbar's other
+buttons are disabled and Close gives way to "Answer to go on"), and once it is
+answered returns the player to the view they were on. Only the Final Report's
+page still stands in front of the screen.
+
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,
 prestige, satisfaction — a glyph and a figure each, the word in the tooltip);

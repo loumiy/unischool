@@ -68,7 +68,9 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // What the inbox's button says (systems/inbox/inbox.ts's inboxBadge),
   // counted by App.tsx, which also keeps the session's read letters.
   inbox: InboxBadge;
-}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox }, ref) => {
+  // A stop waits in the inbox (Plan 76): every other way off it is shut.
+  held: boolean;
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held }, ref) => {
 
   // The opening walkthrough rings the Build button while its step is to site
   // the hall and the menu is closed (see state/opening.ts, .opening-target).
@@ -93,6 +95,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           className={`toolbar-icon-btn ${active === null && !buildOpen ? 'active' : ''}`}
           aria-label="Campus map"
           title="Campus map"
+          disabled={held}
           onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
         >
           <HomeIcon />
@@ -118,6 +121,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
               aria-expanded={isActive}
               aria-label={inboxLabel}
               title={inboxLabel}
+              disabled={held && id !== 'inbox'}
               onClick={() => onChangeTab(isActive ? null : id)}
             >
               <Icon />
@@ -137,6 +141,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           aria-expanded={buildOpen}
           aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
           title="Build"
+          disabled={held}
           onClick={() => onSetBuildOpen(!buildOpen)}
         >
           <BuildIcon />

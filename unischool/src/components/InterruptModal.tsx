@@ -1197,16 +1197,11 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
   );
 }
 
-// Renders whichever modal s.pendingInterrupt calls for, on top of every tab
-// (docs/architecture/interrupts.md).
+// What s.pendingInterrupt calls for (docs/architecture/interrupts.md): the
+// Enter key for the read-and-continue stops, and the Final Report's page.
+// Every other stop is answered in the inbox (InterruptContent, below).
 export default function InterruptModal({ s, act, onNewCollege }: { s: GameState; act: (a: Action) => void; onNewCollege?: () => void }) {
   const interrupt = s.pendingInterrupt;
-
-  // The two payloads that carry structured content are read once here,
-  // narrowed by the type tag, so the branches below stay free of casts.
-  const decision = interrupt?.type === 'decision-event'
-    ? interrupt.payload as { eventId: string; ctx: DecisionEventContext }
-    : null;
 
   // Enter continues the read-and-continue interrupts, each through its own
   // dedicated action; for a decision event it resolves with no choice
@@ -1267,91 +1262,103 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
     );
   }
 
+  // Every other stop is answered in the inbox (Plan 76, InboxTab.tsx),
+  // which App.tsx opens on it and holds open until it is resolved.
+  return null;
+}
+
+// The pending interrupt's content, as the inbox's reading pane shows it.
+// It keeps the modal's card (`.modal`, with `.modal-inbox` placing it in
+// the pane), so every view reads as it did over the map.
+export function InterruptContent({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const interrupt = s.pendingInterrupt;
+  if (!interrupt) return null;
+  const decision = interrupt.type === 'decision-event'
+    ? interrupt.payload as { eventId: string; ctx: DecisionEventContext }
+    : null;
   return (
-    <div className="modal-backdrop">
-      <div className={`modal modal-${modalWidth(interrupt)}`} data-interrupt={interrupt.type} role="dialog" aria-modal="true">
-        {interrupt.type === 'summer' ? (
-          <SummerView s={s} payload={interrupt.payload as SummerPayload} act={act} />
-        ) : interrupt.type === 'milestone' ? (
-          <MilestoneCelebrationView
-            s={s}
-            payload={interrupt.payload as MilestonePayload}
-            onDismiss={() => act({ type: 'RESOLVE_MILESTONE' })}
-          />
-        ) : interrupt.type === 'research-complete' ? (
-          <ResearchReportView
-            s={s}
-            report={(interrupt.payload as { report: InitiativeReport }).report}
-            onDismiss={() => act({ type: 'RESOLVE_RESEARCH_REPORT' })}
-          />
-        ) : interrupt.type === 'championship' ? (
-          <ChampionshipView
-            s={s}
-            result={(interrupt.payload as { result: SeasonResult }).result}
-            onDismiss={() => act({ type: 'RESOLVE_CHAMPIONSHIP' })}
-          />
-        ) : interrupt.type === 'first-sport-club' ? (
-          <FirstSportClubView
-            s={s}
-            payload={interrupt.payload as FirstSportClubPayload}
-            onResolve={(mascot) => act({ type: 'RESOLVE_MASCOT', mascot })}
-          />
-        ) : interrupt.type === 'athletic-director' ? (
-          <AthleticDirectorView
-            s={s}
-            payload={interrupt.payload as AthleticDirectorPayload}
-            onResolve={(candidate, mascot) => act({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate, mascot })}
-          />
-        ) : interrupt.type === 'dean-recommendations' ? (
-          <DeanRecommendationsView
-            s={s}
-            schools={(interrupt.payload as { schools: string[] }).schools}
-            onResolve={(accept) => act({ type: 'RESOLVE_DEAN_RECOMMENDATIONS', accept })}
-          />
-        ) : interrupt.type === 'letter' ? (
-          <LetterView
-            s={s}
-            id={(interrupt.payload as { id: string }).id}
-            onResolve={(skipAll) => act({ type: 'RESOLVE_LETTER', skipAll })}
-          />
-        ) : interrupt.type === 'catalogue-letter' ? (
-          <CatalogueLetterView s={s} instanceId={(interrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? ''} act={act} />
-        ) : decision ? (
-          <DecisionEventView
-            s={s}
-            eventId={decision.eventId}
-            ctx={decision.ctx}
-            onResolve={(choiceId) => act({
-              type: 'RESOLVE_DECISION_EVENT',
-              eventId: decision.eventId,
-              choiceId,
-              ctx: decision.ctx,
-            })}
-            // No choice id matches, so the reducer only clears the
-            // interrupt: the escape hatch for an event gone from the table.
-            onDismiss={() => act({
-              type: 'RESOLVE_DECISION_EVENT',
-              eventId: decision.eventId,
-              choiceId: '',
-              ctx: decision.ctx,
-            })}
-          />
-        ) : interrupt.type === 'rankings-entry' || interrupt.type === 'annual-report' ? (
-          <RankingsReportView
-            payload={interrupt.payload as ReportPayload}
-            isFirstReveal={interrupt.type === 'rankings-entry'}
-            onDismiss={() => act({ type: 'RESOLVE_REPORT' })}
-          />
-        ) : (
-          // Content drift only (see interruptBody). RESOLVE_INTERRUPT
-          // advances the clock rather than holding the week open.
-          <>
-            <h2>{interruptBody().title}</h2>
-            <p>{interruptBody().body}</p>
-            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Continue</button>
-          </>
-        )}
-      </div>
+    <div className={`modal modal-inbox modal-${modalWidth(interrupt)}`} data-interrupt={interrupt.type}>
+      {interrupt.type === 'summer' ? (
+        <SummerView s={s} payload={interrupt.payload as SummerPayload} act={act} />
+      ) : interrupt.type === 'milestone' ? (
+        <MilestoneCelebrationView
+          s={s}
+          payload={interrupt.payload as MilestonePayload}
+          onDismiss={() => act({ type: 'RESOLVE_MILESTONE' })}
+        />
+      ) : interrupt.type === 'research-complete' ? (
+        <ResearchReportView
+          s={s}
+          report={(interrupt.payload as { report: InitiativeReport }).report}
+          onDismiss={() => act({ type: 'RESOLVE_RESEARCH_REPORT' })}
+        />
+      ) : interrupt.type === 'championship' ? (
+        <ChampionshipView
+          s={s}
+          result={(interrupt.payload as { result: SeasonResult }).result}
+          onDismiss={() => act({ type: 'RESOLVE_CHAMPIONSHIP' })}
+        />
+      ) : interrupt.type === 'first-sport-club' ? (
+        <FirstSportClubView
+          s={s}
+          payload={interrupt.payload as FirstSportClubPayload}
+          onResolve={(mascot) => act({ type: 'RESOLVE_MASCOT', mascot })}
+        />
+      ) : interrupt.type === 'athletic-director' ? (
+        <AthleticDirectorView
+          s={s}
+          payload={interrupt.payload as AthleticDirectorPayload}
+          onResolve={(candidate, mascot) => act({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate, mascot })}
+        />
+      ) : interrupt.type === 'dean-recommendations' ? (
+        <DeanRecommendationsView
+          s={s}
+          schools={(interrupt.payload as { schools: string[] }).schools}
+          onResolve={(accept) => act({ type: 'RESOLVE_DEAN_RECOMMENDATIONS', accept })}
+        />
+      ) : interrupt.type === 'letter' ? (
+        <LetterView
+          s={s}
+          id={(interrupt.payload as { id: string }).id}
+          onResolve={(skipAll) => act({ type: 'RESOLVE_LETTER', skipAll })}
+        />
+      ) : interrupt.type === 'catalogue-letter' ? (
+        <CatalogueLetterView s={s} instanceId={(interrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? ''} act={act} />
+      ) : decision ? (
+        <DecisionEventView
+          s={s}
+          eventId={decision.eventId}
+          ctx={decision.ctx}
+          onResolve={(choiceId) => act({
+            type: 'RESOLVE_DECISION_EVENT',
+            eventId: decision.eventId,
+            choiceId,
+            ctx: decision.ctx,
+          })}
+          // No choice id matches, so the reducer only clears the
+          // interrupt: the escape hatch for an event gone from the table.
+          onDismiss={() => act({
+            type: 'RESOLVE_DECISION_EVENT',
+            eventId: decision.eventId,
+            choiceId: '',
+            ctx: decision.ctx,
+          })}
+        />
+      ) : interrupt.type === 'rankings-entry' || interrupt.type === 'annual-report' ? (
+        <RankingsReportView
+          payload={interrupt.payload as ReportPayload}
+          isFirstReveal={interrupt.type === 'rankings-entry'}
+          onDismiss={() => act({ type: 'RESOLVE_REPORT' })}
+        />
+      ) : (
+        // Content drift only (see interruptBody). RESOLVE_INTERRUPT
+        // advances the clock rather than holding the week open.
+        <>
+          <h2>{interruptBody().title}</h2>
+          <p>{interruptBody().body}</p>
+          <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Continue</button>
+        </>
+      )}
     </div>
   );
 }

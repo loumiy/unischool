@@ -10,9 +10,11 @@ import { type ReactNode } from 'react';
 // owns the one Escape ladder for the whole shell.
 // `split`: the body does not scroll as one page; its child fills it and
 // scrolls its own panes (the inbox's list and reading pane, Plan 76).
+// No `onClose`: the view cannot be left (the inbox while a stop waits on
+// an answer, Plan 76).
 export default function TabOverlay({ title, onClose, split = false, children }: {
   title: string;
-  onClose: () => void;
+  onClose?: () => void;
   split?: boolean;
   children: ReactNode;
 }) {
@@ -20,9 +22,13 @@ export default function TabOverlay({ title, onClose, split = false, children }: 
     <div className="tab-overlay" role="dialog" aria-modal="false" aria-label={title}>
       <div className="tab-overlay-head">
         <h2>{title}</h2>
-        <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
-          Close ✕
-        </button>
+        {onClose ? (
+          <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
+            Close ✕
+          </button>
+        ) : (
+          <span className="tab-overlay-held">Answer to go on</span>
+        )}
       </div>
       <div className={`tab-overlay-body${split ? ' split' : ''}`}>{children}</div>
     </div>

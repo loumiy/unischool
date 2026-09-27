@@ -1,7 +1,7 @@
-import type { GameState, LogEntry } from '../../state/types';
-import { WEEKS_PER_YEAR } from '../../state/types';
+import type { GameState, InitiativeReport, LogEntry, SummerPayload } from '../../state/types';
+import { SUMMER_BEATS, WEEKS_PER_YEAR } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
-import { absoluteWeek } from '../../data/eventData';
+import { absoluteWeek, findDecisionEvent, findOpeningLetter, type MilestonePayload } from '../../data/eventData';
 import { MILESTONES, CHARTER_ID } from '../../data/ladderData';
 import { BOARD_LETTERS } from '../../data/boardData';
 import { demandCopy } from '../../data/demandData';
@@ -16,6 +16,11 @@ import { foundingNotes } from './foundingNote';
 // full-screen view (components/InboxTab.tsx), in three tiers told apart by
 // form:
 //
+//   hold      — what stops the clock (an interrupt: the summer, a letter
+//               from the board, a report, a decision). Pinned first; the
+//               inbox opens on it and stays open until it is answered
+//               (App.tsx). The Final Report is the one stop that keeps a
+//               page of its own (InterruptModal.tsx).
 //   decide    — wants an answer or has a deadline: the catalog's inline
 //               events, a student demand, a board letter with an ask. Only
 //               this tier puts a number on the toolbar's button.
@@ -29,9 +34,9 @@ import { foundingNotes } from './foundingNote';
 // answered event, which is the Answered list.
 // ---------------------------------------------------------------------
 
-export type InboxTier = 'decide' | 'letter' | 'bulletin';
+export type InboxTier = 'hold' | 'decide' | 'letter' | 'bulletin';
 
-export type InboxKind = 'event' | 'demand' | 'board' | 'milestone' | 'founding' | 'bulletin';
+export type InboxKind = 'interrupt' | 'event' | 'demand' | 'board' | 'milestone' | 'founding' | 'bulletin';
 
 export interface InboxItem {
   id: string;
@@ -48,11 +53,73 @@ export interface InboxItem {
   // Decide tier: weeks to answer, and whether this is the last of them.
   weeksLeft?: number;
   urgent?: boolean;
-  // What it points at: an inline event's instance, a milestone's id, a
-  // board letter's id, a log line's subject.
+  // What it points at: an interrupt's type, an inline event's instance, a
+  // milestone's id, a board letter's id, a log line's subject.
   ref?: string;
   // A bulletin's tone, as the toast had it.
   tone?: LogEntry['kind'];
+}
+
+// The one id the pending interrupt has in the inbox: only one is ever up.
+export const INTERRUPT_ITEM_ID = 'interrupt';
+
+// Whether the pending interrupt is the Final Report's page (Plan 60), the
+// one stop that is not answered in the inbox.
+export function finalReportUp(s: GameState): boolean {
+  const i = s.pendingInterrupt;
+  if (i?.type !== 'summer') return false;
+  const p = i.payload as SummerPayload | undefined;
+  return p?.final === true && p.beat === 0;
+}
+
+// The pending interrupt as a row: who it is from and what it is about.
+export function interruptItem(s: GameState): InboxItem | null {
+  const i = s.pendingInterrupt;
+  if (!i || finalReportUp(s)) return null;
+  const [from, subject] = interruptWords(s, i.type, i.payload);
+  return {
+    id: INTERRUPT_ITEM_ID, kind: 'interrupt', tier: 'hold', ref: i.type, from, subject,
+    preview: 'The clock waits for your answer.', week: absoluteWeek(s), unread: true, urgent: true,
+  };
+}
+
+function interruptWords(s: GameState, type: string, payload: unknown): [string, string] {
+  const year = s.clock.year;
+  switch (type) {
+    case 'summer': {
+      const beat = (payload as SummerPayload | undefined)?.beat ?? 0;
+      return ['The summer', `Year ${year}: ${SUMMER_BEATS[beat] ?? 'The summer'}`];
+    }
+    case 'rankings-entry': return ['The rankings', 'The college enters the rankings'];
+    case 'annual-report': return ['The rankings', `The rankings for Year ${year}`];
+    case 'milestone': {
+      const entries = (payload as MilestonePayload | undefined)?.entries ?? [];
+      return ['A celebration', entries.length === 1 ? entries[0].headline : `${entries.length} things to celebrate`];
+    }
+    case 'research-complete': {
+      const r = (payload as { report?: InitiativeReport } | undefined)?.report;
+      return ['Research', r ? `${r.topicName} has reported` : 'An initiative has reported'];
+    }
+    case 'championship': return ['Athletics', 'The postseason'];
+    case 'first-sport-club': return ['Athletics', 'The first sport club'];
+    case 'athletic-director': return ['Athletics', 'An athletic director'];
+    case 'dean-recommendations': return ['The Deans', 'The Deans\' recommendations'];
+    case 'letter': {
+      const id = (payload as { id?: string } | undefined)?.id ?? '';
+      return ['From the chair of the board', findOpeningLetter(id)?.title ?? 'A letter'];
+    }
+    case 'catalogue-letter': {
+      const instanceId = (payload as { instanceId?: string } | undefined)?.instanceId;
+      const p = catalogueOf(s).pending.find((x) => x.instanceId === instanceId);
+      const e = p ? eventById(p.eventId) : undefined;
+      return ['From the board', e ? eventSubject(e, fill(eventText(e, p!), p!.vars)) : 'A letter from the board'];
+    }
+    case 'decision-event': {
+      const id = (payload as { eventId?: string } | undefined)?.eventId ?? '';
+      return ['The President', findDecisionEvent(id)?.title ?? 'A decision'];
+    }
+    default: return ['The President', 'A matter set aside'];
+  }
 }
 
 // A bulletin stays filed for a term (StatusHeader.tsx's two terms a year).
@@ -160,7 +227,8 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
   decide.sort((a, b) => (a.weeksLeft ?? 0) - (b.weeksLeft ?? 0) || a.week - b.week);
   // Newest first; unread milestones of one year before read ones.
   letters.sort((a, b) => b.week - a.week || Number(b.unread) - Number(a.unread));
-  return [...decide, ...letters, ...bulletins(s)];
+  const hold = interruptItem(s);
+  return [...(hold ? [hold] : []), ...decide, ...letters, ...bulletins(s)];
 }
 
 // The toasts' news (Toasts.tsx's toastsFor), filed from the log for a term:
@@ -202,7 +270,7 @@ export function inboxBadge(items: readonly InboxItem[]): InboxBadge {
   let urgent = false;
   let unreadLetters = 0;
   for (const i of items) {
-    if (i.tier === 'decide') {
+    if (i.tier === 'hold' || i.tier === 'decide') {
       // A demand once noted is a goal on the list, not a question.
       if (i.kind === 'demand' && !i.unread) continue;
       count += 1;

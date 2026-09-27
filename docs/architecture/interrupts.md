@@ -3,9 +3,13 @@
 Several features share one mechanic: **pause the clock, surface something the
 player must resolve, then resume.** Rather than special-case each, there is a
 single interrupt system. A system enqueues an interrupt onto `GameState`; the
-game loop halts ticking while an interrupt is pending; the UI renders it as a
-modal; the player resolves it by dispatching an action, which clears it and lets
-the clock resume.
+game loop halts ticking while an interrupt is pending; the UI answers it in the
+inbox (Plan 76): the shell opens the inbox on it, pinned first under "The clock
+waits" and read in its modal card (`InterruptModal.tsx`'s `InterruptContent`),
+and holds the inbox open, with every other view shut, until the player
+resolves it by dispatching an action, which clears it and lets the clock
+resume; the player is then put back where they were. The Final Report alone
+keeps a page of its own over everything (Plan 60).
 
 Everything that needs to stop time rides on this one mechanism:
 

@@ -26,7 +26,7 @@ import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import InboxTab from './components/InboxTab';
-import { inboxBadge, inboxItems } from './systems/inbox/inbox';
+import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -118,6 +118,10 @@ export default function App() {
   // is read off the state (Plan 76).
   const [foundingRead, setFoundingRead] = useState<ReadonlySet<string>>(new Set());
   const inbox = inboxItems(s, { read: foundingRead });
+  // A stop (an interrupt) is answered in the inbox (Plan 76): while one is
+  // up, the inbox is the only view, opened on it, with no way out but an
+  // answer. The Final Report keeps its own page.
+  const holding = s.pendingInterrupt !== null && !finalReportUp(s);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // Sound (Plan 34): the director hears the run, not the title screen; M
@@ -227,6 +231,7 @@ export default function App() {
   // survive behind a screen and site something by accident later.
   function openTab(tab: TabId | null, target?: string) {
     if (tab !== null && !tabAvailable(s, tab)) return;
+    if (holding && tab !== 'inbox') return;
     setOverlay(tab === null ? null : { tab, target });
     if (tab !== null) {
       closeBuild();
@@ -234,6 +239,7 @@ export default function App() {
     }
   }
   function inspectHall(hallId: string) {
+    if (holding) return;
     openTab(null);
     setInspectTarget(hallId);
   }
@@ -242,6 +248,7 @@ export default function App() {
       closeBuild();
       return;
     }
+    if (holding) return;
     setBuildOpenState(true);
     setOverlay(null);
     // The build menu and the log popups share the bottom-left corner.
@@ -269,6 +276,30 @@ export default function App() {
     else if (stage === 'found') inspectHall(FOUNDERS_HALL_ID);
     else if (stage === 'play' && prev !== null) setSpeed('real');
   }, [s.started, stage]);
+
+  // A stop opens the inbox on itself (Plan 76), and each new stop or summer
+  // beat re-points it there; once answered, the player is put back where
+  // they were. Not under a front screen: the stop waits for the game.
+  const holdKey = holding
+    ? `${s.pendingInterrupt!.type}:${(s.pendingInterrupt!.payload as { beat?: number } | undefined)?.beat ?? ''}`
+    : null;
+  const beforeHold = useRef<{ tab: TabId; target?: string } | null | undefined>(undefined);
+  useEffect(() => {
+    if (!shellLive) return;
+    if (holdKey !== null) {
+      if (beforeHold.current === undefined) beforeHold.current = overlay?.tab === 'inbox' ? null : overlay;
+      setOverlay({ tab: 'inbox', target: INTERRUPT_ITEM_ID });
+      closeBuild();
+      setPlacingIdState(null);
+      setLogOpen(false);
+      setLadderOpen(false);
+    } else if (beforeHold.current !== undefined) {
+      const back = beforeHold.current;
+      beforeHold.current = undefined;
+      setOverlay(back && tabAvailable(s, back.tab) ? { tab: back.tab } : null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holdKey, shellLive]);
 
   // One Escape ladder, top down, for the whole shell: the milestones and log popups, the
   // build menu, an open tab. Below that is the map's own back-out, handled
@@ -312,9 +343,10 @@ export default function App() {
     );
   }
 
-  // A modal (an interrupt, or the walkthrough's welcome) makes everything
-  // behind it inert: no clicks, no focus, nothing read out.
-  const modalUp = shellLive && (s.pendingInterrupt !== null || stage === 'welcome');
+  // A modal (the Final Report's page, or the walkthrough's welcome) makes
+  // everything behind it inert: no clicks, no focus, nothing read out. Every
+  // other stop is answered in the inbox, which the shell holds open.
+  const modalUp = shellLive && (finalReportUp(s) || stage === 'welcome');
 
   return (
     <>
@@ -375,10 +407,15 @@ export default function App() {
             pathTool={pathTool}
             onSetPathTool={setPathTool}
             inbox={inboxBadge(inbox)}
+            held={holding}
           />
 
           {overlay && (
-            <TabOverlay title={TAB_LABELS[overlay.tab]} onClose={() => openTab(null)} split={overlay.tab === 'inbox'}>
+            <TabOverlay
+              title={TAB_LABELS[overlay.tab]}
+              onClose={holding ? undefined : () => openTab(null)}
+              split={overlay.tab === 'inbox'}
+            >
               {overlay.tab === 'faculty' && (
                 <FacultyTab
                   s={s}

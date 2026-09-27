@@ -7,7 +7,7 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
-import { answered, BULLETIN_WEEKS, bulletins, inboxBadge, inboxItems } from '../src/systems/inbox/inbox';
+import { answered, BULLETIN_WEEKS, bulletins, finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from '../src/systems/inbox/inbox';
 import { inboxPointer } from '../src/systems/guidance/nextStep';
 import { arrivalsIn } from '../src/components/Toasts';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
@@ -155,6 +155,26 @@ function fresh(): GameState {
   assert(got.some((t) => t.tone === 'matter' && t.open === 'event:a' && t.text.includes('to answer')), 'the event as a matter to open');
   assert(got.some((t) => t.tone === 'letter' && t.open === `milestone:${m.id}`), 'the milestone as a letter to open');
   assert(arrivalsIn(after, after).length === 0, 'nothing arrives twice');
+}
+
+// A stop: pinned first, counted and red, never a slip; the Final Report
+// keeps its own page.
+{
+  const s = fresh();
+  withEvent(s, weekOf(s));
+  s.pendingInterrupt = { type: 'dean-recommendations', payload: { schools: [] } };
+  const items = inboxItems(s);
+  assert(items[0].id === INTERRUPT_ITEM_ID && items[0].tier === 'hold' && items[0].subject === 'The Deans\' recommendations', 'a stop is pinned first, named');
+  const badge = inboxBadge(items);
+  assert(badge.count === 2 && badge.urgent, 'it counts, in red');
+  const before = fresh();
+  assert(!arrivalsIn(before, s).some((t) => t.open === INTERRUPT_ITEM_ID), 'the inbox opens on a stop, so no slip announces it');
+
+  s.pendingInterrupt = { type: 'summer', payload: { beat: 1, tuition: 1, admitRate: 0.5 } };
+  assert(inboxItems(s)[0].subject === `Year ${s.clock.year}: Admissions`, 'the summer, by its beat');
+
+  s.pendingInterrupt = { type: 'summer', payload: { beat: 0, final: true, tuition: 1, admitRate: 0.5 } };
+  assert(finalReportUp(s) && !inboxItems(s).some((i) => i.tier === 'hold'), 'the Final Report keeps its page');
 }
 
 if (failures === 0) {

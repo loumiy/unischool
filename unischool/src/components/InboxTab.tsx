@@ -12,6 +12,7 @@ import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { SWEEP_DEFAULT_WEEKS } from '../systems/finance/sweep';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
+import { InterruptContent } from './InterruptModal';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 
 // THE INBOX (Plan 76, systems/inbox/inbox.ts): a full-screen tab laid out
@@ -21,6 +22,11 @@ import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 // letter reads it, so nothing here says "Noted" except the board, whose
 // letters leave the queue when put away. Below 760px one pane shows at a
 // time, and the reading pane has a way back to the list.
+//
+// What stops the clock is answered here too: the pending interrupt is
+// pinned first under "The clock waits" and read in the pane in its modal
+// card. App.tsx opens the inbox on it and keeps it open until it is
+// resolved.
 
 type Filter = 'all' | InboxTier | 'answered';
 
@@ -33,6 +39,7 @@ const FILTERS: readonly { id: Filter; label: string }[] = [
 ];
 
 const TIER_HEADING: Record<InboxTier, string> = {
+  hold: 'The clock waits',
   decide: 'To decide',
   letter: 'Letters',
   bulletin: 'Bulletins',
@@ -91,7 +98,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   const q = query.trim().toLowerCase();
   const matches = (text: string) => q === '' || text.toLowerCase().includes(q);
   const shown = filter === 'answered' ? [] : items.filter((i) =>
-    (filter === 'all' || i.tier === filter) && matches(`${i.from} ${i.subject} ${i.preview}`));
+    (filter === 'all' || i.tier === filter || (filter === 'decide' && i.tier === 'hold')) && matches(`${i.from} ${i.subject} ${i.preview}`));
   const answers = filter === 'answered' ? answered(s).filter((l) => matches(l.message)) : [];
 
   // What the reading pane shows: the picked item while it is still in the
@@ -99,6 +106,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   // else the newest unread letter, else the newest letter.
   const readable = shown.filter((i) => i.tier !== 'bulletin');
   const selected = readable.find((i) => i.id === selectedId)
+    ?? readable.find((i) => i.tier === 'hold')
     ?? readable.find((i) => i.tier === 'decide')
     ?? readable.find((i) => i.unread)
     ?? readable[0]
@@ -131,7 +139,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
     else groups.push({ tier: i.tier, rows: [i] });
   }
   const counts = {
-    decide: items.filter((i) => i.tier === 'decide').length,
+    decide: items.filter((i) => i.tier === 'hold' || i.tier === 'decide').length,
     letter: items.filter((i) => i.tier === 'letter' && i.unread).length,
   };
 
@@ -177,7 +185,8 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
               <div className="inbox-group">
                 <span>{TIER_HEADING[g.tier]}</span>
                 <span>
-                  {g.tier === 'decide' ? 'the clock runs on'
+                  {g.tier === 'hold' ? 'answer to go on'
+                    : g.tier === 'decide' ? 'the clock runs on'
                     : g.tier === 'letter' ? `${g.rows.filter((r) => r.unread).length} unread`
                       : 'kept for a term'}
                 </span>
@@ -203,9 +212,11 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
                 >
                   <span className="inbox-dot" />
                   <span className="inbox-from">{i.from}</span>
-                  {i.weeksLeft !== undefined
+                  {i.tier === 'hold'
+                    ? <span className="inbox-due">Clock stopped</span>
+                    : i.weeksLeft !== undefined
                     ? <span className="inbox-due">{i.urgent ? (i.weeksLeft === 0 ? 'This week' : 'Last week') : weeks(i.weeksLeft)}</span>
-                    : <span className="inbox-when">{i.kind === 'milestone' ? `Y${Math.floor((i.week - 1) / WEEKS_PER_YEAR) + 1}` : stamp(i.week)}</span>}
+                      : <span className="inbox-when">{i.kind === 'milestone' ? `Y${Math.floor((i.week - 1) / WEEKS_PER_YEAR) + 1}` : stamp(i.week)}</span>}
                   <span className="inbox-subject">{i.subject}</span>
                   {i.kind === 'demand' && s.events.activeDemand
                     ? <span className="inbox-meter"><i style={{ width: `${Math.round(demandProgress(s, s.events.activeDemand).fraction * 100)}%` }} /></span>
@@ -240,7 +251,7 @@ function ReadHead({ tier, from, subject, meta }: { tier: InboxTier; from: string
   return (
     <header className="inbox-read-head">
       <div className="inbox-tags">
-        <span className={`inbox-tag ${tier}`}>{tier === 'decide' ? 'To decide' : 'Letter'}</span>
+        <span className={`inbox-tag ${tier}`}>{tier === 'letter' ? 'Letter' : 'To decide'}</span>
         <span className="letter-eyebrow">{from}</span>
       </div>
       <h3>{subject}</h3>
@@ -255,6 +266,15 @@ function ReadingPane({ s, act, item, onOpenTab }: {
   item: InboxItem;
   onOpenTab: (tab: TabId | 'build') => void;
 }) {
+  if (item.kind === 'interrupt') {
+    return (
+      <div className="inbox-hold">
+        <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Nothing moves until this is answered.</p>
+        <InterruptContent s={s} act={act} />
+      </div>
+    );
+  }
+
   if (item.kind === 'event') {
     const p = catalogueOf(s).pending.find((x) => x.instanceId === item.ref);
     const e = p ? eventById(p.eventId) : undefined;
