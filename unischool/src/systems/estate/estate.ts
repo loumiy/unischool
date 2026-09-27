@@ -10,12 +10,21 @@ import { LIBRARY_FLOOR_MAX, LIBRARY_TIER1_ID, nextLibraryFloor } from '../../dat
 // becomes the building's backlog, which compounds, and the backlog is what
 // its condition reads. A renovation pays it off under scaffolding.
 //
-// At full funding nothing here moves: no backlog, every building in perfect
-// condition. The harness never changes the funding.
+// Events can add backlog at any funding (catalogue.ts's spreadBacklog: a
+// storm, a flood, a deferred repair). Underfunded, a backlog compounds; at
+// full funding the maintenance budget pays it down instead
+// (BACKLOG_PAYDOWN_RATE, Plan 74B), so an event's damage heals over a
+// decade rather than growing until the campus is derelict. The harness
+// never changes the funding.
 
 export const MAINTENANCE_FUNDING_STEP = 0.05;
-// A year's compounding on an unpaid backlog.
+// A year's compounding on an unpaid backlog, while maintenance is
+// underfunded.
 export const BACKLOG_GROWTH_RATE = 0.06;
+// The share of a backlog full funding pays down in a year (Plan 74B).
+export const BACKLOG_PAYDOWN_RATE = 0.1;
+// A backlog this small is paid off outright.
+const BACKLOG_CLEARED_BELOW = 1_000;
 // The backlog at which a building is a ruin, as a share of its cost.
 export const BACKLOG_RUIN_SHARE = 0.5;
 // A renovation's fee on top of the backlog, as a share of the cost.
@@ -128,7 +137,8 @@ export function historicPrestige(s: GameState): number {
   return Math.min(HISTORIC_PRESTIGE_MAX, n) * HISTORIC_PRESTIGE;
 }
 
-// The estate's week: unpaid upkeep becomes backlog, backlogs compound, and
+// The estate's week: unpaid upkeep becomes backlog, backlogs compound while
+// maintenance is underfunded and are paid down at full funding, and
 // renovations run down and, when done, clear their backlog. Nothing here
 // draws from the random stream.
 export function tickEstate(s: GameState): void {
@@ -152,7 +162,11 @@ export function tickEstate(s: GameState): void {
       continue;
     }
     const upkeep = t.effects?.upkeepPerWeek ?? 0;
-    const grown = (t.backlog ?? 0) * (1 + BACKLOG_GROWTH_RATE / WEEKS_PER_YEAR) + upkeep * unpaid;
-    if (grown > 0) t.backlog = Math.round(grown);
+    const backlog = t.backlog ?? 0;
+    const next = unpaid > 0
+      ? backlog * (1 + BACKLOG_GROWTH_RATE / WEEKS_PER_YEAR) + upkeep * unpaid
+      : backlog * (1 - BACKLOG_PAYDOWN_RATE / WEEKS_PER_YEAR);
+    if (next >= BACKLOG_CLEARED_BELOW || (unpaid > 0 && next > 0)) t.backlog = Math.round(next);
+    else delete t.backlog;
   }
 }

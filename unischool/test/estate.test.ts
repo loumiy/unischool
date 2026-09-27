@@ -1,7 +1,7 @@
 // The estate (src/systems/estate/estate.ts): full maintenance funding moves
-// nothing; paying less saves the difference and turns it into backlog, which
-// compounds and wears condition down; a renovation pays it off under eight
-// weeks of scaffolding.
+// nothing and pays an event's backlog down; paying less saves the difference
+// and turns it into backlog, which compounds and wears condition down; a
+// renovation pays it off under eight weeks of scaffolding.
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
@@ -9,7 +9,7 @@ import { financeBreakdown } from '../src/systems/finance/financeSystem';
 import { computePrestigeTarget } from '../src/systems/prestige/prestigeSystem';
 import { HISTORIC_AGE_YEARS, HISTORIC_PRESTIGE, HISTORIC_PRESTIGE_MAX, historicPrestige } from '../src/systems/estate/estate';
 import {
-  EXTENSION_MAX_STOREYS, EXTENSION_WEEKS, RENOVATION_WEEKS, conditionOf, extensionCost, renovationCost, tickEstate,
+  BACKLOG_GROWTH_RATE, BACKLOG_PAYDOWN_RATE, EXTENSION_MAX_STOREYS, EXTENSION_WEEKS, RENOVATION_WEEKS, conditionOf, extensionCost, renovationCost, tickEstate,
 } from '../src/systems/estate/estate';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
@@ -52,6 +52,28 @@ const buildingOf = (s: GameState) => s.tech.find((t) => t.id === 'DINING-01')!;
   assert(buildingOf(s).backlog === undefined, 'a fully funded building builds no backlog in a year');
   assert(conditionOf(buildingOf(s)) === 1, 'and stays in perfect condition');
   assert(financeBreakdown(s).facilityUpkeep === before, 'and costs what it always did');
+}
+
+// ---- Full funding pays an event's backlog down (Plan 74B) ----
+{
+  const s = withBuilding();
+  buildingOf(s).backlog = 1_000_000;
+  const weekly: number[] = [];
+  for (let i = 0; i < 52; i++) { tickEstate(s); weekly.push(buildingOf(s).backlog!); }
+  assert(weekly.every((b, i) => b < (i === 0 ? 1_000_000 : weekly[i - 1]!)), 'at full funding a backlog falls every week');
+  const expected = 1_000_000 * (1 - BACKLOG_PAYDOWN_RATE / 52) ** 52;
+  assert(Math.abs(weekly[51]! - expected) < 100, `by about a tenth a year (${weekly[51]} of 1,000,000)`);
+  for (let i = 0; i < 52 * 70; i++) tickEstate(s);
+  assert(buildingOf(s).backlog === undefined, 'and in time is paid off outright');
+  assert(conditionOf(buildingOf(s)) === 1, 'leaving the building as built');
+
+  const under = withBuilding();
+  under.finance.maintenanceFunding = 0.95;
+  buildingOf(under).backlog = 1_000_000;
+  tickEstate(under);
+  const upkeep = buildingOf(under).effects!.upkeepPerWeek!;
+  const grown = Math.round(1_000_000 * (1 + BACKLOG_GROWTH_RATE / 52) + upkeep * 0.05);
+  assert(Math.abs(buildingOf(under).backlog! - grown) <= 1, 'below full funding it compounds as before');
 }
 
 // ---- Paying less saves money and builds backlog ----
