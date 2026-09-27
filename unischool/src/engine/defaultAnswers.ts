@@ -20,7 +20,6 @@ import { catalogueOf } from '../systems/events/catalogueEngine';
 //   - decision-event  the first affordable choice (in every authored entry,
 //                     "deal with it properly, and pay"); else a free one
 //   - athletic dir.   the middle candidate of three that differ only in salary
-//   - charter         accept
 //   - letter          read it and carry on; never "I know the way"
 //   - catalog-letter its default, as an unanswered inline event takes
 //   - everything else read and dismiss
@@ -73,9 +72,6 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
 
     case 'dean-recommendations':
       return { type: 'RESOLVE_DEAN_RECOMMENDATIONS', accept: true };
-
-    case 'charter':
-      return { type: 'RESOLVE_CHARTER', accept: true };
 
     case 'championship':
       return { type: 'RESOLVE_CHAMPIONSHIP' };

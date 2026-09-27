@@ -11,7 +11,7 @@ import {
   RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
 } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
-import { CAMPUS_GRID_WIDTH, LOG_CAP, SUMMER_LAST_BEAT } from '../state/types';
+import { CAMPUS_GRID_WIDTH, COLLEGE_NAME_MAX, LOG_CAP, SUMMER_LAST_BEAT, bareSchoolName, institutionName } from '../state/types';
 import type { Action } from '../state/actions';
 import { defaultAnswer } from './defaultAnswers';
 import { createInitialState, createPreStartState } from '../state/actions';
@@ -613,30 +613,17 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // The one-time College -> University charter offer. Cosmetic: it swaps
-    // the name's suffix. The flag is set either way, so declining is final.
-    case 'RESOLVE_CHARTER': {
-      // Answers only its own modal: a repeat can never answer the next one.
-      if (s.pendingInterrupt?.type !== 'charter') return state;
-      s.self.universityCharterOffered = true;
-      if (action.accept) {
-        s.self.suffix = 'University';
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: `${s.self.name} College is now ${s.self.name} University.`,
-          kind: 'good',
-        });
-      } else {
-        s.log.unshift({
-          year: s.clock.year,
-          week: s.clock.week,
-          message: `The charter is declined; it remains ${s.self.name} College.`,
-          kind: 'info',
-        });
-      }
-      s.pendingInterrupt = null;
-      advanceClock(s);
+    // The college's name (Plan 72E), from the pennant: the name the
+    // founding screen took, and College or, once chartered, University.
+    case 'RENAME_COLLEGE': {
+      const name = bareSchoolName(action.name).slice(0, COLLEGE_NAME_MAX);
+      if (name === '') return state;
+      const suffix = action.suffix === 'University' && s.self.universityCharterOffered ? 'University' : 'College';
+      if (name === s.self.name && suffix === s.self.suffix) return state;
+      const was = institutionName(s.self);
+      s.self.name = name;
+      s.self.suffix = suffix;
+      s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `${was} is renamed ${institutionName(s.self)}.` });
       return s;
     }
 

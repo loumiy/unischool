@@ -336,7 +336,7 @@ export default function App() {
         <Toasts s={shellLive ? s : null} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
-        {!overlay && <Pennant s={s} />}
+        {!overlay && <Pennant s={s} act={act} />}
 
         <div className="app">
           {/* What waits on the map: the notes and the event panel step aside

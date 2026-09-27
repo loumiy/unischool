@@ -200,8 +200,7 @@ raise repriced every student already enrolled, and the strongest line of play
 was to stay cheap while the school grew and then bill four captive classes at
 the new price. Per-class pricing closes that: a raise is worth exactly the
 incoming class and nothing more, which is also what makes the decision legible —
-the player is pricing one class, not the school. A `tuitionBonus` Buildable
-effect raises the listed price only, for the same reason (`techSystem.ts`).
+the player is pricing one class, not the school.
 
 Two readings follow the four prices rather than the listed one, because they are
 about the students actually on the books: the Treasury's tuition line, and

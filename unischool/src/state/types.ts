@@ -359,10 +359,8 @@ export function servingPopulation(t: Buildable): number {
 // read live every tick off finished Buildables by the system that cares.
 export interface BuildableEffects {
   capacityBonus: number;
-  tuitionBonus: number;
   // one-time bump to the applicant pool
   applicantPoolBonus: number;
-  unlockIds: string[];  // force these Buildable ids to 'available', regardless of their own prereqs
 
   // --- live-read, every tick, never mutated into state (see above) ---
   researchRateBonus: number; // added to the campus-wide research multiplier; multiplies output, never creates it (researchData.ts)
@@ -921,6 +919,9 @@ export interface ReportCard {
 // and later changes it (the University charter). Without this, "Blackmoor
 // University" founded as "Blackmoor University College" and chartered as
 // "Blackmoor University University".
+// The longest name the founding screen and the pennant's rename take.
+export const COLLEGE_NAME_MAX = 60;
+
 export function bareSchoolName(typed: string): string {
   return typed.trim().replace(/(\s+(college|university))+$/i, '').trim();
 }

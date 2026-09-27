@@ -4,7 +4,7 @@ import type { MilestonePayload } from '../data/eventData';
 // ---------------------------------------------------------------------
 // How wide an interrupt is, chosen by what it is rather than how much it
 // contains:
-//   narrow  a question with a short answer (decision event, charter, demand)
+//   narrow  a question with a short answer (decision event, demand)
 //   wide    a decision with a panel of consequences beside it
 //   page    a table to read (the Standing beat, the rankings)
 // A pure function of the interrupt, so the summer can change width between
