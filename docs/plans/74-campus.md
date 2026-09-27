@@ -363,7 +363,7 @@ without a click.
 - **Benches and arcades at the opening zoom:** benches keep a seat and a
   back, and a Mission arcade shows its arches rather than a barcode.
 
-**As implemented (#TBD).**
+**As implemented (#214).**
 
 - **Tile and slate reach the halls.** A vernacular's roof table can name a
   `pitchedRoof` for every pitched hall and civic portico, whatever the
