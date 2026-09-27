@@ -38,27 +38,16 @@ here until they are picked up again.*
   build's, the README re-shot, and this file updated with what launch left
   for later. Depends on K only if analytics should ship with 1.0.
 
-## The owner's calls
+## Taken into Plan 72
 
-*Questions a plan left open because the answer is a design decision, not a
-fix.*
-
-- **The high-price line's early checkpoints** ([Plan 71](docs/plans/71-economy.md)
-  §3). A college that charges well over the going rate has about 1,300
-  students at year 10 and 5,000 at year 20, short of the scorecard's
-  targets for years 10–30 ([the scorecard](docs/reviews/2026-09-pacing-economy.md),
-  76 of 114). Move the checkpoints for that line, or move the economy.
-  The other misses are recorded there and in Plan 71 §3: courses fill at
-  years 24–26 (target 34–40), the first distinguished school at 18–26
-  (8–14), every graduate course at 44–49 (36–42), and prestige at years
-  40 and 50 a point or two under target. Watched, not failing: the
-  fair-price players' flat net, and the Completionist's F in financial
-  strength (it never sweeps).
-- **A first place that can be taken** (the merge review's §5, #2). The
-  elite band still cannot pass the college once it leads
-  (`ELITE_NO_LEAPFROG_GAP` in `rivalsSystem.ts`), so #1, once reached, is
-  held for good. Whether the defend era should be able to lose it is the
-  question.
+*The owner answered the backlog's questions in September 2026;
+[Plan 72](docs/plans/72-owners-answers.md) sequences what they said yes to:
+the high-price line's targets reset, a first place that can be taken late,
+a poached professor who actually leaves, the graduate course descriptions,
+v2's residence types, the charter as a log line, the two unused building
+effects removed, sort and filter on the Faculty tab, a full residence on
+the map, and clubs with diminishing returns. The entries below keep only
+what Plan 72 leaves.*
 
 ## Named, not sequenced
 
@@ -72,11 +61,11 @@ a sequence of PRs.*
   retired that event, and its catalogue successor `star-poached` says a
   professor has an offer but, answered *Wish them well*, costs two points
   of mood and nobody leaves (the catalogue's effects cannot remove a
-  person). Either make the departure real or reword the event until it
-  is. The rest of the shape stands: the paid faculty search is what a
-  retention offer would reuse, salaries scale with standing so a poach has
-  a price, and the closing elite band gives a poacher a motive. The
-  athletics side already works (`coach-poached`).
+  person). Plan 72B makes that departure real; a retention offer and the
+  rest of the lifecycle stay here. Their shape stands: the paid faculty
+  search is what a retention offer would reuse, salaries scale with
+  standing so a poach has a price, and the closing elite band gives a
+  poacher a motive. The athletics side already works (`coach-poached`).
 - **The admit rate's early slope.** `admitRate(prestige)` still seeds a
   founding college at about 36% (`admissionsSystem.ts`: ceiling 0.38,
   midpoint 100) where about 86% would suit a small school; the slider
@@ -87,7 +76,9 @@ a sequence of PRs.*
 - **The split-school trap** ([Plan 65](docs/plans/65-natural-play.md)'s
   note for the owner). A school whose programs end up in two halls stays
   split: only the harness players merge one, and nothing in
-  `techtree/schools.ts` or on screen offers the player a way to.
+  `techtree/schools.ts` or on screen offers the player a way to. Put to
+  the owner with a proposed fix (suggest consolidating the split school
+  when another has no hall and none is empty); waiting on the answer.
 - **A school-wide budget, and a CFO to run it.** Most expense lines are
   still derived from what the college owns and enrolls, so underfunding
   can only have a consequence where there is a lever. The levers that
@@ -104,25 +95,15 @@ a sequence of PRs.*
   today is the interim one at the bottom of the distress ladder. The
   precondition the old entry set, money that is actually scarce, now
   holds for the first half of a run (Plan 71).
-- **Student life with teeth.** Athletics got its connections in Plan 21;
-  clubs did not. The social bonus still caps at 30
-  (`STUDENT_LIFE_SOCIAL_BONUS_CAP`), which a college reaches by mid-game,
-  after which a new club counts for nothing.
-- **The quiet founding years** (the merge review's §5, #5). Catalogue
-  events wait for year 3 (`DECISION_EVENT_FIRST_YEAR`); years 1–2 have the
-  board's letters and, since Plan 70I, two notes. Whether the founding
-  stretch wants its own small events is open.
 - **The Faculty tab, and a person page.** The tab has roster and market
   views, *Show every field*, and per-department short and over flags; the
-  order is fixed by teaching. Missing: sort and filter controls, a
-  short-staffed filter, and a page that narrates a career. The person page
-  is half of what makes the faculty lifecycle worth having.
+  order is fixed by teaching. Sort and filter are Plan 72F. Missing
+  still: a page that narrates a career, which is half of what makes the
+  faculty lifecycle worth having.
 - **Per-major mechanical effects.** A cohort pull, a grant rate, a major
   that recruits differently. Today the pull is by category
   (`cohorts.ts`) and one tag (*artsy*) reads the arts. The content half
-  landed in Plan 20, except for **the graduate courses**, which still
-  carry a generated line (`courseDescriptions.ts`) and are the obvious
-  next increment of that work.
+  landed in Plan 20, and the graduate courses' sentences are Plan 72C.
 - **Events that reach further.** The catalogue has 154 events (134 inline,
   20 seismic), but their effects reach only cash, the endowment, debt, the
   maintenance backlog, mood, the board's confidence, alumni warmth, course
@@ -131,10 +112,6 @@ a sequence of PRs.*
   its distinguished status for a year), or campus life. Nobody has
   audited the catalogue for dominant choices since it replaced the old
   table.
-- **The campus map reading the college.** Walkers scale with enrollment,
-  the crane, labs at work, game-day crowds, commencement banners and
-  weathering are all drawn. Missing: a full-residence mark, night, and the
-  seasons on the map (winter is heard in the ambience, not seen).
 - **Athletics deferrals.** **Disbanding a team** is unbuilt, and so what
   happens to a venue whose last team folds is unanswered. **Match
   simulation and a fixture list** stay out by the argument at the head of
@@ -150,18 +127,6 @@ a sequence of PRs.*
   run (Plan 63; Plans 70D and 71 help); the guided line asks for a lab
   project when one can be started only about a third of the weeks (Plan
   58, not re-measured since).
-
-## Small cleanups
-
-- **The charter** is still a modal interrupt; the review wanted a log line
-  and a rename button.
-- **The residences repeat:** four identical 500-bed rungs and four
-  identical 1,000-bed rungs in `campusData.ts`, with the same blurbs. Cut
-  them or make each say something.
-- **Two building effects nobody authors:** `tuitionBonus` and `unlockIds`
-  are declared on `BuildableEffects` and applied in `techSystem.ts`, but no
-  building sets them. Author them or delete them (`applicantPoolBonus` is
-  used, by the grand landmarks).
 
 ## Direction, not plan
 
@@ -208,3 +173,9 @@ plan named and in `docs/design/` or `docs/architecture/`.*
   sound and music:** Plans 24, 34, 37, 38, 44, 48, 62, 64 and 70H.
 - **The consistency review's questions:** all sixteen answered (Plans
   46–51, 59, 70C).
+- **The quiet founding years, and night and seasons on the map:** declined
+  by the owner (September 2026). The founding years are the tutorial by
+  design, with the board's letters and Plan 70I's notes.
+- **The rest of the map reading the college:** walkers by enrollment, the
+  crane, labs at work, crowds, banners and weathering are built; a full
+  residence's mark is Plan 72G.
