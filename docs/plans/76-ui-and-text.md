@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's answer on area 2
 of the October review into PRs.*
 
-**Status: Landed.** A to I merged.
+**Status: Landed.** A to I merged (#221–#226, #228–#230).
 
 ---
 
@@ -596,7 +596,7 @@ claims and 107 vague ones.*
   `tools/review/strings.ts`'s checks, and the quirk names and the summer
   review's answered-by lines are extracted.
 
-**As implemented (#TBD):**
+**As implemented (#230):**
 - **The glossary** is Plan 47's new §2, with the voice, the one-name list,
   a table of the code's words and what the college says instead, the engine
   words kept out, lists and case.
