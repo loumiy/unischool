@@ -28,7 +28,7 @@ import {
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
   VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS, IMPLEMENTED_CREST_PARTS,
-  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf, signifierOf, labFeatureOf, signatureOf,
+  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf, signifierOf, labFeatureOf, signatureOf, gothicCivicOf,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf,
   storeysOf, wallHeightOf, wallShadeOf,
@@ -1019,6 +1019,38 @@ console.log('campus scale and building spec');
     const shared = [...looks].filter(([, jobs]) => jobs.size > 1);
     assert(shared.length === 0,
       `'${vname}': no two buildings that do different things share a drawing (${shared.map(([l, j]) => `${l}: ${[...j].join(', ')}`).join('; ')})`);
+  }
+}
+
+// --- Style slips (Plan 74G, review A1-9) ----------------------------------
+{
+  // A vernacular that names a pitched roof puts it on every pitched hall
+  // and civic portico, whatever the wall: Mission's limestone Social
+  // Sciences hall is under tile, not a gray deck.
+  for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+    const pitched = roofFor(vname).pitchedRoof;
+    if (!pitched) continue;
+    for (const t of CATALOGUE) {
+      const m = motifOf(t);
+      if ((m !== 'hall' && m !== 'portico') || ridgeOf(t, vname) <= 0) continue;
+      assert(materialOf(t, vname).roof === pitched, `${t.id} is roofed in '${vname}''s pitched roof`);
+      assert(materialOf(t, vname) === materialOf(t, vname), `${t.id}'s material is one stable object`);
+    }
+  }
+  const socialSciences = { ...CATALOGUE.find((t) => t.id === 'HALL-01')!, signature: 'Social Sciences & Humanities' } as Buildable;
+  assert(signatureOf(socialSciences)?.material === 'limestone', 'the Social Sciences hall is limestone');
+  assert(materialOf(socialSciences, 'mission').roof === roofFor('mission').pitchedRoof, 'the Mission Social Sciences hall is under tile');
+
+  // Collegiate Gothic's library and gallery leave the flat portico.
+  const library = CATALOGUE.find((t) => t.facilityType === 'library')!;
+  const gallery = CATALOGUE.find((t) => t.facilityType === 'artGallery')!;
+  for (const t of [library, gallery]) {
+    assert(gothicCivicOf(t, 'gothic') !== undefined && ridgeOf(t, 'gothic') > 0, `a Gothic ${t.facilityType} is steep-roofed`);
+    assert(entrancePartOf(t, 'gothic') === 'porch', `and entered through a Gothic porch`);
+    assert(paneShapeOf(t, 'gothic') === 'lancet', 'under lancets');
+    for (const vname of ['georgian', 'classical', 'mission', 'modern'] as Vernacular[]) {
+      assert(gothicCivicOf(t, vname) === undefined && ridgeOf(t, vname) === 0, `a ${vname} ${t.facilityType} keeps its flat portico`);
+    }
   }
 }
 
