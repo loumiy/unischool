@@ -500,9 +500,12 @@ this drift when it comes.
 
 A school opens as **"<Name> College"**. The player writes only the first half at
 founding; the word after it is fixed institutional form. When the **first
-research facility** finishes, a one-time interrupt offers to promote it to
-**"<Name> University"** — the same gate research hangs off, read through the
-same helper so the two can never drift apart. It is a naming change and nothing else: a `suffix` string
-plus a flag recording that the question has been asked, joined for display by
-`institutionName()`. No system reads the name, and either answer closes the
-question for good.
+research facility** finishes, the trustees grant a **university charter**
+and it becomes **"<Name> University"**, with a line in the log — the same
+gate research hangs off, read through the same helper so the two can never
+drift apart. It is a naming change and nothing else: a `suffix` string plus
+a flag recording that the charter was granted, joined for display by
+`institutionName()`. No system reads the name. **The pennant renames the
+college** (Plan 72E): the name the founding screen took, and College or,
+once chartered, University, either way and as often as the player likes.
+Until Plan 72 the charter was a one-time question in a modal.

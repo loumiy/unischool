@@ -322,16 +322,7 @@ export function startDevelopment(s: GameState, node: Buildable, facultyId?: stri
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
-  // Raises only the listed price for future classes, never enrolled ones
-  // (see types.ts's tuitionByClass).
-  if (e.tuitionBonus) s.finance.listedTuition += e.tuitionBonus;
   if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
-  if (e.unlockIds) {
-    for (const id of e.unlockIds) {
-      const target = s.tech.find((t) => t.id === id);
-      if (target && target.status === 'locked') target.status = 'available';
-    }
-  }
 }
 
 // A finished hall gets its slots, all empty (types.ts's HallSlot). A hall

@@ -96,8 +96,6 @@ function advanceUntil(s: GameState, predicate: (s: GameState) => boolean, maxTic
         s = reducer(s, { type: 'RESOLVE_MILESTONE' });
       } else if (type === 'research-complete') {
         s = reducer(s, { type: 'RESOLVE_RESEARCH_REPORT' });
-      } else if (type === 'charter') {
-        s = reducer(s, { type: 'RESOLVE_CHARTER', accept: false });
       } else if (type === 'decision-event') {
         // Take whichever choice the school can actually afford — every
         // authored event guarantees at least one zero-cost option, so this

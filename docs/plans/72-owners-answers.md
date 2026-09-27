@@ -175,11 +175,49 @@ scorecard they move.
 - **`tuitionBonus` and `unlockIds`** are deleted from `BuildableEffects`
   and `techSystem.ts`; no building sets them.
 
+**As implemented** (PR E):
+- **The charter** is granted, not asked: the first quiet week after a lab
+  is at work, the trustees grant it with a log line naming the new name
+  and where to change it. It still takes that week as its own, as the
+  modal did, so `npm run sim` reads the same. The modal, its action and
+  its default answer are gone.
+- **Renaming, from the pennant** (`RENAME_COLLEGE`): a small button on the
+  college's pennant opens a form with the name the founding screen took
+  (same rules: a typed "College" or "University" is dropped, 60 letters
+  at most) and College or, once chartered, University. Either way, as
+  often as the player likes, with a log line.
+- **Saves:** version 79. A version-78 save held at the old modal loads
+  chartered, the week moved on as answering it did
+  (`test/fixtures/save-v78-charter.json`).
+- **`tuitionBonus` and `unlockIds`** are gone from `BuildableEffects` and
+  `techSystem.ts`; the admissions doc no longer mentions the first.
+- **Found on the way:** `prestigeSystem.ts` read satisfaction's
+  `TARGET_RATIO` at module load, and the two modules import each other,
+  so a test bundle that loaded prestige first failed (`save-load` alone,
+  even on `main`). It reads it when used now.
+- **Checks:** `test/charter.test.ts` (the grant, with no modal, once; the
+  rename's rules; the version-78 fixture migrates); `save-load`'s version
+  checks no longer assume the version before this one is 77.
+
 ## PR 72F — Faculty tab: sort and filter
 
 - Sort by teaching, research, salary, years left and department; filter by
   department and by *short-staffed*. The choice is kept for the session.
 - **Checks:** the phone check at 390 wide; a test of the sort orders.
+
+**As implemented** (PR F):
+- Above the department board: *Sort people by* (teaching, research,
+  salary, years left, name), *Department* (all, or any the college uses),
+  and *Short-staffed only* (departments short, or with more on offer than
+  the roster teaches). The sort applies to the roster and the market
+  alike; ties go by name, so a week's growth never shuffles equals. Years
+  left counts to retirement (`careerWeeks`). Picking a department opens
+  it. The choice is kept for the session in the tab's module, not in the
+  save. The market used to be ordered by teaching and research together;
+  it now follows the chosen sort, teaching by default.
+- The logic is pure (`tabs/facultySort.ts`) and tested
+  (`test/faculty-sort.test.ts`); the phone check passes the tab at 390 and
+  820 wide.
 
 ## PR 72G — A full residence on the map
 

@@ -20,7 +20,7 @@
 
 import { discardSetAsideSave, readSetAsideSave } from '../src/state/persistence';
 import { createInitialState } from '../src/state/actions';
-import { loadGame, saveGame, clearSave, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
+import { loadGame, saveGame, clearSave, MIGRATIONS, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import type { GameState } from '../src/state/types';
@@ -72,7 +72,7 @@ function testRetiredCarry(): void {
       old.placements['QUAD-S2'] = { row: 5, col: 20, w: 4, h: 4 };
       old.halls['HALL-07'] = Array.from({ length: 6 }, () => ({ programId: null }));
     }
-    store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION - 1, savedAt: Date.now(), state: old }));
+    store.set(SAVE_KEY, JSON.stringify({ version: 77, savedAt: Date.now(), state: old }));
     const back = loadGame();
     assert(back !== null, `a version-77 save loads (${sited ? 'sited' : 'unsited'})`);
     if (!back) continue;
@@ -313,13 +313,14 @@ function testHallsSanitizer(): void {
 function testRejects(): void {
   const cur = createInitialState('Reject');
 
-  // The version before this one: real content, but a shape this build does
-  // not carry forward. Null, never half-loaded.
-  writeSave(SAVE_VERSION - 2, cur);
-  assert(loadGame() === null, 'two versions back -> null (older than the chain)');
+  // The version before the chain starts: real content, but a shape this
+  // build does not carry forward. Null, never half-loaded.
+  const beforeChain = Math.min(...Object.keys(MIGRATIONS).map(Number)) - 1;
+  writeSave(beforeChain, cur);
+  assert(loadGame() === null, `version ${beforeChain} -> null (older than the chain)`);
   // ...but set aside, not lost: the title screen names it (Plan 46).
   const aside = readSetAsideSave();
-  assert(aside !== null && aside.version === SAVE_VERSION - 2, 'and the unreadable run is kept aside for the title screen to name');
+  assert(aside !== null && aside.version === beforeChain, 'and the unreadable run is kept aside for the title screen to name');
   discardSetAsideSave();
   assert(readSetAsideSave() === null, 'until the player discards it');
 

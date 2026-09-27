@@ -131,8 +131,9 @@ function studentQualityScore(s: GameState): number {
 }
 
 // Library adequacy: a floored multiplier on curriculum breadth, against
-// satisfactionSystem.ts's academic target (before rising expectations).
-const LIBRARY_TARGET_RATIO = TARGET_RATIO.academic;
+// satisfactionSystem.ts's academic target (before rising expectations),
+// read when used rather than at load: the two modules import each other,
+// and a bundle may load this one first.
 const LIBRARY_ADEQUACY_FLOOR = 0.4;
 function libraryAdequacyScore(s: GameState): number {
   const enrolled = totalEnrolled(s.students);
@@ -142,7 +143,7 @@ function libraryAdequacyScore(s: GameState): number {
   const servesPopulation = s.tech
     .filter((t) => standsOnCampus(t) && t.facilityType === 'library')
     .reduce((sum, t) => sum + servingPopulation(t), 0);
-  const ratio = clamp01(servesPopulation / (enrolled * LIBRARY_TARGET_RATIO));
+  const ratio = clamp01(servesPopulation / (enrolled * TARGET_RATIO.academic));
   return clamp(ratio, LIBRARY_ADEQUACY_FLOOR, 1);
 }
 
