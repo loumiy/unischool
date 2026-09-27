@@ -1111,42 +1111,6 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
   );
 }
 
-// The College -> University charter, asked once, the first quiet week after
-// any lab finishes (systems/events/eventSystem.ts). Cosmetic: only the name
-// changes. Either answer closes the question.
-function CharterOfferView({ s, onResolve }: { s: GameState; onResolve: (accept: boolean) => void }) {
-  return (
-    <>
-      <h2>A university charter</h2>
-      <p>
-        With laboratory research now under way on campus, the trustees have petitioned for a
-        university charter. Granting it changes what the college is called and nothing else —
-        no cost, no obligation, and no effect on anything you have built.
-      </p>
-      <div className="event-choices">
-        <button className="event-choice" onClick={() => onResolve(true)}>
-          <span className="event-choice-label">
-            Accept the charter
-            <span className="event-choice-cost">no cost</span>
-          </span>
-          <span className="event-choice-detail">
-            {s.self.name} College becomes {s.self.name} University.
-          </span>
-        </button>
-        <button className="event-choice" onClick={() => onResolve(false)}>
-          <span className="event-choice-label">
-            Remain a college
-            <span className="event-choice-cost">no cost</span>
-          </span>
-          <span className="event-choice-detail">
-            The college keeps the name {s.self.name} College. You will not be asked again.
-          </span>
-        </button>
-      </div>
-    </>
-  );
-}
-
 // A letter to the President (Plan 32): one of the catalog's seismic events.
 // "From the board" is kept for the distress ladder's notes (BoardLetter.tsx).
 // The clock waits on it; its choices are the panel's (EventPanel.tsx).
@@ -1246,7 +1210,7 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
 
   // Enter continues the read-and-continue interrupts, each through its own
   // dedicated action; for a decision event it resolves with no choice
-  // picked, never a paid one. Left out: the charter (a real either/or), the
+  // picked, never a paid one. Left out: the
   // summer's decision beats (their values live in local state), and the
   // athletic director (both). useHotkeys ignores Enter on a focused button
   // or input, so those keep their native behavior.
@@ -1282,7 +1246,7 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
         act({ type: 'RESOLVE_LETTER', skipAll: false });
         break;
       // the summer's decision beats, decision events (Enter used to dismiss
-      // one with no choice, dodging its consequence), charter, the athletic
+      // one with no choice, dodging its consequence), the athletic
       // director, and anything unrecognised: no-op — see above.
     }
   }, interrupt !== null);
@@ -1344,8 +1308,6 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
             schools={(interrupt.payload as { schools: string[] }).schools}
             onResolve={(accept) => act({ type: 'RESOLVE_DEAN_RECOMMENDATIONS', accept })}
           />
-        ) : interrupt.type === 'charter' ? (
-          <CharterOfferView s={s} onResolve={(accept) => act({ type: 'RESOLVE_CHARTER', accept })} />
         ) : interrupt.type === 'letter' ? (
           <LetterView
             s={s}

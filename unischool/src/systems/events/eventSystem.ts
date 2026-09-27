@@ -2,7 +2,7 @@ import { restaffPlan } from '../faculty/restaffing';
 import { tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState } from '../../state/types';
-import { WEEKS_PER_YEAR } from '../../state/types';
+import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayload } from '../../data/eventData';
 import {
   DECISION_EVENTS, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR,
@@ -60,16 +60,26 @@ function fireResearchReport(s: GameState): boolean {
   return true;
 }
 
-// The one-time, cosmetic College -> University charter offer, raised once a
-// lab exists (docs/design/progression.md). Not an authored decision event:
-// it has no cost, roll or repeat.
-function fireCharterOffer(s: GameState): boolean {
+// The one-time, cosmetic College -> University charter, granted once a lab
+// exists (docs/design/progression.md). A log line, not a question (Plan
+// 72E): the name, suffix and all, can be changed from the pennant
+// (RENAME_COLLEGE). It still takes the week it lands, as the modal did.
+function fireCharter(s: GameState): boolean {
   if (s.self.universityCharterOffered) return false;
   // Same helper as research's own lab gate, so the two cannot drift.
   if (labEquippedFields(s).size === 0) return false;
-
-  s.pendingInterrupt = { type: 'charter' };
+  grantCharter(s);
   return true;
+}
+
+export function grantCharter(s: GameState): void {
+  s.self.universityCharterOffered = true;
+  const was = institutionName(s.self);
+  s.self.suffix = 'University';
+  s.log.unshift({
+    year: s.clock.year, week: s.clock.week, kind: 'good', topic: 'milestone',
+    message: `With research under way, the trustees have granted a university charter: ${was} is now ${institutionName(s.self)}. The name can be changed from its pennant.`,
+  });
 }
 
 // The athletic director's offer, raised on a quiet week once a varsity team
@@ -281,7 +291,7 @@ export function tickEvents(s: GameState): void {
   // Priority order: earned celebrations and one-shot questions first, the
   // random decision roll last.
   if (fireMilestoneCelebration(s)) return;
-  if (fireCharterOffer(s)) return;
+  if (fireCharter(s)) return;
   if (fireDeanRecommendations(s)) return;
   if (fireResearchReport(s)) return;
   if (fireChampionshipReport(s)) return;

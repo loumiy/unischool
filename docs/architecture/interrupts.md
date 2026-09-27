@@ -143,14 +143,15 @@ Everything that needs to stop time rides on this one mechanism:
   queues like a milestone rather than firing on the spot, and it shares the
   decision events' cooldown, so it redistributes the existing texture budget
   instead of adding a stream on top of it.
-- **The university charter** — a single question, asked once, the first quiet
-  week after any lab finishes: keep the "College" the school opened as, or
-  become a "University". Cosmetic in full.
+- **The university charter** — no longer an interrupt (Plan 72E): granted
+  with a log line the first quiet week after any lab finishes, which it
+  still takes as its own. The pennant renames the college (see
+  [progression.md](../design/progression.md)'s "College, and University").
 - **The athletic director's offer** — the one interrupt athletics raises of its
   own, the first quiet week after the school fields a varsity team: three
   candidates rolled into the payload, and the mascot named in the same modal
-  (see [student-life.md](../design/student-life.md)). Unlike the charter it is
-  **not** a one-shot — declining returns it after a cooldown — so it records the
+  (see [student-life.md](../design/student-life.md)). It is **not** a
+  one-shot — declining returns it after a cooldown — so it records the
   week it was **put** rather than the week it was answered. That is what keeps a
   cleared-but-unanswered modal from re-firing on the next quiet week and
   starving every other event that shares the slot.
