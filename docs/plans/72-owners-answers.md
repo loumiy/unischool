@@ -2,7 +2,7 @@
 
 *Planning document only. Its job is to turn the owner's answers into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** PRs A–M merged.
 
 ---
 
@@ -55,7 +55,7 @@ answers:
 | J | The scorecard: the high-price line's targets, re-read after H and I | 1 | targets only |
 | K | The Japanese garden, in place of a formal garden drawn as a small Grand Quad | the owner, later | no |
 | L | The split-school trap: the game suggests the merge | 12 | a little (the harness players already merged) |
-| M | The Fountain and the Founder's Statue drawn on their own | the owner, later | no |
+| M | The Fountain and the Founder's Statue drawn on their own; the Japanese garden denser | the owner, later | no |
 
 B through G can land in any order; H and I before J, since J re-reads the
 scorecard they move. L and M came after J, from the owner's later answers.
@@ -416,13 +416,42 @@ its own; the game never suggested it.
   offer from a school that has a hall, with a hall already empty, or when
   the smaller hall would not fit).
 
-## PR 72M — The Fountain and the Founder's Statue
+## PR 72M — The Fountain, the Founder's Statue and the garden
 
-*The owner's answer, later.* Both amenities reused the quads' centerpieces:
+*The owner's answers, later.* Both amenities reused the quads' centerpieces:
 the statue the tier-1 quad's column, the fountain the Grand Quad's pool.
 Each gets its own drawing, the statue a figure in bronze on a stepped
-plinth, the fountain a tiered one in an octagonal basin. Nothing else
-changes.
+plinth, the fountain a tiered one in an octagonal basin. On the first
+screenshots the owner asked for the statue's raised arm to go (it read as
+a salute), and for the Japanese garden (K) to be denser, with cherry
+blossoms and a temple or a gate and without the raked gravel, after a
+picture they chose.
+
+**As implemented:**
+- **The Founder's Statue:** a lawn crossed by two paved walks, a paved
+  square, a stepped stone plinth, and a standing figure in a long coat
+  half again a walker's height, both arms down and a book in the near
+  hand.
+- **The Fountain:** a paved round with four stone benches, an octagonal
+  basin with a low wall, a pedestal carrying a wide bowl and a small one
+  above it, a veil of water falling from each, and a jet on top.
+- **The Japanese garden:** grass in place of the gravel; a larger koi pond
+  with lily pads (two in flower) and a mossy margin, rocks round it, and
+  the red bridge now crossing its width with posts along the rails; a
+  vermilion torii with a black lintel over a path of stepping stones that
+  runs to the bridge; a three-tiered pagoda (redrawn after a second
+  picture from the owner: white walls framed by red posts and beams, flared
+  roofs of dark blue tiles narrowing as they rise, a gold spire, a grey
+  stepped base with a red runner and an arched door); twelve
+  cherry trees in blossom and three pines; azaleas; the stone lantern; and
+  petals on the grass and the water, placed by a fixed hash so the run's
+  stream is untouched. The catalog's and the ladder's lines say what it
+  has.
+- Ids, footprints, costs, weeks, upkeep and beauty unchanged: saves carry
+  all three, and the sim reads the same.
+- Screenshots: `docs/reviews/2026-09-monuments/` (the statue and the
+  fountain, both beside the Grand Quad, and the garden, alone and from
+  each of the four camera views).
 
 ## What this plan does not do
 
