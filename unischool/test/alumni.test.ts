@@ -50,7 +50,7 @@ function withYears(rows: YearSnapshot[]): GameState {
   const memory = memoryFor(happy, c);
   assert(memory.includes('happy'), `a happy four years is remembered (${memory.join(', ')})`);
 
-  const grim = withYears([1, 2, 3, 4, 5].map((y) => row(y, { satisfactionAverage: 40, net: -1e5, worstRung: y === 4 ? 5 : 1 })));
+  const grim = withYears([1, 2, 3, 4, 5].map((y) => row(y, { satisfactionAverage: 40, net: -1e5, worstRung: y === 4 ? 5 : 2 })));
   const gm = memoryFor(grim, classYears(grim, 5));
   assert(gm.includes('receivership') && gm.includes('unhappy') && gm.includes('deficits'), `and so is a grim one (${gm.join(', ')})`);
   assert(gm[0] === 'receivership', 'loudest first');
@@ -59,7 +59,7 @@ function withYears(rows: YearSnapshot[]): GameState {
   const quiet = withYears([1, 2, 3, 4, 5].map((y) => row(y)));
   const qm = memoryFor(quiet, { ...classYears(quiet, 5), teaching: 50 });
   assert(qm.join() === 'quiet', `a class nothing happened to is quiet (${qm.join(', ')})`);
-  assert(memoryLine({ classYear: 5, memory: ['happy', 'well-taught', 'building-years', 'deficits'] }) === 'The class of 5: happy in it, properly taught and there for the building years.', 'the line shows three clauses');
+  assert(memoryLine({ classYear: 5, memory: ['happy', 'well-taught', 'building-years', 'deficits'] }) === 'The class of 5: happy in it, well taught and there for the building years.', 'the line shows three clauses');
 
   const leaky = withYears([1, 2, 3, 4, 5].map((y) => row(y, { attrition: 80 })));
   assert(memoryFor(leaky, classYears(leaky, 5)).includes('thinned'), 'a college losing a twelfth a year thins its classes');

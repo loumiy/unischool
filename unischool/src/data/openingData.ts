@@ -40,7 +40,7 @@ export const OPENING_STEPS: Record<Exclude<OpeningStage, 'play'>, OpeningStep> =
   teaching: {
     eyebrow: 'Step two',
     title: 'The college already teaches',
-    body: () => `Founders Hall stands, and inside it ${foundingNames()} are being taught: three programs, two courses each, and a professor on every one. A program is a row of nine courses; each is developed — paid for once, built over some weeks, and taught by one of your professors from then on — and the next of each row is ready to start. The Curriculum is where you see all of that.`,
+    body: () => `Founders Hall stands, and inside it ${foundingNames()} are being taught: three programs, two courses each, and a professor on every one. A program is a row of nine courses; each is developed — paid for once to develop, built over some weeks, then carried each week and taught by one of your professors from then on — and the next of each row is ready to start. The Curriculum is where you see all of that.`,
     next: 'Next',
   },
   found: {

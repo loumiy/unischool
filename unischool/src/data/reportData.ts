@@ -22,12 +22,12 @@ export const TAG_PHRASES: Readonly<Record<string, string>> = {
   'research-powerhouse': 'a research powerhouse',
   'teaching-college': 'a teaching college',
   'party-school': 'a party school',
-  'jock-school': 'a jock school',
+  'jock-school': 'an athletics school',
   artsy: 'an artists\' college',
   commuter: 'a commuter school',
   'country-club': 'a country club',
   'pressure-cooker': 'a pressure cooker',
-  'the-bargain': 'the bargain of its region',
+  'the-bargain': 'a bargain college',
   'old-money': 'an old-money college',
 };
 
@@ -48,32 +48,32 @@ export const TAG_AXIS: Readonly<Record<string, ReportAxis>> = {
 export const AXIS_PHRASES: Readonly<Record<ReportAxis, string>> = {
   academics: 'a serious academic college',
   research: 'a research college',
-  experience: 'a college its students loved',
-  athletics: 'a sporting college',
+  experience: 'a college with a campus life to envy',
+  athletics: 'an athletic college',
   access: 'a college that opened its doors',
   finance: 'a well-endowed college',
 };
 
 export const WEAKNESSES: Readonly<Record<ReportAxis, string>> = {
-  academics: 'never quite learned to teach',
+  academics: 'never earned its academic name',
   research: 'never wrote a paper anyone read',
-  experience: 'never learned to make its students happy',
-  athletics: 'never won a game that mattered',
+  experience: 'never gave its students much of a campus life',
+  athletics: 'never fielded a team anyone feared',
   access: 'never opened its doors very wide',
-  finance: 'never balanced its books',
+  finance: 'never built an endowment to match its size',
 };
 
 // A weakest standing scoring under this is named in the title.
 export const WEAKNESS_BELOW = 45;
 
 export const REPORT_SHAPES = {
-  strength: '{college}: {phrase}, and a very good one',
+  strength: '{college}: {phrase}, with no glaring weakness',
   title: '{college}: {phrase} that {tail}',
 } as const;
 
 export const VERDICTS = {
   rich: 'It left its successors far richer than it found itself: the endowment grew from {from} to {to}.',
-  steady: 'It kept its money: the endowment went from {from} to {to}, and the books mostly balanced.',
+  steady: 'It kept its money: the endowment went from {from} to {to}.',
   poorer: 'It spent what it was given: the endowment went from {from} to {to}.',
   distress: 'It spent {years} in distress{scars}.',
   scars: ', and had an interim CFO appointed {times}',
@@ -87,11 +87,11 @@ export const REPORT_DRAFT_FROM = 10;
 
 export const REPORT_WORDS = {
   title: 'The Final Report',
-  eyebrow: 'Year 50 · the run formally ends',
-  mark: 'Final mark',
+  eyebrow: 'Year 50 · the fiftieth year closes',
+  mark: 'Final grade',
   markHint: 'The whole arc, not the last snapshot: where each standing stood across fifty years, how far it came from the first decade to the last, where the guide put the college at the end, and how many promises it kept.',
   axes: 'The six standings, graded over the arc',
-  axisLine: 'Averaged {mean} over the run; {first} in the first decade, {last} in the last.',
+  axisLine: 'Averaged {mean} over fifty years; {first} in the first decade, {last} in the last.',
   promises: 'The promises',
   promisesLine: '{kept} kept, {missed} missed, {declined} declined.',
   promisesNone: 'The college made no promises in public.',
@@ -100,8 +100,8 @@ export const REPORT_WORDS = {
   rank: 'The guide\'s last word: {rank} of {total}.',
   chart: 'The six standings, year by year',
   draft: 'The Final Report is written at the fiftieth summer. Until then, the arc so far.',
-  notYet: 'The Final Report is written at the fiftieth summer, and drafted from the tenth: a college is not graded on its first decade.',
-  epilogue: 'The run is over; the college is not. This summer goes on to set Year 51\'s tuition and admit its class; then the clock runs on, and every ten years the chronicle gets an addendum. Nothing new unlocks.',
+  notYet: 'The Final Report is written at the fiftieth summer, and drafted from the tenth: the first decade is too early to judge.',
+  epilogue: 'The fifty years are over; the college is not. This summer goes on to set Year 51\'s tuition and admit its class; then the clock runs on, and every ten years the chronicle gets an addendum. No new era of the game opens.',
   addendum: 'Addendum, Years {from}–{to}',
   // Play again (Plan 70J): what Found another college says before it acts.
   newCollege: 'This run hangs in the hall of fame, and the college closes its books for good: no Epilogue, no addenda. A new name, a new campus, Year 1.',

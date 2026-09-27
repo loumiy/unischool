@@ -71,8 +71,11 @@ export function attritionReasons(s: GameState): string[] {
 // reducer reads at RESOLVE_ADMISSIONS.
 // An identity tag's teeth (Plan 31) move it: a Teaching College keeps its
 // students, a Pressure Cooker loses more.
-export function summerAttrition(s: GameState): number {
-  return Math.max(0, attritionRate(trailingYearSatisfaction(s)) + tagTeeth(s, 'attrition'));
+// The summer passes the year's average it has already read (it resets the
+// accumulators before it advances the classes), so the preview and the
+// summer are one function (Plan 76C).
+export function summerAttrition(s: GameState, yearSatisfaction = trailingYearSatisfaction(s)): number {
+  return Math.max(0, attritionRate(yearSatisfaction) + tagTeeth(s, 'attrition'));
 }
 
 // Whichever of the two capacity needs the projected body leaves shortest.

@@ -6,7 +6,9 @@ import {
 } from '../../data/promiseData';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../../state/types';
 import { hashUnit } from '../../data/rivalData';
-import { applyEffects, priceScale, scaledEffects, whenMet } from '../events/catalogue';
+import { MONEY_CONDITIONS, applyEffects, priceScale, scaledEffects, whenMet } from '../events/catalogue';
+import type { ConditionKey } from '../../data/eventCatalogueTypes';
+import { moneyShort } from '../../format';
 
 // PROMISES (Plan 33, V2 #25, #26): the president's public commitments. Each
 // summer the promises that came due are read out, kept or missed, and paid
@@ -20,8 +22,30 @@ export function promisesOf(s: GameState): PromiseState {
   return s.promises ?? { active: [], settled: [], declined: [], offer: null };
 }
 
-export function goalMet(s: GameState, def: PromiseDef): boolean {
-  return whenMet(s, def.goal);
+export function goalMet(s: GameState, def: PromiseDef, scale = priceScale(s)): boolean {
+  return whenMet(s, def.goal, scale);
+}
+
+// A promise's words, filled in (Plan 76C): {college}, {years} (its term, in
+// words) and {sum} (its goal's money, at the scale it is judged on), so a
+// title never names a figure the promise is not held to.
+const YEAR_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen'];
+export function fillPromise(s: GameState, def: PromiseDef, text: string, scale = priceScale(s)): string {
+  const money = (Object.entries(def.goal) as [ConditionKey, number][]).find(([k]) => MONEY_CONDITIONS.has(k));
+  return fillCollege(s, text)
+    .replace(/\{years\}/g, YEAR_WORDS[def.years] ?? String(def.years))
+    .replace(/\{sum\}/g, money ? moneyShort(money[1] * scale) : '');
+}
+
+export function promiseTitle(s: GameState, def: PromiseDef, scale = priceScale(s)): string {
+  const title = fillPromise(s, def, def.title, scale);
+  return title[0].toUpperCase() + title.slice(1);
+}
+
+// A settled promise's title, at the scale it was judged on.
+export function settledTitle(s: GameState, p: { id: string; scale?: number }): string {
+  const def = promiseById(p.id);
+  return def ? promiseTitle(s, def, p.scale) : p.id;
 }
 
 // Never one held or settled, never one whose terms are unmet, and never one
@@ -69,10 +93,11 @@ export function openSummerPromises(s: GameState): void {
     const def = promiseById(a.id);
     p.active = p.active.filter((x) => x !== a);
     if (!def) continue;
-    const kept = goalMet(s, def);
+    const held = a.scale ?? scale;
+    const kept = goalMet(s, def, held);
     applyEffects(s, scaledEffects(kept ? def.reward : def.penalty, scale));
-    p.settled.push({ id: def.id, year: s.clock.year, kept });
-    log(s, `${kept ? 'Kept' : 'Missed'}: ${def.title}. ${fillCollege(s, kept ? def.kept : def.missed)}`, kept ? 'good' : 'bad');
+    p.settled.push({ id: def.id, year: s.clock.year, kept, scale: held });
+    log(s, `${kept ? 'Kept' : 'Missed'}: ${promiseTitle(s, def, held)}. ${fillPromise(s, def, kept ? def.kept : def.missed, held)}`, kept ? 'good' : 'bad');
   }
   p.offer = null;
   const room = PROMISE_CAP - p.active.length;
@@ -125,8 +150,9 @@ export function answerPromises(s: GameState, take: readonly string[]): void {
     const def = promiseById(id);
     if (!def) continue;
     if (taken.includes(id)) {
-      next.active.push({ id, madeYear: s.clock.year, dueYear: s.clock.year + def.years });
-      log(s, PROMISE_LINES.accepted.replace('{title}', def.title).replace('{years}', String(def.years)), 'info');
+      const scale = priceScale(s);
+      next.active.push({ id, madeYear: s.clock.year, dueYear: s.clock.year + def.years, scale });
+      log(s, PROMISE_LINES.accepted.replace('{title}', promiseTitle(s, def, scale)).replace('{years}', String(def.years)), 'info');
     } else {
       next.declined.push({ id, year: s.clock.year });
     }

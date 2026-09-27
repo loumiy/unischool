@@ -2,6 +2,7 @@ import { endowmentHalf } from '../systems/estate/projects';
 import { useEffect, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
+import { NEED_WORD } from '../data/needWords';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { awaitsSite } from '../state/campusMap';
@@ -105,7 +106,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
   {
     key: 'recCenter',
-    label: 'Fitness',
+    label: 'Fitness (health)',
     repeatable: true,
     match: (t) => t.facilityType === 'recCenter' || t.facilityType === 'gym' || t.facilityType === 'tennisCourts' || t.facilityType === 'pool',
   },
@@ -265,16 +266,18 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
 
 // What one finished instance is worth (beds, seats, slots).
 function builtDetail(t: Buildable): string | undefined {
-  if (t.facilityType === 'lab') return 'gates capstone coursework';
+  if (t.facilityType === 'lab') return 'required for capstone courses';
   if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? 0).toLocaleString()} beds`;
   if (isAcademicHall(t)) return `${t.slots} program slots`;
   // Carries no `effects`: its beds were applied directly to capacity when
   // the petition was approved.
   if (t.chapterHouse) return `${CHAPTER_HOUSE_CAPACITY_BONUS.toLocaleString()} beds`;
   const flat = t.effects?.flatSatisfactionBonus;
-  if (flat) return `+${flat} flat`;
+  if (flat) return `+${flat} social life`;
   const serves = t.effects?.servesPopulation;
-  if (serves) return `serves ${serves.toLocaleString()}`;
+  // The need it serves (Plan 76C): the gym's number is health, not social.
+  const need = t.effects?.satisfactionAttribute;
+  if (serves) return `serves ${serves.toLocaleString()}${need ? ` · ${NEED_WORD[need]}` : ''}`;
   return undefined;
 }
 
@@ -330,7 +333,7 @@ function BuildTile({
           disabled={shortfall > 0 || frozen}
           title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
-            : `Expands the ${t.name} in place — no new building. Adds ${rung.seatsGain.toLocaleString()} seats for the gate and ${rung.servesGain.toLocaleString()} of social capacity over ${rung.weeks} weeks; the teams keep playing while the work is underway.`}
+            : `Expands the ${t.name} in place — no new building. Adds ${rung.seatsGain.toLocaleString()} seats for the gate and their prestige at once, and ${rung.servesGain.toLocaleString()} of social capacity when the ${rung.weeks} weeks of work are done; the teams keep playing while the work is under way.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
           {marker && <span className="kind-tag">{marker}</span>}
@@ -718,7 +721,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what's built, what's under construction, and what's next available. Repeatable types (housing, dining, fitness) collapse what's already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed share of the enrolled student body, so a bigger class raises the bar for campus life whether or not you've built it any beds — most students commute, and housing itself is its own need (see the Students tab's Housing attribute), not an admissions requirement. Anything not yet unlockable is left off rather than teased. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that's the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
+      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what is built, what is under construction, and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life whether or not the college has built it any beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though beds widen the applicant pool up to 2,500 of them. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">

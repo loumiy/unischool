@@ -2,14 +2,15 @@ import type { EventDomain } from './seatData';
 import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
-import { FACULTY_FIELDS, generateCandidate, rollSurname } from './facultyData';
+import { FACULTY_FIELDS, generateCandidate, marketRateMultiplier, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
 import { rollAmount, weeksOfOpEx } from './moneyScale';
 import {
-  CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, orgMembership,
+  CHAPTER_HOUSE_CAPACITY_BONUS, CHAPTER_HOUSED_SOCIAL_BONUS, CHAPTER_SOCIAL_BONUS, STUDENTS_PER_CHAPTER, orgMembership,
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
-  CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics} from './studentLifeData';
+  CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics, ATHLETICS_BUDGET_TIERS } from './studentLifeData';
 import { RESEARCH_PARK_ID } from './researchData';
+import { PROJECTS } from './projectData';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, academicHallId, graduateProgram, milestoneSchools, programById } from './techData';
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { claimedHalls, dedicatedHalls, dedicatedSchool, nextSchoolToMove, programsAwayFromHome, suggestedMove, type Claim } from '../systems/techtree/schools';
@@ -128,7 +129,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     return {
       key,
       headline: `This is the School of ${subject}`,
-      detail: `Six programs, one building. Until now these were ${subject}'s programs in a color with no name; housed together, they are a school, and the hall they share is ${subject} Hall. The name is permanent, and a donor may now put a family name on it.`,
+      detail: `Six programs, one building. Until now these were ${subject}'s programs in a color with no name; housed together, they are a school, and the hall they share is ${subject} Hall while the school fills it. The school's name is permanent, and a donor may now put a family name on it.`,
       unlocks: s.tech
         .filter((t) => t.schoolGate === subject && t.status !== 'locked')
         .map((t) => t.name),
@@ -501,7 +502,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         mood: 1,
         label: 'Charter the council',
         describe: () =>
-          `Chapters begin forming from here on, each petitioning for recognition in the summer's Students beat like any other society. A chapter is worth ${CHAPTER_SOCIAL_BONUS} points of social satisfaction against a club's fraction of that, carries a real recurring cost, and will eventually bring you its own problems.`,
+          `Chapters form as the college grows, one for every ${STUDENTS_PER_CHAPTER.toLocaleString('en-US')} students enrolled, each petitioning for recognition at the summer's student review like any other society. A chapter is worth up to ${CHAPTER_SOCIAL_BONUS} points of social life against a club's fraction of that, carries a real recurring cost, and will eventually bring you its own problems.`,
         cost: () => 0,
         apply: (s) => {
           s.orgs.hellenicCouncilApproved = true;
@@ -570,7 +571,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const bonus = chapter
             ? CHAPTER_SOCIAL_BONUS + (chapter.housed ? CHAPTER_HOUSED_SOCIAL_BONUS : 0)
             : CHAPTER_SOCIAL_BONUS;
-          return `No cash spent. ${ctx.subjectName} is dissolved permanently: ${bonus.toFixed(1)} points of social satisfaction and ${money(chapter?.upkeepPerWeek ?? 0)} a week of cost go with it. It cannot be re-chartered.`;
+          return `No cash spent. ${ctx.subjectName} is dissolved permanently: up to ${bonus.toFixed(1)} points of social life and ${money(chapter?.upkeepPerWeek ?? 0)} a week of cost go with it${chapter?.housed ? `, and the ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of its house` : ''}. It cannot be re-chartered.`;
         },
         cost: () => 0,
         apply: (s, ctx) => {
@@ -615,7 +616,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'build',
         label: 'Build the chapter house',
         describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social satisfaction from the week it opens and adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both effective immediately — the house itself is revealed in the build menu, under Housing, for you to place on campus.`,
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes up to a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social life from the week it opens and adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both effective immediately — the house itself is revealed in the build menu, under Housing, for you to place on campus.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -711,17 +712,19 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
     prompt: (s, ctx) => {
       const ad = s.orgs.athleticDirector;
       const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
-      return `${ad?.name ?? 'The Athletic Director'} has been on at you about ${ctx.subjectName}: it has been running without a ${role}, `
+      return `${ad?.name ?? 'The Athletic Director'} has been after the President about ${ctx.subjectName}: it has been running without a ${role}, `
         + `and they have somebody in mind who will not be on the open market for long.`;
     },
     choices: [
       {
         id: 'appoint',
         label: 'Let them make the hire',
-        describe: (_s, ctx) => {
+        describe: (s, ctx) => {
           const c = ctx.coach;
           const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
-          return `${money(ctx.amount ?? 0)} to get it done, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
+          // Pay runs through the athletics budget's tier (varsityTeamUpkeep).
+          const pay = c ? c.salary * ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].upkeepMultiplier : 0;
+          return `${money(ctx.amount ?? 0)} to get it done, and ${c ? `${money(pay)}/yr at this budget, rising with tenure,` : 'a salary'} thereafter. `
             + `${c ? `${c.name} takes the ${role}'s chair at quality ${c.quality}` : `The chair is filled`} — better than the market usually turns up.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -881,16 +884,16 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       };
     },
     prompt: (s, ctx) =>
-      `${ctx.subjectName} has passed ${institutionName(s.self)} in this year's table, and the board has noticed. `
-      + `A trustee is proposing a response, and either would cost ${money(ctx.amount ?? 0)}: an endowed chair in ${ctx.subjectField}, `
+      `${ctx.subjectName} has passed ${institutionName(s.self)} in this year's rankings, and the board has noticed. `
+      + `A trustee is proposing a response, and either would cost ${money(ctx.amount ?? 0)}: a funded chair in ${ctx.subjectField}, `
       + `or a campaign the board would put its own name to.`,
     choices: [
       {
         id: 'chair',
-        label: `Endow the chair`,
-        describe: (_s, ctx) => {
+        label: `Fund the chair`,
+        describe: (s, ctx) => {
           const c = ctx.candidate;
-          return `${money(ctx.amount ?? 0)} up front, and ${c ? `${money(c.salary)}/yr` : 'a salary'} thereafter. `
+          return `${money(ctx.amount ?? 0)} up front, and ${c ? `${money(c.salary * marketRateMultiplier(s.self.reputation))}/yr` : 'a salary at the market rate'} thereafter. `
             + `${c ? `${c.name} takes the chair in ${ctx.subjectField}, teaching ${c.teaching} · researching ${c.research}` : 'A scholar takes the chair'} — the best the board could find.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
@@ -899,7 +902,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const person = ctx.candidate
             ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
           appointFaculty(s, person);
-          return entry(s, `${person.name} (${field}) takes the trustees' chair, endowed in answer to ${ctx.subjectName}, at ${money(person.salary)}/yr.`, 'good', 'appointment', person.id);
+          return entry(s, `${person.name} (${field}) takes the trustees' chair, funded in answer to ${ctx.subjectName}, at ${money(person.salary * marketRateMultiplier(s.self.reputation))}/yr.`, 'good', 'appointment', person.id);
         },
       },
       {
@@ -947,7 +950,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const venueLine = venue?.status === 'done'
         ? `${venue.name} already stands and could host them immediately.`
         : `The college has no venue for ${sport?.teamName ?? 'this sport'} yet — going varsity means building ${venue ? venue.name : 'one'} before the team can actually compete.`;
-      return `${ctx.subjectName} has outgrown intramural play and wants varsity status: real recruiting, a paid coach, and a conference schedule. ${venueLine} Establishing the program costs ${money(ctx.amount ?? 0)}.`;
+      return `${ctx.subjectName} has outgrown intramural play and wants varsity status: a program budget, paid coaches and a place in the national season. ${venueLine} Establishing the program costs ${money(ctx.amount ?? 0)}, and ${money(weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX))} a week to run it.`;
     },
     choices: [
       {
@@ -957,7 +960,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const sport = sportById(ctx.subjectField);
           const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
           const ready = venue?.status === 'done';
-          return `${money(ctx.amount ?? 0)} up front for a program budget — the coaching staff is hired separately, from the Athletics tab's own candidate pool. ` + (
+          return `${money(ctx.amount ?? 0)} up front for a program budget, and ${money(weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX))} a week to run it from now on, whether or not it has a venue yet — the coaching staff is hired separately, from the Athletics tab's own candidate pool. ` + (
             ready
               ? `${venue!.name} is already standing, so the team is varsity-active immediately.`
               : `${venue ? venue.name : 'A shared venue'} is revealed for construction in the build menu — the team is varsity-active once it is built, and shared with any other team in the same category.`
@@ -1131,7 +1134,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     body: (s) => {
       const founding = FOUNDING_PROGRAMS.map((id) => programById(id)?.name ?? id);
       const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
-      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three rooms still empty. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free room: the program's first course starts the moment you pick who teaches it. Founders Hall is where every program begins, and most will not stay: in time they move into halls of their own school.`;
+      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three rooms still empty. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free room: the program's first course starts the moment you pick who teaches it. Programs begin in Founders Hall until their school has a hall of its own, and most will not stay: in time they move into halls of their own school.`;
     },
     ask: () => ({ text: 'Found a fourth program in Founders Hall', ...FOUNDERS_HALL_ASK, intent: { kind: 'found', hallId: FOUNDERS_HALL_ID } }),
     done: (s) => housedProgramCount(s) > FOUNDING_PROGRAMS.length,
@@ -1147,7 +1150,11 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
         .map((slot) => (slot.programId ? programById(slot.programId)?.school : undefined))
         .filter((school): school is string => school !== undefined))];
       const elm = hallName(s, FIRST_HALL_ID);
-      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum. Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''} — and it is where programs start, not where they stay. A school is six of its programs in a hall of its own, and ${elm} is the first: six rooms, three quarters of a million, sixteen weeks to build. Site it now; when it stands, the first school moves in.`;
+      // The price and the weeks are the hall's own (Plan 76C): a typed sum
+      // outlived the Plan 71 retune.
+      const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
+      const terms = hall ? `, ${money(hall.cost)}, ${count(hall.duration)} weeks to build` : '';
+      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum. Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''} — and it is where programs start, not where they stay. A school is six of its programs in a hall of its own, and ${elm} is the first: six rooms${terms}. Site it now; when it stands, the first school moves in.`;
     },
     ask: (s) => ({ text: `Site ${hallName(s, FIRST_HALL_ID)}`, go: 'build', intent: { kind: 'site', buildableIds: [FIRST_HALL_ID] } }),
     done: (s) => FIRST_HALL_ID in s.placements,
@@ -1203,7 +1210,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const teaching = names.length === 1
         ? `${school} has one program in Founders Hall, ${names[0]}`
         : `${school} has ${count(names.length)} programs in Founders Hall — ${list(names)} — more than any other school`;
-      return `${elm} stands, and it is empty. ${teaching}, so ${school} moves first. Open ${names[0]} in Founders Hall and move it: out of Founders Hall a move is ${count(FOUNDERS_MOVE_WEEKS)} weeks dark, not the ${count(RELOCATION_WEEKS)} a move between halls costs, because nothing has grown up around it yet. ${elm} is ${school}'s from then on.`;
+      return `${elm} stands, and it is empty. ${teaching}, so ${school} moves first. Open ${names[0]} in Founders Hall and move it: out of Founders Hall a move is ${count(FOUNDERS_MOVE_WEEKS)} weeks dark, not the ${count(RELOCATION_WEEKS)} a move between halls costs, because nothing has grown up around it yet. ${elm} is ${school}'s while only ${school} programs are founded there.`;
     },
     ask: (s) => {
       const elm = hallName(s, FIRST_HALL_ID);
@@ -1274,7 +1281,11 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     title: 'The laboratories',
     body: (s) => {
       const labs = standingLabs(s).map((t) => t.name);
-      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one initiative at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see an initiative through in every lab this college builds. When each has finished one, the Research Park opens — the home of Landmark research — and the college is a research university in fact as well as in name. Doctorates come separately: the Graduate College opens once any school teaches every one of its courses.`;
+      // The gates read off the projects themselves (Plan 76C).
+      const park = PROJECTS.find((p) => p.id === RESEARCH_PARK_ID)?.project;
+      const parkOpens = park ? `from Year ${park.fromYear}` : 'in time';
+      const graduateYear = PROJECTS.find((p) => p.id === 'PROJ-GRADUATE')?.project.fromYear ?? 15;
+      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one initiative at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see an initiative through in every lab this college builds. When each has finished one, the Research Park opens (${parkOpens}), which opens Landmark research to every lab, and the college is a research university in fact as well as in name. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
     },
     ask: (s) => {
       const lab = standingLabs(s).find((t) => !finishedLab(s, t.id));
@@ -1291,7 +1302,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     week: 1,
     arrives: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'locked'),
     title: 'The Research Park',
-    body: () => 'Every lab on campus has seen an initiative through, and the trustees have found the land: the Research Park — laboratories for rent to companies who want to be near the faculty — can be built. It is where Landmark research is commissioned, the deepest and most expensive work a university does, and the kind that wins prizes.',
+    body: () => 'Every lab on campus has seen an initiative through, and the trustees have found the land: the Research Park, laboratories where faculty and industry work side by side, can be built. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes.',
     ask: () => ({ text: 'Site the Research Park', go: 'build', intent: { kind: 'site', buildableIds: [RESEARCH_PARK_ID] } }),
     done: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && (t.status === 'developing' || t.status === 'done')),
   },

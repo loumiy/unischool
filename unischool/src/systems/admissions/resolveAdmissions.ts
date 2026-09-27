@@ -11,9 +11,9 @@ import { captureYearSnapshot } from '../../state/history';
 import { EPILOGUE_DECADE, finalReport } from '../../state/finalReport';
 import { summariseYears } from '../chronicle/chronicle';
 import { SEMICENTENNIAL_YEAR } from '../../state/types';
-import { advanceClasses, attritionRate, priceTolerance, projectAdmissions, trailingYearSatisfaction } from './admissionsSystem';
+import { advanceClasses, priceTolerance, projectAdmissions, trailingYearSatisfaction } from './admissionsSystem';
 import { cohortCounts, deriveCohortSignals } from './cohorts';
-import { attritionReasons } from './consequences';
+import { attritionReasons, summerAttrition } from './consequences';
 import { applyReportCard, crowdingScore, gradeYear } from '../prestige/prestigeSystem';
 import { intakeCeiling } from '../techtree/instructionCapacity';
 import {
@@ -129,7 +129,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // and the incoming class arrives at the price just set. advanceClasses is
   // the same pure function the admissions panel projects with
   // (consequences.ts), so projection and tick cannot diverge.
-  const attrition = attritionRate(priorYearAvgSatisfaction);
+  const attrition = summerAttrition(s, priorYearAvgSatisfaction);
   const reasons = attritionReasons(s);
   const advanced = advanceClasses(
     {
