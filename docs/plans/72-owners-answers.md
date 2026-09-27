@@ -422,7 +422,8 @@ picture they chose.
 - Ids, footprints, costs, weeks, upkeep and beauty unchanged: saves carry
   all three, and the sim reads the same.
 - Screenshots: `docs/reviews/2026-09-monuments/` (the statue and the
-  fountain, both beside the Grand Quad, and the garden).
+  fountain, both beside the Grand Quad, and the garden, alone and from
+  each of the four camera views).
 
 ## What this plan does not do
 
