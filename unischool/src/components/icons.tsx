@@ -74,7 +74,7 @@ export function HistoryIcon() {
   );
 }
 
-// An envelope: the inbox (Plan 76).
+// An envelope: the inbox (Plan 77).
 export function InboxIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>

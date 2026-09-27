@@ -3,14 +3,12 @@ import { totalEnrolled } from '../state/types';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
 import { fill, scaledEffects } from '../systems/events/catalogue';
 import { choiceCost } from '../systems/events/catalogueEngine';
-import { money } from '../format';
+import { money, signed, signedMoney } from '../format';
 
 // An event's text and its answers (Plan 32), shared by the inbox's reading
-// pane (InboxTab.tsx, Plan 76) and the board's letters, which are modal
+// pane (InboxTab.tsx, Plan 77) and the board's letters, which are modal
 // (InterruptModal.tsx's CatalogueLetterView). Each answer says what it
 // does, in the sums the college will actually pay.
-
-const signed = (v: number) => (v > 0 ? `+${v}` : `${v}`);
 
 // What an answer does, a phrase per lever.
 function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
@@ -19,7 +17,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
     if (!v) continue;
     switch (k) {
       case 'cash': out.push(v < 0 ? `costs ${money(-v)}` : `brings ${money(v)}`); break;
-      case 'endowment': out.push(`endowment ${v < 0 ? '−' : '+'}${money(Math.abs(v))}`); break;
+      case 'endowment': out.push(`endowment ${signedMoney(v)}`); break;
       case 'debt': out.push(v > 0 ? `borrows ${money(v)}` : `repays ${money(-v)} of debt`); break;
       case 'backlog': out.push(v > 0 ? `${money(v)} of repairs deferred` : `${money(-v)} of repairs done`); break;
       case 'mood': out.push(`satisfaction ${signed(v)}`); break;

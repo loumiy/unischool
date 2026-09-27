@@ -1,6 +1,7 @@
 // The board's letters on the distress ladder (systems/finance/distress.ts),
-// one for each step that matters, and on idle cash (sweep.ts). Shown as a note over the map
-// (components/BoardLetter.tsx) that never stops the clock.
+// one for each step that matters, and on idle cash (sweep.ts). Shown as a
+// letter in the inbox (components/InboxTab.tsx, Plan 77) that never stops
+// the clock.
 
 export interface BoardLetter {
   title: string;
@@ -18,7 +19,7 @@ export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
   },
   'enter-4': {
     title: 'Austerity',
-    text: 'Three terms frozen, and no recovery in sight. The board is cutting maintenance to nothing, and will not let the listed tuition fall, until the books are in surplus again. The buildings will show it. The board regrets that, and has decided it is the cheaper regret.',
+    text: 'Three terms frozen, and no recovery in sight. The board is cutting maintenance to nothing, and will not let the listed tuition fall, until it has run two surplus terms with money in the bank. The buildings will show it. The board regrets that, and has decided it is the cheaper regret.',
   },
   'enter-5': {
     title: 'An interim CFO',
@@ -30,7 +31,7 @@ export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
   },
   'exit-5': {
     title: 'The interim CFO departs',
-    text: 'The interim CFO\'s three years are up. The draw and the maintenance budget are the administration\'s again, set where they were before the appointment. The board thanks her, and hopes not to need her again.',
+    text: 'The interim CFO\'s three years are up. The draw and the maintenance budget are the administration\'s again, set where the administration had them before the board\'s cuts. The board thanks her, and hopes not to need her again.',
   },
   // Idle cash (systems/finance/sweep.ts, Plan 70D): not the distress
   // ladder's, but the board's all the same. The letter's button sets the

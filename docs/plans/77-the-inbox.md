@@ -1,4 +1,4 @@
-# Plan 76 — The inbox
+# Plan 77 — The inbox
 
 *Planning document. Its job is to turn the owner's pick from the inbox
 proposal (`docs/design/inbox.html`) into PRs.*

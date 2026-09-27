@@ -7,6 +7,7 @@ import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
 import { readHall } from '../state/hall';
 import { HallFrame } from './HallOfFame';
+import { calendarDate, gameDate } from '../format';
 
 // THE TITLE (Plan 34, from v2's; V1-35): what the game opens on. The run in
 // this browser, to carry on; a new college, to found (this game's startup
@@ -37,7 +38,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
         {setAside && (
           <p className="title-set-aside" role="status">
             {setAside.name ? `${setAside.name}, a college saved` : 'A college saved'}
-            {setAside.savedAt ? ` on ${new Date(setAside.savedAt).toLocaleDateString()}` : ''}, was made by an earlier version of the game and cannot be continued in this one. It has been kept aside rather than erased.
+            {setAside.savedAt ? ` on ${calendarDate(setAside.savedAt)}` : ''}, was made by an earlier version of the game and cannot be continued in this one. It has been kept aside rather than erased.
             {' '}
             <button
               type="button"
@@ -53,7 +54,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
           {underway && (
             <button type="button" className="title-primary" onClick={onContinue}>
               <span>Continue</span>
-              <span className="title-sub">{institutionName(s.self)} · Year {s.clock.year}, week {s.clock.week}</span>
+              <span className="title-sub">{institutionName(s.self)} · {gameDate(s.clock.year, s.clock.week)}</span>
             </button>
           )}
           <ConfirmButton

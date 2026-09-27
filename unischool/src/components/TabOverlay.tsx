@@ -9,9 +9,9 @@ import { type ReactNode } from 'react';
 // modal's higher layer still covers it. Escape is not bound here: App.tsx
 // owns the one Escape ladder for the whole shell.
 // `split`: the body does not scroll as one page; its child fills it and
-// scrolls its own panes (the inbox's list and reading pane, Plan 76).
+// scrolls its own panes (the inbox's list and reading pane, Plan 77).
 // No `onClose`: the view cannot be left (the inbox while a stop waits on
-// an answer, Plan 76).
+// an answer, Plan 77).
 export default function TabOverlay({ title, onClose, split = false, children }: {
   title: string;
   onClose?: () => void;

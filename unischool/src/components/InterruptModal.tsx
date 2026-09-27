@@ -40,7 +40,7 @@ import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
-import { money, ordinal, signedPct } from '../format';
+import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
 import { promisesOf } from '../systems/promises/promises';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
@@ -73,10 +73,10 @@ function CoverageValue({ now, next }: { now: number; next: number }) {
   const delta = Math.round(next * 100) - Math.round(now * 100);
   return (
     <>
-      <AnimatedNumber value={next * 100} format={(n) => `${Math.round(n)}% covered`} />
+      <AnimatedNumber value={next * 100} format={(n) => `${count(n)}% covered`} />
       {delta !== 0 && (
         <span className={`consequence-delta ${delta > 0 ? 'good' : 'bad'}`}>
-          {delta > 0 ? '+' : '−'}{Math.abs(delta)}
+          {signed(delta)}
         </span>
       )}
     </>
@@ -120,7 +120,7 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
             </span>
           </span>
           <span className="digest-row-cost">
-            {p.foundingMembers} founding members · {money(p.upkeepPerWeek)}/wk
+            {p.foundingMembers} founding members · {moneyShort(p.upkeepPerWeek)}/wk
           </span>
         </label>
       ))}
@@ -177,7 +177,7 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, 
   const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
   // The figure shrinks, not the card. Sized by the final value's length, not
   // the displayed one, so the reveal's count-up does not resize the text.
-  const sizeClass = SIZE_FOR_LENGTH(applicants.toLocaleString().length);
+  const sizeClass = SIZE_FOR_LENGTH(count(applicants).length);
   return (
     <div className="cohort-card" title={note ? `${driverLabel}. ${note}` : driverLabel}>
       <span className="cohort-card-label">{label}</span>
@@ -185,7 +185,7 @@ function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, 
         <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
       </span>
       {lastYear !== null && (
-        <span className="cohort-card-last" title="Last summer">{lastYear.toLocaleString()} last year</span>
+        <span className="cohort-card-last" title="Last summer">{count(lastYear)} last year</span>
       )}
       <span className="cohort-card-tip" role="tooltip">{driverLabel}{note && <><br />{note}</>}</span>
     </div>
@@ -236,7 +236,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // commits with.
   const consequence = projectConsequences(s, outcome.enrolled, tuition, outcome.avgIncomingQuality);
   const netDelta = consequence.weeklyNet - consequence.weeklyNetNow;
-  const moodDelta = consequence.satisfactionTarget - consequence.satisfactionTargetNow;
+  // From the figures as shown, so the delta is the difference a player reads.
+  const moodDelta = satisfactionShown(consequence.satisfactionTarget) - satisfactionShown(consequence.satisfactionTargetNow);
   // What prestige lets the school charge before demand falls away, shown so
   // a player pricing above their standing can see why the pool shrinks.
   const tolerance = priceTolerance(prestige);
@@ -259,7 +260,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           ends at TUITION_SLIDER_MAX (foundingData.ts). */}
       <label className="admissions-field">
         <span>
-          Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>${tuition.toLocaleString()}/yr</strong>
+          Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>{money(tuition)}/yr</strong>
         </span>
         <input type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition}
           disabled={tuitionLocked}
@@ -293,7 +294,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             />
             {change && (
               <div className="pool-change">
-                <dt>Against last summer's {change.lastApplicants.toLocaleString()}</dt>
+                <dt>Against last summer's {count(change.lastApplicants)}</dt>
                 <dd className="pool-change-parts">
                   {change.parts.length === 0
                     ? 'nothing moved'
@@ -311,9 +312,9 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             />
           </dl>
           <p className="admissions-ceiling-note">
-            {ceiling.capacity.toLocaleString()} seats across the housed catalog; {ceiling.stayingOn.toLocaleString()} return next year.
+            {count(ceiling.capacity)} seats across the housed catalog; {count(ceiling.stayingOn)} return next year.
             {ceiling.nextSummer > ceiling.capacity
-              ? ` Next summer the catalog will hold ${ceiling.nextSummer.toLocaleString()}, counting the courses now in development.`
+              ? ` Next summer the catalog will hold ${count(ceiling.nextSummer)}, counting the courses now in development.`
               : ' Nothing in development will add seats by next summer.'}
           </p>
 
@@ -334,30 +335,30 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               consequence visible before it is taken. */}
           <label className="admissions-field">
             <span>
-              Admit rate <strong>{Math.round(admitRateChoice * 100)}%</strong>
+              Admit rate <strong>{pct(admitRateChoice)}</strong>
             </span>
             <input type="range" min={0.01} max={Math.max(0.01, Math.round(maxAdmitRate * 100) / 100)} step={0.01} value={Math.min(admitRateChoice, maxAdmitRate)}
               onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
             {maxAdmitRate < 1 && (
               <span className="outcome-note">
                 {outcome.capped
-                  ? `Held to the room: ${ceiling.seatsLeft.toLocaleString()} fit of the ${Math.round(outcome.applicants * Math.min(admitRateChoice, 1)).toLocaleString()} this share would admit.`
-                  : `The slider ends at ${Math.round(maxAdmitRate * 100)}%, where the class fills the room.`}
+                  ? `Held to the room: ${count(ceiling.seatsLeft)} fit of the ${count(outcome.applicants * Math.min(admitRateChoice, 1))} this share would admit.`
+                  : `The slider ends at ${pct(maxAdmitRate)}, where the class fills the room.`}
               </span>
             )}
           </label>
 
           <dl className="admissions-outcomes">
             <Figure label="Freshman class" value={<AnimatedNumber value={outcome.enrolled} />} hint={FIGURE_HINTS.freshmen} />
-            <Figure label="Incoming quality" value={<AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${Math.round(n)} / 100`} />} hint={FIGURE_HINTS.incomingQuality} />
+            <Figure label="Incoming quality" value={<AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${count(n)}/100`} />} hint={FIGURE_HINTS.incomingQuality} />
           </dl>
 
           {/* The projection line (Plan 29): the class against last year's,
               and the whole body against the beds and dining it will need. */}
           <p className="admissions-projection">
-            A class of {outcome.enrolled.toLocaleString()} against {s.students.classes.freshman.toLocaleString()} last year:
-            {' '}{consequence.totalEnrolled.toLocaleString()} students next year, for {s.students.capacity.toLocaleString()} beds
-            {' '}and dining for {Math.round(servedPopulationFor(s, 'basicNeeds')).toLocaleString()}.
+            A class of {count(outcome.enrolled)} against {count(s.students.classes.freshman)} last year:
+            {' '}{count(consequence.totalEnrolled)} students next year, for {count(s.students.capacity)} beds
+            {' '}and dining for {count(servedPopulationFor(s, 'basicNeeds'))}.
           </p>
 
           {/* What committing does to the whole school, including the three
@@ -371,7 +372,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 value={<>
                   <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
                   <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
-                    {netDelta >= 0 ? '+' : '−'}{money(Math.abs(netDelta))}
+                    {signedMoney(netDelta)}
                   </span>
                 </>}
               />
@@ -379,9 +380,9 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 label="Satisfaction"
                 hint={FIGURE_HINTS.projectedSatisfaction}
                 value={<>
-                  <AnimatedNumber value={consequence.satisfactionTarget} format={(n) => `${Math.round(n)}`} />
+                  <AnimatedNumber value={consequence.satisfactionTarget} format={satisfactionFigure} />
                   <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
-                    {moodDelta >= 0 ? '+' : '−'}{Math.abs(moodDelta).toFixed(1)}
+                    {signed(moodDelta)}
                   </span>
                 </>}
               />
@@ -543,7 +544,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
       />
       <dl className="admissions-outcomes">
         <Figure label={<>Tuition for the incoming class <span className="outcome-note">(locked for four years)</span></>} value={`${money(decision.tuition)}/yr`} hint={FIGURE_HINTS.tuitionLocked} />
-        <Figure label="Admit rate" value={`${Math.round(decision.admitRate * 100)}%`} hint={FIGURE_HINTS.admitRate} />
+        <Figure label="Admit rate" value={pct(decision.admitRate)} hint={FIGURE_HINTS.admitRate} />
       </dl>
       <button onClick={() => onResolve([...approved])}>Open Year {s.clock.year + 1}</button>
     </>
@@ -726,7 +727,8 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
 }) {
   const target = computePrestigeTarget(s);
   const withoutThese = prestigeTargetWithout(s, payload.keys);
-  const delta = target - withoutThese;
+  // From the figures as shown, so the three lines agree.
+  const delta = prestigeShown(target) - prestigeShown(withoutThese);
   const single = payload.entries.length === 1 ? payload.entries[0] : null;
 
   return (
@@ -771,15 +773,15 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
       <dl className="admissions-outcomes">
         <div>
           <dt>Prestige target <span className="outcome-note">(what this changed)</span></dt>
-          <dd>{withoutThese.toFixed(1)} → {target.toFixed(1)}</dd>
+          <dd>{prestigeFigure(withoutThese)} → {prestigeFigure(target)}</dd>
         </div>
         <div>
           <dt>Contribution</dt>
-          <dd className={delta > 0 ? 'milestone-gain' : ''}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</dd>
+          <dd className={delta > 0 ? 'milestone-gain' : ''}>{signed(delta, 1)}</dd>
         </div>
         <div>
           <dt>Prestige today <span className="outcome-note">(steps toward the target each summer, and drifts a little between)</span></dt>
-          <dd>{s.self.reputation.toFixed(1)}</dd>
+          <dd>{prestigeFigure(s.self.reputation)}</dd>
         </div>
       </dl>
 
@@ -806,7 +808,7 @@ function ResearchReportView({ s, report, onDismiss }: {
     <>
       <h2>{report.award ? `${report.topicName} concludes — and wins ${report.award.prizeName}` : `${report.topicName} concludes`}</h2>
       <p>
-        {depth.name} · {report.labName} · {report.years} {report.years === 1 ? 'year' : 'years'} ·{' '}
+        {depth.name} · {report.labName} · {weeksShort(Math.round(report.years * WEEKS_PER_YEAR))} ·{' '}
         {report.facultyNames.join(', ')}
       </p>
 
@@ -834,11 +836,11 @@ function ResearchReportView({ s, report, onDismiss }: {
           <>
             <div>
               <dt>{report.award.facultyName}'s output <span className="outcome-note">(permanent, per prize)</span></dt>
-              <dd>+{Math.round(ACCLAIM_RESEARCH_BONUS * 100)}%</dd>
+              <dd>{signedPct(ACCLAIM_RESEARCH_BONUS)}</dd>
             </div>
             <div>
               <dt>Their salary <span className="outcome-note">(permanent, per prize)</span></dt>
-              <dd>+{Math.round(ACCLAIM_SALARY_PREMIUM * 100)}%</dd>
+              <dd>{signedPct(ACCLAIM_SALARY_PREMIUM)}</dd>
             </div>
             <div>
               <dt>Prizes to date <span className="outcome-note">(feeds the prestige target)</span></dt>
@@ -920,7 +922,7 @@ function ChampionshipView({ s, result, onDismiss }: {
           <dt>Campus life</dt>
           {/* Standing drifts toward its target, so this is what the target
               moved by. */}
-          <dd>{worth >= 0.05 ? `+${worth.toFixed(1)} to the target` : 'already at its ceiling'}</dd>
+          <dd>{worth >= 0.05 ? `${signed(worth, 1)} to the target` : 'already at its ceiling'}</dd>
         </div>
       </dl>
 
@@ -995,7 +997,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
             />
             <span className="ad-candidate-name">{c.name}</span>
             <span className="ad-candidate-quality">quality {c.quality}</span>
-            <span className="ad-candidate-salary">{money(c.salary)}/yr</span>
+            <span className="ad-candidate-salary">{moneyShort(c.salary)}/yr</span>
             {c.id === cheapest.id && <span className="ad-candidate-tag">least expensive</span>}
           </button>
         ))}
@@ -1045,7 +1047,7 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
     <>
       {/* Dated by the clock: a letter that waited on the college (Plan 55)
           can arrive in any year. */}
-      <p className="letter-eyebrow">From the chair of the board · {s.clock.year > 1 ? `Year ${s.clock.year} · ` : ''}Week {s.clock.week}</p>
+      <p className="letter-eyebrow">From the chair of the board · {gameDate(s.clock.year, s.clock.week)}</p>
       <h2>{letter.title}</h2>
       <p className="letter-body">{letter.body(s)}</p>
       <p className="letter-ask">
@@ -1100,7 +1102,7 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
         <button className="event-choice" onClick={() => onResolve(true)}>
           <span className="event-choice-label">
             Accept every recommendation
-            <span className="event-choice-cost">{hires.length > 0 ? `${hires.length} appointment${hires.length === 1 ? '' : 's'}, ${money(hires.reduce((n, x) => n + x.hire!.salary, 0))}/yr` : 'no new salaries'}</span>
+            <span className="event-choice-cost">{hires.length > 0 ? `${hires.length} appointment${hires.length === 1 ? '' : 's'}, ${moneyShort(hires.reduce((n, x) => n + x.hire!.salary, 0))}/yr` : 'no new salaries'}</span>
           </span>
         </button>
         <button className="event-choice" onClick={() => onResolve(false)}>
@@ -1112,8 +1114,9 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
 }
 
 // A letter to the President (Plan 32): one of the catalog's seismic events.
-// "From the board" is kept for the distress ladder's notes (BoardLetter.tsx).
-// The clock waits on it; its choices are the panel's (EventPanel.tsx).
+// "From the board" is kept for the distress ladder's letters (the inbox's,
+// InboxTab.tsx). The clock waits on it; its choices are the inbox's
+// (EventChoices.tsx).
 function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId: string; act: (a: Action) => void }) {
   const p = catalogueOf(s).pending.find((x) => x.instanceId === instanceId);
   const e = p ? eventById(p.eventId) : undefined;
@@ -1129,7 +1132,7 @@ function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId:
   const text = fill(eventText(e, p), p.vars);
   return (
     <>
-      <p className="letter-eyebrow">A letter to the President · Year {s.clock.year}</p>
+      <p className="letter-eyebrow">A letter to the President · {gameDate(s.clock.year, s.clock.week)}</p>
       <h2>{e.title ? fill(e.title, p.vars) : 'A letter to the President'}</h2>
       <CatalogueText text={text} className="letter-body" />
       <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId })} />
@@ -1182,7 +1185,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
               <span className="event-choice-label">
                 {choice.label}
                 <span className="event-choice-cost">
-                  {cost > 0 ? money(-cost) : 'no cost'}
+                  {cost > 0 ? moneyShort(-cost) : 'no cost'}
                 </span>
               </span>
               <span className="event-choice-detail">
@@ -1262,7 +1265,7 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
     );
   }
 
-  // Every other stop is answered in the inbox (Plan 76, InboxTab.tsx),
+  // Every other stop is answered in the inbox (Plan 77, InboxTab.tsx),
   // which App.tsx opens on it and holds open until it is resolved.
   return null;
 }

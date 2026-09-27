@@ -115,10 +115,10 @@ export default function App() {
   const [ladderOpen, setLadderOpen] = useState(false);
   // The founding notes read this session: the one letter the save does not
   // mark (systems/inbox/foundingNote.ts). Everything else the inbox holds
-  // is read off the state (Plan 76).
+  // is read off the state (Plan 77).
   const [foundingRead, setFoundingRead] = useState<ReadonlySet<string>>(new Set());
   const inbox = inboxItems(s, { read: foundingRead });
-  // A stop (an interrupt) is answered in the inbox (Plan 76): while one is
+  // A stop (an interrupt) is answered in the inbox (Plan 77): while one is
   // up, the inbox is the only view, opened on it, with no way out but an
   // answer. The Final Report keeps its own page.
   const holding = s.pendingInterrupt !== null && !finalReportUp(s);
@@ -277,7 +277,7 @@ export default function App() {
     else if (stage === 'play' && prev !== null) setSpeed('real');
   }, [s.started, stage]);
 
-  // A stop opens the inbox on itself (Plan 76), and each new stop or summer
+  // A stop opens the inbox on itself (Plan 77), and each new stop or summer
   // beat re-points it there; once answered, the player is put back where
   // they were. Not under a front screen: the stop waits for the game.
   const holdKey = holding
@@ -369,13 +369,16 @@ export default function App() {
         />
         <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
         {/* The week's small news (Plan 70H), a school's banner, and what
-            arrives in the inbox (Plan 76), each with a way to open it. */}
+            arrives in the inbox (Plan 77), each with a way to open it. */}
         <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => openTab('inbox', id)} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
         {!overlay && <Pennant s={s} act={act} />}
 
-        <div className="app">
+        {/* dock-folded: something is open over the map, so on a phone the
+            dock folds to its figures (styles.css's phone rules); each of
+            these has its own close, which unfolds it. */}
+        <div className={`app${overlay || buildOpen || logOpen || ladderOpen ? ' dock-folded' : ''}`}>
           <LogTicker
             s={s}
             open={logOpen}

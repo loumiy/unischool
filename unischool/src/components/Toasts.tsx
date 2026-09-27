@@ -6,6 +6,7 @@ import { playerRank } from '../systems/rivals/rivalsSystem';
 import { schoolFoundedKey } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { inboxItems } from '../systems/inbox/inbox';
+import { weeksProse } from '../format';
 
 // ---------------------------------------------------------------------
 // Toasts (Plan 70H): short, stacked, one line each, dismissable, gone on
@@ -15,7 +16,7 @@ import { inboxItems } from '../systems/inbox/inbox';
 // Read off successive snapshots, like the sound: a load or a new run is not
 // news.
 //
-// And what arrives in the inbox (Plan 76): a matter to decide or a letter,
+// And what arrives in the inbox (Plan 77): a matter to decide or a letter,
 // as a slip with an Open button that takes the player to it, held a little
 // longer than the news. Not while the inbox is open, where it arrives in
 // the list itself.
@@ -34,7 +35,7 @@ export interface Toast {
   id: number;
   text: string;
   tone: 'good' | 'bad' | 'info' | 'matter' | 'letter';
-  // An inbox item to open (Plan 76).
+  // An inbox item to open (Plan 77).
   open?: string;
 }
 
@@ -64,7 +65,7 @@ export function arrivalsIn(before: GameState, after: GameState): Said[] {
     // A stop opens the inbox on itself (App.tsx), so it needs no slip.
     if (had.has(i.id) || i.tier === 'bulletin' || i.tier === 'hold' || !i.unread) continue;
     const text = i.tier === 'decide' && i.weeksLeft !== undefined && i.kind === 'event'
-      ? `${i.from} · ${i.weeksLeft === 1 ? '1 week' : `${i.weeksLeft} weeks`} to answer: ${i.subject}`
+      ? `${i.from} · ${weeksProse(i.weeksLeft)} to answer: ${i.subject}`
       : `${i.from}: ${i.subject}`;
     out.push({ text, tone: i.tier === 'decide' ? 'matter' : 'letter', open: i.id });
   }

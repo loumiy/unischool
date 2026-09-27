@@ -1,6 +1,6 @@
 // The founding years' notes (Plan 70I): the first two years had little of
 // their own to say, so two moments the college reaches early are marked
-// with a letter in the inbox (Plan 76), read off its state. Content, not
+// with a letter in the inbox (Plan 77), read off its state. Content, not
 // mechanics: they ask for nothing and change nothing. {program} and {dorm}
 // are filled by systems/inbox/foundingNote.ts.
 

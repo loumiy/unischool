@@ -6,7 +6,7 @@ import { fillLine } from '../../data/logWords';
 
 // The founding years' notes (Plan 70I, data/foundingNotes.ts): the first
 // program the college chose, and its first residence, each a letter in the
-// inbox (Plan 76) from the week it happens in years 1 and 2. Read off the
+// inbox (Plan 77) from the week it happens in years 1 and 2. Read off the
 // log, so they need nothing saved.
 
 const FOUNDING_YEARS = 2;

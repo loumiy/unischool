@@ -1,6 +1,6 @@
 import type { GameState } from '../state/types';
 import { PROMISE_LINES, promiseById } from '../data/promiseData';
-import { fillCollege, offerRoom, promisesOf } from '../systems/promises/promises';
+import { fillPromise, offerRoom, promiseTitle, promisesOf } from '../systems/promises/promises';
 import HelpHint from '../components/HelpHint';
 
 // Promises (Plan 33): those open, with the years left, and those settled,
@@ -25,7 +25,7 @@ export function PromiseRecord({ s }: { s: GameState }) {
           <li key={`${r.id}-${r.year}`} className={`ambition${r.kept ? '' : ' unreached'}`}>
             <span className="ambition-mark" aria-hidden="true">{r.kept ? '●' : '○'}</span>
             <span className="ambition-body">
-              <span className="ambition-name">{def?.title ?? r.id}</span>
+              <span className="ambition-name">{def ? promiseTitle(s, def, r.scale) : r.id}</span>
               <span className="ambition-line">{r.kept ? 'Kept' : 'Missed'}</span>
             </span>
             <span className="ambition-year">Year {r.year}</span>
@@ -50,16 +50,19 @@ export default function PromisesPanel({ s }: { s: GameState }) {
       </div>
       {p.active.length > 0 && (
         <ul className="ambitions">
-          {p.active.map((a) => (
+          {p.active.map((a) => {
+            const def = promiseById(a.id);
+            return (
             <li key={a.id} className="ambition">
               <span className="ambition-mark" aria-hidden="true">◐</span>
               <span className="ambition-body">
-                <span className="ambition-name">{promiseById(a.id)?.title ?? a.id}</span>
+                <span className="ambition-name">{def ? promiseTitle(s, def, a.scale) : a.id}</span>
                 <span className="ambition-line">Made in Year {a.madeYear}</span>
               </span>
               <span className="ambition-year">{dueLine(s, a.dueYear)}</span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
       <PromiseRecord s={s} />
@@ -83,7 +86,7 @@ export function PromiseOffer({ s, taken, onToggle }: { s: GameState; taken: read
             const def = promiseById(r.id);
             return (
               <li key={r.id} className={r.kept ? 'good' : 'bad'}>
-                {r.kept ? 'Kept' : 'Missed'}: {def?.title}. {def ? fillCollege(s, r.kept ? def.kept : def.missed) : ''}
+                {r.kept ? 'Kept' : 'Missed'}: {def ? `${promiseTitle(s, def, r.scale)}. ${fillPromise(s, def, r.kept ? def.kept : def.missed, r.scale)}` : ''}
               </li>
             );
           })}
@@ -94,7 +97,7 @@ export function PromiseOffer({ s, taken, onToggle }: { s: GameState; taken: read
           <p>
             {p.offer.decade
               ? PROMISE_LINES.decadeBody.replace('{picks}', String(room))
-              : PROMISE_LINES.offered.replace('{title}', promiseById(p.offer.ids[0])?.title ?? '')}
+              : PROMISE_LINES.offered.replace('{title}', (() => { const d = promiseById(p.offer.ids[0]); return d ? promiseTitle(s, d) : ''; })())}
           </p>
           <div className="event-choices">
             {p.offer.ids.map((id) => {
@@ -105,10 +108,10 @@ export function PromiseOffer({ s, taken, onToggle }: { s: GameState; taken: read
               return (
                 <button key={id} type="button" className={`event-choice${on ? ' is-on' : ''}`} aria-pressed={on} disabled={full} onClick={() => onToggle(id)}>
                   <span className="event-choice-label">
-                    {def.title}
+                    {promiseTitle(s, def)}
                     <span className="event-choice-cost">{on ? (p.offer!.decade ? PROMISE_LINES.decadeTaken : 'Promised') : `${def.years} years`}</span>
                   </span>
-                  <span className="event-choice-detail">{fillCollege(s, def.text)}</span>
+                  <span className="event-choice-detail">{fillPromise(s, def, def.text)}</span>
                 </button>
               );
             })}

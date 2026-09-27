@@ -1,5 +1,5 @@
 // A student demand arrives in the inbox without stopping the clock (Plan 29,
-// V1-16; Plan 76): raised, it is active and unread; read, it stays active
+// V1-16; Plan 77): raised, it is active and unread; read, it stays active
 // until it is met or lapses.
 
 import { createInitialState } from '../src/state/actions';

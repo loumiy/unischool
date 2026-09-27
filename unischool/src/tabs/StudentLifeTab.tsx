@@ -11,7 +11,7 @@ import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
-import { money } from '../format';
+import { count, fraction, gameDateOfWeek, money, moneyShort, satisfactionFigure, satisfactionShown, signed } from '../format';
 
 const ATTRIBUTE_LABELS: Record<keyof SatisfactionAttributes, string> = {
   academic: 'Academic',
@@ -38,7 +38,7 @@ function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?
         {tag && <span className="org-tag">{tag}</span>}
       </span>
       <span className="org-meta">
-        founded in Year {org.foundedYear} · {orgMembership(org, s).toLocaleString()} members · {money(org.upkeepPerWeek)}/wk
+        founded in Year {org.foundedYear} · {count(orgMembership(org, s))} members · {moneyShort(org.upkeepPerWeek)}/wk
         {note && <> · {note}</>}
       </span>
     </li>
@@ -63,11 +63,13 @@ const ASK_STATUS: Record<BuildableStatus, string> = {
   done: ' (built)',
 };
 
-const signed = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}`;
 
 function StudentLifeEffect({ s }: { s: GameState }) {
   const effect = studentLifeSatisfaction(s);
   const upkeep = studentOrgUpkeep(s);
+  // Satisfaction reads in whole points, so each layer's share is the move in
+  // the target as shown, and the lines agree with the target beside them.
+  const share = (contribution: number) => signed(satisfactionShown(effect.target) - satisfactionShown(effect.target - contribution));
 
   return (
     <section className="panel">
@@ -79,11 +81,11 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         />
       </div>
       <dl>
-        <Figure label={`Clubs (${effect.clubCount})`} value={signed(effect.clubTargetContribution)} hint={FIGURE_HINTS.clubs} />
-        <Figure label={`Greek chapters (${effect.chapterCount})`} value={signed(effect.greekTargetContribution)} hint={FIGURE_HINTS.greek} />
-        <Figure label={`Varsity athletics (${effect.teamCount})`} value={signed(effect.athleticsTargetContribution)} hint={FIGURE_HINTS.varsity} />
-        <Figure label="Satisfaction target" value={`${effect.targetWithoutStudentLife.toFixed(1)} → ${effect.target.toFixed(1)}`} hint={FIGURE_HINTS.satisfactionTarget} />
-        <Figure label="Satisfaction today" value={s.students.satisfaction.toFixed(1)} hint={FIGURE_HINTS.satisfactionToday} />
+        <Figure label={`Clubs (${effect.clubCount})`} value={share(effect.clubTargetContribution)} hint={FIGURE_HINTS.clubs} />
+        <Figure label={`Greek chapters (${effect.chapterCount})`} value={share(effect.greekTargetContribution)} hint={FIGURE_HINTS.greek} />
+        <Figure label={`Varsity athletics (${effect.teamCount})`} value={share(effect.athleticsTargetContribution)} hint={FIGURE_HINTS.varsity} />
+        <Figure label="Satisfaction target" value={`${satisfactionFigure(effect.targetWithoutStudentLife)} → ${satisfactionFigure(effect.target)}`} hint={FIGURE_HINTS.satisfactionTarget} />
+        <Figure label="Satisfaction today" value={satisfactionFigure(s.students.satisfaction)} hint={FIGURE_HINTS.satisfactionToday} />
         <Figure label="Weekly cost" value={`${money(upkeep)} (${money(upkeep * WEEKS_PER_YEAR)}/yr)`} hint={FIGURE_HINTS.orgCost} />
       </dl>
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
@@ -97,9 +99,6 @@ function StudentLifeEffect({ s }: { s: GameState }) {
   );
 }
 
-function money2(v: number): string {
-  return v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1);
-}
 
 // ---------------------------------------------------------------------
 // The satisfaction dial: a 0..100 score as a filling ring, so the eye finds
@@ -144,7 +143,7 @@ function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean 
         transform={`rotate(-90 ${DIAL_SIZE / 2} ${DIAL_SIZE / 2})`}
       />
       <text className="satisfaction-dial-value" x={DIAL_SIZE / 2} y={DIAL_SIZE / 2} textAnchor="middle" dominantBaseline="central">
-        {dormant ? '–' : Math.round(score)}
+        {dormant ? '–' : satisfactionFigure(score)}
       </text>
     </svg>
   );
@@ -177,9 +176,9 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
                 // expectedRatio), so housing says how many want a bed
                 // (Plan 35: "350/175 beds" read as a contradiction).
                 ? attribute === 'housing'
-                  ? `${Math.round(detail.totalServed).toLocaleString()} beds, ${detail.neededForFullScore.toLocaleString()} wanted`
-                  : `${Math.round(detail.totalServed).toLocaleString()} / ${detail.neededForFullScore.toLocaleString()} ${unit}`
-                : `${Math.round(detail.totalServed).toLocaleString()} ${unit}`}
+                  ? `${count(detail.totalServed)} beds, ${count(detail.neededForFullScore)} wanted`
+                  : `${fraction(detail.totalServed, detail.neededForFullScore)} ${unit}`
+                : `${count(detail.totalServed)} ${unit}`}
           </span>
         </div>
       </div>
@@ -200,11 +199,11 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
               {detail.contributors.length > 0 ? (
                 <ul className="satisfaction-contributor-list">
                   {detail.contributors.map((c) => (
-                    <li key={c.label}><span>{c.label}</span><span>{Math.round(c.value).toLocaleString()}</span></li>
+                    <li key={c.label}><span>{c.label}</span><span>{count(c.value)}</span></li>
                   ))}
                   <li className="satisfaction-contributor-total">
                     <span>Total {unit}</span>
-                    <span>{detail.totalServed.toLocaleString()}{detail.neededForFullScore > 0 ? ` / ${detail.neededForFullScore.toLocaleString()}` : ''}</span>
+                    <span>{count(detail.totalServed)}{detail.neededForFullScore > 0 ? `/${count(detail.neededForFullScore)}` : ''}</span>
                   </li>
                 </ul>
               ) : (
@@ -213,7 +212,7 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
               {detail.bonuses.length > 0 && (
                 <ul className="satisfaction-contributor-list">
                   {detail.bonuses.map((b) => (
-                    <li key={b.label}><span>{b.label}</span><span>{money2(b.value)}</span></li>
+                    <li key={b.label}><span>{b.label}</span><span>{signed(b.value)}</span></li>
                   ))}
                 </ul>
               )}
@@ -286,8 +285,8 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <div className="demand-progress">
         <ProgressBar
           fraction={progress.fraction}
-          label={`${Math.round(progress.current).toLocaleString()} / ${Math.round(progress.target).toLocaleString()}`}
-          title={`${Math.round(progress.current).toLocaleString()} of ${Math.round(progress.target).toLocaleString()} ${copy.unit}`}
+          label={fraction(progress.current, progress.target)}
+          title={`${count(progress.current)} of ${count(progress.target)} ${copy.unit}`}
         />
       </div>
       <dl>
@@ -297,16 +296,16 @@ function StudentDemandPanel({ s }: { s: GameState }) {
         </dt>
         <dd>{copy.ask(demand.askName)}{node ? ASK_STATUS[node.status] : ''}</dd>
         <dt>Deadline</dt>
-        <dd>Year {Math.floor((demand.deadlineWeek - 1) / WEEKS_PER_YEAR) + 1}, week {((demand.deadlineWeek - 1) % WEEKS_PER_YEAR) + 1}</dd>
+        <dd>{gameDateOfWeek(demand.deadlineWeek)}</dd>
         <dt>If it is met</dt>
         <dd>
-          satisfaction {stakes.satisfactionNow.toFixed(1)} → {stakes.satisfactionIfMet.toFixed(1)} ·
-          {' '}{stakes.applicantsIfMet.toLocaleString()} applicants
+          satisfaction {satisfactionFigure(stakes.satisfactionNow)} → {satisfactionFigure(stakes.satisfactionIfMet)} ·
+          {' '}{count(stakes.applicantsIfMet)} applicants
         </dd>
         <dt>If the deadline passes</dt>
         <dd>
-          satisfaction {stakes.satisfactionNow.toFixed(1)} → {stakes.satisfactionIfFailed.toFixed(1)} ·
-          {' '}{stakes.applicantsIfFailed.toLocaleString()} applicants
+          satisfaction {satisfactionFigure(stakes.satisfactionNow)} → {satisfactionFigure(stakes.satisfactionIfFailed)} ·
+          {' '}{count(stakes.applicantsIfFailed)} applicants
         </dd>
       </dl>
       <p className="empty-note demand-footnote">
@@ -362,7 +361,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
                     <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
                   </span>
                   <span className="org-meta">
-                    {p.foundingMembers} founding members · {money(p.upkeepPerWeek)}/wk if recognized
+                    {p.foundingMembers} founding members · {moneyShort(p.upkeepPerWeek)}/wk if recognized
                   </span>
                 </li>
               ))}
@@ -378,7 +377,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
             <div className="panel-head">
               <h2>Clubs</h2>
               <span className="panel-count" title="Interest clubs and sport clubs are capped apart: a sport club leaves the list when it goes varsity.">
-                {interestClubs(s).length} / {clubCapacity(s)} · sport {sportClubs(s).length} / {sportClubCapacity(s)}
+                {interestClubs(s).length}/{clubCapacity(s)} · sport {sportClubs(s).length}/{sportClubCapacity(s)}
               </span>
             </div>
             {clubs.length === 0 ? (
@@ -396,7 +395,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
             <div className="panel-head">
               <h2>Greek chapters</h2>
               {s.orgs.hellenicCouncilApproved && (
-                <span className="panel-count">{chapters.length} / {chapterCapacity(s)}</span>
+                <span className="panel-count">{chapters.length}/{chapterCapacity(s)}</span>
               )}
             </div>
             {!s.orgs.hellenicCouncilApproved ? (

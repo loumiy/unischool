@@ -6,6 +6,7 @@ import { inboxPointer, nextStep, type NextStep } from '../systems/guidance/nextS
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import type { Progress } from '../data/ladderData';
 import LadderPanel from './LadderPanel';
+import { count, prestigeFigure } from '../format';
 
 // One line, always on screen above the toolbar (styles.css's .log-ticker):
 // the newest entry in s.log (newest first). Only the icon on the left is a
@@ -18,12 +19,12 @@ import LadderPanel from './LadderPanel';
 // end: the log says what just happened, the step says what to do about it.
 // Suppressed while an interrupt is up.
 //
-// NEXT first points at the inbox for what will not wait (Plan 76,
+// NEXT first points at the inbox for what will not wait (Plan 77,
 // nextStep.ts's inboxPointer: the board's letter, an event in its last
 // week), pulsing, except while the inbox itself is open.
-// A milestone's progress as a count: "12/13 courses", "96.4/100 prestige".
+// A milestone's progress as a count: "12/13 courses", "96.4/100.0 prestige".
 function figure(n: number, unit: string): string {
-  return unit === 'prestige' ? n.toFixed(1) : Math.floor(n).toLocaleString();
+  return unit === 'prestige' ? prestigeFigure(n) : count(Math.floor(n));
 }
 function progressShort(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)}/${figure(p.target, p.unit)}`;

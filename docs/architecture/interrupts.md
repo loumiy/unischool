@@ -4,7 +4,7 @@ Several features share one mechanic: **pause the clock, surface something the
 player must resolve, then resume.** Rather than special-case each, there is a
 single interrupt system. A system enqueues an interrupt onto `GameState`; the
 game loop halts ticking while an interrupt is pending; the UI answers it in the
-inbox (Plan 76): the shell opens the inbox on it, pinned first under "The clock
+inbox (Plan 77): the shell opens the inbox on it, pinned first under "The clock
 waits" and read in its modal card (`InterruptModal.tsx`'s `InterruptContent`),
 and holds the inbox open, with every other view shut, until the player
 resolves it by dispatching an action, which clears it and lets the clock
@@ -105,7 +105,7 @@ Everything that needs to stop time rides on this one mechanism:
   `src/systems/events/catalogueEngine.ts` on a week nothing else claimed,
   keeping the decision events' global quiet stretch and a year apart from
   each other. The catalogue's inline events never stop the clock: they
-  wait in the inbox (`InboxTab.tsx`, Plan 76) and take their default when
+  wait in the inbox (`InboxTab.tsx`, Plan 77) and take their default when
   their weeks run out, or a seat answers them by policy.
 - **A research prize** — the one research output momentous enough to stop the
   clock, awarded when an initiative concludes (see
@@ -141,7 +141,7 @@ Everything that needs to stop time rides on this one mechanism:
   petitions and are answered in a digest folded into the summer admissions
   interrupt.
 - **A student demand** — no longer a stop (Plan 29): it arrives in the inbox
-  to be decided (Plan 76) while the clock runs (see
+  to be decided (Plan 77) while the clock runs (see
   [student-life.md](../design/student-life.md)'s "Student demands"),
   and only at a school whose satisfaction
   has fallen below the trigger threshold, so a well-run run never sees one. It
@@ -177,7 +177,7 @@ never a parse of the sentence. Everything an interrupt announces stays out of
 the stack.
 
 Everything addressed to the president that does not stop the clock waits in
-the **inbox** (Plan 76, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
+the **inbox** (Plan 77, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
 full-screen tab in three tiers: **to decide** (the catalogue's inline events,
 a student demand, a board letter with an ask), **letters** (milestones, the
 board's distress letters, the founding notes) and **bulletins** (the toasts'

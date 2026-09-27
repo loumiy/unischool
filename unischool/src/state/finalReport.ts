@@ -1,7 +1,7 @@
 import type { GameState } from './types';
 import { institutionName, totalEnrolled } from './types';
 import { STARTING_ENDOWMENT } from '../data/foundingData';
-import { promiseById } from '../data/promiseData';
+import { settledTitle } from '../systems/promises/promises';
 import {
   AXIS_PHRASES, REPORT_SHAPES, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
 } from '../data/reportData';
@@ -80,7 +80,9 @@ const REPORT_AXES: ReadonlyArray<{ axis: ReportAxis; standing: StandingAxis }> =
   { axis: 'finance', standing: 'financial' },
 ];
 // This game's standings run to 150; the report reads them on v2's 100.
-const TO_REPORT_SCALE = 100 / 150;
+// Athletic strength already runs to 100 (studentLifeData.ts's
+// athleticProgramStrength), so it is read as it is (Plan 76C).
+const toReportScale = (standing: StandingAxis) => (standing === 'athleticStrength' ? 1 : 100 / 150);
 const DECADE = 10;
 // The Epilogue's addenda, a decade each (resolveAdmissions.ts).
 export const EPILOGUE_DECADE = 10;
@@ -93,8 +95,8 @@ const round1 = (n: number) => Number(n.toFixed(1));
 // reads today's.
 export function gradeAxes(s: GameState): AxisGrade[] {
   return REPORT_AXES.map(({ axis, standing }) => {
-    const series = s.history.map((h) => h.standingValues?.[standing]).filter((v): v is number => v !== undefined).map((v) => v * TO_REPORT_SCALE);
-    if (series.length === 0) series.push(standingValue(s, standing) * TO_REPORT_SCALE);
+    const series = s.history.map((h) => h.standingValues?.[standing]).filter((v): v is number => v !== undefined).map((v) => v * toReportScale(standing));
+    if (series.length === 0) series.push(standingValue(s, standing) * toReportScale(standing));
     const first = mean(series.slice(0, DECADE));
     const last = mean(series.slice(-DECADE));
     const all = mean(series);
@@ -108,8 +110,8 @@ export function gradeAxes(s: GameState): AxisGrade[] {
   });
 }
 
-// "Blackmoor University: a research powerhouse that never learned to make
-// its students happy." What the guidebooks call it first (or its strongest
+// "Blackmoor University: a research powerhouse that never gave its students
+// much of a campus life." What the guidebooks call it first (or its strongest
 // standing), and its weakest if that is weak, never the one the tag claims.
 export function composeTitle(s: GameState, grades: AxisGrade[]): string {
   const college = institutionName(s.self);
@@ -160,8 +162,8 @@ export function finalReport(s: GameState): FinalReport {
     mark: reportGrade(markScore),
     markScore,
     axes,
-    kept: kept.map((p) => promiseById(p.id)?.title ?? p.id),
-    missed: missed.map((p) => promiseById(p.id)?.title ?? p.id),
+    kept: kept.map((p) => settledTitle(s, p)),
+    missed: missed.map((p) => settledTitle(s, p)),
     declined: s.promises?.declined.length ?? 0,
     finances: financialVerdict(s),
     eras: chronicleOf(s).eras.map((e) => `${e.name} (${e.from}–${e.to})`),

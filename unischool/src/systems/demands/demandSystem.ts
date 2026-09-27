@@ -271,14 +271,14 @@ function resolveActiveDemand(s: GameState): void {
   if (progress.met) {
     nudgeSatisfaction(s, DEMAND_MET_SATISFACTION_REWARD);
     closeDemand(s, week);
-    log(s, `The student body's demand has been met: ${demand.askName} is open, and the campus knows who asked for it.`, 'good', 'demand-met');
+    log(s, `The student body's demand for ${demand.askName} has been met, and the campus knows who asked for it.`, 'good', 'demand-met');
     return;
   }
 
   if (week >= demand.deadlineWeek) {
     nudgeSatisfaction(s, -DEMAND_FAILED_SATISFACTION_PENALTY);
     closeDemand(s, week);
-    log(s, `The deadline on the student body's demand for ${demand.askName} has passed with nothing built. Word of it will follow the college into next year's admissions.`, 'bad', 'demand-failed');
+    log(s, `The deadline on the student body's demand for ${demand.askName} has passed without enough built. Word of it will follow the college into next year's admissions.`, 'bad', 'demand-failed');
   }
 }
 

@@ -7,7 +7,7 @@ import {
 } from '../../data/researchData';
 import { researchTopic } from '../../data/researchTopics';
 import { generateCandidate } from '../../data/facultyData';
-import { money } from '../../format';
+import { money, weeksProse } from '../../format';
 import { random } from '../../engine/random';
 
 // The research tick (docs/design/research.md). Each running initiative, one
@@ -125,7 +125,7 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
     const notable = award !== null || initiative.breakthroughs > 0;
     log(
       s,
-      `"${name}" has concluded after ${Math.round(initiative.weeksTotal / WEEKS_PER_YEAR * 10) / 10} years: `
+      `"${name}" has concluded after ${weeksProse(initiative.weeksTotal)}: `
         + `${papers} ${papers === 1 ? 'publication' : 'publications'}, `
         + `${initiative.breakthroughs} ${initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'}.`,
       'good',

@@ -7,7 +7,7 @@ import { ladderOpensTab } from '../systems/ladder/ladderSystem';
 export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'students' | 'history' | 'athletics' | 'inbox';
 
 // The toolbar's order: academic core, campus life, the annual pages, the
-// record, then the inbox (Plan 76) next to Build. Treasury is filtered out
+// record, then the inbox (Plan 77) next to Build. Treasury is filtered out
 // of the icon row (Toolbar.tsx's ICON_TAB_ORDER) because the funds figure
 // opens it, but keeps its label for TabOverlay's header.
 const TABS: Array<{ id: TabId; label: string }> = [

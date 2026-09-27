@@ -202,7 +202,7 @@ const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
     publication: 'paper',
     breakthrough: 'clinical breakthrough',
     breakthroughTail: 'published and taken into the clinic',
-    funders: ['the Institute of Health Sciences', 'a medical research charity'],
+    funders: ['the Institute of Health Sciences', 'a medical research foundation'],
     prizes: ['the Kellner Award for Medicine'],
   },
 };
@@ -245,11 +245,11 @@ export interface InitiativeDepthDef {
 export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
   {
     key: 'pilot', name: 'Pilot Study', participants: 1, weeks: 26, fundingWeeks: 0.4, intensity: 1,
-    blurb: 'One scholar, six months. Publications, and a grant now and then.',
+    blurb: 'One scholar, six months. Rarely a paper, but a finished project for the lab.',
   },
   {
     key: 'project', name: 'Funded Project', participants: 2, weeks: 78, fundingWeeks: 1.0, intensity: 1.35,
-    blurb: 'Two scholars, eighteen months. Regular grants, and a real chance of a breakthrough.',
+    blurb: 'Two scholars, eighteen months. A grant or two, and a real chance of a breakthrough.',
   },
   {
     key: 'program', name: 'Major Program', participants: 3, weeks: 156, fundingWeeks: 2.2, intensity: 1.8,

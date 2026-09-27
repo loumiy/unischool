@@ -1,4 +1,5 @@
 import type { GameState, Vernacular } from './types';
+import { count } from '../format';
 
 // THE BONUS VERNACULARS' UNLOCKS: four architectures a run earns for the
 // runs after it (buildingSpec.ts's BONUS_VERNACULAR_CHOICES). Kept in their
@@ -27,7 +28,7 @@ const built = (s: GameState, facilityType: string) =>
 export const UNLOCKS: Unlock[] = [
   {
     id: 'tudor',
-    condition: `House ${TUDOR_BEDS.toLocaleString('en-US')} students on campus.`,
+    condition: `House ${count(TUDOR_BEDS)} students on campus.`,
     earned: (s) => s.students.capacity >= TUDOR_BEDS,
   },
   {

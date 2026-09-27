@@ -21,15 +21,19 @@ last section lists what came off and where it went.*
 [`docs/reviews/2026-10-game-review/`](docs/reviews/2026-10-game-review/README.md).
 The owner triages them area by area. **Area 1 (the campus) is
 [Plan 74](docs/plans/74-campus.md)**: every fix but A1-7 and A1-8, which
-are under *Named, not sequenced* with the area's decorative assets. The
-rest waits for triage; this entry comes off when every area is answered.*
+are under *Named, not sequenced* with the area's decorative assets.
+**Area 2 (the screens and the words) is
+[Plan 76](docs/plans/76-ui-and-text.md)**, which also takes G7-3, G7-4,
+G7-5 and G7-14, the effect side of area 2's false claims; what it leaves
+is under *Named, not sequenced*. The rest waits for triage; this entry
+comes off when every area is answered.*
 
 - **Fix first:**
   - two tabs on one save lose progress (G7-1);
-  - the winter model is half a year off (G7-3);
-  - the tag attrition point is previewed but never applied (G7-4);
-  - the athletics axis is scaled twice (G7-5);
-  - the stale hall price in the second-year letter (G7-14);
+  - the winter model is half a year off (G7-3, taken into Plan 76D);
+  - the tag attrition point is previewed but never applied (G7-4, Plan 76C);
+  - the athletics axis is scaled twice (G7-5, Plan 76C);
+  - the stale hall price in the second-year letter (G7-14, Plan 76C);
   - the committed `node_modules` symlink (G7-17a), already removed on the review branch.
 - **The ten ranked improvements**, in the README's order:
   1. the first year explains itself;
@@ -85,6 +89,42 @@ what Plan 72 leaves.*
 
 *Each is a real piece of work with a known shape; none has been turned into
 a sequence of PRs.*
+
+- **Events that do what they say** (the October review, A2-2; left by
+  Plan 76). Plan 76D relabels the event choices whose truth needs a system
+  the events cannot reach. Each would make the event richer:
+  - a hire from an event, through `appointFaculty` with a rolled
+    candidate ("Fill the post", "Hire, whatever it costs", "Fund a
+    teaching line");
+  - closing a program ("Teach out … and close it");
+  - placing a statue or paving a path from an event;
+  - setting the draw rate ("Cut the draw", "Stop drawing");
+  - starting a real campaign ("Run a capital campaign");
+  - named funds, scholarships and chairs, kept apart from the general
+    endowment;
+  - retirement stories fired from the real retirement notice and naming
+    that person;
+  - **a memory of answers**, so decisions are not undone by recurrence:
+    the boiler replaced and then "installed in the college's first
+    decade", the writing course debated again, term limits adopted and
+    the trustee of twenty-six years back, the strip sold and offered
+    again, the guidebook's "first time" three times a game.
+- **Confidence the board acts on** (A2-2). Board confidence moves under
+  many answers and is read by six events, one promise and the Treasury;
+  no rung, budget or dismissal reads it. Plan 76 says what it does where
+  it is shown. Making the ladder read it is a design change for the
+  owner.
+- **The course catalog's shape** (A2-5; left by Plan 76G, which fixes the
+  sentences and titles). No course is numbered above 200. Five of the
+  Social Sciences majors lack a standard core course (statistics,
+  research methods, anthropological theory, modern philosophy,
+  non-Western history), no major has a senior seminar, the JD has no
+  Professional Responsibility, and the MD has no internal medicine,
+  pediatrics or obstetrics. Plan 76G rewrote sentences rather than move
+  courses where the audit swaps or renumbers them; the moves themselves
+  wait here: FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and
+  bridges before ACCT110 and MATH130. Each change moves course ids in
+  every save.
 
 - **Walks that draw straight** (the October review, A1-7). A walk is a run
   of square tiles with no diagonal piece, so a diagonal walk draws as a

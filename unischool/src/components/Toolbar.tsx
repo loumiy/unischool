@@ -68,7 +68,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // What the inbox's button says (systems/inbox/inbox.ts's inboxBadge),
   // counted by App.tsx, which also keeps the session's read letters.
   inbox: InboxBadge;
-  // A stop waits in the inbox (Plan 76): every other way off it is shut.
+  // A stop waits in the inbox (Plan 77): every other way off it is shut.
   held: boolean;
 }>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held }, ref) => {
 
@@ -88,52 +88,57 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </div>
 
       <nav className="toolbar-tabs">
-        {/* Home leads the row: always in the same place, and active when
-            nothing (tab or build popup) is open over the map. */}
-        <button
-          type="button"
-          className={`toolbar-icon-btn ${active === null && !buildOpen ? 'active' : ''}`}
-          aria-label="Campus map"
-          title="Campus map"
-          disabled={held}
-          onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
-        >
-          <HomeIcon />
-          <span className="toolbar-tab-label">Campus</span>
-        </button>
+        {/* The tabs' own box, so on a phone they scroll beside Build rather
+            than under it (styles.css's phone rules); on wider screens it is
+            display: contents and the row is one flex line. */}
+        <div className="toolbar-tab-scroll">
+          {/* Home leads the row: always in the same place, and active when
+              nothing (tab or build popup) is open over the map. */}
+          <button
+            type="button"
+            className={`toolbar-icon-btn ${active === null && !buildOpen ? 'active' : ''}`}
+            aria-label="Campus map"
+            title="Campus map"
+            disabled={held}
+            onClick={() => { onChangeTab(null); onSetBuildOpen(false); }}
+          >
+            <HomeIcon />
+            <span className="toolbar-tab-label">Campus</span>
+          </button>
 
-        {ICON_TAB_ORDER.filter((id) => tabAvailable(s, id)).map((id) => {
-          const Icon = TAB_ICONS[id];
-          const isActive = active === id;
-          // Suppressed on the active tab, so the badge never flashes for the
-          // render before the tab marks its ids seen.
-          const hasAlert = !isActive && (TAB_ALERT[id]?.(s) ?? false);
-          // The inbox counts what wants an answer, red while any is in its
-          // last week, and dots unread letters (Plan 76).
-          const inboxLabel = id !== 'inbox' ? TAB_LABELS[id]
-            : inbox.count > 0 ? `Inbox, ${inbox.count} to decide`
-              : inbox.unreadLetters > 0 ? `Inbox, ${inbox.unreadLetters} unread` : 'Inbox';
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
-              aria-expanded={isActive}
-              aria-label={inboxLabel}
-              title={inboxLabel}
-              disabled={held && id !== 'inbox'}
-              onClick={() => onChangeTab(isActive ? null : id)}
-            >
-              <Icon />
-              {/* The word under the glyph, at every width: several icons look alike. */}
-              <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
-              {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
-              {id === 'inbox' && (inbox.count > 0
-                ? <span className={`inbox-badge${inbox.urgent ? ' urgent' : ''}`} aria-hidden="true">{inbox.count}</span>
-                : inbox.unreadLetters > 0 && <span className="inbox-badge dot" aria-hidden="true" />)}
-            </button>
-          );
-        })}
+          {ICON_TAB_ORDER.filter((id) => tabAvailable(s, id)).map((id) => {
+            const Icon = TAB_ICONS[id];
+            const isActive = active === id;
+            // Suppressed on the active tab, so the badge never flashes for the
+            // render before the tab marks its ids seen.
+            const hasAlert = !isActive && (TAB_ALERT[id]?.(s) ?? false);
+            // The inbox counts what wants an answer, red while any is in its
+            // last week, and dots unread letters (Plan 77).
+            const inboxLabel = id !== 'inbox' ? TAB_LABELS[id]
+              : inbox.count > 0 ? `Inbox, ${inbox.count} to decide`
+                : inbox.unreadLetters > 0 ? `Inbox, ${inbox.unreadLetters} unread` : 'Inbox';
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
+                aria-expanded={isActive}
+                aria-label={inboxLabel}
+                title={inboxLabel}
+                disabled={held && id !== 'inbox'}
+                onClick={() => onChangeTab(isActive ? null : id)}
+              >
+                <Icon />
+                {/* The word under the glyph, at every width: several icons look alike. */}
+                <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
+                {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
+                {id === 'inbox' && (inbox.count > 0
+                  ? <span className={`inbox-badge${inbox.urgent ? ' urgent' : ''}`} aria-hidden="true">{inbox.count}</span>
+                  : inbox.unreadLetters > 0 && <span className="inbox-badge dot" aria-hidden="true" />)}
+              </button>
+            );
+          })}
+        </div>
 
         <button
           type="button"

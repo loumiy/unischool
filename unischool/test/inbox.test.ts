@@ -1,4 +1,4 @@
-// The inbox (Plan 76, systems/inbox/inbox.ts): everything addressed to the
+// The inbox (Plan 77, systems/inbox/inbox.ts): everything addressed to the
 // president, read off state the game already keeps, in three tiers. Only
 // what wants an answer counts on the toolbar's button, red in its last
 // week; unread letters dot it; bulletins never count and clear after a

@@ -11,6 +11,7 @@ import { eventById, eventText, fill } from '../events/catalogue';
 import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
+import { satisfactionFigure } from '../../format';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the latest undone letter ask (the letters' order must not
@@ -35,7 +36,7 @@ export interface NextStep {
   intent?: StepIntent;
 }
 
-// What will not wait (Plan 76): the inbox holds everything addressed to the
+// What will not wait (Plan 77): the inbox holds everything addressed to the
 // president and its button counts it, so NEXT points there only for what
 // lapses or presses this week: the board's unread letter, or an event in
 // its last week to answer. Both pulse.
@@ -201,7 +202,7 @@ function shortfall(s: GameState): NextStep | null {
     if (score < ATTRIBUTE_SHORTFALL && (!worst || score < worst.score)) worst = { key, score };
   }
   if (!worst) return null;
-  return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${Math.round(worst.score)} — build for it`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
+  return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${satisfactionFigure(worst.score)} — build for it`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
 }
 
 // A program gone dark with an unstaffed course (Plan 59), when the payroll

@@ -12,7 +12,7 @@ import { schoolFoundedKey } from '../techtree/schools';
 import { foundingNotes } from './foundingNote';
 
 // ---------------------------------------------------------------------
-// THE INBOX (Plan 76): everything addressed to the president, in one
+// THE INBOX (Plan 77): everything addressed to the president, in one
 // full-screen view (components/InboxTab.tsx), in three tiers told apart by
 // form:
 //

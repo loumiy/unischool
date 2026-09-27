@@ -68,7 +68,7 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
   }
 
   // Any other letter: note it once per kind, answer with the last button.
-  // A stop is answered in the inbox (Plan 76), in its modal card.
+  // A stop is answered in the inbox (Plan 77), in its modal card.
   const modal = page.locator('.modal-inbox, .modal-backdrop .modal, [role="dialog"][aria-modal="true"]');
   if (await modal.count()) {
     const kind = (await modal.first().getAttribute('data-interrupt'))

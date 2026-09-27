@@ -11,7 +11,7 @@ import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import { FIGURE_HINTS } from '../data/figureHints';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
-import { money, moneyShort } from '../format';
+import { count, decimal, money, moneyShort, multiplier, pct, prestigeFigure } from '../format';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { MultiChart } from '../components/MultiChart';
 import EstatePanel from './EstatePanel';
@@ -55,10 +55,10 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const sectionsNote = teaching.courses === 0
     ? 'no course is offered yet'
     : teaching.overflow > 0
-      ? `every section is full and ${teaching.overflow.toLocaleString()} students are in overflow — the catalog is smaller than the college`
+      ? `every section is full and ${count(teaching.overflow)} students are in overflow — the catalog is smaller than the college`
       : teaching.fill >= 0.85
-        ? `sections are running ${Math.round(teaching.fill * 100)}% full`
-        : `sections are running ${Math.round(teaching.fill * 100)}% full — the catalog is bigger than the college`;
+        ? `sections are running ${pct(teaching.fill)} full`
+        : `sections are running ${pct(teaching.fill)} full — the catalog is bigger than the college`;
 
   return (
     <div className="tab-content">
@@ -73,12 +73,12 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <h3>Income</h3>
             <StatementLine
               label="Net tuition"
-              note={`${totalEnrolled(s.students).toLocaleString()} enrolled across four classes, each at the price it was admitted under`}
+              note={`${count(totalEnrolled(s.students))} enrolled across four classes, each at the price it was admitted under`}
               amount={flow.tuitionRevenue}
             />
             <StatementLine
               label="Prestige dividend"
-              note={`donors and grants, scaling with prestige ${Math.round(s.self.reputation)}`}
+              note={`donors and grants, scaling with prestige ${prestigeFigure(s.self.reputation)}`}
               amount={flow.prestigeRevenue}
             />
             {flow.annualFund > 0 && (
@@ -90,7 +90,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             )}
             <StatementLine
               label="Endowment payout"
-              note={`a ${(drawRate(s) * 100).toFixed(1)}% draw on ${money(s.finance.endowment)}`}
+              note={`a ${pct(drawRate(s), 1)} draw on ${money(s.finance.endowment)}`}
               amount={flow.endowmentPayout}
             />
             {(flow.athleticsSurplus > 0 || flow.gateRevenue > 0) && (
@@ -110,28 +110,28 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             <h3>Expenses</h3>
             <StatementLine
               label="Faculty salaries"
-              note={`${s.faculty.length} on the roster at ×${marketRate.toFixed(2)} market rate for prestige ${Math.round(s.self.reputation)}; salaries rise with tenure`}
+              note={`${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}; salaries rise with tenure`}
               amount={flow.weeklySalaries}
             />
             <StatementLine
               label="Housing upkeep"
-              note={`${s.students.capacity.toLocaleString()} beds — an empty one still costs, at half rate`}
+              note={`${count(s.students.capacity)} beds — an empty one still costs, at half rate`}
               amount={flow.seatUpkeep}
             />
             <StatementLine
               label="Instruction"
-              note={`${teaching.courses.toLocaleString()} courses in ${teaching.sections.toLocaleString()} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section; ${sectionsNote}`}
+              note={`${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section; ${sectionsNote}`}
               amount={flow.instructionCost}
             />
             <StatementLine
               label="Services"
-              note={`${totalEnrolled(s.students).toLocaleString()} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ×${services.toFixed(2)} for crowding` : ''}`}
+              note={`${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} for crowding` : ''}`}
               amount={flow.servicesCost}
             />
             {flow.scaleCost > 0 && (
               <StatementLine
                 label="Being large"
-                note={`the administration ${totalEnrolled(s.students).toLocaleString()} students need, ${Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW).toFixed(1)} doublings past ${SCALE_FREE_BELOW.toLocaleString()} — each doubling costs every student more`}
+                note={`the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)} — each doubling costs every student more`}
                 amount={flow.scaleCost}
               />
             )}
@@ -145,6 +145,13 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               note="libraries, dining, rec and labs, each carrying its own running cost"
               amount={flow.facilityUpkeep}
             />
+            {flow.studentLifeUpkeep > 0 && (
+              <StatementLine
+                label="Student life"
+                note={`${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} tier`}
+                amount={flow.studentLifeUpkeep}
+              />
+            )}
             {flow.athleticsSubsidy > 0 && (
               <StatementLine
                 label="Athletics subsidy"
@@ -155,7 +162,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
             {flow.administration > 0 && (
               <StatementLine
                 label="Administration"
-                note={`${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${Math.round((flow.administration / (flow.administration + flow.weeklySalaries)) * 100)}% of the payroll`}
+                note={`${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of the payroll`}
                 amount={flow.administration}
               />
             )}
@@ -178,7 +185,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
-          {money(annualNet)} a year at this rate. Money is the only throttle on starting anything: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so the wait for the next purchase is the pacing. Only an operating deficit can push cash negative. That never ends the run: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
+          {money(annualNet)} a year at this rate. Nothing starts until it is paid for: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so cash sets how fast the college grows. An operating deficit, or a matter left to its default, can push cash negative. A deficit never closes the college: it walks the college down the board's ladder (tight, deficit, a construction freeze, austerity, and at the bottom an interim CFO), a term at a time, and back up as the books recover.
         </p>
       </section>
 
@@ -242,7 +249,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
                 { name: 'Costs', points: sizes.map((n) => ({ x: n, y: marginalStudentCost(s, 1_000, undefined, n) * WEEKS_PER_YEAR })), format: moneyShort },
                 { name: 'Pays', points: sizes.map((n) => ({ x: n, y: s.finance.listedTuition })), format: moneyShort },
               ]}
-              note={`At today's prestige, catalog and listed price. Every doubling past ${SCALE_FREE_BELOW.toLocaleString()} students adds to what each one costs to administer; where the lines cross, the next student costs more than they pay. The college has ${now.toLocaleString()}.`}
+              note={`At today's prestige, catalog and listed price. Every doubling past ${count(SCALE_FREE_BELOW)} students adds to what each one costs to administer; where the lines cross, the next student costs more than they pay. The college has ${count(now)}.`}
             />
           </section>
         );

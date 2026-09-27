@@ -22,7 +22,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
   students, and one that barely grows still founds its schools.
 - **Milestones are permanent.** One reached is never undone, even if
   enrolment or prestige later falls below its threshold.
-- **Each milestone arrives as a letter** in the inbox (Plan 76), naming
+- **Each milestone arrives as a letter** in the inbox (Plan 77), naming
   what it opened, and stays there to be read again. Letters never stop the
   clock.
 - **The founding build list is short and curriculum-first:** the first
