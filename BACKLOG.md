@@ -19,8 +19,10 @@ last section lists what came off and where it went.*
 
 *The review's findings are in
 [`docs/reviews/2026-10-game-review/`](docs/reviews/2026-10-game-review/README.md).
-The owner triages them, and what is accepted becomes Plan 74. This entry
-comes off when Plan 74 is written.*
+The owner triages them area by area. **Area 1 (the campus) is
+[Plan 74](docs/plans/74-campus.md)**: every fix but A1-7 and A1-8, which
+are under *Named, not sequenced* with the area's decorative assets. The
+rest waits for triage; this entry comes off when every area is answered.*
 
 - **Fix first:**
   - two tabs on one save lose progress (G7-1);
@@ -39,7 +41,7 @@ comes off when Plan 74 is written.*
   7. strategies that end in different colleges (a plan of its own);
   8. a fair Final Report;
   9. one way to write a number;
-  10. a campus worth a screenshot.
+  10. a campus worth a screenshot (area 1's part in Plan 74).
 
 ---
 
@@ -84,6 +86,32 @@ what Plan 72 leaves.*
 *Each is a real piece of work with a known shape; none has been turned into
 a sequence of PRs.*
 
+- **Walks that draw straight** (the October review, A1-7). A walk is a run
+  of square tiles with no diagonal piece, so a diagonal walk draws as a
+  zigzag ribbon and a curve as a staircase, and desire lines across a lawn
+  are the most campus-like path there is. Either draw a walk as a polyline
+  through its tiles' centers with rounded joins over the tiles (the tiles
+  stay the data), or fill the triangle between two diagonally adjacent
+  walk tiles. About one PR either way.
+- **Doors that meet the campus** (A1-8). The door checker
+  (`npm run review:doors`) counts, over 63 saves and four views: 1,555
+  doors onto lawn (the game never joins a door to a walk), 296 on the
+  seam between two tiles (every even-length wall), 118 into another
+  building's wall, 53 onto courts, a pool or a quad, 45 under trees, 22
+  under a bike rack or a lamp, and 39 overhangs. The fixes: put an even
+  wall's door on the tile nearest a walk; clear trees from a door's tile
+  when the building is placed, and keep racks, lamps and the flag off door
+  tiles and trees (`dressing.tsx`); and draw a short path from each door
+  to the nearest walk.
+- **Decorative assets** (the review's area 1 list, after seasons, which is
+  Plan 74I), in its ranked order:
+  1. water: a pond or a lake edge with a boathouse (a place for rowing,
+     and bridges for the paths), a new tile kind beside the road;
+  2. walls and gates along the road, so the campus has a front;
+  3. a bandstand or a quad clock, a focal point that is not the fountain;
+  4. sculpture of several kinds, picked by a hash of the tile;
+  5. parking beside the road, a grounds lot with stall markings;
+  6. signage: a plate by each door naming the building, shown from zoom 3.
 - **Faculty lifecycle: rival poaching and paid retention.** A departure the
   player did not choose, and money spent to prevent it. **This has gone
   backwards and is the most visible gap:** Plan 29 left poaching to the
