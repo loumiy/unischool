@@ -733,13 +733,18 @@ button.build-tile { font-family: inherit; }
 .campus-lamp-post { stroke: #3a3a38; stroke-width: 1.6; }
 .campus-lamp-head { fill: #f5e3a3; stroke: #3a3a38; stroke-width: 1; }
 .campus-bench-leg { stroke: #4a3a2a; stroke-width: 1.2; }
-.campus-bench-seat { stroke: #8a5f3a; stroke-width: 3; stroke-linecap: round; }
-.campus-bench-back { stroke: #7a522f; stroke-width: 2; stroke-linecap: round; }
+.campus-bench-seat { fill: #9a6a40; stroke: #5e4027; stroke-width: 0.6; stroke-linejoin: round; }
+.campus-bench-back { fill: #7a522f; stroke: #5e4027; stroke-width: 0.6; stroke-linejoin: round; }
 .campus-flag-pole { stroke: #d8d4c8; stroke-width: 1.4; }
 .campus-flag-finial { fill: #d9b44a; }
 /* A site's shell rising in scaffolding (CampusMap.tsx's SiteProgress). */
 .campus-site-shell polygon { fill: rgba(214, 206, 188, 0.78); stroke: rgba(90, 84, 70, 0.5); stroke-width: 0.8; }
 .campus-site-shell polygon.campus-site-hatch { fill: url(#campus-scaffold); stroke: none; }
+/* A building's frame going up (siteWorks.tsx's SiteFrame, Plan 74H). */
+.campus-site-frame { pointer-events: none; }
+.campus-site-column { fill: #6c706f; }
+.campus-site-slab { fill: rgba(206, 200, 188, 0.5); stroke: rgba(96, 94, 88, 0.55); stroke-width: 0.6; }
+.campus-site-edge { fill: #8f8b82; }
 /* A biology lab's rooftop glasshouse (buildingMotifs.tsx's LabRoofFeature). */
 .glass-pane { fill: rgba(196, 226, 232, 0.72); stroke: rgba(80, 104, 110, 0.6); stroke-width: 0.8; }
 .glass-roof { fill: rgba(214, 238, 242, 0.8); stroke: rgba(80, 104, 110, 0.6); stroke-width: 0.8; }
@@ -881,7 +886,7 @@ button.build-tile { font-family: inherit; }
 
 /* ---------- Open ground ---------- */
 /* Markings (groundMarkings.tsx) are strokes over a fill, scaling with the world. */
-.ground-lawn { fill: #8fae6b; }
+.ground-lawn { fill: var(--lawn, #8fae6b); }
 /* A plate under construction (GroundSite): scraped earth, greyer than .ground-dirt. */
 .ground-graded { fill: #a08965; }
 .ground-graded-scrape { stroke: rgba(74, 58, 38, 0.13); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
@@ -938,12 +943,12 @@ button.build-tile { font-family: inherit; }
 .campus-tree-trunk { fill: #6b5236; }
 /* Base tones are unscoped so a crown never falls back to SVG's default
    black; species rules override. */
-.campus-tree-crown { fill: #4f7a3c; }
-.campus-tree-crown-top { fill: #679a4c; }
-.campus-tree.conifer .campus-tree-crown { fill: #37623f; }
-.campus-tree.conifer .campus-tree-crown-top { fill: #467c4f; }
-.campus-tree.ornamental .campus-tree-crown { fill: #7d9e4a; }
-.campus-tree.ornamental .campus-tree-crown-top { fill: #9ab85f; }
+.campus-tree-crown { fill: var(--leaf-canopy, #4f7a3c); opacity: var(--leaf-opacity, 1); }
+.campus-tree-crown-top { fill: var(--leaf-canopy-top, #679a4c); opacity: var(--leaf-opacity, 1); }
+.campus-tree.conifer .campus-tree-crown { fill: #37623f; opacity: 1; }
+.campus-tree.conifer .campus-tree-crown-top { fill: var(--conifer-top, #467c4f); opacity: 1; }
+.campus-tree.ornamental .campus-tree-crown { fill: var(--leaf-ornamental, #7d9e4a); }
+.campus-tree.ornamental .campus-tree-crown-top { fill: var(--leaf-ornamental-top, #9ab85f); }
 
 /* The fountain jet is deliberately the only near-white on the map. */
 .ground-fountain-kerb { fill: #d8cfb4; }

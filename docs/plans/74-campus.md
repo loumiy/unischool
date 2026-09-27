@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's answer on area 1
 of the October review into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** A to I merged; A1-7, A1-8 and the other decorative assets are in `BACKLOG.md`.
 
 ---
 
@@ -363,6 +363,52 @@ without a click.
 - **Benches and arcades at the opening zoom:** benches keep a seat and a
   back, and a Mission arcade shows its arches rather than a barcode.
 
+**As implemented (#214).**
+
+- **Tile and slate reach the halls.** A vernacular's roof table can name a
+  `pitchedRoof` for every pitched hall and civic portico, whatever the
+  wall. `materialOf` hands back one stable tiled copy of each material, so
+  the motif memo holds.
+  - Mission names clay tile, so the limestone Social Sciences hall is
+    under tile.
+  - Collegiate Gothic names slate, so its limestone halls and new library
+    roofs match the brick halls.
+  - Housing and pavilions keep their own roofs.
+  - Mission's Business exchange keeps its flat deck and dome, but its
+    parapet takes a tile coping (74E's crest) so it stops reading as a
+    gray box.
+- **A Gothic library.** `gothicCivicOf` marks Collegiate Gothic's library
+  and gallery.
+  - Both take an 11 m steep roof (hipped or gabled by footprint), a
+    Gothic porch (now drawn on any motif) and lancets (already
+    theirs), with buttresses along their walls.
+  - The library also has a crenellated corner tower two stories above
+    its eaves.
+  - Every other vernacular keeps the flat portico.
+- **The Modern hall.** It has a recessed, glazed ground floor with a
+  shadow band above it. Every ribbon window is taller (0.66 of its rank,
+  from 0.46), so a Modern front reads as glass between the bands rather
+  than as open decks.
+- **Benches** have a seat with depth and a backrest panel on two legs, in
+  place of three strokes.
+- **Arcades.** The front wall is whitewashed, with the arches cut
+  through it, so they read as arches rather than dark bays. Arcade bays
+  widen from 6 m to 7.5 m.
+- **Checks:** `test/building-spec.test.ts` adds that:
+  - every pitched hall or portico wears its vernacular's pitched roof,
+    and its material is a stable object;
+  - the Mission Social Sciences hall is under tile;
+  - the Gothic library and gallery are steep-roofed, porched and
+    lancet-lit, and the other four vernaculars keep them flat.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `style-slips.png`: the generic hall, the Social Sciences and Business
+    halls, the library and the gallery, in Georgian, Gothic, Mission and
+    Modern.
+  - `arcade-and-benches-opening-zoom.png`: a Mission quarter at the
+    opening zoom.
+
 ## PR 74H — Construction sites that grow
 
 *Area 1, "Sites don't grow".* A hall or residence under construction is a
@@ -373,6 +419,33 @@ pavilions get the slab alone. Only the grand landmarks rise in stages.
   stages: footings, then the frame (a skeleton to full height), then the
   closed shell in scaffolding. The crane stays on the large ones. Read off
   the build countdown the landmarks already use.
+
+**As implemented (#215).**
+
+- The map already raised a hatched shell in step with the countdown
+  (`CampusMap.tsx`'s `SiteProgress`). The contact sheets the review read
+  have no countdown, so they showed only the slab. That shell now rises in
+  the landmarks' three stages (`siteWorks.tsx`'s `siteStageOf`, read off
+  the same countdown):
+  - **Footings** for the first third: the motif's own site, a hatched slab
+    with its low scaffold and, on a building five tiles or more across,
+    the tower crane.
+  - **The frame** for the second third (`SiteFrame`): columns at the
+    corners and about every tile and a half along the near walls, and a
+    slab at every floor, to the building's full height.
+  - **The closed shell** in scaffolding for the last third, at full
+    height.
+- The crane stays through all three. A residence village and the stadium
+  bowl still fill in with the countdown as before, since a frame means
+  nothing on a plot of houses or an earthwork. Added stories on a
+  standing building are unchanged.
+- **Checks:** `test/ground-site.test.ts` pins the stage boundaries (never
+  going back a stage) and that the frame draws.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshot: `docs/reviews/2026-10-campus-fixes/construction-stages.png`
+  shows five halls, the library, a tower and a clinic going up at 15%,
+  50% and 80%.
 
 ## PR 74I — Seasons on the map
 
@@ -393,6 +466,47 @@ so it can be dropped without touching the rest.
 - Reduced motion is respected; a tint changes by the week, never animates.
 - **Checks:** the season at each week is tested; screenshots of one campus
   through a year.
+
+**As implemented (#216).**
+
+- `src/components/seasons.ts` holds the year on the map. It is written
+  apart from the events' winter model, so G7-3's fix can read the same
+  calendar. `seasonOf(week)` reads the game's own calendar and gives
+  four amounts:
+  - `turn`: the leaves turn from week 6 to week 16.
+  - `bare`: the leaves are down by week 21, and the trees are bare until
+    week 34.
+  - `snow`: snow lies from week 21 to week 32, deepest at weeks 24–29,
+    around the turn of the terms.
+  - `bud`: the trees bud from week 34 and are green again by week 44.
+- `seasonStyle` turns those amounts into CSS variables on the map:
+  - the grass and lawns dry toward straw, then whiten under snow;
+  - the canopy trees turn gold and the ornamentals rust, fade to a haze
+    of twigs, then bud a fresh green;
+  - the conifers stay green and take a dusting of snow.
+- `SnowContext` carries the snow to `buildingMotifs.tsx`, where
+  `snowOnRoofs` whitens every pitched slope and flat deck. The lit
+  slopes whiten most; the walls are untouched.
+- The tint changes by the week and nothing animates, so reduced motion has
+  nothing to stop. The defaults are the stylesheet's own summer colors, so
+  anything outside the map (the contact sheets, the gallery) draws as
+  before.
+- **Checks:** `test/seasons.test.ts` checks the season at every week:
+  - summer is the plain map, in the stylesheet's colors;
+  - the leaves only turn further through the Fall Term;
+  - snow lies only at the turn of the terms;
+  - the trees are bare into the Spring Term, bud, and are green by
+    week 44;
+  - the calendar wraps.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `seasons.png`: one campus at weeks 2, 12, 18, 26, 38 and 48.
+  - `winter-close.png`: week 26 at zoom 2.
+- **The owner's earlier answer:** Plan 72 (answer 16) declined night and
+  seasons on the map. This PR follows the later instruction to do every
+  area-1 fix but A1-7 and A1-8, and it lands last, so it can be reverted
+  on its own.
 
 ## What this plan does not do
 

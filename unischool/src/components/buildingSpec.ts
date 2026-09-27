@@ -401,7 +401,18 @@ export function ridgeOf(t: Buildable, v: Vernacular): number {
   const roof = roofFor(v);
   const motif = motifOf(t);
   if (motif === 'residential') return up(roof.residentialRidgeMetres(storeysOf(t)));
+  if (gothicCivicOf(t, v)) return up(GOTHIC_CIVIC_RIDGE_METRES);
   return up(roof.ridgeMetres[motif] ?? 0);
+}
+
+// Collegiate Gothic's library and gallery (Plan 74G, review A1-9): the
+// signature buildings of the style (think Sterling or Harper), so they leave
+// the pale flat portico for a steep roof, lancets, a Gothic porch, and on
+// the library a crenellated tower.
+const GOTHIC_CIVIC_RIDGE_METRES = 11.0;
+export function gothicCivicOf(t: Buildable, v: Vernacular): 'library' | 'gallery' | undefined {
+  if (v !== 'gothic') return undefined;
+  return t.facilityType === 'library' ? 'library' : t.facilityType === 'artGallery' ? 'gallery' : undefined;
 }
 
 // Bays and windows. A window is a fixed real size; a wall gets as many bays as
@@ -552,7 +563,7 @@ export const PORTICO_COLUMN_PLAN = across(1.4);  // a column is round; this is i
 export const ARCADE_HEIGHT = up(7.2);
 export const ARCADE_DEPTH = across(2.6);
 export const ARCADE_PIER = across(0.75);
-export const ARCADE_BAY_METRES = 6.0;   // wider than a window bay
+export const ARCADE_BAY_METRES = 7.5;   // wider than a window bay: bold enough to read at the opening zoom (Plan 74G)
 export const ARCADE_MAX = 10;
 // The campanile (Mission apex): a square bell tower with an open belfry.
 export const CAMPANILE_PLAN = across(7.0);
@@ -693,6 +704,10 @@ export interface VernacularRoof {
   // Ridge rise above the eaves in meters, by motif. Absent means flat.
   ridgeMetres: Partial<Record<Motif, number>>;
   residentialRidgeMetres(storeys: number): number;
+  // Every pitched roof on a hall or civic building in this color, whatever
+  // the wall material under it (Plan 74G: Mission's tile reaches the
+  // limestone halls). Absent means each material keeps its own roof.
+  pitchedRoof?: string;
   // Wall height above the cornice, in units. Zero means no parapet (the roof
   // springs from the eaves).
   parapet: number;
@@ -872,6 +887,8 @@ const GOTHIC: VernacularSpec = {
       village: 6.0,
       pavilion: 5.0,
     },
+    // Slate over the limestone halls and the library too (Plan 74G).
+    pitchedRoof: GOTHIC_SLATE,
     residentialRidgeMetres: (storeys: number) => {
       if (storeys <= 3) return 7.5;
       return 6.5;
@@ -1040,6 +1057,7 @@ const MISSION: VernacularSpec = {
   roof: {
     // A tile roof cannot be steep; the eaves are deep instead.
     ridgeMetres: { hall: 3.4, village: 3.6, pavilion: 3.0 },
+    pitchedRoof: CLAY_TILE,
     residentialRidgeMetres: (storeys: number) => {
       if (storeys <= 3) return 3.6;
       return 3.0;
@@ -1318,6 +1336,7 @@ export function partsFor(v: Vernacular): VernacularParts {
 // nothing for the other invariant motifs.
 export function entrancePartOf(t: Buildable, v: Vernacular): EntrancePart {
   const motif = motifOf(t);
+  if (gothicCivicOf(t, v)) return 'porch';
   if (!variesByVernacular(motif)) return surfaceFollowsVernacular(motif) ? partsFor(v).surfaceEntrance : 'none';
   return partsFor(v).entrance[motif] ?? 'none';
 }
@@ -1378,8 +1397,10 @@ const ARCH_STEPS = 6;
 // A concrete slot is inset from its bay; the reveal reads as a thick wall.
 const SLOT_INSET = 0.22;
 // A ribbon fills its bay edge to edge and is short, so a row reads as one band.
-const RIBBON_HEIGHT = 0.46;
-const RIBBON_DROP = 0.30;   // where the band sits within its own rank
+// Tall enough that a Modern front reads as glass between its bands, not as
+// a parking garage's open decks (Plan 74G).
+const RIBBON_HEIGHT = 0.66;
+const RIBBON_DROP = 0.18;   // where the band sits within its own rank
 
 export function windowOutline(
   shape: WindowShape, u0: number, u1: number, v0: number, v1: number,
@@ -1425,6 +1446,20 @@ export function stoneFor(v: Vernacular): StonePalette {
 }
 
 export function materialOf(t: Buildable, v: Vernacular): Material {
+  const own = baseMaterialOf(t, v);
+  const pitched = roofFor(v).pitchedRoof;
+  // The halls and the civic porticos; housing and the pavilions keep their
+  // own roofs.
+  const motif = motifOf(t);
+  if (!pitched || own.roof === pitched || (motif !== 'hall' && motif !== 'portico') || ridgeOf(t, v) <= 0) return own;
+  // One stable object per material, so BuildingMotif's memo still holds.
+  let tiled = PITCHED_ROOFED.get(own);
+  if (!tiled) { tiled = { ...own, roof: pitched }; PITCHED_ROOFED.set(own, tiled); }
+  return tiled;
+}
+const PITCHED_ROOFED = new Map<Material, Material>();
+
+function baseMaterialOf(t: Buildable, v: Vernacular): Material {
   const MATERIALS = materialsFor(v);
   if (t.kind === 'building') {
     const signature = signatureOf(t);
@@ -1525,3 +1560,54 @@ export const UNDERCROFT_STOREYS = 1;
 // The red cross on the slab's front.
 export const CROSS_ARM_METRES = 4.2;
 export const CROSS_BAR_METRES = 1.5;
+
+// The Triumphal Gate (landmarks.tsx), its passages cut through (Plan 75B):
+// the body inset from its plot, the great arch through the long faces and
+// the lesser arch through the ends, as shares of the body's faces and of the
+// gate's height. The map's walkers route through the passages
+// (walkRoutes.ts) and are hidden by the masonry either side and over them
+// (Walkers.tsx), so all three read the gate from here.
+export const GATE_ID = 'LANDMARK-GATE';
+export const GATE_INSET = 0.2;
+export const GATE_BODY_SHARE = 0.8;       // of the height; the attic is the rest
+export const GATE_ARCH_HALF = 0.14;       // of the long face's width
+export const GATE_ARCH_TOP = 0.6;         // of the height
+export const GATE_SIDE_ARCH_HALF = 0.18;  // of the end face's width
+export const GATE_SIDE_ARCH_TOP = 0.4;    // of the height
+
+export interface GateBox { col: number; row: number; w: number; h: number; z0: number; z1: number }
+
+// The gate's masonry as boxes: four piers from the ground to the top, and
+// the spans over the two passages from each arch's crown to the top.
+export function gatePieces(p: { col: number; row: number; w: number; h: number }, height: number): GateBox[] {
+  const alongW = p.w >= p.h;
+  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  const l0 = (alongW ? p.col : p.row) + GATE_INSET; const l1 = l0 + L - GATE_INSET * 2;
+  const s0 = (alongW ? p.row : p.col) + GATE_INSET; const s1 = s0 + S - GATE_INSET * 2;
+  const lc = (l0 + l1) / 2; const sc = (s0 + s1) / 2;
+  const lh = GATE_ARCH_HALF * (l1 - l0); const sh = GATE_SIDE_ARCH_HALF * (s1 - s0);
+  const box = (a0: number, a1: number, b0: number, b1: number, z0: number, z1: number): GateBox => (alongW
+    ? { col: a0, row: b0, w: a1 - a0, h: b1 - b0, z0, z1 }
+    : { col: b0, row: a0, w: b1 - b0, h: a1 - a0, z0, z1 });
+  return [
+    box(l0, lc - lh, s0, sc - sh, 0, height), box(l0, lc - lh, sc + sh, s1, 0, height),
+    box(lc + lh, l1, s0, sc - sh, 0, height), box(lc + lh, l1, sc + sh, s1, 0, height),
+    box(lc - lh, lc + lh, s0, s1, height * GATE_ARCH_TOP, height),
+    box(l0, l1, sc - sh, sc + sh, height * GATE_SIDE_ARCH_TOP, height),
+  ];
+}
+
+// The tiles a walker crosses the gate on: the great passage across its
+// middle and the lesser one down its length.
+export function gatePassageTiles(p: { col: number; row: number; w: number; h: number }): { col: number; row: number }[] {
+  const alongW = p.w >= p.h;
+  const out: { col: number; row: number }[] = [];
+  for (let r = p.row; r < p.row + p.h; r++) {
+    for (let c = p.col; c < p.col + p.w; c++) {
+      const across = alongW ? c - p.col === Math.floor(p.w / 2) : r - p.row === Math.floor(p.h / 2);
+      const down = alongW ? r - p.row === Math.floor(p.h / 2) : c - p.col === Math.floor(p.w / 2);
+      if (across || down) out.push({ col: c, row: r });
+    }
+  }
+  return out;
+}

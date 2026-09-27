@@ -22,6 +22,7 @@
 // ---------------------------------------------------------------------
 
 import GroundMarking, { GroundSite, groundProps } from '../src/components/groundMarkings';
+import { SiteFrame, siteStageOf } from '../src/components/siteWorks';
 import { motifOf } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { initialTech } from '../src/data/techData';
@@ -132,6 +133,15 @@ console.log('ground site tests');
     GroundMarking({ facilityType: 'quad', col: 0, row: 0, w: qf.w, h: qf.h, tier: quad.tier }).type !== GroundSite,
     'and a plate asked for with no construction flag at all is a finished one',
   );
+}
+
+// ---- A building rises in three stages (Plan 74H) ----
+{
+  const stages = [0, 0.2, 0.33, 0.34, 0.5, 0.66, 0.67, 0.9, 1].map(siteStageOf);
+  assert(stages.join(',') === '0,0,0,1,1,1,2,2,2', `footings, then the frame, then the shell (got ${stages.join(',')})`);
+  assert(stages.every((s, i) => i === 0 || s >= stages[i - 1]!), 'and never goes back a stage');
+  const frame = SiteFrame({ col: 10, row: 10, w: 7, h: 5, height: 60, floors: 4 }) as unknown as { props: { children: unknown[] } };
+  assert(frame !== null && frame.props.children.length > 0, 'the frame draws columns and slabs');
 }
 
 if (failures === 0) {

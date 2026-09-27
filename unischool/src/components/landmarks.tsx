@@ -4,7 +4,7 @@ import { boxFaces, facePoint, heightScale, lift, polyPoints, project, projectedC
 import { faceTone } from './light';
 import { shade } from './tint';
 import { METRES_PER_TILE, up } from './campusScale';
-import { wallHeightOf } from './buildingSpec';
+import { GATE_ARCH_HALF, GATE_ARCH_TOP, GATE_BODY_SHARE, GATE_INSET, GATE_SIDE_ARCH_HALF, GATE_SIDE_ARCH_TOP, wallHeightOf } from './buildingSpec';
 import { SCAFFOLD_PATTERN_ID } from './buildingMotifs';
 import { DevelopingContext, CollegeNameContext } from './mapOccasions';
 
@@ -341,18 +341,61 @@ function GreatDome({ t, p, share, building }: { t: Buildable; p: Plot; share: nu
 
 function TriumphalGate({ t, p, share, building, name }: { t: Buildable; p: Plot; share: number; building: boolean; name: string }) {
   const H = wallHeightOf(t);
-  const fullBody = H * 0.8;
+  const fullBody = H * GATE_BODY_SHARE;
   const bodyH = Math.min(fullBody, H * share);
-  const body = boxFaces(p.col + 0.2, p.row + 0.2, p.w - 0.4, p.h - 0.4, 0, bodyH);
-  const attic = share >= 1 ? boxFaces(p.col + 0.6, p.row + 0.4, p.w - 1.2, p.h - 0.8, fullBody, H * 0.2) : null;
+  const I = GATE_INSET;
+  const body = boxFaces(p.col + I, p.row + I, p.w - I * 2, p.h - I * 2, 0, bodyH);
+  const attic = share >= 1 ? boxFaces(p.col + 0.6, p.row + 0.4, p.w - 1.2, p.h - 0.8, fullBody, H * (1 - GATE_BODY_SHARE)) : null;
   const done = share >= 0.85;
   // The long face the camera sees carries the great arch and the reliefs;
-  // the short face a lesser arch.
+  // the end the lesser arch. Each passage goes right through (Plan 75B):
+  // its far mouth is the same arch on the parallel hidden face, D-C's on
+  // A-B and C-B's on D-A.
   const [left, right] = facesOf(body);
-  const [long, short] = body.spanLeft >= body.spanRight ? [left, right] : [right, left];
+  const longIsLeft = body.spanLeft >= body.spanRight;
+  const [long, short] = longIsLeft ? [left, right] : [right, left];
+  const far = (face: Face): [Pt, Pt] => (face === left ? [body.A, body.B] : [body.D, body.A]);
   // v of a height on the body's faces.
   const v = (z: number) => z / Math.max(0.0001, bodyH);
-  const archTop = v(H * 0.6);
+  const archTop = v(H * GATE_ARCH_TOP);
+  const sideTop = v(H * GATE_SIDE_ARCH_TOP);
+  const greatArch = (a: Pt, b: Pt, span: number) => archOnFace(a, b, bodyH, span, 0.5, GATE_ARCH_HALF, 0, archTop);
+  const lesserArch = (a: Pt, b: Pt, span: number) => archOnFace(a, b, bodyH, span, 0.5, GATE_SIDE_ARCH_HALF, 0, sideTop);
+  const d = (pts: Pt[]) => `M${pts.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join('L')}Z`;
+  const arches = new Map<Face, Pt[]>([
+    [long, greatArch(long[0], long[1], long[2])],
+    [short, lesserArch(short[0], short[1], short[2])],
+  ]);
+  // A passage's inside, drawn before the pierced walls: the arch's outline
+  // swept from its near mouth to its far one, each strip of the sweep drawn
+  // only where it faces the camera (the side wall and vault within, never
+  // the vault's back). Its floor is left open, so the ground, the paving and
+  // anything beyond show through the arch.
+  const passage = (face: Face, arch: (a: Pt, b: Pt, span: number) => Pt[]) => {
+    const [fa, fb] = far(face);
+    const near = arches.get(face)!;
+    const back = arch(fa, fb, face[2]);
+    const n = near.length;
+    const area = (q: Pt[]) => q.reduce((acc, a, i) => { const b = q[(i + 1) % q.length]!; return acc + a.x * b.y - b.x * a.y; }, 0);
+    // The floor faces up, so it is always seen: its winding is the one a
+    // seen strip has.
+    const seen = Math.sign(area([near[n - 1]!, near[0]!, back[0]!, back[n - 1]!]));
+    const strips: React.JSX.Element[] = [];
+    for (let i = 0; i < n - 1; i++) {
+      const q = [near[i]!, near[i + 1]!, back[i + 1]!, back[i]!];
+      if (Math.sign(area(q)) !== seen) continue;
+      // The walls lighter than the vault over them.
+      const upright = i === 0 || i === n - 2;
+      strips.push(<polygon key={i} points={polyPoints(q)} fill={shade(STONE, upright ? 0.74 : 0.6)} stroke={shade(STONE, upright ? 0.74 : 0.6)} strokeWidth={0.4} />);
+    }
+    return <g className="landmark-passage">{strips}</g>;
+  };
+  // A wall with its arch cut out.
+  const pierced = (face: Face) => {
+    const [a, b, , dir] = face;
+    const wall = [a, b, facePoint(a, b, bodyH, 1, 1), facePoint(a, b, bodyH, 0, 1)];
+    return <path fillRule="evenodd" fill={faceTone(dir, STONE, shade(STONE, 0.84))} d={d(wall) + d(arches.get(face)!)} />;
+  };
   const pilasters = [0.08, 0.3, 0.7, 0.92];
   const PIL = 0.028;
   const faceDetail = ([a, b, span, dir]: Face, main: boolean) => {
@@ -368,11 +411,10 @@ function TriumphalGate({ t, p, share, building, name }: { t: Buildable; p: Plot;
             <polygon points={polyPoints(faceQuad(a, b, bodyH, u - pil * 1.5, u + pil * 1.5, v(fullBody - up(3.4)), v(fullBody - up(2.6))))} fill={shade(tone, 1.05)} stroke="rgba(60, 54, 44, 0.3)" strokeWidth={0.5} />
           </g>
         ))}
-        {main ? (
+        {main && (
           <>
-            {/* The archivolt, the arch and its keystone. */}
-            <polygon points={polyPoints(archOnFace(a, b, bodyH, span, 0.5, 0.16, 0, archTop + v(up(1.2))))} fill={shade(tone, 1.06)} />
-            <polygon points={polyPoints(archOnFace(a, b, bodyH, span, 0.5, 0.14, 0, archTop))} fill={OPENING} />
+            {/* The archivolt round the opening, and its keystone. */}
+            <path fillRule="evenodd" fill={shade(tone, 1.06)} d={d(archOnFace(a, b, bodyH, span, 0.5, GATE_ARCH_HALF + 0.02, 0, archTop + v(up(1.2)))) + d(arches.get(long)!)} />
             <polygon points={polyPoints(faceQuad(a, b, bodyH, 0.485, 0.515, archTop - v(up(0.4)), archTop + v(up(1.6))))} fill={shade(tone, 1.08)} stroke={LINE} strokeWidth={0.5} />
             {/* Relief panels between the pilasters, each a sunk field with a
                 laurel wreath. */}
@@ -389,20 +431,25 @@ function TriumphalGate({ t, p, share, building, name }: { t: Buildable; p: Plot;
               );
             })}
           </>
-        ) : (
-          <polygon points={polyPoints(archOnFace(a, b, bodyH, span, 0.5, 0.18, 0, v(H * 0.4)))} fill={OPENING} />
         )}
       </g>
     );
   };
   return (
     <g className="landmark landmark-gate">
-      {walls(body, STONE)}
+      {done ? (
+        <>
+          {passage(long, greatArch)}
+          {passage(short, lesserArch)}
+          {pierced(left)}
+          {pierced(right)}
+        </>
+      ) : walls(body, STONE)}
       <polygon points={polyPoints(body.top)} fill={shade(STONE, 0.92)} />
       {done && faceDetail(long, true)}
       {done && faceDetail(short, false)}
       {building && <Scaffold f={body} />}
-      {share >= 1 && <Band col={p.col + 0.2} row={p.row + 0.2} w={p.w - 0.4} h={p.h - 0.4} z={fullBody} depth={up(1.3)} proud={0.1} />}
+      {share >= 1 && <Band col={p.col + I} row={p.row + I} w={p.w - I * 2} h={p.h - I * 2} z={fullBody} depth={up(1.3)} proud={0.1} />}
       {attic && (
         <>
           {walls(attic, STONE)}
@@ -438,6 +485,19 @@ function wallHeightOfAttic(f: BoxFaces): number {
 }
 
 interface Plot { col: number; row: number; w: number; h: number }
+
+// The boxes a finished landmark stands in, for its weathering (ageMarks.tsx,
+// Plan 75A): the campanile's shaft and belfry, the dome's podium (its drum
+// and dome are round, and weather as stone does not show), the gate's body.
+export function landmarkVolumes(t: Buildable, p: Plot): { col: number; row: number; w: number; h: number; base: number; height: number }[] {
+  const H = wallHeightOf(t);
+  if (t.id === 'LANDMARK-CAMPANILE' || t.id === 'AMENITY-BELLTOWER') {
+    const plan = Math.min(p.w, p.h) * 0.44;
+    return [{ col: p.col + (p.w - plan) / 2, row: p.row + (p.h - plan) / 2, w: plan, h: plan, base: 0, height: H * 0.74 }];
+  }
+  if (t.id === 'LANDMARK-DOME') return [{ col: p.col + 0.3, row: p.row + 0.3, w: p.w - 0.6, h: p.h - 0.6, base: 0, height: H * 0.1 }];
+  return [{ col: p.col + GATE_INSET, row: p.row + GATE_INSET, w: p.w - GATE_INSET * 2, h: p.h - GATE_INSET * 2, base: 0, height: H * GATE_BODY_SHARE }];
+}
 
 export default function Landmark({ t, p, developing }: { t: Buildable; p: Plot; developing: boolean }) {
   const weeksLeft = useContext(DevelopingContext)[t.id];

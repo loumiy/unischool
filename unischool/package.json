@@ -22,6 +22,7 @@
     "layout": "rolldown tools/layout.ts -o node_modules/.tmp/layout.mjs -f esm -p node && node node_modules/.tmp/layout.mjs",
     "sheet": "rolldown tools/sheet.tsx -o node_modules/.tmp/sheet.mjs -f esm -p node && node node_modules/.tmp/sheet.mjs",
     "sheet:shot": "node tools/shoot-sheet.mjs",
+    "gallery:assets": "node tools/assetGallery.mjs",
     "profile": "node tools/profile.mjs",
     "newplayer": "node tools/newPlayer.mjs",
     "review:goals": "rolldown tools/review/goalPlayers.ts -o node_modules/.tmp/goalPlayers.mjs -f esm -p node && node node_modules/.tmp/goalPlayers.mjs",

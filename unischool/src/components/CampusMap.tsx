@@ -27,10 +27,12 @@ import { isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import { researchTopic } from '../data/researchTopics';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
-import { floorsUnderConstruction, materialOf, motifOf, wallHeightOf } from './buildingSpec';
+import { floorsUnderConstruction, materialOf, motifOf, storeysOf, wallHeightOf } from './buildingSpec';
+import { SiteFrame, siteStageOf } from './siteWorks';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
+import { SnowContext, seasonOf, seasonStyle } from './seasons';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
 import { castShadow } from './light';
@@ -241,12 +243,22 @@ function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: stri
   const weeksLeft = useContext(DevelopingContext)[t.id];
   if (weeksLeft === undefined) return null;
   const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
-  const rises = motifOf(t) !== 'grounds' && motifOf(t) !== 'landmark' && floorsUnderConstruction(t) === 0;
+  const motif = motifOf(t);
+  const rises = motif !== 'grounds' && motif !== 'landmark' && floorsUnderConstruction(t) === 0;
+  // A plot of houses or a bowl fills in as it goes; a building rises in the
+  // landmarks' three stages (Plan 74H): footings (the motif's own site),
+  // then the frame to full height, then the closed shell in scaffolding.
+  const staged = rises && motif !== 'village' && motif !== 'bowl';
+  const stage = siteStageOf(elapsedFraction);
   const d = drawnFootprint(p);
-  const shell = rises ? boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * elapsedFraction) : null;
+  const shellHeight = !rises ? 0 : staged ? (stage === 2 ? wallHeightOf(t) : 0) : wallHeightOf(t) * elapsedFraction;
+  const shell = shellHeight > 0 && (staged || elapsedFraction > 0.05) ? boxFaces(d.col, d.row, d.w, d.h, 0, shellHeight) : null;
   return (
     <>
-      {shell && elapsedFraction > 0.05 && (
+      {staged && stage === 1 && (
+        <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={wallHeightOf(t)} floors={storeysOf(t)} />
+      )}
+      {shell && (
         <g className="campus-site-shell">
           <polygon points={polyPoints(shell.left)} />
           <polygon points={polyPoints(shell.right)} />
@@ -1602,12 +1614,17 @@ export default function CampusMap({
       }
     : null;
 
+  // The season on the map (Plan 74I): CSS variables for the grass and the
+  // leaves, and the snow on the roofs. Changes by the week, never animates.
+  const week = s.clock.week;
+  const season = useMemo(() => seasonStyle(week), [week]);
+  const snow = useMemo(() => seasonOf(week).snow, [week]);
   // The path tool's ghost: the tile the next click would pave or lift.
   // Needs no `ok`, since a path tile can never be refused.
   const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
 
   return (
-    <section className="campus-map">
+    <section className="campus-map" style={season}>
       <div className="campus-map-canvas">
         <svg
           ref={svgRef}
@@ -1654,6 +1671,7 @@ export default function CampusMap({
             <ColorsContext.Provider value={layout.colors}>
             <CollegeNameContext.Provider value={s.self.name}>
             <DevelopingContext.Provider value={s.developing}>
+            <SnowContext.Provider value={snow}>
               <CampusScene
                 layout={layout}
                 quads={quads}
@@ -1663,6 +1681,7 @@ export default function CampusMap({
                 labelLayerRef={labelLayerRef}
                 camera={camera}
               />
+            </SnowContext.Provider>
             </DevelopingContext.Provider>
             </CollegeNameContext.Provider>
             </ColorsContext.Provider>

@@ -4,6 +4,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import { ROAD_FIRST_ROW, parsePathTileKey } from '../state/campusMap';
 import { isAcademicHall } from '../data/techData';
 import { quadTile } from './quadGeometry';
+import { GATE_ID, gatePassageTiles } from './buildingSpec';
 
 // Routes for the walkers and the desire lines (ported from v2's routes.ts):
 // the cheapest way over the grid between two buildings, paths first, lawn
@@ -75,6 +76,9 @@ export function walkGrid(input: WalkInput): Float32Array {
       continue;
     }
     for (let r = p.row; r < p.row + p.h; r++) for (let c = p.col; c < p.col + p.w; c++) g[idx(c, r)] = -1;
+    // The Triumphal Gate's passages go right through it (Plan 75B): paved,
+    // under the arches.
+    if (t?.id === GATE_ID && t.status === 'done') for (const tile of gatePassageTiles(p)) g[idx(tile.col, tile.row)] = PATH_COST;
   }
   for (const key of Object.keys(input.pathways)) {
     const t = parsePathTileKey(key);

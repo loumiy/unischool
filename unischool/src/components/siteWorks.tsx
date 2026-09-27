@@ -194,3 +194,46 @@ export function Crane({ col, row, w, h, height }: { col: number; row: number; w:
     </g>
   );
 }
+
+// A building going up rises through three stages read off its countdown
+// (Plan 74H, as the landmarks already did): footings for the first third,
+// then the frame to full height, then the closed shell in scaffolding.
+export type SiteStage = 0 | 1 | 2;
+export function siteStageOf(elapsedFraction: number): SiteStage {
+  return elapsedFraction >= 2 / 3 ? 2 : elapsedFraction >= 1 / 3 ? 1 : 0;
+}
+
+// The frame: columns at the corners and every bay or so along the walls,
+// and a slab at every floor, to the building's full height. The far corner's
+// column and the slabs' back edges are drawn first, the near columns last.
+export function SiteFrame({ col, row, w, h, height, floors }: {
+  col: number; row: number; w: number; h: number; height: number; floors: number;
+}) {
+  const f = boxFaces(col, row, w, h, 0, height);
+  const thick = Math.max(1.2, TILE_W * 0.028);
+  const column = (g: Pt, key: string) => (
+    <polygon key={key} className="campus-site-column" points={polyPoints(beam(g, lift(g, height), thick))} />
+  );
+  const levels = Array.from({ length: Math.max(1, floors) }, (_, i) => (height * (i + 1)) / Math.max(1, floors));
+  const nearColumns: Pt[] = [];
+  ([[f.D, f.C, f.spanLeft], [f.C, f.B, f.spanRight]] as const).forEach(([a, b, span], k) => {
+    const n = Math.max(1, Math.round(span / 1.5));
+    for (let i = k === 0 ? 0 : 1; i <= n; i++) nearColumns.push(lerp(a, b, i / n));
+  });
+  return (
+    <g className="campus-site-frame" aria-hidden="true">
+      {column(f.A, 'back')}
+      {column(f.B, 'bR')}
+      {column(f.D, 'bL')}
+      {levels.map((z) => {
+        const s = boxFaces(col, row, w, h, z, 0);
+        return <polygon key={z} className="campus-site-slab" points={polyPoints(s.top)} />;
+      })}
+      {nearColumns.map((g, i) => column(g, `n${i}`))}
+      {levels.map((z) => {
+        const s = boxFaces(col, row, w, h, z, 0);
+        return <polygon key={`e${z}`} className="campus-site-edge" points={polyPoints([s.D, s.C, s.B, lift(s.B, -thick * 0.9 / heightScale()), lift(s.C, -thick * 0.9 / heightScale()), lift(s.D, -thick * 0.9 / heightScale())])} />;
+      })}
+    </g>
+  );
+}
