@@ -376,7 +376,7 @@ claims and 107 vague ones.*
   - the named building is the derelict one;
   - the heating bill fires in the Fall Term's last weeks.
 
-**As implemented (#TBD):**
+**As implemented (#228):**
 - **Winter** is `state/winter.ts`'s `winterDepth`: it sets in from week
   17, is deepest from week 24 to week 29, and is gone by week 36. The
   events' `winterAtLeast` and the ambience's wind both read it. The
