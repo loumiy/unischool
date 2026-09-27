@@ -240,7 +240,7 @@ campus looks the same whatever architecture was chosen.
   review's probe (`npm run review:probe -- vernacular`) is rerun and
   quoted.
 
-**As implemented (#TBD).**
+**As implemented (#212).**
 
 - **Massing stays, surface follows.** `buildingSpec.ts` adds
   `SURFACE_FOLLOWS_MOTIFS` (block, works, hangar). These three keep their
