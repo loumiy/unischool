@@ -118,7 +118,7 @@ funding never pays down.
 - The staged construction (footings, half, all but the crown) keeps
   working, each stage showing what stands.
 
-**As implemented (#TBD).**
+**As implemented (#210).**
 
 - **The dome whole.** `landmarks.tsx`'s `Dome` is now drawn as the image of
   a hemisphere: its outline is the far great-circle arc over the crown
