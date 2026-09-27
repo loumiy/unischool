@@ -22,7 +22,7 @@
 // ---------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import { campusLayout } from '../../src/components/campusLayout';
-import { RESIDENCE_FORMS, VERNACULAR_CHOICES, entrancePartOf, labFeatureOf, materialOf, motifOf, signatureOf, surfaceFollowsVernacular, variesByVernacular } from '../../src/components/buildingSpec';
+import { RESIDENCE_FORMS, VERNACULAR_CHOICES, entrancePartOf, labFeatureOf, materialOf, motifOf, signatureOf, signifierOf, surfaceFollowsVernacular, variesByVernacular } from '../../src/components/buildingSpec';
 import { initialTech } from '../../src/data/techData';
 import { initialDorms } from '../../src/data/campusData';
 import { initialFacilities } from '../../src/data/facilitiesData';
@@ -60,7 +60,7 @@ function vernacular(): void {
       if (surfaceFollowsVernacular(m)) { ns += 1; areaS += a; }
       const sig = signatureOf(e.t);
       const look = [m, materialOf(e.t, s.self.vernacular).wall, sig ? `${sig.material}${sig.feature ? `+${sig.feature}` : ''}` : '',
-        labFeatureOf(e.t) ?? '', RESIDENCE_FORMS[e.t.id] ?? '', `${e.p.w}x${e.p.h}`].join('|');
+        labFeatureOf(e.t) ?? '', RESIDENCE_FORMS[e.t.id] ?? '', signifierOf(e.t) ?? '', `${e.p.w}x${e.p.h}`].join('|');
       looks.set(look, [...(looks.get(look) ?? []), e.t.id]);
     }
     console.log(`\n## ${short(path)}: year ${s.clock.year}, ${s.self.vernacular}`);

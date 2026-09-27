@@ -26,7 +26,7 @@ import {
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
   rankSills, ridgeOf, parapetOf, eavesOf, stoneFor, paneShapeOf, windowOutline,
   entrancePartOf, rooflineEndPartOf, signatureOf, apexPartOf, partsFor, type ApexPart, massingOf,
-  crestOf, surfaceRoofOf, type CrestPart,
+  crestOf, surfaceRoofOf, type CrestPart, signifierOf, type Signifier,
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
   ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
@@ -1411,6 +1411,299 @@ function Crest({ crest, col, row, w, h, base, fronts, pal, stone, tile }: {
   );
 }
 
+// --- Signifiers (Plan 74F): one mark per building that would otherwise
+// share its drawing with a building that does something else.
+
+// The near half of a ring, left to right.
+function nearRing(pts: Pt[]): Pt[] {
+  const l = pts.reduce((a, q) => (q.x < a.x ? q : a));
+  const r = pts.reduce((a, q) => (q.x > a.x ? q : a));
+  return pts.filter((q) => q.y >= (l.y + r.y) / 2 - 0.01).sort((a, b) => a.x - b.x);
+}
+
+// An upright cylinder: a column, a tank, a stack.
+function Cylinder({ cc, cr, r, z0, z1, fill }: { cc: number; cr: number; r: number; z0: number; z1: number; fill: string }) {
+  const ring = (z: number) => projectedCircle(cc, cr, r, 24).map((q) => lift(q, z));
+  return (
+    <>
+      <polygon points={polyPoints([...nearRing(ring(z0)), ...nearRing(ring(z1)).reverse()])} fill={fill} stroke="rgba(40, 42, 44, 0.35)" strokeWidth={0.6} />
+      <polygon points={polyPoints(ring(z1))} fill={shade(fill, 1.08)} stroke="rgba(40, 42, 44, 0.3)" strokeWidth={0.5} />
+    </>
+  );
+}
+
+const SIGNAL_RED = '#c8392e';
+const GANTRY_YELLOW = '#d9a92f';
+const BANNER_COLORS = ['#9e2b2b', '#c29a2c', '#2b3f6b'];
+
+// A quad on a wall face, in its own u and in heights.
+function wallQuad(o: Pt, a: Pt, H: number, u0: number, u1: number, z0: number, z1: number): Pt[] {
+  return [facePoint(o, a, H, u0, z0 / H), facePoint(o, a, H, u1, z0 / H), facePoint(o, a, H, u1, z1 / H), facePoint(o, a, H, u0, z1 / H)];
+}
+
+// What a signifier puts on the walls: drawn over the windows and under any
+// entrance part.
+function WallSignifier({ kind, f, H, stone }: {
+  kind: Signifier; f: BoxFaces; H: number; stone: StonePalette;
+}) {
+  const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
+  // The longer of the two visible walls: w runs along col.
+  const longFace = faces[(f.spanLeft >= f.spanRight) ? 0 : 1]!;
+  const halfU = (metres: number, span: number) => metres / 2 / (span * METRES_PER_TILE);
+  switch (kind) {
+    case 'kitchen': {
+      // A striped terrace awning along the long front's ground floor.
+      const { o, a } = longFace;
+      const z0 = Math.min(STOREY * 0.62, H * 0.4); const z1 = Math.min(STOREY * 0.92, H * 0.6);
+      const n = 9;
+      return (
+        <g className="sig-awning">
+          {Array.from({ length: n }, (_, i) => {
+            const u0 = 0.14 + (0.72 * i) / n; const u1 = 0.14 + (0.72 * (i + 1)) / n;
+            return <polygon key={i} points={polyPoints(wallQuad(o, a, H, u0, u1, z0, z1))} fill={i % 2 === 0 ? SIGNAL_RED : '#f2e8d4'} />;
+          })}
+          <polygon points={polyPoints(wallQuad(o, a, H, 0.14, 0.86, z0 - up(0.35), z0))} fill={shade(SIGNAL_RED, 0.8)} />
+        </g>
+      );
+    }
+    case 'clock': {
+      // A clock under the eaves at the middle of the long front.
+      const { o, a, span } = longFace;
+      const R = 2.3;
+      const ru = halfU(R * 2, span);
+      const zc = H - up(R + 1.1);
+      const disc = Array.from({ length: 24 }, (_, i) => {
+        const t = (i / 24) * Math.PI * 2;
+        return facePoint(o, a, H, 0.5 + Math.cos(t) * ru, (zc + Math.sin(t) * up(R)) / H);
+      });
+      const hub = facePoint(o, a, H, 0.5, zc / H);
+      const twelve = facePoint(o, a, H, 0.5, (zc + up(R * 0.75)) / H);
+      const four = facePoint(o, a, H, 0.5 + ru * 0.55, (zc - up(R * 0.3)) / H);
+      return (
+        <g className="sig-clock">
+          <polygon points={polyPoints(disc)} fill="#f4efe1" stroke={stone.gilt !== 'none' ? stone.gilt : '#3a3632'} strokeWidth={1.2} />
+          <path d={`M${hub.x.toFixed(1)},${hub.y.toFixed(1)}L${twelve.x.toFixed(1)},${twelve.y.toFixed(1)}M${hub.x.toFixed(1)},${hub.y.toFixed(1)}L${four.x.toFixed(1)},${four.y.toFixed(1)}`} stroke="#2e2a24" strokeWidth={1.1} strokeLinecap="round" />
+        </g>
+      );
+    }
+    case 'shopfront': {
+      // A painted signboard over the shop glazing on both fronts.
+      const z1 = H - EAVES_COURSE * 1.2;
+      const z0 = Math.max(BASE_COURSE, z1 - up(1.6));
+      return (
+        <g className="sig-shopfront">
+          {faces.map(({ o, a }, i) => (
+            <g key={i}>
+              <polygon points={polyPoints(wallQuad(o, a, H, 0.04, 0.96, z0, z1))} fill="#2f6b4a" />
+              <polygon points={polyPoints(wallQuad(o, a, H, 0.3, 0.7, z0 + (z1 - z0) * 0.38, z0 + (z1 - z0) * 0.62))} fill="#efe6c8" />
+            </g>
+          ))}
+        </g>
+      );
+    }
+    default:
+      return null;
+  }
+}
+
+// What a signifier puts on or over the roof, after it: `base` is the eaves,
+// `ridge` the rise of a pitched roof above them.
+function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
+  kind: Signifier; col: number; row: number; w: number; h: number; base: number; ridge: number;
+  f: BoxFaces; stone: StonePalette; pal: Palette;
+}) {
+  const alongW = w >= h;
+  // A point by fraction along the long axis and across it.
+  const at = (a: number, c: number): [number, number] => (alongW ? [col + w * a, row + h * c] : [col + w * c, row + h * a]);
+  const box = (a0: number, a1: number, c0: number, c1: number, z: number, rise: number) => {
+    const [x0, y0] = at(a0, c0); const [x1, y1] = at(a1, c1);
+    return boxFaces(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0), z, rise);
+  };
+  const solid = (b: BoxFaces, tone: string, key?: string) => (
+    <g key={key}>
+      {sideFaces(b, shade(tone, 0.96), shade(tone, 0.78))}
+      <polygon points={polyPoints(b.top)} fill={shade(tone, 1.08)} />
+    </g>
+  );
+  const long = Math.max(w, h); const short = Math.min(w, h);
+  switch (kind) {
+    case 'kitchen': {
+      // Three kitchen stacks rising through the roof near its ridge.
+      const plan = across(0.9);
+      return (
+        <g className="sig-kitchen">
+          {[0.3, 0.45, 0.6].map((a) => {
+            const [c0, r0] = at(a, 0.34);
+            const b = boxFaces(c0, r0, plan, plan, base + ridge * 0.7, ridge * 0.3 + up(3.2));
+            return (
+              <g key={a}>
+                {sideFaces(b, '#8d9296', '#6f7478')}
+                <polygon points={polyPoints(b.top)} fill="#3d4043" />
+              </g>
+            );
+          })}
+        </g>
+      );
+    }
+    case 'gantry': {
+      // A yellow portal crane straddling the shed at a third of its length.
+      const legW = across(0.5) / long;
+      const legD = across(0.5) / short;
+      const top = up(7.5);
+      return (
+        <g className="sig-gantry">
+          {solid(box(0.3, 0.3 + legW, 0.0, legD, base, top), GANTRY_YELLOW)}
+          {solid(box(0.3, 0.3 + legW, 1 - legD, 1, base, top), GANTRY_YELLOW)}
+          {solid(box(0.3 - legW * 0.2, 0.3 + legW * 1.2, 0, 1, base + top - up(1.2), up(1.2)), GANTRY_YELLOW)}
+          {solid(box(0.29, 0.31 + legW, 0.46, 0.56, base + top - up(2.2), up(1)), '#4a4d50')}
+          {(() => {
+            const [hc, hr] = at(0.3 + legW / 2, 0.51);
+            const p0 = lift(project(hc, hr), base + top - up(2.2));
+            const p1 = lift(project(hc, hr), base + up(2.4));
+            return <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#2e3032" strokeWidth={0.9} />;
+          })()}
+        </g>
+      );
+    }
+    case 'windTunnel': {
+      // A long duct down one side of the roof, a flared intake at one end
+      // and a fan housing at the other.
+      return (
+        <g className="sig-wind-tunnel">
+          {solid(box(0.16, 0.82, 0.74, 0.94, base, up(3.4)), '#9aa6ae')}
+          {solid(box(0.05, 0.16, 0.7, 0.98, base, up(4.6)), '#86939b')}
+          {(() => {
+            const [fc, fr] = at(0.88, 0.84);
+            return <Cylinder cc={fc} cr={fr} r={short * 0.12} z0={base} z1={base + up(5.4)} fill="#7f8b93" />;
+          })()}
+        </g>
+      );
+    }
+    case 'testTower': {
+      // A tall concrete test tower at the corner, banded, with a red cap.
+      const tall = up(17);
+      const b = box(0.82, 0.96, 0.7, 0.94, base, tall);
+      return (
+        <g className="sig-test-tower">
+          {solid(b, '#c9c5bb')}
+          {[0.25, 0.5, 0.75].map((v) => {
+            const band = box(0.82, 0.96, 0.7, 0.94, base + tall * v, up(0.5));
+            return <g key={v}>{sideFaces(band, '#8e8a82', '#77736b')}</g>;
+          })}
+          {solid(box(0.84, 0.94, 0.73, 0.91, base + tall, up(1.6)), SIGNAL_RED)}
+        </g>
+      );
+    }
+    case 'column': {
+      // A distillation column: a tall steel cylinder with platforms.
+      const [cc, cr] = [col + w * 0.18, row + h * 0.72];
+      const r = Math.min(across(1.1), short * 0.14);
+      const tall = up(19);
+      return (
+        <g className="sig-column">
+          <Cylinder cc={cc} cr={cr} r={r} z0={base} z1={base + tall} fill="#c9cdd0" />
+          {[0.35, 0.65, 0.92].map((v) => (
+            <polygon key={v} points={polyPoints(nearRing(projectedCircle(cc, cr, r * 1.5, 24).map((q) => lift(q, base + tall * v))))} fill="none" stroke="#5b6166" strokeWidth={1} />
+          ))}
+        </g>
+      );
+    }
+    case 'scales': {
+      // A pediment over the long front's eaves, and the scales in gilt.
+      const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
+      const { o, a } = faces[(f.spanLeft >= f.spanRight) ? 0 : 1]!;
+      const P = (u: number, z: number) => facePoint(o, a, base, u, z / base);
+      const rise = up(6.5);
+      const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+      const face = stone.trim !== 'none' ? stone.trim : shade(pal.wall.posRow, 1.1);
+      const post0 = P(0.5, base + up(0.7)); const post1 = P(0.5, base + up(4.6));
+      const beamL = P(0.42, base + up(3.9)); const beamR = P(0.58, base + up(3.9));
+      const pan = (u: number) => [P(u - 0.03, base + up(1.9)), P(u + 0.03, base + up(1.9)), P(u, base + up(3.9))];
+      return (
+        <g className="sig-scales">
+          <polygon points={polyPoints([P(0.28, base), P(0.72, base), P(0.5, base + rise)])} fill={face} stroke="rgba(60, 54, 44, 0.55)" strokeWidth={1.2} />
+          <line x1={post0.x} y1={post0.y} x2={post1.x} y2={post1.y} stroke={gilt} strokeWidth={1.8} />
+          <line x1={beamL.x} y1={beamL.y} x2={beamR.x} y2={beamR.y} stroke={gilt} strokeWidth={1.8} />
+          <polygon points={polyPoints(pan(0.42))} fill={gilt} fillOpacity={0.35} stroke={gilt} strokeWidth={1.2} />
+          <polygon points={polyPoints(pan(0.58))} fill={gilt} fillOpacity={0.35} stroke={gilt} strokeWidth={1.2} />
+        </g>
+      );
+    }
+    case 'banners':
+    case 'exhibition': {
+      // Banners hung from the colonnade's entablature between its columns,
+      // painted after it: three a front on the Museum, one broad one on the
+      // Art Gallery.
+      const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
+      const hc = Math.min(COLONNADE_HEIGHT, base - EAVES_COURSE * 2);
+      return (
+        <g className={`sig-${kind}`}>
+          {faces.map(({ o, a, span }, i) => {
+            const n = colonnadeColumns(span);
+            const gap = 0.9 / Math.max(1, n - 1);
+            const mids = Array.from({ length: n - 1 }, (_, k) => 0.05 + gap * (k + 0.5));
+            const pick = kind === 'banners'
+              ? [mids[Math.floor(mids.length * 0.2)]!, mids[Math.floor(mids.length / 2)]!, mids[Math.ceil(mids.length * 0.8) - 1]!]
+              : [mids.reduce((m, u) => (Math.abs(u - 0.5) < Math.abs(m - 0.5) ? u : m))];
+            const hu = gap * (kind === 'banners' ? 0.26 : 0.36);
+            return pick.map((uc, j) => (
+              <g key={`${i}-${j}`}>
+                <polygon points={polyPoints(wallQuad(o, a, base, uc - hu, uc + hu, hc * 0.3, hc * 0.92))} fill={kind === 'banners' ? BANNER_COLORS[(i + j) % 3] : '#2f4f9e'} />
+                {kind === 'exhibition' && <polygon points={polyPoints(wallQuad(o, a, base, uc - hu, uc + hu, hc * 0.74, hc * 0.8))} fill="#d7b24a" />}
+              </g>
+            ));
+          })}
+        </g>
+      );
+    }
+    case 'lantern': {
+      // A glazed reading-room lantern on the middle of the roof.
+      const b = box(0.36, 0.64, 0.3, 0.7, base, up(2.6));
+      const cap = box(0.34, 0.66, 0.28, 0.72, base + up(2.6), up(0.6));
+      return (
+        <g className="sig-lantern">
+          <polygon points={polyPoints(b.left)} className="glass-pane" />
+          <polygon points={polyPoints(b.right)} className="glass-pane" />
+          {solid(cap, stone.trim !== 'none' ? stone.trim : '#d8d2c4')}
+        </g>
+      );
+    }
+    case 'mast': {
+      // A lattice mast at one end and a dish on a plinth.
+      const [mc, mr] = at(0.84, 0.3);
+      const m0 = lift(project(mc, mr), base); const m1 = lift(project(mc, mr), base + up(13));
+      const [dc, dr] = at(0.3, 0.6);
+      const d0 = lift(project(dc, dr), base + up(3.4));
+      const span = projectedCircle(dc, dr, across(2.6), 16).map((q) => q.x);
+      const rx = (Math.max(...span) - Math.min(...span)) / 2; const ry = rx * 0.62;
+      return (
+        <g className="sig-mast">
+          {solid(box(0.26, 0.34, 0.54, 0.66, base, up(1.8)), '#8d9296')}
+          <ellipse cx={d0.x} cy={d0.y} rx={rx} ry={ry} fill="#eef0f1" stroke="#6f7478" strokeWidth={0.8} transform={`rotate(-24 ${d0.x.toFixed(1)} ${d0.y.toFixed(1)})`} />
+          <line x1={m0.x} y1={m0.y} x2={m1.x} y2={m1.y} stroke="#4a4d50" strokeWidth={2.2} />
+          <line x1={m0.x - 3} y1={m0.y} x2={m1.x} y2={m1.y} stroke="#4a4d50" strokeWidth={0.7} />
+          <line x1={m0.x + 3} y1={m0.y} x2={m1.x} y2={m1.y} stroke="#4a4d50" strokeWidth={0.7} />
+          <circle cx={m1.x} cy={m1.y} r={1.6} fill={SIGNAL_RED} />
+        </g>
+      );
+    }
+    case 'tanks': {
+      // The scanners' cryogen tanks, two white cylinders on the roof.
+      const r = Math.min(across(1.7), short * 0.18);
+      return (
+        <g className="sig-tanks">
+          {[0.62, 0.84].map((a) => {
+            const [cc, cr] = at(a, 0.3);
+            return <Cylinder key={a} cc={cc} cr={cr} r={r} z0={base} z1={base + up(6)} fill="#dfe6ea" />;
+          })}
+        </g>
+      );
+    }
+    default:
+      return null;
+  }
+}
+
 // The dome: a broad stone dome on a low drum with a small gilt lantern,
 // crowning the campus's one landmark (not the clock tower's cupola).
 // `hemisphere` (the exchange, Plan 61) raises it as high as it is wide.
@@ -2279,6 +2572,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const crest = crestOf(t, vernacular);
   const surface = motif === 'block' || motif === 'works' || motif === 'hangar';
   const plantTint = surface ? surfaceRoofOf(vernacular) : roofTint;
+  const signifier = signifierOf(t);
   const surfaceCornice = surface && trim ? stone.trim : undefined;
 
   // Open ground has no mass; GroundMarking draws its own construction state.
@@ -3192,6 +3486,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     }
 
     if (kind === 'studio') {
+      // The great stage door, taller than a shed's roller (Plan 74F).
+      const STAGE_DOOR = 0.74;
       // No windows; a roller door on the long face beside the ordinary one.
       return (
         <>
@@ -3199,8 +3495,18 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
           {piers}
           {courses}
-          <WallBand origin={longFace.o} along={longFace.a} wallHeight={H} from={0} to={H * 0.6} className="iso-roller" u0={0.66} u1={0.88} />
-          <WallBand origin={longFace.o} along={longFace.a} wallHeight={H} from={H * 0.6} to={H * 0.6 + up(0.4)} className="iso-cornice" u0={0.65} u1={0.89} />
+          <WallBand origin={longFace.o} along={longFace.a} wallHeight={H} from={0} to={H * STAGE_DOOR} className="iso-roller" u0={0.62} u1={0.9} />
+          <WallBand origin={longFace.o} along={longFace.a} wallHeight={H} from={H * STAGE_DOOR} to={H * STAGE_DOOR + up(0.4)} className="iso-cornice" u0={0.61} u1={0.91} />
+          {signifier === 'soundstage' && (() => {
+            // The stage's red lamp over its great door (Plan 74F).
+            const lamp = facePoint(longFace.o, longFace.a, H, 0.76, (H * STAGE_DOOR + up(1.4)) / H);
+            return (
+              <g className="sig-soundstage">
+                <circle cx={lamp.x} cy={lamp.y} r={7} fill="rgba(214, 58, 47, 0.25)" />
+                <circle cx={lamp.x} cy={lamp.y} r={3.2} fill="#d63a2f" />
+              </g>
+            );
+          })()}
           {doors}
           <polygon points={polyPoints(f.top)} fill={pal.roof} />
           {monitor}
@@ -3247,6 +3553,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         <polygon points={polyPoints(f.top)} fill={pal.roof} />
         {monitor}
         <Crest crest={crest} col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
+        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={0} f={f} stone={stone} pal={pal} />}
       </>
     );
   }
@@ -3310,6 +3617,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           <CurtainWall origin={f.C} along={f.B} wallHeight={H} spanTiles={f.spanRight} from={BASE_COURSE} to={Math.min(STOREY * 0.85, H - EAVES_COURSE * 2)} floors={[]} id="sfr" u0={0.04} u1={0.96} />
         </>
       )}
+      {/* A signifier on the walls (Plan 74F). */}
+      {!site && signifier && <WallSignifier kind={signifier} f={f} H={H} stone={stone} />}
       {!site && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} side={f.dir.CD} shape={doorShape} />}
       {!site && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} side={f.dir.BC} shape={doorShape} />}
       {/* A smaller cross over the clinic and counselling centre doors. */}
@@ -3498,6 +3807,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           />
         );
       })}
+      {/* A signifier on the roof, after it (Plan 74F). */}
+      {!site && signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} />}
       {/* The residence turret, after the roof. */}
       {!site && turretPlan > 0 && cornerInFront && residentialTurret}
       {!site && turretPlan > 0 && towerProudFace && <CornerTower {...residentialTurretProps} face={towerProudFace} />}

@@ -306,6 +306,48 @@ without a click.
 - **Checks:** a test that no two placeables share motif, material,
   footprint and feature (the review's repeat probe, as a rule).
 
+**As implemented (#TBD).**
+
+- `buildingSpec.ts` adds `signifierOf`, by id and by facility type, in the
+  way `LAB_FEATURES` marks the sciences. `buildingMotifs.tsx` draws each
+  signifier on the walls (over the windows, under any entrance part) or on
+  the roof (after it):
+  - Dining halls: three kitchen stacks rising through the roof near the
+    ridge, and a striped terrace awning along the long front.
+  - Student center: a clock under the eaves of its long front.
+  - Grocery: a green painted signboard over its shop glazing, on both
+    fronts.
+  - Mechanical Engineering: a yellow gantry crane straddling the shed.
+  - Aerospace: a wind-tunnel duct down the roof, with a flared intake and
+    a fan housing.
+  - Civil Engineering: a banded concrete test tower with a red cap.
+  - Chemical Engineering: a distillation column with platforms beside
+    its flues.
+  - Film: a taller stage door with a red lamp over it.
+  - Museum: banners of three colors hung between the colonnade's columns.
+  - Art Gallery: one broad exhibition banner between its columns.
+  - Law School: a pediment over the long front's eaves, with the scales in
+    gilt.
+  - Humanities Research Institute: a glazed reading-room lantern.
+  - Computing: a lattice mast and a dish.
+  - Neuroscience: two white cryogen tanks.
+- **Checks:** `test/building-spec.test.ts` adds the review's repeat probe
+  as a rule. In every vernacular, two placeables may share a drawing only
+  when they do the same thing. A drawing is motif, wall, footprint, lab
+  feature, signature, residence form and signifier. The same thing means
+  a chain's tiers, the generic halls or the towers. With the signifiers
+  removed, the rule fails on the five groups the review named.
+- **The review's probe** (`review:probe -- vernacular`, which now counts
+  the signifier in a look) on a year-51 campus: 64 distinct looks, from
+  56. The only repeats left are the residence towers, the chapter houses
+  and the villages.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `signifiers-labs.png`: the eight labs.
+  - `signifiers-civic.png`: the student centers, dining halls, grocery,
+    Law School, Museum, Humanities Research Institute and Art Gallery.
+
 ## PR 74G — Style slips
 
 *A1-9.*
