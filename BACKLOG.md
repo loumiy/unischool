@@ -120,7 +120,11 @@ a sequence of PRs.*
   research methods, anthropological theory, modern philosophy,
   non-Western history), no major has a senior seminar, the JD has no
   Professional Responsibility, and the MD has no internal medicine,
-  pediatrics or obstetrics. Each change moves course ids in every save.
+  pediatrics or obstetrics. Plan 76G rewrote sentences rather than move
+  courses where the audit swaps or renumbers them; the moves themselves
+  wait here: FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and
+  bridges before ACCT110 and MATH130. Each change moves course ids in
+  every save.
 
 - **Walks that draw straight** (the October review, A1-7). A walk is a run
   of square tiles with no diagonal piece, so a diagonal walk draws as a
