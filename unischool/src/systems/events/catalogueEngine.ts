@@ -9,6 +9,8 @@ import { makePromise } from '../promises/promises';
 import { handlerFor, seatTitle } from '../delegation/seats';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { ESCALATION_WEEKS_OF_OPEX, seatDef } from '../../data/seatData';
+import { CHARTER_EVENT } from '../../data/eventCatalogue';
+import { CHARTER_INSTANCE, charterVars } from './charter';
 
 // THE PANEL (Plan 32): when the catalog's events fire, how they wait, and
 // how they are answered. Inline events queue in the panel and never stop
@@ -99,7 +101,7 @@ export function tickCatalogue(s: GameState): void {
       return;
     }
   }
-  if (c.pending.length >= INLINE_QUEUE_MAX || week - c.lastInlineWeek < INLINE_SPACING_WEEKS) return;
+  if (drawnWaiting(c) >= INLINE_QUEUE_MAX || week - c.lastInlineWeek < INLINE_SPACING_WEEKS) return;
   if (random() >= INLINE_WEEKLY_CHANCE * sizeFactor(s)) return;
   const e = draw(s, 'inline');
   if (!e) return;
@@ -107,6 +109,21 @@ export function tickCatalogue(s: GameState): void {
   c.lastInlineWeek = week;
   const choice = seatAnswer(s, e, p.scale);
   if (choice) resolveCatalogueEvent(s, p.instanceId, choice, 'seat');
+}
+
+// The drawn events waiting: the charter is raised, not drawn, and holds no
+// place in the queue the draws are held to.
+function drawnWaiting(c: CatalogueState): number {
+  return c.pending.filter((p) => p.eventId !== CHARTER_EVENT.id).length;
+}
+
+// The charter (charter.ts), raised by eventSystem.ts rather than drawn: a
+// fixed id and names read off the state, so it takes nothing from the run's
+// stream, and no seat answers it: the name is the President's.
+export function raiseCharter(s: GameState): void {
+  const c = s.catalogue ??= { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
+  if (c.pending.some((p) => p.eventId === CHARTER_EVENT.id)) return;
+  c.pending.push({ instanceId: CHARTER_INSTANCE, eventId: CHARTER_EVENT.id, firedWeek: absoluteWeek(s), vars: charterVars(s), scale: priceScale(s) });
 }
 
 function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {

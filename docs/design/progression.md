@@ -510,13 +510,23 @@ this drift when it comes.
 ## College, and University
 
 A school opens as **"<Name> College"**. The player writes only the first half at
-founding; the word after it is fixed institutional form. When the **first
-research facility** finishes, the trustees grant a **university charter**
-and it becomes **"<Name> University"**, with a line in the log — the same
-gate research hangs off, read through the same helper so the two can never
-drift apart. It is a naming change and nothing else: a `suffix` string plus
-a flag recording that the charter was granted, joined for display by
-`institutionName()`. No system reads the name. **The pennant renames the
+founding; the word after it is fixed institutional form. A "College" or
+"University" typed after the name is dropped, and a typed "University" gets a
+caption under the founding facade (Plan 78G): "Every college opens as a
+College; the board grants 'University' with its first research lab." When the
+**first lab is at work**, the board grants a **university charter** — the
+same gate research hangs off, read through the same helper so the two can
+never drift apart. Since Plan 78G the name is the President's to decide: the
+charter waits in the inbox as a matter to decide, "The charter", with two
+answers, **"Become <Name> University"** (the default, taken after four weeks)
+and **"Keep the name <Name> College"**. Either answer writes the charter's
+line in the log and the Answered list keeps the choice. It is a naming change
+and nothing else: a `suffix` string plus a flag recording that the charter
+was granted (set when it is raised, so it never recurs), joined for display
+by `institutionName()`. No system reads the name. **The pennant renames the
 college** (Plan 72E): the name the founding screen took, and College or,
-once chartered, University, either way and as often as the player likes.
-Until Plan 72 the charter was a one-time question in a modal.
+once chartered, University, either way and as often as the player likes, so
+a college that kept its name can still take University later. The bonus
+Second Empire architecture is earned by the charter, whichever name is kept.
+Until Plan 72 the charter was a one-time question in a modal; from Plan 72E
+to Plan 78G it was a silent rename with a log line.

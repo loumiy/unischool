@@ -39,7 +39,8 @@ export type EffectKey =
   | 'replant'     // stands planted after any felling (Plan 76D: "fell and replant")
   | 'departs'     // the professor the event names ({faculty}) leaves (Plan 72B)
   | 'buildingFund' // money into the restricted building fund, not cash (Plan 76D)
-  | 'historic';   // the building the event names ({building}) is declared historic (Plan 76D)
+  | 'historic'    // the building the event names ({building}) is declared historic (Plan 76D)
+  | 'charter';    // the university charter's answer (Plan 78G): 1 takes "University", -1 keeps the name
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
@@ -69,7 +70,10 @@ export interface CatalogueEvent {
   when: Partial<Record<ConditionKey, number>>;
   needs?: NeedKey[];
   favours?: string[];           // identity tag ids (data/tagData.ts) that make it likelier
-  title?: string;               // seismic letters only
+  title?: string;               // seismic letters, and the charter
+  // Who the inbox says it is from, where not the domain's desk (the charter
+  // comes from the board).
+  from?: string;
   // May name {rival}, {class}, {faculty}, {program}, {building}, {sport},
   // {school} or {suitor}; systems/events/catalogue.ts fills them.
   text: string;
