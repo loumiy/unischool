@@ -238,7 +238,7 @@ is this plan.
   - the Students tab is available in week 1;
   - a stop with an ask carries the door.
 
-**As implemented (#TBD):**
+**As implemented (#234):**
 
 - **The Students tab** opens from the first week.
   - The ladder gates one way for every tab. A milestone opens whole tabs
