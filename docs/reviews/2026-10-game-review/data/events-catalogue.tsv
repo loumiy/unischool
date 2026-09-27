@@ -1,0 +1,274 @@
+event id	where	quote	verdict	why
+parking-study	text	The Faculty Senate has voted 31–2	vague	eventCatalogue.ts:13 — Fires from year 3 with no faculty gate (when: yearAtLeast 3), yet the roster is modeled and starts at five (actions.ts:370-398): a young college holds a 33-vote Senate. Effects (cash/confidence/mood) are otherwise as stated
+roof-goes	text	A section of roof has come off {building}	vague	eventCatalogue.ts:28 — {building} is any roofed building (catalogue.ts:210), not a worn one (the gate is estate-wide backlog); it takes no damage, no quad is cordoned, and repairs/deferrals are spread over every building's backlog (catalogue.ts:260-270), so the named building's condition may never move
+roof-goes	telling 2	The wind took a piece of the roof off {building}	vague	eventVariants.ts:11 — Same as the text: random roofed building (catalogue.ts:210), no damage applied to it, estate-wide backlog (catalogue.ts:260-270)
+roof-goes	telling 3	Part of the roof of {building} is now in the car park	vague	eventVariants.ts:12 — Same as the text (random building, no damage, estate-wide backlog); also British "car park"
+roof-goes	tarpaulin	Tarpaulin and a fundraising appeal	vague	eventCatalogue.ts:32 — The appeal raises nothing: cash -60,000, backlog +250,000, mood -3; compare storm/appeal, which brings cash +900,000
+committee-reform	text	The Committee on Committee Reform has reported	true	eventCatalogue.ts:43 — Pure color; both answers move only board confidence and satisfaction, as the rendered line says
+anonymous-gift	text	on the single condition that it never be spent on administration	vague	eventCatalogue.ts:58 — No restricted money exists for this: the gift lands as unrestricted cash or endowment (catalogue.ts:316-317) and can pay the seats' salaries; also {class} is the newest alumni class (catalogue.ts:207), so a "bequest" from last summer's graduates
+anonymous-gift	buildings	Put it into the buildings	false	eventCatalogue.ts:61 — Pays the gift twice: cash +1,200,000 AND backlog -1,200,000 of free repairs, rendered "brings $X · $X of repairs done" (EventPanel.tsx:33,36); the label says the money goes into the buildings, not the bank
+star-poached	text	{faculty} has an offer from a college with a larger endowment	true	eventCatalogue.ts:73 — "Wish them well" (the default) really removes the named professor: departs (catalogue.ts:330, 339-347), logged "takes the offer and leaves the college"; "Counter" keeps them
+star-poached	counter	Counter the offer	vague	eventCatalogue.ts:76 — A one-off cash -50,000; the counter-offer raises no salary (salaries are recomputed weekly from stats and tenure alone, facultySystem.ts:44), so nothing of it persists
+heating-fails	text	The heating has failed across the older buildings	true	eventCatalogue.ts:89 — Gated on worn buildings (conditionUnder 0.8); emergency contractors vs blankets map to cash and satisfaction. Not winter-gated ("a cold term" can land in any week) but nothing mechanical is claimed
+prize-won	text	A student of {program} has won a national prize	true	eventCatalogue.ts:104 — Color; the reception/note move satisfaction and confidence as rendered. Telling 3 uses British "rung the college"
+auditors	text	whether the college's reserves policy is 'documented anywhere'	true	eventCatalogue.ts:119 — Color, gated on the distress ladder (rungAtLeast 2); effects are confidence/mood as rendered
+auditors	defer	Undertake to review it next year	vague	eventCatalogue.ts:123 — Nothing records the undertaking and the auditors never come back next year; the event only recurs on its 6-year cooldown (catalogueEngine.ts:38-41)
+storm	text	took ... a run of mature limes along the north walk	false	eventCatalogue.ts:135 — No answer fells a tree: none of the three choices has a trees effect; the roofs are only priced, and "Rebuild properly" even leaves backlog 1,500,000 lower than before the storm
+recession	text	The endowment is worth materially less than it was at breakfast	false	eventCatalogue.ts:152 — The fall only happens if you ride it out (endowment -4,000,000); choosing "Cut" leaves the endowment untouched, so the crash the letter reports is optional
+recession	cut	Cut this year's spending to match	false	eventCatalogue.ts:156 — A spending cut that costs money: cash -1,500,000, rendered "costs $X" (EventPanel.tsx:33); no expense line changes
+boiler-condemned	text	The inspector has condemned the boiler in {building}	vague	eventCatalogue.ts:167 — {building} is any roofed building (catalogue.ts:210), not the one below the 0.7 condition that fired the event; nothing is locked or damaged, and "Replace the plant" spreads backlog -200,000 over the estate (catalogue.ts:260-270)
+boiler-condemned	telling 2	The boiler in {building} has failed its inspection	vague	eventVariants.ts:27 — Same as the text (random building, nothing locked, estate-wide backlog); British spelling "labelled"
+boiler-condemned	telling 3	condemned the boiler. The building is cold	vague	eventVariants.ts:28 — Same as the text: the named building is neither cold nor worse in the game
+ivy-structural	text	the ivy on the west face is now doing some of the work	vague	eventCatalogue.ts:182 — {building} is any roofed building (catalogue.ts:210), possibly new; ivy is drawn only on buildings declared historic (ageMarks.tsx:115), and "considered for listing" never touches the game's own Declare-historic status (estate.ts:112-123)
+roof-slates	text	Slates have been coming off {building}	vague	eventCatalogue.ts:197 — {building} is any roofed building (catalogue.ts:210), not a worn one (the gate is estate-wide backlog); repairs/deferrals are spread over the whole estate (catalogue.ts:260-270)
+roof-slates	telling 2	A slate came off {building} this morning	vague	eventVariants.ts:31 — Same as the text; also British "queue", "first-years"
+roof-slates	telling 3	The roof of {building} has been shedding slates	vague	eventVariants.ts:32 — Same as the text; also British "since the autumn"
+derelict-notice	text	The town has written about {building} ... 'eyesore'	false	eventCatalogue.ts:212 — The event fires because some building is derelict (condition < 0.1, catalogue.ts:96) but {building} is drawn from all roofed buildings (catalogue.ts:210): in simulated runs the town named buildings at condition 0.94 and 0.74 while the derelict one sat at 0.00; "Put it right" repairs by backlog share across the estate (catalogue.ts:260-270)
+derelict-notice	telling 2	The town council has written about the state of {building}	false	eventVariants.ts:35 — Same as the text: the named building is usually not the derelict one; British spelling "grey"
+derelict-notice	telling 3	A letter from the town about {building}: ... 'eyesore'	false	eventVariants.ts:36 — Same as the text: the named building is usually not the derelict one
+asbestos	text	The refurbishment survey of {building} has found asbestos ... Work has stopped	vague	eventCatalogue.ts:227 — {building} is any roofed building (catalogue.ts:210), possibly new, and no renovation is under way or stopped (the game's renovation, estate.ts:56-60, is untouched); strip/seal move estate-wide backlog
+flooded-basement	text	The basement of {building} took nine inches of water	true	eventCatalogue.ts:242 — Color (any building can flood; the gate is low maintenance funding); conservation vs drying map to cash, satisfaction and alumni warmth
+bell-tower	text	The bell mechanism has stopped. It stopped once before, in the founder's time	vague	eventCatalogue.ts:257 — No needs gate: the college may have no Bell Tower (AMENITY-BELLTOWER, facilitiesData.ts:484) or Campanile (facilitiesData.ts:458-462); "Restore the movement" changes nothing on the map
+elm-disease	text	Disease has been confirmed in the elms along the main walk	true	eventCatalogue.ts:272 — Trees are a real count (woodland.ts:10-17) and every choice fells some, as the text says (species are canopy/conifer/ornamental, not elms: color)
+elm-disease	fell-replant	Fell and replant with limes	false	eventCatalogue.ts:275 — Nothing is planted: trees -25 only deletes (woodland.ts:15-17) and the rendered line reads "25 trees felled" (EventPanel.tsx:46); the replanting is not in the game
+desire-path	text	A brown line now runs corner to corner across the quad	true	eventCatalogue.ts:288 — Color (gated on a quad existing); effects are cash and satisfaction
+desire-path	pave	Pave the line they walk	false	eventCatalogue.ts:291 — No path is laid: cash -30,000 and satisfaction +2 only, though pathways are real map tiles the player places (reducer.ts:264-275)
+arboretum-gift	text	would like to give it three hundred trees	false	eventCatalogue.ts:303 — "Accept" plants 60 (trees +60, rendered "60 trees planted", EventPanel.tsx:46), on random bare tiles (woodland.ts:19-38), not the class's planting plan
+bond-rating	text	The rating agency has asked for a meeting	true	eventCatalogue.ts:318 — No credit rating exists and none is promised; "Pay down the principal" really repays loans (catalogue.ts:295-309)
+overdraft	text	The bank has written about the operating account	true	eventCatalogue.ts:333 — "Arrange a facility" adds a real 15-year loan (catalogue.ts:295-299); British banking terms ("overdraft", "facility")
+audit-qualified	text	The auditors intend to qualify their opinion	true	eventCatalogue.ts:348 — Gated on a real deficit (deficitOver); effects are cash/confidence as rendered
+endowment-manager	text	The fund has outgrown the arrangement it was set up with	true	eventCatalogue.ts:363 — Color, gated on a large endowment
+endowment-manager	appoint	Appoint a proper manager	vague	eventCatalogue.ts:366 — A one-off endowment +2,000,000 at no fee; the fund's return is a fixed 5.5% (financeSystem.ts:140, 341) that no manager changes, and the event can recur in 8 years still describing the local firm
+bequest-conditions	text	the money is for a building, the building is to bear the donor's name	true	eventCatalogue.ts:378 — Describes the offer; the broken promise is in "Accept the terms" (next row)
+bequest-conditions	accept	Accept the terms	false	eventCatalogue.ts:381 — The building money arrives as unrestricted cash +4,000,000 (catalogue.ts:316); no building is required or named, though the game keeps a restricted building fund "spendable on nothing else" (types.ts:988, AdvancementPanel "Raised for buildings")
+draw-questioned	text	The Finance Committee has noticed the draw	true	eventCatalogue.ts:394 — Gated on the real draw rate (drawRateOver 0.05)
+draw-questioned	cut	Cut the draw and find the money elsewhere	false	eventCatalogue.ts:397 — The draw rate is a player setting (treasury.ts:15-17, reducer.ts:306) that no effect touches: the choice moves 600,000 from cash to endowment once and the over-draw carries on
+frozen-post	text	The hiring freeze has held for three years. The post that opened when {faculty} took leave	false	eventCatalogue.ts:409 — There is no hiring freeze: the Freeze rung stops construction and borrowing only (distress.ts:8, 73-80) and hiring is never blocked (reducer.ts:215-217); nothing requires three years at the rung; {faculty} is a random roster member who is teaching, not on leave (catalogue.ts:208)
+frozen-post	telling 2	The post left open when {faculty} went on leave has now been frozen	false	eventVariants.ts:51 — Same as the text: no hiring freeze, no leave; {faculty} is on the roster teaching
+frozen-post	telling 3	Three years into the hiring freeze, the vacancy left by {faculty}'s leave	false	eventVariants.ts:52 — Same as the text
+frozen-post	fill	Fill the post	false	eventCatalogue.ts:412 — No one is hired: cash -60,000, satisfaction +2, confidence -1; the roster only grows through appointFaculty (facultySystem.ts:10-15), which no effect calls
+trustee-resigns	text	A trustee has resigned	true	eventCatalogue.ts:424 — Color, fittingly gated on low board confidence (confidenceUnder 40)
+press-inquiry	text	A reporter has been asking the kind of questions	true	eventCatalogue.ts:439 — Gated on the distress ladder; effects are confidence/satisfaction/warmth as rendered (telling 3 uses British "ringing")
+board-retreat	text	The board would like a retreat	true	eventCatalogue.ts:455 — Color; needs a library for the one-day option, as written
+tenure-case	text	A tenure case has reached the President's desk	true	eventCatalogue.ts:470 — Color; the game's "Tenure" is only years on the roster (FacultyTab.tsx:188)
+tenure-case	deny	Deny, with a year to find something	false	eventCatalogue.ts:474 — Nobody leaves, now or in a year: no departs effect (only satisfaction -3, incoming quality -1), and the candidate is not a named roster member
+sabbatical-overrun	text	{faculty} has not come back from sabbatical	false	eventCatalogue.ts:485 — The game has no sabbaticals: {faculty} is a random roster member (catalogue.ts:208) who is on the roster teaching their courses; "Extend the leave" extends nothing
+sabbatical-overrun	telling 2	{faculty}'s sabbatical ended in September. {faculty} did not.	false	eventVariants.ts:63 — Same as the text: the named professor was never away
+sabbatical-overrun	telling 3	The year's leave granted to {faculty} is now in its second year	false	eventVariants.ts:64 — Same as the text
+sabbatical-overrun	recall	Require a return or a resignation	false	eventCatalogue.ts:489 — Neither happens: no departs; the named professor stays (and was never away); effects are satisfaction -1, incoming quality -1
+two-body	text	{faculty}, the best appointment {school} has made in years	vague	eventCatalogue.ts:500 — {faculty} is drawn at random from the roster (catalogue.ts:208) whatever the teaching/research the Faculty tab shows
+two-body	line	Fund a teaching line for the spouse	false	eventCatalogue.ts:503 — No one joins the roster: cash -90,000, incoming quality +2, satisfaction +1
+two-body	courses	Offer teaching by the course	vague	eventCatalogue.ts:504 — No course gains an instructor; one-off cash -30,000 and incoming quality +1
+two-body	nothing	Say that nothing is possible	vague	eventCatalogue.ts:505 — The rival offers in the text never act: {faculty} stays (no departs), unlike star-poached's "Wish them well"
+emeritus-office	text	Four emeritus professors are using offices	false	eventCatalogue.ts:516 — Fires from year 18, but no one can retire before about year 26 (careers run 25-40 years, facultySystem.ts:105-116) and the founders retire in years 30-31, so four emeriti are impossible for most of the window (one simulated run fired it in year 23); retirees also leave the roster (facultySystem.ts:119-139)
+star-lecture	text	{faculty}'s lectures have started attracting people who are not registered	vague	eventCatalogue.ts:531 — {faculty} is any roster member (catalogue.ts:208), not a strong teacher; the gate is the campus average (teachingOver 45)
+teaching-review	text	The teaching returns are the worst the college has recorded	true	eventCatalogue.ts:546 — Gated on poor course quality (teachingUnder 30); effects as rendered
+teaching-review	invest	Fund a teaching program and protect the time	vague	eventCatalogue.ts:549 — Teaching (course grades, faculty teaching) is untouched; the lever is incoming quality +1 (catalogue.ts:327), the last intake's average, overwritten next summer (resolveAdmissions.ts:156)
+accreditation-visit	text	The accreditation panel will visit in the spring	vague	eventCatalogue.ts:561 — No visit ever happens and nothing records the preparation; the only consequences are confidence ±3 and incoming quality ±1 now
+accreditation-visit	telling 2	The accreditors are coming in April	vague	eventVariants.ts:71 — Same as the text: no visit follows
+accreditation-visit	telling 3	An accreditation visit is on the calendar for the spring	vague	eventVariants.ts:72 — Same as the text: no visit follows
+program-thin	text	Enrollment in {program} is down for the fourth year	true	eventCatalogue.ts:576 — Per-program enrollment is not modeled; color
+program-thin	invest	Fund it properly and give it three years	vague	eventCatalogue.ts:579 — Nothing reviews the program in three years; the event just recurs on its 5-year cooldown (catalogueEngine.ts:38-41)
+program-thin	teach-out	Teach out the students in it and close it	false	eventCatalogue.ts:580 — Programs cannot be closed in this game: they only relocate (techSystem.ts:482-495) and a hall with programs cannot be demolished (demolition.ts:83); {program} stays in the catalog. This is the default answer
+nothing-to-study	text	{school} has buildings, a seal, a bell and no programs	false	eventCatalogue.ts:591 — Never true and never fires: every college houses the three founding programs from day one (actions.ts:408-411, foundingData.ts:56), programs cannot be removed, and programsUnder: 1 would admit one anyway (catalogue.ts:100, 162)
+nothing-to-study	emergency	Open something, anything, this year	false	eventCatalogue.ts:594 — No program opens: cash -300,000, confidence +2, satisfaction +2
+library-acquisition	text	A private library is coming up: eleven thousand volumes	true	eventCatalogue.ts:607 — Color; needs a library
+library-acquisition	buy	Buy the collection	vague	eventCatalogue.ts:610 — The library does not change (its academic credit reads seats and floors); the lever is incoming quality +2 (catalogue.ts:327), overwritten next summer
+sit-in	text	Forty students are sitting in the foyer of {building}	true	eventCatalogue.ts:623 — Gated on low satisfaction; answers move satisfaction/confidence/warmth as rendered
+newspaper	text	The student newspaper has asked for funding, an office, and an undertaking	true	eventCatalogue.ts:639 — Color
+newspaper	fund	Fund it and give the undertaking	false	eventCatalogue.ts:642 — Funding costs nothing: satisfaction +3, confidence -1, no cash
+dining-petition	text	A petition about the dining hall has reached eleven hundred signatures	true	eventCatalogue.ts:656 — Needs a dining hall and enrolledUnder 1100, so "more students than {school} has" holds
+rag-week	text	Rag Week has raised nine thousand dollars for the county hospital	true	eventCatalogue.ts:672 — Effects as rendered; British "Rag Week", "caravan", "students' union"
+mascot	text	The Athletic Director has produced a costume without being asked	false	eventCatalogue.ts:687 — No Athletic Director can exist yet: one is hired once the first team exists (types.ts:847-850), and by then the first-sport beat has named the mascot (eventSystem.ts:109-121), which this event's mascotAtMost: 0 excludes
+mascot	adopt	Adopt the heron	false	eventCatalogue.ts:690 — No mascot is set (s.self.mascot is untouched; effects are cash, satisfaction, warmth), so the first sport club still asks the player to name the teams and the event can recur after 15 years; rival Bellhaven College already plays as the Herons (rivalData.ts:149)
+exam-scandal	text	A paper has got out ahead of the examination	true	eventCatalogue.ts:702 — Gated on selectivity; effects as rendered; British "resit", "the Proctor"
+winter-outbreak	text	Something is going round the residences	true	eventCatalogue.ts:718 — Needs a health center; effects as rendered; British "going round", "halls of residence"
+annual-fund-drive	text	The last one raised four times what it cost	vague	eventCatalogue.ts:733 — This one raises fifteen times what it costs (cash -60,000, endowment +900,000), and into the endowment rather than the annual fund's cash
+annual-fund-drive	telling 2	The last one paid for itself four times over	vague	eventVariants.ts:95 — Same as the text: the effect is 15 to 1
+class-complaint	text	concerns a building that is not there any more, a tradition that has lapsed	vague	eventCatalogue.ts:749 — Nothing requires a demolition (the game logs them, demolition.ts:89-110), and {class} is the class that graduated last summer (catalogue.ts:207)
+class-complaint	telling 2	about a building that has come down	vague	eventVariants.ts:99 — Same as the text
+class-complaint	telling 3	before the old hall came down	vague	eventVariants.ts:100 — Same as the text
+alumni-trustee	text	The alumni would like a seat on the board	true	eventCatalogue.ts:764 — Color (the board is not modeled)
+alumni-trustee	grant	Create the seat	vague	eventCatalogue.ts:767 — No seat exists afterward, and the event can recur in 10 years asking for the seat again (catalogueEngine.ts:38-41)
+yield-panic	text	The deposits are behind	true	eventCatalogue.ts:779 — Gated on a high admit rate; second round/hold map to freshmen and incoming quality
+tuition-letter	text	A parent has written about the fee	true	eventCatalogue.ts:794 — Gated on a high listed tuition; British "the fee"
+tuition-letter	aid	Fund more aid and say so publicly	vague	eventCatalogue.ts:797 — There is no aid lever: the price-sensitive cohort reads the listed price (cohorts.ts:24, 244), which is unchanged; the "aid" is a one-off cash -300,000 with satisfaction/warmth
+guidebook	text	{school} has appeared in a guidebook for the first time	vague	eventCatalogue.ts:809 — The 6-year cooldown lets it fire again (catalogueEngine.ts:38-41), "for the first time" each time: in simulated runs it fired in years 9, 28 and 45 of one game
+guidebook	advertise	Buy the larger entry next year	vague	eventCatalogue.ts:812 — The students arrive now: enrollment +8 is added to the current freshman class at once (catalogue.ts:272-293)
+recruiting-trip	text	Admissions would like to visit schools in three states	true	eventCatalogue.ts:824 — Gated on a small college; effects add or remove current freshmen (catalogue.ts:272-293)
+fire	text	What is lost is the east end: three teaching rooms, the departmental office	false	eventCatalogue.ts:840 — Nothing is lost: {building} keeps its capacity, courses and condition; the choices move only cash, backlog (estate-wide), satisfaction, warmth and confidence
+fire	modern	Replace it with something cheaper and newer	vague	eventCatalogue.ts:844 — Nothing is replaced: the building's age, look and condition are unchanged (cash -2,200,000, warmth -3, satisfaction +1)
+fire	close	Close the east end and manage without it	false	eventCatalogue.ts:845 — Nothing closes: no capacity, course or served-population change; the default costs cash -300,000 and adds backlog +700,000 across the estate
+scandal	text	the two weeks arrives anyway, later, with the college having chosen its own silence to explain	vague	eventCatalogue.ts:857 — Nothing follows the silent answers: no later exposure or event; "quiet" costs confidence -3 and satisfaction -1 once
+bequest	text	Eleanor Whitfield left {school} almost everything	true	eventCatalogue.ts:874 — Color; each use of the money is rendered as it lands (endowment/cash)
+bequest	debt	Clear the debt and steady the ship	false	eventCatalogue.ts:879 — Rendered "repays $X of debt" (EventPanel.tsx:35) whatever the college owes, but repayment stops at the balance and the rest vanishes (catalogue.ts:301-306); the event has no debt condition, so a debt-free college loses the 8,000,000 share
+protest-era	text	The administration building has been occupied since Thursday	true	eventCatalogue.ts:891 — Gated on low satisfaction; answers map to cash, satisfaction, warmth, confidence and incoming quality
+unheard-of	text	Nobody in the county has heard of the place yet	true	eventCatalogue.ts:907 — Gated on the first six years and a small college; effects as rendered
+surplus-problem	text	The operating account has more in it than the college has ever held	true	eventCatalogue.ts:922 — Gated on cash over 25,000,000 (scaled); effects as rendered
+thin-fund	text	The endowment is smaller than it was ten years ago	vague	eventCatalogue.ts:938 — Only endowmentUnder 46,000,000 is checked; a young or growing fund qualifies
+thin-fund	campaign	Run a capital campaign	false	eventCatalogue.ts:941 — No campaign runs: the game's campaigns (campaigns.ts:12-17; one at a time, needs a VP of Advancement) are untouched; endowment +3,000,000 lands at once
+thin-fund	restraint	Stop drawing and let it recover	false	eventCatalogue.ts:942 — The draw setting is untouched (treasury.ts:15-17), so the fund keeps paying out; the choice moves cash -500,000 / endowment +900,000 once
+payroll-share	text	Salaries are now most of what the college spends	true	eventCatalogue.ts:954 — Gated on the real payroll share (payrollShareOver 0.62)
+payroll-share	freeze	Hold salaries for a year	vague	eventCatalogue.ts:957 — Salaries are recomputed every week (facultySystem.ts:44) and never held; the saving is a lump sum cash +400,000, and the payroll share that fired the event is unchanged
+bleak-campus	text	The difficulty is what is between them	true	eventCatalogue.ts:969 — Gated on low beauty and few trees; "Fund a planting scheme" really plants 70 trees (woodland.ts:19-38)
+good-year	text	Something is going right	true	eventCatalogue.ts:984 — Gated on high satisfaction; effects as rendered
+bad-run	text	It has been a long few terms	true	eventCatalogue.ts:999 — Text and effects agree, but it almost never fires: moodUnder: 4 means satisfaction at or below 4 of 100 (catalogue.ts:118), a v2 mood scale left in the port
+one-teacher	text	shows the same three names against every hour of it	true	eventCatalogue.ts:1014 — Gated on four or fewer faculty (facultyUnder is inclusive, catalogue.ts:162), close enough to "three names"
+one-teacher	hire	Hire, whatever it costs	false	eventCatalogue.ts:1017 — No one is hired: cash -120,000, incoming quality +2, satisfaction +2; the roster is unchanged
+one-teacher	cover	Cover it with visiting lecturers	vague	eventCatalogue.ts:1018 — No instructor is added to any course (cash -70,000, incoming quality -1)
+the-boiler	text	The central boiler, installed in the college's first decade	true	eventCatalogue.ts:1030 — Color; gated on a building over 6 years old and the winter model (see the "nurse" row)
+the-boiler	replace	Replace the boiler	vague	eventCatalogue.ts:1033 — Nothing records the new boiler: after the 8-year cooldown the event can fire again about the boiler "installed in the college's first decade" (catalogueEngine.ts:38-41)
+the-boiler	nurse	Nurse it through the winter	vague	eventCatalogue.ts:1034 — The winter gate (winterAtLeast 0.5) passes only in weeks 48-51 and 1-4 (catalogue.ts:76-79), which the status bar calls the last weeks of the Spring Term and the first of the Fall Term (StatusHeader.tsx:72-74); week 52 is the summer
+the-ice-walk	text	froze overnight into a single continuous sheet	vague	eventCatalogue.ts:1047 — Winter gate passes only in weeks 49-51 and 1-3 (catalogue.ts:76-79): the end of the Spring Term and the start of the Fall Term (StatusHeader.tsx:72-74); British "the first year" for the freshmen
+the-ice-walk	telling 2	The path ... iced over in the night	vague	eventVariants.ts:127 — Same season mismatch as the text
+the-ice-walk	telling 3	The main walk froze solid overnight	vague	eventVariants.ts:128 — Same season mismatch as the text; British "first-years"
+the-heating-bill	text	The heating bill for December has arrived	false	eventCatalogue.ts:1063 — Fires only in weeks 50-51 and 1-2 (winterAtLeast 0.7, catalogue.ts:76-79): the last weeks of the Spring Term before the summer at week 52 (admissionsSystem.ts:421) and the first of the Fall Term (StatusHeader.tsx:72-74); never December
+the-heating-bill	telling 2	December's heating bill has come in	false	eventVariants.ts:131 — Same as the text
+the-heating-bill	telling 3	The gas bill for the winter's first cold month	vague	eventVariants.ts:132 — Same gate: it arrives at the end of the Spring Term or the start of the Fall Term
+the-snow-day	text	It snowed eleven inches overnight	vague	eventCatalogue.ts:1078 — Never fires: winterAtLeast 0.9 passes only in week 52 (catalogue.ts:76-79), which is always the summer, when the catalogue does not tick (admissionsSystem.ts:421, eventSystem.ts:288-289); the snow is timed to the summer break
+the-snow-day	telling 2	Eleven inches of snow fell overnight	vague	eventVariants.ts:135 — Same as the text (never fires)
+the-snow-day	telling 3	Snow, a foot of it, on a teaching day	vague	eventVariants.ts:136 — Same as the text (never fires)
+the-dark-term	text	The spring term has started in the dark	false	eventCatalogue.ts:1093 — Never fires: winterAtLeast 0.95 passes only in week 52, always the summer (catalogue.ts:76-79, admissionsSystem.ts:421); and week 52 is the end of the Spring Term, not its start (StatusHeader.tsx:72-74)
+the-snow-load	text	The snow on the flat roofs is now deep enough	vague	eventCatalogue.ts:1108 — Winter gate (0.8) passes only in weeks 51 and 1 (catalogue.ts:76-79): the week before the summer and the first week of the Fall Term
+the-freeze	text	The coldest night in forty years came on the Sunday before term	vague	eventCatalogue.ts:1124 — Never fires: winterAtLeast 0.9 passes only in week 52, the summer (catalogue.ts:76-79, admissionsSystem.ts:421); the "coldest night" is timed to late summer. British "on the Sunday", "trolley"
+the-championship-run	text	The {sport} team has won the title, and the campus has not slept since	vague	eventCatalogue.ts:1140 — The gate is any title ever (titlesAtLeast 1, catalogue.ts:136) on a 2-year cooldown, so it can fire years after the last title, every other year
+the-championship-run	telling 2	The {sport} team are champions, and the campus has not gone to bed	vague	eventVariants.ts:139 — Same as the text
+the-championship-run	telling 3	The {sport} team has won the title, and the celebration is into its third day	vague	eventVariants.ts:140 — Same as the text
+the-championship-run	boosters	Let the boosters pay for the scoreboard	false	eventCatalogue.ts:1144 — The college is paid instead: cash +400,000, rendered "brings $X", and no scoreboard exists
+the-rival-prank	text	Students from {rival} broke into the bell tower overnight	true	eventCatalogue.ts:1156 — Gated on a named rival; "or the tallest building, in its absence" covers a campus with no tower
+the-rankings-slip	text	The board chair has brought the guide to the meeting	true	eventCatalogue.ts:1172 — Gated on a rank of 20th or worse
+the-rankings-slip	telling 3	The college has slipped in the guide	vague	eventVariants.ts:148 — The gate is a rank of 20th or worse (rankAtLeast 20; rivalsSystem.ts:313-315), not a fall: a rising college qualifies
+the-rankings-slip	promise	Promise a rise within five years	false	eventCatalogue.ts:1177 — No promise is made, though the game has public promises with deadlines, rewards and penalties (promises.ts:11-17, promiseData.ts): this is confidence +2, satisfaction -1 now and nothing in five years
+the-noise-complaint	text	The neighbors have written again about Thursday nights	true	eventCatalogue.ts:1189 — Effects as rendered
+the-all-nighter	text	The reading rooms were full at four in the morning	true	eventCatalogue.ts:1205 — Effects as rendered
+the-all-nighter	telling 2	The library was full at 4 a.m.	vague	eventVariants.ts:155 — No needs: ['library'] gate (unlike the-closing-bell), so it can fire at a college without a library
+the-grant-windfall	text	funded a center proposal from {faculty} ... where the center will be housed	vague	eventCatalogue.ts:1221 — No center or research initiative is created and nothing is housed (research runs as initiatives in labs, researchSystem.ts:13); "Find the center a home" is cash +200,000 once; {faculty} is any roster member (catalogue.ts:208), whatever their research
+the-grant-windfall	telling 2	A foundation has funded {faculty}'s proposal for a center	vague	eventVariants.ts:159 — Same as the text
+the-grant-windfall	telling 3	{faculty} will direct a new center, funded for five years	vague	eventVariants.ts:160 — Same as the text, and nothing runs for five years
+the-legacy-question	text	A trustee's grandson has applied	true	eventCatalogue.ts:1237 — Color; effects as rendered
+the-car-park	text	three hundred and forty permits for a car park with two hundred and twelve spaces	true	eventCatalogue.ts:1253 — Color; British "car park"
+the-car-park	second	Lay out a second car park	vague	eventCatalogue.ts:1256 — No car park appears on the map (there is no parking buildable); the 11 trees felled are the first in the tree list, wherever they stand (woodland.ts:15-17), and the event can recur with the same shortage
+the-burst-pipe	text	A pipe above the second floor of {building} burst on the Saturday	vague	eventCatalogue.ts:1269 — {building} is any roofed building (catalogue.ts:210) and takes no damage; repairs are estate-wide (catalogue.ts:260-270); winter gate passes only at the end of the Spring Term / start of the Fall Term (catalogue.ts:76-79)
+the-burst-pipe	telling 2	A pipe above the second floor of {building} burst on Saturday night	vague	eventVariants.ts:167 — Same as the text
+the-burst-pipe	telling 3	Water came through the ceiling of {building} all weekend	vague	eventVariants.ts:168 — Same as the text
+the-fox-on-the-wall	text	Somebody has painted a fox on the end wall of {building}	true	eventCatalogue.ts:1284 — Color; effects as rendered
+the-master-key	text	The master key to {building} has been lost	true	eventCatalogue.ts:1300 — Color; effects as rendered
+the-master-key	cards	Move the whole campus to key cards	vague	eventCatalogue.ts:1304 — Nothing records the key cards, so the lost-master-key event can recur in 6 years; the effect also books backlog -80,000 of "repairs done" for a lock change
+the-buckets	text	Rain has been getting into {building}	vague	eventCatalogue.ts:1316 — {building} is any roofed building (catalogue.ts:210), not one below the 0.75 condition that fired the event; repairs/deferrals are estate-wide (catalogue.ts:260-270)
+the-buckets	telling 2	There are now nine buckets in the top corridor of {building}	vague	eventVariants.ts:171 — Same as the text
+the-buckets	telling 3	The top floor of {building} leaks along the gutter line	vague	eventVariants.ts:172 — Same as the text
+the-lift	text	The lift in {building} has stopped between floors for the fourth time	vague	eventCatalogue.ts:1332 — {building} is any roofed building (catalogue.ts:210), not the worn one; "Replace the lift" spreads backlog -150,000 over the estate (catalogue.ts:260-270); British "lift"
+the-lift	telling 2	The lift in {building} has stuck between floors again	vague	eventVariants.ts:175 — Same as the text
+the-lift	telling 3	The lift in {building} failed once more	vague	eventVariants.ts:176 — Same as the text
+the-listing	text	would like to list {building} as a building of special interest	vague	eventCatalogue.ts:1347 — {building} is any roofed building (catalogue.ts:210), possibly new; the gate is the oldest building over 20 years, short of the game's own 25-year rule for historic status (estate.ts:112-123)
+the-listing	support	Support the listing	false	eventCatalogue.ts:1350 — Nothing is listed: the building is not declared historic (no ivy, no prestige, no quarter-higher upkeep, still demolishable, estate.ts:112-123, demolition.ts:81); only warmth +3 and backlog +250,000 spread over the estate
+the-footnote-feud	text	Two senior members of {program} have not spoken for six years	true	eventCatalogue.ts:1362 — Color (departments are not modeled)
+the-timetable-clash	text	put the required methods course for {program} in the same hour	true	eventCatalogue.ts:1378 — Color; effects as rendered
+the-plagiarism-software	text	flagged two first-year essays in five	true	eventCatalogue.ts:1395 — Color; effects as rendered
+the-writing-requirement	text	The Curriculum Committee has met eleven times	true	eventCatalogue.ts:1412 — Color
+the-writing-requirement	require	Require the writing course	vague	eventCatalogue.ts:1415 — Nothing records the requirement: the event can recur in 6 years with the committee still debating it
+the-grade-medians	text	The median grade has risen for the ninth year running	true	eventCatalogue.ts:1428 — Color, gated from year 10
+the-grade-medians	publish	Print the median beside every grade	vague	eventCatalogue.ts:1431 — Not recorded: the event can recur in 8 years ("risen for the ninth year running")
+the-lab-inspection	text	gives the college twenty-eight days	vague	eventCatalogue.ts:1445 — No deadline exists: nothing checks the list after 28 days, including under the default "worst", which leaves the fridge and the rest
+the-lab-inspection	telling 2	The report allows twenty-eight days	vague	eventVariants.ts:183 — Same as the text
+the-lab-inspection	telling 3	gives the college four weeks	vague	eventVariants.ts:184 — Same as the text
+the-lab-inspection	close	Close the laboratories until it is done	false	eventCatalogue.ts:1450 — No lab closes: research initiatives keep running in them and nothing reopens later; the effect is incoming quality -2, satisfaction -2 now
+the-last-lecture	text	The longest-serving teacher in {program} retires in June	false	eventCatalogue.ts:1461 — Nobody retires (no departs; the roster is unchanged), and from year 15 to about year 26 nobody can have served long enough to retire (careers 25-40 years, facultySystem.ts:105-116)
+the-last-lecture	prize	Endow a prize in her name	false	eventCatalogue.ts:1465 — No prize exists afterward; the money just moves from cash to the general endowment (cash -150,000, endowment +150,000)
+the-closing-bell	text	It is exam season and the library closes at midnight	true	eventCatalogue.ts:1479 — Needs a library; effects as rendered; British "torch", "porter"
+the-closing-bell	open	Open the library all night in exams	vague	eventCatalogue.ts:1482 — Not recorded: the event can recur in 4 years with the library closing at midnight
+the-laundry	text	The laundry room in the residence halls has six machines	true	eventCatalogue.ts:1495 — Needs a residence hall; effects as rendered; British "rota"
+the-vegan-counter	text	The dining hall added a vegan dish	true	eventCatalogue.ts:1512 — Needs a dining hall; effects as rendered
+the-lodge-cat	text	A cat has moved into the porters' lodge	true	eventCatalogue.ts:1528 — Color; British "porters' lodge"
+the-bike-thefts	text	Forty-one bicycles have been stolen from outside {building}	true	eventCatalogue.ts:1544 — Color; British "students' union"
+the-hunger-strike	text	Six students have been on hunger strike for eleven days	true	eventCatalogue.ts:1560 — Effects as rendered
+the-wrong-coach	text	Orientation went wrong in its first hour	true	eventCatalogue.ts:1576 — "carry" really removes a few current freshmen (catalogue.ts:272-293). Not tied to the start of the year, but nothing mechanical is claimed
+the-invited-speaker	text	A student society has invited a speaker	true	eventCatalogue.ts:1591 — Effects as rendered
+the-statue-donor	text	a gift toward the scholarship fund	false	eventCatalogue.ts:1608 — There is no scholarship fund: the gift is general endowment (catalogue.ts:317)
+the-statue-donor	accept	Accept the gift and the statue	false	eventCatalogue.ts:1611 — No statue is placed, though the game has one (AMENITY-STATUE, facilitiesData.ts:480): endowment +1,500,000, satisfaction -2, confidence +1
+the-statue-donor	plaque	Offer a named scholarship instead	false	eventCatalogue.ts:1612 — No scholarship is created; endowment +600,000
+the-reunion-gift	text	The {class} has raised a reunion gift	false	eventCatalogue.ts:1624 — {class} is the class that graduated last summer (catalogue.ts:207), but the game's reunions come only every fifth year out (giving.ts:55-59)
+the-reunion-gift	telling 2	The {class} would like its reunion gift spent on a clock	false	eventVariants.ts:207 — Same as the text
+the-reunion-gift	telling 3	A reunion gift from the {class}	false	eventVariants.ts:208 — Same as the text
+the-reunion-gift	clock	Install the clock as given	false	eventCatalogue.ts:1627 — No clock is installed (there is no clock amenity), and the gift arrives as free cash +250,000, rendered "brings $X"
+the-reunion-gift	redirect	Ask them to fund bursaries instead	false	eventCatalogue.ts:1628 — No bursaries exist: the money is general endowment +250,000
+the-racehorse	text	An alumnus has given the college a racehorse	true	eventCatalogue.ts:1640 — Color; effects as rendered
+the-honorary-degree	text	put forward a shipping magnate	true	eventCatalogue.ts:1656 — Color
+the-honorary-degree	defer	Defer the nomination a year	vague	eventCatalogue.ts:1660 — Nothing brings the nomination back next year (8-year cooldown)
+the-address-list	text	a third of the addresses are out of date	true	eventCatalogue.ts:1672 — Effects are alumni warmth, as rendered
+the-matching-challenge	text	match every alumni gift dollar for dollar up to $1M	false	eventCatalogue.ts:1688 — The $1M is fixed but the effect scales with the budget, up to 12x (catalogue.ts:37-60): in three simulated runs it fired only at the 12x cap (years 25-49), where "Announce" shows endowment +19,000,000 for a match capped at $1M, and "a smaller gift" (outright) shows +4,800,000
+the-matching-challenge	announce	Announce the challenge and campaign for it	vague	eventCatalogue.ts:1691 — The fifth-of-alumni condition is never tested: the full gift always arrives, whatever the alumni's size or warmth
+the-divestment	text	The students have petitioned the investment committee to divest	true	eventCatalogue.ts:1704 — Effects as rendered
+the-insurance-renewal	text	a premium forty percent higher than last year	true	eventCatalogue.ts:1720 — Color; British "excess" (deductible) in a choice
+the-dormant-account	text	a bank account in the college's name that nobody ... remembers opening	true	eventCatalogue.ts:1736 — Effects as rendered
+the-dormant-account	controller	Hire a controller to find the others	vague	eventCatalogue.ts:1740 — No others are ever found: cash -90,000, confidence +3 once
+the-pension-valuation	text	it says the gap will grow if nothing is done	vague	eventCatalogue.ts:1751 — There is no pension liability: nothing grows, and "Wait for the next valuation" costs only confidence -2, satisfaction -1
+the-pension-valuation	spread	Raise contributions over time	false	eventCatalogue.ts:1755 — Costs nothing, now or later: the only effect is confidence +1
+the-beverage-contract	text	A drinks company has offered the college an exclusive pouring contract	true	eventCatalogue.ts:1768 — Effects as rendered
+the-land-offer	text	A developer has offered to buy the wooded strip	true	eventCatalogue.ts:1783 — Color
+the-land-offer	sell	Sell the strip	false	eventCatalogue.ts:1786 — No land leaves the map (the campus grid is fixed); the 35 trees removed are the first in the tree list, not the northern edge (woodland.ts:15-17); and the offer can recur in 8 years for the strip "owned since its founding"
+the-land-offer	lease	Lease it for twenty years	vague	eventCatalogue.ts:1787 — A one-off cash +300,000 and trees -8; no rent in later years, and the land neither leaves nor returns
+the-strategic-plan	text	The board has asked for a strategic plan	true	eventCatalogue.ts:1799 — Gated on low confidence; effects as rendered
+the-trustee-bid	text	The lowest bid for the new roofing contract	true	eventCatalogue.ts:1815 — Color
+the-trustee-bid	award	Award it to the lowest bid	vague	eventCatalogue.ts:1818 — Awarding a roofing contract brings cash +120,000, and no roof work follows under either answer (no backlog change)
+the-consultants-report	text	its central finding is that the college should 'lean into its distinctiveness'	true	eventCatalogue.ts:1830 — Color
+the-presidents-residence	text	The board would like the President's residence refurbished	true	eventCatalogue.ts:1846 — Color
+the-board-secretary	text	is retiring after thirty-one years. The minutes of every meeting since the founding	false	eventCatalogue.ts:1862 — Fires from year 20 (yearAtLeast 20), when the college is younger than her thirty-one years; and on an 8-year cooldown she retires again (one simulated run: years 26 and 42)
+the-board-secretary	hire	Appoint a full-time successor	false	eventCatalogue.ts:1865 — Free: confidence +2 and no cost, while paying the retiree to transcribe costs 45,000
+the-term-limits	text	has been on the board for twenty-six years	false	eventCatalogue.ts:1878 — Fires from year 14 (yearAtLeast 14): the board is younger than twenty-six years until year 26
+the-term-limits	adopt	Adopt term limits	vague	eventCatalogue.ts:1881 — Not recorded: the event can recur in 8 years about the same long-serving trustee
+the-rankings-survey	text	The guide's reputation survey has arrived	true	eventCatalogue.ts:1894 — Color
+the-rankings-survey	brochure	Send every president a glossy brochure first	vague	eventCatalogue.ts:1897 — No reputation or rank effect: only confidence +2 (there is no reputation effect key)
+the-rival-film	text	A promotional film made by {rival}	true	eventCatalogue.ts:1910 — Effects as rendered
+the-booster-club	text	a seat on the committee that appoints the coach	true	eventCatalogue.ts:1927 — Describes the offer; see the "accept" row
+the-booster-club	accept	Accept the gift and the seat	vague	eventCatalogue.ts:1930 — The seat does nothing: coaches are still hired by the player (Coach, types.ts:715-741; athleticDirector, types.ts:847-850); the gift "for the {sport} program" is unrestricted cash +300,000, not athletics budget
+the-flood	text	The river came over the east meadow on the Thursday	true	eventCatalogue.ts:1944 — The damage is priced by the choices (cash, backlog); British "on the Thursday", "Clerk of Works", "loss adjuster"
+the-flood	defend	Build the flood defenses	vague	eventCatalogue.ts:1947 — No defenses exist afterward (nothing on the map or in state), and the flood can recur after 20 years
+the-flood	upstairs	Move teaching off the ground floors	vague	eventCatalogue.ts:1949 — No capacity or rooms change; one-off cash -400,000, backlog +1,500,000, satisfaction -4, incoming quality -1
+the-sickness-term	text	by the end of the month a quarter of the college had been ill at once	true	eventCatalogue.ts:1961 — Effects as rendered; British "autumn break"
+the-essay-ring	text	a customer list of a hundred and forty names	true	eventCatalogue.ts:1978 — Color; British "external examiner", "dissertations", "a flat", "resit"
+the-essay-ring	rescind	Rescind the degrees and fail the rest	vague	eventCatalogue.ts:1981 — enrollment -40 scales with the whole student body (catalogue.ts:279): above about 7,000 enrolled it removes more freshmen than the 140 names on the list, and only freshmen; rescinded graduates stay in the alumni count
+the-grant-cut	text	Roughly one student in six held one of the grants	true	eventCatalogue.ts:1995 — Effects as rendered
+the-grant-cut	current	Replace them for students already enrolled	vague	eventCatalogue.ts:1999 — The -25 enrollment (the future students who lose grants) is taken from the current freshmen (catalogue.ts:272-293), the very students this answer protects
+the-harrowgate-pledge	text	It is in the foundations of a building that already has his name cut into the lintel	false	eventCatalogue.ts:2012 — No such building or unfinished project exists (only buildingsOver 4 is checked) and no pledge money was ever received; also shares a name with the top rival, Harrowgate University (rivalData.ts:153)
+the-harrowgate-pledge	finish	Finish the building from the endowment	false	eventCatalogue.ts:2015 — Nothing is finished or built: endowment -3,000,000 buys nothing on the map
+the-harrowgate-pledge	contest	Contest the administrators' claim	vague	eventCatalogue.ts:2016 — The claim never resolves; cash -500,000 once
+the-harrowgate-pledge	mothball	Mothball the unfinished wing	false	eventCatalogue.ts:2017 — There is no wing to mothball: backlog +600,000 lands across the estate (the default)
+the-prospectus-case	text	Thirty-one graduates of {program} have filed suit	true	eventCatalogue.ts:2029 — Color; see the "defend" row
+the-prospectus-case	defend	Defend the case	vague	eventCatalogue.ts:2033 — The suit never resolves ("would probably win, eventually"): no verdict or later cost follows (the default)
+the-kitchen-strike	text	The precedent it sets for every other line of the payroll is not	vague	eventCatalogue.ts:2047 — No precedent is tracked: meeting the claim changes no salary, and faculty pay is untouched (facultySystem.ts:44)
+the-records	text	how they are told will be remembered longer than the breach itself	true	eventCatalogue.ts:2064 — True in the game: warmth changes to alumni classes are permanent (ledger.ts:15, giving.ts:23-37), unlike satisfaction
+the-sinkhole	text	A hole thirty-six feet across opened overnight beside {building} ... kept empty	vague	eventCatalogue.ts:2081 — No hole, lost path or cordon appears (pathways are real tiles, reducer.ts:264-275), and {building} (any roofed building, catalogue.ts:210) is never emptied
+the-sinkhole	fill	Fill this one and watch the others	vague	eventCatalogue.ts:2085 — Nothing watches the others: no second sinkhole follows from this answer (the default)
+the-sinkhole	fence	Fence off the marked ground	vague	eventCatalogue.ts:2086 — No ground is fenced or made unbuildable; backlog +1,000,000 spreads over the estate
+the-name-on-the-prize	text	The most famous graduate of the {class}, and of the college's publicity for a generation	false	eventCatalogue.ts:2098 — {class} is the class that graduated last summer (catalogue.ts:207)
+the-merger-proposal	text	{rival} has written proposing a merger	true	eventCatalogue.ts:2115 — Color; see the choices
+the-merger-proposal	share	Open talks on shared services	vague	eventCatalogue.ts:2119 — Talks never conclude and nothing is shared; their notional savings arrive at once as cash +1,800,000
+the-merger-proposal	merge	Enter merger negotiations	vague	eventCatalogue.ts:2120 — Negotiations never resolve: {rival} stays a rival and nothing merges, yet the college receives cash +2,500,000 for entering them
+contract-visiting-chair	text	A visiting professor's one-year appointment has been renewed nine times	true	eventCatalogue.ts:2131 — Color (visiting status is not modeled)
+contract-summer-sections	text	The summer school has twice the enrollment it planned for	true	eventCatalogue.ts:2146 — Color (summer school is not modeled)
+word-of-mouth	text	a third of this year's applicants named a current student	true	eventCatalogue.ts:2162 — Effects as rendered
+counsellors-tour	text	Forty school counselors have asked to tour the campus	true	eventCatalogue.ts:2177 — Effects as rendered
+guide-feature	text	A national guide wants to feature the college	true	eventCatalogue.ts:2192 — Effects as rendered
+admissions-poached	text	A larger college has offered the Director of Admissions twice the salary	true	eventCatalogue.ts:2207 — Color (no admissions seat exists); effects as rendered
+prospectus-copied	text	A college three states away has copied the college's prospectus	true	eventCatalogue.ts:2222 — Color
+what-happened	text	under the headline 'What Happened?'	vague	eventCatalogue.ts:2237 — The gate is a low reputation (reputationUnder 40), not a decline: it can fire from year 3 at a college that was never higher
+schools-stop-sending	text	Three high schools that sent the college students every year	true	eventCatalogue.ts:2252 — Effects as rendered
+two-stars	text	A college review site gives the college two stars	true	eventCatalogue.ts:2268 — Effects as rendered
+talk-at-the-gate	text	a place that used to be something ... by the spring meeting	vague	eventCatalogue.ts:2284 — The gate is a low reputation (reputationUnder 30), not a decline, and nothing checks the plan at a spring meeting
+talk-at-the-gate	teaching	Spend on the teaching	vague	eventCatalogue.ts:2287 — Teaching is untouched: the lever is incoming quality +3 (catalogue.ts:327), which raises the academic standard (satisfactionSystem.ts:117-120) and is overwritten next summer (resolveAdmissions.ts:156)
+founding-faculty-last	text	The last of the founding faculty retires this year	false	eventCatalogue.ts:2300 — Nobody retires (no departs), and by year 38 every founder (f1-f5, actions.ts:370-398) is already gone: their careers, hashed from fixed ids, end in years 30-31 (facultySystem.ts:105-116), and in simulated runs some left earlier for administrative seats
+founding-faculty-last	chair	Endow a chair in their name	false	eventCatalogue.ts:2303 — No chair exists, and the money does not reach the endowment: cash -300,000 simply vanishes (compare the-last-lecture's prize, which moves cash to endowment)
+second-generation	text	This year's entering class includes forty children of alumni	true	eventCatalogue.ts:2315 — Color
+second-generation	legacy	Give alumni children a preference	vague	eventCatalogue.ts:2318 — No preference exists (no legacy cohort, cohorts.ts:17-26) and nothing records the policy; the event can recur in 10 years
+fifty-years	text	The board would like to begin planning the college's fiftieth anniversary	true	eventCatalogue.ts:2331 — Effects as rendered
+time-capsule	text	The time capsule the first class buried has been dug up	true	eventCatalogue.ts:2347 — Color
+heritage-listing	text	which would protect it from demolition and from the college	vague	eventCatalogue.ts:2362 — Founders Hall can never be demolished anyway (demolition.ts:79)
+heritage-listing	welcome	Welcome the listing	false	eventCatalogue.ts:2365 — Founders Hall is not declared historic (no ivy, prestige or quarter-higher upkeep, estate.ts:112-123); only warmth +3, confidence +1, backlog +200,000
+who-comes-next	text	whether the President has given any thought to who comes next	true	eventCatalogue.ts:2377 — Color
+who-comes-next	deputy	Appoint a deputy to groom	vague	eventCatalogue.ts:2380 — No deputy or successor appears (the President never changes), at no cost: confidence +3 only
+the-history	text	A historian commissioned to write the college's history	true	eventCatalogue.ts:2392 — Color
+the-history	archivist	Hire an archivist	false	eventCatalogue.ts:2395 — Free: warmth +2, confidence +1, no cost (compare the-address-list's records officer at 45,000)
+old-rival-proposal	text	has written to propose a joint degree, a shared bus	true	eventCatalogue.ts:2408 — Color
+old-rival-proposal	degree	Agree the joint degree	vague	eventCatalogue.ts:2411 — No joint degree or program appears and nothing is shared with {rival}; incoming quality +2 now
+fund-for-fifty	text	the endowment is now older than most of the committee	true	eventCatalogue.ts:2423 — Effects as rendered

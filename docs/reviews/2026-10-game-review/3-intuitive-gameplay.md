@@ -105,22 +105,20 @@ S.
 
 ![The NEXT line opening Elm Hall (left); an event at "0 weeks to answer" beside a milestone note (right)](img/a3-next-and-events.png)
 
-### A3-3. Events pass while the clock runs — major, M
+### A3-3. Events pass while the player reads — major, M
 
 **What.**
 - Inline events never stop the clock (`catalogueEngine.ts:12-16`). Each takes its default after 2 to 6 weeks: 92 of the 154 catalogue events after 3 weeks, 26 after 2.
-- In weeks of real time, 3 weeks is:
-  - 15 seconds at 1×;
-  - 7.5 seconds at 2×;
-  - under 2 seconds at 8×.
-- At 2× in the session, two of the four events in a year and a half were decided by default before I saw them: a tenure denial and a student's prize.
+- The game already eases the clock back to 1× when one arrives (`useGame.ts`, Plan 35). That leaves 10–15 seconds of real time for most events.
+- While any tab is open, the event panel steps aside. Only the ticker's NEXT line says "A matter waits" (`App.tsx:341-359`). The tabs are where a player reads longest: the Curriculum holds 2,244 words at year 8, History 1,227 (area 2's gallery).
+- In the session, two of the four events in a year and a half were decided by default before I saw them: a tenure denial and a student's prize. The drive tool ran the clock without watching the map, and a player reading a tab misses them the same way.
 - The panel says "0 weeks to answer" in the last week, because the countdown is `timeoutWeeks − elapsed` (`EventPanel.tsx:104`) and the default is taken when it reaches zero.
 
 **Why it matters.** A decision the player never saw arrives as a log line reading "Nobody answered in time". Some of these defaults cost the college a professor.
 
 **Fix.**
-- Give each event a minimum real-time window, such as 20 seconds, whatever the speed.
-- Or pause at 4× and above when one arrives. Players of fast-forward sims expect that.
+- Stop an inline event's countdown while a tab is open, or pause the clock while one waits and a tab is open.
+- Give each event a minimum real-time window, whatever the speed.
 - Say "last week to answer" for the final week.
 - The seats already answer by policy, which is the right answer for a player who doesn't want the decisions.
 

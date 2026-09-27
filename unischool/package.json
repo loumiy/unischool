@@ -29,7 +29,8 @@
     "review:arrangements": "rolldown tools/review/arrangements.ts -o node_modules/.tmp/arrangements.mjs -f esm -p node && node node_modules/.tmp/arrangements.mjs",
     "review:views": "node tools/review/shootViews.mjs",
     "review:doors": "rolldown tools/review/doorsAndDepth.ts -o node_modules/.tmp/doorsAndDepth.mjs -f esm -p node && node node_modules/.tmp/doorsAndDepth.mjs",
-    "review:probe": "rolldown tools/review/probes.ts -o node_modules/.tmp/probes.mjs -f esm -p node && node node_modules/.tmp/probes.mjs"
+    "review:probe": "rolldown tools/review/probes.ts -o node_modules/.tmp/probes.mjs -f esm -p node && node node_modules/.tmp/probes.mjs",
+    "review:gallery": "node tools/review/gallery.mjs"
   },
   "dependencies": {
     "@fontsource-variable/azeret-mono": "^5.3.0",

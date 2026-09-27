@@ -206,6 +206,31 @@ with nine images in `img/`.
 **Deliverable:** `2-ui-and-text.md`, with the screen gallery, the string
 table's findings and the description audit by school.
 
+**As implemented** (PR D): `docs/reviews/2026-10-game-review/2-ui-and-text.md`,
+with four appendices and the data they cite.
+- **The appendices:**
+  - `2a`: the course descriptions, by school;
+  - `2b`: flavor against the code, with 1,261 claims and row-by-row
+    verdicts in `data/`;
+  - `2c`: consistency against the register;
+  - `2d`: the voice.
+- **The screen gallery** is a new tool, `tools/review/gallery.mjs`
+  (`npm run review:gallery`). It made 284 captures over eleven scenario
+  saves at two sizes, then a second pass at the largest text size with
+  colour-safe signals and reduced motion. Its table is `data/gallery.md`.
+- **A year-30 summer** was needed for the load measure. `npm run scenario`
+  gained `--from-year`, since a `--modal summer` stop otherwise catches
+  the first summer.
+- **Three named scenarios fail to reach their stopping point:**
+  `research-report`, `championship` and `demand`. This is listed in
+  area 7.
+- **Eight findings, three major:**
+  - the Curriculum tab is the heaviest screen and the one a player must
+    use;
+  - 109 false claims in the flavor text;
+  - money and figures written several ways, with a low-satisfaction
+    figure that fades.
+
 ### Area 3 — Intuitive gameplay
 
 **Method.**
@@ -257,7 +282,7 @@ with four images.
 - Seven findings, four of them major:
   - the second hall can deadlock a new player;
   - the NEXT line points at the wrong panel;
-  - events pass while the clock runs;
+  - events pass while the player reads a tab;
   - year one is quiet while satisfaction falls unexplained.
 - The charter recommendation: keep the milestone, caption the founding
   form, and let the player choose at the charter whether to take

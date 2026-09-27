@@ -239,6 +239,7 @@ npm run review:views -- node_modules/.tmp/arrangements/*.json --zoom=3   # each 
 npm run review:doors                       # doors, props and overhangs over those saves
 npm run review:probe -- vernacular save.json   # how much of a campus the vernacular restyles; repeated looks
 npm run review:probe -- backlog            # the estate's backlog over 50 years at full maintenance
+npm run review:gallery -- node_modules/.tmp/sc/*.json   # every tab, menu and held modal, counted, at two sizes
 npm run sheet -- --every                   # every placeable, each school's hall, each venue expansion
 ```
 
@@ -252,6 +253,12 @@ npm run sheet -- --every                   # every placeable, each school's hall
   or comparisons), tags each with its screen, and flags British spelling and
   idiom, jargon and marks against the house style. `strings.md` is the
   summary.
+- **`gallery.mjs`** opens each save in a fresh browser at desktop and phone
+  size, steps through any modal it holds, opens every tab, the Build menu,
+  the main menu, Settings and Founders Hall's panel, and counts the words
+  and controls on each (`gallery.md`). `--settings '{"textScale":1.3}'`
+  plays with the player's settings set. For a modal that recurs, such as
+  a late summer, `npm run scenario` takes `--from-year N`.
 - **`arrangements.ts`** lays a finished save's buildings out in a set pattern
   round the middle of the canvas, so `shootViews.mjs` can photograph the same
   layout in every vernacular from every corner; **`doorsAndDepth.ts`** checks
