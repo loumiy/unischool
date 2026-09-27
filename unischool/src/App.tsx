@@ -11,7 +11,7 @@ import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
 import Toasts from './components/Toasts';
 import TitleScreen from './components/TitleScreen';
-import { applySettings } from './settings';
+import { applySettings, getSettings } from './settings';
 import HallOfFame from './components/HallOfFame';
 import SettingsPanel from './components/SettingsPanel';
 import Credits from './components/Credits';
@@ -27,6 +27,7 @@ import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import InboxTab from './components/InboxTab';
 import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
+import { unseenPause, type UnseenMemory } from './systems/inbox/unseen';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -118,6 +119,13 @@ export default function App() {
   // is read off the state (Plan 77).
   const [foundingRead, setFoundingRead] = useState<ReadonlySet<string>>(new Set());
   const inbox = inboxItems(s, { read: foundingRead });
+  // The matters the player has opened this session: shown in the inbox's
+  // reading pane, or reached by an arrival's Open (Plan 78E). Not saved: a
+  // reload forgets them, and at worst a matter's final week pauses once more.
+  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
+  const markOpened = (id: string) => setOpened((cur) => (cur.has(id) ? cur : new Set([...cur, id])));
+  // What the last snapshot held, for telling what arrived (see below).
+  const unseen = useRef<{ run: GameState; memory: UnseenMemory } | null>(null);
   // A stop (an interrupt) is answered in the inbox (Plan 77): while one is
   // up, the inbox is the only view, opened on it, with no way out but an
   // answer. The Final Report keeps its own page.
@@ -178,6 +186,8 @@ export default function App() {
     setLogOpen(false);
     setLadderOpen(false);
     setFoundingRead(new Set());
+    setOpened(new Set());
+    unseen.current = null;
     reportedGates.current = null;
     actedStage.current = null;
   }, [s.started]);
@@ -301,6 +311,29 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holdKey, shellLive]);
 
+  // No decision passes unseen (Plan 78E, systems/inbox/unseen.ts): a new
+  // matter pauses the clock while the setting is on, and a matter's final
+  // week, unopened, pauses it once whatever the setting. The same as the
+  // player pressing pause; a stop or the walkthrough already holds the
+  // clock, and neither rule acts under them. The memory starts over with a
+  // run (a load or a new game is not an arrival).
+  const openedRef = useRef(opened);
+  openedRef.current = opened;
+  useEffect(() => {
+    if (!s.started) return;
+    const last = unseen.current;
+    const sameRun = last !== null && last.run.self.name === s.self.name && last.run.clock.year <= s.clock.year;
+    const out = unseenPause(sameRun ? last.memory : null, {
+      items: inbox,
+      pauseOnArrival: getSettings().pauseOnArrival,
+      held: s.pendingInterrupt !== null || openingHoldsClock(s),
+      opened: openedRef.current,
+    });
+    unseen.current = { run: s, memory: out.memory };
+    if (out.pause) setSpeed('paused');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s]);
+
   // One Escape ladder, top down, for the whole shell: the milestones and log popups, the
   // build menu, an open tab. Below that is the map's own back-out, handled
   // in CampusMap, whose Escape is enabled exactly when this handler has
@@ -370,7 +403,7 @@ export default function App() {
         <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
         {/* The week's small news (Plan 70H), a school's banner, and what
             arrives in the inbox (Plan 77), each with a way to open it. */}
-        <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => openTab('inbox', id)} />
+        <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
         {!overlay && <Pennant s={s} act={act} />}
@@ -451,6 +484,7 @@ export default function App() {
                   onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
                   read={foundingRead}
                   onRead={(id) => setFoundingRead((cur) => new Set([...cur, id]))}
+                  onSeen={markOpened}
                   onOpenTab={(tab) => (tab === 'build' ? setBuildOpen(true) : openTab(tab))}
                   onShowOnMap={inspectHall}
                 />

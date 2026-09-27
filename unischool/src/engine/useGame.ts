@@ -10,6 +10,7 @@ import { startRunLog, type RunLog } from './actionLog';
 import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 import { openingHoldsClock } from '../state/opening';
 import { registerCrashSource } from './crashContext';
+import { getSettings } from '../settings';
 
 // Milliseconds per week-tick; 0 = paused. `real` makes a 50-year run take a
 // few hours of play so a development choice feels like a commitment;
@@ -99,10 +100,14 @@ export function useGame() {
   // An event waiting on the player eases the clock back to normal speed
   // (Plan 35: at four times an event's weeks ran out in seconds, unseen).
   // Only on a new arrival, so the player can speed up again with it open.
+  // With Settings' "Pause when a matter arrives" on, App.tsx pauses instead
+  // (Plan 78E, systems/inbox/unseen.ts), except under a hold, where the ease
+  // still acts for the clock that resumes after it.
   const waiting = state.catalogue?.pending.length ?? 0;
   const lastWaiting = useRef(waiting);
   useEffect(() => {
-    if (waiting > lastWaiting.current && speed !== 'paused' && speed !== 'real') setSpeed('real');
+    const pausing = getSettings().pauseOnArrival && !held;
+    if (waiting > lastWaiting.current && !pausing && speed !== 'paused' && speed !== 'real') setSpeed('real');
     lastWaiting.current = waiting;
   }, [waiting]);
 

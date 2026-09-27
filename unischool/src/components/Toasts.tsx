@@ -8,6 +8,7 @@ import { schoolMark } from '../data/schoolPalette';
 import { inboxItems } from '../systems/inbox/inbox';
 import { weeksProse } from '../format';
 import { CloseIcon } from './icons';
+import { getSettings } from '../settings';
 
 // ---------------------------------------------------------------------
 // Toasts (Plan 70H): short, stacked, one line each, dismissable, gone on
@@ -20,7 +21,10 @@ import { CloseIcon } from './icons';
 // And what arrives in the inbox (Plan 77): a matter to decide or a letter,
 // as a slip with an Open button that takes the player to it, held a little
 // longer than the news. Not while the inbox is open, where it arrives in
-// the list itself.
+// the list itself. With Settings' "Pause when a matter arrives" on (Plan
+// 78E), a matter's slip stays until it is opened or dismissed, as the clock
+// waits with it; it goes by itself once the matter is opened in the inbox
+// or leaves it.
 // ---------------------------------------------------------------------
 
 const SHOW_MS = 6_000;
@@ -38,6 +42,8 @@ export interface Toast {
   tone: 'good' | 'bad' | 'info' | 'matter' | 'letter';
   // An inbox item to open (Plan 77).
   open?: string;
+  // Stays until opened or dismissed (Plan 78E).
+  held?: boolean;
 }
 
 type Said = Omit<Toast, 'id'>;
@@ -73,16 +79,28 @@ export function arrivalsIn(before: GameState, after: GameState): Said[] {
   return out;
 }
 
+// Keeps the newest few, dropping a held slip only when nothing else can go.
+export function trimToasts<T extends { held?: boolean }>(list: readonly T[], most = MOST): T[] {
+  const out = [...list];
+  while (out.length > most) {
+    const i = out.findIndex((t) => !t.held);
+    out.splice(i < 0 ? 0 : i, 1);
+  }
+  return out;
+}
+
 // The school a week's news distinguished, if any (its banner).
 export function distinguishedIn(fresh: readonly LogEntry[]): string | null {
   const line = fresh.find((l) => l.topic === 'milestone' && l.subject?.startsWith(DISTINGUISHED));
   return line ? line.subject!.slice(DISTINGUISHED.length) : null;
 }
 
-export default function Toasts({ s, inboxOpen = false, onOpenInbox }: {
+export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
   s: GameState | null;
   inboxOpen?: boolean;
   onOpenInbox?: (id: string) => void;
+  // The matters the player has opened (App.tsx), whose slips can go.
+  opened?: ReadonlySet<string>;
 }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [banner, setBanner] = useState<string | null>(null);
@@ -97,6 +115,13 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox }: {
     const before = last.current;
     last.current = s;
     if (!s) return;
+    // A held slip goes once its matter is answered or lapses.
+    setToasts((cur) => {
+      if (!cur.some((t) => t.held)) return cur;
+      const waiting = new Set(inboxItems(s).map((i) => i.id));
+      const kept = cur.filter((t) => !t.held || waiting.has(t.open!));
+      return kept.length === cur.length ? cur : kept;
+    });
     const fresh = linesSince(s.log, heard.current);
     heard.current = s.log[0];
     const sameRun = before !== null && before.self.name === s.self.name && before.clock.year <= s.clock.year;
@@ -108,10 +133,19 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox }: {
     }
     const said = [...toastsFor(before, s, fresh, onMapScreen), ...(inboxOpenRef.current ? [] : arrivalsIn(before, s))];
     if (said.length === 0) return;
-    const made = said.map((t) => ({ ...t, id: next.current++ }));
-    setToasts((cur) => [...cur, ...made].slice(-MOST));
-    for (const t of made) window.setTimeout(() => setToasts((cur) => cur.filter((x) => x.id !== t.id)), t.open ? ARRIVAL_MS : SHOW_MS);
+    const hold = getSettings().pauseOnArrival;
+    const made = said.map((t) => ({ ...t, id: next.current++, held: hold && t.tone === 'matter' }));
+    setToasts((cur) => trimToasts([...cur, ...made]));
+    for (const t of made) {
+      if (!t.held) window.setTimeout(() => setToasts((cur) => cur.filter((x) => x.id !== t.id)), t.open ? ARRIVAL_MS : SHOW_MS);
+    }
   }, [s]);
+
+  // Opening a matter in the inbox is what its held slip waited for.
+  useEffect(() => {
+    if (!opened) return;
+    setToasts((cur) => (cur.some((t) => t.held && opened.has(t.open!)) ? cur.filter((t) => !(t.held && opened.has(t.open!))) : cur));
+  }, [opened]);
 
   return (
     <>
