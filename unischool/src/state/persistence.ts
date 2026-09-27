@@ -13,7 +13,7 @@ import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
-import { CAMPUS_GRID_WIDTH, standsOnCampus } from './types';
+import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
 import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
@@ -52,7 +52,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 78; // Plan 59: six purchased halls, no Second Quad
+export const SAVE_VERSION = 79; // Plan 72E: the charter is granted, not asked
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -70,10 +70,30 @@ function carryRetired(state: GameState): void {
   for (const t of placed.tech) if (Array.isArray(t.prereqs)) t.prereqs = t.prereqs.filter((id) => !retired.has(id));
 }
 
+// 78 -> 79, Plan 72E: the charter is a log line, not a modal. A save held
+// at the old question takes it as the question's default did (accepted)
+// and moves on a week, as answering it did.
+function grantHeldCharter(state: GameState): void {
+  if (state.pendingInterrupt?.type !== 'charter') return;
+  const was = institutionName(state.self);
+  state.self.universityCharterOffered = true;
+  state.self.suffix = 'University';
+  state.log.unshift({
+    year: state.clock.year, week: state.clock.week, kind: 'good', topic: 'milestone',
+    message: `The trustees have granted a university charter: ${was} is now ${institutionName(state.self)}. The name can be changed from its pennant.`,
+  });
+  state.pendingInterrupt = null;
+  // As clock.ts's advanceClock, written out: persistence is imported early,
+  // and the clock's module would join an import cycle in the tests' bundle.
+  state.clock.week += 1;
+  if (state.clock.week > WEEKS_PER_YEAR) { state.clock.week = 1; state.clock.year += 1; }
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
   77: carryRetired,
+  78: grantHeldCharter,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
