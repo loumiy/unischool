@@ -92,6 +92,48 @@ export function labFeatureOf(t: Buildable): LabFeature | undefined {
   return LAB_FEATURES[t.id];
 }
 
+// One mark per building that would otherwise share its drawing with a
+// building that does something else (Plan 74F, review A1-2), in the way
+// LAB_FEATURES marks the sciences: the map should say where the dining hall
+// is without a click.
+export type Signifier =
+  | 'kitchen'     // dining halls: kitchen stacks and a terrace awning
+  | 'clock'       // the student center: a clock on its front
+  | 'shopfront'   // the grocery: a painted signboard over its glazing
+  | 'gantry'      // Mechanical Engineering: a gantry crane over the shed
+  | 'windTunnel'  // Aerospace: a wind-tunnel duct along the roof
+  | 'testTower'   // Civil Engineering: a test tower at the corner
+  | 'column'      // Chemical Engineering: a distillation column by the flues
+  | 'soundstage'  // Film: a taller stage door and its red lamp
+  | 'banners'     // the Museum: banners between its columns
+  | 'scales'      // the Law School: a pediment with the scales
+  | 'lantern'     // the Humanities Research Institute: a reading-room lantern
+  | 'exhibition'  // the Art Gallery: one tall exhibition banner a front
+  | 'mast'        // Computing: a mast and a dish
+  | 'tanks';      // Neuroscience: the scanners' cryogen tanks
+const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
+  'LAB-MECH': 'gantry',
+  'LAB-AERO': 'windTunnel',
+  'LAB-CIVE': 'testTower',
+  'LAB-CHEN': 'column',
+  'LAB-FILM': 'soundstage',
+  'PROJ-MUSEUM': 'banners',
+  'PROJ-LAW': 'scales',
+  'LAB-HIST': 'lantern',
+  'LAB-COMP': 'mast',
+  'LAB-NEUR': 'tanks',
+};
+const SIGNIFIERS_BY_TYPE: Partial<Record<FacilityType, Signifier>> = {
+  diningHall: 'kitchen',
+  studentCenter: 'clock',
+  grocery: 'shopfront',
+  artGallery: 'exhibition',
+};
+export function signifierOf(t: Buildable): Signifier | undefined {
+  if (t.chapterHouse) return undefined;
+  return SIGNIFIERS_BY_ID[t.id] ?? (t.facilityType ? SIGNIFIERS_BY_TYPE[t.facilityType] : undefined);
+}
+
 // Bed and serve thresholds at which a chain changes kind. Same numbers as
 // campusMap.ts's DORM_FOOTPRINTS and FACILITY_SIZE_LADDERS, kept as literals so
 // neither module imports the other; keep them in step.

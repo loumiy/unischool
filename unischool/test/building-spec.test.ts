@@ -28,7 +28,7 @@ import {
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
   VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS, IMPLEMENTED_CREST_PARTS,
-  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf,
+  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf, signifierOf, labFeatureOf, signatureOf,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf,
   storeysOf, wallHeightOf, wallShadeOf,
@@ -993,6 +993,33 @@ console.log('campus scale and building spec');
   assert(new Set(drawn.values()).size === drawn.size, `every form draws differently (${[...drawn.entries()].map(([f, l]) => `${f}: ${l}`).join('; ')})`);
   const blurbs = halls.map((t) => t.description);
   assert(new Set(blurbs).size === blurbs.length, 'every hall rung has its own blurb');
+}
+
+// --- One signifier per building (Plan 74F, review A1-2) -------------------
+// Two placeables may share a drawing (motif, wall, footprint, lab feature,
+// signature, signifier) only when they do the same thing: the tiers of one
+// chain, the generic halls, the residence towers. A dining hall drawn as the
+// student center, or the Law School as the Museum, fails here.
+{
+  const job = (t: Buildable): string => {
+    if (t.kind !== 'facility') return t.kind;
+    const oneOff = t.facilityType === 'lab' || t.facilityType === 'project' || t.facilityType === 'amenity' || t.facilityType === 'landmark';
+    return oneOff ? t.id : String(t.facilityType);
+  };
+  for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+    const looks = new Map<string, Set<string>>();
+    for (const t of CATALOGUE) {
+      if (motifOf(t) === 'grounds') continue;
+      const fp = footprintOf(t);
+      const sig = signatureOf(t);
+      const look = [motifOf(t), materialOf(t, vname).wall, `${fp.w}x${fp.h}`, labFeatureOf(t) ?? '',
+        sig ? `${sig.material}${sig.feature ?? ''}` : '', RESIDENCE_FORMS[t.id] ?? '', signifierOf(t) ?? ''].join('|');
+      looks.set(look, (looks.get(look) ?? new Set()).add(job(t)));
+    }
+    const shared = [...looks].filter(([, jobs]) => jobs.size > 1);
+    assert(shared.length === 0,
+      `'${vname}': no two buildings that do different things share a drawing (${shared.map(([l, j]) => `${l}: ${[...j].join(', ')}`).join('; ')})`);
+  }
 }
 
 if (failures === 0) {
