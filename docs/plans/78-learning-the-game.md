@@ -308,7 +308,7 @@ is this plan.
   - the harness is untouched: the pause is a UI action and the simulation
     does not change.
 
-**As implemented (#TBD):**
+**As implemented (#235):**
 - **The rule** is one pure function, `systems/inbox/unseen.ts`'s
   `unseenPause`. App.tsx runs it on every snapshot and pauses the clock
   with `setSpeed('paused')`, as the pause button does. Space resumes at the
