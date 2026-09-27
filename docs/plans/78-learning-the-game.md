@@ -324,7 +324,7 @@ is this plan.
   - a test that every Review term has a detail line;
   - `npm run phone`.
 
-**As implemented (#TBD):**
+**As implemented (#237):**
 
 - **Clickable chips.**
   - Rank and prestige open History › Standing. Satisfaction opens Students ›
