@@ -439,6 +439,19 @@ function wallHeightOfAttic(f: BoxFaces): number {
 
 interface Plot { col: number; row: number; w: number; h: number }
 
+// The boxes a finished landmark stands in, for its weathering (ageMarks.tsx,
+// Plan 75A): the campanile's shaft and belfry, the dome's podium (its drum
+// and dome are round, and weather as stone does not show), the gate's body.
+export function landmarkVolumes(t: Buildable, p: Plot): { col: number; row: number; w: number; h: number; base: number; height: number }[] {
+  const H = wallHeightOf(t);
+  if (t.id === 'LANDMARK-CAMPANILE' || t.id === 'AMENITY-BELLTOWER') {
+    const plan = Math.min(p.w, p.h) * 0.44;
+    return [{ col: p.col + (p.w - plan) / 2, row: p.row + (p.h - plan) / 2, w: plan, h: plan, base: 0, height: H * 0.74 }];
+  }
+  if (t.id === 'LANDMARK-DOME') return [{ col: p.col + 0.3, row: p.row + 0.3, w: p.w - 0.6, h: p.h - 0.6, base: 0, height: H * 0.1 }];
+  return [{ col: p.col + 0.2, row: p.row + 0.2, w: p.w - 0.4, h: p.h - 0.4, base: 0, height: H * 0.8 }];
+}
+
 export default function Landmark({ t, p, developing }: { t: Buildable; p: Plot; developing: boolean }) {
   const weeksLeft = useContext(DevelopingContext)[t.id];
   const name = useContext(CollegeNameContext);

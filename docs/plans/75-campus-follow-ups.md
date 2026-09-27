@@ -1,0 +1,116 @@
+# Plan 75 — Campus follow-ups
+
+*Planning document. Its job is to turn the owner's notes on Plan 74 into
+PRs.*
+
+**Status: In progress.**
+
+---
+
+## 0. The owner's notes
+
+After Plan 74 landed, the owner asked for three things. These changes are
+drawing only and need no playtest.
+
+1. **The arch's openings.** The Triumphal Gate's arches should be real
+   openings: transparent, with walkers passing through them.
+2. **Derelict marks on open-air buildings.** The derelict look did not work
+   on buildings whose plots are partly open air: the hospital, the village
+   and the stadium.
+3. **A gallery of every asset.** The grids of buildings by vernacular
+   used in Plan 74's screenshots are useful. Every buildable asset should
+   have pages or images saved to the repository.
+
+| PR | Subject | Note |
+|---|---|---|
+| A | Weathering on the walls a building has | 2 |
+| B | The gate's passages | 1 |
+| C | The asset gallery | 3 |
+
+C lands last, so the gallery shows A's and B's drawings.
+
+## Rules for every PR in this plan
+
+- One branch per PR (`plan-75x-subject`), merged once `check` and `slow`
+  pass.
+- Drawing only: `npm run sim` reads the same as `sim/baseline.json`.
+- Each visual PR carries screenshots in
+  `docs/reviews/2026-10-campus-fixes/` and runs `npm run review:doors`.
+- Each PR writes an **As implemented** note here.
+
+## PR 75A — Weathering on the walls a building has
+
+- Every age mark goes on the boxes a building actually stands in, not one
+  box of its whole footprint to its wall height:
+  - the streaks;
+  - the lost slates;
+  - the boarded windows;
+  - the derelict's grime and tarpaulin;
+  - a historic building's ivy.
+- Each form's boxes:
+  - **Hospital:** the ward slab and the lower wing.
+  - **Village:** each house.
+  - **Stadium:** nothing while its stands are open; its outer wall once
+    the bowl closes.
+  - **Tower:** the podium and the shaft.
+  - **Landmarks:** the campanile's shaft, the dome's podium, the gate's
+    body.
+- A farther box's marks are masked by the nearer boxes.
+- The hoarding and weeds stay round the whole plot.
+
+**As implemented (#TBD).**
+
+- `src/components/weatherVolumes.ts` says which boxes each form stands in:
+  - most forms: one box of the footprint, as before;
+  - the Medical Center: its ward slab and lower public wing;
+  - a village: each of its twelve houses, with the tarpaulin on two;
+  - the stadium: no box while its stands are open (as built and after
+    one expansion); its outer wall once the bowl closes, to the
+    second-deck height after the third expansion, with no windows to
+    board;
+  - a tower: its podium and its shaft;
+  - the landmarks: the campanile's shaft and belfry, the dome's podium
+    and the gate's body (from `landmarks.tsx`'s own `landmarkVolumes`);
+  - open ground: none.
+- `ageMarks.tsx` draws every mark per box, in depth order: streaks, lost
+  slates, boarded windows, grime, tarpaulin and ivy. Each farther box's
+  marks are masked by the nearer boxes, since all of them paint over the
+  finished building. A small wall, such as a village house's, gets fewer
+  marks than a hall's. The tarpaulin goes on the largest box that takes
+  one.
+- The derelict's hoarding and weeds still run round the whole plot.
+- **Checks:** `test/weather-volumes.test.ts` checks that:
+  - every weathered box lies inside its footprint;
+  - a village weathers house by house;
+  - a stadium weathers only once its bowl closes, with nothing to board;
+  - the hospital weathers as its slab and a lower wing;
+  - a tower weathers as its podium and a slimmer shaft;
+  - each landmark weathers on its own masonry;
+  - open ground weathers nowhere, and a hall is still one box.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshot: `docs/reviews/2026-10-campus-fixes/derelict-open-air.png`
+  shows the three landmarks, the Medical Center, a tower and a village,
+  all derelict.
+
+## PR 75B — The gate's passages
+
+- The Triumphal Gate's great arch, and the lesser arch through its end, are
+  cut through the masonry. The passage's walls and vault show inside, and
+  the ground and anything beyond show through.
+- The passage tiles are walkable. A walker in the main passage is hidden
+  only by the pier nearer the camera, so it is seen walking through the
+  arch.
+
+## PR 75C — The asset gallery
+
+- One tool, `npm run gallery:assets`, renders every buildable asset in all
+  five vernaculars. It covers:
+  - every placeable;
+  - each school's signature hall;
+  - a chapter house;
+  - each venue at each expansion;
+  - one of each form under construction.
+- It writes one image per group of forms to `docs/assets/`, vernaculars in
+  rows and assets in columns, and an index page that lists each image and
+  what it shows.

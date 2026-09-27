@@ -2372,8 +2372,8 @@ function VillageHouse({ col, row, w, h, height, ridge, pal, stone, glass, paneSh
 // plus a long block, varied in size, ridge direction and stories (two are
 // L-shaped) so it does not read as a storage-unit lot. `s` is stories, `d`
 // the door's face.
-interface VillageLot { u: number; v: number; uw: number; vh: number; s: number; d: 'row' | 'col' | 'none' }
-const VILLAGE_HOUSES: VillageLot[] = [
+export interface VillageLot { u: number; v: number; uw: number; vh: number; s: number; d: 'row' | 'col' | 'none' }
+export const VILLAGE_HOUSES: VillageLot[] = [
   // The far rank, facing the green: three houses, one of them an L.
   { u: 0.05, v: 0.05, uw: 0.20, vh: 0.16, s: 2, d: 'row' },
   { u: 0.31, v: 0.06, uw: 0.13, vh: 0.20, s: 3, d: 'col' },
