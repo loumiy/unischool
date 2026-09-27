@@ -362,7 +362,7 @@ function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
   const title = [
     `${c.field}: ${c.supply} course ${c.supply === 1 ? 'slot' : 'slots'} supplied by ${c.hired} ${c.hired === 1 ? 'professor' : 'professors'}.`,
     `${c.offered} taken by courses on offer now, ${c.available} more open and not yet developed, ${c.catalogue} in the catalog all told.`,
-    taken > 0 ? `${taken} ${taken === 1 ? 'slot is' : 'slots are'} with a research project.` : '',
+    taken > 0 ? `${taken} ${taken === 1 ? 'course slot is' : 'course slots are'} with a research project.` : '',
     beyond ? 'The department can already teach its whole catalog.' : '',
   ].filter(Boolean).join(' ');
 
@@ -445,7 +445,7 @@ function DepartmentRow(
                   {waiting.length === 0
                     ? 'Open in Curriculum →'
                     : c.state === 'short' || c.state === 'over'
-                      ? `${waiting.length} waiting on a slot →`
+                      ? `${waiting.length} waiting on faculty →`
                       : `${waiting.length} still ahead →`}
                 </button>
               </>
@@ -685,7 +685,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
           {' '}<strong>{cap.total.available}</strong> more open and waiting.
           {toFinish > 0
-            ? ` Teaching the whole catalog takes ${cap.total.catalogue} slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the slots a new hire brings, fewer if you keep them long enough to grow.`
+            ? ` Teaching the whole catalog takes ${cap.total.catalogue} course slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the course slots a new hire brings, fewer if you keep them long enough to grow.`
             : ' Every department can already teach its whole catalog.'}
         </p>
       </section>
@@ -753,7 +753,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
             <span className="capacity-key-pair"><span className="capacity-key offered" />offered</span>
             <span className="capacity-key-pair"><span className="capacity-key available" />open</span>
             <span className="capacity-key-pair"><span className="capacity-key locked" />catalog</span>
-            <span className="capacity-key-pair"><span className="capacity-key rule" />slots supplied</span>
+            <span className="capacity-key-pair"><span className="capacity-key rule" />course slots supplied</span>
           </span>
           <span className="dept-slots">used/have</span>
           <span className="dept-catalogue">all</span>

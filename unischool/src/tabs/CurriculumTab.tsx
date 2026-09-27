@@ -359,7 +359,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
           {moneyShort(t.cost)}
           {best
             ? <> · {surnameOf(best.name)} <span className={`instructor-chip-grade grade-${bestGrade!.toLowerCase()}`}>{bestGrade}</span></>
-            : t.requiresFaculty ? ' · no free slot' : ''}
+            : t.requiresFaculty ? ' · needs faculty' : ''}
         </span>
       )}
       {/* The chip replaces the done-tick on a staffed course. */}
@@ -386,8 +386,8 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
           className={`cell-gate-dot ${gate}`}
           aria-hidden="true"
           title={gate === 'hireable'
-            ? `No free ${t.requiresFaculty} course slot — a candidate is on the market`
-            : `No free ${t.requiresFaculty} course slot, and nobody on the market`}
+            ? `Needs ${t.requiresFaculty} faculty: every professor in the field is teaching a full load, and a candidate is on the market`
+            : `Needs ${t.requiresFaculty} faculty: every professor in the field is teaching a full load, and nobody is on the market`}
         />
       )}
       {state === 'developing' && (
@@ -690,7 +690,7 @@ function CourseDrawer(
             {eligible.length === 0 && inField.length > 0 && (
               <>
                 <p className="course-drawer-note">
-                  Every {t.requiresFaculty} professor is at capacity. Free a course slot by moving one of their
+                  Every {t.requiresFaculty} professor is teaching a full load. Make room by moving one of their
                   courses, or appoint someone new.
                 </p>
                 <div className="instructor-options">
@@ -1118,7 +1118,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
           </span>
           <span className="next-up-doors">
             {hallsWithRoom.length === 0
-              ? <span className="next-up-note">no free slot — site an academic hall</span>
+              ? <span className="next-up-note">no free program slot — site an academic hall</span>
               : hallsWithRoom.map(({ hall, free }) => (
                 <button
                   key={hall.id}
@@ -1126,7 +1126,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
                   className="next-up-door"
                   disabled={!onInspectHall}
                   onClick={() => onInspectHall?.(hall.id)}
-                  title={`Open ${hallDisplayName(s, hall)} on the map and found a program in one of its ${free} free slot${free === 1 ? '' : 's'}`}
+                  title={`Open ${hallDisplayName(s, hall)} on the map and found a program in one of its ${free} free program slot${free === 1 ? '' : 's'}`}
                 >
                   Found in {hallDisplayName(s, hall)} · {free} free
                 </button>
@@ -1151,11 +1151,11 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
         <div className="next-up-item">
           <span className="next-up-label">Ready now</span>
           <span className="next-up-doors">
-            <button type="button" className="next-up-door" onClick={() => onFilter({ status: 'available', field: null })} title="Every course that could start this week: a free course slot, room on the committee and the cash for it">
+            <button type="button" className="next-up-door" onClick={() => onFilter({ status: 'available', field: null })} title="Every course that could start this week: a professor free to teach it, room on the committee and the cash for it">
               {ready.length} {ready.length === 1 ? 'course' : 'courses'} · {moneyShort(readyCost)} to start them all
             </button>
             {revealed.length > ready.length && (
-              <span className="next-up-note">{revealed.length - ready.length} more waiting, short of cash, a course slot or room on the committee</span>
+              <span className="next-up-note">{revealed.length - ready.length} more waiting, short of cash, faculty or room on the committee</span>
             )}
           </span>
         </div>
@@ -1168,7 +1168,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
               const gate = facultyGate(s, field);
               return (
                 <span key={field} className="next-up-pair">
-                  <button type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} ${n === 1 ? 'course is' : 'courses are'} waiting on a free ${field} course slot${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
+                  <button type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} ${n === 1 ? 'course is' : 'courses are'} waiting on ${field} faculty${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
                     {field} short · {n} waiting{gate === 'hireable' ? ' · candidate listed' : ''}
                   </button>
                   {onOpenFaculty && (

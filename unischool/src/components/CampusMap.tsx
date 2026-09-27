@@ -478,8 +478,8 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
     return program ? schoolMark(program.school).hue : null;
   });
   return (
-    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} slots filled${flag ? ', a program on offer' : ''}`}>
-      <title>{`${slots.length - free} of ${slots.length} slots filled${flag ? ' · room for a program on offer' : ''}${blocked.some(Boolean) ? ' · a program is waiting on a department' : ''}`}</title>
+    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${flag ? ', a program on offer' : ''}`}>
+      <title>{`${slots.length - free} of ${slots.length} program slots filled${flag ? ' · room for a program on offer' : ''}${blocked.some(Boolean) ? ' · a program is waiting on a department' : ''}`}</title>
       <rect
         className="campus-hall-marks-plate"
         x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}

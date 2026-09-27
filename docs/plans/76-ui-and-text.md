@@ -915,6 +915,26 @@ claims and 107 vague ones.*
   changed, so `review:strings` was not rerun. Screenshots are in
   `docs/reviews/2026-10-ui-fixes/phone-*.jpg`.
 
+## PR 76J — Needs faculty (a follow-up)
+
+*The owner's note after Plan 76 landed: a course blocked on teaching
+capacity said "no open slot", and "slot" meant three things (a hall's
+program slots, the committee's places, a professor's course slots).*
+
+**As implemented (#231):**
+- A course waiting on a professor says **"needs faculty"**: the compact
+  tag on its Curriculum row ("· needs faculty"), its gate dot's tooltip,
+  the Build menu's reason, the hall panel's next-course line and
+  founding note, the "Waiting on faculty" door, the Faculty tab's
+  "N waiting on faculty", and the drawer's "Every … professor is teaching
+  a full load".
+- Every bare "slot" meaning a hall's place now reads "program slot": the
+  map's hall tooltip, the hall panel's count, the move buttons, the
+  Curriculum's "Found in…" door and the next-step line.
+- The Faculty tab's remaining bare "slots" read "course slots".
+- The committee already had neither (Plan 76F).
+- Plan 47's glossary says so.
+
 ## What this plan does not do
 
 - The mechanics that would make a false claim true, where this plan

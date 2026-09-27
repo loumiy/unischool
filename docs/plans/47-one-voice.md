@@ -107,7 +107,8 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
 
 **Things with one name:**
 - **Program slot.** A hall's place for a program: "six program slots", "a
-  free slot", "Move to slot 2". *Plan 76 proposed "rooms"; the game already
+  free program slot", "Move to … program slot 2". Always written in full,
+  since a bare "slot" could be any of three things (Plan 76J). *Plan 76 proposed "rooms"; the game already
   said "slot" in about twenty strings (the Build menu, the hall panel, the
   map, the Curriculum, the next-step line), and "room" already meant the
   places left for a new class. The walkthrough's and the first-hall
@@ -115,11 +116,14 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
 - **Course slot.** A professor's teaching capacity, and a department's:
   always "course slot", never a bare "slot" or a "seat". A professor's
   *teaching load* is the courses they teach against their course slots.
+  A course that waits on one says **"needs faculty"** ("needs Economics
+  faculty"), not "no free slot": the player's move is a professor, and the
+  words name it (Plan 76J).
 - **Seat.** An administration post: the Provost, the Deans, the Facilities
   Director, the Dean of Students, the VP of Advancement. Physical seats
   (study seats, dining seats, seats in the stands) are furniture and keep
-  the word. The curriculum committee has no seats: it "writes up to four
-  courses at once".
+  the word. The curriculum committee has no seats or slots: it "writes up to
+  four courses at once", and a course waits for "room on the committee".
 - **Places.** Teaching capacity: each course taught gives the catalog
   eighty places ("the catalog's places", "+80 places").
 - **Room.** The places left for the incoming class once the three classes

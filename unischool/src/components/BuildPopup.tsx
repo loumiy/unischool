@@ -425,7 +425,7 @@ function BuildTile({
       : shortfall > 0
         ? `${money(Math.ceil(shortfall))} short.`
         : missingFaculty
-          ? `No free ${t.requiresFaculty} course slot.`
+          ? `Needs ${t.requiresFaculty} faculty.`
           : undefined;
   const startable = financing !== null;
   const armed = placingId === t.id;
