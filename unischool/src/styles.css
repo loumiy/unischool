@@ -881,7 +881,7 @@ button.build-tile { font-family: inherit; }
 
 /* ---------- Open ground ---------- */
 /* Markings (groundMarkings.tsx) are strokes over a fill, scaling with the world. */
-.ground-lawn { fill: #8fae6b; }
+.ground-lawn { fill: var(--lawn, #8fae6b); }
 /* A plate under construction (GroundSite): scraped earth, greyer than .ground-dirt. */
 .ground-graded { fill: #a08965; }
 .ground-graded-scrape { stroke: rgba(74, 58, 38, 0.13); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
@@ -938,12 +938,12 @@ button.build-tile { font-family: inherit; }
 .campus-tree-trunk { fill: #6b5236; }
 /* Base tones are unscoped so a crown never falls back to SVG's default
    black; species rules override. */
-.campus-tree-crown { fill: #4f7a3c; }
-.campus-tree-crown-top { fill: #679a4c; }
-.campus-tree.conifer .campus-tree-crown { fill: #37623f; }
-.campus-tree.conifer .campus-tree-crown-top { fill: #467c4f; }
-.campus-tree.ornamental .campus-tree-crown { fill: #7d9e4a; }
-.campus-tree.ornamental .campus-tree-crown-top { fill: #9ab85f; }
+.campus-tree-crown { fill: var(--leaf-canopy, #4f7a3c); opacity: var(--leaf-opacity, 1); }
+.campus-tree-crown-top { fill: var(--leaf-canopy-top, #679a4c); opacity: var(--leaf-opacity, 1); }
+.campus-tree.conifer .campus-tree-crown { fill: #37623f; opacity: 1; }
+.campus-tree.conifer .campus-tree-crown-top { fill: var(--conifer-top, #467c4f); opacity: 1; }
+.campus-tree.ornamental .campus-tree-crown { fill: var(--leaf-ornamental, #7d9e4a); }
+.campus-tree.ornamental .campus-tree-crown-top { fill: var(--leaf-ornamental-top, #9ab85f); }
 
 /* The fountain jet is deliberately the only near-white on the map. */
 .ground-fountain-kerb { fill: #d8cfb4; }

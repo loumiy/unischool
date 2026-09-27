@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's answer on area 1
 of the October review into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** A to I merged; A1-7, A1-8 and the other decorative assets are in `BACKLOG.md`.
 
 ---
 
@@ -439,6 +439,47 @@ so it can be dropped without touching the rest.
 - Reduced motion is respected; a tint changes by the week, never animates.
 - **Checks:** the season at each week is tested; screenshots of one campus
   through a year.
+
+**As implemented (#TBD).**
+
+- `src/components/seasons.ts` holds the year on the map. It is written
+  apart from the events' winter model, so G7-3's fix can read the same
+  calendar. `seasonOf(week)` reads the game's own calendar and gives
+  four amounts:
+  - `turn`: the leaves turn from week 6 to week 16.
+  - `bare`: the leaves are down by week 21, and the trees are bare until
+    week 34.
+  - `snow`: snow lies from week 21 to week 32, deepest at weeks 24–29,
+    around the turn of the terms.
+  - `bud`: the trees bud from week 34 and are green again by week 44.
+- `seasonStyle` turns those amounts into CSS variables on the map:
+  - the grass and lawns dry toward straw, then whiten under snow;
+  - the canopy trees turn gold and the ornamentals rust, fade to a haze
+    of twigs, then bud a fresh green;
+  - the conifers stay green and take a dusting of snow.
+- `SnowContext` carries the snow to `buildingMotifs.tsx`, where
+  `snowOnRoofs` whitens every pitched slope and flat deck. The lit
+  slopes whiten most; the walls are untouched.
+- The tint changes by the week and nothing animates, so reduced motion has
+  nothing to stop. The defaults are the stylesheet's own summer colors, so
+  anything outside the map (the contact sheets, the gallery) draws as
+  before.
+- **Checks:** `test/seasons.test.ts` checks the season at every week:
+  - summer is the plain map, in the stylesheet's colors;
+  - the leaves only turn further through the Fall Term;
+  - snow lies only at the turn of the terms;
+  - the trees are bare into the Spring Term, bud, and are green by
+    week 44;
+  - the calendar wraps.
+- Drawing only. `npm run sim` reads the same as the baseline, and
+  `npm run review:doors` reports the same 1,842 hits as `main`.
+- Screenshots in `docs/reviews/2026-10-campus-fixes/`:
+  - `seasons.png`: one campus at weeks 2, 12, 18, 26, 38 and 48.
+  - `winter-close.png`: week 26 at zoom 2.
+- **The owner's earlier answer:** Plan 72 (answer 16) declined night and
+  seasons on the map. This PR follows the later instruction to do every
+  area-1 fix but A1-7 and A1-8, and it lands last, so it can be reverted
+  on its own.
 
 ## What this plan does not do
 
