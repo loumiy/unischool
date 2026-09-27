@@ -2,7 +2,7 @@ import type { Buildable, GameState } from '../state/types';
 import { standsOnCampus } from '../state/types';
 import { ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID } from './facilitiesData';
 import { ANY_SCHOOL, GRADUATE_HOSTS, hostName } from './projectData';
-import { COURSE_DESCRIPTIONS } from './courseDescriptions';
+import { COURSE_DESCRIPTIONS, GRADUATE_COURSE_DESCRIPTIONS } from './courseDescriptions';
 
 /*
   The curriculum as seed data, expanded into Buildable[]: 42 majors across
@@ -845,9 +845,10 @@ export function initialTech(): Buildable[] {
         kind: 'course',
         graduateProgram: program.id,
         name: `${program.code ?? program.id} ${course.num} · ${course.title}`,
+        // Authored (Plan 72C); the entry course adds its gate.
         description: i === 0
-          ? `Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}. Offered once ${graduateGateDescription(program)}, and housed there.`
-          : `${program.degree} coursework in ${course.title}, part of the ${program.name}.`,
+          ? `${GRADUATE_COURSE_DESCRIPTIONS[id]} Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}; offered once ${graduateGateDescription(program)}, and housed there.`
+          : GRADUATE_COURSE_DESCRIPTIONS[id],
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
         duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
         prereqs,
