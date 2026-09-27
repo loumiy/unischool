@@ -384,6 +384,52 @@ claims and 107 vague ones.*
 - **Checks:** the gallery at 390×844, at normal and at the largest text
   size.
 
+**As implemented (#TBD):**
+
+- Everything below applies at 560px wide and under (the phone rules in
+  `styles.css`), except the pennant's two-line cap, which holds at every
+  width.
+- **The dock folds.** `App.tsx` sets `dock-folded` on `.app` while a tab,
+  the Build menu, the log or the milestones popup is open. On a phone that
+  hides the tab row and the clock row. The funds figure and the four stat
+  chips stay. Each of those panels has its own close (and Escape), and
+  closing it brings the tabs and the clock back. The dock goes from 206px
+  to 85px at normal text, and from 218px to 92px at the largest.
+  `--toolbar-height` is measured, so the tab screens and popups take the
+  room without further rules. `docs/architecture/ui-shell.md` says so.
+- **The Build menu** is capped at `min(560px, 100vh − dock − 140px)` on a
+  phone instead of 340px, so the room the fold gives goes to its cards,
+  which now show whole.
+- **The Build button** no longer sits over the tabs. `Toolbar.tsx` wraps
+  Home and the tabs in `.toolbar-tab-scroll`, which is `display: contents`
+  on wider screens, so desktop is unchanged. On a phone that box scrolls
+  sideways beside Build, with a fade at its right edge to show the row
+  goes on.
+- **The cohort cards** go two to a row on a phone, with the name on top
+  and the two counts under it. Four to a row left 60px for a name, too
+  narrow for most of the eight in capitals at the largest text. This
+  replaces the plan's hyphenate-or-shorten: every name now fits whole, so
+  none is shortened. It also stops "last year" running past the card at
+  the largest text.
+- **The beat headers** put the number over the word on a phone ("2" over
+  "ADMISSIONS"), and each beat takes the width its word needs.
+- **The pennant** is clamped to two lines with an ellipsis, with the full
+  name in its `title`. The name now takes the pointer so the title shows;
+  the rest of the pennant stays inert. On a phone it sits 12px from the
+  left edge and stops 84px short of the right, clear of the menu and map
+  tools.
+- **Also from G7-12:** a tab's "Close ✕" wrapped onto two lines at the
+  largest text. It no longer wraps, and on a phone the tab's title is set
+  smaller to make room.
+- `tools/phoneCheck.mjs` closes the Build menu with the menu's own close,
+  since the Build button is folded away while the menu is open.
+- **Checked:** `npm run phone` (the launch fixture and a summer save) and
+  the gallery at 390×844, at text sizes 1 and 1.3, with no page errors.
+  Desktop at 1440×900 is unchanged apart from the pennant. `check` passes,
+  and `npm run sim` reads the same as the baseline. No player-facing words
+  changed, so `review:strings` was not rerun. Screenshots are in
+  `docs/reviews/2026-10-ui-fixes/phone-*.jpg`.
+
 ## What this plan does not do
 
 - The mechanics that would make a false claim true, where this plan
