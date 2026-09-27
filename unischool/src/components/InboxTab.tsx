@@ -266,7 +266,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
     return (
       <div className="inbox-hold">
         <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Nothing moves until this is answered.</p>
-        <InterruptContent s={s} act={act} />
+        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} />
       </div>
     );
   }

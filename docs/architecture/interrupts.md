@@ -45,14 +45,20 @@ Everything that needs to stop time rides on this one mechanism:
   opens (site it, then move the next school in). Two more follow research
   (Plan 59): *The laboratories* when the first lab stands (see an
   initiative through in every lab) and *The Research Park* when the park
-  opens (site it). One of these whose ask was
+  opens (site it). A letter whose ask is a building (its ask's `go` is the
+  build menu, and it is not done) offers **Continue and open Build** beside
+  Continue: it resolves the letter as Continue does, and the shell opens
+  the build menu once the stop is answered (Plan 78B, `letterOpensBuild`).
+  The week-9 letter states the figures: the students, the beds and the
+  dining seats. One of these whose ask was
   already done when it came due is recorded read and never sent; after the
   last, the school-founded milestone celebrates each school. They yield to
   everything the player earned and outrank only the decision roll. The
   toolbar carries a letter's ask as its next-step line until it is done
-  (`src/systems/guidance/nextStep.ts`): in year one only a letter's, and
-  afterward a waiting letter's first, then the campus readings, a possible
-  move out of a mixed hall before a free slot.
+  (`src/systems/guidance/nextStep.ts`): in year one a letter's, and between
+  letters the shortfall reading (a need under 50, Plan 78B); afterward a
+  waiting letter's first, then the campus readings, a possible move out of
+  a mixed hall before a free slot.
 - **The Deans' recommendations** (`dean-recommendations`, Plan 59) — on the
   first quiet week of a year, within its first quarter, once a year: every
   school with a Dean and an unstaffed course has a plan to restaff it
@@ -183,7 +189,11 @@ a student demand, a board letter with an ask), **letters** (milestones, the
 board's distress letters, the founding notes) and **bulletins** (the toasts'
 news, kept for a term). It is read off state the game already keeps, never
 stored. Only the first tier counts on the toolbar's button, red while one is
-in its last week; an arrival is also a toast with an Open button.
+in its last week; an arrival is also a toast with an Open button, for eight
+seconds. In year one a founding note or a milestone's arrival stays until it
+is opened or dismissed (Plan 78B), since the first year's guidance is in
+those letters. None arrives while the inbox is open, and opening the inbox
+puts away the arrivals already showing.
 
 ## Widths
 

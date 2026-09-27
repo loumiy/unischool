@@ -34,7 +34,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | --- | --- | --- | --- |
 | Founding | The charter | founding | Founders Hall, the dorm and dining chains, the Campus Quad, the Library; Curriculum, Faculty, Treasury |
 | Founding | A fourth program | a fourth program founded | Student Center, Recreation Center |
-| Founding | First commencement | the first summer closes | Enrollment, Student Life, History |
+| Founding | First commencement | the first summer closes | History; in Students (open from the first week, Plan 78B), the guidebook, the clubs and the funnel |
 | Founding | A curriculum | eight courses developed | academic halls |
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |
 | Growing | A regional name | prestige 55 | Athletics Complex, Student Union Expansion, Grand Quad & Gardens |

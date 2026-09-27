@@ -3,7 +3,7 @@ import type { BuildableStatus, GameState, GreekChapter, SatisfactionAttributes, 
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
-import { FIGURE_HINTS } from '../data/figureHints';
+import { FIGURE_HINTS, NEED_LABELS } from '../data/figureHints';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, interestClubs, sportClubCapacity, sportClubs,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
@@ -13,13 +13,7 @@ import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
 import { count, fraction, gameDateOfWeek, money, moneyShort, satisfactionFigure, satisfactionShown, signed, weeksShort } from '../format';
 
-const ATTRIBUTE_LABELS: Record<keyof SatisfactionAttributes, string> = {
-  academic: 'Academic',
-  social: 'Social',
-  basicNeeds: 'Basic needs',
-  health: 'Health',
-  housing: 'Housing',
-};
+const ATTRIBUTE_LABELS = NEED_LABELS;
 const ATTRIBUTE_ORDER: Array<keyof SatisfactionAttributes> = ['academic', 'social', 'basicNeeds', 'health', 'housing'];
 
 // ---------------------------------------------------------------------
@@ -317,7 +311,9 @@ function StudentDemandPanel({ s }: { s: GameState }) {
   );
 }
 
-export default function StudentLifeTab({ s }: { s: GameState }) {
+// `clubs` is false before the first commencement (Plan 78B): the
+// organizations' panels wait for it, and one note says so.
+export default function StudentLifeTab({ s, clubs: clubsOpen = true }: { s: GameState; clubs?: boolean }) {
   const clubs: StudentClub[] = s.orgs.clubs;
   const chapters: GreekChapter[] = s.orgs.chapters;
   const pending = s.orgs.pendingPetitions;
@@ -334,7 +330,14 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
         {/* First, and always: the reading that explains the headline. */}
         <SatisfactionBreakdownPanel s={s} />
         <StudentDemandPanel s={s} />
-        {emptyOrgs ? (
+        {!clubsOpen ? (
+          <section className="panel">
+            <h2>Student organizations</h2>
+            <p className="empty-note">
+              Clubs and chapters are listed here from the first commencement, once the students have a year behind them.
+            </p>
+          </section>
+        ) : emptyOrgs ? (
           <section className="panel">
             <h2>Student organizations</h2>
             <p className="empty-note">
@@ -347,7 +350,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           <StudentLifeEffect s={s} />
         )}
 
-        {pending.length > 0 && (
+        {clubsOpen && pending.length > 0 && (
           <section className="panel panel-span-2">
             <h2>Awaiting recognition</h2>
             <p className="empty-note">
@@ -371,7 +374,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
 
         {/* The rosters are hidden while there are no organisations; the
             note above says so once. */}
-        {!emptyOrgs && (
+        {clubsOpen && !emptyOrgs && (
           <>
           <section className="panel">
             <div className="panel-head">
