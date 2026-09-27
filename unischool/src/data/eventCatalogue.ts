@@ -74,7 +74,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     timeoutWeeks: 3,
     choices: [
       { id: 'counter', label: 'Counter the offer', effects: { cash: -50000, mood: 1, confidence: -1 } },
-      { id: 'wish', label: 'Wish them well', effects: { mood: -2 } },
+      // Plan 72B: they go.
+      { id: 'wish', label: 'Wish them well', effects: { mood: -2, departs: 1 } },
     ],
     default: 'wish',
   },

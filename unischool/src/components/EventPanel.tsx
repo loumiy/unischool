@@ -25,7 +25,7 @@ const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
 const signed = (v: number) => (v > 0 ? `+${v}` : `${v}`);
 
 // What an answer does, a phrase per lever.
-function effectPhrases(s: GameState, effects: CatalogueChoice['effects']): string[] {
+function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
   const out: string[] = [];
   for (const [k, v] of Object.entries(effects) as [EffectKey, number][]) {
     if (!v) continue;
@@ -44,6 +44,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects']): strin
         break;
       }
       case 'trees': out.push(v > 0 ? `${v} trees planted` : `${-v} trees felled`); break;
+      case 'departs': out.push(`${vars.faculty ?? 'they'} leaves`); break;
     }
   }
   return out;
@@ -71,7 +72,7 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
       {e.choices.map((c) => {
         const cost = choiceCost(e, c.id, p.scale);
         const affordable = c.id === e.default || cost <= Math.max(0, s.finance.cash);
-        const phrases = effectPhrases(s, scaledEffects(c.effects, p.scale));
+        const phrases = effectPhrases(s, scaledEffects(c.effects, p.scale), p.vars);
         return (
           <button key={c.id} type="button" className="event-choice" disabled={!affordable} onClick={() => onChoose(c.id)}>
             <span className="event-choice-label">

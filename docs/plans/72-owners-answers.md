@@ -79,6 +79,28 @@ scorecard they move.
 - **Balance:** a few professors a run leave. Measured with `npm run sim`;
   the baseline re-recorded if it moves, and the move written down.
 
+**As implemented** (PR B):
+- A catalogue effect, `departs`: the professor the firing named leaves
+  through `leaveFaculty` (their courses wait for a new instructor, as when
+  anyone leaves), with a departure line in the log. The firing now keeps
+  the professor's id beside the name (`vars.facultyId`, drawn with the
+  name so the stream reads the same); a firing saved before finds them by
+  name, and one whose professor has already gone takes nobody. The event
+  panel names who leaves.
+- `star-poached`'s *Wish them well* (the default) carries it; *Counter the
+  offer* keeps them. `admissions-poached` is about the Director of
+  Admissions, who is not on the roster, and already costs enrollment and
+  confidence; it is left as it is.
+- **Balance** (`npm run sim`, re-recorded): the harness players still
+  finish where they did (Completionist and Guided #1 at year 50);
+  Guided's year-50 prestige +2.0 and cash −$19.6M, Selective and Lean a
+  few ranks better at year 50 (14 and 33), and Idle, which answers
+  nothing, empties faster (21 students at year 25 against 69), as it
+  loses its professors to every offer.
+- **Checks:** `test/poached.test.ts` (the default removes exactly the named
+  professor and orphans their courses; a counter keeps them; an older
+  firing finds them by name; one already gone takes nobody).
+
 ## PR 72C — Graduate course descriptions
 
 - The 49 graduate courses get a sentence each, written as the undergraduate
