@@ -745,9 +745,7 @@ export type ApexPart =
   | 'gatehouse'  // a brick gate tower between four capped turrets — Tudor
   | 'belvedere'  // a square lookout, arched on every face, under bracketed eaves — Italianate
   | 'pavilionTower' // a clock stage under a tall mansard and iron cresting — Second Empire
-  | 'keep'       // a massive tower, arcaded belfry, steep pyramid roof — Romanesque
   | 'ziggurat'   // stepped setbacks, fluted, to a gilt mast — Art Deco
-  | 'hearth'     // a raised clerestory under a floating hip, and a broad chimney — Prairie
   | 'none';
 
 export interface VernacularParts {
@@ -1181,38 +1179,6 @@ const SECOND_EMPIRE: VernacularSpec = {
   massing: 'solid',
 };
 
-// Richardsonian Romanesque: rock-faced granite under red tile, round
-// arches, a squat corner tower, and a keep.
-const ROMANESQUE_TILE = '#8a3f2f';
-const ROMANESQUE: VernacularSpec = {
-  materials: {
-    brickRed: { wall: '#a98470', roof: ROMANESQUE_TILE },
-    // Brownstone, too close to the tile to take it: under the lead deck.
-    brickBuff: { wall: '#7a4b3d', roof: BONUS_DECK },
-    limestone: { wall: '#d3bf98', roof: ROMANESQUE_TILE },
-    ...INVARIANT,
-    brickDark: { wall: '#4f3b35', roof: BONUS_DECK },
-  },
-  stone: { trim: '#d9c7a4', gilt: '#9c7c3c', towerStone: '#9a7663', glass: 'rgba(52, 46, 40, 0.6)' },
-  roof: {
-    ridgeMetres: { hall: 8.0, village: 5.0, pavilion: 4.0 },
-    residentialRidgeMetres: (storeys: number) => (storeys <= 3 ? 5.0 : 4.0),
-    parapet: 0,
-    eavesMetres: 0.4,
-  },
-  windowShape: 'arched',
-  parts: {
-    entrance: { hall: 'porch', portico: 'arcade', pavilion: 'canopy', residential: 'archway', village: 'none' },
-    rooflineEnd: 'none',
-    apex: 'keep',
-    surfaceEntrance: 'archway',
-    crest: 'merlons',
-    turrets: true,
-    chimneys: true,
-  },
-  massing: 'solid',
-};
-
 // Art Deco: cream limestone in vertical piers, flat roofs behind a tall
 // parapet, and a stepped tower to a gilt mast.
 const ART_DECO: VernacularSpec = {
@@ -1241,63 +1207,6 @@ const ART_DECO: VernacularSpec = {
   massing: 'solid',
 };
 
-// Brutalist: board-marked concrete in stacked, cantilevered slabs, slot
-// windows, recessed entrances and a blank stair core. No roof form: the
-// tops are the same concrete as the walls (see hasRoofForm).
-const BRUTALIST: VernacularSpec = {
-  materials: {
-    brickRed: { wall: '#8c8c88', roof: BONUS_DECK },
-    brickBuff: { wall: '#74493a', roof: BONUS_DECK },
-    limestone: { wall: '#c9c5b8', roof: '#c2ccd1' },
-    ...INVARIANT,
-    brickDark: { wall: '#5b5a57', roof: BONUS_DECK },
-  },
-  stone: { trim: 'none', gilt: 'none', towerStone: '#b9b6ad', glass: 'rgba(35, 45, 55, 0.75)' },
-  roof: {
-    ridgeMetres: {},
-    residentialRidgeMetres: () => 0,
-    parapet: 0,
-  },
-  windowShape: 'slot',
-  parts: {
-    entrance: { hall: 'recess', portico: 'recess', pavilion: 'recess', residential: 'canopy', village: 'none' },
-    rooflineEnd: 'none',
-    apex: 'core',
-    surfaceEntrance: 'recess',
-    crest: 'none',
-  },
-  massing: 'stacked',
-};
-
-// Prairie School: long, low Roman brick under floating hips with very deep
-// eaves, ribbon casements, and a raised clerestory round a broad hearth.
-const PRAIRIE_ROOF = '#5d5a52';
-const PRAIRIE: VernacularSpec = {
-  materials: {
-    brickRed: { wall: '#b8875a', roof: PRAIRIE_ROOF },
-    brickBuff: { wall: '#d9cdb0', roof: PRAIRIE_ROOF },
-    limestone: { wall: '#a55f3f', roof: PRAIRIE_ROOF },
-    ...INVARIANT,
-    brickDark: { wall: '#4c4038', roof: BONUS_DECK },
-  },
-  stone: { trim: '#e0d6bc', gilt: '#b58a3a', towerStone: '#cbb58f', glass: 'rgba(60, 72, 66, 0.62)' },
-  roof: {
-    ridgeMetres: { hall: 2.2, village: 2.4, pavilion: 1.8 },
-    residentialRidgeMetres: (storeys: number) => (storeys <= 3 ? 2.2 : 1.8),
-    parapet: 0,
-    eavesMetres: 2.4,
-  },
-  windowShape: 'ribbon',
-  parts: {
-    entrance: { hall: 'canopy', portico: 'canopy', pavilion: 'canopy', residential: 'canopy', village: 'none' },
-    rooflineEnd: 'none',
-    apex: 'hearth',
-    surfaceEntrance: 'canopy',
-    crest: 'coping',
-  },
-  massing: 'solid',
-};
-
 export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   georgian: GEORGIAN,
   gothic: GOTHIC,
@@ -1307,10 +1216,7 @@ export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   tudor: TUDOR,
   italianate: ITALIANATE,
   secondEmpire: SECOND_EMPIRE,
-  romanesque: ROMANESQUE,
   artDeco: ART_DECO,
-  brutalist: BRUTALIST,
-  prairie: PRAIRIE,
 };
 
 // A vernacular without trim or gilding says so with this value.
@@ -1400,10 +1306,7 @@ export const BONUS_VERNACULAR_CHOICES: VernacularChoice[] = [
   { id: 'tudor', label: 'Tudor', blurb: 'Plum brick and black-and-white timbering, under tall stacks and a gatehouse.' },
   { id: 'italianate', label: 'Italianate', blurb: 'Ochre stucco and arched windows, on bracketed eaves under a belvedere.' },
   { id: 'secondEmpire', label: 'Second Empire', blurb: 'Pale stone under slate mansards, dormers and iron cresting.' },
-  { id: 'romanesque', label: 'Romanesque', blurb: 'Rock-faced granite and red tile, round arches and a massive keep.' },
   { id: 'artDeco', label: 'Art Deco', blurb: 'Cream limestone in soaring piers, stepping up to a gilt mast.' },
-  { id: 'brutalist', label: 'Brutalist', blurb: 'Board-marked concrete in cantilevered slabs, cut with slots.' },
-  { id: 'prairie', label: 'Prairie School', blurb: 'Long, low Roman brick under floating eaves and ribbon glass.' },
 ];
 
 export function partsFor(v: Vernacular): VernacularParts {
@@ -1443,7 +1346,7 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // asserts every part a vernacular names is listed here.
 export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'archway', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
-export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'gatehouse', 'belvedere', 'pavilionTower', 'keep', 'ziggurat', 'hearth', 'none'];
+export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'gatehouse', 'belvedere', 'pavilionTower', 'ziggurat', 'none'];
 export const IMPLEMENTED_CREST_PARTS: CrestPart[] = ['coping', 'merlons', 'balustrade', 'tile', 'none'];
 
 // Whether this vernacular has a roof at all: derived (something pitched or a

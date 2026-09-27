@@ -2299,12 +2299,20 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .facade-banner-text { fill: #6b4423; font-family: var(--serif); font-weight: 700; letter-spacing: 0.05em; }
 
 /* Vernacular picker: one row of five equal chips; the facade is the preview. */
-.startup-vernaculars { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }
+.startup-vernaculars { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }
 .startup-vern-btn { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px;
   background: var(--cream); border: 2px solid var(--parchment-line); border-radius: var(--radius-md); padding: 6px 4px; color: var(--ink);
   font-family: var(--display); font-weight: 800; font-size: var(--text-xs); line-height: 1.15; }
 .startup-vern-btn:hover { border-color: var(--outline); }
 .startup-vern-btn.active { border-color: var(--outline); background: var(--cream-hi); box-shadow: var(--shadow-1); color: var(--school-primary); }
+.startup-vern-btn { flex-direction: column; gap: 2px; grid-column: span 4; }
+/* Five founding sets on the first row, the four bonus sets on the second. */
+.startup-vern-btn.bonus { grid-column: span 5; }
+/* A bonus set not yet unlocked (state/unlocks.ts): previewable, not foundable. */
+.startup-vern-btn.locked { border-style: dashed; opacity: 0.72; }
+.startup-vern-btn.locked.active { opacity: 1; }
+.startup-vern-lock { font-weight: 600; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+.startup-vern-locked-note { margin: -6px 0 14px; font-size: var(--text-xs); color: var(--ink); text-align: center; }
 
 /* Color pairs (StartupScreen.tsx): one even row of two-tone chips (primary
    above, secondary below), the active one ringed and lifted. */

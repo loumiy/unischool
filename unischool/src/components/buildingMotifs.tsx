@@ -890,12 +890,10 @@ function Portico({ centreCol, centreRow, width, outward, stone, columns = PORTIC
 // The porch: a projecting gabled entrance bay with a pointed arch between
 // two buttresses (the Gothic entrance where Georgian has a portico). It is
 // part of the wall, so it takes the wall's palette.
-function Porch({ col, row, w, h, wallHeight, outward, pal, stone, arch = 'lancet' }: {
+function Porch({ col, row, w, h, wallHeight, outward, pal, stone }: {
   col: number; row: number; w: number; h: number; wallHeight: number;
   outward: FaceDir;
   pal: Palette; stone: StonePalette;
-  // The opening's head: pointed (Gothic, Tudor) or round (Romanesque).
-  arch?: WindowShape;
 }) {
   // Same plan as CentrePavilion so it lines up with the reserved door bay.
   const span = wallSpan(w, h, outward);
@@ -954,7 +952,7 @@ function Porch({ col, row, w, h, wallHeight, outward, pal, stone, arch = 'lancet
       <polygon
         className="iso-door"
         points={polyPoints(
-          windowOutline(arch, archU0, archU1, 0, PORCH_ARCH_HEIGHT)
+          windowOutline('lancet', archU0, archU1, 0, PORCH_ARCH_HEIGHT)
             .map(([u, v]) => facePoint(front.o, front.a, top, u, v)),
         )}
       />
@@ -1757,11 +1755,10 @@ function Dome({ col, row, w, h, base, stone, hemisphere = false }: {
 // stone, standing slightly proud of both walls and rising past the eaves,
 // with lancets and either a crenellated head (halls) or a slate pyramid.
 // Always at the near corner, so neither drawn face lies inside the mass.
-function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels, capRise, face, shape = 'lancet' }: {
+function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels, capRise, face }: {
   col: number; row: number; plan: number; height: number;
   pal: Palette; glass: string; sills: number[]; paneW: number;
   crenels: boolean; capRise: number;
-  shape?: WindowShape;
   // Only this one wall, windows and cornice: the face standing proud of the
   // mass, repainted after it when the tower's corner is a side corner (see
   // towerProudFace).
@@ -1774,20 +1771,19 @@ function CornerTower({ col, row, plan, height, pal, glass, sills, paneW, crenels
     return (
       <>
         <polygon points={polyPoints(wall.poly)} fill={pal.wall[face]} />
-        {windows(wall.origin, wall.along, height, span, sills, paneW * 0.6, 'tp', shape, glass)}
+        {windows(wall.origin, wall.along, height, span, sills, paneW * 0.6, 'tp', 'lancet', glass)}
         <WallBand origin={wall.origin} along={wall.along} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
       </>
     );
   }
   // Crenellated towers are flat-topped; plain ones get a slate pyramid.
-  // A shade darker than the roof it stands against, so it reads off it.
-  const cap = crenels ? null : pyramid(col, row, plan, height, capRise, shade(pal.roof, 0.82));
+  const cap = crenels ? null : pyramid(col, row, plan, height, capRise, pal.roof);
   return (
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      {windows(f.D, f.C, height, f.spanLeft, sills, paneW * 0.6, 'tl', shape, glass)}
-      {windows(f.C, f.B, height, f.spanRight, sills, paneW * 0.6, 'tr', shape, glass)}
+      {windows(f.D, f.C, height, f.spanLeft, sills, paneW * 0.6, 'tl', 'lancet', glass)}
+      {windows(f.C, f.B, height, f.spanRight, sills, paneW * 0.6, 'tr', 'lancet', glass)}
       <WallBand origin={f.D} along={f.C} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
       <WallBand origin={f.C} along={f.B} wallHeight={height} from={height - CORNICE} to={height} className="iso-cornice" />
       <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
@@ -2845,33 +2841,6 @@ function PavilionTower({ col, row, w, h, base, stone, pal }: {
   );
 }
 
-// Romanesque: a massive keep, an arcaded belfry of three arches a face and a
-// steep pyramid in the roofs' own tile.
-function Keep({ col, row, w, h, base, stone, pal }: {
-  col: number; row: number; w: number; h: number; base: number; stone: StonePalette; pal: Palette;
-}) {
-  const plan = Math.min(across(12), Math.min(w, h) * 0.42);
-  const cc = col + w / 2; const cr = row + h / 2;
-  const x0 = cc - plan / 2; const y0 = cr - plan / 2;
-  const rise = TOWER_BASE_RISE;
-  const shaft = boxFaces(x0, y0, plan, plan, base, rise);
-  const bRise = up(5.5);
-  const belfry = boxFaces(x0, y0, plan, plan, base + rise, bRise);
-  const cap = pyramid(x0 - across(0.4), y0 - across(0.4), plan + across(0.8), base + rise + bRise, up(13), pal.roof);
-  return (
-    <>
-      <TowerShaft f={shaft} rise={rise} stone={stone} />
-      {[[shaft.D, shaft.C] as const, [shaft.C, shaft.B] as const].map(([o, a], i) => (
-        <WallClock key={i} origin={o} along={a} height={rise} span={plan} cv={0.6} r={CLOCK_RADIUS_TILES} />
-      ))}
-      <TowerShaft f={belfry} rise={bRise} stone={stone} tone={shade(stone.towerStone, 0.96)} />
-      <StageOpenings f={belfry} rise={bRise} n={3} shape="arched" v0={0.12} v1={0.84} />
-      {cap.faces}
-      <GiltFinial at={cap.tip} rise={up(2)} stone={stone} />
-    </>
-  );
-}
-
 // Art Deco: four setbacks, each fluted by shallow piers and banded at its
 // head, to a gilt mast.
 function Ziggurat({ col, row, w, h, base, stone }: {
@@ -2911,40 +2880,6 @@ function Ziggurat({ col, row, w, h, base, stone }: {
     <>
       {nodes}
       <GiltFinial at={lift(project(cc, cr), z)} rise={up(9)} stone={stone} />
-    </>
-  );
-}
-
-// Prairie School: a raised clerestory with a ribbon of glass under its own
-// floating hip, and a broad low chimney through it.
-function Hearth({ col, row, w, h, base, stone, pal }: {
-  col: number; row: number; w: number; h: number; base: number; stone: StonePalette; pal: Palette;
-}) {
-  const cw = w * 0.5; const ch = h * 0.46;
-  const c0 = col + (w - cw) / 2; const r0 = row + (h - ch) / 2;
-  const rise = up(7.5);
-  const f = boxFaces(c0, r0, cw, ch, base, rise);
-  const e = across(1.0);
-  const roofBase = base + rise;
-  const cp = { w: across(8), h: across(2.6) };
-  const alongW = cw >= ch;
-  const chim = boxFaces(col + w / 2 - (alongW ? cp.w : cp.h) / 2, row + h / 2 - (alongW ? cp.h : cp.w) / 2,
-    alongW ? cp.w : cp.h, alongW ? cp.h : cp.w, roofBase, up(5.5));
-  const slab = boxFaces(col + w / 2 - (alongW ? cp.w : cp.h) / 2 - across(0.5), row + h / 2 - (alongW ? cp.h : cp.w) / 2 - across(0.5),
-    (alongW ? cp.w : cp.h) + across(1), (alongW ? cp.h : cp.w) + across(1), roofBase + up(5.5), up(0.6));
-  return (
-    <>
-      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
-      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      <WallBand origin={f.D} along={f.C} wallHeight={rise} from={rise * 0.3} to={rise * 0.72} className="iso-window" fill={stone.glass} />
-      <WallBand origin={f.C} along={f.B} wallHeight={rise} from={rise * 0.3} to={rise * 0.72} className="iso-window" fill={stone.glass} />
-      <WallBand origin={f.D} along={f.C} wallHeight={rise} from={rise * 0.22} to={rise * 0.3} className="iso-cornice" />
-      <WallBand origin={f.C} along={f.B} wallHeight={rise} from={rise * 0.22} to={rise * 0.3} className="iso-cornice" />
-      <HippedRoof col={c0 - e} row={r0 - e} w={cw + 2 * e} h={ch + 2 * e} base={roofBase} rise={up(1.8)} pal={pal} />
-      <polygon points={polyPoints(chim.left)} fill={pal.wallLeft} />
-      <polygon points={polyPoints(chim.right)} fill={pal.wallRight} />
-      {sideFaces(slab, shade(stone.trim, 0.8), shade(stone.trim, 0.66))}
-      <polygon points={polyPoints(slab.top)} fill={shade(stone.trim, 0.9)} />
     </>
   );
 }
@@ -3650,8 +3585,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
     const turretProps = {
       pal, glass: stone.glass, paneW,
       col: col + w - towerPlan + TOWER_PROUD, row: row + h - towerPlan + TOWER_PROUD, plan: towerPlan,
-      height: WH + STOREY * (crenellations ? 1.9 : 3.0), sills: rankSills(ranks + (crenellations ? 2 : 3)), crenels: crenellations, capRise: up(crenellations ? 5.0 : 7.5),
-      shape: paneShape === 'arched' ? 'arched' as const : 'lancet' as const,
+      height: WH + STOREY * 1.9, sills: rankSills(ranks + 2), crenels: crenellations, capRise: up(5.0),
     };
     const turretNode = <CornerTower {...turretProps} />;
     return (
@@ -3678,6 +3612,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {windows(hf.C, hf.B, WH, hf.spanRight, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, hf.spanRight, WH) : undefined, lights)}
 
         {deckPiers && fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={WH} outward={dir} pal={pal} />)}
+        {deckPiers && (
+          <>
+            <WallBand origin={hf.D} along={hf.C} wallHeight={WH} from={H - CORNICE * 2.4} to={H - CORNICE * 1.2} className="iso-cornice" fill={stone.gilt} />
+            <WallBand origin={hf.C} along={hf.B} wallHeight={WH} from={H - CORNICE * 2.4} to={H - CORNICE * 1.2} className="iso-cornice" fill={shade(stone.gilt, 0.82)} />
+          </>
+        )}
         {buttresses && (
           <>
             {fronts.map((dir) => { const s = wallSpan(w, h, dir); return (
@@ -3754,14 +3694,8 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {hasClockTower(t) && apex === 'pavilionTower' && (
           <PavilionTower stone={stone} pal={pal} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
-        {hasClockTower(t) && apex === 'keep' && (
-          <Keep stone={stone} pal={pal} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
-        )}
         {hasClockTower(t) && apex === 'ziggurat' && (
           <Ziggurat stone={stone} col={col} row={row} w={w} h={h} base={WH} />
-        )}
-        {hasClockTower(t) && apex === 'hearth' && (
-          <Hearth stone={stone} pal={pal} col={col} row={row} w={w} h={h} base={WH + ridge * 0.35} />
         )}
         {hasClockTower(t) && (apex === 'cupola' || apex === 'spire') && (
           <ClockTower stone={stone} apex={apex} gilded={hasGilt(vernacular)} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
@@ -3808,7 +3742,6 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
             {fronts.map((dir) => (
               <Porch key={dir} pal={pal} stone={stone}
                 col={col} row={row} w={w} h={h} wallHeight={H} outward={dir}
-                arch={paneShape === 'arched' ? 'arched' : 'lancet'}
               />
             ))}
           </>
@@ -4115,6 +4048,14 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {!site && !cornerInFront && residentialTurret}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {/* Tudor: timbered above the ground floor, on pitched buildings tall
+          enough to have one. */}
+      {!site && timbering && gabled && H > STOREY * 1.5 && (
+        <>
+          <Timbering origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} from={STOREY} to={H} floors={courses} />
+          <Timbering origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} from={STOREY} to={H} floors={courses} />
+        </>
+      )}
       {!site && trim && floorCourses(f.D, f.C, H, courses, 'l')}
       {!site && trim && floorCourses(f.C, f.B, H, courses, 'r')}
       {/* Base and eaves courses shared with the halls. */}
@@ -4127,6 +4068,15 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {/* Each wall's bays come from its own length, so windows match. */}
       {!site && windows(f.D, f.C, H, f.spanLeft, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, f.spanLeft, H) : undefined, lights)}
       {!site && windows(f.C, f.B, H, f.spanRight, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, f.spanRight, H) : undefined, lights)}
+      {/* Art Deco: its piers on every building it restyles. */}
+      {!site && deckPiers && (
+        <>
+          {fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+          {/* and a gilt frieze under the roofline. */}
+          <WallBand origin={f.D} along={f.C} wallHeight={H} from={H - EAVES_COURSE * 1.6} to={H - EAVES_COURSE * 0.6} className="iso-cornice" fill={stone.gilt} />
+          <WallBand origin={f.C} along={f.B} wallHeight={H} from={H - EAVES_COURSE * 1.6} to={H - EAVES_COURSE * 0.6} className="iso-cornice" fill={shade(stone.gilt, 0.82)} />
+        </>
+      )}
       {/* Buttresses on pitched-roof buildings; flat roofs get merlons below. */}
       {!site && buttresses && gabled && door && (
         <>
@@ -4230,7 +4180,15 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {gabled && eaves > 0 && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
         <WallBand key={`es${i}`} origin={o} along={a} wallHeight={H} from={H - up(0.9)} to={H} className="iso-eaves-shadow" />
       ))}
-      {hipped ? (
+      {!site && brackets && gabled && (
+        <>
+          <EavesBrackets origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} top={H} stone={stone} />
+          <EavesBrackets origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} top={H} stone={stone} />
+        </>
+      )}
+      {gabled && mansard ? (
+        <MansardRoof col={rc} row={rr} w={rw} h={rh} base={H} rise={ridge} pal={pal} stone={stone} />
+      ) : hipped ? (
         <>
           <HippedRoof col={rc} row={rr} w={rw} h={rh} base={H} rise={ridge} pal={pal} />
           {chimneys && ridgeChimneys({ col: rc, row: rr, w: rw, h: rh, base: H, rise: ridge, at: [0.25, 0.75], pal, stone })}

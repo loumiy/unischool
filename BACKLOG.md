@@ -171,8 +171,10 @@ a sequence of PRs.*
   produce a record and a rivalry, and a schedule would produce nothing
   more. **Rowing** wants a lake, a lake is terrain, and the map has none;
   golf stays declined.
-- **From Plan 70's "does not do":** unlocks that carry across runs, key
-  rebinding, and more than one save slot.
+- **From Plan 70's "does not do":** key rebinding and more than one save
+  slot. Unlocks that carry across runs now exist for the four bonus
+  vernaculars (`state/unlocks.ts`), with no in-run notice yet when one is
+  earned.
 - **From earlier plans' notes for the owner, partly answered:** a narrow
   college cannot choose which schools it founds (Plan 63; Plan 71's offers
   from started schools help); money piles up with nowhere to go late in a
