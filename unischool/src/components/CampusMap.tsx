@@ -43,6 +43,7 @@ import {
 import { reducedMotion } from '../settings';
 import { fullResidences } from './residenceFill';
 import { setMapProbe } from './mapProbe';
+import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
 const DUST_MS = 900;
@@ -1808,20 +1809,13 @@ export default function CampusMap({
             title={toolsOpen ? 'Fold the map tools away' : 'Map tools: zoom, turn, tilt, the view, quad names, help'}
             onClick={() => setToolsOpen((open) => !open)}
           >
-            {toolsOpen ? '×' : (
-              <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-                <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="7" cy="5" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
-                <circle cx="13" cy="10" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
-                <circle cx="8" cy="15" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            )}
+            {toolsOpen ? <CloseIcon /> : <MapToolsIcon />}
           </button>
           {toolsOpen && (
             <>
               <HelpHint
                 align="end"
-                text="Where the college physically grows. Pick a building, residence hall or facility from the Build menu (the toolbar's Build button); placing it here is how it starts: the cost is charged at once, and it goes up right where you put it, reserving those tiles until it is done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground, and a way to walk to it from the road along the campus's south edge; a building that would wall another off is refused, and the ghost says why. Courses are never sited: a course is not a place, and develops from the Curriculum tab. Press P (or use the Build menu's Draw path tile) to lay walkways, free: drag with the left button to pave, the right button to lift, and hold Shift for a straight run from where you started, diagonals included. Paths shape the quads the campus finds, and a paved tile holds no tree, so both count toward campus beauty. Every tab (Curriculum, Faculty, Research and the rest) opens as a full screen over this one; the Campus button, the tab's own Close, or Escape brings you back here. Open ground the buildings close in is found as a quad and named; click one to rename it, press N to show every name, and use the Build menu's Mark a quad to make one of a space the campus has not. Keys: W/A/S/D or the arrows pan; Q/E turn the view a quarter turn, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses and resumes, 1 to 4 set the speed, and M mutes. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the ⟲ ⟳ buttons turn the view, ⤓ ⤒ tilt it, ⌂ brings back the opening view and Aa shows every quad's name."
+                text="Where the college physically grows. Pick a building, residence hall or facility from the Build menu (the toolbar's Build button); placing it here is how it starts: the cost is charged at once, and it goes up right where you put it, reserving those tiles until it is done. Press R, or click the ⟳ on the footprint ghost, to turn a non-square building 90 degrees before setting it down. Buildings vary in size: a school hall covers many tiles, a lab a few. There must be room for the whole footprint on empty ground, and a way to walk to it from the road along the campus's south edge; a building that would wall another off is refused, and the ghost says why. Courses are never sited: a course is not a place, and develops from the Curriculum tab. Press P (or use the Build menu's Draw path tile) to lay walkways, free: drag with the left button to pave, the right button to lift, and hold Shift for a straight run from where you started, diagonals included. Paths shape the quads the campus finds, and a paved tile holds no tree, so both count toward campus beauty. Every tab (Curriculum, Faculty, Research and the rest) opens as a full screen over this one; the Campus button, the tab's own Close, or Escape brings you back here. Open ground the buildings close in is found as a quad and named; click one to rename it, press N to show every name, and use the Build menu's Mark a quad to make one of a space the campus has not. Keys: W/A/S/D or the arrows pan; Q/E turn the view a quarter turn, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses and resumes, 1 to 4 set the speed, and M mutes. Drag the map to pan (or hold the scroll wheel, which pans even mid-stroke), and scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the two curved-arrow buttons turn the view, ⤓ ⤒ tilt it, ⌂ brings back the opening view and Aa shows every quad's name."
               />
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
@@ -1830,8 +1824,8 @@ export default function CampusMap({
                   keyboard player has the keys. */}
               {touchUi && (
                 <>
-                  <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left">⟲</button>
-                  <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right">⟳</button>
+                  <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left"><TurnViewIcon direction="left" /></button>
+                  <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right"><TurnViewIcon direction="right" /></button>
                   <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down">⤓</button>
                   <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up">⤒</button>
                   <button type="button" onClick={resetCamera} aria-label="Back to the opening view">⌂</button>

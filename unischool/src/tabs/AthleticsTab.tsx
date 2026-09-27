@@ -6,7 +6,7 @@ import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import {
-  ATHLETICS_BUDGET_ORDER, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
+  ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
   VARSITY_PETITION_MIN_TENURE_YEARS, ceilingResolved, coachProfile, departmentPot, orderedTeams, sportById, teamQuality,
   varsityEligibleYear, venueForCategory,
 } from '../data/studentLifeData';
@@ -17,6 +17,7 @@ import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
 import type { SeasonResult } from '../state/types';
 import { money, moneyShort } from '../format';
+import { ReleaseIcon } from '../components/icons';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -45,7 +46,6 @@ function ceilingLabel(c: Coach): string {
 // which is only offered through the 'varsity-petition' decision event.
 
 type Role = 'head' | 'assistant' | 'trainer';
-const ROLE_LABEL: Record<Role, string> = { head: 'Head Coach', assistant: 'Assistant Coach', trainer: 'Trainer' };
 const ROLE_SHORT: Record<Role, string> = { head: 'Head', assistant: 'Asst', trainer: 'Trainer' };
 const ROLE_ORDER: readonly Role[] = ['head', 'assistant', 'trainer'];
 
@@ -78,10 +78,10 @@ function StaffRow({ act, team, role }: { act: (a: Action) => void; team: Varsity
       </span>
       <ConfirmButton
         className="coach-release"
-        label="✕"
-        armedLabel="Release"
+        label={<ReleaseIcon />}
+        ariaLabel={`Release ${coach.name}`}
+        armedLabel="Confirm — release; the post stays open"
         title={`Release ${coach.name}`}
-        warning="The chair is left open until someone is hired from the market."
         onConfirm={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}
       />
     </div>
@@ -183,13 +183,13 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                         key={`${team.id}:${role}`}
                         type="button"
                         className="panel-action"
-                        title={`${team.name} — ${ROLE_LABEL[role]}`}
+                        title={`${team.name} — ${CHAIR_LABEL[role]}`}
                         onClick={() => act({ type: 'HIRE_COACH', candidateId: c.id, teamId: team.id, role })}
                       >
                         {/* The tag is the button: clicking the team that wants them hires. */}
                         {openings.length === 1 && openings[0].role !== 'trainer'
-                          ? `Hire — ${ROLE_LABEL[role]}`
-                          : `${team.name}${role === 'trainer' ? '' : ` · ${ROLE_LABEL[role]}`}`}
+                          ? `Hire as ${CHAIR_LABEL[role]}`
+                          : `${team.name}${role === 'trainer' ? '' : ` · ${CHAIR_LABEL[role]}`}`}
                       </button>
                     ))}
                 </span>
@@ -197,7 +197,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
             ))}
           </ul>
           {rest.length > 0 && (
-            <button type="button" className="coach-market-toggle" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+            <button type="button" className="panel-action coach-market-toggle" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
               {showAll ? 'Show only who you need' : `Show the rest of the market (${rest.length})`}
             </button>
           )}
@@ -264,7 +264,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           the priority list has drawn on it. The tier is the subsidy in dollars. */}
       <div className="athletics-budget">
         <span className="athletics-budget-label">Subsidy</span>
-        <div className="athletics-budget-tiers">
+        <div className="athletics-budget-tiers segmented">
           {ATHLETICS_BUDGET_ORDER.map((tier) => (
             <button
               key={tier}
@@ -274,7 +274,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
               title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's pot`}
               onClick={() => act({ type: 'SET_ATHLETICS_BUDGET', tier })}
             >
-              {tier}
+              {tier.charAt(0).toUpperCase() + tier.slice(1)}
             </button>
           ))}
         </div>

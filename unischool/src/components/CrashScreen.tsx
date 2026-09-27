@@ -47,8 +47,8 @@ export function CrashFallback({ error }: { error: Error }) {
           </p>
         )}
         <div className="crash-actions">
-          {started && <button type="button" className="save-btn" onClick={() => download('save')}>Download save</button>}
-          {source && <button type="button" className="save-btn" onClick={() => download('report')}>Download a bug report</button>}
+          {started && <button type="button" className="menu-btn" onClick={() => download('save')}>Download save</button>}
+          {source && <button type="button" className="menu-btn" onClick={() => download('report')}>Download a bug report</button>}
           <button type="button" className="title-primary" onClick={() => window.location.reload()}>Reload</button>
         </div>
         <p className="crash-detail">{error.name}: {error.message}</p>

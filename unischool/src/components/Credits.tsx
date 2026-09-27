@@ -1,4 +1,5 @@
 import { useHotkeys } from './hotkeys';
+import { CloseIcon } from './icons';
 
 // THE CREDITS (Plan 34, from v2's).
 export default function Credits({ onClose }: { onClose: () => void }) {
@@ -8,7 +9,7 @@ export default function Credits({ onClose }: { onClose: () => void }) {
       <section className="title-card credits">
         <div className="hall-head">
           <h2 className="hall-title">UniSchool</h2>
-          <button type="button" className="toolbar-popup-close" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close"><CloseIcon /></button>
         </div>
         <p className="credits-lede">Fifty years to build a university.</p>
         <dl className="credits-list">

@@ -1,6 +1,7 @@
 import type { GameState } from '../state/types';
 import { LADDER_TIERS, MILESTONES, type Milestone } from '../data/ladderData';
 import { milestoneReached } from '../systems/ladder/ladderSystem';
+import { StatusIcon } from './icons';
 
 function progressLine(s: GameState, m: Milestone): string {
   if (!m.progress) return m.condition;
@@ -23,7 +24,7 @@ export default function LadderPanel({ s }: { s: GameState }) {
               return (
                 <li key={m.id} className={`ladder-rung ${reached ? 'reached' : 'ahead'}${m.side ? ' side' : ''}`}>
                   <div className="ladder-rung-head">
-                    <span className="ladder-rung-mark" aria-hidden="true">{reached ? '✓' : '○'}</span>
+                    <span className="ladder-rung-mark"><StatusIcon status={reached ? 'done' : 'pending'} /></span>
                     <span className="ladder-rung-name">{m.name}</span>
                     <span className="ladder-rung-state">
                       {reached ? `Year ${s.ladder.reached[m.id]}` : progressLine(s, m)}

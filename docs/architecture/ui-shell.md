@@ -1,8 +1,8 @@
 # The shell, the tabs, and the keyboard
 
 The **campus map** holds the middle of the screen at all times. The build menu
-opens over it, and every other view — Curriculum, Faculty, Research, Student
-Life, Athletics, Enrollment, History, Treasury — opens as a dismissible
+opens over it, and every other view — Curriculum, Faculty, Research,
+Students, Athletics, History, Treasury — opens as a dismissible
 **full-bleed screen** on top of it: the tab takes the viewport and the dock
 (log ticker + toolbar) lays over it. Every tab, the same way. The map is what a
 player returns to, by the home button at the head of the toolbar's icon row,
@@ -17,17 +17,20 @@ reserves the dock's measured height instead of drawing under it.
 
 ## Tab gates
 
-Five tabs open from milestones on the ladder (`data/ladderData.ts`, read by
-`TabNav.tsx`'s `tabAvailable`): Enrollment, Student Life and History at the
-first commencement, Research once a lab is finished, Athletics with the first
-sport club. A milestone is never undone, so a tab once open stays open. The
+Four tabs open from milestones on the ladder (`data/ladderData.ts`, read by
+`TabNav.tsx`'s `tabAvailable`): Students and History at the first
+commencement, Research once a lab is finished, Athletics with the first sport
+club. (Students is the one tab that Enrollment and Student Life became.)
+A milestone is never undone, so a tab once open stays open. The
 first time one opens the activity log says so.
 
 ## Time
 
-Four gears: **Play** (a 5,000 ms week — a decision should feel like a
-commitment), **2×**, **4×**, and a sandbox **Fast** behind the playtest flag
-(`src/engine/useGame.ts`'s `SPEEDS`). A gear is a speed, not a skip: the player
+Five gears: **Play** (a 5,000 ms week — a decision should feel like a
+commitment), **2×**, **4×** and **8×**, the last two earned by the
+administration's seats (`systems/delegation/seats.ts`'s `speedLock`), and a
+sandbox **Fast** behind the playtest flag (`src/engine/useGame.ts`'s
+`SPEEDS`). A gear is a speed, not a skip: the player
 still watches the clock and can still intervene, and there is deliberately no
 advance-to-next-event. Waiting to afford something is load-bearing in this
 genre; the answer to *empty* waiting is to put something in the year, which is
@@ -40,8 +43,9 @@ one week per tick at every setting.
 The **log ticker** is one line, the newest log entry, directly above the
 toolbar. Above it a **toast stack** shows the things that never stop the clock
 — a course or building finished, a program founded, a petition, a paper, a
-candidate in a short field, a project concluded without a report — three
-seconds each, five at most, each a button that opens the tab it is about (see
+candidate in a short field, a project concluded without a report — six
+seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
+it is about (see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
 right end of the ticker line runs the **next step**: during the scripted first
 year the latest letter's ask until it is done; afterwards a waiting letter's
@@ -61,7 +65,8 @@ the right says what to do about it.
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,
 prestige, satisfaction — a glyph and a figure each, the word in the tooltip);
-the right zone stacks the clock over four round gears (pause, play, 2×, 4×);
+the right zone stacks the clock over five round gears (pause, play, 2×, 4×,
+8×);
 and between them, in one row at every width, the labelled tab row — the word
 under each glyph — and Build. The two side zones stack precisely so that row
 always fits. The school's name is not in the band: it hangs as a **pennant**
@@ -72,25 +77,64 @@ takes that corner.
 ## The register
 
 Every screen is drawn from one small vocabulary (Plan 18, the *Varsity*
-direction), held as custom properties at the top of `src/styles.css`:
+direction), held as custom properties at the top of `src/styles.css`. The
+parts built from it (buttons, the close control, segmented choices, headings,
+tooltips, the warning note) are drawn once, in the block "The register's
+parts" near the top of the same file; a component's own rule keeps only its
+geometry.
 
-- **The school's two colours are the theme.** `--school-primary` and
+### Tokens
+
+- **The school's two colors are the theme.** `--school-primary` and
   `--school-secondary` (with `--school-on-primary` and `--school-on-secondary`
   for what reads on each) are written to the root by `components/theme.ts`
   from the pair the player picked at founding (`data/schoolColors.ts`), so
   the dock, the pennant, the modal bands, the meters and the primary buttons
-  all change with the school. Everything else is fixed: a cream ground
-  (`--cream`, `--cream-hi`, `--cream-lo`), one outline ink (`--outline`), one
-  red for trouble.
-- **Two faces.** `--display` (Bricolage Grotesque at 800) for titles, figures,
-  chips and buttons; `--sans` (Archivo) for prose. Both are self-hosted
-  through `@fontsource` imports in `main.tsx`. The old `--serif` and `--mono`
-  names resolve to the display face.
+  all change with the school. The map's colors context defaults to the same
+  founding pair.
+- **The fixed palette.** A cream ground (`--cream`, `--cream-hi`,
+  `--cream-lo`), one outline ink (`--outline`), `--ink-muted` for secondary
+  text and `--parchment-line` for rules and disabled edges. The signals come
+  in pairs, one for the dark chrome and one for paper: good (`--ok-on-*`),
+  bad (`--bad-on-*`), warning (`--warn-on-*`), and the danger set
+  (`--danger-ink`, `--danger-bg`, `--danger-line`) for armed confirmations.
+  The course grades have their own ink and ground (`--grade-a…f`,
+  `--grade-*-bg`), and the Enrollment cohort bar its eight pigments
+  (`--cohort-1…8`). The color-vision-safe setting (Plan 34) moves the good
+  and bad signals to blue and orange, and the grades with them.
+- **Illustration, not chrome.** The hall of fame's frames are wood and brass
+  (`--frame-*`), and the map's drawings keep their own literal colors; the
+  palette above is for the interface.
+- **Three faces.** `--display` (Bricolage Grotesque at 800) for titles,
+  figures, chips and buttons; `--sans` (Archivo, loaded 400–700) for prose
+  and detail lines; and `--mono` (Azeret Mono) for the dock's funds counter
+  and its weekly net alone, so the digits hold their columns as it ticks.
+  Every other figure is the display face with tabular numerals. All three
+  are self-hosted through `@fontsource` imports in `main.tsx`. The display
+  face has no italic, so it is never slanted; a difference is marked by
+  weight, color or opacity.
+- **Type scale**, each size times the player's text size (Plan 34):
+  `--text-2xs` to `--text-xl` (10, 11, 12, 13, 14, 15 and 17 px) for text,
+  and four display sizes, `--text-2xl` to `--text-5xl` (22, 26, 32 and
+  44 px), for headline figures and titles. `body` is `--text-base` and
+  controls inherit it, so the text-size setting reaches everything. Nothing
+  is set below 10 px. (Text inside a drawn SVG, a chart's ticks or a dial's
+  figure, is sized in the drawing's own units.)
+- **Spacing**: `--space-2` to `--space-32` (2, 4, 6, 8, 12, 16, 24 and
+  32 px). Two insets: `--inset-panel` (16 px) for a panel, a note or a
+  popup, and `--inset-card` (8 by 12 px) for a card inside one. Dialogs use
+  24 px, the founding card 32. The scale is adopted as rules are touched;
+  px throughout, no em or rem.
+- **Corners**: `--radius-xs` to `--radius-xl` and `--radius-pill`; a
+  literal radius is a departure.
 - **Hard offsets, not blurs.** `--shadow-1/2/3` are the outline ink offset
   by 2, 4 and 6 px. Nothing in the register blurs.
 - The parchment-era names (`--navy`, `--gold`, `--gold-dim`, `--parchment*`,
   `--ink*`) still exist and resolve into the register, so a rule that cites
-  one is not wrong, only old; new rules cite the new names.
+  one is not wrong, only old; new rules cite the new names. The `--serif`
+  alias is gone.
+
+### The two rules
 
 Two rules hold across every screen, and they are the ones a new panel should
 be checked against:
@@ -98,13 +142,98 @@ be checked against:
 1. **Outline and offset on anything pressable.** A button, a tile you can
    pick, a card that opens: 2 px of the outline ink and `--shadow-1`. A thing
    you cannot press sits flat — a panel is the outline with no shadow, a
-   reading is a line. The secondary fill is reserved for the one primary
-   action on a screen (Develop, Appoint, Commit, Continue).
-2. **State is a chip, never a coloured card.** Over, short, listed, done,
-   champion, full: a filled pill with a word in it, on a card that stays
-   cream. The card's own colour is only ever the school's (a group header on
-   the Curriculum tab, a committed scholar's left rule) — a red card would say
-   the whole thing is wrong when one word is.
+   reading is a line. The secondary fill is reserved for **the one primary
+   action on a card** (Develop on a program's row, Appoint on a candidate,
+   Commit on a lab's proposal, Continue in a dialog): one per row, dialog or
+   drawer, never two on the same card.
+2. **State is a chip, never a colored card.** Over, short, listed, done,
+   champion, full, deficit: a filled pill with a word in it, on a card that
+   stays cream. The card's own color is only ever the school's (a group
+   header on the Curriculum tab, a committed scholar's left rule) — a red
+   card would say the whole thing is wrong when one word is. A warning in
+   prose is the warning note: red words beside a red rule on the card's own
+   ground.
+
+### Buttons
+
+One base: 2 px of the outline ink, `--shadow-1`, a pill corner, the display
+face at 800, and **sentence case** (no button is put into capitals by CSS).
+The fill says the role:
+
+| Role | Fill | For |
+| --- | --- | --- |
+| Primary (`.btn-primary`, a dialog's `.modal-actions` button) | the school's secondary | the card's one primary action |
+| Cream (`.btn`, `.menu-btn`, `.panel-action`, …) | `--cream-hi`, the secondary on hover | everything else that acts |
+| Quiet (`.btn-quiet`) | none, the same outline and offset | the lesser choice beside a primary: Cancel, skip, decline, Put it down, New game |
+| Destructive (`.btn-danger`) | none, a red outline | dismissing, releasing, demolishing, calling off, winding up |
+
+Disabled is faded and flat, whatever the role; a pale edge alone never means
+"quiet". A dialog's action row is `.modal-actions`: its bare buttons take the
+primary fill, and a classed button in it (a skip, a decline) keeps its own
+role, so no rule needs `!important`. Choice cards (a decision's choices, the
+athletic director's candidates, an instructor, a research offer) are cards
+with the same outline and offset, the label in the display face and the
+detail in the sans. A **segmented choice** (`.segmented`) is a row of cream
+pills with the picked one in the secondary fill: the Faculty views, the
+build categories, the athletics subsidy, the settings, the tree species, a
+seat's policy. An arrow (→) sits on a button only when it changes screen
+("Open in Curriculum →").
+
+**Asking before a loss** is `ConfirmButton` (Plan 47), everywhere: the first
+click arms it and the armed label reads "Confirm — ‹what is lost›" ("Confirm
+— release; the post stays open", "Confirm — English closes 8 weeks"); armed,
+any button turns pink with the red outline; blur or Escape disarms it.
+
+### The close control
+
+A **round ✕** (`.close-btn`, 26 px) closes a panel, a popup, a drawer, a
+note or a toast; a full-bleed tab has the **"Close ✕" pill**
+(`.tab-overlay-close`) instead, the one close with a word. One glyph,
+`icons.tsx`'s `CloseIcon`; the multiplication sign is never a close.
+
+### Headings
+
+| Level | Size | For |
+| --- | --- | --- |
+| Screen title (`.heading-screen`) | `--text-4xl` | a full-bleed tab's title, the founding card; the three moments' inverted modal bands |
+| Dialog title (`.heading-dialog`) | `--text-3xl` | a modal's band, the opening walkthrough's card |
+| Panel title (`.heading-panel`) | `--text-xl` | a panel on a tab, a popup, the building panel, the course drawer, a note over the map, a front-screen card |
+| Section head (`.section-head`) | `--text-md` | a section inside a panel or a dialog |
+| Eyebrow (`.eyebrow`) | `--text-xs`, capitals | a label of three words or fewer above what it names |
+| Dateline (`.dateline`) | `--text-sm` | a longer line above a title: a letter's "From the chair of the board · Week 1", the founding card's tagline |
+
+All are the display face at 800. Titles and section heads are sentence case;
+capitals are for eyebrows and chips only, never for a title or a proper
+name. The game's own name on the title screen and the Final Report's page
+title are the one hero size, `--text-5xl`.
+
+### Floating layers
+
+Named elevations: a **dialog** (a modal, the founding card, a front-screen
+card) sits at `--elevation-dialog` (`--shadow-3`); a **popup** (the build and
+log popups, the main menu, the building panel, the course drawer, the touch
+bar) at `--elevation-popup` (`--shadow-2`); a **note** (the notes over the
+map, the opening walkthrough's card, the event cards, a toast, a tooltip) at
+`--elevation-note` (`--shadow-1`). One tooltip look (`.tooltip`): the cream
+card with the outline, at the note's height, in the sans at `--text-sm`.
+
+### Icons
+
+`components/icons.tsx` holds every recurring glyph as a 24-unit line icon in
+`currentColor`, sized by CSS: the dock and the build menu's icons, and the
+controls — close, disclosure (a chevron), rename, release, remove, the
+camera's turn (an arc round the ground, apart from the building's ⟳), the
+map tools, and one set of status marks (done, pending, failed) for the
+ladder, the promises and a course's prerequisites. The Students tab and the
+dock's enrolled figure share the three-head icon.
+
+### What this replaces
+
+Plans 18 and 22 are left as written. Plan 18's "every remaining literal hex
+is a token" now holds for the Enrollment cohort bar too (`--cohort-1…8`);
+Plan 18 retired the mono, and the register brings it back for the funds
+counter alone (Plan 76, default 2). Plan 22's list of `format.ts` helpers
+names a `signedMoney` that no longer exists; the number rules are Plan 76E's.
 
 ## Keyboard
 
@@ -119,13 +248,13 @@ it.
 | Middle mouse drag | Pan too, in every mode — including mid-stroke under a path tool, where the left button is busy painting. |
 | Scroll / pinch, `+` `−` | Zoom. |
 | `Space` | Pause, or resume at whatever speed was last running. |
-| `1` `2` `3` | Play, 2×, 4×. (`4` is sandbox fast — see `playtestEnabled`.) |
+| `1` `2` `3` `4` | Play, 2×, 4×, 8× (4× and 8× once the seats have earned them). (`5` is sandbox fast — see `playtestEnabled`.) |
 | `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
-| `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. Keys only — the map's corner pill has zoom buttons and nothing for the camera. |
+| `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. On a touch screen the same moves are buttons in the map's folding "Map tools" pill (Plans 70F and 70G): zoom, turn, tilt, the opening view and the quad names. |
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review beat and a letter included — not its Admissions or Students beats, which are real choices). |
-| `C` `F` `L` | Open (or close) Curriculum, Faculty, Student Life. |
+| `C` `F` `L` | Open (or close) Curriculum, Faculty, Students. |
 
 The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
 listener, the "not while the player is typing" guard, the rule that a key held

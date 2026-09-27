@@ -53,25 +53,25 @@ export default function MainMenu({ s, act, onHall, onSettings, onTitle }: {
       {open && (
         <div className="main-menu-popup" role="dialog" aria-label="Main menu">
           <button
-            className="save-btn"
+            className="menu-btn"
             onClick={() => { act({ type: 'SAVE_GAME' }); close(); }}
             title="Write the run to this browser now. The game also saves itself every summer, at admissions."
           >
             Save
           </button>
           <button
-            className="save-btn"
+            className="menu-btn"
             title="Download the run as a file, to keep or to continue in another browser."
             onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); close(); }}
           >
             Download save
           </button>
           <ImportSave current={s} />
-          <button className="save-btn" onClick={() => { close(); onHall(); }}>Hall of fame</button>
-          <button className="save-btn" onClick={() => { close(); onSettings(); }}>Settings</button>
-          <button className="save-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>
+          <button className="menu-btn" onClick={() => { close(); onHall(); }}>Hall of fame</button>
+          <button className="menu-btn" onClick={() => { close(); onSettings(); }}>Settings</button>
+          <button className="menu-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>
           <ConfirmButton
-            className="newgame-btn"
+            className="menu-btn btn-quiet"
             title="Erase the saved run and found a new college."
             label="New game"
             armedLabel="Confirm — erase this run"

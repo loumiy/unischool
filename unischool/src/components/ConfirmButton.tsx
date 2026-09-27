@@ -6,7 +6,7 @@ import { useState, type ReactNode } from 'react';
 // tabbing away, or Escape, puts it back. `needsConfirm: false` acts on the
 // first click, for the case where there is nothing to lose this time.
 export default function ConfirmButton({
-  label, armedLabel, warning, onConfirm, className = '', disabled, title, needsConfirm = true,
+  label, armedLabel, warning, onConfirm, className = '', disabled, title, ariaLabel, needsConfirm = true,
 }: {
   label: ReactNode;
   armedLabel: ReactNode;
@@ -15,6 +15,8 @@ export default function ConfirmButton({
   className?: string;
   disabled?: boolean;
   title?: string;
+  // For a label that is only an icon; armed, the words name it.
+  ariaLabel?: string;
   needsConfirm?: boolean;
 }) {
   const [armed, setArmed] = useState(false);
@@ -25,6 +27,7 @@ export default function ConfirmButton({
         className={`${className}${armed ? ' confirm-armed' : ''}`}
         disabled={disabled}
         title={title}
+        aria-label={armed ? undefined : ariaLabel}
         aria-pressed={armed}
         onClick={() => {
           if (needsConfirm && !armed) { setArmed(true); return; }

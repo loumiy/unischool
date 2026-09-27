@@ -15,6 +15,7 @@ import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 import { rankBy } from '../systems/rivals/rivalsSystem';
 import { money } from '../format';
+import { CloseIcon, RemoveIcon } from '../components/icons';
 
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
@@ -50,7 +51,7 @@ function ScholarRow(
         <span className="scholar-stat-value">{f.research}</span>
       </span>
       {onRemove && (
-        <button type="button" className="scholar-drop" onClick={onRemove} aria-label={`Remove ${f.name}`}>✕</button>
+        <button type="button" className="scholar-drop" onClick={onRemove} aria-label={`Remove ${f.name}`} title={`Remove ${f.name}`}><RemoveIcon /></button>
       )}
     </div>
   );
@@ -84,7 +85,7 @@ function RunningPanel(
           )}
         </span>
         <ConfirmButton
-          className="facility-cancel"
+          className="facility-cancel btn-danger"
           label="Wind up"
           armedLabel="Confirm — funding is forfeit"
           onConfirm={() => act({ type: 'CANCEL_INITIATIVE', labId: lab.id })}
@@ -160,16 +161,17 @@ function VacantPanel(
           <span className="facility-depth vacant-tag">Vacant</span>
         </span>
         {!open ? (
-          <button type="button" className="facility-start" onClick={() => setOpen(true)}>Start research →</button>
+          <button type="button" className="facility-start" onClick={() => setOpen(true)}>Start research</button>
         ) : (
           // Folds the options back up without starting anything (Plan 60).
           <button
             type="button"
-            className="facility-close"
-            aria-label={`Close ${lab.name}'s options`}
+            className="close-btn"
+            aria-label={`Not now: close ${lab.name}'s options`}
+            title="Not now"
             onClick={() => { setOpen(false); setPicked(null); setTeam([]); }}
           >
-            Not now ✕
+            <CloseIcon />
           </button>
         )}
       </header>

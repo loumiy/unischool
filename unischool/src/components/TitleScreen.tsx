@@ -41,12 +41,12 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
             {' '}
             <button
               type="button"
-              className="save-btn"
+              className="menu-btn"
               onClick={() => { const raw = readSetAsideRaw(); if (raw) downloadFile(`${(setAside.name ?? 'college').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-set-aside.unischool.json`, raw); }}
             >
               Download it
             </button>
-            <button type="button" className="newgame-btn" onClick={() => { discardSetAsideSave(); setSetAside(null); }}>Discard it</button>
+            <button type="button" className="menu-btn btn-quiet" onClick={() => { discardSetAsideSave(); setSetAside(null); }}>Discard it</button>
           </p>
         )}
         <nav className="title-actions" aria-label="Start">
@@ -57,7 +57,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
             </button>
           )}
           <ConfirmButton
-            className={underway ? 'save-btn' : 'title-primary'}
+            className={underway ? 'menu-btn' : 'title-primary'}
             label="Found a new college"
             armedLabel={`Confirm — erase ${institutionName(s.self)}`}
             warning={`${institutionName(s.self)} is erased and another is founded.`}
@@ -65,8 +65,8 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
             onConfirm={onNewCollege}
           />
           <ImportSave current={s} />
-          <button type="button" className="save-btn" onClick={onSettings}>Settings</button>
-          <button type="button" className="save-btn" onClick={onCredits}>Credits</button>
+          <button type="button" className="menu-btn" onClick={onSettings}>Settings</button>
+          <button type="button" className="menu-btn" onClick={onCredits}>Credits</button>
         </nav>
         <section className="title-hall" aria-label="The hall of fame">
           <h2 className="title-hall-head">The hall of fame</h2>
@@ -77,7 +77,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
               <ul className="hall-frames">
                 {hall.slice(0, SHOWN).map((e) => <li key={e.id}><HallFrame entry={e} onClick={onHall} /></li>)}
               </ul>
-              <button type="button" className="save-btn title-hall-all" onClick={onHall}>
+              <button type="button" className="menu-btn title-hall-all" onClick={onHall}>
                 {hall.length > SHOWN ? `All ${hall.length} colleges` : 'Open the hall'}
               </button>
             </>

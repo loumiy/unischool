@@ -70,7 +70,7 @@ const SPEED_HINTS: Record<Speed, string> = {
 const SATISFACTION_WARN = 55;
 
 function termName(week: number): string {
-  return week <= WEEKS_PER_YEAR / 2 ? 'Fall Term' : 'Spring Term';
+  return week <= WEEKS_PER_YEAR / 2 ? 'Fall term' : 'Spring term';
 }
 
 // The two halves of the bottom Toolbar band (Toolbar.tsx composes them).

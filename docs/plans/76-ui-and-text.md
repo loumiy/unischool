@@ -371,6 +371,63 @@ claims and 107 vague ones.*
   Plans 18 and 22 are not edited; the register says what replaced their
   claims.
 
+**As implemented (#TBD):**
+
+- **One button base**, drawn once in `styles.css`'s new block "The
+  register's parts": 2 px of outline ink, `--shadow-1`, a pill, the display
+  face at 800, sentence case. The fill is by role: `.btn-primary` (the
+  secondary fill, one per card), cream (`.btn` and the existing pill
+  classes), `.btn-quiet` (no fill, the same outline and offset) and
+  `.btn-danger` (a red outline; pink once armed). Component rules keep only
+  their geometry. A dialog's action row is `.modal-actions`: its bare buttons
+  are primary and a classed button keeps its role, so `.modal button` and its
+  `!important` overrides are gone. `.save-btn`/`.newgame-btn` became
+  `.menu-btn` (+ `.btn-quiet`). One `.segmented` control (Faculty views,
+  build categories, subsidy, Settings, species, a seat's policy, the
+  sweep): cream pills, the picked one in the secondary fill.
+- **One close control**: `.close-btn`, a round ✕ from `icons.tsx`'s
+  `CloseIcon`, on every popup, panel, drawer, toast, the Settings, Credits
+  and Hall of fame cards, the quad panel, the research card's "Not now" and
+  the folded map tools; the tab keeps its "Close ✕" pill.
+- **`ConfirmButton` everywhere**: Faculty Dismiss ("Confirm — 6 courses left
+  unstaffed"), Found another college (its Stay is now blur or Escape), the
+  coach release ("Confirm — release; the post stays open"), the program moves
+  ("Confirm — {program} closes {n} weeks") and the import ("Confirm — replace
+  {college}"). `ConfirmButton` already disarmed on blur and Escape; it gains
+  `ariaLabel` for an icon label.
+- **A heading scale**: display tokens `--text-2xl…5xl` (22, 26, 32, 44 px);
+  `.heading-screen` (32), `.heading-dialog` (26), `.heading-panel` (17),
+  `.section-head` (14), `.eyebrow` (11, capitals, three words or fewer) and
+  `.dateline` for longer lines above a title, each grouped over the rules
+  that were one-offs. `body` is `--text-base` and controls inherit it.
+- **Done**: F1 (mono for the funds counter only; trophy years, priority
+  ranks and the crash detail in the display face), F3–F6, S1–S7, C2–C8,
+  B1–B11, I1 (close, disclosure, rename, release, remove, the camera turn,
+  the map tools, status marks into `icons.tsx`), I2 (✕ is close only; the
+  camera turn has its own arc), I3 (Students tab on `StudentsIcon`, redrawn
+  as three heads), I4 (→ dropped from in-dialog steps and "Start research"),
+  I5 (one done/pending/failed set on the ladder, promises and
+  prerequisites), K2, K4, K5, P1–P3 (the scale; both insets on the panels
+  and inner cards; the trophy's rem and the ladder's em in px), O1, O2.
+- **Skipped**: F2 (the share card's fonts need the woff2 files embedded in
+  the SVG; not straightforward). I3's own glyphs for fell, lamps and benches,
+  and I5's two sets of rank arrows (new drawings, left for later). The
+  Curriculum's collapse chevrons (PR B rewrites those rows). The tilt and
+  home glyphs on the touch camera buttons stay Unicode. SVG text in charts
+  and the satisfaction dial is sized in the drawing's units, so it stays off
+  the type scale. The inline "?" stays flat. `.modal p`'s margin
+  `!important`s are not buttons and stay.
+- **Register** (`docs/architecture/ui-shell.md`): the tabs (one Students tab,
+  four gated), the five gears with 8× on `4` and `5` for the sandbox, the
+  toasts (6 s, at most 4), the camera buttons and Map tools, `L` for
+  Students; "The register" rewritten as Tokens (the palette as it is, three
+  faces, the type and spacing scales), The two rules (R10: one primary
+  action per card), Buttons, The close control, Headings, Floating layers,
+  Icons, and What this replaces (Plans 18 and 22 left as written).
+- **Checks**: `npm run check` passes; `npm run sim` reads the same as the
+  baseline; `npm run phone` passes at 390×844 and 820×1180. Screenshots:
+  `docs/reviews/2026-10-ui-fixes/buttons-*.jpg` and `headings-*.jpg`.
+
 ## PR 76I — The phone
 
 *A2-7.*

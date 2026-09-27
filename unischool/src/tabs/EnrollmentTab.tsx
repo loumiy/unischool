@@ -19,17 +19,16 @@ const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]
   ['senior', 'Seniors'],
 ];
 
-// Categorical colors as muted, mid-dark pigments so they sit on parchment
-// and white segment labels stay legible on each.
+// The eight cohorts' colors are tokens in styles.css (--cohort-1…8).
 const COHORT_COLOR: Record<CohortId, string> = {
-  highAchievers: '#8a6d14',    // brass — the same finished-work tone as --brass-deep
-  preProfessional: '#3c4d6b',  // ink blue
-  researchOriented: '#4a6b46', // moss
-  social: '#8c4a3f',           // oxblood
-  artsFocused: '#a9683a',      // terracotta
-  priceSensitive: '#6a4a63',   // plum
-  athletes: '#a98a3c',         // ochre
-  gradBound: '#33706a',        // verdigris — aged copper, the eighth pigment
+  highAchievers: 'var(--cohort-1)',
+  preProfessional: 'var(--cohort-2)',
+  researchOriented: 'var(--cohort-3)',
+  social: 'var(--cohort-4)',
+  artsFocused: 'var(--cohort-5)',
+  priceSensitive: 'var(--cohort-6)',
+  athletes: 'var(--cohort-7)',
+  gradBound: 'var(--cohort-8)',
 };
 
 // A class whose mix is exactly the base shares: no cohort pull from anything

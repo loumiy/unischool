@@ -21,7 +21,7 @@ export default function SoundControls() {
       <legend>{AUDIO_WORDS.sound}</legend>
       <button
         type="button"
-        className={`startup-vern-btn sound-mute ${s.muted ? 'active muted' : ''}`}
+        className="btn sound-mute"
         aria-pressed={s.muted}
         onClick={() => {
           audio.unlock();
