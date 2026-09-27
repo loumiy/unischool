@@ -128,11 +128,40 @@ export function schoolHall(s: GameState, school: string): string | undefined {
   return halls[0]?.hallId;
 }
 
+// A school split over two halls while another school has no hall to go to
+// (Plan 72L, the split-school trap Plan 65 found): a school with a program
+// on offer claims no hall, no purchased hall stands empty, and some school
+// claims two halls whose smaller would fit in the larger's free slots.
+// Merging the smaller into the larger frees a hall. Without this the
+// sorting suggestions only bring strays home and never free a hall, and a
+// homeless school's offers could stand forever. The first such school, in
+// hall order; null when there is nothing to merge.
+export interface Merge { school: string; from: string; into: string }
+export function schoolToMerge(s: GameState): Merge | null {
+  const homeless = s.programOffers.some((id) => {
+    const program = programById(id);
+    return !!program && program.kind !== 'graduate' && schoolHall(s, program.school) === undefined;
+  });
+  if (!homeless || emptyHall(s) !== undefined) return null;
+  const bySchool = new Map<string, Array<{ hallId: string } & Claim>>();
+  for (const claim of claimedHalls(s)) bySchool.set(claim.school, [...(bySchool.get(claim.school) ?? []), claim]);
+  for (const [school, halls] of bySchool) {
+    if (halls.length < 2) continue;
+    const sorted = [...halls].sort((a, b) => b.housed - a.housed);
+    const into = sorted[0];
+    const from = sorted[sorted.length - 1];
+    if (into.slots - into.housed >= from.housed) return { school, from: from.hallId, into: into.hallId };
+  }
+  return null;
+}
+
 // The majors not yet at home: housed, settled, and in a hall their school
 // does not claim (Founders Hall, or a mixed hall), in Founders Hall's slot
-// order first.
+// order first; and, while a school is to be merged (schoolToMerge), the
+// programs in its smaller hall.
 export function programsAwayFromHome(s: GameState): Array<{ programId: string; school: string; hallId: string }> {
   const out: Array<{ programId: string; school: string; hallId: string }> = [];
+  const merge = schoolToMerge(s);
   const hallIds = Object.keys(s.halls).sort((a, b) => (a === FOUNDERS_HALL_ID ? -1 : b === FOUNDERS_HALL_ID ? 1 : 0));
   for (const hallId of hallIds) {
     const hall = s.tech.find((t) => t.id === hallId);
@@ -141,7 +170,9 @@ export function programsAwayFromHome(s: GameState): Array<{ programId: string; s
     for (const slot of s.halls[hallId]) {
       if (slot.programId === null || (slot.transitWeeks ?? 0) > 0) continue;
       const program = programById(slot.programId);
-      if (!program || program.kind === 'graduate' || claim?.school === program.school) continue;
+      if (!program || program.kind === 'graduate') continue;
+      const merging = merge !== null && merge.from === hallId && merge.school === program.school;
+      if (claim?.school === program.school && !merging) continue;
       out.push({ programId: program.id, school: program.school, hallId });
     }
   }
@@ -173,12 +204,14 @@ export function emptyHall(s: GameState): string | undefined {
 }
 
 // Where a program away from home should go, if anywhere now: a free slot in
-// its school's own hall, or, for the next school to move, an empty hall.
-// Null for a program at home, in transit, graduate, or with nowhere to go.
+// its school's own hall (the larger, for a school being merged), or, for
+// the next school to move, an empty hall. Null for a program at home, in
+// transit, graduate, or with nowhere to go.
 export function suggestedMove(s: GameState, programId: string): { hallId: string; slot: number } | null {
   const away = programsAwayFromHome(s).find((p) => p.programId === programId);
   if (!away) return null;
-  const home = schoolHall(s, away.school);
+  const merge = schoolToMerge(s);
+  const home = merge?.from === away.hallId ? merge.into : schoolHall(s, away.school);
   const target = home ?? (nextSchoolToMove(s) === away.school ? emptyHall(s) : undefined);
   if (target === undefined) return null;
   const hall = s.tech.find((t) => t.id === target);

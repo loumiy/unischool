@@ -2,7 +2,7 @@
 
 *Planning document only. Its job is to turn the owner's answers into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** PRs A–M merged.
 
 ---
 
@@ -389,6 +389,32 @@ its own; the game never suggested it.
   is suggested without a homeless offer, with a hall already empty, or
   when the smaller hall would not fit.
 - **Balance:** measured; the baseline re-recorded if it moves.
+
+**As implemented:**
+- `schools.ts`: `schoolToMerge(s)` names the school, the hall to empty and
+  the hall to fill when all four conditions hold (a non-graduate offer
+  whose school claims no hall; no purchased hall empty; a school claiming
+  two halls; the smaller's programs fit in the larger's free slots).
+  While it does, `programsAwayFromHome` counts the smaller hall's
+  programs as away and `suggestedMove` sends them to the larger. The
+  program tile's arrow, its *Move to* button, the letters' moves and the
+  harness's `moveHome` all read those two, so each follows.
+- `nextStep.ts`: the line reads *{School} is split over two halls: move
+  {program} into {hall} and {other hall} is free for another school*.
+  Once the hall is empty, the existing lines take over (an empty hall for
+  the next school, a free slot for an offer).
+- The natural player's own `consolidate` rule is gone; it follows the
+  suggestion through `moveHome`.
+- **Balance:** none. `npm run sim` reads the same (the five harness
+  players never meet the trap), and the pacing scorecard, which plays the
+  natural player, reads row for row what it did before, every seed still
+  building everything by year 50.
+- **Checks:** `test/split-school.test.ts` (14 checks: the trap is
+  recognized, the programs count as away and are suggested into the larger
+  hall's first free slot, the next-step line says so, the two moves empty
+  the hall and end the merge; no merge without a homeless offer, with an
+  offer from a school that has a hall, with a hall already empty, or when
+  the smaller hall would not fit).
 
 ## PR 72M — The Fountain, the Founder's Statue and the garden
 
