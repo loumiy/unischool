@@ -6,6 +6,7 @@
 | [`architecture/`](architecture/) | present | How the codebase implements them |
 | [`plans/`](plans/) | past | Closed records of how work was sequenced and what shipped |
 | [`reviews/`](reviews/) | snapshot | Design reviews of the game as it stood on a given date |
+| [`assets/`](assets/) | present | The asset gallery: every buildable asset in every vernacular, as the game draws it (`npm run gallery:assets`) |
 
 Work that is going to happen but **has not** lives in
 [`BACKLOG.md`](../BACKLOG.md) at the repository root — the one forward-looking

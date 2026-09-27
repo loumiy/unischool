@@ -3,7 +3,7 @@
 *Planning document. Its job is to turn the owner's notes on Plan 74 into
 PRs.*
 
-**Status: In progress.**
+**Status: Landed.** A to C merged.
 
 ---
 
@@ -150,3 +150,29 @@ C lands last, so the gallery shows A's and B's drawings.
 - It writes one image per group of forms to `docs/assets/`, vernaculars in
   rows and assets in columns, and an index page that lists each image and
   what it shows.
+
+**As implemented (#219).**
+
+- `unischool/tools/assetGallery.mjs` (`npm run gallery:assets`) works in
+  three steps:
+  1. It renders the contact sheets for all five vernaculars through the
+     game's own drawing (`npm run sheet -- --every`).
+  2. It photographs each cell's drawing with playwright-core.
+  3. It lays them out with vernaculars in rows and assets in columns.
+- The output is 25 JPEG images in `docs/assets/`, 3.4 MB in all, one or
+  more per form: halls and the school signature halls, civic porticos,
+  pavilions, residence halls, villages, towers, blocks, works, sheds, the
+  stadium's stages, open ground, the landmarks, and one of each form under
+  construction. A group larger than six assets is split evenly across
+  images.
+- It also writes `docs/assets/README.md`, an index that lists each image
+  and the assets in it, by name and id or state, with footprint.
+- 108 assets in all:
+  - every placeable;
+  - a chapter house;
+  - each school's signature hall;
+  - each venue at each expansion;
+  - one of each form under construction.
+- `--azimuth 225` draws them from behind, and `--out` writes elsewhere.
+- `docs/README.md` lists the gallery. Rerun the tool after any change to
+  how a building is drawn.
