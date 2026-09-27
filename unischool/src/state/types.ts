@@ -1014,9 +1014,10 @@ export interface AlumniClass {
 // Systems read it (the tier-2 gate, dedication), so the loader's
 // sanitizeHalls corrects bad entries rather than dropping them.
 //
-// `programOffers` holds the three programs foundable right now, the same at
-// every free slot, with no reroll; founding one draws a replacement
-// (programOffers.ts).
+// `programOffers` holds the three programs drawn for Founders Hall and every
+// hall no school claims, with no reroll; founding one draws a replacement,
+// and one a year may be declined for another (programOffers.ts). A claimed
+// hall offers its own school's programs besides (Plan 78D).
 export interface HallSlot {
   programId: string | null;
   // Weeks left while relocating here. In transit, the program teaches
@@ -1045,6 +1046,10 @@ export interface GameState {
   courseFaculty: CourseFaculty;       // see CourseFaculty
   halls: Record<string, HallSlot[]>;  // see HallSlot
   programOffers: string[];            // see HallSlot
+  // The year's decline of a global offer (Plan 78D): the year it was spent
+  // and the program set aside, kept off the table until the year turns
+  // (programOffers.ts's declineOffer). Absent until the first decline.
+  declinedOffer?: { year: number; programId: string };
   searches: Record<string, number>;   // faculty field -> weeks left on a posted search (facultySearch.ts)
   placements: Placements;
   pathways: Pathways;

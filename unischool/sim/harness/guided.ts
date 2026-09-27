@@ -43,7 +43,7 @@ import { LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { canPostSearch, searchCost } from '../../src/systems/faculty/facultySearch';
-import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder } from './moves';
+import { buildDorm, buildable, declineUnteachable, offersFor, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder } from './moves';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
 // What the line asks for needs only ASK_RESERVE_WEEKS: a player told to
@@ -85,6 +85,9 @@ export interface GuidedRecord {
   // Weeks the line was silent, and weeks spent saving for its ask.
   quiet: number;
   saving: number;
+  // Offers declined (Plan 78D): one nobody could teach, when the line asked
+  // to found and nothing could be.
+  declined: number;
   years: GuidedYear[];
 }
 
@@ -161,7 +164,7 @@ export function intentCost(s: GameState, intent: StepIntent): number | undefined
     case 'site':
       return costs(s.tech.filter((t) => intent.buildableIds.includes(t.id) && t.status === 'available' && !(t.id in s.placements)));
     case 'found': {
-      const ids = intent.programId ? [intent.programId] : s.programOffers;
+      const ids = intent.programId ? [intent.programId] : offersFor(s, intent.hallId);
       return costs(ids.map((id) => s.tech.find((t) => t.id === programById(id)?.entryCourseId)).filter((t): t is Buildable => t !== undefined));
     }
     case 'develop':
@@ -180,7 +183,8 @@ export function carry(g: Game, intent: StepIntent, reserve: number): boolean {
   const s = g.s;
   switch (intent.kind) {
     case 'found':
-      return foundIn(g, intent.hallId, intent.programId ? [intent.programId] : [...s.programOffers], reserve);
+      // A claimed hall's own school's programs, else the draw (Plan 78D).
+      return foundIn(g, intent.hallId, intent.programId ? [intent.programId] : offersFor(s, intent.hallId), reserve);
     case 'move': {
       const move = { programId: intent.programId, hallId: intent.hallId, slot: intent.slot };
       if (!canRelocateProgram(s, move)) return false;
@@ -263,7 +267,7 @@ function background(g: Game, reserve: number): void {
 }
 
 export function createGuidedPlayer(): Player & { record: GuidedRecord } {
-  const record: GuidedRecord = { delivered: {}, done: {}, schools: {}, foundersHome: null, asked: {}, carried: {}, quiet: 0, saving: 0, years: [] };
+  const record: GuidedRecord = { delivered: {}, done: {}, schools: {}, foundersHome: null, asked: {}, carried: {}, quiet: 0, saving: 0, declined: 0, years: [] };
   let lastYear = 0;
 
   function observe(s: GameState): void {
@@ -314,6 +318,9 @@ export function createGuidedPlayer(): Player & { record: GuidedRecord } {
         record.asked[kind] = (record.asked[kind] ?? 0) + 1;
         if (carry(g, step.intent, reserve)) record.carried[kind] = (record.carried[kind] ?? 0) + 1;
         else {
+          // Told to found and nothing could be: an offer nobody can teach is
+          // declined for another (Plan 78D), once a year.
+          if (kind === 'found' && declineUnteachable(g)) record.declined += 1;
           const cost = intentCost(g.s, step.intent);
           // A research ask is not worth freezing the college for (Plan 69):
           // saving for one starved the courses the line had stopped asking

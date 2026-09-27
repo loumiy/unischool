@@ -99,6 +99,8 @@ export default function App() {
   // The Curriculum tab's "Found in <hall>": closes the tab and opens that
   // hall's panel on the map. Consumed and cleared by the map.
   const [inspectTarget, setInspectTarget] = useState<string | null>(null);
+  // The program whose tile opens with that hall's panel (NEXT's move, Plan 78D).
+  const [inspectProgram, setInspectProgram] = useState<string | null>(null);
   // Which building's panel the map has open (reported by CampusMap), so the
   // opening walkthrough's card can tell whether its door is open.
   const [inspectedId, setInspectedId] = useState<string | null>(null);
@@ -238,9 +240,10 @@ export default function App() {
       setPlacingIdState(null);
     }
   }
-  function inspectHall(hallId: string) {
+  function inspectHall(hallId: string, programId?: string) {
     if (holding) return;
     openTab(null);
+    setInspectProgram(programId ?? null);
     setInspectTarget(hallId);
   }
   function setBuildOpen(open: boolean) {
@@ -363,7 +366,8 @@ export default function App() {
           controlsEnabled={mapControlsEnabled}
           onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
           inspectTarget={inspectTarget}
-          onInspectTargetConsumed={() => setInspectTarget(null)}
+          inspectProgram={inspectProgram}
+          onInspectTargetConsumed={() => { setInspectTarget(null); setInspectProgram(null); }}
           onInspectedChange={setInspectedId}
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
@@ -385,10 +389,10 @@ export default function App() {
             onSetOpen={(o) => { setLogOpen(o); if (o) { setLadderOpen(false); closeBuild(); } }}
             ladderOpen={ladderOpen}
             onSetLadderOpen={(o) => { setLadderOpen(o); if (o) { setLogOpen(false); closeBuild(); } }}
-            onGo={(go, hallId) => {
+            onGo={(go, hallId, programId) => {
             if (go === 'build') setBuildOpen(true);
             else if (go === 'campus') openTab(null);
-            else if (go === 'hall') { if (hallId) inspectHall(hallId); }
+            else if (go === 'hall') { if (hallId) inspectHall(hallId, programId); }
             else openTab(go);
           }}
             inboxOpen={overlay?.tab === 'inbox'}

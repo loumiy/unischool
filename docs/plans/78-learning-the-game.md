@@ -285,6 +285,101 @@ is this plan.
   - the harness players take the new offers;
   - `npm run sim`, re-recorded, with the move described here.
 
+
+**As implemented (#TBD):**
+- **A claimed hall's "+"** offers its own school first.
+  - It is a sim change, not a UI list. `programOffers.ts`'s
+    `schoolOffers` reads every revealed, unhoused major of the school a
+    purchased hall claims. It draws nothing, so the random stream is
+    untouched.
+  - `canFoundProgram` accepts a major that is on the global offer or in
+    that hall's own list (`offeredIn`). Founding one leaves the global
+    offer as it was.
+  - The panel shows "Science programs for program slot N", then "Other
+    schools, from the offers". Founders Hall and unclaimed halls show the
+    global three.
+  - **For the owner:** the other schools' offers stay in a claimed hall,
+    behind the confirmation. Hiding them would make item 3 unreachable.
+    They are one line to remove if the owner wants the stricter reading.
+- **Decline:** "Not this year" under each global offer, a
+  `ConfirmButton` ("Confirm — no other offer can be declined until Year
+  N").
+  - `DECLINE_OFFER` removes the offer and refills through the ordinary
+    `refillOffers` draw. That draw is the offer's own state-seeded dice,
+    not the game's stream.
+  - The declined program stays out of the draw until the year turns.
+  - A second decline that year is refused with its reason, shown under
+    the offers: "One offer a year may be declined, and Management was
+    declined this year. The next can be declined in Year 4."
+  - New optional field `declinedOffer: { year, programId }`.
+    `SAVE_VERSION` 79 → 80, with a migration (`noDeclineYet`) and a load
+    sanitizer. `test/fixtures/save-v79.json` was written before the bump.
+- **The confirmation:** Found is a `ConfirmButton` that asks only when
+  `schools.ts`'s `claimCutBy` finds another school's claim.
+  - Armed: "Confirm — this takes one of the six program slots Science
+    needs". The count is `countWord(claim.slots)`, new in `format.ts`.
+  - The warning names the hall, the claim and the program.
+- **NEXT:**
+  - A move now reads "Move Psychology into Elm Hall". It opens the hall
+    the program is in, with its tile open and the move showing
+    (`NextStep.programId`, through `App.tsx` and `CampusMap.tsx`'s
+    `inspectProgram`). All three sorting letters and `awayFromHome` use
+    it.
+  - A claimed hall with room no longer waits on the draw. The letter asks
+    to found from the hall's own list, and the line reads "Elm Hall has
+    room for Science (4 of 6): Chemistry or 1 more on offer there".
+  - The only waits left are true ones: Founders Hall, once a school's
+    home, "has room for X when one is on offer: founding a program or
+    declining an offer draws the next".
+- **Harness:**
+  - `moves.ts`'s `foundable` puts each claimed hall's own programs first,
+    then the global offers where `homeFor` sends them. `foundOffer`, the
+    natural player and the Selective archetype use it.
+  - The guided player founds into a claimed hall from its own list only
+    (`offersFor`).
+  - When the line asks it to found and nothing can be, the guided player
+    declines an offer nobody can teach (`declineUnteachable`). That
+    happened 1–4 times in 50 years per seed.
+  - Fuzz sends `DECLINE_OFFER`.
+- **Checks:**
+  - `test/offer-decline.test.ts`: the own list and the founding gate;
+    decline once a year; the refusal; no draw on the stream; the claim
+    that arms the confirm; sanitizing on load.
+  - `test/split-school.test.ts` replays trace 7 from the v79 save (the
+    new `split-school` scenario). Before, the line waited 35–69 weeks on
+    "has room for Science when one is on offer". Now it never waits,
+    Science is founded within the year, and a second school has its hall
+    within two.
+  - `test/sorting.test.ts` was updated to the new asks.
+  - The armed confirm is checked by screenshot, not by a UI test:
+    `docs/reviews/2026-10-ui-fixes/halls-desktop.jpg` and
+    `halls-phone.jpg` show Elm Hall's own Science list, the decline
+    buttons and the armed Found. `npm run phone` passes on the scenario
+    save.
+- **The sim move** (medians of three seeds, against the old baseline):
+  - **Lean moves most.** At Year 50 it has prestige 97.8 → 111.9, rank
+    32 → 23, 4,425 → 8,255 enrolled and $41.6M → $454.7M cash. At Year 25
+    it has 4 schools, not 5.
+    - Before, it founded only global offers where they belonged. It sat
+      at 36 programs (five schools) from about Year 25 to Year 45, with
+      claimed halls' program slots empty and waiting on the draw. That is
+      A3-1's trap, played out by a harness player.
+    - Now two seeds of three have all 42 programs and the whole catalogue
+      by Year 30–35. The third gets there by Year 45 (Year 50 before).
+  - **Selective:** rank at Year 50 is 23 → 14, and prestige 115.5 →
+    119.5. Its twelve programs now come from its own schools' halls
+    rather than waiting on the draw. It still founds one school.
+  - **Completionist:** 2 schools by Year 10 (was 1), and rank at Year 10
+    is 41 → 39. The rest moves a little: cash at Year 25 is −$2.4M and at
+    Year 50 +$19.3M, and satisfaction at Year 50 is −2.7.
+  - **Guided:** at Year 10, 71 courses (−7), $4.4M cash (−$0.7M) and
+    5,520 enrolled (+226). Money went to foundings into its schools' halls
+    before further courses. At Year 50, prestige is −0.7, cash
+    +$109.0M, and rank is still 1. Schools are founded in about the same
+    years.
+  - **Idle** is unchanged. No tuning constant was touched.
+    `sim/baseline.json` is re-recorded.
+
 ## PR 78E — No decision passes unseen
 
 *A3-3, new concerns 3, 4 and 5 (default 1).*

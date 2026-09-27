@@ -54,9 +54,11 @@ year the latest letter's ask until it is done; afterwards a waiting letter's
 ask — unless it has nothing to do this week, when it gives way (Plan 58) —
 then the highest-value thing on offer: a program gone dark that the payroll or
 the market can staff, ahead even of a letter (Plan 60); a program that can move to its
-school's hall (Plan 55), or the next hall to site when a school has no hall
+school's hall (Plan 55: the line opens the hall the program is in, its tile
+open on the move, Plan 78D), or the next hall to site when a school has no hall
 to move to; a hall with a free program slot while programs are offered (an offer's
-own school's hall first), or the next hall when nothing on offer has one; a
+own school's hall first), a claimed hall's room for its own school's programs
+(Plan 78D), or the next hall when nothing on offer has one; a
 program one course from established; a satisfaction attribute under 50; an
 idle lab —
 recomputed from state on every render (`src/systems/guidance/nextStep.ts`). A
@@ -207,7 +209,11 @@ seat's policy. An arrow (→) sits on a button only when it changes screen
 **Asking before a loss** is `ConfirmButton` (Plan 47), everywhere: the first
 click arms it and the armed label reads "Confirm — ‹what is lost›" ("Confirm
 — release; the post stays open", "Confirm — English closes 8 weeks"); armed,
-any button turns pink with the red outline; blur or Escape disarms it.
+any button turns pink with the red outline; blur or Escape disarms it. A
+button that loses something only sometimes asks only then (`needsConfirm`):
+Found asks only when another school's program would take a claimed hall's
+program slot ("Confirm — this takes one of the six program slots Science
+needs", Plan 78D).
 
 ### The close control
 

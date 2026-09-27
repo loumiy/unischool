@@ -60,7 +60,10 @@ PR G, an optional `mutate` step that breaks the school after the run (the
 `crisis` scenario stands the guided player's college up at year 15 and puts
 it in the hole — satisfaction 35, a body half again too big, cash gone — the
 state `test/archetypes.test.ts` hands back to the guided player to prove
-recovery is possible), in `tools/scenarios.ts`. `npm run scenario` plays the real
+recovery is possible; the `split-school` scenario stops at "A school takes
+shape" and fills Founders Hall with other schools' programs, the October
+review's trace 7, which `test/split-school.test.ts` replays from its
+version-79 save), in `tools/scenarios.ts`. `npm run scenario` plays the real
 reducer forward and writes a real save (`persistence.ts`'s `SavePayload` at
 the current `SAVE_VERSION`), so nothing generated is committed and nothing
 needs migrating. A committed save would be a few hundred KiB and stale the
@@ -196,7 +199,8 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   It sends actions through `reduceInPlace` (engine/reducer.ts), the reducer
   without its clone, unless a run asks for the real one (`clone`).
 - **The moves** (`sim/harness/moves.ts`): the one vocabulary every player is
-  a policy over — found an offer where it belongs, move a program home,
+  a policy over — found an offer where it belongs (a claimed hall's own
+  school's programs into it first, Plan 78D), move a program home,
   site the next hall, develop a course, hire for a blocked field, build for
   a shortfall, build a dorm. Each reads the game's own gates and readings,
   so a rule change updates one move. Two knobs: `pick` (first, or random)
@@ -204,7 +208,8 @@ Its code is `sim/harness/`; the old scripted-strategy sim
 - **The rules** (`sim/harness/invariants.ts`, `brokenRules`): what any state
   must keep, however it was played — every number finite, the clock on its
   scale, halls real and the right size, every program housed once and only
-  where its kind may go, at most three distinct unhoused majors on offer,
+  where its kind may go, at most three distinct unhoused majors on the global
+  offer,
   placements real, on the grid and apart, development counting down only
   what develops, every instructor on the payroll, no class below zero, every
   score on 0–100. Never a number the owner could tune.
@@ -223,7 +228,9 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   when the cash does not cover it (never for a research initiative), fixes
   any satisfaction attribute under 25 even while saving, keeps a reserve of
   three weeks' expenses for its own spending and funds research only above
-  five, takes on nothing recurring while the week runs at a loss, posts a
+  five, takes on nothing recurring while the week runs at a loss, declines
+  (once a year) an offer nobody can teach when the line asks it to found
+  and nothing can be (Plan 78D), posts a
   faculty search when a course waits on a field nobody is listed in, builds
   what a waiting course needs, and prices the summer at what its standing tolerates (the admissions
   screen's "fair"). `test/guided.test.ts` (slow) checks three fifty-year
@@ -237,7 +244,8 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   run a college, each a policy over the moves and the guided player's plain
   sense. **Completionist** builds and develops everything it can afford,
   fields every team and keeps its labs busy, on a thin reserve; **Selective**
-  stays narrow — twelve programs at most, its own schools' offers first —
+  stays narrow — twelve programs at most, its own schools' programs first,
+  a claimed hall's own offers included —
   prices over the market and admits fewer, on a deep reserve; **Lean**
   spends only while the week's net is in the black and builds only for a
   real shortfall; **Idle** does nothing. `test/archetypes.test.ts` (slow)
@@ -249,7 +257,8 @@ Its code is `sim/harness/`; the old scripted-strategy sim
 - **The natural player** (`sim/harness/natural.ts`, Plan 65): the line of
   play the owner thinks a new player falls into, spending cash to zero —
   fix any satisfaction attribute under 100 a building would raise; found
-  every program on offer (market hires only, never a posted search), the
+  every program on offer and every program a claimed hall offers of its own
+  school (market hires only, never a posted search), the
   next hall when slots run out, deeper courses meanwhile, the building a
   course waits on; sort the schools at four halls (seven until Plan 69); accept every varsity
   petition, build its venue and fill its chairs; fund every lab's deepest
