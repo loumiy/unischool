@@ -1,6 +1,6 @@
 # The asset gallery
 
-Every buildable asset in all five vernaculars, drawn by the game itself from the opening camera (azimuth 45°). Vernaculars run down each image and assets across it. Written by `npm run gallery:assets` (unischool/tools/assetGallery.mjs, Plan 75C); run it again after any change to how a building is drawn.
+Every buildable asset in all nine vernaculars (the five founding sets, then the four a run unlocks), drawn by the game itself from the opening camera (azimuth 45°). Vernaculars run down each image and assets across it. Written by `npm run gallery:assets` (unischool/tools/assetGallery.mjs, Plan 75C); run it again after any change to how a building is drawn.
 
 108 assets in 25 images.
 

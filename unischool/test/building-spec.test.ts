@@ -26,7 +26,7 @@ import {
   materialOf, materialsFor, stoneFor, roofFor, parapetOf, paneShapeOf,
   windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
-  VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
+  VERNACULAR_CHOICES, BONUS_VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS, IMPLEMENTED_CREST_PARTS,
   SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf, signifierOf, labFeatureOf, signatureOf, gothicCivicOf,
   hasClockTower as carriesClockTower,
@@ -944,9 +944,11 @@ console.log('campus scale and building spec');
 // The founding screen builds its picker from VERNACULAR_CHOICES (Plan 07's
 // PR K). A set that exists in VERNACULARS but not in that list is a set
 // nobody can ever choose — it would be in the game, tested, drawn, and
-// unreachable — and nothing about adding one would fail without this.
+// unreachable — and nothing about adding one would fail without this. The
+// bonus sets (BONUS_VERNACULAR_CHOICES) are named and described the same
+// way, waiting on an unlock.
 {
-  const offered = VERNACULAR_CHOICES.map((c) => c.id);
+  const offered = [...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES].map((c) => c.id);
   const built = Object.keys(VERNACULARS) as Vernacular[];
   for (const v of built) {
     assert(offered.includes(v), `'${v}' is offered on the founding screen`);
@@ -955,7 +957,7 @@ console.log('campus scale and building spec');
     assert(built.includes(id), `the founding screen does not offer '${id}', which is not a vernacular`);
   }
   assert(new Set(offered).size === offered.length, 'no vernacular is offered twice');
-  for (const c of VERNACULAR_CHOICES) {
+  for (const c of [...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES]) {
     assert(c.label.trim().length > 0 && c.blurb.trim().length > 0,
       `'${c.id}' has a name and a description to offer`);
   }

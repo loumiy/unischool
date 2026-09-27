@@ -713,6 +713,9 @@ export interface VernacularRoof {
   parapet: number;
   // Roof overhang past the walls, in meters. Absent means none.
   eavesMetres?: number;
+  // A hall's roof shape: a hip (the default), or a mansard, whose ridge
+  // table then gives the height of its steep lower slope (Second Empire).
+  form?: 'hip' | 'mansard';
 }
 
 export type WindowShape =
@@ -754,6 +757,10 @@ export type ApexPart =
   | 'campanile'  // Mission
   | 'dome'       // a broad stone dome on a drum — Classical
   | 'core'       // a blank stair core — Modern
+  | 'gatehouse'  // a brick gate tower between four capped turrets — Tudor
+  | 'belvedere'  // a square lookout, arched on every face, under bracketed eaves — Italianate
+  | 'pavilionTower' // a clock stage under a tall mansard and iron cresting — Second Empire
+  | 'ziggurat'   // stepped setbacks, fluted, to a gilt mast — Art Deco
   | 'none';
 
 export interface VernacularParts {
@@ -780,6 +787,12 @@ export interface VernacularParts {
   balustrade?: boolean;
   // Modern: the civic set is curtain wall from plinth to eaves.
   glazedCivic?: boolean;
+  // Tudor: the upper floors half-timbered over a brick ground floor.
+  timbering?: boolean;
+  // Italianate: paired brackets under the deep eaves.
+  brackets?: boolean;
+  // Art Deco: full-height piers between the bays of a hall's front.
+  piers?: boolean;
   // The surface the invariant massing wears (Plan 74E): the way in at a
   // block's, a lab's or a shed's door, and the crest on its parapet.
   surfaceEntrance: EntrancePart;
@@ -1070,12 +1083,158 @@ const MISSION: VernacularSpec = {
   massing: 'solid',
 };
 
+// --- Bonus vernaculars (prototype) -------------------------------------
+// Seven sets that are drawn and tested but not offered at founding
+// (BONUS_VERNACULAR_CHOICES): candidates for sets a run can unlock. Each
+// keeps the invariant walls (render, curtain, clinical) and the lead deck.
+
+const BONUS_DECK = '#7c8377';
+const INVARIANT = {
+  render: { wall: '#b0a992', roof: BONUS_DECK },
+  curtain: { wall: '#93a9b4', roof: BONUS_DECK },
+  clinical: { wall: '#eef1f2', roof: '#c2ccd1' },
+} as const;
+
+// Tudor: plum-red brick, the upper floors close-studded in oak over a
+// limewashed infill, steep tile-dark roofs, tall stacks, and a gatehouse.
+const TUDOR_ROOF = '#4f5560';
+const TUDOR: VernacularSpec = {
+  materials: {
+    brickRed: { wall: '#8f4a3e', roof: TUDOR_ROOF },
+    brickBuff: { wall: '#c4955e', roof: TUDOR_ROOF },
+    limestone: { wall: '#d9cfb0', roof: BONUS_DECK },
+    ...INVARIANT,
+    brickDark: { wall: '#4e3a33', roof: BONUS_DECK },
+  },
+  stone: {
+    trim: '#e8dcc0',
+    gilt: '#b9a46a',
+    // The gatehouse is brick, darker than the halls so it reads against them.
+    towerStone: '#9a5646',
+    // Leaded lights: darker than a painted sash.
+    glass: 'rgba(58, 66, 74, 0.62)',
+  },
+  roof: {
+    ridgeMetres: { hall: 11.0, village: 6.0, pavilion: 5.0 },
+    residentialRidgeMetres: (storeys: number) => (storeys <= 3 ? 7.0 : 6.0),
+    parapet: 0,
+    eavesMetres: 0.3,
+  },
+  windowShape: 'rect',
+  parts: {
+    entrance: { hall: 'porch', portico: 'colonnade', pavilion: 'canopy', residential: 'canopy', village: 'none' },
+    rooflineEnd: 'none',
+    apex: 'gatehouse',
+    surfaceEntrance: 'canopy',
+    crest: 'merlons',
+    hood: true,
+    chimneys: true,
+    pairedLights: true,
+    timbering: true,
+  },
+  massing: 'solid',
+};
+
+// Italianate: warm ochre stucco, low hips on deep bracketed eaves, tall
+// round-headed windows, and a belvedere.
+const ITALIANATE_ROOF = '#5a5550';
+const ITALIANATE: VernacularSpec = {
+  materials: {
+    brickRed: { wall: '#d4a373', roof: ITALIANATE_ROOF },
+    brickBuff: { wall: '#a15a45', roof: ITALIANATE_ROOF },
+    limestone: { wall: '#e6dcc4', roof: BONUS_DECK },
+    ...INVARIANT,
+    brickDark: { wall: '#5e4a3c', roof: BONUS_DECK },
+  },
+  stone: { trim: '#f4ecd8', gilt: '#b8913a', towerStone: '#e3cfa9', glass: 'rgba(70, 64, 58, 0.55)' },
+  roof: {
+    ridgeMetres: { hall: 2.8, village: 3.0, pavilion: 2.2 },
+    residentialRidgeMetres: (storeys: number) => (storeys <= 3 ? 3.0 : 2.4),
+    parapet: 0,
+    eavesMetres: 1.4,
+  },
+  windowShape: 'arched',
+  parts: {
+    entrance: { hall: 'portico', portico: 'colonnade', pavilion: 'canopy', residential: 'canopy', village: 'none' },
+    rooflineEnd: 'none',
+    apex: 'belvedere',
+    surfaceEntrance: 'archway',
+    crest: 'coping',
+    hood: true,
+    brackets: true,
+  },
+  massing: 'solid',
+};
+
+// Second Empire: pale sandstone under a steep slate mansard pierced by
+// dormers, iron cresting, and a clock pavilion under its own mansard.
+const MANSARD_SLATE = '#4d5566';
+const SECOND_EMPIRE: VernacularSpec = {
+  materials: {
+    brickRed: { wall: '#d2c6a8', roof: MANSARD_SLATE },
+    brickBuff: { wall: '#8e6a5a', roof: MANSARD_SLATE },
+    limestone: { wall: '#a88c6b', roof: MANSARD_SLATE },
+    ...INVARIANT,
+    brickDark: { wall: '#4a3f3a', roof: BONUS_DECK },
+  },
+  stone: { trim: '#ece4d0', gilt: '#b89b4a', towerStone: '#ddd2b8', glass: PAINTED_SASH },
+  roof: {
+    // The mansard's lower slope, not a ridge: it is nearly a storey.
+    ridgeMetres: { hall: 5.6, village: 4.0, pavilion: 4.0 },
+    residentialRidgeMetres: (storeys: number) => (storeys <= 3 ? 4.4 : 4.0),
+    parapet: 0,
+    eavesMetres: 0.35,
+    form: 'mansard',
+  },
+  windowShape: 'rect',
+  parts: {
+    entrance: { hall: 'portico', portico: 'colonnade', pavilion: 'portico', residential: 'canopy', village: 'none' },
+    rooflineEnd: 'none',
+    apex: 'pavilionTower',
+    surfaceEntrance: 'portico',
+    crest: 'coping',
+  },
+  massing: 'solid',
+};
+
+// Art Deco: cream limestone in vertical piers, flat roofs behind a tall
+// parapet, and a stepped tower to a gilt mast.
+const ART_DECO: VernacularSpec = {
+  materials: {
+    brickRed: { wall: '#ddd3bd', roof: BONUS_DECK },
+    brickBuff: { wall: '#b88a5a', roof: BONUS_DECK },
+    limestone: { wall: '#e0b98f', roof: BONUS_DECK },
+    ...INVARIANT,
+    brickDark: { wall: '#3f4a4f', roof: BONUS_DECK },
+  },
+  stone: { trim: '#efe8d6', gilt: '#c8a040', towerStone: '#e6dec9', glass: 'rgba(45, 60, 70, 0.65)' },
+  roof: {
+    ridgeMetres: {},
+    residentialRidgeMetres: () => 0,
+    parapet: up(1.2),
+  },
+  windowShape: 'rect',
+  parts: {
+    entrance: { hall: 'recess', portico: 'colonnade', pavilion: 'canopy', residential: 'canopy', village: 'none' },
+    rooflineEnd: 'none',
+    apex: 'ziggurat',
+    surfaceEntrance: 'recess',
+    crest: 'coping',
+    piers: true,
+  },
+  massing: 'solid',
+};
+
 export const VERNACULARS: Record<Vernacular, VernacularSpec> = {
   georgian: GEORGIAN,
   gothic: GOTHIC,
   classical: CLASSICAL,
   mission: MISSION,
   modern: MODERN,
+  tudor: TUDOR,
+  italianate: ITALIANATE,
+  secondEmpire: SECOND_EMPIRE,
+  artDeco: ART_DECO,
 };
 
 // A vernacular without trim or gilding says so with this value.
@@ -1159,6 +1318,15 @@ export const VERNACULAR_CHOICES: VernacularChoice[] = [
   { id: 'modern', label: 'Modern', blurb: 'White panel, glass and burnt-orange brick, under flat roofs.' },
 ];
 
+// The bonus sets (prototype): drawn and tested, not offered at founding
+// until something unlocks them.
+export const BONUS_VERNACULAR_CHOICES: VernacularChoice[] = [
+  { id: 'tudor', label: 'Tudor', blurb: 'Plum brick and black-and-white timbering, under tall stacks and a gatehouse.' },
+  { id: 'italianate', label: 'Italianate', blurb: 'Ochre stucco and arched windows, on bracketed eaves under a belvedere.' },
+  { id: 'secondEmpire', label: 'Second Empire', blurb: 'Pale stone under slate mansards, dormers and iron cresting.' },
+  { id: 'artDeco', label: 'Art Deco', blurb: 'Cream limestone in soaring piers, stepping up to a gilt mast.' },
+];
+
 export function partsFor(v: Vernacular): VernacularParts {
   return VERNACULARS[v].parts;
 }
@@ -1197,7 +1365,7 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // asserts every part a vernacular names is listed here.
 export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'archway', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
-export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'none'];
+export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'gatehouse', 'belvedere', 'pavilionTower', 'ziggurat', 'none'];
 export const IMPLEMENTED_CREST_PARTS: CrestPart[] = ['coping', 'merlons', 'balustrade', 'tile', 'none'];
 
 // Whether this vernacular has a roof at all: derived (something pitched or a
@@ -1209,6 +1377,10 @@ export function hasRoofForm(v: Vernacular): boolean {
 
 export function parapetOf(v: Vernacular): number {
   return VERNACULARS[v].roof.parapet;
+}
+
+export function isMansard(v: Vernacular): boolean {
+  return VERNACULARS[v].roof.form === 'mansard';
 }
 
 export function eavesOf(v: Vernacular): number {

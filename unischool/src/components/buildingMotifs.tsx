@@ -24,7 +24,7 @@ import {
   TOWER_BELFRY_PLAN, TOWER_BELFRY_RISE, TOWER_SPIRE_RISE,
   TOWER_PINNACLE_PLAN, TOWER_PINNACLE_RISE,
   baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
-  rankSills, ridgeOf, parapetOf, eavesOf, stoneFor, paneShapeOf, windowOutline,
+  rankSills, ridgeOf, parapetOf, eavesOf, isMansard, stoneFor, paneShapeOf, windowOutline,
   entrancePartOf, rooflineEndPartOf, signatureOf, apexPartOf, partsFor, type ApexPart, massingOf,
   crestOf, surfaceRoofOf, type CrestPart, signifierOf, type Signifier, gothicCivicOf, roofFor,
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
@@ -2493,6 +2493,425 @@ function ChapterPediment({ glyphs, origin, along, wallHeight, span, doorWidth, c
   );
 }
 
+// --- Bonus vernaculars' parts (prototype) --------------------------------
+// The applied surfaces and tower tops the seven bonus sets name
+// (buildingSpec.ts's BONUS_VERNACULAR_CHOICES). Same conventions as above:
+// faces by grid direction, back to front, heights through `up`.
+
+const OAK = '#3b2e27';
+const LIMEWASH = '#ece3cc';
+const IRON = '#2d3034';
+const LEAD = '#6f7479';
+
+// Close-studded timbering (Tudor): a limewashed band from the first floor to
+// the eaves, oak studs at a studding interval, a rail at every floor and a
+// sill beam. Windows paint over it.
+function Timbering({ origin, along, wallHeight, span, from, to, floors }: {
+  origin: Pt; along: Pt; wallHeight: number; span: number; from: number; to: number; floors: number[];
+}) {
+  if (to <= from) return null;
+  const q = (u0: number, u1: number, z0: number, z1: number) => polyPoints([
+    facePoint(origin, along, wallHeight, u0, z0 / wallHeight), facePoint(origin, along, wallHeight, u1, z0 / wallHeight),
+    facePoint(origin, along, wallHeight, u1, z1 / wallHeight), facePoint(origin, along, wallHeight, u0, z1 / wallHeight),
+  ]);
+  const spanM = span * METRES_PER_TILE;
+  const n = Math.max(4, Math.round(spanM / 1.4));
+  const stud = 0.32 / spanM;
+  const beam = up(0.35);
+  const rails = [from, ...floors.filter((z) => z > from + beam && z < to - beam), to - beam];
+  return (
+    <>
+      <polygon points={q(0, 1, from, to)} fill={LIMEWASH} />
+      {Array.from({ length: n + 1 }, (_, i) => {
+        const u = Math.min(1 - stud, Math.max(0, i / n - stud / 2));
+        return <polygon key={`s${i}`} points={q(u, u + stud, from, to)} fill={OAK} />;
+      })}
+      {rails.map((z, i) => <polygon key={`r${i}`} points={q(0, 1, z, z + beam)} fill={OAK} />)}
+    </>
+  );
+}
+
+// Paired brackets under deep eaves (Italianate), one pair at every bay line.
+function EavesBrackets({ origin, along, wallHeight, span, top, stone }: {
+  origin: Pt; along: Pt; wallHeight: number; span: number; top: number; stone: StonePalette;
+}) {
+  const spanM = span * METRES_PER_TILE;
+  const bays = Math.max(2, Math.round(spanM / BAY_METRES));
+  const bw = 0.5 / spanM; const gap = 0.4 / spanM;
+  const z0 = (top - up(2.6)) / wallHeight; const z1 = top / wallHeight;
+  const fill = shade(stone.trim, 0.7);
+  const out: React.ReactNode[] = [];
+  for (let i = 0; i <= bays; i++) {
+    const u = i / bays;
+    for (const du of [-gap / 2 - bw, gap / 2]) {
+      const u0 = Math.min(1 - bw, Math.max(0, u + du));
+      out.push(
+        <polygon key={`${i}${du}`} fill={fill} points={polyPoints([
+          facePoint(origin, along, wallHeight, u0, z1), facePoint(origin, along, wallHeight, u0 + bw, z1),
+          facePoint(origin, along, wallHeight, u0 + bw, z0 + (z1 - z0) * 0.45), facePoint(origin, along, wallHeight, u0, z0),
+        ])} />,
+      );
+    }
+  }
+  return <>{out}</>;
+}
+
+// A clock face on a wall, centered at (0.5, cv) in the wall's (u, v).
+function WallClock({ origin, along, height, span, cv, r }: {
+  origin: Pt; along: Pt; height: number; span: number; cv: number; r: number;
+}) {
+  const ru = r / span; const rv = (r * METRES_PER_TILE * up(1)) / height;
+  const pts: Pt[] = [];
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2;
+    pts.push(facePoint(origin, along, height, 0.5 + Math.cos(a) * ru, cv + Math.sin(a) * rv));
+  }
+  const c = facePoint(origin, along, height, 0.5, cv);
+  const big = facePoint(origin, along, height, 0.5 + ru * 0.1, cv + rv * 0.62);
+  const small = facePoint(origin, along, height, 0.5 + ru * 0.5, cv - rv * 0.18);
+  return (
+    <>
+      <polygon className="iso-clock-face" points={polyPoints(pts)} />
+      <line className="iso-clock-hand" x1={c.x} y1={c.y} x2={big.x} y2={big.y} />
+      <line className="iso-clock-hand" x1={c.x} y1={c.y} x2={small.x} y2={small.y} />
+    </>
+  );
+}
+
+// A truncated hip: four slopes from the box (col, row, w, h) at `base` up to
+// the same box inset by `inset`, `rise` higher. Back slopes first; returns
+// the top ring too, for a deck, cresting or what stands on it.
+function frustum(col: number, row: number, w: number, h: number, base: number, rise: number, inset: number, pal: Palette) {
+  const b = (c: number, r: number) => lift(project(c, r), base);
+  const t = (c: number, r: number) => lift(project(c, r), base + rise);
+  const NW = b(col, row), NE = b(col + w, row), SE = b(col + w, row + h), SW = b(col, row + h);
+  const i = inset;
+  const nw = t(col + i, row + i), ne = t(col + w - i, row + i), se = t(col + w - i, row + h - i), sw = t(col + i, row + h - i);
+  const slopes: Array<[FaceDir, Pt[]]> = [
+    ['negRow', [NW, NE, ne, nw]], ['negCol', [NW, SW, sw, nw]],
+    ['posRow', [SW, SE, se, sw]], ['posCol', [NE, SE, se, ne]],
+  ];
+  return {
+    top: [nw, ne, se, sw],
+    faces: backSlopesFirst(slopes, (s) => s[0]).map(([dir, pts]) => (
+      <polygon key={dir} points={polyPoints(pts)} fill={pal[dir]} />
+    )),
+  };
+}
+
+// Iron cresting along the two near edges of a flat top.
+function Cresting({ col, row, w, h, z }: { col: number; row: number; w: number; h: number; z: number }) {
+  const f = boxFaces(col, row, w, h, z, up(0.9));
+  return (
+    <>
+      {[[f.D, f.C, f.spanLeft] as const, [f.C, f.B, f.spanRight] as const].map(([o, a, span], k) => {
+        const n = Math.max(3, Math.round(span * METRES_PER_TILE / 0.8));
+        const top = facePoint(o, a, up(0.9), 0, 1); const topEnd = facePoint(o, a, up(0.9), 1, 1);
+        return (
+          <g key={k} stroke={IRON} strokeWidth={0.7}>
+            <line x1={top.x} y1={top.y} x2={topEnd.x} y2={topEnd.y} />
+            {Array.from({ length: n + 1 }, (_, i) => {
+              const p0 = facePoint(o, a, up(0.9), i / n, 0); const p1 = facePoint(o, a, up(0.9), i / n, 1.35);
+              return <line key={i} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} />;
+            })}
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// Upright dormers on the near slopes of a mansard: a window face set back
+// a little from the eaves, framed in trim, under a segmental head.
+function MansardDormers({ col, row, w, h, base, rise, inset, stone }: {
+  col: number; row: number; w: number; h: number; base: number; rise: number; inset: number; stone: StonePalette;
+}) {
+  const s = inset * 0.22;
+  const z0 = base + rise * 0.22; const dh = rise * 0.58;
+  const f = boxFaces(col + s, row + s, w - 2 * s, h - 2 * s, z0, dh);
+  return (
+    <>
+      {[[f.D, f.C, f.spanLeft] as const, [f.C, f.B, f.spanRight] as const].map(([o, a, span], k) => {
+        const n = Math.max(2, Math.round((span * METRES_PER_TILE) / (BAY_METRES * 1.4)));
+        const fw = 1.9 / (span * METRES_PER_TILE);
+        return (
+          <g key={k}>
+            {Array.from({ length: n }, (_, i) => {
+              const uc = (i + 0.5) / n;
+              const frame = windowOutline('arched', uc - fw / 2, uc + fw / 2, 0, 1).map(([u, v]) => facePoint(o, a, dh, u, v));
+              const pane = windowOutline('arched', uc - fw * 0.3, uc + fw * 0.3, 0.14, 0.86).map(([u, v]) => facePoint(o, a, dh, u, v));
+              return (
+                <g key={i}>
+                  <polygon points={polyPoints(frame)} fill={shade(stone.trim, 0.9)} />
+                  <polygon points={polyPoints(pane)} fill={shade(stone.glass.startsWith('rgba') ? '#4a5560' : stone.glass, 1)} fillOpacity={0.85} />
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// A mansard (Second Empire): a steep slate lower slope, dormers in it, a
+// low lead deck above and iron cresting round the deck.
+function MansardRoof({ col, row, w, h, base, rise, pal, stone }: {
+  col: number; row: number; w: number; h: number; base: number; rise: number; pal: Palette; stone: StonePalette;
+}) {
+  const inset = Math.min(across(2.2), Math.min(w, h) * 0.16);
+  const m = frustum(col, row, w, h, base, rise, inset, pal);
+  const ic = col + inset; const ir = row + inset; const iw = w - 2 * inset; const ih = h - 2 * inset;
+  return (
+    <>
+      {m.faces}
+      <MansardDormers col={col} row={row} w={w} h={h} base={base} rise={rise} inset={inset} stone={stone} />
+      <HippedRoof col={ic} row={ir} w={iw} h={ih} base={base + rise} rise={up(1.2)} pal={paletteFrom({ wall: pal.wall.posRow, roof: LEAD })} />
+      <Cresting col={ic} row={ir} w={iw} h={ih} z={base + rise} />
+    </>
+  );
+}
+
+// The tower's own box in its stone, with a cornice.
+function TowerShaft({ f, rise, stone, tone = stone.towerStone, cornice = true }: {
+  f: BoxFaces; rise: number; stone: StonePalette; tone?: string; cornice?: boolean;
+}) {
+  return (
+    <>
+      {sideFaces(f, shade(tone, 0.98), shade(tone, 0.8))}
+      {cornice && stone.trim !== 'none' && (
+        <>
+          <WallBand origin={f.D} along={f.C} wallHeight={rise} from={rise - CORNICE} to={rise} className="iso-cornice" />
+          <WallBand origin={f.C} along={f.B} wallHeight={rise} from={rise - CORNICE} to={rise} className="iso-cornice" />
+        </>
+      )}
+      <polygon points={polyPoints(f.top)} fill={shade(tone, 0.9)} />
+    </>
+  );
+}
+
+// Openings in a stage's two near faces: `n` arches (or lancets) a face.
+function StageOpenings({ f, rise, n, shape, v0 = 0.12, v1 = 0.88, cls = 'iso-undercroft' }: {
+  f: BoxFaces; rise: number; n: number; shape: WindowShape; v0?: number; v1?: number; cls?: string;
+}) {
+  return (
+    <>
+      {([[f.D, f.C, 'l'] as const, [f.C, f.B, 'r'] as const]).map(([o, a, k]) => (
+        Array.from({ length: n }, (_, i) => {
+          const pad = 0.12; const cell = (1 - pad * 2) / n;
+          const u0 = pad + i * cell + cell * 0.14; const u1 = pad + (i + 1) * cell - cell * 0.14;
+          return (
+            <polygon key={`${k}${i}`} className={cls}
+              points={polyPoints(windowOutline(shape, u0, u1, v0, v1).map(([u, v]) => facePoint(o, a, rise, u, v)))} />
+          );
+        })
+      ))}
+    </>
+  );
+}
+
+function GiltFinial({ at, rise, stone }: { at: Pt; rise: number; stone: StonePalette }) {
+  if (stone.gilt === 'none') return null;
+  const tip = lift(at, rise);
+  return (
+    <>
+      <line className="iso-finial" x1={at.x} y1={at.y} x2={tip.x} y2={tip.y} stroke={stone.gilt} />
+      <circle className="iso-dome" cx={tip.x} cy={tip.y} r={2} fill={stone.gilt} />
+    </>
+  );
+}
+
+// Tudor: a brick gatehouse between four turrets that clasp its corners and
+// rise past its battlements under lead caps; an oriel and a clock.
+function Gatehouse({ col, row, w, h, base, stone }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette;
+}) {
+  const plan = Math.min(across(10), Math.min(w, h) * 0.36);
+  const tp = plan * 0.26;
+  const cc = col + w / 2; const cr = row + h / 2;
+  const x0 = cc - plan / 2; const y0 = cr - plan / 2;
+  const rise = TOWER_BASE_RISE + up(3);
+  const shaft = boxFaces(x0, y0, plan, plan, base, rise);
+  const tpal = paletteFrom({ wall: stone.towerStone, roof: LEAD });
+  const turretRise = rise + up(4.5);
+  type Item = DepthBox & { key: string; node: React.ReactNode };
+  const turret = (c: number, r: number, key: string): Item => {
+    const f = boxFaces(c, r, tp, tp, base, turretRise);
+    const cap = pyramid(c, r, tp, base + turretRise, up(3.2), LEAD);
+    return {
+      col: c, row: r, w: tp, h: tp, key,
+      node: (
+        <g key={key}>
+          {sideFaces(f, shade(stone.towerStone, 0.95), shade(stone.towerStone, 0.78))}
+          <WallBand origin={f.D} along={f.C} wallHeight={turretRise} from={turretRise - CORNICE} to={turretRise} className="iso-cornice" />
+          <WallBand origin={f.C} along={f.B} wallHeight={turretRise} from={turretRise - CORNICE} to={turretRise} className="iso-cornice" />
+          {cap.faces}
+          <GiltFinial at={cap.tip} rise={up(1.6)} stone={stone} />
+        </g>
+      ),
+    };
+  };
+  const oriel = ([[shaft.D, shaft.C, 'l'] as const, [shaft.C, shaft.B, 'r'] as const]).map(([o, a, k]) => {
+    const frame = windowOutline('rect', 0.3, 0.7, 0.2, 0.5).map(([u, v]) => facePoint(o, a, rise, u, v));
+    const mull = [0.4, 0.5, 0.6].map((u) => [facePoint(o, a, rise, u, 0.2), facePoint(o, a, rise, u, 0.5)]);
+    const transom = [facePoint(o, a, rise, 0.3, 0.36), facePoint(o, a, rise, 0.7, 0.36)];
+    return (
+      <g key={k}>
+        <polygon points={polyPoints(frame)} fill={stone.glass} stroke={stone.trim} strokeWidth={1.2} />
+        {[...mull, transom].map(([p, q], i) => <line key={i} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={stone.trim} strokeWidth={0.9} />)}
+        <WallClock origin={o} along={a} height={rise} span={plan} cv={0.72} r={CLOCK_RADIUS_TILES} />
+      </g>
+    );
+  });
+  const body: Item = {
+    col: x0, row: y0, w: plan, h: plan, key: 'body',
+    node: (
+      <g key="body">
+        <TowerShaft f={shaft} rise={rise} stone={stone} />
+        {oriel}
+        {[visibleWalls().left, visibleWalls().right].map((dir) => (
+          <Merlons key={dir} col={x0} row={y0} w={plan} h={plan} base={base + rise} outward={dir} pal={tpal} block={across(1.0)} gap={across(0.8)} rise={up(1.1)} depth={across(0.45)} />
+        ))}
+      </g>
+    ),
+  };
+  const items: Item[] = [
+    body,
+    turret(x0 - tp * 0.5, y0 - tp * 0.5, 'nw'), turret(x0 + plan - tp * 0.5, y0 - tp * 0.5, 'ne'),
+    turret(x0 + plan - tp * 0.5, y0 + plan - tp * 0.5, 'se'), turret(x0 - tp * 0.5, y0 + plan - tp * 0.5, 'sw'),
+  ];
+  // The turrets overlap the body's corners, so order by the far edge: each
+  // turret either lies wholly behind the body's near faces or in front.
+  const seen = visibleWalls();
+  const nearOf = (it: Item) => {
+    const c = seen.right === 'posCol' || seen.left === 'posCol' ? it.col + it.w : -it.col;
+    const r = seen.right === 'posRow' || seen.left === 'posRow' ? it.row + it.h : -it.row;
+    return c + r;
+  };
+  return <>{[...items].sort((a, b) => nearOf(a) - nearOf(b)).map((it) => it.node)}</>;
+}
+
+// Italianate: a square belvedere, arched on every face, under a low hip on
+// deep bracketed eaves.
+function Belvedere({ col, row, w, h, base, stone, pal }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette; pal: Palette;
+}) {
+  const plan = Math.min(across(9), Math.min(w, h) * 0.34);
+  const cc = col + w / 2; const cr = row + h / 2;
+  const x0 = cc - plan / 2; const y0 = cr - plan / 2;
+  const shaftRise = up(9);
+  const shaft = boxFaces(x0, y0, plan, plan, base, shaftRise);
+  const stageBase = base + shaftRise;
+  const stageRise = up(5.2);
+  const stage = boxFaces(x0, y0, plan, plan, stageBase, stageRise);
+  const top = stageBase + stageRise;
+  const e = across(1.3);
+  const cap = pyramid(x0 - e, y0 - e, plan + 2 * e, top, up(2.4), pal.roof);
+  return (
+    <>
+      <TowerShaft f={shaft} rise={shaftRise} stone={stone} />
+      {[[shaft.D, shaft.C] as const, [shaft.C, shaft.B] as const].map(([o, a], i) => (
+        <WallClock key={i} origin={o} along={a} height={shaftRise} span={plan} cv={0.55} r={CLOCK_RADIUS_TILES * 0.9} />
+      ))}
+      <TowerShaft f={stage} rise={stageRise} stone={stone} cornice={false} />
+      <StageOpenings f={stage} rise={stageRise} n={3} shape="arched" v0={0.14} v1={0.8} />
+      {[[stage.D, stage.C, stage.spanLeft] as const, [stage.C, stage.B, stage.spanRight] as const].map(([o, a, span], i) => (
+        <EavesBrackets key={i} origin={o} along={a} wallHeight={stageRise} span={span} top={stageRise} stone={stone} />
+      ))}
+      {cap.faces}
+      <GiltFinial at={cap.tip} rise={up(2.2)} stone={stone} />
+    </>
+  );
+}
+
+// Second Empire: a clock pavilion carried up past the roof under its own
+// tall mansard, with a round dormer in each face and cresting on top.
+function PavilionTower({ col, row, w, h, base, stone, pal }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette; pal: Palette;
+}) {
+  const plan = Math.min(across(9.5), Math.min(w, h) * 0.34);
+  const cc = col + w / 2; const cr = row + h / 2;
+  const x0 = cc - plan / 2; const y0 = cr - plan / 2;
+  const rise = TOWER_BASE_RISE;
+  const shaft = boxFaces(x0, y0, plan, plan, base, rise);
+  const mRise = up(8.5);
+  const inset = plan * 0.16;
+  const m = frustum(x0, y0, plan, plan, base + rise, mRise, inset, pal);
+  const ix = x0 + inset; const iy = y0 + inset; const ip = plan - 2 * inset;
+  const deck = base + rise + mRise;
+  // Oeil-de-boeuf: a round dormer on each near slope's face, stood upright.
+  const ob = boxFaces(x0 + inset * 0.3, y0 + inset * 0.3, plan - inset * 0.6, plan - inset * 0.6, base + rise + mRise * 0.28, mRise * 0.36);
+  const ring = (o: Pt, a: Pt, rr: number) => {
+    const pts: Pt[] = [];
+    for (let i = 0; i < 20; i++) {
+      const t = (i / 20) * Math.PI * 2;
+      pts.push(facePoint(o, a, mRise * 0.36, 0.5 + Math.cos(t) * rr, 0.5 + Math.sin(t) * rr * 2.1));
+    }
+    return pts;
+  };
+  return (
+    <>
+      <TowerShaft f={shaft} rise={rise} stone={stone} />
+      {[[shaft.D, shaft.C] as const, [shaft.C, shaft.B] as const].map(([o, a], i) => (
+        <WallClock key={i} origin={o} along={a} height={rise} span={plan} cv={0.62} r={CLOCK_RADIUS_TILES} />
+      ))}
+      {m.faces}
+      {[[ob.D, ob.C] as const, [ob.C, ob.B] as const].map(([o, a], i) => (
+        <g key={i}>
+          <polygon points={polyPoints(ring(o, a, 0.2))} fill={shade(stone.trim, 0.9)} />
+          <polygon points={polyPoints(ring(o, a, 0.13))} fill="#3f4a52" />
+        </g>
+      ))}
+      <polygon points={polyPoints(boxFaces(ix, iy, ip, ip, deck, 0).top)} fill={shade(LEAD, 1.06)} />
+      <Cresting col={ix} row={iy} w={ip} h={ip} z={deck} />
+      <GiltFinial at={lift(project(cc, cr), deck)} rise={up(4.5)} stone={stone} />
+    </>
+  );
+}
+
+// Art Deco: four setbacks, each fluted by shallow piers and banded at its
+// head, to a gilt mast.
+function Ziggurat({ col, row, w, h, base, stone }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette;
+}) {
+  const plan = Math.min(across(11), Math.min(w, h) * 0.4);
+  const cc = col + w / 2; const cr = row + h / 2;
+  const tiers = [[1, up(11)], [0.78, up(5)], [0.58, up(4)], [0.38, up(3.2)]] as const;
+  let z = base;
+  const nodes: React.ReactNode[] = [];
+  tiers.forEach(([k, rise], i) => {
+    const p = plan * k;
+    const f = boxFaces(cc - p / 2, cr - p / 2, p, p, z, rise);
+    const flutes = ([[f.D, f.C, 'l'] as const, [f.C, f.B, 'r'] as const]).map(([o, a, s]) => {
+      const n = i === 0 ? 7 : 5;
+      return Array.from({ length: n - 1 }, (_, j) => {
+        const u = (j + 1) / n;
+        const p0 = facePoint(o, a, rise, u, i === 0 ? 0.08 : 0); const p1 = facePoint(o, a, rise, u, 0.9);
+        return <line key={`${s}${j}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(stone.towerStone, 0.72)} strokeWidth={1.1} />;
+      });
+    });
+    nodes.push(
+      <g key={i}>
+        {sideFaces(f, shade(stone.towerStone, 0.99), shade(stone.towerStone, 0.8))}
+        {flutes}
+        <WallBand origin={f.D} along={f.C} wallHeight={rise} from={rise * 0.9} to={rise} className="iso-cornice" fill={stone.gilt} />
+        <WallBand origin={f.C} along={f.B} wallHeight={rise} from={rise * 0.9} to={rise} className="iso-cornice" fill={shade(stone.gilt, 0.8)} />
+        <polygon points={polyPoints(f.top)} fill={shade(stone.towerStone, 0.9)} />
+        {i === 0 && [[f.D, f.C] as const, [f.C, f.B] as const].map(([o, a], j) => (
+          <WallClock key={`c${j}`} origin={o} along={a} height={rise} span={p} cv={0.7} r={CLOCK_RADIUS_TILES} />
+        ))}
+      </g>,
+    );
+    z += rise;
+  });
+  return (
+    <>
+      {nodes}
+      <GiltFinial at={lift(project(cc, cr), z)} rise={up(9)} stone={stone} />
+    </>
+  );
+}
+
 // Wraps BuildingMass. A building being extended (a library renovation,
 // RENOVATE_LIBRARY) is drawn at its standing height, windows and all, with
 // scaffolding on its roof rather than as a ground-level site.
@@ -2557,6 +2976,10 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const grandPortico = partsFor(vernacular).grandPortico === true;
   const balustrade = partsFor(vernacular).balustrade === true;
   const glazedCivic = partsFor(vernacular).glazedCivic === true;
+  const timbering = partsFor(vernacular).timbering === true;
+  const brackets = partsFor(vernacular).brackets === true;
+  const deckPiers = partsFor(vernacular).piers === true;
+  const mansard = isMansard(vernacular);
   // How far a corner tower stands proud of the walls it rises from.
   const TOWER_PROUD = across(0.45);
   // A wall too short for an arcade gets the residential archway if the
@@ -3200,6 +3623,12 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {turrets && !cornerInFront && turretNode}
         <polygon points={polyPoints(hf.left)} fill={pal.wallLeft} />
         <polygon points={polyPoints(hf.right)} fill={pal.wallRight} />
+        {timbering && (
+          <>
+            <Timbering origin={hf.D} along={hf.C} wallHeight={WH} span={hf.spanLeft} from={STOREY} to={H} floors={courses} />
+            <Timbering origin={hf.C} along={hf.B} wallHeight={WH} span={hf.spanRight} from={STOREY} to={H} floors={courses} />
+          </>
+        )}
 
         {/* Floor courses, plinth, cornice and parapet. */}
         {trim && floorCourses(hf.D, hf.C, WH, courses, 'l')}
@@ -3221,6 +3650,13 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
           </>
         )}
 
+        {deckPiers && fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={WH} outward={dir} pal={pal} />)}
+        {deckPiers && (
+          <>
+            <WallBand origin={hf.D} along={hf.C} wallHeight={WH} from={H - CORNICE * 2.4} to={H - CORNICE * 1.2} className="iso-cornice" fill={stone.gilt} />
+            <WallBand origin={hf.C} along={hf.B} wallHeight={WH} from={H - CORNICE * 2.4} to={H - CORNICE * 1.2} className="iso-cornice" fill={shade(stone.gilt, 0.82)} />
+          </>
+        )}
         {buttresses && (
           <>
             {fronts.map((dir) => { const s = wallSpan(w, h, dir); return (
@@ -3237,7 +3673,18 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         )}
         {/* Deep eaves: a shadow band at the wall head, and roof oversail. */}
         {eaves > 0 && band(H - up(0.9), H, 'iso-eaves-shadow', 's')}
-        {ridge > 0 ? (
+        {brackets && (
+          <>
+            <EavesBrackets origin={hf.D} along={hf.C} wallHeight={WH} span={hf.spanLeft} top={H} stone={stone} />
+            <EavesBrackets origin={hf.C} along={hf.B} wallHeight={WH} span={hf.spanRight} top={H} stone={stone} />
+          </>
+        )}
+        {ridge > 0 && mansard ? (
+          <MansardRoof
+            col={col + inset - eaves} row={row + inset - eaves} w={w - inset * 2 + eaves * 2} h={h - inset * 2 + eaves * 2}
+            base={WH} rise={ridge} pal={pal} stone={stone}
+          />
+        ) : ridge > 0 ? (
           <HippedRoof
             col={col + inset - eaves} row={row + inset - eaves} w={w - inset * 2 + eaves * 2} h={h - inset * 2 + eaves * 2}
             base={WH} rise={ridge} pal={pal}
@@ -3277,7 +3724,19 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
         {hasClockTower(t) && apex === 'dome' && (
           <Dome stone={stone} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
-        {hasClockTower(t) && apex !== 'none' && apex !== 'core' && apex !== 'campanile' && apex !== 'dome' && (
+        {hasClockTower(t) && apex === 'gatehouse' && (
+          <Gatehouse stone={stone} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
+        )}
+        {hasClockTower(t) && apex === 'belvedere' && (
+          <Belvedere stone={stone} pal={pal} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
+        )}
+        {hasClockTower(t) && apex === 'pavilionTower' && (
+          <PavilionTower stone={stone} pal={pal} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
+        )}
+        {hasClockTower(t) && apex === 'ziggurat' && (
+          <Ziggurat stone={stone} col={col} row={row} w={w} h={h} base={WH} />
+        )}
+        {hasClockTower(t) && (apex === 'cupola' || apex === 'spire') && (
           <ClockTower stone={stone} apex={apex} gilded={hasGilt(vernacular)} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
         {hasClockTower(t) && apex === 'core' && (
@@ -3634,6 +4093,14 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {!site && !cornerInFront && residentialTurret}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {/* Tudor: timbered above the ground floor, on pitched buildings tall
+          enough to have one. */}
+      {!site && timbering && gabled && H > STOREY * 1.5 && (
+        <>
+          <Timbering origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} from={STOREY} to={H} floors={courses} />
+          <Timbering origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} from={STOREY} to={H} floors={courses} />
+        </>
+      )}
       {!site && trim && floorCourses(f.D, f.C, H, courses, 'l')}
       {!site && trim && floorCourses(f.C, f.B, H, courses, 'r')}
       {/* Base and eaves courses shared with the halls. */}
@@ -3646,6 +4113,15 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {/* Each wall's bays come from its own length, so windows match. */}
       {!site && windows(f.D, f.C, H, f.spanLeft, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, f.spanLeft, H) : undefined, lights)}
       {!site && windows(f.C, f.B, H, f.spanRight, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, f.spanRight, H) : undefined, lights)}
+      {/* Art Deco: its piers on every building it restyles. */}
+      {!site && deckPiers && (
+        <>
+          {fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+          {/* and a gilt frieze under the roofline. */}
+          <WallBand origin={f.D} along={f.C} wallHeight={H} from={H - EAVES_COURSE * 1.6} to={H - EAVES_COURSE * 0.6} className="iso-cornice" fill={stone.gilt} />
+          <WallBand origin={f.C} along={f.B} wallHeight={H} from={H - EAVES_COURSE * 1.6} to={H - EAVES_COURSE * 0.6} className="iso-cornice" fill={shade(stone.gilt, 0.82)} />
+        </>
+      )}
       {/* Buttresses on pitched-roof buildings; flat roofs get merlons below. */}
       {!site && buttresses && gabled && door && (
         <>
@@ -3752,7 +4228,15 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
       {gabled && eaves > 0 && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
         <WallBand key={`es${i}`} origin={o} along={a} wallHeight={H} from={H - up(0.9)} to={H} className="iso-eaves-shadow" />
       ))}
-      {hipped ? (
+      {!site && brackets && gabled && (
+        <>
+          <EavesBrackets origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} top={H} stone={stone} />
+          <EavesBrackets origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} top={H} stone={stone} />
+        </>
+      )}
+      {gabled && mansard ? (
+        <MansardRoof col={rc} row={rr} w={rw} h={rh} base={H} rise={ridge} pal={pal} stone={stone} />
+      ) : hipped ? (
         <>
           <HippedRoof col={rc} row={rr} w={rw} h={rh} base={H} rise={ridge} pal={pal} />
           {chimneys && ridgeChimneys({ col: rc, row: rr, w: rw, h: rh, base: H, rise: ridge, at: [0.25, 0.75], pal, stone })}

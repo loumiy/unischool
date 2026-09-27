@@ -36,7 +36,7 @@ const flag = (name: string, fallback: string): string => {
   const eq = args[i].indexOf('=');
   return eq >= 0 ? args[i].slice(eq + 1) : (args[i + 1] ?? fallback);
 };
-const VERNS = flag('vernacular', 'georgian,gothic,classical,mission,modern').split(',') as Vernacular[];
+const VERNS = flag('vernacular', 'georgian,gothic,classical,mission,modern,tudor,italianate,secondEmpire,artDeco').split(',') as Vernacular[];
 // --every: every placeable Buildable in the catalogue (Plan 73), not one of
 // each form; the file names carry the camera so several sheets can sit in
 // one folder.

@@ -2,12 +2,14 @@ import type { GameState, SchoolColors, Vernacular } from './types';
 import { institutionName } from './types';
 import type { FinalReport } from './finalReport';
 import { chronicleOf } from '../systems/chronicle/chronicle';
+import { recordUnlocks } from './unlocks';
 
 // THE HALL OF FAME (Plan 33, V2 #56, V1-35): finished runs, hung on the
 // title screen as framed portraits with plaques. Kept in its own storage
 // key beside the save, so starting a new run never takes one down, a dozen
 // at most, newest first. The portrait is the college's own facade, in its
-// architecture and colors (StartupScreen.tsx draws it). Nothing unlocks.
+// architecture and colors (StartupScreen.tsx draws it). What a run earns
+// for later runs is banked separately (unlocks.ts).
 
 export const HALL_KEY = 'unischool.hall';
 export const HALL_MAX = 12;
@@ -67,6 +69,7 @@ export function hallEntryFor(s: GameState, report: FinalReport, now = Date.now()
 // Hangs the run once: the same college's report is not hung twice.
 export function hangInHall(s: GameState, report: FinalReport, now = Date.now()): boolean {
   const entry = hallEntryFor(s, report, now);
+  recordUnlocks(s);
   const hall = readHall();
   if (hall.some((e) => e.id === entry.id)) return false;
   try {

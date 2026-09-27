@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
-import { VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
+import { BONUS_VERNACULAR_CHOICES, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
+import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
 import { FOUNDING_VERNACULAR } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
@@ -97,6 +98,9 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
   const gilt = spec.stone.gilt === 'none' ? null : spec.stone.gilt;
   const entrance = spec.parts.entrance.hall ?? 'none';
   const apex = spec.parts.apex;
+  const tower = spec.stone.towerStone;
+  const lead = '#6f7479';
+  const iron = '#2d3034';
 
   const cx = FACADE_VIEW_WIDTH / 2;
   const bandY = 92;          // head of the engraved band
@@ -127,6 +131,65 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
         <>
           <polygon fill={roof} points={`${cx},22 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4},${bandY} ${FACADE_BAND_LEFT + 4},${bandY}`} />
           <polygon fill={tint(roof, 1.12)} points={`${cx},22 ${cx},${bandY} ${FACADE_BAND_LEFT + 4},${bandY}`} />
+        </>
+      );
+    }
+    if (apex === 'gatehouse') {
+      // Tudor: a steep roof, and tall stacks at either end.
+      return (
+        <>
+          <polygon fill={roof} points={`${cx},50 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 4},${bandY} ${FACADE_BAND_LEFT + 4},${bandY}`} />
+          <polygon fill={tint(roof, 1.12)} points={`${cx},50 ${cx},${bandY} ${FACADE_BAND_LEFT + 4},${bandY}`} />
+          {[70, FACADE_VIEW_WIDTH - 82].map((x) => (
+            <g key={x}>
+              <rect fill={wall} x={x} y="46" width="12" height="40" />
+              <rect fill={trim} x={x - 2} y="44" width="16" height="4" />
+            </g>
+          ))}
+        </>
+      );
+    }
+    if (apex === 'belvedere') {
+      // Italianate: a low hip on deep eaves, with a row of brackets.
+      return (
+        <>
+          <polygon fill={roof} points={`${cx},62 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH + 14},84 ${FACADE_BAND_LEFT - 14},84`} />
+          <rect fill={tint(roof, 0.72)} x={FACADE_BAND_LEFT - 14} y="84" width={FACADE_BAND_WIDTH + 28} height="3" />
+          <rect fill={tint(wall, 0.9)} x={FACADE_BAND_LEFT} y="87" width={FACADE_BAND_WIDTH} height={bandY - 87} />
+          {Array.from({ length: 17 }, (_, i) => FACADE_BAND_LEFT + 6 + i * ((FACADE_BAND_WIDTH - 12) / 16)).map((x) => (
+            <rect key={x} fill={tint(trim, 0.78)} x={x - 2} y="87" width="4" height={bandY - 87} />
+          ))}
+        </>
+      );
+    }
+    if (apex === 'pavilionTower') {
+      // Second Empire: a steep mansard with dormers, and cresting on top.
+      return (
+        <>
+          <polygon fill={roof} points={`${FACADE_BAND_LEFT - 4},${bandY} ${FACADE_BAND_LEFT + 14},50 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 14},50 ${FACADE_BAND_LEFT + FACADE_BAND_WIDTH + 4},${bandY}`} />
+          <line stroke={iron} strokeWidth="1.5" x1={FACADE_BAND_LEFT + 14} y1="50" x2={FACADE_BAND_LEFT + FACADE_BAND_WIDTH - 14} y2="50" />
+          {Array.from({ length: 36 }, (_, i) => FACADE_BAND_LEFT + 16 + i * ((FACADE_BAND_WIDTH - 32) / 35)).map((x) => (
+            <line key={x} stroke={iron} strokeWidth="0.8" x1={x} y1="50" x2={x} y2="45" />
+          ))}
+          {[0, 1, 2, 4, 5, 6].map((i) => {
+            const x = FACADE_BAND_LEFT + 44 + i * ((FACADE_BAND_WIDTH - 88) / 6);
+            return (
+              <g key={i}>
+                <path fill={trim} d={`M ${x - 9} 86 L ${x - 9} 66 A 9 9 0 0 1 ${x + 9} 66 L ${x + 9} 86 Z`} />
+                <path fill={glass} d={`M ${x - 5} 84 L ${x - 5} 67 A 5 5 0 0 1 ${x + 5} 67 L ${x + 5} 84 Z`} />
+              </g>
+            );
+          })}
+        </>
+      );
+    }
+    if (apex === 'ziggurat') {
+      // Art Deco: a tall parapet banded in gilt.
+      return (
+        <>
+          <rect fill={tint(wall, 1.02)} x={FACADE_BAND_LEFT} y="70" width={FACADE_BAND_WIDTH} height={bandY - 70} />
+          <rect fill={gilt ?? trim} x={FACADE_BAND_LEFT} y="80" width={FACADE_BAND_WIDTH} height="4" />
+          <rect fill={tint(wall, 1.05)} x={FACADE_BAND_LEFT + 60} y="58" width={FACADE_BAND_WIDTH - 120} height="12" />
         </>
       );
     }
@@ -186,6 +249,61 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
           <path fill={tint(trim, 0.94)} stroke={tint(trim, 0.78)} strokeWidth="0.8" d={`M ${cx - 58} 50 A 58 34 0 0 1 ${cx + 58} 50 Z`} />
           <rect fill={trim} x={cx - 5} y="8" width="10" height="10" />
           <line stroke={gilt ?? trim} strokeWidth="2" x1={cx} y1="0" x2={cx} y2="8" />
+        </>
+      );
+    }
+    if (apex === 'gatehouse') {
+      // Tudor: a brick gate tower, battlemented, between two capped turrets.
+      return (
+        <>
+          <rect fill={tower} x={x - 8} y="10" width={w + 16} height="70" />
+          {[0, 1, 2, 3].map((i) => <rect key={i} fill={tower} x={x - 6 + i * 13} y="4" width="7" height="7" />)}
+          <rect fill={glass} stroke={trim} strokeWidth="1.2" x={cx - 8} y="30" width="16" height="16" />
+          <circle fill="#f2ede0" cx={cx} cy="20" r="5" />
+          {[x - 16, x + w + 6].map((tx) => (
+            <g key={tx}>
+              <rect fill={tint(tower, 0.9)} x={tx} y="2" width="10" height="78" />
+              <polygon fill={lead} points={`${tx - 1},2 ${tx + 11},2 ${tx + 5},-12`} />
+            </g>
+          ))}
+        </>
+      );
+    }
+    if (apex === 'belvedere') {
+      // Italianate: a square lookout, arched, under a low bracketed cap.
+      return (
+        <>
+          <rect fill={tower} x={x - 4} y="24" width={w + 8} height="44" />
+          {[0, 1, 2].map((i) => (
+            <path key={i} fill={glass} d={`M ${x + 2 + i * 12} 44 L ${x + 2 + i * 12} 33 A 4 4 0 0 1 ${x + 10 + i * 12} 33 L ${x + 10 + i * 12} 44 Z`} />
+          ))}
+          <circle fill="#f2ede0" cx={cx} cy="56" r="5" />
+          <polygon fill={roof} points={`${cx},12 ${x + w + 14},24 ${x - 14},24`} />
+        </>
+      );
+    }
+    if (apex === 'pavilionTower') {
+      // Second Empire: a clock stage under its own tall mansard.
+      return (
+        <>
+          <rect fill={tower} x={x - 4} y="30" width={w + 8} height="40" />
+          <circle fill="#f2ede0" stroke={tint(tower, 0.8)} cx={cx} cy="46" r="7" />
+          <polygon fill={roof} points={`${x - 6},30 ${x + 2},2 ${x + w - 2},2 ${x + w + 6},30`} />
+          <ellipse fill={trim} cx={cx} cy="16" rx="5" ry="6" />
+          <line stroke={iron} strokeWidth="1.5" x1={x + 2} y1="2" x2={x + w - 2} y2="2" />
+        </>
+      );
+    }
+    if (apex === 'ziggurat') {
+      // Art Deco: stepped setbacks to a gilt mast.
+      return (
+        <>
+          <rect fill={tower} stroke={tint(tower, 0.78)} strokeWidth="0.8" x={x - 8} y="36" width={w + 16} height="36" />
+          <rect fill={tower} stroke={tint(tower, 0.78)} strokeWidth="0.8" x={x - 2} y="20" width={w + 4} height="16" />
+          <rect fill={tower} stroke={tint(tower, 0.78)} strokeWidth="0.8" x={x + 5} y="8" width={w - 10} height="12" />
+          {([[36, 8], [20, 2], [8, -5]] as const).map(([y, d]) => <rect key={y} fill={gilt ?? trim} x={x - d} y={y} width={w + d * 2} height="2" />)}
+          <circle fill="#f2ede0" cx={cx} cy="50" r="6" />
+          <line stroke={gilt ?? trim} strokeWidth="2" x1={cx} y1="-6" x2={cx} y2="8" />
         </>
       );
     }
@@ -305,6 +423,21 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
         {bannerText}
       </text>
 
+      {/* Tudor: oak studs over limewash between the band and the ground story. */}
+      {spec.parts.timbering && (
+        <>
+          <rect fill="#ece3cc" x={FACADE_BAND_LEFT} y={wallTop} width={FACADE_BAND_WIDTH} height={baseY - wallTop} />
+          {Array.from({ length: 34 }, (_, i) => FACADE_BAND_LEFT + 2 + i * ((FACADE_BAND_WIDTH - 6) / 33)).map((x) => (
+            <rect key={x} fill="#3b2e27" x={x} y={wallTop} width="3" height={baseY - wallTop} />
+          ))}
+          <rect fill="#3b2e27" x={FACADE_BAND_LEFT} y={baseY - 4} width={FACADE_BAND_WIDTH} height="4" />
+        </>
+      )}
+      {/* Art Deco: piers the full height of the wall. */}
+      {spec.parts.piers && bayXs.slice(0, -1).map((x0, i) => (x0 + bayXs[i + 1]) / 2).map((x, i) => (
+        <rect key={`p${i}`} fill={tint(wall, 1.06)} stroke={tint(wall, 0.85)} strokeWidth="0.6" x={x - 4} y={wallTop} width="8" height={FACADE_VIEW_HEIGHT - wallTop} />
+      ))}
+
       {/* One rank of the vernacular's own windows, previewing the opening shape. */}
       {entrance !== 'recess' && bayXs.map((x, i) => (
         <rect key={i} fill={glass} x={x - 9} y={wallTop + 8} width="18" height="18" />
@@ -326,6 +459,10 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
   // takes only the two colors (see schoolColorsOf).
   const [choice, setChoice] = useState<SchoolColorChoice>(FOUNDING_COLORS);
   const colors = schoolColorsOf(choice);
+  // The bonus sets earlier runs have unlocked (state/unlocks.ts). A locked
+  // one can still be previewed on the facade, but not founded.
+  const [unlocked] = useState(readUnlocks);
+  const locked = !isUnlocked(vernacular, unlocked);
 
   // Preview the theme live: the pick is written to the root properties as
   // it changes (App.tsx writes it again once the run exists).
@@ -352,20 +489,29 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         {/* The architecture: one row of five names (blurbs are tooltips);
             the facade redraws as the player moves between them. Permanent. */}
         <div className="startup-vernaculars" role="radiogroup" aria-label="Architecture">
-          {VERNACULAR_CHOICES.map((choice) => (
-            <button
-              key={choice.id}
-              type="button"
-              role="radio"
-              className={`startup-vern-btn ${vernacular === choice.id ? 'active' : ''}`}
-              onClick={() => setVernacular(choice.id)}
-              aria-checked={vernacular === choice.id}
-              title={choice.blurb}
-            >
-              {choice.label}
-            </button>
-          ))}
+          {[...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES].map((choice) => {
+            const open = isUnlocked(choice.id, unlocked);
+            return (
+              <button
+                key={choice.id}
+                type="button"
+                role="radio"
+                className={`startup-vern-btn ${vernacular === choice.id ? 'active' : ''} ${unlockOf(choice.id) ? 'bonus' : ''} ${open ? '' : 'locked'}`}
+                onClick={() => setVernacular(choice.id)}
+                aria-checked={vernacular === choice.id}
+                title={open ? choice.blurb : `Locked. ${unlockOf(choice.id)?.condition ?? ''}`}
+              >
+                {choice.label}
+                {!open && <span className="startup-vern-lock">Locked</span>}
+              </button>
+            );
+          })}
         </div>
+        {locked && (
+          <div className="startup-vern-locked-note" role="status">
+            {BONUS_VERNACULAR_CHOICES.find((c) => c.id === vernacular)?.label} is locked. Unlock it in any run: {unlockOf(vernacular)?.condition}
+          </div>
+        )}
         {/* The colours: one row of two-tone chips (see schoolColors.ts),
             previewed on the facade's banners and the card's chrome. */}
         <div className="startup-colors" role="radiogroup" aria-label="School colors">
@@ -390,7 +536,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
         <div className="startup-color-name">{choice.name}</div>
         <button
           className="startup-begin-btn"
-          disabled={bareSchoolName(name).length === 0}
+          disabled={bareSchoolName(name).length === 0 || locked}
           onClick={() => onStart(bareSchoolName(name), vernacular, colors)}
         >
           Open the doors

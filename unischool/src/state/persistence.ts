@@ -6,6 +6,7 @@ import { seatDef } from '../data/seatData';
 import { EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
+import { recordUnlocks } from './unlocks';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { isSweepStep } from '../systems/finance/sweep';
@@ -123,6 +124,8 @@ export function saveGame(state: GameState): boolean {
   try {
     const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    // A save is also when a run's unlocks are banked (unlocks.ts).
+    recordUnlocks(state);
     return true;
   } catch {
     return false;
