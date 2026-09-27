@@ -8,7 +8,7 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
 import { gradeFor, teachingQualityScore, type Grade } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
-import { athleticProgramStrength, sportEconomics, studentLifeSocialBonus, STUDENT_LIFE_SOCIAL_BONUS_CAP } from '../../data/studentLifeData';
+import { athleticProgramStrength, sportEconomics, studentLifeSocialRaw, STUDENT_LIFE_PRESTIGE_FULL } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import { TARGET_RATIO, attributeCoverage } from '../satisfaction/satisfactionSystem';
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
@@ -635,7 +635,8 @@ function titlesScore(s: GameState): number {
 }
 
 function socialOrganisationsScore(s: GameState): number {
-  return clamp01(studentLifeSocialBonus(s) / STUDENT_LIFE_SOCIAL_BONUS_CAP);
+  // Full at the old cap, as before Plan 72H's curve (studentLifeData.ts).
+  return clamp01(studentLifeSocialRaw(s) / STUDENT_LIFE_PRESTIGE_FULL);
 }
 
 export function socialStandingBreakdown(s: GameState): StandingBreakdown {

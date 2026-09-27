@@ -62,12 +62,20 @@ export const CHAPTER_HOUSED_SOCIAL_BONUS = 1.5; // added on top once a chapter h
 // Added directly to s.students.capacity by eventData.ts's 'greek-housing'
 // event (chapter houses have no Buildable effects). Well under a dorm rung.
 export const CHAPTER_HOUSE_CAPACITY_BONUS = 40;
-// Cap on the sum of all student-life sources: 30 x the 20% social weight = 6
-// points of headline satisfaction at most. Clubs and housed chapters total
-// ~40 uncapped, and a full athletics department ~59 more; the shared cap is
-// deliberate, so athletics competes with clubs and Greek life for headroom
-// rather than adding an independent source.
-export const STUDENT_LIFE_SOCIAL_BONUS_CAP = 30;
+// The sum of all student-life sources is shared, so athletics competes with
+// clubs and Greek life for headroom rather than adding an independent
+// source. Until Plan 72H it was cut off at 30, which every harness college
+// passed by years 15-20 (clubs and chapters reach ~45, a full athletics
+// department ~45 more), after which a new club counted for nothing. Now it
+// is a curve: the first STUDENT_LIFE_SOCIAL_FULL points count in full, and
+// each point past them less than the one before, approaching FULL + SPAN
+// (40, so 8 points of headline satisfaction at the 20% social weight)
+// without reaching it. A sum of 40 reads ~33, near the old 30.
+export const STUDENT_LIFE_SOCIAL_FULL = 20;
+export const STUDENT_LIFE_SOCIAL_SPAN = 20;
+// Campus-life standing still reads the old cap: its organisations term is
+// full at 30 of the uncurved sum (prestigeSystem.ts).
+export const STUDENT_LIFE_PRESTIGE_FULL = 30;
 
 // Transient stock nudges applied when the digest is answered, on top of the
 // durable target contribution. Satisfaction drifts back toward its target, so
@@ -1148,12 +1156,21 @@ export function greekSocialBonus(s: GameState): number {
   );
 }
 
-// What satisfactionSystem.ts adds: all three sources, capped in aggregate.
+// All three sources, before the curve.
+export function studentLifeSocialRaw(s: GameState): number {
+  return clubSocialBonus(s) + greekSocialBonus(s) + athleticsSocialBonus(s);
+}
+
+// The curve (Plan 72H): full up to STUDENT_LIFE_SOCIAL_FULL, then each
+// point worth less than the last, never nothing.
+export function studentLifeSocialCurve(raw: number): number {
+  if (raw <= STUDENT_LIFE_SOCIAL_FULL) return Math.max(0, raw);
+  return STUDENT_LIFE_SOCIAL_FULL + STUDENT_LIFE_SOCIAL_SPAN * (1 - Math.exp(-(raw - STUDENT_LIFE_SOCIAL_FULL) / STUDENT_LIFE_SOCIAL_SPAN));
+}
+
+// What satisfactionSystem.ts adds: all three sources, on the curve.
 // Athletics also feeds campus-life standing (prestigeSystem.ts's
 // computeSocialTarget), but none of this touches academic standing.
 export function studentLifeSocialBonus(s: GameState): number {
-  return Math.min(
-    clubSocialBonus(s) + greekSocialBonus(s) + athleticsSocialBonus(s),
-    STUDENT_LIFE_SOCIAL_BONUS_CAP,
-  );
+  return studentLifeSocialCurve(studentLifeSocialRaw(s));
 }

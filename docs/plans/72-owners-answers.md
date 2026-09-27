@@ -195,6 +195,25 @@ scorecard they move.
   reads about where it does now.
 - **Balance:** measured; baseline re-recorded; the move written down.
 
+**As implemented** (PR H):
+- A probe of four harness players on two seeds found the raw sum
+  (clubs, chapters and athletics) past 30 by years 15-20 in every run,
+  and at 45-90 later, so the old cap made every club after mid-game
+  worth nothing.
+- The cap is now a curve (`studentLifeSocialCurve`): the first 20 points
+  count in full, and each point past them less than the one before,
+  approaching 40 without reaching it. A sum of 40 reads ~33, near the
+  old 30; a club at a sum of 90 still counts. Satisfaction reads the
+  curve; campus-life standing keeps reading the uncurved sum against the
+  old 30 (`STUDENT_LIFE_PRESTIGE_FULL`), so the standings do not move.
+- **Balance** (`npm run sim`, re-recorded): small. Selective's year-50
+  satisfaction −2.4 and cash +$5.2M; Guided's year-50 prestige −1.2 and
+  cash −$17.8M; every other reading within noise. Completionist and
+  Guided still finish #1.
+- **Checks:** `test/social-curve.test.ts` (full to the knee, every point
+  adds less than the last, never the top, a sum of 40 near the old cap,
+  a late club still counts). `docs/design/student-life.md` says so.
+
 ## PR 72I — A first place that can be taken
 
 - The elite band's no-leapfrog rule (`ELITE_NO_LEAPFROG_GAP`) lifts in the
