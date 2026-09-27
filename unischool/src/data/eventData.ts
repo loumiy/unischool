@@ -1,6 +1,6 @@
 import type { EventDomain } from './seatData';
 import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
-import { WEEKS_PER_YEAR, institutionName } from '../state/types';
+import { WEEKS_PER_YEAR, institutionName, servingPopulation, totalEnrolled } from '../state/types';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
 import { FACULTY_FIELDS, generateCandidate, marketRateMultiplier, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
@@ -1186,7 +1186,10 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
         has((t) => t.facilityType === 'library') ? '' : 'there is no library',
       ].filter((w) => w !== '');
       const lack = wants.length > 0 ? ` As it stands, ${list(wants)}.` : '';
-      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${lack} Housing is not a cap on how many we admit — this college can grow with no bed at all — but a college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
+      // The figures behind it (Plan 78B), read as the letter is written.
+      const seats = s.tech.filter((t) => t.facilityType === 'diningHall').reduce((n, t) => n + servingPopulation(t), 0);
+      const figures = ` The college has ${countOf(totalEnrolled(s.students))} students, ${countOf(s.students.capacity)} beds and ${countOf(seats)} dining seats.`;
+      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${figures}${lack} Housing is not a cap on how many we admit — this college can grow with no bed at all — but a college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
     },
     ask: (s) => ({
       text: 'Site a residence hall and a dining hall', go: 'build',
@@ -1304,7 +1307,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const park = PROJECTS.find((p) => p.id === RESEARCH_PARK_ID)?.project;
       const parkOpens = park ? `from Year ${park.fromYear}` : 'in time';
       const graduateYear = PROJECTS.find((p) => p.id === 'PROJ-GRADUATE')?.project.fromYear ?? 15;
-      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one research project at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see a project through in every lab this college builds. When each has finished one, the Research Park opens (${parkOpens}), which opens Landmark research to every lab, and the college is a research university in fact as well as in name. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
+      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one research project at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see a project through in every lab this college builds. When each has finished one, the Research Park opens (${parkOpens}), which opens Landmark research to every lab, and the college is a research university in fact, whatever its name. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
     },
     ask: (s) => {
       const lab = standingLabs(s).find((t) => !finishedLab(s, t.id));

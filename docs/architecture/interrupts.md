@@ -45,14 +45,20 @@ Everything that needs to stop time rides on this one mechanism:
   opens (site it, then move the next school in). Two more follow research
   (Plan 59): *The laboratories* when the first lab stands (see an
   initiative through in every lab) and *The Research Park* when the park
-  opens (site it). One of these whose ask was
+  opens (site it). A letter whose ask is a building (its ask's `go` is the
+  build menu, and it is not done) offers **Continue and open Build** beside
+  Continue: it resolves the letter as Continue does, and the shell opens
+  the build menu once the stop is answered (Plan 78B, `letterOpensBuild`).
+  The week-9 letter states the figures: the students, the beds and the
+  dining seats. One of these whose ask was
   already done when it came due is recorded read and never sent; after the
   last, the school-founded milestone celebrates each school. They yield to
   everything the player earned and outrank only the decision roll. The
   toolbar carries a letter's ask as its next-step line until it is done
-  (`src/systems/guidance/nextStep.ts`): in year one only a letter's, and
-  afterward a waiting letter's first, then the campus readings, a possible
-  move out of a mixed hall before a free slot.
+  (`src/systems/guidance/nextStep.ts`): in year one a letter's, and between
+  letters the shortfall reading (a need under 50, Plan 78B); afterward a
+  waiting letter's first, then the campus readings, a possible move out of
+  a mixed hall before a free slot.
 - **The Deans' recommendations** (`dean-recommendations`, Plan 59) — on the
   first quiet week of a year, within its first quarter, once a year: every
   school with a Dean and an unstaffed course has a plan to restaff it
@@ -148,9 +154,16 @@ Everything that needs to stop time rides on this one mechanism:
   queues like a milestone rather than firing on the spot, and it shares the
   decision events' cooldown, so it redistributes the existing texture budget
   instead of adding a stream on top of it.
-- **The university charter** — no longer an interrupt (Plan 72E): granted
-  with a log line the first quiet week after any lab finishes, which it
-  still takes as its own. The pennant renames the college (see
+- **The university charter** — no longer an interrupt (Plan 72E). Raised
+  the first quiet week a lab is at work, which it still takes as its own,
+  as a matter to decide in the inbox (Plan 78G): the catalogue's one inline
+  event that is raised rather than drawn (`CHARTER_EVENT` in
+  `src/data/eventCatalogue.ts`, `src/systems/events/charter.ts`). It has a
+  fixed instance id and reads its names off the state, so raising it draws
+  nothing from the run's stream; no seat answers it, and it holds no place
+  in the queue the draws are limited to. Unanswered, it takes "Become X
+  University" after four weeks in the tick, like any inline event. The
+  pennant renames the college (see
   [progression.md](../design/progression.md)'s "College, and University").
 - **The athletic director's offer** — the one interrupt athletics raises of its
   own, the first quiet week after the school fields a varsity team: three
@@ -179,17 +192,22 @@ the stack.
 Everything addressed to the president that does not stop the clock waits in
 the **inbox** (Plan 77, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
 full-screen tab in three tiers: **to decide** (the catalogue's inline events,
-a student demand, a board letter with an ask), **letters** (milestones, the
+the university charter among them, a student demand, a board letter with an
+ask), **letters** (milestones, the
 board's distress letters, the founding notes) and **bulletins** (the toasts'
 news, kept for a term). It is read off state the game already keeps, never
 stored. Only the first tier counts on the toolbar's button, red while one is
-in its last week; an arrival is also a toast with an Open button.
+in its last week; an arrival is also a toast with an Open button, for eight
+seconds. In year one a founding note or a milestone's arrival stays until it
+is opened or dismissed (Plan 78B), since the first year's guidance is in
+those letters. None arrives while the inbox is open, and opening the inbox
+puts away the arrivals already showing.
 
 ## Widths
 
 An interrupt is one of three widths, chosen by what it is
 (`src/components/modalLayout.ts`): **narrow** for a question with a short
-answer (a decision event, the charter, a demand, a research report, a single
+answer (a decision event, a demand, a research report, a single
 milestone), **wide** for a decision with a panel beside it (the summer's review,
 admissions and students beats, the athletic director's cards, a championship, a
 burst of milestones as cards), **page** for a table to read (the Final Report

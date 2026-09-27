@@ -38,8 +38,9 @@ export const UNLOCKS: Unlock[] = [
   },
   {
     id: 'secondEmpire',
-    condition: 'Become a university.',
-    earned: (s) => s.self.suffix === 'University',
+    // The charter, whichever name the college keeps (Plan 78G).
+    condition: 'Win a university charter.',
+    earned: (s) => s.self.universityCharterOffered || s.self.suffix === 'University',
   },
   {
     id: 'artDeco',

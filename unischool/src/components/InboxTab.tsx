@@ -266,7 +266,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
     return (
       <div className="inbox-hold">
         <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Nothing moves until this is answered.</p>
-        <InterruptContent s={s} act={act} />
+        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} />
       </div>
     );
   }
@@ -280,7 +280,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
     const def = e.choices.find((c) => c.id === e.default);
     return (
       <article className="inbox-letter">
-        <ReadHead tier="decide" from={item.from} subject={item.subject} meta={`From ${item.from} to the President · arrived ${gameDateOfWeek(p.firedWeek)}`} />
+        <ReadHead tier="decide" from={item.from} subject={item.subject} meta={`From ${item.from.replace(/^The /, 'the ')} to the President · arrived ${gameDateOfWeek(p.firedWeek)}`} />
         <div className="inbox-read-grid">
           <div className="inbox-read-main">
             <div className="inbox-body"><CatalogueText text={text} className="inbox-para" /></div>

@@ -20,7 +20,10 @@ import { CloseIcon } from './icons';
 // And what arrives in the inbox (Plan 77): a matter to decide or a letter,
 // as a slip with an Open button that takes the player to it, held a little
 // longer than the news. Not while the inbox is open, where it arrives in
-// the list itself.
+// the list itself. In year one a founding note or a milestone is held until
+// it is opened or dismissed (Plan 78B): the first year's guidance is in
+// those letters, and eight seconds is easy to miss. Opening the inbox puts
+// every arrival away.
 // ---------------------------------------------------------------------
 
 const SHOW_MS = 6_000;
@@ -38,6 +41,8 @@ export interface Toast {
   tone: 'good' | 'bad' | 'info' | 'matter' | 'letter';
   // An inbox item to open (Plan 77).
   open?: string;
+  // Stays until opened or dismissed (Plan 78B).
+  held?: true;
 }
 
 type Said = Omit<Toast, 'id'>;
@@ -68,9 +73,25 @@ export function arrivalsIn(before: GameState, after: GameState): Said[] {
     const text = i.tier === 'decide' && i.weeksLeft !== undefined && i.kind === 'event'
       ? `${i.from} · ${weeksProse(i.weeksLeft)} to answer: ${i.subject}`
       : `${i.from}: ${i.subject}`;
-    out.push({ text, tone: i.tier === 'decide' ? 'matter' : 'letter', open: i.id });
+    const held = after.clock.year === 1 && (i.kind === 'founding' || i.kind === 'milestone');
+    out.push({ text, tone: i.tier === 'decide' ? 'matter' : 'letter', open: i.id, ...(held ? { held: true as const } : {}) });
   }
   return out;
+}
+
+// The stack after new toasts: at most MOST, the oldest going first, but a
+// held arrival is not pushed out by the news. Pure, for the test.
+export function stacked(cur: readonly Toast[], made: readonly Toast[]): Toast[] {
+  const all = [...cur, ...made];
+  const drop = new Set<number>();
+  let over = all.length - MOST;
+  for (const t of all) {
+    if (over <= 0) break;
+    if (t.held) continue;
+    drop.add(t.id);
+    over -= 1;
+  }
+  return all.filter((t) => !drop.has(t.id));
 }
 
 // The school a week's news distinguished, if any (its banner).
@@ -92,6 +113,10 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox }: {
   // Read inside the snapshot effect without re-running it.
   const inboxOpenRef = useRef(inboxOpen);
   useEffect(() => { inboxOpenRef.current = inboxOpen; });
+  // The inbox open: whatever arrived is there, in the list.
+  useEffect(() => {
+    if (inboxOpen) setToasts((cur) => (cur.some((t) => t.open) ? cur.filter((t) => !t.open) : cur));
+  }, [inboxOpen]);
 
   useEffect(() => {
     const before = last.current;
@@ -109,8 +134,11 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox }: {
     const said = [...toastsFor(before, s, fresh, onMapScreen), ...(inboxOpenRef.current ? [] : arrivalsIn(before, s))];
     if (said.length === 0) return;
     const made = said.map((t) => ({ ...t, id: next.current++ }));
-    setToasts((cur) => [...cur, ...made].slice(-MOST));
-    for (const t of made) window.setTimeout(() => setToasts((cur) => cur.filter((x) => x.id !== t.id)), t.open ? ARRIVAL_MS : SHOW_MS);
+    setToasts((cur) => stacked(cur, made));
+    for (const t of made) {
+      if (t.held) continue;
+      window.setTimeout(() => setToasts((cur) => cur.filter((x) => x.id !== t.id)), t.open ? ARRIVAL_MS : SHOW_MS);
+    }
   }, [s]);
 
   return (

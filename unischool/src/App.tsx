@@ -182,6 +182,7 @@ export default function App() {
     setFoundingRead(new Set());
     reportedGates.current = null;
     actedStage.current = null;
+    buildAfterHold.current = false;
   }, [s.started]);
 
   // A tab whose gate closes again (the last varsity team disbands) closes
@@ -287,6 +288,9 @@ export default function App() {
     ? `${s.pendingInterrupt!.type}:${(s.pendingInterrupt!.payload as { beat?: number } | undefined)?.beat ?? ''}`
     : null;
   const beforeHold = useRef<{ tab: TabId; target?: string } | null | undefined>(undefined);
+  // A letter's "Continue and open Build" (Plan 78B): the build menu opens
+  // once the stop is answered, in place of the view before it.
+  const buildAfterHold = useRef(false);
   useEffect(() => {
     if (!shellLive) return;
     if (holdKey !== null) {
@@ -299,7 +303,10 @@ export default function App() {
     } else if (beforeHold.current !== undefined) {
       const back = beforeHold.current;
       beforeHold.current = undefined;
-      setOverlay(back && tabAvailable(s, back.tab) ? { tab: back.tab } : null);
+      if (buildAfterHold.current) {
+        buildAfterHold.current = false;
+        setBuildOpen(true);
+      } else setOverlay(back && tabAvailable(s, back.tab) ? { tab: back.tab } : null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holdKey, shellLive]);
@@ -455,7 +462,12 @@ export default function App() {
                   onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
                   read={foundingRead}
                   onRead={(id) => setFoundingRead((cur) => new Set([...cur, id]))}
-                  onOpenTab={(tab) => (tab === 'build' ? setBuildOpen(true) : openTab(tab))}
+                  onOpenTab={(tab) => {
+                    if (tab !== 'build') openTab(tab);
+                    // During a stop the menu waits for the answer (above).
+                    else if (holding) buildAfterHold.current = true;
+                    else setBuildOpen(true);
+                  }}
                   onShowOnMap={inspectHall}
                 />
               )}

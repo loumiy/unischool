@@ -135,6 +135,14 @@ export const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
 
 const logWeek = (l: { year: number; week: number }) => (l.year - 1) * WEEKS_PER_YEAR + l.week;
 
+// Whether a chair's letter hands the player to the build menu (Plan 78B):
+// its ask goes there (eventData.ts's LetterAsk `go`) and is not done yet.
+// The stop's card then offers "Continue and open Build" beside Continue.
+export function letterOpensBuild(s: GameState, id: string): boolean {
+  const letter = findOpeningLetter(id);
+  return letter !== undefined && !letter.done(s) && letter.ask(s).go === 'build';
+}
+
 // A letter's ask the board wants answered, not only read (sweep.ts).
 export function boardAsks(id: string): boolean {
   return id === IDLE_CASH_LETTER || id === IDLE_CASH_AGAIN_LETTER;
@@ -173,7 +181,7 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
     const subject = eventSubject(e, text);
     decide.push({
       id: `event:${p.instanceId}`, kind: 'event', tier: 'decide', ref: p.instanceId,
-      from: DOMAIN_LABEL[e.domain], subject, preview: afterSubject(text, subject),
+      from: e.from ?? DOMAIN_LABEL[e.domain], subject, preview: afterSubject(text, subject),
       week: p.firedWeek, unread: true, weeksLeft, urgent: weeksLeft <= 1,
     });
   }
@@ -241,7 +249,8 @@ export function bulletins(s: GameState): InboxItem[] {
   for (const l of s.log) {
     const week = logWeek(l);
     if (now - week >= BULLETIN_WEEKS) break;
-    const school = l.topic === 'milestone' && (l.subject?.startsWith(schoolFoundedKey('')) || l.subject?.startsWith('school-distinguished:'));
+    // A school founded or distinguished, and the charter's answer (Plan 78G).
+    const school = l.topic === 'milestone' && (l.subject?.startsWith(schoolFoundedKey('')) || l.subject?.startsWith('school-distinguished:') || l.subject === 'charter');
     if (l.topic !== 'program' && l.topic !== 'building' && !school) continue;
     out.push({
       id: `bulletin:${week}:${out.length}`, kind: 'bulletin', tier: 'bulletin', ref: l.subject,

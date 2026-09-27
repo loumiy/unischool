@@ -221,6 +221,15 @@ export const SCENARIOS: Scenario[] = [
     year: 40,
     stopWhen: atModal('demand'),
   },
+  {
+    // Not a modal (Plan 78G): the charter waits in the inbox. Open it with
+    // `npm run shot -- out.json charter.png --tab=inbox`.
+    name: 'charter',
+    what: 'the university charter waiting in the inbox, the week the first lab is at work',
+    player: 'Guided',
+    year: 20,
+    stopWhen: (s) => (s.catalogue?.pending ?? []).some((p) => p.eventId === 'university-charter'),
+  },
 ];
 
 export function findScenario(name: string): Scenario | undefined {
