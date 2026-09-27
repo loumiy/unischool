@@ -14,7 +14,7 @@ import { TARGET_RATIO, attributeCoverage } from '../satisfaction/satisfactionSys
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
 import { isSchoolFounded } from '../techtree/schools';
 import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
-import { money, pct } from '../../format';
+import { count, money, pct, satisfactionFigure } from '../../format';
 import { clamp, clamp01 } from '../../math';
 
 // Prestige (s.self.reputation) is a slow-moving stock pulled toward a target
@@ -323,7 +323,7 @@ function libraryMultiplier(s: GameState): StandingMultiplier {
   return {
     label: 'library adequacy',
     value: libraryAdequacyScore(s),
-    detail: `${seats.toLocaleString()} seats for ${enrolled.toLocaleString()} students`,
+    detail: `${count(seats)} seats for ${count(enrolled)} students`,
   };
 }
 
@@ -332,7 +332,7 @@ function scaleMultiplier(s: GameState): StandingMultiplier {
   return {
     label: 'scale',
     value: admissionsScaleScore(s),
-    detail: `${enrolled.toLocaleString()} enrolled of the ${ADMISSIONS_SCALE_FOR_FULL_CREDIT.toLocaleString()} a national reading counts in full`,
+    detail: `${count(enrolled)} enrolled of the ${count(ADMISSIONS_SCALE_FOR_FULL_CREDIT)} a national reading counts in full`,
   };
 }
 
@@ -357,7 +357,7 @@ export function teachingCeiling(s: GameState): NonNullable<StandingBreakdown['ce
   return {
     value,
     label: 'The teaching standard',
-    detail: `${Math.round(aShare * 100)}% of courses graded A: standing can reach ${value.toFixed(0)}. Only a campus teaching A's everywhere reaches ${PRESTIGE_MAX}.`,
+    detail: `${pct(aShare)} of courses graded A: standing can reach ${value.toFixed(0)}. Only a campus teaching A's everywhere reaches ${PRESTIGE_MAX}.`,
   };
 }
 
@@ -396,7 +396,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'welfare', 'Welfare', WELFARE_WEIGHT, welfareScore(s),
-      `Students have averaged ${average.toFixed(0)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
+      `Students have averaged ${satisfactionFigure(average)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
     ),
     weigh(
       'beauty', 'Campus beauty', BEAUTY_WEIGHT, beautyScore(s),
@@ -404,7 +404,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
-      `${money(s.finance.endowment)} against a student body of ${totalEnrolled(s.students).toLocaleString()}.`,
+      `${money(s.finance.endowment)} against a student body of ${count(totalEnrolled(s.students))}.`,
     ),
     ...projectInput(s, 'academics'),
     penalise(
@@ -539,7 +539,7 @@ export function prestigeReadings(s: GameState): StandingReading[] {
   return [
     reading(
       'capacity', 'Instruction capacity', instructionCoverage(s),
-      `${capacity.courses.toLocaleString()} developed course${capacity.courses === 1 ? '' : 's'} in housed programs × ${SEATS_PER_COURSE} seats = room for ${capacity.seats.toLocaleString()}, against ${enrolled.toLocaleString()} enrolled.`,
+      `${count(capacity.courses)} developed course${capacity.courses === 1 ? '' : 's'} in housed programs × ${SEATS_PER_COURSE} seats = room for ${count(capacity.seats)}, against ${count(enrolled)} enrolled.`,
     ),
   ];
 }
@@ -659,7 +659,7 @@ export function socialStandingBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'satisfaction', 'What students report', SOCIAL_SATISFACTION_WEIGHT,
       clamp01(s.students.satisfactionBreakdown.social / 100),
-      `The social attribute of student satisfaction, at ${s.students.satisfactionBreakdown.social.toFixed(0)} of 100.`,
+      `The social attribute of student satisfaction, at ${satisfactionFigure(s.students.satisfactionBreakdown.social)} of 100.`,
     ),
     weigh(
       'titles', 'Championships', SOCIAL_TITLES_WEIGHT, titlesScore(s),

@@ -1,12 +1,14 @@
 import type { GameState } from '../state/types';
 import { LADDER_TIERS, MILESTONES, type Milestone } from '../data/ladderData';
 import { milestoneReached } from '../systems/ladder/ladderSystem';
+import { count, prestigeFigure } from '../format';
 
 function progressLine(s: GameState, m: Milestone): string {
   if (!m.progress) return m.condition;
   const p = m.progress(s);
-  const value = p.unit === 'prestige' ? p.value.toFixed(0) : Math.floor(p.value).toLocaleString();
-  return `${value} of ${p.target.toLocaleString()} ${p.unit}`;
+  // One decimal for prestige, as in the dock and the ticker.
+  const figure = (n: number) => p.unit === 'prestige' ? prestigeFigure(n) : count(Math.floor(n));
+  return `${figure(p.value)} of ${figure(p.target)} ${p.unit}`;
 }
 
 // The ladder: every milestone by tier, reached (with its year) or ahead

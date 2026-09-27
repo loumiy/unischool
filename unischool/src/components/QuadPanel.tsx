@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Quad } from '../state/quads';
 import { QUAD_NAME_MAX } from '../data/quadData';
-import { pct } from '../format';
+import { pct, count } from '../format';
 
 // A quad's card, opened by clicking it on the map: its name, which the
 // player can change, what it is, and the mark that made it if the player
@@ -23,7 +23,7 @@ export default function QuadPanel({ quad, act, onClose }: {
       </div>
       <p className="building-info-line">
         {quad.designated ? 'Marked as a quad.' : 'A quad the buildings enclose.'}{' '}
-        {quad.area.toLocaleString()} tiles, {pct(quad.enclosure)} walled, {pct(quad.green)} green.
+        {count(quad.area)} tiles, {pct(quad.enclosure)} walled, {pct(quad.green)} green.
       </p>
       <form
         className="quad-panel-name"

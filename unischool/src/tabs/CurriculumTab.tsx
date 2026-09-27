@@ -26,7 +26,7 @@ import HelpHint from '../components/HelpHint';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
-import { money, moneyShort, surnameOf } from '../format';
+import { count, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
 
 // Progressive discovery: what the tab shows is derived from existing
 // unlock/milestone state, with no gating of its own.
@@ -259,7 +259,7 @@ export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?:
 function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
   const avg = averageCourseQuality(s, ids, loads);
   if (avg === null) return null;
-  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${Math.round(avg)} / 100 across its developed courses`} />;
+  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
 }
 
 // One course cell: code over title, filled when done, with a progress bar
@@ -381,7 +381,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
       )}
       {preview && (
         <span className={`swap-preview${preview.delta > 0 ? ' up' : preview.delta < 0 ? ' down' : ''}`} aria-live="polite">
-          → {preview.grade} ({preview.delta > 0 ? '+' : ''}{Math.round(preview.delta)})
+          → {preview.grade} ({signed(preview.delta)})
         </span>
       )}
       {state === 'done' && !instructor && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
@@ -459,11 +459,11 @@ export function InstructorOption(
         {projected && (
           <GradeChip
             grade={projected.grade}
-            title={`This course would be graded ${projected.grade} (${Math.round(projected.score)} / 100) with them`}
+            title={`This course would be graded ${projected.grade} (${count(projected.score)}/100) with them`}
           />
         )}
         <span className={`instructor-option-load${load >= f.courseSlots ? ' full' : ''}`}>
-          {load} / {f.courseSlots}
+          {fraction(load, f.courseSlots)}
           <span className="instructor-load-label">courses</span>
         </span>
       </span>
@@ -491,7 +491,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
       onClick={() => act({ type: 'POST_SEARCH', field })}
       title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}: a much better chance every week that a ${field} candidate is listed.`}
     >
-      Post a search in {field} · {money(cost)}
+      Post a search in {field} · {moneyShort(cost)}
     </button>
   );
 }
@@ -523,7 +523,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
               {/* No cash gate: an appointment costs nothing up front, here
                   as on every other Appoint; what it costs is the salary,
                   shown as this college pays it. */}
-              Appoint · {money(Math.round(facultyPay(s, c.salary)))}/yr
+              Appoint · {moneyShort(facultyPay(s, c.salary))}/yr
             </button>
           </div>
         ))
@@ -603,12 +603,12 @@ function CourseDrawer(
             <div className="course-drawer-grade">
               <GradeChip grade={quality.grade} size="lg" />
               <div className="course-drawer-grade-body">
-                <span className="course-drawer-grade-score">{Math.round(quality.score)} / 100</span>
+                <span className="course-drawer-grade-score">{count(quality.score)}/100</span>
                 <ul className="course-drawer-factors">
                   {quality.factors.map((factor) => (
                     <li key={factor.label} className={factor.value < 0 ? 'down' : 'up'}>
                       <span>{factor.label}</span>
-                      <span className="num">{factor.value > 0 ? '+' : '−'}{Math.abs(Math.round(factor.value))}</span>
+                      <span className="num">{signed(factor.value)}</span>
                     </li>
                   ))}
                 </ul>
@@ -846,7 +846,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
         <GradeChip grade={projected.grade} title={`${next.name} would be graded ${projected.grade} with ${best.name}`} />
       </button>
-      <span className="row-action-cost">{moneyShort(next.cost)} · {next.duration}w{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
+      <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
       <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">choose…</button>
       {batchOk && (
         <button
@@ -888,10 +888,10 @@ function ProgramRowView(
         </button>
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
-        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${Math.round(avg)} / 100`} />}
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
         {hall && <span className="program-row-hall" title="Where it is housed">{hallDisplayName(s, hall)}</span>}
         {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no seats, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
-        <span className="lane-count">{progress.done} / {progress.total}</span>
+        <span className="lane-count">{fraction(progress.done, progress.total)}</span>
       </header>
       {!collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} />}
       {!collapsed && <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
@@ -951,8 +951,8 @@ function SchoolGroupView(
         </button>
         <span className="school-group-mark" aria-hidden="true">{group.mark.motif}</span>
         <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
-        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
-        <span className="lane-count">{done.done} / {done.total}</span>
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
+        <span className="lane-count">{fraction(done.done, done.total)}</span>
         {unstaffedHere > 0 && school && (
           <button
             type="button"
@@ -1253,7 +1253,7 @@ function CommitteePanel({ s }: { s: GameState }) {
             <li key={i} className="committee-seat busy" title={`${t.name}: ${left} week${left === 1 ? '' : 's'} left`}>
               <span className="committee-seat-name">{code}</span>
               <span className="committee-seat-bar" aria-hidden="true"><span style={{ width: `${Math.round(done * 100)}%` }} /></span>
-              <span className="committee-seat-left">{left}w</span>
+              <span className="committee-seat-left">{weeksShort(left)}</span>
             </li>
           );
         })}
@@ -1394,7 +1394,7 @@ export default function CurriculumTab(
                 center={`${catalogPct}%`}
                 title={`${doneCourses} of ${courses.length} courses developed`}
               />
-              <span className="stat">{doneCourses} / {courses.length}<br />developed</span>
+              <span className="stat">{fraction(doneCourses, courses.length)}<br />developed</span>
             </span>
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" loads={loads} />
             <HelpHint

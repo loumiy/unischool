@@ -12,6 +12,7 @@ import {
   GRAND_LANDMARK_IDS,
 } from './facilitiesData';
 import { MEDICAL_CENTER_PROJECT } from './projectData';
+import { count } from '../format';
 
 // The research reputation rung's prestige (Plan 53: it opened the research
 // library too, until the library was retired).
@@ -129,7 +130,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'town',
     tier: 'Growing',
     name: "A town's worth",
-    condition: `${HEALTH_CENTER_TIER1_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
     buildables: ['HLTH-T1', 'AMENITY-GARDEN'],
     tabs: [],
@@ -188,7 +189,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'city',
     tier: 'Established',
     name: 'A small city',
-    condition: `${HEALTH_CENTER_TIER2_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(HEALTH_CENTER_TIER2_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER2_POPULATION_GATE),
     buildables: ['HLTH-T2'],
     tabs: [],
@@ -210,7 +211,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'market',
     tier: 'Established',
     name: 'A market of its own',
-    condition: `${GROCERY_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(GROCERY_POPULATION_GATE)} students`,
     ...students(GROCERY_POPULATION_GATE),
     buildables: ['GROCERY-01'],
     tabs: [],
@@ -245,7 +246,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'university-town',
     tier: 'National',
     name: 'A university town',
-    condition: `${HEALTH_CENTER_TIER3_POPULATION_GATE.toLocaleString()} students`,
+    condition: `${count(HEALTH_CENTER_TIER3_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER3_POPULATION_GATE),
     buildables: ['HLTH-T3'],
     tabs: [],

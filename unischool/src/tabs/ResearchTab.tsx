@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState, Initiative } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
 import {
   availableScholars, depthOpen, initiativeDepth, initiativeOffers,
   initiativeWeeklyOutput, interdisciplinaryBonus, teamStrength,
@@ -14,7 +13,7 @@ import { researchSchools } from '../data/techData';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 import { rankBy } from '../systems/rivals/rivalsSystem';
-import { money } from '../format';
+import { decimal, money, moneyShort, multiplier, pct, weeksProse, weeksShort } from '../format';
 
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
@@ -23,10 +22,6 @@ import { money } from '../format';
 // vacant; a vacant lab is idle capital the player should see.
 // =====================================================================
 
-function years(weeks: number): string {
-  const y = weeks / WEEKS_PER_YEAR;
-  return y < 1 ? `${weeks} weeks` : `${Math.round(y * 10) / 10} yr`;
-}
 
 // A participant. Same furniture as the curriculum's instructor picker, but
 // showing research rather than teaching.
@@ -75,11 +70,11 @@ function RunningPanel(
       <header className="facility-head">
         <span className="facility-name">
           {lab.name}
-          <span className="facility-depth">{depth.name} · {years(initiative.weeksTotal)}</span>
+          <span className="facility-depth">{depth.name} · {weeksShort(initiative.weeksTotal)}</span>
           {/* Said once, about the project, with the multiplier. */}
           {fields.size > 1 && (
             <span className="facility-cross" title={`${fields.size} disciplines on the team`}>
-              interdisciplinary ×{interdisciplinaryBonus(team).toFixed(2)}
+              interdisciplinary {multiplier(interdisciplinaryBonus(team))}
             </span>
           )}
         </span>
@@ -101,7 +96,7 @@ function RunningPanel(
 
       <div className="facility-progress">
         <span className="facility-track">
-          <span className="facility-fill" style={{ width: `${Math.round(fraction * 100)}%` }} />
+          <span className="facility-fill" style={{ width: pct(fraction) }} />
         </span>
         <span className="facility-progress-meta">
           <span>{elapsed} of {initiative.weeksTotal} weeks</span>
@@ -109,7 +104,7 @@ function RunningPanel(
             <b>{initiative.breakthroughs}</b> {initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'} banked
             {initiative.publications > 0 && ` · ${initiative.publications} published`}
           </span>
-          <span className="facility-rate">{output.toFixed(1)} /wk</span>
+          <span className="facility-rate">{decimal(output, 1)}/wk</span>
         </span>
       </div>
     </section>
@@ -186,19 +181,19 @@ function VacantPanel(
             >
               <span className="offer-head">
                 <span className="offer-depth">{offer.depth.name}</span>
-                <span className="offer-cost">{money(offer.fundingCost)}</span>
+                <span className="offer-cost">{moneyShort(offer.fundingCost)}</span>
               </span>
               <span className="offer-topic">{offer.topic.name}</span>
               <span className="offer-meta">
-                {offer.depth.participants} {offer.depth.participants === 1 ? 'scholar' : 'scholars'} · {years(offer.depth.weeks)}
+                {offer.depth.participants} {offer.depth.participants === 1 ? 'scholar' : 'scholars'} · {weeksShort(offer.depth.weeks)}
                 {offer.topic.fields.length > 1 && ` · ${offer.topic.fields.join(' + ')}`}
               </span>
               <span className="offer-blurb">{offer.blockedReason ?? offer.depth.blurb}</span>
               {!offer.blockedReason && (
                 <span className="offer-odds">
-                  ~{offer.odds.publications < 10 ? offer.odds.publications.toFixed(1) : Math.round(offer.odds.publications)} publications
-                  {' · '}breakthrough {Math.round(offer.odds.breakthroughChance * 100)}%
-                  {' · '}award {Math.round(offer.odds.awardChance * 100)}%
+                  ~{decimal(offer.odds.publications, offer.odds.publications < 10 ? 1 : 0)} publications
+                  {' · '}breakthrough {pct(offer.odds.breakthroughChance)}
+                  {' · '}award {pct(offer.odds.awardChance)}
                 </span>
               )}
             </button>
@@ -248,15 +243,15 @@ function VacantPanel(
                   {coverage.covered.length > 0
                     ? `The other ${coverage.orphaned.length} would be`
                     : `Committing this team leaves ${coverage.orphaned.length} ${coverage.orphaned.length === 1 ? 'course' : 'courses'}`}
-                  {' '}without an instructor for {years(picked.depth.weeks)}: {coverage.orphaned.map((t) => t.name.split(' · ')[0]).join(', ')}.
+                  {' '}without an instructor for {weeksProse(picked.depth.weeks)}: {coverage.orphaned.map((t) => t.name.split(' · ')[0]).join(', ')}.
                 </>
               )}
             </p>
           )}
           {chosenTeam.length > 0 && (
             <p className="offer-note">
-              Team strength {Math.round(teamStrength(chosenTeam) * 100)} · interdisciplinary bonus
-              {' '}×{interdisciplinaryBonus(chosenTeam).toFixed(2)}
+              Team strength {decimal(teamStrength(chosenTeam) * 100)} · interdisciplinary bonus
+              {' '}{multiplier(interdisciplinaryBonus(chosenTeam))}
             </p>
           )}
 
@@ -280,8 +275,8 @@ function VacantPanel(
               : chosenTeam.length !== picked.depth.participants
                 ? `Needs ${picked.depth.participants} scholars`
                 : s.finance.cash < picked.fundingCost
-                  ? `${money(picked.fundingCost - s.finance.cash)} short`
-                  : `Commission — ${money(picked.fundingCost)}`}
+                  ? `${moneyShort(picked.fundingCost - s.finance.cash)} short`
+                  : `Commission — ${moneyShort(picked.fundingCost)}`}
           </button>
         </div>
       )}

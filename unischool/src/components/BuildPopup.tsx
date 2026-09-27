@@ -19,7 +19,7 @@ import {
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, ToolsIcon,
 } from './icons';
-import { money, moneyShort } from '../format';
+import { count, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
 import { LOAN_RATE, LOAN_YEARS, financingFor, giftFunds, loanFor } from '../systems/finance/treasury';
 import { constructionFrozen } from '../systems/finance/distress';
 
@@ -266,15 +266,15 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
 // What one finished instance is worth (beds, seats, slots).
 function builtDetail(t: Buildable): string | undefined {
   if (t.facilityType === 'lab') return 'gates capstone coursework';
-  if (t.kind === 'dorm') return `${(t.effects?.capacityBonus ?? 0).toLocaleString()} beds`;
+  if (t.kind === 'dorm') return `${count(t.effects?.capacityBonus ?? 0)} beds`;
   if (isAcademicHall(t)) return `${t.slots} program slots`;
   // Carries no `effects`: its beds were applied directly to capacity when
   // the petition was approved.
-  if (t.chapterHouse) return `${CHAPTER_HOUSE_CAPACITY_BONUS.toLocaleString()} beds`;
+  if (t.chapterHouse) return `${count(CHAPTER_HOUSE_CAPACITY_BONUS)} beds`;
   const flat = t.effects?.flatSatisfactionBonus;
   if (flat) return `+${flat} flat`;
   const serves = t.effects?.servesPopulation;
-  if (serves) return `serves ${serves.toLocaleString()}`;
+  if (serves) return `serves ${count(serves)}`;
   return undefined;
 }
 
@@ -282,14 +282,14 @@ function builtDetail(t: Buildable): string | undefined {
 function builtGroupDetail(kind: string, built: Buildable[]): string | undefined {
   if (kind === 'dorm') {
     const beds = built.reduce((sum, t) => sum + (t.effects?.capacityBonus ?? 0), 0);
-    return `${beds.toLocaleString()} beds`;
+    return `${count(beds)} beds`;
   }
   if (kind === 'hall') {
     const slots = built.reduce((sum, t) => sum + (t.slots ?? 0), 0);
     return `${slots} program slots`;
   }
   const serves = built.reduce((sum, t) => sum + (t.effects?.servesPopulation ?? 0), 0);
-  return serves > 0 ? `serves ${serves.toLocaleString()}` : undefined;
+  return serves > 0 ? `serves ${count(serves)}` : undefined;
 }
 
 // The corner chip: a tier for upgradeable buildings, a chain position for a
@@ -330,14 +330,14 @@ function BuildTile({
           disabled={shortfall > 0 || frozen}
           title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
-            : `Expands the ${t.name} in place — no new building. Adds ${rung.seatsGain.toLocaleString()} seats for the gate and ${rung.servesGain.toLocaleString()} of social capacity over ${rung.weeks} weeks; the teams keep playing while the work is underway.`}
+            : `Expands the ${t.name} in place — no new building. Adds ${count(rung.seatsGain)} seats for the gate and ${count(rung.servesGain)} of social capacity over ${rung.weeks} weeks; the teams keep playing while the work is underway.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
           {marker && <span className="kind-tag">{marker}</span>}
           <span className="build-tile-icon"><Icon /></span>
           <span className="build-tile-name">{t.name}</span>
           {detail && <span className="build-tile-sub">{detail}</span>}
-          <span className="build-tile-foot">expand · {money(rung.cost)} · {rung.weeks}w</span>
+          <span className="build-tile-foot">expand · {moneyShort(rung.cost)} · {weeksShort(rung.weeks)}</span>
         </button>
       );
     }
@@ -395,7 +395,7 @@ function BuildTile({
         <span className="build-tile-progress">
           <ProgressBar
             fraction={elapsed}
-            label={`${weeksLeft}w`}
+            label={weeksShort(weeksLeft)}
             title={`${t.duration - weeksLeft} of ${t.duration} weeks built`}
           />
         </span>
@@ -416,7 +416,7 @@ function BuildTile({
     : financing === 'endowment'
     ? `Half, ${money(endowmentHalf(t))}, from the endowment; the rest in cash.`
     : loan > 0
-    ? `Borrows ${money(loan)}, repaid over ${LOAN_YEARS} years at ${LOAN_RATE * 100}%.`
+    ? `Borrows ${money(loan)}, repaid over ${LOAN_YEARS} years at ${pct(LOAN_RATE, 1)}.`
     : constructionFrozen(s)
       ? 'The board has frozen construction.'
       : shortfall > 0
@@ -452,7 +452,7 @@ function BuildTile({
           // say so rather than showing "0w".
           : t.cost === 0 && t.duration === 0
             ? 'already paid · place it'
-            : <>{t.cost > 0 ? `${money(t.cost)} · ` : ''}{t.duration}w</>}
+            : <>{t.cost > 0 ? `${moneyShort(t.cost)} · ` : ''}{weeksShort(t.duration)}</>}
       </span>
       {loan > 0 && !armed && <span className="build-tile-note">borrow {moneyShort(loan)}</span>}
       {financing === 'gift' && !armed && t.cost > 0 && <span className="build-tile-note">from gifts</span>}
@@ -722,8 +722,8 @@ export default function BuildPopup({
     >
       <div className="build-mode">
         <div className="build-mode-topline">
-          <span className="stat">{s.students.capacity.toLocaleString()} beds · {totalEnrolled(s.students).toLocaleString()} enrolled</span>
-          <span className="stat">satisfaction {Math.round(s.students.satisfaction)}</span>
+          <span className="stat">{count(s.students.capacity)} beds · {count(totalEnrolled(s.students))} enrolled</span>
+          <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>
         </div>
 
         {constructionFrozen(s) && (

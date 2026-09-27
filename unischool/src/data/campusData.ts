@@ -1,4 +1,5 @@
 import type { Buildable } from '../state/types';
+import { count } from '../format';
 
 // Housing capacity comes only from this `dorm` Buildable chain on the shared
 // machinery (docs/architecture/buildables.md), via effects.capacityBonus.
@@ -91,7 +92,7 @@ export function initialDorms(): Buildable[] {
       id: rung.id,
       kind: 'dorm',
       name: rung.name,
-      description: `${rung.blurb} Adds ${rung.beds.toLocaleString()} beds${rung.retailServes ? `, and feeds ${rung.retailServes.toLocaleString()} students from its shops` : ''}.`,
+      description: `${rung.blurb} Adds ${count(rung.beds)} beds${rung.retailServes ? `, and feeds ${count(rung.retailServes)} students from its shops` : ''}.`,
       cost: rung.cost,
       duration: rung.weeks,
       // Strictly sequential: one dorm buildable at a time.

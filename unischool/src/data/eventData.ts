@@ -16,7 +16,7 @@ import { claimedHalls, dedicatedHalls, dedicatedSchool, nextSchoolToMove, progra
 import type { StepIntent } from '../systems/guidance/intent';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
-import { money } from '../format';
+import { money, satisfactionFigure } from '../format';
 import { clamp } from '../math';
 import { random } from '../engine/random';
 
@@ -1166,7 +1166,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
         has((t) => t.facilityType === 'library') ? '' : 'there is no library',
       ].filter((w) => w !== '');
       const lack = wants.length > 0 ? ` As it stands, ${list(wants)}.` : '';
-      return `Satisfaction is ${s.students.satisfaction.toFixed(0)}.${lack} Housing is not a cap on how many we admit — this college can grow with no bed at all — but a college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
+      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${lack} Housing is not a cap on how many we admit — this college can grow with no bed at all — but a college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
     },
     ask: (s) => ({
       text: 'Site a residence hall and a dining hall', go: 'build',

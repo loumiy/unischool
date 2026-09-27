@@ -5,7 +5,7 @@ import { tuitionFloor } from '../finance/distress';
 import type { GameState } from '../../state/types';
 import type { Action } from '../../state/actions';
 import { TUITION_SLIDER_MAX } from '../../data/foundingData';
-import { money } from '../../format';
+import { count, money, pct, prestigeFigure, satisfactionFigure } from '../../format';
 import { advanceClock } from '../../state/clock';
 import { captureYearSnapshot } from '../../state/history';
 import { EPILOGUE_DECADE, finalReport } from '../../state/finalReport';
@@ -195,7 +195,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: `Admissions: tuition ${money(s.finance.listedTuition)}/yr — ${outcome.applicants.toLocaleString()} applicants, ${Math.round(outcome.admitRate * 100)}% admitted, ${outcome.enrolled.toLocaleString()} freshmen enrolled, ${graduating.toLocaleString()} graduated.`,
+    message: `Admissions: tuition ${money(s.finance.listedTuition)}/yr — ${count(outcome.applicants)} applicants, ${pct(outcome.admitRate)} admitted, ${count(outcome.enrolled)} freshmen enrolled, ${count(graduating)} graduated.`,
     kind: 'info',
     topic: 'admissions',
   });
@@ -205,7 +205,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `${advanced.notReturning.toLocaleString()} students did not return — ${reasons.length > 0 ? reasons.join(', ') : 'a year averaging ' + priorYearAvgSatisfaction.toFixed(0) + ' satisfaction'}.`,
+      message: `${count(advanced.notReturning)} students did not return — ${reasons.length > 0 ? reasons.join(', ') : 'a year averaging ' + satisfactionFigure(priorYearAvgSatisfaction) + ' satisfaction'}.`,
       kind: 'bad',
       topic: 'attrition',
     });
@@ -214,14 +214,14 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `The catalog had room for ${ceiling.seatsLeft.toLocaleString()} more; the class was held to it.`,
+      message: `The catalog had room for ${count(ceiling.seatsLeft)} more; the class was held to it.`,
       kind: 'info',
     });
   }
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: `Report card for Year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${reportCard.before.toFixed(1)} → ${reportCard.after.toFixed(1)}.`,
+    message: `Report card for Year ${reportCard.year}: graded ${reportCard.score.toFixed(0)}. Prestige ${prestigeFigure(reportCard.before)} → ${prestigeFigure(reportCard.after)}.`,
     kind: reportCard.after >= reportCard.before ? 'good' : 'bad',
     topic: 'report-card',
   });
