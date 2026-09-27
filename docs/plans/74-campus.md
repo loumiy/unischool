@@ -374,7 +374,7 @@ pavilions get the slab alone. Only the grand landmarks rise in stages.
   closed shell in scaffolding. The crane stays on the large ones. Read off
   the build countdown the landmarks already use.
 
-**As implemented (#TBD).**
+**As implemented (#215).**
 
 - The map already raised a hatched shell in step with the countdown
   (`CampusMap.tsx`'s `SiteProgress`). The contact sheets the review read
