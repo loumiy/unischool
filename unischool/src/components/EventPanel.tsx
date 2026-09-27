@@ -34,7 +34,12 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
     if (!v) continue;
     switch (k) {
       case 'cash': out.push(v < 0 ? `costs ${money(-v)}` : `brings ${money(v)}`); break;
-      case 'endowment': out.push(`endowment ${v < 0 ? '−' : '+'}${money(Math.abs(v))}`); break;
+      case 'endowment': {
+        // A draw stops at what the fund holds (catalogue.ts floors it at 0).
+        const moved = v < 0 ? Math.min(-v, Math.max(0, s.finance.endowment)) : v;
+        if (moved > 0) out.push(`endowment ${v < 0 ? '−' : '+'}${money(moved)}`);
+        break;
+      }
       case 'debt': {
         // Repays what is owed; the rest comes back as cash (catalogue.ts).
         const owed = debtOutstanding(s);
