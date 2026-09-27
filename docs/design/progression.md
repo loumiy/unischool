@@ -489,6 +489,16 @@ the top 25, the top ten and first place come in the build era's second half
 and the defend era, not the found era. The elite's closing on a leader is not
 drift: a leader above the ceiling is still chased, and passed if it coasts.
 
+**First place can be taken, late** ([Plan 72](../plans/72-owners-answers.md)
+I). The band does not leapfrog a leader that holds its standing
+(`ELITE_NO_LEAPFROG_GAP`): it closes to within a point and stops. In the
+last fifteen years (`CONTEST_YEARS`), a college whose standing has slipped
+more than three points below its own best (`CONTEST_SLIP`; the best is the
+highest in its history, so nothing new is stored) loses that protection:
+the band chases where it stood, less the slip, and may pass. A college that
+climbs back within the slip is protected again. Losing a place says so as
+any rank change does (the toast and its sound).
+
 A rival that passes the school says so — on the Standing beat, and in the year
 in review's Standing section — and, once per rival and only in the defend era,
 the board proposes a response at a real cost (see

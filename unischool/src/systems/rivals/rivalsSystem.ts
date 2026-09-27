@@ -1,7 +1,7 @@
 import { totalEnrolled } from '../../state/types';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import type { GameState, Rival, VarsityTeam } from '../../state/types';
-import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
+import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
 import { ELITE_RIVAL_IDS, baseRivals, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { clamp } from '../../math';
@@ -58,6 +58,23 @@ export const ELITE_CLOSE_GAP = 8;
 export const ELITE_NO_LEAPFROG_GAP = 1;
 export const ELITE_CLOSE_RATE = 0.35; // 0.65^5 ≈ 0.12: a ten-point gap is a little over one point after five years
 
+// A first place that can be taken (Plan 72I, the merge review's open
+// question). In the last CONTEST_YEARS of the run, a college whose standing
+// has slipped more than CONTEST_SLIP below its own best (its history's
+// highest, so nothing is stored) is chased to CONTEST_SLIP below that best,
+// and the no-leapfrog rule is lifted: a slip held for a few years costs
+// first place. A college that keeps its standing keeps the old rules.
+export const CONTEST_YEARS = 15;
+export const CONTEST_SLIP = 3;
+
+export function bestStanding(s: GameState): number {
+  return s.history.reduce((best, h) => Math.max(best, h.prestige), s.self.reputation);
+}
+
+export function standingContested(s: GameState): boolean {
+  return s.clock.year > SEMICENTENNIAL_YEAR - CONTEST_YEARS && s.self.reputation < bestStanding(s) - CONTEST_SLIP;
+}
+
 // The athletic field closes too: above ATHLETIC_CLOSE_ABOVE, the strongest
 // ATHLETIC_CLOSING_FIELD rivals drift toward the player's
 // athleticProgramStrength less ATHLETIC_CLOSE_GAP, at the same rate.
@@ -108,6 +125,10 @@ export function tickRivals(s: GameState): void {
     const seed = Math.floor(random() * 4294967296);
     const roll = makeRivalRng(seed);
     const socialRoll = makeRivalRng(seed ^ 0x9e37_79b9);
+    // A slipping leader, late (standingContested): the band chases where it
+    // stood, and may pass.
+    const contested = standingContested(s);
+    const chased = contested ? bestStanding(s) - CONTEST_SLIP + ELITE_CLOSE_GAP : s.self.reputation;
     const researchRoll = makeRivalRng(seed ^ 0x85eb_ca6b);
     const athleticRoll = makeRivalRng(seed ^ 0xc2b2_ae35);
     // The athletic closing band: the strongest few as the year opens.
@@ -122,7 +143,7 @@ export function tickRivals(s: GameState): void {
       const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
       // The elite band's pull (eliteClosingStep) on top of momentum and shock.
       const elite = ELITE_RIVAL_IDS.has(r.id) && s.self.reputation > ELITE_CLOSE_ABOVE_PRESTIGE;
-      const closing = elite ? eliteClosingStep(r.reputation, s.self.reputation) : 0;
+      const closing = elite ? eliteClosingStep(r.reputation, chased) : 0;
       let next = r.reputation + r.momentum + shock + fieldRise(r.id, r.reputation);
       // Nothing climbs past the field's ceiling on its own (Plan 67): a rival
       // there may fall and recover, never drift beyond it, so the top of the
@@ -131,9 +152,9 @@ export function tickRivals(s: GameState): void {
       // leader above the ceiling is still chased, and passed if it coasts.
       if (next > FIELD_CEILING && next > r.reputation) next = Math.max(r.reputation, FIELD_CEILING);
       next += closing;
-      // No leapfrogging (ELITE_NO_LEAPFROG_GAP).
+      // No leapfrogging (ELITE_NO_LEAPFROG_GAP), unless contested.
       const ceiling = s.self.reputation - ELITE_NO_LEAPFROG_GAP;
-      if (elite && r.reputation <= ceiling) next = Math.min(next, ceiling);
+      if (elite && !contested && r.reputation <= ceiling) next = Math.min(next, ceiling);
       r.reputation = clamp(next, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
 
       // The other standings drift on their own momentum, so the tables tell
