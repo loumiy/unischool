@@ -101,7 +101,7 @@ export function reportCardSvg(entry: HallEntry, site: string): string {
   // The mark, big, under the crest.
   parts.push(`<text x="${band / 2}" y="420" text-anchor="middle" font-family="${SERIF}" font-size="120" font-weight="700" fill="${CREAM}">${escape(entry.mark)}</text>`);
   if (entry.markScore !== undefined) {
-    parts.push(`<text x="${band / 2}" y="465" text-anchor="middle" font-family="${SANS}" font-size="26" fill="${CREAM}">The mark · ${Math.round(entry.markScore)}</text>`);
+    parts.push(`<text x="${band / 2}" y="465" text-anchor="middle" font-family="${SANS}" font-size="26" fill="${CREAM}">The grade · ${Math.round(entry.markScore)}</text>`);
   }
   parts.push(`<text x="${band / 2}" y="560" text-anchor="middle" font-family="${SANS}" font-size="22" font-weight="700" fill="${CREAM}">${escape(rankLine(entry))}</text>`);
 

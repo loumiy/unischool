@@ -479,7 +479,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
         s.log.unshift({
           year: s.clock.year,
           week: s.clock.week,
-          message: `The ${action.label} tab is now open.`,
+          message: `${action.label} now reports to the President.`,
           kind: 'good',
         });
       }
@@ -862,8 +862,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'SAVE_FAILED': {
       const message = action.manual
-        ? 'Save failed — this browser is refusing to store the run.'
-        : 'Autosave failed — this browser is refusing to store the run. Progress will be lost on refresh.';
+        ? 'Save failed — this browser is refusing to store the game.'
+        : 'Autosave failed — this browser is refusing to store the game. Progress will be lost on refresh.';
       const confirmation = s.log[0];
       if (action.manual && confirmation?.message === 'Game saved.') {
         confirmation.message = message;

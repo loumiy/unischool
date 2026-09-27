@@ -68,7 +68,7 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
   basicNeeds: {
     headline: 'Students demand somewhere to eat',
     grievance: (ask) =>
-      `The queue at the dining halls runs out of the door and round the building, and a petition with most of the student body's names on it has been handed to your office. They want ${theName(ask)} open, and they want a date.`,
+      `The line at the dining halls runs out the door and around the building, and a petition with most of the student body's names on it has been handed to your office. They want ${theName(ask)} open, and they want a date.`,
     ask: (ask) => `Open ${theName(ask)}`,
     unit: 'students served by dining',
   },
@@ -87,7 +87,7 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
     unit: 'students served by student life space',
   },
   health: {
-    headline: 'Students demand somewhere to be seen',
+    headline: 'Students demand health care',
     grievance: (ask) =>
       `The wait for an appointment at the health service is measured in weeks, and the student government has stopped asking politely. They want ${theName(ask)}.`,
     ask: (ask) => `Build ${theName(ask)}`,
@@ -103,11 +103,11 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
   // Measured against the catalog's seats (instructionCapacity.ts); the ask
   // is a course.
   instruction: {
-    headline: 'Students demand a seat in class',
+    headline: 'Students demand a place in class',
     grievance: (ask) =>
-      `Every section is over its room and students are following lectures from the corridor. The Registrar has forwarded a petition with one demand on it: open ${ask}, and stop admitting people there is no seat for.`,
+      `Every section is over capacity and students are following lectures from the hallway. The Registrar has forwarded a petition with one demand on it: open ${ask}, and stop admitting people there is no place for.`,
     ask: (ask) => `Develop ${ask}`,
-    unit: 'seats across the catalog',
+    unit: 'places across the catalog',
   },
 };
 

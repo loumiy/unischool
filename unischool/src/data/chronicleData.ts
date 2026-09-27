@@ -56,7 +56,7 @@ export const CHRONICLE_WORDS = {
   sagaNamed: '{rival} became the rival in Year {year}.',
   sagaGames: 'The {sport} teams have met {count} times: {won} won, {lost} lost.',
   sagaGame: 'The {sport} teams have met once: {won} won, {lost} lost.',
-  sagaStanding: 'In the rankings the college stands {mine}, and {rival} {theirs}.',
+  sagaStanding: 'In the guide the college stands {mine}, and {rival} {theirs}.',
   now: 'The historians will call these years {era}.',
   none: 'The first year has not closed yet: there is nothing for the historians to divide.',
 } as const;

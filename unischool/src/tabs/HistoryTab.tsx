@@ -105,7 +105,7 @@ function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
 function summerNote(breakdown: StandingBreakdown, gap: number): string {
   const { riseRate, maxRise, fallRate, reportCard } = breakdown.summer!;
   const step = gap > 0 ? Math.min(gap * riseRate, maxRise) : Math.abs(gap) * fallRate;
-  const grading = `This year is grading ${prestigeFigure(breakdown.target)}; at the summer, prestige closes `
+  const grading = `This year is grading ${prestigeFigure(breakdown.target)}; each summer, prestige closes `
     + `${pct(riseRate)} of a gap upward (at most ${maxRise} points) and ${pct(fallRate)} downward`
     + (Math.abs(gap) < 0.05 ? '.' : ` — ${signed(gap > 0 ? step : -step, 1)} if nothing changes.`);
   const last = reportCard
@@ -153,7 +153,7 @@ function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
       {breakdown.readings.length > 0 && (
         <>
           <p className="standing-note standing-readings-note">
-            Read, not counted.
+            Shown for reference; not part of the grade.
           </p>
           <ul className="standing-rows">
             {breakdown.readings.map((item) => (
@@ -173,7 +173,7 @@ function StandingPanel({ s }: { s: GameState }) {
         <h2>Standing</h2>
         <HelpHint
           align="end"
-          text="Each standing is a stock. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted."
+          text="Each standing moves slowly toward its target. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted."
         />
       </div>
       <div className="standings">
@@ -239,7 +239,7 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
           <tr>
             <th>Year</th><th>Prestige</th><th>Rank</th><th>Enrolled</th>
             <th>Cash</th><th>Net</th><th>Applicants</th><th>Admit</th>
-            <th>Courses</th><th>Programs</th><th>Satisf.</th><th>Left</th>
+            <th>Courses</th><th>Programs</th><th>Satisfaction</th><th>Left</th>
           </tr>
         </thead>
         <tbody>
@@ -331,7 +331,7 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             years={years}
             values={history.map((h) => h.prestige)}
             format={prestigeFigure}
-            note="A slow-moving stock: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade reads the curriculum, the teaching, the students, research, satisfaction, campus life, the estate and the endowment."
+            note="Slow to move: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade reads the curriculum, the teaching, the students, research, satisfaction, campus life, the buildings and grounds, and the endowment."
           />
           <MultiChart
             title="Place in the guide, by year"
@@ -339,15 +339,15 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             yMin={1}
             yMax={s.rivals.length + 1}
             series={[{ name: 'Rank', points: history.map((h) => ({ x: h.year, y: h.rank })), format: (v) => `#${Math.round(v)}` }]}
-            note={`Of ${s.rivals.length + 1} colleges, on the academic table the rest of the game means by rank. One is the top of the chart.`}
+            note={`Of ${s.rivals.length + 1} colleges, in the guide's academic ranking; #1 is the top.`}
           />
           <HistoryChart
-            label="Enrollment"
+            label="Enrolled"
             span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => count(v)}
-            note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard cap on enrollment."
+            note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard limit on enrollment."
           />
           <HistoryChart
             label="Operating funds"
@@ -358,12 +358,12 @@ export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) 
             note="Cash on hand each summer. Troughs are the years the college committed to something expensive."
           />
           <HistoryChart
-            label="Catalogue"
+            label="Catalog"
             span={SEMICENTENNIAL_YEAR}
             years={years}
             values={history.map((h) => h.coursesDone)}
             format={(v) => fraction(v, totalCourses)}
-            note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established. Breadth is what lifts the prestige ceiling — the decades-long half of the climb.`}
+            note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established. Breadth is what lifts the prestige limit — the decades-long half of the climb.`}
           />
         </div>
       </section>

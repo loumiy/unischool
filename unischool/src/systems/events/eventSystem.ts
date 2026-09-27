@@ -78,7 +78,7 @@ export function grantCharter(s: GameState): void {
   s.self.suffix = 'University';
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: 'good', topic: 'milestone',
-    message: `With research under way, the trustees have granted a university charter: ${was} is now ${institutionName(s.self)}. The name can be changed from its pennant.`,
+    message: `With research under way, the board has granted a university charter: ${was} is now ${institutionName(s.self)}.`,
   });
 }
 

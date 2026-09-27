@@ -11,12 +11,12 @@ import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
-import { count, fraction, gameDateOfWeek, money, moneyShort, satisfactionFigure, satisfactionShown, signed } from '../format';
+import { count, fraction, gameDateOfWeek, money, moneyShort, satisfactionFigure, satisfactionShown, signed, weeksShort } from '../format';
 
 const ATTRIBUTE_LABELS: Record<keyof SatisfactionAttributes, string> = {
   academic: 'Academic',
   social: 'Social',
-  basicNeeds: 'Basic Needs',
+  basicNeeds: 'Basic needs',
   health: 'Health',
   housing: 'Housing',
 };
@@ -77,7 +77,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <h2>Effect on satisfaction</h2>
         <HelpHint
           align="end"
-          text="Satisfaction is a stock that drifts toward a target set by what the campus offers. Student organizations move that target, so these are the real points they are adding to it right now — read from the same computation the weekly tick runs, not a separate tally. The headline satisfaction number moves toward the target over the coming weeks."
+          text="Satisfaction drifts toward a target set by what the campus offers. Student organizations move that target, so these are the real points they are adding to it right now — the same figures that set satisfaction each week. The headline satisfaction number moves toward the target over the coming weeks."
         />
       </div>
       <dl>
@@ -90,7 +90,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
       </dl>
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
         <p className="empty-note">
-          Social satisfaction is already at its ceiling from the campus itself, so these organizations
+          Social satisfaction is already at its limit from the campus itself, so these organizations
           are adding nothing to the target right now — they will start to again the moment the campus
           grows past what its social facilities cover.
         </p>
@@ -193,7 +193,7 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
       {open && (
         <div className="satisfaction-card-detail">
           {detail.dormant ? (
-            <p className="empty-note">Dormant — the campus hasn't crossed the population where this need starts to matter yet.</p>
+            <p className="empty-note">Dormant — the campus has not yet reached the size where this need starts to matter.</p>
           ) : (
             <>
               {detail.contributors.length > 0 ? (
@@ -234,7 +234,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>Satisfaction breakdown</h2>
         <HelpHint
-          text="The five attributes the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the percentage under each name is how much of the headline number that attribute is worth. Expand one to see exactly what's behind its score: every building serving that need, how many it serves, and any other named contributor."
+          text="The five needs the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the percentage under each name is how much of the headline number that need is worth. Expand one to see exactly what is behind its score: every building serving that need, how many it serves and any other named contributor."
         />
       </div>
       <ul className="satisfaction-cards">
@@ -278,7 +278,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>Student demands</h2>
         <span className={`demand-deadline${progress.weeksLeft <= DEMAND_URGENT_WEEKS ? ' urgent' : ''}`}>
-          {progress.weeksLeft} week{progress.weeksLeft === 1 ? '' : 's'} left
+          {weeksShort(progress.weeksLeft)} left
         </span>
       </div>
       <p className="empty-note demand-grievance">{copy.grievance(demand.askName)}</p>
@@ -292,7 +292,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <dl>
         <dt>
           The ask
-          <HelpHint text="Progress above is read off the same campus state the demand resolves against — what this need serves today, against the total the demand asks for. Finish the building and the demand clears itself; there is nothing to confirm." />
+          <HelpHint text="The bar above is what this need is served by today, against the total the students asked for. Finish the building and the demand clears itself; there is nothing to confirm." />
         </dt>
         <dd>{copy.ask(demand.askName)}{node ? ASK_STATUS[node.status] : ''}</dd>
         <dt>Deadline</dt>
@@ -310,7 +310,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       </dl>
       <p className="empty-note demand-footnote">
         Missing the deadline costs goodwill and the applicants word of mouth brings — the figures
-        above, at next summer's funnel. Nothing else: satisfaction is floored, so an unaffordable
+        above, at next summer's funnel. Nothing else: satisfaction cannot fall below a floor, so an unaffordable
         demand left unmet stalls the college rather than sinking it.
       </p>
     </section>
@@ -351,7 +351,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           <section className="panel panel-span-2">
             <h2>Awaiting recognition</h2>
             <p className="empty-note">
-              Answered together in the summer's Students beat — nothing here interrupts play.
+              The President answers them together at the summer's Students step; none waits on a decision now.
             </p>
             <ul className="org-list">
               {pending.map((p) => (
@@ -376,7 +376,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
           <section className="panel">
             <div className="panel-head">
               <h2>Clubs</h2>
-              <span className="panel-count" title="Interest clubs and sport clubs are capped apart: a sport club leaves the list when it goes varsity.">
+              <span className="panel-count" title="Interest clubs and sport clubs are counted against separate limits: a sport club leaves the list when it goes varsity.">
                 {interestClubs(s).length}/{clubCapacity(s)} · sport {sportClubs(s).length}/{sportClubCapacity(s)}
               </span>
             </div>
@@ -415,7 +415,7 @@ export default function StudentLifeTab({ s }: { s: GameState }) {
                     key={c.id}
                     org={c}
                     s={s}
-                    tag={c.housed ? `${c.kind} · housed` : c.kind}
+                    tag={c.housed ? `${c.kind} · with a house` : c.kind}
                   />
                 ))}
               </ul>

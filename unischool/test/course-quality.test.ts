@@ -125,7 +125,7 @@ console.log('course quality tests');
   const { factors } = qualityOf({ teaching: VETERAN, acclaim: 2, load: 3, slots: 3, tier: 3 });
   assert(factors.some((f) => f.label === 'Instructor teaching' && f.value === VETERAN), 'the base is itemized');
   assert(factors.some((f) => f.label.startsWith('Teaching load') && f.value === -7), 'the load cost is itemized, and signed');
-  assert(factors.some((f) => f.label === 'Capstone tier'), 'so is the tier');
+  assert(factors.some((f) => f.label === 'Capstone course'), 'so is the tier');
   assert(factors.some((f) => f.label === 'Prize-winning faculty'), 'and so is the prize');
 }
 

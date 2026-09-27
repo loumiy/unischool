@@ -32,7 +32,7 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
     <section className="panel advancement-panel">
       <div className="panel-head">
         <h2>Advancement</h2>
-        <HelpHint align="end" text="A campaign asks the alumni for one thing over several years. Each class answers by the warmth its four years earned it, and gives most when the case is about them. What a campaign raises is restricted: endowment money goes into the endowment, building money pays for buildings and nothing else. It needs a VP of Advancement, runs one at a time, and asking cools the ledger a little. A title year lifts what everyone gives." />
+        <HelpHint align="end" text="A campaign asks the alumni for one thing over several years. Each class answers by the warmth its four years earned it, and gives most when the case is about them. What a campaign raises is restricted: endowment money goes into the endowment, building money pays for buildings and nothing else. It needs a VP of Advancement, runs one at a time, and each campaign cools alumni warmth a little. A title year lifts what everyone gives." />
       </div>
       {running && def ? (
         <>

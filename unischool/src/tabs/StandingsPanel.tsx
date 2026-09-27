@@ -20,7 +20,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text="Six tables, one field. Academics is the ranking the rest of the game means by rank; the others say what the college is good at besides. Access reads the admit rate and how far the price sits under what the college's name could charge; financial strength the endowment per student." />
+          <HelpHint text="Six rankings, one field. Academics is the ranking the guide leads with, and the one Rank shows; the others say what the college is good at besides. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student." />
         </span>
         <span className="stat">of {field}</span>
       </div>
@@ -55,7 +55,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
       </div>
       {rival && (
         <p className="stat">
-          The rival: {rival.rival.name} {rival.rival.mascot}, in {(sportById(rival.sport)?.teamName ?? rival.sport).replace(/ Team$/, '')} and in the rankings, #{rival.theirs} to the college's #{rival.mine}.
+          The rival: {rival.rival.name} {rival.rival.mascot}, in {(sportById(rival.sport)?.teamName ?? rival.sport).replace(/ Team$/, '')} and in the guide, #{rival.theirs} to the college's #{rival.mine}.
           {series && ` The series stands ${series.wins}–${series.losses}.`}
         </p>
       )}

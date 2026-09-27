@@ -179,7 +179,9 @@ console.log('year in review tests');
   };
   const lines = section('events').lines.map((l) => l.text);
   assert(lines.length === 2 && lines[0].startsWith(letter.title!), `the year's letter, and only this year's (${lines.join(' | ')})`);
-  assert(lines[1].startsWith('6 matters came up') && lines[1].includes('2 answered by you') && lines[1].includes('3 left to take their default'), `and who answered the rest (${lines[1]})`);
+  // Plan 47: the catalog's letters are letters to the President; "from the board" is the distress ladder's.
+  assert(lines[0].includes('a letter to the President') && !lines[0].includes('from the board'), `the letter is a letter to the President (${lines[0]})`);
+  assert(lines[1].startsWith('6 matters came up') && lines[1].includes('2 answered by the President') && lines[1].includes('1 by the administration') && lines[1].includes('3 left unanswered'), `and who answered the rest (${lines[1]})`);
   const cls = section('class');
   assert(s.students.classes.senior === 0 ? cls.lines.length === 0 : cls.lines.length === 2, 'the graduating class, when there is one');
   s.students.classes.senior = 120;

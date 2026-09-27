@@ -22,8 +22,8 @@ function raise(s: GameState, petition: OrgPetition): void {
     year: s.clock.year,
     week: s.clock.week,
     message: petition.kind === 'club'
-      ? `Students have organized the ${petition.name} and are petitioning for recognition — you will decide in the summer's Students beat.`
-      : `A ${petition.greekKind ?? 'fraternity'} calling itself ${petition.name} has petitioned the Hellenic Council for a charter — you will decide in the summer's Students beat.`,
+      ? `Students have organized the ${petition.name} and are petitioning for recognition — the President decides at the summer's Students step.`
+      : `A ${petition.greekKind ?? 'fraternity'} calling itself ${petition.name} has petitioned the Hellenic Council for a charter — the President decides at the summer's Students step.`,
     kind: 'info',
     topic: 'petition',
     subject: petition.id,
@@ -41,7 +41,7 @@ function tickVarsityVenues(s: GameState): void {
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `${venue.name} is complete — ${team.name} is now varsity-active.`,
+      message: `${venue.name} is complete — ${team.name} now plays varsity.`,
       kind: 'good',
       topic: 'team',
       subject: team.id,

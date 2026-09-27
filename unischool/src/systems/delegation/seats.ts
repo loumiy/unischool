@@ -134,11 +134,11 @@ export function fastestAllowed(s: GameState): boolean {
 // Why a speed is closed, or null when it is open: 4× needs a Provost and 8×
 // a Provost and three Deans (V2 #5). Every other speed is free.
 export function speedLock(s: GameState, speed: string): string | null {
-  if (speed === 'quad' && !fasterAllowed(s)) return 'Appoint a Provost to run the year at four times.';
+  if (speed === 'quad' && !fasterAllowed(s)) return 'Appoint a Provost to open game speed 4×.';
   if (speed === 'octo' && !fastestAllowed(s)) {
     return provostAppointed(s)
-      ? `Appoint ${DEANS_FOR_FASTEST - deansAppointed(s)} more Dean${DEANS_FOR_FASTEST - deansAppointed(s) === 1 ? '' : 's'} to run the year at eight times.`
-      : `Appoint a Provost and the Deans of ${DEANS_FOR_FASTEST} founded schools to run the year at eight times.`;
+      ? `Appoint ${DEANS_FOR_FASTEST - deansAppointed(s)} more Dean${DEANS_FOR_FASTEST - deansAppointed(s) === 1 ? '' : 's'} to open game speed 8×.`
+      : `Appoint a Provost and the Deans of ${DEANS_FOR_FASTEST} founded schools to open game speed 8×.`;
   }
   return null;
 }

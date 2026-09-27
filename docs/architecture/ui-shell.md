@@ -269,7 +269,7 @@ player-facing calls `toLocaleString()` or writes a "$" by hand;
 - **Durations.** Chips, buttons and map labels say "8w" (`weeksShort`),
   derived from the constant that sets them; prose says weeks, or whole
   years (`weeksProse`). Rates read "/wk" and "/yr", with no space.
-- **The game date** has one form, "Year 9 · Fall Term · Week 2"
+- **The game date** has one form, "Year 9 · Fall term · Week 2"
   (`gameDate`): the dock, the title screen and every dated letter. The log
   keeps its compact "Y9W2" stamp. The one real date, a set-aside save's,
   is written in English (`calendarDate`); the Hall of fame's plaques carry

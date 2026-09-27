@@ -78,7 +78,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     s.ending = { report, addenda: [] };
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
-      message: `The fiftieth year closes. The Final Report: ${report.title}. Final mark ${report.mark}.`,
+      message: `The fiftieth year closes. The Final Report: ${report.title}. Final grade ${report.mark}.`,
       kind: 'good',
     });
   }

@@ -21,7 +21,7 @@ const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
   board: 'The President',
   academic: 'Academic affairs',
   students: 'Student life',
-  estate: 'The estate',
+  estate: 'Buildings and grounds',
   advancement: 'Advancement',
 };
 

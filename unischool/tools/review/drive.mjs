@@ -8,7 +8,7 @@
 //
 //   npm run dev                                     # in one shell
 //   node tools/review/drive.mjs <profile> fresh      # wipe the profile: a new visitor
-//   node tools/review/drive.mjs <profile> "click=Found a new college" shot=a.png text
+//   node tools/review/drive.mjs <profile> "click=New game" shot=a.png text
 //   node tools/review/drive.mjs <profile> resume "key=1" wait=20000 key=Space shot=b.png
 //
 // Steps, in order (any number):

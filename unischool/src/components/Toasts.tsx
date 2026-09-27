@@ -41,7 +41,7 @@ export function toastsFor(before: GameState, after: GameState, fresh: readonly L
     else if (l.topic === 'building' && l.subject && !onScreen(l.subject)) out.push({ text: l.message, tone: 'info' });
   }
   const [was, now] = [playerRank(before), playerRank(after)];
-  if (now !== was) out.push({ text: now < was ? `Up to #${now} in the rankings.` : `Down to #${now} in the rankings.`, tone: now < was ? 'good' : 'bad' });
+  if (now !== was) out.push({ text: now < was ? `Up to #${now} in the guide.` : `Down to #${now} in the guide.`, tone: now < was ? 'good' : 'bad' });
   if (before.finance.cash >= 0 && after.finance.cash < 0) out.push({ text: 'The college is in the red.', tone: 'bad' });
   return out;
 }

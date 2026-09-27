@@ -110,7 +110,7 @@ function research(entries: LogEntry[]): ReviewSection {
   const started = byTopic(entries, 'research-started').length;
   const concluded = byTopic(entries, 'research-concluded').length + byTopic(entries, 'research-reported').length;
   if (started > 0 || concluded > 0) {
-    lines.push({ text: `${plural(started, 'initiative')} begun, ${concluded} concluded` });
+    lines.push({ text: `${plural(started, 'research project')} begun, ${concluded} concluded` });
   }
   const papers = byTopic(entries, 'publication').length;
   const breakthroughs = byTopic(entries, 'breakthrough').length;
@@ -157,7 +157,7 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
     });
   }
   const petitions = s.orgs.pendingPetitions.length;
-  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organisation')} petitioning for recognition — answered in the summer's Students beat` });
+  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organization')} petitioning for recognition — the President answers at this summer's Students step` });
   const leaving = projectedAttrition(s);
   if (leaving > 0) {
     const reasons = attritionReasons(s);
@@ -166,7 +166,7 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
       tone: 'bad',
     });
   }
-  return { key: 'students', title: 'Students', lines, empty: 'Nothing to report.' };
+  return { key: 'students', title: 'Students', lines, empty: 'No demands, petitions or departures this year.' };
 }
 
 function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
@@ -222,14 +222,14 @@ function events(s: GameState): ReviewSection {
     if (l.year !== s.clock.year) continue;
     const e = eventById(l.eventId);
     const choice = e?.choices.find((c) => c.id === l.choiceId);
-    lines.push({ text: `${e?.title ?? 'A letter'}, from the board: ${choice?.label ?? 'answered'}` });
+    lines.push({ text: `${e?.title ?? 'A letter'}, a letter to the President: ${choice?.label ?? 'answered'}` });
   }
   const row = s.catalogue?.answered?.find((a) => a.year === s.clock.year);
   if (row) {
     const parts = [
-      row.player > 0 ? `${count(row.player)} answered by you` : '',
-      row.seat > 0 ? `${count(row.seat)} by the seats` : '',
-      row.timeout > 0 ? `${count(row.timeout)} left to take ${row.timeout === 1 ? 'its' : 'their'} default` : '',
+      row.player > 0 ? `${count(row.player)} answered by the President` : '',
+      row.seat > 0 ? `${count(row.seat)} by the administration` : '',
+      row.timeout > 0 ? `${count(row.timeout)} left unanswered, taking the usual course` : '',
     ].filter((x) => x !== '');
     lines.push({ text: `${plural(row.player + row.seat + row.timeout, 'matter')} came up: ${parts.join(', ')}` });
   }

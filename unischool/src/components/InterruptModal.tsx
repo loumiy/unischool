@@ -107,7 +107,7 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
       </h3>
       <p className="digest-note">
         {clubs === petitions.length
-          ? 'Recognize a society and it costs a little every week and adds a little to student satisfaction, for as long as it exists. Decline and the students notice.'
+          ? 'Recognize an organization and it costs a little every week and adds a little to student satisfaction, for as long as it exists. Decline and the students notice.'
           : 'Chapters carry more of both than clubs do — more cost, and considerably more student life.'}
       </p>
       {petitions.map((p) => (
@@ -130,10 +130,10 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
 
 // Label and tone for each PriceTier (admissionsSystem.ts).
 const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> = {
-  bargain: { label: 'a bargain for your prestige', className: 'price-tier-bargain' },
-  fair: { label: 'in line with your prestige', className: 'price-tier-fair' },
-  expensive: { label: 'pricier than your prestige supports', className: 'price-tier-expensive' },
-  reckless: { label: 'far beyond your prestige — sticker shock will bite', className: 'price-tier-reckless' },
+  bargain: { label: 'a bargain for the college\'s prestige', className: 'price-tier-bargain' },
+  fair: { label: 'in line with the college\'s prestige', className: 'price-tier-fair' },
+  expensive: { label: 'more than the college\'s prestige supports', className: 'price-tier-expensive' },
+  reckless: { label: 'far above what the college\'s prestige supports; expect sticker shock', className: 'price-tier-reckless' },
 };
 
 // "Fair" spans 0.7 to 1.15 of what prestige supports, about $6,000 at most
@@ -252,7 +252,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
       <h2>Admissions</h2>
       {!tuitionLocked && (
         <p className="admissions-prompt">
-          What will you charge next year? You will see who it drew once it is set.
+          What will the college charge next year? The pool it draws shows once the price is set.
         </p>
       )}
 
@@ -306,16 +306,16 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             )}
             <Figure
               className="reveal"
-              label={<>Room for <span className="outcome-note">(the catalog's seats, less those who stay on)</span></>}
+              label={<>Room for <span className="outcome-note">(the catalog's places, less those who stay on)</span></>}
               hint={FIGURE_HINTS.room}
               value={<AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />}
             />
           </dl>
           <p className="admissions-ceiling-note">
-            {count(ceiling.capacity)} seats across the housed catalog; {count(ceiling.stayingOn)} return next year.
+            {count(ceiling.capacity)} places across the courses now taught; {count(ceiling.stayingOn)} return next year.
             {ceiling.nextSummer > ceiling.capacity
               ? ` Next summer the catalog will hold ${count(ceiling.nextSummer)}, counting the courses now in development.`
-              : ' Nothing in development will add seats by next summer.'}
+              : ' Nothing in development will add places by next summer.'}
           </p>
 
           <div className="cohort-breakdown">
@@ -343,7 +343,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               <span className="outcome-note">
                 {outcome.capped
                   ? `Held to the room: ${count(ceiling.seatsLeft)} fit of the ${count(outcome.applicants * Math.min(admitRateChoice, 1))} this share would admit.`
-                  : `The slider ends at ${pct(maxAdmitRate)}, where the class fills the room.`}
+                  : `The admit rate stops at ${pct(maxAdmitRate)}, where the class fills the room.`}
               </span>
             )}
           </label>
@@ -431,7 +431,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
 // ---------------------------------------------------------------------
 // The fiftieth summer's first beat is the Final Report, and says so.
 function SummerSteps({ beat, final }: { beat: SummerBeat; final?: boolean }) {
-  const labels = SUMMER_BEATS.map((label, i) => (i === 0 && final ? 'Final report' : label));
+  const labels = SUMMER_BEATS.map((label, i) => (i === 0 && final ? 'Final Report' : label));
   return (
     <ol className="summer-steps" aria-label="Summer">
       {labels.map((label, i) => (
@@ -459,7 +459,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
       <h2>Year {review.year} in review</h2>
       <p>
         The year is over. Before the summer's decisions, what it produced.
-        {review.truncated && ' The record of its earliest weeks has scrolled off the log.'}
+        {review.truncated && ' The log no longer reaches back to its first weeks.'}
       </p>
       {era && <p className="review-era">{CHRONICLE_WORDS.now.replace('{era}', era.name)}</p>}
       <div className="review-grid">
@@ -620,13 +620,13 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
 
   return (
     <>
-      <h2>{isFirstReveal ? "You've entered the rankings" : published ? 'Standing — the guide' : 'Standing'}</h2>
+      <h2>{isFirstReveal ? 'The college enters the guide' : published ? 'Standing — the guide' : 'Standing'}</h2>
       <p>
         {isFirstReveal
           ? `${standings.find((r) => r.isPlayer)?.name ?? 'The college'} has entered the guide's top fifty, at #${rank}.`
           : published
-            ? `This year's standings are in — you're ranked #${rank}.`
-            : `You are ranked #${rank} of ${payload.field} this summer. The guide publishes fifty names; the college is not on it yet.`}
+            ? `This year's standings: the college is #${rank}.`
+            : `The college ranks #${rank} of ${payload.field}. The guide prints fifty names; the college is not yet among them.`}
       </p>
 
       {delta !== null && (
@@ -653,7 +653,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
 
       {movers.length > 0 && (
         <div className="report-movers">
-          <h3>Big movers</h3>
+          <h3>The largest moves</h3>
           <ul>
             {movers.map((m) => (
               <li key={m.name}>
@@ -678,7 +678,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
               <span className="report-other-rank">#{o.rank}</span>
               <span className="report-other-note">
                 {o.isLeader
-                  ? 'nobody in the country is ahead of you'
+                  ? 'no college in the country is ahead'
                   : `${o.leader} ${o.leaderMascot} lead`}
               </span>
             </li>
@@ -743,11 +743,7 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
   return (
     <>
       <h2>{single ? single.headline : `${payload.entries.length} milestones reached`}</h2>
-      {single ? (
-        <p>{single.detail}</p>
-      ) : (
-        <p>The catalog has crossed several milestones at once.</p>
-      )}
+      {single && <p>{single.detail}</p>}
 
       {/* One milestone reads as a paragraph with its unlocks; a burst reads
           as cards, each with its unlocks folded behind a count. */}
@@ -935,7 +931,7 @@ function ChampionshipView({ s, result, onDismiss }: {
           <dt>Campus life</dt>
           {/* Standing drifts toward its target, so this is what the target
               moved by. */}
-          <dd>{worth >= 0.05 ? `${signed(worth, 1)} to the target` : 'already at its ceiling'}</dd>
+          <dd>{worth >= 0.05 ? `${signed(worth, 1)} to the target` : 'already at its limit'}</dd>
         </div>
       </dl>
 
@@ -995,7 +991,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
 
   return (
     <>
-      <h2>An athletic director</h2>
+      <h2>An Athletic Director</h2>
       <p>
         {s.orgs.teams.length === 1
           ? 'The college fields a varsity program now, and nobody is running it.'
@@ -1032,7 +1028,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
             aria-label="Mascot"
           />
           <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion(Math.random))}>
-            another
+            Another
           </button>
         </label>
       )}
@@ -1080,7 +1076,7 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
         {/* On every letter, not only the first: a guided founding marks the
             first read at the start, so the opt-out has to travel with the rest. */}
         <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
-          I know the way — no more letters this run
+          Skip the chair's letters from here on
         </button>
       </div>
     </>
@@ -1103,8 +1099,8 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
     <>
       <h2>The Deans' recommendations</h2>
       <p>
-        Courses without an instructor leave their whole program dark: no seats, no progress, and a zero in every grade.
-        Your Deans have found who can take them.
+        Courses without an instructor leave their whole program dark: no places, no progress and a zero in every grade.
+        The Deans have found who can take them.
       </p>
       {plans.map((p) => (
         <section key={p.school} className="dean-plan">
@@ -1181,7 +1177,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
   if (!event) {
     return (
       <>
-        <h2>An event has passed</h2>
+        <h2>A matter set aside</h2>
         <p>The matter this concerned has lapsed. Nothing has changed.</p>
         <div className="modal-actions">
           <button onClick={onDismiss}>Continue</button>

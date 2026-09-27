@@ -20,7 +20,7 @@ export default function Credits({ onClose }: { onClose: () => void }) {
           <dt>Made with</dt>
           <dd>React, TypeScript, Vite and the Web Audio API</dd>
           <dt>With thanks to</dt>
-          <dd>Every college that ever sent a letter about the car park</dd>
+          <dd>Every college that ever sent a letter about the parking lot</dd>
         </dl>
         <p className="review-empty">Your runs, your settings and your hall of fame live in this browser and nowhere else.</p>
       </section>

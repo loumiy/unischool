@@ -123,7 +123,7 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: coursesDone(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
     buildables: ['HALL-01'],
     tabs: [],
-    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six rooms, one program to a room, and when six programs of one school share a hall, that school is founded.`,
+    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six program slots, one program to a slot, and when six programs of one school share a hall, that school is founded.`,
     opens: ['Academic halls: six program slots each, and the way a school is founded'],
   },
   {
@@ -134,7 +134,7 @@ export const MILESTONES: readonly Milestone[] = [
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
     buildables: ['HLTH-T1', 'AMENITY-GARDEN'],
     tabs: [],
-    letter: 'At this size the college is a small town, and a town gets sick. From here on students expect care on campus, and their satisfaction will count it. A town needs running, too: from here, every time the college doubles, each of its students costs a little more to administer (the Treasury\'s "Being large").',
+    letter: 'At this size the college is a small town, and a town gets sick. From here on students expect care on campus, and their satisfaction will count it. A town needs running, too: from here, every time the college doubles, each of its students costs a little more to administer, and the Treasury counts it as the cost of being large.',
     opens: ['Health & Counseling Center: care for students, which now counts toward satisfaction', 'The Japanese Garden: a koi pond, a torii and cherry trees, and campus beauty'],
   },
   {
