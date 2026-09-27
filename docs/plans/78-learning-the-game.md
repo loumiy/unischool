@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask on area 3 of
 the October review into PRs, now that the inbox (Plan 77) has landed.*
 
-**Status: Proposed.** A is this plan.
+**Status: Proposed.** A is this plan (#232).
 
 ---
 
