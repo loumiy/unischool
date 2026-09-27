@@ -30,7 +30,7 @@ import { postSearch } from '../systems/faculty/facultySearch';
 import { endInitiative } from '../systems/research/researchSystem';
 import { researchTopic } from '../data/researchTopics';
 import { programOfCourse } from '../data/techData';
-import { isInTransit } from '../systems/techtree/programOffers';
+import { declineOffer, isInTransit } from '../systems/techtree/programOffers';
 import { restaff } from '../systems/faculty/restaffing';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
@@ -205,6 +205,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       // the same predicate before offering the button.
       foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
       settleOpening(s); // the walkthrough's last step ends on a fourth program founded
+      return s;
+    }
+
+    case 'DECLINE_OFFER': {
+      declineOffer(s, action.programId);
       return s;
     }
 

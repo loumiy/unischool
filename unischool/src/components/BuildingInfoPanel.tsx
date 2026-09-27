@@ -12,7 +12,7 @@ import { NEED_WORD } from '../data/needWords';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
-import { claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
+import { claimCutBy, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
@@ -21,9 +21,9 @@ import {
   canFoundProgram, canRelocateProgram, eligibleInstructors, facultyGate,
   FOUNDERS_MOVE_WEEKS, relocationWeeks,
 } from '../systems/techtree/techSystem';
-import { hostOffers, isHoused, transitWeeks } from '../systems/techtree/programOffers';
+import { declineRefusal, hostOffers, isHoused, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
-import { count, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
+import { count, countWord, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
 import { CloseIcon } from './icons';
 
@@ -292,16 +292,27 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
 
 // ---------------------------------------------------------------------
 // The hall view: a 2x3 grid of slots. Clicking an empty slot fans out the
-// three programs on offer as course tiles (schoolPalette.ts colors);
-// picking one opens the instructor picker, and "Found" is the one button on
-// the map that starts a course. A filled slot shows a ProgramTile.
+// programs on offer as course tiles (schoolPalette.ts colors); picking one
+// opens the instructor picker, and "Found" is the one button on the map
+// that starts a course. A filled slot shows a ProgramTile.
+//
+// What is on offer (Plan 78D): a purchased hall one school claims offers
+// every program of that school the college can found (programOffers.ts's
+// schoolOffers), then the global offers of other schools; Founders Hall and
+// a hall no school claims offer the global three. Each global offer can be
+// declined, one a year ("Not this year"), and founding another school's
+// program into a claimed hall asks first, since it takes a program slot the
+// school needs.
 //
 // A graduate program's host (Plan 51) is drawn the same way, one slot a
 // program it houses: its offers are the programs it houses that are earned,
 // and the ones still waiting say what on.
 // ---------------------------------------------------------------------
-function HallSlots({ t, s, act, onOpenCurriculum }: {
+function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (sectionKey: string) => void;
+  // A housed program whose tile opens with the panel (its move showing):
+  // the next-step line's move (Plan 78D).
+  focusProgramId?: string;
 }) {
   const slots = s.halls[t.id];
   // Which empty slot is open (fanned out), and which offer is picked in it.
@@ -309,8 +320,8 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
   const [pickedProgram, setPickedProgram] = useState<string | null>(null);
   const [pickedFaculty, setPickedFaculty] = useState<string | null>(null);
   // Which housed program's tile is expanded; one at a time.
-  const [openTile, setOpenTile] = useState<string | null>(null);
-  useEffect(() => { setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }, [t.id]);
+  const [openTile, setOpenTile] = useState<string | null>(focusProgramId ?? null);
+  useEffect(() => { setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null); setOpenTile(focusProgramId ?? null); }, [t.id, focusProgramId]);
 
   if (!slots) {
     // Under construction, or an entry the loader dropped: the slots exist
@@ -328,9 +339,13 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
   }
 
   const host = !isAcademicHall(t);
-  const offers = host
+  // A claimed purchased hall's own school's programs, then the draw's.
+  const own = host ? [] : schoolOffers(s, t.id);
+  const ownSchool = own.length > 0 ? own[0].school : undefined;
+  const drawn = host
     ? hostOffers(s, t.id)
-    : s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined);
+    : s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined).filter((p) => p.school !== ownSchool);
+  const offers = [...own, ...drawn];
   const waiting = host
     ? hostedPrograms(t.id).filter((id) => !isHoused(s, id) && !offers.some((p) => p.id === id)).map((id) => graduateProgram(id)).filter((p) => p !== undefined)
     : [];
@@ -349,6 +364,56 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
   // The picked offer's school has a hall of its own elsewhere.
   const pickedHome = picked && !host ? schoolHall(s, picked.school) : undefined;
   const pickedHomeHall = pickedHome && pickedHome !== t.id ? s.tech.find((x) => x.id === pickedHome) : undefined;
+  // Another school's program into this hall's claim (Plan 78D): it takes a
+  // program slot the claiming school needs, so Found asks first.
+  const cut = picked && !host ? claimCutBy(s, t.id, picked.id) : null;
+  const offerTile = (program: ProgramInfo) => {
+    const course = s.tech.find((x) => x.id === program.entryCourseId);
+    const mark = schoolMark(program.school);
+    const [code] = (course?.name ?? program.entryCourseId).split(' · ');
+    const selected = pickedProgram === program.id;
+    return (
+      <button
+        key={program.id}
+        type="button"
+        className={`hall-offer-tile${selected ? ' selected' : ''}`}
+        style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}
+        onClick={() => { setPickedProgram(selected ? null : program.id); setPickedFaculty(null); }}
+        aria-pressed={selected}
+      >
+        <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
+        <span className="hall-offer-name">{program.name}</span>
+        <span className="hall-offer-meta">
+          {moneyShort(course?.cost ?? 0)} · {course?.requiresFaculty ?? '—'}
+        </span>
+      </button>
+    );
+  };
+  // The year's decline spent: said once, under the offers.
+  const declineSpent = !host && act && s.declinedOffer?.year === s.clock.year && drawn.length > 0
+    ? declineRefusal(s, drawn[0].id)
+    : null;
+  // A global offer, with its decline: one a year, refused with the reason.
+  const drawnTile = (program: ProgramInfo) => {
+    if (host || !act) return offerTile(program);
+    const refusal = declineRefusal(s, program.id);
+    return (
+      <div key={program.id} className="hall-offer-choice">
+        {offerTile(program)}
+        <ConfirmButton
+          className="btn-quiet hall-offer-decline"
+          disabled={refusal !== null}
+          title={refusal ?? `Set ${program.name} aside for another offer; one offer a year may be declined`}
+          label="Not this year"
+          armedLabel={`Confirm — no other offer can be declined until Year ${s.clock.year + 1}`}
+          onConfirm={() => {
+            act({ type: 'DECLINE_OFFER', programId: program.id });
+            if (pickedProgram === program.id) { setPickedProgram(null); setPickedFaculty(null); }
+          }}
+        />
+      </div>
+    );
+  };
 
   return (
     <>
@@ -423,31 +488,24 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
 
       {openSlot !== null && offers.length > 0 && (
         <div className="hall-offer">
-          <h4 className="hall-offer-head">On offer for slot {openSlot + 1}</h4>
-          <div className="hall-offer-tiles">
-            {offers.map((program) => {
-              const course = s.tech.find((x) => x.id === program.entryCourseId);
-              const mark = schoolMark(program.school);
-              const [code] = (course?.name ?? program.entryCourseId).split(' · ');
-              const selected = pickedProgram === program.id;
-              return (
-                <button
-                  key={program.id}
-                  type="button"
-                  className={`hall-offer-tile${selected ? ' selected' : ''}`}
-                  style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}
-                  onClick={() => { setPickedProgram(selected ? null : program.id); setPickedFaculty(null); }}
-                  aria-pressed={selected}
-                >
-                  <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
-                  <span className="hall-offer-name">{program.name}</span>
-                  <span className="hall-offer-meta">
-                    {moneyShort(course?.cost ?? 0)} · {course?.requiresFaculty ?? '—'}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {ownSchool ? (
+            <>
+              <h4 className="hall-offer-head">{ownSchool} programs for program slot {openSlot + 1}</h4>
+              <div className="hall-offer-tiles">{own.map(offerTile)}</div>
+              {drawn.length > 0 && (
+                <>
+                  <h4 className="hall-offer-head">Other schools, from the offers</h4>
+                  <div className="hall-offer-tiles">{drawn.map(drawnTile)}</div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <h4 className="hall-offer-head">On offer for program slot {openSlot + 1}</h4>
+              <div className="hall-offer-tiles">{drawn.map(drawnTile)}</div>
+            </>
+          )}
+          {declineSpent && <p className="building-info-line hall-offer-note">{declineSpent}</p>}
 
           {picked && entry && (
             <div className="hall-offer-picker">
@@ -483,19 +541,24 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
                   {money(Math.ceil(entry.cost - s.finance.cash))} short of the entry course's cost.
                 </p>
               )}
-              <button
-                type="button"
+              <ConfirmButton
                 className="building-info-jump"
                 disabled={!canFound || !act}
-                onClick={() => {
+                needsConfirm={cut !== null}
+                label={chosen
+                  ? `Found ${picked.name} · ${moneyShort(entry.cost)}`
+                  : `Found ${picked.name}`}
+                armedLabel={cut
+                  ? `Confirm — this takes one of the ${countWord(cut.slots)} program slots ${cut.school} needs`
+                  : `Found ${picked.name}`}
+                warning={cut
+                  ? `${hallDisplayName(s, t)} holds ${cut.school} (${fraction(cut.housed, cut.slots)}): ${picked.name} here keeps it from becoming the School of ${cut.school} until it moves out.`
+                  : undefined}
+                onConfirm={() => {
                   if (founding && act) act({ type: 'FOUND_PROGRAM', ...founding });
                   setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null);
                 }}
-              >
-                {chosen
-                  ? `Found ${picked.name} · ${moneyShort(entry.cost)}`
-                  : `Found ${picked.name}`}
-              </button>
+              />
             </div>
           )}
         </div>
@@ -505,10 +568,10 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
 }
 
 // A building's info: an academic hall's slots, Founders Hall included.
-function BuildingHallInfo({ t, s, act, onOpenCurriculum }: {
-  t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (id: string) => void;
+function BuildingHallInfo({ t, s, act, onOpenCurriculum, focusProgramId }: {
+  t: Buildable; s: GameState; act?: (a: Action) => void; onOpenCurriculum?: (id: string) => void; focusProgramId?: string;
 }) {
-  if (isAcademicHall(t)) return <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />;
+  if (isAcademicHall(t)) return <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} focusProgramId={focusProgramId} />;
 
   // Unreachable for real seed data (every 'building' is a hall); a plain
   // fallback rather than crashing the map.
@@ -588,8 +651,11 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
   );
 }
 
-export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum }: {
+export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum, focusProgramId }: {
   t: Buildable; s: GameState; onClose: () => void;
+  // A housed program whose tile opens with the panel (the next-step line's
+  // move, Plan 78D).
+  focusProgramId?: string;
   // What this panel dispatches: FOUND_PROGRAM from a hall's slot, the
   // estate's actions, and calling off or demolishing (Plan 39). Optional,
   // like onOpenCurriculum; the map always passes both.
@@ -622,7 +688,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
       {t.kind === 'facility' && isGraduateHost(t.id) && t.status === 'done' && <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
-      {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
+      {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} focusProgramId={focusProgramId} />}
       {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}
     </div>
   );

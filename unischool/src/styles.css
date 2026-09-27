@@ -766,6 +766,12 @@ button.build-tile { font-family: inherit; }
 .hall-offer-name { font-weight: 700; font-size: var(--text-sm); }
 .hall-offer-meta { color: var(--ink-muted); font-weight: 600; }
 .hall-offer-picker .instructor-options { margin-bottom: 6px; }
+/* A global offer and its decline (Plan 78D): the tile, and under it a quiet
+   "Not this year" at the right. */
+.hall-offer-choice { display: flex; flex-direction: column; gap: var(--space-4); }
+.hall-offer-choice > .confirm-button { align-self: flex-end; align-items: flex-end; }
+.hall-offer-decline { padding: var(--space-2) var(--space-8); font-size: var(--text-xs); }
+.hall-offer-note { color: var(--ink-muted); margin: 0 0 8px; }
 .building-info-takedown { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--outline); }
 .building-info-confirm { display: flex; gap: 8px; }
 .building-info-confirm .building-info-jump { margin-top: 0; }

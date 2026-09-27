@@ -1,14 +1,22 @@
 import type { GameState } from '../../state/types';
-import { graduateGateMet, programs, type ProgramInfo } from '../../data/techData';
+import { FOUNDERS_HALL_ID, graduateGateMet, programs, type ProgramInfo } from '../../data/techData';
 import { makeRivalRng } from '../../data/rivalData';
 import { hostedPrograms } from '../../data/projectData';
 import { WEEKS_PER_YEAR } from '../../state/types';
+import { claimedSchool } from './schools';
 
 // ---------------------------------------------------------------------
 // The offer queue: the player sees three programs (s.programOffers) drawn
 // from what remains, and founding one draws a replacement, so the catalog
 // is discovered rather than enumerated (docs/design/curriculum.md). No
-// reroll, no decline.
+// reroll; one decline a year (Plan 78D, declineOffer below), which draws a
+// replacement and keeps the declined program off the table until the year
+// turns.
+//
+// A school's own hall is not served by the draw (Plan 78D): a purchased
+// hall one school claims offers every revealed program of that school
+// (schoolOffers below), so a school that has moved in can always grow. The
+// draw serves Founders Hall and every hall no school claims.
 //
 // The mix (Plan 71, the owner's rule): two offers from schools the college
 // has started and one from a school it has not, for as long as both kinds
@@ -115,6 +123,48 @@ export function offerablePrograms(s: GameState): ProgramInfo[] {
   return programs().filter((program) => isRevealed(s, program) && !isHoused(s, program.id));
 }
 
+// A claimed hall's own offers (Plan 78D): every revealed, unhoused major of
+// the school a purchased hall is being sorted into (schools.ts's
+// claimedSchool), in seed order, drawn from nothing. Empty for Founders
+// Hall, which keeps the global offers whoever holds it, and for a hall no
+// school claims.
+export function schoolOffers(s: GameState, hallId: string): ProgramInfo[] {
+  if (hallId === FOUNDERS_HALL_ID) return [];
+  const claim = claimedSchool(s, hallId);
+  if (!claim) return [];
+  return offerablePrograms(s).filter((program) => program.school === claim.school);
+}
+
+// Whether a major may be founded into this hall from what it offers: the
+// global offers, or the hall's own school's (schoolOffers).
+export function offeredIn(s: GameState, hallId: string, programId: string): boolean {
+  return s.programOffers.includes(programId) || schoolOffers(s, hallId).some((program) => program.id === programId);
+}
+
+// The decline (Plan 78D, A4-5's "decline an offer"): one global offer a
+// year may be set aside. Returns why not, or null when it may.
+export function declineRefusal(s: GameState, programId: string): string | null {
+  if (!s.programOffers.includes(programId)) return 'That program is not on offer.';
+  const last = s.declinedOffer;
+  if (last && last.year === s.clock.year) {
+    const name = programs().find((program) => program.id === last.programId)?.name ?? last.programId;
+    return `One offer a year may be declined, and ${name} was declined this year. The next can be declined in Year ${s.clock.year + 1}.`;
+  }
+  const replacements = offerablePrograms(s).filter((program) => !s.programOffers.includes(program.id));
+  if (replacements.length === 0) return 'Nothing else is left to offer in its place.';
+  return null;
+}
+
+// Declines an offer: it leaves the table, the year's decline is spent, and
+// the ordinary draw fills the place. The declined program is not drawn again
+// this year (refillOffers).
+export function declineOffer(s: GameState, programId: string): void {
+  if (declineRefusal(s, programId) !== null) return;
+  s.programOffers = s.programOffers.filter((id) => id !== programId);
+  s.declinedOffer = { year: s.clock.year, programId };
+  refillOffers(s);
+}
+
 // Tops the offer back up to PROGRAM_OFFER_COUNT: at founding, after each
 // FOUND_PROGRAM, and after weeks that finish something (when a graduate gate
 // may open). Idempotent. Offers that became unofferable are dropped first.
@@ -126,7 +176,9 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
   const byId = new Map(offerable.map((program) => [program.id, program]));
   s.programOffers = s.programOffers.filter((id) => byId.has(id));
 
-  let pool = offerable.filter((program) => !s.programOffers.includes(program.id));
+  // A program declined this year stays off the table until the year turns.
+  const declined = s.declinedOffer?.year === s.clock.year ? s.declinedOffer.programId : undefined;
+  let pool = offerable.filter((program) => !s.programOffers.includes(program.id) && program.id !== declined);
   if (s.programOffers.length >= PROGRAM_OFFER_COUNT || pool.length === 0) return;
 
   const started = startedSchools(s);

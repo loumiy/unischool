@@ -53,7 +53,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 79; // Plan 72E: the charter is granted, not asked
+export const SAVE_VERSION = 80; // Plan 78D: one offer a year may be declined
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -90,11 +90,19 @@ function grantHeldCharter(state: GameState): void {
   if (state.clock.week > WEEKS_PER_YEAR) { state.clock.week = 1; state.clock.year += 1; }
 }
 
+// 79 -> 80, Plan 78D: the year's decline of an offer (GameState's
+// declinedOffer). A save from before it has declined nothing, which is the
+// field's absence; the step only clears anything a hand-edited save carried.
+function noDeclineYet(state: GameState): void {
+  delete state.declinedOffer;
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
   77: carryRetired,
   78: grantHeldCharter,
+  79: noDeclineYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -651,6 +659,14 @@ function sanitizeProgramOffers(state: GameState): void {
     clean.push(id);
   }
   state.programOffers = clean;
+  // The year's decline (Plan 78D): a whole year and a program id, or nothing.
+  const declined = state.declinedOffer as unknown;
+  if (declined !== undefined) {
+    const d = declined as { year?: unknown; programId?: unknown };
+    const valid = typeof declined === 'object' && declined !== null
+      && Number.isInteger(d.year) && typeof d.programId === 'string';
+    if (!valid) delete state.declinedOffer;
+  }
 }
 
 // Search hygiene, run on EVERY load: a running search is a positive

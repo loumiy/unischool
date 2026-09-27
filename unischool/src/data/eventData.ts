@@ -15,6 +15,7 @@ import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, academicHallId, graduateProgr
 import { FOUNDING_PROGRAMS } from './foundingData';
 import { claimedHalls, dedicatedHalls, dedicatedSchool, nextSchoolToMove, programsAwayFromHome, suggestedMove, type Claim } from '../systems/techtree/schools';
 import type { StepIntent } from '../systems/guidance/intent';
+import { schoolOffers } from '../systems/techtree/programOffers';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
 import { count as countOf, money, satisfactionFigure } from '../format';
@@ -1042,6 +1043,9 @@ export interface LetterAsk {
   text: string;
   go?: 'build' | 'hall';
   hallId?: string;
+  // With 'hall': a program housed there whose tile opens with the panel,
+  // its move showing (Plan 78D).
+  programId?: string;
   // The ask as data, for the guided player (systems/guidance/intent.ts).
   intent?: StepIntent;
 }
@@ -1113,7 +1117,7 @@ function twoSchoolsHoused(s: GameState): boolean {
 }
 
 // The suggested move of a school's first program away from home, if any.
-function moveIntent(s: GameState, school: string | null): StepIntent | undefined {
+function moveIntent(s: GameState, school: string | null): Extract<StepIntent, { kind: 'move' }> | undefined {
   if (school === null) return undefined;
   for (const away of programsAwayFromHome(s)) {
     if (away.school !== school) continue;
@@ -1121,6 +1125,15 @@ function moveIntent(s: GameState, school: string | null): StepIntent | undefined
     if (move) return { kind: 'move', programId: away.programId, ...move };
   }
   return undefined;
+}
+
+// A move as the next-step line asks it (Plan 78D): named, and pointed at
+// the hall the program is in now, whose panel opens on its tile with the
+// move showing.
+function moveAsk(s: GameState, move: Extract<StepIntent, { kind: 'move' }>): LetterAsk {
+  const name = programById(move.programId)?.name ?? move.programId;
+  const from = programsAwayFromHome(s).find((p) => p.programId === move.programId)?.hallId ?? FOUNDERS_HALL_ID;
+  return { text: `Move ${name} into ${hallName(s, move.hallId)}`, go: 'hall', hallId: from, programId: move.programId, intent: move };
 }
 
 // Founders Hall's panel, where a move out of it starts.
@@ -1218,8 +1231,10 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     ask: (s) => {
       const elm = hallName(s, FIRST_HALL_ID);
       const school = nextSchoolToMove(s);
+      const move = moveIntent(s, school);
+      if (move) return moveAsk(s, move);
       const first = school ? awayNames(s, school)[0] : undefined;
-      return { text: first ? `Move ${first} into ${elm}` : `Move a program into ${elm}`, ...FOUNDERS_HALL_ASK, intent: moveIntent(s, school) ?? { kind: 'wait' } };
+      return { text: first ? `Move ${first} into ${elm}` : `Move a program into ${elm}`, ...FOUNDERS_HALL_ASK, intent: { kind: 'wait' } };
     },
     done: (s) => claimedHalls(s).length > 0,
   },
@@ -1236,17 +1251,19 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const rest = away.length === 0
         ? ''
         : ` ${list(away)} still ${away.length === 1 ? 'teaches' : 'teach'} ${claim.school} from Founders Hall: move ${away.length === 1 ? 'it' : 'them'} across when you like, ${count(FOUNDERS_MOVE_WEEKS)} weeks each.`;
-      return `${claim.school} is in ${hall}: ${count(claim.housed)} of six. From here, found every new ${claim.school} program straight into ${hall}, and anything else into Founders Hall, where programs still begin.${rest} Six ${claim.school} programs in ${hall} found the School of ${claim.school}, and the hall takes its name.`;
+      return `${claim.school} is in ${hall}: ${count(claim.housed)} of six. From here, ${hall} offers every ${claim.school} program the college can found, whatever else is on offer; found anything else into Founders Hall, where programs still begin.${rest} Six ${claim.school} programs in ${hall} found the School of ${claim.school}, and the hall takes its name.`;
     },
     ask: (s) => {
       const claim = leadingClaim(s);
       if (!claim) return { text: 'Grow a school to three programs in a hall of its own', intent: { kind: 'wait' } };
-      // Move what is left of the school first; else found its next one.
-      const offered = s.programOffers.find((id) => programById(id)?.school === claim.school);
-      return {
-        text: `Grow ${claim.school} to three programs in ${hallName(s, claim.hallId)} (${claim.housed} of 6)`, go: 'hall', hallId: claim.hallId,
-        intent: moveIntent(s, claim.school) ?? (offered ? { kind: 'found', hallId: claim.hallId, programId: offered } : { kind: 'wait' }),
-      };
+      // Move what is left of the school first, from the hall it is in (Plan
+      // 78D); else found its next one from the hall's own offers.
+      const move = moveIntent(s, claim.school);
+      if (move) return moveAsk(s, move);
+      const grow = `Grow ${claim.school} to three programs in ${hallName(s, claim.hallId)} (${claim.housed} of 6)`;
+      return schoolOffers(s, claim.hallId).length > 0
+        ? { text: grow, go: 'hall', hallId: claim.hallId, intent: { kind: 'found', hallId: claim.hallId } }
+        : { text: `${grow}: no ${claim.school} program is left to found`, intent: { kind: 'wait' } };
     },
     done: (s) => claimedHalls(s).some((c) => c.housed >= 3),
   },
@@ -1268,9 +1285,11 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       if (!(SECOND_HALL_ID in s.placements)) return { text: `Site ${oak}`, go: 'build', intent: { kind: 'site', buildableIds: [SECOND_HALL_ID] } };
       const next = nextSchoolToMove(s);
       if (!standing(s, SECOND_HALL_ID)) return { text: `${oak} is rising: ${next ?? 'the next school'} moves in when it stands`, intent: { kind: 'wait' } };
+      const move = moveIntent(s, next);
+      if (move) return moveAsk(s, move);
       const program = next ? programsAwayFromHome(s).find((p) => p.school === next) : undefined;
       return program
-        ? { text: `Move ${programById(program.programId)?.name ?? program.programId} into ${oak}`, go: 'hall', hallId: program.hallId, intent: moveIntent(s, next) ?? { kind: 'wait' } }
+        ? { text: `Move ${programById(program.programId)?.name ?? program.programId} into ${oak}`, go: 'hall', hallId: program.hallId, programId: program.programId, intent: { kind: 'wait' } }
         : { text: `Move a program into ${oak}`, ...FOUNDERS_HALL_ASK, intent: { kind: 'wait' } };
     },
     done: twoSchoolsHoused,

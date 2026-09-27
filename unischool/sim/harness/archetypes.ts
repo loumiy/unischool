@@ -31,7 +31,7 @@ import { playerRank } from '../../src/systems/rivals/rivalsSystem';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import type { Game, Player } from './game';
-import { buildDorm, buildable, developCourse, foundOffer, hireForBlocked, homeFor, moveHome, site, siteNextHall, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding } from './moves';
+import { buildDorm, buildable, developCourse, foundable, foundOffer, hireForBlocked, moveHome, site, siteNextHall, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding } from './moves';
 import { buildFor, carry, createGuidedPlayer, foundIn, reserveOf } from './guided';
 import { createNaturalPlayer } from './natural';
 
@@ -137,8 +137,9 @@ const COMPLETIONIST: Policy = {
 };
 
 // The Selective college stays narrow: twelve programs at most, its own
-// schools' offers first. Not three schools outright: offers change only
-// when one is founded, so a college refusing every other school's offer
+// schools' programs first, a school's own hall's included (Plan 78D). Not
+// three schools outright: the global offers change only when one is
+// founded or declined, so a college refusing every other school's offer
 // never sees its own come round (Plan 63's report says so).
 const SELECTIVE_PROGRAMS = 12;
 function programsStanding(s: GameState): string[] {
@@ -152,11 +153,9 @@ const SELECTIVE: Policy = {
     const standing = programsStanding(g.s);
     if (standing.length < SELECTIVE_PROGRAMS) {
       const mine = new Set(standing.map((id) => programById(id)?.school));
-      const offers = [...g.s.programOffers].sort((x, y) => Number(!mine.has(programById(x)?.school)) - Number(!mine.has(programById(y)?.school)));
-      for (const id of offers) {
-        const program = programById(id);
-        const where = program ? homeFor(g.s, program) : null;
-        if (where && foundIn(g, where.hallId, [id], reserve)) break;
+      const choices = [...foundable(g.s)].sort((x, y) => Number(!mine.has(x.program.school)) - Number(!mine.has(y.program.school)));
+      for (const { program, hallId } of choices) {
+        if (foundIn(g, hallId, [program.id], reserve)) break;
       }
     }
     hireForBlocked(g, { reserve });

@@ -29,6 +29,13 @@ export function count(n: number): string {
   return decimal(Math.round(n));
 }
 
+// A small count in words, as prose writes it: 6 → "six". Past twelve, the
+// figure (count).
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+export function countWord(n: number): string {
+  return COUNT_WORDS[Math.round(n)] ?? count(n);
+}
+
 // Whole dollars with thousands separators. A negative figure takes a true
 // minus sign before the dollar sign: −$5,000. The long form, for sentences,
 // statements and ledgers.

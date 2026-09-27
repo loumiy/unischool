@@ -20,6 +20,7 @@ import { dressingProps } from './dressing';
 import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
+import { schoolOffers } from '../systems/techtree/programOffers';
 import { isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
@@ -763,7 +764,7 @@ function HallMarksLayer({ s, layout, onInspect }: {
           t={t}
           p={p}
           slots={s.halls[t.id]}
-          offerWaiting={s.programOffers.length > 0}
+          offerWaiting={s.programOffers.length > 0 || schoolOffers(s, t.id).length > 0}
           blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
           vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
@@ -775,7 +776,7 @@ function HallMarksLayer({ s, layout, onInspect }: {
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, inspectTarget, onInspectTargetConsumed, onInspectedChange, gait,
+  onOpenCurriculum, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, gait,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -799,6 +800,9 @@ export default function CampusMap({
   // A hall to open the panel on (from the Curriculum tab's "Found in
   // <hall>"). Consumed on arrival and cleared through the callback.
   inspectTarget?: string | null;
+  // A program housed there whose tile opens with the panel, its move
+  // showing (the next-step line's move, Plan 78D).
+  inspectProgram?: string | null;
   onInspectTargetConsumed?: () => void;
   // Reports which building's panel is open (the opening walkthrough reads it).
   onInspectedChange?: (id: string | null) => void;
@@ -811,7 +815,12 @@ export default function CampusMap({
   // `selectedId`/`pathTool`: selectBuilding and the pathTool effect clear
   // it, and inspectBuilding refuses while either is active.
   const [inspectedId, setInspectedId] = useState<string | null>(null);
-  useEffect(() => { onInspectedChange?.(inspectedId); }, [inspectedId]);
+  // The program tile to open in that panel, while it is the hall asked for.
+  const [focus, setFocus] = useState<{ hallId: string; programId: string } | null>(null);
+  useEffect(() => {
+    onInspectedChange?.(inspectedId);
+    if (focus && inspectedId !== focus.hallId) setFocus(null);
+  }, [inspectedId]);
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
   // React state, unlike pan and zoom, because a turn changes every polygon.
   // Set on the projection here at the top of the render so everything below
@@ -1006,6 +1015,7 @@ export default function CampusMap({
       const c = project(p.col + p.w / 2, p.row + p.h / 2);
       applyView({ x: rect.width / 2 - c.x * zoom, y: rect.height / 2 - c.y * zoom, zoom });
       setInspectedId(inspectTarget);
+      setFocus(inspectProgram ? { hallId: inspectTarget, programId: inspectProgram } : null);
     }
     onInspectTargetConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1781,6 +1791,7 @@ export default function CampusMap({
             act={act}
             onClose={() => setInspectedId(null)}
             onOpenCurriculum={(key) => { setInspectedId(null); onOpenCurriculum(key); }}
+            focusProgramId={focus?.hallId === inspected.t.id ? focus.programId : undefined}
           />
         )}
 

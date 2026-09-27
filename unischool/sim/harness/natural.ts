@@ -8,7 +8,8 @@
 //      next residence hall, or another story on the library, a dining hall
 //      or a dorm. Nothing more is bought for it while one is going up.
 //   2. Programs, breadth first. Every offer is founded where it belongs,
-//      hiring its first instructor off the market (never a posted search);
+//      and every program a school's own hall offers (Plan 78D), hiring its
+//      first instructor off the market (never a posted search);
 //      when no hall has a slot, the next academic hall goes up as soon as
 //      it can be paid for. Meanwhile, and once breadth is exhausted, the
 //      programs go deeper: every course the game offers, the lowest tier
@@ -64,7 +65,7 @@ import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { TUITION_SLIDER_MAX } from '../../src/data/foundingData';
 import type { Game, Player } from './game';
-import { hiringOrder, homeFor, moveHome, site, tendTeaching, TEND_EVERY_WEEKS } from './moves';
+import { foundable, hiringOrder, homeFor, moveHome, site, tendTeaching, TEND_EVERY_WEEKS } from './moves';
 import { foundIn } from './guided';
 
 // Rule 3 waits for this many academic halls, Founders Hall included: seven
@@ -219,14 +220,12 @@ function hireInto(g: Game, field: string | undefined): boolean {
   return true;
 }
 
+// Every offer, and every program a claimed hall offers of its own school
+// (Plan 78D), founded where it belongs (moves.ts's foundable).
 function foundEveryOffer(g: Game): boolean {
   let any = false;
   for (let i = 0; i < MAX_PER_RULE; i += 1) {
-    const founded = g.s.programOffers.some((id) => {
-      const program = programById(id);
-      const where = program ? homeFor(g.s, program) : null;
-      return !!where && foundIn(g, where.hallId, [id], 0);
-    });
+    const founded = foundable(g.s).some(({ program, hallId }) => foundIn(g, hallId, [program.id], 0));
     if (!founded) break;
     any = true;
   }
