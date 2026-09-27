@@ -154,9 +154,16 @@ Everything that needs to stop time rides on this one mechanism:
   queues like a milestone rather than firing on the spot, and it shares the
   decision events' cooldown, so it redistributes the existing texture budget
   instead of adding a stream on top of it.
-- **The university charter** — no longer an interrupt (Plan 72E): granted
-  with a log line the first quiet week after any lab finishes, which it
-  still takes as its own. The pennant renames the college (see
+- **The university charter** — no longer an interrupt (Plan 72E). Raised
+  the first quiet week a lab is at work, which it still takes as its own,
+  as a matter to decide in the inbox (Plan 78G): the catalogue's one inline
+  event that is raised rather than drawn (`CHARTER_EVENT` in
+  `src/data/eventCatalogue.ts`, `src/systems/events/charter.ts`). It has a
+  fixed instance id and reads its names off the state, so raising it draws
+  nothing from the run's stream; no seat answers it, and it holds no place
+  in the queue the draws are limited to. Unanswered, it takes "Become X
+  University" after four weeks in the tick, like any inline event. The
+  pennant renames the college (see
   [progression.md](../design/progression.md)'s "College, and University").
 - **The athletic director's offer** — the one interrupt athletics raises of its
   own, the first quiet week after the school fields a varsity team: three
@@ -185,7 +192,8 @@ the stack.
 Everything addressed to the president that does not stop the clock waits in
 the **inbox** (Plan 77, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
 full-screen tab in three tiers: **to decide** (the catalogue's inline events,
-a student demand, a board letter with an ask), **letters** (milestones, the
+the university charter among them, a student demand, a board letter with an
+ask), **letters** (milestones, the
 board's distress letters, the founding notes) and **bulletins** (the toasts'
 news, kept for a term). It is read off state the game already keeps, never
 stored. Only the first tier counts on the toolbar's button, red while one is
@@ -195,11 +203,22 @@ is opened or dismissed (Plan 78B), since the first year's guidance is in
 those letters. None arrives while the inbox is open, and opening the inbox
 puts away the arrivals already showing.
 
+A matter to decide does not stop the clock the way an interrupt does, but
+the shell can pause it (Plan 78E, `src/systems/inbox/unseen.ts`). With
+Settings' **Pause when a matter arrives** on (the default), a new matter
+pauses the clock and its arrival toast stays until it is opened or
+dismissed. Whatever the setting, a matter that reaches its final week
+unopened pauses the clock once. Both are the pause button pressed for the
+player, in `App.tsx`: the reducer, the save and every replay are
+unchanged, and neither acts while an interrupt or the walkthrough holds the
+clock. With the setting off, Plan 35's ease to 1× on arrival
+(`useGame.ts`) stays.
+
 ## Widths
 
 An interrupt is one of three widths, chosen by what it is
 (`src/components/modalLayout.ts`): **narrow** for a question with a short
-answer (a decision event, the charter, a demand, a research report, a single
+answer (a decision event, a demand, a research report, a single
 milestone), **wide** for a decision with a panel beside it (the summer's review,
 admissions and students beats, the athletic director's cards, a championship, a
 burst of milestones as cards), **page** for a table to read (the Final Report

@@ -31,6 +31,7 @@ import { totalEnrolled } from '../src/state/types';
 import type { GameState, Vernacular } from '../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
+import { CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
 
 // `--k v` and `--k=v` both work; other arguments are positional.
 const VALUE_FLAGS = ['player', 'strategy', 'year', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
@@ -130,7 +131,12 @@ if (wantedModal && pending !== wantedModal) {
 // The harness never reads the milestone notes, which a player would have
 // read as they came: a Year-20 save would otherwise open on Year 1's.
 state.ladder.unread = [];
-if (flags.name) state.self.name = flags.name;
+if (flags.name) {
+  state.self.name = flags.name;
+  // The charter's answers name the college (systems/events/charter.ts).
+  const charter = state.catalogue?.pending.find((p) => p.instanceId === CHARTER_INSTANCE);
+  if (charter) charter.vars = charterVars(state);
+}
 if (flags.vernacular) state.self.vernacular = flags.vernacular as Vernacular;
 if (flags.colors) {
   // A school color pair by id (schoolColors.ts's SCHOOL_COLOR_PAIRS).

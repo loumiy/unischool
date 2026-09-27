@@ -1,8 +1,8 @@
 import { restaffPlan } from '../faculty/restaffing';
-import { tickCatalogue, timeOutCatalogue } from './catalogueEngine';
+import { raiseCharter, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState } from '../../state/types';
-import { WEEKS_PER_YEAR, institutionName } from '../../state/types';
+import { WEEKS_PER_YEAR } from '../../state/types';
 import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayload } from '../../data/eventData';
 import {
   DECISION_EVENTS, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR,
@@ -61,25 +61,19 @@ function fireResearchReport(s: GameState): boolean {
 }
 
 // The one-time, cosmetic College -> University charter, granted once a lab
-// exists (docs/design/progression.md). A log line, not a question (Plan
-// 72E): the name, suffix and all, can be changed from the pennant
-// (RENAME_COLLEGE). It still takes the week it lands, as the modal did.
+// is at work (docs/design/progression.md). Since Plan 78G a matter to decide
+// in the inbox, not a silent rename (charter.ts): "Become X University",
+// the default after four weeks, or "Keep the name X College". Raised, not
+// drawn, so it takes nothing from the run's stream; and it still takes the
+// week it lands, as the modal and the log line did, so the weeks after it
+// read the same. The pennant renames the college either way (RENAME_COLLEGE).
 function fireCharter(s: GameState): boolean {
   if (s.self.universityCharterOffered) return false;
   // Same helper as research's own lab gate, so the two cannot drift.
   if (labEquippedFields(s).size === 0) return false;
-  grantCharter(s);
-  return true;
-}
-
-export function grantCharter(s: GameState): void {
   s.self.universityCharterOffered = true;
-  const was = institutionName(s.self);
-  s.self.suffix = 'University';
-  s.log.unshift({
-    year: s.clock.year, week: s.clock.week, kind: 'good', topic: 'milestone',
-    message: `With research under way, the board has granted a university charter: ${was} is now ${institutionName(s.self)}.`,
-  });
+  raiseCharter(s);
+  return true;
 }
 
 // The athletic director's offer, raised on a quiet week once a varsity team

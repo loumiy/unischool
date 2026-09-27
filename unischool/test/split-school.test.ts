@@ -6,13 +6,27 @@
 // into the larger (systems/techtree/schools.ts's schoolToMerge), and the
 // next-step line says why.
 //
+// And the trap the October review met in play (its trace 7, Plan 78D): the
+// first school in its hall, Founders Hall full of others, and nothing of
+// the school on the global offer. Its hall now offers its own programs, so
+// the guided player, replayed from the scenario save written before the
+// change (test/fixtures/save-v79.json, tools/scenarios.ts's split-school),
+// grows the school and reaches a second without a stall.
+//
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createInitialState } from '../src/state/actions';
+import { readSave } from '../src/state/persistence';
+import { schoolOffers } from '../src/systems/techtree/programOffers';
+import { OPENING_LETTERS } from '../src/data/eventData';
+import { foundGame, playYears } from '../sim/harness/game';
+import { createGuidedPlayer } from '../sim/harness/guided';
 import { reducer } from '../src/engine/reducer';
-import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programs } from '../src/data/techData';
-import { emptyHall, programsAwayFromHome, schoolToMerge, suggestedMove } from '../src/systems/techtree/schools';
+import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById, programs } from '../src/data/techData';
+import { claimedHalls, emptyHall, programsAwayFromHome, schoolFoundedKey, schoolToMerge, suggestedMove } from '../src/systems/techtree/schools';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import type { GameState } from '../src/state/types';
 
@@ -100,6 +114,64 @@ function trapped(second = 2, first = 4): GameState {
   const s = trapped();
   s.halls['HALL-01'] = s.halls['HALL-01'].slice(0, 5);
   assert(schoolToMerge(s) === null, 'two in Oak Hall would not fit in Elm Hall\'s one free room: no merge');
+}
+
+// ---- Trace 7, replayed from the scenario save ----
+{
+  const raw = readFileSync(join(process.cwd(), 'test/fixtures/save-v79.json'), 'utf8');
+  const read = readSave(raw);
+  assert(!('refused' in read), 'the split-school save (version 79) loads');
+  if (!('refused' in read)) {
+    const s = read.state;
+    const claim = claimedHalls(s)[0];
+    const founders = s.halls[FOUNDERS_HALL_ID];
+    assert(claim !== undefined && claim.housed < claim.slots, `a school is part-way into its hall (${JSON.stringify(claim)})`);
+    assert(founders.every((x) => x.programId !== null), 'Founders Hall is full');
+    const school = claim?.school ?? '';
+    assert(s.programOffers.every((id) => programById(id)?.school !== school), `nothing of ${school} is on the global offer (${s.programOffers.join(', ')})`);
+    assert(schoolOffers(s, claim?.hallId ?? '').length > 0, `but its hall offers ${school}'s own programs`);
+    const trapYear = s.clock.year;
+
+    const g = foundGame({ from: s, seed: 12345 });
+    const player = createGuidedPlayer();
+    const grows = OPENING_LETTERS.find((l) => l.id === 'a-school-grows')!;
+    // A stall: the line waiting on the offer while the school's hall has
+    // room (the old "has room for Science when one is on offer").
+    let stalled = 0;
+    let founded: number | null = null;
+    playYears(g, player, 3, (h) => {
+      const step = nextStep(h.s);
+      if (step?.intent?.kind === 'wait' && /when one is on offer/.test(step.text)) stalled += 1;
+      if (!grows.done(h.s) && grows.ask(h.s).intent?.kind === 'wait') stalled += 1;
+      if (founded === null && h.s.milestones[schoolFoundedKey(school)]) founded = h.s.clock.year;
+    });
+    assert(stalled === 0, `the line never waits on an offer for ${school} (${stalled} weeks)`);
+    assert(founded !== null && founded <= trapYear + 1, `the School of ${school} is founded within a year (Year ${founded}, from Year ${trapYear})`);
+    const second = player.record.done['a-second-school'];
+    assert(second !== undefined && second[0] <= trapYear + 2, `a second school has a hall of its own within two years (${JSON.stringify(second)})`);
+  }
+}
+
+// ---- The move, as NEXT asks it: named, from the hall it is in ----
+{
+  // Elm Hall standing with one founding program in it, and another program
+  // of its school still in Founders Hall.
+  const s = createInitialState('Moves');
+  const elm = s.tech.find((t) => t.id === 'HALL-01')!;
+  elm.status = 'done';
+  s.halls[elm.id] = Array.from({ length: elm.slots ?? 6 }, () => ({ programId: null }));
+  const founders = s.halls[FOUNDERS_HALL_ID];
+  const moved = founders.find((x) => x.programId !== null)!.programId!;
+  const stray = majors(programById(moved)!.school).find((id) => !founders.some((x) => x.programId === id))!;
+  founders[founders.findIndex((x) => x.programId === null)] = { programId: stray };
+  founders[founders.findIndex((x) => x.programId === moved)] = { programId: null };
+  s.halls[elm.id][0] = { programId: moved };
+  const ask = OPENING_LETTERS.find((l) => l.id === 'a-school-grows')!.ask(s);
+  const name = programById(stray)!.name;
+  assert(ask.text === `Move ${name} into ${elm.name}`, `the ask names the move ("${ask.text}")`);
+  assert(ask.go === 'hall' && ask.hallId === FOUNDERS_HALL_ID, `and opens the hall ${name} is in (${ask.hallId})`);
+  assert(ask.programId === stray, `on its tile, the move showing (${ask.programId})`);
+  assert(ask.intent?.kind === 'move', 'as a move');
 }
 
 if (failures === 0) {

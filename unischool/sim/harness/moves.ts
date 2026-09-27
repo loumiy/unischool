@@ -24,7 +24,8 @@ import {
 import { courseQuality, facultyLoads, projectedQuality } from '../../src/systems/faculty/facultyAssignment';
 import { GRADE_A, qualityOf, tierOf } from '../../src/data/courseQuality';
 import { CROWDING_GRACE, crowdingCoverages } from '../../src/systems/prestige/prestigeSystem';
-import { claimedSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
+import { claimedHalls, claimedSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
+import { declineRefusal, schoolOffers } from '../../src/systems/techtree/programOffers';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
 import type { Game } from './game';
 
@@ -65,19 +66,45 @@ export function homeFor(s: GameState, program: ProgramInfo): { hallId: string; s
   return open.length > 0 ? { hallId: open[0], slot: freeSlotIn(s, open[0]) } : null;
 }
 
-// Found a program on offer where it belongs, with an instructor who can
+// What can be founded now, and where it belongs (Plan 78D): each claimed
+// hall's own school's programs into that hall first, then the global offers
+// where homeFor puts them. One entry a program.
+export function foundable(s: GameState): Array<{ program: ProgramInfo; hallId: string; slot: number }> {
+  const out: Array<{ program: ProgramInfo; hallId: string; slot: number }> = [];
+  for (const claim of claimedHalls(s)) {
+    const slot = freeSlotIn(s, claim.hallId);
+    if (slot < 0) continue;
+    for (const program of schoolOffers(s, claim.hallId)) {
+      if (!out.some((x) => x.program.id === program.id)) out.push({ program, hallId: claim.hallId, slot });
+    }
+  }
+  for (const id of s.programOffers) {
+    const program = programById(id);
+    const where = program ? homeFor(s, program) : null;
+    if (program && where && !out.some((x) => x.program.id === id)) out.push({ program, ...where });
+  }
+  return out;
+}
+
+// What a player founds into this hall when told to (Plan 78D): a purchased
+// hall one school claims takes that school's own programs and nothing
+// else (another school's would take a program slot the school needs);
+// Founders Hall and a hall no school claims take the global offers.
+export function offersFor(s: GameState, hallId: string): string[] {
+  if (hallId !== FOUNDERS_HALL_ID && claimedSchool(s, hallId) !== null) return schoolOffers(s, hallId).map((p) => p.id);
+  return [...s.programOffers];
+}
+
+// Found a program where it belongs (foundable), with an instructor who can
 // teach its entry course.
 export function foundOffer(g: Game, { pick = first, reserve = 0 }: MoveOptions = {}): boolean {
   const s = g.s;
-  const choices = s.programOffers
-    .map((id) => programById(id))
-    .filter((p): p is ProgramInfo => p !== undefined)
-    .map((program) => {
+  const choices = foundable(s)
+    .map(({ program, hallId, slot }) => {
       const entry = s.tech.find((t) => t.id === program.entryCourseId);
-      const where = homeFor(s, program);
       const teacher = entry ? eligibleInstructors(s, entry)[0] : undefined;
-      if (!entry || !where || !teacher || !affords(s, entry.cost, reserve)) return null;
-      const founding = { programId: program.id, ...where, facultyId: teacher.id };
+      if (!entry || !teacher || !affords(s, entry.cost, reserve)) return null;
+      const founding = { programId: program.id, hallId, slot, facultyId: teacher.id };
       return canFoundProgram(s, founding) ? founding : null;
     })
     .filter((f) => f !== null);
@@ -85,6 +112,22 @@ export function foundOffer(g: Game, { pick = first, reserve = 0 }: MoveOptions =
   if (!choice) return false;
   g.act({ type: 'FOUND_PROGRAM', ...choice });
   return true;
+}
+
+// Decline an offer nobody can teach (Plan 78D): its entry course's field has
+// no one on the payroll with a free course slot and no one on the market.
+// One a year, as the game allows; the replacement is the ordinary draw.
+export function declineUnteachable(g: Game): boolean {
+  const s = g.s;
+  for (const id of s.programOffers) {
+    if (declineRefusal(s, id) !== null) continue;
+    const entry = s.tech.find((t) => t.id === programById(id)?.entryCourseId);
+    const field = entry?.requiresFaculty;
+    if (!entry || !field || eligibleInstructors(s, entry).length > 0 || s.candidates.some((c) => c.field === field)) continue;
+    g.act({ type: 'DECLINE_OFFER', programId: id });
+    return true;
+  }
+  return false;
 }
 
 // Move a program away from home to where the game suggests (schools.ts).

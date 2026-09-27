@@ -181,7 +181,7 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
     const subject = eventSubject(e, text);
     decide.push({
       id: `event:${p.instanceId}`, kind: 'event', tier: 'decide', ref: p.instanceId,
-      from: DOMAIN_LABEL[e.domain], subject, preview: afterSubject(text, subject),
+      from: e.from ?? DOMAIN_LABEL[e.domain], subject, preview: afterSubject(text, subject),
       week: p.firedWeek, unread: true, weeksLeft, urgent: weeksLeft <= 1,
     });
   }
@@ -249,7 +249,8 @@ export function bulletins(s: GameState): InboxItem[] {
   for (const l of s.log) {
     const week = logWeek(l);
     if (now - week >= BULLETIN_WEEKS) break;
-    const school = l.topic === 'milestone' && (l.subject?.startsWith(schoolFoundedKey('')) || l.subject?.startsWith('school-distinguished:'));
+    // A school founded or distinguished, and the charter's answer (Plan 78G).
+    const school = l.topic === 'milestone' && (l.subject?.startsWith(schoolFoundedKey('')) || l.subject?.startsWith('school-distinguished:') || l.subject === 'charter');
     if (l.topic !== 'program' && l.topic !== 'building' && !school) continue;
     out.push({
       id: `bulletin:${week}:${out.length}`, kind: 'bulletin', tier: 'bulletin', ref: l.subject,

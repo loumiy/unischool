@@ -1,4 +1,4 @@
-// The event catalog (Plan 32): v2's events.json, ported. Charter, adjunct and scripted events are left out, as is any event reading a condition this game cannot. Money is written as v2 wrote it, for a founding college, and scaled at play (systems/events/catalogue.ts).
+// The event catalog (Plan 32): v2's events.json, ported. v2's charter, adjunct and scripted events are left out, as is any event reading a condition this game cannot. Money is written as v2 wrote it, for a founding college, and scaled at play (systems/events/catalogue.ts).
 
 import type { CatalogueEvent } from './eventCatalogueTypes';
 
@@ -2431,3 +2431,26 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'keep',
   },
 ];
+
+// The university charter (Plan 78G): the one inline event that is never
+// drawn. It is raised the first quiet week a lab is at work (eventSystem.ts's
+// fireCharter), once a run, and waits in the inbox like any other; left
+// unanswered, the college becomes a University, as it did before the
+// question. {name} is the first half of the college's name.
+export const CHARTER_EVENT: CatalogueEvent = {
+  id: 'university-charter',
+  kind: 'inline',
+  domain: 'board',
+  from: 'The board',
+  weight: 0,
+  cooldownYears: 0,
+  when: {},
+  title: 'The charter',
+  text: 'With research under way, the board has voted the college a university charter. {name} College may now call itself {name} University, as many American colleges did when they took up research and graduate work. Others kept the name they opened under and were none the worse for it.\n\nThe board would have the new name carved over Founders Hall, unless the President prefers the old one. The stonemason has been asked to wait a month.',
+  timeoutWeeks: 4,
+  choices: [
+    { id: 'university', label: 'Become {name} University', effects: { charter: 1 } },
+    { id: 'college', label: 'Keep the name {name} College', effects: { charter: -1 } },
+  ],
+  default: 'university',
+};

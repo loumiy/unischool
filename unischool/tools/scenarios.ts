@@ -8,6 +8,10 @@
 // ---------------------------------------------------------------------
 
 import type { GameState } from '../src/state/types';
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../src/systems/techtree/programOffers';
+import { claimedHalls, programsAwayFromHome, suggestedMove } from '../src/systems/techtree/schools';
+import { relocateProgram, unlockAvailable } from '../src/systems/techtree/techSystem';
 
 export interface Scenario {
   name: string;
@@ -41,6 +45,31 @@ export function intoCrisis(s: GameState): void {
   }
   s.finance.cash = Math.min(s.finance.cash, 0) - 2_000_000;
   s.self.reputation = Math.max(5, s.self.reputation - 15);
+}
+
+// The split-school trap (the October review's trace 7, Plan 78D): the first
+// school has moved into its hall, Founders Hall is full of other schools'
+// programs, and nothing of the first school is on the global offer. Under
+// the old offer rules its hall could grow only when the draw came round.
+// Shared by the split-school scenario and test/split-school.test.ts.
+export function intoSplitSchool(s: GameState): void {
+  const claim = [...claimedHalls(s)].sort((a, b) => b.housed - a.housed)[0];
+  if (!claim) return;
+  // The school's strays move in, as the letters ask.
+  for (const away of programsAwayFromHome(s).filter((p) => p.school === claim.school)) {
+    const move = suggestedMove(s, away.programId);
+    if (move) relocateProgram(s, { programId: away.programId, ...move });
+  }
+  // Founders Hall filled with other schools' programs.
+  const founders = s.halls[FOUNDERS_HALL_ID];
+  for (let i = 0; i < founders.length; i += 1) {
+    if (founders[i].programId !== null) continue;
+    const other = offerablePrograms(s).find((p) => p.school !== claim.school);
+    if (other) founders[i] = { programId: other.id };
+  }
+  // And the offer holds none of the school's programs.
+  s.programOffers = offerablePrograms(s).filter((p) => p.school !== claim.school).slice(0, PROGRAM_OFFER_COUNT).map((p) => p.id);
+  unlockAvailable(s);
 }
 
 // Stops the week a modal of this type is on screen; what `--modal <type>`
@@ -175,6 +204,15 @@ export const SCENARIOS: Scenario[] = [
     mutate: intoCrisis,
   },
   {
+    // The October review's trace 7 (Plan 78D): see intoSplitSchool.
+    name: 'split-school',
+    what: 'the first school in its hall, Founders Hall full of others, and nothing of the school on offer — the trap a claimed hall\'s own offers break',
+    player: 'Guided',
+    year: 6,
+    stopWhen: (s) => s.events.opening.read.includes('a-school-grows'),
+    mutate: intoSplitSchool,
+  },
+  {
     name: 'demand',
     what: 'a student demand on the clock — the player that earns them',
     // The overbuilder builds only beds, so its satisfaction falls far enough
@@ -182,6 +220,15 @@ export const SCENARIOS: Scenario[] = [
     player: 'Completionist',
     year: 40,
     stopWhen: atModal('demand'),
+  },
+  {
+    // Not a modal (Plan 78G): the charter waits in the inbox. Open it with
+    // `npm run shot -- out.json charter.png --tab=inbox`.
+    name: 'charter',
+    what: 'the university charter waiting in the inbox, the week the first lab is at work',
+    player: 'Guided',
+    year: 20,
+    stopWhen: (s) => (s.catalogue?.pending ?? []).some((p) => p.eventId === 'university-charter'),
   },
 ];
 

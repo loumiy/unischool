@@ -4,6 +4,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import type { Action } from '../state/actions';
 import { answered, boardAsks, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
 import { foundingNotes } from '../systems/inbox/foundingNote';
+import { dueLabel, toDecideCount } from '../systems/inbox/unseen';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { milestoneById, tabOfSection } from '../data/ladderData';
@@ -63,7 +64,7 @@ function splitAnswer(l: LogEntry): { subject: string; how: string; lapsed: boole
   return { subject: l.message.slice(0, cut), how, lapsed: how.startsWith('Nobody answered') };
 }
 
-export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onOpenTab, onShowOnMap }: {
+export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onSeen, onOpenTab, onShowOnMap }: {
   s: GameState;
   act: (a: Action) => void;
   // An item to open on arrival (an arrival toast's Open), consumed once.
@@ -72,6 +73,9 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   // The founding notes' read state, the one the save does not keep (App.tsx).
   read: ReadonlySet<string>;
   onRead: (id: string) => void;
+  // Whatever the reading pane shows has been opened (Plan 78E's final-week
+  // pause asks, App.tsx).
+  onSeen: (id: string) => void;
   onOpenTab: (tab: TabId | 'build') => void;
   onShowOnMap: (buildableId: string) => void;
 }) {
@@ -115,6 +119,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   // by their own buttons, since that also takes them out of the queue.
   const selectedKey = selected?.id ?? null;
   useEffect(() => {
+    if (selected) onSeen(selected.id);
     if (!selected || !selected.unread) return;
     if (selected.kind === 'milestone' && selected.ref) act({ type: 'READ_MILESTONE', id: selected.ref });
     else if (selected.kind === 'demand') act({ type: 'READ_DEMAND' });
@@ -134,8 +139,10 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
     if (last && last.tier === i.tier) last.rows.push(i);
     else groups.push({ tier: i.tier, rows: [i] });
   }
+  // The stop has its own tier and is not counted under "To decide" (Plan
+  // 78E); the toolbar's button still counts it, as what wants an answer.
   const counts = {
-    decide: items.filter((i) => i.tier === 'hold' || i.tier === 'decide').length,
+    decide: toDecideCount(items),
     letter: items.filter((i) => i.tier === 'letter' && i.unread).length,
   };
 
@@ -211,7 +218,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
                   {i.tier === 'hold'
                     ? <span className="inbox-due">Clock stopped</span>
                     : i.weeksLeft !== undefined
-                    ? <span className="inbox-due">{i.urgent ? (i.weeksLeft === 0 ? 'This week' : 'Final week') : weeksShort(i.weeksLeft)}</span>
+                    ? <span className="inbox-due">{dueLabel(i.weeksLeft, weeksShort)}</span>
                       : <span className="inbox-when">{i.kind === 'milestone' ? `Y${Math.floor((i.week - 1) / WEEKS_PER_YEAR) + 1}` : stamp(i.week)}</span>}
                   <span className="inbox-subject">{i.subject}</span>
                   {i.kind === 'demand' && s.events.activeDemand
@@ -280,7 +287,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
     const def = e.choices.find((c) => c.id === e.default);
     return (
       <article className="inbox-letter">
-        <ReadHead tier="decide" from={item.from} subject={item.subject} meta={`From ${item.from} to the President · arrived ${gameDateOfWeek(p.firedWeek)}`} />
+        <ReadHead tier="decide" from={item.from} subject={item.subject} meta={`From ${item.from.replace(/^The /, 'the ')} to the President · arrived ${gameDateOfWeek(p.firedWeek)}`} />
         <div className="inbox-read-grid">
           <div className="inbox-read-main">
             <div className="inbox-body"><CatalogueText text={text} className="inbox-para" /></div>
@@ -289,7 +296,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
           </div>
           <aside className="inbox-side">
             <span className="inbox-side-key eyebrow">Time to answer</span>
-            <span className={`inbox-side-big${item.urgent ? ' urgent' : ''}`}>{left === 0 ? 'This week' : weeks(left)}</span>
+            <span className={`inbox-side-big${item.urgent ? ' urgent' : ''}`}>{dueLabel(left, weeks)}</span>
             <span className="inbox-meter"><i style={{ width: `${Math.round((1 - left / e.timeoutWeeks) * 100)}%` }} /></span>
             {def && (<><span className="inbox-side-key eyebrow">If nobody answers</span><span className="inbox-side-value">{fill(def.label, p.vars)}</span></>)}
           </aside>
@@ -325,7 +332,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
           </div>
           <aside className="inbox-side">
             <span className="inbox-side-key eyebrow">Deadline</span>
-            <span className={`inbox-side-big${item.urgent ? ' urgent' : ''}`}>{left === 0 ? 'This week' : weeks(left)}</span>
+            <span className={`inbox-side-big${item.urgent ? ' urgent' : ''}`}>{dueLabel(left, weeks)}</span>
             <span className="inbox-side-key eyebrow">Met by</span>
             <span className="inbox-side-value">Building it: the demand closes the week it is met</span>
           </aside>

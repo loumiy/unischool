@@ -45,6 +45,8 @@ function rawGenerators(g: Game): Array<[number, Generator]> {
       return programId && to ? { type: 'RELOCATE_PROGRAM', programId, ...to } : null;
     }],
     [1, (g) => { const f = any(g.s.faculty); return f ? { type: 'FIRE_FACULTY', facultyId: f.id } : null; }],
+    // Decline any offer, a second time in a year included (Plan 78D).
+    [1, (g) => { const id = any(g.s.programOffers); return id ? { type: 'DECLINE_OFFER', programId: id } : null; }],
     [1, (g) => { const id = any(Object.keys(g.s.placements)); return id ? { type: 'DEMOLISH_BUILDING', id } : null; }],
     [1, (g) => { const t = any(g.s.tech.filter((x) => x.status === 'developing' && x.id in g.s.placements)); return t ? { type: 'CANCEL_CONSTRUCTION', id: t.id } : null; }],
     [1, (g) => { const t = any(g.s.tech.filter((x) => standsOnCampus(x))); return t ? { type: g.roll() < 0.5 ? 'RENOVATE_BUILDING' : 'EXTEND_BUILDING', id: t.id } : null; }],

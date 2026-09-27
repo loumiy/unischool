@@ -8,7 +8,7 @@ import {
 } from '../../data/techData';
 import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
-import { hallOf, isHoused, isInTransit, refillOffers, slotOf } from './programOffers';
+import { hallOf, isHoused, isInTransit, offeredIn, refillOffers, slotOf } from './programOffers';
 import { dedicatedHalls, schoolFoundedKey } from './schools';
 import { darkPrograms } from './darkness';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
@@ -383,9 +383,10 @@ function isDone(s: GameState, id: string): boolean {
 
 // Founding a program: the one way a major or graduate program enters the
 // curriculum. It takes an empty hall slot and its entry course starts in the
-// same transaction with the chosen instructor. The program must be on offer,
-// the slot empty, the entry prereqs done, the cash there, and the instructor
-// eligible (the same eligibleInstructors the picker reads).
+// same transaction with the chosen instructor. The program must be on offer
+// in that hall (programOffers.ts's offeredIn), the slot empty, the entry
+// prereqs done, the cash there, and the instructor eligible (the same
+// eligibleInstructors the picker reads).
 export interface Founding {
   programId: string;
   hallId: string;
@@ -398,12 +399,13 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   if (!program) return false;
   if (isHoused(s, f.programId)) return false;
   // A graduate program goes only to its host, once earned; a major only to
-  // an academic hall, from the offers (Plan 51).
+  // an academic hall, from the global offers or, in a hall one school
+  // claims, from that school's own (Plan 51, Plan 78D).
   if (program.kind === 'graduate') {
     if (GRADUATE_HOSTS[f.programId] !== f.hallId || !graduateGateMet(s, f.programId)) return false;
   } else {
     const hall = s.tech.find((t) => t.id === f.hallId);
-    if (!s.programOffers.includes(f.programId) || !hall || !isAcademicHall(hall)) return false;
+    if (!offeredIn(s, f.hallId, f.programId) || !hall || !isAcademicHall(hall)) return false;
   }
   const slots = s.halls[f.hallId];
   if (!slots || f.slot < 0 || f.slot >= slots.length || slots[f.slot].programId !== null) return false;

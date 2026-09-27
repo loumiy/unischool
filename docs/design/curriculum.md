@@ -59,9 +59,23 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    at least one of the first three is a program the founding roster can
    staff — Sociology or Psychology, whose professors the college opens with
    beside the three who teach its founding programs — so the first founding
-   decision never needs a hire. There is no reroll and no decline; the three
-   stand until one is taken, and the offer is for the academic halls. A
-   graduate program is never drawn: its capital project offers it (see
+   decision never needs a hire. There is no reroll. **One offer a year may
+   be declined** (Plan 78D, A4-5's "decline an offer"): "Not this year" on
+   the offer takes it off the table, the ordinary draw fills the place, and
+   the declined program is not drawn again until the year turns
+   (`DECLINE_OFFER`, `s.declinedOffer`); a second decline that year is
+   refused with its reason. Otherwise the three stand until one is taken,
+   and the offer is for Founders Hall and the halls no school claims. **A
+   purchased hall one school claims offers every revealed program of that
+   school** besides (Plan 78D, `schoolOffers`), drawn from nothing, so a
+   school that has moved in can always grow; before, its hall waited on the
+   draw, and a player with Founders Hall full could wait a year for the
+   school's next program (the October review's A3-1 and trace 7). The
+   draw's own programs are still offered in such a hall, after the school's
+   own; founding one there asks first ("Confirm — this takes one of the six
+   program slots Science needs"), since it keeps the school from being
+   founded until it moves out (`claimCutBy`). A graduate program is never
+   drawn: its capital project offers it (see
    [graduate-programs.md](graduate-programs.md)).
    **The curriculum committee** (Plan 68; seats since Plan 71) writes a
    limited number of undergraduate courses at once: four seats
@@ -132,9 +146,13 @@ so the smaller hall comes free. The readings
 reach the player four ways: the program tile's one-click move, with an arrow
 on the tile; a claimed hall's label and panel ("Elm Hall · Science · 3 of
 6"); the hall panel's note when a picked offer's school has a hall of its own
-elsewhere; and the next-step line, which names a possible move before a free
-slot, and sends an offer to its school's hall before Founders Hall. The
-opening letters teach it (docs/architecture/interrupts.md).
+elsewhere; the ask before another school's program takes a claimed hall's
+program slot (Plan 78D); and the next-step line, which names a possible move
+before a free slot, opening the hall the program is in with its move showing
+("Move Sociology into Elm Hall"), sends an offer to its school's hall before
+Founders Hall, and sends a claimed hall's room to its own school's programs
+rather than waiting on the draw. The opening letters teach it
+(docs/architecture/interrupts.md).
 
 ### The milestones
 

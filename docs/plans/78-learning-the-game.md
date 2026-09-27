@@ -430,6 +430,101 @@ is this plan.
   - the harness players take the new offers;
   - `npm run sim`, re-recorded, with the move described here.
 
+
+**As implemented (#236):**
+- **A claimed hall's "+"** offers its own school first.
+  - It is a sim change, not a UI list. `programOffers.ts`'s
+    `schoolOffers` reads every revealed, unhoused major of the school a
+    purchased hall claims. It draws nothing, so the random stream is
+    untouched.
+  - `canFoundProgram` accepts a major that is on the global offer or in
+    that hall's own list (`offeredIn`). Founding one leaves the global
+    offer as it was.
+  - The panel shows "Science programs for program slot N", then "Other
+    schools, from the offers". Founders Hall and unclaimed halls show the
+    global three.
+  - **For the owner:** the other schools' offers stay in a claimed hall,
+    behind the confirmation. Hiding them would make item 3 unreachable.
+    They are one line to remove if the owner wants the stricter reading.
+- **Decline:** "Not this year" under each global offer, a
+  `ConfirmButton` ("Confirm — no other offer can be declined until Year
+  N").
+  - `DECLINE_OFFER` removes the offer and refills through the ordinary
+    `refillOffers` draw. That draw is the offer's own state-seeded dice,
+    not the game's stream.
+  - The declined program stays out of the draw until the year turns.
+  - A second decline that year is refused with its reason, shown under
+    the offers: "One offer a year may be declined, and Management was
+    declined this year. The next can be declined in Year 4."
+  - New optional field `declinedOffer: { year, programId }`.
+    `SAVE_VERSION` 79 → 80, with a migration (`noDeclineYet`) and a load
+    sanitizer. `test/fixtures/save-v79.json` was written before the bump.
+- **The confirmation:** Found is a `ConfirmButton` that asks only when
+  `schools.ts`'s `claimCutBy` finds another school's claim.
+  - Armed: "Confirm — this takes one of the six program slots Science
+    needs". The count is `countWord(claim.slots)`, new in `format.ts`.
+  - The warning names the hall, the claim and the program.
+- **NEXT:**
+  - A move now reads "Move Psychology into Elm Hall". It opens the hall
+    the program is in, with its tile open and the move showing
+    (`NextStep.programId`, through `App.tsx` and `CampusMap.tsx`'s
+    `inspectProgram`). All three sorting letters and `awayFromHome` use
+    it.
+  - A claimed hall with room no longer waits on the draw. The letter asks
+    to found from the hall's own list, and the line reads "Elm Hall has
+    room for Science (4 of 6): Chemistry or 1 more on offer there".
+  - The only waits left are true ones: Founders Hall, once a school's
+    home, "has room for X when one is on offer: founding a program or
+    declining an offer draws the next".
+- **Harness:**
+  - `moves.ts`'s `foundable` puts each claimed hall's own programs first,
+    then the global offers where `homeFor` sends them. `foundOffer`, the
+    natural player and the Selective archetype use it.
+  - The guided player founds into a claimed hall from its own list only
+    (`offersFor`).
+  - When the line asks it to found and nothing can be, the guided player
+    declines an offer nobody can teach (`declineUnteachable`). That
+    happened 1–4 times in 50 years per seed.
+  - Fuzz sends `DECLINE_OFFER`.
+- **Checks:**
+  - `test/offer-decline.test.ts`: the own list and the founding gate;
+    decline once a year; the refusal; no draw on the stream; the claim
+    that arms the confirm; sanitizing on load.
+  - `test/split-school.test.ts` replays trace 7 from the v79 save (the
+    new `split-school` scenario). Before, the line waited 35–69 weeks on
+    "has room for Science when one is on offer". Now it never waits,
+    Science is founded within the year, and a second school has its hall
+    within two.
+  - `test/sorting.test.ts` was updated to the new asks.
+  - The armed confirm is checked by screenshot, not by a UI test:
+    `docs/reviews/2026-10-ui-fixes/halls-desktop.jpg` and
+    `halls-phone.jpg` show Elm Hall's own Science list, the decline
+    buttons and the armed Found. `npm run phone` passes on the scenario
+    save.
+- **The sim move** (medians of three seeds, against the old baseline):
+  - **Lean moves most.** At Year 50 it has prestige 97.8 → 111.9, rank
+    32 → 23, 4,425 → 8,255 enrolled and $41.6M → $454.7M cash. At Year 25
+    it has 4 schools, not 5.
+    - Before, it founded only global offers where they belonged. It sat
+      at 36 programs (five schools) from about Year 25 to Year 45, with
+      claimed halls' program slots empty and waiting on the draw. That is
+      A3-1's trap, played out by a harness player.
+    - Now two seeds of three have all 42 programs and the whole catalogue
+      by Year 30–35. The third gets there by Year 45 (Year 50 before).
+  - **Selective:** rank at Year 50 is 23 → 14, and prestige 115.5 →
+    119.5. Its twelve programs now come from its own schools' halls
+    rather than waiting on the draw. It still founds one school.
+  - **Completionist:** 2 schools by Year 10 (was 1), and rank at Year 10
+    is 41 → 39. The rest moves a little: cash at Year 25 is −$2.4M and at
+    Year 50 +$19.3M, and satisfaction at Year 50 is −2.7.
+  - **Guided:** at Year 10, 71 courses (−7), $4.4M cash (−$0.7M) and
+    5,520 enrolled (+226). Money went to foundings into its schools' halls
+    before further courses. At Year 50, prestige is −0.7, cash
+    +$109.0M, and rank is still 1. Schools are founded in about the same
+    years.
+  - **Idle** is unchanged. No tuning constant was touched.
+    `sim/baseline.json` is re-recorded.
+
 ## PR 78E — No decision passes unseen
 
 *A3-3, new concerns 3, 4 and 5 (default 1).*
@@ -452,6 +547,60 @@ is this plan.
   - a matter's final week pauses once with it off;
   - the harness is untouched: the pause is a UI action and the simulation
     does not change.
+
+**As implemented (#235):**
+- **The rule** is one pure function, `systems/inbox/unseen.ts`'s
+  `unseenPause`. App.tsx runs it on every snapshot and pauses the clock
+  with `setSpeed('paused')`, as the pause button does. Space resumes at the
+  last speed.
+  - A matter is any row in the "To decide" tier: an inline event, a student
+    demand, or the board's idle-cash ask.
+  - An arrival is a matter that was not in the last snapshot. A load or a
+    new game is not an arrival.
+  - The final week is `weeksLeft` 1. It pauses once per matter, and only if
+    the matter was never opened.
+  - Neither rule acts while a stop or the walkthrough holds the clock. A
+    matter that arrives under a stop is already listed in the stop's inbox,
+    so it does not pause again afterwards. A final week reached under a
+    hold pauses once the hold lifts.
+  - One pause covers a matter that arrives already in its final week.
+- **The setting** is `pauseOnArrival` in `settings.ts`. It is on by
+  default, and a browser whose saved settings lack the key reads it as on.
+  Settings has a row for it, "Pause when a matter arrives", with On and
+  Off.
+- **The arrival notice** for a matter stays while the setting is on. It
+  goes when Open or its close is pressed, when the matter is opened in the
+  inbox, or when the matter is answered or lapses. Letters keep eight
+  seconds. A full stack drops news before a held notice.
+- **"Opened"** is UI state in App.tsx, not the save. A matter is opened
+  when the reading pane shows it (picked, or chosen by the pane itself) or
+  when Open is pressed on its notice. A noted demand also counts as opened.
+  A reload forgets the set, so at worst a matter's final week pauses once
+  more. `GameState` and `SAVE_VERSION` are unchanged.
+- **The Inbox button** already turns red and pulses for a matter in its
+  final week (`inboxBadge`'s `urgent`). The replay confirms it.
+- **One countdown label:** `dueLabel` gives "Final week" at one week left
+  and "This week" at zero. Both the list and the reading pane's side panel
+  use it, for events and demands.
+- **The "To decide" filter** counts only the "To decide" tier. It does not
+  count the stop, or a demand already noted (as on the button). The filter
+  still lists the stop, pinned under "The clock waits".
+  - The toolbar's button still counts the stop, as Plan 77 C decided: it
+    counts everything that wants an answer, and it is red during a stop.
+- **Plan 35's ease to 1×** stays when the setting is off. With it on the
+  pause replaces the ease, except under a hold, where the ease still acts.
+- **Checks:** `test/unseen.test.ts` covers the setting's default, the
+  arrival (on, off, at a load), the demand, the final week (once, setting
+  off, opened, a noted demand), the hold, the label, the filter count and
+  the notice stack. `npm run sim` matches `sim/baseline.json`.
+- **The replay** used a Guided year-6 scenario at 2×. A student-life matter
+  arrived in week 24, and the clock paused with its notice held. After a
+  dismiss and Play, the clock paused again in week 25, the matter's final
+  week. The list and the pane both said "Final week", and NEXT said
+  "Lapses this week". With the setting off, a later matter eased the clock
+  to 1× and its notice went after eight seconds.
+  ([`unseen-arrival-paused.jpg`](../reviews/2026-10-ui-fixes/unseen-arrival-paused.jpg)
+  shows the paused arrival and the Settings row.)
 
 ## PR 78F — Plain words at first use
 
@@ -496,6 +645,54 @@ is this plan.
   - the default renames as today;
   - the save gains no field unless the choice needs remembering, in which
     case it gets a version bump and a migration.
+
+**As implemented (#233):**
+- **At founding:**
+  - A typed name ending in "University" shows a caption under the facade:
+    "Every college opens as a College; the board grants 'University' with its
+    first research lab." A name ending in "College", or no suffix, shows none.
+  - "The board", not "the trustees": Plan 47's glossary retired "the
+    trustees" as the body.
+  - The caption's words are data (`foundingData.ts`); the test is
+    `types.ts`'s `typedUniversity`.
+- **At the charter:** a catalog inline event, `CHARTER_EVENT` in
+  `eventCatalogue.ts`, with a `charter` effect (1 takes University, -1 keeps
+  the name).
+  - It sits outside `EVENT_CATALOGUE`, so no draw, seat or catalog test
+    sees it; `eventById` finds it, so the inbox, the answers, the timeout
+    and the Answered list are the catalog's own.
+  - `fireCharter` raises it with a fixed instance id and names read off
+    the state (`charter.ts`), so it draws nothing from the stream. It still
+    takes the week it lands, and holds no place in the inline queue's limit
+    of three.
+  - The answer goes through `RESOLVE_CATALOGUE_EVENT`; the four-week
+    default is `timeOutCatalogue`, in the tick.
+  - From "The board". The reading pane's line now lowercases a sender's
+    "The" ("From the board to the President").
+  - The log line stays, written when it is answered: "... is now X
+    University", or "..., and X College keeps its name". It carries the
+    subject `charter`, so the inbox files it as a bulletin.
+  - A rename from the pennant while it waits renames its answers.
+- **The harness** takes the default, so its colleges become Universities
+  four weeks later than before. No system reads the name, and the matter
+  draws nothing, so `npm run sim` matches the baseline on every line.
+- **No save field.** The charter waits in the catalog's queue, and
+  `universityCharterOffered` already keeps it from recurring. The save's
+  catalog check now keeps a waiting charter. `SAVE_VERSION` stays 79.
+- **Words made true for a college that kept its name:**
+  - Second Empire is earned by the charter, whichever name is kept ("Win a
+    university charter.").
+  - The laboratories letter: "a research university in fact, whatever its
+    name".
+  - The chronicle, the Final Report and the hall of fame read the name as
+    it stands, and needed nothing.
+- **Tools:** a `charter` scenario (`npm run scenario -- charter`), and
+  `--name` renames a waiting charter's answers.
+- **Checks:** `test/charter.test.ts`: keeping the name leaves it and the
+  pennant alone, the default renames after four weeks, raising it draws
+  nothing, old saves load (one chartered before this change is never asked),
+  a waiting charter survives a save, and the caption shows only for a typed
+  "University". Screenshots: `docs/reviews/2026-10-ui-fixes/charter-*.jpg`.
 
 ## What this plan does not do
 
