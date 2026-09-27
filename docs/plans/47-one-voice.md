@@ -20,8 +20,9 @@ and no save field changes.
 ## 1. The PR
 
 - **Q13: conventions.**
-  - **Verbs:** a read-only modal closes with Continue and a note with
-    Noted. Dismiss, Understood and Resolve are gone as dismiss verbs.
+  - **Verbs:** a read-only modal closes with Continue, and the board's
+    letter with Noted; any other letter is read by opening it in the inbox
+    (Plan 77). Dismiss, Understood and Resolve are gone as dismiss verbs.
   - **Dates and weeks:**
     - Prose reads "Year N": a chapter's founding, a trophy, the research
       record.
@@ -46,12 +47,12 @@ and no save field changes.
     - New game, on the menu and on the title screen (there only when a run
       is underway).
   - **Announcements:**
-    - The notes over the map stack in one column, most urgent first, so no
-      unread note hides another.
+    - Everything addressed to the President waits in the inbox (Plan 77),
+      grouped by tier, most urgent first, so no unread letter hides another.
     - The catalog's letters are "A letter to the President"; "From the
       board" belongs to the distress ladder alone.
     - A tab that a ladder milestone opens is announced by the milestone's
-      note alone, not by a log line as well.
+      letter alone, not by a log line as well.
     - The school-founded and school-distinguished milestones are quiet,
       because their celebration modals already say what opened.
   - **The opening:** founding a program happens in a hall's panel. The

@@ -4,12 +4,12 @@ import { ladderOpensTab } from '../systems/ladder/ladderSystem';
 
 // Views that pop up over the campus map, which is always on screen and is not
 // a tab. `active` is null when the player is looking at the map.
-export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'students' | 'history' | 'athletics';
+export type TabId = 'faculty' | 'curriculum' | 'research' | 'treasury' | 'students' | 'history' | 'athletics' | 'inbox';
 
-// The toolbar's order: academic core, campus life, the annual pages, then
-// the record. Treasury is filtered out of the icon row (Toolbar.tsx's
-// ICON_TAB_ORDER) because the funds figure opens it, but keeps its label
-// for TabOverlay's header.
+// The toolbar's order: academic core, campus life, the annual pages, the
+// record, then the inbox (Plan 77) next to Build. Treasury is filtered out
+// of the icon row (Toolbar.tsx's ICON_TAB_ORDER) because the funds figure
+// opens it, but keeps its label for TabOverlay's header.
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'curriculum', label: 'Curriculum' },
   { id: 'faculty', label: 'Faculty' },
@@ -17,6 +17,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'students', label: 'Students' },
   { id: 'athletics', label: 'Athletics' },
   { id: 'history', label: 'History' },
+  { id: 'inbox', label: 'Inbox' },
   { id: 'treasury', label: 'Treasury' },
 ];
 

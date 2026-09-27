@@ -1,0 +1,555 @@
+<title>The President's Inbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Azeret+Mono:wght@600;700&display=swap">
+<style>
+/* The game's own register (unischool/src/styles.css), Blackmoor's royal blue and gold.
+   The page deliberately commits to the game's light look in either viewer theme. */
+:root {
+  --school-primary: #1d3f86;
+  --school-secondary: #e6b84a;
+  --school-on-primary: #f7f2e8;
+  --cream: #f7f2e8;
+  --cream-hi: #fffdf8;
+  --cream-lo: #e4ddd0;
+  --outline: #1b2a4a;
+  --ink: #1b2a4a;
+  --ink-muted: #5a5f6b;
+  --parchment-line: #c9c1b2;
+  --green: #1f6b3a;
+  --danger: #a13a3a;
+  --danger-bg: #fbe3e3;
+  --shadow-1: 2px 2px 0 var(--outline);
+  --shadow-2: 4px 4px 0 var(--outline);
+  --display: 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
+  --sans: 'Archivo', system-ui, sans-serif;
+  --mono: 'Azeret Mono', ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+body { background: var(--cream); color: var(--ink); font: 500 15px/1.55 var(--sans); padding-inline: 16px; padding-block: 28px 72px; font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 44px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.05; }
+h2 { font-size: 26px; }
+h3 { font-size: 17px; }
+p { margin: 0; max-width: 70ch; }
+.eyebrow { font-family: var(--display); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--school-primary); }
+section { display: grid; gap: 16px; }
+.lede { font-size: 17px; }
+.panel { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: 14px; padding: 16px 18px; }
+.verdict { display: grid; gap: 10px; box-shadow: var(--shadow-2); }
+.verdict ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.card { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: 14px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.card p { font-size: 14.5px; }
+.table-wrap { overflow-x: auto; border: 2px solid var(--outline); border-radius: 14px; background: var(--cream-hi); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--parchment-line); }
+th { font-family: var(--display); font-weight: 800; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); background: var(--cream); border-bottom: 2px solid var(--outline); }
+tr:last-child td { border-bottom: 0; }
+td b { font-weight: 700; }
+.tag { display: inline-block; font-family: var(--display); font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.tag.decide { background: var(--school-primary); color: var(--school-on-primary); }
+.tag.letter { background: var(--school-secondary); color: var(--outline); }
+.tag.bulletin { background: var(--cream-lo); color: var(--ink); }
+.tag.stays { background: transparent; border: 1.5px solid var(--outline); color: var(--ink); }
+.tag.modal { background: var(--outline); color: var(--cream); }
+.caption { font-size: 13.5px; color: var(--ink-muted); }
+
+/* ---------------- The game screen mockup (drawn at 1280x800, scaled to fit) ---------------- */
+.screen-box { width: 100%; aspect-ratio: 16 / 10; position: relative; border: 2px solid var(--outline); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-2); max-width: 100%; }
+.screen { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform-origin: 0 0; transform: scale(var(--k, 0.5)); font-size: 13px; }
+.map { position: absolute; inset: 0 0 auto 0; height: 712px; background: #82a561 url('inbox-campus.jpg') 0 0 / 1280px 712px no-repeat; }
+.corner { position: absolute; right: 16px; top: 14px; display: grid; gap: 10px; justify-items: center; }
+.ticker { position: absolute; left: 0; right: 0; bottom: 64px; height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--cream); border-top: 2px solid var(--outline); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.ticker .ts { color: var(--school-primary); font-family: var(--display); font-weight: 800; margin-right: 4px; }
+.ticker .next { margin-left: auto; display: flex; gap: 7px; align-items: center; }
+.pill-label { font-family: var(--display); font-weight: 800; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; background: var(--school-primary); color: var(--school-on-primary); border-radius: 20px; padding: 2px 7px; }
+.ticker u { text-decoration: underline dotted var(--school-primary); }
+.logicon { width: 14px; height: 14px; border: 1.5px solid var(--ink-muted); border-radius: 2px; }
+.toolbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: var(--school-primary); border-top: 4px solid var(--school-secondary); color: var(--school-on-primary); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; }
+.funds { display: grid; gap: 3px; }
+.cash { font-family: var(--mono); font-weight: 700; font-size: 20px; line-height: 1; }
+.cash small { font-size: 10px; color: var(--school-secondary); margin-left: 4px; }
+.chips { display: flex; gap: 5px; }
+.chips span { background: var(--cream); color: var(--ink); border-radius: 20px; padding: 1px 8px; font-weight: 700; font-size: 11.5px; }
+.tabs { display: flex; gap: 2px; align-items: center; }
+.tab { position: relative; display: grid; justify-items: center; gap: 1px; padding: 5px 9px; border-radius: 10px; font-weight: 700; font-size: 11.5px; color: var(--school-on-primary); }
+.tab svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+.tab.on { background: var(--school-secondary); color: var(--outline); }
+.tab.inbox-open { background: var(--cream); color: var(--outline); box-shadow: inset 0 0 0 2px var(--school-secondary); }
+.badge { position: absolute; top: -2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9px; font-family: var(--display); font-weight: 800; font-size: 10px; line-height: 1; display: flex; align-items: center; justify-content: center; border: 2px solid var(--cream); }
+.badge.alert { background: var(--danger); color: #fff; }
+.badge.count { background: var(--school-secondary); color: var(--outline); border-color: var(--school-primary); }
+.badge.count.urgent { background: var(--danger); color: #fff; border-color: var(--cream); }
+.badge.dot { min-width: 10px; width: 10px; height: 10px; padding: 0; top: 2px; right: 8px; background: var(--school-secondary); border-color: var(--school-primary); }
+.build { position: relative; margin-left: 8px; background: var(--cream); color: var(--outline); border: 3px solid var(--school-secondary); border-radius: 20px; padding: 6px 16px; font-family: var(--display); font-weight: 800; font-size: 15px; }
+.clock { display: grid; gap: 5px; justify-items: end; font-weight: 700; font-size: 12px; }
+.speeds { display: flex; gap: 4px; }
+.speeds i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(247,242,232,0.6); display: block; }
+.speeds i.on { background: var(--school-secondary); border-color: var(--school-secondary); }
+
+/* The inbox as a full-screen tab (TabOverlay: head, Close, body above the dock) */
+.ov { position: absolute; left: 0; right: 0; top: 0; bottom: 90px; background: var(--cream); display: grid; grid-template-rows: auto 1fr; color: var(--ink); }
+.ov-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 68px 9px 18px; border-bottom: 3px solid var(--outline); }
+.ov-head h2 { font-size: 32px; letter-spacing: -0.02em; line-height: 1; }
+.ov-close { border: 2px solid var(--outline); border-radius: 20px; padding: 5px 14px; font-family: var(--display); font-weight: 700; font-size: 12px; box-shadow: var(--shadow-1); background: var(--cream); }
+.hamb { position: absolute; right: 14px; top: 10px; width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--outline); background: var(--cream-hi); display: grid; place-items: center; box-shadow: var(--shadow-1); }
+.hamb::before { content: ''; width: 14px; height: 10px; border-top: 2px solid var(--outline); border-bottom: 2px solid var(--outline); background: linear-gradient(var(--outline), var(--outline)) center / 100% 2px no-repeat; }
+.ov-body { display: grid; grid-template-columns: 440px 1fr; min-height: 0; }
+
+/* Left: the message list */
+.list { border-right: 3px solid var(--outline); display: grid; grid-template-rows: auto 1fr; min-height: 0; background: var(--cream); }
+.list-tools { padding: 10px 12px 10px; display: grid; gap: 8px; border-bottom: 2px solid var(--outline); }
+.search { border: 2px solid var(--outline); border-radius: 20px; background: var(--cream-hi); padding: 5px 12px; font-size: 12.5px; color: var(--ink-muted); }
+.filters { display: flex; flex-wrap: nowrap; gap: 4px; }
+.filters span { font-family: var(--display); font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 7px; white-space: nowrap; border-radius: 20px; border: 2px solid var(--outline); background: var(--cream-hi); }
+.filters span.on { background: var(--outline); color: var(--cream); }
+.rows { overflow: hidden; -webkit-mask-image: linear-gradient(#000 92%, transparent); mask-image: linear-gradient(#000 92%, transparent); }
+.group { font-family: var(--display); font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); display: flex; justify-content: space-between; padding: 8px 14px 5px; background: var(--cream-lo); border-bottom: 1px solid var(--parchment-line); }
+.row { position: relative; display: grid; grid-template-columns: 10px 1fr auto; gap: 0 8px; padding: 6px 14px 6px 16px; border-bottom: 1px solid var(--parchment-line); background: var(--cream); }
+.row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+.row.decide::before { background: var(--school-primary); }
+.row.decide.urgent::before { background: var(--danger); }
+.row.sel { background: var(--cream-hi); box-shadow: inset 0 0 0 2px var(--outline); z-index: 1; }
+.row .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
+.row.unread .dot { background: var(--school-secondary); border: 1.5px solid var(--outline); }
+.row .from { font-family: var(--display); font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--school-primary); }
+.row .when { font-size: 10.5px; font-weight: 700; color: var(--ink-muted); white-space: nowrap; align-self: start; }
+.row .due { font-family: var(--display); font-weight: 800; font-size: 10px; white-space: nowrap; padding: 1px 7px; border-radius: 20px; background: var(--cream-lo); align-self: start; }
+.row.urgent .due { background: var(--danger); color: #fff; }
+.row .subj { grid-column: 2 / 4; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row.unread .subj, .row.decide .subj { font-family: var(--display); font-weight: 800; }
+.row .snip { grid-column: 2 / 4; font-size: 12px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .mini { grid-column: 2 / 4; height: 5px; border-radius: 3px; background: var(--cream-lo); overflow: hidden; margin-top: 3px; }
+.row .mini i { display: block; height: 100%; background: var(--school-primary); }
+.row.bulletin { grid-template-columns: 10px 1fr auto; padding-block: 6px; }
+.row.bulletin .subj { grid-column: 2; font-family: var(--sans); font-weight: 500; font-size: 12px; color: var(--ink); }
+.row.bulletin .go { font-size: 11px; color: var(--school-primary); text-decoration: underline dotted; white-space: nowrap; }
+.row.bulletin .good { color: var(--green); }
+
+/* Right: the reading pane */
+.read { overflow: hidden; padding: 18px 34px 20px; display: grid; gap: 14px; align-content: start; }
+.read-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.read-bar .nav { display: flex; gap: 6px; }
+.mini-btn { font-family: var(--display); font-weight: 800; font-size: 11.5px; border: 2px solid var(--outline); border-radius: 20px; padding: 3px 11px; background: var(--cream-hi); }
+.read-head { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 2px solid var(--outline); }
+.read-head .tags { display: flex; gap: 6px; align-items: center; }
+.read-head h3 { font-size: 26px; line-height: 1.15; max-width: 30ch; }
+.read-meta { font-size: 12.5px; color: var(--ink-muted); }
+.read-meta b { color: var(--ink); font-weight: 700; }
+.read-grid { display: grid; grid-template-columns: 1fr 230px; gap: 22px; align-items: start; }
+.read-text { display: grid; gap: 10px; font-size: 15px; line-height: 1.6; max-width: 62ch; }
+.side { border: 2px solid var(--outline); border-radius: 14px; background: var(--cream-hi); padding: 10px 12px; display: grid; gap: 8px; font-size: 12.5px; }
+.side .k { font-family: var(--display); font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); }
+.side .v { font-weight: 700; }
+.side .clock-big { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; color: var(--school-primary); }
+.answer-label { font-family: var(--display); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--school-primary); }
+.choices { display: grid; gap: 8px; max-width: 640px; }
+.choice { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: 14px; padding: 9px 14px; display: grid; gap: 5px; }
+.choice-l { display: flex; justify-content: space-between; gap: 8px; font-family: var(--display); font-weight: 800; font-size: 15px; }
+.choice-l em { font-style: normal; font-size: 11px; color: var(--school-primary); white-space: nowrap; }
+.fx { display: flex; flex-wrap: wrap; gap: 5px; }
+.fx span { font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 20px; background: var(--cream-lo); }
+.fx .up { color: var(--green); } .fx .dn { color: var(--danger); }
+.choice.hover { box-shadow: var(--shadow-1); transform: translate(-1px, -1px); }
+.bar { height: 7px; border-radius: 4px; background: var(--cream-lo); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--school-primary); }
+.m-eyebrow { font-family: var(--display); font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--school-primary); }
+.teaser { font-size: 12.5px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Arrival slip (sits above the inbox button) */
+.slip { position: absolute; left: 50%; bottom: 100px; transform: translateX(40px); width: 330px; background: var(--cream); border: 2px solid var(--outline); border-left: 7px solid var(--school-primary); border-radius: 10px; box-shadow: var(--shadow-1); padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; }
+.slip::after { content: ''; position: absolute; bottom: -9px; left: 190px; width: 14px; height: 14px; background: var(--cream); border-right: 2px solid var(--outline); border-bottom: 2px solid var(--outline); transform: rotate(45deg); }
+.slip .open { grid-row: span 2; font-family: var(--display); font-weight: 800; font-size: 12px; border: 2px solid var(--outline); border-radius: 20px; padding: 3px 10px; background: var(--cream-hi); }
+.slip .teaser { font-size: 12px; }
+
+/* Close-up tiles */
+.tile { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: 14px; padding: 14px; display: grid; gap: 10px; align-content: start; }
+.tile h3 { font-size: 15px; }
+.btn-states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.btn-states > div { display: grid; justify-items: center; gap: 6px; text-align: center; font-size: 11.5px; color: var(--ink-muted); line-height: 1.3; }
+.mini-bar { background: var(--school-primary); border-top: 3px solid var(--school-secondary); border-radius: 8px; padding: 8px 6px 6px; display: grid; place-items: center; width: 100%; }
+.mini-bar .tab { padding: 4px 8px; }
+.opens { margin: 0; padding: 8px 12px 8px 28px; border: 2px solid var(--outline); border-radius: 12px; background: var(--cream-hi); font-size: 13.5px; }
+.opens li { margin: 3px 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font-family: var(--display); font-weight: 800; font-size: 13px; border: 2px solid var(--outline); border-radius: 20px; padding: 5px 14px; background: var(--school-secondary); color: var(--outline); box-shadow: var(--shadow-1); }
+.btn.secondary { background: var(--cream-hi); box-shadow: none; }
+.link { font-size: 13px; color: var(--school-primary); text-decoration: underline dotted; font-weight: 600; }
+.answered { display: grid; gap: 6px; }
+.answered .row { display: grid; grid-template-columns: 58px 1fr; gap: 8px; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed var(--parchment-line); }
+.answered .row:last-child { border-bottom: 0; }
+.answered .ts { font-family: var(--display); font-weight: 800; color: var(--school-primary); font-size: 12px; }
+.answered .how { color: var(--ink-muted); font-size: 12px; }
+.answered .default { color: var(--danger); font-weight: 700; }
+
+ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 0.88em; background: var(--cream-lo); padding: 1px 5px; border-radius: 4px; }
+@media (prefers-reduced-motion: no-preference) {
+  .badge.count.urgent { animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(161,58,58,0.6); } 50% { box-shadow: 0 0 0 5px rgba(161,58,58,0); } }
+}
+</style>
+
+<div class="wrap">
+  <header style="display:grid; gap:14px">
+    <span class="eyebrow">UniSchool · design proposal</span>
+    <h1>The President’s Inbox</h1>
+    <p class="lede">One place for everything that is addressed to the president, reachable from any screen. It would replace the two stacks of cards that float over the map, the “Noted” buttons, and a few modals that stop the clock just to deliver news.</p>
+    <div class="panel verdict">
+      <h3>The short answer</h3>
+      <ul>
+        <li><b>What goes in:</b> anything written <i>to</i> the president, in three tiers. <b>To decide</b> (it needs an answer or has a deadline), <b>Letters</b> (read once, keep for the record) and <b>Bulletins</b> (the toasts, filed so they aren’t lost).</li>
+        <li><b>How the tiers differ:</b> only <i>To decide</i> puts a number on the button. Unread letters add a dot. Bulletins never raise the badge and clear themselves after a term.</li>
+        <li><b>What it replaces:</b> the event panel, the note stack (board letters, student demands, milestones, founding notes), the NEXT line’s “a matter waits” pointer, and the research, championship and Deans’ modals.</li>
+        <li><b>What stays as it is:</b> the summer, the final report, the rankings entry, the 20 seismic decisions and the opening letters still stop the clock. Toasts still pop. The activity log stays the full record.</li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- ================= Today ================= -->
+  <section>
+    <span class="eyebrow">Today</span>
+    <h2>Seven ways the game talks to the player</h2>
+    <p>Each was added for a good reason, but together they spread across four corners of the screen with four different ways to dismiss them. They also compete for the map, which is what the player came to look at.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Channel</th><th>Where</th><th>Clock</th><th>Dismissed by</th><th>What goes wrong</th></tr></thead>
+        <tbody>
+          <tr><td><b>Event panel</b><br><span class="caption">134 inline events</span></td><td>Right side of the map, 360px</td><td>Runs</td><td>Answering, or the default after the deadline</td><td>Steps aside while any tab is open, so the player has to leave Faculty to answer a question about a faculty member.</td></tr>
+          <tr><td><b>Note stack</b><br><span class="caption">board letters, student demand, milestone, founding notes</span></td><td>Left side of the map, 360px</td><td>Runs</td><td>“Noted”</td><td>Once noted, a letter is gone and can’t be re-read. Also hidden while a building panel or the build tray is open.</td></tr>
+          <tr><td><b>Toasts</b></td><td>Bottom right</td><td>Runs</td><td>Six seconds, or ×</td><td>At fast speed several arrive in one sitting, and they vanish before they’re read. Only the log keeps them.</td></tr>
+          <tr><td><b>NEXT line</b></td><td>Ticker, right</td><td>–</td><td>–</td><td>While a tab is open it is borrowed to point back at the map (“2 matters wait”), so guidance and notices share one line.</td></tr>
+          <tr><td><b>Interrupt modals</b></td><td>Centre, over everything</td><td><b>Stops</b></td><td>Resolving</td><td>Right for the summer and big decisions. Heavy for news such as a research report or a championship result.</td></tr>
+          <tr><td><b>Activity log</b></td><td>Ticker, left, and popup</td><td>–</td><td>–</td><td>Complete but undifferentiated. Two hundred lines, where “a matter waits” sits beside “a paper was published”.</td></tr>
+          <tr><td><b>Tab badges</b></td><td>Toolbar icons</td><td>–</td><td>Visiting the tab</td><td>Fine as they are. They point at content inside a tab, not at a message.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= Mockup 1 ================= -->
+  <section>
+    <span class="eyebrow">Sample 1</span>
+    <h2>The inbox as a full-screen tab, with a matter open</h2>
+    <p>The inbox opens like the other tabs: full screen above the ticker and toolbar, with the same title bar and <b>Close</b> button, from a new <b>Inbox</b> button between History and Build (or the <code>I</code> key). It works like an email client. The list on the left shows every message collapsed to a sender, a subject and a one-line preview, grouped by tier. The reading pane on the right shows the selected message in full.</p>
+    <div class="screen-box" id="shot1">
+      <div class="screen">
+        <div class="ov">
+          <div class="ov-head"><h2>Inbox</h2><span class="ov-close">Close ✕</span></div>
+          <div class="ov-body">
+          <div class="list">
+            <div class="list-tools">
+              <div class="search">Search letters and matters</div>
+              <div class="filters"><span class="on">All</span><span>To decide 4</span><span>Letters 2</span><span>Bulletins</span><span>Answered</span></div>
+            </div>
+            <div class="rows">
+              <div class="group"><span>To decide</span><span>4 · clock running</span></div>
+              <div class="row decide urgent"><span class="dot"></span><span class="from">Student life</span><span class="due">Last week</span><span class="subj">Forty students are sitting in the foyer of Founders Hall</span><span class="snip">They have a list of six things, four of which the college agrees with…</span></div>
+              <div class="row decide sel"><span class="dot"></span><span class="from">Advancement</span><span class="due">3 weeks</span><span class="subj">A donor has offered a gift toward the scholarship fund</span><span class="snip">…on condition that a bronze of himself be placed at the main entrance.</span></div>
+              <div class="row decide"><span class="dot"></span><span class="from">Academic affairs</span><span class="due">3 weeks</span><span class="subj">Professor Okafor has an offer from another college</span><span class="snip">They have brought you the letter, which is either a courtesy or an opening bid.</span></div>
+              <div class="row decide"><span class="dot"></span><span class="from">A student demand</span><span class="due">14 weeks</span><span class="subj">Students demand somewhere to study</span><span class="mini"><i style="width:62%"></i></span></div>
+              <div class="group"><span>Letters</span><span>2 unread</span></div>
+              <div class="row unread"><span class="dot"></span><span class="from">A milestone</span><span class="when">Y51</span><span class="subj">A university town</span><span class="snip">The town is the university now, and big enough to keep a teaching hospital busy…</span></div>
+              <div class="row unread"><span class="dot"></span><span class="from">Research report</span><span class="when">Y51W1</span><span class="subj">Grid-Forming Inverters at the Edge</span><span class="snip">The initiative has reported: three papers and a patent filing.</span></div>
+              <div class="group"><span>Bulletins</span><span>clear after a term</span></div>
+              <div class="row bulletin"><span class="dot"></span><span class="subj good">Up to #1 in the rankings.</span><span class="when">Y51W1</span></div>
+              <div class="row bulletin"><span class="dot"></span><span class="subj">Oak Hall is finished. <span class="go">Show on map</span></span><span class="when">Y50W50</span></div>
+            </div>
+          </div>
+          <div class="read">
+            <div class="read-bar"><div class="nav"><span class="mini-btn">← Newer</span><span class="mini-btn">Older →</span></div><div class="nav"><span class="mini-btn">Open Treasury</span></div></div>
+            <div class="read-head">
+              <div class="tags"><span class="tag decide">To decide</span><span class="m-eyebrow">Advancement</span></div>
+              <h3>A donor has offered a gift toward the scholarship fund</h3>
+              <div class="read-meta">From <b>the Office of Advancement</b> to the President · received Fall Term, Week 2 of Year 51</div>
+            </div>
+            <div class="read-grid">
+              <div style="display:grid; gap:14px">
+                <div class="read-text"><p>A donor has offered a gift toward the scholarship fund, on condition that a bronze of himself be placed at the main entrance. The sculptor has already been engaged, and the maquette shows him somewhat taller than the Registrar remembers.</p></div>
+                <span class="answer-label">Your answer</span>
+                <div class="choices">
+                  <div class="choice hover"><span class="choice-l">Accept the gift and the statue</span><span class="fx"><span class="up">endowment +$1.5M</span><span class="dn">satisfaction 91 → 89</span><span class="up">board confidence +1</span></span></div>
+                  <div class="choice"><span class="choice-l">Offer a named scholarship instead <em>if nobody answers</em></span><span class="fx"><span class="up">endowment +$600k</span><span class="up">alumni warmth +1</span></span></div>
+                  <div class="choice"><span class="choice-l">Decline the gift</span><span class="fx"><span class="dn">alumni warmth −2</span><span class="dn">board confidence −1</span></span></div>
+                </div>
+              </div>
+              <aside class="side">
+                <span class="k">Time to answer</span><span class="clock-big">3 weeks</span>
+                <div class="bar"><i style="width:0%"></i></div>
+                <span class="k">If nobody answers</span><span class="v">Offer a named scholarship instead</span>
+                <span class="k">Endowment now</span><span class="v">$412,600,000</span>
+                <span class="k">Alumni warmth now</span><span class="v">64</span>
+              </aside>
+            </div>
+          </div>
+          </div>
+        </div>
+        <span class="hamb"></span>
+        <div class="ticker">
+          <span class="logicon"></span>
+          <span><span class="ts">Y51W2</span>A new paper out of “Grid-Forming Inverters at the Edge”.</span>
+          <span class="next"><span class="pill-label">Next</span><u>Experimental Economics Lab is idle — commission research</u></span>
+        </div>
+        <div class="toolbar">
+          <div class="funds">
+            <div class="cash">$52,092,270<small>+$1,673,722/wk</small></div>
+            <div class="chips"><span>#1</span><span>34,480</span><span>★ 150</span><span>☺ 91</span></div>
+          </div>
+          <div class="tabs"><div class="tab"><svg viewBox="0 0 20 20"><path d="M3 9l7-6 7 6v8H3z"/></svg>Campus</div><div class="tab"><svg viewBox="0 0 20 20"><path d="M2 8l8-4 8 4-8 4z M5 10v4c3 2 7 2 10 0v-4"/></svg>Curriculum<span class="badge alert">!</span></div><div class="tab"><svg viewBox="0 0 20 20"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="8" r="2.5"/><path d="M2 17c0-4 10-4 10 0M11 16c1-3 7-3 7 0"/></svg>Faculty</div><div class="tab"><svg viewBox="0 0 20 20"><path d="M8 3v6l-4 8h12l-4-8V3M7 3h6"/></svg>Research</div><div class="tab"><svg viewBox="0 0 20 20"><path d="M10 17S3 12 3 7a3.5 3.5 0 017-1 3.5 3.5 0 017 1c0 5-7 10-7 10z"/></svg>Students</div><div class="tab"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c3 3 3 11 0 14M10 3c-3 3-3 11 0 14"/></svg>Athletics</div><div class="tab"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>History</div><div class="tab on"><svg viewBox="0 0 20 20"><path d="M3 5h14v10H3z M3 5l7 6 7-6"/></svg>Inbox<span class="badge count urgent">4</span></div><div class="build">Build</div></div>
+          <div class="clock">Year 51 · Fall Term · Week 2<span class="speeds"><i class="on"></i><i></i><i></i><i></i></span></div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">The navy rule on the left of a row marks something to decide, and turns red in its last week (the sit-in). A gold dot marks an unread letter, and unread subjects are bold. The wider reading pane has room for current values in the effects (“satisfaction 91 → 89”), the default and the deadline beside the text, and a link to the tab the matter concerns.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Sample 1b</span>
+    <h2>The same inbox with a letter open</h2>
+    <p>A letter needs no answer, so its reading pane shows what it opens and where to go next instead of choices. Opening it marks it read: its gold dot and bold subject go, and the Letters count drops by one.</p>
+    <div class="screen-box" id="shot1b">
+      <div class="screen">
+        <div class="ov">
+          <div class="ov-head"><h2>Inbox</h2><span class="ov-close">Close ✕</span></div>
+          <div class="ov-body">
+          <div class="list">
+            <div class="list-tools">
+              <div class="search">Search letters and matters</div>
+              <div class="filters"><span class="on">All</span><span>To decide 4</span><span>Letters 1</span><span>Bulletins</span><span>Answered</span></div>
+            </div>
+            <div class="rows">
+              <div class="group"><span>To decide</span><span>4 · clock running</span></div>
+              <div class="row decide urgent"><span class="dot"></span><span class="from">Student life</span><span class="due">Last week</span><span class="subj">Forty students are sitting in the foyer of Founders Hall</span><span class="snip">They have a list of six things, four of which the college agrees with…</span></div>
+              <div class="row decide"><span class="dot"></span><span class="from">Advancement</span><span class="due">3 weeks</span><span class="subj">A donor has offered a gift toward the scholarship fund</span><span class="snip">…on condition that a bronze of himself be placed at the main entrance.</span></div>
+              <div class="row decide"><span class="dot"></span><span class="from">Academic affairs</span><span class="due">3 weeks</span><span class="subj">Professor Okafor has an offer from another college</span><span class="snip">They have brought you the letter, which is either a courtesy or an opening bid.</span></div>
+              <div class="row decide"><span class="dot"></span><span class="from">A student demand</span><span class="due">14 weeks</span><span class="subj">Students demand somewhere to study</span><span class="mini"><i style="width:62%"></i></span></div>
+              <div class="group"><span>Letters</span><span>1 unread</span></div>
+              <div class="row sel"><span class="dot"></span><span class="from">A milestone</span><span class="when">Y51</span><span class="subj">A university town</span><span class="snip">The town is the university now, and big enough to keep a teaching hospital busy…</span></div>
+              <div class="row unread"><span class="dot"></span><span class="from">Research report</span><span class="when">Y51W1</span><span class="subj">Grid-Forming Inverters at the Edge</span><span class="snip">The initiative has reported: three papers and a patent filing.</span></div>
+              <div class="group"><span>Bulletins</span><span>clear after a term</span></div>
+              <div class="row bulletin"><span class="dot"></span><span class="subj good">Up to #1 in the rankings.</span><span class="when">Y51W1</span></div>
+              <div class="row bulletin"><span class="dot"></span><span class="subj">Oak Hall is finished. <span class="go">Show on map</span></span><span class="when">Y50W50</span></div>
+            </div>
+          </div>
+          <div class="read">
+            <div class="read-bar"><div class="nav"><span class="mini-btn">← Newer</span><span class="mini-btn">Older →</span></div><div class="nav"><span class="mini-btn">File</span><span class="mini-btn">Mark unread</span></div></div>
+            <div class="read-head">
+              <div class="tags"><span class="tag letter">Letter</span><span class="m-eyebrow">A milestone · National</span></div>
+              <h3>A university town</h3>
+              <div class="read-meta">From <b>the board</b> to the President · Year 51</div>
+            </div>
+            <div class="read-grid">
+              <div style="display:grid; gap:14px">
+                <div class="read-text"><p>The town is the university now, and big enough to keep a teaching hospital busy: a medical center with the college’s name over the door.</p></div>
+                <span class="answer-label">What this opens</span>
+                <ul class="opens" style="max-width:560px"><li>The Medical Center: a teaching hospital that lifts academics and research</li></ul>
+                <div class="actions"><span class="btn">Open Build</span><span class="btn secondary">File</span></div>
+              </div>
+              <aside class="side">
+                <span class="k">Rung</span><span class="v">National · 4 of 4</span>
+                <span class="k">Reached</span><span class="clock-big">Year 51</span>
+                <span class="k">Next milestone</span><span class="v">None left on the ladder</span>
+              </aside>
+            </div>
+          </div>
+          </div>
+        </div>
+        <span class="hamb"></span>
+        <div class="ticker">
+          <span class="logicon"></span>
+          <span><span class="ts">Y51W2</span>A new paper out of “Grid-Forming Inverters at the Edge”.</span>
+          <span class="next"><span class="pill-label">Next</span><u>Experimental Economics Lab is idle — commission research</u></span>
+        </div>
+        <div class="toolbar">
+          <div class="funds">
+            <div class="cash">$52,092,270<small>+$1,673,722/wk</small></div>
+            <div class="chips"><span>#1</span><span>34,480</span><span>★ 150</span><span>☺ 91</span></div>
+          </div>
+          <div class="tabs"><div class="tab"><svg viewBox="0 0 20 20"><path d="M3 9l7-6 7 6v8H3z"/></svg>Campus</div><div class="tab"><svg viewBox="0 0 20 20"><path d="M2 8l8-4 8 4-8 4z M5 10v4c3 2 7 2 10 0v-4"/></svg>Curriculum<span class="badge alert">!</span></div><div class="tab"><svg viewBox="0 0 20 20"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="8" r="2.5"/><path d="M2 17c0-4 10-4 10 0M11 16c1-3 7-3 7 0"/></svg>Faculty</div><div class="tab"><svg viewBox="0 0 20 20"><path d="M8 3v6l-4 8h12l-4-8V3M7 3h6"/></svg>Research</div><div class="tab"><svg viewBox="0 0 20 20"><path d="M10 17S3 12 3 7a3.5 3.5 0 017-1 3.5 3.5 0 017 1c0 5-7 10-7 10z"/></svg>Students</div><div class="tab"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c3 3 3 11 0 14M10 3c-3 3-3 11 0 14"/></svg>Athletics</div><div class="tab"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>History</div><div class="tab on"><svg viewBox="0 0 20 20"><path d="M3 5h14v10H3z M3 5l7 6 7-6"/></svg>Inbox<span class="badge count urgent">4</span></div><div class="build">Build</div></div>
+          <div class="clock">Year 51 · Fall Term · Week 2<span class="speeds"><i class="on"></i><i></i><i></i><i></i></span></div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">This is the same text and “opens” list as today’s milestone note, given the room of a page. <b>File</b> takes it out of the list, and it can still be found under the Letters filter or by searching.</p>
+  </section>
+
+  <!-- ================= Mockup 2 ================= -->
+  <section>
+    <span class="eyebrow">Sample 2</span>
+    <h2>Arrival, the button’s states, and reading a letter</h2>
+    <p>Something new on the way in shouldn’t go unnoticed just because it no longer lands on the map. It arrives as a slip above the button, in the same place every time.</p>
+    <div class="screen-box" id="shot2">
+      <div class="screen">
+        <div class="map"></div>
+        <div class="slip">
+          <span class="m-eyebrow">New · Academic affairs · 3 weeks</span>
+          <span class="open">Open</span>
+          <span class="teaser">Professor Okafor has an offer from a college with a larger endowment…</span>
+        </div>
+        <div class="ticker">
+          <span class="logicon"></span>
+          <span><span class="ts">Y51W3</span>Professor Okafor has an offer from another college.</span>
+          <span class="next"><span class="pill-label">Next</span><u>Experimental Economics Lab is idle — commission research</u></span>
+        </div>
+        <div class="toolbar">
+          <div class="funds">
+            <div class="cash">$53,765,992<small>+$1,673,722/wk</small></div>
+            <div class="chips"><span>#1</span><span>34,480</span><span>★ 150</span><span>☺ 91</span></div>
+          </div>
+          <div class="tabs">
+            <div class="tab on"><svg viewBox="0 0 20 20"><path d="M3 9l7-6 7 6v8H3z"/></svg>Campus</div>
+            <div class="tab"><svg viewBox="0 0 20 20"><path d="M2 8l8-4 8 4-8 4z M5 10v4c3 2 7 2 10 0v-4"/></svg>Curriculum<span class="badge alert">!</span></div>
+            <div class="tab"><svg viewBox="0 0 20 20"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="8" r="2.5"/><path d="M2 17c0-4 10-4 10 0M11 16c1-3 7-3 7 0"/></svg>Faculty</div>
+            <div class="tab"><svg viewBox="0 0 20 20"><path d="M8 3v6l-4 8h12l-4-8V3M7 3h6"/></svg>Research</div>
+            <div class="tab"><svg viewBox="0 0 20 20"><path d="M10 17S3 12 3 7a3.5 3.5 0 017-1 3.5 3.5 0 017 1c0 5-7 10-7 10z"/></svg>Students</div>
+            <div class="tab"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c3 3 3 11 0 14M10 3c-3 3-3 11 0 14"/></svg>Athletics</div>
+            <div class="tab"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>History</div>
+            <div class="tab"><svg viewBox="0 0 20 20"><path d="M3 5h14v10H3z M3 5l7 6 7-6"/></svg>Inbox<span class="badge count">4</span></div>
+            <div class="build">Build</div>
+          </div>
+          <div class="clock">Year 51 · Fall Term · Week 3<span class="speeds"><i></i><i></i><i class="on"></i><i></i></span></div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">A matter arriving at fast speed: the slip stays for eight seconds (toasts stay six) and the count goes up by one. The optional setting “Pause when a matter arrives” is off by default.</p>
+
+    <div class="grid2">
+      <div class="tile">
+        <h3>The button, four states</h3>
+        <div class="btn-states">
+          <div><div class="mini-bar"><div class="tab"><svg viewBox="0 0 20 20"><path d="M3 5h14v10H3z M3 5l7 6 7-6"/></svg>Inbox</div></div>Nothing new</div>
+          <div><div class="mini-bar"><div class="tab"><svg viewBox="0 0 20 20"><path d="M3 5h14v10H3z M3 5l7 6 7-6"/></svg>Inbox<span class="badge dot"></span></div></div>Unread letters only</div>
+          <div><div class="mini-bar"><div class="tab"><svg viewBox="0 0 20 20"><path d="M3 5h14v10H3z M3 5l7 6 7-6"/></svg>Inbox<span class="badge count">2</span></div></div>2 to decide</div>
+          <div><div class="mini-bar"><div class="tab"><svg viewBox="0 0 20 20"><path d="M3 5h14v10H3z M3 5l7 6 7-6"/></svg>Inbox<span class="badge count urgent">2</span></div></div>One in its last week</div>
+        </div>
+        <p class="caption">The number counts only what needs an answer, so it never grows just because news came in. Gold means waiting and red means about to lapse, which matches the red <b>!</b> the tabs already use for attention.</p>
+      </div>
+
+      <div class="tile">
+        <h3>Answered, the record</h3>
+        <div class="answered">
+          <div class="row"><span class="ts">Y50W31</span><span>The heating has failed across the older buildings<br><span class="how">Emergency contractors · costs $400k · satisfaction +2</span></span></div>
+          <div class="row"><span class="ts">Y50W12</span><span>The student newspaper has asked for funding<br><span class="how">Give them the room, not the money · satisfaction +1</span></span></div>
+          <div class="row"><span class="ts">Y49W40</span><span>The Committee on Committee Reform has reported<br><span class="how default">Nobody answered · adopted by default · board confidence +1</span></span></div>
+        </div>
+        <p class="caption">What was decided, when and at what cost. Defaults are marked so the player can see what slipped past at speed. The summer review could list the year’s defaults as well.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Tiers ================= -->
+  <section>
+    <span class="eyebrow">How it works</span>
+    <h2>Three tiers, told apart by form, not only by colour</h2>
+    <p>The test for whether something belongs in the inbox is whether it is addressed to the president. A request, a letter or a report goes in. Something that just happened on campus goes in the log, and only the headline events among those are filed as bulletins.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th><span class="tag decide">To decide</span></th><th><span class="tag letter">Letters</span></th><th><span class="tag bulletin">Bulletins</span></th></tr></thead>
+        <tbody>
+          <tr><td><b>What</b></td><td>Inline events, student demands, the Deans’ recommendations, board letters that ask for something (the idle-cash sweep)</td><td>Milestones, board distress letters, founding notes, research reports, championship results, a school distinguished</td><td>Today’s toasts: program or school founded, a building finished, rank moved, cash in the red</td></tr>
+          <tr><td><b>On the button</b></td><td>A number. Red and pulsing if one is in its last week</td><td>A gold dot, shown only when nothing needs deciding</td><td>Nothing</td></tr>
+          <tr><td><b>In the list</b></td><td>A navy rule down the row’s edge (red in the last week), a bold subject and a deadline chip in place of the date</td><td>A gold unread dot and a bold subject until opened, then a plain row with its date</td><td>A single plain line with a week stamp and “Show on map”. No reading pane</td></tr>
+          <tr><td><b>In the reading pane</b></td><td>The text, the choices with their effects on current values, and a side box with the deadline and the default</td><td>The text, what it opens, and a button to go there</td><td>Not opened</td></tr>
+          <tr><td><b>Arrives as</b></td><td>A slip above the button, and an optional pause</td><td>A quieter slip, with no pause</td><td>A toast, as today</td></tr>
+          <tr><td><b>Leaves when</b></td><td>Answered, met, or lapsed to its default. Then it moves to Answered</td><td>Opened marks it read. File to archive</td><td>On its own after a term</td></tr>
+          <tr><td><b>Order</b></td><td>By deadline, soonest first</td><td>Newest first</td><td>Newest first</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= Replaces ================= -->
+  <section>
+    <span class="eyebrow">What changes</span>
+    <h2>What the inbox replaces, and what it leaves alone</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Today</th><th>Becomes</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Event panel (<code>EventPanel.tsx</code>)</td><td><span class="tag decide">To decide</span></td><td>Same deadline, same default and the same <code>CatalogueChoices</code>. One click from any screen, and Close goes back to where you were.</td></tr>
+          <tr><td>Student demand note (<code>DemandNote.tsx</code>)</td><td><span class="tag decide">To decide</span></td><td>A goal rather than a question: a progress bar in place of choices. It resolves itself when the building opens.</td></tr>
+          <tr><td>Board letters (<code>BoardLetter.tsx</code>)</td><td><span class="tag decide">To decide</span> / <span class="tag letter">Letters</span></td><td>The idle-cash letter keeps its “Sweep above N weeks” action. Distress letters stay pinned to the top of Letters while the distress lasts.</td></tr>
+          <tr><td>Milestone and founding notes</td><td><span class="tag letter">Letters</span></td><td>Re-readable. The “opens” list links to where the new thing is.</td></tr>
+          <tr><td>Research-complete and championship modals</td><td><span class="tag letter">Letters</span></td><td>They no longer stop the clock. A setting, “Stop the clock for reports”, keeps today’s behaviour for players who want it.</td></tr>
+          <tr><td>Deans’ recommendations interrupt</td><td><span class="tag decide">To decide</span></td><td>Deadline at the end of the year’s first quarter. Unanswered, the programs stay dark, as they do today.</td></tr>
+          <tr><td>NEXT’s “a matter waits” (<code>waitingOnMap</code>)</td><td>Removed</td><td>The button carries it. NEXT goes back to one job: what to do next.</td></tr>
+          <tr><td>Toasts</td><td><span class="tag stays">Stays</span> + <span class="tag bulletin">Bulletins</span></td><td>They still pop, and are also filed.</td></tr>
+          <tr><td>Summer, final report, rankings entry, the 20 seismic decisions, opening letters</td><td><span class="tag modal">Still modal</span></td><td>These should stop the player. A copy of the answer is filed under Answered.</td></tr>
+          <tr><td>Activity log, tab badges, school banner</td><td><span class="tag stays">Stays</span></td><td>The log is the full record. The inbox is what was addressed to the president.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= Benefits / risks ================= -->
+  <section>
+    <span class="eyebrow">Weighing it</span>
+    <h2>What the player gains, and what could go wrong</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Gains</h3>
+        <ul style="margin:0; padding-left:18px; display:grid; gap:6px; font-size:14.5px">
+          <li><b>The map gets both sides back.</b> Two 360px columns of cards no longer cover the campus.</li>
+          <li><b>One click from anywhere, and back.</b> The Inbox button works from the map or any tab, and Close returns you to where you were. A message links to the tab it concerns (“Open Faculty”).</li>
+          <li><b>Room to read.</b> A full reading pane gives the event text the space of a letter, and shows each choice’s effect on current values.</li>
+          <li><b>Nothing is lost at speed.</b> Toasts, letters and milestones can all be read later, and defaults are marked.</li>
+          <li><b>Fewer hard stops.</b> Only moments that deserve it pause the game.</li>
+          <li><b>One arrival, one urgency signal.</b> A slip, a count and red for the last week, the same for every kind.</li>
+          <li><b>Room to grow.</b> Rival news, alumni requests and faculty grievances have somewhere to go without adding another corner card.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Risks, and the answer to each</h3>
+        <ul style="margin:0; padding-left:18px; display:grid; gap:6px; font-size:14.5px">
+          <li><b>Out of sight, out of mind.</b> Cards on the map are hard to miss, and a badge is easy to ignore. The slip, the red last-week count and the optional auto-pause cover this. NEXT can still name a matter in its last week.</li>
+          <li><b>Less charm.</b> A letter over the campus has presence. The reading pane keeps the letter voice at a readable size. The inbox can open by itself for the first matter of a run.</li>
+          <li><b>A busier toolbar.</b> One more icon. Alternatively the inbox could take the log icon’s place at the left of the ticker, though that is less visible.</li>
+          <li><b>More defaults.</b> If answering is optional in practice, more matters will lapse. Showing them in Answered and in the summer review makes that a visible choice.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Build ================= -->
+  <section>
+    <span class="eyebrow">Building it</span>
+    <h2>A small change to state, most of it in the UI</h2>
+    <p>Almost every item can be <b>derived</b> from state the game already keeps, so the save format barely changes.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>New pieces</h3>
+        <ul style="margin:0; padding-left:18px; display:grid; gap:4px; font-size:14px">
+          <li><code>systems/inbox/inbox.ts</code>: <code>inboxItems(s)</code> reads <code>catalogue.pending</code>, <code>events.activeDemand</code>, <code>finance.distress.letters</code>, <code>ladder.unread</code> and the research and athletics reports, and returns typed items with a tier and a deadline.</li>
+          <li>Bulletins come from <code>s.log</code>, which already tags <code>topic</code> and <code>subject</code>. The toasts’ <code>toastsFor</code> filter is reused.</li>
+          <li>Saved state: only <code>inbox.read</code> and <code>inbox.filed</code> (ids). Answered comes from <code>catalogue.letters</code> and <code>answered</code>, which exist already.</li>
+          <li><code>'inbox'</code> as a new <code>TabId</code>, rendered in <code>TabOverlay</code> like the other tabs, so it gets the title bar, Close and the Escape ladder for free. It remembers the tab it was opened from.</li>
+          <li><code>InboxTab</code>: a list pane and a reading pane, reusing <code>CatalogueText</code> and <code>CatalogueChoices</code>. An arrival slip next to <code>Toasts</code>.</li>
+          <li>Subjects: the 134 inline events have no titles. The list can use the first clause, as <code>nextStep.ts</code>’s <code>firstClause</code> already does, until titles are written.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>In three steps</h3>
+        <ol class="steps" style="font-size:14px">
+          <li><b>Mirror.</b> Ship the inbox tab alongside today’s cards, with every existing channel still in place. Check that the count and deadlines agree.</li>
+          <li><b>Move.</b> Remove the note stack, <code>EventPanel</code> and <code>waitingOnMap</code>. Replace “Noted” with read-on-open.</li>
+          <li><b>Demote.</b> Turn research, championship and Deans’ interrupts into inbox items, behind the “Stop the clock for reports” setting.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  // Scale the 1280x800 screen mockups to their box.
+  (function () {
+    function fit() {
+      document.querySelectorAll('.screen-box').forEach(function (box) {
+        var k = box.clientWidth / 1280;
+        box.querySelector('.screen').style.setProperty('--k', k);
+      });
+    }
+    fit();
+    window.addEventListener('resize', fit);
+  })();
+</script>

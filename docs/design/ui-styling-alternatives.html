@@ -1,0 +1,565 @@
+<title>UniSchool Style Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Cormorant+SC:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;600&family=Archivo+Narrow:wght@500;700&family=Anton&family=Courier+Prime:wght@400;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* ---------- Page shell (theme-aware). Each study below commits to its own fixed look. ---------- */
+:root {
+  --bg: #f4f2ee;
+  --surface: #ffffff;
+  --text: #1f2430;
+  --muted: #5d6372;
+  --line: #d9d5cc;
+  --accent: #1f3a6b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c; --surface: #1d2027; --text: #e7e8ec; --muted: #a1a6b3; --line: #30343d; --accent: #9db6e8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171c; --surface: #1d2027; --text: #e7e8ec; --muted: #a1a6b3; --line: #30343d; --accent: #9db6e8;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font: 500 15px/1.55 'Archivo', system-ui, sans-serif;
+  padding-inline: 16px; padding-block: 32px 64px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2 { font-family: 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 26px; font-weight: 800; }
+p { margin: 0; max-width: 68ch; }
+.intro { display: grid; gap: 14px; }
+.lede { color: var(--muted); font-size: 17px; }
+.current {
+  display: grid; gap: 6px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  max-width: 820px;
+}
+.current b { font-weight: 700; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.toc a {
+  color: var(--text); text-decoration: none; border: 1px solid var(--line); background: var(--surface);
+  padding: 6px 12px; border-radius: 999px; font-size: 14px;
+}
+.toc a:hover { border-color: var(--accent); }
+.toc a:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.study { display: grid; gap: 20px; scroll-margin-top: 16px; }
+.study-head { display: grid; gap: 10px; }
+.kicker { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.spec { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.spec > div { display: grid; gap: 6px; align-content: start; }
+.spec h3 { margin: 0; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.spec ul { margin: 0; padding-left: 18px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+.sw i { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--line); display: inline-block; }
+.sample-label { font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+.sample { display: grid; gap: 0; }
+.stage { overflow-x: auto; border-radius: 12px; }
+
+/* shared bits used by every HUD */
+.hud { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; }
+.hud .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.hud button, .ev button { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* =========================================================
+   1 · REGISTRY — engraved heritage: leather, gilt, laid paper
+   ========================================================= */
+.s1 { --leather: #1d3328; --leather-hi: #274536; --gilt: #c9a45c; --gilt-lo: #8c7240; --laid: #ece5d3; --ink1: #2a2419; --oxblood: #7b1e2b; }
+.s1.stage { background: #0f1c16; padding: 22px; }
+.s1 .hud {
+  background: linear-gradient(#274536, #1d3328); color: #efe4c8; padding: 12px 18px;
+  border: 1px solid var(--gilt-lo); box-shadow: inset 0 0 0 4px #1d3328, inset 0 0 0 5px var(--gilt-lo);
+  font-family: 'EB Garamond', Georgia, serif; font-size: 16px; border-radius: 3px;
+}
+.s1 .purse { display: grid; gap: 2px; }
+.s1 .cash { font-family: 'Cormorant SC', Georgia, serif; font-size: 30px; font-weight: 700; color: var(--gilt); line-height: 1; letter-spacing: 0.02em; }
+.s1 .cash small { font-family: 'EB Garamond', serif; font-size: 14px; color: #b7c9a8; font-style: italic; letter-spacing: 0; }
+.s1 .marks { display: flex; gap: 14px; font-size: 14px; color: #d8cba6; }
+.s1 .marks span b { color: #f3ead2; font-weight: 500; }
+.s1 .tabs button {
+  background: none; border: none; padding: 6px 10px; font-family: 'Cormorant SC', Georgia, serif; font-size: 17px; font-weight: 500;
+  color: #d8cba6; letter-spacing: 0.04em; border-bottom: 1px solid transparent;
+}
+.s1 .tabs button[aria-current] { color: var(--gilt); border-bottom-color: var(--gilt); }
+.s1 .tabs .build { border: 1px solid var(--gilt); color: var(--gilt); border-radius: 2px; margin-left: 6px; }
+.s1 .when { text-align: right; display: grid; gap: 4px; }
+.s1 .when em { font-style: italic; color: #efe4c8; }
+.s1 .speed { display: flex; gap: 4px; justify-content: flex-end; }
+.s1 .speed span { width: 24px; height: 24px; border: 1px solid var(--gilt-lo); display: grid; place-items: center; font-size: 11px; color: var(--gilt); border-radius: 50%; }
+.s1 .speed span.on { background: var(--gilt); color: var(--leather); }
+
+.s1 .ev {
+  max-width: 620px; margin: 0 auto; background: var(--laid); color: var(--ink1); padding: 34px 36px 30px; position: relative;
+  background-image: repeating-linear-gradient(0deg, rgba(90,70,30,0.05) 0 1px, transparent 1px 4px);
+  box-shadow: 0 1px 0 #cfc5ab, 0 18px 40px rgba(0,0,0,0.45); font-family: 'EB Garamond', Georgia, serif; font-size: 17px; line-height: 1.5;
+}
+.s1 .ev .letterhead { text-align: center; display: grid; gap: 2px; border-bottom: 1px solid #b9ab86; padding-bottom: 14px; margin-bottom: 18px; }
+.s1 .ev .letterhead .from { font-family: 'Cormorant SC', serif; letter-spacing: 0.18em; font-size: 13px; color: #6b5d3e; }
+.s1 .ev .letterhead h4 { margin: 0; font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 30px; line-height: 1.1; }
+.s1 .ev .letterhead .date { font-style: italic; font-size: 14px; color: #6b5d3e; }
+.s1 .ev p + p { margin-top: 10px; }
+.s1 .ev p::first-letter { }
+.s1 .ev .body p:first-child::first-letter { font-family: 'Cormorant SC', serif; font-size: 3.1em; float: left; line-height: 0.8; padding: 6px 6px 0 0; color: var(--oxblood); }
+.s1 .choices { margin-top: 22px; display: grid; }
+.s1 .choice {
+  display: grid; grid-template-columns: 26px 1fr; gap: 2px 10px; text-align: left; background: none; border: none;
+  border-top: 1px solid #c9bc98; padding: 11px 4px; font-family: 'EB Garamond', serif; font-size: 17px;
+}
+.s1 .choice:last-child { border-bottom: 1px solid #c9bc98; }
+.s1 .choice:hover { background: rgba(123,30,43,0.06); }
+.s1 .choice .n { font-family: 'Cormorant SC', serif; color: var(--oxblood); font-weight: 700; grid-row: span 2; }
+.s1 .choice .fx { grid-column: 2; font-style: italic; font-size: 14.5px; color: #6b5d3e; }
+.s1 .choice.def .n::after { content: ''; }
+.s1 .seal {
+  position: absolute; right: 22px; bottom: -26px; width: 74px; height: 74px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #a0303f, #7b1e2b 60%, #5a1520); color: #f0d9a8;
+  display: grid; place-items: center; font-family: 'Cormorant SC', serif; font-size: 12px; text-align: center; line-height: 1.1;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35), inset 0 0 0 4px rgba(0,0,0,0.12);
+}
+.s1 .footnote { margin-top: 14px; font-size: 14px; font-style: italic; color: #6b5d3e; }
+
+/* =========================================================
+   2 · DRAFTING TABLE — blueprint, line work, title blocks
+   ========================================================= */
+.s2 { --bp: #1b4a86; --bp-deep: #143a6c; --line2: rgba(226,238,255,0.9); --faint: rgba(226,238,255,0.14); --redline: #ff7a59; }
+.s2.stage {
+  background-color: var(--bp); padding: 22px; color: #e8f1ff;
+  background-image:
+    linear-gradient(var(--faint) 1px, transparent 1px), linear-gradient(90deg, var(--faint) 1px, transparent 1px),
+    linear-gradient(rgba(226,238,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(226,238,255,0.06) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+.s2 .hud { border: 1.5px solid var(--line2); background: rgba(20,58,108,0.85); gap: 0; align-items: stretch; }
+.s2 .cell { padding: 8px 14px; border-right: 1px solid rgba(226,238,255,0.5); display: grid; gap: 2px; align-content: center; }
+.s2 .cell:last-child { border-right: 0; }
+.s2 .lbl { font-size: 10px; letter-spacing: 0.14em; color: #a9c4ea; text-transform: uppercase; }
+.s2 .cash { font-family: 'Archivo Narrow', sans-serif; font-weight: 700; font-size: 26px; line-height: 1; }
+.s2 .cash small { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9ff0c8; font-weight: 400; }
+.s2 .kv { font-size: 13px; display: flex; gap: 12px; }
+.s2 .cell.tabs { display: flex; flex-wrap: wrap; gap: 0; padding: 0; align-self: stretch; }
+.s2 .tabs button {
+  background: none; border: none; border-right: 1px dashed rgba(226,238,255,0.35); padding: 0 12px; font-family: 'Archivo Narrow', sans-serif;
+  font-size: 15px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #cfe0f7; min-height: 52px;
+}
+.s2 .tabs button[aria-current] { background: #e8f1ff; color: var(--bp-deep); font-weight: 700; }
+.s2 .tabs .build { color: var(--redline); border-right: 0; font-weight: 700; }
+.s2 .tabs .build::before { content: '+ '; }
+.s2 .speed { display: flex; gap: 6px; font-size: 12px; }
+.s2 .speed span { border: 1px solid rgba(226,238,255,0.6); padding: 1px 6px; }
+.s2 .speed span.on { background: #e8f1ff; color: var(--bp-deep); }
+.s2 .hud-wrap { display: grid; gap: 6px; }
+.s2 .dim { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #a9c4ea; }
+.s2 .dim::before, .s2 .dim::after { content: ''; flex: 1; border-top: 1px solid #a9c4ea; }
+.s2 .dim span { white-space: nowrap; }
+
+.s2 .ev { max-width: 640px; margin: 0 auto; border: 1.5px solid var(--line2); background: rgba(20,58,108,0.9); position: relative; }
+.s2 .ev-top { display: grid; grid-template-columns: 1fr auto auto; border-bottom: 1.5px solid var(--line2); }
+.s2 .ev-top > div { padding: 8px 12px; border-right: 1px solid rgba(226,238,255,0.5); display: grid; gap: 2px; }
+.s2 .ev-top > div:last-child { border-right: 0; }
+.s2 .ev-top h4 { margin: 0; font-family: 'Archivo Narrow', sans-serif; font-size: 22px; text-transform: uppercase; letter-spacing: 0.04em; }
+.s2 .ev-body { padding: 16px 16px 6px; font-size: 13.5px; line-height: 1.65; color: #e8f1ff; }
+.s2 .ev-body p + p { margin-top: 8px; }
+.s2 .ev-body .note { color: var(--redline); font-family: 'Archivo Narrow', sans-serif; font-size: 15px; transform: rotate(-1.5deg); display: inline-block; }
+.s2 .choices { padding: 8px 16px 16px; display: grid; gap: 8px; }
+.s2 .choice {
+  display: grid; grid-template-columns: 22px 1fr; gap: 2px 10px; text-align: left; background: none;
+  border: 1px dashed rgba(226,238,255,0.55); padding: 9px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 13.5px;
+}
+.s2 .choice:hover { border-style: solid; background: rgba(226,238,255,0.06); }
+.s2 .box { width: 16px; height: 16px; border: 1.5px solid #e8f1ff; margin-top: 2px; grid-row: span 2; }
+.s2 .choice.def .box { background: linear-gradient(45deg, transparent 44%, #e8f1ff 44% 56%, transparent 56%), linear-gradient(-45deg, transparent 44%, #e8f1ff 44% 56%, transparent 56%); }
+.s2 .fx { grid-column: 2; font-size: 12px; color: #a9c4ea; }
+.s2 .fx .up { color: #9ff0c8; } .s2 .fx .dn { color: #ffb4a0; }
+.s2 .stamp {
+  position: absolute; right: 14px; top: -14px; background: var(--bp-deep); border: 2px solid var(--redline); color: var(--redline); padding: 4px 10px;
+  font-family: 'Archivo Narrow', sans-serif; font-weight: 700; letter-spacing: 0.12em; font-size: 13px; transform: rotate(8deg); opacity: 0.9;
+}
+
+/* =========================================================
+   3 · QUAD BULLETIN — two-ink risograph, pinned flyers
+   ========================================================= */
+.s3 { --paper3: #eee7df; --pink: #ff48b0; --riso: #0078bf; --ink3: #1d2a55; }
+.s3.stage {
+  background-color: #c9a878; padding: 22px;
+  background-image: radial-gradient(rgba(90,60,20,0.25) 1px, transparent 1.2px), radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1.2px);
+  background-size: 7px 7px, 11px 11px; background-position: 0 0, 3px 4px;
+}
+.s3 .hud {
+  background: var(--paper3); color: var(--ink3); padding: 12px 16px; font-family: 'Courier Prime', 'Courier New', monospace;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.12), 0 10px 20px rgba(60,35,10,0.25); transform: rotate(-0.4deg); position: relative;
+}
+.s3 .hud::before, .s3 .ev::before {
+  content: ''; position: absolute; top: -10px; left: 50%; width: 90px; height: 22px; transform: translateX(-50%) rotate(-3deg);
+  background: rgba(255,245,200,0.7); box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.s3 .cash { font-family: 'Anton', Impact, sans-serif; font-size: 34px; line-height: 1; color: var(--riso); text-shadow: 2px 2px 0 rgba(255,72,176,0.75); letter-spacing: 0.02em; }
+.s3 .cash small { font-family: 'Courier Prime', monospace; font-size: 13px; color: var(--pink); text-shadow: none; font-weight: 700; }
+.s3 .marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.s3 .marks span { background: var(--pink); color: #fff; padding: 1px 7px; font-size: 13px; font-weight: 700; }
+.s3 .marks span:nth-child(even) { background: var(--riso); }
+.s3 .tabs button {
+  background: none; border: 2px solid var(--ink3); padding: 5px 10px; font-family: 'Anton', Impact, sans-serif; font-size: 15px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); margin-left: -2px;
+}
+.s3 .tabs { gap: 0; }
+.s3 .tabs button[aria-current] { background: var(--riso); color: var(--paper3); box-shadow: 3px 3px 0 var(--pink); position: relative; z-index: 1; }
+.s3 .tabs .build { background: var(--pink); color: #fff; margin-left: 10px; transform: rotate(2deg); }
+.s3 .when { font-size: 13px; text-align: right; font-weight: 700; }
+.s3 .speed { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; }
+.s3 .speed span { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink3); display: grid; place-items: center; font-size: 10px; }
+.s3 .speed span.on { background: var(--pink); border-color: var(--pink); color: #fff; }
+
+.s3 .ev {
+  max-width: 580px; margin: 12px auto 0; background: var(--paper3); color: var(--ink3); padding: 26px 26px 22px; position: relative;
+  transform: rotate(0.8deg); box-shadow: 0 2px 0 rgba(0,0,0,0.12), 0 14px 26px rgba(60,35,10,0.3); font-family: 'Courier Prime', monospace; font-size: 15px; line-height: 1.5;
+}
+.s3 .ev .eyebrow { display: inline-block; background: var(--riso); color: var(--paper3); padding: 2px 8px; font-weight: 700; font-size: 12px; letter-spacing: 0.1em; }
+.s3 .ev h4 {
+  margin: 10px 0 12px; font-family: 'Anton', Impact, sans-serif; font-weight: 400; font-size: 46px; line-height: 0.95; text-transform: uppercase;
+  color: var(--pink); text-shadow: -3px 2px 0 rgba(0,120,191,0.85); letter-spacing: 0.01em;
+}
+.s3 .halftone {
+  height: 70px; margin: 0 -26px 14px; background-color: rgba(0,120,191,0.08);
+  background-image: radial-gradient(var(--riso) 34%, transparent 36%); background-size: 8px 8px;
+  -webkit-mask-image: linear-gradient(90deg, #000, transparent 85%); mask-image: linear-gradient(90deg, #000, transparent 85%);
+}
+.s3 .choices { display: grid; gap: 8px; margin-top: 16px; }
+.s3 .choice {
+  text-align: left; background: #fff; border: 2px solid var(--ink3); padding: 8px 12px; display: grid; gap: 2px;
+  font-family: 'Courier Prime', monospace; font-size: 15px; font-weight: 700; box-shadow: 3px 3px 0 var(--riso);
+}
+.s3 .choice:hover { box-shadow: 3px 3px 0 var(--pink); }
+.s3 .choice .fx { font-weight: 400; font-size: 13px; }
+.s3 .choice.def { background: #ffe1f1; }
+.s3 .tearoffs { display: flex; margin: 18px -26px -22px; border-top: 2px dashed rgba(29,42,85,0.4); }
+.s3 .tearoffs span { flex: 1; font-size: 10px; writing-mode: vertical-rl; transform: rotate(180deg); padding: 8px 0; text-align: center; border-left: 1px dashed rgba(29,42,85,0.3); height: 78px; }
+
+/* =========================================================
+   4 · FRONT OFFICE — dark, dense, Football Manager-style
+   ========================================================= */
+.s4 { --d0: #0f1216; --d1: #171b21; --d2: #1f252d; --dl: #2c333d; --dt: #e6e9ee; --dm: #8b94a2; --gold4: #e6b84a; --navy4: #1f3a6b; --up: #4cc38a; --dn: #ff7b72; }
+.s4.stage { background: var(--d0); padding: 18px; color: var(--dt); font-family: 'Barlow', system-ui, sans-serif; }
+.s4 .hud { background: var(--d1); border: 1px solid var(--dl); border-radius: 6px; padding: 0; gap: 0; align-items: stretch; overflow: hidden; }
+.s4 .crest { background: var(--navy4); display: grid; place-items: center; padding: 0 14px; border-right: 3px solid var(--gold4); }
+.s4 .crest b { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; color: var(--gold4); letter-spacing: 0.06em; }
+.s4 .stats { display: flex; flex-wrap: wrap; margin-right: auto; }
+.s4 .stat { padding: 8px 14px; border-right: 1px solid var(--dl); display: grid; gap: 0; }
+.s4 .stat .lbl { font-size: 11px; color: var(--dm); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.s4 .stat .v { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 22px; line-height: 1.1; }
+.s4 .stat .v small { font-size: 13px; color: var(--up); font-family: 'Barlow', sans-serif; font-weight: 600; margin-left: 4px; }
+.s4 .tabs { gap: 0; align-self: stretch; }
+.s4 .tabs button {
+  background: none; border: none; padding: 0 12px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 16px;
+  color: var(--dm); min-height: 54px; border-bottom: 3px solid transparent; position: relative;
+}
+.s4 .tabs button:hover { color: var(--dt); background: var(--d2); }
+.s4 .tabs button[aria-current] { color: var(--dt); border-bottom-color: var(--gold4); background: var(--d2); }
+.s4 .tabs button .dot { position: absolute; top: 10px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--dn); }
+.s4 .tabs .build { color: #111; background: var(--gold4); margin: 10px 10px; min-height: 34px; border-radius: 4px; padding: 0 14px; }
+.s4 .clock { padding: 8px 14px; display: grid; gap: 4px; justify-items: end; border-left: 1px solid var(--dl); }
+.s4 .clock .d { font-size: 13px; font-weight: 600; }
+.s4 .speed { display: flex; gap: 3px; }
+.s4 .speed span { width: 22px; height: 18px; background: var(--d2); border-radius: 3px; display: grid; place-items: center; font-size: 9px; color: var(--dm); }
+.s4 .speed span.on { background: var(--gold4); color: #111; }
+
+.s4 .ev { display: grid; grid-template-columns: 250px 1fr; border: 1px solid var(--dl); border-radius: 6px; overflow: hidden; background: var(--d1); min-width: 640px; }
+.s4 .inbox { border-right: 1px solid var(--dl); display: grid; align-content: start; }
+.s4 .inbox .ih { padding: 10px 12px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dm); border-bottom: 1px solid var(--dl); display: flex; justify-content: space-between; }
+.s4 .msg { padding: 10px 12px; border-bottom: 1px solid var(--dl); display: grid; gap: 2px; font-size: 13px; }
+.s4 .msg .from { color: var(--dm); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.s4 .msg.sel { background: var(--d2); box-shadow: inset 3px 0 0 var(--gold4); }
+.s4 .msg .due { color: var(--gold4); font-size: 11.5px; font-weight: 600; }
+.s4 .read { padding: 16px 20px 18px; display: grid; gap: 12px; align-content: start; }
+.s4 .read-h { display: flex; justify-content: space-between; align-items: start; gap: 12px; border-bottom: 1px solid var(--dl); padding-bottom: 10px; }
+.s4 .read-h h4 { margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; line-height: 1.1; }
+.s4 .read-h .meta { font-size: 12px; color: var(--dm); }
+.s4 .pill { font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: rgba(230,184,74,0.14); color: var(--gold4); white-space: nowrap; }
+.s4 .read p { font-size: 14.5px; line-height: 1.6; color: #cdd2da; }
+.s4 .opts { display: grid; gap: 6px; }
+.s4 .opt {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; text-align: left; background: var(--d2); border: 1px solid var(--dl);
+  border-radius: 4px; padding: 9px 12px; font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 14.5px;
+}
+.s4 .opt:hover { border-color: var(--gold4); }
+.s4 .opt.def { border-color: rgba(230,184,74,0.6); }
+.s4 .opt .tag { font-size: 11px; color: var(--gold4); font-weight: 600; align-self: center; }
+.s4 .fx { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.s4 .fx span { font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 3px; background: var(--d1); }
+.s4 .fx .up { color: var(--up); } .s4 .fx .dn { color: var(--dn); }
+
+/* narrow screens */
+@media (max-width: 640px) {
+  .s1.stage, .s2.stage, .s3.stage { padding: 14px; }
+  .s1 .ev { padding: 24px 20px 30px; }
+  .s1 .when, .s3 .when { text-align: left; }
+  .s1 .speed, .s3 .speed { justify-content: flex-start; }
+  .s3 .ev h4 { font-size: 36px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .choice, .opt, .tabs button { transition: background-color 120ms, box-shadow 120ms, border-color 120ms; }
+}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="kicker">UniSchool · UI style studies</span>
+    <h1>Four other ways the game could look</h1>
+    <p class="lede">Each study reskins the same two screens: the command bar that sits along the bottom of the campus map, and the “statue donor” event from the advancement catalogue. The numbers are a year-51 save, so the only thing that changes between studies is the styling.</p>
+    <div class="current">
+      <b>What the game uses today</b>
+      <p>Collegiate poster style: cream paper, the founding school colors (navy and gold here) as the chrome, thick navy outlines, hard offset shadows with no blur, pill buttons, Bricolage Grotesque over Archivo. It’s friendly and legible, but every surface has the same outline-and-pill treatment, so the HUD, panels and events all carry the same visual weight.</p>
+    </div>
+    <nav class="toc" aria-label="Studies">
+      <a href="#registry">1 · Registry</a>
+      <a href="#drafting">2 · Drafting Table</a>
+      <a href="#bulletin">3 · Quad Bulletin</a>
+      <a href="#office">4 · Front Office</a>
+    </nav>
+  </header>
+
+  <!-- ============ 1 ============ -->
+  <section class="study" id="registry">
+    <div class="study-head">
+      <span class="kicker">Study 1</span>
+      <h2>Registry: bound in leather, written on laid paper</h2>
+      <p>The institution as an old archive. The HUD is a tooled-leather strip with gilt lines. Events arrive as letters on laid paper, with a drop cap and a wax seal pressed in the school’s primary color. Everything leans on the fifty-year arc: the game should feel like it’s building a record.</p>
+    </div>
+    <div class="spec">
+      <div><h3>Palette</h3>
+        <div class="swatches">
+          <span class="sw"><i style="background:#1d3328"></i>leather</span>
+          <span class="sw"><i style="background:#c9a45c"></i>gilt</span>
+          <span class="sw"><i style="background:#ece5d3"></i>laid paper</span>
+          <span class="sw"><i style="background:#2a2419"></i>ink</span>
+          <span class="sw"><i style="background:#7b1e2b"></i>seal = school primary</span>
+        </div></div>
+      <div><h3>Type</h3><p>Cormorant SC for titles, tabs and figures. EB Garamond for body text and italic asides.</p></div>
+      <div><h3>Trade-offs</h3><ul><li>Very atmospheric, and fits the History tab and the final report well</li><li>Dense tables such as Faculty and Curriculum need a sans fallback to stay readable at 12px</li></ul></div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample A · Command bar</div>
+      <div class="stage s1">
+        <div class="hud">
+          <div class="purse">
+            <div class="cash num">$52,092,270 <small>+$1,673,722 a week</small></div>
+            <div class="marks num"><span>Rank <b>1st</b></span><span>Students <b>34,480</b></span><span>Prestige <b>150</b></span><span>Satisfaction <b>91</b></span></div>
+          </div>
+          <div class="tabs">
+            <button>Campus</button><button>Curriculum</button><button aria-current="page">Faculty</button><button>Research</button><button>Students</button><button>Athletics</button><button>History</button><button class="build">Build</button>
+          </div>
+          <div class="when">
+            <em>Year the Fifty-first · Fall Term · Week 2</em>
+            <div class="speed" aria-label="Speed"><span class="on">❚❚</span><span>▶</span><span>▶▶</span><span>▶▶▶</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample B · Event: the statue donor</div>
+      <div class="stage s1" style="padding-bottom:44px">
+        <article class="ev">
+          <div class="letterhead">
+            <span class="from">Office of Advancement</span>
+            <h4>A Gift, with a Bronze</h4>
+            <span class="date">Fall Term, Week 2 · reply within three weeks</span>
+          </div>
+          <div class="body">
+            <p>A donor has offered a gift toward the scholarship fund, on condition that a bronze of himself be placed at the main entrance. The sculptor has already been engaged, and the maquette shows him somewhat taller than the Registrar remembers.</p>
+          </div>
+          <div class="choices">
+            <button class="choice"><span class="n">i.</span>Accept the gift and the statue<span class="fx">endowment +$1.5M · satisfaction −2 · board confidence +1</span></button>
+            <button class="choice def"><span class="n">ii.</span>Offer a named scholarship instead<span class="fx">endowment +$600k · alumni warmth +1 · the default if unanswered</span></button>
+            <button class="choice"><span class="n">iii.</span>Decline the gift<span class="fx">alumni warmth −2 · board confidence −1</span></button>
+          </div>
+          <div class="seal" aria-hidden="true">Sigillum<br>Univ.</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section class="study" id="drafting">
+    <div class="study-head">
+      <span class="kicker">Study 2</span>
+      <h2>Drafting Table: the campus as a set of drawings</h2>
+      <p>Built around the building loop. The whole UI is blueprint line work on a grid. The HUD reads as a drawing’s title block, with ruled cells and small uppercase labels. An event is a change order with tick boxes and a red-pencil margin note. The school colors appear only in the Build stamp and in highlights.</p>
+    </div>
+    <div class="spec">
+      <div><h3>Palette</h3>
+        <div class="swatches">
+          <span class="sw"><i style="background:#1b4a86"></i>blueprint</span>
+          <span class="sw"><i style="background:#143a6c"></i>deep</span>
+          <span class="sw"><i style="background:#e8f1ff"></i>line</span>
+          <span class="sw"><i style="background:#9ff0c8"></i>gain</span>
+          <span class="sw"><i style="background:#ff7a59"></i>red pencil</span>
+        </div></div>
+      <div><h3>Type</h3><p>Archivo Narrow for titles and tabs, IBM Plex Mono for everything else, including figures.</p></div>
+      <div><h3>Trade-offs</h3><ul><li>Unified with a map overlay mode (placing, paths, zoning)</li><li>A single blue ground makes school colors less present, and long event prose in mono is tiring</li></ul></div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample A · Command bar</div>
+      <div class="stage s2">
+        <div class="hud-wrap">
+          <div class="dim"><span>SHEET 51-F-02 · SCALE 1:500 · DRAWN BY THE BURSAR</span></div>
+          <div class="hud">
+            <div class="cell"><span class="lbl">Cash on hand</span><span class="cash num">$52,092,270 <small>+1.67M/wk</small></span></div>
+            <div class="cell"><span class="lbl">Standing</span><span class="kv num"><span>#1</span><span>34,480 stu</span><span>★150</span><span>☺91</span></span></div>
+            <div class="cell tabs">
+              <button>Campus</button><button>Curric.</button><button aria-current="page">Faculty</button><button>Research</button><button>Students</button><button>Athletics</button><button>History</button><button class="build">Build</button>
+            </div>
+            <div class="cell"><span class="lbl">Y51 · Fall · Wk 2</span><span class="speed"><span class="on">II</span><span>&gt;</span><span>&gt;&gt;</span><span>&gt;&gt;&gt;</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample B · Event: the statue donor</div>
+      <div class="stage s2">
+        <article class="ev">
+          <div class="ev-top">
+            <div><span class="lbl">Change order · Advancement</span><h4>Bronze at the main entrance</h4></div>
+            <div><span class="lbl">Reply by</span><span>Wk 5</span></div>
+            <div><span class="lbl">Ref.</span><span>CO-0214</span></div>
+          </div>
+          <div class="stamp">PENDING</div>
+          <div class="ev-body">
+            <p>A donor has offered a gift toward the scholarship fund, on condition that a bronze of himself be placed at the main entrance. The sculptor has already been engaged, and the maquette shows him somewhat taller than the Registrar remembers.</p>
+            <p><span class="note">↳ plinth would block the gate sightline</span></p>
+          </div>
+          <div class="choices">
+            <button class="choice"><span class="box"></span>Accept the gift and the statue<span class="fx"><span class="up">ENDOW +$1.5M</span> · <span class="dn">SAT −2</span> · <span class="up">BOARD +1</span></span></button>
+            <button class="choice def"><span class="box"></span>Offer a named scholarship instead<span class="fx"><span class="up">ENDOW +$600k</span> · <span class="up">ALUMNI +1</span> · default</span></button>
+            <button class="choice"><span class="box"></span>Decline the gift<span class="fx"><span class="dn">ALUMNI −2</span> · <span class="dn">BOARD −1</span></span></button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section class="study" id="bulletin">
+    <div class="study-head">
+      <span class="kicker">Study 3</span>
+      <h2>Quad Bulletin: two-ink riso flyers on a corkboard</h2>
+      <p>Student-life energy. Every surface is a printed sheet pinned to cork, in two riso inks with deliberate misregistration and halftone fills. The HUD is a taped-up strip, and events are flyers with tear-off tabs. This is the loudest option, and the one that most clearly says “game” rather than “management software”.</p>
+    </div>
+    <div class="spec">
+      <div><h3>Palette</h3>
+        <div class="swatches">
+          <span class="sw"><i style="background:#eee7df"></i>stock</span>
+          <span class="sw"><i style="background:#ff48b0"></i>fluoro pink</span>
+          <span class="sw"><i style="background:#0078bf"></i>riso blue</span>
+          <span class="sw"><i style="background:#1d2a55"></i>ink</span>
+          <span class="sw"><i style="background:#c9a878"></i>cork</span>
+        </div></div>
+      <div><h3>Type</h3><p>Anton for headlines, tabs and cash. Courier Prime for body text and effects.</p></div>
+      <div><h3>Trade-offs</h3><ul><li>Strong personality that suits clubs, Greek Row and athletics</li><li>Overriding the school colors with fixed inks weakens the founding pick. Could swap in the school colors as the two inks.</li></ul></div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample A · Command bar</div>
+      <div class="stage s3">
+        <div class="hud">
+          <div>
+            <div class="cash num">$52,092,270 <small>+$1,673,722/wk</small></div>
+            <div class="marks num"><span>#1</span><span>34,480 students</span><span>★ 150</span><span>☺ 91</span></div>
+          </div>
+          <div class="tabs">
+            <button>Campus</button><button>Curriculum</button><button aria-current="page">Faculty</button><button>Research</button><button>Students</button><button>Athletics</button><button>History</button><button class="build">Build!</button>
+          </div>
+          <div class="when">YR 51 · FALL · WK 2
+            <div class="speed" aria-label="Speed"><span class="on">❚❚</span><span>▶</span><span>»</span><span>⋙</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample B · Event: the statue donor</div>
+      <div class="stage s3">
+        <article class="ev">
+          <span class="eyebrow">ADVANCEMENT · 3 WEEKS TO DECIDE</span>
+          <h4>Somebody wants a statue of himself</h4>
+          <div class="halftone" aria-hidden="true"></div>
+          <p>A donor has offered a gift toward the scholarship fund, on condition that a bronze of himself be placed at the main entrance. The sculptor has already been engaged, and the maquette shows him somewhat taller than the Registrar remembers.</p>
+          <div class="choices">
+            <button class="choice">Accept the gift and the statue<span class="fx">endowment +$1.5M · satisfaction −2 · board confidence +1</span></button>
+            <button class="choice def">Offer a named scholarship instead<span class="fx">endowment +$600k · alumni warmth +1 · (default)</span></button>
+            <button class="choice">Decline the gift<span class="fx">alumni warmth −2 · board confidence −1</span></button>
+          </div>
+          <div class="tearoffs" aria-hidden="true"><span>ext. 5100</span><span>ext. 5100</span><span>ext. 5100</span><span>ext. 5100</span><span>ext. 5100</span><span>ext. 5100</span><span>ext. 5100</span><span>ext. 5100</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4 ============ -->
+  <section class="study" id="office">
+    <div class="study-head">
+      <span class="kicker">Study 4</span>
+      <h2>Front Office: a dark, dense desk in the Football Manager mould</h2>
+      <p>The president’s desk. A dark, flat, information-first interface in condensed type, with small radii, hairline dividers and colour saved for meaning. The school colors shrink to a crest block and one gold accent. Events move into an inbox with a reading pane, so several can queue up without interrupting play.</p>
+    </div>
+    <div class="spec">
+      <div><h3>Palette</h3>
+        <div class="swatches">
+          <span class="sw"><i style="background:#0f1216"></i>desk</span>
+          <span class="sw"><i style="background:#1f252d"></i>panel</span>
+          <span class="sw"><i style="background:#e6b84a"></i>accent = school secondary</span>
+          <span class="sw"><i style="background:#4cc38a"></i>gain</span>
+          <span class="sw"><i style="background:#ff7b72"></i>loss</span>
+        </div></div>
+      <div><h3>Type</h3><p>Barlow Condensed for headings, tabs and figures. Barlow for body text.</p></div>
+      <div><h3>Trade-offs</h3><ul><li>Fits the most data per screen, which suits the Faculty, Curriculum and Treasury tables</li><li>Loses warmth and whimsy. The colorful campus map would clash unless the map gets a dusk tint.</li></ul></div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample A · Command bar</div>
+      <div class="stage s4">
+        <div class="hud">
+          <div class="crest"><b>US</b></div>
+          <div class="stats num">
+            <div class="stat"><span class="lbl">Cash</span><span class="v">$52.09M<small>+1.67M/wk</small></span></div>
+            <div class="stat"><span class="lbl">Rank</span><span class="v">1st</span></div>
+            <div class="stat"><span class="lbl">Students</span><span class="v">34,480</span></div>
+            <div class="stat"><span class="lbl">Prestige</span><span class="v">150</span></div>
+            <div class="stat"><span class="lbl">Sat.</span><span class="v">91</span></div>
+          </div>
+          <div class="tabs">
+            <button>Campus</button><button>Curriculum<span class="dot"></span></button><button aria-current="page">Faculty</button><button>Research</button><button>Students</button><button>Athletics</button><button>History</button><button class="build">Build</button>
+          </div>
+          <div class="clock"><span class="d">Y51 · Fall · Week 2</span><span class="speed"><span class="on">II</span><span>▶</span><span>▶▶</span><span>▶▶▶</span></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="sample">
+      <div class="sample-label">Sample B · Event: the statue donor</div>
+      <div class="stage s4">
+        <div class="ev">
+          <div class="inbox">
+            <div class="ih"><span>Inbox</span><span>3</span></div>
+            <div class="msg sel"><span class="from">Advancement</span><span>A gift, with a bronze</span><span class="due">Reply in 3 weeks</span></div>
+            <div class="msg"><span class="from">Research</span><span>Experimental Economics Lab is idle</span></div>
+            <div class="msg"><span class="from">Faculty</span><span>Two listed hires in Chemistry</span></div>
+          </div>
+          <div class="read">
+            <div class="read-h">
+              <div><h4>A gift, with a bronze</h4><span class="meta">From the Office of Advancement · Fall, Week 2</span></div>
+              <span class="pill">3 weeks to decide</span>
+            </div>
+            <p>A donor has offered a gift toward the scholarship fund, on condition that a bronze of himself be placed at the main entrance. The sculptor has already been engaged, and the maquette shows him somewhat taller than the Registrar remembers.</p>
+            <div class="opts">
+              <button class="opt">Accept the gift and the statue<span></span><span class="fx"><span class="up">Endowment +$1.5M</span><span class="dn">Satisfaction −2</span><span class="up">Board +1</span></span></button>
+              <button class="opt def">Offer a named scholarship instead<span class="tag">Default</span><span class="fx"><span class="up">Endowment +$600k</span><span class="up">Alumni warmth +1</span></span></button>
+              <button class="opt">Decline the gift<span></span><span class="fx"><span class="dn">Alumni warmth −2</span><span class="dn">Board −1</span></span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

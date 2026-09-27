@@ -74,6 +74,16 @@ export function HistoryIcon() {
   );
 }
 
+// An envelope: the inbox (Plan 77).
+export function InboxIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <polyline points="3.5 7 12 13 20.5 7" />
+    </svg>
+  );
+}
+
 // A basketball: a circle with a cross and two bowed seams reads as a ball
 // even at 20px, where a paneled soccer ball collapses.
 export function AthleticsIcon() {

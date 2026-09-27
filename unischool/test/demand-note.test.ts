@@ -1,6 +1,6 @@
-// A student demand arrives as a note that does not stop the clock (Plan 29,
-// V1-16): raised, it is active and unread; noted, it stays active until it
-// is met or lapses.
+// A student demand arrives in the inbox without stopping the clock (Plan 29,
+// V1-16; Plan 77): raised, it is active and unread; read, it stays active
+// until it is met or lapses.
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';

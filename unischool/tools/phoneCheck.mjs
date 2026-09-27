@@ -145,7 +145,7 @@ for (const [w, h] of SIZES) {
     if (await button.count()) await button.tap().catch(() => {});
     await page.waitForTimeout(200);
   };
-  for (const tab of ['Curriculum', 'Faculty', 'Research', 'Students', 'Athletics', 'History']) {
+  for (const tab of ['Curriculum', 'Faculty', 'Research', 'Students', 'Athletics', 'History', 'Inbox']) {
     const button = page.locator(`.toolbar-tabs button[aria-label^="${tab}"]`).first();
     if (!(await button.count())) { console.log(`✗ ${w}x${h} no ${tab} tab`); failures += 1; continue; }
     await button.scrollIntoViewIfNeeded();

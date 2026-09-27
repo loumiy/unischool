@@ -1,6 +1,7 @@
 // The board's letters on the distress ladder (systems/finance/distress.ts),
-// one for each step that matters, and on idle cash (sweep.ts). Shown as a note over the map
-// (components/BoardLetter.tsx) that never stops the clock.
+// one for each step that matters, and on idle cash (sweep.ts). Shown as a
+// letter in the inbox (components/InboxTab.tsx, Plan 77) that never stops
+// the clock.
 
 export interface BoardLetter {
   title: string;

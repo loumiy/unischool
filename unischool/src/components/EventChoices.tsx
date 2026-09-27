@@ -1,29 +1,17 @@
-import { useState } from 'react';
 import type { GameState, PendingCatalogueEvent } from '../state/types';
 import { totalEnrolled } from '../state/types';
-import type { Action } from '../state/actions';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
-import { absoluteWeek } from '../data/eventData';
-import { eventById, eventText, fill, scaledEffects } from '../systems/events/catalogue';
-import { catalogueOf, choiceCost } from '../systems/events/catalogueEngine';
+import { fill, scaledEffects } from '../systems/events/catalogue';
+import { choiceCost } from '../systems/events/catalogueEngine';
 import { money, signed, signedMoney } from '../format';
 import { debtOutstanding } from '../systems/finance/treasury';
 import { promiseById } from '../data/promiseData';
 import { promiseTitle } from '../systems/promises/promises';
 
-// THE PANEL (Plan 32): the catalog's inline events, waiting over the map
-// while the clock runs. Each shows its weeks left and what each answer
-// does, in the sums the college will actually pay; one left alone takes
-// its default when its weeks run out. The board's letters are modal
-// (InterruptModal.tsx's CatalogueLetterView) and share the choice list.
-
-const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
-  board: 'The President',
-  academic: 'Academic affairs',
-  students: 'Student life',
-  estate: 'Buildings and grounds',
-  advancement: 'Advancement',
-};
+// An event's text and its answers (Plan 32), shared by the inbox's reading
+// pane (InboxTab.tsx, Plan 77) and the board's letters, which are modal
+// (InterruptModal.tsx's CatalogueLetterView). Each answer says what it
+// does, in the sums the college will actually pay.
 
 // What an answer does, a phrase per lever.
 function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
@@ -111,45 +99,5 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
         );
       })}
     </div>
-  );
-}
-
-export default function EventPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
-  const [open, setOpen] = useState<string | null>(null);
-  const waiting = catalogueOf(s).pending
-    .map((p) => ({ p, e: eventById(p.eventId) }))
-    .filter((x): x is { p: PendingCatalogueEvent; e: CatalogueEvent } => x.e !== undefined && x.e.kind === 'inline');
-  if (waiting.length === 0 || s.pendingInterrupt) return null;
-  const shown = waiting.find((x) => x.p.instanceId === open) ?? waiting[0];
-  const week = absoluteWeek(s);
-  return (
-    <aside className="event-panel" aria-label="Events waiting for an answer">
-      {waiting.map(({ p, e }) => {
-        const weeksLeft = Math.max(0, e.timeoutWeeks - (week - p.firedWeek));
-        const text = fill(eventText(e, p), p.vars);
-        const expanded = p.instanceId === shown.p.instanceId;
-        return (
-          <section key={p.instanceId} className={`event-card${expanded ? ' is-open' : ''}`}>
-            <button type="button" className="event-card-head" aria-expanded={expanded} onClick={() => setOpen(p.instanceId)}>
-              <span className="letter-eyebrow">
-                {DOMAIN_LABEL[e.domain]} · {weeksLeft === 1 ? '1 week' : `${weeksLeft} weeks`} to answer
-              </span>
-              {!expanded && <span className="event-card-teaser">{text.split('\n')[0]}</span>}
-            </button>
-            {expanded && (
-              <>
-                <CatalogueText text={text} className="milestone-note-text" />
-                <CatalogueChoices
-                  s={s}
-                  p={p}
-                  e={e}
-                  onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId: p.instanceId, choiceId })}
-                />
-              </>
-            )}
-          </section>
-        );
-      })}
-    </aside>
   );
 }

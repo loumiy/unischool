@@ -2,7 +2,7 @@
 
 The **campus map** holds the middle of the screen at all times. The build menu
 opens over it, and every other view — Curriculum, Faculty, Research,
-Students, Athletics, History, Treasury — opens as a dismissible
+Students, Athletics, History, the Inbox, Treasury — opens as a dismissible
 **full-bleed screen** on top of it: the tab takes the viewport and the dock
 (log ticker + toolbar) lays over it. Every tab, the same way. The map is what a
 player returns to, by the home button at the head of the toolbar's icon row,
@@ -45,7 +45,9 @@ toolbar. Above it a **toast stack** shows the things that never stop the clock
 — a course or building finished, a program founded, a petition, a paper, a
 candidate in a short field, a project concluded without a report — six
 seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
-it is about (see
+it is about; an **arrival** (a matter or a letter reaching the inbox) carries
+an Open button and stays eight seconds, and none arrives while the inbox is
+open (see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
 right end of the ticker line runs the **next step**: during the scripted first
 year the latest letter's ask until it is done; afterwards a waiting letter's
@@ -53,7 +55,7 @@ ask — unless it has nothing to do this week, when it gives way (Plan 58) —
 then the highest-value thing on offer: a program gone dark that the payroll or
 the market can staff, ahead even of a letter (Plan 60); a program that can move to its
 school's hall (Plan 55), or the next hall to site when a school has no hall
-to move to; a hall with a free slot while programs are offered (an offer's
+to move to; a hall with a free program slot while programs are offered (an offer's
 own school's hall first), or the next hall when nothing on offer has one; a
 program one course from established; a satisfaction attribute under 50; an
 idle lab —
@@ -61,6 +63,27 @@ recomputed from state on every render (`src/systems/guidance/nextStep.ts`). A
 reading, never a queue: nothing is ticked off, and the line goes quiet when
 nothing is on offer. The log on the left says what just happened; the step on
 the right says what to do about it.
+
+## The inbox
+
+Everything addressed to the president that does not stop the clock is in one
+tab (Plan 77, `InboxTab.tsx`), laid out like a mail client: a list on the
+left, every item collapsed to its sender, subject and a line of preview and
+grouped by tier (to decide, letters, bulletins), with a search and filters,
+and on the right a reading pane that shows the selected item whole, with its
+answers. A row to decide carries a navy rule down its edge, red in its last
+week, and its weeks left where a letter has its date; an unread letter has a
+gold dot and a bold subject. Opening a letter reads it. The toolbar's Inbox
+button counts only what wants an answer, and `I` opens it. Nothing floats
+over the map any more: the event panel and the note stack it replaced both
+stepped aside whenever a tab was open.
+
+What stops the clock is answered here too. A pending interrupt is pinned first
+under **The clock waits** and shown in the reading pane in its modal card; the
+shell opens the inbox on it, shuts every other way off it (the toolbar's other
+buttons are disabled and Close gives way to "Answer to go on"), and once it is
+answered returns the player to the view they were on. Only the Final Report's
+page still stands in front of the screen.
 
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,
@@ -188,8 +211,8 @@ any button turns pink with the red outline; blur or Escape disarms it.
 
 ### The close control
 
-A **round ✕** (`.close-btn`, 26 px) closes a panel, a popup, a drawer, a
-note or a toast; a full-bleed tab has the **"Close ✕" pill**
+A **round ✕** (`.close-btn`, 26 px) closes a panel, a popup, a drawer or a
+toast; a full-bleed tab has the **"Close ✕" pill**
 (`.tab-overlay-close`) instead, the one close with a word. One glyph,
 `icons.tsx`'s `CloseIcon`; the multiplication sign is never a close.
 
@@ -198,8 +221,8 @@ note or a toast; a full-bleed tab has the **"Close ✕" pill**
 | Level | Size | For |
 | --- | --- | --- |
 | Screen title (`.heading-screen`) | `--text-4xl` | a full-bleed tab's title, the founding card; the three moments' inverted modal bands |
-| Dialog title (`.heading-dialog`) | `--text-3xl` | a modal's band, the opening walkthrough's card |
-| Panel title (`.heading-panel`) | `--text-xl` | a panel on a tab, a popup, the building panel, the course drawer, a note over the map, a front-screen card |
+| Dialog title (`.heading-dialog`) | `--text-3xl` | a modal's band, the opening walkthrough's card, the subject in the inbox's reading pane |
+| Panel title (`.heading-panel`) | `--text-xl` | a panel on a tab, a popup, the building panel, the course drawer, a front-screen card |
 | Section head (`.section-head`) | `--text-md` | a section inside a panel or a dialog |
 | Eyebrow (`.eyebrow`) | `--text-xs`, capitals | a label of three words or fewer above what it names |
 | Dateline (`.dateline`) | `--text-sm` | a longer line above a title: a letter's "From the chair of the board · Week 1", the founding card's tagline |
@@ -214,8 +237,8 @@ title are the one hero size, `--text-5xl`.
 Named elevations: a **dialog** (a modal, the founding card, a front-screen
 card) sits at `--elevation-dialog` (`--shadow-3`); a **popup** (the build and
 log popups, the main menu, the building panel, the course drawer, the touch
-bar) at `--elevation-popup` (`--shadow-2`); a **note** (the notes over the
-map, the opening walkthrough's card, the event cards, a toast, a tooltip) at
+bar) at `--elevation-popup` (`--shadow-2`); a **note** (the opening
+walkthrough's card, a toast, a tooltip) at
 `--elevation-note` (`--shadow-1`). One tooltip look (`.tooltip`): the cream
 card with the outline, at the note's height, in the sans at `--text-sm`.
 
@@ -297,7 +320,7 @@ it.
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review beat and a letter included — not its Admissions or Students beats, which are real choices). |
-| `C` `F` `L` | Open (or close) Curriculum, Faculty, Students. |
+| `C` `F` `L` `I` | Open (or close) Curriculum, Faculty, Students, the Inbox. |
 
 The plumbing is one module, `src/components/hotkeys.ts`: it owns the window
 listener, the "not while the player is typing" guard, the rule that a key held

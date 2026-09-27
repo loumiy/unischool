@@ -7,8 +7,7 @@ import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
 import type { StepIntent } from './intent';
 import { absoluteWeek } from '../../data/eventData';
-import { milestoneById } from '../../data/ladderData';
-import { eventById, fill } from '../events/catalogue';
+import { eventById, eventText, fill } from '../events/catalogue';
 import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
@@ -37,22 +36,20 @@ export interface NextStep {
   intent?: StepIntent;
 }
 
-// What waits on the map while a tab hides it (Plan 34, V1-34): the board's
-// letter, a milestone's note, a student demand, an event in the panel. The
-// ticker's NEXT points back to it; an event with a week or less to answer,
-// or the board, pulses.
-export function waitingOnMap(s: GameState): NextStep | null {
-  if ((s.finance.distress?.letters.length ?? 0) > 0) return { text: 'The board has written', go: 'campus', urgent: true };
-  const pending = (s.catalogue?.pending ?? []).map((p) => ({ p, e: eventById(p.eventId) })).filter((x) => x.e?.kind === 'inline');
-  if (pending.length > 0) {
-    const { p, e } = pending[0];
-    const left = e!.timeoutWeeks - (absoluteWeek(s) - p.firedWeek);
-    const text = firstClause(fill(e!.text, p.vars));
-    return { text: pending.length > 1 ? `${pending.length} matters wait: ${text}` : `A matter waits: ${text}`, go: 'campus', ...(left <= 1 ? { urgent: true as const } : {}) };
-  }
-  if (s.ladder.unread.length > 0) return { text: `A milestone: ${milestoneById(s.ladder.unread[0])?.name ?? 'reached'}`, go: 'campus' };
-  if (s.events.demandUnread && s.events.activeDemand) return { text: 'The students have a demand', go: 'campus' };
-  return null;
+// What will not wait (Plan 77): the inbox holds everything addressed to the
+// president and its button counts it, so NEXT points there only for what
+// lapses or presses this week: the board's unread letter, or an event in
+// its last week to answer. Both pulse.
+export function inboxPointer(s: GameState): NextStep | null {
+  if ((s.finance.distress?.letters.length ?? 0) > 0) return { text: 'The board has written', go: 'inbox', urgent: true };
+  const week = absoluteWeek(s);
+  const last = (s.catalogue?.pending ?? [])
+    .map((p) => ({ p, e: eventById(p.eventId) }))
+    .filter((x) => x.e?.kind === 'inline' && x.e.timeoutWeeks - (week - x.p.firedWeek) <= 1);
+  if (last.length === 0) return null;
+  const { p, e } = last[0];
+  const text = firstClause(fill(eventText(e!, p), p.vars));
+  return { text: last.length > 1 ? `${last.length} matters lapse this week: ${text}` : `Lapses this week: ${text}`, go: 'inbox', urgent: true };
 }
 
 // An event's question, cut to its first clause for the strip.

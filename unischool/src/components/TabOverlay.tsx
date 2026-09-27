@@ -9,20 +9,29 @@ import { CloseIcon } from './icons';
 // Unlike InterruptModal.tsx this is a dismissible view, and the interrupt
 // modal's higher layer still covers it. Escape is not bound here: App.tsx
 // owns the one Escape ladder for the whole shell.
-export default function TabOverlay({ title, onClose, children }: {
+// `split`: the body does not scroll as one page; its child fills it and
+// scrolls its own panes (the inbox's list and reading pane, Plan 77).
+// No `onClose`: the view cannot be left (the inbox while a stop waits on
+// an answer, Plan 77).
+export default function TabOverlay({ title, onClose, split = false, children }: {
   title: string;
-  onClose: () => void;
+  onClose?: () => void;
+  split?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className="tab-overlay" role="dialog" aria-modal="false" aria-label={title}>
       <div className="tab-overlay-head">
         <h2>{title}</h2>
-        <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
-          Close <CloseIcon />
-        </button>
+        {onClose ? (
+          <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
+            Close <CloseIcon />
+          </button>
+        ) : (
+          <span className="tab-overlay-held">Answer to go on</span>
+        )}
       </div>
-      <div className="tab-overlay-body">{children}</div>
+      <div className={`tab-overlay-body${split ? ' split' : ''}`}>{children}</div>
     </div>
   );
 }

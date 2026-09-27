@@ -18,7 +18,7 @@
 //
 // Not only the map: --tab=<id> opens one of the full-screen views over it
 // (a TabNav id: curriculum, faculty, research, students, athletics,
-// history, treasury) through the toolbar's own button, so what
+// history, inbox, treasury) through the toolbar's own button, so what
 // is photographed is the tab as the player reaches it. --click=<text>
 // presses a button by its text and can repeat, which is how a modal held
 // in the save is stepped through (the summer's Continue, Continue, and
@@ -58,6 +58,7 @@ const TAB_LABELS = {
   students: 'Students',
   athletics: 'Athletics',
   history: 'History',
+  inbox: 'Inbox',
 };
 const CANDIDATES = [
   process.env.CHROME_PATH,
@@ -137,7 +138,8 @@ if (tab) {
     process.exit(2);
   }
   if (tab === 'treasury') await page.locator('.toolbar-funds-btn').first().click();
-  else await page.getByRole('button', { name: label, exact: true }).click();
+  // The inbox's label carries its count ("Inbox, 3 to decide", Plan 77).
+  else await page.getByRole('button', { name: label, exact: tab !== 'inbox' }).first().click();
   await page.waitForSelector('.tab-overlay', { timeout: 10_000 });
   // The tab's own entry animations, and any chart that draws on mount.
   await page.waitForTimeout(1_200);
