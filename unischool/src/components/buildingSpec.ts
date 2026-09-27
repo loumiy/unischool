@@ -127,6 +127,49 @@ export function signatureOf(t: Buildable): Signature | undefined {
   return school === undefined ? undefined : SCHOOL_SIGNATURES[school];
 }
 
+// The residence halls' forms (Plan 72D), from v2's residence types
+// (loumiy/unischool-v2's content/buildings.json): the Residence Hall, a long
+// gabled block of ranked windows with balconies; the House, gabled in red
+// brick with a tutor's door and no balconies; the Suites (v2's Graduate
+// House), in buff brick behind a formal door; the Apartment Block,
+// flat-roofed and balconied, in render, since a block is modern in every
+// vernacular (VERNACULAR_INVARIANT_MOTIFS; v2 builds it in buff brick); and
+// the Residential College, in the civic stone, rooms
+// round one formal front door. The eight hall rungs (campusData.ts) take
+// one each, so no two neighbouring rungs read the same; beds, costs and
+// footprints are the rungs' own. Keyed by id, like the research facilities
+// above, so nothing is stored. Meadow House, the villages and the towers
+// keep their own.
+export type ResidenceForm = 'residence-hall' | 'house' | 'suites' | 'apartments' | 'college';
+interface ResidenceStyle { motif: 'residential' | 'block'; material: keyof MaterialSet; balconies: boolean; door: DoorFamily }
+const RESIDENCE_STYLES: Record<ResidenceForm, ResidenceStyle> = {
+  'residence-hall': { motif: 'residential', material: 'brickDark', balconies: true, door: 'residential' },
+  house: { motif: 'residential', material: 'brickRed', balconies: false, door: 'residential' },
+  suites: { motif: 'residential', material: 'brickBuff', balconies: false, door: 'formal' },
+  apartments: { motif: 'block', material: 'render', balconies: true, door: 'residential' },
+  college: { motif: 'residential', material: 'limestone', balconies: false, door: 'formal' },
+};
+export const RESIDENCE_FORMS: Readonly<Record<string, ResidenceForm>> = {
+  'DORM-02': 'house',
+  'DORM-03': 'residence-hall',
+  'DORM-04': 'suites',
+  'DORM-05': 'apartments',
+  'DORM-06': 'college',
+  'DORM-07': 'apartments',
+  'DORM-08': 'residence-hall',
+  'DORM-09': 'suites',
+};
+
+// A residence hall's style: its rung's, or the Residence Hall's.
+function residenceStyleOf(t: Buildable): ResidenceStyle {
+  return RESIDENCE_STYLES[RESIDENCE_FORMS[t.id] ?? 'residence-hall'];
+}
+
+// Whether a residence draws balconies: a tall one, in a form that has them.
+export function hasBalconies(t: Buildable): boolean {
+  return t.kind === 'dorm' && (motifOf(t) === 'residential' || motifOf(t) === 'block') && residenceStyleOf(t).balconies && storeysOf(t) >= 4;
+}
+
 export function motifOf(t: Buildable): Motif {
   if (t.kind === 'building') return signatureOf(t)?.motif ?? 'hall';
   // A chapter house (eventData.ts) is a facility with no facilityType: a
@@ -136,7 +179,7 @@ export function motifOf(t: Buildable): Motif {
     const beds = t.effects?.capacityBonus ?? 0;
     if (beds >= DORM_TOWER_MIN_BEDS) return 'tower';
     if (beds >= DORM_VILLAGE_MIN_BEDS) return 'village';
-    return 'residential';
+    return residenceStyleOf(t).motif;
   }
   if (t.kind === 'facility' && t.facilityType) {
     const research = RESEARCH_FACILITY_MOTIFS[t.id];
@@ -402,7 +445,7 @@ export function doorFamilyOf(t: Buildable): DoorFamily | null {
   const motif = motifOf(t);
   if (motif === 'grounds' || motif === 'bowl' || motif === 'village' || motif === 'landmark') return null;
   if (t.kind === 'building') return 'formal';
-  if (t.kind === 'dorm') return motif === 'tower' ? 'shopfront' : 'residential';
+  if (t.kind === 'dorm') return motif === 'tower' ? 'shopfront' : residenceStyleOf(t).door;
   switch (t.facilityType) {
     // Every lab-gated building takes a service door whatever its motif.
     case 'lab': return 'service';
@@ -1123,7 +1166,9 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
     return signature ? MATERIALS[signature.material] : MATERIALS.brickRed;
   }
   if (t.kind === 'dorm') {
-    return motifOf(t) === 'tower' ? MATERIALS.curtain : MATERIALS.brickDark;
+    const motif = motifOf(t);
+    if (motif === 'tower') return MATERIALS.curtain;
+    return motif === 'village' ? MATERIALS.brickDark : MATERIALS[residenceStyleOf(t).material];
   }
   // A chapter house is housing, in the residence halls' wall.
   if (t.chapterHouse) return MATERIALS.brickDark;

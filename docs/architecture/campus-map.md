@@ -165,6 +165,14 @@ pool, a hospital and a stadium stand in something like their real proportions
 to each other. Size is purely geometric: a bigger building grants nothing and
 costs nothing extra.
 
+**The residence halls take v2's residence types** (Plan 72D): each of the
+eight 500- and 1,000-bed rungs is a Residence Hall, a House, Suites, an
+Apartment Block or a Residential College (`buildingSpec.ts`'s
+`RESIDENCE_FORMS`, keyed by id), which picks its roof (gabled or, for the
+apartments, flat), its wall, its balconies and its front door, so no two
+neighbouring rungs read the same. Beds, costs and footprints stay the
+rungs' own; the villages and towers keep their forms.
+
 ## Trees, and what draws over what
 
 A new university does not open on a bare plate. `data/treeData.ts` seeds a
