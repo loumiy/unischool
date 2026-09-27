@@ -391,6 +391,21 @@ view of a small studio's greenlight meeting.
 **Deliverable:** `6-marketability.md`: the studio memo, with every
 claim sourced.
 
+**As implemented** (PR I): `docs/reviews/2026-10-game-review/6-marketability.md`.
+- **Sources.** The research is dated 27 September 2026. The container's
+  network policy blocked the Steam store, SteamDB, Steamworks, itch.io,
+  Wikipedia, PC Gamer and GameSpot, so every figure comes from a search
+  extract of the cited page and is flagged for checking before use. The
+  search budget ran out before session-length data for the comparables
+  could be gathered.
+- **The recommendation:**
+  - a free web demo of the first decade;
+  - a Steam page from that day;
+  - Next Fest in June 2027, or February if the fixes land by January;
+  - $14.99 premium;
+  - plain disclosure of the AI-assisted writing, with human-made capsule
+    art, trailer music and a hand edit of the most-read text.
+
 ### Area 7 — Bugs
 
 **Method.**
