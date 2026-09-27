@@ -2,9 +2,19 @@
 // Figure.tsx). A hint is a Sentence: it ends in a full stop, so an empty
 // one does not typecheck. Keyed by where the figure sits.
 
-import { ATTRITION_SATISFACTION_LINE } from '../systems/admissions/admissionsSystem';
+import type { GameState, SatisfactionAttributes } from '../state/types';
+import { satisfactionFigure } from '../format';
 
 export type Sentence = `${string}.`;
+
+// The five needs satisfaction is made of, as the Students tab names them.
+export const NEED_LABELS: Record<keyof SatisfactionAttributes, string> = {
+  academic: 'Academic',
+  social: 'Social',
+  basicNeeds: 'Basic needs',
+  health: 'Health',
+  housing: 'Housing',
+};
 
 export const FIGURE_HINTS = {
   // The status bar.
@@ -12,7 +22,8 @@ export const FIGURE_HINTS = {
   rank: (field: number): Sentence => `Place among ${field} colleges in the guide's academic ranking, ordered by prestige; #1 is the top.`,
   enrolled: 'Students on the books across all four classes, set each summer by the class you admit and who does not return.',
   prestige: 'Prestige, graded each summer and stepped toward the grade; it reads curriculum, teaching, students, research, satisfaction, campus life, the buildings and grounds, and the endowment, less crowding.',
-  satisfaction: `How content the students are, out of 100, drifting toward what the campus, the price and student life can offer; when the year averages below ${ATTRITION_SATISFACTION_LINE}, fewer come back each summer.`,
+  // The lowest need and its figure (Plan 78B), so the chip says where to look.
+  satisfaction: (need: string, figure: string): Sentence => `How content the students are, out of 100; the lowest of the five needs is ${need}, at ${figure}, and the Students tab shows what serves each.`,
 
   // The Treasury.
   cash: 'Cash on hand now; building is paid from it up front, and a building it cannot cover waits for it, a loan or a gift.',
@@ -43,3 +54,12 @@ export const FIGURE_HINTS = {
   tuitionLocked: 'The price this class pays every year until it graduates; a later rise or cut in the listed price does not reach it.',
   admitRate: 'Admitting more takes weaker applicants; the class is still held to the room.',
 } as const satisfies Record<string, Sentence | ((...args: never[]) => Sentence)>;
+
+// The satisfaction chip's hint (Plan 78B): the lowest of the five needs and
+// its figure, from the week's breakdown, which the NEXT line reads too.
+export function satisfactionHint(s: GameState): Sentence {
+  const scores = s.students.satisfactionBreakdown;
+  const needs = Object.keys(NEED_LABELS) as Array<keyof SatisfactionAttributes>;
+  const lowest = needs.reduce((low, k) => (scores[k] < scores[low] ? k : low), needs[0]);
+  return FIGURE_HINTS.satisfaction(NEED_LABELS[lowest].toLowerCase(), satisfactionFigure(scores[lowest]));
+}

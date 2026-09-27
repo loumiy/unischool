@@ -138,7 +138,12 @@ const CALENDAR = OPENING_LETTERS.filter((l) => !l.arrives);
   const instructor = s.faculty.find((f) => f.field === programById(staffable)!.field)!;
   s = reducer(s, { type: 'FOUND_PROGRAM', programId: staffable, hallId: FOUNDERS_HALL_ID, slot: FOUNDING_PROGRAMS.length, facultyId: instructor.id });
   assert(OPENING_LETTERS[0].done(s), 'founding a fourth program does the first ask');
-  assert(nextStep(s) === null, 'and the line goes quiet until the next letter');
+  // Between letters year one reads the campus's shortfall, and only that
+  // (Plan 78B): quiet when no need is under the line.
+  const between = nextStep(s);
+  assert(between === null || between.intent?.kind === 'build-for', `and until the next letter the line is a shortfall or nothing (${between?.text})`);
+  s.students.satisfactionBreakdown = { academic: 70, social: 70, basicNeeds: 70, health: 70, housing: 70 };
+  assert(nextStep(s) === null, 'with no need short, the line goes quiet until the next letter');
 
   // The second letter's ask, and the reading it hands to the build menu.
   s.events.opening.read.push(OPENING_LETTERS[1].id);

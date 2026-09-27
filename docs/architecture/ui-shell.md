@@ -17,12 +17,17 @@ reserves the dock's measured height instead of drawing under it.
 
 ## Tab gates
 
-Four tabs open from milestones on the ladder (`data/ladderData.ts`, read by
-`TabNav.tsx`'s `tabAvailable`): Students and History at the first
-commencement, Research once a lab is finished, Athletics with the first sport
-club. (Students is the one tab that Enrollment and Student Life became.)
-A milestone is never undone, so a tab once open stays open. The
-first time one opens the activity log says so.
+Three tabs open from milestones on the ladder (`data/ladderData.ts`, read by
+`TabNav.tsx`'s `tabAvailable`): History at the first commencement, Research
+once a lab is finished, Athletics with the first sport club. A milestone can
+also open a **section** of a tab that is already open (its `sections`, read
+by `sectionAvailable`). Students (the one tab that Enrollment and Student
+Life became) is open from the first week with the satisfaction breakdown,
+the demands and the student body; its guidebook, its clubs and chapters and
+last summer's funnel wait for the first commencement (Plan 78B). A milestone
+is never undone, so a tab once open stays open. The first time a gated tab
+opens the activity log says so, unless its milestone's letter already
+does.
 
 ## Time
 
@@ -46,11 +51,13 @@ toolbar. Above it a **toast stack** shows the things that never stop the clock
 candidate in a short field, a project concluded without a report — six
 seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
 it is about; an **arrival** (a matter or a letter reaching the inbox) carries
-an Open button and stays eight seconds, and none arrives while the inbox is
-open (see
+an Open button and stays eight seconds (in year one a founding note or a
+milestone stays until opened or dismissed, Plan 78B), and none arrives while
+the inbox is open (see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
 right end of the ticker line runs the **next step**: during the scripted first
-year the latest letter's ask until it is done; afterwards a waiting letter's
+year the latest letter's ask until it is done, and between letters a
+satisfaction need under 50 (Plan 78B); afterwards a waiting letter's
 ask — unless it has nothing to do this week, when it gives way (Plan 58) —
 then the highest-value thing on offer: a program gone dark that the payroll or
 the market can staff, ahead even of a letter (Plan 60); a program that can move to its
@@ -82,12 +89,15 @@ What stops the clock is answered here too. A pending interrupt is pinned first
 under **The clock waits** and shown in the reading pane in its modal card; the
 shell opens the inbox on it, shuts every other way off it (the toolbar's other
 buttons are disabled and Close gives way to "Answer to go on"), and once it is
-answered returns the player to the view they were on. Only the Final Report's
-page still stands in front of the screen.
+answered returns the player to the view they were on, or opens the build menu
+when a letter was answered with "Continue and open Build" (Plan 78B). Only the
+Final Report's page still stands in front of the screen.
 
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,
-prestige, satisfaction — a glyph and a figure each, the word in the tooltip);
+prestige, satisfaction — a glyph and a figure each, the word in the tooltip;
+satisfaction's tooltip names the lowest of the five needs and its figure,
+Plan 78B);
 the right zone stacks the clock over five round gears (pause, play, 2×, 4×,
 8×);
 and between them, in one row at every width, the labelled tab row — the word

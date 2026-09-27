@@ -135,6 +135,14 @@ export const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
 
 const logWeek = (l: { year: number; week: number }) => (l.year - 1) * WEEKS_PER_YEAR + l.week;
 
+// Whether a chair's letter hands the player to the build menu (Plan 78B):
+// its ask goes there (eventData.ts's LetterAsk `go`) and is not done yet.
+// The stop's card then offers "Continue and open Build" beside Continue.
+export function letterOpensBuild(s: GameState, id: string): boolean {
+  const letter = findOpeningLetter(id);
+  return letter !== undefined && !letter.done(s) && letter.ask(s).go === 'build';
+}
+
 // A letter's ask the board wants answered, not only read (sweep.ts).
 export function boardAsks(id: string): boolean {
   return id === IDLE_CASH_LETTER || id === IDLE_CASH_AGAIN_LETTER;

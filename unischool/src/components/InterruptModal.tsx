@@ -40,6 +40,7 @@ import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
+import { letterOpensBuild } from '../systems/inbox/inbox';
 import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
 import { promisesOf } from '../systems/promises/promises';
 
@@ -1043,9 +1044,17 @@ function AthleticDirectorView({ s, payload, onResolve }: {
 // ---------------------------------------------------------------------
 // A letter from the board (data/eventData.ts's OPENING_LETTERS). Only the
 // first letter offers "I know the way", which skips the rest of the script.
-// A letter no longer in the table (an old save) is put down quietly.
+// A letter no longer in the table (an old save) is put down quietly. A
+// letter whose ask is a building has a door to the build menu (Plan 78B):
+// it resolves the letter as Continue does, and the shell opens Build once
+// the stop is answered (App.tsx).
 // ---------------------------------------------------------------------
-function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve: (skipAll: boolean) => void }) {
+function LetterView({ s, id, onResolve, onOpenBuild }: {
+  s: GameState;
+  id: string;
+  onResolve: (skipAll: boolean) => void;
+  onOpenBuild?: () => void;
+}) {
   const letter = findOpeningLetter(id);
   if (!letter) {
     return (
@@ -1071,7 +1080,14 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
       </p>
       <div className="modal-actions letter-actions">
         <div className="modal-actions">
-          <button onClick={() => onResolve(false)}>Continue</button>
+          {onOpenBuild && letterOpensBuild(s, id) ? (
+            <>
+              <button type="button" onClick={() => { onResolve(false); onOpenBuild(); }}>Continue and open Build</button>
+              <button type="button" className="btn-quiet" onClick={() => onResolve(false)}>Continue</button>
+            </>
+          ) : (
+            <button onClick={() => onResolve(false)}>Continue</button>
+          )}
         </div>
         {/* On every letter, not only the first: a guided founding marks the
             first read at the start, so the opt-out has to travel with the rest. */}
@@ -1293,8 +1309,9 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
 
 // The pending interrupt's content, as the inbox's reading pane shows it.
 // It keeps the modal's card (`.modal`, with `.modal-inbox` placing it in
-// the pane), so every view reads as it did over the map.
-export function InterruptContent({ s, act }: { s: GameState; act: (a: Action) => void }) {
+// the pane), so every view reads as it did over the map. `onOpenBuild` is a
+// letter's door to the build menu (Plan 78B).
+export function InterruptContent({ s, act, onOpenBuild }: { s: GameState; act: (a: Action) => void; onOpenBuild?: () => void }) {
   const interrupt = s.pendingInterrupt;
   if (!interrupt) return null;
   const decision = interrupt.type === 'decision-event'
@@ -1345,6 +1362,7 @@ export function InterruptContent({ s, act }: { s: GameState; act: (a: Action) =>
           s={s}
           id={(interrupt.payload as { id: string }).id}
           onResolve={(skipAll) => act({ type: 'RESOLVE_LETTER', skipAll })}
+          onOpenBuild={onOpenBuild}
         />
       ) : interrupt.type === 'catalogue-letter' ? (
         <CatalogueLetterView s={s} instanceId={(interrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? ''} act={act} />

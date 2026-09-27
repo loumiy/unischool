@@ -98,7 +98,9 @@ function ClassBar({ label, total, counts, unsignalled, widest }: {
   );
 }
 
-export default function EnrollmentTab({ s }: { s: GameState }) {
+// `funnel` is false before the first commencement (Plan 78B): the founding
+// class was not drawn by a summer, so there is no funnel to show.
+export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funnel?: boolean }) {
   const { classes, cohortsByClass } = s.students;
   const enrolled = totalEnrolled(s.students);
 
@@ -158,7 +160,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
         )}
       </section>
 
-      <section className="panel">
+      {funnel && <section className="panel">
         <h2>Last summer's funnel</h2>
         <div className="funnel-lines">
           <FunnelLine
@@ -188,7 +190,7 @@ export default function EnrollmentTab({ s }: { s: GameState }) {
             net
           />
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

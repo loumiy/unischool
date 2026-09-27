@@ -238,6 +238,71 @@ is this plan.
   - the Students tab is available in week 1;
   - a stop with an ask carries the door.
 
+**As implemented (#234):**
+
+- **The Students tab** opens from the first week.
+  - The ladder gates one way for every tab. A milestone opens whole tabs
+    (`tabs`) or sections of a tab already open (`sections`, named
+    `<tab>.<section>`). `TabNav.tsx`'s `sectionAvailable` answers for a
+    section.
+  - The first commencement now opens History, and in Students the
+    guidebook, the clubs and chapters, and the admissions funnel. Its
+    letter and "What this opens" say so.
+  - The funnel is held back too, beyond the default. In year one "Last
+    summer's funnel" showed the founding figures (150 applicants at 36%
+    for 350 enrolled), and there was no last summer. It is one entry in
+    `sections`, if the owner wants it back.
+  - In year one a note stands in for the organizations: they are listed
+    from the first commencement.
+  - The milestone is unchanged, and only what the UI shows moved. PR C can
+    move History to a section the same way.
+- **NEXT in year one** falls back to the shortfall reading between
+  letters. A letter's ask still wins. From year two nothing changed.
+  - The guided player reads the same line. `npm run sim` did not move,
+    since its year-one letter asks cover those weeks.
+- **The satisfaction chip's tooltip** names the lowest of the five needs
+  and its figure, from the week's breakdown that NEXT reads
+  (`figureHints.ts`'s `satisfactionHint`). It drops the attrition clause
+  to stay one sentence.
+- **A letter's ask can be acted on.**
+  - `letterOpensBuild` (inbox.ts) reads the ask's `go`: a chair's letter
+    whose ask goes to the build menu, and is not done, carries the door.
+    Today those are the week-9 letter and the letters that ask to site a
+    hall or the Research Park.
+  - Its card in the inbox's reading pane shows "Continue and open Build"
+    as the primary and Continue as `btn-quiet`. The door resolves the
+    letter as Continue does. `App.tsx` then opens the build menu once the
+    stop is answered, in place of the view before it.
+  - The chair's letters live in the inbox only while they stop the clock,
+    so this card is the inbox's letter with an ask. No kept letter has an
+    ask: the milestones already had "Open Build", and the founding notes
+    ask for nothing.
+- **Arrivals in year one:** a founding note's or a milestone's notice stays
+  until it is opened or dismissed, and the news does not push it out of
+  the stack. From year two it keeps the 8 seconds. Nothing arrives while
+  the inbox is open, and opening the inbox now puts away the notices
+  already up.
+- **The week-9 letter** says "The college has 350 students, 0 beds and 0
+  dining seats", read from the state as it is written.
+- **Checks:**
+  - `test/first-year.test.ts` plays year one on the defaults. NEXT is
+    never empty while a need is under 50. It also checks the fallback, the
+    letter's figures, the door on a building ask and none on a hall ask,
+    the chip's hint, and the held arrivals.
+  - `test/tab-gates.test.ts`: Students is available in week 1 and its
+    sections are not; they open at the first commencement.
+  - `opening.test.ts` and `figures.test.ts` follow the new line and hint.
+- **Results:** `check` passes, `npm run sim` matches the baseline, and
+  `npm run phone` passes. `review:strings` is unchanged on second person
+  (40), British spellings (0) and engine words (0).
+- **Screenshots:** `docs/reviews/2026-10-ui-fixes/first-year-letter-door.jpg`
+  and `first-year-students-phone.jpg`.
+- **Left:**
+  - The door opens the build menu on its default category, not on housing
+    or dining. The milestone doors do the same.
+  - NEXT names academic as "Study space" while the tab and the chip say
+    "Academic". That is PR F's plain-words pass.
+
 ## PR 78C — The chips lead to their explanations
 
 *A3-5, traces 1 and 9, the session's unlabeled chips.*

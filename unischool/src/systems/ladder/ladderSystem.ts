@@ -1,5 +1,5 @@
 import type { GameState } from '../../state/types';
-import { MILESTONES, milestoneForBuildable, milestoneForTab, CHARTER_ID, type Milestone } from '../../data/ladderData';
+import { MILESTONES, milestoneForBuildable, milestoneForSection, milestoneForTab, CHARTER_ID, type Milestone, type TabSection } from '../../data/ladderData';
 import type { TabId } from '../../components/TabNav';
 
 // Records each milestone the week its condition first holds, and queues its
@@ -25,6 +25,12 @@ export function ladderAllows(s: GameState, buildableId: string): boolean {
 
 export function ladderOpensTab(s: GameState, tab: TabId): boolean {
   const gate = milestoneForTab(tab);
+  return gate === undefined || milestoneReached(s, gate);
+}
+
+// Whether the ladder shows a section of an open tab (Plan 78B).
+export function ladderOpensSection(s: GameState, section: TabSection): boolean {
+  const gate = milestoneForSection(section);
   return gate === undefined || milestoneReached(s, gate);
 }
 
