@@ -103,6 +103,13 @@ tier has a smaller early pool and more per student, teaches half by year 19–20
 and finishes by year 44–47. Every one reaches #1 by year 50 when it hand-picks
 faculty, and a teaching-blind one finishes around #16.
 
+The high-price line's slow start is the price of charging high, not a fault
+(the owner's call, [Plan 72](../plans/72-owners-answers.md) J): its year
+10–30 targets on the scorecard are what it produces, about 6% of its year-50
+enrollment at year 10, a quarter at year 20 and two thirds at year 30
+([`2026-09-pacing-high-price.md`](../reviews/2026-09-pacing-high-price.md),
+86 of 114).
+
 ### The cost side (Plan 15)
 
 Three lines replaced the old per-student instruction charge, and each one is
