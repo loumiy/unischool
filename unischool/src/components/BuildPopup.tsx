@@ -18,7 +18,7 @@ import type { Species } from '../data/treeData';
 import {
   DrawPathIcon, EraseIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
-  AthleticsIcon, StudentLifeIcon, ToolsIcon,
+  AthleticsIcon, StudentLifeIcon, ToolsIcon, DisclosureIcon,
 } from './icons';
 import { count, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
 import { LOAN_RATE, LOAN_YEARS, financingFor, giftFunds, loanFor } from '../systems/finance/treasury';
@@ -484,7 +484,7 @@ function BuiltSummaryTile({ group, built, open, onToggle }: {
       <span className="build-tile-icon"><Icon /></span>
       <span className="build-tile-name">{group.label}</span>
       <span className="build-tile-sub">{detail ? `built · ${detail}` : 'built'}</span>
-      <span className="build-tile-foot">{open ? 'hide ▾' : 'show ▸'}</span>
+      <span className="build-tile-foot">{open ? 'Hide' : 'Show'} <DisclosureIcon open={open} /></span>
     </button>
   );
 }
@@ -544,7 +544,7 @@ const SPECIES_CHIPS: readonly { id: Species | null; label: string }[] = [
 function SpeciesChips() {
   const chosen = usePlantingSpecies();
   return (
-    <div className="species-chips" role="group" aria-label="Which tree to plant">
+    <div className="species-chips segmented" role="group" aria-label="Which tree to plant">
       {SPECIES_CHIPS.map((c) => (
         <button
           key={c.label}
@@ -710,7 +710,7 @@ export default function BuildPopup({
               .replace('{pay}', BUILD_WORDS.pay[financing ?? 'none'])}
           </span>
           <span className="build-holding-keys">{BUILD_WORDS.holdingKeys}</span>
-          <button type="button" className="newgame-btn" onClick={() => onArmPlacement(null)}>{BUILD_WORDS.putDown}</button>
+          <button type="button" className="menu-btn btn-quiet" onClick={() => onArmPlacement(null)}>{BUILD_WORDS.putDown}</button>
         </div>
       </ToolbarPopup>
     );
@@ -736,7 +736,7 @@ export default function BuildPopup({
           <p className="stall-note">Cash is negative — the college is running an operating deficit, so nothing can be paid for from cash or a loan until the balance recovers. A building the campaign fund covers in full can still start.</p>
         )}
 
-        <nav className="build-mode-tabs" aria-label="Build categories">
+        <nav className="build-mode-tabs segmented" aria-label="Build categories">
           {sections.map((sec) => {
             const Icon = SECTION_ICON[sec.id] ?? BuildIcon;
             const isActive = sec.id === active.id;

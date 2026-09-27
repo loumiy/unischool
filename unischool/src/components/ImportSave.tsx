@@ -9,7 +9,7 @@ import { institutionName } from '../state/types';
 // load (persistence.ts's readSave: parse, migrate, sanitize). A refused file
 // says why; an accepted one names itself and asks once before it replaces
 // the run in this browser, then the page reloads onto it.
-export default function ImportSave({ current, className = 'save-btn' }: { current: GameState; className?: string }) {
+export default function ImportSave({ current, className = 'menu-btn' }: { current: GameState; className?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<GameState | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -46,14 +46,14 @@ export default function ImportSave({ current, className = 'save-btn' }: { curren
         <div className="import-save-note" role="status">
           <p>{institutionName(picked.self)}, Year {picked.clock.year}.</p>
           <ConfirmButton
-            className="newgame-btn"
+            className="menu-btn"
             label={`Continue ${institutionName(picked.self)}`}
-            armedLabel={current.started ? `Confirm — replace ${institutionName(current.self)}` : 'Confirm'}
+            armedLabel={`Confirm — replace ${institutionName(current.self)}`}
             warning={current.started ? `${institutionName(current.self)} is replaced in this browser. Download it first to keep it.` : undefined}
             needsConfirm={current.started}
             onConfirm={() => adopt(picked)}
           />
-          <button type="button" className="save-btn" onClick={() => setPicked(null)}>Cancel</button>
+          <button type="button" className="menu-btn btn-quiet" onClick={() => setPicked(null)}>Cancel</button>
         </div>
       )}
     </div>

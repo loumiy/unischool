@@ -273,7 +273,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
 
       {!tuitionLocked && (
         <button type="button" className="admissions-lock" onClick={() => onLock(tuition)}>
-          Set tuition for the year →
+          Set tuition for the year
         </button>
       )}
 
@@ -413,9 +413,11 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             </dl>
           </div>
 
-          <button onClick={() => onCommit({ tuition, admitRate: Math.min(admitRateChoice, maxAdmitRate) })}>
-            Set the policy →
-          </button>
+          <div className="modal-actions">
+            <button onClick={() => onCommit({ tuition, admitRate: Math.min(admitRateChoice, maxAdmitRate) })}>
+              Set the policy
+            </button>
+          </div>
         </>
       )}
     </>
@@ -477,7 +479,9 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
         ))}
       </div>
       <PromiseOffer s={s} taken={taken} onToggle={toggle} />
-      <button onClick={() => onContinue(taken)}>{taken.length > 0 ? 'Make it public →' : 'Continue →'}</button>
+      <div className="modal-actions">
+        <button onClick={() => onContinue(taken)}>{taken.length > 0 ? 'Make it public' : 'Continue'}</button>
+      </div>
     </>
   );
 }
@@ -492,7 +496,7 @@ function FinalReportBeat({ s, onContinue, onNewCollege }: { s: GameState; onCont
   const report = finalReport(s);
   return (
     <>
-      <div className="eyebrow final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
+      <div className="final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
       <h2>{REPORT_WORDS.title}</h2>
       <FinalReportView s={s} report={report} />
       <ReportCardActions entry={hallEntryFor(s, report)} />
@@ -503,6 +507,7 @@ function FinalReportBeat({ s, onContinue, onNewCollege }: { s: GameState; onCont
         {onNewCollege && (
           <NewCollegeButton
             note={REPORT_WORDS.newCollege}
+            lost="its books close for good"
             onConfirm={() => { hangInHall(s, report); onNewCollege(); }}
           />
         )}
@@ -546,7 +551,9 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
         <Figure label={<>Tuition for the incoming class <span className="outcome-note">(locked for four years)</span></>} value={`${money(decision.tuition)}/yr`} hint={FIGURE_HINTS.tuitionLocked} />
         <Figure label="Admit rate" value={pct(decision.admitRate)} hint={FIGURE_HINTS.admitRate} />
       </dl>
-      <button onClick={() => onResolve([...approved])}>Open Year {s.clock.year + 1}</button>
+      <div className="modal-actions">
+        <button onClick={() => onResolve([...approved])}>Open Year {s.clock.year + 1}</button>
+      </div>
     </>
   );
 }
@@ -709,7 +716,9 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
           </table>
         </>
       )}
-      <button onClick={onDismiss}>Continue</button>
+      <div className="modal-actions">
+        <button onClick={onDismiss}>Continue</button>
+      </div>
     </>
   );
 }
@@ -785,7 +794,9 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
         </div>
       </dl>
 
-      <button onClick={onDismiss}>Continue</button>
+      <div className="modal-actions">
+        <button onClick={onDismiss}>Continue</button>
+      </div>
     </>
   );
 }
@@ -850,7 +861,9 @@ function ResearchReportView({ s, report, onDismiss }: {
         )}
       </dl>
 
-      <button onClick={onDismiss}>Continue</button>
+      <div className="modal-actions">
+        <button onClick={onDismiss}>Continue</button>
+      </div>
     </>
   );
 }
@@ -926,7 +939,9 @@ function ChampionshipView({ s, result, onDismiss }: {
         </div>
       </dl>
 
-      <button onClick={onDismiss}>Continue</button>
+      <div className="modal-actions">
+        <button onClick={onDismiss}>Continue</button>
+      </div>
     </>
   );
 }
@@ -960,10 +975,12 @@ function FirstSportClubView({ s, payload, onResolve }: {
           aria-label="Mascot"
         />
         <button type="button" className="ad-mascot-roll" onClick={() => setMascot(rollMascotSuggestion(Math.random))}>
-          another
+          Another
         </button>
       </label>
-      <button className="panel-action" onClick={() => onResolve(mascot)}>Name them</button>
+      <div className="modal-actions">
+        <button onClick={() => onResolve(mascot)}>Name them</button>
+      </div>
     </>
   );
 }
@@ -1039,7 +1056,9 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
       <>
         <h2>A letter has been mislaid</h2>
         <p>Nothing has changed.</p>
-        <button onClick={() => onResolve(false)}>Continue</button>
+        <div className="modal-actions">
+          <button onClick={() => onResolve(false)}>Continue</button>
+        </div>
       </>
     );
   }
@@ -1054,8 +1073,10 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
         <span className="letter-ask-label">{letter.done(s) ? 'Done' : 'To do'}</span>
         {letter.ask(s).text}
       </p>
-      <div className="letter-actions">
-        <button onClick={() => onResolve(false)}>Continue</button>
+      <div className="modal-actions letter-actions">
+        <div className="modal-actions">
+          <button onClick={() => onResolve(false)}>Continue</button>
+        </div>
         {/* On every letter, not only the first: a guided founding marks the
             first read at the start, so the opt-out has to travel with the rest. */}
         <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
@@ -1124,7 +1145,9 @@ function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId:
       <>
         <h2>A letter has been mislaid</h2>
         <p>Nothing has changed.</p>
-        <button onClick={() => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId: '' })}>Continue</button>
+        <div className="modal-actions">
+          <button onClick={() => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId: '' })}>Continue</button>
+        </div>
       </>
     );
   }
@@ -1160,7 +1183,9 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
       <>
         <h2>An event has passed</h2>
         <p>The matter this concerned has lapsed. Nothing has changed.</p>
-        <button onClick={onDismiss}>Continue</button>
+        <div className="modal-actions">
+          <button onClick={onDismiss}>Continue</button>
+        </div>
       </>
     );
   }
@@ -1350,7 +1375,9 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
           <>
             <h2>{interruptBody().title}</h2>
             <p>{interruptBody().body}</p>
-            <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Continue</button>
+            <div className="modal-actions">
+              <button onClick={() => act({ type: 'RESOLVE_INTERRUPT' })}>Continue</button>
+            </div>
           </>
         )}
       </div>

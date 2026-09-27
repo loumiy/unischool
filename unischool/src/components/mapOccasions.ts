@@ -2,6 +2,7 @@ import { createContext } from 'react';
 import type { GameState, SchoolColors } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { OCCASIONS } from '../systems/athletics/season';
+import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 
 // What the calendar puts on the map for a week: crowds in the stands of a
 // venue whose team plays that week, and the college's colors on the lamps in
@@ -14,7 +15,7 @@ export const DevelopingContext = createContext<GameState['developing']>({});
 // The college's name, for what carries it (the triumphal gate).
 export const CollegeNameContext = createContext('');
 // The college's colors, for the flags on its civic buildings.
-export const ColorsContext = createContext<SchoolColors>({ primary: '#7a2e26', secondary: '#e0b64a' });
+export const ColorsContext = createContext<SchoolColors>(schoolColorsOf(FOUNDING_COLORS));
 
 // The venues with a crowd this week, by Buildable id. Empty most weeks.
 export const CrowdContext = createContext<ReadonlySet<string>>(new Set());

@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { CloseIcon } from './icons';
 
 // The compact card a toolbar icon pops open (see Toolbar.tsx's build and log
 // buttons). Deliberately not TabOverlay: it renders no backdrop, so the campus
@@ -19,8 +20,8 @@ export default function ToolbarPopup({ title, headExtra, onClose, className, chi
           <h2>{title}</h2>
           {headExtra}
         </span>
-        <button type="button" className="toolbar-popup-close" onClick={onClose} aria-label={`Close ${title}`}>
-          ✕
+        <button type="button" className="close-btn" onClick={onClose} aria-label={`Close ${title}`}>
+          <CloseIcon />
         </button>
       </div>
       <div className="toolbar-popup-body">{children}</div>

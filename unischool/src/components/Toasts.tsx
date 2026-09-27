@@ -5,6 +5,7 @@ import { onMapScreen } from './mapProbe';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { schoolFoundedKey } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
+import { CloseIcon } from './icons';
 
 // ---------------------------------------------------------------------
 // Toasts (Plan 70H): short, stacked, one line each, dismissable, gone on
@@ -99,7 +100,7 @@ function Stack({ toasts, dismiss }: { toasts: Toast[]; dismiss: (id: number) => 
       {toasts.map((t) => (
         <li key={t.id} className={`toast ${t.tone}`}>
           <span className="toast-text">{t.text}</span>
-          <button type="button" className="toast-close" aria-label="Dismiss" onClick={() => dismiss(t.id)}>×</button>
+          <button type="button" className="close-btn" aria-label="Dismiss" onClick={() => dismiss(t.id)}><CloseIcon /></button>
         </li>
       ))}
     </ol>

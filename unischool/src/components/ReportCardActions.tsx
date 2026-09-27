@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmButton from './ConfirmButton';
 import type { HallEntry } from '../state/hall';
 import { CARD_HEIGHT, CARD_WIDTH, reportCardSummary, reportCardSvg } from '../state/reportCard';
 
@@ -46,16 +47,18 @@ export default function ReportCardActions({ entry }: { entry: HallEntry }) {
   );
 }
 
-// Play again (Plan 70J): confirmed first, since carrying on into the
-// Epilogue (or back to a run in progress) is also a choice.
-export function NewCollegeButton({ onConfirm, note }: { onConfirm: () => void; note: string }) {
-  const [asking, setAsking] = useState(false);
-  if (!asking) return <button type="button" className="new-college-btn" onClick={() => setAsking(true)}>Found another college</button>;
+// Play again (Plan 70J), through ConfirmButton like every loss (Plan 47):
+// armed, it names what ends (`lost`) and the note says the rest; blur or
+// Escape stays. With nothing to lose it acts on the first click.
+export function NewCollegeButton({ onConfirm, note, lost }: { onConfirm: () => void; note: string; lost?: string }) {
   return (
-    <div className="new-college-confirm" role="group" aria-label="Found another college">
-      <p>{note}</p>
-      <button type="button" className="primary" onClick={onConfirm}>Found another college</button>
-      <button type="button" onClick={() => setAsking(false)}>Stay</button>
-    </div>
+    <ConfirmButton
+      className="new-college-btn"
+      label="Found another college"
+      armedLabel={`Confirm — ${lost ?? 'start again'}`}
+      warning={note}
+      needsConfirm={lost !== undefined}
+      onConfirm={onConfirm}
+    />
   );
 }

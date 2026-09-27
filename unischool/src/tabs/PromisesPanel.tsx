@@ -2,6 +2,7 @@ import type { GameState } from '../state/types';
 import { PROMISE_LINES, promiseById } from '../data/promiseData';
 import { fillPromise, offerRoom, promiseTitle, promisesOf } from '../systems/promises/promises';
 import HelpHint from '../components/HelpHint';
+import { StatusIcon } from '../components/icons';
 
 // Promises (Plan 33): those open, with the years left, and those settled,
 // kept or missed. The History tab's panel; the Final Report lists the
@@ -23,7 +24,7 @@ export function PromiseRecord({ s }: { s: GameState }) {
         const def = promiseById(r.id);
         return (
           <li key={`${r.id}-${r.year}`} className={`ambition${r.kept ? '' : ' unreached'}`}>
-            <span className="ambition-mark" aria-hidden="true">{r.kept ? '●' : '○'}</span>
+            <span className="ambition-mark"><StatusIcon status={r.kept ? 'done' : 'failed'} /></span>
             <span className="ambition-body">
               <span className="ambition-name">{def ? promiseTitle(s, def, r.scale) : r.id}</span>
               <span className="ambition-line">{r.kept ? 'Kept' : 'Missed'}</span>
@@ -54,7 +55,7 @@ export default function PromisesPanel({ s }: { s: GameState }) {
             const def = promiseById(a.id);
             return (
             <li key={a.id} className="ambition">
-              <span className="ambition-mark" aria-hidden="true">◐</span>
+              <span className="ambition-mark"><StatusIcon status="pending" /></span>
               <span className="ambition-body">
                 <span className="ambition-name">{def ? promiseTitle(s, def, a.scale) : a.id}</span>
                 <span className="ambition-line">Made in Year {a.madeYear}</span>

@@ -23,6 +23,7 @@ import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import { CloseIcon, StatusIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
@@ -570,7 +571,7 @@ function CourseDrawer(
           <span className="course-drawer-code">{code}</span>
           <h3>{title}</h3>
         </div>
-        <button type="button" className="course-drawer-close" onClick={onClose} aria-label="Close course detail">✕</button>
+        <button type="button" className="close-btn" onClick={onClose} aria-label="Close course detail"><CloseIcon /></button>
       </div>
 
       <div className="course-drawer-body">
@@ -624,7 +625,7 @@ function CourseDrawer(
                   return (
                     <li key={id} className={met ? 'met' : 'unmet'}>
                       <span className="prereq-static">
-                        {met ? '✓' : '✗'} {p?.name ?? id}
+                        <StatusIcon status={met ? 'done' : 'failed'} /> {p?.name ?? id}
                         <span className="prereq-bridge" title="Built on the campus map, not developed here">build</span>
                       </span>
                     </li>
@@ -633,7 +634,7 @@ function CourseDrawer(
                 return (
                   <li key={id} className={met ? 'met' : 'unmet'}>
                     <button type="button" className="prereq-link" onClick={() => onGoToCourse(id)}>
-                      {met ? '✓' : '✗'} {p.name}
+                      <StatusIcon status={met ? 'done' : 'failed'} /> {p.name}
                       {bridge && <span className="prereq-bridge" title="A prerequisite from another program">cross-listed</span>}
                       <span className="prereq-go" aria-hidden="true">→</span>
                     </button>

@@ -272,14 +272,17 @@ export function RankIcon() {
   );
 }
 
-// Enrolled: two heads and shoulders, the student body.
+// Students (the tab and the dock's enrolled figure): three heads, a crowd,
+// so it never reads as the Faculty tab's pair.
 export function StudentsIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <circle cx="9" cy="8.5" r="3.2" />
-      <path d="M3.5 19.5c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5" />
-      <circle cx="16.5" cy="9.5" r="2.5" />
-      <path d="M16.5 14.5c2.6 0 4.5 1.9 4.5 4.5" />
+      <circle cx="12" cy="8" r="2.8" />
+      <path d="M7 19.5c0-3 2.2-5 5-5s5 2 5 5" />
+      <circle cx="5.2" cy="10" r="2.1" />
+      <path d="M1.8 18.5c0-2.3 1.5-3.9 3.6-3.9" />
+      <circle cx="18.8" cy="10" r="2.1" />
+      <path d="M22.2 18.5c0-2.3-1.5-3.9-3.6-3.9" />
     </svg>
   );
 }
@@ -355,6 +358,97 @@ export function QuadSpeedIcon() {
       <path d="M2 5.6v12.8a.7.7 0 0 0 1.1.6L11 12.6a.7.7 0 0 0 0-1.2L3.1 5A.7.7 0 0 0 2 5.6Z" />
       <path d="M10.5 5.6v12.8a.7.7 0 0 0 1.1.6l7.9-6.4a.7.7 0 0 0 0-1.2L11.6 5a.7.7 0 0 0-1.1.6Z" />
       <rect x="20" y="5" width="2.4" height="14" rx="0.8" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------
+// The recurring controls (Plan 76H): the glyphs that used to be Unicode
+// characters, drawn once here so each means one thing. ✕ is close and
+// nothing else; releasing and removing have their own.
+// ---------------------------------------------------------------------
+
+// Close: the one close glyph, on the round close and the tab's "Close" pill.
+export function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2.6} aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+// Disclosure: a chevron, pointing right when shut and down when open.
+export function DisclosureIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2.6} aria-hidden="true">
+      <path d={open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} />
+    </svg>
+  );
+}
+
+// The map's tools, folded: three sliders.
+export function MapToolsIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="7" cy="5" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="13" cy="10" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="8" cy="15" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+// Rename: a pencil.
+export function RenameIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
+      <path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5 4 20Z" />
+      <path d="M13.5 7l3 3" />
+    </svg>
+  );
+}
+
+// Release: someone leaves by the door (a coach let go).
+export function ReleaseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
+      <path d="M10 4H5v16h5" />
+      <path d="M14 8l4 4-4 4M18 12H9" />
+    </svg>
+  );
+}
+
+// Remove: a minus in a ring (a scholar taken off a proposed team).
+export function RemoveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8 12h8" />
+    </svg>
+  );
+}
+
+// The camera's quarter turn: an arc round the ground, not the building's ⟳
+// (R, and the ghost's handle), so the two turns never share a glyph.
+export function TurnViewIcon({ direction }: { direction: 'left' | 'right' }) {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true"
+      style={direction === 'left' ? { transform: 'scaleX(-1)' } : undefined}>
+      <ellipse cx="12" cy="15" rx="8" ry="3.5" />
+      <path d="M6.5 9.5A7 7 0 0 1 18 8" />
+      <path d="M18 4v4h-4" />
+    </svg>
+  );
+}
+
+// One set of status marks: done, pending, failed.
+export type Status = 'done' | 'pending' | 'failed';
+export function StatusIcon({ status }: { status: Status }) {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2.4} aria-hidden="true">
+      {status === 'done' && <path d="M5 12.5l4.5 4.5L19 7" />}
+      {status === 'pending' && <circle cx="12" cy="12" r="7" />}
+      {status === 'failed' && <><circle cx="12" cy="12" r="8" /><path d="M9 9l6 6M15 9l-6 6" /></>}
     </svg>
   );
 }

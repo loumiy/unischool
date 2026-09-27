@@ -5,6 +5,7 @@ import { REPORT_WORDS } from '../data/reportData';
 import { SchoolFacade } from './StartupScreen';
 import { useHotkeys } from './hotkeys';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
+import { CloseIcon } from './icons';
 import { calendarDate } from '../format';
 
 // THE HALL OF FAME (Plan 33, Plan 34; state/hall.ts): finished runs as
@@ -42,7 +43,7 @@ export default function HallOfFame({ onClose, onNewCollege, running }: { onClose
       <section className="hall-wall">
         <div className="hall-head">
           <h2 className="hall-title">The hall of fame</h2>
-          <button type="button" className="toolbar-popup-close" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close"><CloseIcon /></button>
         </div>
         {hall.length === 0 ? (
           <p className="review-empty">No college has reached its fiftieth year in this browser yet. The first to finish hangs here.</p>
@@ -74,7 +75,11 @@ export default function HallOfFame({ onClose, onNewCollege, running }: { onClose
         )}
         {onNewCollege && (
           <div className="hall-leave">
-            <NewCollegeButton note={running && !hall.some((e) => e.college === running) ? REPORT_WORDS.newCollegeMidRun : REPORT_WORDS.newCollegeFresh} onConfirm={onNewCollege} />
+            <NewCollegeButton
+              note={running && !hall.some((e) => e.college === running) ? REPORT_WORDS.newCollegeMidRun : REPORT_WORDS.newCollegeFresh}
+              lost={!running ? undefined : hall.some((e) => e.college === running) ? `end ${running}'s Epilogue` : `erase ${running}`}
+              onConfirm={onNewCollege}
+            />
           </div>
         )}
       </section>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { COLLEGE_NAME_MAX, institutionName, type GameState } from '../state/types';
 import type { Action } from '../state/actions';
+import { RenameIcon } from './icons';
 
 // The pennant: the school's name in its colors, hung from the map's
 // top-left corner. One size; a long name wraps rather than shrinks, to two
@@ -16,7 +17,7 @@ export default function Pennant({ s, act }: { s: GameState; act: (a: Action) => 
       <div className="pennant-body">
         <span className="pennant-name" title={institutionName(s.self)}>{institutionName(s.self)}</span>
         {!editing && (
-          <button type="button" className="pennant-rename" aria-label="Rename the college" title="Rename the college" onClick={() => setEditing(true)}>✎</button>
+          <button type="button" className="pennant-rename" aria-label="Rename the college" title="Rename the college" onClick={() => setEditing(true)}><RenameIcon /></button>
         )}
       </div>
       {editing && <RenameForm s={s} act={act} onDone={() => setEditing(false)} />}
@@ -46,7 +47,7 @@ function RenameForm({ s, act, onDone }: { s: GameState; act: (a: Action) => void
           onChange={(e) => setName(e.target.value)}
         />
       </label>
-      <div className="pennant-form-suffix" role="radiogroup" aria-label="College or University">
+      <div className="pennant-form-suffix segmented" role="radiogroup" aria-label="College or University">
         {(['College', 'University'] as const).map((x) => (
           <button
             key={x} type="button" role="radio" aria-checked={suffix === x}

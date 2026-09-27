@@ -25,6 +25,7 @@ import { hostOffers, isHoused, transitWeeks } from '../systems/techtree/programO
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
 import { count, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
+import { CloseIcon } from './icons';
 
 // A popover for a placed building (see CampusMap.tsx's inspectBuilding). For
 // every kind but one it is a pure projection of the Buildable and the
@@ -225,7 +226,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                 className="building-info-jump"
                 title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, slot ${move.slot + 1}: dark for ${relocationWeeks(s, program.id)} weeks`}
                 label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${weeksShort(relocationWeeks(s, program.id))}`}
-                armedLabel={`Move ${program.name} — dark ${relocationWeeks(s, program.id)} weeks`}
+                armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
                 onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}
               />
             </div>
@@ -279,7 +280,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
               disabled={!act}
               title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, slot ${slot + 1}`}
               label={slot + 1}
-              armedLabel={`Move to slot ${slot + 1}`}
+              armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
               onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
             />
           ))}
@@ -565,7 +566,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
           : 'to cash';
     return (
       <ConfirmButton
-        className="building-info-jump quiet"
+        className="building-info-jump btn-danger"
         label={<>Call off construction · {moneyShort(t.cost)} returned</>}
         armedLabel="Confirm — call it off"
         warning={<>{money(t.cost)} comes back {back}; the site is cleared.</>}
@@ -578,7 +579,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
   if (blocked) return <p className="building-info-line building-info-note">Not for demolition. {blocked}</p>;
   return (
     <ConfirmButton
-      className="building-info-jump quiet"
+      className="building-info-jump btn-danger"
       label="Demolish"
       armedLabel="Confirm — demolish"
       warning={<>It is free, nothing is returned, and it cannot be undone.</>}
@@ -607,7 +608,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
     <div className={`building-info-panel${isAcademicHall(t) || isGraduateHost(t.id) ? ' hall' : ''}`} role="dialog" aria-label={`${t.name} info`}>
       <div className="building-info-head">
         <h3>{hallDisplayName(s, t)}</h3>
-        <button type="button" className="building-info-close" onClick={onClose} aria-label="Close">✕</button>
+        <button type="button" className="close-btn" onClick={onClose} aria-label="Close"><CloseIcon /></button>
       </div>
       {t.status === 'done' && act && <EstateLine t={t} s={s} act={act} />}
       {t.status === 'developing' && weeksLeft !== undefined && (

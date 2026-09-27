@@ -13,6 +13,8 @@ import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/facult
 import { facultyPay } from '../systems/finance/financeSystem';
 import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import ConfirmButton from '../components/ConfirmButton';
+import { DisclosureIcon } from '../components/icons';
 import { GradeChip, SearchOffer } from './CurriculumTab';
 import { searchCost } from '../systems/faculty/facultySearch';
 import { projectedQuality } from '../systems/faculty/facultyAssignment';
@@ -69,9 +71,6 @@ function FacultyCard(
 ) {
   const [open, setOpen] = useState(false);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
-  // Two-step dismissal, armed only when there is something to lose, and
-  // reset on blur.
-  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
   const weeksLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
   const researches = !isCandidate && labEquippedFields(s).has(f.field);
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
@@ -143,39 +142,35 @@ function FacultyCard(
               aria-expanded={open}
               aria-label={open ? `Show less about ${f.name}` : `Show more about ${f.name}`}
             >
-              {open ? '▾ less' : '▸ more'}
+              <DisclosureIcon open={open} /> {open ? 'Less' : 'More'}
             </button>
             {isCandidate ? (
               <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
             ) : (
-              <button
-                className={confirmingDismiss ? 'dismiss-confirm' : undefined}
-                onClick={() => {
-                  if (!confirmingDismiss && (taught.length > 0 || commitment)) { setConfirmingDismiss(true); return; }
-                  act({ type: 'FIRE_FACULTY', facultyId: f.id });
-                }}
-                onBlur={() => setConfirmingDismiss(false)}
-              >
-                {confirmingDismiss ? (taught.length > 0 ? 'Confirm — leave them unstaffed' : 'Confirm — dismiss') : 'Dismiss'}
-              </button>
+              // Dismissing someone orphans their courses (the reducer's
+              // FIRE_FACULTY) and leaves any research team one short, so it
+              // asks first and names the loss. Someone teaching nothing and
+              // on no project is dismissed on the first click.
+              <ConfirmButton
+                className="btn-danger"
+                label="Dismiss"
+                armedLabel={taught.length > 0
+                  ? `Confirm — ${taught.length} ${taught.length === 1 ? 'course' : 'courses'} left unstaffed`
+                  : `Confirm — the ${commitment?.topic ?? 'research'} team one short`}
+                warning={<>
+                  {taught.length > 0 && <>
+                    {f.name} teaches {taught.map((c) => c.name.split(' · ')[0]).join(', ')}, which will be left without an instructor.
+                  </>}
+                  {taught.length > 0 && commitment && ' '}
+                  {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
+                </>}
+                needsConfirm={taught.length > 0 || !!commitment}
+                onConfirm={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}
+              />
             )}
           </div>
         </div>
       </div>
-      {/* Dismissing someone orphans their courses (see the reducer's
-          FIRE_FACULTY) and leaves any research team one short, so the
-          second click is preceded by a named warning. Someone teaching
-          nothing and on no project is dismissed on the first click. */}
-      {confirmingDismiss && (taught.length > 0 || commitment) && (
-        <p className="faculty-dismiss-warning">
-          {taught.length > 0 && <>
-            {f.name} teaches {taught.length} {taught.length === 1 ? 'course' : 'courses'}, which will be left
-            without an instructor: {taught.map((c) => c.name.split(' · ')[0]).join(', ')}.
-          </>}
-          {taught.length > 0 && commitment && ' '}
-          {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
-        </p>
-      )}
       {open && (
         <div className="faculty-card-detail">
           <p className="faculty-bio">{f.bio}{quirk && <> <em>{quirk.line}</em></>}</p>
@@ -418,7 +413,7 @@ function DepartmentRow(
         aria-expanded={open}
       >
         <span className="dept-name">
-          <span className="dept-caret">{open ? '▾' : '▸'}</span>
+          <span className="dept-caret"><DisclosureIcon open={open} /></span>
           {c.field}
         </span>
         <CapacityMeter c={c} scale={scale} />
@@ -698,12 +693,12 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
       <section className="panel dept-board">
         <div className="panel-head">
           <span className="panel-head-title"><h3>Departments</h3></span>
-          <span className="dept-views">
+          <span className="dept-views segmented">
             {VIEWS.map((v) => (
               <button
                 key={v.id}
                 type="button"
-                className={view === v.id ? 'dept-view on' : 'dept-view'}
+                className={view === v.id ? 'on' : undefined}
                 onClick={() => { setView(v.id); setOverrides({}); }}
               >
                 {v.label}

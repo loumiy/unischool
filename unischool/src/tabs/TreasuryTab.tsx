@@ -180,8 +180,8 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           </div>
         </div>
 
-        <div className={`statement-net ${flow.net < 0 ? 'negative' : ''}`}>
-          <span>Net weekly</span>
+        <div className="statement-net">
+          <span>Net weekly{flow.net < 0 && <span className="state-chip bad">Deficit</span>}</span>
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
