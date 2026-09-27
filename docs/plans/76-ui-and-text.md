@@ -355,6 +355,80 @@ claims and 107 vague ones.*
   - the named building is the derelict one;
   - the heating bill fires in the Fall Term's last weeks.
 
+**As implemented (#TBD):**
+- **Winter** is `state/winter.ts`'s `winterDepth`: it sets in from week
+  17, is deepest from week 24 to week 29, and is gone by week 36. The
+  events' `winterAtLeast` and the ambience's wind both read it. The
+  heating bill arrives in the Fall Term's last weeks. The dark term
+  reads a new `springWeekAtMost`, so it is the Spring Term's start.
+- **New condition keys:**
+  - `springWeekAtMost`;
+  - `rankAtMost`, for the rankings-slip and guide events;
+  - `titleRecentAtLeast`: the championship run fires on a new title.
+- **New effect keys:**
+  - `replant`: fell-and-replant plants;
+  - `buildingFund`: a gift for a building goes to the restricted fund
+    and scales with prices;
+  - `historic`: a welcomed listing declares the named building historic.
+  
+  Each has its line in `EventPanel.tsx`.
+- **New fields on a choice:** `promise` makes a promise (a new
+  `a-rise-in-the-guide`: a top-20 rank within five years), and `mascot`
+  names the teams (the heron became the swan, "the Swans").
+- **Named buildings and classes:** `names` on an event picks `{building}`
+  and `{class}` from the college without changing the random stream:
+  - the derelict building for the derelict letter;
+  - the worst-kept roofed building in the repair letters (boiler, pipe,
+    roof, slates, buckets, elevator, sinkhole, ivy, asbestos);
+  - the oldest building that can be listed, for the listing;
+  - Founders Hall for its clock;
+  - a reunion class for the reunion gift and the class letter;
+  - a class twenty or more years out for a famous graduate.
+- **Gates:**
+  - Retirements, long-serving trustees and the thirty-one-year secretary
+    wait for a year when that is possible.
+  - The guidebook's "for the first time" fires once.
+  - The all-nighter needs a library.
+  - The two dead events: `nothing-to-study` is deleted, and `bad-run`
+    reads satisfaction on this game's 0–100 scale, as does `rag-week`'s
+    floor, which was always true.
+- **Effects corrected** as listed above.
+  - The key-card answer no longer clears $80,000 of repairs.
+  - Clearing more debt than is owed returns the rest as cash.
+  - The rendered line caps a draw at what the endowment holds and
+    "repays" only what is owed.
+- **Words:**
+  - Every false claim whose fix is a word is fixed, along with 81 of the
+    107 vague rows; 16 more were already true after the winter and gate
+    fixes.
+  - Answers are relabeled to what they do: "Pay a retention bonus",
+    "Tarp it and wait", "Offer a one-term stipend" and so on.
+  - Named officers who are not seats in this game read as offices: the
+    facilities office, Student Affairs, Academic Affairs, the Dean's
+    office.
+  - The British vocabulary is gone from every telling: car park, porter,
+    lift, rota, Bursar, prospectus, timetable, first-year, fume cupboard
+    and the rest.
+- **Left, each needing a memory of answers or a new system** (added to
+  the BACKLOG's *Events that do what they say*):
+  - five events that recur after an answer settles them;
+  - the star lecture and the grant windfall want a faculty member chosen
+    by strength;
+  - the library acquisition wants a library lever;
+  - the booster club's gift wants routing to athletics;
+  - the essay ring's enrollment cost wants spreading over the years;
+  - repair letters still spread backlog over the whole campus, and the
+    sinkhole and the ivy are not drawn.
+- **Checks:**
+  - `test/event-truth.test.ts`, 1,055 checks, including:
+    - every event can fire within fifty years, in a week the catalog
+      ticks;
+    - the lever test;
+    - the named-building and class checks;
+    - the new keys.
+  - `test/event-catalogue.test.ts` now checks spelling and a list of
+    British words across every telling and every letter's title.
+
 ## PR 76E — One way to write a number
 
 *A2-3, and 2c §4.7 and C1.*
