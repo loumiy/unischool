@@ -1945,7 +1945,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     timeoutWeeks: 5,
     choices: [
       { id: 'defend', label: 'Build the flood defenses', effects: { cash: -3200000, backlog: -1000000, confidence: 3, mood: 2 } },
-      { id: 'repair', label: 'Dry out and repair', effects: { cash: -1100000, backlog: 800000, mood: -1 } },
+      { id: 'repair', label: 'Dry out and defer the repairs', effects: { cash: -1100000, backlog: 800000, mood: -1 } },
       { id: 'upstairs', label: 'Move teaching off the ground floors', effects: { cash: -400000, backlog: 1500000, mood: -4, quality: -1 } },
     ],
     default: 'repair',

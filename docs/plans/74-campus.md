@@ -102,6 +102,46 @@ funding never pays down.
 - **Checks:** at full funding a backlog falls and never compounds; below
   it, it compounds as before; a renovation still clears it.
 
+**As implemented (#209).**
+
+- `estate.ts`: while maintenance is fully funded a backlog is paid down by
+  `BACKLOG_PAYDOWN_RATE` (a tenth a year, weekly) and cleared outright
+  below $1,000; it compounds at 6% only while funding is under full, as
+  before. A renovation still clears it at once, and the backlog stands
+  while one runs. The header says so.
+- The flood's `repair` answer reads "Dry out and defer the repairs".
+- `ageMarks.tsx`: a derelict building (band 4) darkens both visible walls,
+  lays a blue tarpaulin up its roof's slope from the longer near eave
+  (hanging a little down the wall), and stands behind a 2.4 m timber
+  hoarding with posts round the plot, in place of the dashed hairline
+  fence. The boarded windows of band 3 are larger, darker-edged and
+  cross-braced.
+- **Checks:** `test/estate.test.ts` adds that at full funding a seeded
+  $1M backlog falls every week, by a tenth in a year, and is gone in
+  time with the building back to perfect condition; and that at 95%
+  funding it compounds as before.
+- **Balance** (`npm run sim`, medians of three seeds, change from the old
+  baseline; re-recorded):
+  - Completionist Y50 cash $573.8M (+$503.4M); rank, enrollment, courses
+    unchanged.
+  - Lean Y50 enrollment 12,234 (+7,986), prestige 105.7 (+11.5), rank 29
+    (4 places up).
+  - Selective Y50 prestige +2.6; Guided Y50 prestige −1.2, cash +$3.3M;
+    Idle unchanged.
+  - The pacing scorecard (`npm run natural -- --pacing`) still meets 86 of
+    114 targets. At high price, prestige's 90% now lands at Y35 and net
+    $/wk's at Y42, a year outside their windows each; the second-straight
+    falls in net $/wk go from 2 to 0 and that row now passes.
+- **The review's probe** (`npm run review:probe -- backlog`) at year 51,
+  maintenance fully funded throughout: derelict 0 of 80 (Completionist
+  seed 12345), 0 of 69 and 0 of 68 (Natural seeds 12345 and 4242), against
+  44–52 of about 70 in the review. Founders Hall ends at condition
+  0.95, 0.93 and 0.94. Event answers still add $8M–$22M of backlog each;
+  it heals over the following decade.
+- Screenshots: `docs/reviews/2026-10-campus-fixes/derelict-vernaculars.png`
+  (three derelict and three boarded buildings in Georgian, Collegiate
+  Gothic, Mission and Modern) and `derelict-opening-zoom.png`.
+
 ## PR 74C — The landmarks
 
 *A1-3 and A1-4.*
