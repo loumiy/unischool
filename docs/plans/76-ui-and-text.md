@@ -594,7 +594,7 @@ claims and 107 vague ones.*
   Plans 18 and 22 are not edited; the register says what replaced their
   claims.
 
-**As implemented (#TBD):**
+**As implemented (#229):**
 
 - **One button base**, drawn once in `styles.css`'s new block "The
   register's parts": 2 px of outline ink, `--shadow-1`, a pill, the display
