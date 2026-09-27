@@ -29,8 +29,12 @@ const flag = (name, fallback) => {
 };
 const OUT = resolve(flag('out', '../docs/assets'));
 const AZIMUTH = flag('azimuth', '45');
-const VERNACULARS = ['georgian', 'gothic', 'classical', 'mission', 'modern'];
-const VERNACULAR_NAMES = { georgian: 'Georgian', gothic: 'Collegiate Gothic', classical: 'Classical', mission: 'Mission', modern: 'Modern' };
+// The five founding sets, then the four bonus sets (state/unlocks.ts).
+const VERNACULARS = ['georgian', 'gothic', 'classical', 'mission', 'modern', 'tudor', 'italianate', 'secondEmpire', 'artDeco'];
+const VERNACULAR_NAMES = {
+  georgian: 'Georgian', gothic: 'Collegiate Gothic', classical: 'Classical', mission: 'Mission', modern: 'Modern',
+  tudor: 'Tudor', italianate: 'Italianate', secondEmpire: 'Second Empire', artDeco: 'Art Deco',
+};
 const COLUMNS = 6;
 const CELL_W = 300;
 const CELL_H = 210;
@@ -138,7 +142,7 @@ await browser.close();
 const lines = [
   '# The asset gallery',
   '',
-  `Every buildable asset in all five vernaculars, drawn by the game itself from the opening camera (azimuth ${AZIMUTH}°). ` +
+  `Every buildable asset in all nine vernaculars (the five founding sets, then the four a run unlocks), drawn by the game itself from the opening camera (azimuth ${AZIMUTH}°). ` +
     'Vernaculars run down each image and assets across it. Written by `npm run gallery:assets` (unischool/tools/assetGallery.mjs, Plan 75C); ' +
     'run it again after any change to how a building is drawn.',
   '',
