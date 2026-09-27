@@ -11,6 +11,7 @@ import { campusBeauty } from '../estate/beauty';
 import { changeTrees, treeCount } from '../estate/woodland';
 import { detectQuads } from '../../state/quads';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
+import { leaveFaculty } from '../faculty/facultySystem';
 import { distressOf, foundingDistress } from '../finance/distress';
 import { debtOutstanding, drawRate, loanPayment } from '../finance/treasury';
 import { financeBreakdown } from '../finance/financeSystem';
@@ -214,6 +215,9 @@ export function rollVars(s: GameState): Record<string, string> {
     // The texts supply the article: "the {class}", "The {class} have written".
     class: latest ? `class of ${latest.classYear}` : 'first class',
     faculty: faculty ? faculty.name : 'a senior professor',
+    // Who {faculty} is, for an effect that acts on them (Plan 72B's
+    // 'departs'). Drawn with the name, so the stream reads the same.
+    facultyId: faculty ? faculty.id : '',
     program: program ? (programById(program)?.name ?? program) : 'the founding program',
     // Names read mid-sentence: "The Chapel" becomes "the Chapel".
     building: building ? building.name.replace(/^The /, 'the ') : 'Founders Hall',
@@ -304,7 +308,9 @@ function changeDebt(s: GameState, amount: number): void {
   if (s.finance.loans?.length === 0) delete s.finance.loans;
 }
 
-export function applyEffects(s: GameState, effects: CatalogueChoice['effects']): void {
+// `vars` are the firing's (PendingCatalogueEvent.vars), for the effects that
+// act on whom the event named.
+export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>> = {}): void {
   for (const [k, v] of Object.entries(effects) as [EffectKey, number][]) {
     switch (k) {
       case 'cash': s.finance.cash += v; break;
@@ -321,8 +327,23 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects']):
       case 'quality': s.students.incomingQuality = Math.max(0, Math.min(100, s.students.incomingQuality + v)); break;
       case 'enrollment': changeEnrollment(s, v); break;
       case 'trees': changeTrees(s, v); break; // estate/woodland.ts
+      case 'departs': if (v > 0) departs(s, vars); break;
     }
   }
+}
+
+// The named professor leaves (Plan 72B), as anyone leaving does
+// (facultySystem.ts's leaveFaculty): their courses wait for a new
+// instructor. Found by id, or by name for a firing saved before the id was
+// kept; nobody by that name, nobody leaves.
+function departs(s: GameState, vars: Readonly<Record<string, string>>): void {
+  const f = s.faculty.find((x) => x.id === vars.facultyId) ?? (vars.facultyId ? undefined : s.faculty.find((x) => x.name === vars.faculty));
+  if (!f) return;
+  const orphaned = leaveFaculty(s, f);
+  s.log.unshift({
+    year: s.clock.year, week: s.clock.week, kind: orphaned.length > 0 ? 'bad' : 'info', topic: 'departure', subject: f.id,
+    message: `${f.name} (${f.field}) takes the offer and leaves the college.${orphaned.length > 0 ? ` ${orphaned.length} ${orphaned.length === 1 ? 'course waits' : 'courses wait'} for a new instructor.` : ''}`,
+  });
 }
 
 export function eventById(id: string): CatalogueEvent | undefined {

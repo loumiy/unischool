@@ -1,7 +1,7 @@
 // One authored sentence per undergraduate course, keyed by course id and
 // read by techData.ts's initialTech(). test/course-descriptions.test.ts
-// requires a row for every undergraduate course. Graduate courses keep their
-// generated line in techData.ts.
+// requires a row for every undergraduate course, and GRADUATE_COURSE_
+// DESCRIPTIONS (below) one for every graduate course.
 //
 // Rules: one present-tense sentence, no course code, no "this course", and
 // it must say something the title does not.
@@ -484,4 +484,83 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   INFO220: 'Analyses online business models, platforms, payments, and logistics, and what makes a digital marketplace defensible.',
   INFO230: 'Builds an organization\'s security program: policy, risk assessment, awareness, and governance under regulation.',
   INFO240: 'Designs dimensional models and ETL pipelines that feed analytics and reporting, and keeps the numbers consistent across them.',
+};
+
+// One authored sentence per graduate course (Plan 72C), under the same
+// rules. The entry course of each program also carries its gate, composed
+// in techData.ts from the seed, so the sentence and the rule cannot
+// disagree.
+export const GRADUATE_COURSE_DESCRIPTIONS: Record<string, string> = {
+  // --- School of Medicine (MD) ---
+  MED501: 'Opens medical training with the body as a system, from cell to organ, and with the history, examination, and patient interview every later year builds on.',
+  MED510: 'Works through dissection alongside the microscope, so students learn each structure both where it lies and what its tissue is made of.',
+  MED520: 'Follows disease from its mechanism to the drug that interrupts it, with dosing, interactions, and side effects taught as part of the diagnosis.',
+  MED530: 'Localizes lesions from the bedside examination, then confirms them with imaging, across stroke, seizure, dementia, and disorders of movement.',
+  MED540: 'Teaches students to read a trial critically, weigh screening and prevention across a population, and decide when the evidence should change practice.',
+  MED550: 'Rotates students through the wards in teams, writing notes, presenting patients, and taking call before they are matched to a residency.',
+  MED560: 'Covers how the immune system recognizes and remembers a threat, how pathogens evade it, and how vaccines and antimicrobials tip the balance.',
+  MED570: 'Reads inheritance and the genome clinically, from family pedigrees to sequencing results, and the counselling conversations each one requires.',
+  MED580: 'Diagnoses and treats mental illness alongside the behaviors, from sleep to substance use, that shape every other illness a patient has.',
+  MED590: 'Prepares students for the operating room, from consent and sterile technique to anesthesia, wound healing, and the complications of the days after.',
+  MED600: 'Compares how countries pay for, staff, and ration health care, and why outcomes differ so widely between systems that spend alike.',
+  MED610: 'Gives final-year students responsibility for their own patients under supervision, the last step between the classroom and the residency.',
+
+  // --- School of Law (JD) ---
+  LAWS501: 'Introduces the sources of American law, how courts reason from precedent, and the legal writing and case briefing every later class assumes.',
+  LAWS510: 'Covers when a promise becomes enforceable and when a careless act becomes a wrong, the two ways private obligations arise without a statute.',
+  LAWS520: 'Follows a lawsuit from the complaint through discovery and trial, and the rules that decide which facts a jury is ever allowed to hear.',
+  LAWS530: 'Reads the leading cases on federal power, individual rights, and equal protection, and argues them in the seminar as the Court heard them.',
+  LAWS540: 'Puts students in front of real clients under supervision, drafting, negotiating, and appearing in court on cases the college takes on.',
+  LAWS550: 'Covers ownership, leases, easements, and land use, and the title searches, mortgages, and closings that move real estate between hands.',
+  LAWS560: 'Examines what makes conduct a crime and the constitutional limits on search, interrogation, and trial that bind the state in proving it.',
+  LAWS570: 'Sets the common law beside civil-law systems and the treaties, courts, and customs that govern disputes crossing national borders.',
+
+  // --- Graduate School of Business (MBA) ---
+  MBAX501: 'Grounds the MBA in accounting, economics, and organizational behavior, so students from any background share one working vocabulary.',
+  MBAX510: 'Values companies and projects the way investors do, and decides how a firm should raise money, spend it, and return it to shareholders.',
+  MBAX520: 'Chooses which customers to serve and how to win them against rivals, from segmentation and positioning to pricing and brand.',
+  MBAX530: 'Models supply chains, queues, and capacity, and uses data to decide where a business should cut waste and where it should add slack.',
+  MBAX540: 'Sends student teams to advise a real organization on a live problem, ending in recommendations presented to its leadership.',
+
+  // --- Doctoral Program in Engineering (PhD) ---
+  PHDE701: 'Prepares doctoral students to frame a research question, design experiments and simulations to answer it, and defend the result to peers.',
+  PHDE710: 'Derives the mechanics of solids and fluids from first principles, and applies them to structures and materials at the limits of design.',
+  PHDE720: 'Treats wave propagation, antennas, and electromagnetic compatibility at research depth, with papers from the field presented each week.',
+  PHDE730: 'Supports the dissertation itself: original engineering research carried out with an advisor and defended before a committee.',
+
+  // --- Doctoral Program in the Natural Sciences (PhD) ---
+  PHDS701: 'Covers experimental design, statistics, and the ethics of research that every doctoral scientist needs before starting a laboratory project.',
+  PHDS710: 'Builds quantum mechanics and statistical physics to the level where current research papers in either field can be read and extended.',
+  PHDS720: 'Plans multistep syntheses and proves what was made, with spectroscopy and crystallography read directly from the instruments.',
+  PHDS730: 'Supports the dissertation itself: original research in the natural sciences, written up and defended before a committee.',
+
+  // --- Doctoral Program in Health Science (PhD) ---
+  PHDH701: 'Trains doctoral students in study design, biostatistics, and research ethics for work that involves patients and populations.',
+  PHDH710: 'Reads current work on how networks of neurons give rise to perception, memory, and decision, from imaging to computational models.',
+  PHDH720: 'Carries a finding from the laboratory into a clinical trial, with the regulatory, statistical, and ethical steps between the two.',
+  PHDH730: 'Supports the dissertation itself: original research in health science, carried to publication and defended before a committee.',
+
+  // --- Doctoral Program in Computing (PhD) ---
+  PHDC701: 'Prepares doctoral students to read the literature, run reproducible experiments, and write papers that computing conferences will accept.',
+  PHDC710: 'Studies what can be learned from data and how fast, with the generalization bounds and optimization results behind modern machine learning.',
+  PHDC720: 'Covers computability, complexity classes, and the limits they set on what any algorithm, however clever, can ever achieve.',
+  PHDC730: 'Supports the dissertation itself: original research in computing, built, evaluated, and defended before a committee.',
+
+  // --- Doctoral Program in the Humanities (PhD) ---
+  PHDL701: 'Trains doctoral students in archives, close reading, and the conventions of scholarly argument across the humanities.',
+  PHDL710: 'Reads the major schools of criticism, from formalism to postcolonial theory, and tests each against a shared set of texts.',
+  PHDL720: 'Works through the classic and current theories of how societies hold together, change, and divide, from Durkheim to the present.',
+  PHDL730: 'Supports the dissertation itself: a book-length work of original humanities scholarship, defended before a committee.',
+
+  // --- Doctoral Program in Economics (PhD) ---
+  PHDB701: 'Covers the econometrics, identification strategies, and data work that doctoral research in economics is judged on.',
+  PHDB710: 'Builds consumer, producer, and general-equilibrium theory with the mathematics used in current research, from game theory to mechanism design.',
+  PHDB720: 'Reads current research on asset pricing, corporate finance, and financial crises, and presents it to the seminar each week.',
+  PHDB730: 'Supports the dissertation itself: a set of original papers in economics, presented on the job market and defended before a committee.',
+
+  // --- Master of Fine Arts (MFA) ---
+  MFAX701: 'Gives each artist a studio of their own and a weekly critique, where the work is made, shown, and argued over by peers and faculty.',
+  MFAX710: 'Workshops new fiction and poetry line by line, alongside the reading each writer needs to find what their own work is doing.',
+  MFAX720: 'Brings new scores before performers and peers each week, from the first sketch to a finished work ready for the concert hall.',
+  MFAX730: 'Culminates the degree in a public exhibition, performance, or publication, mounted by the student and reviewed by the faculty.',
 };
