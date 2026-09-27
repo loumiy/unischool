@@ -26,7 +26,8 @@ import HelpHint from '../components/HelpHint';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
-import { money, moneyShort, surnameOf } from '../format';
+import { count, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
+import { NO_FILTERS, cellState, filtersActive, matchesFilters, type Filters, type StatusFilter } from './curriculumFilter';
 
 // Progressive discovery: what the tab shows is derived from existing
 // unlock/milestone state, with no gating of its own.
@@ -236,15 +237,6 @@ function crossMajorPrereqs(t: Buildable, lookup: Map<string, Buildable>): string
   });
 }
 
-type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
-
-function cellState(s: GameState, t: Buildable): CellState {
-  if (t.status === 'done') return 'done';
-  if (t.status === 'developing') return 'developing';
-  if (t.status === 'locked') return 'locked';
-  return canStartDevelopment(s, t) ? 'available' : 'blocked';
-}
-
 // The grade chip, for a course's own grade and for aggregates alike. The
 // letter always shows; the tint is only a cue (color-blind players, small sizes).
 export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
@@ -259,7 +251,7 @@ export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?:
 function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
   const avg = averageCourseQuality(s, ids, loads);
   if (avg === null) return null;
-  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${Math.round(avg)} / 100 across its developed courses`} />;
+  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
 }
 
 // One course cell: code over title, filled when done, with a progress bar
@@ -381,7 +373,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
       )}
       {preview && (
         <span className={`swap-preview${preview.delta > 0 ? ' up' : preview.delta < 0 ? ' down' : ''}`} aria-live="polite">
-          → {preview.grade} ({preview.delta > 0 ? '+' : ''}{Math.round(preview.delta)})
+          → {preview.grade} ({signed(preview.delta)})
         </span>
       )}
       {state === 'done' && !instructor && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
@@ -459,11 +451,11 @@ export function InstructorOption(
         {projected && (
           <GradeChip
             grade={projected.grade}
-            title={`This course would be graded ${projected.grade} (${Math.round(projected.score)} / 100) with them`}
+            title={`This course would be graded ${projected.grade} (${count(projected.score)}/100) with them`}
           />
         )}
         <span className={`instructor-option-load${load >= f.courseSlots ? ' full' : ''}`}>
-          {load} / {f.courseSlots}
+          {fraction(load, f.courseSlots)}
           <span className="instructor-load-label">courses</span>
         </span>
       </span>
@@ -491,7 +483,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
       onClick={() => act({ type: 'POST_SEARCH', field })}
       title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}: a much better chance every week that a ${field} candidate is listed.`}
     >
-      Post a search in {field} · {money(cost)}
+      Post a search in {field} · {moneyShort(cost)}
     </button>
   );
 }
@@ -523,7 +515,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
               {/* No cash gate: an appointment costs nothing up front, here
                   as on every other Appoint; what it costs is the salary,
                   shown as this college pays it. */}
-              Appoint · {money(Math.round(facultyPay(s, c.salary)))}/yr
+              Appoint · {moneyShort(facultyPay(s, c.salary))}/yr
             </button>
           </div>
         ))
@@ -603,12 +595,12 @@ function CourseDrawer(
             <div className="course-drawer-grade">
               <GradeChip grade={quality.grade} size="lg" />
               <div className="course-drawer-grade-body">
-                <span className="course-drawer-grade-score">{Math.round(quality.score)} / 100</span>
+                <span className="course-drawer-grade-score">{count(quality.score)}/100</span>
                 <ul className="course-drawer-factors">
                   {quality.factors.map((factor) => (
                     <li key={factor.label} className={factor.value < 0 ? 'down' : 'up'}>
                       <span>{factor.label}</span>
-                      <span className="num">{factor.value > 0 ? '+' : '−'}{Math.abs(Math.round(factor.value))}</span>
+                      <span className="num">{signed(factor.value)}</span>
                     </li>
                   ))}
                 </ul>
@@ -762,9 +754,11 @@ function CourseDrawer(
 // batch button starts them all with grades previewed as the load climbs.
 // Each start is its own START_DEVELOPMENT, so one that becomes illegal
 // mid-batch is refused.
-function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
+// Compact, it is the program's one line (Plan 76B): the next course and
+// its one action, without "choose…" and the batch.
+function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact = false }: {
   s: GameState; act: (a: Action) => void; program: ProgramInfo; progress: ProgramProgress;
-  lookup: Map<string, Buildable>; loads: FacultyLoads; onSelect: (id: string) => void;
+  lookup: Map<string, Buildable>; loads: FacultyLoads; onSelect: (id: string) => void; compact?: boolean;
 }) {
   const next = progress.next;
   const worth = (
@@ -846,9 +840,9 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect }: {
         Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
         <GradeChip grade={projected.grade} title={`${next.name} would be graded ${projected.grade} with ${best.name}`} />
       </button>
-      <span className="row-action-cost">{moneyShort(next.cost)} · {next.duration}w{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
-      <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">choose…</button>
-      {batchOk && (
+      <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
+      {!compact && <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">choose…</button>}
+      {!compact && batchOk && (
         <button
           type="button"
           className="row-action-secondary batch"
@@ -878,7 +872,9 @@ function ProgramRowView(
   const hallId = hallOfCourse(s, program.entryCourseId);
   const hall = hallId ? lookup.get(hallId) : undefined;
   const dark = unstaffedPrograms(s).has(program.id);
-  const [collapsed, toggle] = useCollapse(`program:${program.id}`, progress.done === progress.total && !dark);
+  // Every program starts as its one line (Plan 76B); the cells open on
+  // demand.
+  const [collapsed, toggle] = useCollapse(`program:${program.id}`, true);
 
   return (
     <section className={`program-row${graduate ? ' graduate' : ''}${collapsed ? ' collapsed' : ''}`} data-program={program.id}>
@@ -888,10 +884,11 @@ function ProgramRowView(
         </button>
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
-        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${Math.round(avg)} / 100`} />}
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
         {hall && <span className="program-row-hall" title="Where it is housed">{hallDisplayName(s, hall)}</span>}
         {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no seats, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
-        <span className="lane-count">{progress.done} / {progress.total}</span>
+        {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} compact />}
+        <span className="lane-count">{fraction(progress.done, progress.total)}</span>
       </header>
       {!collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} />}
       {!collapsed && <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
@@ -910,9 +907,10 @@ function ProgramRowView(
   );
 }
 
-// Collapsing (Plan 60): a school or a program starts open while incomplete
-// and folded once complete; a click overrides that, and the override is
-// remembered for the session (module state, so it survives a tab switch).
+// Collapsing (Plan 60): a school starts open while incomplete and folded
+// once complete, and a program always starts folded to its one line (Plan
+// 76B); a click overrides that, and the override is remembered for the
+// session (module state, so it survives a tab switch).
 const collapseOverrides = new Map<string, boolean>();
 function useCollapse(key: string, completeByDefault: boolean): [boolean, () => void] {
   const [, bump] = useState(0);
@@ -951,8 +949,8 @@ function SchoolGroupView(
         </button>
         <span className="school-group-mark" aria-hidden="true">{group.mark.motif}</span>
         <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
-        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
-        <span className="lane-count">{done.done} / {done.total}</span>
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
+        <span className="lane-count">{fraction(done.done, done.total)}</span>
         {unstaffedHere > 0 && school && (
           <button
             type="button"
@@ -978,49 +976,7 @@ function SchoolGroupView(
   );
 }
 
-// Filters turn the map into a worklist: one flat cross-school list of what
-// matched, rather than dimming the rows.
-
-type StatusFilter = 'all' | 'available' | 'developing' | 'done' | 'unstaffed';
-type GradeFilter = 'all' | 'weak';
-
-const WEAK_GRADES = new Set<Grade>(['D', 'F']);
-
-interface Filters {
-  query: string;
-  status: StatusFilter;
-  grade: GradeFilter;
-  // A department (from the strip's "wall" item): revealed courses still
-  // ahead of the player that need this field.
-  field: string | null;
-}
-
-const NO_FILTERS: Filters = { query: '', status: 'all', grade: 'all', field: null };
-
-function filtersActive(f: Filters): boolean {
-  return f.query.trim() !== '' || f.status !== 'all' || f.grade !== 'all' || f.field !== null;
-}
-
-function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: FacultyLoads): boolean {
-  const query = f.query.trim().toLowerCase();
-  if (query !== '' && !t.name.toLowerCase().includes(query)) return false;
-
-  if (f.field !== null && (t.requiresFaculty !== f.field || t.status !== 'available')) return false;
-
-  if (f.status !== 'all') {
-    if (f.status === 'unstaffed') {
-      if (!isUnstaffed(s, t)) return false;
-    } else if (cellState(s, t) !== f.status) return false;
-  }
-
-  if (f.grade === 'weak') {
-    const q = courseQuality(s, t, loads);
-    // An unstaffed course has no grade but belongs in the weak worklist.
-    if (!q) return isUnstaffed(s, t);
-    if (!WEAK_GRADES.has(q.grade)) return false;
-  }
-  return true;
-}
+// Filters turn the map into a worklist (curriculumFilter.ts).
 
 function FilterBar(
   { filters, onChange, resultCount }:
@@ -1058,6 +1014,24 @@ function FilterBar(
         title="Every developed course graded D or F, plus any left unstaffed"
       >
         Needs attention
+      </button>
+      <button
+        type="button"
+        className={`curriculum-chip${filters.grade === 'belowA' ? ' on' : ''}`}
+        aria-pressed={filters.grade === 'belowA'}
+        onClick={() => onChange({ ...filters, grade: filters.grade === 'belowA' ? 'all' : 'belowA' })}
+        title="Every developed course graded below an A, plus any left unstaffed: the courses that hold the college's academic standing back"
+      >
+        Below A
+      </button>
+      <button
+        type="button"
+        className={`curriculum-chip${filters.status === 'unstaffed' ? ' on' : ''}`}
+        aria-pressed={filters.status === 'unstaffed'}
+        onClick={() => onChange({ ...filters, status: filters.status === 'unstaffed' ? 'all' : 'unstaffed' })}
+        title="Every developed course with nobody teaching it"
+      >
+        No instructor
       </button>
       {filters.field !== null && (
         <button
@@ -1253,7 +1227,7 @@ function CommitteePanel({ s }: { s: GameState }) {
             <li key={i} className="committee-seat busy" title={`${t.name}: ${left} week${left === 1 ? '' : 's'} left`}>
               <span className="committee-seat-name">{code}</span>
               <span className="committee-seat-bar" aria-hidden="true"><span style={{ width: `${Math.round(done * 100)}%` }} /></span>
-              <span className="committee-seat-left">{left}w</span>
+              <span className="committee-seat-left">{weeksShort(left)}</span>
             </li>
           );
         })}
@@ -1394,16 +1368,19 @@ export default function CurriculumTab(
                 center={`${catalogPct}%`}
                 title={`${doneCourses} of ${courses.length} courses developed`}
               />
-              <span className="stat">{doneCourses} / {courses.length}<br />developed</span>
+              <span className="stat">{fraction(doneCourses, courses.length)}<br />developed</span>
             </span>
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" loads={loads} />
             <HelpHint
               align="end"
-              text='One row per program, grouped by school — a school is named once six of its programs share a hall. Each row leads with its next start: the course, the strongest free teacher and the grade they would earn; Develop takes it, "choose…" opens the course to pick somebody else. Programs are founded from an academic hall on the map — the strip above says which halls have room. Drag a professor onto another course in the same department to swap them, and both grades preview while you hold.'
+              text={`One line per program, grouped by school — a school is named once six of its programs share a hall. Each line gives the program's grade, its courses done of nine and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back. Programs are founded from an academic hall on the map — the strip above says which halls have room. Drag a professor onto another course in the same department to swap them, and both grades preview while you hold.`}
             />
           </span>
         </div>
 
+        {/* The committee, the offers and the filters stay pinned at the
+            head of the tab while the programs scroll (Plan 76B). */}
+        <div className="curriculum-pinned">
         {!filtering && (
           <NextUp
             s={s}
@@ -1421,6 +1398,7 @@ export default function CurriculumTab(
         {s.finance.cash < 0 && (
           <p className="stall-note">Cash is negative — the college is running an operating deficit, so no course can be started until the balance recovers.</p>
         )}
+        </div>
 
         <div className="curriculum-scroll">
           {/* A filter replaces the map with a cross-school worklist. */}

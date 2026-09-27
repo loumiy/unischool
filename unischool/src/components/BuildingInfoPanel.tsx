@@ -1,6 +1,6 @@
 import { constructionFrozen } from '../systems/finance/distress';
 import ConfirmButton from './ConfirmButton';
-import { canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, extensionWeeks, renovationCost } from '../systems/estate/estate';
+import { RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, extensionWeeks, renovationCost } from '../systems/estate/estate';
 import { canPayForWorks } from '../systems/finance/treasury';
 import { useEffect, useState } from 'react';
 import type { Action } from '../state/actions';
@@ -23,7 +23,7 @@ import {
 } from '../systems/techtree/techSystem';
 import { hostOffers, isHoused, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
-import { money, pct } from '../format';
+import { count, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
 
 // A popover for a placed building (see CampusMap.tsx's inspectBuilding). For
@@ -69,11 +69,11 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
     <>
       <p className="building-info-line">
         {t.effects?.servesPopulation !== undefined
-          ? `${t.effects.servesPopulation.toLocaleString()} social capacity — a shared competition venue, not a rec facility.`
+          ? `${count(t.effects.servesPopulation)} social capacity — a shared competition venue, not a rec facility.`
           : t.description}
       </p>
       {(t.expansions ?? 0) > 0 && (
-        <p className="building-info-line">Expanded {t.expansions === 1 ? 'once' : `${t.expansions} times`}: {venueSeatsOf(t).toLocaleString()} seats at the gate.</p>
+        <p className="building-info-line">Expanded {t.expansions === 1 ? 'once' : `${t.expansions} times`}: {count(venueSeatsOf(t))} seats at the gate.</p>
       )}
       {teams.length === 0 ? (
         <p className="building-info-line">No varsity team calls this home yet.</p>
@@ -90,7 +90,7 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
                 <span className="venue-team-meta">
                   {team.status === 'awaitingVenue'
                     ? 'awaiting this venue'
-                    : `quality ${quality}${crowd > 0 ? ` · ${crowd.toLocaleString()} a game` : ''}`}
+                    : `quality ${quality}${crowd > 0 ? ` · ${count(crowd)} a game` : ''}`}
                 </span>
                 <span className="venue-team-coach">{team.headCoach ? `Coach ${team.headCoach.name}` : 'No head coach'}</span>
               </div>
@@ -108,7 +108,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
   const label = ft ? FACILITY_CAPACITY_LABEL[ft] : undefined;
   if (label && t.effects?.servesPopulation !== undefined) {
     const need = t.effects.satisfactionAttribute;
-    return <p className="building-info-line">Serves {t.effects.servesPopulation.toLocaleString()} {label}{need ? ` · ${NEED_WORD[need]}` : ''}</p>;
+    return <p className="building-info-line">Serves {count(t.effects.servesPopulation)} {label}{need ? ` · ${NEED_WORD[need]}` : ''}</p>;
   }
   if (ft === 'quad') {
     return (
@@ -124,7 +124,7 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
     return (
       <p className="building-info-line">
         {t.effects?.researchRateBonus !== undefined
-          ? `+${Math.round(t.effects.researchRateBonus * 100)}% research output`
+          ? `${signedPct(t.effects.researchRateBonus)} research output`
           : 'Specialized lab space.'}
         {' — no capacity figure; gates this program\'s capstone coursework instead.'}
       </p>
@@ -181,19 +181,19 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
         <span className="hall-slot-name">{program.name}</span>
         <span className="program-tile-meta">
           {inTransit > 0
-            ? <span className="program-tile-transit" title={`In transit — ${inTransit} weeks until it is teaching again`}>moving · {inTransit}w</span>
+            ? <span className="program-tile-transit" title={`In transit — ${inTransit} weeks until it is teaching again`}>moving · {weeksShort(inTransit)}</span>
             : dark
               ? <span className="program-tile-transit" title="A course has no instructor: the program is dark until it is restaffed">dark</span>
-              : <span className="program-tile-progress">{progress.done}/{progress.total}</span>}
+              : <span className="program-tile-progress">{fraction(progress.done, progress.total)}</span>}
           {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
-          {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${Math.round(avg)} / 100 across its developed courses`} />}
+          {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
         </span>
       </button>
       {open && (
         <div className="program-summary">
           <dl className="program-summary-facts">
             <div><dt>Standing</dt><dd>{milestoneLine(progress)}</dd></div>
-            <div><dt>Teaching</dt><dd>{progress.seats.toLocaleString()} seats</dd></div>
+            <div><dt>Teaching</dt><dd>{count(progress.seats)} seats</dd></div>
             {progress.developing > 0 && <div><dt>In development</dt><dd>{progress.developing}</dd></div>}
           </dl>
           <p className="building-info-line program-summary-next">
@@ -205,7 +205,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                   const gate = field ? facultyGate(s, field) : 'open';
                   return (
                     <>
-                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {money(progress.next.cost)} · {progress.next.duration}w
+                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {moneyShort(progress.next.cost)} · {weeksShort(progress.next.duration)}
                       {gate !== 'open' && (
                         <span className="program-summary-blocked"> — no free {field} slot{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
                       )}
@@ -224,7 +224,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
               <ConfirmButton
                 className="building-info-jump"
                 title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, slot ${move.slot + 1}: dark for ${relocationWeeks(s, program.id)} weeks`}
-                label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${relocationWeeks(s, program.id)} weeks`}
+                label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${weeksShort(relocationWeeks(s, program.id))}`}
                 armedLabel={`Move ${program.name} — dark ${relocationWeeks(s, program.id)} weeks`}
                 onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}
               />
@@ -441,7 +441,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
                   <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
                   <span className="hall-offer-name">{program.name}</span>
                   <span className="hall-offer-meta">
-                    {money(course?.cost ?? 0)} · {course?.requiresFaculty ?? '—'}
+                    {moneyShort(course?.cost ?? 0)} · {course?.requiresFaculty ?? '—'}
                   </span>
                 </button>
               );
@@ -492,7 +492,7 @@ function HallSlots({ t, s, act, onOpenCurriculum }: {
                 }}
               >
                 {chosen
-                  ? `Found ${picked.name} · ${money(entry.cost)}`
+                  ? `Found ${picked.name} · ${moneyShort(entry.cost)}`
                   : `Found ${picked.name}`}
               </button>
             </div>
@@ -522,7 +522,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
   }
   const extend = canExtend(t) ? (
     <button type="button" className="building-info-jump" disabled={!canPayForWorks(s, extensionCost(t)) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction; nothing new goes up until it lifts.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
-      Add a story · {money(extensionCost(t))}, {extensionWeeks(t)} weeks, {extensionGain(t).toLocaleString()} more {t.kind === 'dorm' ? 'beds' : 'served'}
+      Add a story · {moneyShort(extensionCost(t))} · {weeksShort(extensionWeeks(t))} · {count(extensionGain(t))} more {t.kind === 'dorm' ? 'beds' : 'served'}
     </button>
   ) : null;
   if ((t.renovationWeeks ?? 0) > 0) {
@@ -547,7 +547,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
         Condition {pct(conditionOf(t))}, with {money(t.backlog ?? 0)} of maintenance owed.
       </p>
       <button type="button" className="building-info-jump" disabled={!canRenovate(t) || !canPayForWorks(s, cost)} onClick={() => act({ type: 'RENOVATE_BUILDING', id: t.id })}>
-        Renovate · {money(cost)}, eight weeks
+        Renovate · {moneyShort(cost)} · {weeksShort(RENOVATION_WEEKS)}
       </button>
       {historic}
       {extend}
@@ -566,7 +566,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
     return (
       <ConfirmButton
         className="building-info-jump quiet"
-        label={<>Call off construction · {money(t.cost)} returned</>}
+        label={<>Call off construction · {moneyShort(t.cost)} returned</>}
         armedLabel="Confirm — call it off"
         warning={<>{money(t.cost)} comes back {back}; the site is cleared.</>}
         onConfirm={() => { act({ type: 'CANCEL_CONSTRUCTION', id: t.id }); onClose(); }}
@@ -619,7 +619,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
         <p className="building-info-line">
           {(() => {
             const capacity = dormCapacity(t);
-            return capacity !== null ? `${capacity.toLocaleString()} beds` : 'Capacity unknown.';
+            return capacity !== null ? `${count(capacity)} beds` : 'Capacity unknown.';
           })()}
         </p>
       )}

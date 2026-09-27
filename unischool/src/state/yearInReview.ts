@@ -7,7 +7,7 @@ import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { gradeYear, prestigeBreakdown } from '../systems/prestige/prestigeSystem';
 import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 import { previousYear } from './history';
-import { money } from '../format';
+import { count, money, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney } from '../format';
 import { eventById } from '../systems/events/catalogue';
 import { classYears, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
 import { CAMPAIGNS } from '../data/campaignData';
@@ -59,11 +59,7 @@ function byTopic(entries: LogEntry[], topic: LogTopic): LogEntry[] {
 }
 
 function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n.toLocaleString()} ${n === 1 ? one : many}`;
-}
-
-function signed(v: number, digits = 1): string {
-  return `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(digits)}`;
+  return `${count(n)} ${n === 1 ? one : many}`;
 }
 
 // Courses finished, grouped by school. Looked up off the course id (the
@@ -143,11 +139,12 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
   const lines: ReviewLine[] = [];
   const average = trailingYearSatisfaction(s);
   const lastAverage = s.students.priorYearAvgSatisfaction;
-  const delta = average - lastAverage;
+  // From the figures as shown, so "80 against 73" reads "+7".
+  const delta = satisfactionShown(average) - satisfactionShown(lastAverage);
   lines.push({
     text: s.history.length > 0
-      ? `Satisfaction averaged ${average.toFixed(0)} this year, against ${lastAverage.toFixed(0)} last year (${signed(delta, 0)})`
-      : `Satisfaction averaged ${average.toFixed(0)} this year`,
+      ? `Satisfaction averaged ${satisfactionFigure(average)} this year, against ${satisfactionFigure(lastAverage)} last year (${signed(delta)})`
+      : `Satisfaction averaged ${satisfactionFigure(average)} this year`,
     tone: delta >= 2 ? 'good' : delta <= -2 ? 'bad' : undefined,
   });
   const raised = byTopic(entries, 'demand-raised').length;
@@ -165,7 +162,7 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
   if (leaving > 0) {
     const reasons = attritionReasons(s);
     lines.push({
-      text: `${plural(leaving, 'student')} will not return this summer — ${reasons.length > 0 ? reasons.join(', ') : `a year averaging ${average.toFixed(0)}`}`,
+      text: `${plural(leaving, 'student')} will not return this summer — ${reasons.length > 0 ? reasons.join(', ') : `a year averaging ${satisfactionFigure(average)}`}`,
       tone: 'bad',
     });
   }
@@ -176,7 +173,7 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
   const before = previousYear(s);
   const net = s.finance.cash - before.cash;
   const lines: ReviewLine[] = [
-    { text: `Net over the year: ${net >= 0 ? '+' : '−'}${money(Math.abs(net))}`, tone: net >= 0 ? 'good' : 'bad' },
+    { text: `Net over the year: ${signedMoney(net)}`, tone: net >= 0 ? 'good' : 'bad' },
     { text: `Operating funds ${money(s.finance.cash)}, against ${money(before.cash)} a year ago` },
   ];
   // Only a campaign's closing line counts: its launch and the building
@@ -191,15 +188,15 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
 function standing(s: GameState): ReviewSection {
   const card = gradeYear(s);
   const breakdown = prestigeBreakdown(s);
-  const step = card.after - card.before;
+  const step = prestigeShown(card.after) - prestigeShown(card.before);
   const lines: ReviewLine[] = [
     {
-      text: `The year graded ${card.score.toFixed(0)}: prestige ${card.before.toFixed(1)} → ${card.after.toFixed(1)} (${signed(step)})`,
+      text: `The year graded ${card.score.toFixed(0)}: prestige ${prestigeFigure(card.before)} → ${prestigeFigure(card.after)} (${signed(step, 1)})`,
       tone: step >= 0 ? 'good' : 'bad',
     },
   ];
   const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
-  if (last) lines.push({ text: `A year ago prestige stood at ${last.prestige.toFixed(1)}` });
+  if (last) lines.push({ text: `A year ago prestige stood at ${prestigeFigure(last.prestige)}` });
   // Same crossing the Standing beat reports, so the two agree.
   const passedBy = last ? buildReportPayload(s).passedBy : [];
   if (passedBy.length > 0) {
@@ -230,9 +227,9 @@ function events(s: GameState): ReviewSection {
   const row = s.catalogue?.answered?.find((a) => a.year === s.clock.year);
   if (row) {
     const parts = [
-      row.player > 0 ? `${row.player.toLocaleString()} answered by you` : '',
-      row.seat > 0 ? `${row.seat.toLocaleString()} by the seats` : '',
-      row.timeout > 0 ? `${row.timeout.toLocaleString()} left to take ${row.timeout === 1 ? 'its' : 'their'} default` : '',
+      row.player > 0 ? `${count(row.player)} answered by you` : '',
+      row.seat > 0 ? `${count(row.seat)} by the seats` : '',
+      row.timeout > 0 ? `${count(row.timeout)} left to take ${row.timeout === 1 ? 'its' : 'their'} default` : '',
     ].filter((x) => x !== '');
     lines.push({ text: `${plural(row.player + row.seat + row.timeout, 'matter')} came up: ${parts.join(', ')}` });
   }

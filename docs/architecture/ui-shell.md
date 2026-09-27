@@ -64,7 +64,9 @@ prestige, satisfaction — a glyph and a figure each, the word in the tooltip);
 the right zone stacks the clock over four round gears (pause, play, 2×, 4×);
 and between them, in one row at every width, the labelled tab row — the word
 under each glyph — and Build. The two side zones stack precisely so that row
-always fits. The school's name is not in the band: it hangs as a **pennant**
+always fits. On a phone the band folds to its figures while a tab or a
+popup is open, and the tabs scroll beside Build (Plan 76I). The school's
+name is not in the band: it hangs as a **pennant**
 in the map's top-left corner in the school's colours (`Pennant.tsx`), one
 name in one face, withheld while a tab is open because the tab's own title
 takes that corner.
@@ -105,6 +107,47 @@ be checked against:
    cream. The card's own colour is only ever the school's (a group header on
    the Curriculum tab, a committed scholar's left rule) — a red card would say
    the whole thing is wrong when one word is.
+
+## Numbers
+
+Every figure a player reads goes through `src/format.ts`, under one
+`Intl.NumberFormat('en-US')`: the game's text is English, so a German
+browser reads "$1,234,567" and "4.5%" like any other. Nothing
+player-facing calls `toLocaleString()` or writes a "$" by hand;
+`test/number-format.test.ts` holds both.
+
+- **Money, by surface.** `money` ("$1,234,567") where a sum is read
+  exactly: sentences, tooltips, the Treasury's statement, a ledger's
+  `<dl>`, the dock's funds and weekly net. `moneyShort` ("$2.7M", "$180k")
+  where prices are compared at a glance: tiles, cards, rows, chips,
+  buttons, salary tags, table cells and chart axes. The chronicle and the
+  final report look back over fifty years and speak in round sums, so they
+  take the short form too.
+- **One precision per figure.** Prestige reads one decimal everywhere, the
+  dock included, floored (`prestigeFigure`), so 69.96 is "69.9" and never
+  passes a milestone it has not met. Satisfaction and its 0–100 attribute
+  scores read whole, floored the same way (`satisfactionFigure`). A delta
+  is built from the figures as shown, so "80, against 73" says "+7".
+- **Counts** (`count`) are whole, with separators. **Fractions** are
+  tight, "5/9" and "72/100" (`fraction`); a sentence says "5 of 9".
+- **Percentages** (`pct`) are whole points. A rate of money (the draw, the
+  endowment's return, a loan's interest) reads one decimal, "4.5%",
+  wherever it appears.
+- **Signs.** A hand-built signed figure goes through `signed`,
+  `signedPct` or `signedMoney`: a true minus (−), a plus for a gain, and
+  no sign on a change that rounds to zero.
+- **Multipliers** read "×1.54", with no space (`multiplier`).
+- **Durations.** Chips, buttons and map labels say "8w" (`weeksShort`),
+  derived from the constant that sets them; prose says weeks, or whole
+  years (`weeksProse`). Rates read "/wk" and "/yr", with no space.
+- **The game date** has one form, "Year 9 · Fall Term · Week 2"
+  (`gameDate`): the dock, the title screen and every dated letter. The log
+  keeps its compact "Y9W2" stamp. The one real date, a set-aside save's,
+  is written in English (`calendarDate`); the Hall of fame's plaques carry
+  game years only.
+- **A warning on a chip.** A stat chip is cream, so its warning takes the
+  paper red, `--bad-on-light` (`.stat-warn`), not the band's
+  `--bad-on-dark`.
 
 ## Keyboard
 

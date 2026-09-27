@@ -115,6 +115,13 @@ a sequence of PRs.*
     athletics, the essay ring's enrollment cost spread over the class
     years, repair letters that load backlog onto the named building, and
     the sinkhole and the ivy drawn on the map.
+- **The Selective archetype restaffs** (found by Plan 76D). When a
+  professor leaves, the Selective harness player hires only for blocked
+  courses. Its academic score can sit below the 65 at which it builds
+  for its worst need, and since nothing on the build menu serves
+  academic, it stops building for the rest of the game and banks the
+  cash (seed 12345, from year 16). It should restaff or retune a weak
+  course the way the Guided player does (`tendTeaching`).
 - **Confidence the board acts on** (A2-2). Board confidence moves under
   many answers and is read by six events, one promise and the Treasury;
   no rung, budget or dismissal reads it. Plan 76 says what it does where
@@ -126,7 +133,11 @@ a sequence of PRs.*
   research methods, anthropological theory, modern philosophy,
   non-Western history), no major has a senior seminar, the JD has no
   Professional Responsibility, and the MD has no internal medicine,
-  pediatrics or obstetrics. Each change moves course ids in every save.
+  pediatrics or obstetrics. Plan 76G rewrote sentences rather than move
+  courses where the audit swaps or renumbers them; the moves themselves
+  wait here: FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and
+  bridges before ACCT110 and MATH130. Each change moves course ids in
+  every save.
 
 - **Walks that draw straight** (the October review, A1-7). A walk is a run
   of square tiles with no diagonal piece, so a diagonal walk draws as a

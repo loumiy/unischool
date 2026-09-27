@@ -8,6 +8,7 @@ import { givingOf } from './giving';
 import { absoluteWeek } from '../../data/eventData';
 import { heldSeat } from '../delegation/seats';
 import { inTitleYear } from '../../data/studentLifeData';
+import { money } from '../../format';
 
 // ADVANCEMENT (Plan 30, from v2's campaigns.ts). A campaign is the ledger's
 // payoff: a multi-year ask whose weekly take is each class's answer, by
@@ -58,7 +59,7 @@ export function launchCampaign(s: GameState, id: string): boolean {
   if (!def) return false;
   const target = Math.round((yearlyResponse(s, def) * def.years * CAMPAIGN_TARGET_STRETCH) / 100_000) * 100_000;
   s.advancement = { ...advancementOf(s), running: { campaignId: id, startedYear: s.clock.year, dueYear: s.clock.year + def.years, dueWeek: absoluteWeek(s) + def.years * WEEKS_PER_YEAR, raised: 0, target } };
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'money', message: `${def.title} is launched: $${(target / 1e6).toFixed(1)}M over ${def.years} years.` });
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'money', message: `${def.title} is launched: ${money(target)} over ${def.years} years.` });
   return true;
 }
 

@@ -160,7 +160,9 @@ for (const [w, h] of SIZES) {
   await build.scrollIntoViewIfNeeded();
   await build.tap();
   await check('build');
-  await build.tap();
+  // On a phone the dock folds while the menu is open (Plan 76I), so the
+  // menu's own close puts it away.
+  await close();
   await page.waitForTimeout(300);
   const menu = page.locator('.main-menu-btn');
   if (await menu.count()) {

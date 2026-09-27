@@ -338,7 +338,10 @@ export default function App() {
             corner while a tab is open. */}
         {!overlay && <Pennant s={s} act={act} />}
 
-        <div className="app">
+        {/* dock-folded: something is open over the map, so on a phone the
+            dock folds to its figures (styles.css's phone rules); each of
+            these has its own close, which unfolds it. */}
+        <div className={`app${overlay || buildOpen || logOpen || ladderOpen ? ' dock-folded' : ''}`}>
           {/* What waits on the map: the notes and the event panel step aside
               while a tab is open, and the ticker's NEXT points back to them
               (Plan 34: one notification system, V1-34). */}

@@ -6,6 +6,7 @@ import { nextStep, waitingOnMap, type NextStep } from '../systems/guidance/nextS
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import type { Progress } from '../data/ladderData';
 import LadderPanel from './LadderPanel';
+import { count, prestigeFigure } from '../format';
 
 // One line, always on screen above the toolbar (styles.css's .log-ticker):
 // the newest entry in s.log (newest first). Only the icon on the left is a
@@ -21,9 +22,9 @@ import LadderPanel from './LadderPanel';
 // While a tab hides the map (`mapHidden`), NEXT first points back to what
 // waits there (nextStep.ts's waitingOnMap: the board, an event, a
 // milestone, a demand), pulsing when it will not wait long (Plan 34).
-// A milestone's progress as a count: "12/13 courses", "96.4/100 prestige".
+// A milestone's progress as a count: "12/13 courses", "96.4/100.0 prestige".
 function figure(n: number, unit: string): string {
-  return unit === 'prestige' ? n.toFixed(1) : Math.floor(n).toLocaleString();
+  return unit === 'prestige' ? prestigeFigure(n) : count(Math.floor(n));
 }
 function progressShort(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)}/${figure(p.target, p.unit)}`;

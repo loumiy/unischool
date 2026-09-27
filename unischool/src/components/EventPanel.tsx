@@ -6,7 +6,7 @@ import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCa
 import { absoluteWeek } from '../data/eventData';
 import { eventById, eventText, fill, scaledEffects } from '../systems/events/catalogue';
 import { catalogueOf, choiceCost } from '../systems/events/catalogueEngine';
-import { money } from '../format';
+import { money, signed, signedMoney } from '../format';
 import { debtOutstanding } from '../systems/finance/treasury';
 import { promiseById } from '../data/promiseData';
 import { promiseTitle } from '../systems/promises/promises';
@@ -25,8 +25,6 @@ const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
   advancement: 'Advancement',
 };
 
-const signed = (v: number) => (v > 0 ? `+${v}` : `${v}`);
-
 // What an answer does, a phrase per lever.
 function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
   const out: string[] = [];
@@ -37,7 +35,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       case 'endowment': {
         // A draw stops at what the fund holds (catalogue.ts floors it at 0).
         const moved = v < 0 ? Math.min(-v, Math.max(0, s.finance.endowment)) : v;
-        if (moved > 0) out.push(`endowment ${v < 0 ? '−' : '+'}${money(moved)}`);
+        if (moved > 0) out.push(`endowment ${signedMoney(v < 0 ? -moved : moved)}`);
         break;
       }
       case 'debt': {
