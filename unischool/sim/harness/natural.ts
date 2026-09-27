@@ -18,9 +18,10 @@
 //      ask), so a program keeps seating students.
 //   3. At four academic halls (seven until Plan 69), Founders Hall
 //      included, the programs are sorted so every school has its hall:
-//      strays moved home as the game suggests, and a school spread over
-//      two halls merged into one when another school's offer has nowhere
-//      to go.
+//      strays moved home as the game suggests, including a school spread
+//      over two halls merged into one when another school's offer has
+//      nowhere to go (the game's suggestion since Plan 72L; this player
+//      did it on its own before).
 //   4. Varsity. Every petition is accepted, its venue built at once, and
 //      every vacant coaching chair filled with the best candidate listed.
 //   5. Research. Every idle lab funds the deepest initiative whose team
@@ -51,8 +52,7 @@ import { isAcademicHall, programById, programOfCourse } from '../../src/data/tec
 import { GRADUATE_HOSTS } from '../../src/data/projectData';
 import { initiativeOffers } from '../../src/data/researchData';
 import { TRAINER_FIELD, venueForCategory } from '../../src/data/studentLifeData';
-import { canRelocateProgram, canStartDevelopment, hasFreeFacultySlot, planCommitmentCoverage } from '../../src/systems/techtree/techSystem';
-import { claimedSchool, schoolHall } from '../../src/systems/techtree/schools';
+import { canStartDevelopment, hasFreeFacultySlot, planCommitmentCoverage } from '../../src/systems/techtree/techSystem';
 import { hostOffers } from '../../src/systems/techtree/programOffers';
 import { weeklyNet } from '../../src/systems/finance/financeSystem';
 import { giftFunds } from '../../src/systems/finance/treasury';
@@ -208,37 +208,6 @@ function satisfaction(g: Game, record: NaturalRecord): void {
 }
 
 // ---- Rule 3: schools ----
-
-// A school spread over two halls while a school with a program on offer has
-// none: the smaller hall's programs move into the larger, freeing it. The
-// game's suggestion (schools.ts's suggestedMove) only brings strays home,
-// so it never frees the second hall, and offers change only when one is
-// founded: without this a homeless school's offers stand forever.
-function consolidate(g: Game): void {
-  const s = g.s;
-  const homeless = s.programOffers
-    .map((id) => programById(id)?.school)
-    .filter((school): school is string => !!school && schoolHall(s, school) === undefined);
-  if (homeless.length === 0) return;
-  const bySchool = new Map<string, string[]>();
-  for (const hallId of Object.keys(s.halls)) {
-    const claim = claimedSchool(s, hallId);
-    if (claim) bySchool.set(claim.school, [...(bySchool.get(claim.school) ?? []), hallId]);
-  }
-  const housed = (hallId: string) => g.s.halls[hallId].filter((x) => x.programId !== null).length;
-  for (const halls of bySchool.values()) {
-    if (halls.length < 2) continue;
-    const [keep, ...spare] = [...halls].sort((a, b) => housed(b) - housed(a));
-    for (const from of spare) {
-      const programIds = g.s.halls[from].map((x) => x.programId).filter((x): x is string => x !== null);
-      for (const programId of programIds) {
-        const slot = g.s.halls[keep].findIndex((x) => x.programId === null);
-        const move = { programId, hallId: keep, slot };
-        if (slot >= 0 && canRelocateProgram(g.s, move)) g.act({ type: 'RELOCATE_PROGRAM', ...move });
-      }
-    }
-  }
-}
 
 // ---- Rule 2: programs ----
 
@@ -461,7 +430,6 @@ export function createNaturalPlayer(): Player & { record: NaturalRecord } {
       if (academicHalls(g.s) >= SORT_AT_HALLS) {
         record.sortedFrom ??= g.s.clock.year;
         for (let i = 0; i < MAX_PER_RULE && moveHome(g); i += 1);
-        consolidate(g);
       }
       foundEveryOffer(g);
       nextHallIfFull(g);
