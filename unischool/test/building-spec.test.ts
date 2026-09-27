@@ -27,7 +27,8 @@ import {
   windowOutline, windowShapeOf, variesByVernacular, VERNACULAR_INVARIANT_MOTIFS,
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
   VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
-  IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS,
+  IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS, IMPLEMENTED_CREST_PARTS,
+  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf,
   storeysOf, wallHeightOf, wallShadeOf,
@@ -689,7 +690,6 @@ console.log('campus scale and building spec');
 // section 13: the claim is that it is invisible, so the pre-refactor values
 // are written out here by hand and compared.
 {
-  const V = FOUNDING_VERNACULAR;
 
   // The ridge table, exactly as it read before it was keyed by vernacular —
   // plus the ONE deliberate change since: the pavilions are pitched (the
@@ -741,14 +741,26 @@ console.log('campus scale and building spec');
     assert(pts.some(([, v]) => v < 0.3 + 1e-9), `a ${shape} opening actually reaches its sill`);
   }
 
-  // THE INVARIANT SIX, enforced rather than described. This is the check
-  // that stops a future set PR quietly restyling the gym.
-  assert(VERNACULAR_INVARIANT_MOTIFS.length === 7, 'seven motifs are vernacular-invariant');
+  // THE INVARIANT SEVEN, enforced rather than described. This is the check
+  // that stops a future set PR quietly restyling the stadium. Their MASSING
+  // never varies; since Plan 74E three of them (block, works, hangar) take
+  // the vernacular's SURFACE, and only those three.
+  assert(VERNACULAR_INVARIANT_MOTIFS.length === 7, 'seven motifs are vernacular-invariant in their massing');
+  assert(SURFACE_FOLLOWS_MOTIFS.length === 3 && SURFACE_FOLLOWS_MOTIFS.every((m) => !variesByVernacular(m)),
+    'three of them take the vernacular\'s surface');
   for (const t of CATALOGUE) {
     const m = motifOf(t);
     if (variesByVernacular(m)) continue;
-    assert(paneShapeOf(t, V) === 'rect',
-      `${t.id} (${m}) keeps rectangular openings whatever the vernacular`);
+    for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+      if (surfaceFollowsVernacular(m)) {
+        assert(paneShapeOf(t, vname) === windowShapeOf(vname),
+          `${t.id} (${m}) takes '${vname}' windows (got ${paneShapeOf(t, vname)})`);
+      } else {
+        assert(paneShapeOf(t, vname) === 'rect',
+          `${t.id} (${m}) keeps rectangular openings in '${vname}'`);
+        assert(crestOf(t, vname) === 'none', `${t.id} (${m}) wears no crest in '${vname}'`);
+      }
+    }
   }
   // No vernacular may pitch a roof onto one of them either — a Gothic gym
   // is still a shed, and a ridge is the loudest way to break that.
@@ -797,11 +809,16 @@ console.log('campus scale and building spec');
   }
 
   // And the gate holds at the level the renderer actually asks at: every
-  // invariant building answers 'none', whatever the table says.
+  // invariant building answers 'none', whatever the table says, except the
+  // block, lab and shed, which wear the vernacular's surface entrance
+  // (Plan 74E).
   for (const t of CATALOGUE) {
     if (variesByVernacular(motifOf(t))) continue;
-    assert(entrancePartOf(t, V) === 'none',
-      `${t.id} (${motifOf(t)}) has no applied entrance in any vernacular`);
+    for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+      const expected = surfaceFollowsVernacular(motifOf(t)) ? partsFor(vname).surfaceEntrance : 'none';
+      assert(entrancePartOf(t, vname) === expected,
+        `${t.id} (${motifOf(t)}) has entrance '${expected}' in '${vname}' (got ${entrancePartOf(t, vname)})`);
+    }
   }
 
   // The apex belongs to the one building that has one. The vernacular says
@@ -823,7 +840,15 @@ console.log('campus scale and building spec');
       `vernacular '${vname}' names roofline end '${spec.parts.rooflineEnd}', which nothing draws yet`);
     assert(IMPLEMENTED_APEX_PARTS.includes(spec.parts.apex),
       `vernacular '${vname}' names apex '${spec.parts.apex}', which nothing draws yet`);
+    assert(IMPLEMENTED_ENTRANCE_PARTS.includes(spec.parts.surfaceEntrance),
+      `vernacular '${vname}' names surface entrance '${spec.parts.surfaceEntrance}', which nothing draws yet`);
+    assert(IMPLEMENTED_CREST_PARTS.includes(spec.parts.crest),
+      `vernacular '${vname}' names crest '${spec.parts.crest}', which nothing draws yet`);
   }
+  // No two vernaculars dress the invariant massing alike (Plan 74E): the
+  // whole point is that the founding choice shows on the science block.
+  const dress = Object.values(VERNACULARS).map((spec) => `${spec.parts.surfaceEntrance}|${spec.parts.crest}|${spec.windowShape}`);
+  assert(new Set(dress).size === dress.length, `every vernacular dresses a block its own way (${dress.join(', ')})`);
   assert(rooflineEndPartOf(V) === 'pavilion', 'and the roofline-end lookup agrees with the table');
 }
 

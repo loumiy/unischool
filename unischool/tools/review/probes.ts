@@ -22,7 +22,7 @@
 // ---------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import { campusLayout } from '../../src/components/campusLayout';
-import { RESIDENCE_FORMS, VERNACULAR_CHOICES, entrancePartOf, labFeatureOf, materialOf, motifOf, signatureOf, variesByVernacular } from '../../src/components/buildingSpec';
+import { RESIDENCE_FORMS, VERNACULAR_CHOICES, entrancePartOf, labFeatureOf, materialOf, motifOf, signatureOf, surfaceFollowsVernacular, variesByVernacular } from '../../src/components/buildingSpec';
 import { initialTech } from '../../src/data/techData';
 import { initialDorms } from '../../src/data/campusData';
 import { initialFacilities } from '../../src/data/facilitiesData';
@@ -49,7 +49,7 @@ function vernacular(): void {
   for (const path of files) {
     const s = load(path);
     const L = campusLayout(s);
-    let n = 0; let nv = 0; let area = 0; let areaV = 0;
+    let n = 0; let nv = 0; let ns = 0; let area = 0; let areaV = 0; let areaS = 0;
     const looks = new Map<string, string[]>();
     for (const e of L.placed) {
       const m = motifOf(e.t);
@@ -57,6 +57,7 @@ function vernacular(): void {
       const a = e.p.w * e.p.h;
       n += 1; area += a;
       if (variesByVernacular(m)) { nv += 1; areaV += a; }
+      if (surfaceFollowsVernacular(m)) { ns += 1; areaS += a; }
       const sig = signatureOf(e.t);
       const look = [m, materialOf(e.t, s.self.vernacular).wall, sig ? `${sig.material}${sig.feature ? `+${sig.feature}` : ''}` : '',
         labFeatureOf(e.t) ?? '', RESIDENCE_FORMS[e.t.id] ?? '', `${e.p.w}x${e.p.h}`].join('|');
@@ -64,6 +65,7 @@ function vernacular(): void {
     }
     console.log(`\n## ${short(path)}: year ${s.clock.year}, ${s.self.vernacular}`);
     console.log(`buildings (open ground left out): ${n}; restyled by the vernacular: ${nv} (${Math.round((100 * nv) / Math.max(1, n))}%), ${Math.round((100 * areaV) / Math.max(1, area))}% of their footprint area`);
+    console.log(`wearing the vernacular's surface (Plan 74E: its massing, or its windows, entrance and crest): ${ns} (${Math.round((100 * ns) / Math.max(1, n))}%), ${Math.round((100 * areaS) / Math.max(1, area))}% of their footprint area`);
     console.log(`distinct looks: ${looks.size}; drawn more than once:`);
     for (const [look, ids] of [...looks].filter(([, ids]) => ids.length > 1).sort((a, b) => b[1].length - a[1].length)) {
       console.log(`  ${ids.length}× ${look}: ${ids.join(' ')}`);

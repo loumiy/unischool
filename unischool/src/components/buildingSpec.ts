@@ -682,6 +682,14 @@ export type EntrancePart =
 // What closes the ends of a pitched roofline.
 export type RooflineEndPart = 'pavilion' | 'none';
 
+// What finishes the parapet of a flat-roofed block, lab or shed (Plan 74E).
+export type CrestPart =
+  | 'coping'     // a stone coping in the trim
+  | 'merlons'    // crenellations — Gothic
+  | 'balustrade' // balusters under a rail — Classical
+  | 'tile'       // a clay-tile coping — Mission
+  | 'none';
+
 // What stands on top of the campus's one landmark (see hasClockTower).
 export type ApexPart =
   | 'cupola'     // drum, dome and finial — the gilded thing
@@ -715,6 +723,10 @@ export interface VernacularParts {
   balustrade?: boolean;
   // Modern: the civic set is curtain wall from plinth to eaves.
   glazedCivic?: boolean;
+  // The surface the invariant massing wears (Plan 74E): the way in at a
+  // block's, a lab's or a shed's door, and the crest on its parapet.
+  surfaceEntrance: EntrancePart;
+  crest: CrestPart;
 }
 
 // How a building is massed: one solid mass, or stacked slabs with a
@@ -754,6 +766,8 @@ const GEORGIAN: VernacularSpec = {
     },
     rooflineEnd: 'pavilion',
     apex: 'cupola',
+    surfaceEntrance: 'canopy',
+    crest: 'coping',
     chimneys: true,
   },
   massing: 'solid',
@@ -822,6 +836,8 @@ const GOTHIC: VernacularSpec = {
     // A gable end closes its own roofline.
     rooflineEnd: 'none',
     apex: 'spire',
+    surfaceEntrance: 'canopy',
+    crest: 'merlons',
     hood: true,
     chimneys: true,
     dormers: true,
@@ -880,6 +896,8 @@ const MODERN: VernacularSpec = {
     },
     rooflineEnd: 'none',
     apex: 'core',
+    surfaceEntrance: 'canopy',
+    crest: 'none',
     glazedCivic: true,
   },
   massing: 'solid',
@@ -927,6 +945,8 @@ const CLASSICAL: VernacularSpec = {
     },
     rooflineEnd: 'none',
     apex: 'dome',
+    surfaceEntrance: 'portico',
+    crest: 'balustrade',
     grandPortico: true,
     balustrade: true,
   },
@@ -983,6 +1003,8 @@ const MISSION: VernacularSpec = {
     },
     rooflineEnd: 'none',
     apex: 'campanile',
+    surfaceEntrance: 'archway',
+    crest: 'tile',
     bellGable: true,
   },
   massing: 'solid',
@@ -1013,9 +1035,10 @@ export function windowShapeOf(v: Vernacular): WindowShape {
   return VERNACULARS[v].windowShape;
 }
 
-// The seven motifs no vernacular may restyle: a Gothic campus's gym is still a
-// shed and its hospital a modern hospital, and a grand landmark is its own
-// statement (landmarks.tsx).
+// The seven motifs whose massing no vernacular may change: a Gothic campus's
+// gym is still a shed and its hospital a modern hospital, and a grand
+// landmark is its own statement (landmarks.tsx). Three of them still wear
+// the vernacular's surface; see SURFACE_FOLLOWS_MOTIFS.
 export const VERNACULAR_INVARIANT_MOTIFS = [
   'grounds',  // a gridiron is a gridiron
   'bowl',     // a concrete stadium in every era
@@ -1030,10 +1053,23 @@ export function variesByVernacular(m: Motif): boolean {
   return !(VERNACULAR_INVARIANT_MOTIFS as readonly Motif[]).includes(m);
 }
 
+// Three of the seven keep their massing but take the vernacular's surface
+// (Plan 74E): a Gothic science block is still a flat-roofed block, but it
+// has lancets, merlons and a hooded door; a Mission one arched windows, a
+// tile coping and an arched porch. By year 50 the school halls built on
+// these motifs are most of a campus, so without this about half of it
+// looked the same whatever was chosen at the founding (review A1-1). Their
+// walls stay invariant materials; see materialOf.
+export const SURFACE_FOLLOWS_MOTIFS = ['block', 'works', 'hangar'] as const satisfies readonly Motif[];
+
+export function surfaceFollowsVernacular(m: Motif): boolean {
+  return variesByVernacular(m) || (SURFACE_FOLLOWS_MOTIFS as readonly Motif[]).includes(m);
+}
+
 // What shape this building's openings are. The invariance is enforced here,
 // not at each place a window is drawn.
 export function paneShapeOf(t: Buildable, v: Vernacular): WindowShape {
-  return variesByVernacular(motifOf(t)) ? windowShapeOf(v) : 'rect';
+  return surfaceFollowsVernacular(motifOf(t)) ? windowShapeOf(v) : 'rect';
 }
 
 export function massingOf(t: Buildable, v: Vernacular): Massing {
@@ -1067,11 +1103,25 @@ export function partsFor(v: Vernacular): VernacularParts {
   return VERNACULARS[v].parts;
 }
 
-// What goes at this building's entrance; the invariant six always get 'none'.
+// What goes at this building's entrance: the table's part for a varying
+// motif, the vernacular's surface entrance for a block, lab or shed, and
+// nothing for the other invariant motifs.
 export function entrancePartOf(t: Buildable, v: Vernacular): EntrancePart {
   const motif = motifOf(t);
-  if (!variesByVernacular(motif)) return 'none';
+  if (!variesByVernacular(motif)) return surfaceFollowsVernacular(motif) ? partsFor(v).surfaceEntrance : 'none';
   return partsFor(v).entrance[motif] ?? 'none';
+}
+
+// What finishes a flat parapet on a block, lab or shed; 'none' elsewhere.
+export function crestOf(t: Buildable, v: Vernacular): CrestPart {
+  const motif = motifOf(t);
+  return !variesByVernacular(motif) && surfaceFollowsVernacular(motif) ? partsFor(v).crest : 'none';
+}
+
+// The vernacular's roof, which the invariant massing wears on its plant
+// screens and a tile coping (Plan 74E): the academic hall's own roof.
+export function surfaceRoofOf(v: Vernacular): string {
+  return materialsFor(v).brickRed.roof;
 }
 
 export function rooflineEndPartOf(v: Vernacular): RooflineEndPart {
@@ -1087,6 +1137,7 @@ export function apexPartOf(v: Vernacular): ApexPart {
 export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'archway', 'none'];
 export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
 export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'none'];
+export const IMPLEMENTED_CREST_PARTS: CrestPart[] = ['coping', 'merlons', 'balustrade', 'tile', 'none'];
 
 // Whether this vernacular has a roof at all: derived (something pitched or a
 // parapet), not declared, so it cannot be flagged off to dodge the palette check.
