@@ -4,7 +4,7 @@
 the October review into PRs, after Plans 74 to 78 took some of its entries
 with the areas they belong to.*
 
-**Status: Proposed.**
+**Status: Landed.** A to E merged (#240–#244).
 
 ---
 
@@ -305,7 +305,7 @@ stale tab's close writes its older game over the newer one, silently.
   pairings, its ambitions files and its grades.
 - **Checks:** `npm run newplayer` and each fixed scenario run to the end.
 
-**As implemented (#TBD):**
+**As implemented (#244):**
 
 - **`newplayer`** presses the title screen's New game, then founds.
   - It then ran out of time. 4× waits for a Provost, so its click on the
