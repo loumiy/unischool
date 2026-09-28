@@ -776,12 +776,23 @@ button.build-tile { font-family: inherit; }
 .hall-offer-name { font-weight: 700; font-size: var(--text-sm); }
 .hall-offer-meta { color: var(--ink-muted); font-weight: 600; }
 .hall-offer-picker .instructor-options { margin-bottom: 6px; }
-/* A global offer and its decline (Plan 78D): the tile, and under it a quiet
-   "Not this year" at the right. */
-.hall-offer-choice { display: flex; flex-direction: column; gap: var(--space-4); }
-.hall-offer-choice > .confirm-button { align-self: flex-end; align-items: flex-end; }
+/* A global offer and its decline (Plan 78D): the tile, narrowed, and beside
+   it a quiet "Not this year" (Plan 80B). Armed, the decline's longer words
+   take a line of their own under the tile. */
+.hall-offer-choice { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--space-4) var(--space-6); }
+.hall-offer-choice > .hall-offer-tile { flex: 1 1 0; min-width: 0; }
+.hall-offer-choice > .confirm-button { flex: none; align-items: stretch; }
+.hall-offer-choice > .confirm-button > button { flex: 1 1 auto; }
+.hall-offer-choice > .confirm-button.is-armed { flex: 1 0 100%; }
+.hall-offer-choice > .confirm-button.is-armed > button { white-space: normal; text-align: left; }
 .hall-offer-decline { padding: var(--space-2) var(--space-8); font-size: var(--text-xs); }
 .hall-offer-note { color: var(--ink-muted); margin: 0 0 8px; }
+/* A lab's project on its map panel (Plan 80B): the topic, its depth and
+   weeks, and the Research tab's own progress track. */
+.lab-project { display: flex; flex-direction: column; gap: 1px; }
+.lab-project-name { font-weight: 700; }
+.lab-project-meta { font-size: var(--text-xs); font-weight: 600; color: var(--ink-muted); }
+.lab-project-track { margin: 0 0 4px; }
 .building-info-takedown { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--outline); }
 .building-info-confirm { display: flex; gap: 8px; }
 .building-info-confirm .building-info-jump { margin-top: 0; }
@@ -1350,6 +1361,14 @@ button.build-tile { font-family: inherit; }
   .next-up.with-committee { grid-template-columns: minmax(0, 1fr); }
   .committee { border-left: none; border-top: 2px dashed var(--parchment-line); padding: 10px 0 0; }
 }
+/* The Curriculum's head since Plan 80B: the committee alone, its seats in
+   one row where there is room, and the line of departments under it. */
+.committee-box .committee { border: none; padding: 0; }
+@media (min-width: 761px) { .committee-box .committee-seats { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+.committee-faculty { margin: 0; padding-top: 8px; border-top: 2px dashed var(--parchment-line);
+  font-size: var(--text-sm); font-weight: 600; color: var(--ink); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
+.committee-faculty-label { color: var(--bad-on-light); font-weight: 800; }
+.committee-faculty .committee-faculty-door { display: inline; margin: 0 0 0 auto; }
 .next-up-label { flex: none; min-width: 108px; font-family: var(--display); font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--school-on-primary); background: var(--school-primary); border-radius: var(--radius-pill); padding: 3px 9px; font-weight: 800; text-align: center; }
 .next-up-body { font-size: var(--text-sm); color: var(--ink); font-weight: 600; }
@@ -1404,6 +1423,8 @@ button.build-tile { font-family: inherit; }
 .program-row-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
 .program-row-head h4 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
 .program-row-hall { font-size: var(--text-2xs); font-weight: 700; color: var(--ink-muted); }
+/* A row in the Graduate School: its home school's mark (Plan 80B). */
+.program-row-mark { color: var(--school-hue, var(--ink-muted)); font-size: var(--text-md); line-height: 1; }
 .collapse-toggle { border: 0; background: none; padding: 0 2px; font-size: var(--text-sm); line-height: 1; color: inherit; cursor: pointer; }
 .program-row.collapsed { padding-bottom: 6px; }
 /* An unstaffed program is dark (Plan 59). */
@@ -1528,6 +1549,23 @@ button.build-tile { font-family: inherit; }
 .facility-rate { margin-left: auto; }
 
 .offer-set { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+/* Under the offer cards, with room above it (Plan 80B). */
+.empty-note.landmark-note { margin-top: var(--space-12); }
+
+/* The Research Park's progress (ResearchTab.tsx's ResearchParkProgress). */
+.research-park { margin-top: var(--space-16); border-top: 2px dashed var(--parchment-line); }
+.research-park-line, .research-park-count, .research-park-note { margin: 0 0 6px; font-size: var(--text-sm); color: var(--ink); line-height: 1.4; }
+.research-park-count b { font-family: var(--display); font-weight: 800; }
+.research-park-note { font-size: var(--text-xs); color: var(--ink-muted); font-style: italic; }
+.research-park-labs { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.research-park-labs li { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px;
+  border: 2px solid var(--outline); border-radius: var(--radius-pill); background: var(--cream-hi);
+  font-size: var(--text-xs); font-weight: 700; color: var(--ink); }
+.research-park-labs li.waiting { border-style: dashed; border-color: var(--parchment-line); background: transparent; }
+.research-park-labs svg { width: 14px; height: 14px; flex: none; }
+.research-park-labs li.finished svg { color: var(--ok-on-light); }
+.research-park-labs li.waiting svg { color: var(--ink-muted); }
+.research-park-lab-state { font-weight: 600; color: var(--ink-muted); }
 .offer { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: var(--inset-card);
   border: 2px solid var(--outline); border-radius: var(--radius-md); background: var(--cream-hi); color: var(--ink);
   cursor: pointer; font-family: inherit; box-shadow: var(--shadow-1); }

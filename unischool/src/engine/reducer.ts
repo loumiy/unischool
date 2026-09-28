@@ -633,7 +633,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'RESTAFF':
-      restaff(s, action.school ?? undefined);
+      restaff(s, action.school ?? undefined, action.courseIds);
       return s;
 
     // The Deans' plans, one per school (eventSystem.ts): accepted, each is

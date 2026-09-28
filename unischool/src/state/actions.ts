@@ -154,8 +154,9 @@ export type Action =
   // The one-time College -> University charter offer; cosmetic.
   | { type: 'RENAME_COLLEGE'; name: string; suffix: 'College' | 'University' }
   // Restaffing (Plan 59, systems/faculty/restaffing.ts): every unstaffed
-  // course of a school, or of the college when school is null.
-  | { type: 'RESTAFF'; school: string | null }
+  // course of a school, or of the college when school is null; `courseIds`
+  // narrows it to a Curriculum section's courses (Plan 80B).
+  | { type: 'RESTAFF'; school: string | null; courseIds?: string[] }
   // The Deans' year-end recommendations: accept every school's plan, or not.
   | { type: 'RESOLVE_DEAN_RECOMMENDATIONS'; accept: boolean }
   // `candidate` is the whole person: they exist only in the interrupt

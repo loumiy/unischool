@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState, Initiative } from '../state/types';
 import {
   availableScholars, depthOpen, initiativeDepth, initiativeOffers,
-  initiativeWeeklyOutput, interdisciplinaryBonus, teamStrength,
+  initiativeWeeklyOutput, interdisciplinaryBonus, RESEARCH_PARK_ID, teamStrength,
   type InitiativeOffer,
 } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
@@ -14,7 +14,10 @@ import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 import { rankBy } from '../systems/rivals/rivalsSystem';
 import { decimal, money, moneyShort, multiplier, pct, weeksProse, weeksShort } from '../format';
-import { CloseIcon, RemoveIcon } from '../components/icons';
+import { CloseIcon, RemoveIcon, StatusIcon } from '../components/icons';
+import { projectOpens } from '../data/projectData';
+import { labsTowardPark, projectOpen } from '../systems/estate/projects';
+import { standsOnCampus } from '../state/types';
 
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
@@ -67,7 +70,7 @@ function RunningPanel(
   const fields = new Set(team.map((f) => f.field));
 
   return (
-    <section className="facility-panel running">
+    <section className="facility-panel running" data-lab={lab.id}>
       <header className="facility-head">
         <span className="facility-name">
           {lab.name}
@@ -115,10 +118,15 @@ function RunningPanel(
 // A vacant facility and its offer set: one card per depth tier, each with a
 // topic this school could lead.
 function VacantPanel(
-  { s, act, lab }:
-  { s: GameState; act: (a: Action) => void; lab: Buildable },
+  { s, act, lab, startRequested = false }:
+  {
+    s: GameState; act: (a: Action) => void; lab: Buildable;
+    // The lab's map panel asked for its choices ("Start research", Plan 80B).
+    startRequested?: boolean;
+  },
 ) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startRequested);
+  useEffect(() => { if (startRequested) setOpen(true); }, [startRequested]);
   const [picked, setPicked] = useState<InitiativeOffer | null>(null);
   const [team, setTeam] = useState<string[]>([]);
 
@@ -148,6 +156,7 @@ function VacantPanel(
     // An open offer set takes the full row width.
     <section
       className={`facility-panel vacant${open ? ' expanded' : ''}`}
+      data-lab={lab.id}
       onKeyDown={(e) => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); setPicked(null); setTeam([]); } }}
     >
       <header className="facility-head">
@@ -203,7 +212,7 @@ function VacantPanel(
         </div>
       )}
       {open && !depthOpen(s, 'landmark') && (
-        <p className="empty-note">Landmark Programs, four scholars across disciplines over five years, are commissioned once the Research Park stands.</p>
+        <p className="empty-note landmark-note">Landmark Programs, four scholars across disciplines over five years, are commissioned once the Research Park stands.</p>
       )}
 
       {open && picked && !picked.blockedReason && (
@@ -286,7 +295,62 @@ function VacantPanel(
   );
 }
 
-export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+// The Research Park's progress (Plan 80B): it waits on every standing lab
+// having finished a project (projects.ts's everyLabFinished), so the count,
+// each lab marked, and what a new lab does to it. Gone once the park stands.
+function ResearchParkProgress({ s }: { s: GameState }) {
+  const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
+  if (!park?.project || standsOnCampus(park)) return null;
+  const labs = labsTowardPark(s);
+  if (labs.length === 0) return null;
+  const finished = labs.filter((l) => l.finished).length;
+  const weeksLeft = park.status === 'developing' ? s.developing[park.id] : undefined;
+  return (
+    <section className="research-park" aria-label="The Research Park">
+      <h3 className="facility-group-head">The Research Park</h3>
+      {weeksLeft !== undefined ? (
+        <p className="research-park-line">Going up: {weeksShort(weeksLeft)} left. Landmark Programs open when it stands.</p>
+      ) : (
+        <>
+          <p className="research-park-line">
+            {projectOpens(park.project)}
+            {projectOpen(s, park) && ' It is open: build it from the capital projects in the build menu.'}
+          </p>
+          <p className="research-park-count">Labs that have finished a project: <b>{finished} of {labs.length}</b></p>
+          <ul className="research-park-labs">
+            {labs.map(({ lab, finished: done }) => (
+              <li key={lab.id} className={done ? 'finished' : 'waiting'}>
+                <StatusIcon status={done ? 'done' : 'pending'} />
+                <span>{lab.name}</span>
+                <span className="research-park-lab-state">{done ? 'finished one' : 'not yet'}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="research-park-note">A new lab raises the count: it has to finish a project too.</p>
+        </>
+      )}
+    </section>
+  );
+}
+
+export default function ResearchTab({ s, act, target, onTargetConsumed }: {
+  s: GameState; act: (a: Action) => void;
+  // Where to land (Plan 80B, from a lab's map panel): "lab:<id>" scrolls to
+  // its panel, "start:<id>" also opens its project choices. Consumed and
+  // cleared by the caller.
+  target?: string;
+  onTargetConsumed?: () => void;
+}) {
+  // The lab a "start:" target opens. Read while the target stands, so each
+  // request opens it again even after the player folded it.
+  const startLab = target?.startsWith('start:') ? target.slice('start:'.length) : null;
+  useEffect(() => {
+    if (!target) return;
+    const labId = target.replace(/^(lab|start):/, '');
+    window.setTimeout(() => document.querySelector(`[data-lab="${CSS.escape(labId)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+    onTargetConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
   const researchRank = rankBy(s, 'researchStanding');
   const schools = researchSchools().filter((school) => school.labIds.length > 0);
   const facilities = schools.flatMap((school) =>
@@ -343,11 +407,12 @@ export default function ResearchTab({ s, act }: { s: GameState; act: (a: Action)
                 </h3>
                 <div className="facility-list vacant-list">
                   {vacant.map(({ lab }) => (
-                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} />
+                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} startRequested={startLab === lab.id} />
                   ))}
                 </div>
               </>
             )}
+            <ResearchParkProgress s={s} />
           </>
         )}
       </section>
