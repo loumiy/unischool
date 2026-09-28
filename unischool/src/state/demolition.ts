@@ -35,13 +35,19 @@ export function canCancelConstruction(s: GameState, t: Buildable): boolean {
 export function cancelConstruction(s: GameState, id: string): void {
   const t = s.tech.find((x) => x.id === id);
   if (!t || !canCancelConstruction(s, t)) return;
+  // Where the money goes, said in the log line (the review's G7-16).
+  let returned: string;
   if (t.financing === 'gift' && s.advancement) {
     s.advancement.restrictedBuilding += t.cost;
+    returned = `${money(t.cost)} returned to the building fund`;
   } else if (t.financing === 'endowment') {
-    s.finance.endowment += endowmentHalf(t);
-    s.finance.cash += t.cost - endowmentHalf(t);
+    const half = endowmentHalf(t);
+    s.finance.endowment += half;
+    s.finance.cash += t.cost - half;
+    returned = `${money(half)} returned to the endowment and ${money(t.cost - half)} to cash`;
   } else {
     s.finance.cash += t.cost;
+    returned = `${money(t.cost)} returned to cash`;
     // The loan taken for this construction is settled out of the refund: the
     // college is left as if it had never borrowed, less the interest already
     // paid. Only when it was borrowed for: an earlier building of the same
@@ -55,6 +61,10 @@ export function cancelConstruction(s: GameState, id: string): void {
         const rest = loans.filter((x) => x !== settled);
         if (rest.length > 0) s.finance.loans = rest;
         else delete s.finance.loans;
+        const left = t.cost - settled.balance;
+        returned = left > 0
+          ? `${money(settled.balance)} settled its loan and ${money(left)} returned to cash`
+          : `${money(settled.balance)} settled its loan`;
       }
     }
   }
@@ -67,7 +77,7 @@ export function cancelConstruction(s: GameState, id: string): void {
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: `Construction of ${t.name} has been called off; ${money(t.cost)} returned.`,
+    message: `Construction of ${t.name} has been called off; ${returned}.`,
     kind: 'info',
     subject: id,
   });

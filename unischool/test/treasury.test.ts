@@ -7,7 +7,7 @@ import { reducer } from '../src/engine/reducer';
 import { financeBreakdown, tickFinance } from '../src/systems/finance/financeSystem';
 import {
   BORROWING_SHARE, DRAW_RATE_DEFAULT, DRAW_RATE_MAX, DRAW_RATE_MIN, LOAN_YEARS, TRANSFER_MINIMUM,
-  borrowingRoom, debtOutstanding, drawRate, loanFor, roundDown, transferOffers,
+  borrowingRoom, debtOutstanding, drawRate, loanFor, loanPayment, roundDown, transferOffers,
 } from '../src/systems/finance/treasury';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { loadGame, saveGame } from '../src/state/persistence';
@@ -15,6 +15,13 @@ import { bindScriptStream } from '../src/engine/random';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 import { canStartDevelopment } from '../src/systems/techtree/techSystem';
+import { readSave } from '../src/state/persistence';
+import { EXPENSE_LINES, INCOME_LINES, shownLines } from '../src/tabs/treasuryStatement';
+import { intoCrisis } from '../tools/scenarios';
+import { foundGame, playYears } from '../sim/harness/game';
+import { createGuidedPlayer } from '../sim/harness/guided';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const canStartBorrowing = (s: GameState, id: string) => canStartDevelopment(s, s.tech.find((t) => t.id === id)!, undefined, 'loan');
 
@@ -142,6 +149,66 @@ const fresh = () => {
   (s.finance as { drawRate?: unknown }).drawRate = 'lots';
   saveGame(s);
   assert(loadGame()?.finance.drawRate === undefined, 'and a malformed one is dropped');
+}
+
+// ---- The statement adds up (the review's G7-8) ----
+// The Treasury's lines, as the tab shows them (treasuryStatement.ts), sum to
+// its totals, over the founding college, the committed saves and the crisis
+// scenario's break: an expense with no line (Student life was one) fails.
+{
+  const states: [string, GameState][] = [['the founding college', fresh()]];
+  for (const file of ['save-launch.json', 'save-v78-charter.json', 'save-v79.json']) {
+    const read = readSave(readFileSync(join(process.cwd(), 'test/fixtures', file), 'utf8'));
+    assert(!('refused' in read), `${file} loads`);
+    if ('refused' in read) continue;
+    states.push([file, read.state]);
+    const crisis = structuredClone(read.state);
+    intoCrisis(crisis);
+    states.push([`${file}, in crisis`, crisis]);
+  }
+  // The launch save with every line in play: its teams fielded in venues
+  // that stand, a Provost appointed and a building loan running.
+  const launch = states.find(([name]) => name === 'save-launch.json')?.[1];
+  if (launch) {
+    const s = structuredClone(launch);
+    for (const team of s.orgs.teams) {
+      team.status = 'active';
+      for (const t of s.tech) if (t.facilityType === team.venueCategory) t.status = 'done';
+    }
+    s.seats = [{ seatId: 'provost', school: null, holder: 'A. Provost', internal: false, policy: 'balanced', salary: 250_000, appointedYear: s.clock.year }];
+    (s.finance.loans ??= []).push({ buildingId: 'test', balance: 1_000_000, payment: loanPayment(1_000_000), weeksLeft: LOAN_YEARS * WEEKS_PER_YEAR });
+    states.push(['save-launch.json, with every line in play', s]);
+  }
+  const seen = new Set<string>();
+  // Why a state's statement does not add up, or null when it does.
+  const unbalanced = (s: GameState): string | null => {
+    const flow = financeBreakdown(s);
+    const sum = (lines: typeof INCOME_LINES) => shownLines(lines, flow).reduce((t, l) => { seen.add(l.key); return t + flow[l.key]; }, 0);
+    const income = sum(INCOME_LINES);
+    const expenses = sum(EXPENSE_LINES);
+    if (Math.abs(income - flow.totalIncome) > 0.01) return `the income lines sum to ${income}, total income is ${flow.totalIncome}`;
+    if (Math.abs(expenses - flow.totalExpenses) > 0.01) return `the expense lines sum to ${expenses}, total expenses are ${flow.totalExpenses}`;
+    if (Math.abs(flow.net - (flow.totalIncome - flow.totalExpenses)) > 0.01) return 'net is not income less expenses';
+    return null;
+  };
+  for (const [name, s] of states) {
+    const why = unbalanced(s);
+    assert(why === null, `${name}: the statement adds up (${why})`);
+  }
+  // And every week of a guided college's first ten years, which builds,
+  // hires, admits and recognizes clubs and teams.
+  const g = foundGame({ seed: 7979 });
+  let first: string | null = null;
+  let weeks = 0;
+  playYears(g, createGuidedPlayer(), 10, (g) => {
+    weeks += 1;
+    const why = unbalanced(g.s);
+    if (why !== null) first ??= `year ${g.s.clock.year}, week ${g.s.clock.week}: ${why}`;
+  });
+  assert(first === null, `a guided college's statement adds up every week of ${weeks} (${first})`);
+  // Every line was on show somewhere, Student life among them, so the sums
+  // above are not held only by lines that were left off.
+  for (const l of [...INCOME_LINES, ...EXPENSE_LINES]) assert(seen.has(l.key), `${l.label} shows in at least one of the states`);
 }
 
 if (failures === 0) {

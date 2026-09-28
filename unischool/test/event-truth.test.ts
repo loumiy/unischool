@@ -14,7 +14,7 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
-import { bindScriptStream } from '../src/engine/random';
+import { bindScriptStream, random } from '../src/engine/random';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { applyEffects, eventById, rollVars } from '../src/systems/events/catalogue';
 import { resolveCatalogueEvent } from '../src/systems/events/catalogueEngine';
@@ -111,6 +111,47 @@ function college(): GameState {
   s.alumni = [0, 1, 3, 5, 7].map((out) => ({ classYear: 30 - out, size: 100, warmth: 50, memory: [] } as unknown as NonNullable<GameState['alumni']>[number]));
   const reunion = rollVars(s, eventById('the-reunion-gift')!);
   assert(reunion.class === 'class of Year 25', `a reunion gift comes from a reunion class (${reunion.class})`);
+}
+
+// ---- The professor an event names (Plan 79D, the review's G7-10) ----
+{
+  const s = college();
+  while (s.faculty.length < 3) s.faculty.push({ ...structuredClone(s.faculty[0]), id: `extra-${s.faculty.length}`, name: `Extra ${s.faculty.length}` });
+  const [researcher, teacher, veteran] = s.faculty;
+  for (const f of s.faculty) { f.research = 40; f.teaching = 40; f.tenureWeeks = 5 * WEEKS_PER_YEAR; }
+  researcher.research = 90;
+  teacher.teaching = 90;
+  veteran.tenureWeeks = 29 * WEEKS_PER_YEAR;
+  const grant = rollVars(s, eventById('the-grant-windfall')!);
+  assert(grant.facultyId === researcher.id && grant.faculty === researcher.name, `the grant windfall names the strongest researcher (${grant.faculty})`);
+  const lecture = rollVars(s, eventById('star-lecture')!);
+  assert(lecture.facultyId === teacher.id && lecture.faculty === teacher.name, `the crowded lecture is the strongest teacher's (${lecture.faculty})`);
+  const longest = rollVars(s, { ...eventById('star-lecture')!, names: { faculty: 'longest' } });
+  assert(longest.facultyId === veteran.id, `'longest' names the longest-serving (${longest.faculty})`);
+  // The draw is made either way: the other names, and the stream after,
+  // are the same with the professor named as without.
+  for (const id of ['the-grant-windfall', 'star-lecture']) {
+    const e = eventById(id)!;
+    bindScriptStream(7979);
+    const withName = rollVars(s, e);
+    const after = random();
+    bindScriptStream(7979);
+    const without = rollVars(s, { ...e, names: undefined });
+    const afterWithout = random();
+    const rest = (v: Record<string, string>) => JSON.stringify({ ...v, faculty: '', facultyId: '' });
+    assert(rest(withName) === rest(without) && after === afterWithout, `${id}: naming the professor draws as not naming does (${rest(withName)} against ${rest(without)})`);
+  }
+  bindScriptStream(7676);
+  // An answer that acts on the professor acts on the one named.
+  const ev = { ...eventById('tenure-case')!, names: { faculty: 'researcher' as const } };
+  const vars = rollVars(s, ev);
+  const before = s.faculty.length;
+  applyEffects(s, { departs: 1 }, vars);
+  assert(s.faculty.length === before - 1 && !s.faculty.some((f) => f.id === researcher.id), 'departs lets the named professor go, and nobody else');
+  // No event whose answer lets the professor go names them by kind: that
+  // would change who leaves, and so the run (Plan 79D).
+  const named = EVENT_CATALOGUE.filter((e) => e.names?.faculty && e.choices.some((c) => (c.effects.departs ?? 0) > 0));
+  assert(named.length === 0, `an event that lets its professor go leaves them drawn (${named.map((e) => e.id).join(', ')})`);
 }
 
 // ---- The new effects ----
