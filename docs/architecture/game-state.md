@@ -26,13 +26,29 @@ fifty of them make a run, so **a refresh must not destroy a run**. The whole `Ga
 is JSON-serialized into a single versioned `localStorage` key (see
 `src/state/persistence.ts`). It is written at the **annual admissions
 boundary** — the one point where a meaningful chunk of progress has just been
-committed — when a university is founded, and whenever the player hits
+committed — when a university is founded, at the turn of each term, when
+the page is hidden or closed (Plan 35), and whenever the player hits
 **Save**. On mount, `useGame.ts` resumes a valid save instead of showing the
 startup screen; a save that is missing, unreadable, corrupt, or written under a
 `SAVE_VERSION` the migration chain cannot reach falls back to a new game rather
 than crashing. **New Game** erases the save and returns to the startup screen.
 The main menu can also **download the run as a file** and **load a save file**
 (Plan 70B), through the same path as the boot load.
+
+**Two tabs on one save** (Plan 79B). Every tab on the game shares the one
+key, so the last tab to take up the college keeps it. A tab that continues
+or founds a game **claims** the save: its id goes under
+`unischool.save.claim`, and the other tabs hear it through the `storage`
+event (`useGame.ts`). A tab that has lost the claim pauses, refuses to run,
+saves nothing (hide, close, term, summer or Save), and shows "This college
+is open in another tab." Its **Open it here** reloads the page into the
+saved game, claimed, past the title screen (a `sessionStorage` flag). Under
+the claim sits **the guard**: `saveGame` refuses to write when the stored
+save's `savedAt` is newer than the one this tab last loaded or wrote, and
+that refusal stops the tab as a lost claim does, not as a failed save. A
+Continue on a title screen loaded before another tab's save opens that newer
+save instead. An imported file writes past the guard and takes the claim:
+the player chose it.
 
 This stays a ten-line module only because **`GameState` is plain data** — no
 functions, no `Date`s, no `Map`/`Set`, no references between slices — so every
