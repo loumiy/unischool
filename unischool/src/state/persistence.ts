@@ -53,7 +53,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 80; // Plan 78D: one offer a year may be declined
+export const SAVE_VERSION = 81; // Plan 79C: the applicant lift reaches the funnel
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -97,12 +97,21 @@ function noDeclineYet(state: GameState): void {
   delete state.declinedOffer;
 }
 
+// 80 -> 81, Plan 79C: a landmark's or a milestone's applicants wait in
+// students.applicantLift for the next summer's funnel. Before it they went
+// into applicantPool, which the funnel overwrote, so a save from before it
+// has no lift waiting.
+function noLiftYet(state: GameState): void {
+  state.students.applicantLift = 0;
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
   77: carryRetired,
   78: grantHeldCharter,
   79: noDeclineYet,
+  80: noLiftYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -834,4 +843,7 @@ function sanitize(state: GameState): void {
   sanitizeChapters(state);
   sanitizeSeen(state);
   sanitizeCourseFaculty(state);
+  // The year's lift (Plan 79C): a count of applicants, never negative.
+  const lift = state.students.applicantLift;
+  if (!(typeof lift === 'number' && Number.isFinite(lift) && lift >= 0)) state.students.applicantLift = 0;
 }

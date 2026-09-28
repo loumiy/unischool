@@ -87,6 +87,9 @@ export interface CohortSignals {
   // which shrinks the next pool (admissionsSystem.ts's crowdingPoolFactor).
   // Absent reads none.
   crowding?: number;
+  // The year's one-summer lift in applicants (students.applicantLift, Plan
+  // 79C), added to the pool after everything else. Absent reads none.
+  applicantLift?: number;
 }
 
 // Athletic results reach the pool as research output does: a title is worth
@@ -131,6 +134,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     beauty: campusBeauty(s),
     tagPool: tagPoolFactor(s),
     crowding: crowdingScore(s),
+    applicantLift: s.students.applicantLift,
     tagQuality: tagQualityShift(s),
     distinguishedDepth: milestoneCountWithPrefix(s, 'program-distinguished:') + 2 * milestoneCountWithPrefix(s, 'grad-program-complete:'),
     professionalPrograms: establishedPrefixCount(s, PRE_PROFESSIONAL_PREFIXES),

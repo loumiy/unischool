@@ -79,6 +79,16 @@ beat, which disagree on purpose about how much the player is allowed to know:
    (`systems/admissions/yearOverYear.ts`). The decomposition is exact: the six
    ratios compose to the pool's own ratio before rounding. Each cohort card
    shows last summer's count small beneath this year's.
+
+   **The year's lift** (Plan 79C). A grand landmark finished during the year
+   draws 1,500 applicants once, and each milestone with an applicant bonus
+   draws its few. They wait in `students.applicantLift`; the next summer's
+   funnel adds them to the pool after everything else, shared among the
+   quality bands as the pool is, and clears the lift. The pool's label names
+   it (*"including 1,500 drawn once by what the college finished this
+   year"*), and it is one more factor on the year-over-year line (*"a
+   one-year lift: +4%"*, and the next summer *"last year's lift ended:
+   -4%"*).
 3. **Admit rate, fully projected.** The opposite posture: every consequence
    visible before it is taken (see "Tuition follows the class that paid it") —
    including the **room**: the seats the housed catalogue has left after the
@@ -332,7 +342,9 @@ The settled v1 rules:
   cannot exceed the seats the housed catalogue has left after graduation
   (`instructionCapacity.ts`'s `intakeCeiling`: `SEATS_PER_COURSE` for every
   developed course in a housed program, the founding college's six included, less
-  the three classes that stay on). The funnel clips the class to it from the
+  the three classes that stay on). A program moving halls at the summer
+  counts its seats, since it is dark for weeks of a class that stays four
+  years; an unstaffed one counts none (Plan 79C). The funnel clips the class to it from the
   bottom band up — a school that must turn people away turns away its weakest
   admits — and caps *enrollment*, never the pool. Housing is decoupled (see
   "Commuters" below): bed capacity scales the applicant *pool* toward its

@@ -27,7 +27,8 @@ export const BACKLOG_PAYDOWN_RATE = 0.1;
 const BACKLOG_CLEARED_BELOW = 1_000;
 // The backlog at which a building is a ruin, as a share of its cost.
 export const BACKLOG_RUIN_SHARE = 0.5;
-// A renovation's fee on top of the backlog, as a share of the cost.
+// A renovation's fee on top of the backlog, as a share of the cost; the
+// whole never passes the cost (renovationCost).
 export const RENOVATION_FEE_SHARE = 0.05;
 export const RENOVATION_WEEKS = 8;
 // The least a building is valued at for its ruin line: the founding hall
@@ -58,8 +59,11 @@ export function conditionOf(t: Buildable): number {
   return Number(Math.max(0, Math.min(1, 1 - backlog / ruin)).toFixed(4));
 }
 
+// The backlog plus the fee, never more than the building cost to raise
+// (Plan 79C): pulling it down and building again is never the cheaper way
+// to put it right.
 export function renovationCost(t: Buildable): number {
-  return Math.round((t.backlog ?? 0) + t.cost * RENOVATION_FEE_SHARE);
+  return Math.round(Math.min(t.cost, (t.backlog ?? 0) + t.cost * RENOVATION_FEE_SHARE));
 }
 
 // A building that can be renovated now: finished, not already under
