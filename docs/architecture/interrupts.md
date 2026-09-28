@@ -240,9 +240,9 @@ in a single measured trajectory while the balance figures were being fitted
 against those runs. See
 [playtesting.md](playtesting.md).
 
-The summer is the one interrupt the defaults answer in **four calls**, one
+The summer is the one interrupt the defaults answer in **three calls**, one
 beat each, so a fast-forward takes the same steps a player does — including the
-payload carrying the decision from the third beat to the fourth. The harness
+payload carrying the decision from the second beat to the third. The harness
 counts a summer once, on its opening beat, and reads its row on the last.
 
 **A quiet week is a die roll.** The decision-event roll draws the seeded

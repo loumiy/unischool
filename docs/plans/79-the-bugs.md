@@ -4,7 +4,7 @@
 the October review into PRs, after Plans 74 to 78 took some of its entries
 with the areas they belong to.*
 
-**Status: Proposed.**
+**Status: Landed.** A to E merged (#240–#244).
 
 ---
 
@@ -301,9 +301,50 @@ stale tab's close writes its older game over the newer one, silently.
   (G7-17c).
 - **`shoot.mjs`'s header** names the tools that exist (G7-17d).
 - **The design docs** (G7-18): `economy.md`'s first hall price,
-  `admissions.md`'s beats, `progression.md`'s Standing beat, its colour
+  `admissions.md`'s beats, `progression.md`'s Standing beat, its color
   pairings, its ambitions files and its grades.
 - **Checks:** `npm run newplayer` and each fixed scenario run to the end.
+
+**As implemented (#244):**
+
+- **`newplayer`** presses the title screen's New game, then founds.
+  - It then ran out of time. 4× waits for a Provost, so its click on the
+    disabled 4× waited out Playwright's 30-second default, and year one ran
+    at 1×, past the three-minute limit. It now plays at the fastest speed
+    open, 2× in year one, and every click gives up after 1.5 seconds.
+  - A matter that pauses the clock on arrival (Plan 78E) is opened from
+    its notice, answered in the inbox with its last answer, and the clock
+    resumed. Year one has none. A run from a year-3 save met one and did
+    not stall.
+  - A run reaches Year 2 in about 140 seconds with no stalls. `CAMPUS_URL`
+    points it at another port, as the other tools do.
+- **The scenarios:**
+  - `research-report` already stops, in year 12. Plan 74B's backlog
+    paydown moved the Completionist's run onto a lab after the review.
+    The recipe is unchanged, with a comment.
+  - `championship` never stopped because the Completionist misses the top
+    eight in every sport, every year. The Natural player wins a title in
+    year 18, so the recipe uses it, to year 25.
+  - `demand` waited for a `demand` modal, which Plan 29 made a note and
+    Plan 43 deleted. It now stops the week a demand is announced
+    (`activeDemand`), under the Lean player, in year 27. Idle raises one in
+    year 3, on a college with nothing built.
+  - The `summer` recipe names the three beats: Review, Admissions, Students.
+- **`shoot.mjs`** names `tools/scenario.ts` and `npm run scenario`.
+  `tools/README.md` drops its note that `newplayer` is broken.
+- **The design docs:**
+  - `economy.md`: the first hall is $2.5M, then ×1.45 a rung.
+  - `admissions.md`: three beats. Review settles the promises, and Plan 33
+    dropped the Standing beat. Admissions is the second beat.
+  - `progression.md`: eight color pairs. The report has no stop of its
+    own; the Review's Standing section and History's standings carry it.
+    Ambitions and the legacy give way to **Promises** and **The Final
+    Report** (six grades and a title), and the legacy is noted as the
+    harness's reading (`sim/legacyReading.ts`). The sealed record is
+    `s.ending`.
+  - `gameplay.md`'s ambitions become the promises; `interrupts.md` and
+    `defaultAnswers.ts`'s comment count three summer beats, not four.
+- `npm run sim` matches the baseline.
 
 ## 3. The backlog
 

@@ -240,13 +240,16 @@ Both drive the real app in a headless Chromium against a running dev server
 
 ```sh
 npm run dev                                   # in one shell
-npm run newplayer                             # found a college, follow the walkthrough, play year one at 4x
+npm run newplayer                             # found a college, follow the walkthrough, play year one
 npm run scenario -- --player Completionist --year 40 --clear-modal /tmp/y40.json
 npm run profile -- /tmp/y40.json --seconds=10 # fps, 95th-percentile frame and long tasks per speed
 ```
 
-`newplayer` does only what the walkthrough and the Next line ask, answers
-every letter with its last button, and reports each step, each kind of
+`newplayer` passes the title screen, does only what the walkthrough and the
+Next line ask, and plays year one at the fastest speed open (2x, since 4x
+waits for a Provost). It answers every stop with its last button; a matter
+that pauses the clock on arrival it opens from its notice, answers in the
+inbox with its last answer, and resumes. It reports each step, each kind of
 letter, and any stall: a clock that stopped for 20 seconds with nothing on
 screen asking for anything. It writes a screenshot of each stall to
 `node_modules/.tmp/` and exits non-zero if it stalled or never reached year 2.
@@ -319,7 +322,3 @@ npm run sheet -- --every                   # every placeable, each school's hall
   save, and `move=x,y` moves the pointer without clicking, which is how a
   building is carried to its site. It fires `pagehide` before closing,
   since that is when the game saves.
-
-`npm run newplayer` stopped working when the title screen was put in front
-of the founding form: it waits for the form and never sees it. `drive.mjs`
-covers the same ground by hand until it is fixed.

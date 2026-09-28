@@ -6,8 +6,7 @@ university.
 
 There is **no score, and there is an ending**. The fiftieth summer files a
 **final report** — six graded axes and a name for what the school became, the
-ambitions it reached and the year each landed, the numbers a founder would want
-— and seals it as the run's record. The clock does not stop: the game goes on as
+promises it kept and missed, the numbers a founder would want — and seals it as the run's record. The clock does not stop: the game goes on as
 a sandbox for anyone who wants to see the hospital finished, and nothing after
 year fifty changes the record. The core feeling is the **builder's long arc**:
 investing time, watching something grow, and seeing the scale of progress over
@@ -32,10 +31,9 @@ fifty years".
   facilities they need.
 - **Answers interrupts** — donor offers, faculty departures, facility failures,
   chapter scandals, student demands — which give the quiet weeks their texture.
-- **Reaches ambitions** — twenty named achievements, from the first hall to
-  first in the nation, recorded with the year each landed. They gate nothing
-  and grant nothing; they are the objectives, and the legacy is the
-  consequence.
+- **Makes promises** — the summer Review offers the board a promise (a rank,
+  a size, a school by a given year); each is kept or missed when it falls
+  due, and the Final Report lists both.
 
 ## The core loop
 

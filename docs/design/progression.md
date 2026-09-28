@@ -52,7 +52,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 
 ## The colours
 
-A pair, picked from ten named collegiate pairings — *Maroon and gold*, *Navy
+A pair, picked from eight named collegiate pairings — *Maroon and gold*, *Navy
 and orange*, *Black and gold* and so on (`data/schoolColors.ts`) — and worn as
 the game's theme: the dock, the active tab, the primary button and the focus
 ring all take the pair, so a navy-and-orange school plays in a navy-and-orange
@@ -360,13 +360,12 @@ published* is the event.
 - Reaching enough prestige to crack the **top 50** (which should take some time)
   fires a one-time **"The college enters the guide"** interrupt — entering is the
   event, and it keeps its own moment.
-- Thereafter the report is the **Standing beat of every summer** (see
-  [admissions.md](admissions.md)'s "The summer"), rather than an interrupt of
-  its own at week 26. The September 2026 review found the mid-year report a
-  good beat in the wrong place; at the boundary the field has just drifted and
-  the year's grade is being read anyway. The beat is shown from the first
-  summer for every school — the rank is knowable from week one — with the
-  published top-50 table appearing only once the school is on it.
+- Thereafter the report has **no stop of its own**. It was the summer's
+  Standing beat until Plan 33 dropped it (V1-1); the year's standing is read
+  in the summer's Review, whose Standing section grades the year and names
+  who passed the school (see [admissions.md](admissions.md)'s "The summer"),
+  and in History's standings, which show the six rankings, who leads each and
+  each rank over the run.
 
 The report's subject is the academic table — as a real table now, with a
 column for where each school stood a year ago (the player's exact, a rival's
@@ -405,74 +404,57 @@ and the field closes on the leader (below). The eras are a design target
 game never says which era it is in.
 
 The fiftieth summer files the **final report** in place of the year in review
-(see [admissions.md](admissions.md)'s "The summer"): the legacy, the ambitions
-reached and their years, the four numbers a founder would want — students
-taught, faculty who served, prizes, titles — and the fifty-year curves. Then
-the record is **sealed**: `self.legacy` is written once, at that summer's
-boundary, and never again. **The clock does not stop.** The fifty-first year
+(see [admissions.md](admissions.md)'s "The summer"): the six standings graded
+over the run, the promises kept and missed, the four numbers a founder would
+want — students taught, faculty who served, prizes, titles — and the
+fifty-year curves. Then the record is **sealed**: `s.ending` is written once,
+at that summer's boundary, and never again. **The clock does not stop.** The fifty-first year
 opens as any other, the sixtieth summer files an ordinary year in review, and a
-player who wants to see the hospital finished can; the History tab shows the
-legacy as *the record, sealed in the fiftieth year*. The startup screen says
+player who wants to see the hospital finished can; the History tab keeps the
+report as it was written, and every tenth year after adds an addendum. The startup screen says
 what the game is — *Fifty years to build a university.* — and the History tab
 counts down as well as up ("Year 23 of 50"), its charts fixed at fifty so the
 curves have somewhere to go. Plan 17 is the record of the decision and its
 fitting: [`../plans/17-the-endpoint.md`](../plans/17-the-endpoint.md).
 
-### Ambitions
+### Promises
 
-Twenty named achievements with the year each was reached
-(`data/ambitionsData.ts`): *A hall of your own*, *A school founded*, *Every
-school founded*, *In the top fifty*, *In the top ten*, *First in the nation*,
-*A distinguished program*, *A distinguished school*, *A university*, *A
-laboratory*, *A landmark program concluded*, *A prize*, *A professional school*,
-*A national title*, *A title in every sport fielded*, *Ten thousand students*,
-*Never in the red*, *A billion in the endowment*, *The whole catalogue*, *Fifty
-years*. Every one is a **reading** of state the game already keeps, detected
-weekly (`systems/ambitions/ambitionsSystem.ts`), written once into
-`s.ambitions` and never revoked. **They gate nothing and grant nothing**: no
-prestige, no cash, no applicants, no stop of the clock — the log names each as
-it lands, and the History tab's Ambitions panel lists them greyed until reached.
-They are the objectives; the legacy is the consequence.
+The objectives are **promises**: public commitments with a deadline, a reward
+and a penalty (Plan 33, which retired the twenty ambitions). Twenty-seven are
+authored (`data/promiseData.ts`) — *Four schools*, *A thousand students on the
+lawn*, *Owing nothing to anybody*, *Into the guide's top twenty* and the rest —
+each with when it may be offered and what keeping it means, both in the event
+catalog's conditions. Each summer's Review settles the promises that came
+due, kept or missed and paid, and, from Year 3 and with fewer than three
+open, may offer one; the player accepts or declines, and declining is free.
+At the summers of Years 10, 20, 30 and 40 the offer is a list of three
+instead, of which the player takes up to two. Offers are drawn from a hash of the college
+and the year, never the run's random stream (`systems/promises/promises.ts`).
+History lists them: open, kept and missed.
 
-### The legacy
+### The Final Report
 
-**Seven grades and a name, not a score.** A single number ranks runs and a
+**Six grades and a title, not a score.** A single number ranks runs and a
 ranking has one right answer, which is what had turned the game into a
-checklist. Seven axes, each graded A–F from readings the game already keeps
-(`state/legacy.ts`):
+checklist. The report grades the whole arc, not the last snapshot
+(`state/finalReport.ts`, its words in `data/reportData.ts`): each of the six
+standings — academics, research, campus life, athletics, access and
+financial strength — read from the history rows, graded A–F on its last
+decade's average, its average over the run and its climb from the first
+decade. Over them sits a mark, which also weighs where the guide left the
+college and how many promises it kept. The **title** is built from what the
+guidebooks call the college (its first tag), or its strongest standing, and
+names its weakest standing where that one lags: *a research powerhouse that
+never gave its students much of a campus life*. The money's verdict, the
+chronicle's eras and the guide's last word complete it.
 
-| Axis | Read from |
-|---|---|
-| Academic breadth | `curriculumBreadthScore` — the standing's own input, graduate share included |
-| Concentration | `concentrationScore` — the standing's own "known for" term |
-| Teaching | half the campus average course grade, half the share of courses taught to an A or B |
-| Research | `researchScore` — the standing's own credits |
-| Selectivity and reach | the **greater** of how selective the school is (class quality, admit rate) and how far past its standing it draws (the realised pool against the pool prestige alone would draw) — a selective college and a regional engine earn the same axis two different ways |
-| Stewardship | thirds: the share of the run's weeks solvent, endowment per student, the students' average satisfaction over every year on the books |
-| Campus life | the inputs campus-life standing composes — places built for it, organisations, varsity programs, what students report, titles — as the share of what they could sum to (Plan 21's PR B) |
+Plan 17's legacy — seven axes and a name from twenty-one sentences — was
+retired by Plan 33 for the report. It is kept as a harness reading only
+(`sim/legacyReading.ts`), because the endpoint suite's strategies were
+designed against its axes.
 
-The bands are one table (A at 0.85, B 0.65, C 0.45, D 0.25) and are what
-Plan 17's balance target fitted. The **name** comes from an authored table of
-twenty-one sentences in three families — *great*, *sound*, *troubled* — tested
-in that order on the pattern of grades: *the university everything is measured
-against*, *a great research university*, *the finest college in the country*,
-*an engine of the region*, *a place students never leave*, *a sound
-university*, *a school that grew too fast*, *a college still finding itself*
-and the rest. Every pattern finds a name; the troubled entries are tested
-first, so a broad school in the red is *a school that grew too fast* before it
-is anything else. Campus life was left out until it could be earned — an axis
-every run grades the same is not a record of anything — and joined as the
-seventh once Plan 21 made it earnable, with three athletic names of its own
-(*the university the whole state cheers for*, *a college with a great
-Saturday*, *a school better known for its teams than its classes*) after the
-academic ones, so a great research university with a football team is still a
-great research university. Seven rather than campus life folded into
-stewardship: stewardship is about running a school, campus life is a thing the
-school is.
-
-Before year fifty the History tab shows the same reading taken live — *today
-the school would be called…* — the way the Standing panel shows what the year
-is grading toward.
+From the tenth year the History tab shows the report in draft — the arc so
+far — the way the Standing panel shows what the year is grading toward.
 
 ### The top has to be held
 
@@ -506,8 +488,8 @@ the band chases where it stood, less the slip, and may pass. A college that
 climbs back within the slip is protected again. Losing a place says so as
 any rank change does (the toast and its sound).
 
-A rival that passes the school says so — on the Standing beat, and in the year
-in review's Standing section — and, once per rival and only in the defend era,
+A rival that passes the school says so — in the year in review's Standing
+section — and, once per rival and only in the defend era,
 the board proposes a response at a real cost (see
 [`../architecture/interrupts.md`](../architecture/interrupts.md)'s "The board's
 response"). No poaching: that is the faculty-lifecycle plan's, and it will read

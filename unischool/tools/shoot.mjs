@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------
-// PHOTOGRAPH THE CAMPUS. Loads a save written by tools/makeSave.ts into a
-// headless Chromium, drives the map's own zoom and pan controls, and writes
-// a PNG.
+// PHOTOGRAPH THE CAMPUS. Loads a save written by tools/scenario.ts (`npm run
+// scenario`) into a headless Chromium, drives the map's own zoom and pan
+// controls, and writes a PNG.
 //
 // Needs the dev server up (`npm run dev`) and a Chromium on disk. It does
 // NOT download one: `playwright-core` is the browserless package precisely
@@ -9,7 +9,8 @@
 // CHROME_PATH at any Chromium/Chrome build, or set PLAYWRIGHT_BROWSERS_PATH
 // and let the default below find one.
 //
-//   npm run shot:save -- /tmp/gothic.json 22 gothic
+//   npm run scenario -- --player Completionist --year 22 --vernacular gothic \
+//     --clear-modal /tmp/gothic.json
 //   npm run shot -- /tmp/gothic.json /tmp/gothic.png --zoom=-2 --pan=-430,320
 //
 // Flags: --zoom=N (+ in, - out), --pan=DX,DY (screen px, drag), --clip=x,y,w,h,

@@ -43,8 +43,9 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
 
   switch (pending.type) {
     // The summer, beat by beat (see types.ts's SummerPayload): walked one
-    // beat per call, like a player, so the third beat's decision rides the
-    // payload into the fourth, which commits it and recognizes every petition.
+    // beat per call, like a player, so the second beat's decision
+    // (Admissions) rides the payload into the third, which commits it and
+    // recognizes every petition.
     case 'summer': {
       const payload = pending.payload as Partial<SummerPayload> | undefined;
       const beat = payload?.beat ?? 0;
