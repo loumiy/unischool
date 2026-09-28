@@ -20,7 +20,7 @@ import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction,
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { poolChange } from '../systems/admissions/yearOverYear';
+import { admitRateOpening, poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { restaffPlan } from '../systems/faculty/restaffing';
@@ -300,7 +300,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                   {change.parts.length === 0
                     ? 'nothing moved'
                     : change.parts.map((p) => (
-                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label} {signedPct(p.change)}</span>
+                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label}{p.key === 'crowding' ? ':' : ''} {signedPct(p.change)}</span>
                     ))}
                 </dd>
               </div>
@@ -340,6 +340,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             </span>
             <input type="range" min={0.01} max={Math.max(0.01, Math.round(maxAdmitRate * 100) / 100)} step={0.01} value={Math.min(admitRateChoice, maxAdmitRate)}
               onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
+            {/* Why it opens where it does (Plan 78F). */}
+            <span className="outcome-note">
+              {admitRateOpening(!s.students.lastFunnel, payload.admitRate, s.students.capacity, consequence.totalEnrolled)}
+            </span>
             {maxAdmitRate < 1 && (
               <span className="outcome-note">
                 {outcome.capped

@@ -110,7 +110,7 @@ function college(): GameState {
   assert(vars.buildingId === worst.id, `the town writes about the derelict building (${vars.building})`);
   s.alumni = [0, 1, 3, 5, 7].map((out) => ({ classYear: 30 - out, size: 100, warmth: 50, memory: [] } as unknown as NonNullable<GameState['alumni']>[number]));
   const reunion = rollVars(s, eventById('the-reunion-gift')!);
-  assert(reunion.class === 'class of 25', `a reunion gift comes from a reunion class (${reunion.class})`);
+  assert(reunion.class === 'class of Year 25', `a reunion gift comes from a reunion class (${reunion.class})`);
 }
 
 // ---- The new effects ----

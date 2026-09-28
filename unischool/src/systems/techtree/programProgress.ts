@@ -1,7 +1,10 @@
 import type { Buildable, GameState } from '../../state/types';
 import type { ProgramInfo } from '../../data/techData';
 import { SEATS_PER_COURSE } from './instructionCapacity';
+import { programOfCourse } from '../../data/techData';
 import { isInTransit } from './programOffers';
+import { courseSlotsFree, facultyGate, isUndergraduateCourse } from './techSystem';
+import { money } from '../../format';
 
 // Where a program stands and what it is one course away from, shared by the
 // map's hall panel and the Curriculum tab so the two can never disagree.
@@ -85,6 +88,52 @@ export function unmetPrereqNames(s: GameState, t: Buildable, lookup?: Map<string
     .map((id) => find(id))
     .filter((p): p is Buildable => !!p && p.status !== 'done')
     .map((p) => (p.kind === 'course' ? p.name.split(' · ')[0] : p.name));
+}
+
+// The cross-listed prerequisites of a course: prerequisites that are
+// themselves courses from a different major. The kind check matters:
+// tier-3 courses require their major's lab (e.g. LAB-CHEN for CHEN230),
+// which a prefix test alone would call a cross-listed course.
+export function crossMajorPrereqs(t: Buildable, find: (id: string) => Buildable | undefined): string[] {
+  const prefix = t.id.replace(/[0-9]+$/, '');
+  return t.prereqs.filter((id) => {
+    if (find(id)?.kind !== 'course') return false;
+    return id.replace(/[0-9]+$/, '') !== prefix;
+  });
+}
+
+// Why a course cannot start, in the course drawer's words, for a course
+// cell's tooltip and the drawer's own note (Plan 78F): the one reason
+// that holds it, or null when nothing does (or it is already under way).
+//   - its program is moving halls;
+//   - locked: its unmet prerequisites, "Needs MATH120, cross-listed", or
+//     "Needs PSYC201 and the Chemistry Lab (built on the map)";
+//   - available but not startable: the cash short, room on the committee,
+//     or the faculty it needs.
+export function courseHoldReason(s: GameState, t: Buildable, lookup?: Map<string, Buildable>): string | null {
+  if (t.kind !== 'course' || t.status === 'done' || t.status === 'developing') return null;
+  const programId = programOfCourse(t.id);
+  if (programId !== undefined && isInTransit(s, programId)) return 'Its program is moving halls; nothing starts until it settles';
+  const find = lookup ? (id: string) => lookup.get(id) : (id: string) => s.tech.find((x) => x.id === id);
+  if (t.status === 'locked') {
+    const bridges = crossMajorPrereqs(t, find);
+    const unmet = t.prereqs
+      .map((id) => find(id))
+      .filter((p): p is Buildable => !!p && p.status !== 'done')
+      .map((p) => ({
+        name: p.kind === 'course' ? p.name.split(' · ')[0] : `the ${p.name}`,
+        tag: p.kind !== 'course' ? 'built on the map' : bridges.includes(p.id) ? 'cross-listed' : null,
+      }));
+    if (unmet.length === 0) return 'Locked until its prerequisites are complete';
+    if (unmet.length === 1) return `Needs ${unmet[0].name}${unmet[0].tag ? `, ${unmet[0].tag}` : ''}`;
+    const names = unmet.map((u) => (u.tag ? `${u.name} (${u.tag})` : u.name));
+    return `Needs ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }
+  if (t.requiresFaculty && facultyGate(s, t.requiresFaculty) !== 'open') return `Needs ${t.requiresFaculty} faculty`;
+  if (isUndergraduateCourse(t) && courseSlotsFree(s) === 0) return 'Waits for room on the curriculum committee';
+  const shortfall = t.cost - s.finance.cash;
+  if (shortfall > 0) return `${money(Math.ceil(shortfall))} short of the development cost`;
+  return null;
 }
 
 // The sentence beside a program: what the next course is worth. "3 to

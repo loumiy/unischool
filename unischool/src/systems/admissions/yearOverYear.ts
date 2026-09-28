@@ -1,5 +1,6 @@
 import type { FunnelFactors, FunnelRecord } from '../../state/types';
 import type { AdmissionsProjection } from './admissionsSystem';
+import { count, pct } from '../../format';
 
 // Year over year on the admissions reveal. The funnel is a product of six
 // factors (types.ts's FunnelFactors) and last summer's are recorded
@@ -30,8 +31,16 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['stickerShock', 'sticker shock'],
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
-  ['crowding', 'overcrowding'],
+  ['crowding', 'crowding'],
 ];
+
+// Crowding is a penalty, so its factor rising means the campus crowded
+// less than the year before. The line says the direction in words ("crowding
+// eased: +312%", the colon added where it is shown), since a bare "overcrowding +312%" reads as more of it
+// (Plan 78F). Every other factor's name reads the right way round.
+export function crowdingLabel(change: number): string {
+  return change >= 0 ? 'crowding eased' : 'crowding grew';
+}
 
 // Moves smaller than this are rounding and are left off the line.
 const MOVE_FLOOR = 0.005;
@@ -45,7 +54,7 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
     if (!(before > 0)) continue;
     const change = (now.factors[key] ?? 1) / before - 1;
     if (Math.abs(change) < MOVE_FLOOR) continue;
-    parts.push({ key, label, change });
+    parts.push({ key, label: key === 'crowding' ? crowdingLabel(change) : label, change });
   }
   parts.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
   return {
@@ -53,4 +62,18 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
     change: now.applicants / last.applicants - 1,
     parts,
   };
+}
+
+// Why the admit rate opens where it does (Plan 78F). The summer's payload
+// carries last summer's chosen rate (admissionsSystem.ts's tickAdmissions),
+// so an unchanged strategy is a click-through; the first summer carries the
+// founding rate. Beds never limit the rate (housing is a need, not a cap),
+// so they are named only as what admitting more does: when next year's
+// students would already fill the beds there are.
+export function admitRateOpening(firstSummer: boolean, openingRate: number, beds: number, studentsNextYear: number): string {
+  const where = firstSummer
+    ? `The admit rate opens at the founding rate, ${pct(openingRate)}`
+    : `The admit rate opens where last summer set it, ${pct(openingRate)}`;
+  const crowds = beds > 0 && studentsNextYear >= beds ? `; admitting more crowds ${count(beds)} beds` : '';
+  return `${where}${crowds}.`;
 }

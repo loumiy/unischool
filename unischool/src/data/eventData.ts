@@ -1147,7 +1147,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     body: (s) => {
       const founding = FOUNDING_PROGRAMS.map((id) => programById(id)?.name ?? id);
       const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
-      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three rooms still empty. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free room: the program's first course starts the moment you pick who teaches it. Programs begin in Founders Hall until their school has a hall of its own, and most will not stay: in time they move into halls of their own school.`;
+      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, five professors are on the payroll, and Founders Hall is the only building we own — and it is teaching: ${list(founding)}, two courses each, with three program slots still free. ${offers.length > 0 ? `${list(offers)} are on offer. ` : ''}Open Founders Hall on the map and found one of them into a free program slot: the program's first course starts the moment you pick who teaches it. Programs begin in Founders Hall until their school has a hall of its own, and most will not stay: in time they move into halls of their own school.`;
     },
     ask: () => ({ text: 'Found a fourth program in Founders Hall', ...FOUNDERS_HALL_ASK, intent: { kind: 'found', hallId: FOUNDERS_HALL_ID } }),
     done: (s) => housedProgramCount(s) > FOUNDING_PROGRAMS.length,
@@ -1167,7 +1167,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       // outlived the Plan 71 retune.
       const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
       const terms = hall ? `, ${money(hall.cost)}, ${count(hall.duration)} weeks to build` : '';
-      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum. Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''} — and it is where programs start, not where they stay. A school is six of its programs in a hall of its own, and ${elm} is the first: six rooms${terms}. Site it now; when it stands, the first school moves in.`;
+      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum. Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''} — and it is where programs start, not where they stay. A school is six of its programs in a hall of its own, and ${elm} is the first: six program slots${terms}. Site it now; when it stands, the first school moves in.`;
     },
     ask: (s) => ({ text: `Site ${hallName(s, FIRST_HALL_ID)}`, go: 'build', intent: { kind: 'site', buildableIds: [FIRST_HALL_ID] } }),
     done: (s) => FIRST_HALL_ID in s.placements,
@@ -1226,7 +1226,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const teaching = names.length === 1
         ? `${school} has one program in Founders Hall, ${names[0]}`
         : `${school} has ${count(names.length)} programs in Founders Hall — ${list(names)} — more than any other school`;
-      return `${elm} stands, and it is empty. ${teaching}, so ${school} moves first. Open ${names[0]} in Founders Hall and move it: out of Founders Hall a move is ${count(FOUNDERS_MOVE_WEEKS)} weeks dark, not the ${count(RELOCATION_WEEKS)} a move between halls costs, because nothing has grown up around it yet. ${elm} is ${school}'s while only ${school} programs are founded there.`;
+      return `${elm} stands, and it is empty. ${teaching}, so ${school} moves first. Open ${names[0]} in Founders Hall and move it: out of Founders Hall a moving program is closed for ${count(FOUNDERS_MOVE_WEEKS)} weeks, not the ${count(RELOCATION_WEEKS)} a move between halls costs, because nothing has grown up around it yet. ${elm} is ${school}'s while only ${school} programs are founded there.`;
     },
     ask: (s) => {
       const elm = hallName(s, FIRST_HALL_ID);

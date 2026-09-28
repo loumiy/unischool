@@ -1,7 +1,7 @@
 import type { AlumniClass, GameState, YearSnapshot } from '../../state/types';
 import {
   MEMORY_BEAUTIFUL, MEMORY_BUILDINGS, MEMORY_CLAUSES, MEMORY_CLAUSE_LIMIT, MEMORY_DEFICIT_YEARS, MEMORY_HAPPY,
-  MEMORY_LINE, MEMORY_POORLY_TAUGHT, MEMORY_THINNED_SHARE, MEMORY_UNHAPPY, MEMORY_WELL_TAUGHT,
+  CLASS_NAME, CLASS_NAME_FIRST, MEMORY_LINE, MEMORY_POORLY_TAUGHT, MEMORY_THINNED_SHARE, MEMORY_UNHAPPY, MEMORY_WELL_TAUGHT,
   WARMTH_BASE, WARMTH_FROM_SATISFACTION, WARMTH_FROM_TEACHING, WARMTH_ORDINARY, clauseById, type MemoryCondition,
 } from '../../data/alumniData';
 import { campusBeauty } from '../estate/beauty';
@@ -100,10 +100,23 @@ export function stampGraduatingClass(s: GameState, graduating: number, year: num
   });
 }
 
-// The line itself: "The class of 12: happy in it, properly taught and
+// The year of the first class the college graduated: the ledger's
+// earliest, or `year` itself when the ledger is empty (the class about to
+// be stamped is then the first) or `year` is earlier still.
+export function firstClassYear(alumni: readonly Pick<AlumniClass, 'classYear'>[] | undefined, year: number): number {
+  return Math.min(year, ...(alumni ?? []).map((a) => a.classYear));
+}
+
+// A class's name without its article: "first graduating class" for the
+// first, "class of Year 12" after it (alumniData.ts's CLASS_NAME).
+export function className(classYear: number, firstYear: number): string {
+  return classYear <= firstYear ? CLASS_NAME_FIRST : CLASS_NAME.replace('{year}', String(classYear));
+}
+
+// The line itself: "The class of Year 12: happy in it, properly taught and
 // there for the building years."
-export function memoryLine(alumni: Pick<AlumniClass, 'classYear' | 'memory'>): string {
+export function memoryLine(alumni: Pick<AlumniClass, 'classYear' | 'memory'>, firstYear: number): string {
   const texts = alumni.memory.slice(0, MEMORY_CLAUSE_LIMIT).map((id) => clauseById(id)?.text ?? id);
   const clauses = texts.length <= 1 ? (texts[0] ?? '') : `${texts.slice(0, -1).join(', ')} and ${texts[texts.length - 1]}`;
-  return MEMORY_LINE.replace('{year}', String(alumni.classYear)).replace('{clauses}', clauses);
+  return MEMORY_LINE.replace('{class}', className(alumni.classYear, firstYear)).replace('{clauses}', clauses);
 }

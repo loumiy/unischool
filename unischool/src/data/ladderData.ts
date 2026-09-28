@@ -135,7 +135,7 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: coursesDone(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
     buildables: ['HALL-01'],
     tabs: [],
-    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six program slots, one program to a slot, and when six programs of one school share a hall, that school is founded.`,
+    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six program slots, one program to each, and when six programs of one school share a hall, that school is founded.`,
     opens: ['Academic halls: six program slots each, and the way a school is founded'],
   },
   {

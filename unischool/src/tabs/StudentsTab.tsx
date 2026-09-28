@@ -26,13 +26,13 @@ export default function StudentsTab({ s }: { s: GameState }) {
             <div className="history-charts">
               <MultiChart
                 title="Each class as it graduated"
-                xLabel="Class of"
+                xLabel="Class of Year"
                 yMin={0}
                 series={[{ name: 'Graduates', points: classes.map((a) => ({ x: a.classYear, y: a.size })), format: (v) => count(v) }]}
               />
               <MultiChart
                 title="Satisfaction as they left"
-                xLabel="Class of"
+                xLabel="Class of Year"
                 yMin={0}
                 yMax={100}
                 series={[{ name: 'Satisfaction', points: classes.map((a) => ({ x: a.classYear, y: a.satisfaction })) }]}
