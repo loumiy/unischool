@@ -161,7 +161,7 @@ stale tab's close writes its older game over the newer one, silently.
     The year-over-year line names it: "a one-year lift: +4%", and the
     next summer "last year's lift ended: −4%".
   - The pool's label names it: "Applicant pool (including 1,500 drawn
-    once by what the college finished this year)". One label covers a
+    for this year only by new landmarks and milestones)". One label covers a
     landmark and a milestone, since the lift is one number.
   - `eventData.ts`'s warning now points events at the lift.
   - `SAVE_VERSION` 80 → 81, with a migration (`noLiftYet`) and a load

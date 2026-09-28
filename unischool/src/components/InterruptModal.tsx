@@ -286,7 +286,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               className="reveal"
               // The year's lift (Plan 79C), named where it is counted.
               label={outcome.lift > 0
-                ? <>Applicant pool <span className="outcome-note">(including {count(outcome.lift)} drawn once by what the college finished this year)</span></>
+                ? <>Applicant pool <span className="outcome-note">(including {count(outcome.lift)} drawn for this year only by new landmarks and milestones)</span></>
                 : 'Applicant pool'}
               hint={FIGURE_HINTS.applicants}
               value={<>

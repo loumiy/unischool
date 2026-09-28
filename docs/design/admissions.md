@@ -85,8 +85,8 @@ beat, which disagree on purpose about how much the player is allowed to know:
    draws its few. They wait in `students.applicantLift`; the next summer's
    funnel adds them to the pool after everything else, shared among the
    quality bands as the pool is, and clears the lift. The pool's label names
-   it (*"including 1,500 drawn once by what the college finished this
-   year"*), and it is one more factor on the year-over-year line (*"a
+   it (*"including 1,500 drawn for this year only by new landmarks and
+   milestones"*), and it is one more factor on the year-over-year line (*"a
    one-year lift: +4%"*, and the next summer *"last year's lift ended:
    -4%"*).
 3. **Admit rate, fully projected.** The opposite posture: every consequence
