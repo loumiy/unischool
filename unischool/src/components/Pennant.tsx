@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { COLLEGE_NAME_MAX, institutionName, type GameState } from '../state/types';
 import type { Action } from '../state/actions';
 import { RenameIcon } from './icons';
+import { NAME_LIMIT_NOTE } from '../data/foundingData';
 
 // The pennant: the school's name in its colors, hung from the map's
 // top-left corner. One size; a long name wraps rather than shrinks, to two
@@ -46,6 +47,7 @@ function RenameForm({ s, act, onDone }: { s: GameState; act: (a: Action) => void
           type="text" value={name} maxLength={COLLEGE_NAME_MAX} autoFocus
           onChange={(e) => setName(e.target.value)}
         />
+        {name.length >= COLLEGE_NAME_MAX && <span className="pennant-form-note" role="status">{NAME_LIMIT_NOTE}</span>}
       </label>
       <div className="pennant-form-suffix segmented" role="radiogroup" aria-label="College or University">
         {(['College', 'University'] as const).map((x) => (

@@ -17,6 +17,7 @@ import { MultiChart } from '../components/MultiChart';
 import EstatePanel from './EstatePanel';
 import EndowmentPanel from './EndowmentPanel';
 import { debtOutstanding, drawRate } from '../systems/finance/treasury';
+import { EXPENSE_LINES, INCOME_LINES, shownLines, type StatementLineSpec } from './treasuryStatement';
 import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_NAMES, RUNG_RECEIVERSHIP, distressOf } from '../systems/finance/distress';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
@@ -60,6 +61,27 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         ? `sections are running ${pct(teaching.fill)} full`
         : `sections are running ${pct(teaching.fill)} full — the catalog is bigger than the college`;
 
+  // What drives each line's figure, so the statement teaches the economy
+  // rather than just reporting it. Which lines show is treasuryStatement.ts's.
+  const notes: Record<StatementLineSpec['key'], string> = {
+    tuitionRevenue: `${count(totalEnrolled(s.students))} enrolled across four classes, each at the price it was admitted under`,
+    prestigeRevenue: `donors and grants, scaling with prestige ${prestigeFigure(s.self.reputation)}`,
+    annualFund: `what ${(s.alumni?.length ?? 0)} graduated class${(s.alumni?.length ?? 0) === 1 ? '' : 'es'} give, by their warmth and years out`,
+    endowmentPayout: `a ${pct(drawRate(s), 1)} draw on ${money(s.finance.endowment)}`,
+    athleticsSurplus: `${money(flow.gateRevenue)}/wk at the gate over ${HOME_DATES_PER_SEASON} home dates a season, into the department's fund first; this is what was left once every program took its cost`,
+    weeklySalaries: `${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}; salaries rise with tenure`,
+    seatUpkeep: `${count(s.students.capacity)} beds — an empty one still costs, at half rate`,
+    instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section; ${sectionsNote}`,
+    servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} for crowding` : ''}`,
+    scaleCost: `the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)} — each doubling costs every student more`,
+    academicUpkeep: `running ${coursesDone} courses and the teaching buildings they sit in`,
+    facilityUpkeep: 'libraries, dining, rec and labs, each carrying its own running cost',
+    studentLifeUpkeep: `${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`,
+    athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate — the department's cost to the college`,
+    administration: `${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of the payroll`,
+    debtService: `${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`,
+  };
+
   return (
     <div className="tab-content">
       <section className="panel">
@@ -71,35 +93,9 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
         <div className="income-statement">
           <div className="statement-col">
             <h3>Income</h3>
-            <StatementLine
-              label="Net tuition"
-              note={`${count(totalEnrolled(s.students))} enrolled across four classes, each at the price it was admitted under`}
-              amount={flow.tuitionRevenue}
-            />
-            <StatementLine
-              label="Prestige dividend"
-              note={`donors and grants, scaling with prestige ${prestigeFigure(s.self.reputation)}`}
-              amount={flow.prestigeRevenue}
-            />
-            {flow.annualFund > 0 && (
-              <StatementLine
-                label="Annual fund"
-                note={`what ${(s.alumni?.length ?? 0)} graduated class${(s.alumni?.length ?? 0) === 1 ? '' : 'es'} give, by their warmth and years out`}
-                amount={flow.annualFund}
-              />
-            )}
-            <StatementLine
-              label="Endowment payout"
-              note={`a ${pct(drawRate(s), 1)} draw on ${money(s.finance.endowment)}`}
-              amount={flow.endowmentPayout}
-            />
-            {(flow.athleticsSurplus > 0 || flow.gateRevenue > 0) && (
-              <StatementLine
-                label="Athletics surplus"
-                note={`${money(flow.gateRevenue)}/wk at the gate over ${HOME_DATES_PER_SEASON} home dates a season, into the department's fund first; this is what was left once every program took its cost`}
-                amount={flow.athleticsSurplus}
-              />
-            )}
+            {shownLines(INCOME_LINES, flow).map((l) => (
+              <StatementLine key={l.key} label={l.label} note={notes[l.key]} amount={flow[l.key]} />
+            ))}
             <div className="statement-total">
               <span>Total income</span>
               <span className="statement-line-amount">{money(flow.totalIncome)}</span>
@@ -108,71 +104,9 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
 
           <div className="statement-col">
             <h3>Expenses</h3>
-            <StatementLine
-              label="Faculty salaries"
-              note={`${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}; salaries rise with tenure`}
-              amount={flow.weeklySalaries}
-            />
-            <StatementLine
-              label="Housing upkeep"
-              note={`${count(s.students.capacity)} beds — an empty one still costs, at half rate`}
-              amount={flow.seatUpkeep}
-            />
-            <StatementLine
-              label="Instruction"
-              note={`${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section; ${sectionsNote}`}
-              amount={flow.instructionCost}
-            />
-            <StatementLine
-              label="Services"
-              note={`${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} for crowding` : ''}`}
-              amount={flow.servicesCost}
-            />
-            {flow.scaleCost > 0 && (
-              <StatementLine
-                label="Being large"
-                note={`the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)} — each doubling costs every student more`}
-                amount={flow.scaleCost}
-              />
-            )}
-            <StatementLine
-              label="Academic upkeep"
-              note={`running ${coursesDone} courses and the teaching buildings they sit in`}
-              amount={flow.academicUpkeep}
-            />
-            <StatementLine
-              label="Campus upkeep"
-              note="libraries, dining, rec and labs, each carrying its own running cost"
-              amount={flow.facilityUpkeep}
-            />
-            {flow.studentLifeUpkeep > 0 && (
-              <StatementLine
-                label="Student life"
-                note={`${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`}
-                amount={flow.studentLifeUpkeep}
-              />
-            )}
-            {flow.athleticsSubsidy > 0 && (
-              <StatementLine
-                label="Athletics subsidy"
-                note={`what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate — the department's cost to the college`}
-                amount={flow.athleticsSubsidy}
-              />
-            )}
-            {flow.administration > 0 && (
-              <StatementLine
-                label="Administration"
-                note={`${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of the payroll`}
-                amount={flow.administration}
-              />
-            )}
-            {flow.debtService > 0 && (
-              <StatementLine
-                label="Loan repayments"
-                note={`${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`}
-                amount={flow.debtService}
-              />
-            )}
+            {shownLines(EXPENSE_LINES, flow).map((l) => (
+              <StatementLine key={l.key} label={l.label} note={notes[l.key]} amount={flow[l.key]} />
+            ))}
             <div className="statement-total">
               <span>Total expenses</span>
               <span className="statement-line-amount">{money(flow.totalExpenses)}</span>

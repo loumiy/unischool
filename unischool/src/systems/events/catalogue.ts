@@ -1,4 +1,4 @@
-import type { AlumniClass, Buildable, GameState, Loan, PendingCatalogueEvent } from '../../state/types';
+import type { AlumniClass, Buildable, Faculty, GameState, Loan, PendingCatalogueEvent } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../../state/types';
 import type { CatalogueChoice, CatalogueEvent, ConditionKey, EffectKey, NeedKey } from '../../data/eventCatalogueTypes';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../../data/eventCatalogue';
@@ -233,10 +233,26 @@ function namedClass(s: GameState, which: NonNullable<CatalogueEvent['names']>['c
 const REUNION_YEARS = 5;
 const VETERAN_YEARS = 20;
 
+// The professor an event means (Plan 79D): the strongest researcher for a
+// grant, the strongest teacher for a crowded lecture, or the
+// longest-serving. Read, not drawn, as the building is; ties go to the id.
+function namedFaculty(s: GameState, which: NonNullable<CatalogueEvent['names']>['faculty']): Faculty | undefined {
+  const best = (score: (f: Faculty) => number) => s.faculty.slice().sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id))[0];
+  switch (which) {
+    case 'researcher': return best((f) => f.research);
+    case 'teacher': return best((f) => f.teaching);
+    case 'longest': return best((f) => f.tenureWeeks);
+    default: return undefined;
+  }
+}
+
 export function rollVars(s: GameState, e?: CatalogueEvent): Record<string, string> {
   const rival = collegeRival(s) ?? pick(s.rivals);
   const latest = (e?.names?.class ? namedClass(s, e.names.class) : undefined) ?? (s.alumni ?? [])[(s.alumni ?? []).length - 1];
-  const faculty = pick(s.faculty);
+  // Drawn whether or not the event names someone, so the stream reads the
+  // same.
+  const drawnFaculty = pick(s.faculty);
+  const faculty = (e?.names?.faculty ? namedFaculty(s, e.names.faculty) : undefined) ?? drawnFaculty;
   const program = pick(housedPrograms(s));
   const drawn = pick(standing(s).filter(roofed));
   const building = (e?.names?.building ? namedBuilding(s, e.names.building) : undefined) ?? drawn;
@@ -248,7 +264,7 @@ export function rollVars(s: GameState, e?: CatalogueEvent): Record<string, strin
     class: latest ? className(latest.classYear, firstClassYear(s.alumni, latest.classYear)) : 'first class',
     faculty: faculty ? faculty.name : 'a senior professor',
     // Who {faculty} is, for an effect that acts on them (Plan 72B's
-    // 'departs'). Drawn with the name, so the stream reads the same.
+    // 'departs'): the person named, drawn or read.
     facultyId: faculty ? faculty.id : '',
     program: program ? (programById(program)?.name ?? program) : 'the founding program',
     // Names read mid-sentence: "The Chapel" becomes "the Chapel".

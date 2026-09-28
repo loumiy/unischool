@@ -82,8 +82,16 @@ export interface CatalogueEvent {
   // below the derelict line, 'worst' the worst-kept roofed building,
   // 'listable' one old enough to be declared historic, 'founders' Founders
   // Hall; a 'reunion' class is five, ten or more years out, a 'veteran'
-  // one twenty or more.
-  names?: { building?: 'derelict' | 'worst' | 'listable' | 'founders'; class?: 'reunion' | 'veteran' };
+  // one twenty or more. And which professor (Plan 79D): 'researcher' the
+  // strongest researcher, 'teacher' the strongest teacher, 'longest' the
+  // longest-serving. Unnamed, {faculty} is anyone on the roster. An event
+  // whose answer acts on the professor ('departs') leaves them unnamed:
+  // naming would change who leaves, and so the run.
+  names?: {
+    building?: 'derelict' | 'worst' | 'listable' | 'founders';
+    class?: 'reunion' | 'veteran';
+    faculty?: 'researcher' | 'teacher' | 'longest';
+  };
   timeoutWeeks: number;
   choices: CatalogueChoice[];
   default: string;

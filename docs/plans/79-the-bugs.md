@@ -251,6 +251,43 @@ stale tab's close writes its older game over the newer one, silently.
   cancel line for each destination; the Treasury sum over the scenario
   saves.
 
+**As implemented (#242):**
+
+- **`{faculty}`.** `names.faculty` takes `researcher` (the strongest
+  researcher), `teacher` (the strongest teacher) or `longest` (the
+  longest-serving); ties go to the id. The random draw is still made, so
+  every other name and the stream after it read the same, and `facultyId`
+  follows the person named.
+  - The grant windfall names the strongest researcher, the crowded lecture
+    the strongest teacher (its gate is teaching, so teacher rather than
+    the researcher this plan said). The BACKLOG row comes off.
+  - The offer (`star-poached`) and the tenure case are left drawn. Both
+    let the professor go (`departs`), so naming them changes who leaves,
+    and the sim moved by it (Selective's year-50 cash by $98M, Lean's
+    by $403M). Nothing in the offer's words needs a particular person; the
+    tenure case can name someone long-serving. Both are in the BACKLOG,
+    and a test holds that no event that lets its professor go names them
+    by kind.
+  - `two-body` stays drawn: anyone can have a spouse. No event speaks of
+    long service with `{faculty}`, so `longest` has no user yet; the
+    retirement stories name nobody, and a named person who then did not
+    retire would be untrue (their BACKLOG row stays).
+- **Calling off.** The log line names each destination with its sum:
+  "$X returned to cash", "to the building fund", "$half returned to the
+  endowment and $rest to cash", or "$balance settled its loan and $rest
+  returned to cash". The building panel's warning already said where.
+- **The name's limit.** At 60 characters the founding form and the
+  pennant's rename say "60 characters at most" (`NAME_LIMIT_NOTE` in
+  `data/foundingData.ts`, from `COLLEGE_NAME_MAX`), in the muted caption
+  style.
+- **The Treasury.** The statement adds up. Its lines are now a table
+  (`tabs/treasuryStatement.ts`): each figure, label and when it shows,
+  and the tab renders from it. `test/treasury.test.ts` sums the shown
+  lines against both totals over the founding college, the three
+  committed saves, each in the crisis scenario's break, the launch save
+  with every line in play, and every week of a guided college's first
+  ten years; every line shows in at least one.
+
 ## PR 79E — Tooling and docs
 
 *G7-17b–d, G7-18.*
