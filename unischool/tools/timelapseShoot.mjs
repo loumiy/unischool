@@ -167,7 +167,7 @@ if (!FFMPEG) {
 }
 const video = join(dir, 'timelapse.webm');
 const ff = spawn(FFMPEG, [
-  '-y', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', 'pipe:0',
+  '-y', '-hide_banner', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', 'pipe:0',
   '-c:v', 'libvpx', '-b:v', '12M', '-qmin', '4', '-qmax', '20', '-r', '30', video,
 ], { stdio: ['pipe', 'ignore', 'inherit'] });
 for (const f of jpgs) {
