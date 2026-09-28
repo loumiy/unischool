@@ -156,6 +156,47 @@ stale tab's close writes its older game over the newer one, silently.
   pairings, its ambitions files and its grades.
 - **Checks:** `npm run newplayer` and each fixed scenario run to the end.
 
+**As implemented (#TBD):**
+
+- **`newplayer`** presses the title screen's New game, then founds.
+  - It then ran out of time. 4× waits for a Provost, so its click on the
+    disabled 4× waited out Playwright's 30-second default, and year one ran
+    at 1×, past the three-minute limit. It now plays at the fastest speed
+    open, 2× in year one, and every click gives up after 1.5 seconds.
+  - A matter that pauses the clock on arrival (Plan 78E) is opened from
+    its notice, answered in the inbox with its last answer, and the clock
+    resumed. Year one has none. A run from a year-3 save met one and did
+    not stall.
+  - A run reaches Year 2 in about 140 seconds with no stalls. `CAMPUS_URL`
+    points it at another port, as the other tools do.
+- **The scenarios:**
+  - `research-report` already stops, in year 12. Plan 74B's backlog
+    paydown moved the Completionist's run onto a lab after the review.
+    The recipe is unchanged, with a comment.
+  - `championship` never stopped because the Completionist misses the top
+    eight in every sport, every year. The Natural player wins a title in
+    year 18, so the recipe uses it, to year 25.
+  - `demand` waited for a `demand` modal, which Plan 29 made a note and
+    Plan 43 deleted. It now stops the week a demand is announced
+    (`activeDemand`), under the Lean player, in year 27. Idle raises one in
+    year 3, on a college with nothing built.
+  - The `summer` recipe names the three beats: Review, Admissions, Students.
+- **`shoot.mjs`** names `tools/scenario.ts` and `npm run scenario`.
+  `tools/README.md` drops its note that `newplayer` is broken.
+- **The design docs:**
+  - `economy.md`: the first hall is $2.5M, then ×1.45 a rung.
+  - `admissions.md`: three beats. Review settles the promises, and Plan 33
+    dropped the Standing beat. Admissions is the second beat.
+  - `progression.md`: eight color pairs. The report has no stop of its
+    own; the Review's Standing section and History's standings carry it.
+    Ambitions and the legacy give way to **Promises** and **The Final
+    Report** (six grades and a title), and the legacy is noted as the
+    harness's reading (`sim/legacyReading.ts`). The sealed record is
+    `s.ending`.
+  - Not touched, though stale: `gameplay.md`'s ambitions and
+    `interrupts.md`'s four summer beats.
+- `npm run sim` matches the baseline.
+
 ## 3. The backlog
 
 - The triage entry says area 4 is held by the owner for their own

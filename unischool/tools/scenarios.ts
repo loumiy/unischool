@@ -143,10 +143,10 @@ export const SCENARIOS: Scenario[] = [
     stopWhen: atModal('rankings-entry'),
   },
   {
-    // The annual report is the summer's Standing beat, so this is the report
-    // scenario too.
+    // The summer's three beats (types.ts's SUMMER_BEATS). Plan 33 dropped the
+    // Standing beat, so the U.S. News report is no longer in it.
     name: 'summer',
-    what: 'the summer sequence — review, standing (the U.S. News report), the blind price, the digest',
+    what: 'the summer sequence — Review (the year and its promises), Admissions (the blind price and the pool), Students (the digest)',
     player: 'Guided',
     year: 12,
     // Not the first summer: the screen is interesting with a prior year to
@@ -166,10 +166,12 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'championship',
     what: 'the week a national title is won',
-    // The Completionist fields every team it can, and teamQuality seeds a
-    // bracket (systems/athletics/playoffs.ts); a title may take decades.
-    player: 'Completionist',
-    year: 40,
+    // The Natural player: the only one whose teams make the bracket
+    // (systems/athletics/playoffs.ts's top eight). It wins its first title
+    // in year 18. The Completionist fields twenty teams and misses the
+    // bracket in every sport, every year.
+    player: 'Natural',
+    year: 25,
     stopWhen: atModal('championship'),
   },
   {
@@ -180,6 +182,8 @@ export const SCENARIOS: Scenario[] = [
     stopWhen: atModal('athletic-director'),
   },
   {
+    // Reached in year 12. At the October review it never came by year 30:
+    // Plan 74B's backlog paydown moved the Completionist's run onto a lab.
     name: 'research-report',
     what: 'an initiative concluding — the run\'s most frequent interrupt',
     player: 'Completionist',
@@ -213,13 +217,16 @@ export const SCENARIOS: Scenario[] = [
     mutate: intoSplitSchool,
   },
   {
+    // Not a modal since Plan 29: a demand is raised into the inbox's "To
+    // decide" and the clock runs on. Stops the week one is announced. The
+    // Lean college, which builds for a need only once it is dire, is the
+    // player whose satisfaction falls far enough (year 27); the Idle one
+    // raises one in year 3, before there is anything to look at.
     name: 'demand',
-    what: 'a student demand on the clock — the player that earns them',
-    // The overbuilder builds only beds, so its satisfaction falls far enough
-    // to raise demands.
-    player: 'Completionist',
-    year: 40,
-    stopWhen: atModal('demand'),
+    what: 'a student demand on the clock, in the inbox — the player that earns them',
+    player: 'Lean',
+    year: 30,
+    stopWhen: (s) => s.events.activeDemand !== null,
   },
   {
     // Not a modal (Plan 78G): the charter waits in the inbox. Open it with

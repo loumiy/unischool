@@ -159,7 +159,7 @@ The loop turns roughly once per course tier, escalating each time:
 
 - **Found (years 1–12)** — the founding college, the first halls, the first schools. A
   founding school nets a quarter to a third of its opex, and that surplus is
-  what the first hall ($750k, then ×1.3 a rung) and its programs are bought
+  what the first hall ($2.5M, then ×1.45 a rung) and its programs are bought
   with; a school that spends it on beds houses students it cannot admit.
 - **Build (12–35)** — the catalogue and the campus are made. Growth is paced by
   seats (a program's developed courses), by faculty (the market is a gate),

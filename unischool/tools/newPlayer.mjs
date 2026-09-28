@@ -1,12 +1,16 @@
-// A new player, scripted: founds a college in a headless Chromium, follows
-// the opening walkthrough by doing what each step asks (through the UI, the
-// way a player would), then plays the first year at 4×, answering every
-// letter with its last button. It reports what it was shown, how long each
+// A new player, scripted: passes the title screen, founds a college in a
+// headless Chromium, follows the opening walkthrough by doing what each step
+// asks (through the UI, the way a player would), then plays the first year
+// at the fastest speed open to it (2× until a Provost opens 4×), answering
+// every stop and every matter with its last button. A matter that pauses
+// the clock on arrival (Plan 78E) is opened from its notice, answered in the
+// inbox, and the clock resumed. It reports what it was shown, how long each
 // step took, and where it stalled: a step it could not complete, or a clock
 // that stopped with nothing on screen asking for anything.
 //
 //   npm run dev                              # in one shell
 //   npm run newplayer [-- --timeout=180]     # writes node_modules/.tmp/newplayer-*.png on a stall
+//   CAMPUS_URL=http://localhost:5174/ npm run newplayer   # a dev server on another port
 //
 // Nothing in src/ imports it.
 
@@ -38,11 +42,16 @@ const visible = async (selector) => (await page.locator(selector).count()) > 0;
 const clickFirst = async (selector) => {
   const el = page.locator(selector).first();
   if ((await el.count()) === 0) return false;
-  await el.click().catch(() => {});
+  await el.click({ timeout: 1500 }).catch(() => {});
   await page.waitForTimeout(150);
   return true;
 };
 const clock = async () => (await page.locator('body').innerText()).match(/Year (\d+) · [^\n]*Week (\d+)/);
+
+// The title screen comes first (Plan 34): a fresh browser has no run to
+// continue, so its primary button is New game.
+await page.click('.title-screen .title-primary');
+await page.waitForTimeout(400);
 
 // Founding.
 await page.fill('input[placeholder="e.g. Blackmoor"]', 'Newcomb');
@@ -102,10 +111,31 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
       if (!(await clickFirst('.instructor-option:not(.full):not(.selected)'))) await clickFirst('button:has-text("Appoint")');
       await clickFirst('.building-info-jump:not([disabled])');
     }
-  } else if (!speedSet) {
-    await clickFirst('button[aria-label="4×"]');
-    speedSet = true;
-    note('walkthrough done; playing at 4×');
+  } else {
+    // A matter that paused the clock on arrival (Plan 78E): open it from its
+    // notice, answer it in the inbox's reading pane, and close the inbox.
+    const paused = await visible('button[aria-label="Paused"][aria-pressed="true"]');
+    if (paused && await clickFirst('.toast .toast-open')) {
+      await page.waitForTimeout(250);
+      const subject = (await page.locator('.inbox-read h3').first().innerText().catch(() => 'a matter')).trim();
+      if (!seen.has(`matter:${subject}`)) { seen.add(`matter:${subject}`); note(`matter: ${subject}`); }
+      const answer = page.locator('.inbox-read .event-choice:not([disabled])');
+      if (await answer.count()) await answer.last().click({ timeout: 1500 }).catch(() => {});
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(200);
+      lastMove = Date.now();
+    }
+    // The fastest gear open: 4× waits for a Provost, so year one plays at 2×.
+    if (!speedSet || paused) {
+      for (const gear of ['4×', '2×', 'Play']) {
+        if (await visible(`button[aria-label="${gear}"]:not([disabled])`)) {
+          await clickFirst(`button[aria-label="${gear}"]`);
+          if (!speedSet) note(`walkthrough done; playing at ${gear}`);
+          break;
+        }
+      }
+      speedSet = true;
+    }
   }
 
   // The NEXT line, noted whenever it changes.

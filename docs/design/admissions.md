@@ -3,16 +3,16 @@
 The once-a-year decision that sets the school's price and its selectivity, and
 the four aggregate classes it commits.
 
-## The summer: one stop a year, four beats
+## The summer: one stop a year, three beats
 
 The year has **one fixed stop**, at week 52, and it stops once. The `summer`
-interrupt (`types.ts`'s `SummerPayload`) is one modal with a four-step header —
-**Review · Standing · Admissions · Students** — and a `beat` index in its
+interrupt (`types.ts`'s `SummerPayload`) is one modal with a three-step header —
+**Review · Admissions · Students** (`SUMMER_BEATS`) — and a `beat` index in its
 payload, so a save written between beats resumes on the right beat with the
 clock still halted, and nothing can slip in between them. One action per beat
 moves on (`RESOLVE_SUMMER_BEAT`); only the last beat's `RESOLVE_ADMISSIONS`
-turns the calendar page. Review and Standing are read-and-continue (Enter
-continues them); the decision and the digest are not.
+turns the calendar page. Review is read-and-continue (Enter continues it,
+unless a promise is on offer); the decision and the digest are not.
 
 1. **Review** — the year the school just lived through, generated from the
    year's log and the state against last summer's row
@@ -23,26 +23,25 @@ continues them); the decision and the digest are not.
    prestige is about to take, and, in the defend era, who passed the school
    this year. Nothing is authored or stored; the two
    forward-looking lines are the same pure functions the last beat commits.
+   Review also settles the promises that came due and makes the year's offer
+   (see [progression.md](progression.md)'s "Promises").
    **On the fiftieth summer this beat is the final report** instead (see
-   [progression.md](progression.md)'s "The fifty years"): the legacy, the
-   ambitions, the founder's numbers and the fifty-year curves, sealed by the
-   last beat and never written again.
-2. **Standing** — the U.S. News report, at the boundary rather than at week 26
-   (see [progression.md](progression.md)): the school's rank against last
-   summer's, who it passed and was passed by, the big movers, the other two
-   standings, and — once the school is on the published list — the top 50 as a
-   table with a column for last year's place.
-3. **Admissions** — the two levers, below.
-4. **Students** — the student-life digest (see
+   [progression.md](progression.md)'s "The fifty years"): the six standings
+   graded, the promises kept, the founder's numbers and the fifty-year curves,
+   sealed by the last beat and never written again.
+2. **Admissions** — the two levers, below.
+3. **Students** — the student-life digest (see
    [student-life.md](student-life.md)): a whole year's club and chapter
    petitions answered together, and the summer's last word — what is about to
    be committed — before the year turns over.
 
 Plan 16 is the record of how the summer came to be one stop rather than an
 admissions modal and a mid-year report:
-[`../plans/16-the-year.md`](../plans/16-the-year.md).
+[`../plans/16-the-year.md`](../plans/16-the-year.md). Plan 33 dropped its
+Standing beat, the U.S. News report: the figures stay in History's standings,
+and entering the guide keeps its own moment.
 
-## Admissions: the summer's third beat
+## Admissions: the summer's second beat
 
 Admissions is **a once-a-year decision, in the summer**. The player sets
 exactly **two** levers for the coming year: **tuition** and the **admit rate**.
