@@ -14,6 +14,7 @@ import { debtOutstanding } from '../src/systems/finance/treasury';
 import { endowmentHalf } from '../src/systems/estate/projects';
 import { canCancelConstruction, demolitionBlock } from '../src/state/demolition';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { money } from '../src/format';
 import type { Buildable, GameState } from '../src/state/types';
 
 bindScriptStream(3939);
@@ -64,6 +65,7 @@ const facility = (s: GameState) => {
   assert(s.finance.cash === cash + t.cost, 'calling it off returns its cost');
   assert(node(s, t.id).status === 'available' && s.developing[t.id] === undefined && s.placements[t.id] === undefined, 'clears its site and puts it back in the catalog');
   assert(s.log[0].message.includes('called off'), 'and says so');
+  assert(s.log[0].message.endsWith(`; ${money(t.cost)} returned to cash.`), `and says the money went to cash (${s.log[0].message})`);
   s = reducer(s, { type: 'CANCEL_CONSTRUCTION', id: t.id });
   assert(s.finance.cash === cash + t.cost, 'a second call-off returns nothing more');
 }
@@ -79,6 +81,7 @@ const facility = (s: GameState) => {
   s = reducer(s, { type: 'CANCEL_CONSTRUCTION', id: t.id });
   assert(s.finance.cash === t.cost - 500_000 && debtOutstanding(s) === 0 && s.finance.loans === undefined, 'called off, the loan is settled out of the refund and the cash is as it was');
   assert(node(s, t.id).financing === undefined, 'and the record goes');
+  assert(s.log[0].message.endsWith(`; ${money(500_000)} settled its loan and ${money(t.cost - 500_000)} returned to cash.`), `and the line says what settled the loan (${s.log[0].message})`);
 }
 
 // ---- Calling off, from the building fund ----
@@ -90,6 +93,7 @@ const facility = (s: GameState) => {
   s = place(s, t, { gift: true });
   s = reducer(s, { type: 'CANCEL_CONSTRUCTION', id: t.id });
   assert(s.advancement!.restrictedBuilding === t.cost + 1 && s.finance.cash === 10, 'gifts go back to the building fund, not into cash');
+  assert(s.log[0].message.endsWith(`; ${money(t.cost)} returned to the building fund.`), `and the line says so (${s.log[0].message})`);
 }
 
 // ---- Calling off, half from the endowment ----
@@ -107,6 +111,7 @@ const facility = (s: GameState) => {
   if (started) {
     s = reducer(s, { type: 'CANCEL_CONSTRUCTION', id: t.id });
     assert(s.finance.endowment === endowment && s.finance.cash === t.cost, `the endowment's half (${endowmentHalf(t)}) goes back to the endowment and the rest to cash`);
+    assert(s.log[0].message.endsWith(`; ${money(endowmentHalf(t))} returned to the endowment and ${money(t.cost - endowmentHalf(t))} to cash.`), `and the line says so (${s.log[0].message})`);
   }
 }
 

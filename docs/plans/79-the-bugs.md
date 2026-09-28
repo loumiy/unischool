@@ -89,6 +89,36 @@ stale tab's close writes its older game over the newer one, silently.
 - **Checks:** unit tests on the guard (an older write is refused, a newer
   one goes through, the claim moves); the two-tab probe.
 
+**As implemented (#241):**
+
+- **The claim and the guard** are in `persistence.ts`. `claimSave` puts
+  the tab's id under `unischool.save.claim`, and `trySave` says `'newer'`
+  when the guard refuses; `saveGame` keeps its yes or no. The tab's last
+  `savedAt` is set by a load, a write and New game's clear.
+- **A tab saves only while it holds the claim** (`useGame.ts`). One that
+  loaded a save and sits on the title screen has not claimed it, so its
+  hide saves nothing either. Otherwise a tab left on the title would stamp
+  the same game newer and stop the tab that is playing.
+- **A tab that has lost the claim** is paused, and asking it for a speed
+  does nothing. A Save pressed there is dropped, so no "Game saved." line
+  appears. The banner sits top center, above every modal, and says the tab
+  is paused and saves nothing.
+- **"Open it here"** reloads with a `sessionStorage` flag, and the page
+  comes back into the game, claimed, without the title screen between.
+- **Past the plan:** a Continue on a title screen loaded before another
+  tab's save opens that newer save (the same reload), rather than claiming
+  an older game the guard would then stop. Founding over a save this tab
+  never saw is stopped by the guard and shows the banner. An imported file
+  writes past the guard and takes the claim, since the player chose to
+  replace the run. A save this version sets aside does not bar the next
+  save.
+- **The probe.** `twoTabs.mjs` runs to the end: tab B's Continue takes the
+  claim, so tab A shows the banner and does not play on, and a fresh tab
+  continues at the week both opened at. A variant with the claim taken
+  back found tab A at week 5 kept over tab B's close at week 1, and a stale
+  Continue opened week 8.
+- **Checks:** `test/two-tabs.test.ts`, 35 checks.
+
 ## PR 79C — The simulation's three bugs
 
 *G7-7, G7-9, G7-15.*
@@ -138,6 +168,43 @@ stale tab's close writes its older game over the newer one, silently.
 - **Checks:** the named professor for each `names.faculty` kind; the
   cancel line for each destination; the Treasury sum over the scenario
   saves.
+
+**As implemented (#242):**
+
+- **`{faculty}`.** `names.faculty` takes `researcher` (the strongest
+  researcher), `teacher` (the strongest teacher) or `longest` (the
+  longest-serving); ties go to the id. The random draw is still made, so
+  every other name and the stream after it read the same, and `facultyId`
+  follows the person named.
+  - The grant windfall names the strongest researcher, the crowded lecture
+    the strongest teacher (its gate is teaching, so teacher rather than
+    the researcher this plan said). The BACKLOG row comes off.
+  - The offer (`star-poached`) and the tenure case are left drawn. Both
+    let the professor go (`departs`), so naming them changes who leaves,
+    and the sim moved by it (Selective's year-50 cash by $98M, Lean's
+    by $403M). Nothing in the offer's words needs a particular person; the
+    tenure case can name someone long-serving. Both are in the BACKLOG,
+    and a test holds that no event that lets its professor go names them
+    by kind.
+  - `two-body` stays drawn: anyone can have a spouse. No event speaks of
+    long service with `{faculty}`, so `longest` has no user yet; the
+    retirement stories name nobody, and a named person who then did not
+    retire would be untrue (their BACKLOG row stays).
+- **Calling off.** The log line names each destination with its sum:
+  "$X returned to cash", "to the building fund", "$half returned to the
+  endowment and $rest to cash", or "$balance settled its loan and $rest
+  returned to cash". The building panel's warning already said where.
+- **The name's limit.** At 60 characters the founding form and the
+  pennant's rename say "60 characters at most" (`NAME_LIMIT_NOTE` in
+  `data/foundingData.ts`, from `COLLEGE_NAME_MAX`), in the muted caption
+  style.
+- **The Treasury.** The statement adds up. Its lines are now a table
+  (`tabs/treasuryStatement.ts`): each figure, label and when it shows,
+  and the tab renders from it. `test/treasury.test.ts` sums the shown
+  lines against both totals over the founding college, the three
+  committed saves, each in the crisis scenario's break, the launch save
+  with every line in play, and every week of a guided college's first
+  ten years; every line shows in at least one.
 
 ## PR 79E — Tooling and docs
 

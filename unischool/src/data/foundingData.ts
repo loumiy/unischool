@@ -1,4 +1,4 @@
-import type { Vernacular } from '../state/types';
+import { COLLEGE_NAME_MAX, type Vernacular } from '../state/types';
 
 // Where every school starts: one set of conditions for everybody. The
 // startup screen asks only for a name (StartupScreen.tsx); anything that
@@ -8,6 +8,11 @@ import type { Vernacular } from '../state/types';
 // (StartupScreen.tsx, Plan 78G): the facade reads College, and this says
 // when that changes (systems/events/charter.ts).
 export const UNIVERSITY_CAPTION = 'Every college opens as a College; the board grants "University" with its first research lab.';
+
+// Under the name field, on the founding screen and in the pennant's rename,
+// once the name has reached the longest it can be (the review's G7-19): the
+// field takes no more, and this says why.
+export const NAME_LIMIT_NOTE = `${COLLEGE_NAME_MAX} characters at most`;
 
 export interface FoundingPreset {
   startingCash: number;
