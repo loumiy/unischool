@@ -6,7 +6,8 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { seasonOf, seasonStyle } from '../src/components/seasons';
+import { SUMMER_GREEN_WEEK, seasonOf, seasonStyle } from '../src/components/seasons';
+import { DEFAULT_SETTINGS, normaliseSettings } from '../src/settings';
 
 let checks = 0;
 let failures = 0;
@@ -51,6 +52,14 @@ assert(JSON.stringify(at(53)) === JSON.stringify(at(1)) && JSON.stringify(at(0))
 // Winter shows on the ground: the grass is near white under the snow.
 const winter = seasonStyle(26) as Record<string, string>;
 assert(parseInt(winter['--grass']!.slice(1, 3), 16) > 200, `the grass is under snow at week 26 (${winter['--grass']})`);
+
+// The setting (Plan 74I's seasons, off for a strobe-free time-lapse): on
+// unless turned off, including for settings saved before it existed, and
+// off holds the map at a week with no season in it.
+assert(DEFAULT_SETTINGS.seasons === true, 'seasons are on by default');
+assert(normaliseSettings({ textScale: 1.15 }).seasons === true, 'settings saved before the switch keep the seasons');
+assert(normaliseSettings({ seasons: false }).seasons === false, 'and turning them off holds');
+assert(still(SUMMER_GREEN_WEEK), `the seasons-off week (${SUMMER_GREEN_WEEK}) is the plain summer map`);
 
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);

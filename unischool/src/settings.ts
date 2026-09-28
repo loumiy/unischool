@@ -2,8 +2,9 @@ import { useSyncExternalStore } from 'react';
 
 // THE PLAYER'S SETTINGS (Plan 34, from v2's; V2 #52): text size, a
 // color-vision-safe set of signal colors, and reduced motion beside the
-// operating system's own; and whether a matter arriving pauses the clock
-// (Plan 78E, on unless turned off). Per-browser conveniences, kept outside the save
+// operating system's own; whether a matter arriving pauses the clock
+// (Plan 78E, on unless turned off); and the seasons on the map (Plan 74I)
+// on or off. Per-browser conveniences, kept outside the save
 // in their own key and read defensively: a browser that refuses storage
 // plays at the defaults. Sound keeps its own store (audio/, PR G).
 
@@ -19,9 +20,13 @@ export interface GameSettings {
   // Pause the clock when a matter to decide arrives (Plan 78E). A browser
   // that kept its settings before the key existed reads it as on.
   pauseOnArrival: boolean;
+  // Off holds the map in its summer palette all year (seasons.ts is kept,
+  // only not applied): for a player who finds the winter white too much,
+  // and for tools/timelapseShoot.mjs, where it strobes once a year.
+  seasons: boolean;
 }
 
-export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true };
+export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true, seasons: true };
 
 export const SETTINGS_KEY = 'unischool.settings.v1';
 
@@ -32,6 +37,7 @@ export function normaliseSettings(raw: unknown): GameSettings {
     vision: o.vision === 'safe' ? 'safe' : 'standard',
     motion: o.motion === 'reduce' ? 'reduce' : 'system',
     pauseOnArrival: o.pauseOnArrival !== false,
+    seasons: o.seasons !== false,
   };
 }
 

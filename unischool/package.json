@@ -20,6 +20,8 @@
     "shot": "node tools/shoot.mjs",
     "phone": "node tools/phoneCheck.mjs",
     "layout": "rolldown tools/layout.ts -o node_modules/.tmp/layout.mjs -f esm -p node && node node_modules/.tmp/layout.mjs",
+    "timelapse": "rolldown tools/timelapse.ts -o node_modules/.tmp/timelapse.mjs -f esm -p node && node node_modules/.tmp/timelapse.mjs",
+    "timelapse:shoot": "node tools/timelapseShoot.mjs",
     "sheet": "rolldown tools/sheet.tsx -o node_modules/.tmp/sheet.mjs -f esm -p node && node node_modules/.tmp/sheet.mjs",
     "sheet:shot": "node tools/shoot-sheet.mjs",
     "gallery:assets": "node tools/assetGallery.mjs",
