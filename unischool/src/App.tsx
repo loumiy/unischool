@@ -77,7 +77,7 @@ type Front = 'title' | 'hall' | 'settings' | 'credits';
 const LADDER_TABS: ReadonlySet<TabId> = new Set(MILESTONES.flatMap((m) => m.tabs));
 
 export default function App() {
-  const { state, act, speed, setSpeed, weekProgress, exportRun } = useGame();
+  const { state, act, speed, setSpeed, weekProgress, exportRun, elsewhere, resumed, continueHere, openHere } = useGame();
   const s: GameState = state;
   // null = looking at the map. A tab plus an optional target inside it (e.g.
   // a school in the Curriculum), so there is one source of truth for what is
@@ -86,8 +86,9 @@ export default function App() {
   const [overlay, setOverlay] = useState<{ tab: TabId; target?: string } | null>(null);
   // The front screens (Plan 34): the title the game opens on, and the hall,
   // the settings and the credits, reachable from it and from the menu. The
-  // clock is paused while one is up.
-  const [front, setFrontState] = useState<Front | null>('title');
+  // clock is paused while one is up. "Open it here" (Plan 79B) comes back
+  // past the title, into the game it opened.
+  const [front, setFrontState] = useState<Front | null>(resumed ? null : 'title');
   const [frontBack, setFrontBack] = useState<Front | null>(null);
   function setFront(next: Front | null) {
     setFrontBack(next === 'title' || next === null ? null : front);
@@ -367,7 +368,7 @@ export default function App() {
   const frontScreen = front === 'title' ? (
     <TitleScreen
       s={s}
-      onContinue={() => setFrontState(null)}
+      onContinue={() => { if (continueHere()) setFrontState(null); }}
       onNewCollege={newCollege}
       onHall={() => setFront('hall')}
       onSettings={() => setFront('settings')}
@@ -517,6 +518,18 @@ export default function App() {
         </div>
       </div>
 
+      {/* Two tabs on one save (Plan 79B): another tab has taken up the
+          college, so this one is paused and saves nothing. Outside the
+          shell, so it answers over the Final Report's page too. */}
+      {elsewhere && front === null && (
+        <div className="elsewhere-banner" role="alert">
+          <p className="elsewhere-banner-text">
+            This college is open in another tab.
+            <span className="elsewhere-banner-note">This tab is paused and saves nothing.</span>
+          </p>
+          <button type="button" className="btn-primary" onClick={openHere}>Open it here</button>
+        </div>
+      )}
       {frontScreen}
       {/* Behind the playtest flag (see DebugPanel.tsx). Outside the one-slot
           rule: it stays open while you look at something else. */}
