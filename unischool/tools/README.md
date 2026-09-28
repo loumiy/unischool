@@ -195,6 +195,12 @@ writes only VP8, so the result is a WebM; convert it for Steam (H.264 MP4)
 with any full ffmpeg. Two hundred frames take some fifteen minutes on four
 cores.
 
+`docs/images/timelapse.webm` is the first cut: the Completionist run above,
+seed 12345, in navy and gold, scaled to 720p at 2 Mb/s so the repository
+carries 6 MB rather than 38 (`-vf scale=1280:720 -c:v libvpx -b:v 2M`). It
+was shot before the run was cut off at year 50, so its last frame reads
+Year 51. Re-run the two commands above for the full-quality file.
+
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB
 nobody asked for. Point `CHROME_PATH` at any Chromium or Chrome build; failing
