@@ -47,7 +47,8 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // Only threaded to the build popup, which reports seen buildable ids.
   act: (a: Action) => void;
   active: TabId | null;
-  onChangeTab: (tab: TabId | null) => void;
+  // `target`: a section of the tab to land on (a stat chip's door, Plan 78C).
+  onChangeTab: (tab: TabId | null, target?: string) => void;
   // Build mode and an open tab share one slot, owned by App.tsx.
   buildOpen: boolean;
   onSetBuildOpen: (open: boolean) => void;
@@ -87,6 +88,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           s={s}
           treasuryOpen={active === 'treasury'}
           onOpenTreasury={() => onChangeTab(active === 'treasury' ? null : 'treasury')}
+          onOpenSection={(tab, section) => onChangeTab(tab, section)}
         />
       </div>
 

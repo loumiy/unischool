@@ -476,7 +476,10 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
             ) : (
               <ul>
                 {section.lines.map((line, i) => (
-                  <li key={i} className={line.tone ?? ''}>{line.text}</li>
+                  <li key={i} className={line.tone ?? ''}>
+                    {line.text}
+                    {line.detail && <span className="review-detail">{line.detail}</span>}
+                  </li>
                 ))}
               </ul>
             )}

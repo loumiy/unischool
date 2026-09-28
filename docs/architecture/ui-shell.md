@@ -17,15 +17,20 @@ reserves the dock's measured height instead of drawing under it.
 
 ## Tab gates
 
-Three tabs open from milestones on the ladder (`data/ladderData.ts`, read by
-`TabNav.tsx`'s `tabAvailable`): History at the first commencement, Research
-once a lab is finished, Athletics with the first sport club. A milestone can
-also open a **section** of a tab that is already open (its `sections`, read
-by `sectionAvailable`). Students (the one tab that Enrollment and Student
-Life became) is open from the first week with the satisfaction breakdown,
-the demands and the student body; its guidebook, its clubs and chapters and
-last summer's funnel wait for the first commencement (Plan 78B). A milestone
-is never undone, so a tab once open stays open. The first time a gated tab
+Two tabs open from milestones on the ladder (`data/ladderData.ts`, read by
+`TabNav.tsx`'s `tabAvailable`): Research once a lab is finished, Athletics
+with the first sport club. A milestone can also open a **section** of a tab
+that is already open (its `sections`, read by `sectionAvailable`). Students
+(the one tab that Enrollment and Student Life became) is open from the first
+week with the satisfaction breakdown, the demands and the student body; its
+guidebook, its clubs and chapters and last summer's funnel wait for the
+first commencement (Plan 78B). History is open from the first week with its
+Standing; its record of the years (the Final Report's draft, the promises,
+the chronicle, the charts and the table) waits for the first commencement,
+and one note says so until then (Plan 78C). A section no milestone names is
+somewhere a link can land: the tab scrolls to its `data-section`
+(`sectionTarget.ts`). A milestone is never undone, so a tab once open stays
+open. The first time a gated tab
 opens the activity log says so, unless its milestone's letter already
 does.
 
@@ -103,12 +108,22 @@ Final Report's page still stands in front of the screen.
 
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,
-prestige, satisfaction — a glyph and a figure each, the word in the tooltip;
-satisfaction's tooltip names the lowest of the five needs and its figure,
-Plan 78B);
-the right zone stacks the clock over five round gears (pause, play, 2×, 4×,
-8×);
-and between them, in one row at every width, the labelled tab row — the word
+prestige, satisfaction). Each chip is its word over its figure, in the
+display face at `--text-2xs` over `--text-md`; on a phone the word is hidden
+and the glyph stands in for it, as the chips were before (Plan 78C). The word
+takes the glyph's place rather than joining it, so the left zone is no wider
+than it was: the band still fits one row at 1440 with every tab open, and
+at 1280 once History, Research and Athletics are all open it wraps the clock
+to a second line, as it did before.
+Each chip keeps its sentence as a tooltip: satisfaction's names the lowest of
+the five needs and its figure (Plan 78B), and rank's says that the rank
+follows prestige, which rises at the summer by at most its step, read from
+`prestigeSystem.ts` (Plan 78C). Three chips are doors, like the funds figure:
+rank and prestige open History › Standing, satisfaction opens Students ›
+the satisfaction breakdown, each a button named with its figure ("Prestige
+51.5 — open History, Standing"). The map is `data/statChips.ts`'s
+`chipDoor`; enrolled is a figure only. The right zone stacks the clock over
+five round gears (pause, play, 2×, 4×, 8×); and between them, in one row at every width, the labelled tab row — the word
 under each glyph — and Build. The two side zones stack precisely so that row
 always fits. On a phone the band folds to its figures while a tab or a
 popup is open, and the tabs scroll beside Build (Plan 76I). The school's

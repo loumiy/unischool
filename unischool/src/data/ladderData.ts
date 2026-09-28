@@ -30,10 +30,14 @@ const GRAND_LANDMARK_PRESTIGE_GATE = 90;
 
 export type LadderTier = 'Founding' | 'Growing' | 'Established' | 'National';
 
-// A part of a tab the ladder holds back while the tab itself is open (Plan
-// 78B): the tab shows from the charter, and the section waits on its
-// milestone. Named `<tab>.<section>`.
-export type TabSection = 'students.guidebook' | 'students.clubs' | 'students.funnel';
+// A named part of a tab, `<tab>.<section>`. The ladder can hold one back
+// while the tab itself is open (Plan 78B): the tab shows from the charter,
+// and the section waits on its milestone. A section no milestone names shows
+// whenever its tab does, and is somewhere a link can land (Plan 78C: the
+// dock's chips open History › Standing and Students › the breakdown).
+export type TabSection =
+  | 'students.guidebook' | 'students.clubs' | 'students.funnel' | 'students.breakdown'
+  | 'history.standing' | 'history.record';
 
 export interface Progress {
   value: number;
@@ -118,11 +122,13 @@ export const MILESTONES: readonly Milestone[] = [
     condition: 'the first summer closes',
     reached: (s) => s.history.length >= 1,
     buildables: ['AMENITY-FOUNTAIN'],
-    // Students is open from the first week, for what the students think
-    // (Plan 78B); what takes a year to exist waits for this.
-    tabs: ['history'],
+    // Students and History are open from the first week, for what the
+    // students think and where the college stands (Plans 78B, 78C); what
+    // takes a year to exist waits for this. History's record is first, so the
+    // letter's door opens History (InboxTab.tsx).
+    tabs: [],
     // The funnel too: until the first summer there is no last summer's.
-    sections: ['students.guidebook', 'students.clubs', 'students.funnel'],
+    sections: ['history.record', 'students.guidebook', 'students.clubs', 'students.funnel'],
     letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, what the guidebooks make of it, and the clubs the students have started.',
     opens: ['History: the record of each year', 'Students: what the guidebooks say, the clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
   },

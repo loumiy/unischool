@@ -4,9 +4,12 @@ import AlumniPanel from './AlumniPanel';
 import type { GameState, YearSnapshot } from '../state/types';
 import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
+import { sectionAvailable } from '../components/TabNav';
+import { sectionAnchor, useSectionTarget } from '../components/sectionTarget';
+import { SECTION_HEADINGS } from '../data/statChips';
 import { HistoryChart } from '../components/HistoryChart';
 import { MultiChart } from '../components/MultiChart';
-import { count, fraction, moneyShort, multiplier, pct, prestigeFigure, satisfactionFigure, signed } from '../format';
+import { count, fraction, moneyShort, pct, prestigeFigure, satisfactionFigure, signed } from '../format';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
@@ -16,7 +19,7 @@ import ReportCardActions from '../components/ReportCardActions';
 import { hallEntryFor } from '../state/hall';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import {
-  prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
+  multiplierLine, prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
   type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
 
@@ -66,7 +69,7 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
           <>
             {' '}
             <span className="standing-multiplier">
-              {multiplier(input.multiplier.value)} {input.multiplier.label} — {input.multiplier.detail}
+              {multiplierLine(input.multiplier)}
             </span>
           </>
         )}
@@ -106,11 +109,12 @@ function summerNote(breakdown: StandingBreakdown, gap: number): string {
   const { riseRate, maxRise, fallRate, reportCard } = breakdown.summer!;
   const step = gap > 0 ? Math.min(gap * riseRate, maxRise) : Math.abs(gap) * fallRate;
   const grading = `This year is grading ${prestigeFigure(breakdown.target)}; each summer, prestige closes `
-    + `${pct(riseRate)} of a gap upward (at most ${maxRise} points) and ${pct(fallRate)} downward`
+    + `${pct(riseRate)} of a gap upward (at most ${prestigeFigure(maxRise)} points) and ${pct(fallRate)} downward`
     + (Math.abs(gap) < 0.05 ? '.' : ` — ${signed(gap > 0 ? step : -step, 1)} if nothing changes.`);
   const last = reportCard
     ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${prestigeFigure(reportCard.before)} → ${prestigeFigure(reportCard.after)}.`
-    : ' No summer has graded it yet.';
+    // Before the first summer (Plan 78C): when the grade first counts.
+    : ' Prestige is graded at the end of each year; the first grade comes at the first summer.';
   return grading + last;
 }
 
@@ -168,9 +172,9 @@ function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
 
 function StandingPanel({ s }: { s: GameState }) {
   return (
-    <section className="panel">
+    <section className="panel" {...sectionAnchor('history.standing')}>
       <div className="panel-head">
-        <h2>Standing</h2>
+        <h2>{SECTION_HEADINGS['history.standing']}</h2>
         <HelpHint
           align="end"
           text="Each standing moves slowly toward its target. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted."
@@ -269,9 +273,30 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   );
 }
 
-export default function HistoryTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+// `target`: a section to land on (the prestige and rank chips open
+// Standing, Plan 78C).
+export default function HistoryTab({ s, act, target, onTargetConsumed }: {
+  s: GameState; act: (a: Action) => void; target?: string; onTargetConsumed?: () => void;
+}) {
   const history = s.history;
   const totalCourses = s.tech.filter((t) => t.kind === 'course').length;
+  useSectionTarget(target, onTargetConsumed);
+
+  // Open from the first week for Standing (Plan 78C); the record of the
+  // years waits for the first commencement (ladderData.ts's sections).
+  if (!sectionAvailable(s, 'history.record')) {
+    return (
+      <div className="tab-content">
+        <StandingPanel s={s} />
+        <section className="panel">
+          <h2>The record</h2>
+          <p className="empty-note">
+            The record of the years starts at the first commencement: the chronicle, the promises and the year-by-year charts are kept here from then on.
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   if (history.length < MIN_SERIES_POINTS) {
     return (

@@ -251,6 +251,8 @@ export default function App() {
       setPlacingIdState(null);
     }
   }
+  // A tab has landed on its target: clear it, keeping the tab open.
+  const clearTarget = () => setOverlay((cur) => (cur ? { tab: cur.tab } : cur));
   function inspectHall(hallId: string, programId?: string) {
     if (holding) return;
     openTab(null);
@@ -468,7 +470,7 @@ export default function App() {
                   s={s}
                   act={act}
                   target={overlay.target}
-                  onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                  onTargetConsumed={clearTarget}
                   onOpenCurriculum={(target) => openTab('curriculum', target)}
                 />
               )}
@@ -477,22 +479,26 @@ export default function App() {
                   s={s}
                   act={act}
                   target={overlay.target}
-                  onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                  onTargetConsumed={clearTarget}
                   onInspectHall={inspectHall}
                   onOpenFaculty={(field) => openTab('faculty', field)}
                 />
               )}
               {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
               {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
-              {overlay.tab === 'students' && <StudentsTab s={s} />}
+              {overlay.tab === 'students' && (
+                <StudentsTab s={s} target={overlay.target} onTargetConsumed={clearTarget} />
+              )}
               {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
-              {overlay.tab === 'history' && <HistoryTab s={s} act={act} />}
+              {overlay.tab === 'history' && (
+                <HistoryTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
+              )}
               {overlay.tab === 'inbox' && (
                 <InboxTab
                   s={s}
                   act={act}
                   target={overlay.target}
-                  onTargetConsumed={() => setOverlay((cur) => (cur ? { tab: cur.tab } : cur))}
+                  onTargetConsumed={clearTarget}
                   read={foundingRead}
                   onRead={(id) => setFoundingRead((cur) => new Set([...cur, id]))}
                   onSeen={markOpened}

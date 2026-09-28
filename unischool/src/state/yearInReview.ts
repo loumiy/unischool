@@ -4,7 +4,7 @@ import { programById, programOfCourse } from '../data/techData';
 import { advanceClasses, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { attritionReasons, summerAttrition } from '../systems/admissions/consequences';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
-import { gradeYear, prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { gradeYear, prestigeBreakdown, standingDetailLine } from '../systems/prestige/prestigeSystem';
 import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 import { previousYear } from './history';
 import { count, money, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney } from '../format';
@@ -32,6 +32,9 @@ export type ReviewSectionKey = 'built' | 'people' | 'research' | 'students' | 'm
 export interface ReviewLine {
   text: string;
   tone?: 'good' | 'bad';
+  // A second, smaller line under the first: a prestige term's "what moves
+  // it", as History › Standing reads it (Plan 78C).
+  detail?: string;
 }
 
 export interface ReviewSection {
@@ -209,6 +212,7 @@ function standing(s: GameState): ReviewSection {
     lines.push({
       text: `${input.label}: ${input.penalty ? '−' : '+'}${Math.abs(grade).toFixed(1)} of ${input.weight}`,
       tone: input.penalty ? 'bad' : undefined,
+      detail: standingDetailLine(input),
     });
   }
   return { key: 'standing', title: 'Standing', lines, empty: '' };

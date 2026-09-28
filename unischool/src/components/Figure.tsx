@@ -32,18 +32,30 @@ export default function Figure({ label, value, hint, className }: {
 
 // Anything else that is a number with a sentence behind it: the status
 // bar's stats, drawn their own way. `above` opens the sentence upward, for
-// the bar along the bottom of the screen.
-export function FigureBox({ hint, className, above, children }: {
+// the bar along the bottom of the screen. With `door` the figure is a button
+// that opens where it is explained (Plan 78C), named by `door.name`; the
+// sentence stays its description.
+export function FigureBox({ hint, className, above, door, children }: {
   hint: Sentence;
   className?: string;
   above?: boolean;
+  door?: { name: string; onOpen: () => void };
   children: ReactNode;
 }) {
   const id = useId();
+  const tip = <span className={`figure-hint ${above ? 'above' : ''}`} role="tooltip" id={id}>{hint}</span>;
+  if (door) {
+    return (
+      <button type="button" className={`figure-box ${className ?? ''}`} aria-label={door.name} aria-describedby={id} onClick={door.onOpen}>
+        {children}
+        {tip}
+      </button>
+    );
+  }
   return (
     <div className={`figure-box ${className ?? ''}`} tabIndex={0} aria-describedby={id}>
       {children}
-      <span className={`figure-hint ${above ? 'above' : ''}`} role="tooltip" id={id}>{hint}</span>
+      {tip}
     </div>
   );
 }

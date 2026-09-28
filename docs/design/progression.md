@@ -34,7 +34,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | --- | --- | --- | --- |
 | Founding | The charter | founding | Founders Hall, the dorm and dining chains, the Campus Quad, the Library; Curriculum, Faculty, Treasury |
 | Founding | A fourth program | a fourth program founded | Student Center, Recreation Center |
-| Founding | First commencement | the first summer closes | History; in Students (open from the first week, Plan 78B), the guidebook, the clubs and the funnel |
+| Founding | First commencement | the first summer closes | In History (open from the first week with its Standing, Plan 78C), the record of the years; in Students (open from the first week, Plan 78B), the guidebook, the clubs and the funnel |
 | Founding | A curriculum | eight courses developed | academic halls |
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |
 | Growing | A regional name | prestige 55 | Athletics Complex, Student Union Expansion, Grand Quad & Gardens |
@@ -233,6 +233,12 @@ It is read off `prestigeSystem.ts`'s `prestigeBreakdown` /
 function is a sum over its own breakdown**, so the panel cannot disagree with the
 tick that produced the number. The rows are data: an input that is added, retired
 or reweighted changes that one file and the panel follows.
+Standing is there **from the first week**, and the dock's prestige and rank
+chips open it (Plan 78C); before the first summer its note says that prestige
+is graded at the end of each year and the first grade comes at the first
+summer. The summer Review lists each term's grade with the same "what moves
+it" line under it (`standingDetailLine`), so the two cannot word a term
+differently.
 
 **The report card is shown.** The Standing panel carries the summer model in
 its note — what the year is grading toward, what the step would move — and
