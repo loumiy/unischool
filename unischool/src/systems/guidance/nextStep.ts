@@ -12,6 +12,7 @@ import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { satisfactionFigure } from '../../format';
+import { NEED_LABELS } from '../../data/figureHints';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the latest undone letter ask (the letters' order must not
@@ -62,13 +63,9 @@ function firstClause(text: string): string {
   return first.length > 70 ? `${first.slice(0, 67)}…` : first;
 }
 
-const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = {
-  academic: 'Study space',
-  social: 'Social life',
-  basicNeeds: 'Basic needs',
-  health: 'Health',
-  housing: 'Housing',
-};
+// The needs as the Students tab and the satisfaction chip name them (Plan
+// 78F: one word each, so NEXT's "Academic is at 38" is the tab's row).
+const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = NEED_LABELS;
 
 // What would raise each, named in the line (the build menu opens on it).
 const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, string> = {

@@ -77,6 +77,9 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // the hall and the menu is closed (see state/opening.ts, .opening-target).
   const stage = s.events.opening.stage;
   const ringBuild = stage === 'site-hall' && !buildOpen;
+  // Lit while any build category holds an unseen tile, open or not: the
+  // build menu's "!", "something new to build here" (BuildPopup.tsx).
+  const buildNew = visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]);
 
   return (
     <div className="toolbar" ref={ref}>
@@ -147,17 +150,13 @@ const Toolbar = forwardRef<HTMLDivElement, {
           className={`toolbar-icon-btn toolbar-build-btn ${buildOpen ? 'active' : ''} ${ringBuild ? 'opening-target' : ''}`}
           aria-expanded={buildOpen}
           aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
-          title="Build"
+          title={buildNew ? 'Build: something new to build' : 'Build'}
           disabled={held}
           onClick={() => onSetBuildOpen(!buildOpen)}
         >
           <BuildIcon />
           <span className="toolbar-build-label">Build</span>
-          {/* Lit while any build category holds an unseen tile, open or not
-              (see BuildPopup.tsx's per-tab dot). */}
-          {visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]) && (
-            <span className="alert-badge" aria-hidden="true">!</span>
-          )}
+          {buildNew && <span className="alert-badge" aria-hidden="true">!</span>}
         </button>
       </nav>
 

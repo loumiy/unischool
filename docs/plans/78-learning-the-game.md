@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask on area 3 of
 the October review into PRs, now that the inbox (Plan 77) has landed.*
 
-**Status: Proposed.** A is this plan (#232).
+**Status: Landed.** A to G merged (#232–#238).
 
 ---
 
@@ -627,6 +627,113 @@ is this plan.
 - **Checks:**
   - `review:strings`;
   - a first-year replay with screenshots.
+
+**As implemented (#238):**
+- **The committee's empty boxes** read "Free", with a tooltip: "Free: the
+  committee has room for another course".
+- **Grade chips beside counts** carry their word, "grade B" (`GradeChip`'s
+  `word`).
+  - Worded: the catalog's head ("6/378 developed grade C"), each school's
+    head, each program's row, and the hall panel's program tiles.
+  - Left bare: a course cell's chip (a grid with a key), and the projected
+    grade on a Develop or Appoint button, whose tooltip says "would be
+    graded B".
+  - Plan 47's glossary gains the rule.
+- **The Build menu's "!"** already cleared when its category was opened:
+  opening a category marks its tiles seen (`MARK_SEEN`), and the seen state
+  stays in `s.seen.buildableIds`. The replay confirmed it.
+  - The meaning is now said: a marked category's tooltip reads "Social:
+    something new to build here", the Build button's "Build: something new
+    to build", and the menu's help has a sentence for it.
+  - `ui-shell.md` records the one meaning.
+- **The letters follow the glossary.**
+  - "The doors open": "three program slots still free", "a free program
+    slot". "A hall of its own": "six program slots".
+  - "Moving in": "a moving program is closed for four weeks, not the twelve
+    a move between halls costs".
+  - The walkthrough's step three said a bare "slot" twice, and the
+    curriculum milestone "one program to a slot". Both now say program slot,
+    or "one program to each".
+  - The Curriculum row's "no free Economics slot" now reads "needs
+    Economics faculty", as the glossary asks.
+  - The founding notes had no slips.
+- **A course cell's tooltip** gives the drawer's reason: "ECON 120 ·
+  Econometrics: Needs MATH 120, cross-listed".
+  - One function, `programProgress.ts`'s `courseHoldReason`. The cell's
+    tooltip and the drawer's note both use it, and `crossMajorPrereqs`
+    moved beside it, so the drawer's "cross-listed" tag reads the same.
+  - It covers a greyed (locked) cell: its unmet prerequisites, with a lab
+    "built on the map". It also covers a red (blocked) cell: the faculty it
+    needs, room on the committee, or the cash it is short. It also covers a
+    program that is moving.
+- **The first professor's salary** shows at founding: "Associate ·
+  Psychology · $103k/yr".
+  - It is on every `InstructorOption`: the founding picker and the course
+    drawer. It is the salary as the college pays it, with `moneyShort`, as
+    Appoint shows it.
+  - The meta line now wraps, so a narrow drawer does not cut the salary.
+  - A market candidate's card leaves it off (`pay={false}`): its Appoint
+    button, just under it, already says it.
+- **The admissions default** says why, under the admit-rate slider:
+  - the first summer: "The admit rate opens at the founding rate, 21%.";
+  - after it: "The admit rate opens where last summer set it, 36%.".
+  - Beds never limit the rate (housing is a need, not a cap), so they are
+    not given as the reason. When next year's students would already fill
+    the beds, the line adds "; admitting more crowds 850 beds".
+  - The words are `yearOverYear.ts`'s `admitRateOpening`.
+- **The reveal's crowding part** says its direction: "crowding eased +527%"
+  or "crowding grew −20%" (`crowdingLabel`).
+- **Class names:** "The first graduating class: …", and later "The class of
+  Year 12: …". This covers the alumni ledger, the summer Review's
+  graduating class, the reunion log line and the catalog's `{class}`.
+  - The first class is the ledger's earliest, not Year 1, in case the first
+    summer graduates nobody (`firstClassYear`).
+  - The Students tab's charts label their axis "Class of Year".
+  - Plan 47's glossary gains the rule.
+- **The coach card** is pinned top-right, beside the main menu and the map
+  tools.
+  - Top-center, it covered Founders Hall when the hall was placed near the
+    middle. Top-left is the hall panel's place.
+  - On a phone the card spans the width at the top, as before. While the
+    hall's panel is open (step three), the card drops to the foot of the map
+    and scrolls, so the panel's free program slots stay visible. Before this
+    change, the card hid the panel entirely.
+  - The card does not follow the footprint. A hall placed at the top-right
+    would still sit under it. The camera's screen position is the map's to
+    know, and the side is enough for the review's case.
+- **NEXT names the needs as the Students tab does**: "Academic is at 38",
+  not "Study space" (and "Social", not "Social life"), from `figureHints.ts`'s
+  `NEED_LABELS`. The order is the same, so a tie breaks as before.
+- **Checks:**
+  - `test/plain-words.test.ts` covers the course reason (cross-listed, a
+    lab, several prerequisites, faculty, cash), the crowding direction, and
+    the admit-rate line.
+  - `alumni.test.ts` covers the class names.
+  - `sorting.test.ts`, `event-truth.test.ts` and `year-in-review.test.ts`
+    follow the new words.
+- **Results:**
+  - `check` passes.
+  - `npm run sim` matches `sim/baseline.json` on every line.
+  - No save change.
+  - `npm run phone` passes.
+  - `review:strings`: second person 40, British spellings 0, idioms 10,
+    engine words 0, exclamation marks 0 and contractions 0, all unchanged.
+    The jargon count for "crowding" rose from 4 to 6, from the two direction
+    words.
+- **Screenshots:** `docs/reviews/2026-10-ui-fixes/words-desktop.jpg` shows
+  the coach top-right with the hall clear, the founding picker's salary,
+  "grade B" chips, the committee's "Free" and the drawer's cross-listed
+  prerequisite. `words-phone.jpg` shows step three with the card at the
+  foot and the hall panel's program slots above it.
+  - A native tooltip does not show in a headless screenshot. The replay read
+    each greyed cell's tooltip instead: "Needs MATH 120, cross-listed",
+    "Needs HIST 101, cross-listed" and "Needs Economics faculty".
+- **Left:**
+  - The admissions projection's attrition reasons still say "study space"
+    and "social space" (`consequences.ts`). They name what ran short, in
+    lower case in a list, and "academic" would read worse there.
+  - "Continue and open Build" still opens the menu on its default category
+    (78B's note).
 
 ## PR 78G — The charter
 

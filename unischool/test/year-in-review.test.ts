@@ -202,7 +202,8 @@ console.log('year in review tests');
   assert(s.students.classes.senior === 0 ? cls.lines.length === 0 : cls.lines.length === 2, 'the graduating class, when there is one');
   s.students.classes.senior = 120;
   const seniors = section('class').lines.map((l) => l.text);
-  assert(seniors.length === 2 && seniors[0].startsWith(`The class of ${s.clock.year}`) && seniors[1].startsWith('120 seniors leave'), `how it will remember its years, and how warmly (${seniors.join(' | ')})`);
+  const classLine = (s.alumni ?? []).some((a) => a.classYear < s.clock.year) ? `The class of Year ${s.clock.year}:` : 'The first graduating class:';
+  assert(seniors.length === 2 && seniors[0].startsWith(classLine) && seniors[1].startsWith('120 seniors leave'), `how it will remember its years, and how warmly (${seniors.join(' | ')})`);
 }
 
 if (failures === 0) {

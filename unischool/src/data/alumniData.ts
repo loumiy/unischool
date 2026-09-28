@@ -35,7 +35,13 @@ export const MEMORY_CLAUSES: readonly MemoryClause[] = [
   { id: 'quiet', when: 'always', text: 'unremarkable, and fond of it', warmth: 2 },
 ];
 
-export const MEMORY_LINE = 'The class of {year}: {clauses}.';
+// A class's name (Plan 78F), without its article, which the sentence
+// supplies: the first the college graduated is "the first graduating
+// class", and the rest carry the year, "the class of Year 3", since "the
+// class of 3" reads as a count.
+export const CLASS_NAME_FIRST = 'first graduating class';
+export const CLASS_NAME = 'class of Year {year}';
+export const MEMORY_LINE = 'The {class}: {clauses}.';
 // How many clauses the line shows; warmth counts them all.
 export const MEMORY_CLAUSE_LIMIT = 3;
 

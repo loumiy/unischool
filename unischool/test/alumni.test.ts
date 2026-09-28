@@ -3,7 +3,7 @@
 // and its warmth follows.
 
 import { createInitialState } from '../src/state/actions';
-import { classYears, memoryFor, memoryLine, stampGraduatingClass, warmthFor } from '../src/systems/alumni/ledger';
+import { className, classYears, firstClassYear, memoryFor, memoryLine, stampGraduatingClass, warmthFor } from '../src/systems/alumni/ledger';
 import {
   GIVING_PER_ALUM, REUNION_WARMTH, REUNION_WARMTH_CAP, annualGiving, canReunite, givingOf, maturityOf, reunionCost,
 } from '../src/systems/alumni/giving';
@@ -59,7 +59,14 @@ function withYears(rows: YearSnapshot[]): GameState {
   const quiet = withYears([1, 2, 3, 4, 5].map((y) => row(y)));
   const qm = memoryFor(quiet, { ...classYears(quiet, 5), teaching: 50 });
   assert(qm.join() === 'quiet', `a class nothing happened to is quiet (${qm.join(', ')})`);
-  assert(memoryLine({ classYear: 5, memory: ['happy', 'well-taught', 'building-years', 'deficits'] }) === 'The class of 5: happy in it, well taught and there for the building years.', 'the line shows three clauses');
+  assert(memoryLine({ classYear: 5, memory: ['happy', 'well-taught', 'building-years', 'deficits'] }, 1) === 'The class of Year 5: happy in it, well taught and there for the building years.', 'the line shows three clauses');
+  // Plan 78F: a class is named by its year, never a bare number that reads
+  // as a count, and the first the college graduated by what it is.
+  assert(memoryLine({ classYear: 1, memory: ['quiet'] }, 1) === 'The first graduating class: unremarkable, and fond of it.', 'the first class is the first graduating class');
+  assert(className(3, 1) === 'class of Year 3' && className(1, 1) === 'first graduating class', 'later classes are the class of Year N');
+  assert(firstClassYear(undefined, 4) === 4 && firstClassYear([], 4) === 4, 'with no alumni yet, the class about to graduate is the first');
+  assert(firstClassYear([{ classYear: 2 }, { classYear: 3 }], 5) === 2 && className(5, firstClassYear([{ classYear: 2 }], 5)) === 'class of Year 5', 'after it, the ledger\'s earliest class is the first');
+  assert(className(2, firstClassYear([{ classYear: 2 }, { classYear: 3 }], 2)) === 'first graduating class', 'and a first class that graduated in Year 2 is still the first');
 
   const leaky = withYears([1, 2, 3, 4, 5].map((y) => row(y, { attrition: 80 })));
   assert(memoryFor(leaky, classYears(leaky, 5)).includes('thinned'), 'a college losing a twelfth a year thins its classes');

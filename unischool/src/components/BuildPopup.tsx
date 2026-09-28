@@ -721,7 +721,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. Each tile shows what is built, what is under construction and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life whether or not the college has built it any beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though beds widen the applicant pool up to 2,500 of them. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
+      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. A red exclamation mark on a category means something new to build there, a building the college has not yet looked at; it clears once the category is opened. Each tile shows what is built, what is under construction and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life whether or not the college has built it any beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though beds widen the applicant pool up to 2,500 of them. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">
@@ -740,8 +740,10 @@ export default function BuildPopup({
           {sections.map((sec) => {
             const Icon = SECTION_ICON[sec.id] ?? BuildIcon;
             const isActive = sec.id === active.id;
-            // A tab carries the alert dot while it holds tiles the player
-            // hasn't switched to it to see, computed per tab.
+            // The "!" has one meaning, "something new to build here" (Plan
+            // 78F): the category holds a tile the player has not seen,
+            // because the category has not been opened since it appeared.
+            // Opening it marks its tiles seen (the effect above).
             const hasUnseen = sec.groups.some(
               (g) => g.items.some((t) => !s.seen.buildableIds[t.id]),
             );
@@ -751,7 +753,7 @@ export default function BuildPopup({
                 type="button"
                 className={`build-cat-tab ${isActive ? 'active' : ''}`}
                 aria-pressed={isActive}
-                title={sec.label}
+                title={hasUnseen ? `${sec.label}: something new to build here` : sec.label}
                 onClick={() => setActiveId(sec.id)}
               >
                 <Icon />

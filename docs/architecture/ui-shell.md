@@ -378,10 +378,21 @@ and drops the pickup when the hall stands, opens the Curriculum when the
 player asks to see what the college teaches, starts the clock when the walk
 ends — through the same `setBuildOpen`, `openTab` and `inspectHall` every
 other caller uses, so the one-slot rule holds. The card is
-`OpeningCoach.tsx`, pinned top-centre with no backdrop so the screen under it
-stays workable; the control each step needs carries `.opening-target` (the
-Build button, the hall's tile, and Founders Hall's first free room in its
-panel on the map, which the card itself opens as the last step's door).
+`OpeningCoach.tsx`, pinned top-right beside the main menu and the map tools,
+with no backdrop so the screen under it stays workable (Plan 78F: top-center
+it covered the hall the player had just set down, and top-left is the
+building panel's). On a phone it spans the width at the top, and drops to the
+foot, over the dock, while the hall's panel holds the top. The control each
+step needs carries `.opening-target` (the Build button, the hall's tile, and
+Founders Hall's first free program slot in its panel on the map, which the
+card itself opens as the last step's door).
+
+**The build menu's "!"** has one meaning, "something new to build here": a
+category holds a tile the player has not seen, because the category has not
+been opened since the tile appeared (`s.seen.buildableIds`). Opening the
+category marks its tiles seen and clears it; the toolbar's Build button
+carries the same mark while any category does. The menu's help says so
+(Plan 78F).
 
 What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab

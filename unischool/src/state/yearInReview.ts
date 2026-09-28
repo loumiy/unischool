@@ -9,7 +9,7 @@ import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 import { previousYear } from './history';
 import { count, money, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney } from '../format';
 import { eventById } from '../systems/events/catalogue';
-import { classYears, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
+import { classYears, firstClassYear, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
 import { CAMPAIGNS } from '../data/campaignData';
 
 const CAMPAIGN_CLOSINGS: ReadonlySet<string> = new Set(CAMPAIGNS.flatMap((c) => [c.kept, c.missed]));
@@ -249,7 +249,7 @@ function graduatingClass(s: GameState): ReviewSection {
     const c = classYears(s, s.clock.year);
     const memory = memoryFor(s, c);
     const warmth = warmthFor(c, memory);
-    lines.push({ text: memoryLine({ classYear: s.clock.year, memory }) });
+    lines.push({ text: memoryLine({ classYear: s.clock.year, memory }, firstClassYear(s.alumni, s.clock.year)) });
     lines.push({
       text: `${plural(seniors, 'senior')} leave${seniors === 1 ? 's' : ''} ${warmth >= 60 ? 'warm toward the college' : warmth >= 40 ? 'on fair terms with it' : 'cool toward it'} (${warmth.toFixed(0)} of 100)`,
       tone: warmth >= 60 ? 'good' : warmth < 40 ? 'bad' : undefined,

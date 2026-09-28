@@ -1,7 +1,7 @@
 import type { GameState } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import type { Action } from '../state/actions';
-import { memoryLine } from '../systems/alumni/ledger';
+import { firstClassYear, memoryLine } from '../systems/alumni/ledger';
 import { annualGiving, canReunite, givingOf, reunionCost, warmthOf } from '../systems/alumni/giving';
 import { count, moneyShort } from '../format';
 
@@ -26,7 +26,7 @@ export default function AlumniPanel({ s, act }: { s: GameState; act: (a: Action)
       <ul className="alumni-list">
         {classes.slice(0, SHOWN).map((a) => (
           <li key={a.classYear}>
-            <span className="alumni-line">{memoryLine(a)}</span>
+            <span className="alumni-line">{memoryLine(a, firstClassYear(s.alumni, a.classYear))}</span>
             <span className="alumni-figures">
               {canReunite(s, a) && (
                 <button type="button" className="panel-action small" onClick={() => act({ type: 'HOLD_REUNION', classYear: a.classYear })}>

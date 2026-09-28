@@ -4,7 +4,7 @@
 // and Founders Hall stands empty.
 //
 // What is pinned: the chain is seven purchased halls, one a school; a move
-// out of Founders Hall is four weeks dark and any other twelve; the
+// out of Founders Hall closes a program for four weeks and any other twelve; the
 // readings (systems/techtree/schools.ts) say which hall a school claims,
 // which school moves next and where a program should go; the next-step
 // line names the move before a free slot, and a free slot in a school's
@@ -191,7 +191,7 @@ function letter(id: string) {
   s.pendingInterrupt = null;
   const moving = letter('moving-in');
   const body = moving.body(s);
-  assert(body.includes('Science has two programs in Founders Hall — Mathematics and Psychology') && body.includes('four weeks dark, not the twelve'), `it names the school to move and what the move costs (${body})`);
+  assert(body.includes('Science has two programs in Founders Hall — Mathematics and Psychology') && body.includes('a moving program is closed for four weeks, not the twelve'), `it names the school to move and what the move costs (${body})`);
   assert(moving.ask(s).text === 'Move Mathematics into Elm Hall' && moving.ask(s).hallId === FOUNDERS_HALL_ID, `and asks for one move, from Founders Hall's panel (${moving.ask(s).text})`);
 
   let t = reducer(s, { type: 'RELOCATE_PROGRAM', programId: 'MATH', hallId: 'HALL-01', slot: 0 });

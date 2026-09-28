@@ -153,6 +153,11 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
 - **Grade.** Every score, the Final Report's included ("Final grade"). A
   "mark" is gone.
 - **Step.** The summer's three steps: Review, Admissions, Students.
+- **A graduating class.** The first the college graduated is "the first
+  graduating class"; every later one carries its year, "the class of Year
+  3", never a bare number that reads as a count (Plan 78F).
+- **Grade**, beside a count, is written on its chip: "3/9 grade B". A course
+  cell's chip, in a grid with its key, stays a bare letter (Plan 78F).
 
 **Plain words for what the code calls things:**
 
