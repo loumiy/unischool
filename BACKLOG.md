@@ -29,8 +29,9 @@ is under *Named, not sequenced*. **Area 3 (teaching the game) is
 [Plan 78](docs/plans/78-learning-the-game.md)**, weighed against the inbox
 (Plan 77), with area 4's A4-5 (decline an offer). **Area 4 (strategy)
 is held by the owner**, who will playtest balance and strategy before
-taking any of its fixes; its athletics direction is under *Named, not
-sequenced*. **Area 7 (the bugs) is [Plan 79](docs/plans/79-the-bugs.md)**,
+taking any of its fixes; its athletics direction, with the owner's
+own playtest notes, is [Plan 80](docs/plans/80-the-owners-playtest.md).
+**Area 7 (the bugs) is [Plan 79](docs/plans/79-the-bugs.md)**,
 with what Plans 74 to 78 had not already fixed. Area 6 waits for triage;
 this entry comes off when every area is answered.*
 
@@ -132,11 +133,6 @@ a sequence of PRs.*
   academic, it stops building for the rest of the game and banks the
   cash (seed 12345, from year 16). It should restaff or retune a weak
   course the way the Guided player does (`tendTeaching`).
-- **Confidence the board acts on** (A2-2). Board confidence moves under
-  many answers and is read by six events, one promise and the Treasury;
-  no rung, budget or dismissal reads it. Plan 76 says what it does where
-  it is shown. Making the ladder read it is a design change for the
-  owner.
 - **The course catalog's shape** (A2-5; left by Plan 76G, which fixes the
   sentences and titles). No course is numbered above 200. Five of the
   Social Sciences majors lack a standard core course (statistics,
@@ -227,15 +223,11 @@ a sequence of PRs.*
   its distinguished status for a year), or campus life. Nobody has
   audited the catalogue for dominant choices since it replaced the old
   table.
-- **Athletics, deepened** (the owner, after the October review's area 4).
-  Athletics is a real strategy with too few levers: coaches, the budget
-  and the team order are all a player can touch. The championship goal
-  player wanted three things in all ten runs (A4-5): to found a team
-  without waiting three years for a club to petition, to recruit
-  (scholarships in the athletics budget), and to cut a team that keeps
-  missing the postseason. The owner has taken the direction, not the
-  review's fixes; what to build waits for the owner's own playtesting.
-  The deferrals below belong to the same piece of work.
+- **Athletics, deepened** is taken into
+  [Plan 80G](docs/plans/80-the-owners-playtest.md): capped flagships,
+  recruiting, the college's pull and a coach market that always offers
+  someone solid. Founding a team directly and cutting one stay here, with
+  the deferrals below.
 - **Athletics deferrals.** **Disbanding a team** is unbuilt, and so what
   happens to a venue whose last team folds is unanswered. **Match
   simulation and a fixture list** stay out by the argument at the head of
@@ -243,6 +235,15 @@ a sequence of PRs.*
   produce a record and a rivalry, and a schedule would produce nothing
   more. **Rowing** wants a lake, a lake is terrain, and the map has none;
   golf stays declined.
+- **Half-step camera views (45°)** (the owner, Plan 80). A turn of 45°
+  lands on straight-on angles, where every building shows a single wall;
+  the art assumes two (doors, steps, corner towers, window bays), so each
+  motif needs a one-wall view. The projection and depth sort already work
+  at any angle.
+- **A faster map** (the owner, Plan 80). Plan 80H lightens a turn; beyond
+  that, the SVG scene redraws every building, tree and prop per frame, and
+  only a canvas or WebGL renderer changes that. A desktop wrapper runs the
+  same engine and would not be faster.
 - **From Plan 70's "does not do":** key rebinding and more than one save
   slot. Unlocks that carry across runs now exist for the four bonus
   vernaculars (`state/unlocks.ts`), with no in-run notice yet when one is
