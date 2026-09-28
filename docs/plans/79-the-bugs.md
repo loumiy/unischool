@@ -145,7 +145,7 @@ stale tab's close writes its older game over the newer one, silently.
   migrates.
 - The baseline is re-recorded, and the PR says how the three moved it.
 
-**As implemented (#TBD):**
+**As implemented (#243):**
 
 - **The lift:**
   - `students.applicantLift` is new. A grand landmark's
