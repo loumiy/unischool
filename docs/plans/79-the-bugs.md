@@ -152,7 +152,7 @@ stale tab's close writes its older game over the newer one, silently.
   (G7-17c).
 - **`shoot.mjs`'s header** names the tools that exist (G7-17d).
 - **The design docs** (G7-18): `economy.md`'s first hall price,
-  `admissions.md`'s beats, `progression.md`'s Standing beat, its colour
+  `admissions.md`'s beats, `progression.md`'s Standing beat, its color
   pairings, its ambitions files and its grades.
 - **Checks:** `npm run newplayer` and each fixed scenario run to the end.
 
@@ -193,8 +193,8 @@ stale tab's close writes its older game over the newer one, silently.
     Report** (six grades and a title), and the legacy is noted as the
     harness's reading (`sim/legacyReading.ts`). The sealed record is
     `s.ending`.
-  - Not touched, though stale: `gameplay.md`'s ambitions and
-    `interrupts.md`'s four summer beats.
+  - `gameplay.md`'s ambitions become the promises; `interrupts.md` and
+    `defaultAnswers.ts`'s comment count three summer beats, not four.
 - `npm run sim` matches the baseline.
 
 ## 3. The backlog
