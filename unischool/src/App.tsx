@@ -527,7 +527,7 @@ export default function App() {
             This college is open in another tab.
             <span className="elsewhere-banner-note">This tab is paused and saves nothing.</span>
           </p>
-          <button type="button" onClick={openHere}>Open it here</button>
+          <button type="button" className="btn-primary" onClick={openHere}>Open it here</button>
         </div>
       )}
       {frontScreen}
