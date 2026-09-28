@@ -89,7 +89,7 @@ stale tab's close writes its older game over the newer one, silently.
 - **Checks:** unit tests on the guard (an older write is refused, a newer
   one goes through, the claim moves); the two-tab probe.
 
-**As implemented (#TBD):**
+**As implemented (#241):**
 
 - **The claim and the guard** are in `persistence.ts`. `claimSave` puts
   the tab's id under `unischool.save.claim`, and `trySave` says `'newer'`
