@@ -32,7 +32,7 @@ import { SiteFrame, siteStageOf } from './siteWorks';
 import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
-import { SnowContext, seasonOf, seasonStyle } from './seasons';
+import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle } from './seasons';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
 import { castShadow } from './light';
@@ -40,7 +40,7 @@ import {
   DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
   turnStep, unproject, type Camera, type Pt,
 } from './isoProjection';
-import { reducedMotion } from '../settings';
+import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
 import { setMapProbe } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
@@ -1618,7 +1618,9 @@ export default function CampusMap({
 
   // The season on the map (Plan 74I): CSS variables for the grass and the
   // leaves, and the snow on the roofs. Changes by the week, never animates.
-  const week = s.clock.week;
+  // With the setting off, the map stays at a week of plain summer green.
+  const seasonsOn = useSettings().seasons;
+  const week = seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK;
   const season = useMemo(() => seasonStyle(week), [week]);
   const snow = useMemo(() => seasonOf(week).snow, [week]);
   // The path tool's ghost: the tile the next click would pave or lift.

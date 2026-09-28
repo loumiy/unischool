@@ -14,7 +14,9 @@
 // year a second is about 25s for fifty years), --zoom, --pan, --size and
 // --scale as in shoot.mjs, --no-caption, --png (a lossless PNG per frame
 // as well, for an editor), --jobs=N (browsers in parallel, default 4),
-// --from=N --to=N (a range of frames, for a retake).
+// --from=N --to=N (a range of frames, for a retake), --seasons (keep the
+// map's seasons: off by default, since one frame a quarter lands in the
+// winter white once a year and the video strobes).
 // Writes <dir>/shots/*.jpg and <dir>/timelapse.webm.
 //
 // The WebM is a preview and a source for an editor. Steam wants an MP4
@@ -46,6 +48,7 @@ const scale = Number(flag('scale', 1));
 const jobs = Number(flag('jobs', 4));
 const caption = !argv.includes('--no-caption');
 const png = argv.includes('--png');
+const seasons = argv.includes('--seasons');
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 
 const CANDIDATES = [
@@ -98,7 +101,12 @@ async function shootFrame(file) {
   const page = await context.newPage();
   page.on('pageerror', (e) => errors.push(`${file}: ${String(e)}`));
   await page.goto(URL, { waitUntil: 'domcontentloaded' });
-  await page.evaluate((s) => { localStorage.clear(); localStorage.setItem('unischool.save', s); }, payload);
+  await page.evaluate(([s, seasons]) => {
+    localStorage.clear();
+    localStorage.setItem('unischool.save', s);
+    // settings.ts's key: the map's seasons on or off (Plan 74I).
+    localStorage.setItem('unischool.settings.v1', JSON.stringify({ seasons }));
+  }, [payload, seasons]);
   await page.goto(URL, { waitUntil: 'networkidle' });
   const cont = page.locator('.title-primary');
   if (await cont.count()) await cont.first().click();

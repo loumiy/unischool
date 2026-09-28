@@ -71,7 +71,7 @@ for (let week = 0, limit = years * 52 * 4 + 100; week < limit && game.s.clock.ye
   playWeek(game, player);
 }
 // No frame once the clock has turned into year N + 1: the video ends in year N.
-console.log(`${player.name}, seed ${seed}: ${snapshots.length} frames to year ${game.s.clock.year}`);
+console.log(`${player.name}, seed ${seed}: ${snapshots.length} frames to year ${snapshots[snapshots.length - 1].clock.year}`);
 
 // Cosmetic overrides and a clear screen, as scenario.ts's flags do them.
 function dress(state: GameState): void {

@@ -20,6 +20,10 @@ export interface Season {
   bud: number;
 }
 
+// A week with no season in it (no turn, no bare, no snow, no bud): the
+// summer palette as styles.css has it, for the map with seasons off.
+export const SUMMER_GREEN_WEEK = 50;
+
 // A ramp from 0 at `a` to 1 at `b`.
 const ramp = (w: number, a: number, b: number) => Math.max(0, Math.min(1, (w - a) / (b - a)));
 

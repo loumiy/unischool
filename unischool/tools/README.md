@@ -189,7 +189,10 @@ in five styles.
 The shooter takes `--zoom`, `--pan`, `--size` and `--scale` as `shot` does
 (the default framing, `--zoom=-1 --pan=60,-10` at 1920 by 1080, holds the
 year-50 campus), captions the year and term unless `--no-caption`, and keeps
-a PNG a frame with `--png` for an editor. `--from=N --to=N` retakes a range;
+a PNG a frame with `--png` for an editor. It turns the map's seasons off
+(the Seasons setting, `settings.ts`): at one frame a quarter, one frame a
+year lands in the winter white and the video strobes. `--seasons` keeps
+them, for a cut that holds a frame per week. `--from=N --to=N` retakes a range;
 the video is rebuilt from every shot on disk. The ffmpeg Playwright ships
 writes only VP8, so the result is a WebM; convert it for Steam (H.264 MP4)
 with any full ffmpeg. Two hundred frames take some fifteen minutes on four
@@ -197,9 +200,8 @@ cores.
 
 `docs/images/timelapse.webm` is the first cut: the Completionist run above,
 seed 12345, in navy and gold, scaled to 720p at 2 Mb/s so the repository
-carries 6 MB rather than 38 (`-vf scale=1280:720 -c:v libvpx -b:v 2M`). It
-was shot before the run was cut off at year 50, so its last frame reads
-Year 51. Re-run the two commands above for the full-quality file.
+carries 6 MB rather than 38 (`-vf scale=1280:720 -c:v libvpx -b:v 2M`), with
+the seasons off. Re-run the two commands above for the full-quality file.
 
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB

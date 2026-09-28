@@ -2,8 +2,8 @@ import { TEXT_SCALES, setSettings, useSettings } from '../settings';
 import { useHotkeys } from './hotkeys';
 import { CloseIcon } from './icons';
 
-// Settings (Plan 34, from v2's): text size, color vision and motion, and
-// the sound (App.tsx passes SoundControls in).
+// Settings (Plan 34, from v2's): text size, color vision, motion and the
+// seasons on the map, and the sound (App.tsx passes SoundControls in).
 
 const SCALE_LABELS: Record<number, string> = { 1: 'Standard', 1.15: 'Larger', 1.3: 'Largest' };
 
@@ -36,6 +36,12 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
           <button type="button" className={s.motion === 'system' ? 'active' : undefined} aria-pressed={s.motion === 'system'} onClick={() => setSettings({ motion: 'system' })}>Match the device setting</button>
           <button type="button" className={s.motion === 'reduce' ? 'active' : undefined} aria-pressed={s.motion === 'reduce'} onClick={() => setSettings({ motion: 'reduce' })}>Reduced</button>
           <p className="settings-note">Reduced stills the walkers, the counting numbers and the pulses.</p>
+        </fieldset>
+        <fieldset className="settings-row segmented">
+          <legend>Seasons</legend>
+          <button type="button" className={s.seasons ? 'active' : undefined} aria-pressed={s.seasons} onClick={() => setSettings({ seasons: true })}>Through the year</button>
+          <button type="button" className={!s.seasons ? 'active' : undefined} aria-pressed={!s.seasons} onClick={() => setSettings({ seasons: false })}>Always summer</button>
+          <p className="settings-note">Autumn leaves and winter snow on the campus, or its summer green all year.</p>
         </fieldset>
         {children}
         <p className="settings-note">Kept in this browser, apart from your run.</p>
