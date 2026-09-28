@@ -2,7 +2,7 @@ import type { GameState } from '../../state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../../state/types';
 import { programOfCourse } from '../../data/techData';
 import { isHoused } from './programOffers';
-import { darkPrograms } from './darkness';
+import { darkPrograms, unstaffedPrograms } from './darkness';
 
 // Instruction capacity: SEATS_PER_COURSE for every developed course whose
 // program is housed and settled (not in transit), so depth and breadth both
@@ -21,9 +21,8 @@ export interface InstructionCapacity {
   seats: number;     // courses * SEATS_PER_COURSE
 }
 
-export function instructionCapacityDetail(s: GameState): InstructionCapacity {
-  // A dark program seats nobody: in transit, or unstaffed (darkness.ts).
-  const dark = darkPrograms(s);
+// Developed courses in housed programs outside `dark`.
+function coursesTaught(s: GameState, dark: Set<string>): number {
   let courses = 0;
   for (const t of s.tech) {
     if (t.kind !== 'course') continue;
@@ -33,6 +32,12 @@ export function instructionCapacityDetail(s: GameState): InstructionCapacity {
     if (!isHoused(s, programId) || dark.has(programId)) continue;
     courses += 1;
   }
+  return courses;
+}
+
+export function instructionCapacityDetail(s: GameState): InstructionCapacity {
+  // A dark program seats nobody: in transit, or unstaffed (darkness.ts).
+  const courses = coursesTaught(s, darkPrograms(s));
   return { courses, seats: courses * SEATS_PER_COURSE };
 }
 
@@ -43,15 +48,23 @@ export function instructionCapacity(s: GameState): number {
 // The ceiling, read at the summer boundary. `seatsLeft` caps the freshman
 // class (capacity less the three classes staying on); `nextSummer` counts
 // courses now developing in housed programs that finish within a year.
+//
+// A program in transit counts its seats here (Plan 79C): it is dark for a
+// few weeks of a class that stays four years, so a move just before the
+// summer does not shrink the class. An unstaffed one still counts none: it
+// is dark until someone is hired. The weekly readings (instructionCapacity,
+// the crowding and the grades) still count a moving program as dark.
 export interface IntakeCeiling {
-  capacity: number;              // seats today
+  capacity: number;              // seats for next year, programs in transit included
+  moving: number;                // of which in programs in transit
   stayingOn: number;             // enrolled less the graduating seniors
   seatsLeft: number;             // capacity - stayingOn, never below zero
   nextSummer: number;            // seats a year from now, counting courses in development
 }
 
 export function intakeCeiling(s: GameState): IntakeCeiling {
-  const capacity = instructionCapacity(s);
+  const capacity = coursesTaught(s, unstaffedPrograms(s)) * SEATS_PER_COURSE;
+  const moving = capacity - instructionCapacity(s);
   const stayingOn = totalEnrolled(s.students) - s.students.classes.senior;
   let developing = 0;
   for (const t of s.tech) {
@@ -62,6 +75,7 @@ export function intakeCeiling(s: GameState): IntakeCeiling {
   }
   return {
     capacity,
+    moving,
     stayingOn,
     seatsLeft: Math.max(0, capacity - stayingOn),
     nextSummer: capacity + developing * SEATS_PER_COURSE,

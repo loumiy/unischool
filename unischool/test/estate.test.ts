@@ -9,7 +9,7 @@ import { financeBreakdown } from '../src/systems/finance/financeSystem';
 import { computePrestigeTarget } from '../src/systems/prestige/prestigeSystem';
 import { HISTORIC_AGE_YEARS, HISTORIC_PRESTIGE, HISTORIC_PRESTIGE_MAX, historicPrestige } from '../src/systems/estate/estate';
 import {
-  BACKLOG_GROWTH_RATE, BACKLOG_PAYDOWN_RATE, EXTENSION_MAX_STOREYS, EXTENSION_WEEKS, RENOVATION_WEEKS, conditionOf, extensionCost, renovationCost, tickEstate,
+  BACKLOG_GROWTH_RATE, BACKLOG_PAYDOWN_RATE, EXTENSION_MAX_STOREYS, EXTENSION_WEEKS, RENOVATION_FEE_SHARE, RENOVATION_WEEKS, conditionOf, extensionCost, renovationCost, tickEstate,
 } from '../src/systems/estate/estate';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
@@ -114,6 +114,25 @@ const buildingOf = (s: GameState) => s.tech.find((t) => t.id === 'DINING-01')!;
   assert(buildingOf(s).backlog === undefined && buildingOf(s).renovationWeeks === undefined, 'and then it is gone');
   assert(conditionOf(buildingOf(s)) === 1, 'and the building is as built');
   assert(buildingOf(s).status === 'done', 'open throughout');
+}
+
+// ---- A renovation never costs more than the building (Plan 79C) ----
+{
+  const s = withBuilding();
+  const b = buildingOf(s);
+  b.backlog = 10_000;
+  assert(renovationCost(b) === Math.round(10_000 + b.cost * RENOVATION_FEE_SHARE), `a small backlog costs itself and the fee (${renovationCost(b)})`);
+  b.backlog = b.cost * 2;
+  assert(renovationCost(b) === b.cost, `twice the building's cost in backlog costs the building's cost (${renovationCost(b)} against ${b.cost})`);
+  b.backlog = b.cost - 1;
+  assert(renovationCost(b) === b.cost, 'as does a backlog the fee takes past it');
+  // The cap is what the reducer charges, and the whole backlog is still paid off.
+  b.backlog = b.cost * 3;
+  let after = { ...s, finance: { ...s.finance, cash: b.cost } };
+  after = reducer(after, { type: 'RENOVATE_BUILDING', id: b.id });
+  assert(buildingOf(after).renovationWeeks === RENOVATION_WEEKS && after.finance.cash === 0, 'the renovation starts for the building\'s cost');
+  for (let i = 0; i < RENOVATION_WEEKS; i++) tickEstate(after);
+  assert(buildingOf(after).backlog === undefined, 'and pays off the whole backlog');
 }
 
 // ---- Added stories ----

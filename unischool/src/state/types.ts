@@ -151,6 +151,11 @@ export interface StudentBody {
   crowdingYearSum: number;
   crowdingYearWeeks: number;
   applicantPool: number; // most recent cycle's total applicants (set by the annual funnel)
+  // Applicants drawn once by something finished during the year (a grand
+  // landmark, a milestone; Plan 79C): the next summer's funnel adds them to
+  // its pool and clears this. Never write applicantPool for that: the
+  // funnel overwrites it.
+  applicantLift: number;
   admitRate: number;     // most recent cycle's admit rate; a prestige input
   incomingQuality: number; // most recent entering class's average quality, 0..100; a prestige input
   // Last summer's funnel, so the next reveal can say why the pool moved.
@@ -174,6 +179,9 @@ export interface FunnelFactors {
   tags?: number;
   // Last year's overcrowding (Plan 71), 1 at none. Absent before it.
   crowding?: number;
+  // The year's one-summer lift (students.applicantLift, Plan 79C), as the
+  // pool with it over the pool without: 1 at none. Absent before it.
+  lift?: number;
 }
 
 export interface FunnelRecord {
@@ -359,7 +367,7 @@ export function servingPopulation(t: Buildable): number {
 // read live every tick off finished Buildables by the system that cares.
 export interface BuildableEffects {
   capacityBonus: number;
-  // one-time bump to the applicant pool
+  // a one-time lift to the next summer's applicant pool (students.applicantLift)
   applicantPoolBonus: number;
 
   // --- live-read, every tick, never mutated into state (see above) ---

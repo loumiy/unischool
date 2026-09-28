@@ -322,7 +322,8 @@ export function startDevelopment(s: GameState, node: Buildable, facultyId?: stri
 function applyEffects(s: GameState, e?: Partial<BuildableEffects>): void {
   if (!e) return;
   if (e.capacityBonus) s.students.capacity += e.capacityBonus;
-  if (e.applicantPoolBonus) s.students.applicantPool += e.applicantPoolBonus;
+  // A one-summer lift, read by the next funnel (types.ts's applicantLift).
+  if (e.applicantPoolBonus) s.students.applicantLift += e.applicantPoolBonus;
 }
 
 // A finished hall gets its slots, all empty (types.ts's HallSlot). A hall
@@ -564,7 +565,7 @@ export function hallOfCourse(s: GameState, courseId: string): string | undefined
 function awardMilestone(s: GameState, key: string, applicantBonus: number, message: string): void {
   if (s.milestones[key]) return;
   s.milestones[key] = true;
-  s.students.applicantPool += applicantBonus;
+  s.students.applicantLift += applicantBonus;
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good', topic: 'milestone', subject: key });
   // Celebrated milestones are queued, not raised as interrupts: the week may
   // already belong to another interrupt (see eventData.ts's

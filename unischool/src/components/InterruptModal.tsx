@@ -20,7 +20,7 @@ import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction,
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { admitRateOpening, poolChange } from '../systems/admissions/yearOverYear';
+import { admitRateOpening, poolChange, takesColon } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { restaffPlan } from '../systems/faculty/restaffing';
@@ -284,7 +284,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           <dl className="admissions-outcomes">
             <Figure
               className="reveal"
-              label="Applicant pool"
+              // The year's lift (Plan 79C), named where it is counted.
+              label={outcome.lift > 0
+                ? <>Applicant pool <span className="outcome-note">(including {count(outcome.lift)} drawn for this year only by new landmarks and milestones)</span></>
+                : 'Applicant pool'}
               hint={FIGURE_HINTS.applicants}
               value={<>
                 <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
@@ -300,7 +303,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                   {change.parts.length === 0
                     ? 'nothing moved'
                     : change.parts.map((p) => (
-                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label}{p.key === 'crowding' ? ':' : ''} {signedPct(p.change)}</span>
+                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label}{takesColon(p.key) ? ':' : ''} {signedPct(p.change)}</span>
                     ))}
                 </dd>
               </div>
@@ -313,7 +316,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             />
           </dl>
           <p className="admissions-ceiling-note">
-            {count(ceiling.capacity)} places across the courses now taught; {count(ceiling.stayingOn)} return next year.
+            {count(ceiling.capacity)} places across the courses now taught
+            {ceiling.moving > 0 ? `, counting ${count(ceiling.moving)} in programs moving halls, which teach again early in the year` : ''}; {count(ceiling.stayingOn)} return next year.
             {ceiling.nextSummer > ceiling.capacity
               ? ` Next summer the catalog will hold ${count(ceiling.nextSummer)}, counting the courses now in development.`
               : ' Nothing in development will add places by next summer.'}
