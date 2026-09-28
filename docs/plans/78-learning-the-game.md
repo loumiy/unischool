@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask on area 3 of
 the October review into PRs, now that the inbox (Plan 77) has landed.*
 
-**Status: Proposed.** A is this plan (#232).
+**Status: Landed.** A to G merged (#232–#238).
 
 ---
 
@@ -628,7 +628,7 @@ is this plan.
   - `review:strings`;
   - a first-year replay with screenshots.
 
-**As implemented (#TBD):**
+**As implemented (#238):**
 - **The committee's empty boxes** read "Free", with a tooltip: "Free: the
   committee has room for another course".
 - **Grade chips beside counts** carry their word, "grade B" (`GradeChip`'s
