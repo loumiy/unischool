@@ -89,6 +89,36 @@ stale tab's close writes its older game over the newer one, silently.
 - **Checks:** unit tests on the guard (an older write is refused, a newer
   one goes through, the claim moves); the two-tab probe.
 
+**As implemented (#241):**
+
+- **The claim and the guard** are in `persistence.ts`. `claimSave` puts
+  the tab's id under `unischool.save.claim`, and `trySave` says `'newer'`
+  when the guard refuses; `saveGame` keeps its yes or no. The tab's last
+  `savedAt` is set by a load, a write and New game's clear.
+- **A tab saves only while it holds the claim** (`useGame.ts`). One that
+  loaded a save and sits on the title screen has not claimed it, so its
+  hide saves nothing either. Otherwise a tab left on the title would stamp
+  the same game newer and stop the tab that is playing.
+- **A tab that has lost the claim** is paused, and asking it for a speed
+  does nothing. A Save pressed there is dropped, so no "Game saved." line
+  appears. The banner sits top center, above every modal, and says the tab
+  is paused and saves nothing.
+- **"Open it here"** reloads with a `sessionStorage` flag, and the page
+  comes back into the game, claimed, without the title screen between.
+- **Past the plan:** a Continue on a title screen loaded before another
+  tab's save opens that newer save (the same reload), rather than claiming
+  an older game the guard would then stop. Founding over a save this tab
+  never saw is stopped by the guard and shows the banner. An imported file
+  writes past the guard and takes the claim, since the player chose to
+  replace the run. A save this version sets aside does not bar the next
+  save.
+- **The probe.** `twoTabs.mjs` runs to the end: tab B's Continue takes the
+  claim, so tab A shows the banner and does not play on, and a fresh tab
+  continues at the week both opened at. A variant with the claim taken
+  back found tab A at week 5 kept over tab B's close at week 1, and a stale
+  Continue opened week 8.
+- **Checks:** `test/two-tabs.test.ts`, 35 checks.
+
 ## PR 79C — The simulation's three bugs
 
 *G7-7, G7-9, G7-15.*

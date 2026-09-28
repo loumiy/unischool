@@ -136,17 +136,140 @@ export interface SavePayload {
 // Every localStorage access is wrapped: the API throws when storage is
 // disabled (Safari private browsing) or over quota, and neither should take
 // the run down. saveGame returns false so the caller can tell the player
-// their run isn't safe.
+// their run isn't safe; trySave also says why.
+//
+// 'newer' is the guard under the claim (Plan 79B, below): the stored save
+// is newer than the one this tab last loaded or wrote, so another tab has
+// saved since, and this tab's older game must not go over it.
+export type SaveOutcome = 'saved' | 'failed' | 'newer';
+
+export function trySave(state: GameState): SaveOutcome {
+  if (saveIsNewer()) return 'newer';
+  return writeSave(state) ? 'saved' : 'failed';
+}
+
 export function saveGame(state: GameState): boolean {
+  return trySave(state) === 'saved';
+}
+
+function writeSave(state: GameState): boolean {
   try {
     const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    knownSavedAt = payload.savedAt;
     // A save is also when a run's unlocks are banked (unlocks.ts).
     recordUnlocks(state);
     return true;
   } catch {
     return false;
   }
+}
+
+// ---- Two tabs on one save (Plan 79B) ----
+//
+// Every tab open on the game shares the one save. The last tab to take up
+// the college (Continue, or founding one) claims it: its id goes under
+// CLAIM_KEY, and every other tab hears that through the `storage` event
+// (useGame.ts), stops, and saves nothing more. Under the claim, the guard:
+// a tab never writes over a save newer than the one it last loaded or
+// wrote, so a tab that missed the event cannot lose the newer game either.
+
+export const CLAIM_KEY = 'unischool.save.claim';
+// Per tab, surviving the reload that "Open it here" does: the page comes
+// back straight into the game rather than to the title screen.
+const RESUME_KEY = 'unischool.resume';
+
+// The savedAt of the save this tab last loaded or wrote; null when it has
+// seen none. Module state is per tab, which is the point.
+let knownSavedAt: number | null = null;
+let tabId: string | null = null;
+
+// This tab's id, made on first use (not at import, so no test's stubbed
+// Math.random is drawn from).
+export function thisTab(): string {
+  if (tabId === null) {
+    tabId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+  return tabId;
+}
+
+// The stored save's savedAt, or null if there is none or it cannot be read.
+// Read off the payload's head, as JSON.stringify writes it, before paying
+// for a parse of the whole run.
+function storedSavedAt(): number | null {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(SAVE_KEY);
+  } catch {
+    return null;
+  }
+  if (raw === null) return null;
+  const head = /^\{"version":\d+,"savedAt":(\d+)[,}]/.exec(raw);
+  if (head) return Number(head[1]);
+  try {
+    const p = JSON.parse(raw) as { savedAt?: unknown };
+    return typeof p.savedAt === 'number' ? p.savedAt : null;
+  } catch {
+    return null;
+  }
+}
+
+// Whether another tab has saved since this one last loaded or wrote.
+export function saveIsNewer(): boolean {
+  const stored = storedSavedAt();
+  return stored !== null && (knownSavedAt === null || stored > knownSavedAt);
+}
+
+// Takes the claim for this tab. Refused (false) when the stored save is
+// newer than this tab's game: that tab's college is the one to open here.
+export function claimSave(): boolean {
+  if (saveIsNewer()) return false;
+  try {
+    localStorage.setItem(CLAIM_KEY, thisTab());
+  } catch {
+    // Storage refused: the guard still stands.
+  }
+  return true;
+}
+
+export function claimHolder(): string | null {
+  try {
+    return localStorage.getItem(CLAIM_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// Whether a `storage` event means another tab has taken the claim. A cleared
+// key (site data wiped) takes nothing.
+export function claimTaken(key: string | null, newValue: string | null): boolean {
+  return key === CLAIM_KEY && newValue !== null && newValue !== thisTab();
+}
+
+// "Open it here": the reload comes back into the game (useGame.ts claims).
+export function requestResume(): void {
+  try {
+    sessionStorage.setItem(RESUME_KEY, '1');
+  } catch {
+    // The reload lands on the title screen instead, whose Continue claims.
+  }
+}
+
+// Read once per page load and cleared, so a later reload opens on the title
+// as usual. Memoized: StrictMode runs initializers twice.
+let resume: boolean | null = null;
+export function takeResume(): boolean {
+  if (resume === null) {
+    try {
+      resume = sessionStorage.getItem(RESUME_KEY) !== null;
+      sessionStorage.removeItem(RESUME_KEY);
+    } catch {
+      resume = false;
+    }
+  }
+  return resume;
 }
 
 // A save this version cannot read, kept under its own key so the next save
@@ -192,6 +315,7 @@ export function discardSetAsideSave(): void {
 }
 
 export function clearSave(): void {
+  knownSavedAt = null;
   try {
     localStorage.removeItem(SAVE_KEY);
   } catch {
@@ -780,6 +904,9 @@ export function loadGame(): GameState | null {
     return null;
   }
   if (raw === null) return null;
+  // What this tab has seen, even of a save it cannot read: the next save
+  // may write over that one (it is set aside), but not over a newer one.
+  knownSavedAt = storedSavedAt();
   const read = readSave(raw);
   if ('refused' in read) {
     if (read.refused === 'too-old' || read.refused === 'too-new') setAside(raw);
@@ -809,9 +936,14 @@ export function readSetAsideRaw(): string | null {
 
 // Makes an imported file the run in this browser, once readSave accepts it.
 // The caller has already confirmed with the player and reloads after, so the
-// run boots through loadGame like any other.
+// run boots through loadGame like any other. Past the guard: the player has
+// chosen to replace whatever is stored. It takes the claim too, so any other
+// tab on the old save stops at once; the reloaded page claims again at its
+// Continue.
 export function adoptSave(state: GameState): boolean {
-  return saveGame(state);
+  if (!writeSave(state)) return false;
+  claimSave();
+  return true;
 }
 
 function sanitize(state: GameState): void {
