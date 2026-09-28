@@ -1,7 +1,7 @@
 import type { AlumniClass, Buildable, GameState, Loan, PendingCatalogueEvent } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../../state/types';
 import type { CatalogueChoice, CatalogueEvent, ConditionKey, EffectKey, NeedKey } from '../../data/eventCatalogueTypes';
-import { EVENT_CATALOGUE } from '../../data/eventCatalogue';
+import { CHARTER_EVENT, EVENT_CATALOGUE } from '../../data/eventCatalogue';
 import { EVENT_VARIANTS } from '../../data/eventVariants';
 import { hashUnit } from '../../data/rivalData';
 import { random } from '../../engine/random';
@@ -18,11 +18,13 @@ import { debtOutstanding, drawRate, loanPayment } from '../finance/treasury';
 import { financeBreakdown } from '../finance/financeSystem';
 import { seatPayroll } from '../delegation/seats';
 import { warmthOf } from '../alumni/giving';
+import { className, firstClassYear } from '../alumni/ledger';
 import { collegeRival, mainSport } from '../rivals/collegeRival';
 import { playerRank } from '../rivals/rivalsSystem';
 import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../data/techData';
 import { isSchoolFounded } from '../techtree/schools';
 import { inTitleYear, sportById } from '../../data/studentLifeData';
+import { grantCharter } from './charter';
 
 // THE CATALOGUE (Plan 32, from v2's events.ts): v2's events, read against
 // this game's state. An inline event waits in the panel and, if nobody
@@ -243,7 +245,7 @@ export function rollVars(s: GameState, e?: CatalogueEvent): Record<string, strin
   return {
     rival: rival ? rival.name : 'the college across the river',
     // The texts supply the article: "the {class}", "The {class} have written".
-    class: latest ? `class of ${latest.classYear}` : 'first class',
+    class: latest ? className(latest.classYear, firstClassYear(s.alumni, latest.classYear)) : 'first class',
     faculty: faculty ? faculty.name : 'a senior professor',
     // Who {faculty} is, for an effect that acts on them (Plan 72B's
     // 'departs'). Drawn with the name, so the stream reads the same.
@@ -374,6 +376,7 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
         if (v > 0 && t && canDeclareHistoric(s, t)) t.historic = true;
         break;
       }
+      case 'charter': grantCharter(s, v > 0); break; // charter.ts
     }
   }
 }
@@ -392,8 +395,10 @@ function departs(s: GameState, vars: Readonly<Record<string, string>>): void {
   });
 }
 
+// Any event a firing can name: the drawn catalog, and the charter, which is
+// raised rather than drawn (charter.ts).
 export function eventById(id: string): CatalogueEvent | undefined {
-  return EVENT_CATALOGUE.find((e) => e.id === id);
+  return EVENT_CATALOGUE.find((e) => e.id === id) ?? (id === CHARTER_EVENT.id ? CHARTER_EVENT : undefined);
 }
 
 export { EVENT_CATALOGUE };

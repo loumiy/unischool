@@ -30,6 +30,15 @@ const GRAND_LANDMARK_PRESTIGE_GATE = 90;
 
 export type LadderTier = 'Founding' | 'Growing' | 'Established' | 'National';
 
+// A named part of a tab, `<tab>.<section>`. The ladder can hold one back
+// while the tab itself is open (Plan 78B): the tab shows from the charter,
+// and the section waits on its milestone. A section no milestone names shows
+// whenever its tab does, and is somewhere a link can land (Plan 78C: the
+// dock's chips open History › Standing and Students › the breakdown).
+export type TabSection =
+  | 'students.guidebook' | 'students.clubs' | 'students.funnel' | 'students.breakdown'
+  | 'history.standing' | 'history.record';
+
 export interface Progress {
   value: number;
   target: number;
@@ -51,7 +60,10 @@ export interface Milestone {
   // is announced once (Plan 47).
   quiet?: true;
   buildables: readonly string[];
+  // Whole tabs this milestone opens; closed, they are not on the toolbar.
   tabs: readonly TabId[];
+  // Sections of an open tab this milestone opens (TabSection).
+  sections?: readonly TabSection[];
   // What the arriving letter says, and one line per thing opened.
   letter: string;
   opens: readonly string[];
@@ -110,9 +122,15 @@ export const MILESTONES: readonly Milestone[] = [
     condition: 'the first summer closes',
     reached: (s) => s.history.length >= 1,
     buildables: ['AMENITY-FOUNTAIN'],
-    tabs: ['students', 'history'],
-    letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, the admissions funnel that filled it, and the clubs the students have started.',
-    opens: ['Students: what they think, their clubs, who enrolled and the funnel that drew them', 'History: the record of each year', 'The Fountain: somewhere to sit, and campus beauty'],
+    // Students and History are open from the first week, for what the
+    // students think and where the college stands (Plans 78B, 78C); what
+    // takes a year to exist waits for this. History's record is first, so the
+    // letter's door opens History (InboxTab.tsx).
+    tabs: [],
+    // The funnel too: until the first summer there is no last summer's.
+    sections: ['history.record', 'students.guidebook', 'students.clubs', 'students.funnel'],
+    letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, what the guidebooks make of it, and the clubs the students have started.',
+    opens: ['History: the record of each year', 'Students: what the guidebooks say, the clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
   },
   {
     id: 'curriculum',
@@ -123,7 +141,7 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: coursesDone(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
     buildables: ['HALL-01'],
     tabs: [],
-    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six program slots, one program to a slot, and when six programs of one school share a hall, that school is founded.`,
+    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six program slots, one program to each, and when six programs of one school share a hall, that school is founded.`,
     opens: ['Academic halls: six program slots each, and the way a school is founded'],
   },
   {
@@ -263,6 +281,7 @@ export function milestoneById(id: string): Milestone | undefined {
 
 const BUILDABLE_MILESTONE = new Map(MILESTONES.flatMap((m) => m.buildables.map((b) => [b, m.id] as const)));
 const TAB_MILESTONE = new Map(MILESTONES.flatMap((m) => m.tabs.map((t) => [t, m.id] as const)));
+const SECTION_MILESTONE = new Map(MILESTONES.flatMap((m) => (m.sections ?? []).map((t) => [t, m.id] as const)));
 
 // The milestone a buildable waits on, if any.
 export function milestoneForBuildable(id: string): string | undefined {
@@ -273,4 +292,15 @@ export function milestoneForBuildable(id: string): string | undefined {
 // from the charter.
 export function milestoneForTab(id: TabId): string | undefined {
   return TAB_MILESTONE.get(id);
+}
+
+// The milestone a tab's section waits on, if any; sections no milestone
+// names show whenever their tab is open.
+export function milestoneForSection(id: TabSection): string | undefined {
+  return SECTION_MILESTONE.get(id);
+}
+
+// The tab a section belongs to.
+export function tabOfSection(id: TabSection): TabId {
+  return id.slice(0, id.indexOf('.')) as TabId;
 }

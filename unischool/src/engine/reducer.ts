@@ -2,6 +2,7 @@ import { answerPromises, tickPromises } from '../systems/promises/promises';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
 import { DEV_BUILD } from './devBuild';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
+import { CHARTER_INSTANCE, charterVars } from '../systems/events/charter';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
@@ -29,7 +30,7 @@ import { postSearch } from '../systems/faculty/facultySearch';
 import { endInitiative } from '../systems/research/researchSystem';
 import { researchTopic } from '../data/researchTopics';
 import { programOfCourse } from '../data/techData';
-import { isInTransit } from '../systems/techtree/programOffers';
+import { declineOffer, isInTransit } from '../systems/techtree/programOffers';
 import { restaff } from '../systems/faculty/restaffing';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
@@ -204,6 +205,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       // the same predicate before offering the button.
       foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
       settleOpening(s); // the walkthrough's last step ends on a fourth program founded
+      return s;
+    }
+
+    case 'DECLINE_OFFER': {
+      declineOffer(s, action.programId);
       return s;
     }
 
@@ -620,6 +626,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       s.self.name = name;
       s.self.suffix = suffix;
       s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `${was} is renamed ${institutionName(s.self)}.` });
+      // The charter's answers name the college (Plan 78G): they follow it.
+      const charter = s.catalogue?.pending.find((p) => p.instanceId === CHARTER_INSTANCE);
+      if (charter) charter.vars = charterVars(s);
       return s;
     }
 

@@ -102,6 +102,16 @@ export function claimedSchool(s: GameState, hallId: string): Claim | null {
   return school === null ? null : { school, housed, slots: slots.length };
 }
 
+// The claim a founding would cut into (Plan 78D): another school's program
+// founded into a hall one school claims takes a program slot that school
+// needs to be founded. The hall panel asks before it (ConfirmButton). Null
+// when nothing is lost: the hall's own school, or a hall no school claims.
+export function claimCutBy(s: GameState, hallId: string, programId: string): Claim | null {
+  const claim = claimedSchool(s, hallId);
+  const program = programById(programId);
+  return claim && program && program.school !== claim.school ? claim : null;
+}
+
 // Founders Hall is the starting room, no school's, until every purchased
 // hall is sited (Plan 59): six halls for seven schools, so the school still
 // in it then is at home there, and nothing asks it to move.

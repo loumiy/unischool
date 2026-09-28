@@ -17,12 +17,22 @@ reserves the dock's measured height instead of drawing under it.
 
 ## Tab gates
 
-Four tabs open from milestones on the ladder (`data/ladderData.ts`, read by
-`TabNav.tsx`'s `tabAvailable`): Students and History at the first
-commencement, Research once a lab is finished, Athletics with the first sport
-club. (Students is the one tab that Enrollment and Student Life became.)
-A milestone is never undone, so a tab once open stays open. The
-first time one opens the activity log says so.
+Two tabs open from milestones on the ladder (`data/ladderData.ts`, read by
+`TabNav.tsx`'s `tabAvailable`): Research once a lab is finished, Athletics
+with the first sport club. A milestone can also open a **section** of a tab
+that is already open (its `sections`, read by `sectionAvailable`). Students
+(the one tab that Enrollment and Student Life became) is open from the first
+week with the satisfaction breakdown, the demands and the student body; its
+guidebook, its clubs and chapters and last summer's funnel wait for the
+first commencement (Plan 78B). History is open from the first week with its
+Standing; its record of the years (the Final Report's draft, the promises,
+the chronicle, the charts and the table) waits for the first commencement,
+and one note says so until then (Plan 78C). A section no milestone names is
+somewhere a link can land: the tab scrolls to its `data-section`
+(`sectionTarget.ts`). A milestone is never undone, so a tab once open stays
+open. The first time a gated tab
+opens the activity log says so, unless its milestone's letter already
+does.
 
 ## Time
 
@@ -46,17 +56,25 @@ toolbar. Above it a **toast stack** shows the things that never stop the clock
 candidate in a short field, a project concluded without a report — six
 seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
 it is about; an **arrival** (a matter or a letter reaching the inbox) carries
-an Open button and stays eight seconds, and none arrives while the inbox is
-open (see
+an Open button and stays eight seconds (in year one a founding note or a
+milestone stays until opened or dismissed, Plan 78B), and none arrives while
+the inbox is open. With Settings' "Pause when a matter arrives" on (the
+default), a matter's arrival also pauses the clock and stays until it is
+opened or dismissed; whatever the setting, a matter's final week, unopened,
+pauses the clock once and the Inbox button pulses red (Plan 78E,
+`systems/inbox/unseen.ts`; see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
 right end of the ticker line runs the **next step**: during the scripted first
-year the latest letter's ask until it is done; afterwards a waiting letter's
+year the latest letter's ask until it is done, and between letters a
+satisfaction need under 50 (Plan 78B); afterwards a waiting letter's
 ask — unless it has nothing to do this week, when it gives way (Plan 58) —
 then the highest-value thing on offer: a program gone dark that the payroll or
 the market can staff, ahead even of a letter (Plan 60); a program that can move to its
-school's hall (Plan 55), or the next hall to site when a school has no hall
+school's hall (Plan 55: the line opens the hall the program is in, its tile
+open on the move, Plan 78D), or the next hall to site when a school has no hall
 to move to; a hall with a free program slot while programs are offered (an offer's
-own school's hall first), or the next hall when nothing on offer has one; a
+own school's hall first), a claimed hall's room for its own school's programs
+(Plan 78D), or the next hall when nothing on offer has one; a
 program one course from established; a satisfaction attribute under 50; an
 idle lab —
 recomputed from state on every render (`src/systems/guidance/nextStep.ts`). A
@@ -72,9 +90,11 @@ left, every item collapsed to its sender, subject and a line of preview and
 grouped by tier (to decide, letters, bulletins), with a search and filters,
 and on the right a reading pane that shows the selected item whole, with its
 answers. A row to decide carries a navy rule down its edge, red in its last
-week, and its weeks left where a letter has its date; an unread letter has a
+week, and its weeks left where a letter has its date ("Final week" in the
+last, in the list and the reading pane alike); an unread letter has a
 gold dot and a bold subject. Opening a letter reads it. The toolbar's Inbox
-button counts only what wants an answer, and `I` opens it. Nothing floats
+button counts only what wants an answer, the stop included, and `I` opens
+it; the "To decide" filter counts the matters alone (Plan 78E). Nothing floats
 over the map any more: the event panel and the note stack it replaced both
 stepped aside whenever a tab was open.
 
@@ -82,15 +102,28 @@ What stops the clock is answered here too. A pending interrupt is pinned first
 under **The clock waits** and shown in the reading pane in its modal card; the
 shell opens the inbox on it, shuts every other way off it (the toolbar's other
 buttons are disabled and Close gives way to "Answer to go on"), and once it is
-answered returns the player to the view they were on. Only the Final Report's
-page still stands in front of the screen.
+answered returns the player to the view they were on, or opens the build menu
+when a letter was answered with "Continue and open Build" (Plan 78B). Only the
+Final Report's page still stands in front of the screen.
 
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,
-prestige, satisfaction — a glyph and a figure each, the word in the tooltip);
-the right zone stacks the clock over five round gears (pause, play, 2×, 4×,
-8×);
-and between them, in one row at every width, the labelled tab row — the word
+prestige, satisfaction). Each chip is its word over its figure, in the
+display face at `--text-2xs` over `--text-md`; on a phone the word is hidden
+and the glyph stands in for it, as the chips were before (Plan 78C). The word
+takes the glyph's place rather than joining it, so the left zone is no wider
+than it was: the band still fits one row at 1440 with every tab open, and
+at 1280 once History, Research and Athletics are all open it wraps the clock
+to a second line, as it did before.
+Each chip keeps its sentence as a tooltip: satisfaction's names the lowest of
+the five needs and its figure (Plan 78B), and rank's says that the rank
+follows prestige, which rises at the summer by at most its step, read from
+`prestigeSystem.ts` (Plan 78C). Three chips are doors, like the funds figure:
+rank and prestige open History › Standing, satisfaction opens Students ›
+the satisfaction breakdown, each a button named with its figure ("Prestige
+51.5 — open History, Standing"). The map is `data/statChips.ts`'s
+`chipDoor`; enrolled is a figure only. The right zone stacks the clock over
+five round gears (pause, play, 2×, 4×, 8×); and between them, in one row at every width, the labelled tab row — the word
 under each glyph — and Build. The two side zones stack precisely so that row
 always fits. On a phone the band folds to its figures while a tab or a
 popup is open, and the tabs scroll beside Build (Plan 76I). The school's
@@ -207,7 +240,11 @@ seat's policy. An arrow (→) sits on a button only when it changes screen
 **Asking before a loss** is `ConfirmButton` (Plan 47), everywhere: the first
 click arms it and the armed label reads "Confirm — ‹what is lost›" ("Confirm
 — release; the post stays open", "Confirm — English closes 8 weeks"); armed,
-any button turns pink with the red outline; blur or Escape disarms it.
+any button turns pink with the red outline; blur or Escape disarms it. A
+button that loses something only sometimes asks only then (`needsConfirm`):
+Found asks only when another school's program would take a claimed hall's
+program slot ("Confirm — this takes one of the six program slots Science
+needs", Plan 78D).
 
 ### The close control
 
@@ -341,10 +378,21 @@ and drops the pickup when the hall stands, opens the Curriculum when the
 player asks to see what the college teaches, starts the clock when the walk
 ends — through the same `setBuildOpen`, `openTab` and `inspectHall` every
 other caller uses, so the one-slot rule holds. The card is
-`OpeningCoach.tsx`, pinned top-centre with no backdrop so the screen under it
-stays workable; the control each step needs carries `.opening-target` (the
-Build button, the hall's tile, and Founders Hall's first free room in its
-panel on the map, which the card itself opens as the last step's door).
+`OpeningCoach.tsx`, pinned top-right beside the main menu and the map tools,
+with no backdrop so the screen under it stays workable (Plan 78F: top-center
+it covered the hall the player had just set down, and top-left is the
+building panel's). On a phone it spans the width at the top, and drops to the
+foot, over the dock, while the hall's panel holds the top. The control each
+step needs carries `.opening-target` (the Build button, the hall's tile, and
+Founders Hall's first free program slot in its panel on the map, which the
+card itself opens as the last step's door).
+
+**The build menu's "!"** has one meaning, "something new to build here": a
+category holds a tile the player has not seen, because the category has not
+been opened since the tile appeared (`s.seen.buildableIds`). Opening the
+category marks its tiles seen and clears it; the toolbar's Build button
+carries the same mark while any category does. The menu's help says so
+(Plan 78F).
 
 What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab

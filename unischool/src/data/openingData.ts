@@ -46,7 +46,7 @@ export const OPENING_STEPS: Record<Exclude<OpeningStage, 'play'>, OpeningStep> =
   found: {
     eyebrow: 'Step three',
     title: 'Found a fourth program',
-    body: (s) => `Founders Hall has three program slots still empty. A program is founded into a slot from the hall's own panel on the map: ${s.programOffers.length > 1 ? `${s.programOffers.length} programs are on offer` : s.programOffers.length === 1 ? 'one program is on offer' : 'programs are offered three at a time'}, and founding one starts its first course with the professor you pick. When nobody on the payroll teaches that field, the panel shows the market — appointing someone there is how a department starts. Its panel is open: click a ringed slot, and choose.`,
+    body: (s) => `Founders Hall has three program slots still empty. A program is founded into a program slot from the hall's own panel on the map: ${s.programOffers.length > 1 ? `${s.programOffers.length} programs are on offer` : s.programOffers.length === 1 ? 'one program is on offer' : 'programs are offered three at a time'}, and founding one starts its first course with the professor you pick. When nobody on the payroll teaches that field, the panel shows the market — appointing someone there is how a department starts. Its panel is open: click a ringed program slot, and choose.`,
     door: 'hall',
   },
 };

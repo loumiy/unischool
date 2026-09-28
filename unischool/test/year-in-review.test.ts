@@ -23,6 +23,7 @@ import { FOUNDING_PRESET } from '../src/data/foundingData';
 import type { GameState } from '../src/state/types';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { LOG_CAP, WEEKS_PER_YEAR } from '../src/state/types';
+import { prestigeBreakdown, standingDetailLine } from '../src/systems/prestige/prestigeSystem';
 
 let checks = 0;
 let failures = 0;
@@ -109,6 +110,21 @@ console.log('year in review tests');
   assert(/graded \d+: prestige [\d.]+ → [\d.]+/.test(standing), `the standing section reads the report card before it is applied (${standing})`);
   assert(standing.includes('Curriculum breadth'), 'and lists the inputs by name');
   assert(!buildYearInReview(s).truncated, 'a quiet founding year fits inside the log');
+
+  // Every term carries its "what moves it" (Plan 78C), and it is the line
+  // History › Standing shows for that term, from the one function.
+  const inputs = prestigeBreakdown(s).inputs;
+  const termLines = section(s, 'standing').lines.filter((l) => inputs.some((i) => l.text.startsWith(`${i.label}: `)));
+  assert(termLines.length >= 9, `the review lists the grade's terms (${termLines.length})`);
+  for (const line of termLines) {
+    const input = inputs.find((i) => line.text.startsWith(`${i.label}: `))!;
+    assert(!!line.detail && line.detail.trim().length > 0, `${input.label} has a detail line`);
+    assert(line.detail === standingDetailLine(input), `${input.label}'s detail is History's line`);
+  }
+  const multiplied = inputs.find((i) => i.multiplier);
+  assert(!!multiplied && !!termLines.find((l) => l.text.startsWith(`${multiplied.label}: `))?.detail?.includes(multiplied.multiplier!.label),
+    'a term with a multiplier names it under the term');
+  assert(section(s, 'standing').lines.filter((l) => l.detail).length === termLines.length, 'and only the terms carry a detail');
 }
 
 // --- the review reads topics, not sentences -------------------------------
@@ -186,7 +202,8 @@ console.log('year in review tests');
   assert(s.students.classes.senior === 0 ? cls.lines.length === 0 : cls.lines.length === 2, 'the graduating class, when there is one');
   s.students.classes.senior = 120;
   const seniors = section('class').lines.map((l) => l.text);
-  assert(seniors.length === 2 && seniors[0].startsWith(`The class of ${s.clock.year}`) && seniors[1].startsWith('120 seniors leave'), `how it will remember its years, and how warmly (${seniors.join(' | ')})`);
+  const classLine = (s.alumni ?? []).some((a) => a.classYear < s.clock.year) ? `The class of Year ${s.clock.year}:` : 'The first graduating class:';
+  assert(seniors.length === 2 && seniors[0].startsWith(classLine) && seniors[1].startsWith('120 seniors leave'), `how it will remember its years, and how warmly (${seniors.join(' | ')})`);
 }
 
 if (failures === 0) {

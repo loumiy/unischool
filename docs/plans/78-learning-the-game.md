@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask on area 3 of
 the October review into PRs, now that the inbox (Plan 77) has landed.*
 
-**Status: Proposed.** A is this plan (#232).
+**Status: Landed.** A to G merged (#232–#238).
 
 ---
 
@@ -238,6 +238,71 @@ is this plan.
   - the Students tab is available in week 1;
   - a stop with an ask carries the door.
 
+**As implemented (#234):**
+
+- **The Students tab** opens from the first week.
+  - The ladder gates one way for every tab. A milestone opens whole tabs
+    (`tabs`) or sections of a tab already open (`sections`, named
+    `<tab>.<section>`). `TabNav.tsx`'s `sectionAvailable` answers for a
+    section.
+  - The first commencement now opens History, and in Students the
+    guidebook, the clubs and chapters, and the admissions funnel. Its
+    letter and "What this opens" say so.
+  - The funnel is held back too, beyond the default. In year one "Last
+    summer's funnel" showed the founding figures (150 applicants at 36%
+    for 350 enrolled), and there was no last summer. It is one entry in
+    `sections`, if the owner wants it back.
+  - In year one a note stands in for the organizations: they are listed
+    from the first commencement.
+  - The milestone is unchanged, and only what the UI shows moved. PR C can
+    move History to a section the same way.
+- **NEXT in year one** falls back to the shortfall reading between
+  letters. A letter's ask still wins. From year two nothing changed.
+  - The guided player reads the same line. `npm run sim` did not move,
+    since its year-one letter asks cover those weeks.
+- **The satisfaction chip's tooltip** names the lowest of the five needs
+  and its figure, from the week's breakdown that NEXT reads
+  (`figureHints.ts`'s `satisfactionHint`). It drops the attrition clause
+  to stay one sentence.
+- **A letter's ask can be acted on.**
+  - `letterOpensBuild` (inbox.ts) reads the ask's `go`: a chair's letter
+    whose ask goes to the build menu, and is not done, carries the door.
+    Today those are the week-9 letter and the letters that ask to site a
+    hall or the Research Park.
+  - Its card in the inbox's reading pane shows "Continue and open Build"
+    as the primary and Continue as `btn-quiet`. The door resolves the
+    letter as Continue does. `App.tsx` then opens the build menu once the
+    stop is answered, in place of the view before it.
+  - The chair's letters live in the inbox only while they stop the clock,
+    so this card is the inbox's letter with an ask. No kept letter has an
+    ask: the milestones already had "Open Build", and the founding notes
+    ask for nothing.
+- **Arrivals in year one:** a founding note's or a milestone's notice stays
+  until it is opened or dismissed, and the news does not push it out of
+  the stack. From year two it keeps the 8 seconds. Nothing arrives while
+  the inbox is open, and opening the inbox now puts away the notices
+  already up.
+- **The week-9 letter** says "The college has 350 students, 0 beds and 0
+  dining seats", read from the state as it is written.
+- **Checks:**
+  - `test/first-year.test.ts` plays year one on the defaults. NEXT is
+    never empty while a need is under 50. It also checks the fallback, the
+    letter's figures, the door on a building ask and none on a hall ask,
+    the chip's hint, and the held arrivals.
+  - `test/tab-gates.test.ts`: Students is available in week 1 and its
+    sections are not; they open at the first commencement.
+  - `opening.test.ts` and `figures.test.ts` follow the new line and hint.
+- **Results:** `check` passes, `npm run sim` matches the baseline, and
+  `npm run phone` passes. `review:strings` is unchanged on second person
+  (40), British spellings (0) and engine words (0).
+- **Screenshots:** `docs/reviews/2026-10-ui-fixes/first-year-letter-door.jpg`
+  and `first-year-students-phone.jpg`.
+- **Left:**
+  - The door opens the build menu on its default category, not on housing
+    or dining. The milestone doors do the same.
+  - NEXT names academic as "Study space" while the tab and the chip say
+    "Academic". That is PR F's plain-words pass.
+
 ## PR 78C — The chips lead to their explanations
 
 *A3-5, traces 1 and 9, the session's unlabeled chips.*
@@ -258,6 +323,86 @@ is this plan.
 - **Checks:**
   - a test that every Review term has a detail line;
   - `npm run phone`.
+
+**As implemented (#237):**
+
+- **Clickable chips.**
+  - Rank and prestige open History › Standing. Satisfaction opens Students ›
+    the satisfaction breakdown, scrolled to it.
+  - They are buttons named with their figure: "Prestige 51.5 — open
+    History, Standing". Their sentence stays the tooltip. Hover marks them
+    as it marks the funds figure.
+  - The map is data: `data/statChips.ts`'s `chipDoor`. Each door is a
+    section of a tab (`TabSection`, B's type), so it lands from the first
+    week. Enrolled has no door.
+  - A tab handed a section scrolls to its `data-section` and clears it
+    (`components/sectionTarget.ts`), as Curriculum and Faculty do with
+    theirs.
+  - A click while a stop waits does nothing, as with the funds figure.
+- **History opens from the first week.**
+  - The first commencement no longer opens the tab. It opens
+    `history.record`, a section, with B's mechanism. The milestone, its
+    letter and its "What this opens" are unchanged, and its letter still
+    carries "Open History": a milestone's door now also reads the tab of a
+    section it opens.
+  - Before the first commencement History shows Standing, then one note:
+    the record of the years starts at the first commencement. The Final
+    Report's draft, the promises, the chronicle, the charts and the table
+    wait for it. Each already had an empty state; together they were four
+    empty panels.
+  - Before the first summer Standing's note ends: "Prestige is graded at
+    the end of each year; the first grade comes at the first summer." It
+    replaces "No summer has graded it yet". `gradeYear` runs at the summer
+    only.
+  - Student quality's line said "the class that enrolled last summer" in
+    year one. It now says "The founding class" until a summer has enrolled
+    one.
+  - History is no longer a gated tab. Two tabs are gated now: Research and
+    Athletics.
+- **The rank chip's tooltip:** "Place among 100 colleges in the guide's
+  academic ranking, #1 the top; the rank follows prestige, which moves
+  mostly at the summer and rises then by at most 2.1 points." The step is
+  `PRESTIGE_MAX_RISE`, through `prestigeFigure`. "Mostly": prestige also
+  trembles toward its target between summers.
+- **The summer Review** shows each term's line under it, smaller and
+  muted.
+  - One function words it: `standingDetailLine` in `prestigeSystem.ts`, the
+    term's detail and then its multiplier. History › Standing draws the
+    same two parts, the multiplier through the shared `multiplierLine`.
+  - The Review reads the state before the summer applies, so the lines
+    describe the year being graded.
+- **The chips carry their word.**
+  - On a wide screen each chip is its word over its figure: `--display` at
+    `--text-2xs` over the figure at `--text-md`, in the same 30 px pill.
+  - The word takes the glyph's place. With the glyph kept too, the chips
+    grew 51 px and the band wrapped at 1440 with every tab open. This way
+    the left zone is 9 px narrower than before.
+  - On a phone (560 px and under) the word is hidden and the glyph and
+    figure sit in a row, as before.
+  - Measured with every tab open: at 1440×900 the band keeps one row. At
+    1280×800 it wraps the clock to a second line, as it already did
+    before this PR. In year one at 1280 and 1440, with History now in the
+    tab row, it keeps one row.
+- **Checks:**
+  - `test/stat-chips.test.ts`: each chip's tab and section, the buttons'
+    names, every door lands in week one, and the rank sentence reads
+    `PRESTIGE_MAX_RISE`.
+  - `test/year-in-review.test.ts`: every term in the Review has a detail
+    line, and it is History's line.
+  - `test/tab-gates.test.ts`: History is open in week one with its
+    Standing, and its record waits for the first commencement.
+- **Results:** `check` passes, `npm run sim` matches the baseline, and
+  `npm run phone` passes. `review:strings` is unchanged on second person
+  (40), British spellings (0) and engine words (0).
+- **Screenshots:**
+  `docs/reviews/2026-10-ui-fixes/chips-history-desktop.jpg` (History from
+  the prestige chip in week one) and `chips-review-phone.jpg` (the summer
+  Review's Standing on a phone).
+- **Left:**
+  - Enrolled has no door. Students' enrollment panel would be the natural
+    one.
+  - The chips show no "open" state while their tab is open. The funds
+    figure does.
 
 ## PR 78D — The move to school halls
 
@@ -285,6 +430,101 @@ is this plan.
   - the harness players take the new offers;
   - `npm run sim`, re-recorded, with the move described here.
 
+
+**As implemented (#236):**
+- **A claimed hall's "+"** offers its own school first.
+  - It is a sim change, not a UI list. `programOffers.ts`'s
+    `schoolOffers` reads every revealed, unhoused major of the school a
+    purchased hall claims. It draws nothing, so the random stream is
+    untouched.
+  - `canFoundProgram` accepts a major that is on the global offer or in
+    that hall's own list (`offeredIn`). Founding one leaves the global
+    offer as it was.
+  - The panel shows "Science programs for program slot N", then "Other
+    schools, from the offers". Founders Hall and unclaimed halls show the
+    global three.
+  - **For the owner:** the other schools' offers stay in a claimed hall,
+    behind the confirmation. Hiding them would make item 3 unreachable.
+    They are one line to remove if the owner wants the stricter reading.
+- **Decline:** "Not this year" under each global offer, a
+  `ConfirmButton` ("Confirm — no other offer can be declined until Year
+  N").
+  - `DECLINE_OFFER` removes the offer and refills through the ordinary
+    `refillOffers` draw. That draw is the offer's own state-seeded dice,
+    not the game's stream.
+  - The declined program stays out of the draw until the year turns.
+  - A second decline that year is refused with its reason, shown under
+    the offers: "One offer a year may be declined, and Management was
+    declined this year. The next can be declined in Year 4."
+  - New optional field `declinedOffer: { year, programId }`.
+    `SAVE_VERSION` 79 → 80, with a migration (`noDeclineYet`) and a load
+    sanitizer. `test/fixtures/save-v79.json` was written before the bump.
+- **The confirmation:** Found is a `ConfirmButton` that asks only when
+  `schools.ts`'s `claimCutBy` finds another school's claim.
+  - Armed: "Confirm — this takes one of the six program slots Science
+    needs". The count is `countWord(claim.slots)`, new in `format.ts`.
+  - The warning names the hall, the claim and the program.
+- **NEXT:**
+  - A move now reads "Move Psychology into Elm Hall". It opens the hall
+    the program is in, with its tile open and the move showing
+    (`NextStep.programId`, through `App.tsx` and `CampusMap.tsx`'s
+    `inspectProgram`). All three sorting letters and `awayFromHome` use
+    it.
+  - A claimed hall with room no longer waits on the draw. The letter asks
+    to found from the hall's own list, and the line reads "Elm Hall has
+    room for Science (4 of 6): Chemistry or 1 more on offer there".
+  - The only waits left are true ones: Founders Hall, once a school's
+    home, "has room for X when one is on offer: founding a program or
+    declining an offer draws the next".
+- **Harness:**
+  - `moves.ts`'s `foundable` puts each claimed hall's own programs first,
+    then the global offers where `homeFor` sends them. `foundOffer`, the
+    natural player and the Selective archetype use it.
+  - The guided player founds into a claimed hall from its own list only
+    (`offersFor`).
+  - When the line asks it to found and nothing can be, the guided player
+    declines an offer nobody can teach (`declineUnteachable`). That
+    happened 1–4 times in 50 years per seed.
+  - Fuzz sends `DECLINE_OFFER`.
+- **Checks:**
+  - `test/offer-decline.test.ts`: the own list and the founding gate;
+    decline once a year; the refusal; no draw on the stream; the claim
+    that arms the confirm; sanitizing on load.
+  - `test/split-school.test.ts` replays trace 7 from the v79 save (the
+    new `split-school` scenario). Before, the line waited 35–69 weeks on
+    "has room for Science when one is on offer". Now it never waits,
+    Science is founded within the year, and a second school has its hall
+    within two.
+  - `test/sorting.test.ts` was updated to the new asks.
+  - The armed confirm is checked by screenshot, not by a UI test:
+    `docs/reviews/2026-10-ui-fixes/halls-desktop.jpg` and
+    `halls-phone.jpg` show Elm Hall's own Science list, the decline
+    buttons and the armed Found. `npm run phone` passes on the scenario
+    save.
+- **The sim move** (medians of three seeds, against the old baseline):
+  - **Lean moves most.** At Year 50 it has prestige 97.8 → 111.9, rank
+    32 → 23, 4,425 → 8,255 enrolled and $41.6M → $454.7M cash. At Year 25
+    it has 4 schools, not 5.
+    - Before, it founded only global offers where they belonged. It sat
+      at 36 programs (five schools) from about Year 25 to Year 45, with
+      claimed halls' program slots empty and waiting on the draw. That is
+      A3-1's trap, played out by a harness player.
+    - Now two seeds of three have all 42 programs and the whole catalogue
+      by Year 30–35. The third gets there by Year 45 (Year 50 before).
+  - **Selective:** rank at Year 50 is 23 → 14, and prestige 115.5 →
+    119.5. Its twelve programs now come from its own schools' halls
+    rather than waiting on the draw. It still founds one school.
+  - **Completionist:** 2 schools by Year 10 (was 1), and rank at Year 10
+    is 41 → 39. The rest moves a little: cash at Year 25 is −$2.4M and at
+    Year 50 +$19.3M, and satisfaction at Year 50 is −2.7.
+  - **Guided:** at Year 10, 71 courses (−7), $4.4M cash (−$0.7M) and
+    5,520 enrolled (+226). Money went to foundings into its schools' halls
+    before further courses. At Year 50, prestige is −0.7, cash
+    +$109.0M, and rank is still 1. Schools are founded in about the same
+    years.
+  - **Idle** is unchanged. No tuning constant was touched.
+    `sim/baseline.json` is re-recorded.
+
 ## PR 78E — No decision passes unseen
 
 *A3-3, new concerns 3, 4 and 5 (default 1).*
@@ -307,6 +547,60 @@ is this plan.
   - a matter's final week pauses once with it off;
   - the harness is untouched: the pause is a UI action and the simulation
     does not change.
+
+**As implemented (#235):**
+- **The rule** is one pure function, `systems/inbox/unseen.ts`'s
+  `unseenPause`. App.tsx runs it on every snapshot and pauses the clock
+  with `setSpeed('paused')`, as the pause button does. Space resumes at the
+  last speed.
+  - A matter is any row in the "To decide" tier: an inline event, a student
+    demand, or the board's idle-cash ask.
+  - An arrival is a matter that was not in the last snapshot. A load or a
+    new game is not an arrival.
+  - The final week is `weeksLeft` 1. It pauses once per matter, and only if
+    the matter was never opened.
+  - Neither rule acts while a stop or the walkthrough holds the clock. A
+    matter that arrives under a stop is already listed in the stop's inbox,
+    so it does not pause again afterwards. A final week reached under a
+    hold pauses once the hold lifts.
+  - One pause covers a matter that arrives already in its final week.
+- **The setting** is `pauseOnArrival` in `settings.ts`. It is on by
+  default, and a browser whose saved settings lack the key reads it as on.
+  Settings has a row for it, "Pause when a matter arrives", with On and
+  Off.
+- **The arrival notice** for a matter stays while the setting is on. It
+  goes when Open or its close is pressed, when the matter is opened in the
+  inbox, or when the matter is answered or lapses. Letters keep eight
+  seconds. A full stack drops news before a held notice.
+- **"Opened"** is UI state in App.tsx, not the save. A matter is opened
+  when the reading pane shows it (picked, or chosen by the pane itself) or
+  when Open is pressed on its notice. A noted demand also counts as opened.
+  A reload forgets the set, so at worst a matter's final week pauses once
+  more. `GameState` and `SAVE_VERSION` are unchanged.
+- **The Inbox button** already turns red and pulses for a matter in its
+  final week (`inboxBadge`'s `urgent`). The replay confirms it.
+- **One countdown label:** `dueLabel` gives "Final week" at one week left
+  and "This week" at zero. Both the list and the reading pane's side panel
+  use it, for events and demands.
+- **The "To decide" filter** counts only the "To decide" tier. It does not
+  count the stop, or a demand already noted (as on the button). The filter
+  still lists the stop, pinned under "The clock waits".
+  - The toolbar's button still counts the stop, as Plan 77 C decided: it
+    counts everything that wants an answer, and it is red during a stop.
+- **Plan 35's ease to 1×** stays when the setting is off. With it on the
+  pause replaces the ease, except under a hold, where the ease still acts.
+- **Checks:** `test/unseen.test.ts` covers the setting's default, the
+  arrival (on, off, at a load), the demand, the final week (once, setting
+  off, opened, a noted demand), the hold, the label, the filter count and
+  the notice stack. `npm run sim` matches `sim/baseline.json`.
+- **The replay** used a Guided year-6 scenario at 2×. A student-life matter
+  arrived in week 24, and the clock paused with its notice held. After a
+  dismiss and Play, the clock paused again in week 25, the matter's final
+  week. The list and the pane both said "Final week", and NEXT said
+  "Lapses this week". With the setting off, a later matter eased the clock
+  to 1× and its notice went after eight seconds.
+  ([`unseen-arrival-paused.jpg`](../reviews/2026-10-ui-fixes/unseen-arrival-paused.jpg)
+  shows the paused arrival and the Settings row.)
 
 ## PR 78F — Plain words at first use
 
@@ -334,6 +628,113 @@ is this plan.
   - `review:strings`;
   - a first-year replay with screenshots.
 
+**As implemented (#238):**
+- **The committee's empty boxes** read "Free", with a tooltip: "Free: the
+  committee has room for another course".
+- **Grade chips beside counts** carry their word, "grade B" (`GradeChip`'s
+  `word`).
+  - Worded: the catalog's head ("6/378 developed grade C"), each school's
+    head, each program's row, and the hall panel's program tiles.
+  - Left bare: a course cell's chip (a grid with a key), and the projected
+    grade on a Develop or Appoint button, whose tooltip says "would be
+    graded B".
+  - Plan 47's glossary gains the rule.
+- **The Build menu's "!"** already cleared when its category was opened:
+  opening a category marks its tiles seen (`MARK_SEEN`), and the seen state
+  stays in `s.seen.buildableIds`. The replay confirmed it.
+  - The meaning is now said: a marked category's tooltip reads "Social:
+    something new to build here", the Build button's "Build: something new
+    to build", and the menu's help has a sentence for it.
+  - `ui-shell.md` records the one meaning.
+- **The letters follow the glossary.**
+  - "The doors open": "three program slots still free", "a free program
+    slot". "A hall of its own": "six program slots".
+  - "Moving in": "a moving program is closed for four weeks, not the twelve
+    a move between halls costs".
+  - The walkthrough's step three said a bare "slot" twice, and the
+    curriculum milestone "one program to a slot". Both now say program slot,
+    or "one program to each".
+  - The Curriculum row's "no free Economics slot" now reads "needs
+    Economics faculty", as the glossary asks.
+  - The founding notes had no slips.
+- **A course cell's tooltip** gives the drawer's reason: "ECON 120 ·
+  Econometrics: Needs MATH 120, cross-listed".
+  - One function, `programProgress.ts`'s `courseHoldReason`. The cell's
+    tooltip and the drawer's note both use it, and `crossMajorPrereqs`
+    moved beside it, so the drawer's "cross-listed" tag reads the same.
+  - It covers a greyed (locked) cell: its unmet prerequisites, with a lab
+    "built on the map". It also covers a red (blocked) cell: the faculty it
+    needs, room on the committee, or the cash it is short. It also covers a
+    program that is moving.
+- **The first professor's salary** shows at founding: "Associate ·
+  Psychology · $103k/yr".
+  - It is on every `InstructorOption`: the founding picker and the course
+    drawer. It is the salary as the college pays it, with `moneyShort`, as
+    Appoint shows it.
+  - The meta line now wraps, so a narrow drawer does not cut the salary.
+  - A market candidate's card leaves it off (`pay={false}`): its Appoint
+    button, just under it, already says it.
+- **The admissions default** says why, under the admit-rate slider:
+  - the first summer: "The admit rate opens at the founding rate, 21%.";
+  - after it: "The admit rate opens where last summer set it, 36%.".
+  - Beds never limit the rate (housing is a need, not a cap), so they are
+    not given as the reason. When next year's students would already fill
+    the beds, the line adds "; admitting more crowds 850 beds".
+  - The words are `yearOverYear.ts`'s `admitRateOpening`.
+- **The reveal's crowding part** says its direction: "crowding eased +527%"
+  or "crowding grew −20%" (`crowdingLabel`).
+- **Class names:** "The first graduating class: …", and later "The class of
+  Year 12: …". This covers the alumni ledger, the summer Review's
+  graduating class, the reunion log line and the catalog's `{class}`.
+  - The first class is the ledger's earliest, not Year 1, in case the first
+    summer graduates nobody (`firstClassYear`).
+  - The Students tab's charts label their axis "Class of Year".
+  - Plan 47's glossary gains the rule.
+- **The coach card** is pinned top-right, beside the main menu and the map
+  tools.
+  - Top-center, it covered Founders Hall when the hall was placed near the
+    middle. Top-left is the hall panel's place.
+  - On a phone the card spans the width at the top, as before. While the
+    hall's panel is open (step three), the card drops to the foot of the map
+    and scrolls, so the panel's free program slots stay visible. Before this
+    change, the card hid the panel entirely.
+  - The card does not follow the footprint. A hall placed at the top-right
+    would still sit under it. The camera's screen position is the map's to
+    know, and the side is enough for the review's case.
+- **NEXT names the needs as the Students tab does**: "Academic is at 38",
+  not "Study space" (and "Social", not "Social life"), from `figureHints.ts`'s
+  `NEED_LABELS`. The order is the same, so a tie breaks as before.
+- **Checks:**
+  - `test/plain-words.test.ts` covers the course reason (cross-listed, a
+    lab, several prerequisites, faculty, cash), the crowding direction, and
+    the admit-rate line.
+  - `alumni.test.ts` covers the class names.
+  - `sorting.test.ts`, `event-truth.test.ts` and `year-in-review.test.ts`
+    follow the new words.
+- **Results:**
+  - `check` passes.
+  - `npm run sim` matches `sim/baseline.json` on every line.
+  - No save change.
+  - `npm run phone` passes.
+  - `review:strings`: second person 40, British spellings 0, idioms 10,
+    engine words 0, exclamation marks 0 and contractions 0, all unchanged.
+    The jargon count for "crowding" rose from 4 to 6, from the two direction
+    words.
+- **Screenshots:** `docs/reviews/2026-10-ui-fixes/words-desktop.jpg` shows
+  the coach top-right with the hall clear, the founding picker's salary,
+  "grade B" chips, the committee's "Free" and the drawer's cross-listed
+  prerequisite. `words-phone.jpg` shows step three with the card at the
+  foot and the hall panel's program slots above it.
+  - A native tooltip does not show in a headless screenshot. The replay read
+    each greyed cell's tooltip instead: "Needs MATH 120, cross-listed",
+    "Needs HIST 101, cross-listed" and "Needs Economics faculty".
+- **Left:**
+  - The admissions projection's attrition reasons still say "study space"
+    and "social space" (`consequences.ts`). They name what ran short, in
+    lower case in a list, and "academic" would read worse there.
+  - "Continue and open Build" still opens the menu on its default category
+    (78B's note).
+
 ## PR 78G — The charter
 
 *The charter section; A3-7's founding name (default 5).*
@@ -351,6 +752,54 @@ is this plan.
   - the default renames as today;
   - the save gains no field unless the choice needs remembering, in which
     case it gets a version bump and a migration.
+
+**As implemented (#233):**
+- **At founding:**
+  - A typed name ending in "University" shows a caption under the facade:
+    "Every college opens as a College; the board grants 'University' with its
+    first research lab." A name ending in "College", or no suffix, shows none.
+  - "The board", not "the trustees": Plan 47's glossary retired "the
+    trustees" as the body.
+  - The caption's words are data (`foundingData.ts`); the test is
+    `types.ts`'s `typedUniversity`.
+- **At the charter:** a catalog inline event, `CHARTER_EVENT` in
+  `eventCatalogue.ts`, with a `charter` effect (1 takes University, -1 keeps
+  the name).
+  - It sits outside `EVENT_CATALOGUE`, so no draw, seat or catalog test
+    sees it; `eventById` finds it, so the inbox, the answers, the timeout
+    and the Answered list are the catalog's own.
+  - `fireCharter` raises it with a fixed instance id and names read off
+    the state (`charter.ts`), so it draws nothing from the stream. It still
+    takes the week it lands, and holds no place in the inline queue's limit
+    of three.
+  - The answer goes through `RESOLVE_CATALOGUE_EVENT`; the four-week
+    default is `timeOutCatalogue`, in the tick.
+  - From "The board". The reading pane's line now lowercases a sender's
+    "The" ("From the board to the President").
+  - The log line stays, written when it is answered: "... is now X
+    University", or "..., and X College keeps its name". It carries the
+    subject `charter`, so the inbox files it as a bulletin.
+  - A rename from the pennant while it waits renames its answers.
+- **The harness** takes the default, so its colleges become Universities
+  four weeks later than before. No system reads the name, and the matter
+  draws nothing, so `npm run sim` matches the baseline on every line.
+- **No save field.** The charter waits in the catalog's queue, and
+  `universityCharterOffered` already keeps it from recurring. The save's
+  catalog check now keeps a waiting charter. `SAVE_VERSION` stays 79.
+- **Words made true for a college that kept its name:**
+  - Second Empire is earned by the charter, whichever name is kept ("Win a
+    university charter.").
+  - The laboratories letter: "a research university in fact, whatever its
+    name".
+  - The chronicle, the Final Report and the hall of fame read the name as
+    it stands, and needed nothing.
+- **Tools:** a `charter` scenario (`npm run scenario -- charter`), and
+  `--name` renames a waiting charter's answers.
+- **Checks:** `test/charter.test.ts`: keeping the name leaves it and the
+  pennant alone, the default renames after four weeks, raising it draws
+  nothing, old saves load (one chartered before this change is never asked),
+  a waiting charter survives a save, and the caption shows only for a typed
+  "University". Screenshots: `docs/reviews/2026-10-ui-fixes/charter-*.jpg`.
 
 ## What this plan does not do
 

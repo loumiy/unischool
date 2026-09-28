@@ -73,6 +73,10 @@ subject is the log's own cut at 90 characters.
 - A setting, "Pause when a matter arrives", off by default.
 - The summer's review lists the year's matters that took their default.
 
+*Taken by [Plan 78E](78-learning-the-game.md#pr-78e--no-decision-passes-unseen):
+the setting, on by default, with a pause in a matter's final week whatever
+the setting. The summer's list of matters left unanswered is not taken.*
+
 (The first draft of B also moved the research, championship and Deans'
 interrupts into the inbox *without* stopping the clock. The owner's answer,
 PR C, keeps every stop a stop.)

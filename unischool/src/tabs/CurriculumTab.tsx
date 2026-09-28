@@ -15,7 +15,7 @@ import {
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
-import { milestoneLine, programProgress, tierBands, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
+import { courseHoldReason, crossMajorPrereqs, milestoneLine, programProgress, tierBands, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { facultyQualityTier } from '../data/facultyData';
 import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
@@ -226,23 +226,15 @@ function courseSchools(): Map<string, { key: string; school: string }> {
   return map;
 }
 
-// The cross-major prereqs of a course: prereqs that are themselves courses
-// from a different major. The kind check matters: tier-3 courses require
-// their major's lab (e.g. LAB-CHEN for CHEN230), which a prefix test alone
-// would call a cross-listed course.
-function crossMajorPrereqs(t: Buildable, lookup: Map<string, Buildable>): string[] {
-  const prefix = t.id.replace(/[0-9]+$/, '');
-  return t.prereqs.filter((id) => {
-    if (lookup.get(id)?.kind !== 'course') return false;
-    return id.replace(/[0-9]+$/, '') !== prefix;
-  });
-}
-
 // The grade chip, for a course's own grade and for aggregates alike. The
 // letter always shows; the tint is only a cue (color-blind players, small sizes).
-export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
+// Beside a count ("3/9", "8/378 developed") the chip carries its word,
+// "grade B" (`word`), so the letter does not read as part of the count
+// (Plan 78F). A course cell's chip sits in a grid with a key and stays bare.
+export function GradeChip({ grade, title, size = 'sm', word = false }: { grade: Grade; title?: string; size?: 'sm' | 'lg'; word?: boolean }) {
   return (
-    <span className={`grade-chip grade-${grade.toLowerCase()} ${size}`} title={title}>
+    <span className={`grade-chip grade-${grade.toLowerCase()} ${size}${word ? ' worded' : ''}`} title={title}>
+      {word && <span className="grade-chip-word">grade</span>}
       {grade}
     </span>
   );
@@ -252,7 +244,7 @@ export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?:
 function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
   const avg = averageCourseQuality(s, ids, loads);
   if (avg === null) return null;
-  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
+  return <GradeChip word grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
 }
 
 // One course cell: code over title, filled when done, with a progress bar
@@ -324,6 +316,9 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
   // A program between halls is not taught or advancing.
   const programId = programOfCourse(t.id);
   const transit = programId !== undefined && isInTransit(s, programId);
+  // Why a course not yet started cannot start, in the drawer's words (Plan
+  // 78F): a greyed (locked) cell's prerequisites, or what holds a red one.
+  const reason = courseHoldReason(s, t);
 
   // Swap preview: while a chip is over a legal target, both cells show their
   // would-be grade. Derived from the drag state, not stored.
@@ -348,12 +343,13 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
       id={`course-${t.id}`}
       className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${transit ? ' transit' : ''}${selected ? ' selected' : ''}${isSource ? ' drag-source' : ''}${legalTarget ? ' drop-target' : ''}${isTarget && legalTarget ? ' drop-over' : ''}`}
       aria-pressed={selected}
+      title={reason ? `${t.name}: ${reason}` : undefined}
       onClick={() => onSelect(t.id)}
       onDragOver={dnd && legalTarget ? (e) => { e.preventDefault(); if (dnd.over !== t.id) dnd.onDragOver(t.id); } : undefined}
       onDrop={dnd && legalTarget ? (e) => { e.preventDefault(); dnd.onDrop(t.id); } : undefined}
     >
       <span className="cell-code">{code}</span>
-      <span className="cell-title" title={title}>{title}</span>
+      <span className="cell-title" title={reason ? undefined : title}>{title}</span>
       {ahead && (
         <span className="cell-next">
           {moneyShort(t.cost)}
@@ -408,8 +404,12 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
 // One selectable person, styled like the Faculty tab's roster card, plus
 // teaching and current load.
 export function InstructorOption(
-  { s, f, selected, disabled = false, projectedFor, onPick }:
-  { s: GameState; f: Faculty; selected: boolean; disabled?: boolean; projectedFor?: Buildable; onPick?: () => void },
+  { s, f, selected, disabled = false, projectedFor, onPick, pay = true }:
+  {
+    s: GameState; f: Faculty; selected: boolean; disabled?: boolean; projectedFor?: Buildable; onPick?: () => void;
+    // The salary in the meta; off where an Appoint button under it says it.
+    pay?: boolean;
+  },
 ) {
   const load = facultyLoad(s, f.id);
   // The grade this course would get with them. The load used is what theirs
@@ -434,8 +434,10 @@ export function InstructorOption(
       <FacultyPortrait f={portraitOf(f)} size={34} />
       <span className="instructor-option-body">
         <span className="instructor-option-name">{f.name}</span>
+        {/* The salary as the college pays it, as every Appoint shows it
+            (Plan 78F): the founding picker's first professor included. */}
         <span className="instructor-option-meta">
-          {facultyQualityTier(f)} · {f.field}
+          {facultyQualityTier(f)} · {f.field}{pay && <> · <span className="instructor-option-pay" title={`Salary ${money(f.salary)}; the college pays ${money(Math.round(facultyPay(s, f.salary)))} a year at its market rate, whichever courses they teach`}>{moneyShort(facultyPay(s, f.salary))}/yr</span></>}
         </span>
         <span className="instructor-option-bars">
           <span className="instructor-stat" title={`Teaching ${f.teaching} of a possible ${f.teachingPotential}`}>
@@ -506,7 +508,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
       ) : (
         listed.map((c) => (
           <div key={c.id} className="course-drawer-candidate">
-            <InstructorOption s={s} f={c} selected={false} projectedFor={projectedFor} />
+            <InstructorOption s={s} f={c} selected={false} projectedFor={projectedFor} pay={false} />
             <button
               type="button"
               className="course-drawer-appoint"
@@ -539,7 +541,7 @@ function CourseDrawer(
   const instructor = assignedInstructor(s, t);
   const unstaffed = isUnstaffed(s, t);
   const quality = courseQuality(s, t, loads);
-  const bridges = crossMajorPrereqs(t, lookup);
+  const bridges = crossMajorPrereqs(t, (id) => lookup.get(id));
 
   // An offered course's current instructor stays eligible for it (see
   // eligibleInstructors' `except`), even when full.
@@ -734,8 +736,9 @@ function CourseDrawer(
         {t.status === 'available' && isUndergraduateCourse(t) && courseSlotsFree(s) === 0 && (
           <p className="course-drawer-warning">The curriculum committee is writing {committeeSeats(s)} courses already, its most; this one starts when one of them is done.</p>
         )}
+        {/* The same reason a greyed cell's tooltip gives (courseHoldReason). */}
         {state === 'locked' && (
-          <p className="course-drawer-note quiet">Locked until its prerequisites are complete.</p>
+          <p className="course-drawer-note quiet">{courseHoldReason(s, t, lookup)}.</p>
         )}
         {(() => {
           const programId = programOfCourse(t.id);
@@ -799,7 +802,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
     return (
       <p className="row-action">
         <span className="row-action-note">
-          Next <span className="cell-code">{code}</span> {titleFromName ?? code} — no free {next.requiresFaculty} slot
+          Next <span className="cell-code">{code}</span> {titleFromName ?? code} — needs {next.requiresFaculty} faculty
           {gate === 'hireable' ? ', and a candidate is listed.' : ', and nobody is on the market.'}
         </span>
         <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)}>
@@ -885,7 +888,7 @@ function ProgramRowView(
         </button>
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
-        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
+        {avg !== null && <GradeChip word grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
         {hall && <span className="program-row-hall" title="The hall it is taught in">{hallDisplayName(s, hall)}</span>}
         {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no places, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
         {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} compact />}
@@ -950,7 +953,7 @@ function SchoolGroupView(
         </button>
         <span className="school-group-mark" aria-hidden="true">{group.mark.motif}</span>
         <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
-        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
+        {avg !== null && <GradeChip word grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
         <span className="lane-count">{fraction(done.done, done.total)}</span>
         {unstaffedHere > 0 && school && (
           <button
@@ -1191,7 +1194,7 @@ function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onO
 // The curriculum committee (techSystem.ts's committeeSeats): a seat for each
 // undergraduate course it can write at once, four to start and one more at
 // each prestige step, up to eight. A filled seat shows its course and how
-// far along it is; an open seat is free to use; a locked one says what
+// far along it is; an open one reads "Free"; a locked one says what
 // opens it.
 function CommitteePanel({ s }: { s: GameState }) {
   const seats = committeeSeats(s);
@@ -1220,7 +1223,7 @@ function CommitteePanel({ s }: { s: GameState }) {
             );
           }
           const t = writing[i];
-          if (!t) return <li key={i} className="committee-seat open"><span className="committee-seat-name">Open</span></li>;
+          if (!t) return <li key={i} className="committee-seat open" title="Free: the committee has room for another course"><span className="committee-seat-name">Free</span></li>;
           const left = s.developing[t.id] ?? t.duration;
           const done = t.duration > 0 ? 1 - left / t.duration : 1;
           const code = t.name.split(' · ')[0];

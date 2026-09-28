@@ -4,11 +4,11 @@
 // and Founders Hall stands empty.
 //
 // What is pinned: the chain is seven purchased halls, one a school; a move
-// out of Founders Hall is four weeks dark and any other twelve; the
+// out of Founders Hall closes a program for four weeks and any other twelve; the
 // readings (systems/techtree/schools.ts) say which hall a school claims,
 // which school moves next and where a program should go; the next-step
 // line names the move before a free slot, and a free slot in a school's
-// hall for that school's offer; and the letters that wait on the college
+// hall for that school's programs (its own offers, Plan 78D); and the letters that wait on the college
 // (data/eventData.ts's OPENING_LETTERS with `arrives`) come when the
 // college is ready, in any year, and ask for exactly the next move.
 //
@@ -17,7 +17,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { ACADEMIC_HALL_COUNT, FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools } from '../src/data/techData';
+import { ACADEMIC_HALL_COUNT, FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programs } from '../src/data/techData';
 import { OPENING_LETTERS } from '../src/data/eventData';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS, relocationWeeks } from '../src/systems/techtree/techSystem';
 import { claimedSchool, dedicatedSchool, hallDisplayName, nextSchoolToMove, suggestedMove } from '../src/systems/techtree/schools';
@@ -151,7 +151,9 @@ function letter(id: string) {
   assert(next?.hallId === FOUNDERS_HALL_ID && next.text === 'Psychology could move to Elm Hall, which teaches Science', `then the next of its school (${next?.text})`);
 
   s = reducer(s, { type: 'RELOCATE_PROGRAM', programId: 'PSYC', hallId: 'HALL-01', slot: 1 });
-  assert(nextStep(s) === null, 'with every Science program at home and nothing on offer, the line is quiet');
+  // Nothing on the global offer: Elm Hall offers Science's own (Plan 78D).
+  const own = nextStep(s);
+  assert(own?.go === 'hall' && own.hallId === 'HALL-01' && own.intent?.kind === 'found' && own.text.startsWith('Elm Hall has room for Science (2 of 6): '), `with every Science program at home and nothing on offer, the line founds Science in Elm Hall (${own?.text})`);
 
   s.programOffers = ['HIST', 'PHYS'];
   const home = nextStep(s);
@@ -161,7 +163,7 @@ function letter(id: string) {
   assert(founders?.hallId === FOUNDERS_HALL_ID && founders.text.startsWith('Founders Hall has a free program slot'), `anything else goes to Founders Hall (${founders?.text})`);
   for (const [i, id] of ['SOCY', 'FINA', 'ACCT', 'ANTH'].entries()) s.halls[FOUNDERS_HALL_ID][[1, 3, 4, 5][i]] = { programId: id };
   const full = nextStep(s);
-  assert(full?.go === undefined && full?.text === 'Founders Hall is full; Elm Hall has room for Science when one is on offer', `and when Founders Hall is full, the line says whose room is left (${full?.text})`);
+  assert(full?.hallId === 'HALL-01' && full.intent?.kind === 'found' && full.text.startsWith('Elm Hall has room for Science'), `and when Founders Hall is full, Elm Hall's own programs are the line, not a wait on the offer (${full?.text})`);
 }
 
 // --- the letters that wait on the college ---------------------------------
@@ -189,7 +191,7 @@ function letter(id: string) {
   s.pendingInterrupt = null;
   const moving = letter('moving-in');
   const body = moving.body(s);
-  assert(body.includes('Science has two programs in Founders Hall — Mathematics and Psychology') && body.includes('four weeks dark, not the twelve'), `it names the school to move and what the move costs (${body})`);
+  assert(body.includes('Science has two programs in Founders Hall — Mathematics and Psychology') && body.includes('a moving program is closed for four weeks, not the twelve'), `it names the school to move and what the move costs (${body})`);
   assert(moving.ask(s).text === 'Move Mathematics into Elm Hall' && moving.ask(s).hallId === FOUNDERS_HALL_ID, `and asks for one move, from Founders Hall's panel (${moving.ask(s).text})`);
 
   let t = reducer(s, { type: 'RELOCATE_PROGRAM', programId: 'MATH', hallId: 'HALL-01', slot: 0 });
@@ -198,9 +200,14 @@ function letter(id: string) {
   t.pendingInterrupt = null;
   const grows = letter('a-school-grows');
   assert(grows.body(t).includes('Psychology still teaches Science from Founders Hall'), `it names what is left to move (${grows.body(t)})`);
-  assert(grows.ask(t).text === 'Grow Science to three programs in Elm Hall (1 of 6)' && grows.ask(t).hallId === 'HALL-01', `and asks for three (${grows.ask(t).text})`);
+  // The step is a move: named, from the hall Psychology is in, its tile
+  // open (Plan 78D).
+  const moveAsk = grows.ask(t);
+  assert(moveAsk.text === 'Move Psychology into Elm Hall' && moveAsk.hallId === FOUNDERS_HALL_ID && moveAsk.programId === 'PSYC', `and asks for the move (${moveAsk.text}, ${moveAsk.hallId})`);
 
   t = reducer(t, { type: 'RELOCATE_PROGRAM', programId: 'PSYC', hallId: 'HALL-01', slot: 1 });
+  const growAsk = grows.ask(t);
+  assert(growAsk.text === 'Grow Science to three programs in Elm Hall (2 of 6)' && growAsk.hallId === 'HALL-01' && growAsk.intent?.kind === 'found', `then asks for three, from Elm Hall's own offers (${growAsk.text})`);
   t.halls['HALL-01'][2] = { programId: 'PHYS' };
   assert(grows.done(t), 'three Science programs in Elm Hall is done');
   assert(!fireOpeningLetter(t), 'the second school waits on Oak Hall');
@@ -234,7 +241,8 @@ function letter(id: string) {
 // --- the line points somewhere a player can go (Plan 58) -------------------
 {
   // Founders Hall full of four schools, Elm Hall Science's with room, and
-  // nothing on offer that it can take: only Oak Hall breaks the deadlock.
+  // nothing on the global offer that it can take. Oak Hall used to be the
+  // only way out; Elm Hall's own offers are now (Plan 78D).
   const s = college('Deadlock');
   stand(s, 'HALL-01', 20);
   s.halls['HALL-01'][0] = { programId: 'PHYS' };
@@ -244,9 +252,10 @@ function letter(id: string) {
   s.tech.find((t) => t.id === 'HALL-02')!.status = 'available';
   s.events.opening.read = ['a-school-grows'];
   const grows = OPENING_LETTERS.find((l) => l.id === 'a-school-grows')!;
-  assert(!grows.done(s) && grows.ask(s).intent?.kind === 'wait', 'the letter asks to grow Science, and there is nothing to do toward it');
+  const ask = grows.ask(s);
+  assert(!grows.done(s) && ask.intent?.kind === 'found' && ask.intent.hallId === 'HALL-01', 'the letter asks to grow Science, from Elm Hall\'s own offers');
   const step = nextStep(s);
-  assert(step?.intent?.kind === 'site' && step.intent.buildableIds[0] === 'HALL-02' && step.text.includes('Oak Hall'), `so the line gives way to the hall that breaks it (${step?.text})`);
+  assert(step?.go === 'hall' && step.hallId === 'HALL-01' && step.text === 'Grow Science to three programs in Elm Hall (1 of 6)', `and the line carries it (${step?.text})`);
 
   // Every major housed and a school still in Founders Hall: the next hall.
   const t = college('Leftover');
@@ -263,7 +272,8 @@ function letter(id: string) {
   const move = nextStep(s);
   assert(move?.intent?.kind === 'move' && move.intent.programId === 'MATH' && move.intent.hallId === 'HALL-01', 'a move names the program, the hall and the slot');
   s.students.satisfactionBreakdown.health = 20;
-  s.halls['HALL-01'][0] = { programId: 'MATH' };
+  // Science whole in Elm Hall, so nothing waits to move or be founded.
+  programs().filter((p) => p.school === 'Science' && p.kind !== 'graduate').forEach((p, i) => { s.halls['HALL-01'][i] = { programId: p.id }; });
   s.halls[FOUNDERS_HALL_ID][1] = { programId: null };
   s.halls[FOUNDERS_HALL_ID][3] = { programId: null };
   const low = nextStep(s);

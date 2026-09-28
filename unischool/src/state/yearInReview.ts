@@ -4,12 +4,12 @@ import { programById, programOfCourse } from '../data/techData';
 import { advanceClasses, trailingYearSatisfaction } from '../systems/admissions/admissionsSystem';
 import { attritionReasons, summerAttrition } from '../systems/admissions/consequences';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
-import { gradeYear, prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { gradeYear, prestigeBreakdown, standingDetailLine } from '../systems/prestige/prestigeSystem';
 import { buildReportPayload } from '../systems/rivals/rivalsSystem';
 import { previousYear } from './history';
 import { count, money, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney } from '../format';
 import { eventById } from '../systems/events/catalogue';
-import { classYears, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
+import { classYears, firstClassYear, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
 import { CAMPAIGNS } from '../data/campaignData';
 
 const CAMPAIGN_CLOSINGS: ReadonlySet<string> = new Set(CAMPAIGNS.flatMap((c) => [c.kept, c.missed]));
@@ -32,6 +32,9 @@ export type ReviewSectionKey = 'built' | 'people' | 'research' | 'students' | 'm
 export interface ReviewLine {
   text: string;
   tone?: 'good' | 'bad';
+  // A second, smaller line under the first: a prestige term's "what moves
+  // it", as History › Standing reads it (Plan 78C).
+  detail?: string;
 }
 
 export interface ReviewSection {
@@ -209,6 +212,7 @@ function standing(s: GameState): ReviewSection {
     lines.push({
       text: `${input.label}: ${input.penalty ? '−' : '+'}${Math.abs(grade).toFixed(1)} of ${input.weight}`,
       tone: input.penalty ? 'bad' : undefined,
+      detail: standingDetailLine(input),
     });
   }
   return { key: 'standing', title: 'Standing', lines, empty: '' };
@@ -245,7 +249,7 @@ function graduatingClass(s: GameState): ReviewSection {
     const c = classYears(s, s.clock.year);
     const memory = memoryFor(s, c);
     const warmth = warmthFor(c, memory);
-    lines.push({ text: memoryLine({ classYear: s.clock.year, memory }) });
+    lines.push({ text: memoryLine({ classYear: s.clock.year, memory }, firstClassYear(s.alumni, s.clock.year)) });
     lines.push({
       text: `${plural(seniors, 'senior')} leave${seniors === 1 ? 's' : ''} ${warmth >= 60 ? 'warm toward the college' : warmth >= 40 ? 'on fair terms with it' : 'cool toward it'} (${warmth.toFixed(0)} of 100)`,
       tone: warmth >= 60 ? 'good' : warmth < 40 ? 'bad' : undefined,

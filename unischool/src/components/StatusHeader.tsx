@@ -12,10 +12,13 @@ import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
 import { FigureBox } from './Figure';
-import { FIGURE_HINTS } from '../data/figureHints';
+import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
-import { gameDate, money, prestigeFigure, satisfactionFigure, signedMoney } from '../format';
+import { count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney } from '../format';
+import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
+import type { TabSection } from '../data/ladderData';
+import type { TabId } from './TabNav';
 
 // 1/2/3 set real/double/quad; 4 sets the sandbox speed under the playtest
 // flag only. Space toggles pause, resuming the last running speed rather than
@@ -71,7 +74,8 @@ const SATISFACTION_WARN = 55;
 
 // The two halves of the bottom Toolbar band (Toolbar.tsx composes them).
 // Left: operating funds (also the Treasury button) and the headline stats,
-// bare figures only.
+// each a word over its figure; rank, prestige and satisfaction open where
+// they are explained (Plan 78C, data/statChips.ts).
 // The rank's move, for a moment after it changes (Plan 70H): 'rank-up' or
 // 'rank-down', a flash on the pill; the ordinal itself does not count
 // through places. The first reading is where the run stands, not a move.
@@ -90,8 +94,10 @@ function useRankFlash(rank: number): string {
   return flash;
 }
 
-export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
+export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }: {
   s: GameState; onOpenTreasury: () => void; treasuryOpen: boolean;
+  // A chip's door (data/statChips.ts): the tab, and the section to land on.
+  onOpenSection: (tab: TabId, section: TabSection) => void;
 }) {
   const netWeekly = weeklyNet(s);
   // Shown from week one: the field is 100 schools, with many below a founding
@@ -100,6 +106,14 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
   const rank = playerRank(s);
   const fundsHint = useId();
   const rankFlash = useRankFlash(rank);
+  // A chip that has a door is a button named with its figure (Plan 78C).
+  const door = (chip: StatChip, figure: string) => {
+    const d = chipDoor(chip, figure);
+    return d ? { name: d.name, onOpen: () => onOpenSection(d.tab, d.section) } : undefined;
+  };
+  // The word over the figure on a wide screen; on a phone the glyph stands
+  // in for it (styles.css).
+  const word = (chip: StatChip) => <span className="stat-label">{STAT_CHIP_WORDS[chip]}</span>;
 
   return (
     <>
@@ -120,24 +134,24 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen }: {
         <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
       <div className="toolbar-stats">
-        <FigureBox className={`toolbar-stat ${rankFlash}`} above hint={FIGURE_HINTS.rank(s.rivals.length + 1)}>
+        <FigureBox className={`toolbar-stat ${rankFlash}`} above hint={FIGURE_HINTS.rank(s.rivals.length + 1)} door={door('rank', `#${rank}`)}>
           <RankIcon />
-          <span className="stat-label">Rank</span>
+          {word('rank')}
           <span className="stat-value">#{rank}</span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.enrolled}>
+        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.enrolled} door={door('enrolled', count(totalEnrolled(s.students)))}>
           <StudentsIcon />
-          <span className="stat-label">Enrolled</span>
+          {word('enrolled')}
           <span className="stat-value"><AnimatedNumber value={totalEnrolled(s.students)} /></span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.prestige}>
+        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.prestige} door={door('prestige', prestigeFigure(s.self.reputation))}>
           <PrestigeIcon />
-          <span className="stat-label">Prestige</span>
+          {word('prestige')}
           <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} format={prestigeFigure} /></span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.satisfaction}>
+        <FigureBox className="toolbar-stat" above hint={satisfactionHint(s)} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
           <SatisfactionIcon />
-          <span className="stat-label">Satisfaction</span>
+          {word('satisfaction')}
           {/* The warning is the paper red: the chip is cream, and the dock's
               own red is tuned for the dark band. */}
           <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'stat-warn' : ''}`}>

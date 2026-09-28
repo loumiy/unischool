@@ -2,7 +2,7 @@ import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
 import { claimedHalls, claimedSchool, hallDisplayName, nextSchoolToMove, programsAwayFromHome, schoolHall, schoolToMerge, suggestedMove } from '../techtree/schools';
-import { isHoused } from '../techtree/programOffers';
+import { isHoused, schoolOffers } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
 import type { StepIntent } from './intent';
@@ -12,6 +12,7 @@ import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { satisfactionFigure } from '../../format';
+import { NEED_LABELS } from '../../data/figureHints';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the latest undone letter ask (the letters' order must not
@@ -30,6 +31,9 @@ export interface NextStep {
   // founded.
   go?: TabId | 'build' | 'campus' | 'hall';
   hallId?: string;
+  // With 'hall': a program housed there whose tile opens with the panel, its
+  // move showing (Plan 78D).
+  programId?: string;
   // Pulses: something is waiting that will not wait long (Plan 34).
   urgent?: true;
   // The line as data, for the guided player (intent.ts); the UI ignores it.
@@ -59,13 +63,9 @@ function firstClause(text: string): string {
   return first.length > 70 ? `${first.slice(0, 67)}…` : first;
 }
 
-const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = {
-  academic: 'Study space',
-  social: 'Social life',
-  basicNeeds: 'Basic needs',
-  health: 'Health',
-  housing: 'Housing',
-};
+// The needs as the Students tab and the satisfaction chip name them (Plan
+// 78F: one word each, so NEXT's "Academic is at 38" is the tab's row).
+const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = NEED_LABELS;
 
 // What would raise each, named in the line (the build menu opens on it).
 const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, string> = {
@@ -88,7 +88,10 @@ function letterAsk(s: GameState): NextStep | null {
     if (!read.includes(letter.id) || letter.done(s)) continue;
     if (!letter.arrives && s.clock.year !== 1) continue;
     const ask = letter.ask(s);
-    return { text: ask.text, ...(ask.go ? { go: ask.go } : {}), ...(ask.hallId ? { hallId: ask.hallId } : {}), ...(ask.intent ? { intent: ask.intent } : {}) };
+    return {
+      text: ask.text, ...(ask.go ? { go: ask.go } : {}), ...(ask.hallId ? { hallId: ask.hallId } : {}),
+      ...(ask.programId ? { programId: ask.programId } : {}), ...(ask.intent ? { intent: ask.intent } : {}),
+    };
   }
   return null;
 }
@@ -115,6 +118,7 @@ function awayFromHome(s: GameState): NextStep | null {
           : `${name} stands empty: move ${program.name} into it and ${program.school} has a hall of its own`,
       go: 'hall',
       hallId: away.hallId,
+      programId: away.programId,
       intent: { kind: 'move', programId: away.programId, ...move },
     };
   }
@@ -133,11 +137,13 @@ function awayFromHome(s: GameState): NextStep | null {
   return null;
 }
 
-// A hall with an empty slot while programs are on offer (Plan 55): an offer
-// whose school has a hall of its own belongs there; anything else goes to a
-// hall no school claims — Founders Hall, an empty hall, or a mixed one.
+// A hall with an empty slot and something to found in it (Plan 55): an
+// offer whose school has a hall of its own belongs there; anything else
+// goes to a hall no school claims — Founders Hall, an empty hall, or a
+// mixed one; and a purchased hall one school claims offers that school's
+// programs whatever the draw (Plan 78D), so its room is never a wait on
+// the offer.
 function freeSlot(s: GameState): NextStep | null {
-  if (s.programOffers.length === 0) return null;
   const hasRoom = (hallId: string) => s.halls[hallId]?.some((slot) => slot.programId === null) ?? false;
   const nameOf = (hallId: string) => {
     const hall = s.tech.find((t) => t.id === hallId);
@@ -155,7 +161,7 @@ function freeSlot(s: GameState): NextStep | null {
     const hall = s.tech.find((t) => t.id === hallId);
     return !!hall && isAcademicHall(hall) && hasRoom(hallId) && claimedSchool(s, hallId) === null;
   });
-  if (open) {
+  if (open && s.programOffers.length > 0) {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
     return {
       text: `${nameOf(open)} has a free program slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
@@ -164,6 +170,20 @@ function freeSlot(s: GameState): NextStep | null {
       intent: { kind: 'found', hallId: open },
     };
   }
+  // A school's own hall, with room: its panel offers every program of the
+  // school the college can found.
+  for (const claim of claimedHalls(s)) {
+    if (claim.hallId === FOUNDERS_HALL_ID || !hasRoom(claim.hallId)) continue;
+    const own = schoolOffers(s, claim.hallId);
+    if (own.length === 0) continue;
+    return {
+      text: `${nameOf(claim.hallId)} has room for ${claim.school} (${claim.housed} of ${claim.slots}): ${own.length === 1 ? own[0].name : `${own[0].name} or ${own.length - 1} more`} on offer there`,
+      go: 'hall',
+      hallId: claim.hallId,
+      intent: { kind: 'found', hallId: claim.hallId },
+    };
+  }
+  if (s.programOffers.length === 0) return null;
   // Nothing on offer has anywhere to go: the next hall, if the chain has
   // one to site (Plan 58; the line used to stop at saying so).
   const nextHall = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
@@ -174,11 +194,14 @@ function freeSlot(s: GameState): NextStep | null {
       intent: { kind: 'site', buildableIds: [nextHall.id] },
     };
   }
-  // Every free slot is some school's, and nothing on offer is.
+  // Every free program slot is some school's. Founders Hall, once a
+  // school's home (Plan 59), still founds from the draw; a purchased hall
+  // whose school has nothing left to found is filled only by a move.
   const claimed = claimedHalls(s).find((c) => hasRoom(c.hallId));
-  return claimed
-    ? { text: `${nameOf(FOUNDERS_HALL_ID)} is full; ${nameOf(claimed.hallId)} has room for ${claimed.school} when one is on offer`, intent: { kind: 'wait' } }
-    : null;
+  if (!claimed) return null;
+  return claimed.hallId === FOUNDERS_HALL_ID
+    ? { text: `${nameOf(FOUNDERS_HALL_ID)} has room for ${claimed.school} when one is on offer: founding a program or declining an offer draws the next`, intent: { kind: 'wait' } }
+    : { text: `${nameOf(claimed.hallId)} has room only for ${claimed.school}, and nothing of ${claimed.school} is left to offer`, intent: { kind: 'wait' } };
 }
 
 // A housed program one tier-2 course from established.
@@ -263,7 +286,7 @@ function idleCash(s: GameState): NextStep | null {
 export function nextStep(s: GameState): NextStep | null {
   // The opening walkthrough's coach card speaks instead (opening.ts).
   if (openingHoldsClock(s)) return null;
-  if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s);
+  if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s) ?? shortfall(s);
   // A letter whose ask cannot be acted on this week (it waits on an offer
   // or a hall) gives way to a reading that can (Plan 58): "grow Science"
   // with no Science on offer and nowhere for the offers to go is a

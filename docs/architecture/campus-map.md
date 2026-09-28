@@ -15,12 +15,15 @@ question it answers without anything being opened: over every standing hall
 sits a row of six pips, one per slot, each in the hue of the school whose
 program holds it (`schoolPalette.ts`) — a pure hall reads as one colour, a
 mixed one as several, a free slot as an empty ring — and a gold `+` beside
-them when a slot is free and a program is on offer for it (`HallMarks` in
+them when a slot is free and a program is on offer for it: the draw, or a
+claimed hall's own school's programs (Plan 78D; `HallMarks` in
 `CampusMap.tsx`). Unlike the labels, the marks are always on. The Curriculum
 tab's "Found in <hall>" door comes back the other way: `App.tsx` closes the
 tab and hands the hall's id to the map (`inspectTarget`), which pans to the
 building and opens its panel — the same one-way, consumed-on-arrival channel
-the tab's own target uses.
+the tab's own target uses. The next-step line uses it too, and for a move it
+also names the program (`inspectProgram`), whose tile opens with the panel,
+its move showing (Plan 78D).
 
 Buildings are modeled as data first and placed on a tile grid second. The grid
 is drawn at an angle (`src/components/isoProjection.ts` — a 2:1 dimetric at

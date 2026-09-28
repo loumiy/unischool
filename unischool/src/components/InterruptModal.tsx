@@ -20,7 +20,7 @@ import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction,
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { poolChange } from '../systems/admissions/yearOverYear';
+import { admitRateOpening, poolChange } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { restaffPlan } from '../systems/faculty/restaffing';
@@ -40,6 +40,7 @@ import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
+import { letterOpensBuild } from '../systems/inbox/inbox';
 import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
 import { promisesOf } from '../systems/promises/promises';
 
@@ -299,7 +300,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                   {change.parts.length === 0
                     ? 'nothing moved'
                     : change.parts.map((p) => (
-                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label} {signedPct(p.change)}</span>
+                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label}{p.key === 'crowding' ? ':' : ''} {signedPct(p.change)}</span>
                     ))}
                 </dd>
               </div>
@@ -339,6 +340,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             </span>
             <input type="range" min={0.01} max={Math.max(0.01, Math.round(maxAdmitRate * 100) / 100)} step={0.01} value={Math.min(admitRateChoice, maxAdmitRate)}
               onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
+            {/* Why it opens where it does (Plan 78F). */}
+            <span className="outcome-note">
+              {admitRateOpening(!s.students.lastFunnel, payload.admitRate, s.students.capacity, consequence.totalEnrolled)}
+            </span>
             {maxAdmitRate < 1 && (
               <span className="outcome-note">
                 {outcome.capped
@@ -471,7 +476,10 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
             ) : (
               <ul>
                 {section.lines.map((line, i) => (
-                  <li key={i} className={line.tone ?? ''}>{line.text}</li>
+                  <li key={i} className={line.tone ?? ''}>
+                    {line.text}
+                    {line.detail && <span className="review-detail">{line.detail}</span>}
+                  </li>
                 ))}
               </ul>
             )}
@@ -1043,9 +1051,17 @@ function AthleticDirectorView({ s, payload, onResolve }: {
 // ---------------------------------------------------------------------
 // A letter from the board (data/eventData.ts's OPENING_LETTERS). Only the
 // first letter offers "I know the way", which skips the rest of the script.
-// A letter no longer in the table (an old save) is put down quietly.
+// A letter no longer in the table (an old save) is put down quietly. A
+// letter whose ask is a building has a door to the build menu (Plan 78B):
+// it resolves the letter as Continue does, and the shell opens Build once
+// the stop is answered (App.tsx).
 // ---------------------------------------------------------------------
-function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve: (skipAll: boolean) => void }) {
+function LetterView({ s, id, onResolve, onOpenBuild }: {
+  s: GameState;
+  id: string;
+  onResolve: (skipAll: boolean) => void;
+  onOpenBuild?: () => void;
+}) {
   const letter = findOpeningLetter(id);
   if (!letter) {
     return (
@@ -1071,7 +1087,14 @@ function LetterView({ s, id, onResolve }: { s: GameState; id: string; onResolve:
       </p>
       <div className="modal-actions letter-actions">
         <div className="modal-actions">
-          <button onClick={() => onResolve(false)}>Continue</button>
+          {onOpenBuild && letterOpensBuild(s, id) ? (
+            <>
+              <button type="button" onClick={() => { onResolve(false); onOpenBuild(); }}>Continue and open Build</button>
+              <button type="button" className="btn-quiet" onClick={() => onResolve(false)}>Continue</button>
+            </>
+          ) : (
+            <button onClick={() => onResolve(false)}>Continue</button>
+          )}
         </div>
         {/* On every letter, not only the first: a guided founding marks the
             first read at the start, so the opt-out has to travel with the rest. */}
@@ -1293,8 +1316,9 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
 
 // The pending interrupt's content, as the inbox's reading pane shows it.
 // It keeps the modal's card (`.modal`, with `.modal-inbox` placing it in
-// the pane), so every view reads as it did over the map.
-export function InterruptContent({ s, act }: { s: GameState; act: (a: Action) => void }) {
+// the pane), so every view reads as it did over the map. `onOpenBuild` is a
+// letter's door to the build menu (Plan 78B).
+export function InterruptContent({ s, act, onOpenBuild }: { s: GameState; act: (a: Action) => void; onOpenBuild?: () => void }) {
   const interrupt = s.pendingInterrupt;
   if (!interrupt) return null;
   const decision = interrupt.type === 'decision-event'
@@ -1345,6 +1369,7 @@ export function InterruptContent({ s, act }: { s: GameState; act: (a: Action) =>
           s={s}
           id={(interrupt.payload as { id: string }).id}
           onResolve={(skipAll) => act({ type: 'RESOLVE_LETTER', skipAll })}
+          onOpenBuild={onOpenBuild}
         />
       ) : interrupt.type === 'catalogue-letter' ? (
         <CatalogueLetterView s={s} instanceId={(interrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? ''} act={act} />

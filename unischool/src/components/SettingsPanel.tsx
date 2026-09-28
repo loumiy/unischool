@@ -2,8 +2,9 @@ import { TEXT_SCALES, setSettings, useSettings } from '../settings';
 import { useHotkeys } from './hotkeys';
 import { CloseIcon } from './icons';
 
-// Settings (Plan 34, from v2's): text size, color vision, motion and the
-// seasons on the map, and the sound (App.tsx passes SoundControls in).
+// Settings (Plan 34, from v2's): text size, color vision and motion, the
+// pause when a matter arrives (Plan 78E), the seasons on the map (Plan
+// 74I), and the sound (App.tsx passes SoundControls in).
 
 const SCALE_LABELS: Record<number, string> = { 1: 'Standard', 1.15: 'Larger', 1.3: 'Largest' };
 
@@ -36,6 +37,12 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
           <button type="button" className={s.motion === 'system' ? 'active' : undefined} aria-pressed={s.motion === 'system'} onClick={() => setSettings({ motion: 'system' })}>Match the device setting</button>
           <button type="button" className={s.motion === 'reduce' ? 'active' : undefined} aria-pressed={s.motion === 'reduce'} onClick={() => setSettings({ motion: 'reduce' })}>Reduced</button>
           <p className="settings-note">Reduced stills the walkers, the counting numbers and the pulses.</p>
+        </fieldset>
+        <fieldset className="settings-row segmented">
+          <legend>Pause when a matter arrives</legend>
+          <button type="button" className={s.pauseOnArrival ? 'active' : undefined} aria-pressed={s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: true })}>On</button>
+          <button type="button" className={s.pauseOnArrival ? undefined : 'active'} aria-pressed={!s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: false })}>Off</button>
+          <p className="settings-note">The clock stops for each new matter to decide. Either way, a matter not yet opened stops it once in its final week.</p>
         </fieldset>
         <fieldset className="settings-row segmented">
           <legend>Seasons</legend>
