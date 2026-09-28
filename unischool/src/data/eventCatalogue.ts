@@ -535,6 +535,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     weight: 2,
     cooldownYears: 6,
     when: { teachingOver: 45, enrolledOver: 130 },
+    names: { faculty: 'teacher' },
     text: '{faculty}\'s lectures have started attracting people who are not registered for them, including, twice, members of the public. The lecture theater holds ninety. The Fire Officer has been in touch.',
     timeoutWeeks: 3,
     choices: [
@@ -1212,6 +1213,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { facultyOver: 12, yearAtLeast: 6 },
     favours: ['research-powerhouse'],
+    names: { faculty: 'researcher' },
     text: 'A national foundation has funded a proposal from {faculty}, and the overhead on the grant is more than the department\'s budget. The foundation would like the college to countersign, and to say that it means it.',
     timeoutWeeks: 3,
     choices: [

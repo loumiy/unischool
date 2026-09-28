@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
-import { FOUNDING_VERNACULAR, UNIVERSITY_CAPTION } from '../data/foundingData';
+import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, UNIVERSITY_CAPTION } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
 import type { SchoolColors, Vernacular } from '../state/types';
@@ -485,6 +485,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
           placeholder="e.g. Blackmoor"
           maxLength={COLLEGE_NAME_MAX}
         />
+        {name.length >= COLLEGE_NAME_MAX && <p className="startup-name-note" role="status">{NAME_LIMIT_NOTE}</p>}
         <div className="startup-facade">
           <SchoolFacade name={name} vernacular={vernacular} colors={colors} />
           {typedUniversity(name) && (

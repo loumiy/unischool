@@ -73,7 +73,7 @@ const SCREENS: Array<[RegExp, string]> = [
   [/tabs\/(StudentsTab|EnrollmentTab|StudentLifeTab|IdentityPanel)\.tsx$/, 'Students tab'],
   [/tabs\/AthleticsTab\.tsx$/, 'Athletics tab'],
   [/tabs\/(HistoryTab|StandingsPanel|ChroniclePanel|AlumniPanel|PromisesPanel)\.tsx$/, 'History tab'],
-  [/tabs\/(TreasuryTab|EndowmentPanel|EstatePanel|AdvancementPanel)\.tsx$/, 'Treasury tab'],
+  [/tabs\/(TreasuryTab|EndowmentPanel|EstatePanel|AdvancementPanel|treasuryStatement)\.tsx?$/, 'Treasury tab'],
   [/data\/courseDescriptions\.ts$/, 'Course descriptions'],
   [/data\/(eventCatalogue|eventVariants)\.ts$|systems\/events\/catalogue/, 'Events (catalogue)'],
   [/data\/eventData\.ts$|systems\/events\/(eventSystem|charter)\.ts$/, 'Events (decision) and letters'],

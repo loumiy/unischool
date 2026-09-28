@@ -116,12 +116,15 @@ a sequence of PRs.*
     decade", the writing course debated again, term limits adopted and
     the trustee of twenty-six years back, the strip sold and offered
     again, the guidebook's "first time" three times a game.
-  - what Plan 76D left of the vague rows: the star lecture and the grant
-    windfall choosing a professor by teaching or research strength, a
-    library lever for the acquisition, the booster club's gift routed to
-    athletics, the essay ring's enrollment cost spread over the class
-    years, repair letters that load backlog onto the named building, and
-    the sinkhole and the ivy drawn on the map.
+  - the offer (`star-poached`) and the tenure case naming their professor
+    by kind, the strongest researcher and one a few years in: both let the
+    professor go, so naming them changes who leaves and moves the run
+    (Plan 79D measured it and left them drawn);
+  - what Plan 76D left of the vague rows: a library lever for the
+    acquisition, the booster club's gift routed to athletics, the essay
+    ring's enrollment cost spread over the class years, repair letters
+    that load backlog onto the named building, and the sinkhole and the
+    ivy drawn on the map.
 - **The Selective archetype restaffs** (found by Plan 76D). When a
   professor leaves, the Selective harness player hires only for blocked
   courses. Its academic score can sit below the 65 at which it builds
