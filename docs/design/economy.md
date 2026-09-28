@@ -152,7 +152,8 @@ residence halls, a storm 3% of everything standing, floored at $60k.
 developed course in a housed, settled program, the founding college's six
 courses included — is the one hard cap in the game, on enrollment
 and nothing else: the freshman class cannot exceed the seats left after the
-seniors graduate (`instructionCapacity.ts`'s `intakeCeiling`). Beds, dining
+seniors graduate (`instructionCapacity.ts`'s `intakeCeiling`). At the summer
+a program moving halls counts its seats too (Plan 79C). Beds, dining
 and health stay soft — crowding, never caps. See [admissions.md](admissions.md).
 
 The loop turns roughly once per course tier, escalating each time:

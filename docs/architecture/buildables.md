@@ -126,7 +126,7 @@ Both are drawing only, like the rest of the map.
 `facilityType: 'landmark'`: the campanile, the great dome and the triumphal gate (`facilitiesData.ts`'s `GRAND_LANDMARKS`).
 
 - All three open at the ladder's "A national name" (prestige 90), and building one closes the other two (`techSystem.ts`'s `landmarkChosen`, `placeBuildable.ts`).
-- Each is a three-year build with a share of prestige's campus-life input, a one-time lift to the applicant pool and an upkeep. None carries a satisfaction attribute, so the balance harness never builds one.
+- Each is a three-year build with a share of prestige's campus-life input, a one-time lift to the next summer's applicant pool (`students.applicantLift`, Plan 79C) and an upkeep. None carries a satisfaction attribute, so the balance harness never builds one.
 - `landmarks.tsx` draws each in stages as its countdown runs.
 
 ### Deferred

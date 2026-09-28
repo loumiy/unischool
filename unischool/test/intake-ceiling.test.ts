@@ -15,7 +15,8 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { projectAdmissions } from '../src/systems/admissions/admissionsSystem';
 import { intakeCeiling, instructionCapacity, SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
 import { servicesMultiplier, SERVICES_CROWDING_AT_FULL, SERVICES_PER_STUDENT_PER_WEEK, financeBreakdown } from '../src/systems/finance/financeSystem';
-import { programs } from '../src/data/techData';
+import { academicHallId, programs } from '../src/data/techData';
+import { isInTransit } from '../src/systems/techtree/programOffers';
 import { FOUNDING_PROGRAMS, FOUNDING_COURSES_PER_PROGRAM } from '../src/data/foundingData';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
@@ -143,6 +144,39 @@ console.log('intake ceiling tests');
   assert(s.students.classes.freshman === ceiling.seatsLeft, 'exactly, when the pool would have filled it');
   assert(s.log.some((l) => l.message.includes('the class was held to it')), 'and the log says so');
   assert(totalEnrolled(s.students) <= intakeCeiling(atSummer).capacity, 'so the body fits the catalog');
+}
+
+// ---- a move just before the summer keeps its seats (Plan 79C) ----
+{
+  // Elm Hall standing and empty; a founding program moves into it out of
+  // Founders Hall at week 50, so it is still in transit at the summer.
+  let s = fresh();
+  const elm = s.tech.find((t) => t.id === academicHallId(0))!;
+  elm.status = 'done';
+  s.halls[elm.id] = Array.from({ length: elm.slots ?? 6 }, () => ({ programId: null }));
+  while (s.clock.week < 50) {
+    const answer = defaultAnswer(s);
+    s = answer ? reducer(s, answer) : reducer(s, { type: 'TICK' });
+  }
+  const before = intakeCeiling(s);
+  const weekly = instructionCapacity(s);
+  const programId = FOUNDING_PROGRAMS[0];
+  s = reducer(s, { type: 'RELOCATE_PROGRAM', programId, hallId: elm.id, slot: 0 });
+  assert(isInTransit(s, programId), 'the program is moving');
+  const atSummer = toSummer(s);
+  assert(isInTransit(atSummer, programId), 'and is still moving at the summer');
+  const seats = FOUNDING_COURSES_PER_PROGRAM * SEATS_PER_COURSE;
+  const ceiling = intakeCeiling(atSummer);
+  assert(ceiling.capacity === before.capacity, `the summer's ceiling keeps its seats (${ceiling.capacity} against ${before.capacity})`);
+  assert(ceiling.moving === seats, `and names them as moving (${ceiling.moving})`);
+  assert(instructionCapacity(atSummer) === weekly - seats, 'while the weekly teaching still counts it dark');
+
+  // An unstaffed program still counts none at the summer.
+  const unstaffed = structuredClone(atSummer);
+  const other = programs().find((p) => p.id === FOUNDING_PROGRAMS[1])!;
+  const course = other.courseIds.find((id) => unstaffed.courseFaculty[id] !== undefined)!;
+  delete unstaffed.courseFaculty[course];
+  assert(intakeCeiling(unstaffed).capacity === ceiling.capacity - seats, 'an unstaffed program counts no seats at the summer');
 }
 
 console.log(`intake ceiling: ${checks} checks, ${failures} failures`);

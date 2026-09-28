@@ -2,7 +2,7 @@ import type { FunnelFactors, FunnelRecord } from '../../state/types';
 import type { AdmissionsProjection } from './admissionsSystem';
 import { count, pct } from '../../format';
 
-// Year over year on the admissions reveal. The funnel is a product of six
+// Year over year on the admissions reveal. The funnel is a product of its
 // factors (types.ts's FunnelFactors) and last summer's are recorded
 // (students.lastFunnel), so the pool's change decomposes exactly: each
 // factor's ratio, this year over last, is its share, and the ratios multiply
@@ -32,6 +32,7 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
   ['crowding', 'crowding'],
+  ['lift', 'a one-year lift'],
 ];
 
 // Crowding is a penalty, so its factor rising means the campus crowded
@@ -40,6 +41,19 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
 // (Plan 78F). Every other factor's name reads the right way round.
 export function crowdingLabel(change: number): string {
   return change >= 0 ? 'crowding eased' : 'crowding grew';
+}
+
+// The year's lift (Plan 79C) is there one summer. A summer with one names
+// it, whichever way it moved against last year's; a summer without one, read
+// against a summer that had one, says it ended. Shown with a colon, as
+// crowding's is.
+export function liftLabel(liftFactorNow: number): string {
+  return liftFactorNow > 1 ? 'a one-year lift' : "last year's lift ended";
+}
+
+// The labels that are phrases, shown with a colon before the figure.
+export function takesColon(key: keyof FunnelFactors): boolean {
+  return key === 'crowding' || key === 'lift';
 }
 
 // Moves smaller than this are rounding and are left off the line.
@@ -54,7 +68,8 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
     if (!(before > 0)) continue;
     const change = (now.factors[key] ?? 1) / before - 1;
     if (Math.abs(change) < MOVE_FLOOR) continue;
-    parts.push({ key, label: key === 'crowding' ? crowdingLabel(change) : label, change });
+    const named = key === 'crowding' ? crowdingLabel(change) : key === 'lift' ? liftLabel(now.factors.lift ?? 1) : label;
+    parts.push({ key, label: named, change });
   }
   parts.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
   return {

@@ -145,6 +145,88 @@ stale tab's close writes its older game over the newer one, silently.
   migrates.
 - The baseline is re-recorded, and the PR says how the three moved it.
 
+**As implemented (#243):**
+
+- **The lift:**
+  - `students.applicantLift` is new. A grand landmark's
+    `applicantPoolBonus` and each milestone's bonus add to it
+    (`techSystem.ts`'s `applyEffects` and `awardMilestone`).
+  - It reaches the funnel as `CohortSignals.applicantLift`, read by
+    `deriveCohortSignals`, so the Admissions beat's preview and
+    `resolveAdmissions` read the same figure. `projectAdmissions` adds it
+    after sticker shock, shared among the quality bands as the pool is.
+    `resolveAdmissions` clears it after the funnel.
+  - It is a factor of the pool (`FunnelFactors.lift`: the pool with it
+    over the pool without), so the factors still multiply to the pool.
+    The year-over-year line names it: "a one-year lift: +4%", and the
+    next summer "last year's lift ended: −4%".
+  - The pool's label names it: "Applicant pool (including 1,500 drawn
+    for this year only by new landmarks and milestones)". One label covers a
+    landmark and a milestone, since the lift is one number.
+  - `eventData.ts`'s warning now points events at the lift.
+  - `SAVE_VERSION` 80 → 81, with a migration (`noLiftYet`) and a load
+    sanitizer (a negative or non-number lift reads 0).
+    `test/fixtures/save-v80.json` is the `year-8-balanced` scenario,
+    written before the bump.
+- **The move before the summer:**
+  - `intakeCeiling` counts the seats of a program in transit, and none
+    for an unstaffed one. `instructionCapacity` (the weekly teaching, the
+    crowding, the grades, the sections) still counts a moving program as
+    dark.
+  - The plan said a moving program teaches "within four weeks". That
+    holds for a move out of Founders Hall. A move between halls is dark
+    for twelve weeks, so one begun from week 41 is still moving at the
+    summer. It counts its seats too, since the class stays four years.
+  - The Admissions beat's room note says so when it applies: "…places
+    across the courses now taught, counting 80 in programs moving halls,
+    which teach again early in the year". The move buttons were already
+    true ("no teaching, no progress… until it settles") and are
+    unchanged.
+- **The renovation:** `renovationCost` is
+  `min(cost, backlog + 5% of cost)`. No building costs nothing to raise
+  (Founders Hall's cost is $400,000), so the cap never makes a renovation
+  free. The reducer, the building panel and the Estate panel all read the
+  one function.
+- **Checks:**
+  - `test/applicant-lift.test.ts`: the Great Dome's 1,500 wait in the
+    lift, not the pool; the Admissions preview is 1,500 more than without
+    it and is what the summer draws; the lift clears, the next summer has
+    none, and its reveal says the lift ended; a milestone's bonus goes to
+    the lift; the v80 fixture loads with no lift.
+  - `test/intake-ceiling.test.ts`: a founding program moved at week 50 is
+    still moving at the summer and keeps the ceiling's seats, while the
+    weekly figure counts it dark; an unstaffed program counts none.
+  - `test/estate.test.ts`: the cap, and that a capped renovation still
+    pays off the whole backlog.
+  - `test/reveal-yoy.test.ts`'s factor product includes the lift.
+  - `npm run check` and `npm run test:slow` pass. `review:strings`'
+    flagged counts are unchanged.
+- **The sim move** (medians of three seeds, against the old baseline). No
+  tuning constant was touched. Each fix was also run alone to say which
+  moved what; the renovation moves nothing, since no harness player
+  renovates.
+  - **The lift moves Selective and Lean entirely**, and most of
+    Completionist. Milestones now add 30–60 applicants each to the next
+    pool, which changes class sizes by a little and the runs' paths after
+    that.
+    - Selective: rank at Year 50 14 → 23, prestige 119.5 → 117.0,
+      satisfaction at Year 25 +7.5 and at Year 50 +6.1.
+    - Lean: rank at Year 25 23 → 30; at Year 50, 8,255 → 12,011 enrolled,
+      prestige 111.9 → 109.2 and cash $454.7M → $141.8M.
+    - Completionist: cash at Year 50 $146.9M → $432.1M, prestige 144.3 →
+      142.6, one school by Year 10 (was 2); rank 1 at Year 50.
+  - **The move fix moves Guided most.** The guided player and the
+    archetypes move programs whenever the line or `moves.ts` finds a
+    move, some late in a year. Alone, it
+    adds 640 students at Year 25 to Completionist and takes Guided's
+    Year 50 cash from $608.3M to $215.9M; both together give Guided
+    $173.0M at Year 50, rank 8 at Year 25 (was 11) and rank 1 at Year 50.
+  - Year 50 cash is the noisiest line: a few hundred more or fewer
+    applicants shift when the big projects are paid for, and the medians
+    of three seeds swing by hundreds of millions. Enrollment at Year 50
+    is unchanged for Completionist, Selective and Guided (the catalog
+    ceiling). **Idle** is unchanged. `sim/baseline.json` is re-recorded.
+
 ## PR 79D — Small bugs in the words
 
 *G7-8, G7-10, G7-16, G7-19.*

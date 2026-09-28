@@ -150,6 +150,9 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   s.finance.tuitionByClass = advanced.tuitionByClass;
   s.students.cohortsByClass = advanced.cohortsByClass;
   s.students.applicantPool = outcome.applicants;
+  // The year's lift is in that pool (deriveCohortSignals read it), and it
+  // lifts one summer only.
+  s.students.applicantLift = 0;
   // The chosen rate, not the realized one: next summer's slider reopens on
   // the policy the player set.
   s.students.admitRate = chosenAdmitRate;

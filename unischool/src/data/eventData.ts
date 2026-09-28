@@ -38,7 +38,9 @@ import { random } from '../engine/random';
 //   - Never prestige directly: s.self.reputation is a stock that drifts
 //     toward a computed target (prestigeSystem.ts). Prestige-flavoured
 //     events pay into the endowment, a capped input to that target.
-//   - Never s.students.applicantPool: the summer funnel overwrites it.
+//   - Never s.students.applicantPool: the summer funnel overwrites it. A
+//     one-summer lift goes to s.students.applicantLift, which the next
+//     funnel adds to its pool and clears (Plan 79C).
 //   - Satisfaction hits are transient (the stock drifts back at
 //     SATISFACTION_DRIFT_RATE); their teeth are in landing before summer.
 //

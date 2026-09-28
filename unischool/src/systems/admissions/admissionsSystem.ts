@@ -25,7 +25,9 @@ export function trailingYearSatisfaction(s: GameState): number {
 //      price-sensitive bands hardest (sticker shock). Satisfaction scales it
 //      as word of mouth. Housing is a floored throttle on its size, never a
 //      gate. Cohort demand (cohorts.ts) adds seven audiences, each pulled by
-//      a different investment.
+//      a different investment. Something finished during the year (a
+//      grand landmark, a milestone) adds a one-summer lift on top
+//      (types.ts's applicantLift).
 //   2. The player chooses the admit rate; admitRate(prestige) is only the
 //      slider's opening position. The skim takes that share best band first.
 //   3. The class is the admits (no yield step), clipped from the bottom band
@@ -147,7 +149,8 @@ type QualityBand = 'top' | 'mid' | 'low';
 
 // The emergent outcome of the funnel for a given policy.
 export interface AdmissionsProjection {
-  applicants: number;          // total applicant pool, after word of mouth, cohort demand, AND sticker shock
+  applicants: number;          // total applicant pool, after word of mouth, cohort demand, AND sticker shock, plus the year's lift
+  lift: number;                // of which the year's one-summer lift (students.applicantLift), 0 at none
   wordOfMouthMultiplier: number; // satisfaction's multiplier on the pool (1.0 = neutral) — see WORD_OF_MOUTH_STRENGTH
   // The blended cohort-demand multiplier (cohorts.ts's cohortDemandFactor).
   cohortDemandMultiplier: number;
@@ -358,8 +361,18 @@ export function projectAdmissions(
   for (const band of bands) {
     pool[band] = rawApplicants * mix[band] * stickerShockFactor(prestige, tuition, band);
   }
-  const applicants = pool.top + pool.mid + pool.low;
-  const stickerShockMultiplier = rawApplicants > 0 ? applicants / rawApplicants : 1;
+  const drawn = pool.top + pool.mid + pool.low;
+  const stickerShockMultiplier = rawApplicants > 0 ? drawn / rawApplicants : 1;
+  // The year's one-summer lift (types.ts's applicantLift, Plan 79C): a count
+  // of applicants on top of the pool, shared among the bands as the pool is
+  // (by the mix when the pool is empty). Its factor is the pool with it over
+  // the pool without, so the factors still multiply to the pool.
+  const lift = Math.max(0, cohortSignals.applicantLift ?? 0);
+  if (lift > 0) {
+    for (const band of bands) pool[band] += lift * (drawn > 0 ? pool[band] / drawn : mix[band]);
+  }
+  const applicants = drawn + lift;
+  const liftFactor = drawn > 0 ? applicants / drawn : 1;
 
   // Skim the chosen share of the pool, best band first. A thin band can
   // leave admits short, which is why admitRate is reported as
@@ -395,6 +408,7 @@ export function projectAdmissions(
 
   return {
     applicants: Math.round(applicants),
+    lift: Math.round(lift),
     wordOfMouthMultiplier: wordOfMouth,
     cohortDemandMultiplier: cohortDemand,
     stickerShockMultiplier,
@@ -407,7 +421,7 @@ export function projectAdmissions(
     // Computed here, not in the reducer, so the consequences.ts preview and
     // the commit apportion identically.
     enrolledCohorts: cohortCounts(cohortSignals, tolerance, tuition, enrolled),
-    factors: { ...volume, wordOfMouth, cohortDemand, stickerShock: stickerShockMultiplier, beauty, tags, crowding },
+    factors: { ...volume, wordOfMouth, cohortDemand, stickerShock: stickerShockMultiplier, beauty, tags, crowding, lift: liftFactor },
   };
 }
 
