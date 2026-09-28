@@ -169,7 +169,7 @@ stale tab's close writes its older game over the newer one, silently.
   cancel line for each destination; the Treasury sum over the scenario
   saves.
 
-**As implemented (#TBD):**
+**As implemented (#242):**
 
 - **`{faculty}`.** `names.faculty` takes `researcher` (the strongest
   researcher), `teacher` (the strongest teacher) or `longest` (the
