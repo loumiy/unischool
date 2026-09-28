@@ -27,12 +27,15 @@ are under *Named, not sequenced* with the area's decorative assets.
 G7-5 and G7-14, the effect side of area 2's false claims; what it leaves
 is under *Named, not sequenced*. **Area 3 (teaching the game) is
 [Plan 78](docs/plans/78-learning-the-game.md)**, weighed against the inbox
-(Plan 77), with area 4's A4-5 (decline an offer). The rest waits for
-triage; this entry
-comes off when every area is answered.*
+(Plan 77), with area 4's A4-5 (decline an offer). **Area 4 (strategy)
+is held by the owner**, who will playtest balance and strategy before
+taking any of its fixes; its athletics direction is under *Named, not
+sequenced*. **Area 7 (the bugs) is [Plan 79](docs/plans/79-the-bugs.md)**,
+with what Plans 74 to 78 had not already fixed. Area 6 waits for triage;
+this entry comes off when every area is answered.*
 
 - **Fix first:**
-  - two tabs on one save lose progress (G7-1);
+  - two tabs on one save lose progress (G7-1, Plan 79B);
   - the winter model is half a year off (G7-3, taken into Plan 76D);
   - the tag attrition point is previewed but never applied (G7-4, Plan 76C);
   - the athletics axis is scaled twice (G7-5, Plan 76C);
@@ -221,6 +224,15 @@ a sequence of PRs.*
   its distinguished status for a year), or campus life. Nobody has
   audited the catalogue for dominant choices since it replaced the old
   table.
+- **Athletics, deepened** (the owner, after the October review's area 4).
+  Athletics is a real strategy with too few levers: coaches, the budget
+  and the team order are all a player can touch. The championship goal
+  player wanted three things in all ten runs (A4-5): to found a team
+  without waiting three years for a club to petition, to recruit
+  (scholarships in the athletics budget), and to cut a team that keeps
+  missing the postseason. The owner has taken the direction, not the
+  review's fixes; what to build waits for the owner's own playtesting.
+  The deferrals below belong to the same piece of work.
 - **Athletics deferrals.** **Disbanding a team** is unbuilt, and so what
   happens to a venue whose last team folds is unanswered. **Match
   simulation and a fixture list** stay out by the argument at the head of
