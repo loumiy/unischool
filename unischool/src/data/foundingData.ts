@@ -24,11 +24,14 @@ export interface FoundingPreset {
 // spare; the pinch arrives when the build-out drags weeklyOpEx up
 // (financeSystem.ts).
 
-// Below the founding revenue-maximizing net price (~$15k, admissionsSystem.ts's
-// price tolerance), so the opening has no false cash scare, while raising it
-// at the first summer is still a real decision because it shrinks the pool
+// What the founding classes pay, and where the first summer's price opens
+// (Plan 80F; $16,000 until then): just under the founding price tolerance
+// ($21,500 at prestige 50, admissionsSystem.ts's priceTolerance), a price
+// the admissions screen reads as fair, so the founding years are not
+// starved by a bargain nobody asked for. Raising it at the first summer is
+// still a real decision because it shrinks the pool
 // (admissionsSystem.ts's PRICE_SENSITIVITY).
-export const STARTING_TUITION = 16_000;
+export const STARTING_TUITION = 20_000;
 
 // Where the tuition slider ends: a control needs a top, not a policy cap.
 // Deliberately out of reach: no player the harness has closes a fifty-year
@@ -114,19 +117,22 @@ export const FOUNDING_VERNACULAR: Vernacular = 'georgian';
 //
 // The gift was $1.4M until Plan 35, which measured a founding with no slack:
 // a player charging a tenth less than the harness's price stalled for a
-// decade (docs/design/economy.md's "The late margin, settled"), and $3M from
-// then until Plan 80D, when the college began opening with nothing to teach.
-// Provisional (Plan 80F sets the final figure from the harness): enough to
-// develop the courses that seat the Year 2 headcount, with the professors
-// they need, and about a fifth to spare. The Guided player's Year 2 body is
-// about 345 and the founding body 350, so five courses (400 places): the
-// cheapest five are five programs' entry courses at $300k ($1.5M), with a
-// professor each for a year (the three founding-market professors at about
-// $105k and two of the market's at its median, about $73k: $0.46M) and the
-// courses carried for a year ($300 a week each: $0.08M). $2.04M, and a fifth
-// more is $2.45M.
+// decade (docs/design/economy.md's "The late margin, settled"), $3M from
+// then until Plan 80D, when the college began opening with nothing to teach,
+// and $2.45M, provisionally, until Plan 80F set it from the harness: enough
+// to develop the courses that seat the Year 2 headcount, with the
+// professors they need, and about a fifth to spare. With the founding admit
+// rate at about 86% (admissionsSystem.ts's admitRate) the class fills the
+// room the courses make, and the Guided player's Year 2 body is about 455
+// (421–458 across the seeds and founding funds tried), so six courses (480
+// places): six programs' entry courses at $300k ($1.8M), a professor each
+// for a year (the three founding-market professors at about $105k and three
+// of the market's at its median, about $73k: $0.53M) and the courses
+// carried for a year ($300 a week each: $0.09M). $2.43M, and a fifth more
+// is $2.9M. The Guided player never borrows and never runs out of cash in
+// Years 1–2 (its lowest is about $0.1M, the reserve it keeps).
 export const FOUNDING_PRESET: FoundingPreset = {
-  startingCash: 2_450_000,
+  startingCash: 2_900_000,
   startingReputation: 50,
   startingApplicantPool: 150,
 };

@@ -1,18 +1,19 @@
 import { tagTeeth } from '../identity/teeth';
 import { QUIRK_MORALE_CAP, QUIRK_MORALE_PER_POINT, quirkById } from '../../data/quirkData';
 import { pairingBumps } from '../estate/pairing';
-import type { GameState, SatisfactionAttributes } from '../../state/types';
-import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
+import type { Buildable, GameState, SatisfactionAttributes } from '../../state/types';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE, isRetailFood, RETAIL_FOOD_SHARE } from '../../data/facilitiesData';
 import {
   athleticsSocialBonus, CHAPTER_HOUSE_CAPACITY_BONUS, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
 } from '../../data/studentLifeData';
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { extensionGain } from '../estate/estate';
 import { campusCourseScores } from '../faculty/facultyAssignment';
-import { GRADE_A, GRADE_C, gradeFor } from '../../data/courseQuality';
+import { GRADE_POINTS, meanGradePoints } from '../../data/courseQuality';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
+import { pct } from '../../format';
 
 // Satisfaction is the weighted sum of five attributes, each fed by its own
 // facilities. Ratio attributes compare servesPopulation against enrolled
@@ -37,8 +38,9 @@ export const ATTRIBUTE_WEIGHTS: SatisfactionAttributes = {
 const ATTRIBUTE_SCORE_FLOOR = 12;
 
 // servesPopulation needed per enrolled student for a score of 100.
-// Social at 0.34: a maxed student center + rec center (8,700) covers only
-// ~25,600 enrolled, so growing schools must lean on the quad and student
+// Social at 0.34: a maxed student center and the Recreation Center (5,200,
+// the Athletics Complex feeding health since Plan 80F) cover only ~15,300
+// enrolled, so growing schools must lean on the quad and student
 // life. Intended; do not raise it. Housing at 0.35: commuting is the norm.
 export const TARGET_RATIO: SatisfactionAttributes = {
   academic: 0.15,
@@ -96,35 +98,42 @@ function affordabilityBonus(s: GameState): number {
   return clamp(1 - ratio, 0, 1) * AFFORDABILITY_MAX_BONUS;
 }
 
-// Academic satisfaction (Plan 71) is mostly what students meet in class.
-// ACADEMIC_TEACHING_POINTS come from the courses, each measured against the
-// standard these students expect (academicStandard): better students demand
-// better teachers. The library's seats are worth ACADEMIC_LIBRARY_POINTS.
-// Full marks need every course at the standard, which is always an A: a
-// late-game reading, as new instructors start at C or D and mature over
-// years.
-export const ACADEMIC_TEACHING_POINTS = 80;
-export const ACADEMIC_LIBRARY_POINTS = 20;
-// Credit per course runs from nothing at a C to full at the standard, and
-// the mean is curved, so a campus of B's reads well short and full marks
-// need nearly every course at an A.
-const ACADEMIC_CREDIT_CURVE = 2;
-// The standard: an A for an intake of average quality or below, rising to a
-// strong A for the best students.
+// Academic satisfaction (Plans 71 and 80F): what students meet in class,
+// and somewhere to study. ACADEMIC_TEACHING_POINTS come from the courses'
+// grades, read against what these students expect (expectedGradePoints):
+// better students demand better teaching. The library's seats are worth
+// ACADEMIC_LIBRARY_POINTS (a fifth until Plan 80F, two fifths since).
+export const ACADEMIC_TEACHING_POINTS = 60;
+export const ACADEMIC_LIBRARY_POINTS = 40;
+// The courses are read as grade points (courseQuality.ts's GRADE_POINTS,
+// the same reading prestige's teaching ceiling takes): nothing at a C's
+// points or below, full credit at the points these students expect, a
+// straight line between. What they expect runs from EXPECTED_AT_LOW for an
+// intake of STANDARD_LOW_QUALITY or below (a quarter of the courses at A,
+// the rest B) to EXPECTED_AT_HIGH for one of STANDARD_HIGH_QUALITY or above
+// (three quarters at A). So a campus of B's with a library that seats its
+// students reads about 87 with a weak class and about 72 with the best
+// (test/teaching-standard.test.ts pins 70–90), and only A's everywhere read
+// full marks for every class.
 const STANDARD_LOW_QUALITY = 40;
 const STANDARD_HIGH_QUALITY = 85;
-const STANDARD_AT_HIGH = GRADE_A + 8;
-export function academicStandard(s: GameState): number {
+const EXPECTED_AT_LOW = 0.73;
+const EXPECTED_AT_HIGH = 0.92;
+export function expectedGradePoints(s: GameState): number {
   const q = clamp((s.students.incomingQuality - STANDARD_LOW_QUALITY) / (STANDARD_HIGH_QUALITY - STANDARD_LOW_QUALITY), 0, 1);
-  return GRADE_A + (STANDARD_AT_HIGH - GRADE_A) * q;
+  return EXPECTED_AT_LOW + (EXPECTED_AT_HIGH - EXPECTED_AT_LOW) * q;
 }
-// 0..1: how close the courses on offer come to the standard, curved.
+// 0..1: how close the courses on offer come to what these students expect.
 export function teachingAgainstStandard(s: GameState): number {
   const scores = campusCourseScores(s);
   if (scores.length === 0) return 0;
-  const standard = academicStandard(s);
-  const credit = scores.reduce((sum, score) => sum + clamp((score - GRADE_C) / (standard - GRADE_C), 0, 1), 0) / scores.length;
-  return credit ** ACADEMIC_CREDIT_CURVE;
+  const floor = GRADE_POINTS.C;
+  return clamp((meanGradePoints(scores) - floor) / (expectedGradePoints(s) - floor), 0, 1);
+}
+// The share of courses at A, the rest at B, that earns the teaching's full
+// points: how the Students tab says what these students expect.
+export function aShareForFullMarks(s: GameState): number {
+  return clamp((expectedGradePoints(s) - GRADE_POINTS.B) / (GRADE_POINTS.A - GRADE_POINTS.B), 0, 1);
 }
 
 // Satisfaction's one consequence is word of mouth on the next admissions
@@ -133,11 +142,33 @@ export function teachingAgainstStandard(s: GameState): number {
 
 // Total servesPopulation feeding an attribute (flat contributors excluded;
 // see flatBonusFor). Exported for demandSystem.ts, which measures demands
-// against this same reading.
-export function servedPopulationFor(s: GameState, attribute: keyof SatisfactionAttributes): number {
-  return s.tech
-    .filter((t) => t.effects?.satisfactionAttribute === attribute)
-    .reduce((sum, t) => sum + servingPopulation(t), 0);
+// against this same reading; `extra` counts buildings as if they stood (a
+// demand's ask). Food bought at the grocery and the towers' shops counts for
+// at most RETAIL_FOOD_SHARE of what the students need (Plan 80F), so the
+// dining halls carry the rest.
+export function servedPopulationFor(s: GameState, attribute: keyof SatisfactionAttributes, extra: readonly Buildable[] = []): number {
+  let served = 0;
+  let retail = 0;
+  const add = (t: Buildable, n: number) => {
+    if (attribute === 'basicNeeds' && isRetailFood(t)) retail += n;
+    else served += n;
+  };
+  for (const t of s.tech) if (t.effects?.satisfactionAttribute === attribute) add(t, servingPopulation(t));
+  for (const t of extra) if (t.effects?.satisfactionAttribute === attribute) add(t, t.effects?.servesPopulation ?? 0);
+  return served + Math.min(retail, retailFoodCap(s));
+}
+
+// The most the grocery and the towers' shops can count for: RETAIL_FOOD_SHARE
+// of what the students need to eat.
+export function retailFoodCap(s: GameState): number {
+  return RETAIL_FOOD_SHARE * totalEnrolled(s.students) * TARGET_RATIO.basicNeeds;
+}
+
+// What share of the grocery's and the towers' shops' places count: 1 up to
+// the cap, less past it.
+function retailScale(s: GameState): number {
+  const retail = s.tech.filter(isRetailFood).reduce((sum, t) => sum + servingPopulation(t), 0);
+  return retail > 0 ? Math.min(1, retailFoodCap(s) / retail) : 1;
 }
 
 function flatBonusFor(s: GameState, attribute: keyof SatisfactionAttributes): number {
@@ -254,8 +285,11 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
     : s.tech
         .filter((t) => t.effects?.satisfactionAttribute === attribute && servingPopulation(t) > 0)
         // A library mid-renovation lists what it serves this week, so the
-        // drawer adds up to the score.
-        .map((t) => ({ label: t.name, value: servingPopulation(t) }))
+        // drawer adds up to the score. The grocery and the towers' shops
+        // past their share list what they count for (Plan 80F).
+        .map((t) => (attribute === 'basicNeeds' && isRetailFood(t) && retailScale(s) < 1
+          ? { label: `${t.name} (the grocery and shops cover ${pct(RETAIL_FOOD_SHARE)} of meals at most)`, value: servingPopulation(t) * retailScale(s) }
+          : { label: t.name, value: servingPopulation(t) }))
         .sort((a, b) => b.value - a.value);
   const totalServed = contributors.reduce((sum, c) => sum + c.value, 0);
 
@@ -264,7 +298,7 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
   if (flat > 0) bonuses.push({ label: 'Quads and the like, at any size', value: flat });
   if (attribute === 'academic') {
     const teaching = teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS;
-    bonuses.push({ label: `Teaching, against a standard of ${gradeFor(academicStandard(s))} (${Math.round(academicStandard(s))}) for these students`, value: teaching });
+    bonuses.push({ label: `Teaching, against what these students expect (A's in ${pct(aShareForFullMarks(s))} of courses, B's in the rest)`, value: teaching });
     bonuses.push({ label: 'Library seats', value: libraryPoints(s) });
   }
   if (attribute === 'social') {

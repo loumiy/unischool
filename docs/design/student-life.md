@@ -598,6 +598,35 @@ the first time the week a chess club was recognised, as if the club had
 summoned it. Only the two organisation rosters collapse to a note when
 there are no organisations.
 
+### Needs: food and fitness (Plan 80F)
+
+Two of the five needs changed what feeds them, the owner's calls from the
+September 2026 playtest ([Plan 80](../plans/80-the-owners-playtest.md)):
+
+- **Food is mostly the dining halls.** The Campus Grocery Store and the
+  residential towers' shops still feed students, but together they count for
+  at most **40%** of what the students need to eat
+  (`facilitiesData.ts`'s `RETAIL_FOOD_SHARE`, read in
+  `satisfactionSystem.ts`'s `servedPopulationFor`); the dining halls carry the
+  rest. Before, the grocery's 17,500 places at $900 each (a dining hall's cost
+  $1,300–$2,400 a place) fed so much of a large campus that five dining halls,
+  the grocery and the towers fed the harness's Year-50 enrollment and the last
+  three halls were never needed. Now a campus of 34,000 needs the halls
+  through the seventh. Everything that reads the need reads the capped figure:
+  the dial, the crowding reading, the admissions projection's "dining for",
+  and a demand, which never asks for a grocery that would add nothing. The
+  Basic Needs card lists the grocery and each tower at what they count for,
+  and says so; the grocery's tile says it covers 40% of meals at most.
+- **Fitness is health.** The gym, pool and tennis courts already fed health;
+  the **Athletics Complex** (the fitness chain's fourth building) now does too,
+  and the build menu files all four as Fitness under Health (80B moved the
+  first three). The **Recreation Center** stays social, as the one
+  recreational building in the Social tab. Social loses the complex's 3,500
+  places, so a maxed student center and Recreation Center cover about 15,000
+  students at social's ratio, and the quad, the arts and student life carry
+  more of a large campus. A loaded save reads the complex as health (the
+  catalog's terms are refreshed on load; no save version).
+
 ## Student demands: the inverse of clubs
 
 Clubs are what a happy student body gives the institution. A **demand** is what

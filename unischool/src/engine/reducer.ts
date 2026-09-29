@@ -9,7 +9,7 @@ import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
-  RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
+  RENOVATION_WEEKS, canDeclareHistoric, facilityUpkeepOf, isPriceUpkept, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
 } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
 import { CAMPUS_GRID_WIDTH, COLLEGE_NAME_MAX, LOG_CAP, SUMMER_LAST_BEAT, bareSchoolName, institutionName } from '../state/types';
@@ -44,7 +44,7 @@ import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
 import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventData';
-import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} from '../data/facilitiesData';
+import { LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion } from '../data/facilitiesData';
 import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import { benchItem, defaultBenchFacing } from '../state/dressing';
@@ -820,7 +820,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
         node.effects = {
           ...node.effects,
           servesPopulation,
-          upkeepPerWeek: servedUpkeep('library', servesPopulation),
+          // A share of what it and its floors cost (Plan 80F).
+          upkeepPerWeek: facilityUpkeepOf(node),
         };
       }
       return s;
@@ -842,7 +843,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
           ...node.effects,
           servesPopulation,
           prestigeContribution: (node.effects?.prestigeContribution ?? 0) + plan.prestigeGain,
-          upkeepPerWeek: node.facilityType ? servedUpkeep(node.facilityType, servesPopulation) : node.effects?.upkeepPerWeek,
+          upkeepPerWeek: isPriceUpkept(node) ? facilityUpkeepOf(node) : node.effects?.upkeepPerWeek,
         };
       }
       return s;

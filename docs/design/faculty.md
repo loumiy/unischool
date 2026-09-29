@@ -216,9 +216,28 @@ holds the whole model; `facultyAssignment.ts` holds the aggregates.
 This is what makes academic satisfaction more than "develop everything". A
 catalogue of 421 courses staffed by whoever was free is a school full of Ds, and
 it now reads as one. Since [Plan 71](../plans/71-economy.md) the grades are most
-of academic satisfaction (80 of its 100 points, the library the other 20) and
-they cap prestige (see [progression.md](progression.md)), so hand-picking
-faculty is how a college climbs past the top 25.
+of academic satisfaction and they cap prestige (see
+[progression.md](progression.md)), so hand-picking faculty is how a college
+climbs past the top 25.
+
+**Academic satisfaction reads the grades against the class**
+([Plan 80F](../plans/80-the-owners-playtest.md), the owner's call: better
+students demand better teaching). Teaching is 60 of its 100 points and the
+library's seats 40 (80 and 20 until then). The courses are read as grade
+points, the same reading the teaching ceiling takes (A 1, B 0.65, C 0.35,
+D 0.1): nothing at a C's points or below, full marks at what these students
+expect, a straight line between. An intake of quality 40 or below expects a
+quarter of its courses at A and the rest at B (0.73 points); one of 85 or
+above expects three quarters (0.92), in step between
+(`satisfactionSystem.ts`'s `expectedGradePoints`). So a campus of B's with a
+library that seats its students reads about 87 with a weak class and about
+72 with the best, inside the 70–90 the owner asked for
+(`test/teaching-standard.test.ts` pins it across class quality), and A's
+everywhere read full marks for any class. The Students tab's Academic card
+says what these students expect ("A's in 23% of courses, B's in the
+rest"). Until Plan 80F each course was scored against a standard of an A
+(78) to a strong A (86), curved, which held an all-B campus between 50 and
+67.
 
 **The inputs are all things the player decided about a person:**
 
@@ -247,8 +266,8 @@ is the system working, a D on a veteran's course means the player overloaded
 them**, and those must stay distinguishable.
 
 **Campus facilities are deliberately NOT an input.** The library already reaches
-academic satisfaction through seats-per-student (20 of its 100 points since
-Plan 71) and already reaches prestige as a multiplier on curriculum breadth. A third path would let one building move the
+academic satisfaction through seats-per-student (40 of its 100 points since
+Plan 80F, 20 before) and already reaches prestige as a multiplier on curriculum breadth. A third path would let one building move the
 dominant input three ways at once.
 
 **An unstaffed course darkens its program** (Plan 59, `techtree/darkness.ts`).

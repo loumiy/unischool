@@ -6,7 +6,7 @@ import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
-import { gradeFor, teachingQualityScore, type Grade } from '../../data/courseQuality';
+import { GRADE_POINTS, gradeFor, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
 import { athleticProgramStrength, sportEconomics, studentLifeSocialRaw, STUDENT_LIFE_PRESTIGE_FULL } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
@@ -351,25 +351,26 @@ function scaleMultiplier(s: GameState): StandingMultiplier {
 // The teaching standard (Plan 71): no college becomes highly prestigious on
 // mediocre teaching. The courses' grades, as points (A 1, B 0.65, C 0.35,
 // D 0.1, F 0), cap the academic target: TEACHING_CEILING_FLOOR at nothing
-// but F's, the full PRESTIGE_MAX only when every course is an A. A campus of
-// B's tops out in the mid-120s.
-const GRADE_POINTS: Record<Grade, number> = { A: 1, B: 0.65, C: 0.35, D: 0.1, F: 0 };
+// but F's, the full PRESTIGE_MAX only when every course is an A, and a
+// straight line between (Plan 80F; it was curved, share^1.3, until then), so
+// a campus of B's tops out near 128 and every better grade lifts it as much.
+// The points are courseQuality.ts's GRADE_POINTS.
 const TEACHING_CEILING_FLOOR = 88;
-const TEACHING_CEILING_CURVE = 1.3;
 export function teachingStandardShare(s: GameState): number {
-  const scores = campusCourseScores(s);
-  if (scores.length === 0) return 0;
-  return scores.reduce((sum, score) => sum + GRADE_POINTS[gradeFor(score)], 0) / scores.length;
+  return meanGradePoints(campusCourseScores(s));
+}
+// The ceiling at a mean of `share` grade points.
+export function teachingCeilingAt(share: number): number {
+  return TEACHING_CEILING_FLOOR + (PRESTIGE_MAX - TEACHING_CEILING_FLOOR) * clamp(share, 0, 1);
 }
 export function teachingCeiling(s: GameState): NonNullable<StandingBreakdown['ceiling']> {
-  const share = teachingStandardShare(s);
-  const value = TEACHING_CEILING_FLOOR + (PRESTIGE_MAX - TEACHING_CEILING_FLOOR) * share ** TEACHING_CEILING_CURVE;
+  const value = teachingCeilingAt(teachingStandardShare(s));
   const scores = campusCourseScores(s);
   const aShare = scores.length > 0 ? scores.filter((x) => gradeFor(x) === 'A').length / scores.length : 0;
   return {
     value,
     label: 'The teaching standard',
-    detail: `${pct(aShare)} of courses graded A: standing can reach ${value.toFixed(0)}. Only a campus teaching A's everywhere reaches ${PRESTIGE_MAX}.`,
+    detail: `${pct(aShare)} of courses graded A: standing can reach ${value.toFixed(0)}. A campus of B's reaches ${teachingCeilingAt(GRADE_POINTS.B).toFixed(0)}; only A's everywhere reach ${PRESTIGE_MAX}.`,
   };
 }
 

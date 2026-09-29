@@ -9,6 +9,7 @@ import { teamQuality } from '../data/studentLifeData';
 import { attendanceFor } from '../systems/athletics/gate';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { NEED_WORD } from '../data/needWords';
+import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { WALKTHROUGH_PROGRAM } from '../data/foundingData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
@@ -144,6 +145,14 @@ function LabResearch({ t, s, onOpenResearch }: { t: Buildable; s: GameState; onO
       {open}
     </>
   );
+}
+
+// How much of its need's capacity the students use (Plan 80F): "Dining:
+// 5,400 places for 3,900 students", and what space past the line costs.
+function NeedUseLine({ t, s }: { t: Buildable; s: GameState }) {
+  const need = t.effects?.satisfactionAttribute;
+  if (!need || !NEED_CATEGORIES.includes(need) || !(t.effects?.servesPopulation ?? 0) || t.status !== 'done') return null;
+  return <p className="building-info-line">{needUseSentence(s, need)}</p>;
 }
 
 function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; onOpenResearch?: (target: string) => void }) {
@@ -752,6 +761,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
         <p className="building-info-line">{count(dormCapacity(t)!)} beds</p>
       )}
       {t.kind === 'facility' && <FacilityInfo t={t} s={s} onOpenResearch={onOpenResearch} />}
+      {t.kind === 'facility' && <NeedUseLine t={t} s={s} />}
       {t.kind === 'facility' && isGraduateHost(t.id) && t.status === 'done' && <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
       {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} focusProgramId={focusProgramId} />}
       {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}

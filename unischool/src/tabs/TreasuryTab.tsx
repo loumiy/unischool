@@ -20,6 +20,7 @@ import EndowmentPanel from './EndowmentPanel';
 import { debtOutstanding, drawRate } from '../systems/finance/treasury';
 import { EXPENSE_LINES, INCOME_LINES, shownLines, type StatementLineSpec } from './treasuryStatement';
 import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_NAMES, RUNG_RECEIVERSHIP, distressOf } from '../systems/finance/distress';
+import { beyondNeedNote } from '../systems/estate/beyondNeed';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
 // same breakdown the tick charges, so the two cannot drift. Figures are per
@@ -78,6 +79,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
     scaleCost: `the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)} — each doubling costs every student more`,
     academicUpkeep: `running ${coursesDone} courses and the teaching buildings they sit in`,
     facilityUpkeep: 'libraries, dining, rec and labs, each carrying its own running cost',
+    beyondNeedUpkeep: beyondNeedNote(s),
     studentLifeUpkeep: `${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`,
     athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate — the department's cost to the college`,
     athleticScholarships: `the scholarship budgets of ${scholarshipTeams} flagship${scholarshipTeams === 1 ? '' : 's'}, set on the Athletics tab: what their recruiting costs`,

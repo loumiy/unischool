@@ -168,8 +168,8 @@ export const MILESTONES: readonly Milestone[] = [
     ...prestige(REC_CENTER_TIER2_PRESTIGE_GATE),
     buildables: ['REC-T2', 'AMENITY-CHAPEL'],
     tabs: [],
-    letter: 'People outside the county know the name now, and the recreation buildings can be finished with an athletics complex.',
-    opens: ['Athletics Complex: the top of the recreation buildings', 'The Chapel: a small stone landmark'],
+    letter: 'People outside the county know the name now, and the fitness buildings can be finished with an athletics complex.',
+    opens: ['Athletics Complex: the top of the fitness buildings', 'The Chapel: a small stone landmark'],
   },
   {
     id: 'school',
