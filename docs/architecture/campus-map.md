@@ -8,7 +8,9 @@ deliberately deferred. The one surface is the **hall panel** (Plan 14): an
 academic hall's info panel is where a program is founded into one of its
 slots, and its slots (`halls`, not `placements`) are simulation state — see
 [curriculum.md](../design/curriculum.md). *Where* the hall stands still means
-nothing; *what is in it* is the whole curriculum.
+nothing; *what is in it* is the whole curriculum. A lab's panel reads its
+research project (Plan 80B) and opens the Research tab at it, but writes
+nothing.
 
 The map also *shows* that one reading, so "where is there room" is a
 question it answers without anything being opened: over every standing hall

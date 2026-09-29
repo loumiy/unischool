@@ -796,7 +796,7 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, gait,
+  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, gait,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -817,6 +817,8 @@ export default function CampusMap({
   controlsEnabled: boolean;
   // Opens the Curriculum tab at a school, from a hall's info panel.
   onOpenCurriculum: (sectionKey: string) => void;
+  // Opens the Research tab at a lab, from a lab's info panel (Plan 80B).
+  onOpenResearch?: (target: string) => void;
   // A hall to open the panel on (from the Curriculum tab's "Found in
   // <hall>"). Consumed on arrival and cleared through the callback.
   inspectTarget?: string | null;
@@ -1800,6 +1802,7 @@ export default function CampusMap({
             act={act}
             onClose={() => setInspectedId(null)}
             onOpenCurriculum={(key) => { setInspectedId(null); onOpenCurriculum(key); }}
+            onOpenResearch={onOpenResearch ? (target) => { setInspectedId(null); onOpenResearch(target); } : undefined}
             focusProgramId={focus?.hallId === inspected.t.id ? focus.programId : undefined}
           />
         )}

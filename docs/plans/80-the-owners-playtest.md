@@ -175,6 +175,79 @@ funds D introduces. Save bumps land in merge order.
 - **Checks:** the filter predicates; the graduate sections; the hall
   panel and lab panel at 1440×900 and 390×844; `npm run phone`.
 
+**As implemented (#247):**
+
+- **Curriculum filters** (`curriculumFilter.ts`). Needs attention is gone.
+  Below A reads `instructorQuality` (new, `facultyAssignment.ts`): the grade
+  a course's own instructor earns on it, dark program or not.
+  `courseQuality` is that plus the dark and transit checks, so every grade
+  the game reads is unchanged. "One course from established" is a chip:
+  the last not-done course among a major's entry course and tier-2
+  quartet, started or not (`oneFromEstablished`).
+- **The strip is gone.** The committee sits alone at the head of the tab,
+  its eight seats in one row where there is room. Under it, "Waiting on
+  faculty: …" names `neededFacultyFields` (most waited-on first), and
+  "Faculty →" opens the Faculty tab on the first. Plan 47's glossary
+  already calls the wall "Waiting on faculty", so the line says that
+  rather than "short of faculty". The Curriculum's `onInspectHall` went
+  with the strip's "Found in" doors.
+- **Graduate sections.** `GraduateProgramSeed.section` names the MD's,
+  JD's and MBA's; the doctorates and the MFA default to the Graduate
+  School (`techData.ts`'s `GRADUATE_SECTIONS`). The sections follow the
+  seven schools and are named from the start. A professional school takes
+  its home school's hue and mark. The Graduate School has several home
+  schools, so its header takes the college's own colors and each row its
+  home school's hue and mark. `discoverySections` is unchanged.
+  - `visibleCourseIds` (the curriculum badge) now reads the rows the tab
+    draws, so the two cannot disagree.
+  - A section's "Staff from the market" covers the courses it draws. Before,
+    it covered the whole school, graduate programs included. `RESTAFF`
+    takes optional `courseIds`, and `unstaffedIn`/`restaffPlan`/`restaff`
+    take an optional course list.
+- **The hall panel.** "Not this year" sits beside each offer tile, which
+  narrows. Armed, its longer words take a line under the tile.
+- **The Research tab.** The Landmark note has 12px above it. The Research
+  Park block (`ResearchParkProgress`) shows until the park stands. It has
+  the gate's own sentence (`projectOpens`), "Labs that have finished a
+  project: n of m", each lab as a pill (✓ finished one / ○ not yet), and
+  "A new lab raises the count: it has to finish a project too." While the
+  park is going up it shows the weeks left instead. `labsTowardPark`
+  (`projects.ts`) is the list `everyLabFinished` now reads, so the count
+  and the gate are one reading.
+- **A lab's map panel** (`BuildingInfoPanel.tsx`'s `LabResearch`) shows the
+  project's topic, depth, weeks and a progress track. An idle lab says so
+  and offers "Start research". Both show "Open in Research →". The Research
+  tab takes a target (`lab:<id>` scrolls to the lab; `start:<id>` also
+  opens its choices), passed only while the tab is open to the college.
+- **Grounds.** The tab's label changed. Its id (`campus-tools`) stayed.
+- **Health.** `FacilityCategory` gains `health`: the health chain and
+  the gym, pool and tennis courts. In the build menu the fitness chain is its
+  own group, keyed `gym`, numbered #1–#3 after the health chain. The
+  Recreation Center stays under Social as "Recreation" (the Athletics
+  Complex with it, until F), no longer numbered.
+- **Room on the committee.** `canFoundProgram` refuses a major while
+  the committee writes its most. A graduate program is not written by
+  the committee. The hall panel says so over the offers, and Found carries
+  the reason. The words follow Plan 47 ("room on the committee", no
+  "seat").
+- **The sim moved.** This departs from the table's "no". The guided,
+  Completionist and Lean players founded programs with the committee full.
+  Each founding took its program slot, and its entry course started weeks
+  later when a course finished. Now the founding waits for room instead:
+  the harness's foundings read `canFoundProgram`. A probe with only the
+  new check removed matched the baseline exactly, so nothing else moved it.
+  At Year 50 Guided's cash is +$531M, Completionist's +$720M and Lean's
+  +$363M; prestige moved from −1.0 to +5.6. Completionist spent one week in the
+  red, down $0.5M. Selective and Idle did not move. The baseline is re-recorded in its own commit.
+- **Checks.** `curriculum-filter.test.ts` covers Below A in a dark program
+  and One course from established. `curriculum-sections.test.ts` is new: the four
+  sections, their rows, colors and order, and every drawn course visible
+  once. `founding.test.ts` checks that a full committee refuses a founding
+  and leaves the program slot and the offer alone. Its "hall fills" case
+  now waits for room between foundings. `npm run phone` passes. The hall
+  and lab panels were shot at 1440×900 and 390×844
+  (`docs/reviews/2026-10-ui-fixes/80b-*.jpg`).
+
 ## PR 80C — Numbers explained, and board confidence removed
 
 - **The Prestige chip** opens a page titled Prestige, with only its
