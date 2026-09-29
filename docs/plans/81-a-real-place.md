@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask, that the
 campus feel like a place and not a model hanging in space, into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** A and B merged (#254, #255).
 
 ---
 
@@ -61,7 +61,7 @@ beside the faster renderer, which would carry elevation natively.
     measured it;
   - `npm run check`, `npm run phone`; the sim unchanged.
 
-**As implemented (#TBD):**
+**As implemented (#255):**
 
 - **The land** (`ringLand.ts`, drawn by `Surroundings.tsx`): 200 tiles of
   country on every side, from a seeded hash of the college's name, never
