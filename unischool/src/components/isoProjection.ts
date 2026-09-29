@@ -218,35 +218,7 @@ export function lift(p: Pt, h: number): Pt {
 }
 
 export function polyPoints(pts: Pt[]): string {
-  // The canvas painter (Plan 83B, `?map=canvas`) takes the points as they
-  // are: formatting them to a string only for it to read them back was a
-  // tenth of a turn's frame.
-  if (rawPoints) return new PointList(pts) as unknown as string;
   return pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
-}
-
-// A polygon's points kept as numbers (Plan 83B's canvas painter): still a
-// string wherever the art builds a path from one (`M${polyPoints(…)}`), made
-// when asked.
-export class PointList {
-  readonly pts: Pt[];
-  constructor(pts: Pt[]) { this.pts = pts; }
-  toString(): string {
-    return this.pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
-  }
-  // The string methods the art calls on a points string (a path built by
-  // replacing its spaces).
-  replace(pattern: string | RegExp, by: string): string {
-    return this.toString().replace(pattern, by);
-  }
-  split(sep: string | RegExp): string[] {
-    return this.toString().split(sep);
-  }
-}
-let rawPoints = false;
-// Only while the canvas painter walks the scene (canvasPaint.ts).
-export function setRawPoints(on: boolean): void {
-  rawPoints = on;
 }
 
 // The faces of an axis-aligned box standing on the grid.

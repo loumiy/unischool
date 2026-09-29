@@ -45,7 +45,6 @@ import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
 import { setMapProbe } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
-import { Painter, StyleResolver, type PaintOptions } from './canvasPaint';
 import { pct, weeksShort } from '../format';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
@@ -743,36 +742,13 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
 
       {front}
 
-      <LabelLayer placed={placed} inspectedId={inspectedId} vernacular={vernacular} labelLayerRef={labelLayerRef} />
+      <g ref={labelLayerRef}>
+        {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p, label }) => (
+          <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={label} pinned={t.id === inspectedId} vernacular={vernacular} />
+        ))}
+      </g>
     </>
   );
-});
-
-function LabelLayer({ placed, inspectedId, vernacular, labelLayerRef }: {
-  placed: CampusLayout['placed']; inspectedId: string | null; vernacular: Vernacular;
-  labelLayerRef: React.RefObject<SVGGElement | null>;
-}) {
-  return (
-    <g ref={labelLayerRef}>
-      {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p, label }) => (
-        <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={label} pinned={t.id === inspectedId} vernacular={vernacular} />
-      ))}
-    </g>
-  );
-}
-
-// The canvas prototype (Plan 83B, `?map=canvas`): the scene and the ring
-// are painted on a canvas under the map's SVG (canvasPaint.ts), and only
-// the labels stay in the SVG's world group, over it. Without the flag the
-// map is exactly the SVG map. No picking: the canvas takes no pointer.
-export const CANVAS_MAP = typeof window !== 'undefined'
-  && new URLSearchParams(window.location.search).get('map') === 'canvas';
-
-// The labels alone, for the canvas map; a prop for the camera so the memo
-// redraws on a turn, as CampusScene does.
-const CanvasLabels = memo(function CanvasLabels({ camera, ...rest }: Parameters<typeof LabelLayer>[0] & { camera: Camera }) {
-  void camera;
-  return <LabelLayer {...rest} />;
 });
 
 // Desire lines: the lawn worn where the busiest routes cross it (see
@@ -1000,13 +976,6 @@ export default function CampusMap({
   // The label layer and the last cursor position in world coordinates.
   // Refs, because the label pass runs on every mouse move.
   const labelLayerRef = useRef<SVGGElement>(null);
-  // The canvas map (`?map=canvas`): the canvas, its painter, the element
-  // tree it paints, and a pending repaint for a pan or a zoom.
-  const sceneCanvasRef = useRef<HTMLCanvasElement>(null);
-  const painterRef = useRef<{ painter: Painter; resolver: StyleResolver; opts: PaintOptions; season: unknown } | null>(null);
-  const sceneTreeRef = useRef<React.ReactNode>(null);
-  const sceneRootClassRef = useRef('');
-  const scenePaintRef = useRef(0);
   const cursorRef = useRef<{ x: number; y: number } | null>(null);
   // The pointer in canvas pixels, for the refused ghost's reason (re-read on
   // the re-render a new hover tile causes).
@@ -1118,57 +1087,6 @@ export default function CampusMap({
     ghostWorldRef.current?.setAttribute('transform', transform);
     ringWorldRef.current?.setAttribute('transform', transform);
     paintLabels(cursorRef.current);
-    if (CANVAS_MAP && !scenePaintRef.current) {
-      scenePaintRef.current = requestAnimationFrame(() => {
-        scenePaintRef.current = 0;
-        paintScene();
-      });
-    }
-  }
-
-  // Paints the scene on the canvas map at the current view, at device
-  // pixels. Cancels a repaint a pan asked for, since this one serves it.
-  function paintScene() {
-    if (scenePaintRef.current) {
-      cancelAnimationFrame(scenePaintRef.current);
-      scenePaintRef.current = 0;
-    }
-    const canvas = sceneCanvasRef.current;
-    const size = canvasSizeRef.current;
-    const tree = sceneTreeRef.current;
-    if (!canvas || !size || !tree) return;
-    const dpr = window.devicePixelRatio || 1;
-    const width = Math.round(size.width * dpr);
-    const height = Math.round(size.height * dpr);
-    if (canvas.width !== width) canvas.width = width;
-    if (canvas.height !== height) canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    let pr = painterRef.current;
-    if (!pr) {
-      const resolver = new StyleResolver(canvas.parentElement ?? document.body);
-      const opts: PaintOptions = { resolver, skipRef: labelLayerRef, dpr };
-      pr = { painter: new Painter(ctx, opts), resolver, opts, season: null };
-      painterRef.current = pr;
-    }
-    // The season's tokens: every class color is read again.
-    if (pr.season !== season) {
-      pr.resolver.reset();
-      pr.season = season;
-    }
-    pr.resolver.setRootClass(sceneRootClassRef.current);
-    pr.opts.dpr = dpr;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-    const v = viewRef.current;
-    ctx.setTransform(dpr * v.zoom, 0, 0, dpr * v.zoom, dpr * v.x, dpr * v.y);
-    const t0 = performance.now();
-    const stats = pr.painter.paint(tree);
-    // For the review tools: the last paint's cost and what it could not draw.
-    (window as unknown as { __canvasPaint?: unknown }).__canvasPaint = {
-      ms: performance.now() - t0, elements: stats.elements, drawn: stats.drawn,
-      unsupported: Object.fromEntries(stats.unsupported),
-    };
   }
 
   // Move the camera, keeping the ground at the canvas center fixed on screen
@@ -1788,45 +1706,6 @@ export default function CampusMap({
   // Needs no `ok`, since a path tile can never be refused.
   const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
 
-  // The canvas map's scene: the same elements the SVG map mounts, painted
-  // instead (see paintScene). Only built with the flag.
-  if (CANVAS_MAP) {
-    sceneRootClassRef.current = `${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${inspectedId ? 'inspecting' : ''}`;
-    sceneTreeRef.current = (
-      <>
-        <defs><ScaffoldPattern /></defs>
-        <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />
-        <CrowdContext.Provider value={crowds}>
-        <BannerContext.Provider value={banners}>
-        <ColorsContext.Provider value={layout.colors}>
-        <CollegeNameContext.Provider value={s.self.name}>
-        <DevelopingContext.Provider value={s.developing}>
-        <SnowContext.Provider value={snow}>
-          <CampusScene
-            layout={layout}
-            inspectedId={inspectedId}
-            justFinished={justFinished}
-            onInspect={onInspect}
-            labelLayerRef={labelLayerRef}
-            camera={camera}
-            front={ringFront}
-          />
-        </SnowContext.Provider>
-        </DevelopingContext.Provider>
-        </CollegeNameContext.Provider>
-        </ColorsContext.Provider>
-        </BannerContext.Provider>
-        </CrowdContext.Provider>
-      </>
-    );
-  }
-  // Repainted when anything the scene draws changes (after the turn's
-  // anchor has re-panned the view, which is an earlier layout effect).
-  useLayoutEffect(() => {
-    if (CANVAS_MAP) paintScene();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camera, layout, inspectedId, justFinished, season, snow, crowds, banners, s.developing, s.self.name, turning, selected, pathTool]);
-
   return (
     <section className="campus-map" style={season}>
       <div className="campus-map-canvas">
@@ -1834,13 +1713,11 @@ export default function CampusMap({
             under the map's, carrying the same pan/zoom transform (applyView
             writes both): a frame in which only the campus changes, as a
             walking crowd's do, repaints none of it. */}
-        {CANVAS_MAP ? <canvas ref={sceneCanvasRef} className="campus-map-scene" aria-hidden="true" /> : (
-          <svg className="campus-map-ring" width="100%" height="100%" aria-hidden="true">
-            <g ref={ringWorldRef}>
-              <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />
-            </g>
-          </svg>
-        )}
+        <svg className="campus-map-ring" width="100%" height="100%" aria-hidden="true">
+          <g ref={ringWorldRef}>
+            <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />
+          </g>
+        </svg>
         <svg
           ref={svgRef}
           className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${inspectedId ? 'inspecting' : ''}`}
@@ -1881,9 +1758,6 @@ export default function CampusMap({
         >
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
-            {CANVAS_MAP ? (
-              <CanvasLabels placed={layout.placed} inspectedId={inspectedId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} />
-            ) : (<>
             <CrowdContext.Provider value={crowds}>
             <BannerContext.Provider value={banners}>
             <ColorsContext.Provider value={layout.colors}>
@@ -1905,7 +1779,6 @@ export default function CampusMap({
             </ColorsContext.Provider>
             </BannerContext.Provider>
             </CrowdContext.Provider>
-            </>)}
             <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />

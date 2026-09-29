@@ -239,10 +239,20 @@ a sequence of PRs.*
   and shadows), so it is a geometry change to all of them; a faster
   renderer (Plan 83) removes only its cost, not that work, and it does not
   wait for one. Plan 81 puts the hills around the campus instead.
-- **A faster map** (the owner, Plan 80): now Plan 83, a canvas renderer
-  reusing the art, with a measured prototype (83B) deciding whether the
-  rest go ahead. A desktop wrapper runs the same engine and would not be
-  faster.
+- **A faster map** (the owner, Plan 80). Plan 83 stopped at its prototype
+  (83B, #261).
+  - **What the prototype showed.** A canvas painter reusing the art drew
+    the scene with no visible difference and halved a turn: a turn frame
+    went from about 200 ms to 98 ms at 1×. The target was 30 ms.
+  - **The floor is the art's own JS.** The art recomputes every projected
+    point for each camera, which alone costs 40–50 ms a frame.
+  - **What a fast turn would need:**
+    - geometry projected by a transform instead of recomputed in JS
+      (WebGL, or an affine transform per face on a canvas), which is an
+      art change;
+    - or a turn's in-between frames drawn from the last image, with only
+      the settled view redrawn.
+  - A desktop wrapper runs the same engine and would not be faster.
 - **From Plan 70's "does not do":** key rebinding and more than one save
   slot. Unlocks that carry across runs now exist for the four bonus
   vernaculars (`state/unlocks.ts`), with no in-run notice yet when one is

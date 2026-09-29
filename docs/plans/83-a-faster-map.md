@@ -4,7 +4,7 @@
 into PRs, starting with a prototype that decides whether the rest are
 worth doing.*
 
-**Status: Proposed.**
+**Status: Stopped at B (#261).**
 
 ---
 
@@ -104,6 +104,107 @@ C to E happen only if B says go.
     remove the flag and the painter. The backlog entry says what was
     learned.
   - The owner sees the numbers and the screenshots either way.
+
+**As implemented (#261): stop.** A turn frame measured 98 ms at 1×
+against the rule's 30 ms. The painter and the flag were removed; the
+prototype stays in the PR's history (its first commit) for reference.
+
+- **The profile** (production build, the year-30 Completionist campus,
+  main-thread CPU from Chrome traces, 1×). A turn commits three or four
+  frames of about 200 ms each (195 ms in Plan 82):
+  - **Script, 125–170 ms:**
+    - the art's own JS, about 70 ms: formatting projected points into
+      strings about 18, the depth sort about 10, then the paths, windows
+      and masses;
+    - React's render and commit, about 32 ms;
+    - DOM calls, about 35 ms, mostly `setAttribute`;
+    - garbage collection, about 14 ms.
+  - **Rendering, 65–105 ms:** style recalculation 30–57, layout 11–15,
+    paint 22–25, pre-paint and layerize about 10.
+- **The prototype.**
+  - `canvasPaint.ts` walked the element tree the art returns and drew it
+    with `Path2D`.
+  - A stand-in hooks dispatcher called the components directly. It kept
+    each component instance, memo output and memoised value from paint to
+    paint, so the desire lines and the paths were not recomputed on every
+    paint.
+  - Contexts came from the providers in the tree.
+  - Class rules were resolved once per season from probe elements.
+  - It also drew the scaffold pattern, the ring's gradients, ageMarks'
+    masks (as clips), group opacity (as layers) and the few words of text.
+  - `?map=canvas` painted the ground, paths, grounds, buildings, trees,
+    dressing and the ring on a canvas at device pixels. Walkers, labels,
+    marks and the ghost stayed SVG.
+  - Nothing in the scene was undrawable: 0 unsupported elements at all
+    16 views compared. It drew about 12,600–13,000 elements, of which about
+    10,100–10,500 were shapes.
+- **The numbers.** Main-thread CPU, medians of three alternating rounds of
+  six turns, with frames pooled:
+
+  | | SVG (main) | canvas |
+  |---|---|---|
+  | A frame of a turn, 1× | 200 ms | **98 ms** |
+  | A frame of a turn, 2× | 205 ms | 103 ms |
+  | The whole turn, 1× | 794 ms | 392 ms |
+  | The whole turn, 2× | 833 ms | 373 ms |
+  | The settling frame, 1× | 195 ms | 94 ms |
+  | The settling frame, 2× | 224 ms | 97 ms |
+  | A frame at Play, 1× | 23–26 ms at 14 fps | 9–10 ms at 57 fps |
+  | A frame at Play, 2× | 23–27 ms at 14 fps | 12–14 ms at 55 fps |
+  | A step of a pan | a transform | a full repaint, 60–170 ms |
+
+  At Play the canvas repainted once in five seconds (the week's change);
+  the SVG's low frame rate is the scene restyled under the walkers.
+- **Where the canvas's 98 ms went** (a sampled profile, scaled to the
+  trace):
+  - the art's own JS, 40–50 ms: the depth sort, the paths, the masses and
+    windows, the projection, and the path strings the art still builds;
+  - the painter's walk and style lookups, about 25 ms;
+  - the canvas calls (`Path2D`, `lineTo`, `fill`), about 20 ms;
+  - walkers, React and garbage collection, the rest.
+
+  A repaint in which only the view changed, with every memo kept, still
+  cost 60–80 ms: the walk and the drawing of about 10,000 shapes.
+- **The differences.**
+  - **In the stills, none the eye finds.** There were 16 pairs: four views
+    at the default and the lowest pitch, in Georgian in winter and in
+    Mission.
+    - The mean pixel difference was 0.6–1.2 of 255, the level of JPEG
+      noise.
+    - At most 0.004% of pixels differed by more than 40, all on
+      antialiased edges and the corner menu buttons.
+    - Crops of windows and roofs, arches, glazing, trees, field margins
+      and the haze show the same drawing.
+  - **By construction, which stills do not show:**
+    - doors do not open for walkers, because walkers set a class on the
+      SVG door;
+    - the completion ring does not play;
+    - no hover or click on buildings, since there is no picking (as
+      planned);
+    - every step of a pan or zoom repaints the whole scene, so panning is
+      visibly slower than the SVG's;
+    - walkers run at about 57 fps at Play instead of about 14.
+- **Why stop.** The canvas halves a turn but does not come near 30 ms.
+  Even a painter that cost nothing would leave the art's own JS at 40–50
+  ms a frame. The art recomputes every projected point in JS for each
+  camera, so any renderer that reuses it pays that cost on every frame of
+  a turn.
+- **What was learned** (also in the backlog):
+  - Drawing the existing art on a canvas is faithful and needs no change
+    to the art. The React-element walk works.
+  - The floor is the art's per-camera JS. A fast turn needs one of two
+    things:
+    - the projection taken out of per-frame JS: geometry kept per building
+      in world or per-face coordinates and projected by a transform
+      (WebGL, or canvas with an affine transform per face). That changes
+      the art's output, which this plan ruled out;
+    - or a turn's in-between frames drawn from the last image (turned or
+      crossfaded), with only the settled view redrawn.
+- **Screenshots:** `docs/reviews/2026-10-canvas/`:
+  - `83b-{svg,canvas}-{georgian-winter,mission}-v{0..3}-{default,low}.jpg`;
+  - close-ups, `83b-{svg,canvas}-{georgian-winter,mission}-close.jpg` and
+    `83b-{svg,canvas}-mission-fields.jpg`;
+  - side-by-side crops, `83b-detail-*.jpg`.
 
 ## PR 83C — The scene on canvas, with picking
 
