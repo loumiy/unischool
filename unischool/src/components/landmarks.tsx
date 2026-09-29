@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import type { Buildable } from '../state/types';
+import type { Buildable, GameState } from '../state/types';
 import { boxFaces, facePoint, heightScale, lift, polyPoints, project, projectedCircle, type BoxFaces, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { shade } from './tint';
@@ -499,9 +499,14 @@ export function landmarkVolumes(t: Buildable, p: Plot): { col: number; row: numb
   return [{ col: p.col + GATE_INSET, row: p.row + GATE_INSET, w: p.w - GATE_INSET * 2, h: p.h - GATE_INSET * 2, base: 0, height: H * GATE_BODY_SHARE }];
 }
 
-export default function Landmark({ t, p, developing }: { t: Buildable; p: Plot; developing: boolean }) {
-  const weeksLeft = useContext(DevelopingContext)[t.id];
-  const name = useContext(CollegeNameContext);
+export type LandmarkProps = { t: Buildable; p: Plot; developing: boolean };
+export default function Landmark(props: LandmarkProps) {
+  return landmarkArt(props, useContext(DevelopingContext), useContext(CollegeNameContext));
+}
+// The landmark given the weeks left on the works and the college's name:
+// what the canvas map draws (canvasArt.ts).
+export function landmarkArt({ t, p, developing }: LandmarkProps, developingWeeks: GameState['developing'], name: string): React.JSX.Element {
+  const weeksLeft = developingWeeks[t.id];
   const fraction = developing && weeksLeft !== undefined && t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   const stage = developing ? Math.min(2, stageOf(fraction)) as Stage : 3;
   const share = STAGE_SHARE[stage];

@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import type { CampusLayout } from './campusLayout';
 import { BannerContext } from './mapOccasions';
 import { FOUNDERS_HALL_ID } from '../data/techData';
-import type { BenchFacing, Dressing } from '../state/types';
+import type { BenchFacing, Dressing, SchoolColors } from '../state/types';
 import { isLand, parsePathTileKey } from '../state/campusMap';
 import { FACING_STEP, benchFacingOf } from '../state/dressing';
 import { isAcademicHall } from '../data/techData';
@@ -37,9 +37,12 @@ const BENCH_APRON = up(0.14);
 // a ground circle, as squashed as the ground is (groundSquash).
 const BANNER_BRACKET_TILES = 0.018;   // 0.8 units at the opening camera
 const BANNER_TILES = 0.126;           // 5.5 units
-function Lamp({ at }: { at: Pt }) {
+export function Lamp({ at }: { at: Pt }) {
+  return lampArt({ at }, useContext(BannerContext));
+}
+// The lamp given commencement's banner, if any: what the canvas map draws.
+export function lampArt({ at }: { at: Pt }, banner: SchoolColors | null): React.JSX.Element {
   const top = lift(at, LAMP_HEIGHT);
-  const banner = useContext(BannerContext);
   const hang = lift(at, LAMP_HEIGHT * 0.82);
   const foot = lift(at, LAMP_HEIGHT * 0.42);
   const b = downwind(BANNER_BRACKET_TILES);

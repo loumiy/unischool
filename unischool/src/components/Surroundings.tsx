@@ -67,7 +67,10 @@ function Sprite({ sprite, vernacular, snow }: { sprite: RingSprite; vernacular: 
 }
 
 // The ground: its fields, lanes and road.
-const RingGround = memo(function RingGround({ view }: { view: RingView }) {
+// The memoised pieces' own functions are exported for the canvas map
+// (canvasArt.ts), which calls them directly.
+export const RingGround = memo(RingGroundArt);
+export function RingGroundArt({ view }: { view: RingView }) {
   return (
     <>
       {view.covers.map((c) => <path key={c.cover} className={`ring-field ring-${c.cover}`} d={c.d} />)}
@@ -82,15 +85,17 @@ const RingGround = memo(function RingGround({ view }: { view: RingView }) {
       <path className="ring-shaded" d={view.shadow[1]} />
     </>
   );
-});
+}
 
-const RingSprites = memo(function RingSprites({ sprites, vernacular, snow }: {
+export const RingSprites = memo(RingSpritesArt);
+export function RingSpritesArt({ sprites, vernacular, snow }: {
   sprites: readonly RingSprite[]; vernacular: Vernacular; snow: number;
 }) {
   return <>{sprites.map((s) => <Sprite key={s.key} sprite={s} vernacular={vernacular} snow={snow} />)}</>;
-});
+}
 
-export const RingBack = memo(function RingBack({ name, vernacular, camera, turning, snow }: {
+export const RingBack = memo(RingBackArt);
+export function RingBackArt({ name, vernacular, camera, turning, snow }: {
   name: string; vernacular: Vernacular;
   // A prop so the memo redraws on a camera change (the ring is projected).
   camera: Camera;
@@ -126,10 +131,11 @@ export const RingBack = memo(function RingBack({ name, vernacular, camera, turni
       {haze.depth > 0 && <polygon points={haze.plate} fill="url(#ring-depth)" />}
     </g>
   );
-});
+}
 
 // The sprites standing in front of the parcel, drawn after the campus.
-export const RingFront = memo(function RingFront({ name, vernacular, camera, turning, snow }: {
+export const RingFront = memo(RingFrontArt);
+export function RingFrontArt({ name, vernacular, camera, turning, snow }: {
   name: string; vernacular: Vernacular; camera: Camera; turning: boolean; snow: number;
 }) {
   void camera;
@@ -139,4 +145,4 @@ export const RingFront = memo(function RingFront({ name, vernacular, camera, tur
       <RingSprites sprites={view.front} vernacular={vernacular} snow={snow} />
     </g>
   );
-});
+}
