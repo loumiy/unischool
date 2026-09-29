@@ -124,6 +124,11 @@ The Landmark Program opens with **the Research Park**, a capital
 project that itself waits on every standing lab having seen an initiative
 through (`s.research.finishedLabs`, recorded when one ends uncancelled): a
 college earns its landmark work by doing research everywhere it can first.
+The Research tab shows the count until the park stands (Plan 80B, `labsTowardPark`):
+"Labs that have finished a project: n of m", each lab marked, and that a new
+lab raises the count. A lab's panel on the map shows its project and how far
+along it is, or "Start research" when it is idle, which opens the Research
+tab at that lab with its choices open; "Open in Research →" goes to the lab.
 
 **Participants teach a reduced load for the duration.** `effectiveCourseSlots`
 subtracts `RESEARCH_COMMITMENT_SLOTS` (2) with a floor at zero, so a junior hire

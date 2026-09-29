@@ -386,8 +386,10 @@ function isDone(s: GameState, id: string): boolean {
 // curriculum. It takes an empty hall slot and its entry course starts in the
 // same transaction with the chosen instructor. The program must be on offer
 // in that hall (programOffers.ts's offeredIn), the slot empty, the entry
-// prereqs done, the cash there, and the instructor eligible (the same
-// eligibleInstructors the picker reads).
+// prereqs done, the cash there, the instructor eligible (the same
+// eligibleInstructors the picker reads), and, for a major, room on the
+// curriculum committee (Plan 80B: without it the program slot was taken and
+// the entry course silently left unstarted).
 export interface Founding {
   programId: string;
   hallId: string;
@@ -414,6 +416,7 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   if (!entry || entry.status !== 'locked') return false;
   if (!entry.prereqs.every((id) => isDone(s, id))) return false;
   if (s.finance.cash < entry.cost) return false;
+  if (isUndergraduateCourse(entry) && courseSlotsFree(s) <= 0) return false;
   if (entry.requiresFaculty && !eligibleInstructors(s, entry).some((x) => x.id === f.facultyId)) return false;
   return true;
 }
