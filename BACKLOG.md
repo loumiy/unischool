@@ -239,14 +239,19 @@ a sequence of PRs.*
   and shadows), so it is a geometry change to all of them; a faster
   renderer (Plan 83) removes only its cost, not that work, and it does not
   wait for one. Plan 81 puts the hills around the campus instead.
-- **A faster map** (the owner, Plan 80). Plan 83 stopped at its prototype
-  (83B, #261).
+- **A faster map** (the owner, Plan 80). Now Plan 83, in progress. Its
+  prototype (83B, #261) missed its 30 ms bar, and the owner chose to go
+  ahead with the canvas anyway.
   - **What the prototype showed.** A canvas painter reusing the art drew
     the scene with no visible difference and halved a turn: a turn frame
-    went from about 200 ms to 98 ms at 1×. The target was 30 ms.
+    went from about 200 ms to 98 ms at 1×.
+  - **Why the owner went ahead.** The canvas scales better as the campus
+    grows. SVG's cost per element in a turn is about three times the
+    canvas's, and at Play SVG restyles the whole scene every frame, while
+    the canvas pays only for the walkers.
   - **The floor is the art's own JS.** The art recomputes every projected
     point for each camera, which alone costs 40–50 ms a frame.
-  - **What a fast turn would need:**
+  - **What a truly smooth turn would still need:**
     - geometry projected by a transform instead of recomputed in JS
       (WebGL, or an affine transform per face on a canvas), which is an
       art change;
