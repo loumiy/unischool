@@ -46,7 +46,7 @@ export function foundingCourseIds(): string[] {
 export const STARTING_INSTITUTION_SUFFIX = 'College';
 
 // The map's campus tools; the right button applies the armed tool's opposite.
-export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'quad' | 'lamp' | 'bench';
+export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'lamp' | 'bench';
 
 // All the ways a player can change the world. The reducer is the only thing
 // that interprets these; UI dispatches them, systems never do.
@@ -94,9 +94,6 @@ export type Action =
   | { type: 'FELL_TREE'; tile: TileCoord }
   // A straight run of path, laid and adjusted in one step (the Shift-held draw).
   | { type: 'PAINT_PATH_TILES'; add: TileCoord[]; remove: TileCoord[] }
-  // Quads (state/quads.ts): mark the open space under a tile as one, lift the
-  // marks inside one, or name one (an empty name gives it back its own).
-  | { type: 'MARK_QUAD'; tile: TileCoord }
   // The estate (systems/estate): how much of the upkeep to pay, and paying
   // off one building's backlog under scaffolding.
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
@@ -123,8 +120,6 @@ export type Action =
   // bench takes the facing the player turned it to, or faces the path.
   | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind; facing?: BenchFacing }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }
-  | { type: 'UNMARK_QUAD'; key: string }
-  | { type: 'NAME_QUAD'; key: string; name: string }
   // Launches an advancement campaign (systems/alumni/campaigns.ts), which
   // replaced the endowment campaign in Plan 30.
   | { type: 'LAUNCH_CAMPAIGN'; id: string }

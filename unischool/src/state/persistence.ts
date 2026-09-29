@@ -17,7 +17,6 @@ import {
 } from './campusMap';
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
-import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
@@ -54,7 +53,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 82; // Plan 80I: each bench stores its facing
+export const SAVE_VERSION = 83; // Plan 80H: quads lose their marks and names
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -121,6 +120,13 @@ function benchFacings(state: GameState): void {
   }
 }
 
+// 82 -> 83, Plan 80H: quads lose their labels. The player's names for them
+// and the marks that made a quad of a space detection passed over
+// (GameState's quads) go; detection reads only what the campus encloses.
+function dropQuadMarks(state: GameState): void {
+  delete (state as GameState & { quads?: unknown }).quads;
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
@@ -129,6 +135,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   79: noDeclineYet,
   80: noLiftYet,
   81: benchFacings,
+  82: dropQuadMarks,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -513,29 +520,6 @@ function sanitizeSeats(state: GameState): void {
     : [];
   if (valid.length > 0) state.seats = valid;
   else delete state.seats;
-}
-
-// Quad hygiene, run on every load: the field is optional, and a malformed
-// one is dropped rather than half-read. Names are capped as NAME_QUAD caps
-// them; marks must be tile keys on the land.
-function sanitizeQuads(state: GameState): void {
-  const q = state.quads as unknown;
-  if (q === undefined) return;
-  if (typeof q !== 'object' || q === null) { delete state.quads; return; }
-  const raw = q as { names?: unknown; designated?: unknown };
-  const names: Record<string, string> = {};
-  if (typeof raw.names === 'object' && raw.names !== null) {
-    for (const [key, name] of Object.entries(raw.names)) {
-      if (typeof name === 'string' && name.trim() !== '' && parsePathTileKey(key)) names[key] = name.trim().slice(0, QUAD_NAME_MAX);
-    }
-  }
-  const designated = Array.isArray(raw.designated)
-    ? raw.designated.filter((key): key is string => {
-      const t = typeof key === 'string' ? parsePathTileKey(key) : null;
-      return t !== null && isLand(t.row, t.col);
-    })
-    : [];
-  state.quads = { names, designated };
 }
 
 // The five venue categories a team can reference, kept local rather than
@@ -974,7 +958,6 @@ function sanitize(state: GameState): void {
   // Trees after placements: it reads the cleaned placements.
   sanitizeTrees(state);
   sanitizeEstate(state);
-  sanitizeQuads(state);
   sanitizeSeats(state);
   sanitizeQuirks(state);
   sanitizeAlumni(state);

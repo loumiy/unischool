@@ -625,19 +625,6 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         <span className="build-tile-name">Fell trees</span>
         <span className="build-tile-foot">clear woodland</span>
       </button>
-      {/* Quads are found on their own (state/quads.ts); this marks an open
-          space the finder passed over. */}
-      <button
-        type="button"
-        className={`build-tile tool ${pathTool === 'quad' ? 'placing' : ''}`}
-        aria-pressed={pathTool === 'quad'}
-        onClick={() => onSetPathTool('quad')}
-        title="Mark the open space under a click as a quad, where the campus has not already made it one. It must be closed off from the edge of the campus. Click a quad on the map to name it or lift the mark."
-      >
-        <span className="build-tile-icon"><QuadIcon /></span>
-        <span className="build-tile-name">Mark a quad</span>
-        <span className="build-tile-foot">name an open space</span>
-      </button>
       {/* Lamps and benches: free, on or beside a path, one a click. */}
       <button
         type="button"

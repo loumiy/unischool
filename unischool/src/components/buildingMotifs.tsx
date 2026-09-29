@@ -7,7 +7,7 @@ import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import Landmark from './landmarks';
 import { ColorsContext } from './mapOccasions';
 import {
-  labFeatureOf, type LabFeature,
+  labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
   CROSS_BAR_METRES, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
   CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
@@ -362,15 +362,17 @@ export function ScaffoldPattern() {
 }
 
 // What a laboratory carries on its roof to say which science it is
-// (buildingSpec.ts's labFeatureOf). Standing on the roof at `base`.
-function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
-  feature: LabFeature; col: number; row: number; w: number; h: number; base: number; tint: string;
+// (buildingSpec.ts's labFeatureOf). Standing on the roof at `base`. The
+// observatory and the glasshouse are one thing each; the flues are three,
+// and each is drawn alone (Flue), so the roof's sort can place each one.
+function LabRoofFeature({ feature, col, row, w, h, base }: {
+  feature: 'observatory' | 'glasshouse'; col: number; row: number; w: number; h: number; base: number;
 }) {
   if (feature === 'observatory') {
     // A drum and a dome at the front of the roof, taller than the lab under
     // it, with the shutter slit facing the camera.
-    const r = Math.min(w, h) * 0.3;
-    const cc = col + w * 0.62; const cr = row + h * 0.55;
+    const r = Math.min(w, h) * OBSERVATORY_RADIUS;
+    const cc = col + w * OBSERVATORY_AT[0]; const cr = row + h * OBSERVATORY_AT[1];
     const drumRise = up(8);
     const ring = (z: number) => projectedCircle(cc, cr, r, 32).map((q) => lift(q, z));
     const bottom = ring(base); const top = ring(base + drumRise);
@@ -411,7 +413,8 @@ function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
     // runs along col (ridgeA at -col, ridgeB at +col), so the roof is built
     // from grid corners: the -row and +row slopes, back one first, and the
     // one gable end the camera sees.
-    const gh = boxFaces(col + w * 0.12, row + h * 0.52, w * 0.62, h * 0.36, base, up(2.6));
+    const [gc, gr, gw, gd] = GLASSHOUSE;
+    const gh = boxFaces(col + w * gc, row + h * gr, w * gw, h * gd, base, up(2.6));
     const ridgeA = lift(project(col + w * 0.12, row + h * 0.7), base + up(4.2));
     const ridgeB = lift(project(col + w * 0.74, row + h * 0.7), base + up(4.2));
     const slopes: Array<[FaceDir, Pt[]]> = [
@@ -431,19 +434,75 @@ function LabRoofFeature({ feature, col, row, w, h, base, tint }: {
       </g>
     );
   }
-  // Fume flues: a row of tall thin stacks along the back of the roof.
-  const sp = across(0.9);
+  return null;
+}
+
+// Where a lab's feature stands, in fractions of the footprint: the
+// observatory's drum (its center, and its radius as a share of the shorter
+// side), the glasshouse's box (col, row, w, h), and the fume flues, a row of
+// tall thin stacks along the back of the roof (each flue's col; one row).
+const OBSERVATORY_AT = [0.62, 0.55] as const;
+const OBSERVATORY_RADIUS = 0.3;
+const GLASSHOUSE = [0.12, 0.52, 0.62, 0.36] as const;
+const FLUES = [0.2, 0.4, 0.6] as const;
+const FLUE_ROW = 0.12;
+// Roof plant, heaviest on labs and hospitals, in footprint fractions (col,
+// row, w, h), capped at a real air-handler size (about 5 m by 4 m). A roof
+// shorter than 4 tiles either way carries one unit.
+const ROOF_PLANT: Partial<Record<Motif, readonly (readonly [number, number, number, number])[]>> = {
+  works: [[0.12, 0.18, 0.28, 0.26], [0.48, 0.44, 0.32, 0.28], [0.18, 0.6, 0.22, 0.22]],
+  block: [[0.08, 0.10, 0.30, 0.26], [0.46, 0.12, 0.22, 0.18], [0.10, 0.52, 0.24, 0.22], [0.52, 0.56, 0.34, 0.32]],
+  pavilion: [[0.18, 0.26, 0.26, 0.24], [0.54, 0.52, 0.28, 0.22]],
+};
+
+// One thing standing on a flat roof, on the ground (in tiles) it covers.
+export interface RoofItem extends DepthBox {
+  kind: 'stack' | 'plant' | 'flue' | 'observatory' | 'glasshouse';
+  key: string;
+}
+
+const clearOf = (a: DepthBox, b: DepthBox) =>
+  a.col + a.w <= b.col || b.col + b.w <= a.col || a.row + a.h <= b.row || b.row + b.h <= a.row;
+
+// Everything on a flat roof (Plan 80H): a lab's feature, its flues, the
+// exhaust stack and the roof plant, in one painter's order for this camera
+// (depthSort.ts), so nothing shows through the dome or the glass at any
+// view. Which plant units stand does not depend on the view: on a small
+// roof, the first unit clear of everything else on it (the depth sort chose
+// it, and at three views of four it stood inside the dome or the glasshouse).
+export function flatRoofItems(motif: Motif, feature: LabFeature | undefined, col: number, row: number, w: number, h: number): RoofItem[] {
+  const fixed: RoofItem[] = [];
+  if (motif === 'works') {
+    // The lab exhaust stack at the back corner.
+    const sp = across(1.2);
+    fixed.push({ kind: 'stack', key: 'stack', col: col + w * 0.88 - sp, row: row + h * 0.08, w: sp, h: sp });
+  }
+  if (feature === 'observatory') {
+    const r = Math.min(w, h) * OBSERVATORY_RADIUS;
+    fixed.push({ kind: 'observatory', key: 'observatory', col: col + w * OBSERVATORY_AT[0] - r, row: row + h * OBSERVATORY_AT[1] - r, w: 2 * r, h: 2 * r });
+  } else if (feature === 'glasshouse') {
+    const [gc, gr, gw, gd] = GLASSHOUSE;
+    fixed.push({ kind: 'glasshouse', key: 'glasshouse', col: col + w * gc, row: row + h * gr, w: w * gw, h: h * gd });
+  } else if (feature === 'flues') {
+    const sp = across(0.9);
+    for (const u of FLUES) fixed.push({ kind: 'flue', key: `flue-${u}`, col: col + w * u, row: row + h * FLUE_ROW, w: sp, h: sp });
+  }
+  const plant: RoofItem[] = (ROOF_PLANT[motif] ?? []).map(([fx, fy, fw, fh], i) => ({
+    kind: 'plant', key: `plant-${i}`,
+    col: col + w * fx, row: row + h * fy, w: Math.min(w * fw, across(5.5)), h: Math.min(h * fh, across(4.5)),
+  }));
+  const kept = Math.min(w, h) >= 4 || plant.length === 0 ? plant
+    : [plant.find((u) => fixed.every((o) => clearOf(u, o))) ?? plant[0]];
+  return depthOrder([...fixed, ...kept]);
+}
+
+// One fume flue, standing on the roof at `base`.
+function Flue({ col, row, w, h, base, tint }: DepthBox & { base: number; tint: string }) {
+  const st = boxFaces(col, row, w, h, base, up(8.5));
   return (
-    <g className="lab-flues">
-      {[0.2, 0.4, 0.6].map((u) => {
-        const st = boxFaces(col + w * u, row + h * 0.12, sp, sp, base, up(8.5));
-        return (
-          <g key={u}>
-            {sideFaces(st, shade(tint, 0.9), shade(tint, 0.74))}
-            <polygon points={polyPoints(st.top)} fill={shade(tint, 0.4)} />
-          </g>
-        );
-      })}
+    <g className="lab-flue">
+      {sideFaces(st, shade(tint, 0.9), shade(tint, 0.74))}
+      <polygon points={polyPoints(st.top)} fill={shade(tint, 0.4)} />
     </g>
   );
 }
@@ -4637,42 +4696,29 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
               </>
             );
           })()}
-          {!site && motif === 'works' && (() => {
-            // The lab exhaust stack at the back corner.
-            const sp = across(1.2);
-            const st = boxFaces(col + w * 0.88 - sp, row + h * 0.08, sp, sp, H, up(6));
+          {!site && flatRoofItems(motif, labFeatureOf(t), col, row, w, h).map((item) => {
+            if (item.kind === 'observatory' || item.kind === 'glasshouse') {
+              return <LabRoofFeature key={item.key} feature={item.kind} col={col} row={row} w={w} h={h} base={H} />;
+            }
+            if (item.kind === 'flue') return <Flue key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} tint={roofTint} />;
+            if (item.kind === 'stack') {
+              const st = boxFaces(item.col, item.row, item.w, item.h, H, up(6));
+              return (
+                <g key={item.key}>
+                  {sideFaces(st, shade(roofTint, 0.82), shade(roofTint, 0.68))}
+                  <polygon points={polyPoints(st.top)} fill={shade(roofTint, 0.45)} />
+                </g>
+              );
+            }
             return (
-              <>
-                {sideFaces(st, shade(roofTint, 0.82), shade(roofTint, 0.68))}
-                <polygon points={polyPoints(st.top)} fill={shade(roofTint, 0.45)} />
-              </>
-            );
-          })()}
-          {!site && labFeatureOf(t) && (
-            <LabRoofFeature feature={labFeatureOf(t)!} col={col} row={row} w={w} h={h} base={H} tint={roofTint} />
-          )}
-          {!site && (motif === 'works' || motif === 'pavilion' || motif === 'block') && (
-            // Roof plant, heaviest on labs and hospitals. Sorted back to
-            // front with depthSort.ts's comparator (in footprint fractions),
-            // since the lists are not authored in paint order.
-            depthOrder(
-              (motif === 'works'
-                ? [[0.12, 0.18, 0.28, 0.26], [0.48, 0.44, 0.32, 0.28], [0.18, 0.6, 0.22, 0.22]]
-                : motif === 'block'
-                  ? [[0.08, 0.10, 0.30, 0.26], [0.46, 0.12, 0.22, 0.18], [0.10, 0.52, 0.24, 0.22], [0.52, 0.56, 0.34, 0.32]]
-                  : [[0.18, 0.26, 0.26, 0.24], [0.54, 0.52, 0.28, 0.22]]
-              ).map(([fx, fy, fw, fh]) => ({ col: fx, row: fy, w: fw, h: fh })),
-            ).filter((_, i) => Math.min(w, h) >= 4 || i === 0).map((unit, i) => (
-              // Capped at a real air-handler size (about 5 m by 4 m).
               <RoofBox
-                key={i}
-                col={col + w * unit.col} row={row + h * unit.row}
-                w={Math.min(w * unit.w, across(5.5))} h={Math.min(h * unit.h, across(4.5))}
+                key={item.key}
+                col={item.col} row={item.row} w={item.w} h={item.h}
                 base={H} height={motif === 'works' ? 12 : motif === 'block' ? 15 : 9}
                 tint={plantTint}
               />
-            ))
-          )}
+            );
+          })}
         </>
       )}
       {/* The exchange's temple front, after the roof its pediment rises over. */}

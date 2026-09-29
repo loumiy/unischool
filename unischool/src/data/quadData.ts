@@ -1,5 +1,5 @@
 // Quads (state/quads.ts): the open spaces the buildings enclose. What counts
-// as one, in tiles at 9m a tile, and the names the college gives them.
+// as one, in tiles at 9m a tile.
 // Ported from v2 and rescaled: this game's halls are 5 to 7 tiles deep and
 // its parcel four times the size.
 
@@ -19,13 +19,3 @@ export const QUAD_DOORWAY_WIDTH = 2;
 export const QUAD_DOORWAY_DEPTH = 7;
 // How much a green quad beats a paved one, in quality.
 export const QUAD_GREEN_WEIGHT = 0.5;
-
-// Given in turn, each to one quad, until the player renames them.
-export const QUAD_NAMES: readonly string[] = [
-  'The Old Quad', 'Founders Quad', 'The Green', 'North Quad', 'South Quad', 'The Cloister',
-  'Chapel Green', 'The Yard', 'Library Court', 'The Lower Green', 'Alumni Quad', 'The Long Court',
-  'East Court', 'West Green', 'The Common', 'Fellows Garden', 'Scholars Walk', 'The Close',
-];
-
-// The longest name a player can give one.
-export const QUAD_NAME_MAX = 40;
