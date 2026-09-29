@@ -66,6 +66,8 @@ beside the faster renderer, which would carry elevation natively.
 
 **As implemented (#255):**
 
+*Later: Plan 82 (#259) restored the full scene during turns (the ring is drawn whole on every frame, not hidden).*
+
 - **The land** (`ringLand.ts`, drawn by `Surroundings.tsx`): 200 tiles of
   country on every side, from a seeded hash of the college's name, never
   saved. Blocks round the parcel and the road are halved into fields

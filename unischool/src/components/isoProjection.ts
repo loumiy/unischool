@@ -174,6 +174,14 @@ export function groundSquash(): number {
 
 // --- the projection -------------------------------------------------------
 
+// A projection held to one camera, apart from the current one: for a loop on
+// its own clock (Walkers.tsx) that must draw at the camera the scene has
+// committed, not the one a turn has already set for its next frame (Plan 82).
+export function projectorFor(c: Camera): (col: number, row: number) => Pt {
+  const f = c.azimuth === frame.camera.azimuth && c.pitch === frame.camera.pitch ? frame : frameFor(c);
+  return (col, row) => ({ x: f.xCol * col + f.xRow * row, y: f.yCol * col + f.yRow * row });
+}
+
 // Grid corner (col, row) to world point. Corner coordinates, not tile
 // indices: tile (row, col) spans corners (col, row) to (col + 1, row + 1).
 // A linear map: rotate by the azimuth, squash y by sin(pitch).

@@ -52,13 +52,18 @@ and it is never saved: it is where the player is looking from, not a fact
 about the school.
 
 A quarter turn is eased over `TURN_MS` (Plan 37; reduced motion snaps), and
-each of its frames redraws the scene at a new angle. So a turn draws the
-scene light (Plan 80H): the buildings, the ground, the plates and the paths,
-without the trees, the props standing on the grounds, the lamps and the
-benches, which come back on the frame the turn settles. The walkers are
-hidden through a turn and walk on unseen; they are drawn again once their
-outlines are built for the view the projection is at, which also keeps a
-tilt from showing them for a frame against the old one.
+each of its frames redraws the whole scene at a new angle: the buildings,
+the trees, the props on the grounds, the lamps and benches, the land around
+the campus and the walkers (Plan 82; Plan 80H had drawn the turn light,
+without trees, props, dressing or walkers, for a frame about a fifth
+cheaper and a turn no quicker, and the owner saw things vanish). The
+walkers are drawn at the camera the scene has committed (`projectorFor`,
+taken in a layout effect with each commit), never the projection's current
+one, which a turn sets for its next frame before the scene has drawn it:
+reading that is what once drew them displaced. Through a turn they go
+unclipped (a walker may show through a building for the quarter second);
+the outlines that clip them are built again for the view the turn settles
+on, and a tilt, which snaps, builds them for its view the same way.
 
 Three consequences, each in its own place:
 
@@ -209,11 +214,9 @@ parcel's edge.
   and the leaf colors): crops ripen and come up green, the trees turn and
   go bare as the campus's do, the pines take a dusting,
   and all of it lies under the snow in winter.
-- **Turning**: while the camera turns, the ring is its flat plate, the road
-  and the haze. The rest stays mounted at the view it last rested on,
-  hidden (`visibility`, so the browser keeps its layout), and the frame
-  that settles the turn updates it rather than building it again (Plan
-  80H's rule for the trees, kept cheap).
+- **Turning**: the ring is drawn whole at every angle a turn passes through
+  (Plan 82), built afresh each frame (`ringView(name, false)`); those views
+  are not kept, so the cache holds only views the camera rests on.
 - **The camera's leash** (`clampView`, `ringZoomFloor`): pan and zoom are
   held so every corner of the canvas stays over the ring at any zoom,
   pitch and view, and the canvas's center within `CENTRE_REACH` (70) tiles

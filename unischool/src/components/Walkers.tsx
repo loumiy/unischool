@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import type { CampusLayout } from './campusLayout';
 import { drawnHeightOf } from './buildingMotifs';
@@ -6,7 +6,7 @@ import { GATE_ID, gatePieces, motifOf, wallHeightOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { treeOutline, treeShape } from './trees';
 import { parsePathTileKey } from '../state/campusMap';
-import { boxFaces, cameraAxes, currentCamera, groundSquash, heightScale, project, type Camera, type Pt } from './isoProjection';
+import { boxFaces, cameraAxes, groundSquash, heightScale, projectorFor, type Camera, type Pt } from './isoProjection';
 import { RouteTable, doors, pointStop, roadsides, walkGrid, type Entrance, type Stop, type Waypoint } from './walkRoutes';
 
 // Students walking real routes between the buildings they use (ported from
@@ -19,12 +19,17 @@ import { RouteTable, doors, pointStop, roadsides, walkGrid, type Entrance, type 
 // nearer the camera cuts a walker behind it by its outline (a clip), so a
 // figure slides behind a wall rather than popping out of sight.
 //
-// While the camera turns the crowd is hidden, and it keeps walking unseen
-// (Plan 80H): its loop read the new angle a frame or more before the scene
-// had turned, so it was drawn displaced, and every frame of the turn rebuilt
-// every outline. It is drawn again, where it belongs, once the turn settles
-// and the outlines are built for the view the projection is at; a tilt,
-// which snaps, waits for its outlines the same way.
+// The crowd is drawn at the camera the scene has committed, never the
+// projection's current one: a turn sets the projection for its next frame
+// before the scene has drawn it, and the walkers' loop, on its own frame
+// clock, used to read that angle first and draw the crowd displaced a frame
+// or more from the scene (the owner's complaint that led Plan 80H to hide
+// it through a turn). Now the committed camera is taken with each commit
+// (useLayoutEffect) and the crowd is placed for it there and then, so
+// through a turn it walks on in view, where it belongs (Plan 82). The
+// outlines that clip a walker behind a building are built only for a view
+// the camera rests on; through a turn, a quarter of a second, the crowd is
+// drawn unclipped, and the settling frame builds them again.
 //
 // A walk runs door to door (walkRoutes.ts): out of the wall at one end and
 // into it at the other, fading as it passes through. A door in view opens
@@ -429,9 +434,17 @@ export default function Walkers({ layout, students, gait, camera, turning }: {
   const figureRef = useRef(figureScale());
   // Set when the camera moves: the doors the scene drew are new ones.
   const doorsStaleRef = useRef(false);
-  // The camera the outlines were built for, or null while a turn runs: the
-  // crowd is drawn only while it is the projection's.
+  // The camera the outlines were built for, or null while a turn runs:
+  // walkers are clipped only while it is the committed camera.
   const builtForRef = useRef<Camera | null>(null);
+  // The camera the scene has committed, and its projection: what the crowd
+  // is drawn at (see the top of this file).
+  const camRef = useRef(camera);
+  const projRef = useRef(projectorFor(camera));
+  const turningRef = useRef(turning);
+  // Places every walker for the committed camera at once, set by the frame
+  // loop's effect.
+  const placeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -566,40 +579,75 @@ export default function Walkers({ layout, students, gait, camera, turning }: {
     // was last drawn, out of sight.
     const svg = layer.ownerSVGElement;
     const view = { x0: -Infinity, y0: -Infinity, x1: Infinity, y1: Infinity };
+    // The canvas's size is read only while the camera rests: through a
+    // turn, reading it would lay out a scene the turn has just redrawn.
+    const size = { w: 0, h: 0 };
     const readView = () => {
       const m = /translate\((-?[\d.e-]+)[ ,](-?[\d.e-]+)\) scale\(([\d.e-]+)\)/.exec((world as Element | null)?.getAttribute('transform') ?? '');
       if (!m || !svg) return;
+      if (!turningRef.current || size.w === 0) { size.w = svg.clientWidth; size.h = svg.clientHeight; }
       const tx = Number(m[1]);
       const ty = Number(m[2]);
       const k = Number(m[3]) || 1;
       const margin = OFFSCREEN_MARGIN / k + FIGURE_H * 2;
       view.x0 = -tx / k - margin;
       view.y0 = -ty / k - margin;
-      view.x1 = (svg.clientWidth - tx) / k + margin;
-      view.y1 = (svg.clientHeight - ty) / k + margin;
+      view.x1 = (size.w - tx) / k + margin;
+      view.y1 = (size.h - ty) / k + margin;
     };
 
     let frame = 0;
     let last = performance.now();
-    let hidden = layer.style.visibility === 'hidden';
+    // One walker drawn at the committed camera: moved, stepping, and cut by
+    // the buildings in front of it while the outlines are this view's.
+    const draw = (w: Walker, moving: boolean, all: boolean) => {
+      const proj = projRef.current;
+      const len = w.lengths[w.lengths.length - 1];
+      const pos = along(w.route, w.lengths, w.u);
+      const p = proj(pos.col, pos.row);
+      if (w.opacity === 0) return;
+      if (!all && (p.x < view.x0 || p.x > view.x1 || p.y < view.y0 || p.y > view.y1)) return;
+      const s = figureRef.current;
+      // The step: the feet swing along the way it is going, and it rises
+      // a little on each.
+      const swing = moving ? Math.sin(w.phase) : 0;
+      const bob = moving ? Math.abs(Math.cos(w.phase)) * STEP_BOB * s : 0;
+      let hx = 1;
+      let hy = 0;
+      if (moving) {
+        const a = along(w.route, w.lengths, Math.min(len, w.u + 0.1));
+        const ahead = proj(a.col, a.row);
+        const dx = ahead.x - p.x;
+        const dy = ahead.y - p.y;
+        const m = Math.hypot(dx, dy);
+        if (m > 1e-6) { hx = dx / m; hy = dy / m; }
+      }
+      stepLegs(w.legs, swing * s, hx, hy, s);
+      w.mover.setAttribute('transform', `translate(${p.x.toFixed(1)},${(p.y - bob).toFixed(1)})`);
+      // Every building between this walker and the camera cuts it, while
+      // the outlines are the committed camera's; through a turn, none.
+      const clipping = builtForRef.current === camRef.current;
+      const ax = axRef.current;
+      const cover = clipping
+        ? coveringBuildings(shapesRef.current, p, pos, ax.sinA, ax.cosA, FIGURE_H * s, indexRef.current.near(p, FIGURE_H * s))
+        : [];
+      for (let k = 0; k < MAX_CLIPS; k++) {
+        const id = k < cover.length ? `url(#${clipName(cover[k])})` : null;
+        if (w.clipIds[k] === id) continue;
+        if (id) w.clips[k].setAttribute('clip-path', id);
+        else w.clips[k].removeAttribute('clip-path');
+        w.clipIds[k] = id;
+      }
+    };
+    // The whole crowd placed for a camera just committed, off screen too.
+    placeRef.current = () => {
+      for (const w of walkers) draw(w, w.u < w.lengths[w.lengths.length - 1] && gaitRef.current > 0, true);
+    };
     const step = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       table.grow(1);
-      const s = figureRef.current;
-      const built = builtForRef.current;
-      const cam = currentCamera();
-      const show = built !== null && Math.abs(built.azimuth - cam.azimuth) < 1e-9 && Math.abs(built.pitch - cam.pitch) < 1e-9;
-      if (!show && !hidden) {
-        layer.style.visibility = 'hidden';
-        hidden = true;
-      }
-      // Hidden, the crowd walks on unseen: no view to read (reading the
-      // canvas's size lays out a scene the turn has just redrawn). Coming
-      // back, every figure is placed, off screen too, so none is left where
-      // the old view had it.
-      if (show) readView();
-      const reveal = show && hidden;
+      readView();
       const nextHeld = new Set<string>();
       for (const w of walkers) {
         const total = w.lengths[w.lengths.length - 1];
@@ -619,8 +667,6 @@ export default function Walkers({ layout, students, gait, camera, turning }: {
           }
         }
         const len = w.lengths[w.lengths.length - 1];
-        const pos = along(w.route, w.lengths, w.u);
-        const p = project(pos.col, pos.row);
         // Faded into a wall at either end; hidden while it rests inside.
         const o = len > 0
           ? doorOpacity(w.u, len, !!w.exit?.side, !!w.entry?.side)
@@ -631,59 +677,42 @@ export default function Walkers({ layout, students, gait, camera, turning }: {
           w.mover.setAttribute('opacity', String(oq));
         }
         for (const k of doorsHeld(w.u, len, doorKey(w.exitId, w.exit), doorKey(w.entryId, w.entry))) nextHeld.add(k);
-        if (oq === 0 || !show) continue;
-        if (!reveal && (p.x < view.x0 || p.x > view.x1 || p.y < view.y0 || p.y > view.y1)) continue;
-        // The step: the feet swing along the way it is going, and it rises
-        // a little on each.
-        const swing = moving ? Math.sin(w.phase) : 0;
-        const bob = moving ? Math.abs(Math.cos(w.phase)) * STEP_BOB * s : 0;
-        let hx = 1;
-        let hy = 0;
-        if (moving) {
-          const a = along(w.route, w.lengths, Math.min(len, w.u + 0.1));
-          const ahead = project(a.col, a.row);
-          const dx = ahead.x - p.x;
-          const dy = ahead.y - p.y;
-          const m = Math.hypot(dx, dy);
-          if (m > 1e-6) { hx = dx / m; hy = dy / m; }
-        }
-        stepLegs(w.legs, swing * s, hx, hy, s);
-        w.mover.setAttribute('transform', `translate(${p.x.toFixed(1)},${(p.y - bob).toFixed(1)})`);
-        // Every building between this walker and the camera cuts it.
-        const ax = axRef.current;
-        const cover = coveringBuildings(shapesRef.current, p, pos, ax.sinA, ax.cosA, FIGURE_H * s, indexRef.current.near(p, FIGURE_H * s));
-        for (let k = 0; k < MAX_CLIPS; k++) {
-          const id = k < cover.length ? `url(#${clipName(cover[k])})` : null;
-          if (w.clipIds[k] === id) continue;
-          if (id) w.clips[k].setAttribute('clip-path', id);
-          else w.clips[k].removeAttribute('clip-path');
-          w.clipIds[k] = id;
-        }
+        // Through a turn the crowd is drawn with each commit of the scene
+        // (placeRef, below), at the angle that commit draws; here it only
+        // walks on.
+        if (!turningRef.current) draw(w, moving, false);
       }
       // After a turn the scene's doors are redrawn for the new walls in
       // view: open them afresh.
       const redraw = doorsStaleRef.current;
       doorsStaleRef.current = false;
       if (redraw || nextHeld.size !== held.size || [...nextHeld].some((k) => !held.has(k))) setDoors(nextHeld, redraw);
-      // Back in sight only after every figure has been placed for this view.
-      if (reveal) {
-        layer.style.visibility = '';
-        hidden = false;
-      }
       frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
     return () => {
       cancelAnimationFrame(frame);
+      placeRef.current = null;
       setDoors(new Set(), true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeLayout, want]);
 
+  // The committed camera, taken with the commit that draws the scene at it,
+  // and the crowd placed for it before the frame is painted: through a
+  // turn, walker and scene always share one angle (Plan 82).
+  turningRef.current = turning;
+  useLayoutEffect(() => {
+    camRef.current = camera;
+    projRef.current = projectorFor(camera);
+    placeRef.current?.();
+  }, [camera]);
+
   // The camera's part: each walker's figure answers the tilt, and the
-  // outlines that clip them are rebuilt for the view, once it has settled
-  // (the crowd is hidden through a turn; Plan 42's walkers drawn over the
-  // buildings in front of them mid-turn cannot happen).
+  // outlines that clip them are rebuilt for the view the camera rests on.
+  // Through a turn there are none (draw's `clipping`): a walker may show
+  // through a building for the quarter second, where building every
+  // outline at every angle would cost each frame of the turn (Plan 82).
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
@@ -699,6 +728,7 @@ export default function Walkers({ layout, students, gait, camera, turning }: {
     indexRef.current = new ShapeIndex(shapesRef.current);
     writeClips(layer, shapesRef.current);
     builtForRef.current = camera;
+    placeRef.current?.();
   }, [layout, camera, want, turning]);
 
   return <g ref={layerRef} className="campus-walkers" aria-hidden="true" />;
