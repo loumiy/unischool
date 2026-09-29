@@ -340,7 +340,7 @@ after:
 - **Checks:** the gallery in each vernacular; a bench at each facing and
   view.
 
-**As implemented (#TBD):**
+**As implemented (#246):**
 
 - **The chapel** is a motif of its own, `'chapel'` (`buildingSpec.ts`'s
   `CHAPELS` table and `chapelPlan`; `buildingMotifs.tsx`'s `Chapel`): a
