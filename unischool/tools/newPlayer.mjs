@@ -154,8 +154,8 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
   // The NEXT line, noted whenever it changes.
   const next = page.locator('.log-ticker-next-text');
   if (await next.count()) {
-    const text = (await next.innerText()).trim();
-    if (!seen.has(`next:${text}`)) { seen.add(`next:${text}`); note(`next: ${text}`); }
+    const text = (await next.innerText({ timeout: 1000 }).catch(() => '')).trim();
+    if (text && !seen.has(`next:${text}`)) { seen.add(`next:${text}`); note(`next: ${text}`); }
   }
 
   // A stall: the clock has not moved for 20 seconds and nothing is asking.

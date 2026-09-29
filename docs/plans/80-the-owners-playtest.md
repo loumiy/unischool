@@ -464,9 +464,12 @@ funds D introduces. Save bumps land in merge order.
   "A fourth program" milestone keeps its condition (four housed).
 - **Letters expire:** a milestone records its week (`s.ladder.reachedWeek`);
   its letter, and the founding note, leave the inbox a year after
-  (`LETTER_WEEKS`). **Save 81 → 82:** each milestone reached is dated to
-  week 1 of its year, and a walk held on the old "teaching" or "found" step
-  resumes at play; fixture `save-v81.json` (a Guided Year 9 run).
+  (`LETTER_WEEKS`). **Save 84 → 85** (`MIGRATIONS[84]`, after 80I's, 80H's
+  and 80C's): each milestone reached is dated to week 1 of its year, and a
+  walk held on the old "teaching" or "found" step resumes at play.
+  Fixtures: `save-v84.json` (the `year-8-balanced` scenario written by
+  main before this PR) for the chain, and `save-v81-opening.json` (a
+  Guided Year 9 run from before it) for the milestone weeks.
 - **The pennant** renames nothing. The charter's letter carries a name
   field beside its two answers; an answer with a new name renames the
   college first. `RENAME_COLLEGE` is refused unless the charter waits, so
@@ -476,20 +479,28 @@ funds D introduces. Save bumps land in merge order.
   the market, then found). Tests written against the old college use
   `test/fixtures/teaching.ts`, which appoints the three and houses the
   pillars with two courses each.
-- **Baseline move** (medians, three seeds): the Guided player at Year 10
-  has 4,810 students (−519), 63 courses (−15) and 5 schools (−1), with
-  $12.2M (+$7.9M); at Year 25 rank 13 (+5), at Year 50 rank 1, prestige
-  141.7 (−0.7), $132M (−$41M); lowest cash $0.2M. The Completionist is
-  909 students and 10 courses behind at Year 10, and level by Year 50
-  (+$71M). Selective finishes rank 15 (from 23), Lean about as before. The
-  Idle college never founds: no course, no students from Year 10 (51
-  before), and its prestige, no longer held down by an unhappy body, sits
-  near 50.
+- **Baseline move**, against main's after 80B, 80C, 80E, 80H and 80I
+  (medians, three seeds): the Guided player at Year 10 has 4,897 students
+  (−465), 74 courses (−7) and 4 schools (−2), with $8.7M (+$4.1M); at Year
+  25 rank 10 (−2, better), 25,680 students (−1,200), $40.7M (−$27.2M); at
+  Year 50 rank 1, prestige 143.3 (−0.9), $289M (−$671M); lowest cash
+  $0.2M. The Completionist is 623 students and 7 courses behind at Year
+  10, level by Year 25, and ends with $133M (−$843M) at rank 1. Selective
+  and Lean finish a place or four better (Lean +2,930 students and +$322M
+  at Year 50). The Idle college never founds: no course, no students from
+  Year 10 (51 before), and its prestige, no longer held down by an unhappy
+  body, sits near 50. The Year-50 cash of the players that build
+  everything swings by hundreds of millions on small timing changes; the
+  shape of each run holds.
+- **With the committee** (80B, 80E): founding needs a free committee seat.
+  The walk's first founding always has one, and the seating reading and
+  the first letter step aside while the committee is full, so neither the
+  walk nor the harness waits on a founding that would be refused.
 - **Checks:** `opening.test.ts` (the walk from the founding to English
   founded, a professor appointed early, the skip at each step),
   `first-year.test.ts` (NEXT seats the students), `inbox.test.ts` (letters
   expire), `charter.test.ts` (the rename, once), `save-migrations.test.ts`
-  (81 → 82), `guided.test.ts` (founds and seats every student in Year 1).
+  (84 → 85), `guided.test.ts` (founds and seats every student in Year 1).
   `npm run newplayer` follows the new walk to Year 2 with no stall.
 
 ## PR 80E — The committee
