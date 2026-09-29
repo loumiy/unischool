@@ -666,7 +666,8 @@ after:
   nets a little less than on main. With a modest normal rate nothing in
   upkeep can pull it back: only a flat share near 1.0 did, which is what the
   owner turned down. Seed 777's extra is a large dining hall built ahead
-  of its students.
+  of its students. Offered a stronger cost of being large or a softer
+  founding admit rate, the owner chose to merge as is.
 - **The baseline moved** (re-recorded against main's after G; medians): the
   Guided player grows faster early (Year 10: 7,520 students, +2,636; 94
   courses, +20), is level by Year 25 (26,400, −400) and at Year 50 is rank
