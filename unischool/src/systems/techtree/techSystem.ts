@@ -220,10 +220,11 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // `financing`: a loan for the shortfall, or campaign-raised building money
 // (finance/treasury.ts), for placeables only; courses are paid in cash.
 // The curriculum committee (Plan 68; the owner kept it in Plan 71): only so
-// many undergraduate courses can be in development at once, since writing a
-// curriculum takes the college's attention. Four seats, and one more at each
-// of COMMITTEE_PRESTIGE_STEPS, up to eight. Graduate courses have their own
-// gates and are not counted. The Curriculum tab shows the seats.
+// many courses can be in development at once, since writing a curriculum
+// takes the college's attention. Four seats, and one more at each of
+// COMMITTEE_PRESTIGE_STEPS, up to eight. Graduate courses take a seat like
+// any other (Plan 80E). The Curriculum tab and the dock's committee chip
+// show the seats.
 export const COURSE_DEVELOPMENT_SLOTS = 4;
 export const COMMITTEE_PRESTIGE_STEPS: readonly number[] = [70, 80, 90, 100];
 export function committeeSeats(s: GameState): number {
@@ -235,10 +236,21 @@ export function nextCommitteeSeatAt(s: GameState): number | null {
 }
 export const isUndergraduateCourse = (t: Buildable) => t.kind === 'course' && t.graduateProgram === undefined;
 export function coursesInDevelopment(s: GameState): Buildable[] {
-  return s.tech.filter((t) => isUndergraduateCourse(t) && t.status === 'developing');
+  return s.tech.filter((t) => t.kind === 'course' && t.status === 'developing');
 }
 export function courseSlotsFree(s: GameState): number {
   return Math.max(0, committeeSeats(s) - coursesInDevelopment(s).length);
+}
+
+// The dock's committee chip (Plan 80E): courses being written of the most at
+// once, and whether a free place could be used now, which flags the chip. A
+// place with nothing that can start (no cash, no professor, or nothing left
+// to write) is not flagged, so the flag always means there is something to do.
+export function committeeStatus(s: GameState): { writing: number; seats: number; ready: boolean } {
+  const writing = coursesInDevelopment(s).length;
+  const seats = committeeSeats(s);
+  const ready = writing < seats && s.tech.some((t) => t.kind === 'course' && t.status === 'available' && canStartDevelopment(s, t));
+  return { writing, seats, ready };
 }
 
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): boolean {
@@ -247,7 +259,7 @@ export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: s
     const programId = programOfCourse(node.id);
     if (programId !== undefined && isInTransit(s, programId)) return false;
   }
-  if (isUndergraduateCourse(node) && node.status === 'available' && courseSlotsFree(s) <= 0) return false;
+  if (node.kind === 'course' && node.status === 'available' && courseSlotsFree(s) <= 0) return false;
   const facultyOk = !node.requiresFaculty
     || (facultyId === undefined
       ? hasFreeFacultySlot(s, node.requiresFaculty)
@@ -386,8 +398,10 @@ function isDone(s: GameState, id: string): boolean {
 // curriculum. It takes an empty hall slot and its entry course starts in the
 // same transaction with the chosen instructor. The program must be on offer
 // in that hall (programOffers.ts's offeredIn), the slot empty, the entry
-// prereqs done, the cash there, and the instructor eligible (the same
-// eligibleInstructors the picker reads).
+// prereqs done, the cash there, the instructor eligible (the same
+// eligibleInstructors the picker reads), and, for a major, room on the
+// curriculum committee (Plan 80B: without it the program slot was taken and
+// the entry course silently left unstarted).
 export interface Founding {
   programId: string;
   hallId: string;
@@ -414,6 +428,10 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   if (!entry || entry.status !== 'locked') return false;
   if (!entry.prereqs.every((id) => isDone(s, id))) return false;
   if (s.finance.cash < entry.cost) return false;
+  // The entry course takes a committee seat, a major's (Plan 80B) or a
+  // graduate program's (Plan 80E), so founding waits for room rather than
+  // leaving the entry course unstarted.
+  if (courseSlotsFree(s) <= 0) return false;
   if (entry.requiresFaculty && !eligibleInstructors(s, entry).some((x) => x.id === f.facultyId)) return false;
   return true;
 }

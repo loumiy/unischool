@@ -7,7 +7,8 @@ import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
-import type { Advancement, AlumniClass, Buildable, CatalogueState, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
+import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { isSweepStep } from '../systems/finance/sweep';
 import {
@@ -16,7 +17,6 @@ import {
 } from './campusMap';
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
-import { QUAD_NAME_MAX } from '../data/quadData';
 import { glyphsFor, RECRUITING_FULL_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
@@ -53,7 +53,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 82; // Plan 80G: each team's scholarships and recruiting
+export const SAVE_VERSION = 84; // Plan 80G: each team's scholarships and recruiting
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -105,7 +105,29 @@ function noLiftYet(state: GameState): void {
   state.students.applicantLift = 0;
 }
 
-// 81 -> 82, Plan 80G: each team carries a scholarship budget and the
+// 81 -> 82, Plan 80I: a bench stores the way it faces. Before, it was
+// drawn along whichever way the paving beside it ran, facing east or south
+// (state/dressing.ts's legacyBenchFacing); each keeps the facing it was
+// drawn with. Lamps are unchanged.
+function benchFacings(state: GameState): void {
+  const raw = (state as { dressing?: unknown }).dressing;
+  if (typeof raw !== 'object' || raw === null) return;
+  const pathways = (typeof state.pathways === 'object' && state.pathways !== null ? state.pathways : {}) as Pathways;
+  const dressing = raw as Record<string, unknown>;
+  for (const [key, kind] of Object.entries(dressing)) {
+    const t = kind === 'bench' ? parsePathTileKey(key) : null;
+    if (t) dressing[key] = benchItem(legacyBenchFacing(pathways, t.row, t.col));
+  }
+}
+
+// 82 -> 83, Plan 80H: quads lose their labels. The player's names for them
+// and the marks that made a quad of a space detection passed over
+// (GameState's quads) go; detection reads only what the campus encloses.
+function dropQuadMarks(state: GameState): void {
+  delete (state as GameState & { quads?: unknown }).quads;
+}
+
+// 83 -> 84, Plan 80G: each team carries a scholarship budget and the
 // strength its recruited classes add. Before it there was no recruiting, so
 // every team starts with no budget and nothing built up; flagships are
 // derived from the order and the subsidy level, never stored.
@@ -123,7 +145,9 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   78: grantHeldCharter,
   79: noDeclineYet,
   80: noLiftYet,
-  81: noRecruitingYet,
+  81: benchFacings,
+  82: dropQuadMarks,
+  83: noRecruitingYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -418,16 +442,16 @@ function sanitizeTrees(state: GameState): void {
   state.trees = clean;
 }
 
-// Dressing hygiene, run on every load: lamps and benches on the land, off
-// the buildings; anything else is dropped.
+// Dressing hygiene, run on every load: lamps and benches (each with a
+// facing) on the land, off the buildings; anything else is dropped.
 function sanitizeDressing(state: GameState): void {
   const raw = state.dressing as unknown;
   if (raw === undefined) return;
   if (typeof raw !== 'object' || raw === null) { delete state.dressing; return; }
-  const clean: Record<string, 'lamp' | 'bench'> = {};
+  const clean: Dressing = {};
   for (const [key, kind] of Object.entries(raw)) {
     const t = parsePathTileKey(key);
-    if (!t || !isLand(t.row, t.col) || (kind !== 'lamp' && kind !== 'bench')) continue;
+    if (!t || !isLand(t.row, t.col) || !isDressingItem(kind)) continue;
     if (Object.values(state.placements).some((p) => t.row >= p.row && t.row < p.row + p.h && t.col >= p.col && t.col < p.col + p.w)) continue;
     clean[pathTileKey(t)] = kind;
   }
@@ -508,29 +532,6 @@ function sanitizeSeats(state: GameState): void {
     : [];
   if (valid.length > 0) state.seats = valid;
   else delete state.seats;
-}
-
-// Quad hygiene, run on every load: the field is optional, and a malformed
-// one is dropped rather than half-read. Names are capped as NAME_QUAD caps
-// them; marks must be tile keys on the land.
-function sanitizeQuads(state: GameState): void {
-  const q = state.quads as unknown;
-  if (q === undefined) return;
-  if (typeof q !== 'object' || q === null) { delete state.quads; return; }
-  const raw = q as { names?: unknown; designated?: unknown };
-  const names: Record<string, string> = {};
-  if (typeof raw.names === 'object' && raw.names !== null) {
-    for (const [key, name] of Object.entries(raw.names)) {
-      if (typeof name === 'string' && name.trim() !== '' && parsePathTileKey(key)) names[key] = name.trim().slice(0, QUAD_NAME_MAX);
-    }
-  }
-  const designated = Array.isArray(raw.designated)
-    ? raw.designated.filter((key): key is string => {
-      const t = typeof key === 'string' ? parsePathTileKey(key) : null;
-      return t !== null && isLand(t.row, t.col);
-    })
-    : [];
-  state.quads = { names, designated };
 }
 
 // The five venue categories a team can reference, kept local rather than
@@ -858,9 +859,9 @@ function looksLikeGameState(value: unknown): value is GameState {
 // otherwise reach new runs only. Descriptions are always the catalog's; a
 // name is the catalog's for a course (nothing renames a course), while a
 // building's may be a donor's (eventData.ts's naming rights) and is kept.
-let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project'>> | null = null;
+let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project' | 'duration'>> | null = null;
 function refreshAuthoredText(state: GameState): void {
-  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project }]));
+  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project, duration: t.duration }]));
   for (const t of state.tech) {
     const authored = catalogText.get(t.id);
     if (!authored) continue;
@@ -869,6 +870,10 @@ function refreshAuthoredText(state: GameState): void {
     // run opens the Graduate College from Year 15 like a new one (Plan 58).
     if (authored.project) t.project = authored.project;
     if (t.kind === 'course') t.name = authored.name;
+    // A course's weeks are the catalog's until it starts (techData.ts's
+    // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
+    // was started with, so its progress still reads against them.
+    if (t.kind === 'course' && (t.status === 'locked' || t.status === 'available')) t.duration = authored.duration;
   }
 }
 
@@ -973,7 +978,6 @@ function sanitize(state: GameState): void {
   // Trees after placements: it reads the cleaned placements.
   sanitizeTrees(state);
   sanitizeEstate(state);
-  sanitizeQuads(state);
   sanitizeSeats(state);
   sanitizeQuirks(state);
   sanitizeAlumni(state);

@@ -197,7 +197,7 @@ function years(s: GameState, n: number): void {
 
 // ---- A version-81 save loads with no recruiting yet ----
 {
-  const raw = readFileSync(join(process.cwd(), 'test/fixtures/save-v81.json'), 'utf8');
+  const raw = readFileSync(join(process.cwd(), 'test/fixtures/save-v81-recruiting.json'), 'utf8');
   const parsed = JSON.parse(raw) as { version: number; state: GameState };
   assert(parsed.version === 81 && parsed.state.orgs.teams.length > 0, 'the fixture was written at version 81, with teams');
   assert(parsed.state.orgs.teams.every((t) => !('recruiting' in t)), 'before recruiting');

@@ -142,6 +142,12 @@ export function setCamera(c: Camera): Camera {
   return frame.camera;
 }
 
+// The camera the projection is at now: Walkers.tsx draws only while its
+// outlines were built for it.
+export function currentCamera(): Camera {
+  return frame.camera;
+}
+
 // For depthSort.ts: +col moves toward the camera when sinA > 0, +row when
 // cosA > 0.
 export function cameraAxes(): { cosA: number; sinA: number } {

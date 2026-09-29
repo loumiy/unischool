@@ -2,10 +2,13 @@ import { useContext } from 'react';
 import type { CampusLayout } from './campusLayout';
 import { BannerContext } from './mapOccasions';
 import { FOUNDERS_HALL_ID } from '../data/techData';
-import type { Dressing } from '../state/types';
+import type { BenchFacing, Dressing } from '../state/types';
 import { isLand, parsePathTileKey } from '../state/campusMap';
+import { FACING_STEP, benchFacingOf } from '../state/dressing';
 import { isAcademicHall } from '../data/techData';
 import { groundSquash, lift, polyPoints, project, type Pt } from './isoProjection';
+import { depthOrder, type DepthBox } from './depthSort';
+import { castShadow } from './light';
 import { up } from './campusScale';
 import { downwind, flagCloth } from './wind';
 
@@ -24,8 +27,9 @@ export interface DressingProp {
 }
 
 const LAMP_HEIGHT = up(4.5);
-const BENCH_SEAT = up(0.45);
-const BENCH_BACK = up(0.9);
+const BENCH_SEAT = up(0.9);
+const BENCH_BACK = up(1.9);
+const BENCH_APRON = up(0.14);
 
 // A lamp, with a banner in the college's colors in commencement week. The
 // banner hangs from a bracket on the downwind side (wind.ts), so it stays on
@@ -82,25 +86,91 @@ function Flag({ at, colors }: { at: Pt; colors: CampusLayout['colors'] }) {
   );
 }
 
-// A bench runs along the tile's row or column, whichever way the path it
-// faces runs: a slatted seat with depth and a backrest panel, so it keeps
-// its shape at the opening zoom (Plan 74G), on two legs.
-function Bench({ col, row, along }: { col: number; row: number; along: 'col' | 'row' }) {
-  const half = 0.28;
-  const depth = 0.085;
-  // u along the bench, v across it (the back at -v).
-  const P = (u: number, v: number, z: number) => (along === 'col'
-    ? lift(project(col + 0.5 + u, row + 0.5 + v), z)
-    : lift(project(col + 0.5 + v, row + 0.5 + u), z));
-  const seat = [P(-half, -depth, BENCH_SEAT), P(half, -depth, BENCH_SEAT), P(half, depth, BENCH_SEAT), P(-half, depth, BENCH_SEAT)];
-  const back = [P(-half, -depth, BENCH_SEAT), P(half, -depth, BENCH_SEAT), P(half, -depth, BENCH_BACK), P(-half, -depth, BENCH_BACK)];
-  const legs = [-half * 0.8, half * 0.8].map((u) => [P(u, 0, 0), P(u, 0, BENCH_SEAT)] as const);
-  const pts = (q: Pt[]) => q.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+// A bench (Plan 80I): set against one edge of its tile and facing out
+// across it, toward the path beside it, with its back to the lawn. A
+// slatted seat and a slatted, raked back on cast-iron ends that carry the
+// arms, at the walkers' scale (Walkers.tsx: a figure's hips are about the
+// seat's height), so it keeps its shape at the opening zoom. Its parts are
+// painted in depthOrder, so the back hides the seat when the bench faces
+// away and the near end covers the seat's end, from any side.
+const BENCH_HALF = 0.21;         // half its length, in tiles
+const BENCH_DEPTH = 0.07;        // half the seat's depth
+const BENCH_LEAN = 0.035;        // how far the back rakes behind the seat
+const BENCH_EDGE = 0.06;         // the seat's front from the tile's edge
+const BENCH_ARM = up(1.35);
+const BENCH_END = 0.03;          // the iron end's plan, outside the seat
+function benchFrame(col: number, row: number, facing: BenchFacing) {
+  const o = FACING_STEP[facing];
+  // u along the bench (on the other grid axis), v out across the edge.
+  const a = o.dr === 0 ? { dr: 1, dc: 0 } : { dr: 0, dc: 1 };
+  const reach = 0.5 - BENCH_EDGE - BENCH_DEPTH;
+  const c0 = col + 0.5 + o.dc * reach; const r0 = row + 0.5 + o.dr * reach;
+  const G = (u: number, v: number) => ({ col: c0 + a.dc * u + o.dc * v, row: r0 + a.dr * u + o.dr * v });
+  const P = (u: number, v: number, z: number) => { const g = G(u, v); return lift(project(g.col, g.row), z); };
+  // A (u, v) rectangle as the grid box the depth sort takes.
+  const box = (u0: number, u1: number, v0: number, v1: number): DepthBox => {
+    const p = G(u0, v0); const q = G(u1, v1);
+    return { col: Math.min(p.col, q.col), row: Math.min(p.row, q.row), w: Math.abs(q.col - p.col), h: Math.abs(q.row - p.row) };
+  };
+  return { P, box };
+}
+
+export function Bench({ col, row, facing, ghost = false }: { col: number; row: number; facing: BenchFacing; ghost?: boolean }) {
+  const { P, box } = benchFrame(col, row, facing);
+  const L = BENCH_HALF; const vF = BENCH_DEPTH; const vB = -BENCH_DEPTH;
+  const rise = BENCH_BACK - BENCH_SEAT;
+  // The back's plane: raked by BENCH_LEAN over its height.
+  const backV = (z: number) => vB - BENCH_LEAN * Math.max(0, (z - BENCH_SEAT) / rise);
+  const quad = (pts: Pt[]) => polyPoints(pts);
+  const seatSlats = [[vB, vB + 0.04], [vB + 0.05, vB + 0.09], [vB + 0.1, vF]] as const;
+  const backSlats = [[0.26, 0.54], [0.66, 1]] as const;
+  const end = (u: number) => {
+    const armBack = backV(BENCH_ARM);
+    const pts = [
+      // The front leg, up to the arm.
+      [P(u, vF - 0.012, 0), P(u, vF - 0.012, BENCH_ARM)],
+      // The back leg, carried up as the back's upright.
+      [P(u, vB, 0), P(u, vB, BENCH_SEAT), P(u, backV(BENCH_BACK), BENCH_BACK)],
+      // The arm, and the rail under the seat.
+      [P(u, vF + 0.004, BENCH_ARM), P(u, armBack, BENCH_ARM)],
+      [P(u, vF - 0.012, BENCH_SEAT * 0.94), P(u, vB, BENCH_SEAT * 0.94)],
+    ];
+    return pts.map((line) => line.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join('')).join('');
+  };
+  const parts = depthOrder([
+    { ...box(-L - BENCH_END, -L, backV(BENCH_BACK), vF), part: 'endA' as const },
+    { ...box(L, L + BENCH_END, backV(BENCH_BACK), vF), part: 'endB' as const },
+    { ...box(-L, L, backV(BENCH_BACK), vB), part: 'back' as const },
+    { ...box(-L, L, vB, vF), part: 'seat' as const },
+  ]);
+  const shadow = box(-L, L, backV(BENCH_BACK), vF);
   return (
-    <g className="campus-bench">
-      {legs.map(([a, b], i) => <line key={i} className="campus-bench-leg" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />)}
-      <polygon className="campus-bench-back" points={pts(back)} />
-      <polygon className="campus-bench-seat" points={pts(seat)} />
+    <g className={`campus-bench${ghost ? ' ghost' : ''}`}>
+      <polygon className="campus-bench-shadow" points={polyPoints(castShadow(shadow.col, shadow.row, shadow.w, shadow.h, BENCH_SEAT))} />
+      {parts.map(({ part }) => {
+        if (part === 'endA' || part === 'endB') {
+          return <path key={part} className="campus-bench-iron" d={end(part === 'endA' ? -L - BENCH_END / 2 : L + BENCH_END / 2)} />;
+        }
+        if (part === 'back') {
+          return (
+            <g key={part}>
+              {backSlats.map(([k0, k1], i) => {
+                const z0 = BENCH_SEAT + rise * k0; const z1 = BENCH_SEAT + rise * k1;
+                return <polygon key={i} className="campus-bench-back" points={quad([P(-L, backV(z0), z0), P(L, backV(z0), z0), P(L, backV(z1), z1), P(-L, backV(z1), z1)])} />;
+              })}
+            </g>
+          );
+        }
+        return (
+          <g key={part}>
+            {/* The seat's front edge, then its three slats. */}
+            <polygon className="campus-bench-apron" points={quad([P(-L, vF, BENCH_SEAT), P(L, vF, BENCH_SEAT), P(L, vF, BENCH_SEAT - BENCH_APRON), P(-L, vF, BENCH_SEAT - BENCH_APRON)])} />
+            {seatSlats.map(([v0, v1], i) => (
+              <polygon key={i} className="campus-bench-seat" points={quad([P(-L, v0, BENCH_SEAT), P(L, v0, BENCH_SEAT), P(L, v1, BENCH_SEAT), P(-L, v1, BENCH_SEAT)])} />
+            ))}
+          </g>
+        );
+      })}
     </g>
   );
 }
@@ -116,20 +186,15 @@ function Rack({ col, row }: { col: number; row: number }) {
   return <g className="campus-rack">{hoops}</g>;
 }
 
-// Which way the paving beside a tile runs: a bench faces a path along it.
-function benchAlong(pathways: CampusLayout['pathways'], row: number, col: number): 'col' | 'row' {
-  const across = `${row},${col - 1}` in pathways || `${row},${col + 1}` in pathways;
-  return across ? 'row' : 'col';
-}
-
 export function dressingProps(layout: CampusLayout): DressingProp[] {
   const out: DressingProp[] = [];
-  for (const [key, kind] of Object.entries(layout.dressing ?? ({} as Dressing))) {
+  for (const [key, item] of Object.entries(layout.dressing ?? ({} as Dressing))) {
     const t = parsePathTileKey(key);
     if (!t) continue;
-    const node = kind === 'lamp'
+    const facing = benchFacingOf(item);
+    const node = facing === null
       ? <Lamp at={project(t.col + 0.5, t.row + 0.5)} />
-      : <Bench col={t.col} row={t.row} along={benchAlong(layout.pathways, t.row, t.col)} />;
+      : <Bench col={t.col} row={t.row} facing={facing} />;
     out.push({ key: `d-${key}`, col: t.col, row: t.row, w: 1, h: 1, node });
   }
   // The flag, just off Founders Hall's front corner, on whichever of two

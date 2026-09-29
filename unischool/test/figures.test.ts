@@ -35,10 +35,11 @@ assert(typeRule.length === 4, 'the type rule is in the typecheck');
 
 // ---- Every hint is one sentence ----
 {
-  const hints: Sentence[] = Object.entries(FIGURE_HINTS).map(([key, h]) => (
-    key === 'satisfaction' ? FIGURE_HINTS.satisfaction('basic needs', '38')
-      : key === 'rank' ? FIGURE_HINTS.rank(100)
-        : h as Sentence));
+  const hints: Sentence[] = Object.entries(FIGURE_HINTS).flatMap(([key, h]) => (
+    key === 'satisfaction' ? [FIGURE_HINTS.satisfaction('basic needs', '38')]
+      : key === 'rank' ? [FIGURE_HINTS.rank(100)]
+        : key === 'committee' ? [FIGURE_HINTS.committee(8, 8, false), FIGURE_HINTS.committee(3, 8, true), FIGURE_HINTS.committee(3, 8, false)]
+          : [h as Sentence]));
   assert(hints.length >= 25, `the headline figures have their sentences (${hints.length})`);
   for (const h of hints) {
     assert(/^[A-Z]/.test(h) && h.endsWith('.') && !/[.!?] [A-Z]/.test(h), `one sentence: "${h}"`);

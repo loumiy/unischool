@@ -1,7 +1,7 @@
 import type { Buildable, Vernacular } from '../state/types';
 import {
   BLOCK_SPLIT_MIN_TILES, SLAB_ROW_FRACTION, TOWER_PODIUM_STOREYS, WING_COL_FRACTION, WING_STOREY_FRACTION,
-  motifOf, ridgeOf, storeysOf, wallHeightOf,
+  chapelPlan, motifOf, ridgeOf, storeysOf, wallHeightOf,
 } from './buildingSpec';
 import { STOREY, up } from './campusScale';
 import { VILLAGE_HOUSES } from './buildingMotifs';
@@ -69,6 +69,17 @@ export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVol
       return [
         box(p.col, p.row, p.w, p.h * SLAB_ROW_FRACTION, 0, storeys * STOREY, { tarp: true }),
         box(p.col, p.row + p.h * SLAB_ROW_FRACTION, p.w * WING_COL_FRACTION, p.h * (1 - SLAB_ROW_FRACTION), 0, wing * STOREY),
+      ];
+    }
+    case 'chapel': {
+      // The nave and the chancel (buildingSpec.ts's chapelPlan). Not the
+      // tower: the marks of a volume are masked only by the walls of those
+      // nearer it, not their roofs, so the tower's would show through the
+      // nave's steep roof in the views that put it behind.
+      const c = chapelPlan(p, v);
+      return [
+        box(c.nave.col, c.nave.row, c.nave.w, c.nave.h, 0, c.naveHeight, { ridge: c.naveRidge, tarp: true }),
+        box(c.chancel.col, c.chancel.row, c.chancel.w, c.chancel.h, 0, c.chancelHeight, { ridge: c.chancelRidge }),
       ];
     }
     default:

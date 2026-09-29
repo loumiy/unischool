@@ -61,7 +61,7 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    beside the three who teach its founding programs — so the first founding
    decision never needs a hire. There is no reroll. **One offer a year may
    be declined** (Plan 78D, A4-5's "decline an offer"): "Not this year" on
-   the offer takes it off the table, the ordinary draw fills the place, and
+   the offer (beside it, since Plan 80B) takes it off the table, the ordinary draw fills the place, and
    the declined program is not drawn again until the year turns
    (`DECLINE_OFFER`, `s.declinedOffer`); a second decline that year is
    refused with its reason. Otherwise the three stand until one is taken,
@@ -78,12 +78,33 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    drawn: its capital project offers it (see
    [graduate-programs.md](graduate-programs.md)).
    **The curriculum committee** (Plan 68; seats since Plan 71) writes a
-   limited number of undergraduate courses at once: four seats
+   limited number of courses at once: four seats
    (`techSystem.ts`'s `COURSE_DEVELOPMENT_SLOTS`), and one more at prestige
    70, 80, 90 and 100 (`COMMITTEE_PRESTIGE_STEPS`), up to eight. The
-   Curriculum tab's "What next" box shows every seat — busy (course, progress,
-   weeks left), open, or locked with the prestige that opens it. Graduate
-   courses have their own gates and are not counted.
+   committee at the head of the Curriculum tab shows every seat — busy
+   (course, progress, weeks left of its weeks), open, or locked with the
+   prestige that opens it.
+   **Graduate courses take a seat like any other** (Plan 80E; before, they
+   had their own gates and were not counted), so an MD's course waits for
+   room as a capstone does. **A program is founded only with room on the
+   committee** (Plan 80B for majors, 80E for graduate programs,
+   `canFoundProgram`): its entry course starts in the same step, and
+   before, a founding with the committee full took the program slot and
+   left the entry course unstarted, without a word. The hall panel says so
+   over the offers. **Courses vary in length** (Plan 80E): each
+   course's weeks are its tier's (4, 12 or 24; 32 for a doctorate's, 40 for a
+   professional school's), varied up to a quarter either way
+   (`techData.ts`'s `courseWeeks`, `COURSE_LENGTH_SPREAD`), in whole weeks and
+   fixed for that course by a hash of its id, so the committee's seats come
+   free at different times rather than a tier's all at once. A save takes the
+   catalog's weeks for a course not yet started when it loads; one under way
+   keeps the weeks it was started with. The course drawer shows a course's
+   weeks. **The dock's committee chip** (Plan 80E) reads "Committee 3 of 4",
+   courses being written of the most at once, flagged (the alert badge) while
+   there is room and some course could start now (`committeeStatus`: a free
+   seat with nothing startable, for want of cash or a professor or because
+   nothing is left, is not flagged, so the flag always means something to
+   do), and opens this panel (the `curriculum.committee` section).
 3. **A school is founded, not unlocked.** Nothing is called "the School of
    Engineering" until six Engineering programs sit in one hall. A hall whose
    six slots hold one school's programs is **dedicated**; the first
@@ -195,18 +216,22 @@ which is the ceiling on its freshman class (see
 The Curriculum tab, like every tab, is **full-bleed**: it owns the viewport and
 the dock is laid over it (see [ui-shell.md](../architecture/ui-shell.md)).
 
-**It leads with what to do.** A strip at the head of the tab, "next up",
-answers the one question forty-two rows of state cannot: the three programs
-**on offer** and every hall with a free slot for them ("Found in Linden Hall ·
-5 free" closes the tab and opens that hall's panel on the map, the offer's
-one home); the programs **near a milestone**, a course or two from
-Established or Distinguished, nearest first; how many courses are **ready
-now** — a free slot and the cash both in hand — and what starting them all
-would cost; and **the wall**, the departments holding revealed courses up for
-want of a slot, each a filter to the courses waiting on it. Every item is a
-reading off the same functions the rows use (`programProgress`,
-`neededFacultyFields`, `canStartDevelopment`), and an empty reading is left
-out, so in year one the strip is silent.
+**Its head is the committee.** The curriculum committee's seats sit at the
+head of the tab, and under them one line, **Waiting on faculty**, names the
+departments short of faculty (`neededFacultyFields`, most waited on first),
+with "Faculty →" to the Faculty tab on the first. The strip that stood beside
+the committee until Plan 80B (on offer, near a milestone, ready now, waiting
+on faculty) is gone: the offers live in the hall panel, and its milestone
+item is now a filter.
+
+**Filters make a worklist.** Any filter turns the tab into one flat
+cross-school list of the courses it names: a search, a status, **Below A**
+(every offered course short of an A, and any left unstaffed; a course in a
+dark program, which has no grade while dark, counts by the grade its
+instructor earns on it, `instructorQuality`), **No instructor**, and **One
+course from established** (the last course, started or not, between a major
+and Established). "Needs attention" (a D or an F) went in Plan 80B: Below A
+and No instructor cover it (`curriculumFilter.ts`).
 
 **Each row leads with its own next action.** The row's header names its next
 startable course, the strongest free teacher in its department and the grade
@@ -247,6 +272,17 @@ with a motif each, so the grouping survives for a colour-blind player) and the
 school's **name only once it is founded**. "Three of this colour already, and
 I have a hall with three slots free" is a conclusion the player reaches by
 looking.
+
+**The graduate programs have sections of their own** after the seven
+schools (Plan 80B): the **Graduate School** (the doctorates and the MFA), the
+**Business School** (the MBA), the **Law School** (the JD) and the
+**Medical School** (the MD), each named from the start and drawn once one of
+its programs is housed (`techData.ts`'s `GRADUATE_SECTIONS`, a program's
+`section`). A professional school takes its home school's hue and mark; the
+Graduate School takes the college's own colors, and each of its rows its home
+school's hue and mark. Only the tab's grouping moves: the program's home
+school (`homeSchool`) is what founding, research and every reading still
+use, and a section's "Staff from the market" covers the courses it draws.
 
 **Faculty chips.** A compact instructor sits with each developed course —
 portrait, surname, grade — and chips **drag between courses to swap
