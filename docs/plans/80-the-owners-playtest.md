@@ -602,7 +602,7 @@ after:
   eight to twelve years. Checked with the harness's championships player.
 - The save gains each team's recruiting; the version is bumped.
 
-**As implemented (#TBD):**
+**As implemented (#252):**
 
 - **Flagships:** `ATHLETICS_BUDGET_TIERS` carries the cap (2, 4, 6).
   `departmentPot` marks the first active programs on the list as
