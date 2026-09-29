@@ -414,7 +414,7 @@ funds D introduces. Save bumps land in merge order.
   each step; letters expire; the charter rename; the save fixture
   migrates (a milestone's week).
 
-**As implemented (#TBD):**
+**As implemented (#251):**
 - **The start:** no professor, no course, every program slot of Founders
   Hall free, 350 students. The first program offers are the pillars
   (English, Mathematics, Economics), and the market opens with their
