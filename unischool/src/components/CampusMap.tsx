@@ -549,9 +549,14 @@ function LabMark({ t, p, run, vernacular, onInspect }: {
   );
 }
 
-function LabMarksLayer({ s, layout, onInspect }: {
+// Memoised, as the hall pips are: a turn redraws it for the camera and
+// nothing else.
+const LabMarksLayer = memo(function LabMarksLayer({ s, layout, onInspect, camera }: {
   s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
+  // A prop so the memo redraws on a camera change (the marks are projected).
+  camera: Camera;
 }) {
+  void camera;
   return (
     <>
       {layout.placed.filter(({ t }) => s.research.initiatives[t.id]).map(({ t, p }) => (
@@ -559,7 +564,7 @@ function LabMarksLayer({ s, layout, onInspect }: {
       ))}
     </>
   );
-}
+});
 
 // A full residence (Plan 72G): the lab's dark disc with a bed on it, over
 // a residence whose every bed is taken (residenceFill.ts), and nothing once
@@ -586,9 +591,10 @@ function FullMark({ t, p, vernacular, onInspect }: {
   );
 }
 
-function FullMarksLayer({ s, layout, onInspect }: {
-  s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
+const FullMarksLayer = memo(function FullMarksLayer({ s, layout, onInspect, camera }: {
+  s: GameState; layout: CampusLayout; onInspect: (id: string) => void; camera: Camera;
 }) {
+  void camera;
   const full = useMemo(() => fullResidences(s), [s.tech, s.students, s.self.reputation]);
   return (
     <>
@@ -597,7 +603,7 @@ function FullMarksLayer({ s, layout, onInspect }: {
       ))}
     </>
   );
-}
+});
 
 // Everything that stands on the ground, as one memoised component: the
 // static layer. Its props change only when the layout does (campusLayout.ts),
@@ -754,27 +760,38 @@ const DesireLines = memo(function DesireLines({ layout, camera }: { layout: Camp
 // Hall pips: one per slot, in the color of the school whose program holds
 // it, plus a flag when a slot is free and a program is on offer. Always on,
 // unlike the labels, and redrawn every week, since a program can arrive or
-// stall in any week.
-function HallMarksLayer({ s, layout, onInspect }: {
+// stall in any week. What each hall shows is read once a state (the offers
+// and the departments are the costly part), and a turn only re-projects it
+// (Plan 80H: every frame of a turn read every hall's offers again).
+const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, camera }: {
   s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
+  // A prop so the memo redraws on a camera change (the pips are projected).
+  camera: Camera;
 }) {
+  void camera;
+  const halls = useMemo(() => layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => ({
+    t, p,
+    slots: s.halls[t.id],
+    offerWaiting: s.programOffers.length > 0 || schoolOffers(s, t.id).length > 0,
+    blocked: s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId)),
+  })), [s, layout]);
   return (
     <>
-      {layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => (
+      {halls.map(({ t, p, slots, offerWaiting, blocked }) => (
         <HallMarks
           key={`marks-${t.id}`}
           t={t}
           p={p}
-          slots={s.halls[t.id]}
-          offerWaiting={s.programOffers.length > 0 || schoolOffers(s, t.id).length > 0}
-          blocked={s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId))}
+          slots={slots}
+          offerWaiting={offerWaiting}
+          blocked={blocked}
           vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
         />
       ))}
     </>
   );
-}
+});
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
@@ -834,7 +851,7 @@ export default function CampusMap({
   const [turning, setTurning] = useState(false);
   const layout = useCampusLayout(s);
   // This week's occasions (mapOccasions.ts), reference-stable between them.
-  const crowdKey = crowdedVenues(s).join(',');
+  const crowdKey = useMemo(() => crowdedVenues(s).join(','), [s]);
   const crowds = useMemo(() => new Set(crowdKey ? crowdKey.split(',') : []), [crowdKey]);
   const commencement = isCommencement(s);
   const banners = useMemo(() => (commencement ? { ...s.self.colors } : null),
@@ -1678,9 +1695,9 @@ export default function CampusMap({
             </BannerContext.Provider>
             </CrowdContext.Provider>
             <Walkers layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} />
-            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} />
-            <LabMarksLayer s={s} layout={layout} onInspect={onInspect} />
-            <FullMarksLayer s={s} layout={layout} onInspect={onInspect} />
+            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
+            <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
+            <FullMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             {justPlaced.map((id) => {
               const p = s.placements[id];
               if (!p) return null;

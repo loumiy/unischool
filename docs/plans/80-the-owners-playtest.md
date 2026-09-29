@@ -348,16 +348,29 @@ after:
   outline rebuild and the canvas read, and are drawn again only once their
   outlines are built for the camera the projection is at, which covers a
   tilt and a reduced-motion snap too. Reduced motion still snaps.
+- **Per frame, only the camera's work.** The hall pips, the lab marks and
+  the full-residence marks are memoised layers that redraw on the camera;
+  each hall's offers and blocked programs are read once a state, not every
+  frame of a turn. The crowded venues are read once a state too.
 - **The turn, timed** on a year-30 Completionist campus (67 buildings,
-  607 trees, 340 walkers), production build, headless Chromium, the main
-  thread's CPU from a trace, median of 8 turns (the machine was loaded,
-  so wall times were noise): a frame of the turn **64 ms → 58 ms**; the
-  frame that settles it **47 ms → 104 ms** (the trees come back and the
-  walkers' outlines are built once, not every frame); the whole turn
-  **195 ms → 247 ms**. The scene mid-turn is 11,900 SVG nodes, not 15,600.
-  Wall time to a settled view was about 0.6 s before and after. The lighter
-  turn is the walkers' and not much faster: the buildings, redrawn every
-  frame, are most of it.
+  607 trees, 340 walkers), production build, headless Chromium. The
+  machine was loaded (load average 14 to 37 on 4 cores), so wall times were
+  noise and even CPU time moved between runs; the figures are the main
+  thread's CPU from a trace, medians of 8 turns, over three to four runs
+  each:
+
+  | | Before | After |
+  |---|---|---|
+  | A frame of the turn | 58–73 ms | 48–64 ms (about 51) |
+  | The frame that settles it | 47–71 ms | 88–109 ms |
+  | The whole turn | 195–343 ms | 216–295 ms |
+  | SVG nodes mid-turn | 15,600 | 11,900 |
+
+  A frame of the turn is about a fifth lighter. The settling frame costs
+  more, since the trees come back and the walkers' outlines are built once
+  there rather than every frame, so the whole turn costs about the same.
+  Wall time to a settled view was about 0.6 s before and after. What is
+  left is the buildings, redrawn every frame (the backlog's faster map).
 - **Lab roofs:** `flatRoofItems` (`buildingMotifs.tsx`) puts the dome or
   glasshouse, each flue, the exhaust stack and the plant through one
   `depthOrder`. A roof under 4 tiles keeps the first plant unit clear of
