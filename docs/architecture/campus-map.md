@@ -129,6 +129,79 @@ The hall pips and the walkers are drawn after the scene from the live
 state. `npm run profile` gates every change to the
 map.
 
+## The land around the campus (Plan 81B)
+
+The parcel no longer hangs in space. A **ring of country** runs `RING` (200)
+tiles past its edge on every side: the road on off both ends, fields in a
+patchwork divided by hedgerows, woods, a low town edge along the road, a
+farm or two, and gentle hills rising away from a flat valley floor, all
+fading into haze. It is drawing only and not state: `ringLand.ts`
+generates it from the college's name (a seeded hash, as the rivals' colors
+are), so it is the same on every load and nothing of it is saved, and
+`Surroundings.tsx` draws it. Nothing in
+it can be built on, clicked (`.ring { pointer-events: none }`) or walked;
+siting, reach, the walkers and the tile hit-test (`tileAt`) still end at the
+parcel's edge.
+
+- **The land** (`landOf`, cached per name): the ring is cut into blocks
+  round the parcel and the road, and each block into fields by repeated
+  halving, the fields growing with distance. A field is meadow, pasture,
+  crop, plough, broadleaf wood or pine: crops on the valley floor, grazing
+  and woods up the hillsides. The town stands on one side of the parcel
+  (the name picks which) along both sides of the road and across it from
+  the campus's end, with a lane or two; its houses take the college's
+  vernacular (`materialsFor`: the brick, buff and stone walls, the two
+  pitched-roof colors), and snow lies on their roofs as on the campus's.
+- **The hills**: a height field, zero on the parcel and for `FLAT` (26)
+  tiles round it, then a slow rise of the whole valley and some twenty
+  rounded hills, bigger further out. Every point of the ring is lifted by
+  it (`lift`), so hedges and field edges bend over the hills, and each
+  field takes the light by its slope (`shadeAt`, five steps, from a lower
+  sun than `light.ts`'s so a gentle hill reads). No slope is steeper than
+  `MAX_SLOPE`, under the lowest pitch's sight line, so no hill hides ground
+  behind it and the ground can be drawn as merged shapes in any order. The
+  parcel stays flat (real slopes on campus wait in the backlog).
+- **Drawn cheaply** (`ringView`, cached per name and camera): one flat
+  plate under everything; one path per cover and light step (about twenty);
+  one path of hedges; the road, its kerbs and centre line; woods filled with
+  a canopy pattern (crowns lit on the sun's side, in the season's leaf
+  colors) rather than a shape per tree; then sprites, back to front: forty
+  trees from the campus's own art (`TreeAt`) at the edges of the woods on
+  the valley floor, clumps of crowns further out merged a dozen to a path,
+  and some fifty houses. About 550 SVG nodes in all.
+- **In front of the parcel.** The ring lies under the campus, in an `<svg>`
+  of its own (`.campus-map-ring`) that carries the same pan/zoom transform
+  (`applyView` writes it), so a frame in which only the campus changes
+  repaints none of it. A sprite the parcel's outline would cut, standing in
+  front of a near edge, is drawn instead by `CampusScene`, after the sorted
+  scene and before the labels (`RingFront`): a point in front of the parcel
+  is nearer the camera than anything on the parcel above it on the screen.
+- **The haze** (`hazeOf`): two plates over the ring in the haze color
+  (`--haze`, which is also the map's background). One is a radial gradient
+  laid out in tiles about the parcel's center (the projection is its
+  `gradientTransform`), clear to about 70 tiles and solid by about 240; the
+  other a wash up the screen past the parcel's back corner, stronger the
+  lower the pitch, which also pulls the radial haze in. The land never ends
+  in an edge; it thins into the sky.
+- **Seasons**: the ground takes the map's CSS variables (`seasons.ts`'s
+  `--field-*`, `--wood`, `--pine-wood`, `--hedge` and `--haze`, beside
+  `--grass` and the leaf colors): crops ripen and come up green, woods and
+  hedges turn and go bare, and all of it lies under the snow in winter.
+- **Turning**: while the camera turns, the ring is its flat plate, the road
+  and the haze. The rest stays mounted at the view it last rested on,
+  hidden (`visibility`, so the browser keeps its layout), and the frame
+  that settles the turn updates it rather than building it again (Plan
+  80H's rule for the trees, kept cheap).
+- **The camera's leash** (`clampView`, `ringZoomFloor`): pan and zoom are
+  held so every corner of the canvas stays over the ring at any zoom,
+  pitch and view, and the canvas's center within `CENTRE_REACH` (70) tiles
+  of the parcel. The ring is a square on the grid, so each grid axis is
+  clamped on its own; where a big screen at a low pitch would see past it,
+  the widest zoom closes in. A turn is not held mid-way (it keeps the ground
+  under the center); the view it settles on is. `test/surroundings.test.ts`
+  checks the leash at every view and pitch on four screen sizes, and that
+  the land is stable per name, off the parcel and the road, and gentle.
+
 ## The road, the walk and the quads
 
 A **road** runs along the parcel's last two rows (`campusMap.ts`'s
