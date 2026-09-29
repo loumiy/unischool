@@ -1,14 +1,12 @@
-import { memo, useRef } from 'react';
+import { memo } from 'react';
 import type { Vernacular } from '../state/types';
-import { CAMPUS_GRID_HEIGHT as GH, CAMPUS_GRID_WIDTH as GW } from '../state/types';
-import { ROAD_FIRST_ROW } from '../state/campusMap';
-import { boxFaces, polyPoints, type Camera, type FaceDir } from './isoProjection';
+import type { Camera, FaceDir } from './isoProjection';
 import { materialsFor } from './buildingSpec';
 import { WALL_LIGHT } from './light';
 import { shade } from './tint';
 import { SNOW_COLOR, mixColor } from './seasons';
 import { TreeAt } from './trees';
-import { RING, hazeOf, ringView, type House, type RingSprite, type RingView } from './ringLand';
+import { hazeOf, ringView, type House, type RingSprite, type RingView } from './ringLand';
 
 // The land around the campus (Plan 81B; the geometry is ringLand.ts).
 // Two layers: RingBack under the whole campus (the ground, the road, the
@@ -16,9 +14,8 @@ import { RING, hazeOf, ringView, type House, type RingSprite, type RingView } fr
 // RingFront, the few sprites that stand in front of the parcel's near
 // edges, drawn over the campus by CampusScene. Neither takes a pointer.
 //
-// While the camera turns, the ring is drawn as its flat plate, the road and
-// the haze, and the rest is hidden until the turn settles, as the campus's
-// own trees are left out (Plan 80H).
+// While the camera turns, the whole ring is drawn at every angle the turn
+// passes through, as the campus is (Plan 82).
 
 // The roofs and walls of the town, in the college's own vernacular: its
 // brick, its buff and its stone, under its two pitched-roof colors.
@@ -69,27 +66,6 @@ function Sprite({ sprite, vernacular, snow }: { sprite: RingSprite; vernacular: 
   }
 }
 
-// The ring's plate and its road, flat: all a turn draws.
-function flatPlate(): { base: string; road: string } {
-  const base = polyPoints(boxFaces(-RING, -RING, GW + 2 * RING, GH + 2 * RING, 0, 0).top);
-  const road = [
-    boxFaces(-RING, ROAD_FIRST_ROW, RING, GH - ROAD_FIRST_ROW, 0, 0).top,
-    boxFaces(GW, ROAD_FIRST_ROW, RING, GH - ROAD_FIRST_ROW, 0, 0).top,
-  ].map((q) => `M${polyPoints(q).replace(/ /g, 'L')}Z`).join('');
-  return { base, road };
-}
-
-// The ring at the view the camera last rested on. Through a turn it stays
-// that view's, mounted but hidden (by `visibility`, which keeps the
-// browser's layout of it, where `display` threw it away and built it again),
-// so the memoised layers below skip every frame of it, and the frame that
-// settles it updates their shapes rather than building them again.
-function useRestView(name: string, turning: boolean): RingView {
-  const rest = useRef<RingView | null>(null);
-  if (!turning || !rest.current) rest.current = ringView(name);
-  return rest.current;
-}
-
 // The ground: its fields, lanes and road.
 const RingGround = memo(function RingGround({ view }: { view: RingView }) {
   return (
@@ -118,14 +94,16 @@ export const RingBack = memo(function RingBack({ name, vernacular, camera, turni
   name: string; vernacular: Vernacular;
   // A prop so the memo redraws on a camera change (the ring is projected).
   camera: Camera;
+  // A turn is under way: the ring is drawn at every angle it passes
+  // through, but those views are not kept (ringView's cache is for views
+  // the camera rests on).
   turning: boolean;
   // How deep the snow lies, for the roofs (the ground takes the map's CSS
   // variables, as the campus's lawns do).
   snow: number;
 }) {
   const haze = hazeOf(camera);
-  const view = useRestView(name, turning);
-  const flat = turning ? flatPlate() : null;
+  const view = ringView(name, !turning);
   return (
     <g className="ring" aria-hidden="true">
       <defs>
@@ -137,19 +115,14 @@ export const RingBack = memo(function RingBack({ name, vernacular, camera, turni
           <stop offset={1} className="ring-haze-stop" stopOpacity={haze.depth} />
         </linearGradient>
       </defs>
-      <polygon className="ring-base" points={flat ? flat.base : view.base} />
-      {flat && <path className="campus-road" d={flat.road} />}
-      <g visibility={turning ? 'hidden' : undefined}>
-        <RingGround view={view} />
-        <RingSprites sprites={view.back} vernacular={vernacular} snow={snow} />
-      </g>
+      <polygon className="ring-base" points={view.base} />
+      <RingGround view={view} />
+      <RingSprites sprites={view.back} vernacular={vernacular} snow={snow} />
       <polygon points={haze.plate} fill="url(#ring-haze)" />
-      <g visibility={turning ? 'hidden' : undefined}>
-        {view.ridges.map((r, i) => r.d && (
-          <path key={i} className="ring-far-hill" d={r.d}
-            style={{ fill: `color-mix(in srgb, var(--far-hill) ${Math.round((1 - r.haze) * 100)}%, var(--haze))` }} />
-        ))}
-      </g>
+      {view.ridges.map((r, i) => r.d && (
+        <path key={i} className="ring-far-hill" d={r.d}
+          style={{ fill: `color-mix(in srgb, var(--far-hill) ${Math.round((1 - r.haze) * 100)}%, var(--haze))` }} />
+      ))}
       {haze.depth > 0 && <polygon points={haze.plate} fill="url(#ring-depth)" />}
     </g>
   );
@@ -160,9 +133,9 @@ export const RingFront = memo(function RingFront({ name, vernacular, camera, tur
   name: string; vernacular: Vernacular; camera: Camera; turning: boolean; snow: number;
 }) {
   void camera;
-  const view = useRestView(name, turning);
+  const view = ringView(name, !turning);
   return (
-    <g className="ring" aria-hidden="true" visibility={turning ? 'hidden' : undefined}>
+    <g className="ring" aria-hidden="true">
       <RingSprites sprites={view.front} vernacular={vernacular} snow={snow} />
     </g>
   );

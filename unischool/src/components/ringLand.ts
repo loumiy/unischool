@@ -661,13 +661,24 @@ function houseShape(land: Land, h: House) {
 
 const VIEW_CACHE = new Map<string, RingView>();
 
-// The ring at the camera the projection is at now, cached per name and camera.
-export function ringView(name: string): RingView {
+// The last view built and not kept: the frame of a turn draws the ring
+// twice (under the campus and in front of it) from one build.
+let passing: { key: string; view: RingView } | null = null;
+
+// The ring at the camera the projection is at now, cached per name and
+// camera where the camera rests (`keep`). A turn's in-between angles are
+// built each frame and not kept, so they never push the views the camera
+// rests on out of the cache (Plan 82).
+export function ringView(name: string, keep = true): RingView {
   const cam = currentCamera();
   const key = `${name}|${cam.azimuth.toFixed(5)}|${cam.pitch.toFixed(5)}`;
-  const hit = VIEW_CACHE.get(key);
+  const hit = VIEW_CACHE.get(key) ?? (passing?.key === key ? passing.view : undefined);
   if (hit) return hit;
   const view = buildView(landOf(name));
+  if (!keep) {
+    passing = { key, view };
+    return view;
+  }
   if (VIEW_CACHE.size >= 12) VIEW_CACHE.delete(VIEW_CACHE.keys().next().value!);
   VIEW_CACHE.set(key, view);
   return view;

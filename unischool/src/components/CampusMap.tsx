@@ -232,7 +232,7 @@ function labelLayout(label: string, t: Buildable, p: Placement, v: Vernacular) {
 // One thing standing on the map, as the depth sort sees it. Masses, trees
 // and props are sorted as one list so a tree can be in front of one hall and
 // behind another.
-type SceneEntry = DepthBox & (
+export type SceneEntry = DepthBox & (
   | { kind: 'mass'; key: string; id: string }
   | { kind: 'tree'; key: string; seed: number }
   // `owner` is the Buildable a prop belongs to, for its stands' crowd.
@@ -611,17 +611,56 @@ const FullMarksLayer = memo(function FullMarksLayer({ s, layout, onInspect, came
   );
 });
 
+// The sorted scene at the camera the projection is at: every mass, tree and
+// raised prop in paint order (see depthSort.ts), whole at every angle,
+// including every frame of a turn (Plan 82). Open-ground facilities
+// (quads, pitches, courts, pool decks) have no height, so their plates are
+// drawn in their own pass under every mass (a single depth key can't
+// express a large flat footprint; see groundMarkings.tsx): only what stands
+// on them, from groundProps, joins the sort.
+export function sceneEntries(layout: CampusLayout): SceneEntry[] {
+  const { placed, trees, pathways } = layout;
+  const entries: SceneEntry[] = [];
+  for (const { t, p, developing } of placed) {
+    if (motifOf(t) === 'grounds') {
+      // Each prop enters the sort on the ground it covers. A site has no
+      // props yet.
+      const d = drawnFootprint(p);
+      // A venue expanding in place keeps its props (Plan 54), and they
+      // grow with its expansions.
+      for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0)) {
+        entries.push({
+          kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id, shadows: prop.shadows,
+          col: prop.col, row: prop.row, w: prop.w, h: prop.h,
+        });
+      }
+    } else {
+      entries.push({ kind: 'mass', key: `b-${t.id}`, id: t.id, col: p.col, row: p.row, w: p.w, h: p.h });
+    }
+  }
+  // Lamps, benches and bike racks (dressing.tsx).
+  for (const prop of dressingProps(layout)) entries.push({ kind: 'prop', ...prop });
+  // A paved tree is hidden, not deleted, so lifting the path brings it
+  // back (see state/types.ts's Trees block).
+  for (const [key, seed] of Object.entries(trees)) {
+    if (key in pathways) continue;
+    const tile = parsePathTileKey(key);
+    if (!tile) continue;
+    entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
+  }
+  return depthOrder(entries);
+}
+
 // Everything that stands on the ground, as one memoised component: the
 // static layer. Its props change only when the layout does (campusLayout.ts),
 // the camera turns, or a building is inspected or finishes; a week in which
 // nothing was built or paved skips it entirely, as does a hover. `onInspect`
 // must be a stable callback for this to work.
 //
-// While the camera turns, every frame redraws the scene at a new angle, so
-// the scene is drawn light for the quarter second of the turn (Plan 80H):
-// the buildings, the ground and the paths, without the trees, the props on
-// the grounds, the lamps and the benches, which come back when it settles.
-const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinished, onInspect, labelLayerRef, camera, turning, front }: {
+// While the camera turns, every frame redraws the whole scene at the angle
+// the turn has reached: trees, props and dressing too (Plan 82 undid 80H's
+// light turn, which left them out and saved about a fifth of a frame).
+const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinished, onInspect, labelLayerRef, camera, front }: {
   layout: CampusLayout;
   inspectedId: string | null;
   justFinished: readonly string[];
@@ -632,13 +671,11 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
   // The label layer's node; the parent writes opacity straight onto it on
   // every mouse move (see paintLabels).
   labelLayerRef: React.RefObject<SVGGElement | null>;
-  // A turn is under way: draw the scene light.
-  turning: boolean;
   // The land around the campus that stands in front of the parcel (Plan
   // 81B): over the campus, under its labels. A stable element.
   front: React.ReactNode;
 }) {
-  const { placed, byId, trees, pathways, vernacular } = layout;
+  const { placed, byId, pathways, vernacular } = layout;
 
   // Open-ground facilities (quads, pitches, courts, pool decks) have no
   // height, so their plates are drawn in their own pass under every mass: a
@@ -650,41 +687,8 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
   // The sorted scene: every mass, tree and raised prop in paint order (see
   // depthSort.ts). It returns descriptors, not elements, so inspect/finish
   // changes never invalidate the sort.
-  const scene = useMemo(() => {
-    const entries: SceneEntry[] = [];
-    for (const { t, p, developing } of placed) {
-      if (motifOf(t) === 'grounds') {
-        if (turning) continue;
-        // Each prop enters the sort on the ground it covers. A site has no
-        // props yet.
-        const d = drawnFootprint(p);
-        // A venue expanding in place keeps its props (Plan 54), and they
-        // grow with its expansions.
-        for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0)) {
-          entries.push({
-            kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id, shadows: prop.shadows,
-            col: prop.col, row: prop.row, w: prop.w, h: prop.h,
-          });
-        }
-      } else {
-        entries.push({ kind: 'mass', key: `b-${t.id}`, id: t.id, col: p.col, row: p.row, w: p.w, h: p.h });
-      }
-    }
-    if (turning) return depthOrder(entries);
-    // Lamps, benches and bike racks (dressing.tsx).
-    for (const prop of dressingProps(layout)) entries.push({ kind: 'prop', ...prop });
-    // A paved tree is hidden, not deleted, so lifting the path brings it
-    // back (see state/types.ts's Trees block).
-    for (const [key, seed] of Object.entries(trees)) {
-      if (key in pathways) continue;
-      const tile = parsePathTileKey(key);
-      if (!tile) continue;
-      entries.push({ kind: 'tree', key: `t-${key}`, seed, col: tile.col, row: tile.row, w: 1, h: 1 });
-    }
-    return depthOrder(entries);
-    // The camera changes the order and the props' geometry.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layout, camera, turning]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const scene = useMemo(() => sceneEntries(layout), [layout, camera]);
 
   const ground = useMemo(groundGeometry, [camera]);
 
@@ -862,8 +866,10 @@ export default function CampusMap({
   // draws at it. Not persisted.
   const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
   setCamera(camera);
-  // A quarter turn is being animated (turnBy): the scene draws light and the
-  // walkers are hidden until it settles.
+  // A quarter turn is being animated (turnBy): every frame draws the whole
+  // scene, the land around it and the walkers at the angle reached (Plan
+  // 82); the walkers go unclipped and the ring's in-between views are not
+  // cached until it settles.
   const [turning, setTurning] = useState(false);
   const layout = useCampusLayout(s);
   // This week's occasions (mapOccasions.ts), reference-stable between them.
@@ -1156,7 +1162,8 @@ export default function CampusMap({
       anchorRef.current = anchor;
       if (t >= 1) {
         turnRef.current = null;
-        // The last frame draws the whole scene, at the view it rests on.
+        // The last frame rests on the view: the walkers' outlines and the
+        // ring's cache are this view's again.
         setTurning(false);
       } else {
         turn.raf = requestAnimationFrame(frame);
@@ -1764,7 +1771,6 @@ export default function CampusMap({
                 onInspect={onInspect}
                 labelLayerRef={labelLayerRef}
                 camera={camera}
-                turning={turning}
                 front={ringFront}
               />
             </SnowContext.Provider>

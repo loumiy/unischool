@@ -798,6 +798,8 @@ after:
 
 **As implemented (#248):**
 
+*Later: Plan 82 (#259) restored the full scene during turns (trees, props, dressing and walkers drawn on every frame).*
+
 - **Quads lose their labels.** `quadLayer.tsx` (the tint, the outline, the
   names) and `QuadPanel.tsx` are gone, with "Mark a quad", the `quad`
   campus tool, `MARK_QUAD`, `UNMARK_QUAD`, `NAME_QUAD`, the N key, the Aa
