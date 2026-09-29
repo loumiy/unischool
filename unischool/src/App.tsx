@@ -368,18 +368,22 @@ export default function App() {
 
   // A new college (the title screen, the hall of fame, the Final Report's
   // Found another college, Plan 70J): the startup screen.
-  const newCollege = () => { if (s.started) act({ type: 'RESET' }); setFrontState(null); };
+  // The title screen's Sandbox founds one the same way, as a sandbox run
+  // (systems/sandbox), without the walkthrough.
+  const [foundSandbox, setFoundSandbox] = useState(false);
+  const newCollege = (sandbox = false) => { if (s.started) act({ type: 'RESET' }); setFoundSandbox(sandbox); setFrontState(null); };
 
   const frontScreen = front === 'title' ? (
     <TitleScreen
       s={s}
       onContinue={() => { if (continueHere()) setFrontState(null); }}
-      onNewCollege={newCollege}
+      onNewCollege={() => newCollege()}
+      onSandbox={() => newCollege(true)}
       onHall={() => setFront('hall')}
       onSettings={() => setFront('settings')}
       onCredits={() => setFront('credits')}
     />
-  ) : front === 'hall' ? <HallOfFame onClose={closeFront} onNewCollege={newCollege} running={s.started ? institutionName(s.self) : undefined} />
+  ) : front === 'hall' ? <HallOfFame onClose={closeFront} onNewCollege={() => newCollege()} running={s.started ? institutionName(s.self) : undefined} />
     : front === 'settings' ? <SettingsPanel onClose={closeFront}><SoundControls /></SettingsPanel>
       : front === 'credits' ? <Credits onClose={closeFront} />
         : null;
@@ -388,7 +392,12 @@ export default function App() {
     // On this screen the debug panel offers Load alone (see DebugPanel.tsx).
     return (
       <>
-        {frontScreen ?? <StartupScreen onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: true, seed: freshSeed() })} />}
+        {frontScreen ?? (
+          <StartupScreen
+            sandbox={foundSandbox}
+            onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: !foundSandbox, seed: freshSeed(), sandbox: foundSandbox || undefined })}
+          />
+        )}
         {DebugPanel && <Suspense fallback={null}><DebugPanel s={s} act={act} exportRun={exportRun} /></Suspense>}
       </>
     );

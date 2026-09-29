@@ -676,6 +676,26 @@ export function tickTech(s: GameState): void {
     }
   }
 
+  completeDevelopment(s, finished, arrived);
+}
+
+// A sandbox run finishes everything under way at once (systems/sandbox),
+// dark programs' courses included.
+export function finishAllDevelopment(s: GameState): void {
+  const ids = Object.keys(s.developing);
+  if (ids.length === 0) return;
+  const finished: Buildable[] = [];
+  for (const id of ids) {
+    delete s.developing[id];
+    const node = s.tech.find((t) => t.id === id);
+    if (node) finished.push(node);
+  }
+  completeDevelopment(s, finished, false);
+}
+
+// What a finished countdown does: the node is done, its first finish
+// applies its effects, and the gates it may have opened are read again.
+function completeDevelopment(s: GameState, finished: Buildable[], arrived: boolean): void {
   for (const node of finished) {
     node.status = 'done';
     // First finished, not renovated: the map dates its weathering from here.

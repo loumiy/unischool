@@ -59,6 +59,7 @@ import { placeBuildable } from '../state/placeBuildable';
 import { fireFaculty, hireFaculty } from '../systems/faculty/appointments';
 import { tickLadder } from '../systems/ladder/ladderSystem';
 import { cancelConstruction, demolish } from '../state/demolition';
+import { isSandbox, settleSandbox } from '../systems/sandbox/sandbox';
 
 // The systems run in a fixed order each week; each placement comment says
 // what it must read fresh.
@@ -139,7 +140,14 @@ export function reducer(state: GameState, action: Action): GameState {
   // Clone so systems can mutate freely, and bind the clone's random stream
   // for every draw this action makes.
   const s: GameState = structuredClone(state);
-  return withRandom(s, () => reduce(state, s, action));
+  return withRandom(s, () => settled(state, reduce(state, s, action)));
+}
+
+// A sandbox run is settled after every action that changed it
+// (systems/sandbox): what started is finished, and the funds are full.
+function settled(state: GameState, next: GameState): GameState {
+  if (next !== state && isSandbox(next)) settleSandbox(next);
+  return next;
 }
 
 // The reducer without the clone (Plan 57), for a headless player that owns
@@ -149,7 +157,11 @@ export function reducer(state: GameState, action: Action): GameState {
 // as it was, since every early `return state` in reduce() comes before any
 // write — the debug actions aside, which a headless player never sends.
 export function reduceInPlace(s: GameState, action: Action): GameState {
-  return withRandom(s, () => reduce(s, s, action));
+  return withRandom(s, () => {
+    const next = reduce(s, s, action);
+    if (isSandbox(next)) settleSandbox(next);
+    return next;
+  });
 }
 
 function reduce(state: GameState, s: GameState, action: Action): GameState {
@@ -165,11 +177,18 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    case 'START_GAME':
+    case 'START_GAME': {
       // Does not save: createInitialState rolls dice, so under StrictMode's
       // double invocation a save from here could persist the discarded run.
       // useGame.ts takes the founding save from the committed state.
-      return createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed);
+      const next = createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed);
+      if (action.sandbox) {
+        next.sandbox = true;
+        // On the new run's own stream, not the pre-start state's.
+        withRandom(next, () => settleSandbox(next));
+      }
+      return next;
+    }
 
     // The opening walkthrough's Next and decline (see state/opening.ts). Steps
     // that end on something done are settled by settleOpening from that action.

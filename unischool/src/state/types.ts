@@ -1119,6 +1119,10 @@ export interface GameState {
   research: ResearchState;
   candidates: Faculty[];         // the churning academic job market (facultySystem.ts's tickCandidatePool)
   started: boolean;              // false only during the pre-game startup screen
+  // A sandbox run (the title screen's Sandbox): funds that never run out and
+  // no weeks to wait on building or course development (systems/sandbox).
+  // Absent in a normal run.
+  sandbox?: boolean;
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
   // The year each milestone was awarded (Plan 80C), which the chronicle

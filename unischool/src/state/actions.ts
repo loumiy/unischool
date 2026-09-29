@@ -47,7 +47,7 @@ export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'lamp' | 'bench';
 export type Action =
   | { type: 'TICK' }                                   // advance one week
   // `guided`: a human founding, with the opening walkthrough (state/opening.ts).
-  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean; seed?: number }
+  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean; seed?: number; sandbox?: boolean }
   | { type: 'ADVANCE_OPENING' }
   // `keepLetters`: skipping from a mid-walk card leaves the first year's
   // letters on; the welcome's decline turns them off too.
