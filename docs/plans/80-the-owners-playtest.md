@@ -340,6 +340,51 @@ after:
 - **Checks:** the gallery in each vernacular; a bench at each facing and
   view.
 
+**As implemented (#TBD):**
+
+- **The chapel** is a motif of its own, `'chapel'` (`buildingSpec.ts`'s
+  `CHAPELS` table and `chapelPlan`; `buildingMotifs.tsx`'s `Chapel`): a
+  tower at the west end (-col; -row when turned), a nave under a steep roof
+  with tall windows in odd bays, and a lower, narrower chancel at the east
+  end with a rose in the nave's gable over it. Tower, nave, chancel and
+  buttresses are painted in `depthOrder`. By set: a lead spire over a white
+  belfry (Georgian, and in slate for Second Empire), a stone spire with
+  pinnacles and buttresses (Gothic), a cupola (Classical), a campanile
+  (Mission, Italianate), battlements (Tudor), setbacks to a gilt mast (Art
+  Deco), a bell blade over slot windows (Modern). Its wall is the set's
+  limestone (Gothic, Classical) or its hall wall (the rest), under the
+  halls' roof.
+  - Where the plan was silent: the nave stands on the footprint's middle
+    (the tower and chancel take equal ends), so a door is drawn at each of
+    the four doors walkers use: the tower's west face, the middle bay of
+    each long wall, the chancel's east face. No cross anywhere, as the
+    Mission bell-gable before it. The nave is one clear-span volume (9.5 m
+    to the eaves). The weathering marks the nave and chancel, not the tower
+    (a volume's marks are masked by nearer walls, not roofs).
+- **Benches** store a facing: `Dressing` values are `'lamp'` or
+  `'bench-n' | 'bench-e' | 'bench-s' | 'bench-w'` (north is -row;
+  `state/dressing.ts`). A bench stands against one edge of its tile and
+  faces out across it. `PLACE_DRESSING` takes an optional `facing`; without
+  one, the bench faces the path beside it (south, east, west, north where
+  there are several). R with the bench tool armed turns the ghost a quarter
+  clockwise, and the ghost draws the bench, half-transparent. Setting a
+  bench again on its tile takes the new facing. Touch has no turn: a tap
+  sets the default facing.
+  - The bench is redrawn at the walkers' scale (seat at hip height):
+    three seat slats with a front edge, two raked back slats, iron ends
+    carrying the arms, a small cast shadow.
+- **Save version 82**, with `MIGRATIONS[81]`: each old bench takes the
+  facing it was drawn with (east where paving lay east or west of it, else
+  south). `test/fixtures/save-v81.json` is the `year-8-balanced` scenario
+  with a walk, four benches and a lamp laid through the version-81 reducer.
+- **Checks:** `test/dressing.test.ts` (default facings, a turned bench, a
+  bench at each facing and view, the v81 fixture's migration),
+  `test/building-spec.test.ts` (the chapel in every set, both ways round).
+  Two new arrangements, `chapel` (benches at every facing) and
+  `chapel-turned`: `review:doors` is clean on both and unchanged elsewhere.
+  Pictures: `docs/reviews/2026-10-campus-fixes/chapel-vernaculars.jpg`,
+  `chapel-views.jpg`, `benches.jpg`.
+
 ## 4. The backlog
 
 - **Athletics, deepened** is taken into G, except founding a team directly

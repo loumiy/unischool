@@ -118,6 +118,7 @@ Some of what a building looks like depends on the campus, not on the Buildable:
 
 - **A hall dedicated to one school** is drawn as that school's signature building (`buildingSpec.ts`'s `SCHOOL_SIGNATURES`). The map's copy of the Buildable carries the school (`campusLayout.ts`); the state's never does. A signature that shares a motif with a civic building carries a **feature** that sets it apart (Plan 61): Arts & Media is a studio under a sawtooth north-light roof, Business an exchange with a pedimented temple front and a dome; `building-spec.test.ts` keeps every signature distinct and none drawn as the library.
 - **A research facility** looks like its discipline, through a motif by id and a roof feature (`labFeatureOf`: an observatory, a glasshouse, fume flues).
+- **The chapel** has a motif of its own (Plan 80I; it had been a pavilion in stone): a tower at the footprint's west end (-col, or -row turned), a nave under a steep roof with tall windows, and a lower chancel at the east end with a rose in the nave's gable over it. What varies by vernacular is one row of `buildingSpec.ts`'s `CHAPELS` (the wall, the window, the tower: a spire, a steeple, a cupola, a campanile, battlements, setbacks or a bell blade); the geometry is `chapelPlan`, shared with the weathering. The nave stands on the footprint's middle, so a door is drawn where each of the four walls' doors is walked to.
 
 Both are drawing only, like the rest of the map.
 

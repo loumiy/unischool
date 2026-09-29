@@ -646,7 +646,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'bench' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'bench'}
         onClick={() => onSetPathTool('bench')}
-        title="Set a bench on or beside a path, facing along it, one a click — the right mouse button lifts one. Free, like a path."
+        title="Set a bench on or beside a path, one a click: it faces the path, and R turns it before it is set. The right mouse button lifts one. Free, like a path."
       >
         <span className="build-tile-icon"><DrawPathIcon /></span>
         <span className="build-tile-name">Benches</span>
