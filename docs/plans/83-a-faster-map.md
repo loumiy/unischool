@@ -4,7 +4,7 @@
 into PRs, starting with a prototype that decides whether the rest are
 worth doing.*
 
-**Status: In progress: A and B merged (#260, #261).**
+**Status: In progress: A, B and C merged (#260–#262).**
 
 ---
 
@@ -264,6 +264,123 @@ fast, not smooth.
   - a turn timed against main;
   - the door checker, `npm run phone` and the touch check;
   - `npm run check`, with the sim unchanged.
+
+**As implemented (#262):** the canvas is the map. `?map=svg` keeps the
+SVG scene for comparison until E. Outside a browser (the tests, the
+review tools) the map renders its SVG.
+
+- **No React internals.**
+  - The art's context reads became parameters. Five readers were each
+    split into a thin component that reads the context and a plain art
+    function that takes the value: the roof flag (colors), the building
+    mass (snow), the landmark (developing weeks, college name), the lamp
+    (banner) and the raked stand (venue, crowd).
+  - The memoised pieces export their own functions. The hook-using
+    layers (the scene, the desire lines, the shadows, the paths) were
+    split into their values and their art.
+  - `canvasArt.ts` registers each such component with the painter as a
+    plain function of its props and a scope. The scope carries the
+    occasions, set by the providers in the tree, and memoised values kept
+    from paint to paint.
+  - `canvasPaint.ts` reads elements only through `type`, `props` and
+    `key`. `test/canvas-scene.test.ts` checks that neither file names
+    React's internals, element markers or context internals.
+  - The SVG path renders identically: the whole map's server-rendered
+    markup is byte-identical to main's (684 kB), and the door checker's
+    report on three year-30 saves is identical (368 hits).
+- **Sharp at every zoom, smooth to pan.**
+  - The canvas is sized to device pixels, with a margin past each edge of
+    35% of the map (at least 200 px).
+  - A pan moves the painted image by a CSS transform on device pixels,
+    which the compositor applies without a repaint.
+  - It repaints only when the pan would show past the margin, or when it
+    settles (140 ms) with less than half the margin left on a side.
+  - A zoom scales the image through the gesture and repaints when it
+    settles.
+  - A turn or a tilt repaints each frame.
+- **Picking.** The painter records every shape it draws that takes
+  pointer events (read from the stylesheet as for colors). Each shape
+  carries its world transform and the building it is in (`data-building`).
+  - Hover and click ask for the topmost shape under the point, which is
+    the SVG's own hit test: a tree in front of a hall still takes the
+    click, and in placing or path modes buildings take none.
+  - What is drawn before the first building (the land, the ground, the
+    paths) is not kept.
+  - A grid index is built on the first question after a paint, so a turn
+    pays nothing for it.
+  - Click opens the panel as the building's own handler did. The cursor
+    and the tooltip (`label · w×h`) come from one `<title>` on the map.
+  - The ghost's tile and the path tool read the ground by the
+    projection, as before.
+  - Against the SVG's `elementFromPoint` on a 24 px grid (1,768 points)
+    at the default and lowest pitch and after a turn, in Georgian and
+    Mission, picking agreed at 99.83–100% of points. The misses were
+    single points on a shape's edge.
+  - A hover costs 0.1–0.4 ms, against about 1 ms on main.
+- **Redraws only on change:** the camera, the layout, the season or
+  snow, the inspected building, a building finishing, the occasions, and
+  the map's own modes (placing, a path tool, inspecting). At Play, the
+  canvas repainted once in five seconds.
+- **The completion ring stays an SVG overlay** in the world group, so it
+  plays its CSS animation. For its 1.5 seconds it draws over nearer
+  buildings, where the SVG drew it in the depth order.
+- **The weather.** The map has no weather effects of its own. What it
+  has is the season's palette and snow and the buildings' weathering
+  (ageMarks' masks). All of it is on the canvas.
+- **The numbers.** Main-thread CPU on the year-30 Completionist campus:
+  medians of three alternating rounds against main (SVG), with turn frames
+  pooled over six turns a round.
+
+  | | SVG (main) | canvas |
+  |---|---|---|
+  | A frame of a turn, 1× | 199 ms | 99 ms |
+  | A frame of a turn, 2× | 214 ms | 117 ms |
+  | The whole turn, 1× | 795 ms | 380 ms |
+  | The whole turn, 2× | 837 ms | 305 ms |
+  | The settling frame, 1× | 201 ms | 105 ms |
+  | The settling frame, 2× | 192 ms | 111 ms |
+  | A frame at Play, 1× | 24–25 ms at 13–16 fps | 10–13 ms at 56–57 fps |
+  | A frame of a pan, 1× | 13.6 ms at 30 fps (p90 21) | 6.1 ms at 57 fps (p90 10) |
+
+  - **Frame rate.** At Play and in a pan the canvas runs at nearly twice
+    the frame rate, and so spends more CPU a second. The SVG's frame
+    rate is capped by restyling the scene under the walkers and the pan.
+  - **The long frames.** A repaint when the map changes costs 80–110 ms
+    (a frame up to about 250 ms). That happens at Play when something is
+    built or changes, and after a pan that has used up half its margin.
+    Otherwise a frame of a pan stays under 10 ms at the 90th percentile.
+- **Screenshots against `?map=svg`.** Every view at all ten pitches, in
+  Georgian in winter and in Mission: 80 pairs.
+  - At the lowest pitch, where the view is the same in both, the mean
+    pixel difference is 0.7 of 255, with at most 0.004% of pixels off by
+    more than 40.
+  - After a tilt, the view lands a few pixels differently from run to run
+    in either renderer, so the pairs were aligned first. Canvas against
+    SVG then gives a mean of 4.5–4.9, against 4.1 for the SVG against a
+    second run of itself. The worst pair has 1.5% of pixels off, all at
+    subpixel edges.
+  - Nothing differs to the eye in the contact sheets or the crops.
+- **Differences left:**
+  - walkers still do not open doors (D reads the open-door state);
+  - the completion ring draws over nearer buildings for 1.5 seconds;
+  - through a zoom gesture the image is scaled until it settles, and a
+    wide zoom-out in one gesture can show its edge for that moment;
+  - the long frame of a full repaint, above, where the SVG redrew only
+    what changed.
+- **Checks:**
+  - `test/canvas-scene.test.ts` paints a year-25 campus in Node at every
+    view and the lowest pitch: nothing undrawable, every building
+    pickable, no React internals;
+  - `test/canvas-flag.test.ts` checks the flag and the SVG map;
+  - the touch check and `npm run phone` pass on the canvas map;
+  - the door checker's report is unchanged;
+  - `npm run check` passes and `npm run sim` shows 0 deltas.
+- **Screenshots:** `docs/reviews/2026-10-canvas/`:
+  - `83c-{svg,canvas}-{georgian-winter,mission}-v{0..3}-p{0,3}.jpg` (the
+    lowest and the default pitch);
+  - `83c-sheet-{georgian-winter,mission}.jpg`: every view at every
+    pitch, SVG beside canvas;
+  - `83c-detail-inspect.jpg`: a building inspected, the rest dimmed.
 
 ## PR 83D — Walkers in the depth order
 

@@ -77,10 +77,13 @@ function aroundPoint(cc: number, cr: number, radius: number): { col: number; row
 // Colors are passed in: the stadium shades its stands from its own tint,
 // the bleachers beside a pitch are plain concrete.
 // ---------------------------------------------------------------------
-export function RakedStand({
-  outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall, frontWall,
-  endFaces = true, aisles = 0, rail = true,
-}: {
+export function RakedStand(props: RakedStandProps) {
+  // A crowd on the treads in the weeks this stand's venue has a game
+  // (mapOccasions.ts).
+  const venue = useContext(VenueContext);
+  return rakedStandArt(props, useContext(CrowdContext).has(venue ?? ''));
+}
+export type RakedStandProps = {
   outer: [TilePt, TilePt];   // the back edge, furthest from the field and highest
   inner: [TilePt, TilePt];   // the front edge, at the field and lowest
   bottomH: number; topH: number;
@@ -100,14 +103,16 @@ export function RakedStand({
   aisles?: number;
   // The rail along the back of the top row.
   rail?: boolean;
-}) {
+};
+// The stand given whether its venue has a crowd this week: what the canvas
+// map draws (canvasArt.ts).
+export function rakedStandArt({
+  outer, inner, bottomH, topH, rakeFill, wallFill, seatStroke, rows = 4, wall, frontWall,
+  endFaces = true, aisles = 0, rail = true,
+}: RakedStandProps, crowded: boolean): React.JSX.Element {
   const [o0, o1] = outer;
   const [i0, i1] = inner;
   const at = (t: TilePt, up: number) => lift(project(t[0], t[1]), up);
-  // A crowd on the treads in the weeks this stand's venue has a game
-  // (mapOccasions.ts).
-  const venue = useContext(VenueContext);
-  const crowded = useContext(CrowdContext).has(venue ?? '');
   const between = (a: TilePt, b: TilePt, f: number): TilePt => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
 
   // Which edge is nearer the camera. Front edge nearer: the risers face the

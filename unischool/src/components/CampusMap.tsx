@@ -45,7 +45,8 @@ import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
 import { setMapProbe } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
-import { Painter, StyleResolver, type PaintOptions } from './canvasPaint';
+import { HitList, Painter, StyleResolver, registerArt, type ArtScope, type PaintOptions } from './canvasPaint';
+import { registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
@@ -356,31 +357,38 @@ function PlacedBuilding({
 // Every cast shadow in one pass (see the shadow note above). One <path> per
 // fill rather than a polygon per shadow, so overlaps draw as one shadow
 // rather than a darker one.
-function CastShadows({ placed, scene, vernacular, camera }: {
+type CastShadowsProps = {
   placed: CampusLayout['placed'];
   scene: readonly SceneEntry[];
   vernacular: Vernacular;
   camera: Camera;
-}) {
-  const d = useMemo(() => {
-    const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
-    const buildings: string[] = [];
-    for (const { t, p, developing } of placed) {
-      const height = drawnHeightOf(t, developing, vernacular);
-      if (height <= 0) continue;
-      const f = drawnFootprint(p);
-      buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
-    }
-    const trees: string[] = [];
-    for (const e of scene) {
-      if (e.kind === 'tree') trees.push(sub(woodlandShadow(e.row, e.col, e.seed)));
-      // A quad's or garden's planting (groundMarkings.tsx's GroundProp).
-      else if (e.kind === 'prop') for (const pts of e.shadows ?? []) trees.push(sub(pts));
-    }
-    return { buildings: buildings.join(''), trees: trees.join('') };
+};
+function CastShadows({ placed, scene, vernacular, camera }: CastShadowsProps) {
+  return castShadowsArt(useMemo(
+    () => castShadowPaths(placed, scene, vernacular),
     // `camera` is read by the projection, not here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placed, scene, vernacular, camera]);
+    [placed, scene, vernacular, camera],
+  ));
+}
+function castShadowPaths(placed: CampusLayout['placed'], scene: readonly SceneEntry[], vernacular: Vernacular): { buildings: string; trees: string } {
+  const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
+  const buildings: string[] = [];
+  for (const { t, p, developing } of placed) {
+    const height = drawnHeightOf(t, developing, vernacular);
+    if (height <= 0) continue;
+    const f = drawnFootprint(p);
+    buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
+  }
+  const trees: string[] = [];
+  for (const e of scene) {
+    if (e.kind === 'tree') trees.push(sub(woodlandShadow(e.row, e.col, e.seed)));
+    // A quad's or garden's planting (groundMarkings.tsx's GroundProp).
+    else if (e.kind === 'prop') for (const pts of e.shadows ?? []) trees.push(sub(pts));
+  }
+  return { buildings: buildings.join(''), trees: trees.join('') };
+}
+function castShadowsArt(d: { buildings: string; trees: string }) {
   return (
     <g className="campus-shadows" aria-hidden="true">
       {d.buildings && <path className="campus-building-shadow" d={d.buildings} />}
@@ -661,7 +669,7 @@ export function sceneEntries(layout: CampusLayout): SceneEntry[] {
 // While the camera turns, every frame redraws the whole scene at the angle
 // the turn has reached: trees, props and dressing too (Plan 82 undid 80H's
 // light turn, which left them out and saved about a fifth of a frame).
-const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinished, onInspect, labelLayerRef, camera, front }: {
+type CampusSceneProps = {
   layout: CampusLayout;
   inspectedId: string | null;
   justFinished: readonly string[];
@@ -675,7 +683,26 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
   // The land around the campus that stands in front of the parcel (Plan
   // 81B): over the campus, under its labels. A stable element.
   front: React.ReactNode;
-}) {
+};
+const CampusScene = memo(function CampusScene(props: CampusSceneProps) {
+  const { layout, camera } = props;
+  // The sorted scene: every mass, tree and raised prop in paint order (see
+  // depthSort.ts). It returns descriptors, not elements, so inspect/finish
+  // changes never invalidate the sort.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const scene = useMemo(() => sceneEntries(layout), [layout, camera]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ground = useMemo(groundGeometry, [camera]);
+  return sceneArt(props, scene, ground);
+});
+
+// The scene's elements, given its sorted entries and the ground: what
+// CampusScene renders, and what the canvas map paints (registered below).
+function sceneArt(
+  { layout, inspectedId, justFinished, onInspect, labelLayerRef, camera, front }: CampusSceneProps,
+  scene: readonly SceneEntry[],
+  ground: ReturnType<typeof groundGeometry>,
+) {
   const { placed, byId, pathways, vernacular } = layout;
 
   // Open-ground facilities (quads, pitches, courts, pool decks) have no
@@ -684,14 +711,6 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
   // groundMarkings.tsx). Anything standing on them comes back from
   // groundProps and joins the sorted pass below.
   const groundPlaced = placed.filter(({ t }) => motifOf(t) === 'grounds');
-
-  // The sorted scene: every mass, tree and raised prop in paint order (see
-  // depthSort.ts). It returns descriptors, not elements, so inspect/finish
-  // changes never invalidate the sort.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const scene = useMemo(() => sceneEntries(layout), [layout, camera]);
-
-  const ground = useMemo(groundGeometry, [camera]);
 
   const building = ({ t, p, label, developing, glyphs, age, renovating, historic }: CampusLayout['placed'][number]) => (
     <PlacedBuilding
@@ -746,7 +765,7 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
       <LabelLayer placed={placed} inspectedId={inspectedId} vernacular={vernacular} labelLayerRef={labelLayerRef} />
     </>
   );
-});
+}
 
 function LabelLayer({ placed, inspectedId, vernacular, labelLayerRef }: {
   placed: CampusLayout['placed']; inspectedId: string | null; vernacular: Vernacular;
@@ -761,14 +780,67 @@ function LabelLayer({ placed, inspectedId, vernacular, labelLayerRef }: {
   );
 }
 
-// The canvas prototype (Plan 83B, `?map=canvas`): the scene and the ring
-// are painted on a canvas under the map's SVG (canvasPaint.ts), and only
-// the labels stay in the SVG's world group, over it. Without the flag the
-// map is exactly the SVG map. No picking: the canvas takes no pointer.
+// The canvas map (Plan 83C, the prototype of 83B made the map): the scene
+// and the ring are painted on a canvas under the map's SVG (canvasPaint.ts,
+// canvasArt.ts), and the labels, walkers, marks, the completion ring, the
+// ghost and the dust stay SVG over it. `?map=svg` keeps the SVG scene, for
+// comparison, until Plan 83E retires it; outside a browser (the tests, the
+// review tools) the map renders its SVG.
 export function canvasMapWanted(search: string): boolean {
-  return new URLSearchParams(search).get('map') === 'canvas';
+  return new URLSearchParams(search).get('map') !== 'svg';
 }
 export const CANVAS_MAP = typeof window !== 'undefined' && canvasMapWanted(window.location.search);
+
+// What the canvas map paints: the scaffold's pattern, the land behind the
+// campus, and the scene (with the land in front of it) in the occasions'
+// providers, as the SVG map mounts them.
+export function mapSceneTree(a: Omit<CampusSceneProps, 'front'> & {
+  name: string; developing: GameState['developing']; turning: boolean; snow: number;
+  crowds: ReadonlySet<string>; banners: GameState['self']['colors'] | null; front: React.ReactNode;
+}): React.ReactNode {
+  return (
+    <>
+      <defs><ScaffoldPattern /></defs>
+      <RingBack name={a.name} vernacular={a.layout.vernacular} camera={a.camera} turning={a.turning} snow={a.snow} />
+      <CrowdContext.Provider value={a.crowds}>
+      <BannerContext.Provider value={a.banners}>
+      <ColorsContext.Provider value={a.layout.colors}>
+      <CollegeNameContext.Provider value={a.name}>
+      <DevelopingContext.Provider value={a.developing}>
+      <SnowContext.Provider value={a.snow}>
+        <CampusScene
+          layout={a.layout}
+          inspectedId={a.inspectedId}
+          justFinished={a.justFinished}
+          onInspect={a.onInspect}
+          labelLayerRef={a.labelLayerRef}
+          camera={a.camera}
+          front={a.front}
+        />
+      </SnowContext.Provider>
+      </DevelopingContext.Provider>
+      </CollegeNameContext.Provider>
+      </ColorsContext.Provider>
+      </BannerContext.Provider>
+      </CrowdContext.Provider>
+    </>
+  );
+}
+
+// How far the canvas's image reaches past each edge of the map, in CSS
+// pixels: a share of the map's width and height, at least a floor. A pan
+// moves the image, and repaints it only once the pan would show past this,
+// or when it settles with less than half of it left on a side.
+const SCENE_MARGIN_SHARE = 0.35;
+const SCENE_MARGIN_MIN = 200;
+function sceneMargin(size: { width: number; height: number }): { mx: number; my: number } {
+  return {
+    mx: Math.round(Math.max(SCENE_MARGIN_MIN, size.width * SCENE_MARGIN_SHARE)),
+    my: Math.round(Math.max(SCENE_MARGIN_MIN, size.height * SCENE_MARGIN_SHARE)),
+  };
+}
+// How long a pan or a zoom rests before the image is repainted at its view.
+const SCENE_SETTLE_MS = 140;
 
 // The labels alone, for the canvas map; a prop for the camera so the memo
 // redraws on a turn, as CampusScene does.
@@ -782,21 +854,43 @@ const CanvasLabels = memo(function CanvasLabels({ camera, ...rest }: Parameters<
 // the next layout no longer routes across the grass there.
 const DesireLines = memo(function DesireLines({ layout, camera }: { layout: CampusLayout; camera: Camera }) {
   // The routes are found once per layout; a turn only re-projects them.
-  const runs = useMemo(() => {
-    const input = { placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways };
-    return desireLines(input, walkGrid(input));
-  }, [layout]);
-  const d = useMemo(() => runs
+  const runs = useMemo(() => desireRuns(layout), [layout]);
+  // `camera` is read by the projection.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return desireArt(useMemo(() => desirePath(runs), [runs, camera]));
+});
+function desireRuns(layout: CampusLayout) {
+  const input = { placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways };
+  return desireLines(input, walkGrid(input));
+}
+function desirePath(runs: ReturnType<typeof desireRuns>): string {
+  return runs
     .map((run) => run.map((w, i) => {
       const p = project(w.col, w.row);
       return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
     }).join(''))
-    .join(''),
-  // `camera` is read by the projection.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [runs, camera]);
+    .join('');
+}
+function desireArt(d: string) {
   return d ? <path className="campus-desire" d={d} aria-hidden="true" /> : null;
-});
+}
+
+// The scene's art as the painter calls it: CampusScene, the desire lines
+// and the shadows read their memoised values from the painter's scope
+// (the rest of the art registers in canvasArt.ts).
+registerMapArt();
+registerArt(CampusScene, (p: CampusSceneProps, s: ArtScope) => sceneArt(
+  p,
+  s.keep('scene', [p.layout, p.camera], () => sceneEntries(p.layout)),
+  s.keep('ground', [p.camera], groundGeometry),
+), true);
+registerArt(DesireLines, (p: { layout: CampusLayout; camera: Camera }, s: ArtScope) => {
+  const runs = s.keep('runs', [p.layout], () => desireRuns(p.layout));
+  return desireArt(s.keep('d', [runs, p.camera], () => desirePath(runs)));
+}, true);
+registerArt(CastShadows, (p: CastShadowsProps, s: ArtScope) => castShadowsArt(
+  s.keep('d', [p.placed, p.scene, p.vernacular, p.camera], () => castShadowPaths(p.placed, p.scene, p.vernacular)),
+));
 
 // Hall pips: one per slot, in the color of the school whose program holds
 // it, plus a flag when a slot is free and a program is on offer. Always on,
@@ -1009,6 +1103,17 @@ export default function CampusMap({
   const sceneTreeRef = useRef<React.ReactNode>(null);
   const sceneRootClassRef = useRef('');
   const scenePaintRef = useRef(0);
+  // The view the canvas's image was painted at, the repaint a pan or zoom
+  // waits to settle for, and what the image has that can be pointed at.
+  const drawnViewRef = useRef<{ view: View; width: number; height: number; mx: number; my: number } | null>(null);
+  const sceneSettleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hitsRef = useRef(new HitList());
+  // The building under the cursor (canvas map), for its tooltip and cursor.
+  const overBuildingRef = useRef<string | null>(null);
+  const mapTitleRef = useRef<HTMLTitleElement>(null);
+  // Where the map's <svg> sits in the window, measured at mount and on a
+  // resize.
+  const svgOriginRef = useRef<{ left: number; top: number } | null>(null);
   const cursorRef = useRef<{ x: number; y: number } | null>(null);
   // The pointer in canvas pixels, for the refused ghost's reason (re-read on
   // the re-render a new hover tile causes).
@@ -1120,36 +1225,89 @@ export default function CampusMap({
     ghostWorldRef.current?.setAttribute('transform', transform);
     ringWorldRef.current?.setAttribute('transform', transform);
     paintLabels(cursorRef.current);
-    if (CANVAS_MAP && !scenePaintRef.current) {
-      scenePaintRef.current = requestAnimationFrame(() => {
-        scenePaintRef.current = 0;
-        paintScene();
-      });
-    }
+    if (CANVAS_MAP) placeScene();
+  }
+
+  // The canvas map's image follows a pan or a zoom as a whole (a CSS
+  // transform, which the compositor applies without a repaint): moved by
+  // the pan, scaled by the zoom, from the view it was painted at. It is
+  // repainted when a pan would show past its margin, and at the view a pan
+  // or a zoom settles on.
+  function placeScene() {
+    const canvas = sceneCanvasRef.current;
+    const drawn = drawnViewRef.current;
+    const size = canvasSizeRef.current;
+    if (!canvas || !size) return;
+    if (!drawn) { requestScenePaint(); return; }
+    const v = viewRef.current;
+    const k = v.zoom / drawn.view.zoom;
+    const { mx, my } = drawn;
+    // Where the image's corner, painted at (-mx, -my), lands now: on a
+    // device pixel while it is not scaled, so a pan keeps it sharp. (Its
+    // size is the one it was painted at: reading the element's would lay
+    // out the page mid-turn.)
+    const dpr = window.devicePixelRatio || 1;
+    let x = (-mx - drawn.view.x) * k + v.x;
+    let y = (-my - drawn.view.y) * k + v.y;
+    if (k === 1) { x = Math.round(x * dpr) / dpr; y = Math.round(y * dpr) / dpr; }
+    canvas.style.transform = `translate(${x}px, ${y}px) scale(${k})`;
+    const w = drawn.width * k;
+    const h = drawn.height * k;
+    const want = sceneMargin(size);
+    const sized = drawn.width === Math.round(size.width + 2 * want.mx) && drawn.height === Math.round(size.height + 2 * want.my);
+    // What is left of the margin on each side.
+    const left = -x; const top = -y; const right = x + w - size.width; const bottom = y + h - size.height;
+    const covered = Math.min(left, top, right, bottom) >= -0.5;
+    if (!sized || (k === 1 && !covered)) requestScenePaint();
+    if (sceneSettleRef.current) clearTimeout(sceneSettleRef.current);
+    sceneSettleRef.current = k !== 1 || Math.min(left / mx, right / mx, top / my, bottom / my) < 0.5
+      ? setTimeout(requestScenePaint, SCENE_SETTLE_MS) : null;
+  }
+  function requestScenePaint() {
+    if (scenePaintRef.current) return;
+    scenePaintRef.current = requestAnimationFrame(() => {
+      scenePaintRef.current = 0;
+      paintScene();
+    });
   }
 
   // Paints the scene on the canvas map at the current view, at device
-  // pixels. Cancels a repaint a pan asked for, since this one serves it.
+  // pixels, over the map and a margin past each edge. Serves any repaint a
+  // pan or a zoom was waiting for.
   function paintScene() {
     if (scenePaintRef.current) {
       cancelAnimationFrame(scenePaintRef.current);
       scenePaintRef.current = 0;
     }
+    if (sceneSettleRef.current) {
+      clearTimeout(sceneSettleRef.current);
+      sceneSettleRef.current = null;
+    }
     const canvas = sceneCanvasRef.current;
     const size = canvasSizeRef.current;
     const tree = sceneTreeRef.current;
     if (!canvas || !size || !tree) return;
+    const { mx, my } = sceneMargin(size);
     const dpr = window.devicePixelRatio || 1;
-    const width = Math.round(size.width * dpr);
-    const height = Math.round(size.height * dpr);
+    const cssW = Math.round(size.width + 2 * mx);
+    const cssH = Math.round(size.height + 2 * my);
+    const width = Math.round(cssW * dpr);
+    const height = Math.round(cssH * dpr);
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
+    if (drawnViewRef.current?.width !== cssW || drawnViewRef.current?.height !== cssH) {
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
+    }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const v = viewRef.current;
     let pr = painterRef.current;
     if (!pr) {
       const resolver = new StyleResolver(canvas.parentElement ?? document.body);
-      const opts: PaintOptions = { resolver, skipRef: labelLayerRef, dpr };
+      const opts: PaintOptions = {
+        rules: resolver, skipRef: labelLayerRef, skipClass: 'campus-building-complete', dpr, zoom: v.zoom, hits: hitsRef.current,
+      };
       pr = { painter: new Painter(ctx, opts), resolver, opts, season: null };
       painterRef.current = pr;
     }
@@ -1160,17 +1318,42 @@ export default function CampusMap({
     }
     pr.resolver.setRootClass(sceneRootClassRef.current);
     pr.opts.dpr = dpr;
+    pr.opts.zoom = v.zoom;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    const v = viewRef.current;
-    ctx.setTransform(dpr * v.zoom, 0, 0, dpr * v.zoom, dpr * v.x, dpr * v.y);
+    ctx.setTransform(dpr * v.zoom, 0, 0, dpr * v.zoom, dpr * (v.x + mx), dpr * (v.y + my));
     const t0 = performance.now();
     const stats = pr.painter.paint(tree);
+    drawnViewRef.current = { view: { ...v }, width: cssW, height: cssH, mx, my };
+    canvas.style.transform = `translate(${-mx}px, ${-my}px)`;
     // For the review tools: the last paint's cost and what it could not draw.
     (window as unknown as { __canvasPaint?: unknown }).__canvasPaint = {
       ms: performance.now() - t0, elements: stats.elements, drawn: stats.drawn,
       unsupported: Object.fromEntries(stats.unsupported),
     };
+  }
+
+  // The building under a pointer on the canvas map, as the SVG's hit test
+  // found it: the topmost painted shape that takes pointer events, and the
+  // building it belongs to (null for none, or on the SVG map).
+  function buildingAt(e: { clientX: number; clientY: number }): string | null {
+    if (!CANVAS_MAP) return null;
+    const w = worldFromEvent(e);
+    return w ? hitsRef.current.at(w.x, w.y) ?? null : null;
+  }
+  // The cursor over a building: the pointer, and its name as a tooltip, as
+  // the SVG building's own <title> gave it.
+  function hoverBuilding(id: string | null) {
+    if (overBuildingRef.current === id) return;
+    overBuildingRef.current = id;
+    const svg = svgRef.current;
+    svg?.classList.toggle('over-building', id !== null);
+    // For the review tools, as the SVG's buildings carry data-building.
+    if (svg) svg.dataset.overBuilding = id ?? '';
+    const title = mapTitleRef.current;
+    if (!title) return;
+    const e = id ? layout.byId.get(id) : undefined;
+    title.textContent = e && e.t.facilityType !== 'quad' && !e.developing ? `${e.label} · ${e.p.w}×${e.p.h}` : '';
   }
 
   // Move the camera, keeping the ground at the canvas center fixed on screen
@@ -1289,11 +1472,14 @@ export default function CampusMap({
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     canvasSizeRef.current = { width: rect.width, height: rect.height };
+    svgOriginRef.current = { left: rect.left, top: rect.top };
     applyView(defaultView(rect));
     // A resize keeps the view, but keeps it over the land.
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return;
       canvasSizeRef.current = { width: entry.contentRect.width, height: entry.contentRect.height };
+      const r = svg.getBoundingClientRect();
+      svgOriginRef.current = { left: r.left, top: r.top };
       applyView(viewRef.current);
     });
     observer.observe(svg);
@@ -1405,7 +1591,10 @@ export default function CampusMap({
   function worldFromEvent(e: { clientX: number; clientY: number }): { x: number; y: number } | null {
     const svg = svgRef.current;
     if (!svg) return null;
-    const rect = svg.getBoundingClientRect();
+    // The canvas map reads the map's corner as last measured (it is fixed
+    // to the window): measuring it on every move laid out the page after
+    // each change of the hover cursor.
+    const rect = CANVAS_MAP && svgOriginRef.current ? svgOriginRef.current : svg.getBoundingClientRect();
     const v = viewRef.current;
     return { x: (e.clientX - rect.left - v.x) / v.zoom, y: (e.clientY - rect.top - v.y) / v.zoom };
   }
@@ -1422,9 +1611,10 @@ export default function CampusMap({
     // Labels track the cursor in every mode, including mid-pan.
     cursorRef.current = worldFromEvent(e);
     paintLabels(cursorRef.current);
-    const rect = svgRef.current?.getBoundingClientRect();
+    const rect = CANVAS_MAP && svgOriginRef.current ? svgOriginRef.current : svgRef.current?.getBoundingClientRect();
     if (rect) pointerRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     if (dragRef.current?.moved) return;   // panning: don't jitter the ghost across the tiles a drag crosses
+    if (CANVAS_MAP) hoverBuilding(buildingAt(e));
     if (selected || pathTool) {
       const tile = tileFromEvent(e);
       setHover((cur) => (cur && tile && cur.row === tile.row && cur.col === tile.col ? cur : tile));
@@ -1462,12 +1652,20 @@ export default function CampusMap({
   }
 
   function leaveMap() {
+    if (CANVAS_MAP) hoverBuilding(null);
     setHover(null);
     cursorRef.current = null;
     paintLabels(null);
   }
 
   function onMapClick(e: React.MouseEvent<SVGSVGElement>) {
+    // On the canvas map a click on a building opens it here, before the
+    // ground's click, as the SVG building's own handler did as the click
+    // bubbled through it.
+    if (CANVAS_MAP && e.target === e.currentTarget) {
+      const id = buildingAt(e);
+      if (id) onInspect(id);
+    }
     const tile = tileFromEvent(e);
     if (!tile) return;
     onGroundClick(tile.row, tile.col);
@@ -1794,34 +1992,16 @@ export default function CampusMap({
   // instead (see paintScene). Only built with the flag.
   if (CANVAS_MAP) {
     sceneRootClassRef.current = `${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${inspectedId ? 'inspecting' : ''}`;
-    sceneTreeRef.current = (
-      <>
-        <defs><ScaffoldPattern /></defs>
-        <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />
-        <CrowdContext.Provider value={crowds}>
-        <BannerContext.Provider value={banners}>
-        <ColorsContext.Provider value={layout.colors}>
-        <CollegeNameContext.Provider value={s.self.name}>
-        <DevelopingContext.Provider value={s.developing}>
-        <SnowContext.Provider value={snow}>
-          <CampusScene
-            layout={layout}
-            inspectedId={inspectedId}
-            justFinished={justFinished}
-            onInspect={onInspect}
-            labelLayerRef={labelLayerRef}
-            camera={camera}
-            front={ringFront}
-          />
-        </SnowContext.Provider>
-        </DevelopingContext.Provider>
-        </CollegeNameContext.Provider>
-        </ColorsContext.Provider>
-        </BannerContext.Provider>
-        </CrowdContext.Provider>
-      </>
-    );
+    sceneTreeRef.current = mapSceneTree({
+      name: s.self.name, developing: s.developing, layout, camera, turning, snow, crowds, banners,
+      inspectedId, justFinished, onInspect, labelLayerRef, front: ringFront,
+    });
   }
+  // React writes the map's class afresh on a render; the cursor's building,
+  // found on the canvas, is kept on it.
+  useLayoutEffect(() => {
+    if (CANVAS_MAP && overBuildingRef.current) svgRef.current?.classList.add('over-building');
+  });
   // Repainted when anything the scene draws changes (after the turn's
   // anchor has re-panned the view, which is an earlier layout effect).
   useLayoutEffect(() => {
@@ -1836,7 +2016,9 @@ export default function CampusMap({
             under the map's, carrying the same pan/zoom transform (applyView
             writes both): a frame in which only the campus changes, as a
             walking crowd's do, repaints none of it. */}
-        {CANVAS_MAP ? <canvas ref={sceneCanvasRef} className="campus-map-scene" aria-hidden="true" /> : (
+        {CANVAS_MAP ? (
+          <div className="campus-map-scene" aria-hidden="true"><canvas ref={sceneCanvasRef} /></div>
+        ) : (
           <svg className="campus-map-ring" width="100%" height="100%" aria-hidden="true">
             <g ref={ringWorldRef}>
               <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />
@@ -1881,11 +2063,24 @@ export default function CampusMap({
             if (tile) placeById(e.dataTransfer.getData('text/plain'), tile.row, tile.col);
           }}
         >
+          {CANVAS_MAP && <title ref={mapTitleRef} />}
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
-            {CANVAS_MAP ? (
+            {CANVAS_MAP ? (<>
+              {/* The completion ring plays its animation here, over the
+                  painted scene (Plan 83C). */}
+              {justFinished.map((id) => {
+                const p = s.placements[id];
+                return p ? (
+                  <polygon
+                    key={`complete-${id}`}
+                    className="campus-building-complete"
+                    points={polyPoints(boxFaces(p.col - 0.15, p.row - 0.15, p.w + 0.3, p.h + 0.3, 0, 0).top)}
+                  />
+                ) : null;
+              })}
               <CanvasLabels placed={layout.placed} inspectedId={inspectedId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} />
-            ) : (<>
+            </>) : (<>
             <CrowdContext.Provider value={crowds}>
             <BannerContext.Provider value={banners}>
             <ColorsContext.Provider value={layout.colors}>

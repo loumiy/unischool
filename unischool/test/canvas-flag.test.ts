@@ -1,6 +1,7 @@
-// The canvas prototype (Plan 83B) is behind `?map=canvas`: without the flag
-// the map is the SVG map, rendered exactly as before, and the points the art
-// formats are strings as before.
+// The canvas map (Plan 83B's prototype behind `?map=canvas`, the map since
+// 83C) keeps the SVG scene behind `?map=svg`, rendered exactly as before,
+// and the SVG is what renders outside a browser; the points the art formats
+// are strings as before.
 
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -21,13 +22,13 @@ function assert(cond: boolean, msg: string): void {
 
 console.log('canvas flag tests');
 
-// The flag: only `map=canvas` turns it on.
-assert(!CANVAS_MAP, 'no flag outside a browser');
-assert(!canvasMapWanted(''), 'no query, no canvas');
-assert(!canvasMapWanted('?map=svg'), 'map=svg is not the canvas');
-assert(!canvasMapWanted('?debug=1'), 'another query is not the canvas');
+// The flag: only `map=svg` turns the canvas off.
+assert(!CANVAS_MAP, 'the SVG outside a browser');
+assert(canvasMapWanted(''), 'no query, the canvas');
 assert(canvasMapWanted('?map=canvas'), 'map=canvas is the canvas');
-assert(canvasMapWanted('?debug=1&map=canvas'), 'map=canvas among other parameters is the canvas');
+assert(canvasMapWanted('?debug=1'), 'another query is the canvas');
+assert(!canvasMapWanted('?map=svg'), 'map=svg is the SVG');
+assert(!canvasMapWanted('?debug=1&map=svg'), 'map=svg among other parameters is the SVG');
 
 // Points are strings unless the painter asks for them raw, and a raw list
 // formats to the same string.
@@ -41,7 +42,7 @@ assert(raw instanceof PointList && String(raw) === text, 'a raw point list forma
 assert(`M${raw as string}` === `M${text}` && (raw as PointList).replace(/ /g, 'L') === text.replace(/ /g, 'L'), 'and serves the art\'s string uses');
 assert(typeof polyPoints(pts) === 'string', 'raw mode is off again after the painter');
 
-// The unflagged map: the SVG scene, its ring and its labels, and no canvas.
+// The SVG map: the SVG scene, its ring and its labels, and no canvas.
 bindScriptStream(8300);
 const s = createInitialState('Canvas Flag');
 const noop = () => {};
@@ -49,7 +50,7 @@ const markup = renderToStaticMarkup(createElement(CampusMap, {
   s, act: noop, selectedId: null, onSelect: noop, pathTool: null, onSetPathTool: noop,
   backOutEnabled: true, controlsEnabled: true, onOpenCurriculum: noop, gait: 1,
 }));
-assert(!markup.includes('<canvas'), 'the unflagged map has no canvas');
+assert(!markup.includes('<canvas'), 'the SVG map has no canvas');
 assert(!markup.includes('campus-map-scene'), 'nor the canvas layer');
 assert(markup.includes('class="campus-map-ring"'), 'it has the ring\'s own svg');
 assert(markup.includes('ring-field'), 'with the land around the campus in it');
