@@ -17,7 +17,7 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import {
   SPORTS, promoteToVarsityTeam, teamQuality, coachingQuality, departmentPot, orderedTeams, sportEconomics,
-  rollAthleticDirectorCandidates, athleticBreadth,
+  rollAthleticDirectorCandidates, athleticBreadth, NON_FLAGSHIP_FUNDED_SHARE,
 } from '../src/data/studentLifeData';
 import { VENUE_SEATS } from '../src/data/facilitiesData';
 import { attendanceFor, annualGateFor, venueSeats } from '../src/systems/athletics/gate';
@@ -128,10 +128,29 @@ function testPot(): void {
   s.orgs.athleticsBudget = 'high';
   const football = sportEconomics('football').costToCompete;
   assert(pot.programs[0].drawn === football && pot.programs[0].band === 'flagship', 'football, first, draws its full cost and is a flagship');
-  assert(pot.programs[1].funded < 1 && pot.programs[1].funded > 0 && pot.programs[1].band === 'competitive', 'the pot reaches basketball part-way');
-  assert(pot.programs[2].funded === 0 && pot.programs[2].band === 'developmental', 'and never reaches soccer');
-  assert(pot.fundedLine === 1, 'the line falls under football');
+  assert(pot.cap === 6 && pot.programs.every((p) => p.band === 'flagship') && pot.fundedLine === 3, 'at high, all three are flagships (a cap of six)');
+  assert(pot.programs[1].funded < 1 && pot.programs[1].funded > 0, 'and the fund reaches basketball only part-way: a flagship is not always whole');
   assert(Math.abs(pot.drawn + pot.surplus - pot.pot) < 1, 'drawn plus surplus is the pot');
+  // At low, the cap is two: the first two on the list (Plan 80G).
+  s.orgs.athleticsBudget = 'low';
+  const low = departmentPot(s);
+  assert(low.cap === 2 && low.fundedLine === 2, `the low subsidy allows two flagships (${low.cap}, line under ${low.fundedLine})`);
+  assert(low.programs[0].band === 'flagship' && low.programs[1].band === 'flagship' && low.programs[2].band !== 'flagship', 'football and basketball are, soccer is not');
+  s.orgs.athleticsBudget = 'medium';
+  assert(departmentPot(s).cap === 4, 'the medium subsidy allows four');
+  // However rich the fund, a program that is no flagship takes at most its
+  // share: the gate no longer makes every program a flagship.
+  const big = fresh();
+  for (const id of ['soccer-m', 'soccer-w', 'lacrosse-m', 'lacrosse-w']) { fieldTeam(big, id); staff(big, id, 70); }
+  big.students.classes = { freshman: 20_000, sophomore: 20_000, junior: 20_000, senior: 20_000 };
+  big.orgs.athleticsBudget = 'low';
+  const wealth = departmentPot(big);
+  assert(wealth.surplus > 0, `a large college's gate leaves the fund more than the programs may take (${wealth.surplus.toFixed(0)} over)`);
+  assert(wealth.programs.slice(0, 2).every((p) => p.funded === 1 && p.band === 'flagship'), 'the two flagships are whole');
+  assert(wealth.programs.slice(2).every((p) => Math.abs(p.funded - NON_FLAGSHIP_FUNDED_SHARE) < 1e-9 && p.band === 'competitive'), `the other two take ${NON_FLAGSHIP_FUNDED_SHARE} of their cost and are competitive`);
+  const [flag, other] = [wealth.programs[0].team, wealth.programs[2].team];
+  assert(teamQuality(flag, big, wealth) > teamQuality(other, big, wealth), 'and with the same staff the flagship is the stronger');
+  s.orgs.athleticsBudget = 'high';
 
   // Below the line is a discount, not a zero.
   const soccer = s.orgs.teams.find((t) => t.sport === 'soccer-m')!;

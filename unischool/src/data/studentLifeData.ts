@@ -1,11 +1,12 @@
 import { projectLift } from '../systems/estate/projects';
 import { tagTeeth } from '../systems/identity/teeth';
 import type {
-  AthleticsBudgetTier, Buildable, Coach, FacilityType, GameState, GreekChapter, OrgPetition,
+  AthleticsBudgetTier, Buildable, Coach, FacilityType, GameState, GreekChapter, OrgPetition, ScholarshipLevel,
   StudentClub, StudentOrgBase, VarsityTeam,
 } from '../state/types';
-import { totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
+import { standsOnCampus, totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import { weeksOfOpEx } from './moneyScale';
+import { venueExpansionsMax } from './facilitiesData';
 import { rollCoachName } from './facultyData';
 import { makeRivalRng } from './rivalData';
 import { random, newId } from '../engine/random';
@@ -275,17 +276,34 @@ export function venueForCategory(s: GameState, category: FacilityType): Buildabl
 }
 
 // The department-wide budget tier. Scales every active team's social
-// contribution and the whole department's upkeep, and sets the institutional
-// subsidy half of the pot (see departmentPot). Subsidies are fixed dollars,
-// never a share of opex, so a huge school does not fund every program without
-// a decision.
+// contribution and the whole department's upkeep, sets the institutional
+// subsidy half of the pot (see departmentPot), and caps how many programs
+// may be flagships (Plan 80G). Subsidies are fixed dollars, never a share of
+// opex, so a huge school does not fund every program without a decision.
 export const ATHLETICS_BUDGET_ORDER: readonly AthleticsBudgetTier[] = ['low', 'medium', 'high'];
 export const DEFAULT_ATHLETICS_BUDGET: AthleticsBudgetTier = 'medium';
-export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultiplier: number; upkeepMultiplier: number; subsidyPerYear: number }> = {
-  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75, subsidyPerYear: 300_000 },
-  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0, subsidyPerYear: 750_000 },
-  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4, subsidyPerYear: 1_500_000 },
+export const ATHLETICS_BUDGET_TIERS: Record<AthleticsBudgetTier, { socialMultiplier: number; upkeepMultiplier: number; subsidyPerYear: number; flagships: number }> = {
+  low: { socialMultiplier: 0.6, upkeepMultiplier: 0.75, subsidyPerYear: 300_000, flagships: 2 },
+  medium: { socialMultiplier: 1.0, upkeepMultiplier: 1.0, subsidyPerYear: 750_000, flagships: 4 },
+  high: { socialMultiplier: 1.5, upkeepMultiplier: 1.4, subsidyPerYear: 1_500_000, flagships: 6 },
 };
+
+// Recruiting (Plan 80G). A flagship's scholarship budget is spent every
+// week (a Treasury line of its own, financeSystem.ts's athleticScholarships)
+// at a share of its sport's cost to compete, and recruits a class a year:
+// the team's recruiting strength climbs toward the level's lift by a class's
+// worth a year (a quarter of it; stepRecruiting), accrued week by week as the
+// money is spent, so four years of full scholarships build the whole +15.
+// When the money stops, or the program is no longer a flagship, the classes
+// graduate and the strength falls away at a full class a year.
+export const SCHOLARSHIP_ORDER: readonly ScholarshipLevel[] = ['none', 'some', 'full'];
+export const SCHOLARSHIP_LEVELS: Record<ScholarshipLevel, { costShare: number; liftShare: number }> = {
+  none: { costShare: 0, liftShare: 0 },
+  some: { costShare: 0.5, liftShare: 0.5 },
+  full: { costShare: 1, liftShare: 1 },
+};
+export const RECRUITING_FULL_LIFT = 15;
+export const RECRUITING_CLASSES = 4;
 
 // Flat per active team; an 'awaitingVenue' team contributes nothing, so
 // petitioning and stalling on the venue cannot be gamed. Sized between a club
@@ -591,6 +609,22 @@ export function uncoveredChairFields(s: GameState): string[] {
   return [...fields];
 }
 
+// The solid floor (Plan 80G): every sport the college fields, active or
+// waiting on its venue, has at least one solid-or-better candidate listed
+// (a potential of SOLID_COACH_POTENTIAL or more), whether or not a chair is
+// open. Returns the sports without one, which the tick fills with a solid
+// candidate each. The elite band stays as rare as its share.
+export const SOLID_COACH_POTENTIAL = COACH_BANDS.find((b) => b.band === 'solid')!.min;
+
+export function sportsWithoutSolidListing(s: GameState): string[] {
+  const covered = new Set(s.orgs.coachCandidates.filter((c) => c.qualityPotential >= SOLID_COACH_POTENTIAL).map((c) => c.field));
+  const out: string[] = [];
+  for (const team of s.orgs.teams) {
+    if (!covered.has(team.sport) && !out.includes(team.sport)) out.push(team.sport);
+  }
+  return out;
+}
+
 // Every hired coach across every team: what athleticsSystem.ts grows and
 // varsityTeamUpkeep sums.
 export function assignedCoaches(s: GameState): Coach[] {
@@ -621,9 +655,10 @@ export function athleticDirectorBonus(s: GameState): number {
 
 // Staff quality before money: the three chairs weighted plus the director.
 // The gate (gate.ts) reads this, not teamQuality, so the pot's earned half
-// does not depend on the pot. The ceiling is exact: three 90 chairs, fully
-// funded, with a 90 director = 82.8 + 10 + 7.2 = 100, so every coaching point
-// counts all the way up.
+// does not depend on the pot. Three 90 chairs, fully funded, with a 90
+// director = 82.8 + 10 + 7.2 = 100, so every coaching point counts all the
+// way up; recruiting and the college's pull (Plan 80G) are what let a
+// program with lesser staff reach the same place.
 const COACHING_SHARE = 0.92;
 
 // The field house: a non-competition building that lifts every program.
@@ -653,25 +688,60 @@ const UNDERFUNDING_PENALTY = 0.15; // a program drawing nothing runs at 85% of w
 // loop that let each team compute its own was quadratic (Plan 57).
 export function teamQuality(team: VarsityTeam, s: GameState, pot?: DepartmentPot): number {
   const funded = pot ? fundedFrom(pot, team) : fundedFractionFor(s, team);
-  const quality = (coachingQuality(team, s) + FUNDED_QUALITY_BONUS * funded) * (1 - UNDERFUNDING_PENALTY * (1 - funded));
+  const quality = (coachingQuality(team, s) + FUNDED_QUALITY_BONUS * funded) * (1 - UNDERFUNDING_PENALTY * (1 - funded))
+    // The recruited classes and the college's pull (Plan 80G): on top of
+    // what the staff and the money make of the roster.
+    + (team.recruiting ?? 0) + collegePull(s, team).total;
   // Recruits want to play at a Jock School (an identity tag's teeth, Plan
   // 31): every team, as the tag says, not only the department's total
   // (Plan 76C).
   return Math.max(0, Math.min(100, Math.round(quality) + tagTeeth(s, 'athletics')));
 }
 
+// The college's pull (Plan 80G): what a program draws for being where it
+// plays. Half from its venue's stage (Plan 54's expansions: the field alone
+// reads nothing, full seating the whole half), half from the college's
+// campus life standing, counted from PULL_STANDING_FROM up to
+// PULL_STANDING_FULL. A small lift, so a large college with a stadium plays
+// like one without its size carrying a team its staff cannot.
+const PULL_VENUE_MAX = 2.5;
+const PULL_STANDING_MAX = 2.5;
+const PULL_STANDING_FROM = 25; // just above the baseline a college starts from (prestigeSystem.ts's 22)
+const PULL_STANDING_FULL = 100;
+export const COLLEGE_PULL_MAX = PULL_VENUE_MAX + PULL_STANDING_MAX;
+
+export interface CollegePull { venue: number; standing: number; total: number }
+
+export function collegePull(s: GameState, team: VarsityTeam): CollegePull {
+  const home = venueForCategory(s, team.venueCategory);
+  const stage = home && standsOnCampus(home) ? Math.min(1, (home.expansions ?? 0) / Math.max(1, venueExpansionsMax(home.id))) : 0;
+  const venue = PULL_VENUE_MAX * stage;
+  const read = (s.self.socialStanding - PULL_STANDING_FROM) / (PULL_STANDING_FULL - PULL_STANDING_FROM);
+  const standing = PULL_STANDING_MAX * Math.max(0, Math.min(1, read));
+  return { venue, standing, total: venue + standing };
+}
+
 // The priority list and the pot. Programs sit in one ordered list
-// (s.orgs.teamOrder). Funding is a queue: each active program draws its
-// sport's costToCompete off the pot in list order until the pot runs out.
-// Flagship / competitive / developmental just name which side of the funded
-// line a program sits on. Target: about a quarter of programs fully funded at
-// mid-game.
+// (s.orgs.teamOrder). The first few active programs are the flagships, as
+// many as the subsidy level allows (ATHLETICS_BUDGET_TIERS' flagships: 2, 4
+// or 6; Plan 80G). Funding is a queue in list order: a flagship draws its
+// sport's whole costToCompete, any other program at most
+// NON_FLAGSHIP_FUNDED_SHARE of it, until the pot runs out. Only a flagship can
+// be fully funded, carry a scholarship budget and recruit; the rest are
+// competitive while the pot reaches them and developmental once it does not.
 //
 //   pot = institutional subsidy (budget tier) + what athletics earned (gate.ts)
 //
 // Surplus spills into general income (financeSystem.ts). The brakes on this
-// feedback loop: the gate saturates, and subsidy and costs are fixed dollars.
-// 'awaitingVenue' teams sit out of the queue.
+// feedback loop: the gate saturates, the cap holds however large the gate
+// grows, and subsidy and costs are fixed dollars. 'awaitingVenue' teams sit
+// out of the queue and never take a flagship's place.
+//
+// The share: at 0.6 a competitive program with 60-quality staff reads about
+// 62 against a flagship's 70 before recruiting — a real step down, as the
+// cap means it to be, and still well clear of developmental.
+export const NON_FLAGSHIP_FUNDED_SHARE = 0.6;
+
 export type ProgramBand = 'flagship' | 'competitive' | 'developmental';
 
 export interface ProgramFunding {
@@ -689,7 +759,8 @@ export interface DepartmentPot {
   programs: ProgramFunding[]; // in list order; 'awaitingVenue' teams are not here
   drawn: number;     // what the programs took between them
   surplus: number;   // pot - drawn: what spills into general income
-  fundedLine: number; // programs[0..fundedLine) are fully funded; the line is drawn under that index
+  cap: number;       // how many flagships the subsidy level allows
+  fundedLine: number; // programs[0..fundedLine) are the flagships; the line is drawn under that index
 }
 
 export const BAND_LABEL: Record<ProgramBand, string> = {
@@ -721,23 +792,66 @@ export function registerGateReader(reader: (s: GameState) => number): void {
 }
 
 export function departmentPot(s: GameState): DepartmentPot {
-  const subsidy = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].subsidyPerYear;
+  const tier = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget];
+  const subsidy = tier.subsidyPerYear;
   const earned = gateReader ? gateReader(s) : 0;
   const pot = subsidy + earned;
   let remaining = pot;
   const programs: ProgramFunding[] = [];
-  let fundedLine = 0;
   for (const team of orderedTeams(s)) {
     if (team.status !== 'active') continue;
+    const flagship = programs.length < tier.flagships;
     const cost = sportEconomics(team.sport).costToCompete;
-    const drawn = Math.max(0, Math.min(remaining, cost));
+    const wants = flagship ? cost : cost * NON_FLAGSHIP_FUNDED_SHARE;
+    const drawn = Math.max(0, Math.min(remaining, wants));
     remaining -= drawn;
     const funded = cost > 0 ? drawn / cost : 1;
-    const band: ProgramBand = funded >= 0.999 ? 'flagship' : funded > 0 ? 'competitive' : 'developmental';
-    if (band === 'flagship') fundedLine = programs.length + 1;
+    const band: ProgramBand = flagship ? 'flagship' : drawn > 0 ? 'competitive' : 'developmental';
     programs.push({ team, cost, drawn, funded, band });
   }
-  return { subsidy, earned, pot, programs, drawn: pot - remaining, surplus: remaining, fundedLine };
+  const fundedLine = Math.min(tier.flagships, programs.length);
+  return { subsidy, earned, pot, programs, drawn: pot - remaining, surplus: remaining, cap: tier.flagships, fundedLine };
+}
+
+// Whether a team is one of the department's flagships this week.
+export function isFlagship(s: GameState, team: VarsityTeam, pot: DepartmentPot = departmentPot(s)): boolean {
+  return pot.programs.some((p) => p.team.id === team.id && p.band === 'flagship');
+}
+
+// What a team's scholarships cost a year at a level: a share of its sport's
+// cost to compete.
+export function scholarshipCostFor(sportId: string, level: ScholarshipLevel): number {
+  return sportEconomics(sportId).costToCompete * SCHOLARSHIP_LEVELS[level].costShare;
+}
+
+// What the department spends on scholarships a year: every flagship's
+// budget. A budget set on a program that is not a flagship is kept but not
+// spent.
+export function annualScholarships(s: GameState, pot: DepartmentPot = departmentPot(s)): number {
+  let sum = 0;
+  for (const p of pot.programs) {
+    if (p.band === 'flagship') sum += scholarshipCostFor(p.team.sport, p.team.scholarships ?? 'none');
+  }
+  return sum;
+}
+
+// Where a team's recruiting is heading: its level's share of the full lift
+// while it is a flagship, nothing otherwise.
+export function recruitingTarget(team: VarsityTeam, flagship: boolean): number {
+  return flagship ? RECRUITING_FULL_LIFT * SCHOLARSHIP_LEVELS[team.scholarships ?? 'none'].liftShare : 0;
+}
+
+// A class a year, a week at a time: the step athleticsSystem.ts takes
+// toward the target every week. A class adds what the scholarships buy, a
+// quarter of the level's lift, so some and full both take four years to
+// build; a graduating class takes at most a full class's worth with it, so
+// full recruiting cut to nothing is gone in four years too (a smaller build
+// sooner: one number stands in for the four classes).
+const RECRUITING_FULL_CLASS_PER_WEEK = RECRUITING_FULL_LIFT / RECRUITING_CLASSES / WEEKS_PER_YEAR;
+
+export function stepRecruiting(current: number, target: number): number {
+  if (current < target) return Math.min(target, current + (target / RECRUITING_CLASSES) / WEEKS_PER_YEAR);
+  return Math.max(target, current - RECRUITING_FULL_CLASS_PER_WEEK);
 }
 
 export function fundedFractionFor(s: GameState, team: VarsityTeam): number {
@@ -767,7 +881,7 @@ export function programReputation(s: GameState, sportId: string): number {
   }
   const team = s.orgs.teams.find((t) => t.sport === sportId && t.status === 'active');
   const quality = team ? Math.max(0, teamQuality(team, s) - REPUTATION_QUALITY_FLOOR) / (100 - REPUTATION_QUALITY_FLOOR) : 0;
-  const flagship = team && fundedFractionFor(s, team) >= 0.999 ? 1 : 0;
+  const flagship = team && isFlagship(s, team) ? 1 : 0;
   return Math.max(0, Math.min(1, 0.5 * Math.min(1, titles) + 0.3 * quality + 0.2 * flagship));
 }
 
@@ -779,18 +893,18 @@ export function eliteWouldList(s: GameState, field: string): boolean {
   return programReputation(s, field) >= ELITE_MARKET_REPUTATION;
 }
 
-// A program dragged below the funded line may lose its head coach, so
-// reordering is a commitment rather than a free dial. Applied on the reorder.
+// A flagship dragged below the line may lose its head coach, so reordering
+// is a commitment rather than a free dial. Applied on the reorder.
 export const DEMOTED_HEAD_COACH_LEAVES_CHANCE = 0.5;
 
 export function applyTeamOrder(s: GameState, order: string[]): string[] {
-  const before = new Map(departmentPot(s).programs.map((p) => [p.team.id, p.funded]));
+  const before = new Map(departmentPot(s).programs.map((p) => [p.team.id, p.band]));
   s.orgs.teamOrder = order.filter((id) => s.orgs.teams.some((t) => t.id === id));
   const after = departmentPot(s);
   const left: string[] = [];
   for (const p of after.programs) {
-    const was = before.get(p.team.id) ?? 0;
-    if (was >= 0.999 && p.funded < 0.999 && p.team.headCoach && random() < DEMOTED_HEAD_COACH_LEAVES_CHANCE) {
+    const was = before.get(p.team.id);
+    if (was === 'flagship' && p.band !== 'flagship' && p.team.headCoach && random() < DEMOTED_HEAD_COACH_LEAVES_CHANCE) {
       left.push(`${p.team.headCoach.name} (${p.team.name})`);
       p.team.headCoach = null;
     }
@@ -922,6 +1036,8 @@ export function promoteToVarsityTeam(s: GameState, club: StudentClub, opts: {
     assistantCoach: null,
     trainer: null,
     status: opts.status,
+    scholarships: 'none',
+    recruiting: 0,
   };
   s.orgs.teams.push(team);
   // New programs join the end of the priority list.

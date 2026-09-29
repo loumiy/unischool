@@ -18,6 +18,7 @@ import { isPlaceableKind, firstFreeSpot, footprintOf } from '../../src/state/cam
 import { initiativeOffers } from '../../src/data/researchData';
 import { transferOffers } from '../../src/systems/finance/treasury';
 import { FACULTY_FIELDS } from '../../src/data/facultyData';
+import { SCHOLARSHIP_ORDER } from '../../src/data/studentLifeData';
 import { TUITION_SLIDER_MAX } from '../../src/data/foundingData';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import type { Game, Player } from './game';
@@ -54,6 +55,7 @@ function rawGenerators(g: Game): Array<[number, Generator]> {
     [1, () => ({ type: 'SET_DRAW_RATE', rate: 0.02 + g.roll() * 0.06 })],
     [1, (g) => { const amount = any(transferOffers(g.s)); return amount !== undefined ? { type: 'MOVE_TO_ENDOWMENT', amount } : null; }],
     [1, () => ({ type: 'SET_ATHLETICS_BUDGET', tier: BUDGET_TIERS[n(3)] })],
+    [1, (g) => { const team = any(g.s.orgs.teams); return team ? { type: 'SET_SCHOLARSHIPS', teamId: team.id, level: SCHOLARSHIP_ORDER[n(3)] } : null; }],
     [2, (g) => {
       const idle = g.s.tech.filter((t) => t.facilityType === 'lab' && standsOnCampus(t) && !g.s.research.initiatives[t.id]);
       const lab = any(idle);

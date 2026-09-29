@@ -12,6 +12,7 @@
 
 import type { GameState } from '../../src/state/types';
 import { WEEKS_PER_YEAR } from '../../src/state/types';
+import { NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_FULL_LIFT, departmentPot } from '../../src/data/studentLifeData';
 import { programById } from '../../src/data/techData';
 import { isGraduateHost } from '../../src/data/projectData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
@@ -106,6 +107,17 @@ export function brokenRules(s: GameState): string[] {
   const scores = { satisfaction: s.students.satisfaction, ...s.students.satisfactionBreakdown };
   for (const [key, v] of Object.entries(scores)) {
     if (v < 0 || v > 100) out.push(`${key} reads ${v}, off the 0–100 scale`);
+  }
+
+  // Recruiting (Plan 80G): on its scale, and built only by a flagship.
+  const pot = departmentPot(s);
+  for (const team of s.orgs.teams) {
+    if (!(team.recruiting >= 0 && team.recruiting <= RECRUITING_FULL_LIFT)) out.push(`${team.name} recruits at ${team.recruiting}, off the 0–${RECRUITING_FULL_LIFT} scale`);
+  }
+  const flagships = pot.programs.filter((p) => p.band === 'flagship').length;
+  if (flagships > pot.cap) out.push(`${flagships} flagships at a cap of ${pot.cap}`);
+  for (const p of pot.programs) {
+    if (p.band !== 'flagship' && p.funded > NON_FLAGSHIP_FUNDED_SHARE + 1e-9) out.push(`${p.team.name} is no flagship but draws ${p.funded.toFixed(2)} of its cost`);
   }
 
   return out;

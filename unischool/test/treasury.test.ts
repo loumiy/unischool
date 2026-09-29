@@ -167,12 +167,14 @@ const fresh = () => {
     states.push([`${file}, in crisis`, crisis]);
   }
   // The launch save with every line in play: its teams fielded in venues
-  // that stand, a Provost appointed and a building loan running.
+  // that stand, full scholarships on each (the flagships spend them), a
+  // Provost appointed and a building loan running.
   const launch = states.find(([name]) => name === 'save-launch.json')?.[1];
   if (launch) {
     const s = structuredClone(launch);
     for (const team of s.orgs.teams) {
       team.status = 'active';
+      team.scholarships = 'full';
       for (const t of s.tech) if (t.facilityType === team.venueCategory) t.status = 'done';
     }
     s.seats = [{ seatId: 'provost', school: null, holder: 'A. Provost', internal: false, policy: 'balanced', salary: 250_000, appointedYear: s.clock.year }];

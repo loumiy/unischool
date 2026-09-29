@@ -223,12 +223,11 @@ a sequence of PRs.*
   its distinguished status for a year), or campus life. Nobody has
   audited the catalogue for dominant choices since it replaced the old
   table.
-- **Athletics, deepened** is taken into
-  [Plan 80G](docs/plans/80-the-owners-playtest.md): capped flagships,
-  recruiting, the college's pull and a coach market that always offers
-  someone solid. Founding a team directly and cutting one stay here, with
-  the deferrals below.
-- **Athletics deferrals.** **Disbanding a team** is unbuilt, and so what
+- **Athletics deferrals.** Capped flagships, recruiting, the college's
+  pull and a coach market that always offers someone solid landed in
+  [Plan 80G](docs/plans/80-the-owners-playtest.md). **Founding a team
+  directly** (not through a sport club's petition) is unbuilt.
+  **Disbanding a team** is unbuilt, and so what
   happens to a venue whose last team folds is unanswered. **Match
   simulation and a fixture list** stay out by the argument at the head of
   `systems/athletics/season.ts`: three dated occasions and the postseason

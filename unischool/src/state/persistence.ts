@@ -17,7 +17,7 @@ import {
 } from './campusMap';
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
-import { glyphsFor, SPORTS } from '../data/studentLifeData';
+import { glyphsFor, RECRUITING_FULL_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
@@ -53,7 +53,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 85; // Plan 80D: a milestone records the week it was reached
+export const SAVE_VERSION = 86; // Plan 80G: each team's scholarships and recruiting
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -150,6 +150,17 @@ function milestoneWeeks(state: GameState): void {
   if (stage === 'teaching' || stage === 'found') state.events.opening.stage = 'play';
 }
 
+// 85 -> 86, Plan 80G: each team carries a scholarship budget and the
+// strength its recruited classes add. Before it there was no recruiting, so
+// every team starts with no budget and nothing built up; flagships are
+// derived from the order and the subsidy level, never stored.
+function noRecruitingYet(state: GameState): void {
+  for (const team of state.orgs?.teams ?? []) {
+    team.scholarships = 'none';
+    team.recruiting = 0;
+  }
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
@@ -161,6 +172,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   82: dropQuadMarks,
   83: dropBoardConfidence,
   84: milestoneWeeks,
+  85: noRecruitingYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -575,6 +587,8 @@ const KNOWN_SPORT_IDS: ReadonlySet<string> = new Set(SPORTS.map((sp) => sp.id));
 //     can't catch this; it's never re-derived from `sport`).
 //   - 'active' with no standing venue (standsOnCampus): reset to 'awaitingVenue',
 //     since the team, coach and upkeep are still real.
+//   - a scholarship level that isn't one: none; recruiting off the scale:
+//     clamped to 0..RECRUITING_FULL_LIFT.
 function sanitizeTeams(state: GameState): void {
   if (!Array.isArray(state.orgs?.teams)) {
     if (state.orgs) state.orgs.teams = [];
@@ -584,6 +598,8 @@ function sanitizeTeams(state: GameState): void {
     (team) => VENUE_CATEGORIES.includes(team.venueCategory) && KNOWN_SPORT_IDS.has(team.sport),
   );
   for (const team of state.orgs.teams) {
+    if (!SCHOLARSHIP_ORDER.includes(team.scholarships)) team.scholarships = 'none';
+    team.recruiting = Number.isFinite(team.recruiting) ? Math.max(0, Math.min(RECRUITING_FULL_LIFT, team.recruiting)) : 0;
     if (team.status !== 'active') continue;
     // A venue open through an expansion still stands: saving mid-expansion
     // used to demote every team of its sport on load.

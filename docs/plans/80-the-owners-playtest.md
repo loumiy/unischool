@@ -602,6 +602,77 @@ after:
   eight to twelve years. Checked with the harness's championships player.
 - The save gains each team's recruiting; the version is bumped.
 
+**As implemented (#252):**
+
+- **Flagships:** `ATHLETICS_BUDGET_TIERS` carries the cap (2, 4, 6).
+  `departmentPot` marks the first active programs on the list as
+  flagships, whatever the pot holds; a flagship draws its sport's whole
+  cost (and may still be short of it on a thin pot), any other program at
+  most `NON_FLAGSHIP_FUNDED_SHARE` = 0.6 of it: competitive while the money
+  reaches it, developmental once it does not. 0.6 keeps a clear step (a
+  60-staff program reads about 62 against a flagship's 70 before
+  recruiting). The funded line is drawn under the flagships ("Flagships
+  above · 2 of 2"). The demotion rule, the recruiting scandal and
+  `programReputation` read the band. Lowering the subsidy level demotes
+  without the coach-resignation roll, as before.
+- **Recruiting:** `VarsityTeam.scholarships` (none / some / full) and
+  `recruiting` (0–15). Some costs half the sport's cost to compete a year,
+  full the whole of it ($120k, $450k, $1.2M), paid only for a flagship, by
+  the college, on a new Treasury line (*Athletic scholarships*), not from
+  the pot. `tickRecruiting` (weekly, in `tickAthletics`) moves the strength
+  toward the level's lift (15 or 7.5) by a quarter of that lift a year, so
+  both build over four years, and down by up to a full class (3.75) a year
+  when the money stops or the team is no flagship. Weekly rather than a
+  signing day, so there is no year boundary to game; one number stands in
+  for four classes, so a small build falls away sooner than four real
+  classes would. The budget is kept on a team that drops out of the
+  flagships and resumes if it returns.
+- **Pull:** `collegePull`, up to +5: +2.5 × the venue's expansions over its
+  most, +2.5 × campus life standing read from 25 to 100. On every active
+  team.
+- **Coach market:** `sportsWithoutSolidListing` lists a solid candidate
+  (potential ≥ 60) for any fielded sport without one, every week, beside
+  the journeyman floor. The elite rule is unchanged.
+- **The tab:** the Department panel shows Flagships n of cap and the
+  scholarships' cost; each flagship's card has the None / Some / Full
+  control with its price, and every active card its recruiting ("+8.4,
+  building toward +15" / "falling away") and pull. Checked at 1440×900 and
+  390×844.
+- **Save:** `SAVE_VERSION` 85 → 86 (after 80I's, 80H's, 80C's and 80D's
+  links), migration `noRecruitingYet` at `MIGRATIONS[85]` (every team none
+  and 0) and a sanitizer. `test/fixtures/save-v85.json` is the
+  `year-8-balanced` scenario written with main's code before the bump;
+  `save-v81-recruiting.json` is a Natural run at Year 21 with four teams,
+  written at version 81, which the recruiting test walks up the whole
+  chain.
+- **The target:** the championships goal player now chooses two flagships
+  (the strongest active program while a place is free, then kept at the
+  top of the list) and puts each on full scholarships when a year's net
+  covers it. Over 5 seeds × 2 names, after 80C and 80D (a college founded
+  with nothing to teach): its first final four came a median of 2 years
+  after choosing (0–4), at a median Year 7, against Year 9 for the same
+  goal player on main; its first title a median Year 8, against Year 14.
+  Every run got there. Before the merge, the same player without
+  scholarships reached its first final four in the same year as with them,
+  and its first title a year later: the final four comes from the coaching
+  (the solid floor helps), the funding and the pull, and recruiting turns
+  it into titles. The target reads as a bound ("within"), so it is met; as
+  a band it is beaten, and recruiting and pull only add strength, so no
+  tuning inside their bounds could slow it. Nothing was tuned.
+- **The chronicle** (a merge fix to 80C's eras): the archetypes suite's
+  "at most two eras named for the guide" failed for Selective seed 12345,
+  whose shifted run crossed the top-ten line four times. A rank turn now
+  names an era only the first time it comes (a fall for as long as it
+  lasts); `test/chronicle.test.ts` covers the back and forth.
+- **Baseline:** re-recorded against main's (after 80B–80F, 80H, 80I). The
+  extra solid listings take ids from the global stream (`newId`, as the
+  journeyman floor already did), so every player with teams shifts: at
+  Year 50, Lean is rank 36 (+9), prestige 94.3 (−12.1), 4,257 enrolled
+  (−3,125), cash $50M (−$318M); Selective's prestige +6.4 and satisfaction
+  −6.4, cash −$199M; Guided's cash $138M (−$151M); Completionist's −$26M.
+  Years 10 and 25 move by a rank or two and a few points. Idle is
+  unchanged.
+
 ## PR 80H — The map: quads, walkers, turning, lab roofs
 
 - **Quads lose their labels:** the overlay, the names, "Mark a quad", the

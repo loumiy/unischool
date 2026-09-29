@@ -6,17 +6,18 @@ import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import {
-  ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, TRAINER_FIELD,
-  VARSITY_PETITION_MIN_TENURE_YEARS, ceilingResolved, coachProfile, departmentPot, orderedTeams, sportById, teamQuality,
-  varsityEligibleYear, venueForCategory,
+  ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, COLLEGE_PULL_MAX,
+  NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_CLASSES, RECRUITING_FULL_LIFT, SCHOLARSHIP_LEVELS, SCHOLARSHIP_ORDER, TRAINER_FIELD,
+  VARSITY_PETITION_MIN_TENURE_YEARS, annualScholarships, ceilingResolved, coachProfile, collegePull, departmentPot, orderedTeams,
+  recruitingTarget, scholarshipCostFor, sportById, teamQuality, varsityEligibleYear, venueForCategory,
 } from '../data/studentLifeData';
 import type { ProgramFunding } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
 import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/rivals/rivalsSystem';
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
-import type { SeasonResult } from '../state/types';
-import { count, money, moneyShort, pct, weeksShort } from '../format';
+import type { ScholarshipLevel, SeasonResult } from '../state/types';
+import { count, decimal, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
@@ -40,9 +41,9 @@ function ceilingLabel(c: Coach): string {
 }
 
 // Varsity athletics: teams with three hireable staff roles each (head coach,
-// assistant, trainer) drawn from s.orgs.coachCandidates, the recruiting
-// budget's quality bonus (teamQuality), and standings against rivals
-// (athleticRank). Sport clubs stay on Student Life until they go varsity,
+// assistant, trainer) drawn from s.orgs.coachCandidates, the flagships and
+// their scholarships (teamQuality's funding and recruiting), and standings
+// against rivals (athleticRank). Sport clubs stay on Student Life until they go varsity,
 // which is only offered through the 'varsity-petition' decision event.
 
 type Role = 'head' | 'assistant' | 'trainer';
@@ -213,13 +214,14 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   const ad = s.orgs.athleticDirector;
   const pot = departmentPot(s);
+  const scholarships = annualScholarships(s, pot);
 
   return (
     <section className="panel department">
       <div className="panel-head">
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity athletics'}</h2>
         <HelpHint
-          text="A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant post is a real gap rather than a hard block. The department runs on its own fund: the college's subsidy plus what the programs earn at the gate. The subsidy level here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). Programs take their sport's cost to compete from the fund in the order you put them — drag the cards — until the money runs out; a fully funded program recruits at full strength, one below the line runs at a discount, and whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it."
+          text={`A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant post is a real gap rather than a hard block. The department runs on its own fund: the college's subsidy plus what the programs earn at the gate. The subsidy level here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). The subsidy level also sets how many programs may be flagships: 2, 4 or 6, the first on the list. A flagship takes its sport's whole cost to compete from the fund and may carry a scholarship budget, which recruits; every other program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in the order of the cards, until the money runs out. Whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it.`}
         />
       </div>
 
@@ -271,7 +273,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
               type="button"
               className={tier === s.orgs.athleticsBudget ? 'active' : ''}
               aria-pressed={tier === s.orgs.athleticsBudget}
-              title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's fund; staff pay ×${ATHLETICS_BUDGET_TIERS[tier].upkeepMultiplier}; the teams' lift to student life ×${ATHLETICS_BUDGET_TIERS[tier].socialMultiplier}`}
+              title={`${money(ATHLETICS_BUDGET_TIERS[tier].subsidyPerYear)}/yr into the department's fund; up to ${ATHLETICS_BUDGET_TIERS[tier].flagships} flagships; staff pay ×${ATHLETICS_BUDGET_TIERS[tier].upkeepMultiplier}; the teams' lift to student life ×${ATHLETICS_BUDGET_TIERS[tier].socialMultiplier}`}
               onClick={() => act({ type: 'SET_ATHLETICS_BUDGET', tier })}
             >
               {tier.charAt(0).toUpperCase() + tier.slice(1)}
@@ -281,11 +283,19 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
       </div>
       <dl className="athletics-pot">
         <Figure label="Subsidy" value={`${money(pot.subsidy)}/yr`} hint="What the college puts into the department's fund each year, set by the subsidy level above." />
+        <Figure
+          label="Flagships"
+          value={`${pot.programs.filter((p) => p.band === 'flagship').length} of ${pot.cap}`}
+          hint={`How many programs are flagships, of the ${pot.cap} the ${s.orgs.athleticsBudget} subsidy allows: the first on the list. Only a flagship is funded in full and recruits.`}
+        />
+        {scholarships > 0 && (
+          <Figure label="Scholarships" value={`${money(scholarships)}/yr`} hint="What the flagships' scholarship budgets cost the college in a year, paid from its own funds rather than the department's: the Treasury's Athletic scholarships line." />
+        )}
         {active.length > 0 && (
           <>
             <Figure label="Gate" value={`${money(pot.earned)}/yr`} hint="What the programs earn at the gate in a year, which goes into the same fund." />
             <Figure label="Fund" value={`${money(pot.pot)}/yr`} hint="The subsidy and the gate together: what the programs take from, in the order of the cards." />
-            <Figure label="Programs take" value={`${money(pot.drawn)}/yr`} hint="What the programs take from the fund to compete, each up to its sport's cost, until the fund runs out." />
+            <Figure label="Programs take" value={`${money(pot.drawn)}/yr`} hint={`What the programs take from the fund to compete, in the order of the cards until the fund runs out: a flagship its sport's whole cost, any other program up to ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of it.`} />
             <Figure label="Back to the college" value={pot.surplus > 0 ? `${money(pot.surplus)}/yr` : 'nothing'} hint="The subsidy the programs do not take is never charged, and the gate they leave is paid to the college each week, as the Treasury's Athletics surplus." />
           </>
         )}
@@ -351,8 +361,58 @@ function TrophyCase({ s }: { s: GameState }) {
   );
 }
 
+const SCHOLARSHIP_LABEL: Record<ScholarshipLevel, string> = { none: 'None', some: 'Some', full: 'Full' };
+
+// Recruiting and the college's pull, on a program card (Plan 80G): a
+// flagship's scholarship budget, the strength its classes have built and
+// where it is heading, and what the venue and campus life add. A program
+// that is no flagship shows only what it still carries, falling away.
+function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action) => void; team: VarsityTeam; flagship: boolean }) {
+  const target = recruitingTarget(team, flagship);
+  const now = team.recruiting;
+  const pull = collegePull(s, team);
+  const perClass = RECRUITING_FULL_LIFT / RECRUITING_CLASSES;
+  const trend = now < target - 0.05 ? `, building toward +${decimal(target)}` : now > target + 0.05 ? ', falling away' : '';
+  return (
+    <>
+      {flagship && (
+        <div className="team-card-scholarships">
+          <span className="athletics-budget-label">Scholarships</span>
+          <div className="segmented">
+            {SCHOLARSHIP_ORDER.map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={level === team.scholarships ? 'active' : ''}
+                aria-pressed={level === team.scholarships}
+                title={level === 'none'
+                  ? 'No scholarships: nothing spent, and the recruited classes graduate away'
+                  : `${money(scholarshipCostFor(team.sport, level))}/yr; recruits toward +${decimal(RECRUITING_FULL_LIFT * SCHOLARSHIP_LEVELS[level].liftShare)}, up to +${decimal(perClass * SCHOLARSHIP_LEVELS[level].liftShare, 1)} a class a year`}
+                onClick={() => act({ type: 'SET_SCHOLARSHIPS', teamId: team.id, level })}
+              >
+                {SCHOLARSHIP_LABEL[level]}
+              </button>
+            ))}
+          </div>
+          {team.scholarships !== 'none' && <span className="stat">{moneyShort(scholarshipCostFor(team.sport, team.scholarships))}/yr</span>}
+        </div>
+      )}
+      <div className="team-card-meta">
+        {(flagship || now > 0.05) && (
+          <span title={`What the recruited classes add to the team: a class a year, up to +${decimal(perClass, 1)} each, built over ${RECRUITING_CLASSES} years to at most +${RECRUITING_FULL_LIFT} on full scholarships, and lost a class a year when the money stops or the program is no longer a flagship.`}>
+            recruiting <strong>+{decimal(now, 1)}</strong>{trend}
+          </span>
+        )}
+        <span title={`The college's pull, up to +${COLLEGE_PULL_MAX}: +${decimal(pull.venue, 1)} from the venue's stage (its expansions) and +${decimal(pull.standing, 1)} from campus life standing.`}>
+          pull <strong>+{decimal(pull.total, 1)}</strong>
+        </span>
+      </div>
+    </>
+  );
+}
+
 // A program as a card in the grid: the name and band, how it stands in its
-// sport, what it costs and draws, and its three chairs.
+// sport, what it costs and draws, its recruiting and its three chairs.
 function TeamCard({ s, act, team, funding, rank }: {
   s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding; rank?: number;
 }) {
@@ -389,6 +449,7 @@ function TeamCard({ s, act, team, funding, rank }: {
           <span title={`${money(gate)}/yr at the gate`}>{count(attendance)} a game · {moneyShort(gate)}/yr gate</span>
         )}
       </div>
+      {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
       {/* Three empty chairs are one line, not three. */}
       <div className="team-card-staff">
         {ROLE_ORDER.every((role) => !coachInSlot(team, role))
@@ -400,8 +461,8 @@ function TeamCard({ s, act, team, funding, rank }: {
 }
 
 // The priority list: programs in the player's order, dragged, with the line
-// drawn where the money runs out. Only the order is dispatched; the bands
-// are read back off the pot.
+// drawn under the flagships. Only the order is dispatched; the bands are
+// read back off the pot.
 function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
@@ -426,7 +487,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
-        <HelpHint text="Drag a program up or down. Each takes its sport's cost to compete from the department's fund in this order until the fund runs out — the line shows where. A program above the line is a flagship and recruits at full strength; one the money reaches only part-way is competitive; one it never reaches is developmental and runs at a discount, not a zero. Dragging a program below the line it was above is a real demotion: its head coach may resign rather than take the cut. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, the recruiting budget and the Athletic Director — so hiring a coach moves it. Hover the rank for the colleges either side." />
+        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships the ${s.orgs.athleticsBudget} subsidy allows — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. Hover the rank for the colleges either side.`} />
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">
@@ -453,7 +514,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
             const lineHere = i === pot.fundedLine && pot.fundedLine < active.length && pot.fundedLine > 0;
             return (
               <Fragment key={team.id}>
-                {lineHere && <li className="priority-slot wide"><div className="funded-line">the money runs out here</div></li>}
+                {lineHere && <li className="priority-slot wide"><div className="funded-line">flagships above · {pot.fundedLine} of {pot.cap}</div></li>}
                 <li className="priority-slot">
                   <div
                     className={`priority-card${dragging === team.id ? ' dragging' : ''}${over === team.id ? ' over' : ''}`}
@@ -469,9 +530,6 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
               </Fragment>
             );
           })}
-          {pot.fundedLine === 0 && active.length > 0 && (
-            <li className="priority-slot wide"><div className="funded-line">the fund pays for no program in full</div></li>
-          )}
           {/* Teams waiting on a building: construction items, not programs,
               below the queue under a quiet divider. */}
           {awaiting.length > 0 && (

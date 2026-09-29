@@ -57,7 +57,7 @@ const RATE = 10; // a rate of the test's own: the constant is fitted in Plan 36'
   const flow = financeBreakdown(s);
   assert(flow.scaleCost === scaleCostFor(10_000, s.self.reputation), 'the tick charges what the line says');
   const lines = flow.weeklySalaries + flow.seatUpkeep + flow.instructionCost + flow.servicesCost + flow.scaleCost +
-    flow.academicUpkeep + flow.facilityUpkeep + flow.studentLifeUpkeep + flow.athleticsSubsidy + flow.debtService + flow.administration;
+    flow.academicUpkeep + flow.facilityUpkeep + flow.studentLifeUpkeep + flow.athleticsSubsidy + flow.athleticScholarships + flow.debtService + flow.administration;
   assert(Math.abs(flow.totalExpenses - lines) < 1e-6, 'and it is one of the lines the expenses add up');
 }
 
