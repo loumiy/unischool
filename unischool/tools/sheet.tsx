@@ -103,6 +103,8 @@ function samples(): Sample[] {
     ...maybe('pavilion: grocery', byType('grocery')[0]),
     ...maybe('pavilion: chapter house', chapter, { glyphs: 'ΑΒΓ' }),
     ...maybe('pavilion: LAB-ECON', byId('LAB-ECON')),
+    ...maybe('chapel: the chapel', byId('AMENITY-CHAPEL')),
+    ...maybe('chapel: rotated', byId('AMENITY-CHAPEL'), { rotated: true }),
     ...maybe('block: hospital', health[2]),
     ...maybe('block: LAB-COMP', byId('LAB-COMP')),
     ...maybe('works: lab', byType('lab', (t) => !['LAB-HIST', 'LAB-FILM', 'LAB-COMP', 'LAB-ECON'].includes(t.id))[0]),

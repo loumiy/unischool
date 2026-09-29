@@ -919,9 +919,13 @@ button.build-tile { font-family: inherit; }
 .campus-lamp-foot { fill: rgba(0, 0, 0, 0.2); }
 .campus-lamp-post { stroke: #3a3a38; stroke-width: 1.6; }
 .campus-lamp-head { fill: #f5e3a3; stroke: #3a3a38; stroke-width: 1; }
-.campus-bench-leg { stroke: #4a3a2a; stroke-width: 1.2; }
-.campus-bench-seat { fill: #9a6a40; stroke: #5e4027; stroke-width: 0.6; stroke-linejoin: round; }
-.campus-bench-back { fill: #7a522f; stroke: #5e4027; stroke-width: 0.6; stroke-linejoin: round; }
+.campus-bench-shadow { fill: rgba(0, 0, 0, 0.18); }
+.campus-bench-iron { fill: none; stroke: #33312e; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.campus-bench-seat { fill: #a8733f; stroke: #5e4027; stroke-width: 0.5; stroke-linejoin: round; }
+.campus-bench-apron { fill: #6e4a2a; }
+.campus-bench-back { fill: #8a5b32; stroke: #5e4027; stroke-width: 0.5; stroke-linejoin: round; }
+/* The bench tool's ghost: the bench itself, so its facing shows (Plan 80I). */
+.campus-bench.ghost { opacity: 0.72; pointer-events: none; }
 .campus-flag-pole { stroke: #d8d4c8; stroke-width: 1.4; }
 .campus-flag-finial { fill: #d9b44a; }
 /* A site's shell rising in scaffolding (CampusMap.tsx's SiteProgress). */

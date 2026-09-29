@@ -6,7 +6,9 @@
 import { createInitialState } from '../src/state/actions';
 import { detectQuads } from '../src/state/quads';
 import { QUAD_MAX_AREA } from '../src/data/quadData';
-import { SAVE_KEY, loadGame } from '../src/state/persistence';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { SAVE_KEY, SAVE_VERSION, loadGame, readSave } from '../src/state/persistence';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
 
@@ -114,10 +116,18 @@ function court(s: GameState, row: number, col: number, size: number, gap = 0): v
   s.started = true;
   court(s, 10, 10, 32);
   (s as unknown as { quads: unknown }).quads = { names: { '10,10': 'Kept' }, designated: ['20,20'] };
-  store.set(SAVE_KEY, JSON.stringify({ version: 81, savedAt: 0, state: s }));
+  store.set(SAVE_KEY, JSON.stringify({ version: 82, savedAt: 0, state: s }));
   const loaded = loadGame()!;
   assert(loaded !== null && !('quads' in loaded), `the names and marks are dropped (${JSON.stringify((loaded as unknown as { quads?: unknown })?.quads)})`);
   assert(detectQuads(loaded).length === 0, 'and the space they marked is no quad');
+
+  // A played save from further back, with a name and a mark, climbs every
+  // step (Plan 80I's benches, then this) and arrives without them.
+  const raw = readFileSync(join(process.cwd(), 'test/fixtures/save-v81-quads.json'), 'utf8');
+  const parsed = JSON.parse(raw) as { version: number; state: { quads?: unknown } };
+  assert(parsed.version === 81 && parsed.state.quads !== undefined, 'the fixture is a version-81 save holding names and marks');
+  const read = readSave(raw);
+  assert(!('refused' in read) && !('quads' in read.state), `it loads at version ${SAVE_VERSION}, without them`);
 }
 
 if (failures === 0) {

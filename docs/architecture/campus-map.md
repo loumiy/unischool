@@ -137,7 +137,7 @@ building that had one. `canPlace` asks it, and the ghost says why a site is
 refused. **Quads** (`state/quads.ts`) are found, not declared: open ground
 the buildings enclose, and nothing else. Campus beauty counts them and one
 event needs one; the map does not show them (Plan 80H took away their
-tint, their names, the quad card and "Mark a quad", and save version 82
+tint, their names, the quad card and "Mark a quad", and save version 83
 drops the names and marks older saves kept in `GameState.quads`). A placed
 Campus Quad is lawn to both the walk and the quad finder. Both modules sit
 in `src/state/`, not `src/systems/`, because no tick system may read
@@ -159,6 +159,21 @@ lamps and benches (`GameState.dressing`), bike racks by the doors of a big
 college, and the flag at Founders Hall are props in the depth-sorted scene.
 Weathering (`ageMarks.tsx`) reads `Buildable.builtYear`. All of it is
 drawing only.
+
+**Benches** (Plan 80I) are the one prop with a direction. A bench is set
+against one edge of its tile and faces out across it, its back to the lawn,
+so the save stores each bench's facing with it (`'bench-n'`…`'bench-w'`,
+north being -row; `state/dressing.ts`). A new bench faces the path beside
+its tile (`defaultBenchFacing`: south, then east, west, north where there
+are several); R, while the bench tool is armed, turns it a quarter
+clockwise, and the tool's ghost draws the bench itself, half-transparent, so
+the facing shows before it is set. Setting a bench again on its own tile
+takes the new facing. It is drawn at the walkers' scale: slatted seat and
+back, iron ends carrying the arms, its four parts painted in `depthOrder`
+so the back hides the seat when it faces away. A save from before it kept
+each bench's old facing (east where paving ran beside it east or west, else
+south; `legacyBenchFacing`). There is no touch control for the turn: a tap
+sets a bench at its default facing.
 
 ## Footprints
 

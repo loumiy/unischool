@@ -30,7 +30,7 @@ import {
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
   ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
-  hasBalconies, hasTrim, hasGilt,
+  hasBalconies, hasTrim, hasGilt, CHAPELS, chapelPlan, NO_STONE, type ChapelBox,
   storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
@@ -2971,6 +2971,349 @@ function Ziggurat({ col, row, w, h, base, stone }: {
   );
 }
 
+// The chapel (Plan 80I; buildingSpec's CHAPELS and chapelPlan): a tower at
+// the west end, a nave under a steep roof with tall windows down its long
+// walls, and a lower chancel at the east end with a rose in the nave's
+// gable over it. The three volumes, and a Gothic or Tudor chapel's
+// buttresses, are painted in depthOrder, so each view puts the tower in
+// front of the nave or behind it as it should. A door stands on each of the
+// four walls walkRoutes.ts walks to: the tower's west face, the middle bay
+// of each long wall and the chancel's east face.
+const CHAPEL_GLASS = 'rgba(46, 58, 78, 0.78)';   // leaded, and dark from outside
+const CHAPEL_WINDOW = across(1.7);
+const CHAPEL_SILL = up(2.6);
+const CHAPEL_HEAD_DROP = up(1.4);
+
+interface ChapelFace { dir: FaceDir; o: Pt; a: Pt; span: number }
+function chapelFaces(f: BoxFaces): ChapelFace[] {
+  return [
+    { dir: f.dir.CD, o: f.D, a: f.C, span: f.spanLeft },
+    { dir: f.dir.BC, o: f.C, a: f.B, span: f.spanRight },
+  ];
+}
+
+// Tall windows on one face at `centres` (u), `halfU` wide each side, from
+// v0 to v1: one path, as windows() draws them.
+function tallWindows(face: ChapelFace, H: number, centres: number[], halfU: number, v0: number, v1: number, shape: WindowShape, key: string) {
+  const d = centres.map((u) => `M${polyPoints(windowOutline(shape, u - halfU, u + halfU, v0, v1)
+    .map(([uu, vv]) => facePoint(face.o, face.a, H, uu, vv))).replace(/ /g, 'L')}Z`).join('');
+  return d ? <path key={key} className="iso-window" fill={CHAPEL_GLASS} d={d} /> : null;
+}
+
+function Chapel({ t, p, vernacular, pal, stone, wall }: {
+  t: Buildable; p: { row: number; col: number; w: number; h: number };
+  vernacular: Vernacular; pal: Palette; stone: StonePalette; wall: string;
+}) {
+  const spec = CHAPELS[vernacular];
+  const plan = chapelPlan(p, vernacular);
+  const door = doorOf(t);
+  const trim = hasTrim(vernacular);
+  const trimStone = trim ? stone.trim : stone.towerStone;
+  const shape = spec.window;
+  const doorShape = shape === 'arched' || shape === 'lancet' ? 'arched' : 'rect';
+  const { alongW } = plan;
+  const isSide = (dir: FaceDir) => dir === plan.sides[0] || dir === plan.sides[1];
+
+  // Walls, courses and the doors' steps of one gabled volume, `details` on
+  // its faces, then its roof and whatever stands in its gable.
+  const gabled = (b: ChapelBox, H: number, ridge: number, details: (face: ChapelFace) => React.ReactNode, gable?: (face: ChapelFace) => React.ReactNode) => {
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
+    const rs = lift(alongW ? project(b.col, b.row + b.h / 2) : project(b.col + b.w / 2, b.row), H + ridge);
+    const re = lift(alongW ? project(b.col + b.w, b.row + b.h / 2) : project(b.col + b.w / 2, b.row + b.h), H + ridge);
+    const faces = chapelFaces(f);
+    return (
+      <>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {trim && faces.map((face) => (
+          <g key={`b${face.dir}`}>
+            <WallBand origin={face.o} along={face.a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
+            <WallBand origin={face.o} along={face.a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />
+          </g>
+        ))}
+        {faces.map((face) => <g key={`d${face.dir}`}>{details(face)}</g>)}
+        {gableSlopes(f, alongW, rs, re, pal)}
+        {gableEnds(f, alongW, rs, re, pal)}
+        <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+        {gable && faces.map((face) => <g key={`g${face.dir}`}>{gable(face)}</g>)}
+      </>
+    );
+  };
+
+  // A door in the middle of a face, and its step.
+  const doorway = (b: ChapelBox, face: ChapelFace, H: number) => {
+    if (!door) return null;
+    const at = outsideWall(b.col, b.row, b.w, b.h, face.dir, face.span / 2, 0);
+    const out = outwardOf(face.dir);
+    return (
+      <>
+        <Door d={door} origin={face.o} along={face.a} wallHeight={H} span={face.span} side={face.dir} shape={doorShape} />
+        <EntranceSteps d={door} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={face.span} stone={stone} />
+      </>
+    );
+  };
+
+  const nave = () => {
+    const H = plan.naveHeight;
+    const n = plan.bays;
+    const v0 = CHAPEL_SILL / H; const v1 = (H - CHAPEL_HEAD_DROP) / H;
+    return gabled(plan.nave, H, plan.naveRidge, (face) => {
+      if (!isSide(face.dir)) return null;
+      const centres = Array.from({ length: n }, (_, b) => (b + 0.5) / n).filter((_, b) => b !== (n - 1) / 2);
+      return (
+        <>
+          {tallWindows(face, H, centres, CHAPEL_WINDOW / face.span / 2, v0, v1, shape, `nw${face.dir}`)}
+          {doorway(plan.nave, face, H)}
+        </>
+      );
+    }, (face) => {
+      // A rose (an oculus in the classical sets) in the east gable, over
+      // the chancel's roof; the modern chapel has none.
+      if (face.dir !== plan.east || shape === 'slot') return null;
+      const H2 = plan.naveHeight;
+      const radius = Math.min(2.0, spec.ridgeMetres * 0.25);   // metres
+      const cv = 1 + (plan.naveRidge * 0.42) / H2;
+      const ring = (k: number) => polyPoints(Array.from({ length: 20 }, (_, i) => {
+        const a = (i / 20) * Math.PI * 2;
+        return facePoint(face.o, face.a, H2, 0.5 + (Math.cos(a) * across(radius * k)) / face.span, cv + (Math.sin(a) * up(radius * k)) / H2);
+      }));
+      return (
+        <>
+          {trim && <polygon points={ring(1.22)} fill={trimStone} />}
+          <polygon points={ring(1)} fill={CHAPEL_GLASS} />
+        </>
+      );
+    });
+  };
+
+  const chancel = () => {
+    const H = plan.chancelHeight;
+    return gabled(plan.chancel, H, plan.chancelRidge, (face) => {
+      if (isSide(face.dir)) {
+        return tallWindows(face, H, [0.5], CHAPEL_WINDOW / face.span / 2, CHAPEL_SILL / H, (H - CHAPEL_HEAD_DROP) / H, shape, `cw${face.dir}`);
+      }
+      if (face.dir !== plan.east || !door) return null;
+      // The east window over the chancel's door.
+      const v0 = (door.threshold + door.height + up(1.0)) / H;
+      return (
+        <>
+          {v0 < 0.85 && tallWindows(face, H, [0.5], CHAPEL_WINDOW * 0.9 / face.span, v0, (H - up(0.9)) / H, shape, 'ew')}
+          {doorway(plan.chancel, face, H)}
+        </>
+      );
+    });
+  };
+
+  const tower = () => {
+    const b = plan.tower;
+    const cc = b.col + b.w / 2; const cr = b.row + b.h / 2;
+    const Hs = plan.towerHeight;
+    // The blade is a slab: thin down the chapel's axis, full width across it.
+    const blade = spec.tower === 'blade';
+    const thin = b.w * 0.42;
+    const sb: ChapelBox = !blade ? b : alongW
+      ? { col: b.col, row: b.row, w: thin, h: b.h }
+      : { col: b.col, row: b.row, w: b.w, h: thin };
+    const f = boxFaces(sb.col, sb.row, sb.w, sb.h, 0, Hs);
+    const faces = chapelFaces(f);
+    // What happens at the top: a belfry's openings in the shaft's head,
+    // then the cap.
+    const headOpenings = spec.tower === 'spire' || spec.tower === 'battlements' || spec.tower === 'campanile' || blade;
+    const stage = (plan0: number, base: number, rise: number) => boxFaces(cc - plan0 / 2, cr - plan0 / 2, plan0, plan0, base, rise);
+    const cap = (() => {
+      switch (spec.tower) {
+        case 'spire': {
+          const pp = across(1.4);
+          const spire = pyramid(b.col + b.w * 0.08, b.row + b.h * 0.08, b.w * 0.84, Hs, plan.capRise, wall);
+          return (
+            <>
+              {depthOrder([[b.col, b.row], [b.col + b.w - pp, b.row], [b.col, b.row + b.h - pp], [b.col + b.w - pp, b.row + b.h - pp]]
+                .map(([c, r]) => ({ col: c, row: r, w: pp, h: pp }))).map((q, i) => {
+                const pf = boxFaces(q.col, q.row, q.w, q.h, Hs, up(3.4));
+                const foot = lift(project(q.col + q.w / 2, q.row + q.h / 2), Hs + up(3.4));
+                return (
+                  <g key={i}>
+                    <polygon points={polyPoints(pf.left)} fill={pal.wall[pf.dir.CD]} />
+                    <polygon points={polyPoints(pf.right)} fill={pal.wall[pf.dir.BC]} />
+                    <line className="iso-finial" x1={foot.x} y1={foot.y} x2={foot.x} y2={lift(foot, up(2.6)).y} stroke={shade(wall, 0.8)} />
+                  </g>
+                );
+              })}
+              {spire.faces}
+              <GiltFinial at={spire.tip} rise={up(2.6)} stone={stone} />
+            </>
+          );
+        }
+        case 'steeple': {
+          const bp = b.w * 0.72; const br = up(4.6);
+          const bf = stage(bp, Hs, br);
+          const spire = pyramid(cc - bp * 0.36, cr - bp * 0.36, bp * 0.72, Hs + br, plan.capRise, pal.roof);
+          return (
+            <>
+              {sideFaces(bf, shade(trimStone, 0.98), shade(trimStone, 0.82))}
+              <StageOpenings f={bf} rise={br} n={1} shape="arched" v0={0.14} v1={0.86} />
+              <polygon points={polyPoints(bf.top)} fill={shade(trimStone, 0.9)} />
+              {spire.faces}
+              <GiltFinial at={spire.tip} rise={up(2.4)} stone={stone} />
+            </>
+          );
+        }
+        case 'cupola': {
+          const bp = b.w * 0.76; const br = up(4.2);
+          const bf = stage(bp, Hs, br);
+          return (
+            <>
+              {sideFaces(bf, shade(trimStone, 0.98), shade(trimStone, 0.82))}
+              <StageOpenings f={bf} rise={br} n={1} shape="arched" v0={0.12} v1={0.84} />
+              <polygon points={polyPoints(bf.top)} fill={shade(trimStone, 0.9)} />
+              <Dome col={cc - bp * 1.25} row={cr - bp * 1.25} w={bp * 2.5} h={bp * 2.5} base={Hs + br} stone={stone} hemisphere />
+            </>
+          );
+        }
+        case 'campanile': {
+          const over = across(0.35);
+          const roofCap = pyramid(b.col - over, b.row - over, b.w + over * 2, Hs, plan.capRise, pal.roof);
+          return (
+            <>
+              {roofCap.faces}
+              <GiltFinial at={roofCap.tip} rise={up(1.8)} stone={stone} />
+            </>
+          );
+        }
+        case 'battlements': {
+          const pp = across(1.2);
+          return (
+            <>
+              {faces.map((face) => (
+                <Merlons key={face.dir} col={b.col} row={b.row} w={b.w} h={b.h} base={Hs} outward={face.dir} pal={pal}
+                  block={across(0.9)} gap={across(0.7)} rise={up(1.1)} depth={across(0.45)} />
+              ))}
+              {depthOrder([[b.col, b.row], [b.col + b.w - pp, b.row], [b.col, b.row + b.h - pp], [b.col + b.w - pp, b.row + b.h - pp]]
+                .map(([c, r]) => ({ col: c, row: r, w: pp, h: pp }))).map((q, i) => {
+                const pf = boxFaces(q.col, q.row, q.w, q.h, Hs, plan.capRise);
+                const pin = pyramid(q.col, q.row, q.w, Hs + plan.capRise, up(2.2), pal.roof);
+                return (
+                  <g key={i}>
+                    <polygon points={polyPoints(pf.left)} fill={pal.wall[pf.dir.CD]} />
+                    <polygon points={polyPoints(pf.right)} fill={pal.wall[pf.dir.BC]} />
+                    {pin.faces}
+                  </g>
+                );
+              })}
+            </>
+          );
+        }
+        case 'stepped': {
+          let z = Hs;
+          const tiers = ([[0.74, up(4.4)], [0.5, up(3.6)]] as const).map(([k, rise], i) => {
+            const tf = stage(b.w * k, z, rise);
+            z += rise;
+            return (
+              <g key={i}>
+                {sideFaces(tf, shade(wall, 1.0), shade(wall, 0.8))}
+                <WallBand origin={tf.D} along={tf.C} wallHeight={rise} from={rise * 0.86} to={rise} className="iso-cornice" fill={stone.gilt === NO_STONE ? undefined : stone.gilt} />
+                <WallBand origin={tf.C} along={tf.B} wallHeight={rise} from={rise * 0.86} to={rise} className="iso-cornice" fill={stone.gilt === NO_STONE ? undefined : shade(stone.gilt, 0.82)} />
+                <polygon points={polyPoints(tf.top)} fill={shade(wall, 0.9)} />
+              </g>
+            );
+          });
+          return (
+            <>
+              {tiers}
+              <GiltFinial at={lift(project(cc, cr), z)} rise={plan.capRise - up(8)} stone={stone} />
+            </>
+          );
+        }
+        default:
+          return null;
+      }
+    })();
+    return (
+      <>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {trim && !blade && faces.map((face) => (
+          <g key={`b${face.dir}`}>
+            <WallBand origin={face.o} along={face.a} wallHeight={Hs} from={0} to={BASE_COURSE} className="iso-plinth" />
+            <WallBand origin={face.o} along={face.a} wallHeight={Hs} from={Hs - CORNICE} to={Hs} className="iso-cornice" />
+          </g>
+        ))}
+        {faces.map((face) => {
+          const west = face.dir === plan.west;
+          // Slim openings: a slot a face, or a window over the west door.
+          const wide = blade && !isSide(face.dir);
+          const half = wide ? 0.1 : across(0.9) / face.span / 2;
+          return (
+            <g key={`o${face.dir}`}>
+              {!blade && tallWindows(face, Hs, [0.5], half, west ? 0.3 : 0.4, west ? 0.46 : 0.56, shape === 'slot' ? 'slot' : shape, `tw${face.dir}`)}
+              {headOpenings && (blade
+                ? wide && <polygon className="iso-undercroft" points={polyPoints(windowOutline('rect', 0.3, 0.7, 0.8, 0.93).map(([u, v]) => facePoint(face.o, face.a, Hs, u, v)))} />
+                : [0, 1].slice(0, spec.tower === 'campanile' ? 2 : 1).map((i, _, all) => {
+                  const cell = 1 / all.length; const u0 = 0.18 + i * cell * 0.64; const u1 = u0 + cell * 0.64 - (all.length > 1 ? 0.06 : 0);
+                  return (
+                    <polygon key={i} className={spec.tower === 'campanile' ? 'iso-undercroft' : 'iso-louvre'}
+                      points={polyPoints(windowOutline(spec.tower === 'campanile' ? 'arched' : 'lancet', all.length > 1 ? u0 : 0.34, all.length > 1 ? u1 : 0.66, 0.76, 0.95).map(([u, v]) => facePoint(face.o, face.a, Hs, u, v)))} />
+                  );
+                }))}
+              {spec.tower === 'steeple' && <WallClock origin={face.o} along={face.a} height={Hs} span={face.span} cv={0.86} r={Math.min(CLOCK_RADIUS_TILES, face.span * 0.22)} />}
+              {west && doorway(sb, face, Hs)}
+            </g>
+          );
+        })}
+        <polygon points={polyPoints(f.top)} fill={shade(wall, 0.9)} />
+        {cap}
+      </>
+    );
+  };
+
+  // Buttresses at the nave's bay lines on the long walls the camera sees,
+  // stepping back once as they climb (as Buttresses).
+  const buttresses: Array<DepthBox & { part: 'buttress'; dir: FaceDir; lower: DepthBox; upper: DepthBox }> = [];
+  if (spec.buttresses) {
+    const seen = visibleWalls();
+    const nb = plan.nave;
+    const depth = across(0.85); const shrink = depth * 0.42;
+    for (const dir of plan.sides) {
+      if (dir !== seen.left && dir !== seen.right) continue;
+      const span = wallSpan(nb.w, nb.h, dir);
+      for (let i = 1; i < plan.bays; i++) {
+        const along = (i / plan.bays) * span - BUTTRESS_PLAN / 2;
+        const lower = againstWall(nb.col, nb.row, nb.w, nb.h, dir, along, BUTTRESS_PLAN, depth);
+        const upper = againstWall(nb.col, nb.row, nb.w, nb.h, dir, along, BUTTRESS_PLAN, depth - shrink);
+        buttresses.push({ ...lower, part: 'buttress', dir, lower, upper });
+      }
+    }
+  }
+  const H = plan.naveHeight;
+  const items = depthOrder([
+    { ...plan.tower, part: 'tower' as const },
+    { ...plan.nave, part: 'nave' as const },
+    { ...plan.chancel, part: 'chancel' as const },
+    ...buttresses,
+  ]);
+  return (
+    <>
+      {items.map((it, i) => {
+        if (it.part === 'tower') return <g key="tower">{tower()}</g>;
+        if (it.part === 'nave') return <g key="nave">{nave()}</g>;
+        if (it.part === 'chancel') return <g key="chancel">{chancel()}</g>;
+        const lo = boxFaces(it.lower.col, it.lower.row, it.lower.w, it.lower.h, 0, H * BUTTRESS_SETOFF_FRACTION);
+        const hi = boxFaces(it.upper.col, it.upper.row, it.upper.w, it.upper.h, H * BUTTRESS_SETOFF_FRACTION, H * (0.86 - BUTTRESS_SETOFF_FRACTION));
+        return (
+          <g key={`bt${i}`}>
+            <polygon points={polyPoints(lo.left)} fill={pal.wall[lo.dir.CD]} />
+            <polygon points={polyPoints(lo.right)} fill={pal.wall[lo.dir.BC]} />
+            <polygon points={polyPoints(lo.top)} fill={shade(trimStone, 0.88)} />
+            <polygon points={polyPoints(hi.left)} fill={pal.wall[hi.dir.CD]} />
+            <polygon points={polyPoints(hi.right)} fill={pal.wall[hi.dir.BC]} />
+            <polygon points={polyPoints(hi.top)} fill={shade(trimStone, 0.94)} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 // Wraps BuildingMass. A building being extended (a library renovation,
 // RENOVATE_LIBRARY) is drawn at its standing height, windows and all, with
 // scaffolding on its roof rather than as a ground-level site.
@@ -3117,6 +3460,10 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   const courses = floorLinesOf(t);
   // A recess is the entrance itself: no door leaf or steps.
   const door = entrance === 'recess' ? null : doorOf(t);
+
+  if (motif === 'chapel' && !site) {
+    return <Chapel t={t} p={p} vernacular={vernacular} pal={pal} stone={stone} wall={shade(material.wall, wallShadeOf(t))} />;
+  }
 
   if (motif === 'village') {
     // A plot: lawn, walks, and houses and trees in one depth-ordered list.
