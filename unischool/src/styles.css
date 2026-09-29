@@ -38,8 +38,6 @@
   --field-plough: #9d8563;
   --field-rough: #8a9d5a;
   --wood: #4b7238;
-  --pine-wood: #3a603c;
-  --hedge: #4a6e36;
   --haze: #cad6d3;
   /* Ground texture (CampusMap.tsx's TurfTexture): deliberately barely visible. */
   --turf-band: rgba(255, 255, 255, 0.03);
@@ -918,36 +916,34 @@ button.build-tile { font-family: inherit; }
 .campus-road-centre { stroke: #e8dca8; stroke-width: 1.5; stroke-dasharray: 10 12; fill: none; vector-effect: non-scaling-stroke; }
 
 /* The land around the campus (Surroundings.tsx, Plan 81B): drawn, never
-   touched. Strokes here scale with the world, as a hedge is a width of
+   touched. Strokes here scale with the world, as a lane is a width of
    ground. */
 .ring { pointer-events: none; }
 .ring-base { fill: var(--grass); }
-/* A field's cover. The woods are shapes of their own over the fields: a
-   canopy (Surroundings.tsx's patterns) with a darker edge. */
+/* A field's cover: farm fields, open meadow and rough grass (Plan 81D: no
+   woods; trees stand scattered over the grass). */
 .ring-field { --cover: var(--grass); fill: var(--cover); }
+/* No border between fields (Plan 81D): a hairline in each field's own
+   color only closes the seam two touching fills leave, which would show the
+   ground between them as a line. */
+.ring-field { stroke: var(--cover); stroke-width: 1; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .ring-crop { --cover: var(--field-crop); }
 .ring-hay { --cover: var(--field-hay); }
 .ring-plough { --cover: var(--field-plough); }
 .ring-rough { --cover: var(--field-rough); }
 .ring-town { --cover: var(--lawn, #8fae6b); }
-.ring-woods, .ring-pines { fill-rule: evenodd; stroke-width: 9; stroke-linejoin: round; }
-.ring-woods { fill: url(#ring-canopy); stroke: color-mix(in srgb, var(--wood) 70%, #1e2d1a); }
-.ring-pines { fill: url(#ring-pines); stroke: color-mix(in srgb, var(--pine-wood) 75%, #14200f); }
 /* The hills' light (ringLand.ts's lightOf), in two steps each way. */
 .ring-lit, .ring-shaded { fill-rule: evenodd; }
 .ring-lit { fill: rgba(255, 246, 214, 0.16); }
 .ring-shaded { fill: rgba(22, 34, 20, 0.19); }
 /* The far hills, hazed by the distance they stand at (an inline mix). */
 .ring-far-hill { --far-hill: color-mix(in srgb, var(--wood) 60%, var(--grass-deep)); }
-.ring-canopy-floor { fill: var(--wood); }
-.ring-pine-floor { fill: var(--pine-wood); }
-.ring-hedge { stroke: var(--hedge); stroke-width: 11; stroke-linejoin: round; fill: none; }
 .ring-lane { stroke: #8f8a7e; stroke-width: 34; stroke-linecap: round; fill: none; }
-.ring-clump { fill: var(--leaf-canopy, #4f7a3c); opacity: var(--leaf-opacity, 1); }
-.ring-clump-top { fill: var(--leaf-canopy-top, #679a4c); opacity: var(--leaf-opacity, 1); }
+.ring-crown { fill: var(--leaf-canopy, #4f7a3c); opacity: var(--leaf-opacity, 1); }
+.ring-crown-top { fill: var(--leaf-canopy-top, #679a4c); opacity: var(--leaf-opacity, 1); }
 /* A pine clump is dark and keeps its needles; its tips take the snow. */
-.ring-pine-clump { fill: #37623f; }
-.ring-pine-clump-top { fill: var(--conifer-top, #467c4f); }
+.ring-pine-crown { fill: #37623f; }
+.ring-pine-crown-top { fill: var(--conifer-top, #467c4f); }
 .ring-haze-stop { stop-color: var(--haze); }
 .campus-map-svg.placing .campus-grid,
 .campus-map-svg.path-draw .campus-grid,

@@ -1,11 +1,11 @@
-// The land around the campus (src/components/ringLand.ts, Plan 81B):
+// The land around the campus (src/components/ringLand.ts, Plans 81B–81D):
 // generated from the college's name and the same every time, different
 // from one name to the next, never on the parcel, gentle enough that no
 // hill hides the ground behind it, and the camera kept over it at every
 // view, pitch and zoom.
 
 import {
-  FLAT, MAX_SLOPE, RING, WOOD_AT, clampView, heightAt, isFarm, landOf, parcelDistance, ringView, ringZoomFloor, woodValue, type Land,
+  CROWNS_MAX, FLAT, MAX_SLOPE, RING, TREES_MAX, clampView, fieldsTouch, heightAt, isFarm, landOf, parcelDistance, ringView, ringZoomFloor, type Land,
 } from '../src/components/ringLand';
 import { PITCHES, VIEWS, setCamera, unproject } from '../src/components/isoProjection';
 import { CAMPUS_GRID_HEIGHT as GH, CAMPUS_GRID_WIDTH as GW } from '../src/state/types';
@@ -51,19 +51,18 @@ for (const name of NAMES) {
   const lanes = land.lanes.map(([c0, r0, c1, r1]) => ({ c0: Math.min(c0, c1) - 0.4, r0: Math.min(r0, r1), c1: Math.max(c0, c1) + 0.4, r1: Math.max(r0, r1) }));
   assert(land.houses.every((h) => lanes.every((l) => !overlaps(box(h), l))), `${name}: no house on a lane`);
   const pt = (p: { col: number; row: number }) => ({ c0: p.col, r0: p.row, c1: p.col + 0.01, r1: p.row + 0.01 });
-  assert([...land.trees, ...land.clumps].every((t) => !overlaps(pt(t), PARCEL) && !overlaps(pt(t), ROAD)), `${name}: no tree on the parcel or the road`);
+  assert([...land.trees, ...land.crowns].every((t) => !overlaps(pt(t), PARCEL) && !overlaps(pt(t), ROAD)), `${name}: no tree on the parcel or the road`);
   // The campus's own tree art stands on the flat valley floor only.
   assert(land.trees.every((t) => heightAt(land, t.col, t.row) === 0), `${name}: the drawn trees stand on the valley floor`);
 
   // Plan 81C: the farms a minority of the land, kept to the road and the
-  // town; much of the rest wooded, and some open between the woods.
-  let land0 = 0; let farm = 0; let wooded = 0; let farFarm = 0;
+  // town. Plan 81D: the rest open grass.
+  let land0 = 0; let farm = 0; let farFarm = 0;
   for (let row = -180; row <= GH + 180; row += 3) {
     for (let col = -180; col <= GW + 180; col += 3) {
       const d = parcelDistance(col, row);
       if (d <= 0 || d > 180 || (row >= ROAD_FIRST_ROW && row <= GH)) continue;
       land0 += 1;
-      if (woodValue(land, col, row) > WOOD_AT) { wooded += 1; continue; }
       const f = land.fields.find((x) => col >= x.c0 && col < x.c1 && row >= x.r0 && row < x.r1);
       if (f && isFarm(f.cover)) {
         farm += 1;
@@ -74,8 +73,39 @@ for (const name of NAMES) {
   assert(farm / land0 < 0.4, `${name}: farmland is under 40% of the land (${((100 * farm) / land0).toFixed(0)}%)`);
   assert(farm / land0 > 0.1, `${name}: but there are farms (${((100 * farm) / land0).toFixed(0)}%)`);
   assert(farFarm === 0, `${name}: the farms keep to the road and the town`);
-  assert(wooded / land0 > 0.3 && wooded / land0 < 0.7, `${name}: much of it wooded, not all (${((100 * wooded) / land0).toFixed(0)}%)`);
-  assert(land.houses.every((h) => woodValue(land, h.col + h.w / 2, h.row + h.h / 2) <= WOOD_AT), `${name}: no house in a wood`);
+  // Plan 81D: the farm fields have no border, so two that touch along an
+  // edge are told apart by cover alone (where three covers could not do it,
+  // a field lies fallow as rough grass).
+  const farms = land.fields.filter((f) => isFarm(f.cover));
+  let pairs = 0; let same = 0;
+  for (let i = 0; i < farms.length; i++) {
+    for (let j = i + 1; j < farms.length; j++) {
+      if (!fieldsTouch(farms[i]!, farms[j]!)) continue;
+      pairs += 1;
+      if (farms[i]!.cover === farms[j]!.cover) same += 1;
+    }
+  }
+  assert(pairs > 50 && same === 0, `${name}: touching farm fields differ in cover (${same} of ${pairs} pairs alike)`);
+
+  // Plan 81D: no woods, trees scattered. The band: enough that the grass is
+  // not bare (the valley floor alone is some 16,000 tiles, so under a tree
+  // or two per thousand tiles would read as empty), and few enough that
+  // they never gather into a wood (a wood is hundreds of trees a few tiles
+  // apart). Near the campus the tree art is capped at TREES_MAX, further out
+  // the crowns at CROWNS_MAX, and both thin with distance.
+  const all = [...land.trees, ...land.crowns];
+  assert(land.trees.length >= 15 && land.trees.length <= TREES_MAX, `${name}: ${land.trees.length} trees near the campus, a scattering`);
+  assert(land.crowns.length >= 60 && land.crowns.length <= CROWNS_MAX, `${name}: ${land.crowns.length} far trees, a scattering`);
+  const near = all.filter((t) => parcelDistance(t.col, t.row) < 60).length;
+  const far = all.filter((t) => parcelDistance(t.col, t.row) >= 60).length;
+  // The band 60–125 tiles out is about 2.6 times the area of the one within
+  // 60, so fewer trees there means they thin with distance.
+  assert(far < near * 1.4, `${name}: the trees thin with distance (${near} near, ${far} far)`);
+  // Scattered: no tree has more than a small group within four tiles.
+  const crowded = all.filter((t) => all.filter((u) => Math.hypot(u.col - t.col, u.row - t.row) < 4).length > 5).length;
+  assert(crowded === 0, `${name}: no trees gather into a wood (${crowded} crowded)`);
+  const houseBox = (h: Land['houses'][number]) => ({ c0: h.col - 0.5, r0: h.row - 0.5, c1: h.col + h.w + 0.5, r1: h.row + h.h + 0.5 });
+  assert(land.houses.every((h) => all.every((t) => !overlaps(pt(t), houseBox(h)))), `${name}: no tree stands in a house`);
 
   // A flat valley floor, hills beyond it.
   let floorFlat = true;
@@ -134,6 +164,8 @@ for (const azimuth of VIEWS) {
   const view = ringView('Blackmoor University');
   const sprites = view.back.length + view.front.length;
   assert(view.covers.length <= 40 && sprites < 450, `view ${azimuth.toFixed(2)}: ${view.covers.length} field shapes, ${sprites} sprites`);
+  assert(!('woods' in view) && !('pines' in view), 'no wood shapes (Plan 81D)');
+  assert(!('hedges' in view), 'no borders round the fields (Plan 81D)');
   assert(view.back.every((s, i) => i === 0 || s.y >= view.back[i - 1]!.y), 'sprites go down back to front');
 }
 
