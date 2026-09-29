@@ -47,7 +47,7 @@ import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventDa
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} from '../data/facilitiesData';
 import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
-import { TRAINER_FIELD, MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
+import { TRAINER_FIELD, MASCOT_MAX_LENGTH, SCHOLARSHIP_ORDER, applyTeamOrder } from '../data/studentLifeData';
 import { isLand, isPlaceableKind, parsePathTileKey, pathTileKey, occupantAt } from '../state/campusMap';
 import { designationRefusal, detectQuads, tileIndex } from '../state/quads';
 import { QUAD_NAME_MAX } from '../data/quadData';
@@ -446,6 +446,15 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
           kind: 'bad',
         });
       }
+      return s;
+    }
+
+    // A team's scholarship budget. Kept on any team, spent only on a
+    // flagship (studentLifeData.ts's annualScholarships).
+    case 'SET_SCHOLARSHIPS': {
+      const team = s.orgs.teams.find((t) => t.id === action.teamId);
+      if (!team || !SCHOLARSHIP_ORDER.includes(action.level)) return s;
+      team.scholarships = action.level;
       return s;
     }
 

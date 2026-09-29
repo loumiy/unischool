@@ -35,6 +35,7 @@ export const EXPENSE_LINES: readonly StatementLineSpec[] = [
   { key: 'facilityUpkeep', label: 'Campus upkeep' },
   { key: 'studentLifeUpkeep', label: 'Student life', shown: (f) => f.studentLifeUpkeep > 0 },
   { key: 'athleticsSubsidy', label: 'Athletics subsidy', shown: (f) => f.athleticsSubsidy > 0 },
+  { key: 'athleticScholarships', label: 'Athletic scholarships', shown: (f) => f.athleticScholarships > 0 },
   { key: 'administration', label: 'Administration', shown: (f) => f.administration > 0 },
   { key: 'debtService', label: 'Loan repayments', shown: (f) => f.debtService > 0 },
 ];

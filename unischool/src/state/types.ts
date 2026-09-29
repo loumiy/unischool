@@ -768,7 +768,17 @@ export interface VarsityTeam extends StudentOrgBase {
   // Last year barred from the bracket (the recruiting scandal; playoffs.ts).
   // Absent or past means eligible.
   postseasonBanThroughYear?: number;
+  // Recruiting (Plan 80G): the scholarship budget the player set, and the
+  // strength the recruited classes add, 0..RECRUITING_FULL_LIFT
+  // (studentLifeData.ts). The budget is spent, and the strength builds, only
+  // while the team is a flagship; otherwise the strength falls away.
+  scholarships: ScholarshipLevel;
+  recruiting: number;
 }
+
+// A flagship's athletic scholarships (SCHOLARSHIP_LEVELS in
+// studentLifeData.ts): what it spends a year, and what its classes add.
+export type ScholarshipLevel = 'none' | 'some' | 'full';
 
 // A formed organization awaiting approval in the summer digest
 // (docs/design/student-life.md), carrying everything needed to become live.

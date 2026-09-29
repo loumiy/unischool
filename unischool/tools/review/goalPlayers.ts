@@ -15,7 +15,7 @@
 //   assets         the cheapest path to the whole catalogue of placeables;
 //                  borrows when it must
 //   championships  athletics first: venues, coaches, the director, the
-//                  budget, the main sport
+//                  budget, and one or two flagships on full scholarships
 //   good-then-big  a small, excellent college for twenty years, then grows
 //   big-then-good  grows as fast as money allows, then fixes quality
 //
@@ -37,7 +37,7 @@ import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 import type { Action } from '../../src/state/actions';
 import type { Buildable, GameState, SatisfactionAttributes } from '../../src/state/types';
-import { standsOnCampus, totalEnrolled } from '../../src/state/types';
+import { WEEKS_PER_YEAR, standsOnCampus, totalEnrolled } from '../../src/state/types';
 import { SUMMER_LAST_BEAT } from '../../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
 import { isAcademicHall, milestoneSchools, programById } from '../../src/data/techData';
@@ -46,7 +46,7 @@ import { initiativeOffers } from '../../src/data/researchData';
 import { promiseById } from '../../src/data/promiseData';
 import { findDecisionEvent, offeredChoices, type DecisionEventContext } from '../../src/data/eventData';
 import {
-  TRAINER_FIELD, orderedTeams, teamQuality, venueForCategory,
+  TRAINER_FIELD, isFlagship, orderedTeams, scholarshipCostFor, teamQuality, venueForCategory,
 } from '../../src/data/studentLifeData';
 import { nextVenueExpansion } from '../../src/data/facilitiesData';
 import { TUITION_SLIDER_MAX } from '../../src/data/foundingData';
@@ -164,6 +164,9 @@ export interface RunRecord {
   switched?: number;
   promisesTaken: string[];
   final?: { title: string; mark: string; axes: Array<{ label: string; grade: string; mean: number }>; kept: number; missed: number };
+  // The championships player's flagships (Plan 80G's target): the year each
+  // was chosen and put on full scholarships, and its first final four.
+  flagships?: Array<{ sport: string; chosen: number; finalFour?: number }>;
   broken: string[];
   seconds: number;
   error?: string;
@@ -847,10 +850,17 @@ function assetsPolicy(): Policy {
 }
 
 // ---- Championships ----
+// A finish that reached the last four.
+const FINAL_FOUR: readonly string[] = ['semifinal', 'final', 'champion'];
+// How many sports it makes its flagships (Plan 80G: "one or two").
+const CHOSEN_FLAGSHIPS = 2;
+
 function championshipsPolicy(): Policy {
   // Postseasons missed in a row, per sport (lastSeason is overwritten yearly).
   const missedSeasons = new Map<string, number>();
   const counted = new Set<string>();
+  // The sports it chose as flagships, in the order it chose them, kept.
+  const chosen: string[] = [];
   return {
     promises: ['varsityAtLeast', 'titlesAtLeast', 'satisfactionOver'],
     events: 'athletics',
@@ -863,6 +873,8 @@ function championshipsPolicy(): Policy {
         if (counted.has(key)) continue;
         counted.add(key);
         missedSeasons.set(result.sport, result.finish === 'missed' ? (missedSeasons.get(result.sport) ?? 0) + 1 : 0);
+        const flagship = j.rec.flagships?.find((f) => f.sport === result.sport);
+        if (flagship && flagship.finalFour === undefined && FINAL_FOUR.includes(result.finish)) flagship.finalFour = result.year;
       }
       restaff(g, j);
       j.because('move-home', 'Programs at home.', () => moveHome(g));
@@ -880,14 +892,30 @@ function championshipsPolicy(): Policy {
         j.because('athletics-high', 'The high tier funds more programs to full strength.', () => g.act({ type: 'SET_ATHLETICS_BUDGET', tier: 'high' }));
       }
       staffTeams(g, j, reserve, true);
-      // The main sport: the strongest program first on the list.
+      // The flagships: one or two sports chosen once and kept — the
+      // strongest active program when a place is free — at the top of the
+      // list, the rest by strength below them.
       const teams = orderedTeams(s).filter((t) => t.status === 'active');
+      if (chosen.length < CHOSEN_FLAGSHIPS) {
+        const next = [...teams].filter((t) => !chosen.includes(t.sport)).sort((a, b) => teamQuality(b, s) - teamQuality(a, s))[0];
+        if (next) chosen.push(next.sport);
+      }
       if (teams.length > 1 && s.clock.week % 13 === 0) {
-        const sorted = [...teams].sort((a, b) => teamQuality(b, s) - teamQuality(a, s));
+        const rank = (sport: string) => (chosen.includes(sport) ? chosen.indexOf(sport) : CHOSEN_FLAGSHIPS);
+        const sorted = [...teams].sort((a, b) => rank(a.sport) - rank(b.sport) || teamQuality(b, s) - teamQuality(a, s));
         const order = sorted.map((t) => t.id);
         const current = (s.orgs.teamOrder ?? []).filter((id) => order.includes(id));
         if (order.join() !== current.join()) {
-          j.because('team-order', 'The strongest program first on the list: the main sport gets funded in full.', () => g.act({ type: 'SET_TEAM_ORDER', order: [...order, ...(s.orgs.teamOrder ?? []).filter((id) => !order.includes(id))] }));
+          j.because('team-order', 'The chosen flagships first on the list, the strongest of the rest below them.', () => g.act({ type: 'SET_TEAM_ORDER', order: [...order, ...(s.orgs.teamOrder ?? []).filter((id) => !order.includes(id))] }));
+        }
+      }
+      // Full scholarships on each chosen flagship, once the week can carry them.
+      for (const team of teams) {
+        if (!chosen.includes(team.sport) || team.scholarships === 'full' || !isFlagship(s, team)) continue;
+        if (weeklyNet(s) * WEEKS_PER_YEAR < scholarshipCostFor(team.sport, 'full')) continue;
+        if (j.because('scholarships', 'A chosen flagship on full scholarships: recruiting builds the team a class a year.', () => g.act({ type: 'SET_SCHOLARSHIPS', teamId: team.id, level: 'full' }))) {
+          const list = (j.rec.flagships ??= []);
+          if (!list.some((f) => f.sport === team.sport)) list.push({ sport: team.sport, chosen: s.clock.year });
         }
       }
       // More seats at the venues: more gate, more pot.
@@ -905,8 +933,8 @@ function championshipsPolicy(): Policy {
       if (s.clock.week === 40 && teams.length > 0) {
         const weakest = [...teams].sort((a, b) => teamQuality(a, s) - teamQuality(b, s))[0];
         const staffed = teams.every((t) => t.headCoach && t.assistantCoach && t.trainer);
-        if (staffed && s.orgs.athleticsBudget === 'high' && teamQuality(weakest, s) < 70) {
-          j.want(s, 'recruit athletes', `Every chair is filled and the budget is at its top; ${weakest.name} still scores ${teamQuality(weakest, s).toFixed(0)}. There is no recruiting, scholarship or scheduling lever.`);
+        if (staffed && s.orgs.athleticsBudget === 'high' && !isFlagship(s, weakest) && teamQuality(weakest, s) < 70) {
+          j.want(s, 'recruit athletes', `Every chair is filled and the budget is at its top; ${weakest.name} still scores ${teamQuality(weakest, s).toFixed(0)}, and only a flagship can recruit.`);
         }
         const missed = missedSeasons.get(weakest.sport) ?? 0;
         if (missed >= 5) {
@@ -1111,6 +1139,7 @@ function goalMarks(s: GameState, j: Journal, goal: Goal): void {
   if (rank <= 10) j.mark(s, 'top 10');
   if (rank === 1) j.mark(s, 'first');
   if (s.orgs.titles.length > 0) j.mark(s, 'first title');
+  if (Object.values(s.orgs.lastSeason ?? {}).some((r) => FINAL_FOUR.includes(r.finish))) j.mark(s, 'final four');
   if (s.orgs.teams.length > 0) j.mark(s, 'first team');
   if (totalEnrolled(s.students) >= 10_000) j.mark(s, '10,000 students');
   if (s.students.satisfaction >= 90) j.mark(s, 'satisfaction 90');
@@ -1252,6 +1281,24 @@ export function writeReport(runs: RunRecord[], out: string): void {
     lines.push(`| ${goal} | ${cells.join(' | ')} |`);
   }
   lines.push('');
+
+  // Plan 80G's target: a player who picks one or two flagships and funds
+  // their recruiting reaches the final four within eight to twelve years.
+  const withFlagships = runs.filter((r) => !r.error && (r.flagships?.length ?? 0) > 0);
+  if (withFlagships.length > 0) {
+    lines.push('## Flagships on full scholarships', '', 'Years from putting a chosen flagship on full scholarships to its first final four (the fastest of its flagships; a run whose flagships never got there counts as never). Plan 80G\'s target is eight to twelve, median across runs.', '');
+    lines.push('| Run | Flagships (year chosen → first final four) | Years |', '|---|---|---|');
+    const spans: number[] = [];
+    for (const r of withFlagships) {
+      const got = r.flagships!.filter((f) => f.finalFour !== undefined).map((f) => f.finalFour! - f.chosen);
+      const span = got.length > 0 ? Math.min(...got) : Infinity;
+      spans.push(span);
+      lines.push(`| ${r.goal} ${r.seed} ${r.name} | ${r.flagships!.map((f) => `${f.sport} Y${f.chosen} → ${f.finalFour !== undefined ? `Y${f.finalFour}` : 'never'}`).join('; ')} | ${Number.isFinite(span) ? span : 'never'} |`);
+    }
+    const sorted = [...spans].sort((a, b) => a - b);
+    const mid = sorted[Math.floor((sorted.length - 1) / 2)];
+    lines.push('', `Median: ${Number.isFinite(mid) ? `${mid} years` : 'never'} (${spans.filter(Number.isFinite).length}/${spans.length} runs reached a final four).`, '');
+  }
 
   // Per goal: decisions, tedium, wants.
   for (const goal of goals) {

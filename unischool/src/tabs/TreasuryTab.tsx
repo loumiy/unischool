@@ -11,6 +11,7 @@ import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import { FIGURE_HINTS } from '../data/figureHints';
 import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
+import { departmentPot } from '../data/studentLifeData';
 import { count, decimal, money, moneyShort, multiplier, pct, prestigeFigure } from '../format';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { MultiChart } from '../components/MultiChart';
@@ -46,6 +47,7 @@ function StatementLine({ label, note, amount }: { label: string; note: string; a
 
 export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const flow = financeBreakdown(s);
+  const scholarshipTeams = departmentPot(s).programs.filter((p) => p.band === 'flagship' && p.team.scholarships !== 'none').length;
   const annualNet = flow.net * WEEKS_PER_YEAR;
   const coursesDone = countCoursesDone(s);
   const distress = distressOf(s);
@@ -78,6 +80,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
     facilityUpkeep: 'libraries, dining, rec and labs, each carrying its own running cost',
     studentLifeUpkeep: `${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`,
     athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate — the department's cost to the college`,
+    athleticScholarships: `the scholarship budgets of ${scholarshipTeams} flagship${scholarshipTeams === 1 ? '' : 's'}, set on the Athletics tab: what their recruiting costs`,
     administration: `${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of the payroll`,
     debtService: `${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`,
   };

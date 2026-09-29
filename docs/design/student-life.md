@@ -264,7 +264,13 @@ Potential rolls in three bands — journeymen (45–62, most listings), solid
 (60–78) and elite (75–90, rare) — and **every open chair on an active team
 always has at least one listing** in its field: the tick lists a journeyman
 for any field nobody covers, so an empty chair is a choice to save money,
-never something the market does to you. **The top of the market wants a
+never something the market does to you. **Every sport the school fields always
+has someone solid** (Plan 80G): whether or not a chair is open, the tick lists
+a solid candidate (a potential of 60 or more, `SOLID_COACH_POTENTIAL`) for any
+fielded sport the market has none solid or better for
+(`sportsWithoutSolidListing`), so a program is never stuck waiting years for a
+coach worth replacing a journeyman with. Elite coaches stay as rare as their
+band's share. **The top of the market wants a
 program with a reputation** (PR L): an elite draw for a fielded sport whose
 program has none (`programReputation` — title history in *that* sport,
 decaying; sustained quality above 70; a flagship's place on the list) lists as
@@ -350,28 +356,69 @@ showing the path.
 **The pot and the list** (Plan 21's PR G) are what the department decides.
 Its programs sit in one **ordered list** (`s.orgs.teamOrder` — the order is
 the only stored thing), dragged on the Athletics tab. Funding is a **queue,
-not a weighting**: each active program draws its sport's cost to compete off
-the pot in list order until the pot is exhausted, and the screen draws the
-line where the money runs out. The bands — *flagship*, *competitive*,
-*developmental* — are descriptive names for which side of the line a program
-sits on, never compartments, so the ratio of flagships is dynamic for free.
+not a weighting**: each active program draws off the pot in list order until
+the pot is exhausted.
 
 > pot = institutional subsidy + what athletics earned
 
 The subsidy is the one dial (`ATHLETICS_BUDGET_TIERS.subsidyPerYear`, fixed
-in dollars — never a share of opex, or a huge school would fund eighteen
-flagships without deciding anything); what athletics earned is the gate. A
-fully funded program recruits at full strength (`FUNDED_QUALITY_BONUS`); one
-below the line is **underfunded, not unfunded** — a proportional discount with
-a floor, the same shape a vacant chair takes. The gate is paid to the
+in dollars — never a share of opex); what athletics earned is the gate.
+
+**Flagships are chosen, and capped** (Plan 80G, the owner's decision 6). The
+gate is uncapped, so once the band was just "fully funded" a large college's
+gate (about $8M a year) funded all twenty programs on the low subsidy, and
+every sport was a flagship. Now the subsidy level also caps how many programs
+may be flagships — **2 at low, 4 at medium, 6 at high**
+(`ATHLETICS_BUDGET_TIERS.flagships`) — and they are **the first active
+programs on the list**, so dragging the cards is choosing them. A flagship
+draws its sport's whole cost to compete; any other program draws at most
+**60%** of it (`NON_FLAGSHIP_FUNDED_SHARE`) however rich the pot, and is
+*competitive* while the money reaches it and *developmental* once it does not.
+Only a flagship can be fully funded (`FUNDED_QUALITY_BONUS`), carry a
+scholarship budget and recruit. The share is chosen so a competitive program
+with 60-quality staff reads about 62 against a flagship's 70 before
+recruiting: a real step down, still well clear of developmental. A flagship
+the pot cannot cover is still a flagship, drawing what is there. Below full
+funding a program is **underfunded, not unfunded** — a proportional discount
+with a floor, the same shape a vacant chair takes. The gate is paid to the
 department first and only the **surplus** spills into general income (the
 Treasury carries the subsidy the programs actually drew as an expense and the
-gate beyond the draw as income), so a
-winning department returns more than it was given and stops being a cost
-centre. Demotion costs something: a program dragged below the line it was
-above may lose its head coach on the reorder. `'awaitingVenue'` teams sit out
-of the queue. The tier still scales the department's social contribution and
-staff upkeep, as it always did.
+gate beyond the draw as income), so a winning department returns more than it
+was given and stops being a cost centre — and with the cap, a large college's
+gate now mostly comes back. Demotion costs something: a flagship dragged
+below the line may lose its head coach on the reorder, and its recruiting
+falls away. `'awaitingVenue'` teams sit out of the queue and never take a
+flagship's place. The tier still scales the department's social contribution
+and staff upkeep, as it always did. The recruiting scandal's exposure and
+`programReputation`'s flagship term read the chosen flagships.
+
+**Recruiting** (Plan 80G). Each team carries a **scholarship budget** —
+none, some or full (`VarsityTeam.scholarships`, `SCHOLARSHIP_LEVELS`) — set
+on its card, and kept whatever the team's place; it is **spent only while the
+team is a flagship**, at half its sport's cost to compete a year for *some*
+and the whole of it for *full* ($120k, $450k or $1.2M on full). The college
+pays it from its own funds, not the department's pot, as a Treasury line of
+its own (*Athletic scholarships*), so the choice's price is exact and never
+silently underfunded. What it buys is **recruiting strength**
+(`VarsityTeam.recruiting`), added to the team's quality: each year a class
+adds a quarter of the level's lift — up to +3.75 a year on full, built over
+four years to **+15** (`RECRUITING_FULL_LIFT`), +7.5 on some — accrued week by
+week as the money is spent (`athleticsSystem.ts`'s `tickRecruiting`), so
+there is no signing day to game. When the money stops, or the program is no
+longer a flagship, the classes graduate and the strength **falls away at up to
+a full class a year**: full recruiting is gone four years after it is cut. One
+number stands in for the four classes, so a smaller build falls away sooner
+than four separate classes would.
+
+**The college's pull** (Plan 80G). A small lift, **up to +5**
+(`collegePull`), so a large college with a stadium plays like one: up to +2.5
+from the stage of the program's own venue (its expansions over the venue's
+most, Plan 54 — the field alone reads nothing, full seating the whole half)
+and up to +2.5 from **campus life standing**, counted from 25 (just above the
+baseline of 22 a college starts from) to 100. It is on every active team, flagship or
+not; the card shows it with its two halves in the tooltip. Campus life
+standing reads athletic program strength, so pull feeds back a little into
+itself; the loop is bounded at +2.5.
 
 **Where athletics reaches now.** Satisfaction, through the same shared social
 contribution clubs and Greek life use. **Campus-life standing**, one of the
@@ -453,7 +500,12 @@ outside its sport's strongest eight does not enter, and the standings row says
 so — which is the sentence that makes a coach's salary a decision. The bar is
 real: with every chair empty a team scores about 31 against a field-of-eight cut
 around 72, a mid-staffed one lands just short, and only a genuinely well-staffed
-department with a good director and a high recruiting budget seeds near the top.
+department with a good director, full funding and a few years of recruiting
+seeds near the top. Plan 80G's target is that a player who picks one or two
+flagships and puts them on full scholarships reaches a final four within eight
+to twelve years; `npm run review:goals`' championships player, which does
+exactly that, gets there by about Year 7, a year or two after choosing (its
+"Flagships on full scholarships" table).
 
 **This is the loop the whole athletics feature was built for**, and every arrow
 in it now exists: fund a program → hire a coach → team quality rises → the
@@ -512,8 +564,10 @@ the next digest, and an empty state that reads sensibly through the founding
 years before any student center exists. **Athletics has its own tab**: once a sport club goes varsity it moves there.
 The screen is four sections, in the order the questions arrive in — **the
 department** (the director, the name the teams play under, the athletic and
-campus-life standings, and the one budget lever), **the programs** as a grid of
-team cards, **by sport** (each fielded sport's own rank, with the schools
+campus-life standings, the one budget lever, how many flagships it allows and
+what the scholarships cost), **the programs** as a grid of
+team cards (a flagship's with its scholarship control, and every active one
+with its recruiting and pull), **by sport** (each fielded sport's own rank, with the schools
 immediately above and below named), and **the market** last, because you notice
 an empty chair on a team and then go looking for somebody to fill it.
 

@@ -146,7 +146,7 @@ function resolve(s: GameState): GameState {
   assert(!('refused' in read), 'it loads');
   if (!('refused' in read)) {
     assert(read.state.students.applicantLift === 0, 'with no lift waiting');
-    assert(SAVE_VERSION === 81, `at version 81 (${SAVE_VERSION})`);
+    assert(SAVE_VERSION >= 81, `at version 81 or later (${SAVE_VERSION})`);
   }
   // A hand-edited save's lift is a count, never negative.
   const edited = JSON.parse(raw) as { version: number; state: { students: Record<string, unknown> } };

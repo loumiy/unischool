@@ -309,6 +309,65 @@ after:
   eight to twelve years. Checked with the harness's championships player.
 - The save gains each team's recruiting; the version is bumped.
 
+**As implemented (#TBD):**
+
+- **Flagships:** `ATHLETICS_BUDGET_TIERS` carries the cap (2, 4, 6).
+  `departmentPot` marks the first active programs on the list as
+  flagships, whatever the pot holds; a flagship draws its sport's whole
+  cost (and may still be short of it on a thin pot), any other program at
+  most `NON_FLAGSHIP_FUNDED_SHARE` = 0.6 of it: competitive while the money
+  reaches it, developmental once it does not. 0.6 keeps a clear step (a
+  60-staff program reads about 62 against a flagship's 70 before
+  recruiting). The funded line is drawn under the flagships ("Flagships
+  above · 2 of 2"). The demotion rule, the recruiting scandal and
+  `programReputation` read the band. Lowering the subsidy level demotes
+  without the coach-resignation roll, as before.
+- **Recruiting:** `VarsityTeam.scholarships` (none / some / full) and
+  `recruiting` (0–15). Some costs half the sport's cost to compete a year,
+  full the whole of it ($120k, $450k, $1.2M), paid only for a flagship, by
+  the college, on a new Treasury line (*Athletic scholarships*), not from
+  the pot. `tickRecruiting` (weekly, in `tickAthletics`) moves the strength
+  toward the level's lift (15 or 7.5) by a quarter of that lift a year, so
+  both build over four years, and down by up to a full class (3.75) a year
+  when the money stops or the team is no flagship. Weekly rather than a
+  signing day, so there is no year boundary to game; one number stands in
+  for four classes, so a small build falls away sooner than four real
+  classes would. The budget is kept on a team that drops out of the
+  flagships and resumes if it returns.
+- **Pull:** `collegePull`, up to +5: +2.5 × the venue's expansions over its
+  most, +2.5 × campus life standing read from 25 to 100. On every active
+  team.
+- **Coach market:** `sportsWithoutSolidListing` lists a solid candidate
+  (potential ≥ 60) for any fielded sport without one, every week, beside
+  the journeyman floor. The elite rule is unchanged.
+- **The tab:** the Department panel shows Flagships n of cap and the
+  scholarships' cost; each flagship's card has the None / Some / Full
+  control with its price, and every active card its recruiting ("+8.4,
+  building toward +15" / "falling away") and pull. Checked at 1440×900 and
+  390×844.
+- **Save:** `SAVE_VERSION` 81 → 82, migration `noRecruitingYet` (every team
+  none and 0) and a sanitizer; `test/fixtures/save-v81.json` is a Natural
+  run at Year 21 with four teams, written before the bump.
+- **The target:** the championships goal player now chooses two flagships
+  (the strongest active program while a place is free, then kept at the
+  top of the list) and puts each on full scholarships when a year's net
+  covers it. Over 5 seeds × 2 names: its first final four came a median of
+  1 year after choosing (0–3), at a median Year 7 (Year 9 before this PR);
+  every run got there. Without scholarships, the same player's first final
+  four is also a median Year 7, and its first title a median Year 10
+  against Year 9 with them (12 before this PR). The target reads as a bound ("within"), so it is met; as a
+  band it is beaten, and recruiting and pull only add strength, so no
+  tuning inside their bounds could slow it. What sets the pace is the
+  coaching (the new solid floor helps) and the field's strength, which
+  this PR does not touch. Nothing was tuned.
+- **Baseline:** re-recorded. The extra solid listings take ids from the
+  global stream (`newId`, as the journeyman floor already did), so every
+  player with teams shifts a little (teams at Year 25 −3 or −4 for Lean
+  and Guided; Selective's satisfaction −7 to −8 late). The cap returns
+  more of a large college's gate to income: late cash rises for
+  Completionist (+$659M at Year 50), Lean (+$189M) and Selective (+$46M);
+  Guided's falls $37M, within the stream's noise. Idle is unchanged.
+
 ## PR 80H — The map: quads, walkers, turning, lab roofs
 
 - **Quads lose their labels:** the overlay, the names, "Mark a quad", the

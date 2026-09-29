@@ -1,7 +1,7 @@
 import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, DressingKind, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, Coach, DressingKind, GameState, InitiativeDepth, Placements, ScholarshipLevel, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -172,6 +172,9 @@ export type Action =
   // A standing dial, free and adjustable any time.
   | { type: 'SET_ATHLETICS_BUDGET'; tier: AthleticsBudgetTier }
   | { type: 'SET_TEAM_ORDER'; order: string[] } // the priority list, dragged
+  // A team's scholarship budget (Plan 80G): spent, and recruiting, only
+  // while it is a flagship.
+  | { type: 'SET_SCHOLARSHIPS'; teamId: string; level: ScholarshipLevel }
   | { type: 'EXPAND_VENUE'; venueId: string } // a venue rung, in place
   // Refused if the candidate's field doesn't fit the role or the role is
   // filled (fire the incumbent first). Salary is a recurring line.

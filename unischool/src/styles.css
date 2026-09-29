@@ -2292,6 +2292,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .team-card-rival { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .team-card-meta { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: var(--text-2xs); color: var(--ink-muted); }
 .team-card-meta strong { color: var(--ink); }
+/* A flagship's scholarship budget (Plan 80G), under the card's figures. */
+.team-card-scholarships { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding-top: 3px;
+  border-top: 1px dashed var(--parchment-line); font-size: var(--text-2xs); }
 .team-card-staff { display: flex; flex-direction: column; }
 .coach-row { display: flex; align-items: center; gap: 7px; font-size: var(--text-sm); min-height: 30px;
   padding: 3px 0; border-top: 1px dashed var(--parchment-line); }

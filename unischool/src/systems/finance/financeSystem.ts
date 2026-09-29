@@ -7,7 +7,7 @@ import { debtService, drawRate, serviceLoans } from './treasury';
 import { accrueTerm } from './distress';
 import type { ClassTuition, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus, totalEnrolled } from '../../state/types';
-import { departmentPot, studentOrgUpkeep } from '../../data/studentLifeData';
+import { annualScholarships, departmentPot, studentOrgUpkeep } from '../../data/studentLifeData';
 import { weeklyGateRevenue } from '../athletics/gate';
 import { marketRateMultiplier } from '../../data/facultyData';
 import { SEATS_PER_COURSE, instructionCapacity, instructionCapacityDetail } from '../techtree/instructionCapacity';
@@ -164,6 +164,7 @@ export interface FinanceBreakdown {
   facilityUpkeep: number;      // running the dorms and the facilities (labs among them) that are done
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognized (see data/studentLifeData.ts)
   athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week
+  athleticScholarships: number; // the flagships' scholarship budgets (Plan 80G), paid by the college in full, not from the department's fund
   debtService: number;         // the buildings' loan payments (finance/treasury.ts)
   administration: number;      // the seats' salaries at market rate (delegation/seats.ts): the administrative ratchet
   totalExpenses: number;
@@ -273,6 +274,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const pot = departmentPot(s);
   const athleticsSubsidy = Math.max(0, pot.drawn - pot.earned) / WEEKS_PER_YEAR;
   const athleticsSurplus = Math.max(0, pot.earned - pot.drawn) / WEEKS_PER_YEAR;
+  const athleticScholarships = annualScholarships(s, pot) / WEEKS_PER_YEAR;
   // Salaries at market rate (facultyData.ts's marketRateMultiplier).
   const weeklySalaries = s.faculty.reduce((sum, f) => sum + facultyPay(s, f.salary), 0) / WEEKS_PER_YEAR;
   const filledSeats = Math.min(enrolled, s.students.capacity);
@@ -292,7 +294,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // Five income lines; there is no state appropriation.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus + annualFund;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + scaleCost + academicUpkeep +
-    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + debt + administration;
+    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + athleticScholarships + debt + administration;
 
   return {
     tuitionRevenue,
@@ -311,6 +313,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     facilityUpkeep,
     studentLifeUpkeep,
     athleticsSubsidy,
+    athleticScholarships,
     debtService: debt,
     administration,
     totalExpenses,
