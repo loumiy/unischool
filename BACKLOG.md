@@ -236,12 +236,13 @@ a sequence of PRs.*
   the parcel, with buildings on leveled pads and a plinth or steps on the
   downhill side. Everything on the map assumes flat ground today (the
   projection, the depth sort, siting, paths, walkers, doors, hit-testing
-  and shadows), so it waits for the faster map, which would carry
-  elevation natively. Plan 81 puts the hills around the campus instead.
-- **A faster map** (the owner, Plan 80). Plan 80H lightens a turn; beyond
-  that, the SVG scene redraws every building, tree and prop per frame, and
-  only a canvas or WebGL renderer changes that. A desktop wrapper runs the
-  same engine and would not be faster.
+  and shadows), so it is a geometry change to all of them; a faster
+  renderer (Plan 83) removes only its cost, not that work, and it does not
+  wait for one. Plan 81 puts the hills around the campus instead.
+- **A faster map** (the owner, Plan 80): now Plan 83, a canvas renderer
+  reusing the art, with a measured prototype (83B) deciding whether the
+  rest go ahead. A desktop wrapper runs the same engine and would not be
+  faster.
 - **From Plan 70's "does not do":** key rebinding and more than one save
   slot. Unlocks that carry across runs now exist for the four bonus
   vernaculars (`state/unlocks.ts`), with no in-run notice yet when one is
