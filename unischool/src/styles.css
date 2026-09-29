@@ -31,6 +31,15 @@
   --grass-line: rgba(42, 56, 28, 0.18);
   --grass-line-idle: rgba(42, 56, 28, 0.05);
   --grass-highlight: #a3c17d;
+  /* The land around the campus (Plan 81B; seasons.ts moves them with the
+     year) and the haze it fades into, which is also the map's sky. */
+  --field-crop: #bdb468;
+  --field-hay: #9bb86c;
+  --field-plough: #9d8563;
+  --wood: #4b7238;
+  --pine-wood: #3a603c;
+  --hedge: #4a6e36;
+  --haze: #cad6d3;
   /* Ground texture (CampusMap.tsx's TurfTexture): deliberately barely visible. */
   --turf-band: rgba(255, 255, 255, 0.03);
   --turf-fleck: rgba(42, 56, 28, 0.05);
@@ -732,14 +741,14 @@ button.build-tile { font-family: inherit; }
    Geometry lives in CampusMap.tsx. The map is a fixed layer behind everything
    (z-index 0, a sibling of .app). The canvas insets from the bottom dock,
    because tiles under the opaque toolbar could never be reached. */
-.campus-map { position: fixed; inset: 0; z-index: 0; background: var(--grass-deep); color: var(--ink); }
+.campus-map { position: fixed; inset: 0; z-index: 0; background: var(--haze); color: var(--ink); }
 /* Bottom inset: measured toolbar height plus the log ticker's height. */
 .campus-map-canvas { position: fixed; top: 0; right: 0;
   bottom: calc(var(--toolbar-height) + var(--log-ticker-height)); left: 0; }
 /* .panning is toggled imperatively (CampusMap.tsx's onMove) because it
    changes on every mousemove. touch-action: none keeps the browser's
    touch scroll/pinch from fighting the map's pan/zoom. */
-.campus-map-svg { display: block; width: 100%; height: 100%; background: var(--grass-deep);
+.campus-map-svg { display: block; width: 100%; height: 100%;
   cursor: grab; touch-action: none; }
 .campus-map-svg.panning { cursor: grabbing; }
 .campus-map-svg.path-draw, .campus-map-svg.path-erase,
@@ -906,6 +915,37 @@ button.build-tile { font-family: inherit; }
 .campus-road { fill: #6f6d66; }
 .campus-road-kerb { stroke: #b9b2a0; stroke-width: 2; fill: none; vector-effect: non-scaling-stroke; }
 .campus-road-centre { stroke: #e8dca8; stroke-width: 1.5; stroke-dasharray: 10 12; fill: none; vector-effect: non-scaling-stroke; }
+
+/* The land around the campus (Surroundings.tsx, Plan 81B): drawn, never
+   touched. Strokes here scale with the world, as a hedge is a width of
+   ground. */
+.ring { pointer-events: none; }
+.ring-base { fill: var(--grass); }
+/* A field's cover, then the light on its slope (ringLand.ts's shadeAt). */
+.ring-field { --cover: var(--grass); fill: var(--cover); }
+.ring-crop { --cover: var(--field-crop); }
+.ring-hay { --cover: var(--field-hay); }
+.ring-plough { --cover: var(--field-plough); }
+.ring-wood { --cover: var(--wood); }
+.ring-pine { --cover: var(--pine-wood); }
+/* A wood is its canopy (Surroundings.tsx's patterns), lit or not. */
+.ring-field.ring-wood { fill: url(#ring-canopy); }
+.ring-field.ring-pine { fill: url(#ring-pines); }
+.ring-canopy-floor { fill: var(--wood); }
+.ring-pine-floor { fill: var(--pine-wood); }
+.ring-town { --cover: var(--lawn, #8fae6b); }
+.ring-shade2 { fill: color-mix(in srgb, var(--cover) 74%, #fff4d2); }
+.ring-shade1 { fill: color-mix(in srgb, var(--cover) 87%, #fff4d2); }
+.ring-shade-1 { fill: color-mix(in srgb, var(--cover) 85%, #1e2d1a); }
+.ring-shade-2 { fill: color-mix(in srgb, var(--cover) 70%, #1e2d1a); }
+.ring-hedge { stroke: var(--hedge); stroke-width: 11; stroke-linejoin: round; fill: none; }
+.ring-lane { stroke: #8f8a7e; stroke-width: 34; stroke-linecap: round; fill: none; }
+.ring-clump { fill: var(--leaf-canopy, #4f7a3c); opacity: var(--leaf-opacity, 1); }
+.ring-clump-top { fill: var(--leaf-canopy-top, #679a4c); opacity: var(--leaf-opacity, 1); }
+/* A pine clump is dark and keeps its needles; its tips take the snow. */
+.ring-pine-clump { fill: #37623f; }
+.ring-pine-clump-top { fill: var(--conifer-top, #467c4f); }
+.ring-haze-stop { stop-color: var(--haze); }
 .campus-map-svg.placing .campus-grid,
 .campus-map-svg.path-draw .campus-grid,
 .campus-map-svg.path-erase .campus-grid,
@@ -976,6 +1016,9 @@ button.build-tile { font-family: inherit; }
 
 /* Ghost layer: a second SVG over the map, click-through except the rotate control. */
 .campus-map-ghost { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+/* The land around the campus (Plan 81B): its own layer under the map's, so
+   the map's changes never repaint it. */
+.campus-map-ring { position: absolute; inset: 0; z-index: -1; display: block; width: 100%; height: 100%; pointer-events: none; }
 .campus-map-ghost .campus-rotate-btn { pointer-events: auto; }
 .campus-rotate-btn { cursor: pointer; }
 .campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }

@@ -32,6 +32,8 @@ import { groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle } from './seasons';
+import { RingBack, RingFront } from './Surroundings';
+import { clampView, ringZoomFloor } from './ringLand';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
 import { castShadow } from './light';
@@ -162,7 +164,10 @@ function groundGeometry(): { plate: string; grid: string; road: string; kerb: st
     return `M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`;
   };
   const road = polyPoints(boxFaces(0, ROAD_FIRST_ROW, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT - ROAD_FIRST_ROW, 0, 0).top);
-  const kerb = line(0, ROAD_FIRST_ROW, CAMPUS_GRID_WIDTH, ROAD_FIRST_ROW);
+  // Both kerbs: the land around the campus (Plan 81B) runs on past the
+  // road's far side.
+  const kerb = line(0, ROAD_FIRST_ROW, CAMPUS_GRID_WIDTH, ROAD_FIRST_ROW)
+    + line(0, CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, CAMPUS_GRID_HEIGHT);
   const centre = line(0, (ROAD_FIRST_ROW + CAMPUS_GRID_HEIGHT) / 2, CAMPUS_GRID_WIDTH, (ROAD_FIRST_ROW + CAMPUS_GRID_HEIGHT) / 2);
   const seg: string[] = [];
   for (let r = 0; r <= ROAD_FIRST_ROW; r++) {
@@ -616,7 +621,7 @@ const FullMarksLayer = memo(function FullMarksLayer({ s, layout, onInspect, came
 // the scene is drawn light for the quarter second of the turn (Plan 80H):
 // the buildings, the ground and the paths, without the trees, the props on
 // the grounds, the lamps and the benches, which come back when it settles.
-const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinished, onInspect, labelLayerRef, camera, turning }: {
+const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinished, onInspect, labelLayerRef, camera, turning, front }: {
   layout: CampusLayout;
   inspectedId: string | null;
   justFinished: readonly string[];
@@ -629,6 +634,9 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
   labelLayerRef: React.RefObject<SVGGElement | null>;
   // A turn is under way: draw the scene light.
   turning: boolean;
+  // The land around the campus that stands in front of the parcel (Plan
+  // 81B): over the campus, under its labels. A stable element.
+  front: React.ReactNode;
 }) {
   const { placed, byId, trees, pathways, vernacular } = layout;
 
@@ -727,6 +735,8 @@ const CampusScene = memo(function CampusScene({ layout, inspectedId, justFinishe
         const e = byId.get(entry.id);
         return e ? <VenueContext.Provider key={entry.key} value={e.t.id}><g>{building(e)}</g></VenueContext.Provider> : null;
       })}
+
+      {front}
 
       <g ref={labelLayerRef}>
         {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p, label }) => (
@@ -951,7 +961,12 @@ export default function CampusMap({
   // transform.
   const ghostSvgRef = useRef<SVGSVGElement>(null);
   const ghostWorldRef = useRef<SVGGElement>(null);
+  // The land around the campus: a third <svg>, under the map's.
+  const ringWorldRef = useRef<SVGGElement>(null);
   const viewRef = useRef({ x: 0, y: 0, zoom: 1 });
+  // The canvas's size, kept by an observer so the pan's leash never has to
+  // measure the scene mid-drag.
+  const canvasSizeRef = useRef<{ width: number; height: number } | null>(null);
   // The label layer and the last cursor position in world coordinates.
   // Refs, because the label pass runs on every mouse move.
   const labelLayerRef = useRef<SVGGElement>(null);
@@ -1037,12 +1052,34 @@ export default function CampusMap({
   useEffect(paintLabelsFromCursor);
   function paintLabelsFromCursor() { paintLabels(cursorRef.current); }
 
+  // The widest zoom the land around the campus allows at this camera
+  // (Plan 81B): the canvas never shows past the ring's outer edge.
+  function zoomFloor(): number {
+    const size = canvasSizeRef.current;
+    return size ? Math.max(MIN_ZOOM, ringZoomFloor(size.width, size.height)) : MIN_ZOOM;
+  }
+
   function applyView(next: { x: number; y: number; zoom: number }) {
-    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom));
-    viewRef.current = { x: next.x, y: next.y, zoom };
-    const transform = `translate(${next.x} ${next.y}) scale(${zoom})`;
+    let v = { x: next.x, y: next.y, zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom)) };
+    // Kept over the land around the campus (Plan 81B). Not mid-turn: a turn
+    // holds the ground under the center, and the view it settles on is
+    // kept in once it has.
+    const size = canvasSizeRef.current;
+    if (size && !turnRef.current) {
+      const floor = zoomFloor();
+      if (v.zoom < floor) {
+        // In about the canvas's center, so the ground there stays put.
+        const cx = size.width / 2;
+        const cy = size.height / 2;
+        v = { x: cx - ((cx - v.x) / v.zoom) * floor, y: cy - ((cy - v.y) / v.zoom) * floor, zoom: floor };
+      }
+      v = clampView(v, size.width, size.height);
+    }
+    viewRef.current = v;
+    const transform = `translate(${v.x} ${v.y}) scale(${v.zoom})`;
     worldRef.current?.setAttribute('transform', transform);
     ghostWorldRef.current?.setAttribute('transform', transform);
+    ringWorldRef.current?.setAttribute('transform', transform);
     paintLabels(cursorRef.current);
   }
 
@@ -1159,7 +1196,17 @@ export default function CampusMap({
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    applyView(defaultView(svg.getBoundingClientRect()));
+    const rect = svg.getBoundingClientRect();
+    canvasSizeRef.current = { width: rect.width, height: rect.height };
+    applyView(defaultView(rect));
+    // A resize keeps the view, but keeps it over the land.
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      canvasSizeRef.current = { width: entry.contentRect.width, height: entry.contentRect.height };
+      applyView(viewRef.current);
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1422,7 +1469,7 @@ export default function CampusMap({
     if (g.mode === 'pinch') {
       if (touches.size < 2) return;
       const [a, b] = [...touches.values()];
-      applyView(pinchView(g.startView, g.startMid, g.startDist, midpoint(a, b), distance(a, b), MIN_ZOOM, MAX_ZOOM));
+      applyView(pinchView(g.startView, g.startMid, g.startDist, midpoint(a, b), distance(a, b), zoomFloor(), MAX_ZOOM));
       return;
     }
     const dx = p.x - g.start.x;
@@ -1488,7 +1535,7 @@ export default function CampusMap({
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
     const cur = viewRef.current;
-    const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, cur.zoom * Math.exp(-e.deltaY * ZOOM_SPEED)));
+    const nextZoom = Math.min(MAX_ZOOM, Math.max(zoomFloor(), cur.zoom * Math.exp(-e.deltaY * ZOOM_SPEED)));
     if (nextZoom === cur.zoom) return;
     const worldX = (px - cur.x) / cur.zoom;
     const worldY = (py - cur.y) / cur.zoom;
@@ -1502,7 +1549,7 @@ export default function CampusMap({
     const cx = rect.width / 2;
     const cy = rect.height / 2;
     const cur = viewRef.current;
-    const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, cur.zoom * factor));
+    const nextZoom = Math.min(MAX_ZOOM, Math.max(zoomFloor(), cur.zoom * factor));
     const worldX = (cx - cur.x) / cur.zoom;
     const worldY = (cy - cur.y) / cur.zoom;
     applyView({ x: cx - worldX * nextZoom, y: cy - worldY * nextZoom, zoom: nextZoom });
@@ -1642,6 +1689,12 @@ export default function CampusMap({
   const week = seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK;
   const season = useMemo(() => seasonStyle(week), [week]);
   const snow = useMemo(() => seasonOf(week).snow, [week]);
+  // The land around the campus that stands in front of it, drawn by the
+  // scene over the campus; an element kept while nothing it draws changes.
+  const ringFront = useMemo(
+    () => <RingFront name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />,
+    [s.self.name, layout.vernacular, camera, turning, snow],
+  );
   // The path tool's ghost: the tile the next click would pave or lift.
   // Needs no `ok`, since a path tile can never be refused.
   const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
@@ -1649,6 +1702,15 @@ export default function CampusMap({
   return (
     <section className="campus-map" style={season}>
       <div className="campus-map-canvas">
+        {/* The land around the campus (Plan 81B), in an <svg> of its own
+            under the map's, carrying the same pan/zoom transform (applyView
+            writes both): a frame in which only the campus changes, as a
+            walking crowd's do, repaints none of it. */}
+        <svg className="campus-map-ring" width="100%" height="100%" aria-hidden="true">
+          <g ref={ringWorldRef}>
+            <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />
+          </g>
+        </svg>
         <svg
           ref={svgRef}
           className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${inspectedId ? 'inspecting' : ''}`}
@@ -1703,6 +1765,7 @@ export default function CampusMap({
                 labelLayerRef={labelLayerRef}
                 camera={camera}
                 turning={turning}
+                front={ringFront}
               />
             </SnowContext.Provider>
             </DevelopingContext.Provider>
