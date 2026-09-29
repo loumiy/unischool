@@ -127,14 +127,19 @@ function useRestView(name: string, turning: boolean): RingView {
 const RingGround = memo(function RingGround({ view }: { view: RingView }) {
   return (
     <>
-      {view.covers.map((c) => (
-        <path key={c.key} className={`ring-field ring-${c.cover}${c.shade ? ` ring-shade${c.shade}` : ''}`} d={c.d} />
-      ))}
+      {view.covers.map((c) => <path key={c.cover} className={`ring-field ring-${c.cover}`} d={c.d} />)}
       <path className="ring-lane" d={view.lanes} />
       <path className="campus-road" d={view.road} />
       <path className="campus-road-kerb" d={view.kerbs} />
       <path className="campus-road-centre" d={view.centre} />
       <path className="ring-hedge" d={view.hedges} />
+      <path className="ring-woods" d={view.woods} />
+      <path className="ring-pines" d={view.pines} />
+      {/* The hills' light, over the fields and the woods alike. */}
+      <path className="ring-lit" d={view.light[0]} />
+      <path className="ring-lit" d={view.light[1]} />
+      <path className="ring-shaded" d={view.shadow[0]} />
+      <path className="ring-shaded" d={view.shadow[1]} />
     </>
   );
 });
@@ -176,6 +181,12 @@ export const RingBack = memo(function RingBack({ name, vernacular, camera, turni
         <RingSprites sprites={view.back} vernacular={vernacular} snow={snow} />
       </g>
       <polygon points={haze.plate} fill="url(#ring-haze)" />
+      <g visibility={turning ? 'hidden' : undefined}>
+        {view.ridges.map((r, i) => r.d && (
+          <path key={i} className="ring-far-hill" d={r.d}
+            style={{ fill: `color-mix(in srgb, var(--far-hill) ${Math.round((1 - r.haze) * 100)}%, var(--haze))` }} />
+        ))}
+      </g>
       {haze.depth > 0 && <polygon points={haze.plate} fill="url(#ring-depth)" />}
     </g>
   );
