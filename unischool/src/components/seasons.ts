@@ -66,6 +66,21 @@ const GOLD_TOP = '#dcae45';
 const RUST = '#c4582c';
 const RUST_TOP = '#de7a3c';
 const BUD = '#9cc466';
+// The land around the campus (Plan 81B): its fields, woods, hedges and the
+// haze it fades into, which follow the year as the campus's own ground does.
+const CROP = '#bdb468';
+const HAY = '#9bb86c';
+const PLOUGH = '#9d8563';
+const SHOOTS = '#8fa860';
+const WOOD = '#4b7238';
+const WOOD_TURNED = '#9a7a33';
+const WOOD_BARE = '#6e6454';
+const PINE_WOOD = '#3a603c';
+const HEDGE = '#4a6e36';
+const HEDGE_TURNED = '#8c6a2c';
+const HEDGE_BARE = '#6b5d4a';
+const HAZE = '#cad6d3';
+const WINTER_HAZE = '#dce2e6';
 
 // What the map's stylesheet reads, as CSS variables on the map.
 export function seasonStyle(week: number): CSSProperties {
@@ -89,6 +104,15 @@ export function seasonStyle(week: number): CSSProperties {
     // Bare crowns thin to a haze of twigs over the trunk.
     '--leaf-opacity': String(Number((1 - s.bare * 0.6).toFixed(3))),
     '--conifer-top': mixColor(CONIFER_TOP, SNOW, s.snow * 0.6),
+    // The land around the campus: the crops ripen to stubble, then lie
+    // under snow and come up green; woods and hedges turn and go bare.
+    '--field-crop': ground(mixColor(CROP, BUD, s.bud * 0.7)),
+    '--field-hay': ground(HAY),
+    '--field-plough': ground(mixColor(PLOUGH, SHOOTS, s.bud * 0.5)),
+    '--wood': mixColor(mixColor(mixColor(mixColor(WOOD, WOOD_TURNED, s.turn), WOOD_BARE, s.bare), BUD, s.bud * 0.5), SNOW, s.snow * 0.45),
+    '--pine-wood': mixColor(PINE_WOOD, SNOW, s.snow * 0.3),
+    '--hedge': mixColor(mixColor(mixColor(HEDGE, HEDGE_TURNED, s.turn), HEDGE_BARE, s.bare), SNOW, s.snow * 0.35),
+    '--haze': mixColor(HAZE, WINTER_HAZE, s.snow),
   } as CSSProperties;
 }
 
