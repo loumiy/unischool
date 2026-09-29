@@ -111,9 +111,9 @@ function testRefusals(): void {
 
 // ---- 81 -> 82 (Plan 80D): a milestone's week, and the redrawn walk ----
 function testMilestoneWeeks(): void {
-  const raw = fixture('save-v81.json');
+  const raw = fixture('save-v81-opening.json');
   const parsed = JSON.parse(raw) as { version: number; state: GameState };
-  assert(parsed.version === 81 && !('reachedWeek' in parsed.state.ladder), 'the version-81 fixture has no milestone weeks');
+  assert(parsed.version === 81 && !('reachedWeek' in parsed.state.ladder), 'the version-81 fixture written before Plan 80D has no milestone weeks');
   const read = readSave(raw);
   if ('refused' in read) return;
   const reached = Object.entries(parsed.state.ladder.reached);

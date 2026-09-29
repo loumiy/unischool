@@ -413,6 +413,7 @@ export default function App() {
           backOutEnabled={mapBackOutEnabled}
           controlsEnabled={mapControlsEnabled}
           onOpenCurriculum={(sectionKey) => openTab('curriculum', sectionKey)}
+          onOpenResearch={tabAvailable(s, 'research') ? (target) => openTab('research', target) : undefined}
           inspectTarget={inspectTarget}
           inspectProgram={inspectProgram}
           onInspectTargetConsumed={() => { setInspectTarget(null); setInspectProgram(null); }}
@@ -486,11 +487,12 @@ export default function App() {
                   act={act}
                   target={overlay.target}
                   onTargetConsumed={clearTarget}
-                  onInspectHall={inspectHall}
                   onOpenFaculty={(field) => openTab('faculty', field)}
                 />
               )}
-              {overlay.tab === 'research' && <ResearchTab s={s} act={act} />}
+              {overlay.tab === 'research' && (
+                <ResearchTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
+              )}
               {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
               {overlay.tab === 'students' && (
                 <StudentsTab s={s} target={overlay.target} onTargetConsumed={clearTarget} />

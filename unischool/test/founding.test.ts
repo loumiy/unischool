@@ -14,7 +14,7 @@ import { teachPillars } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { FOUNDERS_HALL_ID, programById, programOfCourse } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
-import { canFoundProgram, canStartDevelopment, facultyGate } from '../src/systems/techtree/techSystem';
+import { canFoundProgram, canStartDevelopment, committeeSeats, courseSlotsFree, facultyGate } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
@@ -183,6 +183,9 @@ console.log('founding tests');
       const field = s.tech.find((t) => t.id === programById(id)!.entryCourseId)?.requiresFaculty;
       if (field && !s.faculty.some((f) => f.id === `test-${field}`)) staffField(s, field);
     }
+    // The committee writes each entry course (Plan 80B): a founding waits
+    // for room on it.
+    while (courseSlotsFree(s) === 0) s = advance(s, 1);
     const id = s.programOffers[0];
     const field = s.tech.find((t) => t.id === programById(id)!.entryCourseId)!.requiresFaculty!;
     s = reducer(s, { type: 'FOUND_PROGRAM', programId: id, hallId: 'HALL-01', slot, facultyId: `test-${field}` });
@@ -191,6 +194,33 @@ console.log('founding tests');
   assert(s.halls['HALL-01'].every((x) => x.programId !== null), 'six foundings fill the hall');
   assert(new Set(founded).size === 6, 'with six different programs');
   assert(s.programOffers.length === 3 && s.programOffers.every((id) => !founded.includes(id)), 'and three more are on offer');
+}
+
+// ---- the committee full (Plan 80B) ----
+// A major's entry course is written by the committee, so founding one needs
+// room on it. Before, the founding took the program slot and left the entry
+// course unstarted, without a word.
+{
+  let s = ready();
+  const program = programById(s.programOffers[0])!;
+  const entry = s.tech.find((t) => t.id === program.entryCourseId)!;
+  const ok = { programId: program.id, hallId: 'HALL-01', slot: 0, facultyId: `test-${entry.requiresFaculty}` };
+  assert(canFoundProgram(s, ok), 'with room on the committee the founding is admissible');
+  // Fill the committee with undergraduate courses of other programs.
+  const busy = s.tech.filter((t) => t.kind === 'course' && t.graduateProgram === undefined && t.status === 'locked' && programOfCourse(t.id) !== program.id);
+  for (const t of busy.slice(0, courseSlotsFree(s))) { t.status = 'developing'; s.developing[t.id] = t.duration; }
+  assert(courseSlotsFree(s) === 0, `the committee is writing its most (${committeeSeats(s)})`);
+  assert(!canFoundProgram(s, ok), 'and the founding is refused');
+  s = reducer(s, { type: 'FOUND_PROGRAM', ...ok });
+  assert(s.halls['HALL-01'][0].programId === null, 'the program slot stays empty');
+  assert(s.programOffers.includes(program.id) && !isHoused(s, program.id), 'and the program stays on offer');
+  assert(s.tech.find((t) => t.id === entry.id)?.status === 'locked', 'its entry course untouched');
+  const oneDone = s.tech.find((t) => t.id === busy[0].id)!;
+  oneDone.status = 'done';
+  delete s.developing[oneDone.id];
+  assert(canFoundProgram(s, ok), 'room on the committee again, and it may be founded');
+  s = reducer(s, { type: 'FOUND_PROGRAM', ...ok });
+  assert(s.tech.find((t) => t.id === entry.id)?.status === 'developing', 'with its entry course started');
 }
 
 // ---- courses from the map (PR D): the same start, the same rules ----

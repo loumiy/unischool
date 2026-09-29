@@ -4,14 +4,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
-import { discoverySchools, graduatePrograms, programById, type ProgramInfo } from '../data/techData';
+import {
+  discoverySchools, graduatePrograms, graduateSection, programById, GRADUATE_SCHOOL_SECTION, GRADUATE_SECTIONS, type ProgramInfo,
+} from '../data/techData';
 import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers';
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
-  canStartDevelopment, committeeSeats, courseSlotsFree, coursesInDevelopment, isUndergraduateCourse, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -23,6 +25,8 @@ import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import { sectionAnchor } from '../components/sectionTarget';
+import { SECTION_HEADINGS } from '../data/statChips';
 import { CloseIcon, StatusIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
@@ -40,7 +44,10 @@ import { NO_FILTERS, cellState, filtersActive, matchesFilters, type Filters, typ
 //     under the school's color and mark, and its name once founded.
 //   - A major whose tier-2 quartet is complete (`program-established:<prefix>`)
 //     becomes its own sub-group and reveals its tier-3s.
-//   - A housed graduate program appears as a sub-group of its home school.
+//   - A housed graduate program is a sub-group of its home school in the
+//     sections, but the tab draws it in a graduate section of its own
+//     (Plan 80B): the Graduate School (the doctorates and the MFA), the
+//     Business, Law and Medical Schools, in their home schools' colors.
 // A revealed course is never hidden again; "locked" means revealed but
 // blocked (a faculty gate or cross-major prereq), never "undiscovered".
 
@@ -152,31 +159,34 @@ export function discoverySections(s: GameState): DiscoverySection[] {
 // Every course id rendered on this tab, whatever its status: the curriculum
 // alert badge's definition of "visible" (see types.ts's SeenState). A course
 // counts as new the moment its cell appears.
+// Read off the rows the tab draws (curriculumGroups), so a graduate
+// program in its own section (Plan 80B) counts wherever it is drawn.
 export function visibleCourseIds(s: GameState): string[] {
-  const ids: string[] = [];
-  for (const section of discoverySections(s)) {
-    ids.push(...section.courseIds);
-    for (const sub of section.subgroups) ids.push(...sub.courseIds);
-  }
-  return ids;
+  return curriculumGroups(s).flatMap((group) => group.rows.flatMap((row) => row.program.courseIds.filter((id) => row.revealed.has(id))));
 }
 
 // Schools and program rows: a regrouping of the same revealed set, never a
 // second set of reveal rules. The fixed 1/4/4 tier shape is carried by
 // position (three bands per row) rather than by drawn prereq edges; only
 // cross-major bridges are called out, on demand.
-interface ProgramRow {
+export interface ProgramRow {
   program: ProgramInfo;
   revealed: Set<string>; // courses shown as cells; the rest are placeholders
 }
 
-interface SchoolGroup {
-  key: string;      // the school's name
+export interface SchoolGroup {
+  key: string;      // the school's name, or a graduate section's
   heading: string;  // the section heading: the name once founded, the mark alone before
   founded: boolean;
-  mark: { hue: string; motif: string };
+  // The section's color and mark. The Graduate School has none of its own:
+  // it takes the college's colors, and each row its home school's.
+  mark: { hue?: string; motif: string };
   rows: ProgramRow[];
 }
+
+// A program's row, with the hue and mark of its home school where they
+// differ from the section's (the Graduate School's rows).
+interface ProgramRowMark { hue: string; motif: string }
 
 function schoolGroups(s: GameState, sections: DiscoverySection[]): SchoolGroup[] {
   const schools = new Map(discoverySchools().map((school) => [school.name, school]));
@@ -191,11 +201,6 @@ function schoolGroups(s: GameState, sections: DiscoverySection[]): SchoolGroup[]
       const program = programById(major.prefix);
       if (program) rows.push({ program, revealed });
     }
-    // Graduate programs come last inside a school.
-    for (const grad of school.graduate) {
-      const program = programById(grad.id);
-      if (program && isHoused(s, grad.id)) rows.push({ program, revealed });
-    }
     if (rows.length === 0) continue;
     groups.push({
       key: section.key,
@@ -205,10 +210,33 @@ function schoolGroups(s: GameState, sections: DiscoverySection[]): SchoolGroup[]
       rows,
     });
   }
+  // The graduate sections come after the schools (Plan 80B), each once one
+  // of its programs is housed; a housed program's courses are all revealed.
+  for (const key of GRADUATE_SECTIONS) {
+    const housed = graduatePrograms().filter((grad) => graduateSection(grad) === key && isHoused(s, grad.id));
+    const rows = housed
+      .map((grad) => programById(grad.id))
+      .filter((program): program is ProgramInfo => program !== undefined)
+      .map((program) => ({ program, revealed: new Set(program.courseIds) }));
+    if (rows.length === 0) continue;
+    groups.push({
+      key,
+      heading: key,
+      founded: true,
+      mark: key === GRADUATE_SCHOOL_SECTION ? { motif: '' } : schoolMark(housed[0].homeSchool),
+      rows,
+    });
+  }
   return groups;
 }
 
-// Which school each course belongs to (static catalog, memoized).
+// The tab's sections as drawn, for a test (curriculum-sections.test.ts).
+export function curriculumGroups(s: GameState): SchoolGroup[] {
+  return schoolGroups(s, discoverySections(s));
+}
+
+// Where each course is listed in the worklist (static catalog, memoized):
+// its school, or its graduate section.
 let courseSchoolMap: Map<string, { key: string; school: string }> | null = null;
 function courseSchools(): Map<string, { key: string; school: string }> {
   if (courseSchoolMap) return courseSchoolMap;
@@ -218,9 +246,11 @@ function courseSchools(): Map<string, { key: string; school: string }> {
     for (const major of school.majors) {
       for (const id of [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]) map.set(id, entry);
     }
-    for (const program of school.graduate) {
-      for (const id of program.courseIds) map.set(id, entry);
-    }
+  }
+  for (const grad of graduatePrograms()) {
+    const section = graduateSection(grad);
+    const program = programById(grad.id);
+    for (const id of program?.courseIds ?? []) map.set(id, { key: section, school: section });
   }
   courseSchoolMap = map;
   return map;
@@ -733,7 +763,7 @@ function CourseDrawer(
         {state === 'blocked' && shortfall > 0 && (
           <p className="course-drawer-warning">{money(Math.ceil(shortfall))} short of the development cost.</p>
         )}
-        {t.status === 'available' && isUndergraduateCourse(t) && courseSlotsFree(s) === 0 && (
+        {t.status === 'available' && courseSlotsFree(s) === 0 && (
           <p className="course-drawer-warning">The curriculum committee is writing {committeeSeats(s)} courses already, its most; this one starts when one of them is done.</p>
         )}
         {/* The same reason a greyed cell's tooltip gives (courseHoldReason). */}
@@ -862,10 +892,12 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
 }
 
 function ProgramRowView(
-  { s, act, row, lookup, selectedId, onSelect, loads, dnd }:
+  { s, act, row, lookup, selectedId, onSelect, loads, dnd, rowMark }:
   {
     s: GameState; act: (a: Action) => void; row: ProgramRow; lookup: Map<string, Buildable>;
     selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads; dnd: DragHandlers;
+    // Its home school's color and mark, in a section that is not its school's.
+    rowMark?: ProgramRowMark;
   },
 ) {
   const { program } = row;
@@ -881,11 +913,16 @@ function ProgramRowView(
   const [collapsed, toggle] = useCollapse(`program:${program.id}`, true);
 
   return (
-    <section className={`program-row${graduate ? ' graduate' : ''}${collapsed ? ' collapsed' : ''}`} data-program={program.id}>
+    <section
+      className={`program-row${graduate ? ' graduate' : ''}${collapsed ? ' collapsed' : ''}`}
+      data-program={program.id}
+      style={rowMark ? { ['--school-hue' as string]: rowMark.hue } : undefined}
+    >
       <header className="program-row-head">
         <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={`${collapsed ? 'Show' : 'Hide'} ${program.name}`} onClick={toggle}>
           {collapsed ? '▸' : '▾'}
         </button>
+        {rowMark && <span className="program-row-mark" aria-hidden="true">{rowMark.motif}</span>}
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
         {avg !== null && <GradeChip word grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
@@ -935,27 +972,30 @@ function SchoolGroupView(
   const avg = averageCourseQuality(s, ids, loads);
   const done = completion(s, ids);
   // Restaffing in one click (Plan 59, restaffing.ts): what the market and
-  // the payroll can cover of this school's unstaffed courses.
-  const school = group.rows[0] ? programById(group.rows[0].program.id)?.school : undefined;
-  const unstaffedHere = school ? unstaffedIn(s, school).length : 0;
-  const plan = unstaffedHere > 0 && school ? restaffPlan(s, school) : [];
+  // the payroll can cover of this section's unstaffed courses. A graduate
+  // program sits in its own section (Plan 80B), so the section's courses,
+  // not its school's, are what the button covers.
+  const unstaffedHere = unstaffedIn(s, undefined, ids).length;
+  const plan = unstaffedHere > 0 ? restaffPlan(s, undefined, ids) : [];
   const hires = plan.filter((x) => x.hire);
   const [collapsed, toggle] = useCollapse(`school:${group.key}`, done.total > 0 && done.done === done.total && unstaffedHere === 0);
+  // The Graduate School's rows each carry their home school's color.
+  const mixed = group.mark.hue === undefined;
   return (
     <section
       className={`school-group${group.founded ? ' founded' : ' unfounded'}`}
       data-school={group.key}
-      style={{ ['--school-hue' as string]: group.mark.hue }}
+      style={group.mark.hue ? { ['--school-hue' as string]: group.mark.hue } : undefined}
     >
       <header className="school-group-head">
         <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the school' : 'Hide the school'} onClick={toggle}>
           {collapsed ? '▸' : '▾'}
         </button>
-        <span className="school-group-mark" aria-hidden="true">{group.mark.motif}</span>
+        {group.mark.motif && <span className="school-group-mark" aria-hidden="true">{group.mark.motif}</span>}
         <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
         {avg !== null && <GradeChip word grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
         <span className="lane-count">{fraction(done.done, done.total)}</span>
-        {unstaffedHere > 0 && school && (
+        {unstaffedHere > 0 && (
           <button
             type="button"
             className="school-restaff"
@@ -963,7 +1003,7 @@ function SchoolGroupView(
             title={plan.length === 0
               ? 'Nobody on the payroll or the market can take these courses this week.'
               : `Staff ${plan.length} of ${unstaffedHere} unstaffed course${unstaffedHere === 1 ? '' : 's'}${hires.length > 0 ? `, appointing ${hires.length} from the market at ${money(hires.reduce((n, x) => n + x.hire!.salary, 0))}/yr` : ''}`}
-            onClick={() => act({ type: 'RESTAFF', school })}
+            onClick={() => act({ type: 'RESTAFF', school: GRADUATE_SECTIONS.includes(group.key) ? null : group.key, courseIds: ids })}
           >
             Staff from the market · {unstaffedHere}
           </button>
@@ -972,7 +1012,10 @@ function SchoolGroupView(
       {!collapsed && (
         <div className="program-rows">
           {group.rows.map((row) => (
-            <ProgramRowView key={row.program.id} s={s} act={act} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
+            <ProgramRowView
+              key={row.program.id} s={s} act={act} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd}
+              rowMark={mixed ? schoolMark(row.program.school) : undefined}
+            />
           ))}
         </div>
       )}
@@ -1012,19 +1055,10 @@ function FilterBar(
       </select>
       <button
         type="button"
-        className={`curriculum-chip${filters.grade === 'weak' ? ' on' : ''}`}
-        aria-pressed={filters.grade === 'weak'}
-        onClick={() => onChange({ ...filters, grade: filters.grade === 'weak' ? 'all' : 'weak' })}
-        title="Every developed course graded D or F, plus any left unstaffed"
-      >
-        Needs attention
-      </button>
-      <button
-        type="button"
         className={`curriculum-chip${filters.grade === 'belowA' ? ' on' : ''}`}
         aria-pressed={filters.grade === 'belowA'}
         onClick={() => onChange({ ...filters, grade: filters.grade === 'belowA' ? 'all' : 'belowA' })}
-        title="Every developed course graded below an A, plus any left unstaffed: the courses that hold the college's academic standing back"
+        title="Every developed course graded below an A, plus any left unstaffed: the courses that hold the college's academic standing back. A course in a dark program counts by the grade its instructor earns on it."
       >
         Below A
       </button>
@@ -1036,6 +1070,15 @@ function FilterBar(
         title="Every developed course with nobody teaching it"
       >
         No instructor
+      </button>
+      <button
+        type="button"
+        className={`curriculum-chip${filters.nearEstablished ? ' on' : ''}`}
+        aria-pressed={filters.nearEstablished}
+        onClick={() => onChange({ ...filters, nearEstablished: !filters.nearEstablished })}
+        title="The last course each program needs to be established, started or not"
+      >
+        One course from established
       </button>
       {filters.field !== null && (
         <button
@@ -1061,154 +1104,61 @@ function FilterBar(
   );
 }
 
-// Next up: the strip answering "what now". Each item is a door: programs on
-// offer and halls with room, programs near a milestone, courses ready this
-// week, and the short department ("the wall"). Empty items are omitted.
-const NEAR_MILESTONE = 2;
-
-function NextUp({ s, groups, lookup, onGoToProgram, onFilter, onInspectHall, onOpenFaculty }: {
-  s: GameState; groups: SchoolGroup[]; lookup: Map<string, Buildable>;
-  onGoToProgram: (id: string) => void;
-  onFilter: (f: Partial<Filters>) => void;
-  onInspectHall?: (hallId: string) => void;
-  onOpenFaculty?: (field: string) => void;
+// The head of the tab (Plan 80B): the committee, and under it one line
+// naming the departments courses are waiting on, with the door to the
+// Faculty tab. The "what next" strip that stood beside the committee (on
+// offer, near a milestone, ready now, waiting on faculty) is gone; "One
+// course from established" is its milestone item as a filter.
+function CommitteeBox({ s, lookup, onOpenFaculty }: {
+  s: GameState; lookup: Map<string, Buildable>; onOpenFaculty?: (field: string) => void;
 }) {
-  // The offer is global, so it is stated once with every hall that has room;
-  // founding happens in the hall's panel on the map.
-  const offers = s.programOffers.map((id) => programById(id)).filter((p): p is ProgramInfo => p !== undefined);
-  const hallsWithRoom = Object.entries(s.halls)
-    .map(([hallId, slots]) => ({ hall: lookup.get(hallId), free: slots.filter((slot) => slot.programId === null).length }))
-    .filter((h): h is { hall: Buildable; free: number } => !!h.hall && h.free > 0);
-
-  // Programs a course or two from a milestone, nearest first.
-  const near = groups
-    .flatMap((g) => g.rows.map((row) => ({ row, progress: programProgress(s, row.program, lookup) })))
-    .filter(({ progress }) => progress.toMilestone > 0 && progress.toMilestone <= NEAR_MILESTONE && !progress.inTransit && (progress.next || progress.developing > 0))
-    .sort((a, b) => a.progress.toMilestone - b.progress.toMilestone);
-
-  // Revealed courses that could start this week (cash and a free slot).
-  const revealed = visibleCourseIds(s).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
-  const ready = revealed.filter((t) => canStartDevelopment(s, t));
-  const readyCost = ready.reduce((sum, t) => sum + t.cost, 0);
-
-  // Departments holding up revealed courses, by how many.
-  const wallCounts = new Map<string, number>();
-  for (const field of neededFacultyFields(s)) {
-    wallCounts.set(field, revealed.filter((t) => t.requiresFaculty === field).length);
-  }
-  const wall = [...wallCounts.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
-
+  // The departments short of faculty (neededFacultyFields), most waited on
+  // first: by the revealed courses ready but for them.
+  const waiting = visibleCourseIds(s).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
+  const fields = [...neededFacultyFields(s)]
+    .map((field) => ({ field, n: waiting.filter((t) => t.requiresFaculty === field).length }))
+    .sort((a, b) => b.n - a.n || a.field.localeCompare(b.field));
   return (
-    <div className="next-up with-committee" aria-label="What next">
-      <div className="next-up-main">
-      {offers.length === 0 && near.length === 0 && ready.length === 0 && wall.length === 0 && (
-        <div className="next-up-item"><span className="next-up-note">Nothing waiting: every course the college can offer is under way or done.</span></div>
-      )}
-      {offers.length > 0 && (
-        <div className="next-up-item offers">
-          <span className="next-up-label">On offer</span>
-          <span className="next-up-body">
-            {offers.map((p, i) => {
-              const mark = schoolMark(p.school);
-              const entry = lookup.get(p.entryCourseId);
-              return (
-                <span key={p.id} className="next-up-offer" style={{ ['--school-hue' as string]: mark.hue }} title={`${p.name} — ${entry ? `${money(entry.cost)} · ${entry.requiresFaculty ?? ''}` : ''}`}>
-                  {i > 0 && <span className="next-up-sep"> · </span>}
-                  <span className="next-up-mark" aria-hidden="true">{mark.motif}</span> {p.name}
-                </span>
-              );
-            })}
-          </span>
-          <span className="next-up-doors">
-            {hallsWithRoom.length === 0
-              ? <span className="next-up-note">no free program slot — site an academic hall</span>
-              : hallsWithRoom.map(({ hall, free }) => (
-                <button
-                  key={hall.id}
-                  type="button"
-                  className="next-up-door"
-                  disabled={!onInspectHall}
-                  onClick={() => onInspectHall?.(hall.id)}
-                  title={`Open ${hallDisplayName(s, hall)} on the map and found a program in one of its ${free} free program slot${free === 1 ? '' : 's'}`}
-                >
-                  Found in {hallDisplayName(s, hall)} · {free} free
-                </button>
-              ))}
-          </span>
-        </div>
-      )}
-      {near.length > 0 && (
-        <div className="next-up-item">
-          <span className="next-up-label">Near a milestone</span>
-          <span className="next-up-doors">
-            {near.slice(0, 5).map(({ row, progress }) => (
-              <button key={row.program.id} type="button" className="next-up-door" onClick={() => onGoToProgram(row.program.id)} style={{ ['--school-hue' as string]: schoolMark(row.program.school).hue }}>
-                <span className="next-up-mark" aria-hidden="true">{schoolMark(row.program.school).motif}</span> {row.program.name} · {milestoneLine(progress)}
-              </button>
-            ))}
-            {near.length > 5 && <span className="next-up-note">+{near.length - 5} more</span>}
-          </span>
-        </div>
-      )}
-      {ready.length > 0 && (
-        <div className="next-up-item">
-          <span className="next-up-label">Ready now</span>
-          <span className="next-up-doors">
-            <button type="button" className="next-up-door" onClick={() => onFilter({ status: 'available', field: null })} title="Every course that could start this week: a professor free to teach it, room on the committee and the cash for it">
-              {ready.length} {ready.length === 1 ? 'course' : 'courses'} · {moneyShort(readyCost)} to start them all
-            </button>
-            {revealed.length > ready.length && (
-              <span className="next-up-note">{revealed.length - ready.length} more waiting, short of cash, faculty or room on the committee</span>
-            )}
-          </span>
-        </div>
-      )}
-      {wall.length > 0 && (
-        <div className="next-up-item wall">
-          <span className="next-up-label">Waiting on faculty</span>
-          <span className="next-up-doors">
-            {wall.slice(0, 3).map(([field, n]) => {
-              const gate = facultyGate(s, field);
-              return (
-                <span key={field} className="next-up-pair">
-                  <button type="button" className="next-up-door" onClick={() => onFilter({ field, status: 'all' })} title={`${n} ${n === 1 ? 'course is' : 'courses are'} waiting on ${field} faculty${gate === 'hireable' ? ' — a candidate is listed' : ' — nobody on the market'}`}>
-                    {field} short · {n} waiting{gate === 'hireable' ? ' · candidate listed' : ''}
-                  </button>
-                  {onOpenFaculty && (
-                    <button type="button" className="next-up-door quiet" onClick={() => onOpenFaculty(field)} title={`Open the Faculty tab on ${field}: its people, the market, a search`}>
-                      {gate === 'hireable' ? 'Appoint →' : 'Department →'}
-                    </button>
-                  )}
-                </span>
-              );
-            })}
-          </span>
-        </div>
-      )}
-      </div>
+    <div className="next-up committee-box">
       <CommitteePanel s={s} />
+      {fields.length > 0 && (
+        <p className="committee-faculty">
+          <span className="committee-faculty-label">Waiting on faculty:</span>{' '}
+          {fields.map(({ field }) => field).join(', ')}
+          {onOpenFaculty && (
+            <button
+              type="button"
+              className="course-drawer-door committee-faculty-door"
+              onClick={() => onOpenFaculty(fields[0].field)}
+              title={`Open the Faculty tab on ${fields[0].field}: its people, the market, a search`}
+            >
+              Faculty →
+            </button>
+          )}
+        </p>
+      )}
     </div>
   );
 }
 
 // The curriculum committee (techSystem.ts's committeeSeats): a seat for each
-// undergraduate course it can write at once, four to start and one more at
-// each prestige step, up to eight. A filled seat shows its course and how
-// far along it is; an open one reads "Free"; a locked one says what
-// opens it.
+// course it can write at once, undergraduate or graduate (Plan 80E), four to
+// start and one more at each prestige step, up to eight. A filled seat shows
+// its course, how far along it is and its weeks; an open one reads "Free"; a
+// locked one says what opens it. The dock's committee chip lands here.
 function CommitteePanel({ s }: { s: GameState }) {
   const seats = committeeSeats(s);
   const writing = coursesInDevelopment(s);
   const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length;
   const next = nextCommitteeSeatAt(s);
   return (
-    <section className="committee" aria-label="Curriculum committee">
+    <section className="committee" aria-label="Curriculum committee" {...sectionAnchor('curriculum.committee')}>
       <header className="committee-head">
-        <span className="next-up-label">Committee</span>
+        <span className="next-up-label">{SECTION_HEADINGS['curriculum.committee']}</span>
         <span className="committee-count">writing {writing.length} of {seats}</span>
         <HelpHint
           align="end"
-          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} undergraduate courses at once, and takes up the next when one is done. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}. Graduate courses are written by their schools and do not count against it.`}
+          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} courses at once, graduate courses among them, and takes up the next when one is done. Each course takes its own number of weeks, so they finish at different times. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}.`}
         />
       </header>
       <ol className="committee-seats">
@@ -1228,10 +1178,10 @@ function CommitteePanel({ s }: { s: GameState }) {
           const done = t.duration > 0 ? 1 - left / t.duration : 1;
           const code = t.name.split(' · ')[0];
           return (
-            <li key={i} className="committee-seat busy" title={`${t.name}: ${left} week${left === 1 ? '' : 's'} left`}>
+            <li key={i} className="committee-seat busy" title={`${t.name}: ${left} of its ${t.duration} weeks left`}>
               <span className="committee-seat-name">{code}</span>
               <span className="committee-seat-bar" aria-hidden="true"><span style={{ width: `${Math.round(done * 100)}%` }} /></span>
-              <span className="committee-seat-left">{weeksShort(left)}</span>
+              <span className="committee-seat-left">{left} of {weeksShort(t.duration)}</span>
             </li>
           );
         })}
@@ -1249,15 +1199,14 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
 }
 
 export default function CurriculumTab(
-  { s, act, target, onTargetConsumed, onInspectHall, onOpenFaculty }:
+  { s, act, target, onTargetConsumed, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void;
-    // Where to go on arrival: a school's name, "program:<id>", "field:<name>"
-    // or "unstaffed". Consumed and cleared by the caller.
+    // Where to go on arrival: a school's name, "program:<id>", "field:<name>",
+    // "unstaffed" or the committee's section ("curriculum.committee").
+    // Consumed and cleared by the caller.
     target?: string;
     onTargetConsumed?: () => void;
-    // Back to the map, opening a hall's panel (where founding happens).
-    onInspectHall?: (hallId: string) => void;
     // To the Faculty board, opened on a department.
     onOpenFaculty?: (field: string) => void;
   },
@@ -1325,6 +1274,12 @@ export default function CurriculumTab(
     } else if (target === 'unstaffed') {
       setSelectedId(null);
       setFilters({ ...NO_FILTERS, status: 'unstaffed' });
+    } else if (target === 'curriculum.committee') {
+      // The dock's committee chip (Plan 80E): the panel shows unfiltered.
+      // 'nearest', since where the head is pinned it is already in view.
+      setSelectedId(null);
+      setFilters(NO_FILTERS);
+      window.setTimeout(() => document.querySelector(`[data-section="${CSS.escape(target)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 0);
     } else {
       setSelectedId(null);
       setFilters(NO_FILTERS);
@@ -1345,7 +1300,7 @@ export default function CurriculumTab(
   const matches = filtering
     ? visibleCourseIds(s)
       .map((id) => lookup.get(id))
-      .filter((t): t is Buildable => !!t && matchesFilters(s, t, filters, loads))
+      .filter((t): t is Buildable => !!t && matchesFilters(s, t, filters, loads, lookup))
     : [];
 
   return (
@@ -1377,7 +1332,7 @@ export default function CurriculumTab(
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" loads={loads} />
             <HelpHint
               align="end"
-              text={`One line per program, grouped by school — a school is named once six of its programs share a hall. Each line gives the program's grade, its courses done of nine and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back. Programs are founded from an academic hall on the map — the strip above says which halls have room. Drag a professor onto another course in the same department to swap them, and both grades preview while you hold.`}
+              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's grade, its courses done of nine and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both grades preview while you hold.`}
             />
           </span>
         </div>
@@ -1385,17 +1340,7 @@ export default function CurriculumTab(
         {/* The committee, the offers and the filters stay pinned at the
             head of the tab while the programs scroll (Plan 76B). */}
         <div className="curriculum-pinned">
-        {!filtering && (
-          <NextUp
-            s={s}
-            groups={groups}
-            lookup={lookup}
-            onGoToProgram={goToProgram}
-            onFilter={(f) => setFilters({ ...NO_FILTERS, ...f })}
-            onInspectHall={onInspectHall}
-            onOpenFaculty={onOpenFaculty}
-          />
-        )}
+        {!filtering && <CommitteeBox s={s} lookup={lookup} onOpenFaculty={onOpenFaculty} />}
 
         <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
 

@@ -47,10 +47,9 @@ import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventDa
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} from '../data/facilitiesData';
 import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
+import { benchItem, defaultBenchFacing } from '../state/dressing';
 import { TRAINER_FIELD, MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
-import { isLand, isPlaceableKind, parsePathTileKey, pathTileKey, occupantAt } from '../state/campusMap';
-import { designationRefusal, detectQuads, tileIndex } from '../state/quads';
-import { QUAD_NAME_MAX } from '../data/quadData';
+import { isLand, isPlaceableKind, pathTileKey, occupantAt } from '../state/campusMap';
 import { money } from '../format';
 import { withRandom } from './random';
 import { advanceClock } from '../state/clock';
@@ -388,42 +387,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (!isLand(row, col) || occupantAt(s.placements, row, col) !== undefined) return s;
       const nearPath = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => `${row + dr},${col + dc}` in s.pathways);
       if (!nearPath) return s;
-      s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: action.kind };
+      // A bench faces the way the player turned it, or the path beside it.
+      const item = action.kind === 'lamp' ? 'lamp' : benchItem(action.facing ?? defaultBenchFacing(s.pathways, row, col));
+      s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: item };
       return s;
     }
 
     case 'REMOVE_DRESSING': {
       if (s.dressing) delete s.dressing[pathTileKey(action.tile)];
-      return s;
-    }
-
-    case 'MARK_QUAD': {
-      const { row, col } = action.tile;
-      if (designationRefusal(s, row, col) !== null) return s;
-      // A mark inside a quad already standing would add nothing.
-      const at = tileIndex(row, col);
-      if (detectQuads(s).some((q) => q.tiles.includes(at))) return s;
-      s.quads = { names: s.quads?.names ?? {}, designated: [...(s.quads?.designated ?? []), pathTileKey(action.tile)] };
-      return s;
-    }
-
-    case 'UNMARK_QUAD': {
-      const quad = detectQuads(s).find((q) => q.key === action.key);
-      if (!quad || !s.quads) return s;
-      const inside = new Set(quad.tiles);
-      s.quads.designated = s.quads.designated.filter((key) => {
-        const t = parsePathTileKey(key);
-        return !t || !inside.has(tileIndex(t.row, t.col));
-      });
-      return s;
-    }
-
-    case 'NAME_QUAD': {
-      const name = action.name.trim().slice(0, QUAD_NAME_MAX);
-      const names = { ...s.quads?.names };
-      if (name === '') delete names[action.key];
-      else names[action.key] = name;
-      s.quads = { names, designated: s.quads?.designated ?? [] };
       return s;
     }
 
@@ -638,7 +609,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'RESTAFF':
-      restaff(s, action.school ?? undefined);
+      restaff(s, action.school ?? undefined, action.courseIds);
       return s;
 
     // The Deans' plans, one per school (eventSystem.ts): accepted, each is

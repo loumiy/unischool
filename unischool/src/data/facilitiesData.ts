@@ -374,19 +374,21 @@ export function venueSeatsOf(node: Buildable): number {
 // Categories: a UI-only grouping above FacilityType (BuildPopup.tsx's
 // TYPE_MATCHERS), authored once here. 'athletics' is the varsity
 // competition venues plus the field house; 'social' is the student center
-// and the recreational and cultural buildings; 'academic' is the library
-// and labs (halls are assigned by kind in the build menu). Unlisted types
-// have their own grouping.
-export type FacilityCategory = 'athletics' | 'social' | 'academic';
+// and the recreational and cultural buildings; 'health' is the health chain
+// and the gym, pool and tennis courts, whose capacity is health's (Plan
+// 80B); 'academic' is the library and labs (halls are assigned by kind in
+// the build menu). Unlisted types have their own grouping.
+export type FacilityCategory = 'athletics' | 'social' | 'health' | 'academic';
 
 export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory>> = {
   library: 'academic',
   lab: 'academic',
   studentCenter: 'social',
   recCenter: 'social',
-  gym: 'social',
-  tennisCourts: 'social',
-  pool: 'social',
+  healthCenter: 'health',
+  gym: 'health',
+  tennisCourts: 'health',
+  pool: 'health',
   artGallery: 'social',
   athleticsField: 'athletics',
   athleticsArena: 'athletics',

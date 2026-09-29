@@ -3,6 +3,7 @@ import { standsOnCampus } from '../state/types';
 import { ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID } from './facilitiesData';
 import { ANY_SCHOOL, GRADUATE_HOSTS, hostName } from './projectData';
 import { COURSE_DESCRIPTIONS, GRADUATE_COURSE_DESCRIPTIONS } from './courseDescriptions';
+import { hashUnit } from './rivalData';
 
 /*
   The curriculum as seed data, expanded into Buildable[]: 42 majors across
@@ -31,6 +32,17 @@ const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 // Weeks to develop a course, by tier: an entry course takes a few weeks, a
 // tier-3 capstone is a multi-month commitment.
 const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
+
+// Each course's weeks are its tier's (or its graduate kind's), varied up to
+// COURSE_LENGTH_SPREAD either way, fixed for that course by a hash of its id
+// (Plan 80E), so the committee's courses finish at different times rather
+// than a tier's all together. Whole weeks, at least one; every band's ends
+// are whole weeks, so the rounding keeps inside it.
+export const COURSE_LENGTH_SPREAD = 0.25;
+export function courseWeeks(id: string, baseWeeks: number): number {
+  const spread = (2 * hashUnit(`course-length:${id}`) - 1) * COURSE_LENGTH_SPREAD;
+  return Math.max(1, Math.round(baseWeeks * (1 + spread)));
+}
 
 // Development cost by tier (docs/design/economy.md). Tier 1 is priced so the
 // tier-1 build-out visibly tightens the surplus.
@@ -462,6 +474,10 @@ export interface GraduateProgramSeed {
   // fields it joins (researchSchools()), the school it counts as when housed
   // (systems/techtree/schools.ts), and the curriculum its gate reads.
   homeSchool: string;
+  // Its section in the Curriculum (Plan 80B): a professional school's own
+  // name; the doctorates and the MFA default to GRADUATE_SCHOOL_SECTION.
+  // Display only: it moves no program out of its home school.
+  section?: string;
   // Relative weight in prestige's graduate-breadth term (prestigeSystem.ts's
   // GRADUATE_PROGRAM_SHARE): a share of an already-capped input, never a
   // bonus. The only way a program may move standing beyond its course count.
@@ -475,7 +491,7 @@ export interface GraduateProgramSeed {
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   {
     id: 'MED', name: 'School of Medicine', degree: 'MD', type: 'professional',
-    homeSchool: 'Health Science',
+    homeSchool: 'Health Science', section: 'Medical School',
     prestigeWeight: 2.0,
     blurb: 'the medical school',
     courses: [
@@ -495,7 +511,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'LAWS', code: 'LAW', name: 'School of Law', degree: 'JD', type: 'professional',
-    homeSchool: 'Social Sciences & Humanities',
+    homeSchool: 'Social Sciences & Humanities', section: 'Law School',
     prestigeWeight: 1.6,
     blurb: 'the law school',
     courses: [
@@ -511,7 +527,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'MBAX', code: 'MBA', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
-    homeSchool: 'Business',
+    homeSchool: 'Business', section: 'Business School',
     prestigeWeight: 1.4,
     blurb: 'the MBA program',
     courses: [
@@ -615,6 +631,15 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
 
 export function graduatePrograms(): GraduateProgramSeed[] {
   return GRADUATE_PROGRAMS;
+}
+
+// The Curriculum's graduate sections, in the order they are drawn after the
+// seven schools (Plan 80B).
+export const GRADUATE_SCHOOL_SECTION = 'Graduate School';
+export const GRADUATE_SECTIONS: readonly string[] = [GRADUATE_SCHOOL_SECTION, 'Business School', 'Law School', 'Medical School'];
+
+export function graduateSection(program: GraduateProgramSeed): string {
+  return program.section ?? GRADUATE_SCHOOL_SECTION;
 }
 
 export function graduateProgram(id: string): GraduateProgramSeed | undefined {
@@ -771,7 +796,7 @@ export function initialTech(): Buildable[] {
           name: `${major.prefix} ${num} · ${title}`,
           description,
           cost: TIER_COURSE_COST[tier],
-          duration: TIER_DURATION_WEEKS[tier],
+          duration: courseWeeks(id, TIER_DURATION_WEEKS[tier]),
           // Starts locked and unlocks as prereqs complete; the founding
           // programs' first courses are seeded 'done' by createInitialState.
           prereqs,
@@ -852,7 +877,7 @@ export function initialTech(): Buildable[] {
           ? `${GRADUATE_COURSE_DESCRIPTIONS[id]} Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}; offered once ${graduateGateDescription(program)}, and taught there.`
           : GRADUATE_COURSE_DESCRIPTIONS[id],
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
-        duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
+        duration: courseWeeks(id, professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS),
         prereqs,
         status: 'locked',
         requiresFaculty: course.field,

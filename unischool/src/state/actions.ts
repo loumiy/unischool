@@ -1,7 +1,7 @@
 import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, DressingKind, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -40,7 +40,7 @@ import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSyste
 export const STARTING_INSTITUTION_SUFFIX = 'College';
 
 // The map's campus tools; the right button applies the armed tool's opposite.
-export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'quad' | 'lamp' | 'bench';
+export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'lamp' | 'bench';
 
 // All the ways a player can change the world. The reducer is the only thing
 // that interprets these; UI dispatches them, systems never do.
@@ -88,9 +88,6 @@ export type Action =
   | { type: 'FELL_TREE'; tile: TileCoord }
   // A straight run of path, laid and adjusted in one step (the Shift-held draw).
   | { type: 'PAINT_PATH_TILES'; add: TileCoord[]; remove: TileCoord[] }
-  // Quads (state/quads.ts): mark the open space under a tile as one, lift the
-  // marks inside one, or name one (an empty name gives it back its own).
-  | { type: 'MARK_QUAD'; tile: TileCoord }
   // The estate (systems/estate): how much of the upkeep to pay, and paying
   // off one building's backlog under scaffolding.
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
@@ -113,11 +110,10 @@ export type Action =
   // a standing one pulled down, for nothing and with nothing back.
   | { type: 'CANCEL_CONSTRUCTION'; id: string }
   | { type: 'DEMOLISH_BUILDING'; id: string }
-  // A lamp or a bench beside a path, or lifted (components/dressing.tsx).
-  | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind }
+  // A lamp or a bench beside a path, or lifted (components/dressing.tsx). A
+  // bench takes the facing the player turned it to, or faces the path.
+  | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind; facing?: BenchFacing }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }
-  | { type: 'UNMARK_QUAD'; key: string }
-  | { type: 'NAME_QUAD'; key: string; name: string }
   // Launches an advancement campaign (systems/alumni/campaigns.ts), which
   // replaced the endowment campaign in Plan 30.
   | { type: 'LAUNCH_CAMPAIGN'; id: string }
@@ -149,8 +145,9 @@ export type Action =
   // (Plan 80D); cosmetic.
   | { type: 'RENAME_COLLEGE'; name: string; suffix: 'College' | 'University' }
   // Restaffing (Plan 59, systems/faculty/restaffing.ts): every unstaffed
-  // course of a school, or of the college when school is null.
-  | { type: 'RESTAFF'; school: string | null }
+  // course of a school, or of the college when school is null; `courseIds`
+  // narrows it to a Curriculum section's courses (Plan 80B).
+  | { type: 'RESTAFF'; school: string | null; courseIds?: string[] }
   // The Deans' year-end recommendations: accept every school's plan, or not.
   | { type: 'RESOLVE_DEAN_RECOMMENDATIONS'; accept: boolean }
   // `candidate` is the whole person: they exist only in the interrupt

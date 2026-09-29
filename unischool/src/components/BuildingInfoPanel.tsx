@@ -19,12 +19,14 @@ import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAs
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canRelocateProgram, eligibleInstructors, facultyGate,
+  canFoundProgram, canRelocateProgram, committeeSeats, courseSlotsFree, eligibleInstructors, facultyGate,
   FOUNDERS_MOVE_WEEKS, relocationWeeks,
 } from '../systems/techtree/techSystem';
 import { declineRefusal, hostOffers, isHoused, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
 import { count, countWord, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
+import { initiativeDepth } from '../data/researchData';
+import { researchTopic } from '../data/researchTopics';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
 import { CloseIcon } from './icons';
 
@@ -104,7 +106,47 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
   );
 }
 
-function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
+// A lab's research (Plan 80B): the project under way and how far along, or
+// the offer to start one, with a door to the Research tab at this lab.
+function LabResearch({ t, s, onOpenResearch }: { t: Buildable; s: GameState; onOpenResearch?: (target: string) => void }) {
+  if (t.status !== 'done') return null;
+  const initiative = s.research.initiatives[t.id];
+  const open = onOpenResearch && (
+    <button type="button" className="building-info-jump" onClick={() => onOpenResearch(`lab:${t.id}`)}>
+      Open in Research →
+    </button>
+  );
+  if (!initiative) {
+    return (
+      <>
+        <p className="building-info-line">Idle: no research project is under way here.</p>
+        {onOpenResearch && (
+          <button type="button" className="building-info-jump" onClick={() => onOpenResearch(`start:${t.id}`)}>
+            Start research
+          </button>
+        )}
+        {open}
+      </>
+    );
+  }
+  const topic = researchTopic(initiative.topicId);
+  const elapsed = initiative.weeksTotal - initiative.weeksRemaining;
+  const done = initiative.weeksTotal > 0 ? elapsed / initiative.weeksTotal : 0;
+  return (
+    <>
+      <p className="building-info-line lab-project">
+        <span className="lab-project-name">{topic?.name ?? 'A research project'}</span>
+        <span className="lab-project-meta">{initiativeDepth(initiative.depth).name} · {weeksShort(elapsed)} of {weeksShort(initiative.weeksTotal)}</span>
+      </p>
+      <span className="facility-track lab-project-track" aria-hidden="true">
+        <span className="facility-fill" style={{ width: pct(done) }} />
+      </span>
+      {open}
+    </>
+  );
+}
+
+function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; onOpenResearch?: (target: string) => void }) {
   const ft = t.facilityType;
   if (ft && ATHLETICS_VENUE_TYPES.includes(ft)) return <AthleticsVenueInfo t={t} s={s} />;
   const label = ft ? FACILITY_CAPACITY_LABEL[ft] : undefined;
@@ -124,12 +166,15 @@ function FacilityInfo({ t, s }: { t: Buildable; s: GameState }) {
   }
   if (ft === 'lab') {
     return (
-      <p className="building-info-line">
-        {t.effects?.researchRateBonus !== undefined
-          ? `${signedPct(t.effects.researchRateBonus)} research output`
-          : 'Specialized lab space.'}
-        {' — no capacity figure; this program\'s capstone courses require it instead.'}
-      </p>
+      <>
+        <p className="building-info-line">
+          {t.effects?.researchRateBonus !== undefined
+            ? `${signedPct(t.effects.researchRateBonus)} research output`
+            : 'Specialized lab space.'}
+          {' — no capacity figure; this program\'s capstone courses require it instead.'}
+        </p>
+        <LabResearch t={t} s={s} onOpenResearch={onOpenResearch} />
+      </>
     );
   }
   return <p className="building-info-line">{t.description}</p>;
@@ -370,6 +415,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   // Another school's program into this hall's claim (Plan 78D): it takes a
   // program slot the claiming school needs, so Found asks first.
   const cut = picked && !host ? claimCutBy(s, t.id, picked.id) : null;
+  // A major's entry course is written by the committee (Plan 80B), so
+  // founding one waits for room on it; a graduate program's does not.
+  const committeeFull = courseSlotsFree(s) === 0;
   const offerTile = (program: ProgramInfo) => {
     const course = s.tech.find((x) => x.id === program.entryCourseId);
     const mark = schoolMark(program.school);
@@ -494,6 +542,11 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
 
       {openSlot !== null && offers.length > 0 && (
         <div className="hall-offer">
+          {committeeFull && (
+            <p className="building-info-line building-info-construction hall-offer-committee">
+              The curriculum committee is writing {committeeSeats(s)} courses already, its most: a program can be founded once one of them is done.
+            </p>
+          )}
           {ownSchool ? (
             <>
               <h4 className="hall-offer-head">{ownSchool} programs for program slot {openSlot + 1}</h4>
@@ -552,6 +605,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
               <ConfirmButton
                 className={`building-info-jump${s.events.opening.stage === 'found' && canFound ? ' opening-target' : ''}`}
                 disabled={!canFound || !act}
+                title={committeeFull ? 'No room on the committee for its entry course until one of its courses is done' : undefined}
                 needsConfirm={cut !== null}
                 label={chosen
                   ? `Found ${picked.name} · ${moneyShort(entry.cost)}`
@@ -659,7 +713,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
   );
 }
 
-export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum, focusProgramId }: {
+export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum, onOpenResearch, focusProgramId }: {
   t: Buildable; s: GameState; onClose: () => void;
   // A housed program whose tile opens with the panel (the next-step line's
   // move, Plan 78D).
@@ -671,6 +725,9 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
   // Opens the Curriculum tab at a school (by name) or at one program's row
   // ("program:<id>") — the targets CurriculumTab.tsx accepts.
   onOpenCurriculum?: (sectionKey: string) => void;
+  // Opens the Research tab at a lab ("lab:<id>"), or with its project
+  // choices open ("start:<id>"): the targets ResearchTab.tsx accepts.
+  onOpenResearch?: (target: string) => void;
 }) {
   // Escape is not bound here: CampusMap.tsx's back-out closes the panel,
   // in its turn after App.tsx's ladder, so one press never closes two things.
@@ -694,7 +751,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       {t.kind === 'dorm' && dormCapacity(t) !== null && (
         <p className="building-info-line">{count(dormCapacity(t)!)} beds</p>
       )}
-      {t.kind === 'facility' && <FacilityInfo t={t} s={s} />}
+      {t.kind === 'facility' && <FacilityInfo t={t} s={s} onOpenResearch={onOpenResearch} />}
       {t.kind === 'facility' && isGraduateHost(t.id) && t.status === 'done' && <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
       {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} focusProgramId={focusProgramId} />}
       {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}
