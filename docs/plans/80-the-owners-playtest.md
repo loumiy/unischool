@@ -638,28 +638,40 @@ after:
   control with its price, and every active card its recruiting ("+8.4,
   building toward +15" / "falling away") and pull. Checked at 1440×900 and
   390×844.
-- **Save:** `SAVE_VERSION` 81 → 82, migration `noRecruitingYet` (every team
-  none and 0) and a sanitizer; `test/fixtures/save-v81.json` is a Natural
-  run at Year 21 with four teams, written before the bump.
+- **Save:** `SAVE_VERSION` 85 → 86 (after 80I's, 80H's, 80C's and 80D's
+  links), migration `noRecruitingYet` at `MIGRATIONS[85]` (every team none
+  and 0) and a sanitizer. `test/fixtures/save-v85.json` is the
+  `year-8-balanced` scenario written with main's code before the bump;
+  `save-v81-recruiting.json` is a Natural run at Year 21 with four teams,
+  written at version 81, which the recruiting test walks up the whole
+  chain.
 - **The target:** the championships goal player now chooses two flagships
   (the strongest active program while a place is free, then kept at the
   top of the list) and puts each on full scholarships when a year's net
-  covers it. Over 5 seeds × 2 names: its first final four came a median of
-  1 year after choosing (0–3), at a median Year 7 (Year 9 before this PR);
-  every run got there. Without scholarships, the same player's first final
-  four is also a median Year 7, and its first title a median Year 10
-  against Year 9 with them (12 before this PR). The target reads as a bound ("within"), so it is met; as a
-  band it is beaten, and recruiting and pull only add strength, so no
-  tuning inside their bounds could slow it. What sets the pace is the
-  coaching (the new solid floor helps) and the field's strength, which
-  this PR does not touch. Nothing was tuned.
-- **Baseline:** re-recorded. The extra solid listings take ids from the
-  global stream (`newId`, as the journeyman floor already did), so every
-  player with teams shifts a little (teams at Year 25 −3 or −4 for Lean
-  and Guided; Selective's satisfaction −7 to −8 late). The cap returns
-  more of a large college's gate to income: late cash rises for
-  Completionist (+$659M at Year 50), Lean (+$189M) and Selective (+$46M);
-  Guided's falls $37M, within the stream's noise. Idle is unchanged.
+  covers it. Over 5 seeds × 2 names, after 80C and 80D (a college founded
+  with nothing to teach): its first final four came a median of 2 years
+  after choosing (0–4), at a median Year 7, against Year 9 for the same
+  goal player on main; its first title a median Year 8, against Year 14.
+  Every run got there. Before the merge, the same player without
+  scholarships reached its first final four in the same year as with them,
+  and its first title a year later: the final four comes from the coaching
+  (the solid floor helps), the funding and the pull, and recruiting turns
+  it into titles. The target reads as a bound ("within"), so it is met; as
+  a band it is beaten, and recruiting and pull only add strength, so no
+  tuning inside their bounds could slow it. Nothing was tuned.
+- **The chronicle** (a merge fix to 80C's eras): the archetypes suite's
+  "at most two eras named for the guide" failed for Selective seed 12345,
+  whose shifted run crossed the top-ten line four times. A rank turn now
+  names an era only the first time it comes (a fall for as long as it
+  lasts); `test/chronicle.test.ts` covers the back and forth.
+- **Baseline:** re-recorded against main's (after 80B–80F, 80H, 80I). The
+  extra solid listings take ids from the global stream (`newId`, as the
+  journeyman floor already did), so every player with teams shifts: at
+  Year 50, Lean is rank 36 (+9), prestige 94.3 (−12.1), 4,257 enrolled
+  (−3,125), cash $50M (−$318M); Selective's prestige +6.4 and satisfaction
+  −6.4, cash −$199M; Guided's cash $138M (−$151M); Completionist's −$26M.
+  Years 10 and 25 move by a rank or two and a few points. Idle is
+  unchanged.
 
 ## PR 80H — The map: quads, walkers, turning, lab roofs
 

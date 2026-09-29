@@ -114,6 +114,15 @@ function run(years: number, over: (y: number) => Partial<YearSnapshot> = () => (
   assert(turns.map(([y, k]) => `${y}:${k}`).join() === '9:topTen,12:first,15:fall,16:fall,17:fall,18:fall', `the turns are the top ten, first, and the fall while it lasts (${turns.map(([y, k]) => `${y}:${k}`).join()})`);
 }
 
+// ---- Back and forth across the line is one turn each way ----
+{
+  // In at 6, out at 10, in again at 14, out again at 18.
+  const s = run(22, (y) => ({ rank: (y >= 6 && y < 10) || (y >= 14 && y < 18) ? 8 : 13 }));
+  const recs = yearRecords(s);
+  const turns = recs.map((r, i) => [r.year, yearKind(recs, i)] as const).filter(([, k]) => ['first', 'topTen', 'fall'].includes(k));
+  assert(turns.map(([y, k]) => `${y}:${k}`).join() === '6:topTen,10:fall,11:fall,12:fall', `only the first entry and the first fall (while it lasts) are turns (${turns.map(([y, k]) => `${y}:${k}`).join()})`);
+}
+
 // ---- What the journal adds ----
 {
   const s = run(12);

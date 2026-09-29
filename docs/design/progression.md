@@ -481,7 +481,9 @@ neighbor, and two eras of one kind never stand in a row. So a college that
 climbs steadily is no longer the Rise, the Climb and the Ascent again: its
 eras are *The Years of the School of Science*, *The Medical Center Years*,
 *The Championship Years*. Rank names an era only at a real turn — entering
-the top ten, reaching first, or a fall. It reads what the game keeps for
+the top ten, reaching first, or a fall — and each turn only the first time
+it comes (a fall for as long as it lasts), so a college drifting back and
+forth across the top-ten line is not turning again each time. It reads what the game keeps for
 good: the history rows (which count the research prizes), the milestones'
 years (`milestoneYears`), the titles, the buildings and the journal.
 

@@ -135,10 +135,23 @@ function rankTurn(recs: YearRecord[], i: number): 'first' | 'topTen' | 'fall' | 
   return null;
 }
 
+// A turn names an era the first time it comes, for as long as it lasts
+// (Plan 80G's merge): a college that drifts back and forth across the
+// top-ten line is not turning again each time, and a kind has only so many
+// names.
+function firstRankTurn(recs: YearRecord[], i: number): 'first' | 'topTen' | 'fall' | null {
+  const turn = rankTurn(recs, i);
+  if (turn === null) return null;
+  let run = i - 1;
+  while (run >= 1 && rankTurn(recs, run) === turn) run--;
+  for (let j = 1; j <= run; j++) if (rankTurn(recs, j) === turn) return null;
+  return turn;
+}
+
 // What kind of year it was: its largest new thing (ERA_PRIORITY's order).
 export function yearKind(recs: YearRecord[], i: number): EraKind {
   const r = recs[i];
-  const turn = rankTurn(recs, i);
+  const turn = firstRankTurn(recs, i);
   const has: Record<EraKind, boolean> = {
     founding: r.year <= 3,
     receivership: r.rungMax >= 5,
