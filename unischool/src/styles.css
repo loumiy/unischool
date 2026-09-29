@@ -1020,6 +1020,9 @@ button.build-tile { font-family: inherit; }
 /* The land around the campus (Plan 81B): its own layer under the map's, so
    the map's changes never repaint it. */
 .campus-map-ring { position: absolute; inset: 0; z-index: -1; display: block; width: 100%; height: 100%; pointer-events: none; }
+/* The canvas map (Plan 83B's prototype, `?map=canvas`): the scene and the
+   ring, painted, where the ring's <svg> would be. */
+.campus-map-scene { position: absolute; inset: 0; z-index: -1; display: block; width: 100%; height: 100%; pointer-events: none; }
 .campus-map-ghost .campus-rotate-btn { pointer-events: auto; }
 .campus-rotate-btn { cursor: pointer; }
 .campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
