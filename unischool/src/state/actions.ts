@@ -1,7 +1,7 @@
 import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, Coach, DressingKind, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, GameState, InitiativeDepth, Placements, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -119,8 +119,9 @@ export type Action =
   // a standing one pulled down, for nothing and with nothing back.
   | { type: 'CANCEL_CONSTRUCTION'; id: string }
   | { type: 'DEMOLISH_BUILDING'; id: string }
-  // A lamp or a bench beside a path, or lifted (components/dressing.tsx).
-  | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind }
+  // A lamp or a bench beside a path, or lifted (components/dressing.tsx). A
+  // bench takes the facing the player turned it to, or faces the path.
+  | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind; facing?: BenchFacing }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }
   | { type: 'UNMARK_QUAD'; key: string }
   | { type: 'NAME_QUAD'; key: string; name: string }

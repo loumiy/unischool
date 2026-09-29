@@ -55,7 +55,12 @@ import { doorFamilyOf, motifOf } from '../../src/components/buildingSpec';
 import { groundProps } from '../../src/components/groundMarkings';
 import { campusLayout } from '../../src/components/campusLayout';
 import { dressingProps } from '../../src/components/dressing';
+import { dressingKindOf } from '../../src/state/dressing';
+import type { DressingItem } from '../../src/state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../../src/data/techData';
+
+// What a lamp or bench is called in a hit.
+const dressingLabel = (item: DressingItem | undefined): string => (item ? dressingKindOf(item) : 'prop');
 
 export type Rule =
   | 'door-onto-ground' | 'door-behind-mass' | 'door-under-tree' | 'door-under-prop' | 'door-onto-lawn' | 'door-on-seam'
@@ -261,7 +266,7 @@ export function check(saveName: string, s: GameState): Hit[] {
   const layout = campusLayout(s);
   // Props the scene adds itself (the flag, the racks), by tile.
   const props = new Map<string, string>();
-  for (const pr of dressingProps(layout)) props.set(`${pr.row},${pr.col}`, pr.key.startsWith('d-') ? (dressing[`${pr.row},${pr.col}`] ?? 'prop') : pr.key === 'flag' ? 'flag' : 'bike rack');
+  for (const pr of dressingProps(layout)) props.set(`${pr.row},${pr.col}`, pr.key.startsWith('d-') ? (dressingLabel(dressing[`${pr.row},${pr.col}`])) : pr.key === 'flag' ? 'flag' : 'bike rack');
 
   for (const { id, p, t } of placed) {
     const name = t.name;
@@ -309,7 +314,7 @@ export function check(saveName: string, s: GameState): Hit[] {
     const what = pr.key === 'flag' ? 'flag' : 'bike rack';
     const owner = pr.key === 'flag' ? flagHall?.t : layout.placed.find((e) => `r-${e.t.id}` === pr.key)?.t;
     if (treeAt(key)) hits.push({ save: saveName, rule: 'prop-on-tree', building: owner?.id ?? '', name: owner?.name ?? '', views: [0, 1, 2, 3], tile: key, other: what, detail: `the ${what} stands on a tile with a tree` });
-    if (dressing[key]) hits.push({ save: saveName, rule: 'prop-on-tree', building: owner?.id ?? '', name: owner?.name ?? '', views: [0, 1, 2, 3], tile: key, other: what, detail: `the ${what} stands on a tile with a ${dressing[key]}` });
+    if (dressing[key]) hits.push({ save: saveName, rule: 'prop-on-tree', building: owner?.id ?? '', name: owner?.name ?? '', views: [0, 1, 2, 3], tile: key, other: what, detail: `the ${what} stands on a tile with a ${dressingLabel(dressing[key])}` });
     if (owner) hits.push({ save: saveName, rule: 'prop-behind', building: owner.id, name: owner.name, views: [0, 1, 2, 3].filter((k) => !viewsDrawing('posRow').includes(k)), tile: key, other: what, detail: `the ${what} stands on the +row side, behind the building in two views` });
   }
 
@@ -343,7 +348,7 @@ export function check(saveName: string, s: GameState): Hit[] {
         for (let r = Math.floor(e.row); r < e.row + e.h; r++) for (let c = Math.floor(e.col); c < e.col + e.w; c++) standing.set(`${r},${c}`, [...(standing.get(`${r},${c}`) ?? []), e.key]);
       } else standing.set(`${Math.floor(e.row)},${Math.floor(e.col)}`, [...(standing.get(`${Math.floor(e.row)},${Math.floor(e.col)}`) ?? []), e.key]);
     }
-    const label = (key: string) => key.startsWith('b-') ? (byId.get(key.slice(2))?.name ?? key) : key.startsWith('t-') ? 'a tree' : key === 'flag' ? 'the flag' : key.startsWith('r-') ? 'a bike rack' : key.startsWith('d-') ? `a ${dressing[key.slice(2)] ?? 'prop'}` : key.startsWith('g-') ? `${byId.get(key.split('-').slice(1, -1).join('-'))?.name ?? 'open ground'}'s ${key.split('-').pop()}` : key;
+    const label = (key: string) => key.startsWith('b-') ? (byId.get(key.slice(2))?.name ?? key) : key.startsWith('t-') ? 'a tree' : key === 'flag' ? 'the flag' : key.startsWith('r-') ? 'a bike rack' : key.startsWith('d-') ? `a ${dressingLabel(dressing[key.slice(2)])}` : key.startsWith('g-') ? `${byId.get(key.split('-').slice(1, -1).join('-'))?.name ?? 'open ground'}'s ${key.split('-').pop()}` : key;
     for (const { id, p, t } of placed) {
       if (motifOf(t) === 'grounds') continue;
       const d = { col: p.col + INSET, row: p.row + INSET, w: p.w - 2 * INSET, h: p.h - 2 * INSET };

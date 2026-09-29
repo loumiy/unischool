@@ -426,9 +426,13 @@ export type Pathways = Record<string, true>;
 // components/trees.tsx derives species, size and offset. Visual only.
 export type Trees = Record<string, number>;
 
-// A lamp or a bench, by the tile it stands on.
+// A lamp or a bench, by the tile it stands on. A bench is set against one
+// edge of its tile and faces out across it (Plan 80I), so it carries which:
+// 'n' faces -row, 'e' +col, 's' +row, 'w' -col (state/dressing.ts).
 export type DressingKind = 'lamp' | 'bench';
-export type Dressing = Record<string, DressingKind>;
+export type BenchFacing = 'n' | 'e' | 's' | 'w';
+export type DressingItem = 'lamp' | `bench-${BenchFacing}`;
+export type Dressing = Record<string, DressingItem>;
 
 // The player's say in the campus's quads (state/quads.ts detects them).
 export interface QuadState {
@@ -1100,8 +1104,9 @@ export interface GameState {
   // for an answer, the year each last fired, and when the last inline event
   // and the last letter fired. Undefined before the first fires.
   catalogue?: CatalogueState;
-  // Lamps and benches the player has placed beside the paths, by tile key
-  // (components/dressing.tsx). Optional: a campus may have none.
+  // Lamps and benches the player has placed beside the paths, by tile key,
+  // each bench with its facing (components/dressing.tsx). Optional: a
+  // campus may have none.
   dressing?: Dressing;
   rivals: Rival[];
   self: University;
