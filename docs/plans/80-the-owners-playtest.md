@@ -281,7 +281,7 @@ funds D introduces. Save bumps land in merge order.
   chronicle over the harness players shows no repeated era kind in a row;
   the save fixture migrates.
 
-**As implemented (#TBD):**
+**As implemented (#250):**
 
 - **Prestige:**
   - The chip opens History › Prestige (section `history.prestige`, which
