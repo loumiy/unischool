@@ -112,7 +112,12 @@ export function buildPathGeometry(pathways: Pathways): Geometry {
 export default function PathwayLayer({ pathways, camera }: { pathways: Pathways; camera: Camera }) {
   // Rebuilt when the pathways record changes identity (a tile drawn or
   // erased) or the camera moves.
-  const { fill, joints } = useMemo(() => buildPathGeometry(pathways), [pathways, camera]);
+  return pathwayArt(useMemo(() => buildPathGeometry(pathways), [pathways, camera]));
+}
+
+// The paths, given their geometry: what the canvas map draws (canvasArt.ts),
+// keeping the geometry itself.
+export function pathwayArt({ fill, joints }: { fill: string; joints: string }): React.JSX.Element | null {
   if (!fill) return null;
   return (
     <g className="campus-paths" aria-hidden="true">

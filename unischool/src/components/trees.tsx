@@ -151,7 +151,9 @@ export function treeOutline(col: number, row: number, species: Species, scale: n
 // Everything of a tree but its lit cap, drawn about its foot at the origin.
 // It depends on the tilt and not the turn, so a turn redraws none of it.
 // `hs` is the camera's height factor unclamped, which `standing` is not.
-const TreeBody = memo(function TreeBody({ species, scale, standing, hs }: { species: Species; scale: number; standing: number; hs: number }) {
+// Exported, with Tree's own function, for the canvas map (canvasArt.ts).
+export const TreeBody = memo(TreeBodyArt);
+export function TreeBodyArt({ species, scale, standing, hs }: { species: Species; scale: number; standing: number; hs: number }) {
   const { trunkH, crownR, trunkW } = crownOf(species, scale, standing);
   const rise = CONIFER_FLOOR + (1 - CONIFER_FLOOR) * standing;
   const top = -trunkH * hs;
@@ -198,7 +200,7 @@ const TreeBody = memo(function TreeBody({ species, scale, standing, hs }: { spec
       )}
     </>
   );
-});
+}
 
 // A woodland tree on tile (row, col), rolled off the tile's seed. Memoised:
 // a campus carries hundreds of trees. `camera` is a prop only so the memo
@@ -207,4 +209,5 @@ function Tree({ row, col, seed }: { row: number; col: number; seed: number; came
   const { species, u, v, scale } = treeShape(seed);
   return <TreeAt col={col + u} row={row + v} species={species} scale={scale} shadow={false} />;
 }
+export { Tree as TreeArt };
 export default memo(Tree);

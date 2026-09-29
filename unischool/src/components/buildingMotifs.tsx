@@ -1,5 +1,5 @@
 import { memo, useContext } from 'react';
-import type { Buildable, Vernacular } from '../state/types';
+import type { Buildable, SchoolColors, Vernacular } from '../state/types';
 import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
@@ -535,8 +535,12 @@ function Balconies({ f, storeys, height, tone }: { f: BoxFaces; storeys: number;
 // A flag on a civic roof, in the college's colors, flying downwind
 // (wind.ts) and foreshortened with the tilt.
 const ROOF_FLAG_TILES = 0.28;   // the cloth's length: 12 units at the opening camera
-function RoofFlag({ at }: { at: Pt }) {
-  const colors = useContext(ColorsContext);
+export function RoofFlag({ at }: { at: Pt }) {
+  return roofFlagArt({ at }, useContext(ColorsContext));
+}
+// The flag itself, given the college's colors: what the canvas map draws
+// (canvasArt.ts), reading them from its own occasions rather than React's.
+export function roofFlagArt({ at }: { at: Pt }, colors: SchoolColors): React.JSX.Element {
   const top = lift(at, up(7));
   return (
     <g className="iso-roof-flag">
@@ -3347,14 +3351,19 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   );
 }
 
-function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
+export type BuildingMassProps = {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
   material: Material;
   vernacular: Vernacular;
   developing: boolean;
   glyphs?: string;
-}) {
+};
+export function BuildingMass(props: BuildingMassProps) {
+  return buildingMassArt(props, useContext(SnowContext));
+}
+// The mass given the snow on the roofs: what the canvas map draws.
+export function buildingMassArt({ t, p, material, vernacular, developing, glyphs }: BuildingMassProps, snow: number): React.JSX.Element {
   // Stable references off buildingSpec's VERNACULARS table.
   const stone: StonePalette = stoneFor(vernacular);
   const paneShape = paneShapeOf(t, vernacular);
@@ -3400,8 +3409,7 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
   // the work goes on; only a first construction is a site.
   const site = developing && inFlight === 0 && t.renovatingFrom === undefined;
   const { row, col, w, h } = p;
-  // Snow on the roofs in the depth of winter (Plan 74I).
-  const snow = useContext(SnowContext);
+  // Snow on the roofs in the depth of winter (Plan 74I), from the caller.
   const pal = snowOnRoofs(paletteFrom(material, wallShadeOf(t)), snow);
   // The visible walls, left then right, where entrances and attachments go.
   const seen = visibleWalls();
@@ -4807,16 +4815,20 @@ function BuildingMass({ t, p, material, vernacular, developing, glyphs }: {
 // has many thousands of polygons. A motif is a pure function of these props;
 // `p` is rebuilt each render (CampusMap's drawnFootprint), so its fields are
 // compared rather than its identity.
-export default memo(BuildingMotif, (a, b) => (
-  a.t === b.t
-  && a.camera === b.camera
-  && a.material === b.material
-  && a.vernacular === b.vernacular
-  && a.developing === b.developing
-  && a.glyphs === b.glyphs
-  && a.p.col === b.p.col && a.p.row === b.p.row
-  && a.p.w === b.p.w && a.p.h === b.p.h
-));
+export default memo(BuildingMotif, sameMotif);
+// The motif's own function and its memo's comparison, for the canvas map
+// (canvasArt.ts).
+export { BuildingMotif as BuildingMotifArt };
+export function sameMotif(a: Parameters<typeof BuildingMotif>[0], b: Parameters<typeof BuildingMotif>[0]): boolean {
+  return a.t === b.t
+    && a.camera === b.camera
+    && a.material === b.material
+    && a.vernacular === b.vernacular
+    && a.developing === b.developing
+    && a.glyphs === b.glyphs
+    && a.p.col === b.p.col && a.p.row === b.p.row
+    && a.p.w === b.p.w && a.p.h === b.p.h;
+}
 
 // Color lives in buildingSpec.ts's MATERIALS (see materialOf).
 export { materialOf } from './buildingSpec';

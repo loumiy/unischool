@@ -134,6 +134,29 @@ The hall pips and the walkers are drawn after the scene from the live
 state. `npm run profile` gates every change to the
 map.
 
+## The canvas (Plan 83C)
+
+The scene and the land around it are painted on a canvas under the
+map's SVG. `canvasPaint.ts` walks the element tree the art returns (the
+same components the SVG map renders) and draws it with Path2D.
+`canvasArt.ts` registers the art that reads a hook as a plain function
+of its props and the painter's scope. That scope holds the occasions
+above, set by the same providers, and memoised values kept from paint to
+paint. Colors, strokes and pointer events come from the stylesheet,
+probed once per chain of classes and season.
+
+The labels, walkers, hall and lab marks, the completion ring, the ghost
+and the dust stay SVG over it.
+
+- **Pan and zoom.** The image reaches 35% past each edge. A pan moves it
+  and a zoom scales it by a CSS transform. It repaints at the view the
+  gesture settles on, or when a pan would show past the edge.
+- **Picking.** Hover and click find the building under the pointer from
+  the shapes the last paint recorded, topmost first, as the SVG's hit
+  test did.
+- **The SVG scene.** `?map=svg` keeps it until Plan 83E. Outside a
+  browser the map renders its SVG.
+
 ## The land around the campus (Plans 81B–81E)
 
 The parcel no longer hangs in space. A **ring of country** runs `RING` (200)
