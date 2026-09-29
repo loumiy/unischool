@@ -334,7 +334,7 @@ funds D introduces. Save bumps land in merge order.
 - **Checks:** the chip counts and flags; lengths are stable per course and
   within the band; a graduate course needs a free seat.
 
-**As implemented (#TBD):**
+**As implemented (#249):**
 - **Lengths:** `techData.ts`'s `courseWeeks(id, base)` varies each course's
   weeks up to `COURSE_LENGTH_SPREAD` (a quarter) either way off
   `hashUnit("course-length:<id>")`, whole weeks, at least one, for
