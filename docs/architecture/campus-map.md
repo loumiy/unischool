@@ -129,13 +129,12 @@ The hall pips and the walkers are drawn after the scene from the live
 state. `npm run profile` gates every change to the
 map.
 
-## The land around the campus (Plans 81B–81D)
+## The land around the campus (Plans 81B–81E)
 
 The parcel no longer hangs in space. A **ring of country** runs `RING` (200)
 tiles past its edge on every side: the road on off both ends, a patchwork
-of farm fields along the road and round the town, told apart by their
-colors alone,
-open grass (meadow and rough grass) with trees scattered over it, a low town edge
+of farm fields along the road and round the town, parted by margins of
+grass, open grass (meadow and rough grass) with trees scattered over it, a low town edge
 along the road, a farm or two, and gentle hills rising away from a flat
 valley floor, all fading into haze. It is drawing only and not state: `ringLand.ts`
 generates it from the college's name (a seeded hash, as the rivals' colors
@@ -149,12 +148,15 @@ parcel's edge.
   round the parcel and the road, and each block into fields by repeated
   halving, the fields growing with distance. Near the road and the town
   (`farmness`, on the low ground) a field is farmed: crop, hay or plough.
-  Farm fields have no border (Plan 81D): no two that touch share a cover
-  (`unlikeNeighbours` repaints a clashing field with the cover fewest of
-  its neighbours have, pass after pass, and one still clashing lies fallow
-  as rough grass), and under snow each keeps a little of its own color. A
-  hairline stroke in each field's own color closes the seam two touching
-  fills would leave. Everywhere else a field is open meadow or rough grass.
+  Each farm field has a margin of the ground's own grass round it (Plan
+  81E): a stroke of `--grass`, 14 world units wide (about a third of a
+  tile; some five pixels at the opening zoom, three at the widest), so
+  neighbours are parted by a headland that follows the year, snow and all.
+  The farm fields are drawn after the open ground, so their margins lie
+  over it too. No two that touch share a cover (`unlikeNeighbours`
+  repaints a clashing field with the cover fewest of its neighbours have,
+  pass after pass, and one still clashing lies fallow as rough grass), and
+  under snow each keeps a little of its own color. Everywhere else a field is open meadow or rough grass.
   Farmland is about a fifth of the land (tested under 40%).
 - **Trees**, scattered (Plan 81D; 81C's woods are gone): a tree here and
   there, now and then two or three together, thinning with distance

@@ -923,13 +923,15 @@ button.build-tile { font-family: inherit; }
 /* A field's cover: farm fields, open meadow and rough grass (Plan 81D: no
    woods; trees stand scattered over the grass). */
 .ring-field { --cover: var(--grass); fill: var(--cover); }
-/* No border between fields (Plan 81D): a hairline in each field's own
-   color only closes the seam two touching fills leave, which would show the
-   ground between them as a line. */
-.ring-field { stroke: var(--cover); stroke-width: 1; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .ring-crop { --cover: var(--field-crop); }
 .ring-hay { --cover: var(--field-hay); }
 .ring-plough { --cover: var(--field-plough); }
+/* A farm field's headland (Plan 81E): a margin of the ground's own grass
+   round it, so neighbours are parted by a strip of grass, not a line. In
+   world units, like the ground: 14 is about a third of a tile, some five
+   pixels at the opening zoom and three at the widest. The grass follows
+   the year, snow and all (seasons.ts's --grass). */
+.ring-crop, .ring-hay, .ring-plough { stroke: var(--grass); stroke-width: 14; stroke-linejoin: round; }
 .ring-rough { --cover: var(--field-rough); }
 .ring-town { --cover: var(--lawn, #8fae6b); }
 /* The hills' light (ringLand.ts's lightOf), in two steps each way. */
