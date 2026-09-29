@@ -382,7 +382,7 @@ review tools) the map renders its SVG.
     pitch, SVG beside canvas;
   - `83c-detail-inspect.jpg`: a building inspected, the rest dimmed.
 
-**Fixed after it landed (#263):** a campus with a building under
+**Fixed after it landed (#264):** a campus with a building under
 construction stopped the game on the canvas map. The site's progress
 (`SiteProgress` in `CampusMap.tsx`) read its weeks through a hook and was
 never registered as canvas art, so the painter threw. It is split into a
