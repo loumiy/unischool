@@ -7,7 +7,9 @@
 // letter delivered with its ask done — a letter whose ask the guided
 // player cannot carry out is a line of play the game does not support —
 // and a chronicle whose eras never repeat a kind in a row (Plan 80C; the
-// archetypes' are checked in test/archetypes.test.ts).
+// archetypes' are checked in test/archetypes.test.ts); and an opening the
+// money carries (Plan 80F): the Year 2 class seated without a loan, and
+// cash never below zero in Years 1–2.
 //
 // How fast and how well it goes is measured by `npm run guided`, and the
 // owner sets any number from that report.
@@ -20,6 +22,8 @@ import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
 import { OPENING_LETTERS } from '../src/data/eventData';
 import { chronicleOf } from '../src/systems/chronicle/chronicle';
+import { totalEnrolled } from '../src/state/types';
+import { instructionCapacity } from '../src/systems/techtree/instructionCapacity';
 
 let checks = 0;
 let failures = 0;
@@ -42,9 +46,19 @@ for (const run of RUNS) {
   const g = foundGame(run);
   let firstBreak: string | null = null;
   let weeks = 0;
+  // The opening's money (Plan 80F): the lowest cash and any loan in Years
+  // 1–2, and any week of Year 2 with students past the seats.
+  let earlyLow = Infinity;
+  let earlyLoans = 0;
+  let unseated = 0;
   try {
     playYears(g, player, YEARS, (g) => {
       weeks += 1;
+      if (g.s.clock.year <= 2) {
+        earlyLow = Math.min(earlyLow, g.s.finance.cash);
+        earlyLoans += (g.s.finance.loans ?? []).length;
+        if (g.s.clock.year === 2 && totalEnrolled(g.s.students) > instructionCapacity(g.s)) unseated += 1;
+      }
       if (firstBreak === null && weeks % 13 === 0) {
         const broken = brokenRules(g.s);
         if (broken.length > 0) firstBreak = `year ${g.s.clock.year}, week ${g.s.clock.week}: ${broken.slice(0, 3).join('; ')}`;
@@ -64,6 +78,7 @@ for (const run of RUNS) {
   // and founds from nothing, and seats every student in year one.
   const seated = r.done['doors-open'];
   assert(seated !== undefined && seated[0] === 1, `${label}: founds from nothing and seats every student in year one (${JSON.stringify(seated)})`);
+  assert(earlyLow >= 0 && earlyLoans === 0 && unseated === 0, `${label}: seats its Year 2 class without borrowing, and never runs out of cash in Years 1–2 (lowest $${Math.round(earlyLow).toLocaleString()}, ${unseated} weeks past the seats)`);
   const eras = chronicleOf(g.s).eras;
   assert(eras.every((e, i) => i === 0 || e.kind !== eras[i - 1].kind), `${label}: no two eras of a kind in a row (${eras.map((e) => e.kind).join(', ')})`);
   assert(new Set(eras.map((e) => e.name)).size === eras.length, `${label}: every era its own name (${eras.map((e) => e.name).join(' · ')})`);

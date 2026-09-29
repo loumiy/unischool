@@ -6,7 +6,7 @@ import { NEED_WORD } from '../data/needWords';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { awaitsSite } from '../state/campusMap';
-import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion } from '../data/facilitiesData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
@@ -103,11 +103,11 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // Labs collapse like halls, but are independent (one per lab-gated major,
   // any order), so no "#N".
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: true, sequential: false, match: (t) => t.facilityType === 'lab' },
-  // Social: the student center, the Recreation Center and the Athletics
-  // Complex, the arts facilities. The gym, pool and tennis courts, which
-  // feed health, sit with the health chain (Plan 80B).
+  // Social: the student center, the Recreation Center, the arts
+  // facilities. The gym, pool, tennis courts and Athletics Complex, which
+  // feed health, sit with the health chain (Plans 80B and 80F).
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
-  { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' },
+  { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' && t.id !== REC_CENTER_TIER2_ID },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   // Greek chapter houses share the Housing tab but are their own group:
@@ -119,13 +119,15 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // so it keeps tier chips; the tab says "Health", the rungs name themselves.
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
   // The fitness chain after it, in the same Health tab: gym, pool, tennis
-  // courts, strictly in order (facilitiesData.ts above GYM_ID). Keyed by its
-  // first type, as the grocery rides under 'diningHall'.
+  // courts and the Athletics Complex, strictly in order (facilitiesData.ts
+  // above GYM_ID). Keyed by its first type, as the grocery rides under
+  // 'diningHall'. The Athletics Complex is a recCenter by type (its art),
+  // so it is matched by id.
   {
     key: 'gym',
     label: 'Fitness',
     repeatable: true,
-    match: (t) => t.facilityType === 'gym' || t.facilityType === 'pool' || t.facilityType === 'tennisCourts',
+    match: (t) => t.facilityType === 'gym' || t.facilityType === 'pool' || t.facilityType === 'tennisCourts' || t.id === REC_CENTER_TIER2_ID,
   },
   // Varsity venues stay locked (so invisible) until a team needing them is
   // granted (facilitiesData.ts's athleticsVenueReveal, eventData.ts's
@@ -224,6 +226,11 @@ function buildSections(s: GameState): BuildSection[] {
     { id: TOOLS_SECTION_ID, label: 'Grounds', kind: 'tools', groups: groups.filter((g) => GROUNDS_GROUP_KEYS.has(g.key)) },
     ...built,
   ];
+}
+
+// The tab a Buildable is listed under, by section id (test/balance.test.ts).
+export function buildTabOf(s: GameState, id: string): string | undefined {
+  return buildSections(s).find((section) => section.groups.some((g) => g.items.some((t) => t.id === id)))?.id;
 }
 
 // One icon per tab, keyed by section id. Missing entries fall back to the

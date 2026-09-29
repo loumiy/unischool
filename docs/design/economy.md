@@ -149,6 +149,58 @@ the trajectories now).
 its building, a kitchen 30% of its dining hall, the boiler 12% of the standing
 residence halls, a storm 3% of everything standing, floored at $60k.
 
+**Facility upkeep charges mainly for overbuilding** ([Plan
+80F](../plans/80-the-owners-playtest.md), the owner's call). It comes in two
+parts, both read off what a building cost:
+
+- **Campus upkeep.** Every building that serves students a need (dining, the
+  grocery, the library, the student center, the recreation, fitness and
+  health buildings, the varsity venues) costs `FACILITY_UPKEEP_SHARE`, a
+  tenth, of its price a year to keep (`facilitiesData.ts`'s `priceUpkeep`),
+  its added floors and expansions priced in (`estate.ts`'s
+  `facilityUpkeepOf`); the towers' shops are kept at the grocery's price a
+  place. About what the old flat $0.5–$2.2 a week a place came to.
+- **Space beyond need.** In each need a facility serves (dining, health,
+  social space, study space), capacity past `BEYOND_NEED_FROM`, 120%, of what
+  the students need costs `BEYOND_NEED_UPKEEP`, six, times as much to keep.
+  Every building in the need pays the extra on the need's share past the
+  line (`systems/estate/beyondNeed.ts`), so a college with twice the dining
+  it needs pays three times the dining upkeep, and at three times the need
+  four. The capacity is the need's own reading (the grocery and the towers'
+  shops to their share of meals), the need the dial's. The Treasury shows it
+  on its own line, *Space beyond need*, naming each need past the line and
+  how far; a facility's panel says how much of its need's capacity the
+  students use ("Dining: 5,400 places for 3,900 students"). Housing is not
+  in it: beds have their own line, and an empty one costs half.
+
+The Medical Center, a capital project, keeps its fixed upkeep; its places
+count toward health but are left out of the reckoning, so building it never
+pushes the smaller health buildings past the line.
+
+A college that builds to need pays almost nothing past the line: the Guided
+player's extra over fifty years is under 1% of its campus upkeep on two
+seeds and 7% on the third (a large dining hall built ahead of its students),
+and it finishes the catalog (431 courses, 34,480 students at Year 50) as it
+did. The owner chose this over a flat share of the price. A share of 1.0 (a
+year's running costs equal to the price) was tried first: it took the
+Guided player's Year 8 net 15% under main's and its cash at Years 25 and 50
+down by two fifths and three quarters, but it charged every college for
+every place, so the Guided player finished 318 courses and 25,440 students
+by Year 50, and the Completionist fell into the red. A loaded save reads the
+new upkeep: the catalog's terms are refreshed on load (`persistence.ts`),
+with no save version.
+
+**The opening's money** (Plan 80F). The founding classes pay $20,000 (was
+$16,000), just under the founding price tolerance, and a small college admits
+about 86% of its applicants ([admissions.md](admissions.md)), so the class
+fills the room the courses make. The gift is $2.9M, derived as Plan 80D asked
+(`foundingData.ts`): the six courses that seat the Guided player's Year 2
+body of about 455, a professor each for a year, the courses carried for a
+year, and a fifth more. The Guided player seats its Year 2 class without a
+loan and never runs out of cash in Years 1–2 (`test/guided.test.ts`); its
+lowest cash there is the few weeks' reserve it keeps, and it nets $45–60k a
+week in Year 2 against $30–40k before.
+
 **Crowded from day one** (Plan 80D). The college opens with no course, so
 its 350 founding students have no places until the first courses are
 taught: instruction coverage reads zero, and the crowding it brings is
@@ -279,9 +331,9 @@ less than the harness's price, or whose costs run a tenth higher, stalled
 for a decade on a gift of $1.4M. The gift was $3.0M (`FOUNDING_PRESET`)
 from then until Plan 80D, when the college began opening with nothing to
 teach: the gift now pays for the courses that seat the Year 2 headcount,
-with the professors they need, and about a fifth to spare — $2.45M,
-provisional until Plan 80F sets it from the harness (the arithmetic is in
-`foundingData.ts` and the plan's note). The boom that
+with the professors they need, and about a fifth to spare — $2.45M
+provisionally, and $2.9M since Plan 80F set it from the harness (see "The
+opening's money" above; the arithmetic is in `foundingData.ts`). The boom that
 follows a founding that works (the catalogue built by Year 15, first place
 by Year 17) is left open for the owner: every cost lever measured tips the
 economy into a stall before it slows the boom, so the fix is a mechanism

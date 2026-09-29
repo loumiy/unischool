@@ -115,10 +115,19 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   - **Prestige's pool is a curve, not a line**: 1,000 plus 55,000 × ((prestige
     − 24) / 116)^1.5, so a new college draws a trickle (about a third of the
     old line's pool at founding) and the same pool as before at prestige 140.
-  - **Past the price tolerance applicants fall away faster**: the price
-    factor is exp(−ratio − 0.75 × (ratio − 1)) above the tolerance, unchanged
-    at or below it, so a high price takes in less per applicant than a fair
-    one and is a choice about who comes, not a money machine.
+  - **Past the price tolerance applicants fall away faster**, so a high price
+    takes in less per applicant than a fair one and is a choice about who
+    comes, not a money machine. The overreach is **counted once**, in sticker
+    shock (below), since [Plan 80F](../plans/80-the-owners-playtest.md): the
+    price factor is exp(−ratio) at every price. From Plan 71 until then the
+    price factor carried its own overreach term, exp(−0.75 × (ratio − 1)) on
+    every band, beside sticker shock's; it is folded into sticker shock's
+    rates, so every band loses exactly what it lost before and nothing moved.
+    Folding rather than dropping it keeps the balance (dropping it would have
+    let an overpriced college keep 57% more applicants at 1.6 times the
+    tolerance, a money machine again) and leaves one reading of the
+    overreach, where the year-over-year line already shows it, inside the
+    price part.
   - **Overcrowding shrinks the next pool** (the owner's self-correcting
     rule): the year's crowding shortfall (the worst of beds, dining, health
     and class seats below 85% coverage, [progression.md](progression.md))
@@ -145,8 +154,10 @@ modeled as aggregate applicant *statistics*, never individual applicants:
 - **Sticker shock** is the *band-specific* half of the price response, and it
   is what ties price to **who** applies rather than only how many. A price that
   overreaches what the school's prestige has earned (`priceTolerance`) scares
-  off applicants hardest in the lower/mid quality bands and barely at all in
-  the top band (the real-world "undermatching" effect), so an overreaching
+  off applicants in every band, hardest in the lower/mid quality bands and
+  least in the top band (the real-world "undermatching" effect): exp(−rate ×
+  overreach) at rates 0.80, 1.10 and 1.40 (top, mid, low), each 0.75 for the
+  overreach itself and 0.05, 0.35 and 0.65 for the band. So an overreaching
   school gets a smaller pool that is also relatively richer in the applicants
   least sensitive to price. It has **no reading of its own at the price step**
   — that step is blind — and appears afterwards only inside the price's share
@@ -159,6 +170,17 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   distribution, taking that share of the pool, best band first — but the share
   is chosen. `admitRate(prestige)` is what the slider *opens* at: what a school
   of this standing would normally take, more selective the more standing it has.
+  **A small college takes most of its few applicants** ([Plan
+  80F](../plans/80-the-owners-playtest.md), the backlog's *admit rate's early
+  slope*): the curve sits 50 points above the old logistic up to
+  prestige 50 and eases down to meet it by 100 (a smoothstep), so a founding
+  college opens at about 86% rather than 36%, and from prestige 100 the curve
+  is the logistic of before. A new college's class is held to the room its
+  courses make (`intakeCeiling`), so admitting deep fills the seats rather
+  than overflowing them: the founding years grow as fast as the courses come.
+  The founding classes pay $20,000 (`foundingData.ts`'s `STARTING_TUITION`,
+  $16,000 before), just under the founding tolerance of $21,500 and read as
+  fair, and the first summer's slider opens there.
   The chosen rate is sticky, so an unchanged strategy is a one-click continue.
 - **There is no yield step.** What the skim takes is what enrolls. The price of
   a bigger class is **quality**: admitting a larger share reaches further down

@@ -116,10 +116,13 @@ export function demandStakes(s: GameState): DemandStakes {
 // and servesPopulation > 0 so the ask isn't met the instant it is raised
 // (the target is a served-population total).
 function nextAskFor(s: GameState, attribute: keyof SatisfactionAttributes): Buildable | undefined {
+  const served = servedPopulationFor(s, attribute);
+  // A grocery past the shops' share of meals (Plan 80F) would add nothing.
   return s.tech.find((t) =>
     t.status === 'available' &&
     t.effects?.satisfactionAttribute === attribute &&
-    (t.effects?.servesPopulation ?? 0) > 0);
+    (t.effects?.servesPopulation ?? 0) > 0 &&
+    servedPopulationFor(s, attribute, [t]) > served);
 }
 
 function nextDorm(s: GameState): Buildable | undefined {
@@ -150,7 +153,10 @@ function candidateFor(s: GameState, attribute: keyof SatisfactionAttributes): Ca
       askName: ask.name,
       // Served today plus what the ask adds. Fixed when rolled: a coverage
       // ratio target would move as enrollment grows.
-      target: servedPopulationFor(s, attribute) + (ask.effects?.servesPopulation ?? 0),
+      // The ask counted as the satisfaction model would count it, so a
+      // grocery past the shops' share (Plan 80F) is never asked for more
+      // than it can add.
+      target: servedPopulationFor(s, attribute, [ask]),
       raisedWeek: 0,
       deadlineWeek: 0,
     },

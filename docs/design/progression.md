@@ -197,11 +197,14 @@ the summer. The inputs, with their weights:
 **The teaching standard caps the target** ([Plan 71](../plans/71-economy.md),
 the owner's rule: "you don't become a highly prestigious school with mediocre
 teaching"). Every graded course scores grade points (A 1, B 0.65, C 0.35,
-D 0.1, F 0); their mean sets a ceiling of 88 + 62 × mean^1.3
+D 0.1, F 0); their mean sets a ceiling of 88 + 62 × mean
 (`prestigeSystem.ts`'s `teachingCeiling`), and the target is the lower of that
-and the weighted sum. Mostly B's and C's hold a college near 113 — about the
-top 25 once the curriculum is built — and only A's everywhere reach 150. The
-History tab names the ceiling and says when it binds.
+and the weighted sum. The line is straight since
+[Plan 80F](../plans/80-the-owners-playtest.md) (it was 88 + 62 × mean^1.3,
+which held an all-B campus near 123 and made each grade's first steps worth
+the least): an all-B campus reaches about 128, half B's and half C's 119,
+and only A's everywhere reach 150. The History tab names the ceiling, says
+where a campus of B's tops out, and says when it binds.
 
 **Faculty quality is no longer an input of its own.** It used to average every
 hire's teaching and research straight off the roster, which was the right

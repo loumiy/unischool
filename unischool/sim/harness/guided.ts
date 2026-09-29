@@ -39,7 +39,8 @@ import { playerRank } from '../../src/systems/rivals/rivalsSystem';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { totalEnrolled } from '../../src/state/types';
 import type { Game, Player } from './game';
-import { LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
+import { isRetailFood, LIBRARY_TIER1_ID } from '../../src/data/facilitiesData';
+import { servedPopulationFor } from '../../src/systems/satisfaction/satisfactionSystem';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { canPostSearch, searchCost } from '../../src/systems/faculty/facultySearch';
@@ -152,7 +153,10 @@ export function buildFor(g: Game, attribute: keyof SatisfactionAttributes, reser
       return true;
     }
   }
-  const t = cheapest(buildable(s, reserve).filter((x) => x.kind === 'facility' && x.effects?.satisfactionAttribute === attribute && !x.athleticsVenueReveal));
+  // A grocery past the shops' share of meals would feed nobody more (Plan
+  // 80F); its tile says so.
+  const adds = (x: Buildable) => !isRetailFood(x) || servedPopulationFor(s, attribute, [x]) > servedPopulationFor(s, attribute);
+  const t = cheapest(buildable(s, reserve).filter((x) => x.kind === 'facility' && x.effects?.satisfactionAttribute === attribute && !x.athleticsVenueReveal && adds(x)));
   return t ? site(g, t) : false;
 }
 

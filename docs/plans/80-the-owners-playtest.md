@@ -4,7 +4,7 @@
 playthrough (September 2026), and the owner's answers to the questions they
 raised, into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** A to I merged (#245–#253).
 
 ---
 
@@ -133,6 +133,8 @@ goes.
 E, F and G each move the baseline and land in that order, each on the one
 before, so every re-recording describes one change. F sets the opening
 funds D introduces. Save bumps land in merge order.
+F landed last, after G, so it tunes with athletics in place (G's surplus
+gate money in general income, its capped flagships and scholarships).
 
 **Rules for every PR** (as in Plans 76, 78 and 79):
 - `npm run check` passes; `npm run sim` matches the baseline, or the
@@ -581,6 +583,110 @@ after:
 - **Price:** the overreach above tolerance is counted once.
 - **Checks:** the harness targets above; academic satisfaction at an all-B
   college across class quality; the baseline re-recorded.
+
+**As implemented (#253):**
+
+- **Years 1–2.** `STARTING_TUITION` $16,000 → **$20,000**, just under the
+  founding tolerance ($21,500) and "fair". `admitRate` adds a lift of **0.5**
+  to the logistic up to prestige 50, fading by a smoothstep to nothing at
+  **100**: a founding college opens at **86%** (was 36%), and from 100 the
+  curve is the old one. The class is still held to the room, so it fills the
+  seats: the Guided player's Year 2 body is 436–458 (317–346 before), six
+  courses. **Founding funds $2.9M** (80D's $2.45M): D's formula with six
+  courses, $1.8M + $0.53M of professors + $0.09M carried = $2.43M, and a
+  fifth more.
+- **Facility upkeep charges mainly for overbuilding** (the owner's call on
+  review, over a flat share). Two parts, per need a facility serves:
+  - **Campus upkeep:** `FACILITY_UPKEEP_SHARE` **0.1** of the price a year
+    for every building that serves a need (`PRICE_UPKEEP_TYPES`; floors and
+    expansions priced in, `facilityUpkeepOf`; the towers' shops at the
+    grocery's price a place), about what the old flat $0.5–$2.2 a week a
+    place came to.
+  - **Space beyond need:** capacity past `BEYOND_NEED_FROM` **1.2** of what
+    the students need, in dining, health, social space and study space,
+    costs `BEYOND_NEED_UPKEEP` **6** times as much (`estate/beyondNeed.ts`).
+    Each building in the need pays the extra on the need's share past the
+    line: twice the need pays three times the need's upkeep, three times
+    four. Capacity is the need's own reading (retail to its 40%), the need
+    the dial's; housing stays with its beds line. Its own Treasury line,
+    *Space beyond need*, names each need past the line and how far; a
+    facility's panel reads "Dining: 5,400 places for 3,900 students" (or,
+    for social and study space, the places the students need).
+  - The **Medical Center** keeps its fixed $48k a week, and its places are
+    left out of the reckoning: counted in, they put every other health
+    building 20% past the line, and health carried most of the Guided
+    player's extra.
+  - **The flat share, first:** 80F first charged a year's running costs
+    equal to the price (share 1.0). It took the Guided player's Year 8 net
+    15% under main's ($479k against $566k) and its cash at Years 25 and 50
+    to $22.5M and $33.3M (−38%, −76%), but charged every college for every
+    place: the Guided player finished 318 courses and 25,440 students by
+    Year 50, and the Completionist went into the red (with the Medical
+    Center at its price, the archetypes' "stall, don't die" failed).
+- **Food:** the grocery and the towers' shops count for at most
+  `RETAIL_FOOD_SHARE` **0.4** of the need (`servedPopulationFor`); a demand
+  or the harness never asks for a grocery that would add nothing.
+- **Fitness:** the Athletics Complex feeds health and is filed under Health
+  as the fitness chain's fourth; the Recreation Center stays social.
+- **Academic satisfaction:** teaching **60** points, library **40** (80/20).
+  Teaching reads the courses' mean grade points against what the class
+  expects, 0.73 for an intake of quality 40 or below to 0.92 at 85 or above,
+  from nothing at a C's 0.35. An all-B college with a library reads about 87
+  with a weak class and 72 with the best (`teaching-standard.test.ts` pins
+  70–90; it read 51–67 before). Grade points rather than scores, so "all-B"
+  is exact and the reading is the ceiling's.
+- **Teaching ceiling:** linear, 88 + 62 × mean grade points; B's reach 128
+  (123). History › Prestige says where B's top out.
+- **Price:** the overreach is counted once, in sticker shock: the price
+  factor's 0.75 term is folded into the band rates (0.80, 1.10, 1.40). Every
+  band loses what it lost before, so nothing moved; dropping it instead would
+  have let a college at 1.6× the tolerance keep 57% more applicants.
+- **No state change:** the catalog's terms (upkeep, what a building feeds)
+  are refreshed on load (`refreshAuthoredText`), so saves read them with no
+  version. The backlog's *admit rate's early slope* is done and removed.
+- **Targets** (Guided, three seeds, against main after G; the Year 8 net is
+  the average week of Year 8; lowest cash read after each week):
+
+  | Target | main | 80F |
+  |---|---|---|
+  | Year 2 class seated, no loan, cash ≥ 0 in Years 1–2 | yes; lowest $0.18–0.20M | yes; lowest $0.10–0.13M (its reserve) |
+  | Net a week, Year 2 | $29–37k | $70–74k |
+  | Whole catalog by Year 50 (report median) | 431 courses | **431** (383 on seed 777) |
+  | Enrollment at Year 50 (report median) | 34,480 | **34,480** |
+  | Net a week, Year 8, median | $566k | **$877k (818, 954, 877): not met** |
+  | … per student | $186 | $181 |
+  | Extra for space beyond need, 50 years | — | $5.0M, $5.2M, $36.4M (0.8%, 0.8%, 7.3% of campus upkeep) |
+  | Twice the need nets clearly less (test) | — | yes |
+  | Academic satisfaction, all B's | 51–67 | 72–87 |
+  | Teaching ceiling, all B's | 123 | 128 |
+
+  **Year 8 is not met.** The founding admit rate fills the seats the
+  courses make, so the Guided player has about 45% more students at Year 8
+  (4,640–5,280 against 3,009–3,665) and nets more in total; per student it
+  nets a little less than on main. With a modest normal rate nothing in
+  upkeep can pull it back: only a flat share near 1.0 did, which is what the
+  owner turned down. Seed 777's extra is a large dining hall built ahead
+  of its students. Offered a stronger cost of being large or a softer
+  founding admit rate, the owner chose to merge as is.
+- **The baseline moved** (re-recorded against main's after G; medians): the
+  Guided player grows faster early (Year 10: 7,520 students, +2,636; 94
+  courses, +20), is level by Year 25 (26,400, −400) and at Year 50 is rank
+  1 with 34,480 students and all 431 courses, never in the red; its Year-50
+  cash is $657M (+$519M), which is how lumpy late cash is. The
+  Completionist likewise (431 courses, 34,480 students, cash $127M, +$20M). Lean, which keeps the founding rate too, is no longer held
+  by its pool: 13,715 students at Year 50 (+9,458), rank 31 (−5), cash
+  $1.68B (+$1.63B). Selective: rank 16 (−6), cash +$93M. Idle, which never
+  founds, gains $3.8M from the founding classes' price.
+- **Checks:** `balance.test.ts` (the curve and the founding price and funds;
+  upkeep from the price, floors, expansions, the towers, the Medical Center,
+  refreshed on load; space beyond need: the same college at 100–120% and at
+  twice the need, three times the upkeep at twice, the Treasury line, the
+  panel's sentence, the Medical Center left out; food's share; fitness and
+  the build menu), `treasury.test.ts` (the lines still sum),
+  `teaching-standard.test.ts` (70–90 across class quality; the line),
+  `crowding-pool.test.ts` (counted once), `guided.test.ts` (Year 2 seated
+  with no loan and no week below zero in Years 1–2). `npm run check` and
+  `npm run test:slow` pass; `review:strings`' flagged counts are unchanged.
 
 ## PR 80G — Athletics, deepened
 

@@ -95,19 +95,27 @@ function capacityFactor(capacity: number): number {
 const PRICE_TOLERANCE_BASE = 12_000;            // what a school with no reputation at all can charge
 const PRICE_TOLERANCE_PER_PRESTIGE_POINT = 190; // added per point of prestige
 const PRICE_SENSITIVITY = 1.0;                  // applicants ~ exp(-sensitivity x netPrice/tolerance)
-// Past the tolerance, applicants fall away faster still (Plan 71): each
-// tenth over it costs a further exp(-0.1 x this). Charging past the
-// tolerance takes in more per student but loses more students than it
-// gains, so a high price is a choice about who comes, not a money machine.
-// At or under the tolerance nothing changes.
-const PRICE_OVERREACH_SENSITIVITY = 0.75;
 
 // Sticker shock: price moves who applies, not just how many. Past the
-// tolerance, the low and mid bands self-select away far harder than the top
-// ("undermatching"). Applied as exp(-rate × overreach), where overreach is
-// how far tuition sits past priceTolerance as a fraction of it; no shock at
-// or under tolerance.
-const STICKER_SHOCK_RATE: Record<QualityBand, number> = { top: 0.05, mid: 0.35, low: 0.65 };
+// tolerance, applicants fall away faster than the price alone would drive
+// them, and the low and mid bands self-select away far harder than the top
+// ("undermatching"). Applied per band as exp(-rate × overreach), where
+// overreach is how far tuition sits past priceTolerance as a fraction of it;
+// no shock at or under tolerance.
+//
+// The overreach is counted here once (Plan 80F). From Plan 71 until then
+// the price factor carried a second overreach term, exp(-0.75 × overreach)
+// on every band, beside these rates (0.05, 0.35, 0.65); it is folded in
+// (STICKER_SHOCK_EVERY_BAND), so each band loses exactly what it lost before
+// and the price factor reads the price alone. Charging past the tolerance
+// takes in more per student but loses more students than it gains, so a high
+// price is a choice about who comes, not a money machine.
+const STICKER_SHOCK_EVERY_BAND = 0.75;
+const STICKER_SHOCK_RATE: Record<QualityBand, number> = {
+  top: STICKER_SHOCK_EVERY_BAND + 0.05,
+  mid: STICKER_SHOCK_EVERY_BAND + 0.35,
+  low: STICKER_SHOCK_EVERY_BAND + 0.65,
+};
 
 // Word of mouth: satisfaction's one mechanical effect on demand, applied
 // once a year in the funnel. Deviation from WORD_OF_MOUTH_NEUTRAL is
@@ -121,16 +129,32 @@ const WORD_OF_MOUTH_STRENGTH = 0.60; // max fractional change to the pool: +60% 
 // and what a migrated save resets to. A decreasing logistic, so standing is
 // what lets a school be selective. It is the share of the pool that ends up
 // on campus (there is no yield), fitted so a school taking the default gets
-// a realistic class from prestige 50 up. Admitting deep is paid for in
+// a realistic class from prestige 100 up. Admitting deep is paid for in
 // incoming quality, since the skim runs best band first.
-const ADMIT_RATE_CEILING = 0.38;    // at zero/negative prestige — a brand-new school keeps a good share of the small pool it draws
+const ADMIT_RATE_CEILING = 0.38;    // the logistic's top, at zero/negative prestige
 const ADMIT_RATE_FLOOR = 0.055;     // the most selective a school can ever be, at the very top of the prestige scale
 const ADMIT_RATE_MIDPOINT = 100;    // prestige at which the rate sits halfway between floor and ceiling
 const ADMIT_RATE_STEEPNESS = 0.06;  // curve steepness around the midpoint
 
-export function admitRate(prestige: number): number {
+// A small college takes most of the few who apply (Plan 80F): below
+// ADMIT_RATE_EARLY_UNTIL the curve sits ADMIT_RATE_EARLY_LIFT above the
+// logistic, so a founding college (prestige 50) opens at about 86%; the
+// lift fades out smoothly (a smoothstep) and is gone by
+// ADMIT_RATE_EARLY_GONE, where the curve is the logistic's. The class is
+// still held to the room (instructionCapacity.ts's intakeCeiling), so a
+// college admitting deep fills its seats rather than overflowing them.
+const ADMIT_RATE_EARLY_LIFT = 0.5;
+const ADMIT_RATE_EARLY_UNTIL = 50;
+const ADMIT_RATE_EARLY_GONE = 100;
+
+function admitRateLogistic(prestige: number): number {
   return ADMIT_RATE_FLOOR + (ADMIT_RATE_CEILING - ADMIT_RATE_FLOOR) /
     (1 + Math.exp(ADMIT_RATE_STEEPNESS * (prestige - ADMIT_RATE_MIDPOINT)));
+}
+
+export function admitRate(prestige: number): number {
+  const u = clamp((ADMIT_RATE_EARLY_GONE - prestige) / (ADMIT_RATE_EARLY_GONE - ADMIT_RATE_EARLY_UNTIL), 0, 1);
+  return admitRateLogistic(prestige) + ADMIT_RATE_EARLY_LIFT * u * u * (3 - 2 * u);
 }
 
 // --- Quality distribution: fractions of the pool in each band ---
@@ -198,7 +222,7 @@ function applicantVolumeParts(prestige: number, price: number, capacity: number)
   const prestigePool = APPLICANT_VOLUME_FLOOR + APPLICANTS_AT_REFERENCE
     * (Math.max(0, prestige - APPLICANT_VOLUME_ZERO_PRESTIGE) / (APPLICANT_VOLUME_REFERENCE_PRESTIGE - APPLICANT_VOLUME_ZERO_PRESTIGE)) ** APPLICANT_VOLUME_CURVE;
   const ratio = Math.max(price, 0) / priceTolerance(prestige);
-  const priceFactor = Math.exp(-PRICE_SENSITIVITY * ratio - PRICE_OVERREACH_SENSITIVITY * Math.max(0, ratio - 1));
+  const priceFactor = Math.exp(-PRICE_SENSITIVITY * ratio);
   return { prestigePool, priceFactor, capacityFactor: capacityFactor(capacity) };
 }
 
