@@ -12,9 +12,10 @@ import { treeOutline } from './trees';
 
 // The land around the campus (Plan 81B): a ring of country drawn past the
 // parcel's edge on every side, so the campus stands somewhere rather than
-// on a board in space. The road runs on off both ends; fields divided by
-// hedgerows, woods, a low town edge along the road, and gentle hills rising
-// away from a flat valley floor, all fading into haze with distance.
+// on a board in space. The road runs on off both ends; farm fields told
+// apart by their colors alone (Plan 81D), open grass with scattered trees,
+// a low town edge along the road, and gentle hills rising away from a flat
+// valley floor, all fading into haze with distance.
 //
 // Drawing only, and not state: the land is generated from the college's
 // name (a seeded hash, as the rivals' colors are), so it is the same on
@@ -35,11 +36,10 @@ export const FLAT = 26;
 // The haze, as a radius about the parcel's center in tiles: clear to
 // HAZE_START, solid by HAZE_SOLID (at the opening pitch; lower pitches pull
 // both in, see hazeOf). Nothing is drawn further than HAZE_CULL from the
-// parcel's edge, where it is all but solid, and no hedge past HEDGE_REACH.
+// parcel's edge, where it is all but solid.
 const HAZE_START = 72;
 const HAZE_SOLID = 238;
 const HAZE_CULL = 180;
-const HEDGE_REACH = 130;
 
 // The height field, in screen units as authored at the default pitch (the
 // motifs' `up` unit, about 4.35 to a meter). The whole valley rises a
@@ -53,24 +53,24 @@ const HILLS = 30;
 // shapes in any order. test/surroundings.test.ts holds it.
 export const MAX_SLOPE = 7;
 
-// The land is sampled on a grid this many tiles apart (the woods' outlines
-// and the hills' light are traced on it), over the ring and a tile beyond.
+// The land is sampled on a grid this many tiles apart (the hills' light is
+// traced on it), over the ring and a tile beyond.
 const STEP = 4;
 const G0 = -RING - 1;
 const GN = (GW + 2 * RING + 2) / STEP + 1;
 
-// Where the woods stand: the wood value (woodValue) above this. Pine where
-// the pine value is above PINE_AT too.
-export const WOOD_AT = 0.57;
-const PINE_AT = 0.6;
-
 // Sprites stop where the haze all but hides them.
-const TREES_MAX = 56;
-const CLUMPS_MAX = 150;
-const CLUMP_REACH = 115;
+// Scattered trees (Plan 81D): the campus's own tree art on the valley floor,
+// at most TREES_MAX; past it single crowns, at most CROWNS_MAX, out to
+// CROWN_REACH. Both thin with distance (TREE_FALLOFF tiles to fall by e).
+export const TREES_MAX = 40;
+export const CROWNS_MAX = 200;
+const CROWN_REACH = 125;
+const TREE_FALLOFF = 55;
 
-// A field's cover. Farm fields (crop, hay, plough) are hedged; meadow and
-// rough grass lie open between the woods; the woods are shapes of their own.
+// A field's cover. Farm fields are crop, hay or plough, with no border
+// (Plan 81D): neighbours differ in cover, so their colors tell them apart.
+// Meadow and rough grass lie open, with trees scattered over them.
 export type Cover = 'meadow' | 'rough' | 'crop' | 'hay' | 'plough' | 'town';
 const FARM: ReadonlySet<Cover> = new Set(['crop', 'hay', 'plough']);
 export const isFarm = (c: Cover) => FARM.has(c);
@@ -84,7 +84,8 @@ export interface House {
   wallH: number; ridge: number; wall: number; roof: number;
 }
 export interface TreeSpot { col: number; row: number; species: Species; scale: number; }
-export interface Clump { col: number; row: number; size: number; pine: boolean; }
+// A tree past the valley floor, drawn as a simple crown.
+export interface Crown { col: number; row: number; scale: number; pine: boolean; }
 // A closed outline on the grid, in tiles.
 export type Loop = { col: number; row: number }[];
 
@@ -95,19 +96,13 @@ export interface Land {
   hills: Hill[];
   houses: House[];
   trees: TreeSpot[];
-  clumps: Clump[];
+  crowns: Crown[];
   // Lanes through the town: [c0, r0, c1, r1], straight runs.
   lanes: [number, number, number, number][];
-  // The woods' outlines (broadleaf, and the pine within it), and the hills'
-  // light: outlines of the ground lit a little and more, shaded a little and
-  // more. Filled even-odd, so a clearing is a hole.
-  woods: Loop[];
-  pines: Loop[];
+  // The hills' light: outlines of the ground lit a little and more, shaded
+  // a little and more. Filled even-odd, so a hollow in the light is a hole.
   light: [Loop[], Loop[]];
   shadow: [Loop[], Loop[]];
-  // The wood value sampled on the grid, as built (before any mirroring).
-  wood: Float64Array;
-  mirrored: boolean;
   // The far hills' outline: phases of its waves.
   ridge: number[];
 }
@@ -125,25 +120,6 @@ function rng(seed: number): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-}
-
-// Smooth value noise in [0, 1], seeded: a lattice of hashed values eased
-// between, two octaves.
-function noise(seed: number, scale: number): (col: number, row: number) => number {
-  const at = (ix: number, iy: number, salt: number) => {
-    let h = Math.imul(ix, 374761393) ^ Math.imul(iy, 668265263) ^ Math.imul(seed + salt, 2246822519);
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-  };
-  const octave = (x: number, y: number, salt: number) => {
-    const ix = Math.floor(x); const iy = Math.floor(y);
-    const fx = x - ix; const fy = y - iy;
-    const u = fx * fx * (3 - 2 * fx); const v = fy * fy * (3 - 2 * fy);
-    const a = at(ix, iy, salt); const b = at(ix + 1, iy, salt);
-    const c = at(ix, iy + 1, salt); const d = at(ix + 1, iy + 1, salt);
-    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-  };
-  return (col, row) => 0.68 * octave(col / scale, row / scale, 0) + 0.32 * octave(col / (scale * 0.38), row / (scale * 0.38), 7);
 }
 
 // Distance from a grid point to the parcel, in tiles; 0 on it.
@@ -175,21 +151,6 @@ export function heightAt(land: Pick<Land, 'hills'>, col: number, row: number): n
     if (q < 1) h += hill.height * (1 - q) * (1 - q);
   }
   return h;
-}
-
-// The wood value at a grid point, read off the grid it was built on: woods
-// stand where it is above WOOD_AT.
-export function woodValue(land: Land, col: number, row: number): number {
-  const c = land.mirrored ? GW - col : col;
-  const x = (c - G0) / STEP;
-  const y = (row - G0) / STEP;
-  const i = Math.floor(x); const j = Math.floor(y);
-  if (i < 0 || j < 0 || i >= GN - 1 || j >= GN - 1) return -1;
-  const fx = x - i; const fy = y - j;
-  const g = land.wood;
-  const a = g[j * GN + i]!; const b = g[j * GN + i + 1]!;
-  const cc = g[(j + 1) * GN + i]!; const d = g[(j + 1) * GN + i + 1]!;
-  return a + (b - a) * fx + (cc - a) * fy + (a - b - cc + d) * fx * fy;
 }
 
 // The outlines of where `v` is above `at` on the land's grid (marching
@@ -281,8 +242,8 @@ function buildLand(name: string): Land {
   const rand = rng(seed);
   const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]!;
   const land: Land = {
-    town: rand() < 0.5 ? 'west' : 'east', fields: [], hills: [], houses: [], trees: [], clumps: [], lanes: [],
-    woods: [], pines: [], light: [[], []], shadow: [[], []], wood: new Float64Array(0), mirrored: false, ridge: [],
+    town: rand() < 0.5 ? 'west' : 'east', fields: [], hills: [], houses: [], trees: [], crowns: [], lanes: [],
+    light: [[], []], shadow: [[], []], ridge: [],
   };
   land.ridge = Array.from({ length: 6 }, () => rand() * Math.PI * 2);
 
@@ -322,31 +283,11 @@ function buildLand(name: string): Land {
     return Math.max(smooth((64 - off) / 30), smooth((56 - town) / 26)) * (1 - smooth((height - 170) / 160));
   };
 
-  // The land on the grid: its height, its light, and where the woods stand.
-  // Woods take the high ground and the far country and leave the farms, the
-  // road, the town and the campus's edge open; the noise breaks them into
-  // woods with meadows and clearings between.
-  const woodNoise = noise(seed ^ 0x5bd1e995, 44);
-  const pineNoise = noise(seed ^ 0x27d4eb2f, 60);
+  // The land's height on the grid, for its light.
   const heights = new Float64Array(GN * GN);
-  const wood = new Float64Array(GN * GN);
-  const pine = new Float64Array(GN * GN);
   for (let j = 0; j < GN; j++) {
-    for (let i = 0; i < GN; i++) {
-      const col = G0 + i * STEP; const row = G0 + j * STEP;
-      const h = heightAt(land, col, row);
-      heights[j * GN + i] = h;
-      const d = parcelDistance(col, row);
-      const edge = i === 0 || j === 0 || i === GN - 1 || j === GN - 1;
-      const open = edge || d < 4 || d > HAZE_CULL + 4 || (row > road0 - 4 && row < GH + 4) || inTown(col, row, 3);
-      wood[j * GN + i] = open ? -1
-        : woodNoise(col, row) + 0.16 * smooth((h - 30) / 180) + 0.2 * smooth((40 - d) / 26) - 0.9 * farmness(col, row, h);
-      pine[j * GN + i] = open ? -1 : Math.min(wood[j * GN + i]! - WOOD_AT, pineNoise(col, row) - PINE_AT);
-    }
+    for (let i = 0; i < GN; i++) heights[j * GN + i] = heightAt(land, G0 + i * STEP, G0 + j * STEP);
   }
-  land.wood = wood;
-  land.woods = outlines(wood, WOOD_AT);
-  land.pines = outlines(pine, 0);
   const lightGrid = new Float64Array(GN * GN);
   for (let j = 0; j < GN; j++) {
     for (let i = 0; i < GN; i++) {
@@ -359,11 +300,10 @@ function buildLand(name: string): Land {
   const neg = lightGrid.map((x) => -x);
   land.light = [outlines(lightGrid, LIGHT_STEPS[0]), outlines(lightGrid, LIGHT_STEPS[1])];
   land.shadow = [outlines(neg, LIGHT_STEPS[0]), outlines(neg, LIGHT_STEPS[1])];
-  const isWood = (col: number, row: number) => woodValue(land, col, row) > WOOD_AT;
 
   // Fields: each block cut in two, again and again, into fields that grow
   // with distance from the parcel. Farm fields by the road and the town;
-  // meadow and rough grass elsewhere, under and between the woods.
+  // meadow and rough grass elsewhere.
   const blocks: [number, number, number, number][] = [
     [-RING, -RING, GW + RING, -2],
     [-RING, -2, -2, townN.r0],
@@ -383,7 +323,7 @@ function buildLand(name: string): Land {
     const size = 7 + d * 0.26;
     if (w <= size * 1.35 && h <= size * 1.35) {
       const height = heightAt(land, cc, cr);
-      const farm = !isWood(cc, cr) && rand() < farmness(cc, cr, height) * 2;
+      const farm = rand() < farmness(cc, cr, height) * 2;
       const cover: Cover = d < 3 ? 'meadow'
         : farm ? pick(['crop', 'crop', 'hay', 'hay', 'plough'] as const)
           : rand() < 0.45 ? 'rough' : 'meadow';
@@ -400,54 +340,34 @@ function buildLand(name: string): Land {
   };
   for (const [c0, r0, c1, r1] of blocks) cut(c0, r0, c1, r1);
   land.fields.push({ ...townN, cover: 'town' }, { ...townS, cover: 'town' });
+  unlikeNeighbours(land.fields, rand);
 
-  // Trees: the campus's own art at the edges of the woods on the valley
-  // floor and in copses in the meadows beside them; clumps of crowns along
-  // the woods' edges and in copses further out. Inside a wood only its
-  // canopy shows (Surroundings.tsx's pattern).
+  // Trees, scattered (Plan 81D): one here and there, now and then two or
+  // three together, thinning away from the campus into the haze. The
+  // campus's own art on the valley floor, a simple crown past it. None on
+  // the road or in the town.
   const trees: TreeSpot[] = [];
-  const clumps: Clump[] = [];
-  const species = (pineWood: boolean): Species => (pineWood ? (rand() < 0.85 ? 'conifer' : 'canopy')
-    : pick(['canopy', 'canopy', 'canopy', 'canopy', 'conifer', 'ornamental'] as const));
-  const pineAt = (col: number, row: number) => land.pines.length > 0 && pineNoise(col, row) > PINE_AT;
-  for (const loop of land.woods) {
-    for (let k = 0; k < loop.length; k++) {
-      const a = loop[k]!; const b = loop[(k + 1) % loop.length]!;
-      const len = Math.hypot(b.col - a.col, b.row - a.row);
-      for (let t = 0; t < len; t += 2.4) {
-        const col = a.col + ((b.col - a.col) * t) / len + (rand() - 0.5) * 1.2;
-        const row = a.row + ((b.row - a.row) * t) / len + (rand() - 0.5) * 1.2;
-        const d = parcelDistance(col, row);
-        if (d >= 3 && d < FLAT - 1) {
-          if (rand() < 0.7) trees.push({ col, row, species: species(pineAt(col, row)), scale: 0.85 + rand() * 0.45 });
-        } else if (d >= FLAT && d < CLUMP_REACH && rand() < 0.4) {
-          clumps.push({ col, row, size: 3.4 + d * 0.035, pine: pineAt(col, row) });
-        }
-      }
-    }
-  }
-  // Copses: a few trees together out in the open, thinning away from the
-  // woods.
-  for (let tries = 0; tries < 900; tries++) {
-    const col = -90 + rand() * (GW + 180);
-    const row = -90 + rand() * (GH + 180);
+  const crowns: Crown[] = [];
+  const species = (): Species => pick(['canopy', 'canopy', 'canopy', 'canopy', 'conifer', 'conifer', 'ornamental'] as const);
+  const clear = (col: number, row: number) => parcelDistance(col, row) >= 3 && !(row > road0 - 2 && row < GH + 2) && !inTown(col, row, 2);
+  for (let tries = 0; tries < 6000; tries++) {
+    const col = -CROWN_REACH + rand() * (GW + 2 * CROWN_REACH);
+    const row = -CROWN_REACH + rand() * (GH + 2 * CROWN_REACH);
     const d = parcelDistance(col, row);
-    const v = woodValue(land, col, row);
-    if (d < 4 || d > CLUMP_REACH || v > WOOD_AT || v < WOOD_AT - 0.14 || inTown(col, row, 2)) continue;
-    if (row > road0 - 3 && row < GH + 3) continue;
-    const n = 2 + Math.floor(rand() * 4);
+    if (d < 3 || d > CROWN_REACH || rand() > 0.5 * Math.exp(-d / TREE_FALLOFF)) continue;
+    const x = rand();
+    const n = x < 0.72 ? 1 : x < 0.92 ? 2 : 3;
     for (let m = 0; m < n; m++) {
-      const c = col + (rand() - 0.5) * 4;
-      const r = row + (rand() - 0.5) * 4;
-      if (r > road0 - 1 && r < GH + 1) continue;
+      const c = m === 0 ? col : col + (rand() - 0.5) * 3;
+      const r = m === 0 ? row : row + (rand() - 0.5) * 3;
+      if (!clear(c, r)) continue;
       const dd = parcelDistance(c, r);
-      if (dd < 3) continue;
-      if (dd < FLAT - 1) trees.push({ col: c, row: r, species: species(false), scale: 0.8 + rand() * 0.5 });
-      else clumps.push({ col: c, row: r, size: 2.6 + dd * 0.02, pine: false });
+      if (dd < FLAT - 1) trees.push({ col: c, row: r, species: species(), scale: 0.8 + rand() * 0.5 });
+      else crowns.push({ col: c, row: r, scale: 0.85 + rand() * 0.4, pine: rand() < 0.28 });
     }
   }
   land.trees = thin(trees, TREES_MAX, rand);
-  land.clumps = thin(clumps, CLUMPS_MAX, rand);
+  land.crowns = thin(crowns, CROWNS_MAX, rand);
 
   // Houses along the road, the lanes, and a farm or two out on the far side.
   const houses: House[] = [];
@@ -489,20 +409,56 @@ function buildLand(name: string): Land {
     }
   }
   // Farms: a house and a barn at the corner of a farm field out along the
-  // road the other way, clear of the woods.
+  // road the other way.
   const farmland = land.fields.filter((f) => isFarm(f.cover) && f.c0 > GW && f.c1 - f.c0 > 11 && f.r1 - f.r0 > 9
     && rectDistance(f.c0, f.r0, f.c1, f.r1) < 60);
   for (let i = 0; i < 3 && farmland.length; i++) {
     const f = farmland.splice(Math.floor(rand() * farmland.length), 1)[0]!;
     const col = f.c0 + 2 + rand() * 2;
     const row = f.r1 - 5 - rand() * 2;
-    if (isWood(col, row) || isWood(col + 5.8, row + 1)) continue;
     house(col, row, 1.6, 1.2, 2);
     houses.push({ col: col + 3, row: row - 0.6, w: 2.8, h: 1.7, wallH: 18, ridge: 16, wall: -1, roof: 1 });
   }
   land.houses = houses;
+  // No tree stands in a farmyard.
+  const yard = (t: { col: number; row: number }) => houses.some((h) =>
+    t.col > h.col - 1 && t.col < h.col + h.w + 1 && t.row > h.row - 1 && t.row < h.row + h.h + 1);
+  land.trees = land.trees.filter((t) => !yard(t));
+  land.crowns = land.crowns.filter((t) => !yard(t));
 
   return land.town === 'west' ? land : mirror(land);
+}
+
+// Farm fields have no border (Plan 81D), so two that touch along an edge
+// must not share a cover. Each field starts from the cover it drew; then,
+// pass after pass, a field that shares its cover with a neighbour takes the
+// cover fewest of its neighbours have (a random one of those), until none
+// clash or the passes run out. Three covers cannot colour every patchwork:
+// a field still sharing its cover with a neighbour then lies fallow, as
+// rough grass.
+const FARM_COVERS = ['crop', 'hay', 'plough'] as const;
+export function fieldsTouch(a: Field, b: Field): boolean {
+  return (Math.min(a.c1, b.c1) > Math.max(a.c0, b.c0) && (a.r1 === b.r0 || b.r1 === a.r0))
+    || (Math.min(a.r1, b.r1) > Math.max(a.r0, b.r0) && (a.c1 === b.c0 || b.c1 === a.c0));
+}
+function unlikeNeighbours(fields: Field[], rand: () => number): void {
+  const farms = fields.filter((f) => isFarm(f.cover));
+  const near = farms.map((f) => farms.filter((g) => g !== f && fieldsTouch(f, g)));
+  for (let pass = 0; pass < 40; pass++) {
+    let clashes = 0;
+    farms.forEach((f, i) => {
+      const count = (c: Cover) => near[i]!.filter((g) => g.cover === c).length;
+      if (count(f.cover) === 0) return;
+      clashes += 1;
+      const least = Math.min(...FARM_COVERS.map(count));
+      const best = FARM_COVERS.filter((c) => count(c) === least);
+      f.cover = best[Math.floor(rand() * best.length)]!;
+    });
+    if (clashes === 0) break;
+  }
+  farms.forEach((f, i) => {
+    if (near[i]!.some((g) => g.cover === f.cover)) f.cover = 'rough';
+  });
 }
 
 // At most `max` of `xs`, dropped evenly rather than from one end.
@@ -518,15 +474,12 @@ function mirror(land: Land): Land {
   const loops = (ls: Loop[]) => ls.map((l) => l.map((p) => ({ col: c(p.col), row: p.row })));
   return {
     ...land,
-    mirrored: true,
     fields: land.fields.map((f) => ({ ...f, c0: c(f.c1), c1: c(f.c0) })),
     hills: land.hills.map((h) => ({ ...h, col: c(h.col) })),
     houses: land.houses.map((h) => ({ ...h, col: c(h.col + h.w) })),
     trees: land.trees.map((t) => ({ ...t, col: c(t.col) })),
-    clumps: land.clumps.map((k) => ({ ...k, col: c(k.col) })),
+    crowns: land.crowns.map((k) => ({ ...k, col: c(k.col) })),
     lanes: land.lanes.map(([c0, r0, c1, r1]) => [c(c0), r0, c(c1), r1]),
-    woods: loops(land.woods),
-    pines: loops(land.pines),
     light: [loops(land.light[0]), loops(land.light[1])],
     shadow: [loops(land.shadow[0]), loops(land.shadow[1])],
   };
@@ -536,8 +489,8 @@ function mirror(land: Land): Land {
 
 export type RingSprite =
   | { kind: 'tree'; key: string; y: number; tree: TreeSpot }
-  // A run of clumps, near in depth, merged into four shapes.
-  | { kind: 'clumps'; key: string; y: number; body: string; top: string; pineBody: string; pineTop: string }
+  // A run of far trees' crowns, near in depth, merged into four shapes.
+  | { kind: 'crowns'; key: string; y: number; body: string; top: string; pineBody: string; pineTop: string }
   | { kind: 'house'; key: string; y: number; house: House; walls: { d: string; dir: FaceDir }[]; roofs: { d: string; dir: FaceDir }[] };
 
 export interface RingView {
@@ -545,10 +498,6 @@ export interface RingView {
   base: string;
   // Each cover's fields, one path each; the flat meadows are the plate.
   covers: { cover: Cover; d: string }[];
-  hedges: string;
-  // The woods, broadleaf and pine, each one even-odd path.
-  woods: string;
-  pines: string;
   // The hills' light over everything on the ground: a little lit, more lit,
   // a little shaded, more shaded.
   light: [string, string];
@@ -657,37 +606,27 @@ function circleD(cx: number, cy: number, r: number): string {
   return `M${f1(cx - r)},${f1(cy)}a${f1(r)},${f1(r)} 0 1,0 ${f1(2 * r)},0a${f1(r)},${f1(r)} 0 1,0 ${f1(-2 * r)},0Z`;
 }
 
-// A clump of woodland: a mound of crowns, lit on the sun's side (always
-// toward the top, as a tree's cap is). Sized in screen units off its
-// spacing, so neighbours touch.
-function clumpShape(foot: Pt, size: number, pine: boolean, standing: number, hs: number): { body: string; top: string; pts: Pt[] } {
-  const r = size * 9;
-  const lift0 = r * 0.35 * hs;
-  const pts: Pt[] = [];
+// A far tree: one crown on a short stem, lit on the sun's side (always
+// toward the top, as a tree's cap is), or a pine's spire. The size of the
+// campus's own trees (trees.tsx), so it reads as a tree and never as a wood.
+function crownShape(foot: Pt, scale: number, pine: boolean, standing: number, hs: number): { body: string; top: string; pts: Pt[] } {
   if (pine) {
-    const spires = [[-0.55, 0.05, 0.8], [0.5, 0.1, 0.75], [0, -0.1, 1]] as const;
-    const body: string[] = [];
-    const top: string[] = [];
-    for (const [dx, dy, k] of spires) {
-      const bx = foot.x + dx * r;
-      const by = foot.y + dy * r * standing - lift0 * 0.5;
-      const w = r * 0.42 * k;
-      const tall = r * 1.5 * k * Math.max(0.3, standing);
-      body.push(`M${f1(bx - w)},${f1(by)}L${f1(bx + w)},${f1(by)}L${f1(bx)},${f1(by - tall)}Z`);
-      top.push(`M${f1(bx - w * 0.45)},${f1(by - tall * 0.55)}L${f1(bx + w * 0.45)},${f1(by - tall * 0.55)}L${f1(bx)},${f1(by - tall)}Z`);
-      pts.push({ x: bx - w, y: by }, { x: bx + w, y: by - tall });
-    }
-    return { body: body.join(''), top: top.join(''), pts };
+    const w = 11 * scale;
+    const base = foot.y - 8 * scale * hs;
+    const tall = 34 * scale * Math.max(0.3, standing);
+    return {
+      body: `M${f1(foot.x - w)},${f1(base)}L${f1(foot.x + w)},${f1(base)}L${f1(foot.x)},${f1(base - tall)}Z`,
+      top: `M${f1(foot.x - w * 0.45)},${f1(base - tall * 0.55)}L${f1(foot.x + w * 0.45)},${f1(base - tall * 0.55)}L${f1(foot.x)},${f1(base - tall)}Z`,
+      pts: [{ x: foot.x - w, y: foot.y }, { x: foot.x + w, y: base - tall }],
+    };
   }
-  const crowns = [[-0.55, 0.12, 0.55], [0.55, 0.14, 0.52], [0, -0.12, 0.62], [-0.28, -0.42, 0.44], [0.3, -0.38, 0.42]] as const;
-  const body = crowns.map(([dx, dy, k]) => {
-    const cx = foot.x + dx * r;
-    const cy = foot.y - lift0 + dy * r * standing;
-    pts.push({ x: cx - k * r, y: cy - k * r }, { x: cx + k * r, y: cy + k * r });
-    return circleD(cx, cy, k * r);
-  }).join('');
-  const top = [[-0.2, -0.52, 0.3], [0.32, -0.46, 0.26]].map(([dx, dy, k]) => circleD(foot.x + dx * r, foot.y - lift0 + dy * r * standing, k * r)).join('');
-  return { body, top, pts };
+  const r = 17 * scale;
+  const cy = foot.y - 18 * scale * hs - r * 0.7 * standing;
+  return {
+    body: circleD(foot.x, cy, r),
+    top: circleD(foot.x - r * 0.28, cy - r * 0.35 * standing, r * 0.55),
+    pts: [{ x: foot.x - r, y: cy - r }, { x: foot.x + r, y: foot.y }],
+  };
 }
 
 // A house or barn: walls on the sides the camera sees (a gable end rises to
@@ -735,7 +674,6 @@ export function ringView(name: string): RingView {
 
 function buildView(land: Land): RingView {
   const byCover = new Map<Cover, string[]>();
-  const hedges: string[] = [];
   for (const f of land.fields) {
     const pts = outline(land, f.c0, f.r0, f.c1, f.r1);
     if (f.cover !== 'meadow') {
@@ -743,8 +681,6 @@ function buildView(land: Land): RingView {
       list.push(polyD(pts));
       byCover.set(f.cover, list);
     }
-    // Hedgerows round the farm fields; the far ones are lost in the haze.
-    if (isFarm(f.cover) && rectDistance(f.c0, f.r0, f.c1, f.r1) < HEDGE_REACH) hedges.push(polyD(pts));
   }
   const covers = [...byCover.entries()].map(([cover, ds]) => ({ cover, d: ds.join('') }));
   const loopsD = (ls: Loop[]) => ls.map((l) => polyD(l.map((p) => at(land, p.col, p.row)))).join('');
@@ -778,18 +714,19 @@ function buildView(land: Land): RingView {
     const sprite: RingSprite = { kind: 'house', key: `h${i}`, y: shape.y, house: h, walls: shape.walls, roofs: shape.roofs };
     (inFront(shape.foot, shape.pts) ? front : back).push(sprite);
   });
-  // The clumps, in runs of a dozen by depth: each run is four shapes, so a
-  // far clump's light can show on a near one's crown within a run, which
-  // at their distance and in their haze does not read.
-  const clumps = land.clumps.map((k) => {
+  // The far trees, in runs of sixteen by depth: each run is four shapes, so
+  // within a run a far tree's light could show on a near one's crown, which
+  // with the trees this far apart and this deep in the haze does not happen
+  // to any eye.
+  const crowns = land.crowns.map((k) => {
     const foot = at(land, k.col, k.row);
-    return { k, foot, shape: clumpShape(foot, k.size, k.pine, standing, hs) };
+    return { k, foot, shape: crownShape(foot, k.scale, k.pine, standing, hs) };
   }).sort((p, q) => p.foot.y - q.foot.y);
-  for (let i = 0; i < clumps.length; i += 12) {
-    const run = clumps.slice(i, i + 12);
+  for (let i = 0; i < crowns.length; i += 16) {
+    const run = crowns.slice(i, i + 16);
     const part = (pine: boolean, top: boolean) => run.filter((c) => c.k.pine === pine).map((c) => (top ? c.shape.top : c.shape.body)).join('');
     const sprite: RingSprite = {
-      kind: 'clumps', key: `c${i}`, y: run[run.length - 1]!.foot.y,
+      kind: 'crowns', key: `c${i}`, y: run[run.length - 1]!.foot.y,
       body: part(false, false), top: part(false, true), pineBody: part(true, false), pineTop: part(true, true),
     };
     (run.some((c) => inFront(c.foot, c.shape.pts)) ? front : back).push(sprite);
@@ -800,9 +737,6 @@ function buildView(land: Land): RingView {
   return {
     base: polyPoints(boxFaces(-RING, -RING, GW + 2 * RING, GH + 2 * RING, 0, 0).top),
     covers,
-    hedges: hedges.join(''),
-    woods: loopsD(land.woods),
-    pines: loopsD(land.pines),
     light: [loopsD(land.light[0]), loopsD(land.light[1])],
     shadow: [loopsD(land.shadow[0]), loopsD(land.shadow[1])],
     ridges: [ridgeline(land, 150, 640, 0), ridgeline(land, 118, 380, 3)],

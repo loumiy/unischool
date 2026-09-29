@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask, that the
 campus feel like a place and not a model hanging in space, into PRs.*
 
-**Status: Landed.** A to C merged (#254, #255, #256).
+**Status: Landed.** A to D merged (#254, #255, #256, #257).
 
 ---
 
@@ -32,6 +32,7 @@ beside the faster renderer, which would carry elevation natively.
 | A | This plan; the backlog | no | no |
 | B | The land around the campus | no | no |
 | C | Fewer fields, more woods and hills | no | no |
+| D | Open grass, scattered trees | no | no |
 
 ## PR 81B — The land around the campus
 
@@ -192,6 +193,71 @@ The owner, on 81B's pictures: less farmland, more trees, more hills.
   turned view, winter, Saint Aldric in Mission, a phone), and
   `81c-before-*` the year-30 campus from main at the widest zoom and the
   lowest pitch.
+
+## PR 81D — Open grass, scattered trees
+
+The owner, on 81C's pictures: "The woods don't look good, delete those and
+leave it as plain grass with some scattered trees." And then: "On the
+farmland, the borders look too harsh, try no border."
+
+- **No woods:** their shapes, edges, clearings, pine and clumps go; where
+  they stood, the meadow and rough grass already there.
+- **Scattered trees:** single trees and the odd group of two or three, in
+  the campus's own tree art near it and simple crowns further out, thinning
+  with distance into the haze; bare or dusted in winter as the campus's
+  are. No more nodes than 81C.
+- **No borders on the farmland:** no hedgerow, stroke or outline round a
+  field, in any season (the gray lines in the snow go too). Neighbours
+  are told apart by their fill colors alone, so no two that touch share
+  one.
+- **Kept:** the farms by the road and the town, the road and
+  the town, the hills with their light and shade, the far hills at a low
+  pitch, the haze, the camera's leash, winter and the vernaculars.
+- **Checks:** no wood shapes, no field borders, touching fields unlike,
+  and a sparse band of trees, tested; the farm-share checks kept; `npm run check`, `npm run phone`, the sim
+  unchanged; a turn and a steady frame timed against main; 81C's set of
+  pictures again, a view of the fields close to, and a before of the
+  year-30 campus at the widest zoom.
+
+**As implemented (#257):**
+
+- **No woods.** 81C's wood outlines, their edges, clearings and pine, the
+  canopy patterns and the clumps are gone; the grass beneath (meadow and
+  rough grass) shows where they stood.
+- **Scattered trees:** a tree here and there, one time in four or so two
+  or three together, thinning with distance (by e every 55 tiles) and
+  none on the road, in the town or in a farmyard. On the valley floor the
+  campus's own tree art (34–40 per college, at most 40); past it, out to
+  125 tiles, a single crown on a short stem or a pine's spire, the size of
+  a campus tree (196–200, at most 200), merged sixteen to a run. They go
+  bare in winter and the pines take a dusting, as on campus. The test
+  holds the counts in a sparse band, that they thin with distance, and
+  that no tree has more than a small group within four tiles.
+- **No borders on the farmland:** the hedgerows, their stroke and the
+  `--hedge` color are gone. A hairline in each field's own color closes
+  the seam between two fills. No two touching farm fields share a cover
+  (`unlikeNeighbours`: pass after pass a clashing field takes the cover
+  fewest of its neighbours have; one still clashing lies fallow as rough
+  grass), and under snow each keeps a little of its own color (the
+  stubble whitest, the grass paler, the plough darkest), so neighbours
+  read apart in winter too. Tested: no pair alike. Farmland 20–21%.
+- **Cost:** about 550 ring nodes (81C about 650). Built once per name and
+  per view, hidden through a turn. Against main (81C), production builds,
+  main-thread CPU from a trace, medians of 12 turns, runs alternating:
+
+  | | Main | 81D |
+  |---|---|---|
+  | The whole turn (4 runs) | 810–863 ms | 792–825 ms |
+  | The frame that settles it | 86–98 ms | 76–102 ms |
+  | A frame at Play (walkers) | 26–28 ms | 25–28 ms |
+
+  A frame at Play costs the same; without the woods the page draws a
+  few more of them a second (15 to 17 in headless Chromium), so the main
+  thread's time per second is up by that much.
+- **Checks:** `npm run check`, `npm run phone`; the sim unchanged.
+  `docs/reviews/2026-10-campus-fixes/81d-*.jpg`: 81C's set again, the
+  fields close to in summer and winter (`81d-8`, `81d-9`), and
+  `81d-before-2-year30-wide.jpg` from main.
 
 ## 2. The backlog
 

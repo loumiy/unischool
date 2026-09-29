@@ -55,52 +55,19 @@ function Sprite({ sprite, vernacular, snow }: { sprite: RingSprite; vernacular: 
       const t = sprite.tree;
       return <TreeAt col={t.col} row={t.row} species={t.species} scale={t.scale} />;
     }
-    case 'clumps':
+    case 'crowns':
       return (
         <>
-          {sprite.body && <path className="ring-clump" d={sprite.body} />}
-          {sprite.top && <path className="ring-clump-top" d={sprite.top} />}
-          {sprite.pineBody && <path className="ring-pine-clump" d={sprite.pineBody} />}
-          {sprite.pineTop && <path className="ring-pine-clump-top" d={sprite.pineTop} />}
+          {sprite.body && <path className="ring-crown" d={sprite.body} />}
+          {sprite.top && <path className="ring-crown-top" d={sprite.top} />}
+          {sprite.pineBody && <path className="ring-pine-crown" d={sprite.pineBody} />}
+          {sprite.pineTop && <path className="ring-pine-crown-top" d={sprite.pineTop} />}
         </>
       );
     case 'house':
       return <HouseSprite h={sprite.house} walls={sprite.walls} roofs={sprite.roofs} vernacular={vernacular} snow={snow} />;
   }
 }
-
-// A wood's canopy seen from above, as a texture: crowns lit on the sun's
-// side over the wood's own floor, so a wood reads as trees without a shape
-// for each. In the world's units, like the crowns of the campus's trees; the
-// crowns take the season's colors (and go bare), as those do.
-const CANOPY = [
-  [14, 12, 17], [52, 6, 15], [88, 16, 19], [128, 8, 16], [164, 18, 15],
-  [30, 40, 18], [72, 44, 16], [110, 38, 19], [150, 48, 17], [6, 64, 15],
-  [46, 74, 19], [92, 70, 15], [132, 80, 18], [172, 72, 14], [20, 96, 16], [112, 102, 15], [64, 104, 13],
-] as const;
-const PINES = [
-  [12, 22, 11], [40, 14, 12], [70, 26, 10], [100, 12, 12], [132, 24, 11], [160, 14, 12],
-  [26, 56, 12], [58, 50, 11], [88, 60, 12], [118, 48, 10], [148, 58, 12], [174, 52, 10],
-  [8, 90, 11], [40, 94, 12], [74, 88, 10], [104, 98, 12], [136, 90, 11], [166, 100, 12],
-] as const;
-// Kept through a turn, so the frame that settles it does not build them
-// again.
-const CanopyPatterns = memo(function CanopyPatterns() {
-  return (
-    <>
-      <pattern id="ring-canopy" patternUnits="userSpaceOnUse" width={180} height={108}>
-        <rect className="ring-canopy-floor" width={180} height={108} />
-        {CANOPY.map(([x, y, r], i) => <circle key={i} className="ring-clump" cx={x} cy={y} r={r} />)}
-        {CANOPY.map(([x, y, r], i) => <circle key={`t${i}`} className="ring-clump-top" cx={x - r * 0.3} cy={y - r * 0.35} r={r * 0.5} />)}
-      </pattern>
-      <pattern id="ring-pines" patternUnits="userSpaceOnUse" width={180} height={108}>
-        <rect className="ring-pine-floor" width={180} height={108} />
-        {PINES.map(([x, y, r], i) => <path key={i} className="ring-pine-clump" d={`M${x - r},${y + r}L${x + r},${y + r}L${x},${y - r * 1.6}Z`} />)}
-        {PINES.map(([x, y, r], i) => <path key={`t${i}`} className="ring-pine-clump-top" d={`M${x - r * 0.45},${y - r * 0.3}L${x + r * 0.45},${y - r * 0.3}L${x},${y - r * 1.6}Z`} />)}
-      </pattern>
-    </>
-  );
-});
 
 // The ring's plate and its road, flat: all a turn draws.
 function flatPlate(): { base: string; road: string } {
@@ -123,7 +90,7 @@ function useRestView(name: string, turning: boolean): RingView {
   return rest.current;
 }
 
-// The ground: its fields, lanes, road and hedges.
+// The ground: its fields, lanes and road.
 const RingGround = memo(function RingGround({ view }: { view: RingView }) {
   return (
     <>
@@ -132,10 +99,7 @@ const RingGround = memo(function RingGround({ view }: { view: RingView }) {
       <path className="campus-road" d={view.road} />
       <path className="campus-road-kerb" d={view.kerbs} />
       <path className="campus-road-centre" d={view.centre} />
-      <path className="ring-hedge" d={view.hedges} />
-      <path className="ring-woods" d={view.woods} />
-      <path className="ring-pines" d={view.pines} />
-      {/* The hills' light, over the fields and the woods alike. */}
+      {/* The hills' light, over the fields and the grass alike. */}
       <path className="ring-lit" d={view.light[0]} />
       <path className="ring-lit" d={view.light[1]} />
       <path className="ring-shaded" d={view.shadow[0]} />
@@ -172,7 +136,6 @@ export const RingBack = memo(function RingBack({ name, vernacular, camera, turni
           <stop offset={0} className="ring-haze-stop" stopOpacity={0} />
           <stop offset={1} className="ring-haze-stop" stopOpacity={haze.depth} />
         </linearGradient>
-        <CanopyPatterns />
       </defs>
       <polygon className="ring-base" points={flat ? flat.base : view.base} />
       {flat && <path className="campus-road" d={flat.road} />}
