@@ -183,13 +183,6 @@ a sequence of PRs.*
   search is what a retention offer would reuse, salaries scale with
   standing so a poach has a price, and the closing elite band gives a
   poacher a motive. The athletics side already works (`coach-poached`).
-- **The admit rate's early slope.** `admitRate(prestige)` still seeds a
-  founding college at about 36% (`admissionsSystem.ts`: ceiling 0.38,
-  midpoint 100) where about 86% would suit a small school; the slider
-  then opens at last year's rate. Plan 05's fit reproduced the old
-  funnel's class sizes rather than the rate a player should want. A
-  re-fit wants its own probe (the old `ADMIT_PROBES` went with Plan 63)
-  and a pass of the scorecard after it. Deferred by Plan 70.
 - **A school-wide budget, and a CFO to run it.** Most expense lines are
   still derived from what the college owns and enrolls, so underfunding
   can only have a consequence where there is a lever. The levers that

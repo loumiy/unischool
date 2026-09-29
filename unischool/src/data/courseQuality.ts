@@ -28,6 +28,18 @@ export function gradeFor(score: number): Grade {
   return 'F';
 }
 
+// Grade points (Plan 71): what a grade is worth where the courses are read
+// together, by prestige's teaching ceiling (prestigeSystem.ts) and, since
+// Plan 80F, by academic satisfaction (satisfactionSystem.ts). A campus of
+// B's averages 0.65.
+export const GRADE_POINTS: Record<Grade, number> = { A: 1, B: 0.65, C: 0.35, D: 0.1, F: 0 };
+
+// The mean grade points of a set of course scores; 0 for none.
+export function meanGradePoints(scores: readonly number[]): number {
+  if (scores.length === 0) return 0;
+  return scores.reduce((sum, score) => sum + GRADE_POINTS[gradeFor(score)], 0) / scores.length;
+}
+
 // --- Load: what a full plate costs the courses on it. ---
 // Scales with how close the instructor is to their own slot ceiling
 // (exceeding it is impossible in play): one course is taught at full

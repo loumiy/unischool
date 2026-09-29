@@ -1,7 +1,7 @@
 import type { Buildable, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus } from '../../state/types';
 import { isPlaceableKind } from '../../state/campusMap';
-import { LIBRARY_FLOOR_MAX, LIBRARY_TIER1_ID, nextLibraryFloor } from '../../data/facilitiesData';
+import { LIBRARY_FLOOR_MAX, LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion, PRICE_UPKEEP_TYPES, priceUpkeep } from '../../data/facilitiesData';
 
 // The estate (Plan 26, ported from v2's estate.ts): what the buildings cost
 // to keep, and what skimping does to them. Every finished building has an
@@ -109,6 +109,25 @@ export function extensionGain(t: Buildable): number {
   return Math.round((serves / (1 + EXTENSION_GAIN * (t.floorsAdded ?? 0))) * EXTENSION_GAIN);
 }
 
+// A facility whose upkeep is a share of its price (facilitiesData.ts's
+// PRICE_UPKEEP_TYPES, Plan 80F): what it cost, and what its added floors
+// and expansions cost, each on its own plan. A capital project (the Medical
+// Center) keeps its authored upkeep.
+export function isPriceUpkept(t: Buildable): boolean {
+  return t.kind === 'facility' && t.facilityType !== undefined && PRICE_UPKEEP_TYPES.has(t.facilityType) && t.project === undefined;
+}
+export function facilityPrice(t: Buildable): number {
+  let price = t.cost;
+  for (let i = 0; i < (t.floorsAdded ?? 0); i += 1) {
+    price += isLibrary(t) ? nextLibraryFloor({ ...t, floorsAdded: i })?.cost ?? 0 : Math.round(t.cost * EXTENSION_COST_SHARE);
+  }
+  for (let i = 0; i < (t.expansions ?? 0); i += 1) price += nextVenueExpansion({ ...t, expansions: i })?.cost ?? 0;
+  return price;
+}
+export function facilityUpkeepOf(t: Buildable): number {
+  return priceUpkeep(facilityPrice(t));
+}
+
 function finishExtension(s: GameState, t: Buildable): void {
   const gain = extensionGain(t);
   t.floorsAdded = (t.floorsAdded ?? 0) + 1;
@@ -118,7 +137,7 @@ function finishExtension(s: GameState, t: Buildable): void {
     const serves = (t.effects.servesPopulation ?? 0) + gain;
     const upkeep = t.effects.upkeepPerWeek ?? 0;
     const per = (t.effects.servesPopulation ?? 0) > 0 ? upkeep / (t.effects.servesPopulation ?? 1) : 0;
-    t.effects = { ...t.effects, servesPopulation: serves, upkeepPerWeek: Math.round(serves * per) };
+    t.effects = { ...t.effects, servesPopulation: serves, upkeepPerWeek: isPriceUpkept(t) ? facilityUpkeepOf(t) : Math.round(serves * per) };
   }
 }
 

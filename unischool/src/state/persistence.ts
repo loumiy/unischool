@@ -10,6 +10,7 @@ import { recordUnlocks } from './unlocks';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
+import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { isSweepStep } from '../systems/finance/sweep';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
@@ -895,9 +896,9 @@ function looksLikeGameState(value: unknown): value is GameState {
 // otherwise reach new runs only. Descriptions are always the catalog's; a
 // name is the catalog's for a course (nothing renames a course), while a
 // building's may be a donor's (eventData.ts's naming rights) and is kept.
-let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project' | 'duration'>> | null = null;
+let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project' | 'duration' | 'effects'>> | null = null;
 function refreshAuthoredText(state: GameState): void {
-  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project, duration: t.duration }]));
+  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project, duration: t.duration, effects: t.effects }]));
   for (const t of state.tech) {
     const authored = catalogText.get(t.id);
     if (!authored) continue;
@@ -910,6 +911,16 @@ function refreshAuthoredText(state: GameState): void {
     // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
     // was started with, so its progress still reads against them.
     if (t.kind === 'course' && (t.status === 'locked' || t.status === 'available')) t.duration = authored.duration;
+    // What a building feeds and what it costs to keep are the catalog's
+    // (Plan 80F: the Athletics Complex feeds health; a facility's upkeep is
+    // a share of its price, its floors and expansions with it; the towers'
+    // shops are kept at the grocery's price). No state shape changes, so no
+    // save version: a loaded run reads the new terms as a new one does.
+    if (t.effects && authored.effects) {
+      if (authored.effects.satisfactionAttribute !== undefined) t.effects.satisfactionAttribute = authored.effects.satisfactionAttribute;
+      if (isPriceUpkept(t)) t.effects.upkeepPerWeek = facilityUpkeepOf(t);
+      else if (t.kind === 'dorm' && authored.effects.upkeepPerWeek !== undefined) t.effects.upkeepPerWeek = authored.effects.upkeepPerWeek;
+    }
   }
 }
 

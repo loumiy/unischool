@@ -1,7 +1,8 @@
 import { hostedPrograms, isGraduateHost, MEDICAL_CENTER_ID, MEDICAL_CENTER_PROJECT, PROJECTS, projectOpens } from './projectData';
 import type { Buildable, FacilityType } from '../state/types';
+import { WEEKS_PER_YEAR } from '../state/types';
 import { FOUNDING_BODY } from './foundingData';
-import { count } from '../format';
+import { count, pct } from '../format';
 
 // Campus-life facilities: `facility`-kind Buildables on the shared machinery
 // (docs/architecture/buildables.md; do not fork a subsystem). Each serves a
@@ -16,34 +17,37 @@ import { count } from '../format';
 // Facility tuning: facilities are a cost that arrives first. Enrollment
 // dilutes every ratio the week admissions commits it, so the fix must be
 // bought, and its upkeep carried, before that class's tuition lands. Build
-// costs are roughly a third to a half of the dorm with a similar bed count;
-// per-served upkeep is a visible slice of tuition, highest for dining and
-// health (staff-heavy).
-const UPKEEP_PER_SERVED_PER_WEEK: Record<string, number> = {
-  diningHall: 2.2,
-  grocery: 1.0,           // shelving/registers, lighter than a full-service dining hall's kitchen staff
-  library: 0.9,
-  studentCenter: 1.0,
-  recCenter: 1.1,
-  healthCenter: 1.6,
-  gym: 1.0,               // fitness staff and equipment upkeep, in line with the student center
-  tennisCourts: 0.5,      // outdoor courts, minimal staffing
-  pool: 1.5,              // lifeguards plus chemical/mechanical upkeep — pricier per head than a gym
-  artGallery: 0.7,        // curatorial and security staff, lighter than a working venue
-  // Varsity venues host competition, so they cost more per head than the
-  // recreational trio above.
-  athleticsField: 0.9,
-  athleticsArena: 1.4,
-  athleticsDiamond: 1.0,
-  athleticsNatatorium: 1.8, // a competition pool: timing equipment and certified officials, pricier than the rec Swimming Pool above
-  footballStadium: 1.2,
-  fieldHouse: 1.0,          // weight rooms, a training floor, treatment rooms — no stand
-};
-
-// Exported for engine/reducer.ts's RENOVATE_LIBRARY, so the rate lives in one place.
-export function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WEEK, servesPopulation: number): number {
-  return Math.round(UPKEEP_PER_SERVED_PER_WEEK[facilityType] * servesPopulation);
+// costs are roughly a third to a half of the dorm with a similar bed count.
+//
+// Upkeep is a share of the price (Plan 80F): a year's running costs are
+// FACILITY_UPKEEP_SHARE of what the building cost, its added floors and
+// expansions with it (estate.ts's facilityUpkeepOf), paid in full however
+// few students it serves, so capacity built past need is a real bill. Until
+// Plan 80F it was a flat $0.5–$2.2 a week for each student served, a
+// twentieth to a third of the price a year, and trivial beside tuition. The
+// share is fitted to the harness (`npm run sim`, the plan's note): the
+// smallest round share at which the Guided player's net at Year 8 falls
+// well below what it was (about 15%, against a college that now grows
+// faster from its opening) and its cash at Years 25 and 50 falls, so money
+// stays a constraint for longer (docs/design/economy.md). Staff, supplies
+// and food, not only the fabric: a dining hall's year costs what it did to
+// build.
+export const FACILITY_UPKEEP_SHARE = 1.0;
+export function priceUpkeep(price: number): number {
+  return Math.round((price * FACILITY_UPKEEP_SHARE) / WEEKS_PER_YEAR);
 }
+
+// The facilities whose upkeep is a share of their price: every building
+// that serves students a need (the grocery, dining, library, the social,
+// fitness and health buildings, the varsity venues), each priced by
+// priceUpkeep. The towers' shops follow the grocery's price a place
+// (campusData.ts's TOWER_RETAIL_UPKEEP_PER_WEEK). Quads, amenities,
+// landmarks, capital projects (the Medical Center among them), labs, halls
+// and dorms keep their own upkeep.
+export const PRICE_UPKEEP_TYPES: ReadonlySet<FacilityType> = new Set<FacilityType>([
+  'diningHall', 'grocery', 'library', 'studentCenter', 'recCenter', 'healthCenter', 'gym', 'tennisCourts', 'pool', 'artGallery',
+  'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium', 'fieldHouse',
+]);
 
 // --- Dining hall: repeatable chain, basic need, scales hard with capacity ---
 // basicNeeds carries the steepest under-capacity penalty
@@ -53,8 +57,10 @@ export function servedUpkeep(facilityType: keyof typeof UPKEEP_PER_SERVED_PER_WE
 // and taper to ~1.35x, so each is a meaningful share of campus dining and
 // visibly bigger on the map (campusMap.ts's DINING_FOOTPRINTS reads
 // servesPopulation). The chain serves 47,050; with the grocery and the
-// towers' retail (campusData.ts) the campus feeds about 70,000 at 1:1. Cost
-// per seat climbs (1.3k -> 2.4k), like the dorm chain.
+// towers' retail (campusData.ts) the campus feeds about 70,000 at 1:1, but
+// those shops count for at most RETAIL_FOOD_SHARE of the need, so a campus
+// of 34,000 needs the dining halls through the seventh. Cost per seat climbs
+// (1.3k -> 2.4k), like the dorm chain.
 const DINING_STARTING_ID = 'DINING-01';
 const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly the founding (all-commuter) class
 // Cheap and quick, so feeding the founding class does not swallow the
@@ -98,7 +104,7 @@ function diningChain(): Buildable[] {
       effects: {
         servesPopulation: DINING_STARTING_SERVES,
         satisfactionAttribute: 'basicNeeds',
-        upkeepPerWeek: servedUpkeep('diningHall', DINING_STARTING_SERVES),
+        upkeepPerWeek: priceUpkeep(DINING_STARTING_COST),
       },
     },
   ];
@@ -119,7 +125,7 @@ function diningChain(): Buildable[] {
       effects: {
         servesPopulation: rung.serves,
         satisfactionAttribute: 'basicNeeds',
-        upkeepPerWeek: servedUpkeep('diningHall', rung.serves),
+        upkeepPerWeek: priceUpkeep(rung.cost),
       },
     });
     previousId = rung.id;
@@ -130,13 +136,28 @@ function diningChain(): Buildable[] {
 
 // --- Campus grocery store: single building, basicNeeds, population-gated ---
 // A second basicNeeds feeder: one building unlocked past a population gate,
-// a late-game top-up to close the dining chain's max-buildout gap. Cheaper
-// per seat and in upkeep than a dining hall (no kitchen).
+// a late-game top-up beside the dining chain, counted to RETAIL_FOOD_SHARE
+// of the need with the towers' shops. Cheaper per seat, and so in upkeep,
+// than a dining hall (no kitchen).
 export const GROCERY_POPULATION_GATE = 8_000;
 const GROCERY_ID = 'GROCERY-01';
 const GROCERY_SERVES = 17_500;
 const GROCERY_COST = 15_750_000; // 900/seat
 const GROCERY_WEEKS = 26;
+// What a place at the grocery cost: the towers' shops are kept at it
+// (campusData.ts's TOWER_RETAIL_UPKEEP_PER_WEEK).
+export const GROCERY_PRICE_PER_PLACE = GROCERY_COST / GROCERY_SERVES;
+
+// Food (Plan 80F): the grocery and the towers' shops (campusData.ts's
+// TOWER_RETAIL_SERVES) feed students, but together they count for at most
+// RETAIL_FOOD_SHARE of what the students need to eat
+// (satisfactionSystem.ts's servedPopulationFor); the dining halls carry the
+// rest. Before, the grocery's 17,500 places at $900 each, beside five dining
+// halls, fed a campus of 34,000, and the last three halls were never needed.
+export const RETAIL_FOOD_SHARE = 0.4;
+export function isRetailFood(t: Buildable): boolean {
+  return t.effects?.satisfactionAttribute === 'basicNeeds' && (t.facilityType === 'grocery' || t.kind === 'dorm');
+}
 
 // --- Library: single building, academic ---
 // One building, its capacity grown by renovation (floors on tier 1). The
@@ -198,12 +219,13 @@ const STUDENT_CENTER_TIER2_WEEKS = 26;
 // dining chains, so recreation reads as a queue. The gym opens behind the
 // Health & Counseling Center, not the Recreation Center (Plan 68): a college
 // short of health could not see the way to it through a social building. BuildPopup.tsx's
-// TYPE_MATCHERS groups them under 'recCenter'. Costs are not monotonic
+// TYPE_MATCHERS groups the four as Fitness, under Health. Costs are not monotonic
 // along the chain; the order is judgment. The Athletics Complex also needs
 // REC_CENTER_TIER2_PRESTIGE_GATE (techSystem.ts's meetsUnlockGates).
 //
-// Recreation Center and Athletics Complex feed `social`; gym, pool and
-// tennis feed `health`, which needs scaling capacity of its own.
+// The Recreation Center feeds `social`; the gym, pool, tennis courts and,
+// since Plan 80F, the Athletics Complex feed `health`, which needs scaling
+// capacity of its own. The build menu files the four under Health.
 //
 // Rec facilities are never varsity venues: competition venues are separate
 // Buildables below (the rec pool vs. the natatorium), so a rec facility's
@@ -227,7 +249,9 @@ const TENNIS_COURTS_ID = 'TENNIS-COURTS';
 const TENNIS_COURTS_SERVES = 2_000;
 const TENNIS_COURTS_COST = 700_000;
 const TENNIS_COURTS_WEEKS = 18;
-const REC_CENTER_TIER2_ID = 'REC-T2';
+// Exported for the build menu, which files it with the fitness chain
+// under Health (BuildPopup.tsx).
+export const REC_CENTER_TIER2_ID = 'REC-T2';
 const REC_CENTER_TIER2_SERVES = 3_500;
 const REC_CENTER_TIER2_COST = 1_900_000;
 const REC_CENTER_TIER2_WEEKS = 36;
@@ -429,6 +453,11 @@ export const HEALTH_CENTER_TIER3_ID = 'HLTH-T3';
 const HEALTH_CENTER_TIER3_SERVES = 30_000;
 const HEALTH_CENTER_TIER3_COST = 19_500_000; // 650/seat
 const HEALTH_CENTER_TIER3_WEEKS = 62;
+// The Medical Center is a capital project (projectData.ts), and keeps an
+// authored upkeep as the other projects do ($30k–$55k a week): what it was
+// at $1.60 a week for each of its 30,000 places before Plan 80F. At a year's
+// price it would cost $19.5M a year, eight times any other project.
+const HEALTH_CENTER_TIER3_UPKEEP = 48_000;
 
 // --- Green space/quad: single, cheap, FLAT (non-population-scaling) bonus ---
 // Worth the same at any enrollment, which is why it is cheap and worth
@@ -497,7 +526,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'grocery',
       name: 'Campus Grocery Store',
-      description: `A full grocery store for ${count(GROCERY_SERVES)} students — a second basic-needs option alongside the dining halls. Can be built once enrollment passes ${count(GROCERY_POPULATION_GATE)}.`,
+      description: `A full grocery store for ${count(GROCERY_SERVES)} students — a second basic-needs option alongside the dining halls, though with the towers' shops it covers ${pct(RETAIL_FOOD_SHARE)} of meals at most. Can be built once enrollment passes ${count(GROCERY_POPULATION_GATE)}.`,
       cost: GROCERY_COST,
       duration: GROCERY_WEEKS,
       prereqs: [],
@@ -505,7 +534,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: GROCERY_SERVES,
         satisfactionAttribute: 'basicNeeds',
-        upkeepPerWeek: servedUpkeep('grocery', GROCERY_SERVES),
+        upkeepPerWeek: priceUpkeep(GROCERY_COST),
       },
     },
 
@@ -524,7 +553,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: LIBRARY_TIER1_SERVES,
         satisfactionAttribute: 'academic',
-        upkeepPerWeek: servedUpkeep('library', LIBRARY_TIER1_SERVES),
+        upkeepPerWeek: priceUpkeep(LIBRARY_TIER1_COST),
       },
     },
 
@@ -543,7 +572,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: STUDENT_CENTER_TIER1_SERVES,
         satisfactionAttribute: 'social',
-        upkeepPerWeek: servedUpkeep('studentCenter', STUDENT_CENTER_TIER1_SERVES),
+        upkeepPerWeek: priceUpkeep(STUDENT_CENTER_TIER1_COST),
       },
     },
     {
@@ -560,7 +589,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: STUDENT_CENTER_TIER2_SERVES,
         satisfactionAttribute: 'social',
-        upkeepPerWeek: servedUpkeep('studentCenter', STUDENT_CENTER_TIER2_SERVES),
+        upkeepPerWeek: priceUpkeep(STUDENT_CENTER_TIER2_COST),
       },
     },
 
@@ -581,7 +610,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: REC_CENTER_TIER1_SERVES,
         satisfactionAttribute: 'social',
         prestigeContribution: REC_CENTER_TIER1_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('recCenter', REC_CENTER_TIER1_SERVES),
+        upkeepPerWeek: priceUpkeep(REC_CENTER_TIER1_COST),
       },
     },
     {
@@ -600,7 +629,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: GYM_SERVES,
         satisfactionAttribute: 'health',
-        upkeepPerWeek: servedUpkeep('gym', GYM_SERVES),
+        upkeepPerWeek: priceUpkeep(GYM_COST),
       },
     },
     {
@@ -616,7 +645,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: POOL_SERVES,
         satisfactionAttribute: 'health',
-        upkeepPerWeek: servedUpkeep('pool', POOL_SERVES),
+        upkeepPerWeek: priceUpkeep(POOL_COST),
       },
     },
     {
@@ -632,7 +661,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: TENNIS_COURTS_SERVES,
         satisfactionAttribute: 'health',
-        upkeepPerWeek: servedUpkeep('tennisCourts', TENNIS_COURTS_SERVES),
+        upkeepPerWeek: priceUpkeep(TENNIS_COURTS_COST),
       },
     },
     {
@@ -640,16 +669,17 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'recCenter',
       name: 'Athletics Complex',
-      description: `The last of the recreation buildings: a complex adding ${count(REC_CENTER_TIER2_SERVES)} more social capacity and a bigger prestige lift, though not a competition venue. Can be built at prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}.`,
+      description: `The last of the fitness buildings: a complex keeping ${count(REC_CENTER_TIER2_SERVES)} more students fit, and a bigger prestige lift, though not a competition venue. Can be built at prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}.`,
       cost: REC_CENTER_TIER2_COST,
       duration: REC_CENTER_TIER2_WEEKS,
       prereqs: [TENNIS_COURTS_ID],
       status: 'locked',
       effects: {
         servesPopulation: REC_CENTER_TIER2_SERVES,
-        satisfactionAttribute: 'social',
+        // Fitness is health (Plan 80F); the Recreation Center stays social.
+        satisfactionAttribute: 'health',
         prestigeContribution: REC_CENTER_TIER2_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('recCenter', REC_CENTER_TIER2_SERVES),
+        upkeepPerWeek: priceUpkeep(REC_CENTER_TIER2_COST),
       },
     },
 
@@ -667,7 +697,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: ART_GALLERY_SERVES,
         satisfactionAttribute: 'social',
-        upkeepPerWeek: servedUpkeep('artGallery', ART_GALLERY_SERVES),
+        upkeepPerWeek: priceUpkeep(ART_GALLERY_COST),
       },
     },
 
@@ -687,7 +717,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: ATHLETICS_FIELD_SERVES,
         satisfactionAttribute: 'social',
         prestigeContribution: ATHLETICS_FIELD_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('athleticsField', ATHLETICS_FIELD_SERVES),
+        upkeepPerWeek: priceUpkeep(ATHLETICS_FIELD_COST),
       },
     },
     {
@@ -705,7 +735,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: ATHLETICS_ARENA_SERVES,
         satisfactionAttribute: 'social',
         prestigeContribution: ATHLETICS_ARENA_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('athleticsArena', ATHLETICS_ARENA_SERVES),
+        upkeepPerWeek: priceUpkeep(ATHLETICS_ARENA_COST),
       },
     },
     {
@@ -723,7 +753,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: ATHLETICS_DIAMOND_SERVES,
         satisfactionAttribute: 'social',
         prestigeContribution: ATHLETICS_DIAMOND_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('athleticsDiamond', ATHLETICS_DIAMOND_SERVES),
+        upkeepPerWeek: priceUpkeep(ATHLETICS_DIAMOND_COST),
       },
     },
     {
@@ -741,7 +771,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: ATHLETICS_NATATORIUM_SERVES,
         satisfactionAttribute: 'social',
         prestigeContribution: ATHLETICS_NATATORIUM_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('athleticsNatatorium', ATHLETICS_NATATORIUM_SERVES),
+        upkeepPerWeek: priceUpkeep(ATHLETICS_NATATORIUM_COST),
       },
     },
     {
@@ -759,7 +789,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: FOOTBALL_STADIUM_SERVES,
         satisfactionAttribute: 'social',
         prestigeContribution: FOOTBALL_STADIUM_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('footballStadium', FOOTBALL_STADIUM_SERVES),
+        upkeepPerWeek: priceUpkeep(FOOTBALL_STADIUM_COST),
       },
     },
     {
@@ -777,7 +807,7 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: FIELD_HOUSE_SERVES,
         satisfactionAttribute: 'social',
         prestigeContribution: FIELD_HOUSE_PRESTIGE,
-        upkeepPerWeek: servedUpkeep('fieldHouse', FIELD_HOUSE_SERVES),
+        upkeepPerWeek: priceUpkeep(FIELD_HOUSE_COST),
       },
     },
 
@@ -796,7 +826,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: HEALTH_CENTER_TIER1_SERVES,
         satisfactionAttribute: 'health',
-        upkeepPerWeek: servedUpkeep('healthCenter', HEALTH_CENTER_TIER1_SERVES),
+        upkeepPerWeek: priceUpkeep(HEALTH_CENTER_TIER1_COST),
       },
     },
     {
@@ -813,7 +843,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: HEALTH_CENTER_TIER2_SERVES,
         satisfactionAttribute: 'health',
-        upkeepPerWeek: servedUpkeep('healthCenter', HEALTH_CENTER_TIER2_SERVES),
+        upkeepPerWeek: priceUpkeep(HEALTH_CENTER_TIER2_COST),
       },
     },
     {
@@ -833,7 +863,7 @@ export function initialFacilities(): Buildable[] {
       effects: {
         servesPopulation: HEALTH_CENTER_TIER3_SERVES,
         satisfactionAttribute: 'health',
-        upkeepPerWeek: servedUpkeep('healthCenter', HEALTH_CENTER_TIER3_SERVES),
+        upkeepPerWeek: HEALTH_CENTER_TIER3_UPKEEP,
       },
     },
 

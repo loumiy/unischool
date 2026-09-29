@@ -63,7 +63,9 @@ const near = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) < eps;
   const at = (ratio: number) => projectAdmissions(prestige, Math.round(tolerance * ratio), 5_000, 70, NEUTRAL_COHORT_SIGNALS);
   assert(near(at(1).factors.priceFactor, Math.exp(-1), 1e-3), 'at the tolerance the price costs exp(-1) of the pool, as before');
   assert(near(at(0.5).factors.priceFactor, Math.exp(-0.5), 1e-3), 'under it, exp(-ratio), as before');
-  assert(at(1.6).factors.priceFactor < Math.exp(-1.6) * 0.7, 'past it, applicants fall away faster than below it');
+  assert(near(at(1.6).factors.priceFactor, Math.exp(-1.6), 1e-3), 'past it the price factor is still exp(-ratio): the overreach is counted once, in sticker shock (Plan 80F)');
+  const priced = (ratio: number) => at(ratio).factors.priceFactor * at(ratio).factors.stickerShock;
+  assert(priced(1.6) < Math.exp(-1.6) * 0.7, 'past it, applicants fall away faster than below it');
   const take = (ratio: number) => at(ratio).applicants * tolerance * ratio;
   assert(take(1.6) < take(1.3) && take(1.3) < take(1), 'past the tolerance a higher price takes in less');
 }

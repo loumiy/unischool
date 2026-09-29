@@ -1,5 +1,6 @@
 import type { Buildable } from '../state/types';
 import { count } from '../format';
+import { GROCERY_PRICE_PER_PLACE, priceUpkeep } from './facilitiesData';
 
 // Housing capacity comes only from this `dorm` Buildable chain on the shared
 // machinery (docs/architecture/buildables.md), via effects.capacityBonus.
@@ -65,10 +66,10 @@ const DORM_RUNGS: DormRung[] = [
   { id: 'DORM-15', name: 'Aurora Tower', beds: 5_000, cost: 360_000_000, weeks: 57, blurb: 'The tallest residential tower on campus, under a glass crown, with shops and a food hall at street level.', retailServes: TOWER_RETAIL_SERVES },
 ];
 
-// Priced at the grocery rate (facilitiesData.ts's
-// UPKEEP_PER_SERVED_PER_WEEK.grocery, 1.0/served/wk). A literal so this file
-// stays free of facility imports; keep the two in step.
-const TOWER_RETAIL_UPKEEP_PER_WEEK = TOWER_RETAIL_SERVES * 1.0;
+// The shops are kept as the grocery is (Plan 80F): a year's upkeep is
+// facilitiesData.ts's FACILITY_UPKEEP_SHARE of their price, taken at the
+// grocery's price a place.
+export const TOWER_RETAIL_UPKEEP_PER_WEEK = priceUpkeep(TOWER_RETAIL_SERVES * GROCERY_PRICE_PER_PLACE);
 
 export function initialDorms(): Buildable[] {
   const nodes: Buildable[] = [

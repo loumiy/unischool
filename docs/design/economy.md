@@ -149,6 +149,47 @@ the trajectories now).
 its building, a kitchen 30% of its dining hall, the boiler 12% of the standing
 residence halls, a storm 3% of everything standing, floored at $60k.
 
+**Facility upkeep is a share of the price** ([Plan
+80F](../plans/80-the-owners-playtest.md)). Every building that serves students
+a need (dining, the grocery, the library, the student center, the recreation,
+fitness and health buildings, the varsity venues) costs
+`FACILITY_UPKEEP_SHARE` of what it cost to build, a year, to run: at 1.0, a
+year's running costs are the price again (`facilitiesData.ts`'s
+`priceUpkeep`). Its added floors and expansions are priced in
+(`estate.ts`'s `facilityUpkeepOf`), and the towers' shops are kept at the
+grocery's price a place. It is paid in full however few students the building
+serves, so capacity built past need is a real bill. Until then upkeep was a
+flat $0.5–$2.2 a week for each student served, a twentieth to a third of the
+price a year, and trivial beside tuition: the owner's playtest netted $1.1M a
+week at Year 8 with nothing to spend it on. The share is fitted to the harness,
+not set by hand: the smallest round share at which the Guided player's net
+at Year 8 falls well below what it was, and its cash at Years 25 and 50 falls,
+while Years 1–5 stay as easy as the new opening makes them. Measured (three
+seeds, medians): the Guided player nets $479k a week in Year 8 against
+$566k, and holds $22.5M at Year 25 and $33.3M at Year 50 against $36.3M and
+$137.6M. It builds the late catalogue more slowly: 318 courses and 25,440
+students at Year 50, against all 431 and 34,480 (the plan's note has the
+rest). It is what a need costs per student that it raises (about
+$1,500–$3,000 a year a student across the five needs, against tuition of
+$20,000–$40,000), so a college reaches the break, where the next student
+costs what they pay, sooner, and a college that builds everything spends some
+weeks in the red. Quads, amenities, landmarks, capital projects (the Medical
+Center among them: at a year's price it would cost eight times any other
+project), labs, halls and dorms keep their own upkeep. A loaded save reads
+the new upkeep: the catalog's terms are refreshed on load (`persistence.ts`),
+with no save version.
+
+**The opening's money** (Plan 80F). The founding classes pay $20,000 (was
+$16,000), just under the founding price tolerance, and a small college admits
+about 86% of its applicants ([admissions.md](admissions.md)), so the class
+fills the room the courses make. The gift is $2.9M, derived as Plan 80D asked
+(`foundingData.ts`): the six courses that seat the Guided player's Year 2
+body of about 455, a professor each for a year, the courses carried for a
+year, and a fifth more. The Guided player seats its Year 2 class without a
+loan and never runs out of cash in Years 1–2 (`test/guided.test.ts`); its
+lowest cash there is the few weeks' reserve it keeps, and it nets $45–60k a
+week in Year 2 against $30–40k before.
+
 **Crowded from day one** (Plan 80D). The college opens with no course, so
 its 350 founding students have no places until the first courses are
 taught: instruction coverage reads zero, and the crowding it brings is
@@ -279,9 +320,9 @@ less than the harness's price, or whose costs run a tenth higher, stalled
 for a decade on a gift of $1.4M. The gift was $3.0M (`FOUNDING_PRESET`)
 from then until Plan 80D, when the college began opening with nothing to
 teach: the gift now pays for the courses that seat the Year 2 headcount,
-with the professors they need, and about a fifth to spare — $2.45M,
-provisional until Plan 80F sets it from the harness (the arithmetic is in
-`foundingData.ts` and the plan's note). The boom that
+with the professors they need, and about a fifth to spare — $2.45M
+provisionally, and $2.9M since Plan 80F set it from the harness (see "The
+opening's money" above; the arithmetic is in `foundingData.ts`). The boom that
 follows a founding that works (the catalogue built by Year 15, first place
 by Year 17) is left open for the owner: every cost lever measured tips the
 economy into a stall before it slows the boom, so the fix is a mechanism
