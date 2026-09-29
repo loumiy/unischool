@@ -1,6 +1,7 @@
 // Sandbox mode (the title screen's Sandbox, src/systems/sandbox): a run
 // founded as a sandbox never runs short of funds, and a building placed or
-// a course started is finished by the same action. A normal run is not
+// a course started is finished by the same action, and every building is
+// open from the start. A normal run is not
 // touched, and a sandbox run is never hung in the hall of fame.
 
 import { teachingCollege } from './fixtures/teaching';
@@ -38,7 +39,11 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
   assert(s.sandbox === true && s.started, 'a sandbox founding is a sandbox run');
   assert(s.finance.cash === SANDBOX_CASH, `and opens with the sandbox's funds (${s.finance.cash})`);
   assert(Object.keys(s.developing).length === 0, 'with nothing left under way');
+  const placeable = s.tech.filter((t) => isPlaceableKind(t));
+  const shut = placeable.filter((t) => t.status === 'locked');
+  assert(shut.length === 0, `every building is open from the start (${shut.map((t) => t.id).join(', ')})`);
   const n = found(false);
+  assert(n.tech.some((t) => isPlaceableKind(t) && t.status === 'locked'), 'while a normal run opens them over time');
   assert(n.sandbox === undefined, 'a normal founding is not a sandbox');
   assert(n.finance.cash < SANDBOX_CASH, 'and has its usual funds');
 }

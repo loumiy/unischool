@@ -1,5 +1,6 @@
 import { canPayFromEndowment, endowmentHalf, projectOpen } from '../estate/projects';
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
+import { PLACEABLE_KINDS } from '../../state/types';
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
@@ -377,12 +378,20 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   return true;
 }
 
+// A sandbox run (systems/sandbox) has every building open from the start:
+// no prereqs, milestones, years or reveals, only the one-landmark rule.
+function sandboxOpens(s: GameState, t: Buildable): boolean {
+  return s.sandbox === true && PLACEABLE_KINDS.includes(t.kind)
+    && !(t.facilityType === 'landmark' && landmarkChosen(s, t.id));
+}
+
 export function unlockAvailable(s: GameState): void {
   for (const t of s.tech) {
     if (
-      t.status === 'locked' &&
-      t.prereqs.every((p) => s.tech.find((x) => x.id === p)?.status === 'done') &&
-      meetsUnlockGates(s, t)
+      t.status === 'locked' && (sandboxOpens(s, t) || (
+        t.prereqs.every((p) => s.tech.find((x) => x.id === p)?.status === 'done') &&
+        meetsUnlockGates(s, t)
+      ))
     ) {
       t.status = 'available';
     }
