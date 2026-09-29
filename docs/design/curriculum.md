@@ -78,16 +78,33 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    drawn: its capital project offers it (see
    [graduate-programs.md](graduate-programs.md)).
    **The curriculum committee** (Plan 68; seats since Plan 71) writes a
-   limited number of undergraduate courses at once: four seats
+   limited number of courses at once: four seats
    (`techSystem.ts`'s `COURSE_DEVELOPMENT_SLOTS`), and one more at prestige
    70, 80, 90 and 100 (`COMMITTEE_PRESTIGE_STEPS`), up to eight. The
-   committee at the head of the Curriculum tab shows every seat — busy (course, progress,
-   weeks left), open, or locked with the prestige that opens it. Graduate
-   courses have their own gates and are not counted. **A major is founded
-   only with room on the committee** (Plan 80B, `canFoundProgram`): its entry
-   course starts in the same step, and before, a founding with the
-   committee full took the program slot and left the entry course
-   unstarted, without a word. The hall panel says so over the offers.
+   committee at the head of the Curriculum tab shows every seat — busy
+   (course, progress, weeks left of its weeks), open, or locked with the
+   prestige that opens it.
+   **Graduate courses take a seat like any other** (Plan 80E; before, they
+   had their own gates and were not counted), so an MD's course waits for
+   room as a capstone does. **A program is founded only with room on the
+   committee** (Plan 80B for majors, 80E for graduate programs,
+   `canFoundProgram`): its entry course starts in the same step, and
+   before, a founding with the committee full took the program slot and
+   left the entry course unstarted, without a word. The hall panel says so
+   over the offers. **Courses vary in length** (Plan 80E): each
+   course's weeks are its tier's (4, 12 or 24; 32 for a doctorate's, 40 for a
+   professional school's), varied up to a quarter either way
+   (`techData.ts`'s `courseWeeks`, `COURSE_LENGTH_SPREAD`), in whole weeks and
+   fixed for that course by a hash of its id, so the committee's seats come
+   free at different times rather than a tier's all at once. A save takes the
+   catalog's weeks for a course not yet started when it loads; one under way
+   keeps the weeks it was started with. The course drawer shows a course's
+   weeks. **The dock's committee chip** (Plan 80E) reads "Committee 3 of 4",
+   courses being written of the most at once, flagged (the alert badge) while
+   there is room and some course could start now (`committeeStatus`: a free
+   seat with nothing startable, for want of cash or a professor or because
+   nothing is left, is not flagged, so the flag always means something to
+   do), and opens this panel (the `curriculum.committee` section).
 3. **A school is founded, not unlocked.** Nothing is called "the School of
    Engineering" until six Engineering programs sit in one hall. A hall whose
    six slots hold one school's programs is **dedicated**; the first

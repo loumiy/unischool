@@ -26,6 +26,12 @@ export const FIGURE_HINTS = {
   prestige: 'Prestige, graded each summer and stepped toward the grade; it reads curriculum, teaching, students, research, satisfaction, campus life, the buildings and grounds, and the endowment, less crowding.',
   // The lowest need and its figure (Plan 78B), so the chip says where to look.
   satisfaction: (need: string, figure: string): Sentence => `How content the students are, out of 100; the lowest of the five needs is ${need}, at ${figure}, and the Students tab shows what serves each.`,
+  // The committee (Plan 80E): what it is writing, and whether there is room
+  // and a course ready for it (techSystem.ts's committeeStatus).
+  committee: (writing: number, seats: number, ready: boolean): Sentence => `Courses the curriculum committee is writing, of the ${seats} it can write at once; ${
+    writing >= seats ? 'the next starts when one of them is done'
+      : ready ? 'it has room, and a course is ready to start'
+        : 'it has room, but no course can start yet'}.`,
 
   // The Treasury.
   cash: 'Cash on hand now; building is paid from it up front, and a building it cannot cover waits for it, a loan or a gift.',

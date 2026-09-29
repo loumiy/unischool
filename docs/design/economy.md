@@ -9,8 +9,9 @@ Money is the game's clock. This document is what `financeSystem.ts`,
 It is the throttle for the first half of the game (the owner's rule, restated
 by [Plan 71](../plans/71-economy.md)): the thing that keeps a player waiting is
 saving for the next thing they want. The one other limit is the curriculum
-committee's seats on undergraduate courses (four, up to eight with prestige —
-see [curriculum.md](curriculum.md)), a bandwidth the owner kept on purpose; there
+committee's seats on courses, graduate ones among them since Plan 80E (four,
+up to eight with prestige — see [curriculum.md](curriculum.md)), a bandwidth
+the owner kept on purpose; there
 is no allowance on new majors. Buildings are never queued, and the gate on
 starting one more is that **the school can actually pay for it** —
 cost is charged in full, up front, and a purchase it can't cover is simply not

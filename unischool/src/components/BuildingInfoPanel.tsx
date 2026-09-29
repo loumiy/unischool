@@ -414,7 +414,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   const cut = picked && !host ? claimCutBy(s, t.id, picked.id) : null;
   // A major's entry course is written by the committee (Plan 80B), so
   // founding one waits for room on it; a graduate program's does not.
-  const committeeFull = !host && courseSlotsFree(s) === 0;
+  const committeeFull = courseSlotsFree(s) === 0;
   const offerTile = (program: ProgramInfo) => {
     const course = s.tech.find((x) => x.id === program.entryCourseId);
     const mark = schoolMark(program.school);

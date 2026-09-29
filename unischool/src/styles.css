@@ -488,6 +488,12 @@ button, input, select, textarea { font-size: inherit; }
 /* A chip that opens its explanation (StatusHeader.tsx, data/statChips.ts),
    marked as the funds figure is. */
 button.toolbar-stat:hover { border-color: var(--school-secondary); }
+/* The committee chip (Plan 80E), on the gears' row: "3 of 4" on a wide
+   screen, "3/4" on a phone; flagged, with the tabs' alert badge lifted clear
+   of the word, while there is room and a course that could start. */
+.committee-chip .stat-slash { display: none; }
+.toolbar-stat.committee-chip.flagged { border-color: var(--school-secondary); }
+.committee-chip .alert-badge { top: -8px; right: -7px; }
 
 .toolbar-school { flex: none; display: flex; align-items: center; gap: 10px; }
 .toolbar-clock { font-family: var(--display); font-size: var(--text-sm); font-weight: 800; color: var(--ink-hi); white-space: nowrap; }
@@ -3082,6 +3088,8 @@ body:has(.building-info-panel) .pennant { display: none; }
   .toolbar-stat { flex-direction: row; align-items: center; gap: 5px; padding: 0 8px 0 6px; }
   .toolbar-stat svg { display: block; }
   .toolbar-stat .stat-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .committee-chip .stat-of { display: none; }
+  .committee-chip .stat-slash { display: inline; }
   /* The room the fold gives goes to the build menu: its 340px cap cut the
      cards in half here, under the menu's wrapped categories. */
   .build-popup { max-height: min(560px, calc(100vh - var(--toolbar-height) - 140px)); }

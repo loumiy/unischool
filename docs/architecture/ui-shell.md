@@ -125,8 +125,19 @@ rank and prestige open History › Standing, satisfaction opens Students ›
 the satisfaction breakdown, each a button named with its figure ("Prestige
 51.5 — open History, Standing"). The map is `data/statChips.ts`'s
 `chipDoor`; enrolled is a figure only. The right zone stacks the clock over
-five round gears (pause, play, 2×, 4×, 8×); and between them, in one row at every width, the labelled tab row — the word
-under each glyph — and Build. The two side zones stack precisely so that row
+five round gears (pause, play, 2×, 4×, 8×), with the **committee chip**
+beside the gears (Plan 80E): "Committee 3 of 4", the courses the curriculum
+committee is writing of the most it can write at once, drawn as the stat
+chips are, and on a phone as the curriculum glyph beside "3/4". It is
+flagged with the tabs' alert badge and a border in the school's second
+color while the committee has room and some course could start now
+(`techSystem.ts`'s `committeeStatus`), its sentence says which, and it is a
+door to the Curriculum's committee panel (the `curriculum.committee`
+section, "Committee 3 of 4 — open Curriculum, Committee"). It sits on the
+gears' row because the row has room there: beside the stat chips it pushed
+the band to two rows at 1440 and the chips past a phone's edge. Between the
+zones, in one row at every width, is the labelled tab row — the word under
+each glyph — and Build. The two side zones stack precisely so that row
 always fits. On a phone the band folds to its figures while a tab or a
 popup is open, and the tabs scroll beside Build (Plan 76I). The school's
 name is not in the band: it hangs as a **pennant**

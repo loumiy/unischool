@@ -13,7 +13,7 @@ import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
-  canStartDevelopment, committeeSeats, courseSlotsFree, coursesInDevelopment, isUndergraduateCourse, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -25,6 +25,8 @@ import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import { sectionAnchor } from '../components/sectionTarget';
+import { SECTION_HEADINGS } from '../data/statChips';
 import { CloseIcon, StatusIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
@@ -761,7 +763,7 @@ function CourseDrawer(
         {state === 'blocked' && shortfall > 0 && (
           <p className="course-drawer-warning">{money(Math.ceil(shortfall))} short of the development cost.</p>
         )}
-        {t.status === 'available' && isUndergraduateCourse(t) && courseSlotsFree(s) === 0 && (
+        {t.status === 'available' && courseSlotsFree(s) === 0 && (
           <p className="course-drawer-warning">The curriculum committee is writing {committeeSeats(s)} courses already, its most; this one starts when one of them is done.</p>
         )}
         {/* The same reason a greyed cell's tooltip gives (courseHoldReason). */}
@@ -1140,23 +1142,23 @@ function CommitteeBox({ s, lookup, onOpenFaculty }: {
 }
 
 // The curriculum committee (techSystem.ts's committeeSeats): a seat for each
-// undergraduate course it can write at once, four to start and one more at
-// each prestige step, up to eight. A filled seat shows its course and how
-// far along it is; an open one reads "Free"; a locked one says what
-// opens it.
+// course it can write at once, undergraduate or graduate (Plan 80E), four to
+// start and one more at each prestige step, up to eight. A filled seat shows
+// its course, how far along it is and its weeks; an open one reads "Free"; a
+// locked one says what opens it. The dock's committee chip lands here.
 function CommitteePanel({ s }: { s: GameState }) {
   const seats = committeeSeats(s);
   const writing = coursesInDevelopment(s);
   const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length;
   const next = nextCommitteeSeatAt(s);
   return (
-    <section className="committee" aria-label="Curriculum committee">
+    <section className="committee" aria-label="Curriculum committee" {...sectionAnchor('curriculum.committee')}>
       <header className="committee-head">
-        <span className="next-up-label">Committee</span>
+        <span className="next-up-label">{SECTION_HEADINGS['curriculum.committee']}</span>
         <span className="committee-count">writing {writing.length} of {seats}</span>
         <HelpHint
           align="end"
-          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} undergraduate courses at once, and takes up the next when one is done. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}. Graduate courses are written by their schools and do not count against it.`}
+          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} courses at once, graduate courses among them, and takes up the next when one is done. Each course takes its own number of weeks, so they finish at different times. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}.`}
         />
       </header>
       <ol className="committee-seats">
@@ -1176,10 +1178,10 @@ function CommitteePanel({ s }: { s: GameState }) {
           const done = t.duration > 0 ? 1 - left / t.duration : 1;
           const code = t.name.split(' · ')[0];
           return (
-            <li key={i} className="committee-seat busy" title={`${t.name}: ${left} week${left === 1 ? '' : 's'} left`}>
+            <li key={i} className="committee-seat busy" title={`${t.name}: ${left} of its ${t.duration} weeks left`}>
               <span className="committee-seat-name">{code}</span>
               <span className="committee-seat-bar" aria-hidden="true"><span style={{ width: `${Math.round(done * 100)}%` }} /></span>
-              <span className="committee-seat-left">{weeksShort(left)}</span>
+              <span className="committee-seat-left">{left} of {weeksShort(t.duration)}</span>
             </li>
           );
         })}
@@ -1200,8 +1202,9 @@ export default function CurriculumTab(
   { s, act, target, onTargetConsumed, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void;
-    // Where to go on arrival: a school's name, "program:<id>", "field:<name>"
-    // or "unstaffed". Consumed and cleared by the caller.
+    // Where to go on arrival: a school's name, "program:<id>", "field:<name>",
+    // "unstaffed" or the committee's section ("curriculum.committee").
+    // Consumed and cleared by the caller.
     target?: string;
     onTargetConsumed?: () => void;
     // To the Faculty board, opened on a department.
@@ -1271,6 +1274,12 @@ export default function CurriculumTab(
     } else if (target === 'unstaffed') {
       setSelectedId(null);
       setFilters({ ...NO_FILTERS, status: 'unstaffed' });
+    } else if (target === 'curriculum.committee') {
+      // The dock's committee chip (Plan 80E): the panel shows unfiltered.
+      // 'nearest', since where the head is pinned it is already in view.
+      setSelectedId(null);
+      setFilters(NO_FILTERS);
+      window.setTimeout(() => document.querySelector(`[data-section="${CSS.escape(target)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 0);
     } else {
       setSelectedId(null);
       setFilters(NO_FILTERS);

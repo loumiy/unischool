@@ -843,9 +843,9 @@ function looksLikeGameState(value: unknown): value is GameState {
 // otherwise reach new runs only. Descriptions are always the catalog's; a
 // name is the catalog's for a course (nothing renames a course), while a
 // building's may be a donor's (eventData.ts's naming rights) and is kept.
-let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project'>> | null = null;
+let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project' | 'duration'>> | null = null;
 function refreshAuthoredText(state: GameState): void {
-  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project }]));
+  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project, duration: t.duration }]));
   for (const t of state.tech) {
     const authored = catalogText.get(t.id);
     if (!authored) continue;
@@ -854,6 +854,10 @@ function refreshAuthoredText(state: GameState): void {
     // run opens the Graduate College from Year 15 like a new one (Plan 58).
     if (authored.project) t.project = authored.project;
     if (t.kind === 'course') t.name = authored.name;
+    // A course's weeks are the catalog's until it starts (techData.ts's
+    // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
+    // was started with, so its progress still reads against them.
+    if (t.kind === 'course' && (t.status === 'locked' || t.status === 'available')) t.duration = authored.duration;
   }
 }
 

@@ -3,7 +3,7 @@ import type { ProgramInfo } from '../../data/techData';
 import { SEATS_PER_COURSE } from './instructionCapacity';
 import { programOfCourse } from '../../data/techData';
 import { isInTransit } from './programOffers';
-import { courseSlotsFree, facultyGate, isUndergraduateCourse } from './techSystem';
+import { courseSlotsFree, facultyGate } from './techSystem';
 import { money } from '../../format';
 
 // Where a program stands and what it is one course away from, shared by the
@@ -130,7 +130,7 @@ export function courseHoldReason(s: GameState, t: Buildable, lookup?: Map<string
     return `Needs ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   }
   if (t.requiresFaculty && facultyGate(s, t.requiresFaculty) !== 'open') return `Needs ${t.requiresFaculty} faculty`;
-  if (isUndergraduateCourse(t) && courseSlotsFree(s) === 0) return 'Waits for room on the curriculum committee';
+  if (courseSlotsFree(s) === 0) return 'Waits for room on the curriculum committee';
   const shortfall = t.cost - s.finance.cash;
   if (shortfall > 0) return `${money(Math.ceil(shortfall))} short of the development cost`;
   return null;

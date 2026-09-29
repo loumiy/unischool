@@ -334,6 +334,44 @@ funds D introduces. Save bumps land in merge order.
 - **Checks:** the chip counts and flags; lengths are stable per course and
   within the band; a graduate course needs a free seat.
 
+**As implemented (#249):**
+- **Lengths:** `techData.ts`'s `courseWeeks(id, base)` varies each course's
+  weeks up to `COURSE_LENGTH_SPREAD` (a quarter) either way off
+  `hashUnit("course-length:<id>")`, whole weeks, at least one, for
+  undergraduate and graduate courses alike (tier 1 now 3–5 weeks, tier 2
+  9–15, tier 3 18–30, doctoral 24–40, professional 30–50). No state change:
+  a loaded save takes the catalog's weeks for a course still locked or
+  available (persistence's `refreshAuthoredText`); one under way or done
+  keeps the weeks it started with, so its progress still reads right. The
+  course drawer already showed the weeks; the committee's busy seats now
+  read "5 of 14w".
+- **Graduate courses take a seat:** `coursesInDevelopment` and
+  `canStartDevelopment` count every course. Founding a graduate program
+  needs a free seat too (`canFoundProgram`), or its entry course would be
+  left unstarted, the bug 80B fixes for majors. The committee's help text
+  and the drawer's full-committee note no longer exempt graduate courses.
+- **The chip:** "Committee 3 of 4" ("3/4" beside the curriculum glyph on a
+  phone), `committeeStatus` in `techSystem.ts`. It is flagged (the tabs'
+  alert badge and a border) only while there is a free seat *and* some
+  course could start now, so a free seat with nothing startable (no cash,
+  no professor, nothing left) never nags. It opens the Curriculum's
+  committee (a new `curriculum.committee` section; `statChips.ts`'s fifth
+  chip, with its own sentence in `figureHints.ts`). It sits on the gears'
+  row, not with the four stat chips: there it pushed the band to two rows at
+  1440 and past a phone's edge; on the gears' row the band is unchanged at
+  1280, 1440 and 1600, and `npm run phone` passes.
+- **The baseline moved** (re-recorded; no tuning). Lean, which builds no
+  graduate courses, is bimodal: before, two of three seeds crossed prestige
+  about 100 near Year 30 and caught the applicant surges that followed, and
+  one plateaued near 4,300 students; with courses of varied length all three
+  plateau, so its Year-50 median falls (enrolled 12,011 → 4,298, prestige
+  109.2 → 93.1, satisfaction 77.3 → 65.6). Completionist's Year-25 courses
+  fall 357 → 337 as graduate courses share the committee; it and Guided
+  still finish all 431 by Year 50. Year-50 cash moves by hundreds of
+  millions either way (Guided +$457M, Selective −$65M), which is how lumpy
+  late cash is in any run, not a trend. Idle is unchanged; the slow suites
+  pass.
+
 ## PR 80F — Balance
 
 Targets, checked by the harness and stated in the PR with the before and
