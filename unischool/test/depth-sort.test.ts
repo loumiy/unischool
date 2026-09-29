@@ -22,7 +22,8 @@ import { depthOrder, occludes, type DepthBox } from '../src/components/depthSort
 import { DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, VIEWS, setCamera } from '../src/components/isoProjection';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { groundProps } from '../src/components/groundMarkings';
-import { motifOf } from '../src/components/buildingSpec';
+import { labFeatureOf, motifOf } from '../src/components/buildingSpec';
+import { flatRoofItems } from '../src/components/buildingMotifs';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
@@ -296,6 +297,48 @@ console.log('campus map painter\'s order');
     depth(deepest) >= depth({ col: middle.col, row: middle.row, w: middle.w, h: middle.h }),
     'the bank nearest the camera is painted last',
   );
+}
+
+// --- 7. What stands on a lab's roof ---------------------------------------
+// The observatory's dome, the glasshouse, the flues, the exhaust stack and
+// the roof plant go through one sort (Plan 80H). Before, the plant was
+// sorted only among itself and painted after the dome or the glasshouse, so
+// at three views of four it showed through them, and the stack was never
+// sorted. At every view and both orientations: nothing on the roof shares
+// ground with anything else (the sort's premise), the order agrees with the
+// relation pair by pair, and the same plant unit stands at every view.
+{
+  const LABS = [...initialTech(), ...initialDorms(), ...initialFacilities()]
+    .filter(isPlaceableKind)
+    .filter((t) => labFeatureOf(t) !== undefined);
+  for (const id of ['LAB-PHYS', 'LAB-BIOL']) assert(LABS.some((t) => t.id === id), `${id} carries a roof feature`);
+  let bad = 0;
+  let overlaps = 0;
+  for (const t of LABS) {
+    const fp = footprintOf(t);
+    for (const [w, h] of [[fp.w, fp.h], [fp.h, fp.w]]) {
+      const plants = new Set<string>();
+      for (const azimuth of VIEWS) {
+        setCamera({ azimuth, pitch: DEFAULT_CAMERA.pitch });
+        const items = flatRoofItems(motifOf(t), labFeatureOf(t), 10, 20, w, h);
+        const feature = labFeatureOf(t) === 'flues' ? 'flue' : labFeatureOf(t);
+        assert(items.some((x) => x.kind === feature), `${t.id} ${w}x${h}: its ${feature} is on the roof`);
+        assert(motifOf(t) !== 'works' || items.some((x) => x.kind === 'stack'), `${t.id} ${w}x${h}: and its stack, in the sort`);
+        plants.add(items.filter((x) => x.kind === 'plant').map((x) => x.key).join(','));
+        bad += violations(items);
+        for (let i = 0; i < items.length; i++) {
+          for (let j = i + 1; j < items.length; j++) {
+            const a = items[i]; const b = items[j];
+            if (a.col < b.col + b.w && b.col < a.col + a.w && a.row < b.row + b.h && b.row < a.row + a.h) overlaps += 1;
+          }
+        }
+      }
+      assert(plants.size === 1, `${t.id} ${w}x${h}: the same roof plant at every view (${[...plants].join(' | ')})`);
+    }
+  }
+  setCamera(DEFAULT_CAMERA);
+  assert(overlaps === 0, `nothing on a lab's roof stands on another thing's ground (${overlaps} overlaps)`);
+  assert(bad === 0, `a lab's roof paints in the relation's order at every view (${bad} violations)`);
 }
 
 if (failures === 0) {

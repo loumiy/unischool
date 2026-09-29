@@ -326,6 +326,48 @@ after:
 - **Checks:** the depth-sort test at every view for both labs; the door and
   walker checks; a turn timed on a year-30 campus before and after.
 
+**As implemented (#TBD):**
+
+- **Quads lose their labels.** `quadLayer.tsx` (the tint, the outline, the
+  names) and `QuadPanel.tsx` are gone, with "Mark a quad", the `quad`
+  campus tool, `MARK_QUAD`, `UNMARK_QUAD`, `NAME_QUAD`, the N key, the Aa
+  button, `QUAD_NAMES` and `QUAD_NAME_MAX`. `detectQuads` keeps only what
+  the campus encloses; a `Quad` no longer carries a name, a center or
+  `designated`. Beauty and `quadsOver` read it as before.
+- **Save version 82** drops `GameState.quads` (`dropQuadMarks`), with the
+  v81 fixture (the `year-8-balanced` scenario, given a name and a mark).
+  Beauty reads the same for a save without marks; one whose marks made a
+  quad loses that quad's share of the enclosure term. The harness never
+  marked a quad, and the sim report matches the baseline.
+- **Walkers:** a Campus Quad's lawn costs `LAWN_COST` (4), its walks 1.
+  Desire lines may now wear its grass as they wear any lawn's, under the
+  quad's plate.
+- **Turning:** `CampusScene` takes `turning`; while it is set the sorted
+  scene has no trees, no props on the grounds and no dressing. The walkers
+  are hidden (`visibility`) through a turn and walk on unseen, skip the
+  outline rebuild and the canvas read, and are drawn again only once their
+  outlines are built for the camera the projection is at, which covers a
+  tilt and a reduced-motion snap too. Reduced motion still snaps.
+- **The turn, timed** on a year-30 Completionist campus (67 buildings,
+  607 trees, 340 walkers), production build, headless Chromium, the main
+  thread's CPU from a trace, median of 8 turns (the machine was loaded,
+  so wall times were noise): a frame of the turn **64 ms → 58 ms**; the
+  frame that settles it **47 ms → 104 ms** (the trees come back and the
+  walkers' outlines are built once, not every frame); the whole turn
+  **195 ms → 247 ms**. The scene mid-turn is 11,900 SVG nodes, not 15,600.
+  Wall time to a settled view was about 0.6 s before and after. The lighter
+  turn is the walkers' and not much faster: the buildings, redrawn every
+  frame, are most of it.
+- **Lab roofs:** `flatRoofItems` (`buildingMotifs.tsx`) puts the dome or
+  glasshouse, each flue, the exhaust stack and the plant through one
+  `depthOrder`. A roof under 4 tiles keeps the first plant unit clear of
+  everything else on it, the same at every view (on a small pavilion or
+  block roof, the first unit). `test/depth-sort.test.ts` checks every lab
+  at both orientations and all four views; `test/walk-routes.test.ts` the
+  quad's walks. The door checker's 1,842 hits are unchanged.
+  `docs/reviews/2026-10-campus-fixes/80h-lab-roof-*.jpg`: the four views,
+  before above, after below.
+
 ## PR 80I — The chapel and the benches
 
 - **The chapel** gets its own drawing in each vernacular: a nave, a

@@ -42,7 +42,6 @@ function quadQuality(s: GameState): number {
   const key = [
     Object.entries(s.placements).map(([id, p]) => `${id}:${p.row},${p.col},${p.w},${p.h}`).join('|'),
     Object.keys(s.pathways).join(';'),
-    JSON.stringify(s.quads ?? null),
   ].join('#');
   if (quadCache?.key !== key) {
     quadCache = { key, quality: detectQuads(s).reduce((t, q) => t + q.quality, 0) };

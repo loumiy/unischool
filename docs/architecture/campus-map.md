@@ -49,11 +49,24 @@ and zoom, which are a transform on a `<g>`, a turn changes every polygon —
 and it is never saved: it is where the player is looking from, not a fact
 about the school.
 
+A quarter turn is eased over `TURN_MS` (Plan 37; reduced motion snaps), and
+each of its frames redraws the scene at a new angle. So a turn draws the
+scene light (Plan 80H): the buildings, the ground, the plates and the paths,
+without the trees, the props standing on the grounds, the lamps and the
+benches, which come back on the frame the turn settles. The walkers are
+hidden through a turn and walk on unseen; they are drawn again once their
+outlines are built for the view the projection is at, which also keeps a
+tilt from showing them for a frame against the old one.
+
 Three consequences, each in its own place:
 
 - **What is in front of what** is the camera's to say. `depthSort.ts`'s
   occlusion relation takes the camera's axes, and the test sweeps 48
-  azimuths. `boxFaces` labels a box's corners by SCREEN position (back,
+  azimuths. The same sort orders what stands on a flat roof
+  (`buildingMotifs.tsx`'s `flatRoofItems`: a lab's dome, glasshouse or
+  flues, the exhaust stack, the roof plant), and a small roof's one plant
+  unit is the first clear of everything else on it, the same at every view
+  (Plan 80H). `boxFaces` labels a box's corners by SCREEN position (back,
   right, front, left) so a motif that hangs windows on `left` is right at
   any azimuth, and carries grid-fixed corners (`NW`…`SW`) and each face's
   grid direction for the things — roof slopes, wings — that are facts about
@@ -79,7 +92,7 @@ are ignored (`TOUCH_MOUSE_GRACE_MS`), and a tap's click never places.
 
 - **One finger** pans. While a building is picked up it moves the ghost
   instead, and under a path tool it paints, as a left-button stroke does
-  (the quad, lamp and bench tools act on a tap).
+  (the lamp and bench tools act on a tap).
 - **Two fingers** pinch and pan together: the ground under their midpoint
   stays under it, and the zoom follows their spread, clamped
   (`mapGestures.ts`'s `pinchView`, checked in `test/map-gestures.test.ts`).
@@ -101,7 +114,7 @@ The reducer clones the state every week, so every record arrives with a
 new identity whether or not anything moved (Plan 24). The scene is drawn
 from a **layout** (`campusLayout.ts`) kept while its string key holds. The
 key covers each building's site, status, name and age band, plus the
-trees, paths, quads, lamps and colours, so the memoised scene skips every
+trees, paths, lamps and colours, so the memoised scene skips every
 week in which nothing was built, finished, renamed, paved or aged. What
 does change weekly reaches the scene through React contexts, which redraw
 only their consumers:
@@ -110,8 +123,8 @@ only their consumers:
 - `CrowdContext`: the stands of a venue with a game this week;
 - `BannerContext`: the lamps in commencement week.
 
-The hall pips, the quad outlines and names, and the walkers are drawn after
-the scene from the live state. `npm run profile` gates every change to the
+The hall pips and the walkers are drawn after the scene from the live
+state. `npm run profile` gates every change to the
 map.
 
 ## The road, the walk and the quads
@@ -122,8 +135,10 @@ A **road** runs along the parcel's last two rows (`campusMap.ts`'s
 needs a way on foot from the road, and nothing is sited that walls off a
 building that had one. `canPlace` asks it, and the ghost says why a site is
 refused. **Quads** (`state/quads.ts`) are found, not declared: open ground
-the buildings enclose. The player can name one, or mark one detection
-passes over; names and marks are the optional `GameState.quads`. A placed
+the buildings enclose, and nothing else. Campus beauty counts them and one
+event needs one; the map does not show them (Plan 80H took away their
+tint, their names, the quad card and "Mark a quad", and save version 82
+drops the names and marks older saves kept in `GameState.quads`). A placed
 Campus Quad is lawn to both the walk and the quad finder. Both modules sit
 in `src/state/`, not `src/systems/`, because no tick system may read
 placements.
@@ -133,10 +148,11 @@ placements.
 Walkers (`Walkers.tsx`) walk routes between doors (`walkRoutes.ts`),
 preferring paths. They are drawn imperatively on the frame clock, clipped
 by the buildings and trees in front of them (found through a screen-cell
-index, `ShapeIndex`), and more numerous as the college grows. A quad's
-walks are paths to them and its centerpiece is not walkable
-(`quadGeometry.ts`): on the Grand Quad they go round the fountain on its
-ring walk. A path drawn tile by tile replans their routes once it has
+index, `ShapeIndex`), and more numerous as the college grows. A Campus
+Quad's walks are paths to them, its lawn is lawn at a lawn's cost (Plan
+80H: at half of it they cut across the grass), and its centerpiece is not
+walkable (`quadGeometry.ts`): on the Grand Quad they go round the fountain
+on its ring walk. A path drawn tile by tile replans their routes once it has
 stood still for a moment, not at every tile.
 Desire lines wear the lawn where the busiest routes cross it. The player's
 lamps and benches (`GameState.dressing`), bike racks by the doors of a big
