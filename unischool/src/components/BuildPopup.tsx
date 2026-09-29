@@ -355,13 +355,14 @@ function BuildTile({
   }
 
   // Built but not yet sited: Founders Hall in a guided founding (see
-  // campusMap.ts's awaitsSite). The walkthrough's first step rings this
-  // tile until the hall is picked up (see state/opening.ts).
+  // campusMap.ts's awaitsSite). Rung until the hall is picked up: by the
+  // walkthrough's first step, or while a skipped walk holds the clock for it
+  // (see state/opening.ts).
   if (t.status === 'done') {
     const detail = builtDetail(t);
     const armed = placingId === t.id;
     const sitable = awaitsSite(s, t);
-    const ringed = t.id === FOUNDERS_HALL_ID && s.events.opening.stage === 'site-hall' && !armed;
+    const ringed = t.id === FOUNDERS_HALL_ID && sitable && (s.events.opening.stage === 'site-hall' || s.events.opening.stage === 'play') && !armed;
     return (
       <button
         type="button"

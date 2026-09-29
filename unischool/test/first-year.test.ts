@@ -22,6 +22,8 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { nextStep, ATTRIBUTE_SHORTFALL } from '../src/systems/guidance/nextStep';
 import { findOpeningLetter } from '../src/data/eventData';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { STARTING_DORM_ID } from '../src/data/campusData';
+import { teachingCollege } from './fixtures/teaching';
 import { letterOpensBuild } from '../src/systems/inbox/inbox';
 import { InterruptContent } from '../src/components/InterruptModal';
 import { arrivalsIn, stacked, type Toast } from '../src/components/Toasts';
@@ -92,9 +94,9 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
 
 // --- between letters: the shortfall reading, and a letter's ask still wins --
 {
-  const s = createInitialState('Between');
+  // Teaching its pillars: a program housed and every student seated.
+  const s = teachingCollege('Between');
   s.events.opening.read = ['doors-open'];
-  s.halls[FOUNDERS_HALL_ID].find((slot) => slot.programId === null)!.programId = s.programOffers[0];
   assert(findOpeningLetter('doors-open')!.done(s), 'the first ask is done, and no other letter is read');
   s.students.satisfactionBreakdown = { academic: 70, social: 70, basicNeeds: 70, health: 70, housing: 38 };
   const step = nextStep(s);
@@ -104,6 +106,21 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   s.students.satisfactionBreakdown.housing = 70;
   s.events.opening.read = ['doors-open'];
   assert(nextStep(s) === null, 'and with nothing short and no ask, the line is quiet');
+}
+
+// --- NEXT seats the students first (Plan 80D) --------------------------------
+{
+  // A new college: nobody to teach, nothing taught.
+  const s = createInitialState('Seats');
+  s.events.opening.read = ['doors-open'];
+  const first = nextStep(s);
+  assert(first?.intent?.kind === 'found' && first.go === 'hall' && first.hallId === FOUNDERS_HALL_ID, `with nothing housed, the line founds a program in Founders Hall (${first?.text})`);
+  const t = teachingCollege('Seats');
+  t.events.opening.read = ['doors-open'];
+  t.students.classes = { freshman: 400, sophomore: 150, junior: 0, senior: 0 };
+  const more = nextStep(t);
+  assert(more !== null && more.text.startsWith('Places for 480 of 550 students: ') && (more.intent?.kind === 'develop' || more.intent?.kind === 'found'), `short of places, it names the next course or program (${more?.text})`);
+  assert(!findOpeningLetter('doors-open')!.done(t), 'and the first letter is not done while students have no place');
 }
 
 // --- a letter whose ask is not a building has no door ------------------------
@@ -131,7 +148,7 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   before.pendingInterrupt = null;
   const after = structuredClone(before);
   after.clock.week = 5;
-  after.log.unshift({ year: 1, week: 5, message: 'Founded Economics.', kind: 'good', topic: 'program', subject: 'ECON' });
+  after.log.unshift({ year: 1, week: 5, message: 'Hawthorne House is finished.', kind: 'good', topic: 'building', subject: STARTING_DORM_ID });
   const got = arrivalsIn(before, after);
   const note = got.find((t) => t.open?.startsWith('founding:'));
   assert(note !== undefined && note.held === true, 'a founding note arriving in year one is held');

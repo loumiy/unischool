@@ -9,7 +9,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { grownStat, facultySalary } from '../src/data/facultyData';
 import type { Faculty } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
@@ -32,7 +32,7 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-const s = createInitialState('FacultyAudit');
+const s = teachingCollege('FacultyAudit');
 
 // ---- Faculty (and candidates) are individuals ----
 function checkIndividuals(people: Faculty[], label: string): void {

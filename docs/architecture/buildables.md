@@ -12,8 +12,8 @@ Every Buildable has:
   `facility`-kind, reveal-gated, like everything else in that list — there is
   no separate `sports` kind. The `building` kind is the **academic halls**:
   Founders Hall and the thirteen-hall chain, each carrying `slots` — the six
-  program slots a hall holds (Founders Hall's first three hold the founding
-  programs from day one — see `data/foundingData.ts`). There is no
+  program slots a hall holds (all of Founders Hall's are free at founding
+  since Plan 80D — see `data/foundingData.ts`). There is no
   school building: a school is founded by filling a hall (see
   [curriculum.md](../design/curriculum.md)).
 - a **`cost`** — money spent up front, at the moment development starts.

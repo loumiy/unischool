@@ -343,8 +343,7 @@ export function landmarkChosen(s: GameState, except?: string): boolean {
 function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // Every course of a major or graduate program waits on its program being
   // housed in a hall slot. Founding writes the slot and opens the entry course
-  // in one step (foundProgram); the founding programs start housed in Founders
-  // Hall.
+  // in one step (foundProgram); nothing is housed at founding (Plan 80D).
   if (t.kind === 'course') {
     const programId = programOfCourse(t.id);
     if (programId !== undefined && !isHoused(s, programId)) return false;
@@ -466,7 +465,7 @@ export interface Relocation {
 }
 
 export function canRelocateProgram(s: GameState, r: Relocation): boolean {
-  // The founding programs move like any other; a graduate program stays in
+  // The first programs move like any other; a graduate program stays in
   // its host, and only an academic hall takes a major (Plan 51).
   const program = programById(r.programId);
   if (program === undefined || program.kind === 'graduate') return false;

@@ -2,7 +2,6 @@ import type { GameState } from '../state/types';
 import { coursesDone, totalEnrolled } from '../state/types';
 import type { TabId } from '../components/TabNav';
 import { FIRST_HALL_COURSE_GATE } from './techData';
-import { FOUNDING_PROGRAMS } from './foundingData';
 import {
   GROCERY_POPULATION_GATE,
   HEALTH_CENTER_TIER1_POPULATION_GATE,
@@ -13,6 +12,10 @@ import {
 } from './facilitiesData';
 import { MEDICAL_CENTER_PROJECT } from './projectData';
 import { count } from '../format';
+
+// Programs housed for the 'campus-life' milestone: the fourth (until Plan
+// 80D, the first beyond the three a college opened teaching).
+const CAMPUS_LIFE_PROGRAMS = 4;
 
 // The research reputation rung's prestige (Plan 53: it opened the research
 // library too, until the library was retired).
@@ -105,10 +108,10 @@ export const MILESTONES: readonly Milestone[] = [
     tier: 'Founding',
     name: 'A fourth program',
     condition: 'a fourth program founded',
-    reached: (s) => housedPrograms(s) > FOUNDING_PROGRAMS.length,
+    reached: (s) => housedPrograms(s) >= CAMPUS_LIFE_PROGRAMS,
     buildables: ['SCTR-T1', 'REC-T1', 'AMENITY-STATUE'],
     tabs: [],
-    letter: 'The college teaches four subjects now, and has chosen its first on its own. The board thinks the students have earned somewhere to be when they are not in class.',
+    letter: 'The college teaches four subjects now. The board thinks the students have earned somewhere to be when they are not in class.',
     opens: [
       'Student Center: somewhere to be between classes, and a lift to social life',
       'Recreation Center: somewhere to play, and a lift to social life',

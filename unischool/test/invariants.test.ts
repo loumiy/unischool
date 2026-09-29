@@ -25,7 +25,7 @@ import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventD
 import { totalEnrolled } from '../src/state/types';
 import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
-import { FOUNDING_OFFER_GUARANTEE } from '../src/state/actions';
+import { teachPillars } from './fixtures/teaching';
 import type { GameState, OrgPetition } from '../src/state/types';
 import {
   usedFacultySlots, hasFreeFacultySlot, eligibleInstructors, facultyLoad, isUnstaffed, hasFreeSlot,
@@ -56,8 +56,10 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
+// A college teaching its founding pillars (fixtures/teaching.ts): most of
+// this suite was written against it.
 function fresh(): GameState {
-  return createInitialState('Invariants');
+  return teachPillars(createInitialState('Invariants'));
 }
 
 // Directly staffs a field with a generously-slotted hire, bypassing the
@@ -583,20 +585,26 @@ function assertHallsInvariants(s: GameState, label: string): void {
   }
 }
 {
-  // A founding save (Plan 19): one hall, six slots, the three founding
-  // programs in it, three rooms free, and three programs on offer of which
-  // at least one the roster can staff.
-  let s = fresh();
-  assertHallsInvariants(s, 'founding');
-  assert(Object.keys(s.halls).length === 1 && s.halls[FOUNDERS_HALL_ID]?.length === ACADEMIC_HALL_SLOTS,
+  // A founding save (Plan 80D): one hall, six slots, all of them free, no
+  // professor and no course; the three founding pillars on offer, one of
+  // three schools each (Plan 52), and a professor for each on the market.
+  const founding = createInitialState('Invariants');
+  assertHallsInvariants(founding, 'founding');
+  assert(Object.keys(founding.halls).length === 1 && founding.halls[FOUNDERS_HALL_ID]?.length === ACADEMIC_HALL_SLOTS,
     'a founding save has one hall with six slots');
-  assert(FOUNDING_PROGRAMS.every((id, i) => s.halls[FOUNDERS_HALL_ID]?.[i]?.programId === id), 'the founding programs are in its first three');
-  assert(s.halls[FOUNDERS_HALL_ID]?.slice(FOUNDING_PROGRAMS.length).every((slot) => slot.programId === null), 'and the rest are empty');
-  assert(s.tech.find((t) => t.id === FOUNDERS_HALL_ID)?.slots === ACADEMIC_HALL_SLOTS, 'Founders Hall is seeded with six slots like every other hall');
-  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are on offer at founding (got ${s.programOffers.length})`);
-  assert(s.programOffers.some((id) => FOUNDING_OFFER_GUARANTEE.includes(id)), `one of them is a program the roster can staff (${s.programOffers.join(', ')})`);
-  assert(startedSchools(s).size === FOUNDING_PROGRAMS.length && FOUNDING_PROGRAMS.every((id) => startedSchools(s).has(programById(id)!.school)), 'each founding program starts a school of its own (Plan 52)');
-  assert(s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length === 6, 'six courses are developed at founding');
+  assert(founding.halls[FOUNDERS_HALL_ID].every((slot) => slot.programId === null), 'every one of them free');
+  assert(founding.tech.find((t) => t.id === FOUNDERS_HALL_ID)?.slots === ACADEMIC_HALL_SLOTS, 'Founders Hall is seeded with six slots like every other hall');
+  assert(founding.programOffers.join(',') === FOUNDING_PROGRAMS.join(','), `the founding pillars are the offers (${founding.programOffers.join(', ')})`);
+  assert(new Set(FOUNDING_PROGRAMS.map((id) => programById(id)!.school)).size === FOUNDING_PROGRAMS.length, 'each of a school of its own (Plan 52)');
+  assert(FOUNDING_PROGRAMS.every((id) => founding.candidates.some((c) => c.field === programById(id)!.field)), 'and the market lists someone to teach each');
+  assert(founding.faculty.length === 0 && founding.tech.every((t) => t.kind !== 'course' || t.status !== 'done'), 'nobody on the payroll and no course developed at founding');
+
+  // The college teaching its pillars, as most suites start (fixtures/teaching.ts).
+  let s = fresh();
+  assertHallsInvariants(s, 'teaching');
+  assert(FOUNDING_PROGRAMS.every((id, i) => s.halls[FOUNDERS_HALL_ID]?.[i]?.programId === id), 'the pillars are in its first three');
+  assert(s.programOffers.length === PROGRAM_OFFER_COUNT && s.programOffers.every((id) => !FOUNDING_PROGRAMS.includes(id)), `and three others are on offer (${s.programOffers.join(', ')})`);
+  assert(startedSchools(s).size === FOUNDING_PROGRAMS.length, 'each pillar starts a school of its own');
 
   // The chain: Founders Hall standing, then seven halls of six, one a school
   // (Plan 55), strictly sequential, the first with no Buildable prereq (its

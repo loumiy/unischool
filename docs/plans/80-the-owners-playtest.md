@@ -248,6 +248,84 @@ funds D introduces. Save bumps land in merge order.
   each step; letters expire; the charter rename; the save fixture
   migrates (a milestone's week).
 
+**As implemented (#TBD):**
+- **The start:** no professor, no course, every program slot of Founders
+  Hall free, 350 students. The first program offers are the pillars
+  (English, Mathematics, Economics), and the market opens with their
+  professors, Bennett, Iyer and Okafor (`FOUNDING_MARKET`, grown over
+  `FOUNDING_TENURE_WEEKS` as before), beside 27 ordinary candidates. Reyes
+  and Novak and the founding offer's guarantee are gone. A headless
+  founding (the harness) still sites the hall at the center.
+- **The walkthrough:** welcome, then site Founders Hall, then *Appoint the
+  first professor* (the hall's panel opens; the free program slot, English
+  and later Found are rung; Bennett is appointed from the market beside
+  the program), then *Found the first program* (English, its entry course
+  to the committee), then play. `settleOpening` moves through steps
+  already done. "Not this year" is hidden during the walk. Skipping, from
+  any card, leaves an unsited hall unsited: the clock holds, the Build
+  button and the hall's tile are rung, and NEXT reads "Site Founders Hall:
+  the clock waits until it stands".
+- **Crowded until the courses come:** a new reading (`seating.ts`) names
+  the cheapest step while the places taught and coming fall short of the
+  students: "Places for 80 of 350 students, counting courses under way:
+  found another program in Founders Hall, with a professor to teach it",
+  or a course to develop, or the professor it needs. It is the first
+  letter's ask (done when a program is housed and every student has a
+  place), and NEXT's after a dark program in later years. Zero courses
+  reads zero coverage, never a division; the first summer's class is held
+  to the room.
+- **Founding funds, provisional: $2.45M** (was $3M). The Guided player's
+  Year 2 body is about 345 (344, 344, 346 on the three seeds) and the
+  founding body 350, so five courses (400 places). The cheapest five are
+  five programs' entry courses, 5 × $300k = $1.5M; a professor each for a
+  year, the three founding-market professors at about $105k and two
+  median candidates at about $73k, $0.46M; the courses carried for a year,
+  5 × $300 × 52 = $0.08M. $2.04M, and a fifth more is $2.45M. The Guided
+  player's lowest cash in Years 1–2 is $0.18–0.20M.
+- **Letters:** "A program of its own" deleted. "The doors open" rewritten.
+  "A hall of its own" says a school is six programs of one school in any
+  hall, Founders Hall included. "Moving in" (the second academic hall
+  standing) asks "Establish a school: six programs of {school} in one hall
+  (n of 6)" for the school closest to six (`schools.ts`'s `closestSchool`,
+  `establish.ts`); "A school takes shape" comes at three in one hall with
+  the same ask; both are done when a school is founded; "A second school"
+  follows the first school founded and is done at two. NEXT's move reading
+  (`awayFromHome`) is replaced by the same establish line, shown only when
+  something can be done this week; its intent (found the school's program
+  there, bring one in, or make room in a full hall) is the guided player's
+  way there and is never named. The suggested move stays on the program
+  tile. The chair's letters no longer mention the founding three; the
+  "A fourth program" milestone keeps its condition (four housed).
+- **Letters expire:** a milestone records its week (`s.ladder.reachedWeek`);
+  its letter, and the founding note, leave the inbox a year after
+  (`LETTER_WEEKS`). **Save 81 → 82:** each milestone reached is dated to
+  week 1 of its year, and a walk held on the old "teaching" or "found" step
+  resumes at play; fixture `save-v81.json` (a Guided Year 9 run).
+- **The pennant** renames nothing. The charter's letter carries a name
+  field beside its two answers; an answer with a new name renames the
+  college first. `RENAME_COLLEGE` is refused unless the charter waits, so
+  the rename is once; "Keep the name" is final ("College for good").
+- **The harness** founds from nothing through its existing moves (the
+  guided player's `foundIn` and the archetypes' `hireForBlocked` hire from
+  the market, then found). Tests written against the old college use
+  `test/fixtures/teaching.ts`, which appoints the three and houses the
+  pillars with two courses each.
+- **Baseline move** (medians, three seeds): the Guided player at Year 10
+  has 4,810 students (−519), 63 courses (−15) and 5 schools (−1), with
+  $12.2M (+$7.9M); at Year 25 rank 13 (+5), at Year 50 rank 1, prestige
+  141.7 (−0.7), $132M (−$41M); lowest cash $0.2M. The Completionist is
+  909 students and 10 courses behind at Year 10, and level by Year 50
+  (+$71M). Selective finishes rank 15 (from 23), Lean about as before. The
+  Idle college never founds: no course, no students from Year 10 (51
+  before), and its prestige, no longer held down by an unhappy body, sits
+  near 50.
+- **Checks:** `opening.test.ts` (the walk from the founding to English
+  founded, a professor appointed early, the skip at each step),
+  `first-year.test.ts` (NEXT seats the students), `inbox.test.ts` (letters
+  expire), `charter.test.ts` (the rename, once), `save-migrations.test.ts`
+  (81 → 82), `guided.test.ts` (founds and seats every student in Year 1).
+  `npm run newplayer` follows the new walk to Year 2 with no stall.
+
 ## PR 80E — The committee
 
 - **A committee chip on the dock:** "Committee 3 of 4" with the free seats

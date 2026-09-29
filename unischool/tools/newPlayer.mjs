@@ -1,6 +1,8 @@
 // A new player, scripted: passes the title screen, founds a college in a
 // headless Chromium, follows the opening walkthrough by doing what each step
-// asks (through the UI, the way a player would), then plays the first year
+// asks (through the UI, the way a player would: since Plan 80D, site
+// Founders Hall, appoint Dr. Grace Bennett from the founding market in the
+// hall's panel, and found English with her), then plays the first year
 // at the fastest speed open to it (2× until a Provost opens 4×), answering
 // every stop and every matter with its last button. A matter that pauses
 // the clock on arrival (Plan 78E) is opened from its notice, answered in the
@@ -99,7 +101,8 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
       // A door (the build menu or the hall panel) or Next.
     }
     if (await clickFirst('.opening-target')) {
-      // Picked up the ringed build tile, or opened the ringed hall slot.
+      // Picked up the ringed build tile, opened the ringed program slot,
+      // picked the ringed program, or pressed the ringed Found.
     }
     if (await visible('.campus-map-svg.placing')) {
       const box = await page.locator('.campus-map-svg').boundingBox();
@@ -107,9 +110,19 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
       await page.waitForTimeout(200);
     }
     if (await visible('.hall-offer-tile')) {
-      await clickFirst('.hall-offer-tile:not(.selected)');
-      if (!(await clickFirst('.instructor-option:not(.full):not(.selected)'))) await clickFirst('button:has-text("Appoint")');
-      await clickFirst('.building-info-jump:not([disabled])');
+      // The ringed program (English), else the first; then its professor:
+      // appointed from the market beside it when nobody can teach it yet.
+      if (!(await visible('.hall-offer-tile.selected')) && !(await clickFirst('.hall-offer-tile.opening-target'))) await clickFirst('.hall-offer-tile');
+      if (!(await visible('.hall-offer-picker .instructor-options'))) {
+        const appoint = page.locator('.hall-offer-picker .course-drawer-appoint');
+        if (await appoint.count()) {
+          const who = (await page.locator('.hall-offer-picker .course-drawer-candidate').first().innerText().catch(() => '')).split('\n')[0];
+          await appoint.first().click({ timeout: 1500 }).catch(() => {});
+          note(`appointed ${who || 'a professor'}`);
+          await page.waitForTimeout(200);
+        }
+      }
+      await clickFirst('.hall-offer-picker .building-info-jump:not([disabled])');
     }
   } else {
     // A matter that paused the clock on arrival (Plan 78E): open it from its

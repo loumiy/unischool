@@ -10,6 +10,7 @@ import { attendanceFor } from '../systems/athletics/gate';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { NEED_WORD } from '../data/needWords';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
+import { WALKTHROUGH_PROGRAM } from '../data/foundingData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { claimCutBy, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
@@ -357,6 +358,8 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     ? { programId: picked.id, hallId: t.id, slot: openSlot, facultyId: chosen }
     : null;
   const canFound = founding !== null && canFoundProgram(s, founding);
+  // The opening walkthrough's steps done in this panel (state/opening.ts).
+  const walking = s.events.opening.stage === 'appoint' || s.events.opening.stage === 'found';
   const free = slots.filter((slot) => slot.programId === null).length;
   const school = dedicatedSchool(s, t.id);
   // On its way to a school (Plan 55): every program in it is one school's.
@@ -372,11 +375,13 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     const mark = schoolMark(program.school);
     const [code] = (course?.name ?? program.entryCourseId).split(' · ');
     const selected = pickedProgram === program.id;
+    // The walkthrough's program, rung until it is picked.
+    const ringed = walking && t.id === FOUNDERS_HALL_ID && program.id === WALKTHROUGH_PROGRAM && pickedProgram === null;
     return (
       <button
         key={program.id}
         type="button"
-        className={`hall-offer-tile${selected ? ' selected' : ''}`}
+        className={`hall-offer-tile${selected ? ' selected' : ''}${ringed ? ' opening-target' : ''}`}
         style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}
         onClick={() => { setPickedProgram(selected ? null : program.id); setPickedFaculty(null); }}
         aria-pressed={selected}
@@ -394,8 +399,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     ? declineRefusal(s, drawn[0].id)
     : null;
   // A global offer, with its decline: one a year, refused with the reason.
+  // Not during the walkthrough, whose steps name the program to found.
   const drawnTile = (program: ProgramInfo) => {
-    if (host || !act) return offerTile(program);
+    if (host || !act || walking) return offerTile(program);
     const refusal = declineRefusal(s, program.id);
     return (
       <div key={program.id} className="hall-offer-choice">
@@ -429,7 +435,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       )}
       {t.id === FOUNDERS_HALL_ID && (
         <p className="building-info-line">
-          Where programs begin: they move on to halls of their own school, closed for {FOUNDERS_MOVE_WEEKS} weeks on the way, and the last school without a hall of its own keeps this one.
+          Where programs begin. Six programs of one school in any hall, this one included, found that school; a program moving out of it is closed for {FOUNDERS_MOVE_WEEKS} weeks on the way.
         </p>
       )}
       <p className="building-info-line">
@@ -459,10 +465,10 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
             );
           }
           const open = openSlot === i;
-          // The opening walkthrough's last step rings the first free room
-          // of Founders Hall until it is opened (see state/opening.ts and
-          // styles.css's .opening-target).
-          const ringed = s.events.opening.stage === 'found' && t.id === FOUNDERS_HALL_ID && openSlot === null
+          // The opening walkthrough's appointing and founding steps ring the
+          // first free program slot of Founders Hall until it is opened (see
+          // state/opening.ts and styles.css's .opening-target).
+          const ringed = walking && t.id === FOUNDERS_HALL_ID && openSlot === null
             && slots.findIndex((slot) => slot.programId === null) === i;
           return (
             <button
@@ -526,7 +532,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
               ) : (
                 <>
                   <p className="building-info-line">
-                    Needs {entry.requiresFaculty} faculty: every professor in the field is teaching a full load. Appoint one to found this program.
+                    {s.faculty.some((f) => f.field === entry.requiresFaculty)
+                      ? `Needs ${entry.requiresFaculty} faculty: every professor in the field is teaching a full load. Appoint one to found this program.`
+                      : `Needs ${entry.requiresFaculty} faculty: nobody on the payroll teaches ${entry.requiresFaculty}. Appoint a professor to found this program.`}
                   </p>
                   {entry.requiresFaculty && act && <MarketInField s={s} act={act} field={entry.requiresFaculty} projectedFor={entry} />}
                 </>
@@ -542,7 +550,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
                 </p>
               )}
               <ConfirmButton
-                className="building-info-jump"
+                className={`building-info-jump${s.events.opening.stage === 'found' && canFound ? ' opening-target' : ''}`}
                 disabled={!canFound || !act}
                 needsConfirm={cut !== null}
                 label={chosen

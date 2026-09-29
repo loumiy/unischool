@@ -57,6 +57,10 @@ for (const run of RUNS) {
     assert(r.delivered[letter.id] !== undefined, `${label}: "${letter.title}" is delivered`);
     assert(r.done[letter.id] !== undefined, `${label}: and its ask is done ("${letter.ask(g.s).text}")`);
   }
+  // The college opens with nothing to teach (Plan 80D): the player appoints
+  // and founds from nothing, and seats every student in year one.
+  const seated = r.done['doors-open'];
+  assert(seated !== undefined && seated[0] === 1, `${label}: founds from nothing and seats every student in year one (${JSON.stringify(seated)})`);
   console.log(`  · ${label}: letters done by year ${Math.max(...Object.values(r.done).map(([y]) => y))}, ${Object.keys(r.schools).length} schools, the last school home in Founders Hall ${r.foundersHome ?? 'never'}, rank ${r.years[r.years.length - 1].rank} at the end`);
 }
 

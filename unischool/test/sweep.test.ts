@@ -8,6 +8,7 @@
 //   - grants are scaled per depth (researchData.ts's GRANT_DEPTH_SCALE).
 
 import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
@@ -38,7 +39,7 @@ const OPEX = 1_000_000;
 // A college with opex fixed at OPEX a week and `weeksOfCash` of it in the
 // bank, at the given week of the given year.
 function college(weeksOfCash: number): GameState {
-  const s = createInitialState('Sweep');
+  const s = teachingCollege('Sweep');
   s.finance.weeklyOpEx = OPEX;
   s.finance.cash = weeksOfCash * OPEX;
   s.finance.endowment = 0;

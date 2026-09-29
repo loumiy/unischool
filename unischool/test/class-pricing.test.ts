@@ -18,7 +18,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { annualTuitionBilled, tuitionByClassBilled, weeklyNet } from '../src/systems/finance/financeSystem';
@@ -108,7 +108,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
 // make every later assertion here meaningless.
 // =====================================================================
 {
-  const s = createInitialState('Opening');
+  const s = teachingCollege('Opening');
   const p = s.finance.tuitionByClass;
   assert(p.freshman === s.finance.listedTuition && p.sophomore === s.finance.listedTuition
     && p.junior === s.finance.listedTuition && p.senior === s.finance.listedTuition,
@@ -127,7 +127,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   const CHEAP = 12_000;
   const STEEP = 48_000;
 
-  const founded = createInitialState('Hiker');
+  const founded = teachingCollege('Hiker');
   const FOUNDING = founded.finance.listedTuition;
   const afterFirst = playYearAt(founded, CHEAP);
   const beforeRaise = tuitionByClassBilled(afterFirst);
@@ -177,7 +177,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   const BASE = 15_000;
   const RAISED = 25_000;
 
-  const founded = createInitialState('Baseline');
+  const founded = teachingCollege('Baseline');
   const afterFirst = playYearAt(founded, BASE);
 
   const flat = playYearAt(afterFirst, BASE);
@@ -205,7 +205,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   const OLD = 10_000;
   const NEW = 30_000;
 
-  let s = createInitialState('Flusher');
+  let s = teachingCollege('Flusher');
   s = playYearAt(s, OLD);
   for (let year = 0; year < 4; year += 1) s = playYearAt(s, NEW);
 
@@ -227,7 +227,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
 {
   const PRICE = 21_000;
 
-  let s = createInitialState('Projector');
+  let s = teachingCollege('Projector');
   s = playYearAt(s, 16_000); // one ordinary year first, so the classes differ
   s = tickTo(s, 'summer');
 
@@ -268,7 +268,7 @@ function playYearAt(start: GameState, tuition: number): GameState {
   // And the projection must not have touched the live state it read: it
   // shares every slice it does not advance, so a stray write would corrupt
   // the game from a panel that only ever claimed to look.
-  const before = createInitialState('Projector');
+  const before = teachingCollege('Projector');
   const untouched = playYearAt(before, 16_000);
   const snapshot = JSON.stringify(tickTo(untouched, 'summer').students.classes);
   assert(

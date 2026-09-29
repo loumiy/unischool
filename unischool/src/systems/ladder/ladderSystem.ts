@@ -1,4 +1,5 @@
 import type { GameState } from '../../state/types';
+import { WEEKS_PER_YEAR } from '../../state/types';
 import { MILESTONES, milestoneForBuildable, milestoneForSection, milestoneForTab, CHARTER_ID, type Milestone, type TabSection } from '../../data/ladderData';
 import type { TabId } from '../../components/TabNav';
 
@@ -9,6 +10,7 @@ export function tickLadder(s: GameState): void {
   for (const m of MILESTONES) {
     if (s.ladder.reached[m.id] !== undefined || !m.reached(s)) continue;
     s.ladder.reached[m.id] = s.clock.year;
+    s.ladder.reachedWeek[m.id] = (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
     if (m.id !== CHARTER_ID && !m.quiet) s.ladder.unread.push(m.id);
   }
 }
@@ -44,7 +46,7 @@ export function holdBackUnreached(s: GameState): void {
 
 // The founding state: the charter, and nothing waiting to be read.
 export function foundingLadder(year: number): GameState['ladder'] {
-  return { reached: { [CHARTER_ID]: year }, unread: [] };
+  return { reached: { [CHARTER_ID]: year }, reachedWeek: { [CHARTER_ID]: (year - 1) * WEEKS_PER_YEAR + 1 }, unread: [] };
 }
 
 // The milestone the ticker shows: of those not yet reached that measure

@@ -9,7 +9,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { canSwapInstructors } from '../src/systems/techtree/techSystem';
 import { projectedQuality } from '../src/systems/faculty/facultyAssignment';
@@ -49,7 +49,7 @@ function hire(s: GameState, id: string, field: string, teaching: number, courseS
 // pairing that exists at founding, but with the weaker one on the harder
 // course.
 function staffed(): GameState {
-  const s = createInitialState('Swappers');
+  const s = teachingCollege('Swappers');
   s.faculty = s.faculty.filter((f) => f.field !== 'English');
   hire(s, 'strong', 'English', 90);
   hire(s, 'weak', 'English', 40);

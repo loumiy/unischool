@@ -408,15 +408,6 @@ export function MapToolsIcon() {
   );
 }
 
-// Rename: a pencil.
-export function RenameIcon() {
-  return (
-    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
-      <path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5 4 20Z" />
-      <path d="M13.5 7l3 3" />
-    </svg>
-  );
-}
 
 // Release: someone leaves by the door (a coach let go).
 export function ReleaseIcon() {

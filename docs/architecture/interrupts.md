@@ -32,17 +32,22 @@ Everything that needs to stop time rides on this one mechanism:
   `src/data/eventData.ts` (`OPENING_LETTERS`), once each, and skippable from
   the first ("I know the way"). Two kinds (Plan 55). Three are **calendar
   letters**, due on the first quiet week at or after their week of year one
-  and never after it: the doors open (week 1: found a fourth program in
-  Founders Hall), somewhere to sleep (week 9) and summer is coming (week
-  48). Four **wait on the college** (`arrives`), in any year, and teach the
-  line of play — programs begin in Founders Hall and move out, school by
-  school, into halls of their own: *A hall of its own* when Elm Hall opens
-  (site it); *Moving in* when it stands (move the next school's first
-  program into it, four weeks dark, naming the school with the most
-  programs in Founders Hall); *A school takes shape* once it is claimed
-  (grow that school to three programs there, founding its new programs
-  straight into it); and *A second school* once one has three and Oak Hall
-  opens (site it, then move the next school in). Two more follow research
+  and never after it: the doors open (week 1: a college with nothing to
+  teach founds a program in Founders Hall, with a professor from the
+  market, then develops courses until every student has a place,
+  `systems/guidance/seating.ts`; Plan 80D), somewhere to sleep (week 9)
+  and summer is coming (week 48). Four **wait on the college** (`arrives`),
+  in any year, and teach the line of play — a school is six programs of
+  one school in one hall, any hall, Founders Hall included (Plan 80D), and
+  no letter asks for a particular move: *A hall of its own* when Elm Hall
+  opens (site it); *Moving in* when it stands, the second academic hall
+  (what a school is, and the school closest to six; its ask, "Establish a
+  school: six programs of {school} in one hall (n of 6)",
+  `systems/guidance/establish.ts`); *A school takes shape* when a school
+  has three in one hall (the same ask); and *A second school* once one is
+  founded (another, or Oak Hall sited first when it is the next hall). From
+  Plan 55 to Plan 80D *Moving in* asked for the move out of Founders Hall
+  into Elm Hall, and the later letters for the moves after it. Two more follow research
   (Plan 59): *The laboratories* when the first lab stands (see an
   initiative through in every lab) and *The Research Park* when the park
   opens (site it). A letter whose ask is a building (its ask's `go` is the
@@ -56,9 +61,10 @@ Everything that needs to stop time rides on this one mechanism:
   everything the player earned and outrank only the decision roll. The
   toolbar carries a letter's ask as its next-step line until it is done
   (`src/systems/guidance/nextStep.ts`): in year one a letter's, and between
-  letters the shortfall reading (a need under 50, Plan 78B); afterward a
-  waiting letter's first, then the campus readings, a possible move out of
-  a mixed hall before a free slot.
+  letters the students short of places (Plan 80D), then the shortfall
+  reading (a need under 50, Plan 78B); afterward a waiting letter's first,
+  then the campus readings: the students short of places, a school to
+  establish, a free slot.
 - **The Deans' recommendations** (`dean-recommendations`, Plan 59) — on the
   first quiet week of a year, within its first quarter, once a year: every
   school with a Dean and an unstaffed course has a plan to restaff it
@@ -69,23 +75,29 @@ Everything that needs to stop time rides on this one mechanism:
   (`START_GAME` with `guided`) opens on `s.events.opening.stage = 'welcome'`
   with Founders Hall unsited, and the reducer's `TICK` is a no-op until the
   stage is `'play'` (`src/state/opening.ts`, `openingHoldsClock`).
-  Five stages: the board's welcome (Next, or "I know the way", which places
-  the hall where a headless founding would and stands the letters down);
-  site Founders Hall (the shell opens the build menu and rings the hall's
-  tile; siting it is free — `campusMap.ts`'s `sitingFeeOf`; done when the
-  hall stands); "the college already teaches" (Next opens the Curriculum,
-  where the three founding programs' rows are the first thing to see);
-  found a fourth program (the card's door is Founders Hall's panel on the
-  map, which rings its first free room; done when a fourth program is
-  housed — which is also where hiring is taught, since the panel lists the
-  market when nobody on the payroll teaches the field); then `'play'`,
-  where `App.tsx` starts the clock. The two "done" steps are settled by
+  Five stages since Plan 80D, for a college that opens with nothing to
+  teach: the board's welcome, which says nobody is on the payroll yet
+  (Next, or "Skip the walkthrough and the letters"); site Founders Hall
+  (the shell opens the build menu and rings the hall's tile; siting it is
+  free — `campusMap.ts`'s `sitingFeeOf`; done when the hall stands);
+  appoint the first professor (the shell opens Founders Hall's panel and
+  rings its first free program slot and English; the panel lists the
+  market beside the program, where Dr. Grace Bennett is on offer from the
+  founding market; done when anyone is on the payroll); found the first
+  program (English with Bennett, its entry course to the committee; the
+  Found button is rung; done when a program is housed); then `'play'`,
+  where `App.tsx` starts the clock. The "done" steps are settled by
   `settleOpening` from the action that did them (`PLACE_BUILDABLE`,
-  `FOUND_PROGRAM`), never by the UI. The welcome IS the first letter's
-  content and the walk does its ask, so a guided founding counts that
-  letter read and the letters carry on from the second. A
-  headless founding (tests, the sim, a scenario file) opens at `'play'`
-  with the hall pre-placed, unchanged.
+  `HIRE_FACULTY`, `FOUND_PROGRAM`), never by the UI, and it moves on
+  through every step already done. Skipping, from any card, never sites
+  the hall: an unsited Founders Hall holds the clock whatever the stage,
+  and the next-step line says "Site Founders Hall: the clock waits until
+  it stands" (until Plan 80D the skip placed it where a headless founding
+  would). The welcome IS the first letter's content, so a guided founding
+  counts that letter read, its ask (seat the students) is the line once
+  the walk ends, and the letters carry on from the second. A headless
+  founding (tests, the sim, a scenario file) opens at `'play'` with the
+  hall pre-placed, and nothing taught.
   The copy is `src/data/openingData.ts` and the card is
   `src/components/OpeningCoach.tsx`.
 - **Milestone celebrations** — a stop-the-clock moment for the handful of

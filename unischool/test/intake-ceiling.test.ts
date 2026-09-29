@@ -17,7 +17,8 @@ import { intakeCeiling, instructionCapacity, SEATS_PER_COURSE } from '../src/sys
 import { servicesMultiplier, SERVICES_CROWDING_AT_FULL, SERVICES_PER_STUDENT_PER_WEEK, financeBreakdown } from '../src/systems/finance/financeSystem';
 import { academicHallId, programs } from '../src/data/techData';
 import { isInTransit } from '../src/systems/techtree/programOffers';
-import { FOUNDING_PROGRAMS, FOUNDING_COURSES_PER_PROGRAM } from '../src/data/foundingData';
+import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
+import { teachingCollege, TEACHING_COURSES_PER_PROGRAM } from './fixtures/teaching';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
@@ -42,11 +43,11 @@ function assert(cond: boolean, msg: string): void {
 const near = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) < eps;
 
 function fresh(): GameState {
-  return createInitialState('Ceiling');
+  return teachingCollege('Ceiling');
 }
-// The founding college's developed courses (Plan 19): what a founding save
-// can teach.
-const FOUNDING_COURSE_COUNT = FOUNDING_PROGRAMS.length * FOUNDING_COURSES_PER_PROGRAM;
+// The pillars' developed courses (fixtures/teaching.ts): what the college
+// teaching them can teach.
+const FOUNDING_COURSE_COUNT = FOUNDING_PROGRAMS.length * TEACHING_COURSES_PER_PROGRAM;
 
 function toSummer(start: GameState): GameState {
   let s = start;
@@ -165,7 +166,7 @@ console.log('intake ceiling tests');
   assert(isInTransit(s, programId), 'the program is moving');
   const atSummer = toSummer(s);
   assert(isInTransit(atSummer, programId), 'and is still moving at the summer');
-  const seats = FOUNDING_COURSES_PER_PROGRAM * SEATS_PER_COURSE;
+  const seats = TEACHING_COURSES_PER_PROGRAM * SEATS_PER_COURSE;
   const ceiling = intakeCeiling(atSummer);
   assert(ceiling.capacity === before.capacity, `the summer's ceiling keeps its seats (${ceiling.capacity} against ${before.capacity})`);
   assert(ceiling.moving === seats, `and names them as moving (${ceiling.moving})`);

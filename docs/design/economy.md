@@ -148,9 +148,15 @@ the trajectories now).
 its building, a kitchen 30% of its dining hall, the boiler 12% of the standing
 residence halls, a storm 3% of everything standing, floored at $60k.
 
+**Crowded from day one** (Plan 80D). The college opens with no course, so
+its 350 founding students have no places until the first courses are
+taught: instruction coverage reads zero, and the crowding it brings is
+real until the catalog catches up (five courses seat the founding body).
+The first summer's class is held to the room the catalog has.
+
 **The ceiling.** Instruction capacity — `SEATS_PER_COURSE` (80) for every
-developed course in a housed, settled program, the founding college's six
-courses included — is the one hard cap in the game, on enrollment
+developed course in a housed, settled program — is the one hard cap in the
+game, on enrollment
 and nothing else: the freshman class cannot exceed the seats left after the
 seniors graduate (`instructionCapacity.ts`'s `intakeCeiling`). At the summer
 a program moving halls counts its seats too (Plan 79C). Beds, dining
@@ -269,8 +275,12 @@ and cash above the mark piles up as before (watched on the scorecard).
 The same plan measured the other end. **The founding has no slack of its
 own**: the economy is a threshold system, and a player who charges a tenth
 less than the harness's price, or whose costs run a tenth higher, stalled
-for a decade on a gift of $1.4M. The gift is $3.0M (`FOUNDING_PRESET`),
-which a strong strategy does not need and a weaker one does. The boom that
+for a decade on a gift of $1.4M. The gift was $3.0M (`FOUNDING_PRESET`)
+from then until Plan 80D, when the college began opening with nothing to
+teach: the gift now pays for the courses that seat the Year 2 headcount,
+with the professors they need, and about a fifth to spare — $2.45M,
+provisional until Plan 80F sets it from the harness (the arithmetic is in
+`foundingData.ts` and the plan's note). The boom that
 follows a founding that works (the catalogue built by Year 15, first place
 by Year 17) is left open for the owner: every cost lever measured tips the
 economy into a stall before it slows the boom, so the fix is a mechanism

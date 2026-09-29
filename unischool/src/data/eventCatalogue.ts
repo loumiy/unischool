@@ -2438,7 +2438,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
 // drawn. It is raised the first quiet week a lab is at work (eventSystem.ts's
 // fireCharter), once a run, and waits in the inbox like any other; left
 // unanswered, the college becomes a University, as it did before the
-// question. {name} is the first half of the college's name.
+// question. {name} is the first half of the college's name. Its letter
+// carries the college's one rename (Plan 80D, InboxTab.tsx's CharterAnswer).
 export const CHARTER_EVENT: CatalogueEvent = {
   id: 'university-charter',
   kind: 'inline',
@@ -2448,7 +2449,7 @@ export const CHARTER_EVENT: CatalogueEvent = {
   cooldownYears: 0,
   when: {},
   title: 'The charter',
-  text: 'With research under way, the board has voted the college a university charter. {name} College may now call itself {name} University, as many American colleges did when they took up research and graduate work. Others kept the name they opened under and were none the worse for it.\n\nThe board would have the new name carved over Founders Hall, unless the President prefers the old one. The stonemason has been asked to wait a month.',
+  text: 'With research under way, the board has voted the college a university charter. {name} College may now call itself {name} University, as many American colleges did when they took up research and graduate work. Others kept the name they opened under and were none the worse for it.\n\nThe board would have the new name carved over Founders Hall, unless the President prefers the old one, and if the President would rather the college had another name altogether, this is the one time to say so: the stone is cut once. The stonemason has been asked to wait a month.',
   timeoutWeeks: 4,
   choices: [
     { id: 'university', label: 'Become {name} University', effects: { charter: 1 } },

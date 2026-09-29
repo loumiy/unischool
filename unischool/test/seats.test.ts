@@ -3,7 +3,7 @@
 // answers its domain's routine by policy and escalates the rest; together
 // they open the top speeds.
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import {
   heldSeat, seatCandidates, seatPayroll, seatSlots, speedLock,
@@ -42,7 +42,7 @@ function assert(cond: boolean, msg: string): void {
 console.log('seats tests');
 
 function fresh(): GameState {
-  const s = createInitialState('Seats');
+  const s = teachingCollege('Seats');
   s.pendingInterrupt = null;
   s.finance.cash = 50_000_000;
   s.finance.weeklyOpEx = 1_000_000;

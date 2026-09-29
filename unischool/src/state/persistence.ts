@@ -53,7 +53,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 81; // Plan 79C: the applicant lift reaches the funnel
+export const SAVE_VERSION = 82; // Plan 80D: a milestone records the week it was reached
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -105,6 +105,20 @@ function noLiftYet(state: GameState): void {
   state.students.applicantLift = 0;
 }
 
+// 81 -> 82, Plan 80D: a milestone records the week it was reached
+// (LadderState.reachedWeek), so its letter leaves the inbox a year after.
+// A save from before it knows only the year: week 1 of it. And the
+// walkthrough's steps were redrawn for a college that opens with nothing
+// to teach; a save from before it was founded teaching three programs, so
+// a walk held on its old third or fourth step has nothing left to do.
+function milestoneWeeks(state: GameState): void {
+  const reached = state.ladder.reached;
+  state.ladder.reachedWeek = {};
+  for (const [id, year] of Object.entries(reached)) state.ladder.reachedWeek[id] = (year - 1) * WEEKS_PER_YEAR + 1;
+  const stage = state.events.opening.stage as string;
+  if (stage === 'teaching' || stage === 'found') state.events.opening.stage = 'play';
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
@@ -112,6 +126,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   78: grantHeldCharter,
   79: noDeclineYet,
   80: noLiftYet,
+  81: milestoneWeeks,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a

@@ -71,8 +71,9 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // capital projects (projectData.ts), so no school needs a second hall. The
 // numbers are provisional, fitted by feel.
 export const ACADEMIC_HALL_SLOTS = 6;
-// The first purchased hall waits on this many developed courses: the six the
-// college opens with plus two the player chose (the ladder's 'curriculum' milestone).
+// The first purchased hall waits on this many developed courses (the
+// ladder's 'curriculum' milestone). Until Plan 80D, the six the college
+// opened with plus two; now it opens with none, and all eight are chosen.
 export const FIRST_HALL_COURSE_GATE = 8;
 const ACADEMIC_HALL_FIRST_COST = 2_500_000;
 const ACADEMIC_HALL_COST_RATIO = 1.45;
@@ -151,8 +152,9 @@ const SCHOOLS: SchoolSeed[] = [
     ],
   },
   {
-    // English is housed in Founders Hall at founding, beside Mathematics and
-    // Economics (foundingData.ts's FOUNDING_PROGRAMS, Plan 52).
+    // English is on offer at founding, beside Mathematics and Economics
+    // (foundingData.ts's FOUNDING_PROGRAMS, Plan 52), and the walkthrough
+    // founds it first (Plan 80D).
     name: 'Social Sciences & Humanities',
     majors: [
       { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Rhetoric & Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing'] },

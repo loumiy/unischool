@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
+import { teachPillars } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { FOUNDERS_HALL_ID, programById, programOfCourse } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
@@ -58,12 +59,13 @@ function advance(s: GameState, weeks: number): GameState {
   return s;
 }
 
-// A school with the first hall standing and empty beside Founders Hall,
-// three programs on offer, and every offered program's field staffed.
+// A school teaching its founding pillars (fixtures/teaching.ts) with the
+// first hall standing and empty beside Founders Hall, three programs on
+// offer, and every offered program's field staffed.
 // The first hall's own gate (eight developed courses — Plan 19's PR B) is
 // not what is under test here, so the hall is stood up directly.
 function ready(): GameState {
-  const s = createInitialState('Founders');
+  const s = teachPillars(createInitialState('Founders'));
   s.finance.cash = 500_000_000;
   const hall = s.tech.find((t) => t.id === 'HALL-01')!;
   hall.status = 'done';

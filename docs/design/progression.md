@@ -23,12 +23,16 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 - **Milestones are permanent.** One reached is never undone, even if
   enrolment or prestige later falls below its threshold.
 - **Each milestone arrives as a letter** in the inbox (Plan 77), naming
-  what it opened, and stays there to be read again. Letters never stop the
-  clock.
+  what it opened, and stays there to be read again for a year: since Plan
+  80D a milestone records the week it was reached (`s.ladder.reachedWeek`),
+  and its letter leaves the inbox a year after, read or not, as the
+  founding years' note does. The milestones panel keeps the record.
+  Letters never stop the clock.
 - **The founding build list is short and curriculum-first:** the first
   dorm, the dining hall, the quad and the library. The Student Center and
-  the Recreation Center follow the fourth program, which is the opening
-  walkthrough's last step.
+  the Recreation Center follow the fourth program. (Until Plan 80D the
+  college opened teaching three, and the fourth was the opening
+  walkthrough's last step; now the walkthrough founds the first.)
 
 | Tier | Milestone | Condition | Opens |
 | --- | --- | --- | --- |
@@ -511,10 +515,14 @@ and **"Keep the name <Name> College"**. Either answer writes the charter's
 line in the log and the Answered list keeps the choice. It is a naming change
 and nothing else: a `suffix` string plus a flag recording that the charter
 was granted (set when it is raised, so it never recurs), joined for display
-by `institutionName()`. No system reads the name. **The pennant renames the
-college** (Plan 72E): the name the founding screen took, and College or,
-once chartered, University, either way and as often as the player likes, so
-a college that kept its name can still take University later. The bonus
-Second Empire architecture is earned by the charter, whichever name is kept.
-Until Plan 72 the charter was a one-time question in a modal; from Plan 72E
-to Plan 78G it was a silent rename with a log line.
+by `institutionName()`. No system reads the name. **The charter's letter
+carries the college's one rename** (Plan 80D): beside the two answers, a
+field holds the name as it stands, and an answer with a new name typed
+renames the college first (`RENAME_COLLEGE`, refused at any other time).
+Either answer is final: nothing renames the college after it, and a
+college that keeps "College" keeps it. The bonus Second Empire
+architecture is earned by the charter, whichever name is kept. Until Plan
+72 the charter was a one-time question in a modal; from Plan 72E to Plan
+78G it was a silent rename with a log line; and from Plan 72E to Plan 80D
+the pennant renamed the college, name and suffix, as often as the player
+liked.

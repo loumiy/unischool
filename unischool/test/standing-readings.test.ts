@@ -12,7 +12,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { programs } from '../src/data/techData';
-import { foundingCourseIds } from '../src/state/actions';
+import { teachPillars, teachingCourseIds } from './fixtures/teaching';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../src/data/facilitiesData';
 import {
   computePrestigeTarget, concentrationScore, crowdingCoverages, crowdingScore, crowdingShortfallNow,
@@ -46,7 +46,7 @@ function assert(cond: boolean, msg: string): void {
 const near = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) < eps;
 
 function fresh(): GameState {
-  return createInitialState('Readings');
+  return teachPillars(createInitialState('Readings'));
 }
 
 // A hall standing, placed and empty, so a program can be housed in it.
@@ -116,13 +116,20 @@ console.log('standing readings tests');
 
 // ---- instruction capacity: developed courses in housed, settled programs ----
 {
+  // A new college has nothing to teach (Plan 80D): no places, and its
+  // students crowded, read without a division by zero.
+  const bare = createInitialState('Readings');
+  assert(instructionCapacity(bare) === 0 && instructionCoverage(bare) === 0, 'a new college has no places, and its founding body no coverage');
+  bare.students.classes = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
+  assert(instructionCoverage(bare) === 1, 'an empty college reads covered');
+
   const s = fresh();
-  assert(instructionCapacity(s) === foundingCourseIds().length * SEATS_PER_COURSE, 'the founding college is seated from founding — its six courses are developed and housed in Founders Hall');
+  assert(instructionCapacity(s) === teachingCourseIds().length * SEATS_PER_COURSE, 'the college teaching its pillars is seated — its six courses are developed and housed in Founders Hall');
   assert(near(instructionCoverage(s), 1), 'and it holds the founding body');
 
   const core = instructionCapacityDetail(s);
-  assert(core.courses === foundingCourseIds().length, 'six developed courses in housed, settled programs');
-  assert(core.seats === foundingCourseIds().length * SEATS_PER_COURSE, 'at SEATS_PER_COURSE each');
+  assert(core.courses === teachingCourseIds().length, 'six developed courses in housed, settled programs');
+  assert(core.seats === teachingCourseIds().length * SEATS_PER_COURSE, 'at SEATS_PER_COURSE each');
   assert(core.seats >= totalEnrolled(s.students), 'which holds the founding body');
   assert(near(instructionCoverage(s), 1), 'so instruction coverage reads full');
 

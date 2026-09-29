@@ -92,7 +92,10 @@ and on the right a reading pane that shows the selected item whole, with its
 answers. A row to decide carries a navy rule down its edge, red in its last
 week, and its weeks left where a letter has its date ("Final week" in the
 last, in the list and the reading pane alike); an unread letter has a
-gold dot and a bold subject. Opening a letter reads it. The toolbar's Inbox
+gold dot and a bold subject. Opening a letter reads it. A letter (a
+milestone's, a founding note) leaves the inbox a year after it arrives,
+read or not (Plan 80D, `inbox.ts`'s `LETTER_WEEKS`), as a bulletin leaves
+after a term. The toolbar's Inbox
 button counts only what wants an answer, the stop included, and `I` opens
 it; the "To decide" filter counts the matters alone (Plan 78E). Nothing floats
 over the map any more: the event panel and the note stack it replaced both
@@ -130,7 +133,9 @@ popup is open, and the tabs scroll beside Build (Plan 76I). The school's
 name is not in the band: it hangs as a **pennant**
 in the map's top-left corner in the school's colours (`Pennant.tsx`), one
 name in one face, withheld while a tab is open because the tab's own title
-takes that corner.
+takes that corner. It renames nothing (Plan 80D): the college's one rename
+is a field in the charter's letter, in the inbox's reading pane
+(`InboxTab.tsx`'s `CharterAnswer`).
 
 ## The register
 
@@ -373,19 +378,21 @@ that very keypress.
 **The opening walkthrough drives the shell for the first minute.** A founding
 from the startup screen opens with `s.events.opening.stage` at `'welcome'` and
 the clock held (see [interrupts.md](interrupts.md)); `App.tsx` acts once on
-each transition into a stage — opens the build menu for the hall, closes it
-and drops the pickup when the hall stands, opens the Curriculum when the
-player asks to see what the college teaches, starts the clock when the walk
-ends — through the same `setBuildOpen`, `openTab` and `inspectHall` every
-other caller uses, so the one-slot rule holds. The card is
+each transition into a stage — opens the build menu for the hall, closes it,
+drops the pickup and opens Founders Hall's panel when the hall stands (where
+the first professor is appointed and the first program founded, Plan 80D),
+starts the clock when the walk ends — through the same `setBuildOpen` and
+`inspectHall` every other caller uses, so the one-slot rule holds. The card is
 `OpeningCoach.tsx`, pinned top-right beside the main menu and the map tools,
 with no backdrop so the screen under it stays workable (Plan 78F: top-center
 it covered the hall the player had just set down, and top-left is the
 building panel's). On a phone it spans the width at the top, and drops to the
 foot, over the dock, while the hall's panel holds the top. The control each
-step needs carries `.opening-target` (the Build button, the hall's tile, and
-Founders Hall's first free program slot in its panel on the map, which the
-card itself opens as the last step's door).
+step needs carries `.opening-target` (the Build button, the hall's tile,
+Founders Hall's first free program slot in its panel on the map, English
+among the offers, and the Found button). A skipped walk that left the hall
+unsited keeps the Build button and the hall's tile rung while the clock
+waits for it.
 
 **The build menu's "!"** has one meaning, "something new to build here": a
 category holds a tile the player has not seen, because the category has not

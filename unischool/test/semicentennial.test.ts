@@ -15,7 +15,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { modalWidth } from '../src/components/modalLayout';
@@ -65,7 +65,7 @@ function throughSummer(start: GameState): GameState {
 
 // A school standing at the start of year `year`, with no letters pending.
 function inYear(year: number): GameState {
-  const s = createInitialState('Fifty');
+  const s = teachingCollege('Fifty');
   s.clock.year = year;
   s.clock.week = 1;
   s.events.opening.skipped = true;
@@ -127,16 +127,16 @@ console.log('semicentennial tests');
 // --- the founder's figures ---------------------------------------------------------
 {
   const s = inYear(SEMICENTENNIAL_YEAR - 2);
-  assert(s.self.facultyServed === 5, 'the founding five have served from day one');
+  assert(s.self.facultyServed === 3, 'the three appointed from the founding market have served from day one');
   appointFaculty(s, { ...s.faculty[0], id: 'new' });
-  assert(s.self.facultyServed === 6, 'an appointment counts');
+  assert(s.self.facultyServed === 4, 'an appointment counts');
   const seniors = s.students.classes.senior;
   const after = throughSummer(toSummer(s));
   const row = after.history[after.history.length - 1];
   assert(row.graduated === seniors, `the snapshot carries the graduating class (${row.graduated} of ${seniors})`);
   const figures = founderFigures(after);
   assert(figures.studentsTaught === seniors + totalEnrolled(after.students), 'students taught is every class that left plus the body still here');
-  assert(figures.facultyServed === 6 && figures.prizes === 0 && figures.titles === 0, 'the other three read the tallies they name');
+  assert(figures.facultyServed === 4 && figures.prizes === 0 && figures.titles === 0, 'the other three read the tallies they name');
 }
 
 // --- the written report survives a save ------------------------------------------------

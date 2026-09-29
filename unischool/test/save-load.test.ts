@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------
 
 import { discardSetAsideSave, readSetAsideSave } from '../src/state/persistence';
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { loadGame, saveGame, clearSave, MIGRATIONS, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
@@ -58,7 +58,7 @@ function writeSave(version: number, state: unknown): void {
 // ---- Test: the one-off carry from version 77 (Plan 59's retirements) ----
 function testRetiredCarry(): void {
   clearSave();
-  const cur = createInitialState('Carry');
+  const cur = teachingCollege('Carry');
   // The same run as version 77 wrote it: a seventh hall and a Second Quad.
   // One run with neither sited, one with both.
   const sycamore = cur.tech.find((t) => t.id === 'HALL-06')!;
@@ -84,7 +84,7 @@ function testRetiredCarry(): void {
 // ---- Test: the catalog's text reaches a saved run (Plan 46) ----
 function testAuthoredText(): void {
   clearSave();
-  const cur = createInitialState('Text');
+  const cur = teachingCollege('Text');
   const course = cur.tech.find((t) => t.kind === 'course')!;
   const hall = cur.tech.find((t) => t.kind === 'building')!;
   const courseName = course.name;
@@ -100,7 +100,7 @@ function testAuthoredText(): void {
   assert(back.tech.find((t) => t.id === hall.id)!.name === 'The Donor Hall', "but a building's name, which naming rights can change, is kept");
   // A capital project's terms are authored too (Plan 58: the Graduate
   // College from Year 15, not 20).
-  const old = createInitialState('Terms');
+  const old = teachingCollege('Terms');
   // Replaced, not written through: the node shares its terms with the catalog.
   const college = old.tech.find((t) => t.id === 'PROJ-GRADUATE')!;
   college.project = { ...college.project!, fromYear: 20 };
@@ -111,7 +111,7 @@ function testAuthoredText(): void {
 // ---- Test: a current-version save round-trips ----
 function testRoundTrip(): void {
   clearSave();
-  const cur = createInitialState('RoundTrip');
+  const cur = teachingCollege('RoundTrip');
   assert(saveGame(cur), 'saveGame reports success');
   const loaded = loadGame();
   assert(loaded !== null, 'current-version save loads');
@@ -140,7 +140,7 @@ function testRoundTrip(): void {
 // 'available' facility chains) are unlocked from turn one, so they must
 // never read as "new" the instant the player opens Curriculum or Build.
 function testFoundingSeenExcludesStartingContent(): void {
-  const fresh = createInitialState('Fresh Start');
+  const fresh = teachingCollege('Fresh Start');
 
   const visibleCourses = fresh.tech.filter((t) => t.kind === 'course' && t.status !== 'locked');
   assert(visibleCourses.length > 0, 'a founding school has at least one visible course (the founding programs\')');
@@ -159,7 +159,7 @@ function testFoundingSeenExcludesStartingContent(): void {
 
 // ---- Test: stale course -> instructor entries are dropped on load ----
 function testCourseFacultySanitizer(): void {
-  const base = createInitialState('Sanitizer');
+  const base = teachingCollege('Sanitizer');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const tech = state.tech as Array<Record<string, unknown>>;
   tech.find((n) => n.id === 'ENGL120')!.status = 'done';
@@ -189,7 +189,7 @@ function testCourseFacultySanitizer(): void {
 // — the campus map reads them straight off the chapter, and an undefined
 // here is an empty pediment on every chapter house the player has built.
 function testChapterGlyphs(): void {
-  const base = createInitialState('Hellenic');
+  const base = teachingCollege('Hellenic');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const orgs = state.orgs as Record<string, unknown>;
   orgs.chapters = [
@@ -240,7 +240,7 @@ function testChapterGlyphs(): void {
 // placed hall; every entry has exactly its hall's `slots`; and every
 // housed program is a real program, housed once.
 function testHallsSanitizer(): void {
-  const base = createInitialState('Halls');
+  const base = teachingCollege('Halls');
   const state = JSON.parse(JSON.stringify(base)) as Loose;
   const tech = state.tech as Array<Record<string, unknown>>;
   const node = (id: string) => tech.find((n) => n.id === id)!;
@@ -311,7 +311,7 @@ function testHallsSanitizer(): void {
 
 // ---- Test: anything but the current version is a new game ----
 function testRejects(): void {
-  const cur = createInitialState('Reject');
+  const cur = teachingCollege('Reject');
 
   // The version before the chain starts: real content, but a shape this
   // build does not carry forward. Null, never half-loaded.
