@@ -175,7 +175,7 @@ funds D introduces. Save bumps land in merge order.
 - **Checks:** the filter predicates; the graduate sections; the hall
   panel and lab panel at 1440×900 and 390×844; `npm run phone`.
 
-**As implemented (#TBD):**
+**As implemented (#247):**
 
 - **Curriculum filters** (`curriculumFilter.ts`). Needs attention is gone.
   Below A reads `instructorQuality` (new, `facultyAssignment.ts`): the grade
