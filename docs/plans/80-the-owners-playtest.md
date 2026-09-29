@@ -399,7 +399,7 @@ after:
 - **Checks:** the depth-sort test at every view for both labs; the door and
   walker checks; a turn timed on a year-30 campus before and after.
 
-**As implemented (#TBD):**
+**As implemented (#248):**
 
 - **Quads lose their labels.** `quadLayer.tsx` (the tint, the outline, the
   names) and `QuadPanel.tsx` are gone, with "Mark a quad", the `quad`
