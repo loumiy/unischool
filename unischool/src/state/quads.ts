@@ -1,23 +1,22 @@
-import type { Buildable, Pathways, Placements, QuadState } from './types';
+import type { Buildable, Pathways, Placements } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from './types';
 import { ROAD_FIRST_ROW, parsePathTileKey, pathTileKey } from './campusMap';
 import {
   QUAD_DOORWAY_DEPTH, QUAD_DOORWAY_WIDTH, QUAD_GREEN_WEIGHT, QUAD_MAX_AREA, QUAD_MIN_AREA,
-  QUAD_MIN_ENCLOSURE, QUAD_NAMES, QUAD_PATH_WEIGHT,
+  QUAD_MIN_ENCLOSURE, QUAD_PATH_WEIGHT,
 } from '../data/quadData';
 
 // Quads (ported from v2's quads.ts): the open spaces the buildings enclose,
 // detected rather than declared. A quad is ground that is not built on and
 // not road, does not reach the edge of the parcel, is neither a light well
-// nor the rest of the campus, and is mostly walled. The game finds them and
-// names them; the player can rename one, and can mark as a quad a space
-// detection passes over. What they are worth is Phase E's.
+// nor the rest of the campus, and is mostly walled. The game finds them;
+// the map does not show them (Plan 80H took away their names, their tint and
+// the player's marks), and nothing but what the campus encloses makes one.
 //
 // A placed Campus Quad (a facility of type 'quad') is lawn a quad is made
 // of, not a wall. Every other placement is a wall.
 //
-// A quad's identity is its anchor, the first of its tiles in row-major order,
-// so a name sticks to a space as long as its top corner does.
+// A quad's identity is its anchor, the first of its tiles in row-major order.
 //
 // The fill runs twice. First over open ground with paving underfoot, which
 // finds the spaces the buildings enclose and lets a walk cross a green
@@ -26,14 +25,14 @@ import {
 // paths around. Before either, narrow gaps between buildings are sealed as
 // doorways (see sealDoorways).
 //
-// Read by the map, and by campus beauty (systems/estate/beauty.ts), whose
-// enclosure share counts the quads.
+// Read by campus beauty (systems/estate/beauty.ts), whose enclosure share
+// counts the quads, and by the one event that needs a quad to stand
+// (systems/events/catalogue.ts's quadsOver).
 
 export interface QuadInput {
   placements: Placements;
   tech: ReadonlyArray<Pick<Buildable, 'id' | 'facilityType'>>;
   pathways: Pathways;
-  quads?: QuadState;
 }
 
 export interface Quad {
@@ -43,10 +42,6 @@ export interface Quad {
   enclosure: number;      // 0–1: how much of its edge is wall, paving counting for less
   green: number;          // 0–1: the share of it that is lawn, not paving
   quality: number;        // 0–1: enclosure, lifted by how green it is
-  name: string;
-  centre: { col: number; row: number };
-  // Made a quad by the player's mark rather than by detection.
-  designated: boolean;
 }
 
 const W = CAMPUS_GRID_WIDTH;
@@ -63,16 +58,6 @@ const DOORWAY = 3;  // a gap too narrow to be a way out
 
 export const tileIndex = (row: number, col: number) => row * W + col;
 export const tileOf = (i: number) => ({ row: Math.floor(i / W), col: i % W });
-
-function nameFor(key: string, taken: Set<string>): string {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 1000003;
-  for (let i = 0; i < QUAD_NAMES.length; i++) {
-    const name = QUAD_NAMES[(h + i) % QUAD_NAMES.length];
-    if (!taken.has(name)) return name;
-  }
-  return QUAD_NAMES[h % QUAD_NAMES.length];
-}
 
 // A doorway is a hole through something thin: a run of open ground at most
 // QUAD_DOORWAY_WIDTH across, closed at both ends by something solid, through
@@ -221,38 +206,23 @@ function grids(input: QuadInput): { kind: Uint8Array; paved: Uint8Array } {
   return { kind, paved };
 }
 
-function quadOf(region: Region, paved: Uint8Array, names: Record<string, string>, taken: Set<string>, designated: boolean): Quad {
+function quadOf(region: Region, paved: Uint8Array): Quad {
   const { tiles } = region;
   const enclosure = region.boundary === 0 ? 0 : region.wall / region.boundary;
   const green = tiles.filter((i) => paved[i] !== 1).length / tiles.length;
-  const key = pathTileKey(tileOf(tiles[0]));
-  const name = names[key] ?? nameFor(key, taken);
-  taken.add(name);
-  let cols = 0;
-  let rows = 0;
-  for (const i of tiles) {
-    const t = tileOf(i);
-    cols += t.col;
-    rows += t.row;
-  }
   return {
-    key, tiles, area: tiles.length,
+    key: pathTileKey(tileOf(tiles[0])), tiles, area: tiles.length,
     enclosure: Number(enclosure.toFixed(3)),
     green: Number(green.toFixed(3)),
     quality: Number((enclosure * (1 - QUAD_GREEN_WEIGHT + QUAD_GREEN_WEIGHT * green)).toFixed(3)),
-    name,
-    centre: { col: cols / tiles.length + 0.5, row: rows / tiles.length + 0.5 },
-    designated,
   };
 }
 
 export function detectQuads(input: QuadInput): Quad[] {
   const { kind, paved } = grids(input);
-  const names = input.quads?.names ?? {};
   const claimed = new Uint8Array(N);
   const queue = new Int32Array(N);
   const quads: Quad[] = [];
-  const taken = new Set<string>(Object.values(names));
 
   // Pass one: what the buildings enclose, paving underfoot. Pass two: what
   // the paving encloses in the ground pass one left, and only if there are
@@ -267,37 +237,10 @@ export function detectQuads(input: QuadInput): Quad[] {
       if (region.touchesEdge || region.tiles.length < QUAD_MIN_AREA || region.tiles.length > QUAD_MAX_AREA) continue;
       if (region.boundary === 0 || region.wall / region.boundary < QUAD_MIN_ENCLOSURE) continue;
       for (const i of region.tiles) claimed[i] = 1;
-      quads.push(quadOf(region, paved, names, taken, false));
+      quads.push(quadOf(region, paved));
     }
-  }
-
-  // The player's marks: the open space under each, if detection left it and
-  // it does not reach the parcel's edge.
-  for (const key of input.quads?.designated ?? []) {
-    const t = parsePathTileKey(key);
-    if (!t || t.row < 0 || t.col < 0 || t.row >= H || t.col >= W) continue;
-    const start = tileIndex(t.row, t.col);
-    if (claimed[start] || kind[start] !== OPEN) continue;
-    const region = flood(start, kind, paved, claimed, new Uint8Array(N), queue, false);
-    if (region.touchesEdge || region.tiles.length < QUAD_MIN_AREA) continue;
-    for (const i of region.tiles) claimed[i] = 1;
-    quads.push(quadOf(region, paved, names, taken, true));
   }
 
   quads.sort((a, b) => a.tiles[0] - b.tiles[0]);
   return quads;
-}
-
-// Why a mark here would make no quad, or null if it would. The ground under
-// the tile must be open, enclosed from the parcel's edge, and more than a
-// light well.
-export function designationRefusal(input: QuadInput, row: number, col: number): string | null {
-  if (row < 0 || col < 0 || row >= ROAD_FIRST_ROW || col >= W) return 'not on the campus';
-  const { kind, paved } = grids(input);
-  const start = tileIndex(row, col);
-  if (kind[start] !== OPEN) return kind[start] === DOORWAY ? 'a doorway, not a space' : 'built on';
-  const region = flood(start, kind, paved, new Uint8Array(N), new Uint8Array(N), new Int32Array(N), false);
-  if (region.touchesEdge) return 'open to the edge of the campus';
-  if (region.tiles.length < QUAD_MIN_AREA) return 'too small for a quad';
-  return null;
 }

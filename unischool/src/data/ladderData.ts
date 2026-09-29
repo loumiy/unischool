@@ -35,10 +35,11 @@ export type LadderTier = 'Founding' | 'Growing' | 'Established' | 'National';
 // and the section waits on its milestone. A section no milestone names shows
 // whenever its tab does, and is somewhere a link can land (Plans 78C and
 // 80C: the dock's chips open History › Prestige, History › the guide and
-// Students › the breakdown).
+// Students › the breakdown, and Plan 80E's committee chip the Curriculum's
+// committee).
 export type TabSection =
   | 'students.guidebook' | 'students.clubs' | 'students.funnel' | 'students.breakdown'
-  | 'history.prestige' | 'history.rankings' | 'history.record';
+  | 'history.prestige' | 'history.rankings' | 'history.record' | 'curriculum.committee';
 
 export interface Progress {
   value: number;

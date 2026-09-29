@@ -27,10 +27,11 @@ const H = CAMPUS_GRID_HEIGHT;
 const N = W * H;
 
 // What a step onto a tile costs. A Campus Quad is lawn with its own walks
-// (quadGeometry.ts), at a path's cost, round a centerpiece no one crosses.
+// (quadGeometry.ts), at a path's cost, round a centerpiece no one crosses;
+// its lawn costs what any lawn does, so the crowd keeps to its walks
+// (Plan 80H: at half a lawn's cost they cut across the grass).
 export const PATH_COST = 1;
 const ROAD_COST = 1.5;
-const QUAD_COST = 2;
 export const LAWN_COST = 4;
 
 export interface Waypoint { col: number; row: number }  // a point on the grid
@@ -70,7 +71,7 @@ export function walkGrid(input: WalkInput): Float32Array {
       for (let r = p.row; r < p.row + p.h; r++) {
         for (let c = p.col; c < p.col + p.w; c++) {
           const kind = quadTile(p.col, p.row, p.w, p.h, t.tier ?? 1, c, r);
-          g[idx(c, r)] = kind === 'blocked' ? -1 : kind === 'walk' ? PATH_COST : QUAD_COST;
+          g[idx(c, r)] = kind === 'blocked' ? -1 : kind === 'walk' ? PATH_COST : LAWN_COST;
         }
       }
       continue;

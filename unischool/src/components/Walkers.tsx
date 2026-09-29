@@ -6,7 +6,7 @@ import { GATE_ID, gatePieces, motifOf, wallHeightOf } from './buildingSpec';
 import { groundProps } from './groundMarkings';
 import { treeOutline, treeShape } from './trees';
 import { parsePathTileKey } from '../state/campusMap';
-import { boxFaces, cameraAxes, groundSquash, heightScale, project, type Camera, type Pt } from './isoProjection';
+import { boxFaces, cameraAxes, currentCamera, groundSquash, heightScale, project, type Camera, type Pt } from './isoProjection';
 import { RouteTable, doors, pointStop, roadsides, walkGrid, type Entrance, type Stop, type Waypoint } from './walkRoutes';
 
 // Students walking real routes between the buildings they use (ported from
@@ -15,10 +15,16 @@ import { RouteTable, doors, pointStop, roadsides, walkGrid, type Entrance, type 
 // random numbers, and drawn imperatively (one <g> a walker, moved by
 // attribute) so a crowd costs React nothing.
 //
-// Positions are kept in grid space and projected every frame, so a walker
-// stays on its path when the camera turns. A building nearer the camera
-// cuts a walker behind it by its outline (a clip), so a figure slides behind
-// a wall rather than popping out of sight.
+// Positions are kept in grid space and projected every frame. A building
+// nearer the camera cuts a walker behind it by its outline (a clip), so a
+// figure slides behind a wall rather than popping out of sight.
+//
+// While the camera turns the crowd is hidden, and it keeps walking unseen
+// (Plan 80H): its loop read the new angle a frame or more before the scene
+// had turned, so it was drawn displaced, and every frame of the turn rebuilt
+// every outline. It is drawn again, where it belongs, once the turn settles
+// and the outlines are built for the view the projection is at; a tilt,
+// which snaps, waits for its outlines the same way.
 //
 // A walk runs door to door (walkRoutes.ts): out of the wall at one end and
 // into it at the other, fading as it passes through. A door in view opens
@@ -383,12 +389,14 @@ function along(route: Waypoint[], lengths: number[], u: number): Waypoint {
   return { col: a.col + (b.col - a.col) * t, row: a.row + (b.row - a.row) * t };
 }
 
-export default function Walkers({ layout, students, gait, camera }: {
+export default function Walkers({ layout, students, gait, camera, turning }: {
   layout: CampusLayout;
   students: number;
   // The clock's pace as a multiple of Play; 0 while paused.
   gait: number;
   camera: Camera;
+  // A quarter turn is being animated (CampusMap's turnBy).
+  turning: boolean;
 }) {
   const layerRef = useRef<SVGGElement>(null);
   const walkersRef = useRef<Walker[]>([]);
@@ -421,6 +429,9 @@ export default function Walkers({ layout, students, gait, camera }: {
   const figureRef = useRef(figureScale());
   // Set when the camera moves: the doors the scene drew are new ones.
   const doorsStaleRef = useRef(false);
+  // The camera the outlines were built for, or null while a turn runs: the
+  // crowd is drawn only while it is the projection's.
+  const builtForRef = useRef<Camera | null>(null);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -570,12 +581,25 @@ export default function Walkers({ layout, students, gait, camera }: {
 
     let frame = 0;
     let last = performance.now();
+    let hidden = layer.style.visibility === 'hidden';
     const step = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       table.grow(1);
-      readView();
       const s = figureRef.current;
+      const built = builtForRef.current;
+      const cam = currentCamera();
+      const show = built !== null && Math.abs(built.azimuth - cam.azimuth) < 1e-9 && Math.abs(built.pitch - cam.pitch) < 1e-9;
+      if (!show && !hidden) {
+        layer.style.visibility = 'hidden';
+        hidden = true;
+      }
+      // Hidden, the crowd walks on unseen: no view to read (reading the
+      // canvas's size lays out a scene the turn has just redrawn). Coming
+      // back, every figure is placed, off screen too, so none is left where
+      // the old view had it.
+      if (show) readView();
+      const reveal = show && hidden;
       const nextHeld = new Set<string>();
       for (const w of walkers) {
         const total = w.lengths[w.lengths.length - 1];
@@ -607,8 +631,8 @@ export default function Walkers({ layout, students, gait, camera }: {
           w.mover.setAttribute('opacity', String(oq));
         }
         for (const k of doorsHeld(w.u, len, doorKey(w.exitId, w.exit), doorKey(w.entryId, w.entry))) nextHeld.add(k);
-        if (oq === 0) continue;
-        if (p.x < view.x0 || p.x > view.x1 || p.y < view.y0 || p.y > view.y1) continue;
+        if (oq === 0 || !show) continue;
+        if (!reveal && (p.x < view.x0 || p.x > view.x1 || p.y < view.y0 || p.y > view.y1)) continue;
         // The step: the feet swing along the way it is going, and it rises
         // a little on each.
         const swing = moving ? Math.sin(w.phase) : 0;
@@ -641,6 +665,11 @@ export default function Walkers({ layout, students, gait, camera }: {
       const redraw = doorsStaleRef.current;
       doorsStaleRef.current = false;
       if (redraw || nextHeld.size !== held.size || [...nextHeld].some((k) => !held.has(k))) setDoors(nextHeld, redraw);
+      // Back in sight only after every figure has been placed for this view.
+      if (reveal) {
+        layer.style.visibility = '';
+        hidden = false;
+      }
       frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
@@ -652,12 +681,16 @@ export default function Walkers({ layout, students, gait, camera }: {
   }, [routeLayout, want]);
 
   // The camera's part: each walker's figure answers the tilt, and the
-  // outlines that clip them are rebuilt for the view, through a turn too
-  // (Plan 42: Plan 37 dropped them mid-turn, and a turn's walkers were drawn
-  // over the buildings in front of them).
+  // outlines that clip them are rebuilt for the view, once it has settled
+  // (the crowd is hidden through a turn; Plan 42's walkers drawn over the
+  // buildings in front of them mid-turn cannot happen).
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
+    if (turning) {
+      builtForRef.current = null;
+      return;
+    }
     for (const w of walkersRef.current) shapeWalker(w.mover);
     doorsStaleRef.current = true;
     axRef.current = cameraAxes();
@@ -665,7 +698,8 @@ export default function Walkers({ layout, students, gait, camera }: {
     shapesRef.current = silhouettes(layout);
     indexRef.current = new ShapeIndex(shapesRef.current);
     writeClips(layer, shapesRef.current);
-  }, [layout, camera, want]);
+    builtForRef.current = camera;
+  }, [layout, camera, want, turning]);
 
   return <g ref={layerRef} className="campus-walkers" aria-hidden="true" />;
 }

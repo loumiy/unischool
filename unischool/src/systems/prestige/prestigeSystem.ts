@@ -231,13 +231,13 @@ export interface StandingMultiplier {
 }
 
 // A multiplier as its row reads it: "×0.85 library adequacy — 200 seats for
-// 350 students". One wording for History › Standing and the summer Review.
+// 350 students". One wording for History › Prestige and the summer Review.
 export function multiplierLine(m: StandingMultiplier): string {
   return `${multiplier(m.value)} ${m.label} — ${m.detail}`;
 }
 
 // What moves a term, in one line: its detail, then its multiplier if it has
-// one. History › Standing and the summer Review both read it (Plan 78C).
+// one. History › Prestige and the summer Review both read it (Plan 78C).
 export function standingDetailLine(input: StandingInput): string {
   return input.multiplier ? `${input.detail} ${multiplierLine(input.multiplier)}` : input.detail;
 }

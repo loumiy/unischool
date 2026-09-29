@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react';
-import type { Buildable, Dressing, GameState, Pathways, Placement, Placements, QuadState, SchoolColors, Trees, Vernacular } from '../state/types';
+import type { Buildable, Dressing, GameState, Pathways, Placement, Placements, SchoolColors, Trees, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { BIKE_RACK_ENROLMENT } from './dressing';
 import { chapterHouseId } from '../data/eventData';
@@ -44,7 +44,6 @@ export interface CampusLayout {
   placements: Placements;
   trees: Trees;
   pathways: Pathways;
-  quads: QuadState | undefined;
   dressing: Dressing | undefined;
   // Big enough that the halls and dorms have bike racks.
   bikeRacks: boolean;
@@ -107,14 +106,13 @@ export function campusLayout(s: GameState): CampusLayout {
     placed.map(entryKey).join('|'),
     recordKey(s.trees),
     paths,
-    s.quads ? JSON.stringify(s.quads) : '',
     s.dressing ? recordKey(s.dressing) : '',
     bikeRacks ? 'racks' : '',
     `${s.self.colors.primary}${s.self.colors.secondary}`,
   ].join('#');
   return {
     key, massKey: key.replace(paths, ''), placed, byId: new Map(placed.map((e) => [e.t.id, e])),
-    placements: s.placements, trees: s.trees, pathways: s.pathways, quads: s.quads,
+    placements: s.placements, trees: s.trees, pathways: s.pathways,
     dressing: s.dressing, bikeRacks, colors: s.self.colors, vernacular: s.self.vernacular,
   };
 }

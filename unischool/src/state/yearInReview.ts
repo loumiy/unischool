@@ -33,7 +33,7 @@ export interface ReviewLine {
   text: string;
   tone?: 'good' | 'bad';
   // A second, smaller line under the first: a prestige term's "what moves
-  // it", as History › Standing reads it (Plan 78C).
+  // it", as History › Prestige reads it (Plan 78C).
   detail?: string;
 }
 

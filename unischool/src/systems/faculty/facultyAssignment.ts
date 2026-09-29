@@ -48,8 +48,17 @@ export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads, 
   const programId = programOfCourse(t.id);
   if (programId !== undefined && (unstaffed ?? unstaffedPrograms(s)).has(programId)) return null;
 
-  // An unstaffed course (instructor dismissed) is null too: not taught,
-  // rather than taught badly.
+  return instructorQuality(s, t, loads);
+}
+
+// The grade a course's own instructor earns on it, whether or not its
+// program is taught this term: a dark program's courses have no grade
+// (above), but a weak one still has a teacher to change (Plan 80B's Below
+// A filter). An unstaffed course (instructor dismissed) is null: not
+// taught, rather than taught badly.
+export function instructorQuality(s: GameState, t: Buildable, loads?: FacultyLoads): CourseQuality | null {
+  if (t.status !== 'developing' && t.status !== 'done') return null;
+  if (!t.requiresFaculty) return null;
   const instructor = assignedInstructor(s, t);
   if (!instructor) return null;
 

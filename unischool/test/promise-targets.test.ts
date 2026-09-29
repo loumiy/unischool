@@ -98,7 +98,7 @@ console.log('promise targets tests');
 
 // ---- 4. The board's confidence is gone ----
 {
-  const raw = readFileSync(join(process.cwd(), 'test/fixtures/save-v81.json'), 'utf8');
+  const raw = readFileSync(join(process.cwd(), 'test/fixtures/save-v81-confidence.json'), 'utf8');
   const parsed = JSON.parse(raw) as { version: number; state: { finance: { distress?: Record<string, unknown> } } };
   assert(parsed.version === 81 && typeof parsed.state.finance.distress?.confidence === 'number', 'the fixture was written at version 81, with the board\'s confidence');
   const read = readSave(raw);
@@ -107,7 +107,7 @@ console.log('promise targets tests');
     const d = read.state.finance.distress as unknown as Record<string, unknown>;
     assert(d !== undefined && !('confidence' in d), 'without the confidence');
     assert(d !== undefined && d.rung === parsed.state.finance.distress!.rung, 'and on the same rung of the board\'s scale');
-    assert(SAVE_VERSION >= 82, `at version 82 or later (${SAVE_VERSION})`);
+    assert(SAVE_VERSION >= 84, `at version 84 or later (${SAVE_VERSION})`);
   }
   const text = JSON.stringify([EVENT_CATALOGUE.map((e) => [e.when, e.choices.map((c) => c.effects)]), PROMISES.map((p) => [p.deal, p.goal, p.reward, p.penalty])]);
   assert(!text.includes('confidence'), 'no event or promise reads or moves it');

@@ -45,7 +45,8 @@ const SHEETS = resolve('node_modules/.tmp/gallery-sheets');
 const GROUPS = [
   ['hall', 'Academic halls and the school signature halls'],
   ['portico', 'Civic porticos: library, gallery, museum, the professional schools'],
-  ['pavilion', 'Pavilions: dining, the student center, the grocery, the chapel, chapter houses'],
+  ['pavilion', 'Pavilions: dining, the student center, the grocery, chapter houses'],
+  ['chapel', 'The chapel: a nave, a tower and a chancel, in each set'],
   ['residential', 'Residence halls'],
   ['village', 'Residential villages'],
   ['tower', 'Residential towers'],
