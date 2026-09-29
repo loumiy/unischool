@@ -232,6 +232,12 @@ a sequence of PRs.*
   the art assumes two (doors, steps, corner towers, window bays), so each
   motif needs a one-wall view. The projection and depth sort already work
   at any angle.
+- **Real slopes on campus** (the owner, Plan 81). Gentle elevation inside
+  the parcel, with buildings on leveled pads and a plinth or steps on the
+  downhill side. Everything on the map assumes flat ground today (the
+  projection, the depth sort, siting, paths, walkers, doors, hit-testing
+  and shadows), so it waits for the faster map, which would carry
+  elevation natively. Plan 81 puts the hills around the campus instead.
 - **A faster map** (the owner, Plan 80). Plan 80H lightens a turn; beyond
   that, the SVG scene redraws every building, tree and prop per frame, and
   only a canvas or WebGL renderer changes that. A desktop wrapper runs the
