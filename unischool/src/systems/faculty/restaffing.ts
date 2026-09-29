@@ -31,11 +31,14 @@ export function schoolOfCourse(courseId: string): string | undefined {
   return programId ? programById(programId)?.school : undefined;
 }
 
-export function unstaffedIn(s: GameState, school?: string): Buildable[] {
-  return unstaffedCourses(s).filter((t) => school === undefined || schoolOfCourse(t.id) === school);
+// `only` narrows it to a set of courses: a Curriculum section's (Plan 80B),
+// where the graduate programs sit apart from their home schools.
+export function unstaffedIn(s: GameState, school?: string, only?: readonly string[]): Buildable[] {
+  return unstaffedCourses(s).filter((t) => (school === undefined || schoolOfCourse(t.id) === school)
+    && (only === undefined || only.includes(t.id)));
 }
 
-export function restaffPlan(s: GameState, school?: string): RestaffStep[] {
+export function restaffPlan(s: GameState, school?: string, only?: readonly string[]): RestaffStep[] {
   const steps: RestaffStep[] = [];
   // Slots the plan has already spoken for, by person.
   const taken = new Map<string, number>();
@@ -43,7 +46,7 @@ export function restaffPlan(s: GameState, school?: string): RestaffStep[] {
     (onPayroll ? effectiveCourseSlots(s, f) - facultyLoad(s, f.id) : f.courseSlots) - (taken.get(f.id) ?? 0);
   const hires: Faculty[] = [];
 
-  for (const course of unstaffedIn(s, school)) {
+  for (const course of unstaffedIn(s, school, only)) {
     const field = course.requiresFaculty!;
     // On the payroll: the game's own eligibility, less what this plan took.
     let teacher: Faculty | undefined = eligibleInstructors(s, course).find((f) => room(f, true) > 0);
@@ -66,9 +69,9 @@ export function restaffPlan(s: GameState, school?: string): RestaffStep[] {
 
 // Commits a plan: appoints its hires, then assigns every course. Returns
 // how many courses were staffed.
-export function restaff(s: GameState, school?: string): number {
+export function restaff(s: GameState, school?: string, only?: readonly string[]): number {
   let staffed = 0;
-  for (const step of restaffPlan(s, school)) {
+  for (const step of restaffPlan(s, school, only)) {
     if (step.hire) hireFaculty(s, { type: 'HIRE_FACULTY', facultyId: step.facultyId });
     if (!s.faculty.some((f) => f.id === step.facultyId)) continue;
     s.courseFaculty[step.courseId] = step.facultyId;

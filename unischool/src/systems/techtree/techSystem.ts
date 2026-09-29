@@ -398,8 +398,10 @@ function isDone(s: GameState, id: string): boolean {
 // curriculum. It takes an empty hall slot and its entry course starts in the
 // same transaction with the chosen instructor. The program must be on offer
 // in that hall (programOffers.ts's offeredIn), the slot empty, the entry
-// prereqs done, the cash there, and the instructor eligible (the same
-// eligibleInstructors the picker reads).
+// prereqs done, the cash there, the instructor eligible (the same
+// eligibleInstructors the picker reads), and, for a major, room on the
+// curriculum committee (Plan 80B: without it the program slot was taken and
+// the entry course silently left unstarted).
 export interface Founding {
   programId: string;
   hallId: string;
@@ -416,9 +418,6 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   // claims, from that school's own (Plan 51, Plan 78D).
   if (program.kind === 'graduate') {
     if (GRADUATE_HOSTS[f.programId] !== f.hallId || !graduateGateMet(s, f.programId)) return false;
-    // Its entry course takes a committee seat (Plan 80E), so founding waits
-    // for room rather than leaving the entry course unstarted.
-    if (courseSlotsFree(s) <= 0) return false;
   } else {
     const hall = s.tech.find((t) => t.id === f.hallId);
     if (!offeredIn(s, f.hallId, f.programId) || !hall || !isAcademicHall(hall)) return false;
@@ -429,6 +428,10 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   if (!entry || entry.status !== 'locked') return false;
   if (!entry.prereqs.every((id) => isDone(s, id))) return false;
   if (s.finance.cash < entry.cost) return false;
+  // The entry course takes a committee seat, a major's (Plan 80B) or a
+  // graduate program's (Plan 80E), so founding waits for room rather than
+  // leaving the entry course unstarted.
+  if (courseSlotsFree(s) <= 0) return false;
   if (entry.requiresFaculty && !eligibleInstructors(s, entry).some((x) => x.id === f.facultyId)) return false;
   return true;
 }

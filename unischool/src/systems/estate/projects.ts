@@ -16,11 +16,20 @@ export function lateTierOpen(s: GameState): boolean {
   return s.clock.year >= LATE_TIER_YEAR || (s.clock.year >= DEFEND_ERA_YEAR && s.self.reputation >= DEFEND_ERA_PRESTIGE);
 }
 
+// The labs the Research Park waits on: every lab standing, each with
+// whether it has seen an initiative through. The Research tab shows the
+// count (Plan 80B).
+export function labsTowardPark(s: GameState): { lab: Buildable; finished: boolean }[] {
+  const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
+  return s.tech
+    .filter((t) => t.facilityType === 'lab' && standsOnCampus(t))
+    .map((lab) => ({ lab, finished: finished.has(lab.id) }));
+}
+
 // Every lab standing has seen an initiative through, and there is one.
 export function everyLabFinished(s: GameState): boolean {
-  const labs = s.tech.filter((t) => t.facilityType === 'lab' && standsOnCampus(t));
-  const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
-  return labs.length > 0 && labs.every((t) => finished.has(t.id));
+  const labs = labsTowardPark(s);
+  return labs.length > 0 && labs.every((l) => l.finished);
 }
 
 export function projectOpen(s: GameState, t: Buildable): boolean {

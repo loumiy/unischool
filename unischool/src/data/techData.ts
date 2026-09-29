@@ -472,6 +472,10 @@ export interface GraduateProgramSeed {
   // fields it joins (researchSchools()), the school it counts as when housed
   // (systems/techtree/schools.ts), and the curriculum its gate reads.
   homeSchool: string;
+  // Its section in the Curriculum (Plan 80B): a professional school's own
+  // name; the doctorates and the MFA default to GRADUATE_SCHOOL_SECTION.
+  // Display only: it moves no program out of its home school.
+  section?: string;
   // Relative weight in prestige's graduate-breadth term (prestigeSystem.ts's
   // GRADUATE_PROGRAM_SHARE): a share of an already-capped input, never a
   // bonus. The only way a program may move standing beyond its course count.
@@ -485,7 +489,7 @@ export interface GraduateProgramSeed {
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   {
     id: 'MED', name: 'School of Medicine', degree: 'MD', type: 'professional',
-    homeSchool: 'Health Science',
+    homeSchool: 'Health Science', section: 'Medical School',
     prestigeWeight: 2.0,
     blurb: 'the medical school',
     courses: [
@@ -505,7 +509,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'LAWS', code: 'LAW', name: 'School of Law', degree: 'JD', type: 'professional',
-    homeSchool: 'Social Sciences & Humanities',
+    homeSchool: 'Social Sciences & Humanities', section: 'Law School',
     prestigeWeight: 1.6,
     blurb: 'the law school',
     courses: [
@@ -521,7 +525,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'MBAX', code: 'MBA', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
-    homeSchool: 'Business',
+    homeSchool: 'Business', section: 'Business School',
     prestigeWeight: 1.4,
     blurb: 'the MBA program',
     courses: [
@@ -625,6 +629,15 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
 
 export function graduatePrograms(): GraduateProgramSeed[] {
   return GRADUATE_PROGRAMS;
+}
+
+// The Curriculum's graduate sections, in the order they are drawn after the
+// seven schools (Plan 80B).
+export const GRADUATE_SCHOOL_SECTION = 'Graduate School';
+export const GRADUATE_SECTIONS: readonly string[] = [GRADUATE_SCHOOL_SECTION, 'Business School', 'Law School', 'Medical School'];
+
+export function graduateSection(program: GraduateProgramSeed): string {
+  return program.section ?? GRADUATE_SCHOOL_SECTION;
 }
 
 export function graduateProgram(id: string): GraduateProgramSeed | undefined {

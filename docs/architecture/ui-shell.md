@@ -29,7 +29,9 @@ Standing; its record of the years (the Final Report's draft, the promises,
 the chronicle, the charts and the table) waits for the first commencement,
 and one note says so until then (Plan 78C). A section no milestone names is
 somewhere a link can land: the tab scrolls to its `data-section`
-(`sectionTarget.ts`). A milestone is never undone, so a tab once open stays
+(`sectionTarget.ts`). The Research tab lands on a lab the same way
+(`data-lab`, from a lab's map panel: "lab:<id>", or "start:<id>" with its
+project choices open; Plan 80B). A milestone is never undone, so a tab once open stays
 open. The first time a gated tab
 opens the activity log says so, unless its milestone's letter already
 does.
@@ -403,7 +405,11 @@ category holds a tile the player has not seen, because the category has not
 been opened since the tile appeared (`s.seen.buildableIds`). Opening the
 category marks its tiles seen and clears it; the toolbar's Build button
 carries the same mark while any category does. The menu's help says so
-(Plan 78F).
+(Plan 78F). Its first tab is **Grounds** (the path and tree tools, the quads
+and monuments; "Campus tools" until Plan 80B, its id kept); the rest are
+categories (`facilitiesData.ts`'s `FACILITY_CATEGORY_OF`), and the gym, pool
+and tennis courts sit under **Health** with the health chain, where their
+capacity goes (Plan 80B).
 
 What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab

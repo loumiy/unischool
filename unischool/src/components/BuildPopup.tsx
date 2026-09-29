@@ -70,7 +70,8 @@ type BuildCategory = FacilityCategory | 'housing';
 // The 'building'-kind group carries the 'academic' category alongside
 // the library and labs, which FACILITY_CATEGORY_OF already assigns by type.
 const ACADEMIC_GROUP_KEYS: ReadonlySet<string> = new Set(['hall']);
-// Grounds ride in the Campus Tools tab rather than a tab of their own.
+// Grounds ride in the Grounds tab (the path and tree tools') rather than a
+// tab of their own.
 const GROUNDS_GROUP_KEYS: ReadonlySet<string> = new Set(['quad', 'landmark', 'amenity']);
 
 interface TypeGroup {
@@ -102,14 +103,11 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // Labs collapse like halls, but are independent (one per lab-gated major,
   // any order), so no "#N".
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: true, sequential: false, match: (t) => t.facilityType === 'lab' },
-  // Social: the student center, the fitness chain, the two arts facilities.
+  // Social: the student center, the Recreation Center and the Athletics
+  // Complex, the arts facilities. The gym, pool and tennis courts, which
+  // feed health, sit with the health chain (Plan 80B).
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
-  {
-    key: 'recCenter',
-    label: 'Fitness (health)',
-    repeatable: true,
-    match: (t) => t.facilityType === 'recCenter' || t.facilityType === 'gym' || t.facilityType === 'tennisCourts' || t.facilityType === 'pool',
-  },
+  { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   // Greek chapter houses share the Housing tab but are their own group:
@@ -120,6 +118,15 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // The health chain is three differently named buildings upgraded in place,
   // so it keeps tier chips; the tab says "Health", the rungs name themselves.
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
+  // The fitness chain after it, in the same Health tab: gym, pool, tennis
+  // courts, strictly in order (facilitiesData.ts above GYM_ID). Keyed by its
+  // first type, as the grocery rides under 'diningHall'.
+  {
+    key: 'gym',
+    label: 'Fitness',
+    repeatable: true,
+    match: (t) => t.facilityType === 'gym' || t.facilityType === 'pool' || t.facilityType === 'tennisCourts',
+  },
   // Varsity venues stay locked (so invisible) until a team needing them is
   // granted (facilitiesData.ts's athleticsVenueReveal, eventData.ts's
   // 'varsity-petition').
@@ -129,7 +136,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'athleticsNatatorium', label: FACILITY_LABELS.athleticsNatatorium, repeatable: false, match: (t) => t.facilityType === 'athleticsNatatorium' },
   { key: 'footballStadium', label: FACILITY_LABELS.footballStadium, repeatable: false, match: (t) => t.facilityType === 'footballStadium' },
   { key: 'fieldHouse', label: FACILITY_LABELS.fieldHouse, repeatable: false, match: (t) => t.facilityType === 'fieldHouse' },
-  // Quads are grounds: they live in the Campus Tools tab beside the path and
+  // Quads are grounds: they live in the Grounds tab beside the path and
   // tree tools (GROUNDS_GROUP_KEYS), never a tab of their own.
   // The capital projects (Plan 33): a tab of their own.
   { key: 'project', label: FACILITY_LABELS.project, repeatable: false, match: (t) => t.facilityType === 'project' },
@@ -188,11 +195,13 @@ function blocksFor(groups: TypeGroup[]): RenderBlock[] {
 const CATEGORY_LABELS: Record<BuildCategory, string> = {
   academic: 'Academic',
   social: 'Social',
+  health: 'Health',
   athletics: 'Athletics',
   housing: 'Housing',
 };
 
-// The build menu's tabs: campus tools first (always present), then one per
+// The build menu's tabs: Grounds, the campus tools, first (always present;
+// "Campus tools" until Plan 80B, its id kept), then one per
 // RenderBlock. `id` is the block's category or its single group's key, which
 // SECTION_ICON and the initial-tab logic look up.
 type BuildSection =
@@ -212,7 +221,7 @@ function buildSections(s: GameState): BuildSection[] {
     // merges same-category runs), so its lone group names the tab.
     : { id: b.groups[0].key, label: b.groups[0].label, kind: 'build', groups: b.groups });
   return [
-    { id: TOOLS_SECTION_ID, label: 'Campus tools', kind: 'tools', groups: groups.filter((g) => GROUNDS_GROUP_KEYS.has(g.key)) },
+    { id: TOOLS_SECTION_ID, label: 'Grounds', kind: 'tools', groups: groups.filter((g) => GROUNDS_GROUP_KEYS.has(g.key)) },
     ...built,
   ];
 }
@@ -225,7 +234,7 @@ const SECTION_ICON: Record<string, () => React.JSX.Element> = {
   library: LibraryIcon,
   studentCenter: StudentLifeIcon,
   diningHall: DiningIcon,
-  healthCenter: HealthIcon,
+  health: HealthIcon,
   quad: QuadIcon,
   lab: LabIcon,
   artGallery: ArtsIcon,
@@ -646,7 +655,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'bench' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'bench'}
         onClick={() => onSetPathTool('bench')}
-        title="Set a bench on or beside a path, facing along it, one a click — the right mouse button lifts one. Free, like a path."
+        title="Set a bench on or beside a path, one a click: it faces the path, and R turns it before it is set. The right mouse button lifts one. Free, like a path."
       >
         <span className="build-tile-icon"><DrawPathIcon /></span>
         <span className="build-tile-name">Benches</span>

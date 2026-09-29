@@ -47,6 +47,7 @@ import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventDa
 import { LIBRARY_TIER1_ID, nextLibraryFloor, servedUpkeep, nextVenueExpansion} from '../data/facilitiesData';
 import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
+import { benchItem, defaultBenchFacing } from '../state/dressing';
 import { TRAINER_FIELD, MASCOT_MAX_LENGTH, applyTeamOrder } from '../data/studentLifeData';
 import { isLand, isPlaceableKind, parsePathTileKey, pathTileKey, occupantAt } from '../state/campusMap';
 import { designationRefusal, detectQuads, tileIndex } from '../state/quads';
@@ -387,7 +388,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (!isLand(row, col) || occupantAt(s.placements, row, col) !== undefined) return s;
       const nearPath = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => `${row + dr},${col + dc}` in s.pathways);
       if (!nearPath) return s;
-      s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: action.kind };
+      // A bench faces the way the player turned it, or the path beside it.
+      const item = action.kind === 'lamp' ? 'lamp' : benchItem(action.facing ?? defaultBenchFacing(s.pathways, row, col));
+      s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: item };
       return s;
     }
 
@@ -633,7 +636,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'RESTAFF':
-      restaff(s, action.school ?? undefined);
+      restaff(s, action.school ?? undefined, action.courseIds);
       return s;
 
     // The Deans' plans, one per school (eventSystem.ts): accepted, each is

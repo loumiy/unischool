@@ -164,10 +164,14 @@ is entirely graduate, so it carries the taxonomy's only above-1 market-supply
 multiplier — an oversupplied market with nowhere to teach until a school founds
 one.
 
-**The Curriculum UI**: a housed graduate program is one more row in its home
-school's group (see [curriculum.md](curriculum.md)'s "forty-two rows"), marked
-as the higher tier it is, with its credential beside the name. It is revealed
-the same way a major is — once it has a home.
+**The Curriculum UI**: a housed graduate program is one more row (see
+[curriculum.md](curriculum.md)'s "forty-two rows"), marked as the higher tier
+it is, with its credential beside the name. It is revealed the same way a
+major is — once it has a home. Since Plan 80B the row sits in a graduate
+section of the tab rather than its home school's group: the Graduate School
+(the doctorates and the MFA), the Business School, the Law School and the
+Medical School, in their home schools' colors. The grouping is the tab's
+alone; `homeSchool` means what it did.
 
 **The two professional-school buildings are gone.** Medicine and Law used to
 stand as their own `building` Buildables (`BLDG-MED`, `BLDG-LAW`), revealed
