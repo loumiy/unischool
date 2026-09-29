@@ -30,7 +30,7 @@ import {
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS, IMPLEMENTED_CREST_PARTS,
   SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf, signifierOf, labFeatureOf, signatureOf, gothicCivicOf,
   hasClockTower as carriesClockTower,
-  VERNACULARS, motifOf, rankSills, ridgeOf,
+  VERNACULARS, motifOf, rankSills, ridgeOf, CHAPELS, chapelPlan,
   storeysOf, wallHeightOf, wallShadeOf,
   windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
@@ -798,7 +798,9 @@ console.log('campus scale and building spec');
   // THE TABLE COVERS EXACTLY THE FIVE VARYING MOTIFS. One short is a
   // building that silently loses its entrance; one extra is a vernacular
   // reaching into the invariant seven by the back door.
-  const varying = [...new Set(CATALOGUE.map(motifOf))].filter(variesByVernacular);
+  // The chapel varies by its own table (CHAPELS, tested below): it draws
+  // its doors itself.
+  const varying = [...new Set(CATALOGUE.map(motifOf))].filter((m) => variesByVernacular(m) && m !== 'chapel');
   for (const m of varying) {
     assert(parts.entrance[m] !== undefined,
       `georgian says what goes at a '${m}' entrance`);
@@ -1053,6 +1055,42 @@ console.log('campus scale and building spec');
     for (const vname of ['georgian', 'classical', 'mission', 'modern'] as Vernacular[]) {
       assert(gothicCivicOf(t, vname) === undefined && ridgeOf(t, vname) === 0, `a ${vname} ${t.facilityType} keeps its flat portico`);
     }
+  }
+}
+
+// --- The chapel (Plan 80I) ------------------------------------------------
+{
+  const chapel = CATALOGUE.find((t) => t.id === 'AMENITY-CHAPEL');
+  assert(chapel !== undefined && motifOf(chapel) === 'chapel', 'the chapel is drawn as a chapel, no longer a pavilion');
+  if (chapel) {
+    const fp = footprintOf(chapel);
+    const inside = (b: { col: number; row: number; w: number; h: number }, p: { col: number; row: number; w: number; h: number }) =>
+      b.col >= p.col - 1e-9 && b.row >= p.row - 1e-9 && b.col + b.w <= p.col + p.w + 1e-9 && b.row + b.h <= p.row + p.h + 1e-9;
+    const apart = (a: { col: number; row: number; w: number; h: number }, b: typeof a) =>
+      a.col + a.w <= b.col + 1e-9 || b.col + b.w <= a.col + 1e-9 || a.row + a.h <= b.row + 1e-9 || b.row + b.h <= a.row + 1e-9;
+    for (const v of Object.keys(VERNACULARS) as Vernacular[]) {
+      const spec = CHAPELS[v];
+      assert(spec !== undefined, `${v} has a chapel`);
+      for (const rotated of [false, true]) {
+        const p = { col: 0.06, row: 0.06, w: (rotated ? fp.h : fp.w) - 0.12, h: (rotated ? fp.w : fp.h) - 0.12 };
+        const plan = chapelPlan(p, v);
+        const parts = [plan.tower, plan.nave, plan.chancel];
+        assert(parts.every((b) => inside(b, p)), `${v}${rotated ? ' (turned)' : ''}: the tower, nave and chancel stand inside the footprint`);
+        assert(apart(plan.tower, plan.nave) && apart(plan.nave, plan.chancel) && apart(plan.tower, plan.chancel),
+          `${v}${rotated ? ' (turned)' : ''}: and never overlap, so depthOrder can order them`);
+        const mid = (b: typeof p) => (plan.alongW ? b.col + b.w / 2 : b.row + b.h / 2);
+        assert(Math.abs(mid(plan.nave) - mid(p)) < 1e-9 && plan.bays % 2 === 1,
+          `${v}${rotated ? ' (turned)' : ''}: the nave stands on the footprint's middle, its side doors in its middle bay, where walkers enter`);
+        assert(plan.towerHeight > plan.naveHeight + plan.naveRidge && plan.chancelHeight < plan.naveHeight,
+          `${v}${rotated ? ' (turned)' : ''}: the tower rises over the nave's ridge, and the chancel is lower than the nave`);
+      }
+      assert(ridgeOf(chapel, v) === up(spec.ridgeMetres) && ridgeOf(chapel, v) > 0, `${v}: the nave's roof is pitched`);
+      assert(materialOf(chapel, v).wall === materialsFor(v)[spec.wall].wall && materialOf(chapel, v).roof === materialsFor(v).brickRed.roof,
+        `${v}: the chapel is in its set's ${spec.wall}, under the halls' roof`);
+      assert(materialOf(chapel, v) === materialOf(chapel, v), `${v}: one material object, so the motif's memo holds`);
+    }
+    assert(new Set(Object.values(CHAPELS).map((c) => c.tower)).size >= 6, 'the towers differ from set to set');
+    assert(storeysOf(chapel) === 0 && wallHeightOf(chapel) > 2 * STOREY, 'the nave is one tall room');
   }
 }
 

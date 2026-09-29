@@ -30,7 +30,8 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Buildable, Dressing, DressingKind, GameState, Placements, TileCoord, Vernacular } from '../../src/state/types';
+import type { BenchFacing, Buildable, Dressing, DressingKind, GameState, Placements, TileCoord, Vernacular } from '../../src/state/types';
+import { benchItem, defaultBenchFacing } from '../../src/state/dressing';
 import { footprintIsClear, isLand, orientedFootprint, pathTileKey, placementFor, placementTiles } from '../../src/state/campusMap';
 
 export const VERNACULARS: readonly Vernacular[] = ['georgian', 'gothic', 'classical', 'mission', 'modern'];
@@ -51,7 +52,8 @@ export interface Arrangement {
   sites: Site[];
   paths: TileCoord[];
   trees?: TileCoord[];
-  dressing?: Array<{ tile: TileCoord; kind: DressingKind }>;
+  // A bench faces the way named, or the path beside it, as when placed.
+  dressing?: Array<{ tile: TileCoord; kind: DressingKind; facing?: BenchFacing }>;
 }
 
 // ---- Drawing helpers ----
@@ -268,6 +270,26 @@ export const ARRANGEMENTS: Arrangement[] = [
     ],
   },
   {
+    name: 'chapel',
+    what: 'The chapel (Plan 80I) with a walk round it reaching all four doors, and benches along two walks at each of the four facings: the facing a bench takes beside a walk, and two turned away from it.',
+    sites: [{ id: 'AMENITY-CHAPEL', at: T(57, 58) }],
+    paths: [...ring(56, 57, 60, 63), ...run(61, 60, 63, 60), ...run(64, 50, 64, 72), ...run(58, 64, 58, 74), ...run(59, 74, 70, 74)],
+    dressing: [
+      ...[53, 57].map((col) => ({ tile: T(63, col), kind: 'bench' as DressingKind })),   // facing south, onto the walk
+      ...[55, 59].map((col) => ({ tile: T(65, col), kind: 'bench' as DressingKind })),   // facing north
+      ...[66, 69].map((row) => ({ tile: T(row, 73), kind: 'bench' as DressingKind })),   // facing east
+      ...[66, 69].map((row) => ({ tile: T(row, 75), kind: 'bench' as DressingKind })),   // facing west
+      { tile: T(63, 66), kind: 'bench', facing: 'n' },                                      // turned: its back to the walk
+      { tile: T(65, 67), kind: 'bench', facing: 'e' },                                      // turned along it
+    ],
+  },
+  {
+    name: 'chapel-turned',
+    what: 'The chapel turned to run down the column (Plan 80I), its tower to the north, with a walk round it.',
+    sites: [{ id: 'AMENITY-CHAPEL', at: T(59, 62), rotated: true }],
+    paths: [...ring(58, 61, 64, 65), ...run(65, 63, 70, 63)],
+  },
+  {
     name: 'big',
     what: 'The set pieces side by side: the stadium beside the field, the hospital against the clinic, a tower against a village, the Grand Quad closed in by halls on four sides.',
     sites: [
@@ -349,7 +371,7 @@ export function applyArrangement(base: GameState, a: Arrangement, vernacular: Ve
   for (const d of a.dressing ?? []) {
     const key = pathTileKey(d.tile);
     if (built.has(key)) { problems.push(`${d.kind} ${key} is under a building`); continue; }
-    dressing[key] = d.kind;
+    dressing[key] = d.kind === 'lamp' ? 'lamp' : benchItem(d.facing ?? defaultBenchFacing(pathways, d.tile.row, d.tile.col));
   }
   s.placements = placements;
   s.pathways = pathways;

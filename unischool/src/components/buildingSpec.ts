@@ -1,5 +1,6 @@
 import type { Buildable, FacilityType, Vernacular } from '../state/types';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
+import type { FaceDir } from './isoProjection';
 import { initialTech } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
@@ -23,6 +24,7 @@ export type Motif =
   | 'works'        // labs: low, flat, crowded with rooftop plant
   | 'grounds'      // quad, field, courts, diamond, pool: markings, no mass
   | 'bowl'         // the football stadium: stands around a gridiron
+  | 'chapel'       // the chapel: a nave, a tower at its west end, tall windows (CHAPELS)
   | 'landmark';    // a grand landmark: bespoke, built in stages (landmarks.tsx)
 
 const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
@@ -65,9 +67,10 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   'LAB-AERO': 'hangar',
   'LAB-NEUR': 'block',
   // The amenities (Plan 26): the bell tower is a small campanile, the chapel
-  // a pavilion in stone; the rest are open ground with something on it.
+  // its own drawing (Plan 80I, CHAPELS); the rest are open ground with
+  // something on it.
   'AMENITY-BELLTOWER': 'landmark',
-  'AMENITY-CHAPEL': 'pavilion',
+  'AMENITY-CHAPEL': 'chapel',
   // The capital projects (Plan 33), each in the motif of what it is.
   'PROJ-ARTS': 'portico',
   'PROJ-RESEARCH-PARK': 'works',
@@ -330,7 +333,7 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
 // volume whose height comes from CLEAR_SPAN_METRES instead.
 export function storeysOf(t: Buildable): number {
   const motif = motifOf(t);
-  if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark') return 0;
+  if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark' || motif === 'chapel') return 0;
   if (motif === 'tower') return dormStoreys(t.effects?.capacityBonus ?? 0);
   if (t.kind === 'building') {
     return ACADEMIC_HALL_STOREYS + addedFloors(t);
@@ -343,10 +346,12 @@ export function storeysOf(t: Buildable): number {
 }
 
 // Height of the clear-span motifs, in meters: a sports hall is one volume
-// about two and a half stories tall, and a stadium's rim is higher.
+// about two and a half stories tall, and a stadium's rim is higher. A
+// chapel's nave is one tall room to its eaves.
 const CLEAR_SPAN_METRES: Partial<Record<Motif, number>> = {
   hangar: 10,
   bowl: 16,
+  chapel: 9.5,
 };
 
 // How tall the walls stand, in screen units, before any roof.
@@ -402,6 +407,7 @@ export function ridgeOf(t: Buildable, v: Vernacular): number {
   const motif = motifOf(t);
   if (motif === 'residential') return up(roof.residentialRidgeMetres(storeysOf(t)));
   if (gothicCivicOf(t, v)) return up(GOTHIC_CIVIC_RIDGE_METRES);
+  if (motif === 'chapel') return up(CHAPELS[v].ridgeMetres);
   return up(roof.ridgeMetres[motif] ?? 0);
 }
 
@@ -1451,6 +1457,7 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
   // The halls and the civic porticos; housing and the pavilions keep their
   // own roofs.
   const motif = motifOf(t);
+  if (motif === 'chapel') return chapelMaterialOf(v);
   if (!pitched || own.roof === pitched || (motif !== 'hall' && motif !== 'portico') || ridgeOf(t, v) <= 0) return own;
   // One stable object per material, so BuildingMotif's memo still holds.
   let tiled = PITCHED_ROOFED.get(own);
@@ -1509,6 +1516,108 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     default:
       return MATERIALS.render;
   }
+}
+
+// The chapel (Plan 80I): its own drawing in every vernacular, where it had
+// been a pavilion in stone. A nave under a steep roof runs down the long
+// axis, with a tower at its west end (-col; -row when the footprint runs
+// down the column) and a lower, narrower chancel at its east end, so the
+// nave sits on the footprint's middle and its side doors on the doors
+// walkRoutes.ts walks to. Tall windows down the nave, a rose in the east
+// gable; buttresses where the set has them. What varies by set is this
+// table; the geometry is chapelPlan's, shared with the weathering.
+export type ChapelTower =
+  | 'spire'        // a stone spire over a louvred belfry, pinnacles at its corners — Gothic
+  | 'steeple'      // a belfry stage in the trim under a slim lead spire — Georgian, Second Empire
+  | 'cupola'       // an open belfry in the trim under a small dome — Classical
+  | 'campanile'    // an arcaded belfry under a low tile pyramid — Mission, Italianate
+  | 'battlements'  // a crenellated tower with corner pinnacles — Tudor
+  | 'stepped'      // two setbacks with gilt bands (8 m of the cap), to a gilt mast — Art Deco
+  | 'blade';       // a slim slab with an open bell slot, no cap — Modern
+export interface ChapelSpec {
+  wall: keyof MaterialSet;   // the nave's, chancel's and tower's wall; the roof is the halls'
+  window: WindowShape;       // the nave's tall windows and the doors' heads
+  tower: ChapelTower;
+  ridgeMetres: number;       // the nave roof's rise over its eaves
+  towerMetres: number;       // the tower's shaft, to the top of its belfry
+  capMetres: number;         // what stands on the shaft
+  buttresses: boolean;
+}
+export const CHAPELS: Readonly<Record<Vernacular, ChapelSpec>> = {
+  // Red brick under a white belfry and a lead spire: the college chapel of
+  // a Georgian campus.
+  georgian: { wall: 'brickRed', window: 'arched', tower: 'steeple', ridgeMetres: 5.5, towerMetres: 19, capMetres: 14, buttresses: false },
+  // Pale ashlar, set apart from the gray halls, under the steepest roof.
+  gothic: { wall: 'limestone', window: 'lancet', tower: 'spire', ridgeMetres: 9, towerMetres: 20, capMetres: 17, buttresses: true },
+  classical: { wall: 'limestone', window: 'arched', tower: 'cupola', ridgeMetres: 4.2, towerMetres: 17, capMetres: 7, buttresses: false },
+  mission: { wall: 'brickRed', window: 'arched', tower: 'campanile', ridgeMetres: 4.2, towerMetres: 18, capMetres: 4.5, buttresses: false },
+  // White render under a steep deck roof, lit by slots, with a bell blade.
+  modern: { wall: 'brickRed', window: 'slot', tower: 'blade', ridgeMetres: 8, towerMetres: 22, capMetres: 0, buttresses: false },
+  tudor: { wall: 'brickRed', window: 'lancet', tower: 'battlements', ridgeMetres: 7, towerMetres: 19, capMetres: 3, buttresses: true },
+  italianate: { wall: 'brickRed', window: 'arched', tower: 'campanile', ridgeMetres: 3.8, towerMetres: 20, capMetres: 4.5, buttresses: false },
+  secondEmpire: { wall: 'brickRed', window: 'arched', tower: 'steeple', ridgeMetres: 6.5, towerMetres: 18, capMetres: 12, buttresses: false },
+  artDeco: { wall: 'brickRed', window: 'slot', tower: 'stepped', ridgeMetres: 5, towerMetres: 17, capMetres: 15, buttresses: false },
+};
+
+// The chapel's wall, under the roof the halls wear. One stable object per
+// vernacular, so BuildingMotif's memo still holds.
+const CHAPEL_MATERIALS = new Map<Vernacular, Material>();
+function chapelMaterialOf(v: Vernacular): Material {
+  let m = CHAPEL_MATERIALS.get(v);
+  if (!m) { m = { wall: materialsFor(v)[CHAPELS[v].wall].wall, roof: surfaceRoofOf(v) }; CHAPEL_MATERIALS.set(v, m); }
+  return m;
+}
+
+export interface ChapelBox { col: number; row: number; w: number; h: number }
+export interface ChapelPlan {
+  // Whether the nave runs along the columns (the footprint is wide).
+  alongW: boolean;
+  // The tower's end and the chancel's, by grid direction, and the long sides.
+  west: FaceDir; east: FaceDir; sides: [FaceDir, FaceDir];
+  tower: ChapelBox; nave: ChapelBox; chancel: ChapelBox;
+  // Screen units: the nave's and the chancel's eaves and ridges, the tower's shaft.
+  naveHeight: number; naveRidge: number;
+  chancelHeight: number; chancelRidge: number;
+  towerHeight: number; capRise: number;
+  // The nave's bays (odd, so its side doors stand in the middle one).
+  bays: number;
+}
+const CHAPEL_TOWER_METRES = 10.5;     // the tower's plan
+const CHAPEL_NAVE_SHARE = 0.8;        // of the footprint's short side
+const CHAPEL_CHANCEL_SHARE = 0.62;    // of the nave's width
+const CHAPEL_CHANCEL_EAVES = 0.78;    // of the nave's eaves
+const CHAPEL_BAY_METRES = 4.6;
+
+export function chapelPlan(p: ChapelBox, v: Vernacular): ChapelPlan {
+  const spec = CHAPELS[v];
+  const alongW = p.w >= p.h;
+  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  const T = Math.min(across(CHAPEL_TOWER_METRES), S * 0.42);
+  const N = S * CHAPEL_NAVE_SHARE; const Cw = N * CHAPEL_CHANCEL_SHARE;
+  // x down the long axis from the tower's end, y across it.
+  const box = (x0: number, x1: number, width: number): ChapelBox => {
+    const y0 = (S - width) / 2;
+    return alongW
+      ? { col: p.col + x0, row: p.row + y0, w: x1 - x0, h: width }
+      : { col: p.col + y0, row: p.row + x0, w: width, h: x1 - x0 };
+  };
+  const naveHeight = up(CLEAR_SPAN_METRES.chapel ?? 0);
+  const naveRidge = up(spec.ridgeMetres);
+  const bays = Math.max(3, Math.round(((L - 2 * T) * METRES_PER_TILE) / CHAPEL_BAY_METRES) | 1);
+  return {
+    alongW,
+    west: alongW ? 'negCol' : 'negRow', east: alongW ? 'posCol' : 'posRow',
+    sides: alongW ? ['negRow', 'posRow'] : ['negCol', 'posCol'],
+    tower: box(0, T, T),
+    nave: box(T, L - T, N),
+    chancel: box(L - T, L, Cw),
+    naveHeight, naveRidge,
+    chancelHeight: naveHeight * CHAPEL_CHANCEL_EAVES,
+    // The same pitch over the narrower span.
+    chancelRidge: naveRidge * CHAPEL_CHANCEL_SHARE,
+    towerHeight: up(spec.towerMetres), capRise: up(spec.capMetres),
+    bays,
+  };
 }
 
 // Neighboring residence halls differ by a few percent of brightness, hashed off the id.
