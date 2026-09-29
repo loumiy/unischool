@@ -1,6 +1,8 @@
 // The chronicle (Plan 33, systems/chronicle/chronicle.ts): each closed year
 // read from the history rows and the journal, given a kind; runs of a kind
-// become named, summarized eras.
+// become named, summarized eras. Since Plan 80C a year is its largest new
+// thing and rank names an era only at a real turn; the harness players'
+// chronicles are checked in test/archetypes.test.ts.
 
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
@@ -57,19 +59,59 @@ function run(years: number, over: (y: number) => Partial<YearSnapshot> = () => (
   assert(recs.length === 24 && recs[0].year === 1, 'a record for every closed year');
   assert(yearKind(recs, 0) === 'founding' && yearKind(recs, 2) === 'founding', 'the first three are the founding');
   assert(yearKind(recs, 5) === 'troubles', 'a year at rung 3 is troubles');
-  assert(yearKind(recs, 18) === 'rise', 'three places gained in three years is a rise');
+  assert(yearKind(recs, 18) === 'quiet', 'a steady climb is not a turn');
+  assert(yearKind(recs, 21) === 'topTen', 'entering the top ten is');
   const spans = partition(recs);
   assert(spans[0].kind === 'founding' && spans[0].from === 1, 'the chronicle opens on the founding');
   assert(spans.every((sp, i) => i === 0 || i === spans.length - 1 || sp.to - sp.from + 1 >= ERA_MIN_YEARS), `no era in the middle shorter than ${ERA_MIN_YEARS} years`);
   assert(spans.length <= ERA_MAX, 'and no more eras than a chronicle holds');
   assert(spans.every((sp, i) => i === 0 || sp.from === spans[i - 1].to + 1) && spans[spans.length - 1].to === 24, 'the eras cover every year, in order');
   const c = chronicleOf(s);
-  assert(c.eras.some((e) => e.kind === 'troubles') && c.eras.some((e) => e.kind === 'rise'), `the troubles and the rise are eras (${c.eras.map((e) => e.kind).join(', ')})`);
+  assert(c.eras.some((e) => e.kind === 'troubles') && c.eras.some((e) => e.kind === 'topTen'), `the troubles and the top ten are eras (${c.eras.map((e) => e.kind).join(', ')})`);
+  assert(c.eras.every((e, i) => i === 0 || e.kind !== c.eras[i - 1].kind), 'no two eras of a kind in a row');
   assert(new Set(c.eras.map((e) => e.name)).size === c.eras.length, `every era has its own name (${c.eras.map((e) => e.name).join(' · ')})`);
   assert(c.eras.every((e) => e.lines[0].startsWith('Year')), 'each summary opens on its span');
   const troubles = c.eras.find((e) => e.kind === 'troubles')!;
   assert(troubles.lines.some((l) => l.includes('as far as Freeze')), 'the troubles say how far the board climbed');
   assert(currentEra(s)?.to === 24, 'the era being lived is the last');
+}
+
+// ---- What the college did names the eras (Plan 80C) ----
+{
+  const s = run(40, (y) => ({ rank: Math.max(12, 70 - y * 2), prizes: y >= 30 ? 3 : 0 }));
+  s.milestoneYears = { 'school-founded:Science': 8, 'grad-program-complete:MED': 22 };
+  const medical = s.tech.find((t) => t.id === 'HLTH-T3')!;
+  medical.status = 'done';
+  medical.builtYear = 15;
+  s.orgs.titles = [{ sport: 'football', year: 36 } as never, { sport: 'football', year: 37 } as never];
+  const recs = yearRecords(s);
+  const kindOf = (year: number) => yearKind(recs, recs.findIndex((r) => r.year === year));
+  assert(kindOf(8) === 'school', `a school founded is a school year (${kindOf(8)})`);
+  assert(kindOf(15) === 'project', `a capital project finished is a project year (${kindOf(15)})`);
+  assert(kindOf(22) === 'graduate', `a graduate degree taught in full is a graduate year (${kindOf(22)})`);
+  assert(kindOf(30) === 'prizes', `research prizes are a prize year (${kindOf(30)})`);
+  assert(kindOf(36) === 'titles', `titles are a championship year (${kindOf(36)})`);
+  assert(recs.every((_, i) => !['first', 'topTen', 'fall'].includes(yearKind(recs, i))), 'a steady climb outside the top ten names nothing');
+  const c = chronicleOf(s);
+  const names = c.eras.map((e) => e.name);
+  assert(names.some((n) => n.includes('School of Science')), `an era is named for the school (${names.join(' · ')})`);
+  assert(names.some((n) => n.includes('Medical Center')), `one for the Medical Center (${names.join(' · ')})`);
+  assert(c.eras.every((e, i) => i === 0 || e.kind !== c.eras[i - 1].kind), `no two eras of a kind in a row (${c.eras.map((e) => e.kind).join(', ')})`);
+  const lines = c.eras.flatMap((e) => e.lines).join(' ');
+  assert(lines.includes('It founded the School of Science.'), 'the summary says what was founded');
+  assert(lines.includes('The School of Medicine taught its full degree for the first time.'), 'and which degree came in full');
+  assert(/Its faculty won (a research prize|\d+ research prizes)/.test(lines), 'and the prizes');
+  // A save from before the milestones' years reads them as undated.
+  delete s.milestoneYears;
+  assert(yearRecords(s).every((r) => r.schools.length === 0), 'undated milestones name no year');
+}
+
+// ---- Rank at a real turn ----
+{
+  const s = run(20, (y) => ({ rank: y <= 8 ? 14 : y <= 14 ? 1 + Math.max(0, 12 - y) : y === 15 ? 3 : 12 }));
+  const recs = yearRecords(s);
+  const turns = recs.map((r, i) => [r.year, yearKind(recs, i)] as const).filter(([, k]) => ['first', 'topTen', 'fall'].includes(k));
+  assert(turns.map(([y, k]) => `${y}:${k}`).join() === '9:topTen,12:first,15:fall,16:fall,17:fall,18:fall', `the turns are the top ten, first, and the fall while it lasts (${turns.map(([y, k]) => `${y}:${k}`).join()})`);
 }
 
 // ---- What the journal adds ----

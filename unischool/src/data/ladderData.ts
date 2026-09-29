@@ -33,11 +33,12 @@ export type LadderTier = 'Founding' | 'Growing' | 'Established' | 'National';
 // A named part of a tab, `<tab>.<section>`. The ladder can hold one back
 // while the tab itself is open (Plan 78B): the tab shows from the charter,
 // and the section waits on its milestone. A section no milestone names shows
-// whenever its tab does, and is somewhere a link can land (Plan 78C: the
-// dock's chips open History › Standing and Students › the breakdown).
+// whenever its tab does, and is somewhere a link can land (Plans 78C and
+// 80C: the dock's chips open History › Prestige, History › the guide and
+// Students › the breakdown).
 export type TabSection =
   | 'students.guidebook' | 'students.clubs' | 'students.funnel' | 'students.breakdown'
-  | 'history.standing' | 'history.record';
+  | 'history.prestige' | 'history.rankings' | 'history.record';
 
 export interface Progress {
   value: number;

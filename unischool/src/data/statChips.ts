@@ -23,23 +23,25 @@ export const STAT_CHIP_WORDS: Record<StatChip, string> = {
 // The heading of each section a chip opens: the panel's own title, and the
 // second half of the chip's accessible name.
 export const SECTION_HEADINGS = {
-  'history.standing': 'Standing',
+  'history.prestige': 'Prestige',
+  'history.rankings': 'The guide',
   'students.breakdown': 'Satisfaction breakdown',
 } as const satisfies Partial<Record<TabSection, string>>;
 type ChipSection = keyof typeof SECTION_HEADINGS;
 
-// Rank follows prestige, so both open the grade that moves it; satisfaction
-// opens the five needs it is made of. Enrolled has no door yet.
+// Prestige opens its own breakdown and nothing else; rank opens the guide's
+// table it is a place in (Plan 80C); satisfaction opens the five needs it is
+// made of. Enrolled has no door yet.
 const STAT_CHIP_SECTIONS: Partial<Record<StatChip, ChipSection>> = {
-  rank: 'history.standing',
-  prestige: 'history.standing',
+  rank: 'history.rankings',
+  prestige: 'history.prestige',
   satisfaction: 'students.breakdown',
 };
 
 export interface ChipDoor {
   tab: TabId;
   section: TabSection;
-  // The button's accessible name: "Prestige 51.5 — open History, Standing".
+  // The button's accessible name: "Prestige 51.5 — open History, Prestige".
   name: string;
 }
 

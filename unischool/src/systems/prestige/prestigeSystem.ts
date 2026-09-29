@@ -378,7 +378,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
   const average = trailingYearSatisfaction(s);
   const coverages = crowdingCoverages(s);
   const worst = coverages[0];
-  return breakdown('Academic standing', PRESTIGE_BASELINE, s.self.reputation, [
+  return breakdown('Prestige', PRESTIGE_BASELINE, s.self.reputation, [
     weigh(
       'breadth', 'Curriculum breadth', CURRICULUM_BREADTH_WEIGHT, curriculumBreadthScore(s),
       'Programs established and distinguished, schools distinguished, graduate programs founded.',
@@ -401,12 +401,12 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       scaleMultiplier(s),
     ),
     weigh(
-      'research', 'Research output', RESEARCH_WEIGHT, researchScore(s),
-      `${researchCredits(s).toFixed(1)} research credits of the ${RESEARCH_CREDITS_FOR_FULL_SCORE} for the top score: each publication, finished project, breakthrough, prize and doctorate earns some.`,
+      'research', 'The labs\' output', RESEARCH_WEIGHT, researchScore(s),
+      `${researchCredits(s).toFixed(1)} research credits of the ${RESEARCH_CREDITS_FOR_FULL_SCORE} for the top score: each publication, finished project, breakthrough, prize and doctorate earns some. This is prestige's own reading; the research standing is ranked on its own, in the standings.`,
     ),
     weigh(
-      'campus', 'Campus life', CAMPUS_LIFE_WEIGHT, campusLifeScore(s),
-      'What the recreation buildings and the athletics venues contribute on their own.',
+      'campus', 'Recreation buildings and venues', CAMPUS_LIFE_WEIGHT, campusLifeScore(s),
+      'What the recreation buildings and the athletics venues contribute on their own, as prestige reads them; the campus life standing is ranked on its own, in the standings.',
     ),
     weigh(
       'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
@@ -622,7 +622,7 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
       clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),
-      `${researchCredits(s).toFixed(1)} research credits of ${RESEARCH_STANDING_CREDITS_FOR_FULL} — the same tally the academic standing reads, against a national denominator.`,
+      `${researchCredits(s).toFixed(1)} research credits of ${RESEARCH_STANDING_CREDITS_FOR_FULL} — the same tally prestige reads, against a national denominator.`,
     ),
     weigh(
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
@@ -660,7 +660,7 @@ export function socialStandingBreakdown(s: GameState): StandingBreakdown {
   return breakdown('Campus life standing', SOCIAL_STANDING_BASELINE, s.self.socialStanding, [
     weigh(
       'facilities', 'Places built for it', SOCIAL_FACILITIES_WEIGHT, campusLifeScore(s),
-      'The recreation buildings, read off the same contribution the academic standing reads.',
+      'The recreation buildings, read off the same contribution prestige reads.',
     ),
     weigh(
       'organisations', 'Clubs and chapters', SOCIAL_ORGANISATIONS_WEIGHT, socialOrganisationsScore(s),

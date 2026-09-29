@@ -13,7 +13,7 @@ import { detectQuads } from '../../state/quads';
 import { springTermWeek, winterDepth } from '../../state/winter';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { leaveFaculty } from '../faculty/facultySystem';
-import { distressOf, foundingDistress } from '../finance/distress';
+import { distressOf } from '../finance/distress';
 import { debtOutstanding, drawRate, loanPayment } from '../finance/treasury';
 import { financeBreakdown } from '../finance/financeSystem';
 import { seatPayroll } from '../delegation/seats';
@@ -77,8 +77,9 @@ function meanWarmth(s: GameState): number {
   // Each class's warmth as giving reads it, capped (giving.ts's warmthOf).
   return a.length === 0 ? 50 : a.reduce((t, c) => t + warmthOf(c), 0) / a.length;
 }
-// v2's reputation runs to 100, this game's prestige to 150.
-const REPUTATION_SCALE = 150 / 100;
+// v2's reputation runs to 100, this game's prestige to 150 (a promise's
+// target line shows it as prestige).
+export const REPUTATION_SCALE = 150 / 100;
 
 // Each condition as a reading and whether the event's number is a floor or
 // a ceiling on it.
@@ -129,8 +130,6 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   beautyUnder: [campusBeauty, 'max'],
   warmthOver: [meanWarmth, 'min'],
   warmthUnder: [meanWarmth, 'max'],
-  confidenceOver: [(s) => distressOf(s).confidence, 'min'],
-  confidenceUnder: [(s) => distressOf(s).confidence, 'max'],
   rungAtLeast: [(s) => distressOf(s).rung, 'min'],
   rungAtMost: [(s) => distressOf(s).rung, 'max'],
   varsityAtLeast: [(s) => s.orgs.teams.filter((t) => t.status === 'active').length, 'min'],
@@ -148,6 +147,12 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   // the bound reads as never.
   springWeekAtMost: [(s) => springTermWeek(s.clock.week) || Infinity, 'max'],
 };
+
+// One condition's reading now, unscaled: what a promise's target line says
+// the college stands at (systems/promises/promiseTargets.ts).
+export function conditionReading(s: GameState, key: ConditionKey): number {
+  return READINGS[key][0](s);
+}
 
 // Money thresholds were written for v2's founding college and scale as its
 // prices do.
@@ -371,11 +376,6 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
       case 'debt': changeDebt(s, v); break;
       case 'backlog': spreadBacklog(s, v); break;
       case 'mood': s.students.satisfaction = Math.max(0, Math.min(100, s.students.satisfaction + v)); break;
-      case 'confidence': {
-        const d = s.finance.distress ??= foundingDistress();
-        d.confidence = Math.max(0, Math.min(100, d.confidence + v));
-        break;
-      }
       case 'warmth': for (const a of s.alumni ?? []) a.warmth = Math.max(0, Math.min(100, a.warmth + v)); break;
       case 'quality': s.students.incomingQuality = Math.max(0, Math.min(100, s.students.incomingQuality + v)); break;
       case 'enrollment': changeEnrollment(s, v); break;

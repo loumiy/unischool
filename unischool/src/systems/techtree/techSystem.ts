@@ -565,6 +565,7 @@ export function hallOfCourse(s: GameState, courseId: string): string | undefined
 function awardMilestone(s: GameState, key: string, applicantBonus: number, message: string): void {
   if (s.milestones[key]) return;
   s.milestones[key] = true;
+  (s.milestoneYears ??= {})[key] = s.clock.year;
   s.students.applicantLift += applicantBonus;
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good', topic: 'milestone', subject: key });
   // Celebrated milestones are queued, not raised as interrupts: the week may

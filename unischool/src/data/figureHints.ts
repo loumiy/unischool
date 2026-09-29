@@ -29,7 +29,7 @@ export const FIGURE_HINTS = {
 
   // The Treasury.
   cash: 'Cash on hand now; building is paid from it up front, and a building it cannot cover waits for it, a loan or a gift.',
-  board: 'Where the college stands on the board\'s scale, and its confidence out of 100, which surplus terms earn back and deficits spend.',
+  board: 'Where the college stands on the board\'s scale, from sound down to an interim CFO; deficit terms move it down and surplus terms back up.',
   endowment: 'Money the college keeps invested; it earns a return each year and pays its draw into income every week.',
   grants: 'Research grants won so far and what they brought in, banked as each one lands.',
   listedTuition: 'The price quoted to next summer\'s applicants; it moves only at the summer\'s admissions decision.',

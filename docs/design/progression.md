@@ -34,7 +34,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | --- | --- | --- | --- |
 | Founding | The charter | founding | Founders Hall, the dorm and dining chains, the Campus Quad, the Library; Curriculum, Faculty, Treasury |
 | Founding | A fourth program | a fourth program founded | Student Center, Recreation Center |
-| Founding | First commencement | the first summer closes | In History (open from the first week with its Standing, Plan 78C), the record of the years; in Students (open from the first week, Plan 78B), the guidebook, the clubs and the funnel |
+| Founding | First commencement | the first summer closes | In History (open from the first week with Prestige and the guide, Plans 78C and 80C), the record of the years; in Students (open from the first week, Plan 78B), the guidebook, the clubs and the funnel |
 | Founding | A curriculum | eight courses developed | academic halls |
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |
 | Growing | A regional name | prestige 55 | Athletics Complex, Student Union Expansion, Grand Quad & Gardens |
@@ -224,23 +224,28 @@ past that ceiling toward the very top of the rankings requires the curriculum-
 breadth term too — i.e. sustained, decades-long buildout, not an early
 course-development sprint.
 
-**The player can see all of this.** The History tab opens with a **Standing**
-section — one panel per standing, one row per input, each row a bar of what that
-input is *worth* against the weight it could reach, the two multipliers named on
-the rows they touch, and today's stock against the target it is drifting toward.
+**The player can see all of this.** The History tab opens with **Prestige**
+— one row per input, each row a bar of what that input is *worth* against the
+weight it could reach, the two multipliers named on the rows they touch, and
+today's stock against the target it is drifting toward. It shows prestige's
+breakdown and nothing else (Plan 80C): research standing and campus life
+standing are rankings of their own and are broken down under History's
+standings, where they belong, and prestige's own research and campus inputs
+are named for what they are ("The labs' output", "Recreation buildings and
+venues"), so they are not read as the standings of the same name.
 It is read off `prestigeSystem.ts`'s `prestigeBreakdown` /
 `researchStandingBreakdown` / `socialStandingBreakdown`, and **each target
 function is a sum over its own breakdown**, so the panel cannot disagree with the
 tick that produced the number. The rows are data: an input that is added, retired
 or reweighted changes that one file and the panel follows.
-Standing is there **from the first week**, and the dock's prestige and rank
-chips open it (Plan 78C); before the first summer its note says that prestige
+Prestige is there **from the first week**, and the dock's Prestige chip opens
+it (Plan 78C; the Rank chip opens the guide's table, below); before the first summer its note says that prestige
 is graded at the end of each year and the first grade comes at the first
 summer. The summer Review lists each term's grade with the same "what moves
 it" line under it (`standingDetailLine`), so the two cannot word a term
 differently.
 
-**The report card is shown.** The Standing panel carries the summer model in
+**The report card is shown.** The Prestige panel carries the summer model in
 its note — what the year is grading toward, what the step would move — and
 each row shows last summer's grade beside what it is worth now; the crowding
 row is drawn as the subtraction it is. Under the inputs sits one **reading**
@@ -366,6 +371,11 @@ published* is the event.
   who passed the school (see [admissions.md](admissions.md)'s "The summer"),
   and in History's standings, which show the six rankings, who leads each and
   each rank over the run.
+- **The guide's table is always one click away** (Plan 80C): the Rank chip
+  opens History › the guide, the table the entry reveal prints
+  (`components/RankingsTable.tsx`), read live from `rankedListBy` — the top
+  fifty and, for a college below them, a gap and its own row with a neighbor
+  either side.
 
 The report's subject is the academic table — as a real table now, with a
 column for where each school stood a year ago (the player's exact, a rival's
@@ -424,7 +434,13 @@ and a penalty (Plan 33, which retired the twenty ambitions). Twenty-seven are
 authored (`data/promiseData.ts`) — *Four schools*, *A thousand students on the
 lawn*, *Owing nothing to anybody*, *Into the guide's top twenty* and the rest —
 each with when it may be offered and what keeping it means, both in the event
-catalog's conditions. Each summer's Review settles the promises that came
+catalog's conditions. **Every promise states its target** (Plan 80C): the
+offer and the Promises panel say the measure, the figure, the summer it is
+judged and where the college stands now — *"Admit rate 25% or lower at the
+summer of Year 14. Now 36%."* — written from the goal's conditions
+(`systems/promises/promiseTargets.ts`), so the words cannot disagree with the
+test. A promise is judged at the start of the summer it falls due, so an
+admit-rate promise judges the rate set the summer before. Each summer's Review settles the promises that came
 due, kept or missed and paid, and, from Year 3 and with fewer than three
 open, may offer one; the player accepts or declines, and declining is free.
 At the summers of Years 10, 20, 30 and 40 the offer is a list of three
@@ -448,13 +464,30 @@ names its weakest standing where that one lags: *a research powerhouse that
 never gave its students much of a campus life*. The money's verdict, the
 chronicle's eras and the guide's last word complete it.
 
+**The chronicle names eras for what the college did** (Plan 80C;
+`systems/chronicle/chronicle.ts`, its words in `data/chronicleData.ts`). Each
+closed year is classed by its largest new thing, in this order: the founding
+years; the interim CFO and the troubles; reaching first in the guide; a
+school founded; a graduate degree taught in full; entering the top ten; a
+capital project or grand landmark finished; titles; research prizes; a
+campaign closed; a fall in the guide; a building boom; else a quiet year
+(named for a letter it answered, if any). Eras are runs of years, each the
+largest kind among its years; a run too short to be an era folds into a
+neighbor, and two eras of one kind never stand in a row. So a college that
+climbs steadily is no longer the Rise, the Climb and the Ascent again: its
+eras are *The Years of the School of Science*, *The Medical Center Years*,
+*The Championship Years*. Rank names an era only at a real turn — entering
+the top ten, reaching first, or a fall. It reads what the game keeps for
+good: the history rows (which count the research prizes), the milestones'
+years (`milestoneYears`), the titles, the buildings and the journal.
+
 Plan 17's legacy — seven axes and a name from twenty-one sentences — was
 retired by Plan 33 for the report. It is kept as a harness reading only
 (`sim/legacyReading.ts`), because the endpoint suite's strategies were
 designed against its axes.
 
 From the tenth year the History tab shows the report in draft — the arc so
-far — the way the Standing panel shows what the year is grading toward.
+far — the way the Prestige panel shows what the year is grading toward.
 
 ### The top has to be held
 

@@ -18,6 +18,10 @@
 // And the natural player (Plan 65): the rules every quarter, and every
 // school founded.
 //
+// And every run's chronicle (Plan 80C): no two eras of a kind in a row,
+// every era its own name, and names that vary — rank names an era only at
+// a real turn, so a college that climbs is not the Rise again and again.
+//
 // Not part of the game: nothing imports it. Slow — nine fifty-year runs.
 // ---------------------------------------------------------------------
 
@@ -30,6 +34,8 @@ import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { brokenRules } from '../sim/harness/invariants';
 import { intoCrisis } from '../tools/scenarios';
 import { weeklyNet } from '../src/systems/finance/financeSystem';
+import { chronicleOf } from '../src/systems/chronicle/chronicle';
+import type { GameState } from '../src/state/types';
 
 let checks = 0;
 let failures = 0;
@@ -42,6 +48,20 @@ function assert(cond: boolean, msg: string): void {
 }
 
 console.log('archetype tests');
+
+// The chronicle's eras over a whole run (Plan 80C).
+const RANK_KINDS = new Set(['first', 'topTen', 'fall']);
+const eraNames: string[] = [];
+function checkChronicle(label: string, s: GameState): void {
+  const eras = chronicleOf(s).eras;
+  const kinds = eras.map((e) => e.kind);
+  assert(kinds.every((k, i) => i === 0 || k !== kinds[i - 1]), `${label}: no two eras of a kind in a row (${kinds.join(', ')})`);
+  const names = eras.map((e) => e.name);
+  assert(new Set(names).size === names.length && names.every((n) => !/\(\d/.test(n)), `${label}: every era its own name (${names.join(' · ')})`);
+  assert(kinds.filter((k) => RANK_KINDS.has(k)).length <= 2, `${label}: at most two eras named for the guide (${kinds.join(', ')})`);
+  eraNames.push(...names);
+  console.log(`  · ${label}: ${eras.map((e) => `${e.name} (${e.from}–${e.to})`).join(' · ')}`);
+}
 
 const SEEDS = [12345, 4242];
 const YEARS = 50;
@@ -70,6 +90,7 @@ for (const seed of SEEDS) {
     const cash = g.s.finance.cash;
     const net = weeklyNet(g.s);
     assert(cash >= 0 || net > 0, `${label}: stall, don't die — solvent or climbing out at the end (cash ${Math.round(cash).toLocaleString()}, net ${Math.round(net).toLocaleString()}/wk)`);
+    checkChronicle(label, g.s);
     finals.set(`${name}:${seed}`, player.record);
     const last = player.record.years[player.record.years.length - 1];
     console.log(`  · ${label}: rank ${last.rank}, prestige ${last.prestige.toFixed(0)}, ${last.enrolled.toLocaleString()} students, $${(last.cash / 1e6).toFixed(0)}M, ${player.record.weeksInRed} weeks in the red`);
@@ -100,8 +121,15 @@ for (const seed of SEEDS) {
   assert(firstBreak === null, `Natural: every quarter keeps the rules${firstBreak ? ` — first broken at ${firstBreak}` : ''}`);
   const unfounded = milestoneSchools().filter((m) => !g.s.milestones[schoolFoundedKey(m.schoolName)]).map((m) => m.schoolName);
   assert(unfounded.length === 0, `Natural: every school founded by year ${YEARS}${unfounded.length ? ` — not ${unfounded.join(', ')}` : ''}`);
+  checkChronicle(`Natural, seed ${SEEDS[0]}`, g.s);
   const last = player.record.years.at(-1);
   if (last) console.log(`  · Natural, seed ${SEEDS[0]}: rank ${last.rank}, prestige ${last.prestige.toFixed(0)}, ${last.enrolled.toLocaleString()} students, $${(last.cash / 1e6).toFixed(0)}M, mark ${g.s.ending?.report.mark ?? '-'}`);
+}
+
+// ---- The chronicles' names vary ----
+{
+  const distinct = new Set(eraNames).size;
+  assert(distinct >= eraNames.length * 0.6, `the chronicles' eras are not the same few names (${distinct} names for ${eraNames.length} eras)`);
 }
 
 // ---- Growth isn't optional ----

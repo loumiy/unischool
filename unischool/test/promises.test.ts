@@ -9,7 +9,6 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { bindScriptStream } from '../src/engine/random';
 import { DECADE_LIST, DECADE_PICKS, PROMISES, PROMISE_CAP, promiseById } from '../src/data/promiseData';
 import { answerPromises, dealable, goalMet, isDecadeClose, offerRoom, openSummerPromises, promisesOf } from '../src/systems/promises/promises';
-import { distressOf } from '../src/systems/finance/distress';
 import { loadGame, saveGame } from '../src/state/persistence';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
@@ -77,25 +76,25 @@ function fresh(year: number): GameState {
   s.pendingInterrupt = { type: 'summer', payload: { beat: 0, tuition: s.finance.listedTuition, admitRate: s.students.admitRate } };
   openSummerPromises(s);
   const cash = s.finance.cash;
-  const confidence = distressOf(s).confidence;
+  const satisfaction = s.students.satisfaction;
   s = reducer(s, defaultAnswer(s)!);
   const p = promisesOf(s);
   assert(p.active.length === 0 && p.offer === null && p.declined.length > 0, 'leaving the Review beat without choosing declines the offer');
-  assert(s.finance.cash === cash && distressOf(s).confidence === confidence, 'at no cost');
+  assert(s.finance.cash === cash && s.students.satisfaction === satisfaction, 'at no cost');
 }
 
 // ---- Settling: kept and missed ----
 {
-  const def = PROMISES.find((d) => (d.reward.confidence ?? 0) > 0 && (d.penalty.confidence ?? 0) < 0)!;
+  const def = PROMISES.find((d) => (d.reward.mood ?? 0) > 0 && (d.penalty.mood ?? 0) < 0)!;
   const s = fresh(12);
   s.promises = { active: [{ id: def.id, madeYear: 12 - def.years, dueYear: 12 }], settled: [], declined: [], offer: null };
   const met = goalMet(s, def);
-  const before = distressOf(s).confidence;
+  const before = s.students.satisfaction;
   openSummerPromises(s);
   const r = promisesOf(s).settled[0];
   assert(r?.id === def.id && r.year === 12 && r.kept === met, `"${def.id}" is read out when due, ${met ? 'kept' : 'missed'}`);
-  const moved = distressOf(s).confidence - before;
-  assert(met ? moved > 0 : moved < 0, `and paid for (board confidence ${moved > 0 ? '+' : ''}${moved})`);
+  const moved = s.students.satisfaction - before;
+  assert(met ? moved > 0 : moved < 0, `and paid for (satisfaction ${moved > 0 ? '+' : ''}${moved})`);
   assert(promisesOf(s).active.length === 0, 'and leaves the docket');
   assert(s.log.some((l) => l.topic === 'ambition' && l.message.includes(def.title)), 'the log says so');
   assert(!dealable(s).some((d) => d.id === def.id), 'a promise settled is never offered again');

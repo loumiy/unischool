@@ -7,7 +7,7 @@ import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { bindScriptStream } from '../src/engine/random';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
-import type { CatalogueEvent } from '../src/data/eventCatalogueTypes';
+import type { CatalogueChoice, CatalogueEvent } from '../src/data/eventCatalogueTypes';
 import { DECISION_EVENT_FIRST_YEAR, DECISION_EVENTS } from '../src/data/eventData';
 import { tagById } from '../src/data/tagData';
 import {
@@ -72,7 +72,11 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   assert(letters.length >= 15 && letters.length < EVENT_CATALOGUE.length / 4, `a few of them are letters (${letters.length})`);
   assert(EVENT_CATALOGUE.every((e) => e.choices.some((c) => c.id === e.default)), 'every default is one of its choices');
   assert(EVENT_CATALOGUE.every((e) => new Set(e.choices.map((c) => c.id)).size === e.choices.length && e.choices.length >= 2), 'every event offers at least two distinct answers');
-  assert(EVENT_CATALOGUE.every((e) => e.choices.every((c) => Object.keys(c.effects).length > 0)), 'every answer does something');
+  // An answer may change nothing ("nothing to speak of"): the board's
+  // confidence was all some of them moved until Plan 80C removed it. Each
+  // event still has one that does something.
+  const acts = (c: CatalogueChoice) => Object.keys(c.effects).length > 0 || !!c.promise || !!c.mascot;
+  assert(EVENT_CATALOGUE.every((e) => e.choices.some(acts)), 'every event has an answer that does something');
   assert(EVENT_CATALOGUE.every((e) => e.kind === 'seismic' || e.timeoutWeeks >= 1), 'every inline event waits at least a week');
   assert(EVENT_CATALOGUE.every((e) => e.weight > 0 && e.cooldownYears >= 0), 'weights and cooldowns are sane');
   assert(EVENT_CATALOGUE.every((e) => (e.favours ?? []).every((t) => tagById(t) !== undefined)), 'every favored tag exists');

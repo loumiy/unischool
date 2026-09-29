@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------
 // The dock's stat chips lead to their explanations (Plan 78C,
-// src/data/statChips.ts): rank and prestige open History › Standing,
-// satisfaction opens Students › the breakdown, and each lands from the
+// src/data/statChips.ts): prestige opens History › Prestige and rank the
+// guide's table (Plan 80C), satisfaction opens Students › the breakdown, and each lands from the
 // first week. The rank chip's sentence says prestige's summer step as
 // prestigeSystem.ts sets it.
 //
@@ -16,6 +16,7 @@ import { STAT_CHIPS, STAT_CHIP_WORDS, chipDoor } from '../src/data/statChips';
 import { FIGURE_HINTS } from '../src/data/figureHints';
 import { PRESTIGE_MAX_RISE } from '../src/systems/prestige/prestigeSystem';
 import { prestigeFigure } from '../src/format';
+import { rankingsRows } from '../src/components/RankingsTable';
 
 bindScriptStream(4242);
 const store = new Map<string, string>();
@@ -40,9 +41,9 @@ console.log('stat chip tests');
 // --- where each chip leads --------------------------------------------
 {
   const expected = {
-    rank: { tab: 'history', section: 'history.standing' },
+    rank: { tab: 'history', section: 'history.rankings' },
     enrolled: null,
-    prestige: { tab: 'history', section: 'history.standing' },
+    prestige: { tab: 'history', section: 'history.prestige' },
     satisfaction: { tab: 'students', section: 'students.breakdown' },
   } as const;
   assert(STAT_CHIPS.join() === 'rank,enrolled,prestige,satisfaction', 'the dock shows the four chips in order');
@@ -56,8 +57,8 @@ console.log('stat chip tests');
     assert(door?.tab === want.tab, `${chip} opens ${want.tab} (${door?.tab})`);
     assert(door?.section === want.section, `${chip} lands on ${want.section} (${door?.section})`);
   }
-  assert(chipDoor('prestige', '51.5')?.name === 'Prestige 51.5 — open History, Standing', `the button is named with its figure (${chipDoor('prestige', '51.5')?.name})`);
-  assert(chipDoor('rank', '#55')?.name === 'Rank #55 — open History, Standing', 'rank too');
+  assert(chipDoor('prestige', '51.5')?.name === 'Prestige 51.5 — open History, Prestige', `the button is named with its figure (${chipDoor('prestige', '51.5')?.name})`);
+  assert(chipDoor('rank', '#55')?.name === 'Rank #55 — open History, The guide', 'rank too');
   assert(chipDoor('satisfaction', '70')?.name === 'Satisfaction 70 — open Students, Satisfaction breakdown', 'and satisfaction');
   for (const chip of STAT_CHIPS) {
     assert(/^[A-Z][a-z]+$/.test(STAT_CHIP_WORDS[chip]), `${chip}'s word is one word (${STAT_CHIP_WORDS[chip]})`);
@@ -74,6 +75,20 @@ console.log('stat chip tests');
     assert(tabAvailable(s, door.tab), `${chip}'s tab is open in week 1`);
     assert(sectionAvailable(s, door.section), `${chip}'s section shows in week 1`);
   }
+}
+
+// --- the guide's table: the fifty, then the college and its neighbors -----
+{
+  const entry = (i: number, isPlayer = false) => ({ key: isPlayer ? 'self' : `r${i}`, name: `College ${i}`, mascot: 'Owls', value: 200 - i, isPlayer });
+  const list = (mine: number) => Array.from({ length: 80 }, (_, i) => entry(i, i === mine));
+  const high = rankingsRows(list(11), 50);
+  assert(high.length === 50 && !high.includes('gap'), 'a college in the fifty is one of the fifty rows');
+  const low = rankingsRows(list(63), 50);
+  const places = low.map((r) => (r === 'gap' ? 'gap' : r.place));
+  assert(places.slice(50).join() === 'gap,63,64,65', `a college at #64 follows a gap, with its neighbors (${places.slice(50).join()})`);
+  assert(low.some((r) => r !== 'gap' && r.isPlayer && r.place === 64), 'its own row marked');
+  const next = rankingsRows(list(50), 50);
+  assert(next.slice(50).map((r) => (r === 'gap' ? 'gap' : r.place)).join() === '51,52', 'no gap when it sits just below the fifty');
 }
 
 // --- the rank chip says prestige's summer step -----------------------------

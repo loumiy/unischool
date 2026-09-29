@@ -108,6 +108,10 @@ console.log('reveal year-over-year tests');
   assert(change.parts.find((p) => p.label === 'word of mouth')!.change > 0, 'and it moved the pool up');
   assert(labels.includes('price'), 'so is the price');
   assert(change.parts.find((p) => p.label === 'price')!.change < 0, 'which moved it down');
+  // Price and sticker shock are one line (Plan 80C).
+  assert(!labels.includes('sticker shock'), 'sticker shock has no line of its own');
+  const priced = (f: FunnelFactors) => f.priceFactor * f.stickerShock;
+  assert(near(change.parts.find((p) => p.label === 'price')!.change, priced(now.factors) / priced(last.factors) - 1, 1e-9), 'the price line carries it');
   assert(labels.includes('prestige') && change.parts.find((p) => p.label === 'prestige')!.change > 0, 'and prestige, up');
   assert(!labels.includes('beds'), 'a factor that did not move is not on the line');
   for (let i = 1; i < change.parts.length; i += 1) {

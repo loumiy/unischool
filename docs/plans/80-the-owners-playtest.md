@@ -208,6 +208,91 @@ funds D introduces. Save bumps land in merge order.
   chronicle over the harness players shows no repeated era kind in a row;
   the save fixture migrates.
 
+**As implemented (#TBD):**
+
+- **Prestige:**
+  - The chip opens History › Prestige (section `history.prestige`, which
+    replaces `history.standing`): prestige's breakdown alone, its figure
+    in the panel head. The breakdown's label is now "Prestige".
+  - Its research and campus rows are "The labs' output" and "Recreation
+    buildings and venues"; each says it is prestige's own reading and that
+    the standing of that name is ranked on its own.
+  - Research standing and campus life standing are broken down under
+    History's standings (`StandingsPanel.tsx`), which also shows from the
+    first commencement now. The breakdown view moved to
+    `tabs/StandingBreakdown.tsx`.
+- **Rank:** the chip opens History › the guide (`history.rankings`,
+  `tabs/RankingsPanel.tsx`), shown from the first week. The table is the
+  entry reveal's, pulled out as `components/RankingsTable.tsx` and used by
+  both; the live one reads `rankedList` (the academic `rankedListBy`),
+  prints the top fifty and, below them, a gap and the college's row with a
+  neighbor either side. It has no "Last year" column (the report's
+  previous places are the summer's reconstruction).
+- **Promises:**
+  - `systems/promises/promiseTargets.ts` writes a goal from its condition
+    keys: "Admit rate 25% or lower at the summer of Year 14. Now 36%."; a
+    two-part goal names each part. Money is at the promise's own scale.
+  - The offer (each choice, under its text) and the Promises panel (each
+    open promise, in place of "Made in Year N") show it.
+  - No promise text contradicted its goal; the ids that name other numbers
+    (`found-six-schools`, `open-thirty-programs`, `one-fifty-million`) are
+    internal and stay. The test reads every title that names a number back
+    against the goal.
+- **The admissions reveal:** one "price" part, the product of the price
+  and sticker-shock factors (`yearOverYear.ts`); the funnel is unchanged.
+- **Board confidence removed:**
+  - The field, its term arithmetic, the `confidenceOver`/`confidenceUnder`
+    conditions, the `confidence` effect (188 answers, all 27 promises), the
+    Treasury's figure, its hint and the "recovered" letter's clause.
+  - The six gates: *A trustee resigns* is gated on Deficit or worse
+    (`rungAtLeast: 2`); *The board retreat* on Tight or better
+    (`rungAtMost: 1`); *The strategic plan*, *The consultants' report*,
+    *The board secretary* and *Term limits* lose the gate and keep their
+    years.
+  - 22 answers moved only the confidence; they now change nothing and
+    say "nothing to speak of". Every event keeps an answer that does
+    something, and the catalog test now asks that of each event rather
+    than each answer.
+  - 13 promises' only penalty was the confidence. The design gives every
+    promise a penalty, so each now costs 2 points of alumni warmth, the
+    smallest penalty the other promises use (a judgment call; the harness
+    declines promises, so the sim does not see it).
+  - `SAVE_VERSION` 81 → 82, with a migration (`dropBoardConfidence`).
+    `test/fixtures/save-v81.json` is the `year-8-balanced` scenario,
+    written before the bump; `test/promise-targets.test.ts` loads it.
+- **The chronicle:**
+  - A year is its largest new thing, in this order: the founding years,
+    receivership, troubles, reaching first, a school founded, a graduate
+    degree taught in full, entering the top ten, a capital project or
+    grand landmark, titles, research prizes, a campaign, a fall, a
+    building boom (two or more), a letter answered, else quiet.
+  - A fall is losing first, leaving the top ten, or five places in three
+    years from the top 25. The rise, decline, golden and rivalry kinds
+    are gone (the rival's line stays in the summary).
+  - An era is the largest kind of its years; a short run folds into a
+    neighbor as before and the pair takes the larger kind; two eras of a
+    kind never stand in a row. A long run is split only where each part
+    can be named for something its neighbor is not.
+  - Names: "The Years of the School of Science", "The Schools of Science
+    and Business", "The First PhDs", "The Medical Center Years", "The
+    Championship Years", "The Laureate Years", "Into the Top Ten", "First
+    in the Guide", "The Slide". The summaries add the schools founded, the
+    degrees taught in full and the prizes.
+  - It needed two records: `GameState.milestoneYears` (written by
+    `awardMilestone`) and the history rows' `prizes`. Both are optional;
+    a save from before reads its milestones as undated.
+  - `test/archetypes.test.ts` and `test/guided.test.ts` check every
+    harness player's chronicle: no two eras of a kind in a row, every
+    name its own, at most two named for the guide, and across the runs
+    the names mostly distinct.
+- **The baseline moved** (medians, before → after): Completionist Y25
+  rank 11 → 8, Y50 cash $432M → $169M; Selective Y50 rank 23 → 17; Lean
+  Y50 rank 23 → 35, prestige 109.2 → 98.6, satisfaction 77.3 → 67.0;
+  Guided Y25 rank 8 → 12, Y25 enrolled 26,080 → 28,240, Y50 rank 1 → 1.
+  No rule was retuned: the six events' new gates change which board
+  events fire and when, and every later draw on the run's stream moves
+  with them. The confidence effects themselves reached nothing else.
+
 ## PR 80D — The opening
 
 - **The college starts with nothing to teach.** No professors, no courses;

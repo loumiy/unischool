@@ -9,7 +9,7 @@ import { sectionAnchor, useSectionTarget } from '../components/sectionTarget';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { HistoryChart } from '../components/HistoryChart';
 import { MultiChart } from '../components/MultiChart';
-import { count, fraction, moneyShort, pct, prestigeFigure, satisfactionFigure, signed } from '../format';
+import { count, fraction, moneyShort, pct, prestigeFigure, satisfactionFigure } from '../format';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
@@ -18,10 +18,9 @@ import FinalReportView from '../components/FinalReportView';
 import ReportCardActions from '../components/ReportCardActions';
 import { hallEntryFor } from '../state/hall';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
-import {
-  multiplierLine, prestigeBreakdown, researchStandingBreakdown, socialStandingBreakdown,
-  type StandingBreakdown, type StandingInput, type StandingReading,
-} from '../systems/prestige/prestigeSystem';
+import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { Standing, StandingFigure } from './StandingBreakdown';
+import RankingsPanel from './RankingsPanel';
 
 // Institutional History: the one screen that shows the decades. It reads
 // s.history (state/history.ts) and live readings, and stores nothing of its
@@ -30,161 +29,24 @@ import {
 // Rows of the year-by-year table shown before it scrolls.
 const TABLE_VISIBLE_ROWS = 12;
 
-// ---------------------------------------------------------------------
-// Standing: the headline numbers, explained. Every figure comes from
-// prestigeSystem.ts's breakdown, the object its target function sums, so
-// this panel cannot disagree with the tick; nothing here names a row.
-//
-// Each bar has two layers: pale is what the input's score reaches (weight
-// x score), solid is what it is worth after its multiplier. The gap is what
-// a shortfall (a small library, a small student body) is costing.
-// ---------------------------------------------------------------------
-
-// A penalty row (crowding) is drawn in the penalty color as a subtraction.
-// `grade`, when present, is what the input was worth at last summer's report
-// card (prestigeSystem.ts's gradeYear), shown beside its worth now.
-function StandingRow({ input, max, grade }: { input: StandingInput; max: number; grade?: number }) {
-  const reach = input.weight * input.score;
-  const worth = Math.abs(input.contribution);
-  const sign = input.penalty ? '−' : '+';
-  const widthOf = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+// Prestige (Plan 80C): the Prestige chip's page, its breakdown and nothing
+// else. Research and campus life are rankings of their own, in the
+// standings.
+function PrestigePanel({ s }: { s: GameState }) {
+  const breakdown = prestigeBreakdown(s);
   return (
-    <li className={`standing-row${input.penalty ? ' standing-penalty' : ''}`}>
-      <div className="standing-row-head">
-        <span className="standing-row-label">{input.label}</span>
-        <span className="standing-row-figure">
-          {grade !== undefined && (
-            <span className="standing-row-grade" title="Graded last summer">{sign}{Math.abs(grade).toFixed(1)} → </span>
-          )}
-          {sign}{worth.toFixed(1)}<span className="standing-row-of"> of {input.weight}</span>
-        </span>
-      </div>
-      <div className="standing-bar" aria-hidden="true">
-        <div className="standing-bar-reach" style={{ width: widthOf(reach) }} />
-        <div className="standing-bar-fill" style={{ width: widthOf(worth) }} />
-      </div>
-      <p className="standing-detail">
-        {input.detail}
-        {input.multiplier && (
-          <>
-            {' '}
-            <span className="standing-multiplier">
-              {multiplierLine(input.multiplier)}
-            </span>
-          </>
-        )}
-      </p>
-    </li>
-  );
-}
-
-// A reading is an input that does not count yet (prestigeSystem.ts's
-// StandingReading): only the pale layer, at its proposed weight. A reading
-// with no weight is a ratio and is shown as a percentage.
-function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
-  const widthOf = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
-  return (
-    <li className="standing-row standing-reading">
-      <div className="standing-row-head">
-        <span className="standing-row-label">{item.label}</span>
-        <span className="standing-row-figure">
-          {item.weight === undefined
-            ? pct(item.score)
-            : <>{item.penalty ? '−' : '+'}{item.reach.toFixed(1)}<span className="standing-row-of"> of {item.weight}, not yet counted</span></>}
-        </span>
-      </div>
-      {item.weight !== undefined && (
-        <div className="standing-bar" aria-hidden="true">
-          <div className="standing-bar-reach" style={{ width: widthOf(item.reach) }} />
-        </div>
-      )}
-      <p className="standing-detail">{item.detail}</p>
-    </li>
-  );
-}
-
-// The summer model, in a sentence: what the year is grading toward, how
-// the step works, and last summer's card if there is one.
-function summerNote(breakdown: StandingBreakdown, gap: number): string {
-  const { riseRate, maxRise, fallRate, reportCard } = breakdown.summer!;
-  const step = gap > 0 ? Math.min(gap * riseRate, maxRise) : Math.abs(gap) * fallRate;
-  const grading = `This year is grading ${prestigeFigure(breakdown.target)}; each summer, prestige closes `
-    + `${pct(riseRate)} of a gap upward (at most ${prestigeFigure(maxRise)} points) and ${pct(fallRate)} downward`
-    + (Math.abs(gap) < 0.05 ? '.' : ` — ${signed(gap > 0 ? step : -step, 1)} if nothing changes.`);
-  const last = reportCard
-    ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${prestigeFigure(reportCard.before)} → ${prestigeFigure(reportCard.after)}.`
-    // Before the first summer (Plan 78C): when the grade first counts.
-    : ' Prestige is graded at the end of each year; the first grade comes at the first summer.';
-  return grading + last;
-}
-
-function Standing({ breakdown }: { breakdown: StandingBreakdown }) {
-  // All bars share one scale, the largest weight in this standing, so terms
-  // are comparable at a glance.
-  const max = Math.max(...breakdown.inputs.map((i) => i.weight));
-  const gap = breakdown.target - breakdown.current;
-  return (
-    <div className="standing">
-      <div className="standing-head">
-        <h3>{breakdown.label}</h3>
-        <span className="standing-figure">
-          {prestigeFigure(breakdown.current)}
-          <span className="standing-arrow"> → </span>
-          {prestigeFigure(breakdown.target)}
-        </span>
-      </div>
-      <p className="standing-note">
-        {breakdown.summer
-          ? summerNote(breakdown, gap)
-          : Math.abs(gap) < 0.05
-            ? 'Sitting at its target.'
-            : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${prestigeFigure(breakdown.target)}, by `
-              + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week — about `
-              + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
-        {' '}Everything starts from a baseline of {breakdown.baseline}.
-      </p>
-      {breakdown.ceiling && (
-        <p className={`standing-note standing-ceiling${breakdown.ceiling.value <= breakdown.target + 0.05 ? ' binding' : ''}`}>
-          <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}
-          {breakdown.ceiling.value <= breakdown.target + 0.05 && ' It is holding the target down now.'}
-        </p>
-      )}
-      <ul className="standing-rows">
-        {breakdown.inputs.map((input) => (
-          <StandingRow key={input.key} input={input} max={max} grade={breakdown.summer?.reportCard?.grades[input.key]} />
-        ))}
-      </ul>
-      {breakdown.readings.length > 0 && (
-        <>
-          <p className="standing-note standing-readings-note">
-            Shown for reference; not part of the grade.
-          </p>
-          <ul className="standing-rows">
-            {breakdown.readings.map((item) => (
-              <ReadingRow key={item.key} item={item} max={max} />
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
-  );
-}
-
-function StandingPanel({ s }: { s: GameState }) {
-  return (
-    <section className="panel" {...sectionAnchor('history.standing')}>
+    <section className="panel" {...sectionAnchor('history.prestige')}>
       <div className="panel-head">
-        <h2>{SECTION_HEADINGS['history.standing']}</h2>
+        <div className="panel-head-title">
+          <h2>{SECTION_HEADINGS['history.prestige']}</h2>
+          <StandingFigure breakdown={breakdown} />
+        </div>
         <HelpHint
           align="end"
-          text="Each standing moves slowly toward its target. Academic standing is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers; the other two drift weekly. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted."
+          text="Prestige is the college's academic standing, the number the guide ranks. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Research and campus life are ranked on their own, in the standings."
         />
       </div>
-      <div className="standings">
-        <Standing breakdown={prestigeBreakdown(s)} />
-        <Standing breakdown={researchStandingBreakdown(s)} />
-        <Standing breakdown={socialStandingBreakdown(s)} />
-      </div>
+      <Standing breakdown={breakdown} titled={false} />
     </section>
   );
 }
@@ -273,8 +135,8 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   );
 }
 
-// `target`: a section to land on (the prestige and rank chips open
-// Standing, Plan 78C).
+// `target`: a section to land on (the Prestige chip opens Prestige, the
+// Rank chip the guide; Plans 78C and 80C).
 export default function HistoryTab({ s, act, target, onTargetConsumed }: {
   s: GameState; act: (a: Action) => void; target?: string; onTargetConsumed?: () => void;
 }) {
@@ -282,12 +144,14 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
   const totalCourses = s.tech.filter((t) => t.kind === 'course').length;
   useSectionTarget(target, onTargetConsumed);
 
-  // Open from the first week for Standing (Plan 78C); the record of the
-  // years waits for the first commencement (ladderData.ts's sections).
+  // Open from the first week for Prestige and the guide (Plans 78C and
+  // 80C); the record of the years waits for the first commencement
+  // (ladderData.ts's sections).
   if (!sectionAvailable(s, 'history.record')) {
     return (
       <div className="tab-content">
-        <StandingPanel s={s} />
+        <PrestigePanel s={s} />
+        <RankingsPanel s={s} />
         <section className="panel">
           <h2>The record</h2>
           <p className="empty-note">
@@ -301,11 +165,14 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
   if (history.length < MIN_SERIES_POINTS) {
     return (
       <div className="tab-content">
-        {/* Standing needs no history, so a first-year school still sees it. */}
-        <StandingPanel s={s} />
+        {/* Prestige and the guide need no history, so a first-year school
+            still sees them. */}
+        <PrestigePanel s={s} />
+        <RankingsPanel s={s} />
         <FinalReportPanel s={s} />
         <PromisesPanel s={s} />
         <ChroniclePanel s={s} />
+        <StandingsPanel s={s} />
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-title">
@@ -330,7 +197,7 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
 
   return (
     <div className="tab-content">
-      <StandingPanel s={s} />
+      <PrestigePanel s={s} />
       <FinalReportPanel s={s} />
       <PromisesPanel s={s} />
       <ChroniclePanel s={s} />
@@ -392,6 +259,8 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
           />
         </div>
       </section>
+
+      <RankingsPanel s={s} />
 
       <StandingsPanel s={s} />
 
