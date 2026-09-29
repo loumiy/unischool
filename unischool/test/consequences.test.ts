@@ -8,7 +8,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
@@ -93,7 +93,7 @@ console.log('consequences tests');
 
 // ---- a bad year, through the reducer, says so ----
 {
-  const atSummer = toSummer(createInitialState('Attrition'));
+  const atSummer = toSummer(teachingCollege('Attrition'));
   withYearAverage(atSummer, 30);
   // Crowding's pull on the pool is its own test (crowding-pool.test.ts).
   atSummer.students.crowdingYearSum = 0;
@@ -114,7 +114,7 @@ console.log('consequences tests');
   assert(totalEnrolled(s.students) === projected.totalEnrolled, 'and the body committed is the body projected');
   assert(s.log.some((l) => l.message.includes('did not return')), 'the log names the loss');
 
-  const good = toSummer(createInitialState('Content'));
+  const good = toSummer(teachingCollege('Content'));
   withYearAverage(good, 70);
   const g = reducer(good, defaultAnswer(good)!);
   assert(!g.log.some((l) => l.message.includes('did not return')), 'a good year loses nobody and says nothing');
@@ -122,7 +122,7 @@ console.log('consequences tests');
 
 // ---- attrition reasons name the worst-covered needs ----
 {
-  const s = createInitialState('Reasons');
+  const s = teachingCollege('Reasons');
   const reasons = attritionReasons(s);
   assert(reasons.length === 2, 'two reasons at most');
   assert(reasons.every((r) => ['housing', 'dining', 'study space', 'social space', 'classes'].includes(r)), 'each a need the campus is short of');
@@ -132,7 +132,7 @@ console.log('consequences tests');
 {
   assert(DEMAND_SATISFACTION_THRESHOLD === 60, 'demands come from 60, not 45');
 
-  const s = createInitialState('Seats');
+  const s = teachingCollege('Seats');
   // The founding programs' next courses are open from day one (Plan 19),
   // so lock them: the case under test is a catalog with nothing to start.
   for (const t of s.tech) if (t.kind === 'course' && t.status === 'available') t.status = 'locked';

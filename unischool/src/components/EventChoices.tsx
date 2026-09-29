@@ -52,8 +52,9 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       case 'departs': out.push(`${vars.faculty ?? 'they'} leaves`); break;
       case 'buildingFund': out.push(`${money(v)} to the building fund`); break;
       case 'historic': out.push(`${vars.building ?? 'the building'} declared historic`); break;
-      // The charter (Plan 78G): the name, and what the pennant can still do.
-      case 'charter': out.push(v > 0 ? 'the college is renamed' : 'the name stays; the pennant can take University later'); break;
+      // The charter (Plan 78G): the name, for good (Plan 80D: nothing renames
+      // the college after it).
+      case 'charter': out.push(v > 0 ? 'University from now on' : 'College for good'); break;
     }
   }
   return out;

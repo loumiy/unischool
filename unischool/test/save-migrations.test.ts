@@ -20,7 +20,7 @@ import { exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, SAVE_VERSION } f
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
-import type { GameState } from '../src/state/types';
+import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
 
 let checks = 0;
 let failures = 0;
@@ -109,8 +109,33 @@ function testRefusals(): void {
   assert(refused(JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: {} })) === 'not-a-save', 'a save with no college in it is refused');
 }
 
+// ---- 81 -> 82 (Plan 80D): a milestone's week, and the redrawn walk ----
+function testMilestoneWeeks(): void {
+  const raw = fixture('save-v81-opening.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  assert(parsed.version === 81 && !('reachedWeek' in parsed.state.ladder), 'the version-81 fixture written before Plan 80D has no milestone weeks');
+  const read = readSave(raw);
+  if ('refused' in read) return;
+  const reached = Object.entries(parsed.state.ladder.reached);
+  assert(reached.length > 1, `it has milestones reached (${reached.length})`);
+  assert(reached.every(([id, year]) => read.state.ladder.reachedWeek[id] === (year - 1) * WEEKS_PER_YEAR + 1), 'each loads dated to week 1 of the year it was reached');
+  // A walk held on a step the redrawn walk no longer has ends.
+  for (const stage of ['teaching', 'found'] as const) {
+    const held = JSON.parse(raw) as { version: number; state: { events: { opening: { stage: string } } } };
+    held.state.events.opening.stage = stage;
+    const back = readSave(JSON.stringify(held));
+    assert(!('refused' in back) && back.state.events.opening.stage === 'play', `a save held on the old "${stage}" step loads at play`);
+  }
+  // A milestone reached after the load records its own week.
+  const g = foundGame({ from: read.state, seed: 12345 });
+  playYears(g, createGuidedPlayer(), 1);
+  const since = Object.keys(g.s.ladder.reached).filter((id) => !(id in parsed.state.ladder.reached));
+  assert(since.every((id) => g.s.ladder.reachedWeek[id] > (g.s.ladder.reached[id] - 1) * WEEKS_PER_YEAR), 'and a milestone reached after it keeps the week it was reached');
+}
+
 testLaunchFixture();
 testChain();
+testMilestoneWeeks();
 testRoundTrip();
 testRefusals();
 

@@ -203,8 +203,8 @@ button, input, select, textarea { font-size: inherit; }
 /* Buttons: one base. 2px of the outline ink, --shadow-1, the display face at
    800 in sentence case; the fill says the role. */
 .btn, .btn-primary, .btn-quiet, .btn-danger, .menu-btn, .panel-action, .building-info-jump, .facility-start, .relocate-slot, .map-touch-bar button,
-.dept-action, .dept-bulk button, .next-up-door, .report-card-actions button, .pennant-form-suffix button,
-.pennant-form-actions button, .new-college-btn, .school-restaff, .course-drawer-action, .course-drawer-appoint,
+.dept-action, .dept-bulk button, .next-up-door, .report-card-actions button,
+.new-college-btn, .school-restaff, .course-drawer-action, .course-drawer-appoint,
 .row-action-develop, .row-action-secondary, .facility-commit, .faculty-card-foot button, .coach-release,
 .offer-add, .ad-mascot-roll, .ad-decline, .letter-skip, .admissions-lock, .opening-coach-actions button,
 .segmented > button, .curriculum-chip, .tab-overlay-close, .title-primary, .startup-begin-btn,
@@ -214,17 +214,17 @@ button, input, select, textarea { font-size: inherit; }
   font-family: var(--display); font-weight: 800; text-transform: none; letter-spacing: 0; cursor: pointer; }
 /* Cream, the default: the secondary fill on hover. */
 :is(.btn, .menu-btn, .panel-action, .building-info-jump, .facility-start, .relocate-slot, .map-touch-bar button,
-.dept-action, .dept-bulk button, .next-up-door, .report-card-actions button, .pennant-form-suffix button,
-.pennant-form-actions button, .new-college-btn, .school-restaff):hover:not(:disabled) {
+.dept-action, .dept-bulk button, .next-up-door, .report-card-actions button,
+.new-college-btn, .school-restaff):hover:not(:disabled) {
   background: var(--school-secondary); color: var(--school-on-secondary); }
 /* Primary, the secondary fill: the one primary action on a card (a row, a
    dialog, a drawer), never more than one per card. */
 .btn-primary, .admissions-lock, .row-action-develop, .course-drawer-action, .facility-commit, .faculty-card-foot button.appoint,
-.dept-action.appoint, .opening-coach-actions button, .map-touch-bar button.primary, .pennant-form-actions button.primary,
+.dept-action.appoint, .opening-coach-actions button, .map-touch-bar button.primary,
 .title-primary, .startup-begin-btn, :where(.modal-actions, .final-page-leave) > button {
   background: var(--school-secondary); color: var(--school-on-secondary); }
 :is(.btn-primary, .admissions-lock, .row-action-develop, .course-drawer-action, .facility-commit, .faculty-card-foot button.appoint,
-.dept-action.appoint, .opening-coach-actions button, .map-touch-bar button.primary, .pennant-form-actions button.primary,
+.dept-action.appoint, .opening-coach-actions button, .map-touch-bar button.primary,
 .title-primary, .startup-begin-btn, :where(.modal-actions, .final-page-leave) > button):hover:not(:disabled) {
   background: var(--school-secondary); color: var(--school-on-secondary); transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--outline); }
 /* Quiet: no fill, the same outline and offset (a pale edge would read as
@@ -242,8 +242,8 @@ button, input, select, textarea { font-size: inherit; }
   background: var(--danger-bg); color: var(--danger-ink); }
 /* Disabled: faded and flat, whatever the role. */
 :is(.btn, .btn-primary, .btn-quiet, .btn-danger, .menu-btn, .panel-action, .building-info-jump, .facility-start, .relocate-slot, .map-touch-bar button,
-.dept-action, .dept-bulk button, .next-up-door, .report-card-actions button, .pennant-form-suffix button,
-.pennant-form-actions button, .new-college-btn, .school-restaff, .course-drawer-action, .course-drawer-appoint,
+.dept-action, .dept-bulk button, .next-up-door, .report-card-actions button,
+.new-college-btn, .school-restaff, .course-drawer-action, .course-drawer-appoint,
 .row-action-develop, .row-action-secondary, .facility-commit, .faculty-card-foot button, .coach-release,
 .offer-add, .ad-mascot-roll, .ad-decline, .letter-skip, .admissions-lock, .opening-coach-actions button,
 .segmented > button, .curriculum-chip, .title-primary, .startup-begin-btn, :where(.modal-actions, .final-page-leave) > button):disabled {
@@ -2760,6 +2760,10 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .inbox-para.lapsed { color: var(--danger-ink); font-weight: 600; }
 .inbox-note { color: var(--ink-muted); font-size: var(--text-md); }
 .inbox-section-label { margin: 0; }
+/* The charter's one rename (InboxTab.tsx's CharterAnswer, Plan 80D). */
+.charter-rename { display: flex; flex-direction: column; gap: var(--space-4); max-width: 420px; }
+.charter-rename input { font: inherit; font-weight: 600; padding: var(--space-6) var(--space-8); border: 2px solid var(--outline); border-radius: var(--radius-sm); background: var(--cream-hi); color: var(--ink); }
+.charter-rename-note { font-size: var(--text-xs); color: var(--ink-muted); }
 .inbox-read .event-choices { max-width: 680px; }
 .inbox-read .event-choice:disabled { opacity: 0.5; cursor: not-allowed; }
 .inbox-read .milestone-opens { max-width: 640px; margin: 0; }
@@ -2896,22 +2900,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .pennant-name { font-family: var(--display); font-weight: 800; font-size: var(--text-2xl); line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere;
   min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; pointer-events: auto; }
 .pennant-tail { height: 22px; background: var(--school-primary); clip-path: polygon(0 0, 100% 0, 50% 100%); }
-/* The rename (Plan 72E): the pennant's one live control. */
-.pennant-body { display: flex; align-items: flex-start; gap: 8px; }
-.pennant-rename { pointer-events: auto; margin-left: auto; flex: none; width: 26px; height: 26px; border-radius: 50%; padding: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  border: 2px solid currentColor; background: transparent; color: inherit; cursor: pointer; opacity: 0.75; }
-.pennant-rename svg { width: 14px; height: 14px; display: block; }
-.pennant-rename:hover, .pennant-rename:focus-visible { opacity: 1; }
-.pennant-form { pointer-events: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 12px;
-  background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); border-top: none; }
-.pennant-form-label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-sm); font-weight: 700; }
-.pennant-form-label input { font: inherit; font-weight: 600; padding: var(--space-6) var(--space-8); border: 2px solid var(--outline); border-radius: var(--radius-sm); background: var(--cream-hi); }
-.pennant-form-note { font-size: var(--text-xs); font-weight: 400; color: var(--ink-muted); }
-.pennant-form-suffix { display: flex; gap: var(--space-6); }
-.pennant-form-suffix button, .pennant-form-actions button { font-size: var(--text-sm); padding: var(--space-4) var(--space-12); }
-.pennant-form-suffix button.is-on { background: var(--school-secondary); color: var(--school-on-secondary); }
-.pennant-form-actions { display: flex; gap: 6px; }
 /* The building panel takes the same corner, so the pennant yields to it
    here (the open building is map-local state, not App's). */
 body:has(.building-info-panel) .pennant { display: none; }

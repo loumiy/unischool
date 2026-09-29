@@ -3,7 +3,7 @@
 
 import { QUIRKS, QUIRK_MORALE_CAP, QUIRK_SHARE, quirkById, quirkForId } from '../src/data/quirkData';
 import { generateCandidate } from '../src/data/facultyData';
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { facultyMorale } from '../src/systems/satisfaction/satisfactionSystem';
 import { bindScriptStream } from '../src/engine/random';
 
@@ -44,7 +44,7 @@ console.log('quirks tests');
 }
 
 {
-  const s = createInitialState('Quirks');
+  const s = teachingCollege('Quirks');
   s.faculty = s.faculty.map((f) => ({ ...f, quirk: 'beloved-lecturer' }));
   const glad = facultyMorale(s);
   assert(glad > 0 && glad <= QUIRK_MORALE_CAP, `cheerful professors lift academic satisfaction a little (${glad.toFixed(2)})`);

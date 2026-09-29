@@ -343,8 +343,9 @@ The settled v1 rules:
 - **Seats are the one ceiling; beds are a demand floor.** The freshman class
   cannot exceed the seats the housed catalogue has left after graduation
   (`instructionCapacity.ts`'s `intakeCeiling`: `SEATS_PER_COURSE` for every
-  developed course in a housed program, the founding college's six included, less
-  the three classes that stay on). A program moving halls at the summer
+  developed course in a housed program, less the three classes that stay
+  on; since Plan 80D the college opens with none, so its first class is
+  held to what the player has developed by the first summer). A program moving halls at the summer
   counts its seats, since it is dark for weeks of a class that stays four
   years; an unstaffed one counts none (Plan 79C). The funnel clips the class to it from the
   bottom band up — a school that must turn people away turns away its weakest

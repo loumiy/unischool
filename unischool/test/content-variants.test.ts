@@ -71,7 +71,6 @@ function sameShape(group: readonly string[], what: string): void {
 
 // ---- The founding years' notes ----
 {
-  assert(holes(FOUNDING_NOTES.firstProgram.text) === 'program', 'the first program\'s note names the program');
   assert(holes(FOUNDING_NOTES.firstResidence.text) === 'dorm', 'the first residence\'s note names the residence');
 }
 

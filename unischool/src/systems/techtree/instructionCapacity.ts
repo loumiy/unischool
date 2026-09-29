@@ -11,9 +11,10 @@ import { darkPrograms, unstaffedPrograms } from './darkness';
 // health stay soft.
 
 // Seats a developed course adds. Provisional; sized so the whole catalog
-// holds about 33,000 (top of the year-50 band), a year-20 completionist with
-// 150–225 courses holds 12,000–18,000, and the founding six courses hold 480
-// for the founding body of 350.
+// holds about 33,000 (top of the year-50 band), and a year-20 completionist
+// with 150–225 courses holds 12,000–18,000. The college opens with no
+// course (Plan 80D), so its founding body of 350 is crowded until five are
+// taught; with none, capacity and coverage read zero, never a division.
 export const SEATS_PER_COURSE = 80;
 
 export interface InstructionCapacity {

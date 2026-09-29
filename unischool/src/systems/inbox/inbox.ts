@@ -124,6 +124,9 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
 
 // A bulletin stays filed for a term (StatusHeader.tsx's two terms a year).
 export const BULLETIN_WEEKS = WEEKS_PER_YEAR / 2;
+// A letter (a milestone's, a founding note) stays a year after it arrives
+// (Plan 80D).
+export const LETTER_WEEKS = WEEKS_PER_YEAR;
 
 export const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
   board: 'The President',
@@ -212,20 +215,25 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
     (item.tier === 'decide' ? decide : letters).push(item);
   }
 
-  // Every milestone reached, for the record; unread until opened.
+  // Every milestone reached in the last year, unread until opened; older
+  // ones have left the inbox (Plan 80D), and the milestones panel keeps the
+  // record.
   const unread = new Set(s.ladder.unread);
   for (const m of MILESTONES) {
     const year = s.ladder.reached[m.id];
     if (year === undefined || m.id === CHARTER_ID || m.quiet) continue;
+    const week = s.ladder.reachedWeek?.[m.id] ?? (year - 1) * WEEKS_PER_YEAR + 1;
+    if (now - week >= LETTER_WEEKS) continue;
     letters.push({
       id: `milestone:${m.id}`, kind: 'milestone', tier: 'letter', ref: m.id,
       from: `A milestone · ${m.tier}`, subject: m.name, preview: m.letter,
-      week: (year - 1) * WEEKS_PER_YEAR + 1, unread: unread.has(m.id),
+      week, unread: unread.has(m.id),
     });
   }
 
   for (const n of foundingNotes(s)) {
     const id = `founding:${n.id}`;
+    if (now - logWeek(n) >= LETTER_WEEKS) continue;
     letters.push({
       id, kind: 'founding', tier: 'letter', ref: n.id, from: 'The founding years', subject: n.title, preview: n.text,
       week: logWeek(n), unread: n.fresh && !(opts.read?.has(id) ?? false),

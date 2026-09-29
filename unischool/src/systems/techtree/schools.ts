@@ -229,3 +229,42 @@ export function suggestedMove(s: GameState, programId: string): { hallId: string
   const slot = s.halls[target].findIndex((x) => x.programId === null);
   return slot >= 0 ? { hallId: target, slot } : null;
 }
+
+// ---------------------------------------------------------------------
+// Establishing a school (Plan 80D): a school is six programs of one school
+// in one hall, any academic hall, Founders Hall included. Nothing asks for
+// a particular move; the letters and the next-step line name the school
+// closest to six (establish.ts in systems/guidance).
+// ---------------------------------------------------------------------
+
+export interface SchoolProgress {
+  school: string;
+  hallId: string;
+  // Majors of the school housed in the hall, settled or arriving, of six.
+  housed: number;
+}
+
+// The school not yet founded that is closest to six in one standing
+// academic hall: the most of its majors in one hall, ties to the hall with
+// more free program slots, then Founders Hall first. Null when no major of
+// an unfounded school is housed.
+export function closestSchool(s: GameState): SchoolProgress | null {
+  let best: (SchoolProgress & { free: number }) | null = null;
+  const hallIds = Object.keys(s.halls).sort((a, b) => (a === FOUNDERS_HALL_ID ? -1 : b === FOUNDERS_HALL_ID ? 1 : 0));
+  for (const hallId of hallIds) {
+    const hall = s.tech.find((t) => t.id === hallId);
+    if (!hall || !isAcademicHall(hall) || hall.status !== 'done') continue;
+    const slots = s.halls[hallId];
+    const free = slots.filter((slot) => slot.programId === null).length;
+    const counts = new Map<string, number>();
+    for (const slot of slots) {
+      const program = slot.programId ? programById(slot.programId) : undefined;
+      if (!program || program.kind === 'graduate' || isSchoolFounded(s, program.school)) continue;
+      counts.set(program.school, (counts.get(program.school) ?? 0) + 1);
+    }
+    for (const [school, housed] of counts) {
+      if (best === null || housed > best.housed || (housed === best.housed && free > best.free)) best = { school, hallId, housed, free };
+    }
+  }
+  return best ? { school: best.school, hallId: best.hallId, housed: best.housed } : null;
+}

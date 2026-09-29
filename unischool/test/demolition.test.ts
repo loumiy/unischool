@@ -5,7 +5,7 @@
 // goes back into the catalog as it first was. Founders Hall, a historic
 // building and a hall with programs in it stay up.
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { bindScriptStream } from '../src/engine/random';
@@ -32,7 +32,7 @@ function assert(cond: boolean, msg: string): void {
 console.log('demolition tests');
 
 const fresh = () => {
-  const s = createInitialState('Demolition');
+  const s = teachingCollege('Demolition');
   s.pendingInterrupt = null;
   return s;
 };

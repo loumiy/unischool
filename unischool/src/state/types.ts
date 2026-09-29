@@ -200,7 +200,7 @@ export interface Faculty {
   research: number;   // 0..100, current — grows toward researchPotential with tenure
   teachingPotential: number; // 0..100, rolled once
   researchPotential: number; // 0..100, rolled once
-  tenureWeeks: number; // weeks on the roster; 0 for a candidate
+  tenureWeeks: number; // weeks on the roster; 0 for a candidate, bar the founding market's (facultyData.ts's foundingCandidates)
   weeksListed: number; // weeks on the market, 0 once appointed; a listing withdraws at CANDIDATE_LISTING_WEEKS
   salary: number;      // annual; recomputed from current stats plus a seniority premium
   courseSlots: number; // courses in `field` this hire can staff at once; grows with tenure. A 'developing' or 'done' course holds one slot (techSystem.ts's canStartDevelopment)
@@ -565,7 +565,7 @@ export interface EventState {
 }
 
 // See state/opening.ts, which owns the order and the meaning.
-export type OpeningStage = 'welcome' | 'site-hall' | 'teaching' | 'found' | 'play';
+export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'play';
 
 export interface Rival {
   id: string;
@@ -904,7 +904,8 @@ export interface University {
   researchStanding: number;
   vernacular: Vernacular; // fixed at founding
   colors: SchoolColors;   // fixed at founding
-  // Lifetime appointments including the founding five (appointFaculty).
+  // Lifetime appointments, the first from the founding market included
+  // (appointFaculty).
   // Monotone; the final report's "faculty who served".
   facultyServed: number;
 }
@@ -1020,7 +1021,7 @@ export interface AlumniClass {
 // the hall panel's grid never shuffles. A program id is a major's course
 // prefix ('FINA') or a graduate program id ('MED'); a program is housed as
 // a unit. A hall's entry is written empty when it finishes (Founders Hall
-// is seeded with the three founding programs), and a school is founded by
+// is seeded empty too, Plan 80D), and a school is founded by
 // reading this record (six slots, one school; docs/design/curriculum.md).
 // Systems read it (the tier-2 gate, dedication), so the loader's
 // sanitizeHalls corrects bad entries rather than dropping them.
@@ -1126,10 +1127,13 @@ export interface GameState {
 //   - tabIds: gated tabs (TabNav.tsx's TAB_GATES) seen open. Not a badge:
 //     keeps the "now available" log line one-off across saves and gates
 //     that close and reopen.
-// The ladder: milestone id -> the year it was reached (never undone), and
-// the milestones whose letters are still to be shown, oldest first.
+// The ladder: milestone id -> the year it was reached (never undone), the
+// absolute week it was reached (Plan 80D: its letter leaves the inbox a
+// year after; a save from before it reads week 1 of the year), and the
+// milestones whose letters are still to be shown, oldest first.
 export interface LadderState {
   reached: Record<string, number>;
+  reachedWeek: Record<string, number>;
   unread: string[];
 }
 

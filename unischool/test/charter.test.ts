@@ -2,10 +2,11 @@
 // The charter (Plan 72E, Plan 78G): the first lab at work brings a
 // university charter as a matter to decide in the inbox, "Become X
 // University" (the default after four weeks) or "Keep the name X College",
-// with no modal and drawing nothing from the run's stream; the pennant
-// renames the college, the name and College or, once chartered,
-// University; a save held at the old modal loads chartered, a week on; and
-// the founding screen's caption shows only for a typed "University".
+// with no modal and drawing nothing from the run's stream; its letter
+// carries the college's one rename (Plan 80D: the pennant renames nothing),
+// taken while the charter waits and refused before and after; a save held
+// at the old modal loads chartered, a week on; and the founding screen's
+// caption shows only for a typed "University".
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -122,8 +123,8 @@ const weeksOn = (s: GameState, n: number) => {
   const later = structuredClone(kept);
   tickEvents(later);
   assert(waiting(later) === undefined && later.self.suffix === 'College', 'and it is not offered again');
-  const renamed = reducer(kept, { type: 'RENAME_COLLEGE', name: kept.self.name, suffix: 'University' });
-  assert(renamed.self.suffix === 'University', 'the pennant can still take University later');
+  assert(reducer(kept, { type: 'RENAME_COLLEGE', name: kept.self.name, suffix: 'University' }) === kept, 'nothing renames the college after the charter is settled');
+  assert(reducer(kept, { type: 'RENAME_COLLEGE', name: 'Ashgrove', suffix: 'College' }) === kept, 'not even its name');
   assert(recordUnlocks(structuredClone(kept)).includes('secondEmpire'), 'a college that kept its name still earns the charter\'s architecture');
 
   // A rename while it waits: the answers follow the new name.
@@ -131,23 +132,25 @@ const weeksOn = (s: GameState, n: number) => {
   assert(waiting(moved)?.vars.name === 'Ashgrove', 'a rename while it waits renames its answers');
 }
 
-// ---- The pennant ----
+// ---- The one rename, in the charter's letter (Plan 80D) ----
 {
-  const s = createInitialState('Hollis');
-  const renamed = reducer(s, { type: 'RENAME_COLLEGE', name: '  Ashgrove University ', suffix: 'University' });
-  assert(renamed.self.name === 'Ashgrove' && renamed.self.suffix === 'College', `before the charter, a rename keeps College and drops a typed suffix (${institutionName(renamed.self)})`);
+  const plain = createInitialState('Hollis');
+  assert(reducer(plain, { type: 'RENAME_COLLEGE', name: 'Ashgrove', suffix: 'College' }) === plain, 'before the charter, nothing renames the college');
+
+  // The letter's answer with a new name typed, as the inbox sends it: the
+  // rename, then the answer.
+  const s = beforeCharter();
+  tickEvents(s);
+  const renamed = reducer(s, { type: 'RENAME_COLLEGE', name: '  Ashgrove University ', suffix: 'College' });
+  assert(renamed.self.name === 'Ashgrove' && renamed.self.suffix === 'College', `while it waits, a rename drops a typed suffix; the answer decides it (${institutionName(renamed.self)})`);
   assert(/is renamed Ashgrove College/.test(renamed.log[0]?.message ?? ''), 'and says so in the log');
   assert(reducer(s, { type: 'RENAME_COLLEGE', name: '   ', suffix: 'College' }) === s, 'an empty name is refused');
-  assert(reducer(s, { type: 'RENAME_COLLEGE', name: 'Hollis', suffix: 'College' }) === s, 'as is no change at all');
-  const chartered = structuredClone(s);
-  chartered.self.universityCharterOffered = true;
-  chartered.self.suffix = 'University';
-  const back = reducer(chartered, { type: 'RENAME_COLLEGE', name: 'Hollis', suffix: 'College' });
-  assert(back.self.suffix === 'College', 'once chartered, it can go back to College');
-  const up = reducer(back, { type: 'RENAME_COLLEGE', name: 'Hollis', suffix: 'University' });
-  assert(up.self.suffix === 'University', 'and to University again');
+  assert(reducer(s, { type: 'RENAME_COLLEGE', name: s.self.name, suffix: 'College' }) === s, 'as is no change at all');
   const long = reducer(s, { type: 'RENAME_COLLEGE', name: 'X'.repeat(90), suffix: 'College' });
   assert(long.self.name.length === 60, 'a name is cut at the founding screen\'s length');
+  const up = reducer(renamed, { type: 'RESOLVE_CATALOGUE_EVENT', instanceId: CHARTER_INSTANCE, choiceId: 'university' });
+  assert(institutionName(up.self) === 'Ashgrove University', `the answer carves the new name (${institutionName(up.self)})`);
+  assert(reducer(up, { type: 'RENAME_COLLEGE', name: 'Hollis', suffix: 'University' }) === up, 'and it is the last rename the college gets');
 }
 
 // ---- Saves ----

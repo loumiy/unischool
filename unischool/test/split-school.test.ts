@@ -3,8 +3,10 @@
 // two halls while another school, with a program on offer, has none and no
 // hall stands empty. The sorting suggestions only brought strays home, so
 // nothing ever freed a hall. Now the smaller hall's programs are suggested
-// into the larger (systems/techtree/schools.ts's schoolToMerge), and the
-// next-step line says why.
+// into the larger (systems/techtree/schools.ts's schoolToMerge: the hall
+// panel's suggestion, and the harness's); since Plan 80D the next-step line
+// names only the school to establish, and its way there brings the
+// smaller hall's programs into the larger.
 //
 // And the trap the October review met in play (its trace 7, Plan 78D): the
 // first school in its hall, Founders Hall full of others, and nothing of
@@ -21,7 +23,6 @@ import { join } from 'node:path';
 import { createInitialState } from '../src/state/actions';
 import { readSave } from '../src/state/persistence';
 import { schoolOffers } from '../src/systems/techtree/programOffers';
-import { OPENING_LETTERS } from '../src/data/eventData';
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { reducer } from '../src/engine/reducer';
@@ -79,8 +80,9 @@ function trapped(second = 2, first = 4): GameState {
   assert(oakPrograms.every((id) => programsAwayFromHome(s).some((p) => p.programId === id)), 'the programs in Oak Hall count as away from home');
   const move = suggestedMove(s, oakPrograms[0]);
   assert(move?.hallId === 'HALL-01' && move.slot === 4, `and the first is suggested into Elm Hall's first free slot (${JSON.stringify(move)})`);
-  const line = nextStep(s)?.text ?? '';
-  assert(line.includes(`${SPLIT} is split over two halls`), `the next-step line says so ("${line}")`);
+  const step = nextStep(s);
+  assert(step?.text === `Establish a school: six programs of ${SPLIT} in one hall (4 of 6)`, `the next-step line names the school, not the move ("${step?.text}")`);
+  assert(step?.intent?.kind === 'move' && oakPrograms.includes(step.intent.programId) && step.intent.hallId === 'HALL-01', 'and its way there brings Oak Hall\'s into Elm Hall');
 
   // Both moved: Oak Hall stands empty, and nothing is left to merge.
   let t = s;
@@ -134,7 +136,6 @@ function trapped(second = 2, first = 4): GameState {
 
     const g = foundGame({ from: s, seed: 12345 });
     const player = createGuidedPlayer();
-    const grows = OPENING_LETTERS.find((l) => l.id === 'a-school-grows')!;
     // A stall: the line waiting on the offer while the school's hall has
     // room (the old "has room for Science when one is on offer").
     let stalled = 0;
@@ -142,7 +143,6 @@ function trapped(second = 2, first = 4): GameState {
     playYears(g, player, 3, (h) => {
       const step = nextStep(h.s);
       if (step?.intent?.kind === 'wait' && /when one is on offer/.test(step.text)) stalled += 1;
-      if (!grows.done(h.s) && grows.ask(h.s).intent?.kind === 'wait') stalled += 1;
       if (founded === null && h.s.milestones[schoolFoundedKey(school)]) founded = h.s.clock.year;
     });
     assert(stalled === 0, `the line never waits on an offer for ${school} (${stalled} weeks)`);
@@ -150,28 +150,6 @@ function trapped(second = 2, first = 4): GameState {
     const second = player.record.done['a-second-school'];
     assert(second !== undefined && second[0] <= trapYear + 2, `a second school has a hall of its own within two years (${JSON.stringify(second)})`);
   }
-}
-
-// ---- The move, as NEXT asks it: named, from the hall it is in ----
-{
-  // Elm Hall standing with one founding program in it, and another program
-  // of its school still in Founders Hall.
-  const s = createInitialState('Moves');
-  const elm = s.tech.find((t) => t.id === 'HALL-01')!;
-  elm.status = 'done';
-  s.halls[elm.id] = Array.from({ length: elm.slots ?? 6 }, () => ({ programId: null }));
-  const founders = s.halls[FOUNDERS_HALL_ID];
-  const moved = founders.find((x) => x.programId !== null)!.programId!;
-  const stray = majors(programById(moved)!.school).find((id) => !founders.some((x) => x.programId === id))!;
-  founders[founders.findIndex((x) => x.programId === null)] = { programId: stray };
-  founders[founders.findIndex((x) => x.programId === moved)] = { programId: null };
-  s.halls[elm.id][0] = { programId: moved };
-  const ask = OPENING_LETTERS.find((l) => l.id === 'a-school-grows')!.ask(s);
-  const name = programById(stray)!.name;
-  assert(ask.text === `Move ${name} into ${elm.name}`, `the ask names the move ("${ask.text}")`);
-  assert(ask.go === 'hall' && ask.hallId === FOUNDERS_HALL_ID, `and opens the hall ${name} is in (${ask.hallId})`);
-  assert(ask.programId === stray, `on its tile, the move showing (${ask.programId})`);
-  assert(ask.intent?.kind === 'move', 'as a move');
 }
 
 if (failures === 0) {

@@ -16,7 +16,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import type { GameState } from '../src/state/types';
 import { GRADE_A } from '../src/data/courseQuality';
 import { baseCourseCost, CATALOGUE_PRICE_GROWTH } from '../src/data/techData';
@@ -47,7 +47,7 @@ function assert(cond: boolean, msg: string): void {
 const near = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) < eps;
 
 function fresh(): GameState {
-  return createInitialState('Standards');
+  return teachingCollege('Standards');
 }
 
 // Every instructor at one teaching level, with room enough that load costs nothing.

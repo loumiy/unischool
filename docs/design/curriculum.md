@@ -8,8 +8,9 @@ facilities that gate its capstones. Graduate work sits on top of it and has
 
 The 427-course curriculum is not a flat list, and it is not unlocked school
 by school either. It is **founded**, one program at a time, into buildings on
-the campus map, and the college opens already teaching (Plan 19). Three moves
-(Plan 14) give it its shape:
+the campus map, and since Plan 80D the college opens with nothing to teach:
+no professor, no course, Founders Hall empty (from Plan 19 until then it
+opened teaching three programs). Three moves (Plan 14) give it its shape:
 
 1. **A hall holds six programs.** An academic hall is a repeatable, placeable
    `building` Buildable with **six program slots** (`Buildable.slots`; the
@@ -25,26 +26,29 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    51 those are housed in capital projects, so the owner shortened it to
    seven, then to six once Founders Hall could be a school's.)
    Founders Hall is an ordinary hall
-   in every mechanical respect (Plan 19): six slots, three of them holding the
-   founding programs — English, Mathematics and Economics since Plan 52, the
-   pillars of three schools, with their first two courses developed and
-   taught by the founding roster (Calculus, Microeconomics, Introduction to
-   Literary Studies and their sequels) — and three rooms free. Three schools
-   begun under one roof make it no school's hall: a school is a hall of the
-   player's own. **Founders Hall is where programs begin** (Plan 55): the
-   intended line of play founds them there, then moves them out school by
-   school into halls of their own. It is the starting room, claimed by no
-   school, until every purchased hall is sited; then the school left in it
-   is at home there (`schools.ts`'s `foundersIsHome`), and it keeps the name
-   Founders Hall. A graduate program's host (the Law School, the Medical
+   in every mechanical respect (Plan 19): six slots, every one of them free
+   at founding (Plan 80D). **Founders Hall is where programs begin** (Plan
+   55), and **a school is six programs of one school in one hall — any
+   hall, Founders Hall included** (Plan 80D): nothing asks the player to
+   move a school out of it, and where a school grows is the player's
+   choice. (From Plan 52 to Plan 80D it opened holding the founding
+   programs, English, Mathematics and Economics, each with its first two
+   courses developed and taught by a founding roster of five; from Plan 55
+   the line of play moved each school out into a hall of its own, and the
+   first letter after the first purchased hall stood asked for the move.)
+   For the purposes of a purchased hall's own offers it is the starting
+   room, claimed by no school, until every purchased hall is sited; then
+   the school left in it is at home there (`schools.ts`'s
+   `foundersIsHome`). Six of one school in it found that school all the
+   same, and it keeps the name Founders Hall. A graduate program's host (the Law School, the Medical
    Center) has slots too but is never dedicated: it founds no school and
    keeps its own name and look (Plan 59). (Until Plan 52 the founding programs were English, History
    and Philosophy, and three more Social Sciences & Humanities programs
    dedicated Founders Hall.) The
    first purchased hall opens once the college teaches **eight developed
-   courses** (the ladder's "A curriculum" milestone: the six it opens with and
-   two the player chose) and is deliberately cheap; each rung after it costs a
-   fixed ratio more.
+   courses** (the ladder's "A curriculum" milestone; since Plan 80D all
+   eight are the player's, where before six came with the founding) and is
+   deliberately cheap; each rung after it costs a fixed ratio more.
 2. **Programs arrive three at a time.** From week one, the player is never
    shown forty-two doors. They are shown **three** (`s.programOffers`), drawn
    from what remains; founding one draws a replacement. Since
@@ -55,11 +59,16 @@ the campus map, and the college opens already teaching (Plan 19). Three moves
    along (weight: majors housed, squared, `STARTED_PROGRESS_WEIGHT`), so
    schools fill one after another rather than all seven at once. There is no
    allowance on new majors (Plan 68's one per 54 weeks is gone): money is the
-   pace. The founding draw is rigged once:
-   at least one of the first three is a program the founding roster can
-   staff — Sociology or Psychology, whose professors the college opens with
-   beside the three who teach its founding programs — so the first founding
-   decision never needs a hire. There is no reroll. **One offer a year may
+   pace. **The first offers are Plan 52's pillars** (Plan 80D): English,
+   Mathematics and Economics, one from each of three schools, with a
+   professor for each listed on the faculty market from the first week —
+   Dr. Grace Bennett, Dr. Priya Iyer and Dr. John Okafor
+   (`foundingData.ts`'s `FOUNDING_MARKET`), established scholars who teach
+   better and ask more than the market's ordinary candidates. The
+   walkthrough founds English with Bennett. (Until Plan 80D the college
+   opened teaching the three, and the founding draw was rigged so one of
+   its first offers was a program its roster could already staff.) There
+   is no reroll. **One offer a year may
    be declined** (Plan 78D, A4-5's "decline an offer"): "Not this year" on
    the offer (beside it, since Plan 80B) takes it off the table, the ordinary draw fills the place, and
    the declined program is not drawn again until the year turns
@@ -168,11 +177,15 @@ reach the player four ways: the program tile's one-click move, with an arrow
 on the tile; a claimed hall's label and panel ("Elm Hall · Science · 3 of
 6"); the hall panel's note when a picked offer's school has a hall of its own
 elsewhere; the ask before another school's program takes a claimed hall's
-program slot (Plan 78D); and the next-step line, which names a possible move
-before a free slot, opening the hall the program is in with its move showing
-("Move Sociology into Elm Hall"), sends an offer to its school's hall before
-Founders Hall, and sends a claimed hall's room to its own school's programs
-rather than waiting on the draw. The opening letters teach it
+program slot (Plan 78D); and the next-step line. Since Plan 80D the line names no
+move: once a second academic hall stands it names the school closest to
+six in one hall, "Establish a school: six programs of Science in one hall
+(4 of 6)" (`systems/guidance/establish.ts`), opening that hall; before a
+free slot, it sends an offer to its school's hall before Founders Hall,
+and sends a claimed hall's room to its own school's programs rather than
+waiting on the draw. (From Plan 55 it named the move itself, "Move
+Sociology into Elm Hall".) The suggested move stays on the program tile,
+and the harness's players read it. The opening letters teach it
 (docs/architecture/interrupts.md).
 
 ### The milestones

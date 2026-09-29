@@ -60,6 +60,10 @@ for (const run of RUNS) {
     assert(r.delivered[letter.id] !== undefined, `${label}: "${letter.title}" is delivered`);
     assert(r.done[letter.id] !== undefined, `${label}: and its ask is done ("${letter.ask(g.s).text}")`);
   }
+  // The college opens with nothing to teach (Plan 80D): the player appoints
+  // and founds from nothing, and seats every student in year one.
+  const seated = r.done['doors-open'];
+  assert(seated !== undefined && seated[0] === 1, `${label}: founds from nothing and seats every student in year one (${JSON.stringify(seated)})`);
   const eras = chronicleOf(g.s).eras;
   assert(eras.every((e, i) => i === 0 || e.kind !== eras[i - 1].kind), `${label}: no two eras of a kind in a row (${eras.map((e) => e.kind).join(', ')})`);
   assert(new Set(eras.map((e) => e.name)).size === eras.length, `${label}: every era its own name (${eras.map((e) => e.name).join(' · ')})`);

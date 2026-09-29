@@ -22,7 +22,7 @@
 import { createInitialState } from '../src/state/actions';
 import { graduatePrograms, majorPrefixes, programById, programs, schoolCurriculumIds } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
-import { FOUNDING_OFFER_GUARANTEE } from '../src/state/actions';
+import { teachPillars } from './fixtures/teaching';
 import {
   hostOffers, isHoused, offerablePrograms, PROGRAM_OFFER_COUNT, refillOffers, startedSchools,
 } from '../src/systems/techtree/programOffers';
@@ -52,11 +52,11 @@ function assert(cond: boolean, msg: string): void {
 
 const MAJOR_COUNT = majorPrefixes().length;
 
-// A school as founded (Plan 19): three programs housed in Founders Hall,
-// every other major revealed, the first three programs on offer — drawn
-// by createInitialState itself, with the founding guarantee.
+// A school teaching its founding pillars (fixtures/teaching.ts): three
+// programs housed in Founders Hall, every other major revealed, three
+// others on offer.
 function foundedState(name = 'Offers'): GameState {
-  const s = createInitialState(name);
+  const s = teachPillars(createInitialState(name));
   s.finance.cash = 500_000_000;
   return s;
 }
@@ -82,30 +82,16 @@ function schoolOf(programId: string): string {
   return programById(programId)!.school;
 }
 
-// ---- 0. The founding draw: three on offer, one of them staffable ----
-for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood', 'Dunmore', 'Eastwick', 'Fairhaven', 'Greymoor', 'Hollowell']) {
-  const s = foundedState(rngSeed);
-  assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `seed ${rngSeed}: three on offer at founding`);
-  assert(s.programOffers.some((id) => FOUNDING_OFFER_GUARANTEE.includes(id)), `seed ${rngSeed}: one of them is guaranteed staffable (${s.programOffers.join(', ')})`);
-  assert(s.programOffers.every((id) => !FOUNDING_PROGRAMS.includes(id)), `seed ${rngSeed}: none of them is a founding program`);
-  // Plan 71: two from the schools the founding started, one from a new one.
-  const newOffers = s.programOffers.filter((id) => !startedSchools(s).has(schoolOf(id))).length;
+// ---- 0. The founding offers: the pillars (Plan 80D), then ordinary draws ----
+for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood', 'Dunmore']) {
+  const s = createInitialState(rngSeed);
+  assert(s.programOffers.join(',') === FOUNDING_PROGRAMS.join(','), `seed ${rngSeed}: the founding pillars are the first offers (${s.programOffers.join(', ')})`);
+  // Founding one draws its replacement by the ordinary mix (Plan 71): two
+  // from the schools the college has started, one from a new one.
+  const t = teachPillars(createInitialState(rngSeed));
+  assert(t.programOffers.length === PROGRAM_OFFER_COUNT && t.programOffers.every((id) => !FOUNDING_PROGRAMS.includes(id)), `seed ${rngSeed}: with the pillars founded, three others are drawn (${t.programOffers.join(', ')})`);
+  const newOffers = t.programOffers.filter((id) => !startedSchools(t).has(schoolOf(id))).length;
   assert(newOffers === 1, `seed ${rngSeed}: one of them is from a school not yet started (${newOffers})`);
-  // The guarantee is spent with the founding draw: a refill after it is an
-  // ordinary draw, so taking the guaranteed program does not summon the
-  // other one.
-  const guaranteed = s.programOffers.find((id) => FOUNDING_OFFER_GUARANTEE.includes(id))!;
-  const other = FOUNDING_OFFER_GUARANTEE.find((id) => id !== guaranteed)!;
-  if (!s.programOffers.includes(other)) {
-    let summoned = 0;
-    for (let week = 1; week <= 20; week += 1) {
-      const t = JSON.parse(JSON.stringify(s)) as GameState;
-      t.clock.week = week;
-      take(t, guaranteed);
-      if (t.programOffers.includes(other)) summoned += 1;
-    }
-    assert(summoned < 20, `seed ${rngSeed}: the replacement draw is not rigged (${summoned} of 20 weeks drew ${other})`);
-  }
 }
 
 // ---- 1. Found everything, taking the first offer each time ----

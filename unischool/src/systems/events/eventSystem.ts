@@ -66,7 +66,8 @@ function fireResearchReport(s: GameState): boolean {
 // the default after four weeks, or "Keep the name X College". Raised, not
 // drawn, so it takes nothing from the run's stream; and it still takes the
 // week it lands, as the modal and the log line did, so the weeks after it
-// read the same. The pennant renames the college either way (RENAME_COLLEGE).
+// read the same. Its letter carries the college's one rename (RENAME_COLLEGE,
+// Plan 80D).
 function fireCharter(s: GameState): boolean {
   if (s.self.universityCharterOffered) return false;
   // Same helper as research's own lab gate, so the two cannot drift.

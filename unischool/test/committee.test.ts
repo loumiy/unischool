@@ -16,7 +16,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import type { GameState } from '../src/state/types';
 import { COURSE_LENGTH_SPREAD, courseWeeks, graduateGateMet, graduatePrograms, initialTech, schoolCurriculumIds } from '../src/data/techData';
 import { GRADUATE_HOSTS } from '../src/data/projectData';
@@ -80,10 +80,10 @@ console.log('committee tests');
   assert(Math.min(...lo) <= 20 && Math.max(...lo) >= 28, `the capstones reach toward both ends of the band (${Math.min(...lo)}–${Math.max(...lo)})`);
 }
 
-// A college with money to spend, where a course needs no professor, so the
+// A college teaching its pillars (fixtures/teaching.ts) with money to spend, where a course needs no professor, so the
 // committee is the only thing that can hold a start.
 function rich(): GameState {
-  const s = createInitialState('Committee');
+  const s = teachingCollege('Committee');
   s.finance.cash = 1e10;
   for (const t of s.tech) if (t.kind === 'course') delete t.requiresFaculty;
   return s;

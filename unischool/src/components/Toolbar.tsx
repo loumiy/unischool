@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { GameState } from '../state/types';
+import { foundersHallUnsited } from '../state/opening';
 import { TAB_LABELS, TAB_ORDER, tabAvailable, type TabId } from './TabNav';
 import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
@@ -74,9 +75,10 @@ const Toolbar = forwardRef<HTMLDivElement, {
 }>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held }, ref) => {
 
   // The opening walkthrough rings the Build button while its step is to site
-  // the hall and the menu is closed (see state/opening.ts, .opening-target).
+  // the hall and the menu is closed, and so does a skipped walk while the
+  // hall is unsited (see state/opening.ts, .opening-target).
   const stage = s.events.opening.stage;
-  const ringBuild = stage === 'site-hall' && !buildOpen;
+  const ringBuild = (stage === 'site-hall' || (stage === 'play' && foundersHallUnsited(s))) && !buildOpen;
   // Lit while any build category holds an unseen tile, open or not: the
   // build menu's "!", "something new to build here" (BuildPopup.tsx).
   const buildNew = visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]);

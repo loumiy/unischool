@@ -275,11 +275,12 @@ export default function App() {
 
   // The opening walkthrough drives the shell (see state/opening.ts). Each
   // transition into a stage acts once: 'site-hall' opens the build menu,
-  // 'teaching' closes it and drops the pickup, 'found' opens Founders
-  // Hall's panel (where a program is founded), and 'play' starts the clock (the game opens paused). On
-  // mount, a save resumed mid-walk acts on the door-opening stages but not
-  // on 'play'. The ref holds the last stage acted on so StrictMode's double
-  // effect can't act twice.
+  // 'appoint' closes it, drops the pickup and opens Founders Hall's panel
+  // (where the first professor is appointed and the first program founded),
+  // 'found' opens the panel unless 'appoint' already has, and 'play' starts
+  // the clock (the game opens paused). On mount, a save resumed mid-walk
+  // acts on the door-opening stages but not on 'play'. The ref holds the
+  // last stage acted on so StrictMode's double effect can't act twice.
   const stage: OpeningStage = s.events.opening.stage;
   const actedStage = useRef<OpeningStage | null>(null);
   useEffect(() => {
@@ -288,9 +289,13 @@ export default function App() {
     if (prev === stage) return;
     actedStage.current = stage;
     if (stage === 'site-hall') setBuildOpen(true);
-    else if (stage === 'teaching') { closeBuild(); setPlacingIdState(null); }
-    // Founding happens in the hall's panel, so that is what opens.
-    else if (stage === 'found') inspectHall(FOUNDERS_HALL_ID);
+    // Appointing and founding happen in the hall's panel, so that is what
+    // opens; the panel stays open from one step to the next.
+    else if (stage === 'appoint' || (stage === 'found' && prev !== 'appoint')) {
+      closeBuild();
+      setPlacingIdState(null);
+      inspectHall(FOUNDERS_HALL_ID);
+    }
     else if (stage === 'play' && prev !== null) setSpeed('real');
   }, [s.started, stage]);
 
@@ -421,7 +426,7 @@ export default function App() {
         <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
-        {!overlay && <Pennant s={s} act={act} />}
+        {!overlay && <Pennant s={s} />}
 
         {/* dock-folded: something is open over the map, so on a phone the
             dock folds to its figures (styles.css's phone rules); each of
