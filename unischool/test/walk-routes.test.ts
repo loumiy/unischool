@@ -6,7 +6,7 @@
 
 import { doors, desireLines, entrancesOf, growTree, routeTo, walkGrid, RouteTable, LAWN_COST, PATH_COST } from '../src/components/walkRoutes';
 import { MAX_WALKERS, doorOpacity, doorsHeld, walkerCount } from '../src/components/Walkers';
-import { quadCentre } from '../src/components/quadGeometry';
+import { quadCentre, quadTile } from '../src/components/quadGeometry';
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
@@ -192,6 +192,24 @@ function stand(s: GameState, id: string, row: number, col: number, w: number, h:
   assert(nearest >= R, `and goes round the fountain, never inside its curb (${nearest.toFixed(2)} ≥ ${R.toFixed(2)})`);
   const onRing = route.filter((w) => { const d = Math.hypot(w.col - cc, w.row - cr); return ring && d >= ring[0] - 0.6 && d <= ring[1] + 0.6; }).length;
   assert(onRing >= 3, `by the ring walk (${onRing} steps on it)`);
+}
+
+// ---- A Campus Quad's lawn is lawn: the crowd keeps to its walks (Plan 80H) ----
+{
+  const s = bare();
+  stand(s, 'QUAD-T1', 20, 20, 12, 12);
+  const grid = walkGrid(s);
+  const kinds = new Set<number>();
+  for (let r = 20; r < 32; r++) for (let c = 20; c < 32; c++) kinds.add(grid[r * CAMPUS_GRID_WIDTH + c]);
+  assert(kinds.has(LAWN_COST) && kinds.has(PATH_COST), 'a quad is lawn at a lawn\'s cost, and walks at a path\'s');
+  // From the end of its north walk to a door off its east side: down the
+  // walk first (at half a lawn's cost, the route took none of it and cut
+  // straight across the grass).
+  const route = routeTo(growTree(grid, { col: 26, row: 19 }), { col: 32, row: 22 })!;
+  const inQuad = route.map((w) => ({ c: Math.floor(w.col), r: Math.floor(w.row) })).filter(({ c, r }) => c >= 20 && c < 32 && r >= 20 && r < 32);
+  const onLawn = inQuad.filter(({ c, r }) => quadTile(20, 20, 12, 12, 1, c, r) === 'lawn').length;
+  const onWalk = inQuad.length - onLawn;
+  assert(onWalk >= 3, `keeps to the walk (${onWalk} steps on it, ${onLawn} on the grass)`);
 }
 
 // ---- Walkers go through the Triumphal Gate (Plan 75B) ----

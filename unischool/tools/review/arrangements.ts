@@ -377,7 +377,6 @@ export function applyArrangement(base: GameState, a: Arrangement, vernacular: Ve
   s.pathways = pathways;
   s.trees = trees;
   s.dressing = dressing;
-  s.quads = { names: {}, designated: [] } as unknown as GameState['quads'];
   s.self.vernacular = vernacular;
   s.pendingInterrupt = null;
   s.events.pendingDemand = null;

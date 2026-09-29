@@ -366,7 +366,7 @@ it.
 | `Space` | Pause, or resume at whatever speed was last running. |
 | `1` `2` `3` `4` | Play, 2×, 4×, 8× (4× and 8× once the seats have earned them). (`5` is sandbox fast — see `playtestEnabled`.) |
 | `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
-| `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. On a touch screen the same moves are buttons in the map's folding "Map tools" pill (Plans 70F and 70G): zoom, turn, tilt, the opening view and the quad names. |
+| `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. On a touch screen the same moves are buttons in the map's folding "Map tools" pill (Plans 70F and 70G): zoom, turn, tilt and the opening view (Plan 80H took away the quad names' `N` and `Aa`). |
 | `R` | Rotate the picked-up building 90°, same as the ⟳ on its footprint ghost. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review beat and a letter included — not its Admissions or Students beats, which are real choices). |

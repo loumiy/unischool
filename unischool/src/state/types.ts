@@ -434,15 +434,6 @@ export type BenchFacing = 'n' | 'e' | 's' | 'w';
 export type DressingItem = 'lamp' | `bench-${BenchFacing}`;
 export type Dressing = Record<string, DressingItem>;
 
-// The player's say in the campus's quads (state/quads.ts detects them).
-export interface QuadState {
-  // A player's name for a quad, by its anchor tile key.
-  names: Record<string, string>;
-  // Tile keys the player has marked: the open space under each is a quad
-  // even where detection would not make it one.
-  designated: string[];
-}
-
 export interface Ending {
   report: FinalReport;
   addenda: { from: number; to: number; lines: string[] }[];
@@ -1072,9 +1063,6 @@ export interface GameState {
   placements: Placements;
   pathways: Pathways;
   trees: Trees;
-  // Quad names and the player's marks (state/quads.ts). Optional: a campus
-  // with neither has none.
-  quads?: QuadState;
   // The administration's filled seats (Plan 28). Undefined means none.
   seats?: Seat[];
   // The alumni ledger, oldest class first (Plan 30). Undefined before the
