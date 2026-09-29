@@ -92,6 +92,34 @@ const again = painter.paint(mapSceneTree({
 assert(again.drawn > 0 && Math.abs(again.drawn - lastDrawn) < 200, `a repaint draws the scene again (${again.drawn} against ${lastDrawn}, less the land in front)`);
 assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings again after a paint');
 
+// Works under way: sites at every stage paint too. The site's progress read
+// its weeks through a hook the painter did not answer, and a campus with
+// works going on stopped the game (Plan 83C's fix).
+{
+  const s2 = structuredClone(s);
+  const sites = layout.placed.filter((e) => !e.developing).slice(0, 6).map((e) => e.t.id);
+  for (const [i, id] of sites.entries()) {
+    const node = s2.tech.find((t) => t.id === id)!;
+    node.status = 'developing';
+    s2.developing[id] = Math.max(1, Math.round((node.duration * (i + 0.5)) / sites.length));
+  }
+  const layout2 = campusLayout(s2);
+  assert(layout2.placed.filter((e) => e.developing).length >= sites.length, `the works are under way (${sites.length} sites)`);
+  let threw = '';
+  let stats: ReturnType<typeof painter.paint> | null = null;
+  try {
+    stats = painter.paint(mapSceneTree({
+      name: s2.self.name, developing: s2.developing, layout: layout2, camera: setCamera(cameras[0]!), turning: false, snow: 0,
+      crowds: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {}, labelLayerRef,
+      front: null,
+    }));
+  } catch (err) {
+    threw = String(err).slice(0, 160);
+  }
+  assert(threw === '', `a campus with works under way paints (${threw || 'no error'})`);
+  assert(stats !== null && stats.unsupported.size === 0, `the sites hold nothing it cannot draw (${stats ? JSON.stringify(Object.fromEntries(stats.unsupported)) : 'no paint'})`);
+}
+
 // Nothing reaches into React: no internals, no element markers, no
 // context internals.
 for (const file of ['src/components/canvasPaint.ts', 'src/components/canvasArt.ts']) {

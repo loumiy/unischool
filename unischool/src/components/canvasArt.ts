@@ -33,7 +33,7 @@ export interface Occasions {
 // The values a scene without its providers reads (a test's); the map always
 // wraps its scene in every provider.
 const FALLBACK: Partial<Occasions> = {};
-function occasion<K extends keyof Occasions>(scope: ArtScope, name: K): Occasions[K] {
+export function occasion<K extends keyof Occasions>(scope: ArtScope, name: K): Occasions[K] {
   if (name in scope.values) return scope.values[name] as Occasions[K];
   if (!(name in FALLBACK)) throw new Error(`canvasArt: no ${name} in the scene (wrap it in its provider)`);
   return FALLBACK[name] as Occasions[K];

@@ -46,7 +46,7 @@ import { fullResidences } from './residenceFill';
 import { setMapProbe } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
 import { HitList, Painter, StyleResolver, registerArt, type ArtScope, type PaintOptions } from './canvasPaint';
-import { registerMapArt } from './canvasArt';
+import { occasion, registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
@@ -246,8 +246,14 @@ export type SceneEntry = DepthBox & (
 // build weeks, from the motif's low frame to the eaves, a progress bar lying
 // flat along the front edge of its footprint, and the tooltip that counts
 // it down.
-function SiteProgress({ t, p, label }: { t: Buildable; p: Placement; label: string }) {
-  const weeksLeft = useContext(DevelopingContext)[t.id];
+interface SiteProgressProps { t: Buildable; p: Placement; label: string }
+function SiteProgress(props: SiteProgressProps) {
+  return siteProgressArt(props, useContext(DevelopingContext));
+}
+// The same, with the weeks left given (the canvas map's art, registered
+// below).
+function siteProgressArt({ t, p, label }: SiteProgressProps, developing: GameState['developing']) {
+  const weeksLeft = developing[t.id];
   if (weeksLeft === undefined) return null;
   const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   const motif = motifOf(t);
@@ -888,6 +894,7 @@ registerArt(DesireLines, (p: { layout: CampusLayout; camera: Camera }, s: ArtSco
   const runs = s.keep('runs', [p.layout], () => desireRuns(p.layout));
   return desireArt(s.keep('d', [runs, p.camera], () => desirePath(runs)));
 }, true);
+registerArt(SiteProgress, (p: SiteProgressProps, s: ArtScope) => siteProgressArt(p, occasion(s, 'developing')));
 registerArt(CastShadows, (p: CastShadowsProps, s: ArtScope) => castShadowsArt(
   s.keep('d', [p.placed, p.scene, p.vernacular, p.camera], () => castShadowPaths(p.placed, p.scene, p.vernacular)),
 ));
