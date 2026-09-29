@@ -149,34 +149,45 @@ the trajectories now).
 its building, a kitchen 30% of its dining hall, the boiler 12% of the standing
 residence halls, a storm 3% of everything standing, floored at $60k.
 
-**Facility upkeep is a share of the price** ([Plan
-80F](../plans/80-the-owners-playtest.md)). Every building that serves students
-a need (dining, the grocery, the library, the student center, the recreation,
-fitness and health buildings, the varsity venues) costs
-`FACILITY_UPKEEP_SHARE` of what it cost to build, a year, to run: at 1.0, a
-year's running costs are the price again (`facilitiesData.ts`'s
-`priceUpkeep`). Its added floors and expansions are priced in
-(`estate.ts`'s `facilityUpkeepOf`), and the towers' shops are kept at the
-grocery's price a place. It is paid in full however few students the building
-serves, so capacity built past need is a real bill. Until then upkeep was a
-flat $0.5–$2.2 a week for each student served, a twentieth to a third of the
-price a year, and trivial beside tuition: the owner's playtest netted $1.1M a
-week at Year 8 with nothing to spend it on. The share is fitted to the harness,
-not set by hand: the smallest round share at which the Guided player's net
-at Year 8 falls well below what it was, and its cash at Years 25 and 50 falls,
-while Years 1–5 stay as easy as the new opening makes them. Measured (three
-seeds, medians): the Guided player nets $479k a week in Year 8 against
-$566k, and holds $22.5M at Year 25 and $33.3M at Year 50 against $36.3M and
-$137.6M. It builds the late catalogue more slowly: 318 courses and 25,440
-students at Year 50, against all 431 and 34,480 (the plan's note has the
-rest). It is what a need costs per student that it raises (about
-$1,500–$3,000 a year a student across the five needs, against tuition of
-$20,000–$40,000), so a college reaches the break, where the next student
-costs what they pay, sooner, and a college that builds everything spends some
-weeks in the red. Quads, amenities, landmarks, capital projects (the Medical
-Center among them: at a year's price it would cost eight times any other
-project), labs, halls and dorms keep their own upkeep. A loaded save reads
-the new upkeep: the catalog's terms are refreshed on load (`persistence.ts`),
+**Facility upkeep charges mainly for overbuilding** ([Plan
+80F](../plans/80-the-owners-playtest.md), the owner's call). It comes in two
+parts, both read off what a building cost:
+
+- **Campus upkeep.** Every building that serves students a need (dining, the
+  grocery, the library, the student center, the recreation, fitness and
+  health buildings, the varsity venues) costs `FACILITY_UPKEEP_SHARE`, a
+  tenth, of its price a year to keep (`facilitiesData.ts`'s `priceUpkeep`),
+  its added floors and expansions priced in (`estate.ts`'s
+  `facilityUpkeepOf`); the towers' shops are kept at the grocery's price a
+  place. About what the old flat $0.5–$2.2 a week a place came to.
+- **Space beyond need.** In each need a facility serves (dining, health,
+  social space, study space), capacity past `BEYOND_NEED_FROM`, 120%, of what
+  the students need costs `BEYOND_NEED_UPKEEP`, six, times as much to keep.
+  Every building in the need pays the extra on the need's share past the
+  line (`systems/estate/beyondNeed.ts`), so a college with twice the dining
+  it needs pays three times the dining upkeep, and at three times the need
+  four. The capacity is the need's own reading (the grocery and the towers'
+  shops to their share of meals), the need the dial's. The Treasury shows it
+  on its own line, *Space beyond need*, naming each need past the line and
+  how far; a facility's panel says how much of its need's capacity the
+  students use ("Dining: 5,400 places for 3,900 students"). Housing is not
+  in it: beds have their own line, and an empty one costs half.
+
+The Medical Center, a capital project, keeps its fixed upkeep; its places
+count toward health but are left out of the reckoning, so building it never
+pushes the smaller health buildings past the line.
+
+A college that builds to need pays almost nothing past the line: the Guided
+player's extra over fifty years is under 1% of its campus upkeep on two
+seeds and 7% on the third (a large dining hall built ahead of its students),
+and it finishes the catalog (431 courses, 34,480 students at Year 50) as it
+did. The owner chose this over a flat share of the price. A share of 1.0 (a
+year's running costs equal to the price) was tried first: it took the
+Guided player's Year 8 net 15% under main's and its cash at Years 25 and 50
+down by two fifths and three quarters, but it charged every college for
+every place, so the Guided player finished 318 courses and 25,440 students
+by Year 50, and the Completionist fell into the red. A loaded save reads the
+new upkeep: the catalog's terms are refreshed on load (`persistence.ts`),
 with no save version.
 
 **The opening's money** (Plan 80F). The founding classes pay $20,000 (was

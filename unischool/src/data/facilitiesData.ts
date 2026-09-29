@@ -19,20 +19,29 @@ import { count, pct } from '../format';
 // bought, and its upkeep carried, before that class's tuition lands. Build
 // costs are roughly a third to a half of the dorm with a similar bed count.
 //
-// Upkeep is a share of the price (Plan 80F): a year's running costs are
-// FACILITY_UPKEEP_SHARE of what the building cost, its added floors and
-// expansions with it (estate.ts's facilityUpkeepOf), paid in full however
-// few students it serves, so capacity built past need is a real bill. Until
-// Plan 80F it was a flat $0.5–$2.2 a week for each student served, a
-// twentieth to a third of the price a year, and trivial beside tuition. The
-// share is fitted to the harness (`npm run sim`, the plan's note): the
-// smallest round share at which the Guided player's net at Year 8 falls
-// well below what it was (about 15%, against a college that now grows
-// faster from its opening) and its cash at Years 25 and 50 falls, so money
-// stays a constraint for longer (docs/design/economy.md). Staff, supplies
-// and food, not only the fabric: a dining hall's year costs what it did to
-// build.
-export const FACILITY_UPKEEP_SHARE = 1.0;
+// Upkeep is a share of the price, in two parts (Plan 80F), the owner's
+// call: charge mainly for overbuilding.
+//
+// - Every building that serves a need costs FACILITY_UPKEEP_SHARE of what it
+//   cost a year to keep, its added floors and expansions with it
+//   (estate.ts's facilityUpkeepOf): the Treasury's "Campus upkeep". About
+//   what the old flat $0.5–$2.2 a week a place came to, which was a
+//   twentieth to a third of the price a year.
+// - Capacity past BEYOND_NEED_FROM of what the students need, in each need a
+//   facility serves (dining, health, social space, study space), costs
+//   BEYOND_NEED_UPKEEP times as much: the Treasury's "Space beyond need"
+//   (systems/estate/beyondNeed.ts). Each building in a need pays it on the
+//   need's share past the line, so a college with twice the dining it needs
+//   pays three times the dining upkeep, and three times the need four.
+//
+// Fitted to the harness (`npm run sim`, the plan's note): a college that
+// builds to need pays almost nothing past the line and finishes its
+// catalog; one that builds everything pays for it. A flat share of 1.0 (a
+// year's running costs equal to the price) was tried first and slowed every
+// college's late game instead.
+export const FACILITY_UPKEEP_SHARE = 0.1;
+export const BEYOND_NEED_FROM = 1.2;
+export const BEYOND_NEED_UPKEEP = 6;
 export function priceUpkeep(price: number): number {
   return Math.round((price * FACILITY_UPKEEP_SHARE) / WEEKS_PER_YEAR);
 }
@@ -455,8 +464,9 @@ const HEALTH_CENTER_TIER3_COST = 19_500_000; // 650/seat
 const HEALTH_CENTER_TIER3_WEEKS = 62;
 // The Medical Center is a capital project (projectData.ts), and keeps an
 // authored upkeep as the other projects do ($30k–$55k a week): what it was
-// at $1.60 a week for each of its 30,000 places before Plan 80F. At a year's
-// price it would cost $19.5M a year, eight times any other project.
+// at $1.60 a week for each of its 30,000 places before Plan 80F. It pays
+// nothing for space beyond need, and its places are left out of that
+// reckoning (systems/estate/beyondNeed.ts), though they count toward health.
 const HEALTH_CENTER_TIER3_UPKEEP = 48_000;
 
 // --- Green space/quad: single, cheap, FLAT (non-population-scaling) bonus ---

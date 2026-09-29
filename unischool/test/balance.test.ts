@@ -6,9 +6,9 @@
 //      prestige 100; the founding classes pay a price the admissions screen
 //      reads as fair.
 //   2. Facility upkeep is a share of what a building cost, its added floors
-//      and expansions with it, paid in full however few it serves; the
-//      towers' shops are kept at the grocery's price; a loaded save reads
-//      the new terms.
+//      and expansions with it; the towers' shops are kept at the grocery's
+//      price; a loaded save reads the new terms. Space past 120% of a need
+//      costs six times as much: an overbuilt college nets clearly less.
 //   3. Food: the grocery and the towers' shops count for at most 40% of
 //      what the students need to eat, and a demand never asks for a grocery
 //      that would add nothing.
@@ -30,7 +30,7 @@ import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import { admitRate, priceTier, priceTolerance } from '../src/systems/admissions/admissionsSystem';
 import { FOUNDING_PRESET, STARTING_TUITION } from '../src/data/foundingData';
 import {
-  FACILITY_UPKEEP_SHARE, LIBRARY_TIER1_ID, PRICE_UPKEEP_TYPES, REC_CENTER_TIER2_ID, RETAIL_FOOD_SHARE,
+  BEYOND_NEED_FROM, BEYOND_NEED_UPKEEP, FACILITY_UPKEEP_SHARE, LIBRARY_TIER1_ID, PRICE_UPKEEP_TYPES, REC_CENTER_TIER2_ID, RETAIL_FOOD_SHARE,
   initialFacilities, nextLibraryFloor, nextVenueExpansion, priceUpkeep,
 } from '../src/data/facilitiesData';
 import { TOWER_RETAIL_UPKEEP_PER_WEEK, initialDorms } from '../src/data/campusData';
@@ -39,6 +39,7 @@ import { attributeCoverage, computeSatisfactionBreakdown, servedPopulationFor } 
 import { financeBreakdown } from '../src/systems/finance/financeSystem';
 import { readSave, SAVE_VERSION } from '../src/state/persistence';
 import { buildTabOf } from '../src/components/BuildPopup';
+import { beyondNeedUpkeep, needCapacity, needUseSentence } from '../src/systems/estate/beyondNeed';
 import { bindScriptStream } from '../src/engine/random';
 
 bindScriptStream(8006);
@@ -90,7 +91,7 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   assert(near(priceUpkeep(5_200_000), Math.round((5_200_000 * FACILITY_UPKEEP_SHARE) / WEEKS_PER_YEAR)), 'a year\'s upkeep is FACILITY_UPKEEP_SHARE of the price');
   assert(initialFacilities().filter((t) => t.facilityType === 'quad' || t.facilityType === 'project').every((t) => !isPriceUpkept(t)), 'quads and projects keep their own upkeep');
   const medical = initialFacilities().find((t) => t.id === 'HLTH-T3')!;
-  assert(!isPriceUpkept(medical) && medical.effects!.upkeepPerWeek! < priceUpkeep(medical.cost) / 4, 'the Medical Center, a capital project, keeps an authored upkeep like the other projects');
+  assert(!isPriceUpkept(medical) && medical.effects!.upkeepPerWeek === 48_000, 'the Medical Center, a capital project, keeps an authored upkeep like the other projects');
 
   // Added floors and expansions are priced in.
   const dining = { ...initialFacilities().find((t) => t.id === 'DININGHALL-02')!, floorsAdded: 1 };
@@ -145,6 +146,46 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
     assert(node(read.state, REC_CENTER_TIER2_ID).effects!.upkeepPerWeek === priceUpkeep(complex.cost), 'and is kept at its price\'s share');
     assert(node(read.state, 'DINING-01').effects!.upkeepPerWeek === priceUpkeep(oldHall.cost + Math.round(oldHall.cost * EXTENSION_COST_SHARE)), 'a saved hall with a story added is kept at the share of both');
   }
+}
+
+// ---- 2b. space beyond need (Plan 80F: charge mainly for overbuilding) ----
+// The same college, 5,500 students, once built to about its need in dining,
+// health and social space and once to twice it or more: the second pays the
+// normal upkeep of what it added and, on the share past 120% of the need,
+// BEYOND_NEED_UPKEEP times it, so it nets clearly less.
+{
+  const college = (ids: string[]) => {
+    const s = createInitialState('Beyond');
+    s.students.classes = { freshman: 1_375, sophomore: 1_375, junior: 1_375, senior: 1_375 };
+    for (const id of ids) node(s, id).status = 'done';
+    return s;
+  };
+  const toNeed = ['DINING-01', 'DININGHALL-02', 'DININGHALL-03', 'DININGHALL-04', 'HLTH-T1', 'GYM', 'SCTR-T1', 'REC-T1'];
+  const overbuilt = [...toNeed, 'DININGHALL-05', 'HLTH-T2', 'SCTR-T2'];
+  const a = college(toNeed);
+  const b = college(overbuilt);
+  const over = (s: GameState, need: 'basicNeeds' | 'health' | 'social') => needCapacity(s, need).capacity / needCapacity(s, need).need;
+  assert(['basicNeeds', 'health', 'social'].every((n) => over(a, n as 'basicNeeds') > 1 && over(a, n as 'basicNeeds') <= 1.2), `built to need: dining, health and social space at 100–120% (${['basicNeeds', 'health', 'social'].map((n) => over(a, n as 'basicNeeds').toFixed(2)).join(', ')})`);
+  assert(['basicNeeds', 'health', 'social'].every((n) => over(b, n as 'basicNeeds') >= 2), `overbuilt: twice the need or more (${['basicNeeds', 'health', 'social'].map((n) => over(b, n as 'basicNeeds').toFixed(2)).join(', ')})`);
+  const fa = financeBreakdown(a);
+  const fb = financeBreakdown(b);
+  assert(fa.beyondNeedUpkeep === 0, 'built to need, nothing is charged beyond it');
+  assert(fb.beyondNeedUpkeep > 0 && near(fb.beyondNeedUpkeep, beyondNeedUpkeep(b).total), 'overbuilt, the Treasury\'s line carries the extra');
+  const added = fb.facilityUpkeep - fa.facilityUpkeep;
+  assert(fa.net - fb.net > 3 * added, `and it nets clearly less: ${Math.round(fa.net - fb.net).toLocaleString()} a week, against ${Math.round(added).toLocaleString()} of plain upkeep for what it added`);
+  // Dining at exactly twice the need pays three times its upkeep.
+  const dining = b.tech.filter((t) => t.facilityType === 'diningHall' && t.status === 'done');
+  const diningUpkeep = dining.reduce((sum, t) => sum + t.effects!.upkeepPerWeek!, 0);
+  b.students.classes = { freshman: 1_381, sophomore: 1_381, junior: 1_381, senior: 1_382 }; // 5,525: the halls' 11,050 is twice it
+  const diningBeyond = beyondNeedUpkeep(b).byNeed.find((n) => n.attribute === 'basicNeeds')!;
+  assert(near(needCapacity(b, 'basicNeeds').capacity / needCapacity(b, 'basicNeeds').need, 2, 1e-9), 'the halls feed twice the need');
+  assert(near(diningUpkeep + diningBeyond.upkeep, 3 * diningUpkeep, 1e-6), 'and dining costs three times its upkeep');
+  assert(needUseSentence(b, 'basicNeeds').startsWith('Dining: 11,050 places for 5,525 students'), `the panel says so ("${needUseSentence(b, 'basicNeeds')}")`);
+  // The Medical Center's places, a capital project's, never push the rest
+  // of health past the line.
+  const withHospital = college([...toNeed, 'HLTH-T3']);
+  assert(needCapacity(withHospital, 'health').capacity > 2 * needCapacity(withHospital, 'health').need && needCapacity(withHospital, 'health').beyondShare === 0, 'the Medical Center counts toward health but pushes nothing past the line');
+  assert(BEYOND_NEED_FROM === 1.2 && BEYOND_NEED_UPKEEP === 6, 'the line is 120% of the need, and past it a place costs six times as much');
 }
 
 // ---- 3. food ----

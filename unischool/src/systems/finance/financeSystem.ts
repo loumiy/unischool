@@ -3,6 +3,7 @@ import { tickSweep } from './sweep';
 import { annualGiving } from '../alumni/giving';
 import { seatPayroll } from '../delegation/seats';
 import { upkeepShare } from '../estate/estate';
+import { beyondNeedUpkeep } from '../estate/beyondNeed';
 import { debtService, drawRate, serviceLoans } from './treasury';
 import { accrueTerm } from './distress';
 import type { ClassTuition, GameState } from '../../state/types';
@@ -162,6 +163,7 @@ export interface FinanceBreakdown {
   scaleCost: number;           // the cost of being large (scaleCostFor), rising with every doubling of the roll
   academicUpkeep: number;      // running the courses and academic buildings that are done
   facilityUpkeep: number;      // running the dorms and the facilities (labs among them) that are done
+  beyondNeedUpkeep: number;    // the extra for space past what the students need (estate/beyondNeed.ts, Plan 80F)
   studentLifeUpkeep: number;   // running the clubs and Greek chapters the player has recognized (see data/studentLifeData.ts)
   athleticsSubsidy: number;    // the part of the tier's subsidy the programs actually drew this week
   athleticScholarships: number; // the flagships' scholarship budgets (Plan 80G), paid by the college in full, not from the department's fund
@@ -287,6 +289,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const scaleCost = scaleCostFor(enrolled, s.self.reputation);
   const academicUpkeep = upkeepFor(s, true);
   const facilityUpkeep = upkeepFor(s, false);
+  const beyondNeed = beyondNeedUpkeep(s).total;
   const studentLifeUpkeep = studentOrgUpkeep(s);
   const debt = debtService(s);
   const administration = seatPayroll(s);
@@ -294,7 +297,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   // Five income lines; there is no state appropriation.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus + annualFund;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + scaleCost + academicUpkeep +
-    facilityUpkeep + studentLifeUpkeep + athleticsSubsidy + athleticScholarships + debt + administration;
+    facilityUpkeep + beyondNeed + studentLifeUpkeep + athleticsSubsidy + athleticScholarships + debt + administration;
 
   return {
     tuitionRevenue,
@@ -311,6 +314,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     scaleCost,
     academicUpkeep,
     facilityUpkeep,
+    beyondNeedUpkeep: beyondNeed,
     studentLifeUpkeep,
     athleticsSubsidy,
     athleticScholarships,
