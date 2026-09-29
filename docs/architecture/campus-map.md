@@ -129,13 +129,14 @@ The hall pips and the walkers are drawn after the scene from the live
 state. `npm run profile` gates every change to the
 map.
 
-## The land around the campus (Plan 81B)
+## The land around the campus (Plans 81B, 81C)
 
 The parcel no longer hangs in space. A **ring of country** runs `RING` (200)
-tiles past its edge on every side: the road on off both ends, fields in a
-patchwork divided by hedgerows, woods, a low town edge along the road, a
-farm or two, and gentle hills rising away from a flat valley floor, all
-fading into haze. It is drawing only and not state: `ringLand.ts`
+tiles past its edge on every side: the road on off both ends, farm fields
+in a patchwork divided by hedgerows along the road and round the town,
+large woods with meadows and rough grass between them, a low town edge
+along the road, a farm or two, and gentle hills rising away from a flat
+valley floor, all fading into haze. It is drawing only and not state: `ringLand.ts`
 generates it from the college's name (a seeded hash, as the rivals' colors
 are), so it is the same on every load and nothing of it is saved, and
 `Surroundings.tsx` draws it. Nothing in
@@ -145,9 +146,17 @@ parcel's edge.
 
 - **The land** (`landOf`, cached per name): the ring is cut into blocks
   round the parcel and the road, and each block into fields by repeated
-  halving, the fields growing with distance. A field is meadow, pasture,
-  crop, plough, broadleaf wood or pine: crops on the valley floor, grazing
-  and woods up the hillsides. The town stands on one side of the parcel
+  halving, the fields growing with distance. Near the road and the town
+  (`farmness`, on the low ground) a field is farmed: crop, hay or plough,
+  hedged. Everywhere else it is open meadow or rough grass, unhedged.
+  Farmland is about a fifth of the land (Plan 81C; tested under 40%).
+- **The woods** are shapes of their own over the fields, not fields: a
+  wood value on a grid four tiles apart (seeded noise, raised on the high
+  ground and near the campus, cleared from the farms, the road, the town
+  and the campus's edge) is traced by marching squares into outlines,
+  so woods are large and irregular, with clearings (filled even-odd). A
+  second value marks the pine within them. They cover about two fifths of
+  the land and climb the hills. The town stands on one side of the parcel
   (the name picks which) along both sides of the road and across it from
   the campus's end, with a lane or two; its houses take the college's
   vernacular (`materialsFor`: the brick, buff and stone walls, the two
@@ -155,20 +164,28 @@ parcel's edge.
 - **The hills**: a height field, zero on the parcel and for `FLAT` (26)
   tiles round it, then a slow rise of the whole valley and some twenty
   rounded hills, bigger further out. Every point of the ring is lifted by
-  it (`lift`), so hedges and field edges bend over the hills, and each
-  field takes the light by its slope (`shadeAt`, five steps, from a lower
-  sun than `light.ts`'s so a gentle hill reads). No slope is steeper than
+  it (`lift`), so hedges, field and wood edges bend over the hills. The
+  hills' light is traced like the woods: the slope's light against flat
+  ground's (`lightOf`, from a lower sun than `light.ts`'s so a gentle hill
+  reads) on the same grid, outlined at two steps each way and laid over
+  the fields and woods alike as translucent light and shade. At a low
+  pitch, two layers of far hills stand as silhouettes on the far side of
+  the valley (`ridgeline`), hazed as the ground at their feet, their
+  outline falling into saddles so they never stand as a wall; they sink
+  away by the opening pitch. No slope is steeper than
   `MAX_SLOPE`, under the lowest pitch's sight line, so no hill hides ground
   behind it and the ground can be drawn as merged shapes in any order. The
   parcel stays flat (real slopes on campus wait in the backlog).
 - **Drawn cheaply** (`ringView`, cached per name and camera): one flat
-  plate under everything; one path per cover and light step (about twenty);
-  one path of hedges; the road, its kerbs and centre line; woods filled with
-  a canopy pattern (crowns lit on the sun's side, in the season's leaf
-  colors) rather than a shape per tree; then sprites, back to front: forty
-  trees from the campus's own art (`TreeAt`) at the edges of the woods on
-  the valley floor, clumps of crowns further out merged a dozen to a path,
-  and some fifty houses. About 550 SVG nodes in all.
+  plate under everything; one path per cover; one path of hedges; the
+  road, its kerbs and centre line; the woods as two paths filled with a
+  canopy pattern (crowns lit on the sun's side, in the season's leaf
+  colors) under a darker edge; the four paths of the hills' light; then
+  sprites, back to front: some fifty trees from the campus's own art
+  (`TreeAt`) along the woods' edges on the valley floor and in copses in
+  the meadows beside them, clumps of crowns along the edges and in copses
+  further out, merged a dozen to a path, and some fifty houses. About 620
+  SVG nodes in all.
 - **In front of the parcel.** The ring lies under the campus, in an `<svg>`
   of its own (`.campus-map-ring`) that carries the same pan/zoom transform
   (`applyView` writes it), so a frame in which only the campus changes

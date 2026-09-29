@@ -46,23 +46,36 @@ const HEDGE_REACH = 130;
 // little away from the parcel, and hills stand on that rise.
 const VALLEY_RISE = 240;
 const VALLEY_RUN = 170;
-const HILLS = 20;
+const HILLS = 30;
 // Steepest a slope may be anywhere in the ring, in height units per tile.
 // Below the lowest pitch's own slope (about 8 units a tile), so no hill
 // hides the ground behind it at any view: the ground can be drawn as merged
 // shapes in any order. test/surroundings.test.ts holds it.
 export const MAX_SLOPE = 7;
 
+// The land is sampled on a grid this many tiles apart (the woods' outlines
+// and the hills' light are traced on it), over the ring and a tile beyond.
+const STEP = 4;
+const G0 = -RING - 1;
+const GN = (GW + 2 * RING + 2) / STEP + 1;
+
+// Where the woods stand: the wood value (woodValue) above this. Pine where
+// the pine value is above PINE_AT too.
+export const WOOD_AT = 0.57;
+const PINE_AT = 0.6;
+
 // Sprites stop where the haze all but hides them.
-const TREES_MAX = 40;
-const CLUMPS_MAX = 70;
-const CLUMP_REACH = 110;
+const TREES_MAX = 56;
+const CLUMPS_MAX = 150;
+const CLUMP_REACH = 115;
 
-export type Cover = 'meadow' | 'crop' | 'hay' | 'plough' | 'wood' | 'pine' | 'town';
+// A field's cover. Farm fields (crop, hay, plough) are hedged; meadow and
+// rough grass lie open between the woods; the woods are shapes of their own.
+export type Cover = 'meadow' | 'rough' | 'crop' | 'hay' | 'plough' | 'town';
+const FARM: ReadonlySet<Cover> = new Set(['crop', 'hay', 'plough']);
+export const isFarm = (c: Cover) => FARM.has(c);
 
-// `shade` is how the field's slope takes the light, -2 (turned away) to 2.
-export interface Field { c0: number; r0: number; c1: number; r1: number; cover: Cover; shade: Shade; }
-export type Shade = -2 | -1 | 0 | 1 | 2;
+export interface Field { c0: number; r0: number; c1: number; r1: number; cover: Cover; }
 export interface Hill { col: number; row: number; radius: number; height: number; }
 // A house or barn: a box with a gable roof along its longer side. `wall` and
 // `roof` index the vernacular's palette (Surroundings.tsx); -1 is a barn's.
@@ -72,6 +85,8 @@ export interface House {
 }
 export interface TreeSpot { col: number; row: number; species: Species; scale: number; }
 export interface Clump { col: number; row: number; size: number; pine: boolean; }
+// A closed outline on the grid, in tiles.
+export type Loop = { col: number; row: number }[];
 
 export interface Land {
   // The side of the parcel the town stands on.
@@ -83,6 +98,18 @@ export interface Land {
   clumps: Clump[];
   // Lanes through the town: [c0, r0, c1, r1], straight runs.
   lanes: [number, number, number, number][];
+  // The woods' outlines (broadleaf, and the pine within it), and the hills'
+  // light: outlines of the ground lit a little and more, shaded a little and
+  // more. Filled even-odd, so a clearing is a hole.
+  woods: Loop[];
+  pines: Loop[];
+  light: [Loop[], Loop[]];
+  shadow: [Loop[], Loop[]];
+  // The wood value sampled on the grid, as built (before any mirroring).
+  wood: Float64Array;
+  mirrored: boolean;
+  // The far hills' outline: phases of its waves.
+  ridge: number[];
 }
 
 // --- the land, per name ----------------------------------------------------
@@ -98,6 +125,25 @@ function rng(seed: number): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+// Smooth value noise in [0, 1], seeded: a lattice of hashed values eased
+// between, two octaves.
+function noise(seed: number, scale: number): (col: number, row: number) => number {
+  const at = (ix: number, iy: number, salt: number) => {
+    let h = Math.imul(ix, 374761393) ^ Math.imul(iy, 668265263) ^ Math.imul(seed + salt, 2246822519);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  };
+  const octave = (x: number, y: number, salt: number) => {
+    const ix = Math.floor(x); const iy = Math.floor(y);
+    const fx = x - ix; const fy = y - iy;
+    const u = fx * fx * (3 - 2 * fx); const v = fy * fy * (3 - 2 * fy);
+    const a = at(ix, iy, salt); const b = at(ix + 1, iy, salt);
+    const c = at(ix, iy + 1, salt); const d = at(ix + 1, iy + 1, salt);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  };
+  return (col, row) => 0.68 * octave(col / scale, row / scale, 0) + 0.32 * octave(col / (scale * 0.38), row / (scale * 0.38), 7);
 }
 
 // Distance from a grid point to the parcel, in tiles; 0 on it.
@@ -118,7 +164,7 @@ const smooth = (t: number) => {
 };
 
 // The ground's height at a grid point: 0 on the parcel and the valley floor.
-export function heightAt(land: Land, col: number, row: number): number {
+export function heightAt(land: Pick<Land, 'hills'>, col: number, row: number): number {
   const d = parcelDistance(col, row);
   if (d <= FLAT) return 0;
   let h = VALLEY_RISE * smooth((d - FLAT) / VALLEY_RUN);
@@ -130,6 +176,92 @@ export function heightAt(land: Land, col: number, row: number): number {
   }
   return h;
 }
+
+// The wood value at a grid point, read off the grid it was built on: woods
+// stand where it is above WOOD_AT.
+export function woodValue(land: Land, col: number, row: number): number {
+  const c = land.mirrored ? GW - col : col;
+  const x = (c - G0) / STEP;
+  const y = (row - G0) / STEP;
+  const i = Math.floor(x); const j = Math.floor(y);
+  if (i < 0 || j < 0 || i >= GN - 1 || j >= GN - 1) return -1;
+  const fx = x - i; const fy = y - j;
+  const g = land.wood;
+  const a = g[j * GN + i]!; const b = g[j * GN + i + 1]!;
+  const cc = g[(j + 1) * GN + i]!; const d = g[(j + 1) * GN + i + 1]!;
+  return a + (b - a) * fx + (cc - a) * fy + (a - b - cc + d) * fx * fy;
+}
+
+// The outlines of where `v` is above `at` on the land's grid (marching
+// squares, the crossing points eased along each cell edge), as closed loops
+// in tiles. The grid's border must lie below `at`, so every loop closes.
+function outlines(v: Float64Array, at: number): Loop[] {
+  const n = GN;
+  const point = (edge: number): { col: number; row: number } => {
+    const cell = edge >> 1;
+    const i = cell % n; const j = (cell / n) | 0;
+    const [i2, j2] = edge & 1 ? [i, j + 1] : [i + 1, j];
+    const a = v[j * n + i]!; const b = v[j2 * n + i2]!;
+    const t = (at - a) / (b - a);
+    return { col: G0 + (i + (i2 - i) * t) * STEP, row: G0 + (j + (j2 - j) * t) * STEP };
+  };
+  // Each crossed cell edge joins two others, one in each cell beside it.
+  const links = new Map<number, number[]>();
+  const link = (p: number, q: number) => {
+    (links.get(p) ?? links.set(p, []).get(p)!).push(q);
+    (links.get(q) ?? links.set(q, []).get(q)!).push(p);
+  };
+  for (let j = 0; j < n - 1; j++) {
+    for (let i = 0; i < n - 1; i++) {
+      const v0 = v[j * n + i]! > at; const v1 = v[j * n + i + 1]! > at;
+      const v2 = v[(j + 1) * n + i + 1]! > at; const v3 = v[(j + 1) * n + i]! > at;
+      const k = (v0 ? 8 : 0) | (v1 ? 4 : 0) | (v2 ? 2 : 0) | (v3 ? 1 : 0);
+      if (k === 0 || k === 15) continue;
+      const T = (j * n + i) * 2; const B = ((j + 1) * n + i) * 2;
+      const L = (j * n + i) * 2 + 1; const R = (j * n + i + 1) * 2 + 1;
+      const centre = (v[j * n + i]! + v[j * n + i + 1]! + v[(j + 1) * n + i + 1]! + v[(j + 1) * n + i]!) / 4 > at;
+      switch (k) {
+        case 1: case 14: link(L, B); break;
+        case 2: case 13: link(B, R); break;
+        case 3: case 12: link(L, R); break;
+        case 4: case 11: link(T, R); break;
+        case 6: case 9: link(T, B); break;
+        case 7: case 8: link(L, T); break;
+        case 5: if (centre) { link(L, T); link(B, R); } else { link(T, R); link(L, B); } break;
+        case 10: if (centre) { link(T, R); link(L, B); } else { link(L, T); link(B, R); } break;
+      }
+    }
+  }
+  const loops: Loop[] = [];
+  const seen = new Set<number>();
+  for (const startEdge of links.keys()) {
+    if (seen.has(startEdge)) continue;
+    const loop: Loop = [];
+    let prev = -1; let cur = startEdge;
+    while (!seen.has(cur)) {
+      seen.add(cur);
+      loop.push(point(cur));
+      const next = links.get(cur)!.find((e) => e !== prev && !seen.has(e));
+      if (next === undefined) break;
+      prev = cur; cur = next;
+    }
+    if (loop.length >= 3) loops.push(loop);
+  }
+  return loops;
+}
+
+// How the ground at a slope (dh per tile along col and row, in height
+// units) takes the light, against flat ground's: from a sun lower in the sky
+// than light.ts's, so a gentle hill reads.
+const SHADE_SUN_ELEVATION = (24 * Math.PI) / 180;
+function lightOf(gc: number, gr: number): number {
+  const c = gc / UNITS_PER_TILE_UP; const r = gr / UNITS_PER_TILE_UP;
+  const cosE = Math.cos(SHADE_SUN_ELEVATION); const sinE = Math.sin(SHADE_SUN_ELEVATION);
+  const lit = (-c * SUN_FROM.col * cosE - r * SUN_FROM.row * cosE + sinE) / Math.hypot(c, r, 1);
+  return lit / sinE - 1;
+}
+// The steps of the hills' light: a little, and more.
+const LIGHT_STEPS = [0.05, 0.13] as const;
 
 const LAND_CACHE = new Map<string, Land>();
 
@@ -145,19 +277,24 @@ export function landOf(name: string): Land {
 // Built as if the town stood west of the parcel, then mirrored across it
 // when the name puts it east.
 function buildLand(name: string): Land {
-  const rand = rng(Math.floor(hashUnit(`${name}:surroundings`) * 4294967296));
+  const seed = Math.floor(hashUnit(`${name}:surroundings`) * 4294967296);
+  const rand = rng(seed);
   const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]!;
-  const land: Land = { town: rand() < 0.5 ? 'west' : 'east', fields: [], hills: [], houses: [], trees: [], clumps: [], lanes: [] };
+  const land: Land = {
+    town: rand() < 0.5 ? 'west' : 'east', fields: [], hills: [], houses: [], trees: [], clumps: [], lanes: [],
+    woods: [], pines: [], light: [[], []], shadow: [[], []], wood: new Float64Array(0), mirrored: false, ridge: [],
+  };
+  land.ridge = Array.from({ length: 6 }, () => rand() * Math.PI * 2);
 
-  // Hills: well out on the valley's rise, none reaching the floor, apart.
-  for (let tries = 0; land.hills.length < HILLS && tries < 400; tries++) {
+  // Hills: out on the valley's rise, none reaching its floor, apart.
+  for (let tries = 0; land.hills.length < HILLS && tries < 600; tries++) {
     const col = -RING + rand() * (GW + 2 * RING);
     const row = -RING + rand() * (GH + 2 * RING);
     const d = parcelDistance(col, row);
-    const radius = 20 + d * 0.14 + rand() * 12;
+    const radius = 24 + d * 0.16 + rand() * 16;
     if (d - radius < FLAT + 2 || d > HAZE_CULL) continue;
-    if (land.hills.some((h) => Math.hypot(h.col - col, h.row - row) < 0.85 * (h.radius + radius))) continue;
-    const height = Math.min(2.8 * radius, (60 + d * 0.8) * (0.75 + rand() * 0.5));
+    if (land.hills.some((h) => Math.hypot(h.col - col, h.row - row) < 0.8 * (h.radius + radius))) continue;
+    const height = Math.min(2.8 * radius, (70 + d * 0.9) * (0.75 + rand() * 0.5));
     land.hills.push({ col, row, radius, height });
   }
 
@@ -174,9 +311,59 @@ function buildLand(name: string): Land {
   for (const c of lanes) {
     land.lanes.push([c, townN.r0 - 1, c, road0], [c, GH, c, townS.r1 + 1]);
   }
+  const inTown = (col: number, row: number, pad: number) => [townN, townS].some((t) =>
+    col > t.c0 - pad && col < t.c1 + pad && row > t.r0 - pad && row < t.r1 + pad);
+
+  // Farms keep to the road and the town, on the low ground: how much a
+  // point is farmland, 0 to 1.
+  const farmness = (col: number, row: number, height: number) => {
+    const off = Math.max(0, road0 - row, row - GH);
+    const town = Math.hypot(Math.max(0, townN.c0 - col, col - across), Math.max(0, townN.r0 - row, row - townS.r1));
+    return Math.max(smooth((64 - off) / 30), smooth((56 - town) / 26)) * (1 - smooth((height - 170) / 160));
+  };
+
+  // The land on the grid: its height, its light, and where the woods stand.
+  // Woods take the high ground and the far country and leave the farms, the
+  // road, the town and the campus's edge open; the noise breaks them into
+  // woods with meadows and clearings between.
+  const woodNoise = noise(seed ^ 0x5bd1e995, 44);
+  const pineNoise = noise(seed ^ 0x27d4eb2f, 60);
+  const heights = new Float64Array(GN * GN);
+  const wood = new Float64Array(GN * GN);
+  const pine = new Float64Array(GN * GN);
+  for (let j = 0; j < GN; j++) {
+    for (let i = 0; i < GN; i++) {
+      const col = G0 + i * STEP; const row = G0 + j * STEP;
+      const h = heightAt(land, col, row);
+      heights[j * GN + i] = h;
+      const d = parcelDistance(col, row);
+      const edge = i === 0 || j === 0 || i === GN - 1 || j === GN - 1;
+      const open = edge || d < 4 || d > HAZE_CULL + 4 || (row > road0 - 4 && row < GH + 4) || inTown(col, row, 3);
+      wood[j * GN + i] = open ? -1
+        : woodNoise(col, row) + 0.16 * smooth((h - 30) / 180) + 0.2 * smooth((40 - d) / 26) - 0.9 * farmness(col, row, h);
+      pine[j * GN + i] = open ? -1 : Math.min(wood[j * GN + i]! - WOOD_AT, pineNoise(col, row) - PINE_AT);
+    }
+  }
+  land.wood = wood;
+  land.woods = outlines(wood, WOOD_AT);
+  land.pines = outlines(pine, 0);
+  const lightGrid = new Float64Array(GN * GN);
+  for (let j = 0; j < GN; j++) {
+    for (let i = 0; i < GN; i++) {
+      if (i === 0 || j === 0 || i === GN - 1 || j === GN - 1) continue;
+      const gc = (heights[j * GN + i + 1]! - heights[j * GN + i - 1]!) / (2 * STEP);
+      const gr = (heights[(j + 1) * GN + i]! - heights[(j - 1) * GN + i]!) / (2 * STEP);
+      lightGrid[j * GN + i] = lightOf(gc, gr);
+    }
+  }
+  const neg = lightGrid.map((x) => -x);
+  land.light = [outlines(lightGrid, LIGHT_STEPS[0]), outlines(lightGrid, LIGHT_STEPS[1])];
+  land.shadow = [outlines(neg, LIGHT_STEPS[0]), outlines(neg, LIGHT_STEPS[1])];
+  const isWood = (col: number, row: number) => woodValue(land, col, row) > WOOD_AT;
 
   // Fields: each block cut in two, again and again, into fields that grow
-  // with distance from the parcel.
+  // with distance from the parcel. Farm fields by the road and the town;
+  // meadow and rough grass elsewhere, under and between the woods.
   const blocks: [number, number, number, number][] = [
     [-RING, -RING, GW + RING, -2],
     [-RING, -2, -2, townN.r0],
@@ -191,12 +378,16 @@ function buildLand(name: string): Land {
     const h = r1 - r0;
     // Out past the haze nothing shows: leave it to the base.
     if (rectDistance(c0, r0, c1, r1) > HAZE_CULL) return;
-    const d = parcelDistance((c0 + c1) / 2, (r0 + r1) / 2);
-    // On a hillside fields stay small enough to follow it.
-    const size = Math.min(7 + d * 0.26, relief(land, c0, r0, c1, r1) > 24 ? 16 : Infinity);
+    const cc = (c0 + c1) / 2; const cr = (r0 + r1) / 2;
+    const d = parcelDistance(cc, cr);
+    const size = 7 + d * 0.26;
     if (w <= size * 1.35 && h <= size * 1.35) {
-      const cc = (c0 + c1) / 2; const cr = (r0 + r1) / 2;
-      land.fields.push({ c0, r0, c1, r1, cover: coverFor(d, heightAt(land, cc, cr), rand), shade: shadeAt(land, cc, cr) });
+      const height = heightAt(land, cc, cr);
+      const farm = !isWood(cc, cr) && rand() < farmness(cc, cr, height) * 2;
+      const cover: Cover = d < 3 ? 'meadow'
+        : farm ? pick(['crop', 'crop', 'hay', 'hay', 'plough'] as const)
+          : rand() < 0.45 ? 'rough' : 'meadow';
+      land.fields.push({ c0, r0, c1, r1, cover });
       return;
     }
     if (w >= h) {
@@ -208,40 +399,51 @@ function buildLand(name: string): Land {
     }
   };
   for (const [c0, r0, c1, r1] of blocks) cut(c0, r0, c1, r1);
-  land.fields.push({ ...townN, cover: 'town', shade: 0 }, { ...townS, cover: 'town', shade: 0 });
+  land.fields.push({ ...townN, cover: 'town' }, { ...townS, cover: 'town' });
 
-  // Woods: a canopy (Surroundings.tsx's pattern) over every wood, trees
-  // from the campus's own art standing at the edges of those on the valley
-  // floor, clumps of crowns on those past it, and past those only the
-  // canopy.
+  // Trees: the campus's own art at the edges of the woods on the valley
+  // floor and in copses in the meadows beside them; clumps of crowns along
+  // the woods' edges and in copses further out. Inside a wood only its
+  // canopy shows (Surroundings.tsx's pattern).
   const trees: TreeSpot[] = [];
   const clumps: Clump[] = [];
-  for (const f of land.fields) {
-    if (f.cover !== 'wood' && f.cover !== 'pine') continue;
-    const pine = f.cover === 'pine';
-    for (let r = f.r0 + 1.2; r < f.r1 - 0.6; r += 2.3) {
-      for (let c = f.c0 + 1.2; c < f.c1 - 0.6; c += 2.3) {
-        const col = inside(c + (rand() - 0.5) * 1.4, f.c0, f.c1);
-        const row = inside(r + (rand() - 0.5) * 1.4, f.r0, f.r1);
-        const keep = rand();
+  const species = (pineWood: boolean): Species => (pineWood ? (rand() < 0.85 ? 'conifer' : 'canopy')
+    : pick(['canopy', 'canopy', 'canopy', 'canopy', 'conifer', 'ornamental'] as const));
+  const pineAt = (col: number, row: number) => land.pines.length > 0 && pineNoise(col, row) > PINE_AT;
+  for (const loop of land.woods) {
+    for (let k = 0; k < loop.length; k++) {
+      const a = loop[k]!; const b = loop[(k + 1) % loop.length]!;
+      const len = Math.hypot(b.col - a.col, b.row - a.row);
+      for (let t = 0; t < len; t += 2.4) {
+        const col = a.col + ((b.col - a.col) * t) / len + (rand() - 0.5) * 1.2;
+        const row = a.row + ((b.row - a.row) * t) / len + (rand() - 0.5) * 1.2;
         const d = parcelDistance(col, row);
-        if (d < 3 || d > FLAT - 1) continue;
-        const edge = Math.min(col - f.c0, f.c1 - col, row - f.r0, f.r1 - row);
-        if (edge > 2.6 || keep > 0.8) continue;
-        const species: Species = pine ? (rand() < 0.9 ? 'conifer' : 'canopy') : pick(['canopy', 'canopy', 'canopy', 'canopy', 'conifer', 'ornamental'] as const);
-        trees.push({ col, row, species, scale: 0.85 + rand() * 0.45 });
+        if (d >= 3 && d < FLAT - 1) {
+          if (rand() < 0.7) trees.push({ col, row, species: species(pineAt(col, row)), scale: 0.85 + rand() * 0.45 });
+        } else if (d >= FLAT && d < CLUMP_REACH && rand() < 0.4) {
+          clumps.push({ col, row, size: 3.4 + d * 0.035, pine: pineAt(col, row) });
+        }
       }
     }
-    const fd = parcelDistance((f.c0 + f.c1) / 2, (f.r0 + f.r1) / 2);
-    const step = 3.6 + fd * 0.045;
-    for (let r = f.r0 + step / 2; r < f.r1; r += step) {
-      for (let c = f.c0 + step / 2; c < f.c1; c += step) {
-        const col = inside(c + (rand() - 0.5) * step * 0.5, f.c0, f.c1);
-        const row = inside(r + (rand() - 0.5) * step * 0.5, f.r0, f.r1);
-        const d = parcelDistance(col, row);
-        if (d < FLAT || d > CLUMP_REACH) continue;
-        clumps.push({ col, row, size: step * (0.9 + rand() * 0.25), pine });
-      }
+  }
+  // Copses: a few trees together out in the open, thinning away from the
+  // woods.
+  for (let tries = 0; tries < 900; tries++) {
+    const col = -90 + rand() * (GW + 180);
+    const row = -90 + rand() * (GH + 180);
+    const d = parcelDistance(col, row);
+    const v = woodValue(land, col, row);
+    if (d < 4 || d > CLUMP_REACH || v > WOOD_AT || v < WOOD_AT - 0.14 || inTown(col, row, 2)) continue;
+    if (row > road0 - 3 && row < GH + 3) continue;
+    const n = 2 + Math.floor(rand() * 4);
+    for (let m = 0; m < n; m++) {
+      const c = col + (rand() - 0.5) * 4;
+      const r = row + (rand() - 0.5) * 4;
+      if (r > road0 - 1 && r < GH + 1) continue;
+      const dd = parcelDistance(c, r);
+      if (dd < 3) continue;
+      if (dd < FLAT - 1) trees.push({ col: c, row: r, species: species(false), scale: 0.8 + rand() * 0.5 });
+      else clumps.push({ col: c, row: r, size: 2.6 + dd * 0.02, pine: false });
     }
   }
   land.trees = thin(trees, TREES_MAX, rand);
@@ -286,57 +488,21 @@ function buildLand(name: string): Land {
       }
     }
   }
-  // Farms: a house and a barn at the corner of a field by the road's far end.
-  const farmland = land.fields.filter((f) => (f.cover === 'crop' || f.cover === 'hay' || f.cover === 'meadow')
-    && f.c0 > GW && f.c1 - f.c0 > 11 && f.r1 - f.r0 > 9 && rectDistance(f.c0, f.r0, f.c1, f.r1) < 50);
+  // Farms: a house and a barn at the corner of a farm field out along the
+  // road the other way, clear of the woods.
+  const farmland = land.fields.filter((f) => isFarm(f.cover) && f.c0 > GW && f.c1 - f.c0 > 11 && f.r1 - f.r0 > 9
+    && rectDistance(f.c0, f.r0, f.c1, f.r1) < 60);
   for (let i = 0; i < 3 && farmland.length; i++) {
     const f = farmland.splice(Math.floor(rand() * farmland.length), 1)[0]!;
     const col = f.c0 + 2 + rand() * 2;
     const row = f.r1 - 5 - rand() * 2;
+    if (isWood(col, row) || isWood(col + 5.8, row + 1)) continue;
     house(col, row, 1.6, 1.2, 2);
     houses.push({ col: col + 3, row: row - 0.6, w: 2.8, h: 1.7, wallH: 18, ridge: 16, wall: -1, roof: 1 });
   }
   land.houses = houses;
 
   return land.town === 'west' ? land : mirror(land);
-}
-
-// How far the ground rises and falls across a rectangle, in height units.
-function relief(land: Land, c0: number, r0: number, c1: number, r1: number): number {
-  const hs = [[c0, r0], [c1, r0], [c1, r1], [c0, r1], [(c0 + c1) / 2, (r0 + r1) / 2]].map(([c, r]) => heightAt(land, c!, r!));
-  return Math.max(...hs) - Math.min(...hs);
-}
-
-// The light a slope takes from the sun (light.ts's, set lower in the sky
-// here so a gentle hill reads), against flat ground's, in five steps.
-const SHADE_SUN_ELEVATION = (35 * Math.PI) / 180;
-export function shadeAt(land: Land, col: number, row: number): Shade {
-  const e = 2;
-  // The slope in tiles of height per tile across.
-  const gc = (heightAt(land, col + e, row) - heightAt(land, col - e, row)) / (2 * e * UNITS_PER_TILE_UP);
-  const gr = (heightAt(land, col, row + e) - heightAt(land, col, row - e)) / (2 * e * UNITS_PER_TILE_UP);
-  const cosE = Math.cos(SHADE_SUN_ELEVATION);
-  const sinE = Math.sin(SHADE_SUN_ELEVATION);
-  const lit = (-gc * SUN_FROM.col * cosE - gr * SUN_FROM.row * cosE + sinE) / Math.hypot(gc, gr, 1);
-  const rel = lit / sinE - 1;
-  const step = Math.abs(rel) < 0.02 ? 0 : Math.abs(rel) < 0.07 ? 1 : 2;
-  return (Math.sign(rel) * step) as Shade;
-}
-
-// A coordinate kept half a tile inside a field's span.
-const inside = (v: number, lo: number, hi: number) => Math.max(lo + 0.5, Math.min(hi - 0.5, v));
-
-// What a field grows: crops on the valley floor, grazing and woods up the
-// hillsides (which lets a hill's light and shade read across one green).
-function coverFor(d: number, height: number, rand: () => number): Cover {
-  if (d < 3) return 'meadow';
-  const up = smooth((height - 40) / 160);
-  const wood = 0.12 + 0.18 * smooth((d - 20) / 120) + 0.12 * up;
-  const x = rand();
-  if (x < wood) return rand() < 0.3 ? 'pine' : 'wood';
-  const y = (x - wood) / (1 - wood);
-  const grass = 0.3 + 0.45 * up;
-  return y < grass ? (rand() < 0.5 ? 'meadow' : 'hay') : y < grass + (1 - grass) * 0.5 ? 'crop' : y < grass + (1 - grass) * 0.8 ? 'hay' : 'plough';
 }
 
 // At most `max` of `xs`, dropped evenly rather than from one end.
@@ -349,14 +515,20 @@ function thin<T>(xs: T[], max: number, rand: () => number): T[] {
 
 function mirror(land: Land): Land {
   const c = (col: number) => GW - col;
+  const loops = (ls: Loop[]) => ls.map((l) => l.map((p) => ({ col: c(p.col), row: p.row })));
   return {
     ...land,
+    mirrored: true,
     fields: land.fields.map((f) => ({ ...f, c0: c(f.c1), c1: c(f.c0) })),
     hills: land.hills.map((h) => ({ ...h, col: c(h.col) })),
     houses: land.houses.map((h) => ({ ...h, col: c(h.col + h.w) })),
     trees: land.trees.map((t) => ({ ...t, col: c(t.col) })),
     clumps: land.clumps.map((k) => ({ ...k, col: c(k.col) })),
     lanes: land.lanes.map(([c0, r0, c1, r1]) => [c(c0), r0, c(c1), r1]),
+    woods: loops(land.woods),
+    pines: loops(land.pines),
+    light: [loops(land.light[0]), loops(land.light[1])],
+    shadow: [loops(land.shadow[0]), loops(land.shadow[1])],
   };
 }
 
@@ -371,9 +543,19 @@ export type RingSprite =
 export interface RingView {
   // One flat plate under the whole ring (and the parcel).
   base: string;
-  // Each cover's fields, one path each.
-  covers: { key: string; cover: Cover; shade: Shade; d: string }[];
+  // Each cover's fields, one path each; the flat meadows are the plate.
+  covers: { cover: Cover; d: string }[];
   hedges: string;
+  // The woods, broadleaf and pine, each one even-odd path.
+  woods: string;
+  pines: string;
+  // The hills' light over everything on the ground: a little lit, more lit,
+  // a little shaded, more shaded.
+  light: [string, string];
+  shadow: [string, string];
+  // The hills on the far side of the valley, far layer first, each with the
+  // haze it stands in (0 to 1), for a low camera only.
+  ridges: { d: string; haze: number }[];
   road: string;
   kerbs: string;
   centre: string;
@@ -552,24 +734,20 @@ export function ringView(name: string): RingView {
 }
 
 function buildView(land: Land): RingView {
-  const byCover = new Map<string, { cover: Cover; shade: Shade; ds: string[] }>();
+  const byCover = new Map<Cover, string[]>();
   const hedges: string[] = [];
   for (const f of land.fields) {
     const pts = outline(land, f.c0, f.r0, f.c1, f.r1);
-    // A flat meadow is the plate itself.
-    if (f.cover !== 'meadow' || f.shade !== 0) {
-      // A wood is its canopy, whichever way it faces.
-      const shade = f.cover === 'wood' || f.cover === 'pine' ? 0 : f.shade;
-      const k = `${f.cover}${shade}`;
-      const entry = byCover.get(k) ?? { cover: f.cover, shade, ds: [] };
-      entry.ds.push(polyD(pts));
-      byCover.set(k, entry);
+    if (f.cover !== 'meadow') {
+      const list = byCover.get(f.cover) ?? [];
+      list.push(polyD(pts));
+      byCover.set(f.cover, list);
     }
-    // Hedgerows round every field but the town's gardens; the far ones are
-    // lost in the haze.
-    if (f.cover !== 'town' && rectDistance(f.c0, f.r0, f.c1, f.r1) < HEDGE_REACH) hedges.push(polyD(pts));
+    // Hedgerows round the farm fields; the far ones are lost in the haze.
+    if (isFarm(f.cover) && rectDistance(f.c0, f.r0, f.c1, f.r1) < HEDGE_REACH) hedges.push(polyD(pts));
   }
-  const covers = [...byCover.entries()].map(([key, { cover, shade, ds }]) => ({ key, cover, shade, d: ds.join('') }));
+  const covers = [...byCover.entries()].map(([cover, ds]) => ({ cover, d: ds.join('') }));
+  const loopsD = (ls: Loop[]) => ls.map((l) => polyD(l.map((p) => at(land, p.col, p.row)))).join('');
 
   // The road, on off both ends of the parcel's own.
   const rows = [ROAD_FIRST_ROW, GH] as const;
@@ -623,8 +801,89 @@ function buildView(land: Land): RingView {
     base: polyPoints(boxFaces(-RING, -RING, GW + 2 * RING, GH + 2 * RING, 0, 0).top),
     covers,
     hedges: hedges.join(''),
+    woods: loopsD(land.woods),
+    pines: loopsD(land.pines),
+    light: [loopsD(land.light[0]), loopsD(land.light[1])],
+    shadow: [loopsD(land.shadow[0]), loopsD(land.shadow[1])],
+    ridges: [ridgeline(land, 150, 640, 0), ridgeline(land, 118, 380, 3)],
     road, kerbs, centre, lanes, back, front,
   };
+}
+
+// How thick the radial haze is at `tiles` from the parcel's center, at the
+// camera the projection is at (hazeOf's stops).
+function hazeAtDistance(tiles: number): number {
+  const h = hazeOf(currentCamera());
+  const t = Math.min(1, tiles / h.r);
+  for (let i = 1; i < h.stops.length; i++) {
+    const [o1, a1] = h.stops[i]!; const [o0, a0] = h.stops[i - 1]!;
+    if (t <= o1) return t <= o0 ? a0 : a0 + ((a1 - a0) * (t - o0)) / (o1 - o0);
+  }
+  return 1;
+}
+
+// The hills on the valley's far side (Plan 81C): a line of hills standing
+// round it `distance` tiles out, drawn as a silhouette from the ground up to
+// its ridgeline. Only for a low camera, where the far country is what the
+// view looks across (they sink away by the opening pitch), and only on the
+// side of the valley the camera looks across, where nothing of the ring
+// stands in front of them: a backdrop. They take the haze of the ground at
+// their feet (hazeAtDistance), so the land beyond, hazier still, reads as
+// further off; their outline rises and falls into saddles so they never
+// stand as a wall.
+function ridgeline(land: Land, distance: number, height: number, salt: number): { d: string; haze: number } {
+  const sinP = Math.sin(currentCamera().pitch);
+  const low = smooth((0.5 - sinP) / 0.3);
+  const haze = hazeAtDistance(distance + 70);
+  if (low <= 0) return { d: '', haze };
+  const o = unproject(0, 0);
+  const u = unproject(0, -1);
+  const away = { col: u.col - o.col, row: u.row - o.row };
+  const len = Math.hypot(away.col, away.row) || 1;
+  away.col /= len; away.row /= len;
+  // Round the parcel at `distance`, sides and quarter-circle corners.
+  const loop: { col: number; row: number }[] = [];
+  const side = (c0: number, r0: number, c1: number, r1: number) => {
+    const n = Math.ceil(Math.hypot(c1 - c0, r1 - r0) / 5);
+    for (let i = 0; i < n; i++) loop.push({ col: c0 + ((c1 - c0) * i) / n, row: r0 + ((r1 - r0) * i) / n });
+  };
+  const arc = (cc: number, cr: number, a0: number) => {
+    const n = Math.ceil((distance * Math.PI) / 2 / 5);
+    for (let i = 0; i < n; i++) {
+      const a = a0 + ((Math.PI / 2) * i) / n;
+      loop.push({ col: cc + Math.cos(a) * distance, row: cr + Math.sin(a) * distance });
+    }
+  };
+  side(0, -distance, GW, -distance); arc(GW, 0, -Math.PI / 2);
+  side(GW + distance, 0, GW + distance, GH); arc(GW, GH, 0);
+  side(GW, GH + distance, 0, GH + distance); arc(0, GH, Math.PI / 2);
+  side(-distance, GH, -distance, 0); arc(0, 0, Math.PI);
+  const cc = GW / 2; const cr = GH / 2;
+  const facing = (p: { col: number; row: number }) => ((p.col - cc) * away.col + (p.row - cr) * away.row) / Math.hypot(p.col - cc, p.row - cr);
+  const n = loop.length;
+  // Start where the loop faces the camera most, so the far side is one run.
+  let start = 0;
+  for (let i = 1; i < n; i++) if (facing(loop[i]!) < facing(loop[start]!)) start = i;
+  const ph = land.ridge;
+  const tops: Pt[] = [];
+  const feet: Pt[] = [];
+  for (let j = 0; j <= n; j++) {
+    const i = (start + j) % n;
+    const p = loop[i]!;
+    const t = (i / n) * Math.PI * 2;
+    const w = smooth((facing(p) - 0.1) / 0.5);
+    // Hills and saddles: waves that often fall to nothing.
+    const wave = Math.max(0, 0.38 + 0.34 * Math.sin(4 * t + ph[salt]!) + 0.24 * Math.sin(9 * t + ph[salt + 1]!) + 0.12 * Math.sin(19 * t + ph[salt + 2]!));
+    const foot = at(land, p.col, p.row);
+    if (w <= 0) {
+      if (tops.length) break;
+      continue;
+    }
+    tops.push(lift(foot, height * low * w * wave));
+    feet.push(foot);
+  }
+  if (tops.length < 2) return { d: '', haze };
+  return { d: polyD([...tops, ...feet.reverse()]), haze };
 }
 
 // --- the haze -------------------------------------------------------------

@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask, that the
 campus feel like a place and not a model hanging in space, into PRs.*
 
-**Status: Landed.** A and B merged (#254, #255).
+**Status: Landed.** A to C merged (#254, #255, #256).
 
 ---
 
@@ -31,6 +31,7 @@ beside the faster renderer, which would carry elevation natively.
 |---|---|---|---|
 | A | This plan; the backlog | no | no |
 | B | The land around the campus | no | no |
+| C | Fewer fields, more woods and hills | no | no |
 
 ## PR 81B — The land around the campus
 
@@ -120,6 +121,77 @@ beside the faster renderer, which would carry elevation natively.
   college and a year-30 campus at the widest zoom, the lowest pitch, a
   turned view, winter, Saint Aldric in Mission, and a phone; the
   `81b-before-*` shots are the first three before.
+
+## PR 81C — Fewer fields, more woods and hills
+
+The owner, on 81B's pictures: less farmland, more trees, more hills.
+
+- **Farmland** a minority of the ring, about a third at most rather than
+  most of it, kept to the road and the town, where farms would stand.
+- **Woods**, many more, as large woods rather than scattered clumps:
+  - each wood a mass (its canopy, a darker edge, some texture), with trees
+    drawn one by one only along its edges near the campus and in copses
+    thinning out into the open;
+  - meadows and rough grass between the woods, so the land is not one
+    green carpet;
+  - still cheap: built once per view, hidden through a turn.
+- **Hills** clearly read and still gentle, the campus still on its flat
+  valley floor:
+  - stronger light and shade on the slopes, lit toward the sun;
+  - woods climbing them;
+  - soft, hazed layers of far hills at a low pitch, never a wall.
+- Winter and the vernaculars as before.
+- **Checks:** farmland under about 40% of the ring, tested; `npm run
+  check`, `npm run phone`, the sim unchanged; a turn and a steady frame
+  timed against main; 81B's set of pictures again, and a before of the
+  year-30 campus at the widest zoom and the lowest pitch.
+
+**As implemented (#256):**
+
+- **Farms** keep to the road and the town (`farmness`: within about 30
+  tiles of the road, fading by 64, and round the town, on the low ground).
+  Only there is a field crop, hay or plough, and only those are hedged;
+  everywhere else a field is open meadow or rough grass (a new
+  `--field-rough`, with the seasons). Farmland was 44–50% of the ring's
+  area in 81B (64–69% counting the hedged meadows); it is now 18–22%.
+  `test/surroundings.test.ts` holds it under 40%, over 10%, and off the
+  far country.
+- **Woods** are shapes of their own, not fields: a seeded noise value on
+  a four-tile grid, raised on high ground and near the campus, cleared
+  from the farms, road, town and the campus's edge, traced by marching
+  squares into large irregular woods with clearings (even-odd). Pine is a
+  second value inside them. Each is the canopy pattern under a darker
+  edge. They cover 40–56% of the land (tested between 30 and 70%) and
+  climb the hills. The campus's own tree art stands along the woods'
+  edges on the valley floor and in copses in the meadows (56 at most);
+  further out, clumps along the edges and in copses (150 at most, merged
+  a dozen to a path).
+- **Hills**: 30 of them, larger and a little taller (the slope cap
+  unchanged, tested). Their light is traced on the same grid from a lower
+  sun (24°) into two steps of light and two of shade, laid over fields and
+  woods alike, replacing 81B's per-field shading. At a low pitch two
+  layers of far hills stand on the far side of the valley, hazed as the
+  ground at their feet, falling into saddles; they sink away by the
+  opening pitch.
+- **Cost**: about 620 ring nodes (81B about 550), built once per name
+  (20–60 ms) and per view (7–15 ms), hidden through a turn as before.
+  Timed against main as in 81B (year-30 campus, production builds,
+  main-thread CPU from a trace, medians of 12 turns, runs alternating):
+
+  | | Main | 81C |
+  |---|---|---|
+  | The whole turn, opening zoom (4 runs) | 710–797 ms | 709–758 ms |
+  | The whole turn, widest zoom (4 runs) | 714–877 ms | 729–939 ms |
+  | The frame that settles it | 74–91 ms | 76–93 ms |
+  | Main thread at Play (4 runs) | 283–324 ms/s | 295–312 ms/s |
+
+  Both within the machine's noise; at Play perhaps 3% heavier.
+- **Checks**: `npm run check`, `npm run phone`; the sim unchanged.
+  `docs/reviews/2026-10-campus-fixes/81c-*.jpg`: 81B's set again (a new
+  college and a year-30 campus at the widest zoom, the lowest pitch, a
+  turned view, winter, Saint Aldric in Mission, a phone), and
+  `81c-before-*` the year-30 campus from main at the widest zoom and the
+  lowest pitch.
 
 ## 2. The backlog
 

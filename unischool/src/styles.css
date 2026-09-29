@@ -36,6 +36,7 @@
   --field-crop: #bdb468;
   --field-hay: #9bb86c;
   --field-plough: #9d8563;
+  --field-rough: #8a9d5a;
   --wood: #4b7238;
   --pine-wood: #3a603c;
   --hedge: #4a6e36;
@@ -921,23 +922,25 @@ button.build-tile { font-family: inherit; }
    ground. */
 .ring { pointer-events: none; }
 .ring-base { fill: var(--grass); }
-/* A field's cover, then the light on its slope (ringLand.ts's shadeAt). */
+/* A field's cover. The woods are shapes of their own over the fields: a
+   canopy (Surroundings.tsx's patterns) with a darker edge. */
 .ring-field { --cover: var(--grass); fill: var(--cover); }
 .ring-crop { --cover: var(--field-crop); }
 .ring-hay { --cover: var(--field-hay); }
 .ring-plough { --cover: var(--field-plough); }
-.ring-wood { --cover: var(--wood); }
-.ring-pine { --cover: var(--pine-wood); }
-/* A wood is its canopy (Surroundings.tsx's patterns), lit or not. */
-.ring-field.ring-wood { fill: url(#ring-canopy); }
-.ring-field.ring-pine { fill: url(#ring-pines); }
+.ring-rough { --cover: var(--field-rough); }
+.ring-town { --cover: var(--lawn, #8fae6b); }
+.ring-woods, .ring-pines { fill-rule: evenodd; stroke-width: 9; stroke-linejoin: round; }
+.ring-woods { fill: url(#ring-canopy); stroke: color-mix(in srgb, var(--wood) 70%, #1e2d1a); }
+.ring-pines { fill: url(#ring-pines); stroke: color-mix(in srgb, var(--pine-wood) 75%, #14200f); }
+/* The hills' light (ringLand.ts's lightOf), in two steps each way. */
+.ring-lit, .ring-shaded { fill-rule: evenodd; }
+.ring-lit { fill: rgba(255, 246, 214, 0.16); }
+.ring-shaded { fill: rgba(22, 34, 20, 0.19); }
+/* The far hills, hazed by the distance they stand at (an inline mix). */
+.ring-far-hill { --far-hill: color-mix(in srgb, var(--wood) 60%, var(--grass-deep)); }
 .ring-canopy-floor { fill: var(--wood); }
 .ring-pine-floor { fill: var(--pine-wood); }
-.ring-town { --cover: var(--lawn, #8fae6b); }
-.ring-shade2 { fill: color-mix(in srgb, var(--cover) 74%, #fff4d2); }
-.ring-shade1 { fill: color-mix(in srgb, var(--cover) 87%, #fff4d2); }
-.ring-shade-1 { fill: color-mix(in srgb, var(--cover) 85%, #1e2d1a); }
-.ring-shade-2 { fill: color-mix(in srgb, var(--cover) 70%, #1e2d1a); }
 .ring-hedge { stroke: var(--hedge); stroke-width: 11; stroke-linejoin: round; fill: none; }
 .ring-lane { stroke: #8f8a7e; stroke-width: 34; stroke-linecap: round; fill: none; }
 .ring-clump { fill: var(--leaf-canopy, #4f7a3c); opacity: var(--leaf-opacity, 1); }

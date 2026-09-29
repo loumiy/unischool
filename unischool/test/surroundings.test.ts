@@ -5,7 +5,7 @@
 // view, pitch and zoom.
 
 import {
-  FLAT, MAX_SLOPE, RING, clampView, heightAt, landOf, parcelDistance, ringView, ringZoomFloor, type Land,
+  FLAT, MAX_SLOPE, RING, WOOD_AT, clampView, heightAt, isFarm, landOf, parcelDistance, ringView, ringZoomFloor, woodValue, type Land,
 } from '../src/components/ringLand';
 import { PITCHES, VIEWS, setCamera, unproject } from '../src/components/isoProjection';
 import { CAMPUS_GRID_HEIGHT as GH, CAMPUS_GRID_WIDTH as GW } from '../src/state/types';
@@ -54,6 +54,28 @@ for (const name of NAMES) {
   assert([...land.trees, ...land.clumps].every((t) => !overlaps(pt(t), PARCEL) && !overlaps(pt(t), ROAD)), `${name}: no tree on the parcel or the road`);
   // The campus's own tree art stands on the flat valley floor only.
   assert(land.trees.every((t) => heightAt(land, t.col, t.row) === 0), `${name}: the drawn trees stand on the valley floor`);
+
+  // Plan 81C: the farms a minority of the land, kept to the road and the
+  // town; much of the rest wooded, and some open between the woods.
+  let land0 = 0; let farm = 0; let wooded = 0; let farFarm = 0;
+  for (let row = -180; row <= GH + 180; row += 3) {
+    for (let col = -180; col <= GW + 180; col += 3) {
+      const d = parcelDistance(col, row);
+      if (d <= 0 || d > 180 || (row >= ROAD_FIRST_ROW && row <= GH)) continue;
+      land0 += 1;
+      if (woodValue(land, col, row) > WOOD_AT) { wooded += 1; continue; }
+      const f = land.fields.find((x) => col >= x.c0 && col < x.c1 && row >= x.r0 && row < x.r1);
+      if (f && isFarm(f.cover)) {
+        farm += 1;
+        if (row < ROAD_FIRST_ROW - 100 || row > GH + 100) farFarm += 1;
+      }
+    }
+  }
+  assert(farm / land0 < 0.4, `${name}: farmland is under 40% of the land (${((100 * farm) / land0).toFixed(0)}%)`);
+  assert(farm / land0 > 0.1, `${name}: but there are farms (${((100 * farm) / land0).toFixed(0)}%)`);
+  assert(farFarm === 0, `${name}: the farms keep to the road and the town`);
+  assert(wooded / land0 > 0.3 && wooded / land0 < 0.7, `${name}: much of it wooded, not all (${((100 * wooded) / land0).toFixed(0)}%)`);
+  assert(land.houses.every((h) => woodValue(land, h.col + h.w / 2, h.row + h.h / 2) <= WOOD_AT), `${name}: no house in a wood`);
 
   // A flat valley floor, hills beyond it.
   let floorFlat = true;

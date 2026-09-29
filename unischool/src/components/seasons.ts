@@ -71,6 +71,7 @@ const BUD = '#9cc466';
 const CROP = '#bdb468';
 const HAY = '#9bb86c';
 const PLOUGH = '#9d8563';
+const ROUGH = '#8a9d5a';
 const SHOOTS = '#8fa860';
 const WOOD = '#4b7238';
 const WOOD_TURNED = '#9a7a33';
@@ -109,6 +110,7 @@ export function seasonStyle(week: number): CSSProperties {
     '--field-crop': ground(mixColor(CROP, BUD, s.bud * 0.7)),
     '--field-hay': ground(HAY),
     '--field-plough': ground(mixColor(PLOUGH, SHOOTS, s.bud * 0.5)),
+    '--field-rough': ground(ROUGH),
     '--wood': mixColor(mixColor(mixColor(mixColor(WOOD, WOOD_TURNED, s.turn), WOOD_BARE, s.bare), BUD, s.bud * 0.5), SNOW, s.snow * 0.45),
     '--pine-wood': mixColor(PINE_WOOD, SNOW, s.snow * 0.3),
     '--hedge': mixColor(mixColor(mixColor(HEDGE, HEDGE_TURNED, s.turn), HEDGE_BARE, s.bare), SNOW, s.snow * 0.35),
