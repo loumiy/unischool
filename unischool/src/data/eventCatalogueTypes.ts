@@ -21,7 +21,7 @@ export type ConditionKey =
   | 'reputationOver' | 'reputationUnder' | 'rankAtLeast' | 'rankAtMost'
   | 'beautyOver' | 'beautyUnder'
   | 'warmthOver' | 'warmthUnder'
-  | 'confidenceOver' | 'confidenceUnder' | 'rungAtLeast' | 'rungAtMost'
+  | 'rungAtLeast' | 'rungAtMost'
   | 'varsityAtLeast' | 'titlesAtLeast' | 'titleRecentAtLeast' | 'rivalAtLeast' | 'mascotAtMost'
   | 'adminShareOver' | 'payrollShareOver'
   | 'winterAtLeast' | 'springWeekAtMost';
@@ -31,7 +31,6 @@ export type ConditionKey =
 export type EffectKey =
   | 'cash' | 'endowment' | 'debt' | 'backlog'   // money: scaled to the college's budget
   | 'mood'        // satisfaction points, now
-  | 'confidence'  // the board's (finance/distress.ts)
   | 'warmth'      // every alumni class's (alumni/ledger.ts)
   | 'quality'     // the incoming class's quality
   | 'enrollment'  // students gained or lost, as a share of a founding college's body

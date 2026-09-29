@@ -5,10 +5,14 @@ import { STANDINGS, rankedListBy } from '../systems/rivals/rivalsSystem';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { rivalRanks } from '../systems/rivals/collegeRival';
 import { sportById } from '../data/studentLifeData';
+import { researchStandingBreakdown, socialStandingBreakdown } from '../systems/prestige/prestigeSystem';
+import { Standing } from './StandingBreakdown';
 
 // The league table (Plan 31, V1-22, V1-33): where the college stands on each
 // of the six axes this year, who leads each, and each rank charted over the
 // run. Lower is better; the charts are drawn upside down to read that way.
+// Under the cards, what the research and campus life rankings read (Plan
+// 80C moved them here from the Prestige panel: neither feeds prestige).
 
 export default function StandingsPanel({ s }: { s: GameState }) {
   const field = s.rivals.length + 1;
@@ -52,6 +56,13 @@ export default function StandingsPanel({ s }: { s: GameState }) {
             </article>
           );
         })}
+      </div>
+      <p className="standing-note standing-readings-note">
+        Research and campus life are standings of their own, scored as prestige is and ranked beside it; neither counts toward prestige.
+      </p>
+      <div className="standings">
+        <Standing breakdown={researchStandingBreakdown(s)} />
+        <Standing breakdown={socialStandingBreakdown(s)} />
       </div>
       {rival && (
         <p className="stat">

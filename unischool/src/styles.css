@@ -2188,6 +2188,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 .event-choice-cost { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--school-primary); white-space: nowrap; }
 .event-choice-detail { display: block; margin-top: 5px; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
+.event-choice-detail.promise-target { color: var(--ink); }
 
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: var(--text-base); color: var(--ink); margin-bottom: 6px; font-weight: 600; }
@@ -2624,6 +2625,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .report-table-rank, .report-table-score, .report-table-last { font-weight: 700; white-space: nowrap; }
 .report-table th:nth-child(3), .report-table th:nth-child(4), .report-table-score, .report-table-last { text-align: right; }
 .report-table .rank-move { font-size: var(--text-xs); }
+.report-table-gap td { text-align: center; color: var(--ink-muted); }
 
 .milestone-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 0 0 14px; }
 .milestone-card { padding: var(--inset-card); background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); min-width: 0; }

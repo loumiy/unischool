@@ -27,7 +27,9 @@ Everything that needs to stop time rides on this one mechanism:
   page), read exactly as the last beat's `RESOLVE_ADMISSIONS` then writes it
   onto `ending`. Play continues into the Epilogue.
 - **The rankings entry** — the one-time "you've entered the top 50" reveal,
-  which keeps its own moment because entering is the event.
+  which keeps its own moment because entering is the event. Its table
+  (`components/RankingsTable.tsx`) is the one History › the guide shows live
+  from the Rank chip (Plan 80C).
 - **The opening letters** — letters from the board's chair, data in
   `src/data/eventData.ts` (`OPENING_LETTERS`), once each, and skippable from
   the first ("I know the way"). Two kinds (Plan 55). Three are **calendar

@@ -29,6 +29,7 @@ import FacultyPortrait from './FacultyPortrait';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
+import RankingsTable from './RankingsTable';
 import AnimatedNumber from './AnimatedNumber';
 import Figure from './Figure';
 import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
@@ -702,30 +703,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
         <>
           <h3 className="report-standings-head">Top {standings.length}</h3>
           {/* With last year's position, so the list reads as motion. */}
-          <table className="report-table">
-            <thead>
-              <tr><th>#</th><th>School</th><th>Score</th><th>Last year</th></tr>
-            </thead>
-            <tbody>
-              {standings.map((r, i) => {
-                // Keyed by identity, not by name: the player may name their
-                // school anything, including something a rival is already called.
-                const move = r.previousRank === null ? null : r.previousRank - (i + 1);
-                return (
-                  <tr key={r.key} className={r.isPlayer ? 'me' : ''}>
-                    <td className="report-table-rank">{i + 1}</td>
-                    <td className="report-table-name">{r.name}</td>
-                    <td className="report-table-score">{Math.round(r.value)}</td>
-                    <td className="report-table-last">
-                      {r.previousRank === null
-                        ? '—'
-                        : <>#{r.previousRank}{move !== 0 && <span className={`rank-move ${move! > 0 ? 'up' : 'down'}`}> {move! > 0 ? '▲' : '▼'}{Math.abs(move!)}</span>}</>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <RankingsTable rows={standings.map((r, i) => ({ ...r, place: i + 1 }))} lastYear />
         </>
       )}
       <div className="modal-actions">

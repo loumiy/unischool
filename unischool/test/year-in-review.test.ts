@@ -112,7 +112,7 @@ console.log('year in review tests');
   assert(!buildYearInReview(s).truncated, 'a quiet founding year fits inside the log');
 
   // Every term carries its "what moves it" (Plan 78C), and it is the line
-  // History › Standing shows for that term, from the one function.
+  // History › Prestige shows for that term, from the one function.
   const inputs = prestigeBreakdown(s).inputs;
   const termLines = section(s, 'standing').lines.filter((l) => inputs.some((i) => l.text.startsWith(`${i.label}: `)));
   assert(termLines.length >= 9, `the review lists the grade's terms (${termLines.length})`);

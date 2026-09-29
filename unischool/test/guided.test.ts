@@ -5,7 +5,9 @@
 // hold, never for how well: the rules every state keeps
 // (sim/harness/invariants.ts), no interrupt left standing, and every
 // letter delivered with its ask done — a letter whose ask the guided
-// player cannot carry out is a line of play the game does not support.
+// player cannot carry out is a line of play the game does not support —
+// and a chronicle whose eras never repeat a kind in a row (Plan 80C; the
+// archetypes' are checked in test/archetypes.test.ts).
 //
 // How fast and how well it goes is measured by `npm run guided`, and the
 // owner sets any number from that report.
@@ -17,6 +19,7 @@ import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
 import { OPENING_LETTERS } from '../src/data/eventData';
+import { chronicleOf } from '../src/systems/chronicle/chronicle';
 
 let checks = 0;
 let failures = 0;
@@ -61,6 +64,9 @@ for (const run of RUNS) {
   // and founds from nothing, and seats every student in year one.
   const seated = r.done['doors-open'];
   assert(seated !== undefined && seated[0] === 1, `${label}: founds from nothing and seats every student in year one (${JSON.stringify(seated)})`);
+  const eras = chronicleOf(g.s).eras;
+  assert(eras.every((e, i) => i === 0 || e.kind !== eras[i - 1].kind), `${label}: no two eras of a kind in a row (${eras.map((e) => e.kind).join(', ')})`);
+  assert(new Set(eras.map((e) => e.name)).size === eras.length, `${label}: every era its own name (${eras.map((e) => e.name).join(' · ')})`);
   console.log(`  · ${label}: letters done by year ${Math.max(...Object.values(r.done).map(([y]) => y))}, ${Object.keys(r.schools).length} schools, the last school home in Founders Hall ${r.foundersHome ?? 'never'}, rank ${r.years[r.years.length - 1].rank} at the end`);
 }
 

@@ -2,24 +2,48 @@
 // names an era may be given, by the kind of years it was, and the sentences
 // that summarize it. systems/chronicle/chronicle.ts decides which apply.
 
+// Plan 80C: an era is named for what the college did, not for its rank. A
+// year's kind is its largest new thing, in the order of ERA_PRIORITY; rank
+// names an era only at a real turn (reaching first, entering the top ten, a
+// fall), and 'eventful' is a year of nothing new that answered one of the
+// board's letters, and is named for it.
 export type EraKind =
-  | 'founding' | 'building' | 'troubles' | 'receivership' | 'rise' | 'decline'
-  | 'campaign' | 'rivalry' | 'golden' | 'quiet' | 'eventful';
+  | 'founding' | 'receivership' | 'troubles' | 'first' | 'school' | 'graduate' | 'topTen'
+  | 'project' | 'titles' | 'prizes' | 'campaign' | 'fall' | 'building' | 'quiet' | 'eventful';
+
+// Largest first: a year is the first of these it has, and an era the first
+// of its years'.
+export const ERA_PRIORITY: readonly EraKind[] = [
+  'founding', 'receivership', 'troubles', 'first', 'school', 'graduate', 'topTen',
+  'project', 'titles', 'prizes', 'campaign', 'fall', 'building', 'eventful', 'quiet',
+];
 
 export const ERA_MIN_YEARS = 4;   // shorter runs fold into a neighbor
 export const ERA_MAX = 9;         // no more eras than a chronicle can hold
 export const ERA_MAX_YEARS = 12;  // a longer run is split where the most happened
+export const BUILDING_BOOM = 2;   // buildings finished in a year that make it a building year
+export const RANK_FALL = 5;       // places lost in three years that are a fall,
+export const RANK_FALL_WITHIN = 25; // for a college that was in the top this many
 
-export const ERA_NAMES: Readonly<Record<EraKind, readonly string[]>> = {
+// {school} is a school's subject ("Science"); {graduate} a graduate
+// program's name and {degree} its degree; {project} a capital project or a
+// grand landmark, without its "The"; {sport} the sport of a title.
+export const ERA_NAMES: Readonly<Record<EraKind | 'schools', readonly string[]>> = {
   founding: ['The Founding', 'The First Years', 'The Charter Years'],
-  building: ['The Building of {building}', 'The Scaffolding Years', 'The Years of {building}'],
-  troubles: ['The Hard Years', 'The Lean Years', 'The Hard Winters'],
   receivership: ['The Interim Years', 'The Years Under the CFO'],
-  rise: ['The Climb', 'The Rise', 'The Ascent'],
-  decline: ['The Slide', 'The Long Afternoon', 'The Slow Decline'],
-  campaign: ['The Campaign Years', 'The Years of Asking'],
-  rivalry: ['The {rival} Years', 'The Rivalry'],
-  golden: ['The Golden Age', 'The High Tide', 'The Good Years'],
+  troubles: ['The Hard Years', 'The Lean Years', 'The Hard Winters'],
+  first: ['The Top of the Guide', 'First in the Guide'],
+  school: ['The Years of the School of {school}', 'The Founding of the School of {school}'],
+  // An era that founded more than one school.
+  schools: ['The Years of the New Schools', 'The Schools of {school} and {school2}'],
+  graduate: ['The First {degree}s', 'The Years of the {graduate}'],
+  topTen: ['Into the Top Ten', 'The Top-Ten Years'],
+  project: ['The {project} Years', 'The Building of the {project}'],
+  titles: ['The Championship Years', 'The {sport} Years', 'The Title Years'],
+  prizes: ['The Prize Years', 'The Laureate Years'],
+  campaign: ['The Campaign Years', 'The Years of Asking', 'The {ordinal} Campaign'],
+  fall: ['The Slide', 'The Fall', 'The Long Afternoon'],
+  building: ['The Building of {building}', 'The Years of {building}', 'The Scaffolding Years', 'The Building Boom'],
   quiet: ['The Quiet Years', 'The Middle Years', 'The Settled Years', 'The Long Peace', 'The Years of Routine', 'The Steady State'],
   eventful: ['{event} and After', 'The Years of {event}', 'After {event}'],
 };
@@ -45,6 +69,11 @@ export const CHRONICLE_LINES = {
   missedMany: 'It missed its promises: {list}.',
   weathered: 'It weathered {list}.',
   firsts: 'Firsts: {list}.',
+  founded: 'It founded {list}.',
+  graduate: '{list} taught its full degree for the first time.',
+  graduates: '{list} taught their full degrees for the first time.',
+  prize: 'Its faculty won a research prize.',
+  prizes: 'Its faculty won {count} research prizes.',
 } as const;
 
 export const CHRONICLE_WORDS = {

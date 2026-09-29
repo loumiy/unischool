@@ -39,19 +39,14 @@ export const RECEIVERSHIP_TERMS = 9;
 export const BOARD_POLICY_DRAW = 0.05;
 export const BOARD_POLICY_MAINTENANCE = 0.5;
 
-// Above this draw the board thinks the college is eating its seed corn.
+// Above this draw the board thinks the college is eating its seed corn (the
+// Endowment panel says so). The board's confidence, which this once also
+// docked, was removed by Plan 80C: nothing but six events' gates read it.
 export const DRAW_RATE_PRUDENT = 0.05;
-
-export const BOARD_CONFIDENCE_START = 70;
-const CONFIDENCE_SURPLUS_GAIN = 2;
-const CONFIDENCE_DEFICIT_LOSS = 4;
-const CONFIDENCE_FREEZE_LOSS = 3;
-const CONFIDENCE_AUSTERITY_LOSS = 5;
-const CONFIDENCE_OVERDRAW_LOSS = 1;
 
 export function foundingDistress(): Distress {
   return {
-    rung: RUNG_SOUND, termsAtRung: 0, confidence: BOARD_CONFIDENCE_START,
+    rung: RUNG_SOUND, termsAtRung: 0,
     termNet: 0, surplusRun: 0, deficitRun: 0, receivershipTermsLeft: 0,
     letters: [], scars: [],
   };
@@ -177,16 +172,6 @@ export function closeTerm(s: GameState): void {
   if (d.rung === RUNG_RECEIVERSHIP) d.receivershipTermsLeft = Math.max(0, d.receivershipTermsLeft - 1);
   const from = d.rung;
   const to = nextRung(s, d);
-
-  let c = d.confidence;
-  // A surplus earns it back on a sound or merely tight footing: a college
-  // whose cash never covers a term can still be a well-run one.
-  if (surplus && to <= RUNG_TIGHT) c += CONFIDENCE_SURPLUS_GAIN;
-  if (!surplus) c -= CONFIDENCE_DEFICIT_LOSS;
-  if (to === RUNG_FREEZE) c -= CONFIDENCE_FREEZE_LOSS;
-  if (to >= RUNG_AUSTERITY) c -= CONFIDENCE_AUSTERITY_LOSS;
-  if ((s.finance.drawRate ?? 0) > DRAW_RATE_PRUDENT) c -= CONFIDENCE_OVERDRAW_LOSS;
-  d.confidence = Math.max(0, Math.min(100, c));
 
   if (to === RUNG_RECEIVERSHIP && from !== RUNG_RECEIVERSHIP) {
     d.receivershipTermsLeft = RECEIVERSHIP_TERMS;
