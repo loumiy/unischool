@@ -3,6 +3,7 @@ import { standsOnCampus } from '../state/types';
 import { ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID } from './facilitiesData';
 import { ANY_SCHOOL, GRADUATE_HOSTS, hostName } from './projectData';
 import { COURSE_DESCRIPTIONS, GRADUATE_COURSE_DESCRIPTIONS } from './courseDescriptions';
+import { hashUnit } from './rivalData';
 
 /*
   The curriculum as seed data, expanded into Buildable[]: 42 majors across
@@ -31,6 +32,17 @@ const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
 // Weeks to develop a course, by tier: an entry course takes a few weeks, a
 // tier-3 capstone is a multi-month commitment.
 const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
+
+// Each course's weeks are its tier's (or its graduate kind's), varied up to
+// COURSE_LENGTH_SPREAD either way, fixed for that course by a hash of its id
+// (Plan 80E), so the committee's courses finish at different times rather
+// than a tier's all together. Whole weeks, at least one; every band's ends
+// are whole weeks, so the rounding keeps inside it.
+export const COURSE_LENGTH_SPREAD = 0.25;
+export function courseWeeks(id: string, baseWeeks: number): number {
+  const spread = (2 * hashUnit(`course-length:${id}`) - 1) * COURSE_LENGTH_SPREAD;
+  return Math.max(1, Math.round(baseWeeks * (1 + spread)));
+}
 
 // Development cost by tier (docs/design/economy.md). Tier 1 is priced so the
 // tier-1 build-out visibly tightens the surplus.
@@ -769,7 +781,7 @@ export function initialTech(): Buildable[] {
           name: `${major.prefix} ${num} · ${title}`,
           description,
           cost: TIER_COURSE_COST[tier],
-          duration: TIER_DURATION_WEEKS[tier],
+          duration: courseWeeks(id, TIER_DURATION_WEEKS[tier]),
           // Starts locked and unlocks as prereqs complete; the founding
           // programs' first courses are seeded 'done' by createInitialState.
           prereqs,
@@ -850,7 +862,7 @@ export function initialTech(): Buildable[] {
           ? `${GRADUATE_COURSE_DESCRIPTIONS[id]} Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}; offered once ${graduateGateDescription(program)}, and taught there.`
           : GRADUATE_COURSE_DESCRIPTIONS[id],
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
-        duration: professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS,
+        duration: courseWeeks(id, professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS),
         prereqs,
         status: 'locked',
         requiresFaculty: course.field,
