@@ -88,7 +88,8 @@ function fresh(): GameState {
 {
   let s = fresh();
   const m = MILESTONES.find((x) => x.id !== CHARTER_ID && !x.quiet && !x.side)!;
-  s.ladder.reached[m.id] = 3;
+  s.ladder.reached[m.id] = s.clock.year;
+  s.ladder.reachedWeek[m.id] = weekOf(s) - 3;
   s.ladder.unread = [m.id];
   let letter = inboxItems(s).find((i) => i.id === `milestone:${m.id}`)!;
   assert(letter !== undefined && letter.tier === 'letter' && letter.unread, 'a milestone reached arrives as an unread letter');
@@ -99,6 +100,38 @@ function fresh(): GameState {
   assert(letter !== undefined && !letter.unread, 'read, it stays in the inbox for the record');
   badge = inboxBadge(inboxItems(s));
   assert(badge.unreadLetters === 0, 'and the dot goes');
+}
+
+// Letters leave the inbox a year after they arrive (Plan 80D): a milestone's
+// from the week it was reached, a founding note from its moment; read or
+// not. A save from before the milestones kept their week reads week 1 of
+// the year.
+{
+  const s = fresh();
+  const m = MILESTONES.find((x) => x.id !== CHARTER_ID && !x.quiet && !x.side)!;
+  const has = (id: string) => inboxItems(s).some((i) => i.id === id);
+  s.ladder.reached[m.id] = s.clock.year - 1;
+  s.ladder.reachedWeek[m.id] = weekOf(s) - (WEEKS_PER_YEAR - 1);
+  s.ladder.unread = [m.id];
+  assert(has(`milestone:${m.id}`), 'a milestone reached 51 weeks ago is still a letter');
+  s.ladder.reachedWeek[m.id] = weekOf(s) - WEEKS_PER_YEAR;
+  assert(!has(`milestone:${m.id}`), 'a year after it was reached, it has left, unread or not');
+  assert(inboxBadge(inboxItems(s)).unreadLetters === 0, 'and dots the button no more');
+  delete (s.ladder.reachedWeek as Record<string, number>)[m.id];
+  s.ladder.reached[m.id] = s.clock.year;
+  assert(has(`milestone:${m.id}`), 'one with no week recorded is dated to the start of its year');
+  s.ladder.reached[m.id] = s.clock.year - 1;
+  assert(!has(`milestone:${m.id}`), 'and leaves a year after that');
+
+  const dorm = s.tech.find((t) => t.kind === 'dorm')!;
+  const at = (w: number) => ({ year: Math.floor((w - 1) / WEEKS_PER_YEAR) + 1, week: ((w - 1) % WEEKS_PER_YEAR) + 1 });
+  s.clock.year = 2;
+  s.clock.week = 30;
+  s.log = [{ ...at(weekOf(s) - 20), message: `${dorm.name} is finished.`, kind: 'good', topic: 'building', subject: dorm.id }];
+  assert(has('founding:firstResidence'), 'the first residence\'s note arrives in the founding years');
+  s.clock.year = 3;
+  s.clock.week = 10;
+  assert(!has('founding:firstResidence'), 'and leaves a year after its moment');
 }
 
 // A student demand: to decide, counted until read, listed until met.
@@ -149,6 +182,7 @@ function fresh(): GameState {
   withEvent(after, weekOf(after));
   const m = MILESTONES.find((x) => x.id !== CHARTER_ID && !x.quiet)!;
   after.ladder.reached[m.id] = 5;
+  after.ladder.reachedWeek[m.id] = weekOf(after);
   after.ladder.unread = [m.id];
   const got = arrivalsIn(before, after);
   assert(got.length === 2, `an event and a milestone arrive (${got.length})`);

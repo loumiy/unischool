@@ -165,13 +165,12 @@ export function declineOffer(s: GameState, programId: string): void {
   refillOffers(s);
 }
 
-// Tops the offer back up to PROGRAM_OFFER_COUNT: at founding, after each
-// FOUND_PROGRAM, and after weeks that finish something (when a graduate gate
-// may open). Idempotent. Offers that became unofferable are dropped first.
-//
-// `guarantee` (founding only) names majors of which at least one must be on
-// the table; the first draw is confined to them, the rest are ordinary.
-export function refillOffers(s: GameState, guarantee: readonly string[] = []): void {
+// Tops the offer back up to PROGRAM_OFFER_COUNT: at founding (where the
+// table is already the founding pillars, Plan 80D), after each
+// FOUND_PROGRAM, and after weeks that finish something (when a graduate
+// gate may open). Idempotent. Offers that became unofferable are dropped
+// first.
+export function refillOffers(s: GameState): void {
   const offerable = offerablePrograms(s);
   const byId = new Map(offerable.map((program) => [program.id, program]));
   s.programOffers = s.programOffers.filter((id) => byId.has(id));
@@ -203,9 +202,6 @@ export function refillOffers(s: GameState, guarantee: readonly string[] = []): v
     s.programOffers.push(chosen.id);
     pool = pool.filter((program) => program.id !== chosen.id);
   };
-
-  const guaranteed = pool.filter((program) => guarantee.includes(program.id));
-  if (guaranteed.length > 0 && !s.programOffers.some((id) => guarantee.includes(id))) take(pickFrom(guaranteed));
 
   while (s.programOffers.length < PROGRAM_OFFER_COUNT && pool.length > 0) {
     // Two from started schools, one from a new one, while both kinds remain.

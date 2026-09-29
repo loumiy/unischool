@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------
 
 import { reducer } from '../src/engine/reducer';
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import type { GameState } from '../src/state/types';
 import { weeklyNet } from '../src/systems/finance/financeSystem';
 import { bindScriptStream } from '../src/engine/random';
@@ -43,7 +43,7 @@ function assert(cond: boolean, msg: string): void {
 }
 
 function fresh(): GameState {
-  return createInitialState('Distress');
+  return teachingCollege('Distress');
 }
 
 function emptyClasses(s: GameState): void {

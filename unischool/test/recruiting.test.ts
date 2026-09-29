@@ -204,7 +204,7 @@ function years(s: GameState, n: number): void {
   const read = readSave(raw);
   assert(!('refused' in read), 'it loads');
   if (!('refused' in read)) {
-    assert(SAVE_VERSION >= 82, `at version 82 or later (${SAVE_VERSION})`);
+    assert(SAVE_VERSION >= 86, `at version 86 or later (${SAVE_VERSION})`);
     assert(read.state.orgs.teams.every((t) => t.scholarships === 'none' && t.recruiting === 0), 'every team with no scholarships and nothing built up');
     assert(departmentPot(read.state).programs.filter((p) => p.band === 'flagship').length <= departmentPot(read.state).cap, 'and its flagships within the cap');
   }

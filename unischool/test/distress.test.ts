@@ -108,7 +108,6 @@ const letters = (s: GameState) => distressOf(s).letters;
   assert(letters(s).every((id) => BOARD_LETTERS[id] !== undefined), 'every one of them written');
   s = reducer(s, { type: 'READ_BOARD_LETTER' });
   assert(letters(s).length === 3, 'and read one at a time');
-  assert(distressOf(s).confidence < 70, 'the board\'s confidence remembers');
 }
 
 // ---- Out of austerity by recovery ----

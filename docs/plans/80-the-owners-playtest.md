@@ -281,6 +281,99 @@ funds D introduces. Save bumps land in merge order.
   chronicle over the harness players shows no repeated era kind in a row;
   the save fixture migrates.
 
+**As implemented (#250):**
+
+- **Prestige:**
+  - The chip opens History › Prestige (section `history.prestige`, which
+    replaces `history.standing`): prestige's breakdown alone, its figure
+    in the panel head. The breakdown's label is now "Prestige".
+  - Its research and campus rows are "The labs' output" and "Recreation
+    buildings and venues"; each says it is prestige's own reading and that
+    the standing of that name is ranked on its own.
+  - Research standing and campus life standing are broken down under
+    History's standings (`StandingsPanel.tsx`), which also shows from the
+    first commencement now. The breakdown view moved to
+    `tabs/StandingBreakdown.tsx`.
+- **Rank:** the chip opens History › the guide (`history.rankings`,
+  `tabs/RankingsPanel.tsx`), shown from the first week. The table is the
+  entry reveal's, pulled out as `components/RankingsTable.tsx` and used by
+  both; the live one reads `rankedList` (the academic `rankedListBy`),
+  prints the top fifty and, below them, a gap and the college's row with a
+  neighbor either side. It has no "Last year" column (the report's
+  previous places are the summer's reconstruction).
+- **Promises:**
+  - `systems/promises/promiseTargets.ts` writes a goal from its condition
+    keys: "Admit rate 25% or lower at the summer of Year 14. Now 36%."; a
+    two-part goal names each part. Money is at the promise's own scale.
+  - The offer (each choice, under its text) and the Promises panel (each
+    open promise, in place of "Made in Year N") show it.
+  - No promise text contradicted its goal; the ids that name other numbers
+    (`found-six-schools`, `open-thirty-programs`, `one-fifty-million`) are
+    internal and stay. The test reads every title that names a number back
+    against the goal.
+- **The admissions reveal:** one "price" part, the product of the price
+  and sticker-shock factors (`yearOverYear.ts`); the funnel is unchanged.
+- **Board confidence removed:**
+  - The field, its term arithmetic, the `confidenceOver`/`confidenceUnder`
+    conditions, the `confidence` effect (188 answers, all 27 promises), the
+    Treasury's figure, its hint and the "recovered" letter's clause.
+  - The six gates: *A trustee resigns* is gated on Deficit or worse
+    (`rungAtLeast: 2`); *The board retreat* on Tight or better
+    (`rungAtMost: 1`); *The strategic plan*, *The consultants' report*,
+    *The board secretary* and *Term limits* lose the gate and keep their
+    years.
+  - 22 answers moved only the confidence; they now change nothing and
+    say "nothing to speak of". Every event keeps an answer that does
+    something, and the catalog test now asks that of each event rather
+    than each answer.
+  - 13 promises' only penalty was the confidence. The design gives every
+    promise a penalty, so each now costs 2 points of alumni warmth, the
+    smallest penalty the other promises use (a judgment call; the harness
+    declines promises, so the sim does not see it).
+  - `SAVE_VERSION` 83 → 84, with a migration (`dropBoardConfidence`,
+    `MIGRATIONS[83]`). `test/fixtures/save-v81-confidence.json` is the
+    `year-8-balanced` scenario written at version 81, before this PR, and
+    migrates through every later step; `test/promise-targets.test.ts`
+    loads it. `test/fixtures/save-v83.json` is the same scenario written
+    by main at version 83, for the chain's one-fixture-per-link check.
+- **The chronicle:**
+  - A year is its largest new thing, in this order: the founding years,
+    receivership, troubles, reaching first, a school founded, a graduate
+    degree taught in full, entering the top ten, a capital project or
+    grand landmark, titles, research prizes, a campaign, a fall, a
+    building boom (two or more), a letter answered, else quiet.
+  - A fall is losing first, leaving the top ten, or five places in three
+    years from the top 25. The rise, decline, golden and rivalry kinds
+    are gone (the rival's line stays in the summary).
+  - An era is the largest kind of its years; a short run folds into a
+    neighbor as before and the pair takes the larger kind; two eras of a
+    kind never stand in a row. A long run is split only where each part
+    can be named for something its neighbor is not.
+  - Names: "The Years of the School of Science", "The Schools of Science
+    and Business", "The First PhDs", "The Medical Center Years", "The
+    Championship Years", "The Laureate Years", "Into the Top Ten", "First
+    in the Guide", "The Slide". The summaries add the schools founded, the
+    degrees taught in full and the prizes.
+  - It needed two records: `GameState.milestoneYears` (written by
+    `awardMilestone`) and the history rows' `prizes`. Both are optional;
+    a save from before reads its milestones as undated.
+  - `test/archetypes.test.ts` and `test/guided.test.ts` check every
+    harness player's chronicle: no two eras of a kind in a row, every
+    name its own, at most two named for the guide, and across the runs
+    the names mostly distinct.
+- **The baseline moved** (re-recorded after merging 80B, 80E, 80H and
+  80I; medians against main's baseline, before → after): Completionist Y50
+  cash $143M → $976M, Y10 satisfaction 89.7 → 85.6; Selective Y50 rank
+  18 → 21, prestige 117.2 → 112.9; Lean Y50 rank 26 → 31, prestige 108.7 →
+  98.7, enrolled 12,665 → 4,452, satisfaction 74.4 → 67.7; Guided Y25 cash
+  $43M → $68M, Y50 cash $613M → $960M; Completionist and Guided still
+  finish first. No rule was retuned: the six events' new gates
+  change which board events fire and when, and every later draw on the
+  run's stream moves with them; the confidence effects themselves reached
+  nothing else. Lean is bimodal (see 80E's note), and its move is which
+  side two of the three seeds land on; Y50 cash swings with the endowment
+  sweep's timing.
+
 ## PR 80D — The opening
 
 - **The college starts with nothing to teach.** No professors, no courses;
@@ -320,6 +413,95 @@ funds D introduces. Save bumps land in merge order.
 - **Checks:** the walkthrough from the title to the first program; skip at
   each step; letters expire; the charter rename; the save fixture
   migrates (a milestone's week).
+
+**As implemented (#251):**
+- **The start:** no professor, no course, every program slot of Founders
+  Hall free, 350 students. The first program offers are the pillars
+  (English, Mathematics, Economics), and the market opens with their
+  professors, Bennett, Iyer and Okafor (`FOUNDING_MARKET`, grown over
+  `FOUNDING_TENURE_WEEKS` as before), beside 27 ordinary candidates. Reyes
+  and Novak and the founding offer's guarantee are gone. A headless
+  founding (the harness) still sites the hall at the center.
+- **The walkthrough:** welcome, then site Founders Hall, then *Appoint the
+  first professor* (the hall's panel opens; the free program slot, English
+  and later Found are rung; Bennett is appointed from the market beside
+  the program), then *Found the first program* (English, its entry course
+  to the committee), then play. `settleOpening` moves through steps
+  already done. "Not this year" is hidden during the walk. Skipping, from
+  any card, leaves an unsited hall unsited: the clock holds, the Build
+  button and the hall's tile are rung, and NEXT reads "Site Founders Hall:
+  the clock waits until it stands".
+- **Crowded until the courses come:** a new reading (`seating.ts`) names
+  the cheapest step while the places taught and coming fall short of the
+  students: "Places for 80 of 350 students, counting courses under way:
+  found another program in Founders Hall, with a professor to teach it",
+  or a course to develop, or the professor it needs. It is the first
+  letter's ask (done when a program is housed and every student has a
+  place), and NEXT's after a dark program in later years. Zero courses
+  reads zero coverage, never a division; the first summer's class is held
+  to the room.
+- **Founding funds, provisional: $2.45M** (was $3M). The Guided player's
+  Year 2 body is about 345 (344, 344, 346 on the three seeds) and the
+  founding body 350, so five courses (400 places). The cheapest five are
+  five programs' entry courses, 5 × $300k = $1.5M; a professor each for a
+  year, the three founding-market professors at about $105k and two
+  median candidates at about $73k, $0.46M; the courses carried for a year,
+  5 × $300 × 52 = $0.08M. $2.04M, and a fifth more is $2.45M. The Guided
+  player's lowest cash in Years 1–2 is $0.18–0.20M.
+- **Letters:** "A program of its own" deleted. "The doors open" rewritten.
+  "A hall of its own" says a school is six programs of one school in any
+  hall, Founders Hall included. "Moving in" (the second academic hall
+  standing) asks "Establish a school: six programs of {school} in one hall
+  (n of 6)" for the school closest to six (`schools.ts`'s `closestSchool`,
+  `establish.ts`); "A school takes shape" comes at three in one hall with
+  the same ask; both are done when a school is founded; "A second school"
+  follows the first school founded and is done at two. NEXT's move reading
+  (`awayFromHome`) is replaced by the same establish line, shown only when
+  something can be done this week; its intent (found the school's program
+  there, bring one in, or make room in a full hall) is the guided player's
+  way there and is never named. The suggested move stays on the program
+  tile. The chair's letters no longer mention the founding three; the
+  "A fourth program" milestone keeps its condition (four housed).
+- **Letters expire:** a milestone records its week (`s.ladder.reachedWeek`);
+  its letter, and the founding note, leave the inbox a year after
+  (`LETTER_WEEKS`). **Save 84 → 85** (`MIGRATIONS[84]`, after 80I's, 80H's
+  and 80C's): each milestone reached is dated to week 1 of its year, and a
+  walk held on the old "teaching" or "found" step resumes at play.
+  Fixtures: `save-v84.json` (the `year-8-balanced` scenario written by
+  main before this PR) for the chain, and `save-v81-opening.json` (a
+  Guided Year 9 run from before it) for the milestone weeks.
+- **The pennant** renames nothing. The charter's letter carries a name
+  field beside its two answers; an answer with a new name renames the
+  college first. `RENAME_COLLEGE` is refused unless the charter waits, so
+  the rename is once; "Keep the name" is final ("College for good").
+- **The harness** founds from nothing through its existing moves (the
+  guided player's `foundIn` and the archetypes' `hireForBlocked` hire from
+  the market, then found). Tests written against the old college use
+  `test/fixtures/teaching.ts`, which appoints the three and houses the
+  pillars with two courses each.
+- **Baseline move**, against main's after 80B, 80C, 80E, 80H and 80I
+  (medians, three seeds): the Guided player at Year 10 has 4,897 students
+  (−465), 74 courses (−7) and 4 schools (−2), with $8.7M (+$4.1M); at Year
+  25 rank 10 (−2, better), 25,680 students (−1,200), $40.7M (−$27.2M); at
+  Year 50 rank 1, prestige 143.3 (−0.9), $289M (−$671M); lowest cash
+  $0.2M. The Completionist is 623 students and 7 courses behind at Year
+  10, level by Year 25, and ends with $133M (−$843M) at rank 1. Selective
+  and Lean finish a place or four better (Lean +2,930 students and +$322M
+  at Year 50). The Idle college never founds: no course, no students from
+  Year 10 (51 before), and its prestige, no longer held down by an unhappy
+  body, sits near 50. The Year-50 cash of the players that build
+  everything swings by hundreds of millions on small timing changes; the
+  shape of each run holds.
+- **With the committee** (80B, 80E): founding needs a free committee seat.
+  The walk's first founding always has one, and the seating reading and
+  the first letter step aside while the committee is full, so neither the
+  walk nor the harness waits on a founding that would be refused.
+- **Checks:** `opening.test.ts` (the walk from the founding to English
+  founded, a professor appointed early, the skip at each step),
+  `first-year.test.ts` (NEXT seats the students), `inbox.test.ts` (letters
+  expire), `charter.test.ts` (the rename, once), `save-migrations.test.ts`
+  (84 → 85), `guided.test.ts` (founds and seats every student in Year 1).
+  `npm run newplayer` follows the new walk to Year 2 with no stall.
 
 ## PR 80E — The committee
 

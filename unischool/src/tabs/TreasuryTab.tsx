@@ -137,7 +137,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               label="The board"
               hint={FIGURE_HINTS.board}
               value={<>
-                {RUNG_NAMES[distress.rung]}, confidence {Math.round(distress.confidence)}
+                {RUNG_NAMES[distress.rung]}
                 {distress.rung === RUNG_RECEIVERSHIP && <span className="stat"> — the interim CFO sets the draw and the maintenance, {distress.receivershipTermsLeft === 1 ? 'one term' : `${distress.receivershipTermsLeft} terms`} left</span>}
                 {distress.rung === RUNG_AUSTERITY && <span className="stat"> — no construction, no maintenance, and tuition may rise but not fall</span>}
                 {distress.rung === RUNG_FREEZE && <span className="stat"> — no construction or borrowing until two surplus terms</span>}

@@ -3,6 +3,7 @@ import type { Faculty } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { initialTech } from './techData';
 import { random, newId } from '../engine/random';
+import { FOUNDING_MARKET } from './foundingData';
 
 // ---------------------------------------------------------------------
 // Name generation. Each pool has a cultural origin; the first-name pool is
@@ -577,10 +578,10 @@ const FACULTY_GROWTH_PLATEAU_FRACTION = 0.95;
 const FACULTY_GROWTH_RATE_PER_WEEK =
   1 - (1 - FACULTY_GROWTH_PLATEAU_FRACTION) ** (1 / (FACULTY_GROWTH_PLATEAU_YEARS * WEEKS_PER_YEAR));
 
-// How long the five founding professors are taken to have been teaching
-// when the university opens (see actions.ts's roster). Stats are derived
-// from potential plus tenure every tick, so tenure is the only way to make
-// them established. 78 weeks puts their mean teaching at 66 (Associate on
+// How long the founding market's professors (foundingData.ts's
+// FOUNDING_MARKET) are taken to have been teaching when the college opens.
+// Stats are derived from potential plus tenure every tick, so tenure is the
+// only way to make them established. 78 weeks puts their mean teaching at 66 (Associate on
 // QUALITY_TIER_THRESHOLDS). The +38% founding payroll that comes with it
 // is intended; raising it further is what the low-tuition discount build
 // can't carry.
@@ -795,12 +796,29 @@ function clampPotential(v: number): number {
   return Math.max(0, Math.min(100, v));
 }
 
-// The market the week the university is founded: a full pool. weeksListed
-// is staggered so the pool doesn't age out in one synchronized wave.
+// The founding market's professors (Plan 80D), as candidates: listed from
+// the first week, with the record FOUNDING_TENURE_WEEKS gives them.
+export function foundingCandidates(): Faculty[] {
+  return FOUNDING_MARKET.map((p) => {
+    const teaching = grownStat(p.teachingPotential, FOUNDING_TENURE_WEEKS);
+    const research = grownStat(p.researchPotential, FOUNDING_TENURE_WEEKS);
+    return {
+      id: p.id, name: p.name, field: p.field, teaching, research,
+      teachingPotential: p.teachingPotential, researchPotential: p.researchPotential,
+      tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
+      salary: facultySalary(teaching, research, FOUNDING_TENURE_WEEKS, 0), courseSlots: p.courseSlots,
+      nationality: p.nationality, flag: p.flag, gender: p.gender, heritage: p.heritage, bio: p.bio,
+    };
+  });
+}
+
+// The market the week the university is founded: the founding market's
+// professors, then ordinary candidates up to a full pool. weeksListed is
+// staggered so the pool doesn't age out in one synchronized wave.
 export function initialCandidatePool(): Faculty[] {
-  const pool: Faculty[] = [];
-  const names: string[] = [];
-  for (let i = 0; i < CANDIDATE_POOL_TARGET; i += 1) {
+  const pool: Faculty[] = foundingCandidates();
+  const names: string[] = pool.map((c) => c.name);
+  while (pool.length < CANDIDATE_POOL_TARGET) {
     const candidate = generateCandidate(rollCandidateField(), names);
     candidate.weeksListed = Math.floor(random() * CANDIDATE_LISTING_WEEKS);
     pool.push(candidate);

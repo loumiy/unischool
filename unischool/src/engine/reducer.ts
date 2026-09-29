@@ -203,7 +203,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       // Gate and mutation live in foundProgram, so the hall panel can ask
       // the same predicate before offering the button.
       foundProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot, facultyId: action.facultyId });
-      settleOpening(s); // the walkthrough's last step ends on a fourth program founded
+      settleOpening(s); // the walkthrough's last step ends on a program founded
       return s;
     }
 
@@ -219,6 +219,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'HIRE_FACULTY':
       hireFaculty(s, action);
+      settleOpening(s); // the walkthrough's appointing step ends on a professor appointed
       return s;
 
     case 'FIRE_FACULTY':
@@ -597,7 +598,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     // The college's name (Plan 72E), from the pennant: the name the
     // founding screen took, and College or, once chartered, University.
+    // The college's one rename (Plan 80D): in the charter's letter, while it
+    // waits for an answer (InboxTab.tsx's CharterAnswer). Refused at any
+    // other time; the pennant renames nothing.
     case 'RENAME_COLLEGE': {
+      if (!s.catalogue?.pending.some((p) => p.instanceId === CHARTER_INSTANCE)) return state;
       const name = bareSchoolName(action.name).slice(0, COLLEGE_NAME_MAX);
       if (name === '') return state;
       const suffix = action.suffix === 'University' && s.self.universityCharterOffered ? 'University' : 'College';

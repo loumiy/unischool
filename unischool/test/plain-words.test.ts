@@ -13,7 +13,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import type { Buildable, FunnelRecord } from '../src/state/types';
 import { courseHoldReason, crossMajorPrereqs } from '../src/systems/techtree/programProgress';
 import { admitRateOpening, crowdingLabel, poolChange } from '../src/systems/admissions/yearOverYear';
@@ -33,7 +33,7 @@ console.log('plain words tests');
 
 // --- a course's reason --------------------------------------------------
 {
-  const s = createInitialState('Words');
+  const s = teachingCollege('Words');
   const find = (id: string): Buildable => s.tech.find((t) => t.id === id)!;
 
   // International Finance needs FINA 101 and, from Economics, ECON 110.
@@ -58,7 +58,7 @@ console.log('plain words tests');
   assert(courseHoldReason(s, engl120) === '$1,000 short of the development cost', `the cash it is short, as the drawer says it (${courseHoldReason(s, engl120)})`);
   s.finance.cash = cash;
   // A fresh college: its one economist teaches a full load.
-  const fresh = createInitialState('Words');
+  const fresh = teachingCollege('Words');
   const econ130 = fresh.tech.find((t) => t.id === 'ECON130')!;
   assert(econ130.status === 'available' && courseHoldReason(fresh, econ130) === 'Needs Economics faculty', `a full department reads as the faculty it needs (${courseHoldReason(fresh, econ130)})`);
 

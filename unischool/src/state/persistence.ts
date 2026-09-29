@@ -53,7 +53,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 84; // Plan 80G: each team's scholarships and recruiting
+export const SAVE_VERSION = 86; // Plan 80G: each team's scholarships and recruiting
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -127,7 +127,30 @@ function dropQuadMarks(state: GameState): void {
   delete (state as GameState & { quads?: unknown }).quads;
 }
 
-// 83 -> 84, Plan 80G: each team carries a scholarship budget and the
+// 83 -> 84, Plan 80C: the board's confidence is removed. The ladder keeps
+// its rung and its terms; the number goes. The same plan dates milestones
+// (GameState's milestoneYears) and counts prizes on the history rows; a save
+// from before has neither, which the chronicle reads as undated.
+function dropBoardConfidence(state: GameState): void {
+  const d = state.finance?.distress as (Record<string, unknown> | undefined);
+  if (d && typeof d === 'object') delete d.confidence;
+}
+
+// 84 -> 85, Plan 80D: a milestone records the week it was reached
+// (LadderState.reachedWeek), so its letter leaves the inbox a year after.
+// A save from before it knows only the year: week 1 of it. And the
+// walkthrough's steps were redrawn for a college that opens with nothing
+// to teach; a save from before it was founded teaching three programs, so
+// a walk held on its old third or fourth step has nothing left to do.
+function milestoneWeeks(state: GameState): void {
+  const reached = state.ladder.reached;
+  state.ladder.reachedWeek = {};
+  for (const [id, year] of Object.entries(reached)) state.ladder.reachedWeek[id] = (year - 1) * WEEKS_PER_YEAR + 1;
+  const stage = state.events.opening.stage as string;
+  if (stage === 'teaching' || stage === 'found') state.events.opening.stage = 'play';
+}
+
+// 85 -> 86, Plan 80G: each team carries a scholarship budget and the
 // strength its recruited classes add. Before it there was no recruiting, so
 // every team starts with no budget and nothing built up; flagships are
 // derived from the order and the subsidy level, never stored.
@@ -147,7 +170,9 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   80: noLiftYet,
   81: benchFacings,
   82: dropQuadMarks,
-  83: noRecruitingYet,
+  83: dropBoardConfidence,
+  84: milestoneWeeks,
+  85: noRecruitingYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -470,7 +495,7 @@ function sanitizeDistress(state: GameState): void {
     const x = d as Record<string, unknown>;
     const num = (k: string) => typeof x[k] === 'number' && Number.isFinite(x[k]);
     return Number.isInteger(x.rung) && (x.rung as number) >= 0 && (x.rung as number) <= 5
-      && ['termsAtRung', 'confidence', 'termNet', 'surplusRun', 'deficitRun', 'receivershipTermsLeft'].every(num)
+      && ['termsAtRung', 'termNet', 'surplusRun', 'deficitRun', 'receivershipTermsLeft'].every(num)
       && Array.isArray(x.letters) && x.letters.every((l) => typeof l === 'string')
       && Array.isArray(x.scars) && x.scars.every((y) => Number.isInteger(y));
   })();
@@ -478,6 +503,17 @@ function sanitizeDistress(state: GameState): void {
   // A letter the game no longer has would sit first in the queue unshown
   // and hold every later letter behind it.
   state.finance.distress!.letters = state.finance.distress!.letters.filter((id) => id in BOARD_LETTERS);
+}
+
+// The milestones' years (Plan 80C): optional, a year to each key; anything
+// else is dropped, and the chronicle then reads the milestone as undated.
+function sanitizeMilestoneYears(state: GameState): void {
+  const years = state.milestoneYears as unknown;
+  if (years === undefined) return;
+  if (typeof years !== 'object' || years === null || Array.isArray(years)) { delete state.milestoneYears; return; }
+  const clean: Record<string, number> = {};
+  for (const [key, year] of Object.entries(years)) if (Number.isInteger(year)) clean[key] = year as number;
+  state.milestoneYears = clean;
 }
 
 function sanitizeEstate(state: GameState): void {
@@ -978,6 +1014,7 @@ function sanitize(state: GameState): void {
   // Trees after placements: it reads the cleaned placements.
   sanitizeTrees(state);
   sanitizeEstate(state);
+  sanitizeMilestoneYears(state);
   sanitizeSeats(state);
   sanitizeQuirks(state);
   sanitizeAlumni(state);

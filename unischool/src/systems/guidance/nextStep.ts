@@ -1,7 +1,9 @@
 import type { GameState, SatisfactionAttributes } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
-import { claimedHalls, claimedSchool, hallDisplayName, nextSchoolToMove, programsAwayFromHome, schoolHall, schoolToMerge, suggestedMove } from '../techtree/schools';
+import { claimedHalls, claimedSchool, hallDisplayName, schoolHall } from '../techtree/schools';
+import { seatingAsk } from './seating';
+import { establishAsk } from './establish';
 import { isHoused, schoolOffers } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
@@ -15,13 +17,14 @@ import { satisfactionFigure } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
-// In year 1 it is the latest undone letter ask (the letters' order must not
-// be contradicted); afterward it is a letter's ask still undone, then a
-// reading of the campus, in priority order: a dark program the market can
-// staff (Plan 60: it seats nobody, so it outranks a letter), the board's ask
-// about idle cash (Plan 70D), a program that can move to its
-// school's hall, free hall slot, program one course from established,
-// attribute shortfall, idle lab. Recomputed every render; nothing is stored.
+// In year 1 it is the earliest undone letter ask (the letters' order must
+// not be contradicted), then the students short of places; afterward it is
+// a letter's ask still undone, then a reading of the campus, in priority
+// order: a dark program the market can staff (Plan 60: it seats nobody, so
+// it outranks a letter), the students short of places (Plan 80D), the
+// board's ask about idle cash (Plan 70D), a school to establish, free hall
+// slot, program one course from established, attribute shortfall, idle
+// lab. Recomputed every render; nothing is stored.
 
 export interface NextStep {
   text: string;
@@ -96,45 +99,23 @@ function letterAsk(s: GameState): NextStep | null {
   return null;
 }
 
-// A program away from home that can move now (Plan 55): into its school's
-// hall, or, for the next school to move, into an empty one; or, for a
-// school split over two halls, into the larger (Plan 72L). Pointed at the
-// hall it is in, whose panel carries the move.
-function awayFromHome(s: GameState): NextStep | null {
-  const merge = schoolToMerge(s);
-  for (const away of programsAwayFromHome(s)) {
-    const move = suggestedMove(s, away.programId);
-    if (!move) continue;
-    const program = programById(away.programId);
-    const hall = s.tech.find((t) => t.id === move.hallId);
-    const from = s.tech.find((t) => t.id === away.hallId);
-    if (!program || !hall || !from) continue;
-    const name = hallDisplayName(s, hall);
-    return {
-      text: merge?.from === away.hallId
-        ? `${program.school} is split over two halls: move ${program.name} into ${name} and ${hallDisplayName(s, from)} is free for another school`
-        : claimedSchool(s, move.hallId)
-          ? `${program.name} could move to ${name}, which teaches ${program.school}`
-          : `${name} stands empty: move ${program.name} into it and ${program.school} has a hall of its own`,
-      go: 'hall',
-      hallId: away.hallId,
-      programId: away.programId,
-      intent: { kind: 'move', programId: away.programId, ...move },
-    };
-  }
-  // Nowhere to move to: the school next out of Founders Hall needs the next
-  // hall in the chain (Plan 58; the line used to stop here, and a school
-  // could stay in Founders Hall for good).
-  const school = nextSchoolToMove(s);
-  const nextHall = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
-  if (school !== null && nextHall) {
-    return {
-      text: `${school} has no hall of its own — site ${nextHall.name}`,
-      go: 'build',
-      intent: { kind: 'site', buildableIds: [nextHall.id] },
-    };
-  }
-  return null;
+// A school to establish (Plan 80D): once a second academic hall stands,
+// the school closest to six in one hall, "Establish a school: six programs
+// of {school} in one hall (n of 6)". It replaced the move out of Founders
+// Hall this line used to push (Plan 55): a school is six programs of one
+// school in any hall, and where it grows is the player's choice. Only when
+// something can be done about it this week (the guided player's intent is
+// not a wait); otherwise the readings after it speak.
+function establishSchool(s: GameState): NextStep | null {
+  const ask = establishAsk(s);
+  if (!ask || ask.intent.kind === 'wait') return null;
+  return ask;
+}
+
+// The students short of places (Plan 80D, seating.ts): the college opens
+// with no course, and is crowded until the catalog seats everyone.
+function seating(s: GameState): NextStep | null {
+  return seatingAsk(s);
 }
 
 // A hall with an empty slot and something to found in it (Plan 55): an
@@ -284,9 +265,14 @@ function idleCash(s: GameState): NextStep | null {
 
 // A run that skipped the scripted first year gets the readings from the start.
 export function nextStep(s: GameState): NextStep | null {
-  // The opening walkthrough's coach card speaks instead (opening.ts).
-  if (openingHoldsClock(s)) return null;
-  if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s) ?? shortfall(s);
+  // The opening walkthrough's coach card speaks instead (opening.ts); once
+  // it is skipped, an unsited Founders Hall still holds the clock, and the
+  // line says so (Plan 80D).
+  if (openingHoldsClock(s)) {
+    if (s.events.opening.stage !== 'play') return null;
+    return { text: 'Site Founders Hall: the clock waits until it stands', go: 'build', urgent: true, intent: { kind: 'site', buildableIds: [FOUNDERS_HALL_ID] } };
+  }
+  if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s) ?? seating(s) ?? shortfall(s);
   // A letter whose ask cannot be acted on this week (it waits on an offer
   // or a hall) gives way to a reading that can (Plan 58): "grow Science"
   // with no Science on offer and nowhere for the offers to go is a
@@ -295,5 +281,5 @@ export function nextStep(s: GameState): NextStep | null {
   if (dark) return dark;
   const letter = letterAsk(s);
   if (letter && letter.intent?.kind !== 'wait') return letter;
-  return idleCash(s) ?? awayFromHome(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s) ?? letter;
+  return seating(s) ?? idleCash(s) ?? establishSchool(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s) ?? letter;
 }

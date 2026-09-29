@@ -8,7 +8,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import type { GameState } from '../src/state/types';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
@@ -50,7 +50,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- an unstaffed course darkens its program --------------------------------
 {
-  const s = createInitialState('Dark');
+  const s = teachingCollege('Dark');
   const before = instructionCapacityDetail(s).courses;
   const english = programById('ENGL')!;
   const quality = averageCourseQuality(s, english.courseIds);
@@ -60,11 +60,11 @@ function orphanEnglish(s: GameState): void {
   assert(instructionCapacityDetail(s).courses === before - 2, `and seats nobody (${before} courses to ${instructionCapacityDetail(s).courses})`);
   assert(averageCourseQuality(s, english.courseIds) === 0, 'every course of it counts as a zero');
   // One course of a program unstaffed darkens all of it.
-  const t = createInitialState('Half');
+  const t = teachingCollege('Half');
   delete t.courseFaculty[english.courseIds[0]];
   assert(instructionCapacityDetail(t).courses === before - 2, 'one unstaffed course darkens the whole program');
   // Development holds while dark.
-  const u = createInitialState('Hold');
+  const u = teachingCollege('Hold');
   const next = u.tech.find((x) => x.id === 'ENGL120')!;
   next.status = 'developing';
   u.developing['ENGL120'] = 3;
@@ -76,7 +76,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- restaffing: the payroll first, then the market, in one click ------------
 {
-  let s = createInitialState('Restaff');
+  let s = teachingCollege('Restaff');
   orphanEnglish(s);
   // The market lists nobody in English at first, perhaps; the week's tick
   // guarantees someone (facultySystem.ts).
@@ -94,7 +94,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- the line names a dark program first (Plan 60) ----------------------------
 {
-  let s = createInitialState('Line');
+  let s = teachingCollege('Line');
   s.events.opening.skipped = true;
   s.clock.year = 4;
   orphanEnglish(s);
@@ -107,7 +107,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- the Deans bring their plans at year's turn -----------------------------
 {
-  let s = createInitialState('Deans');
+  let s = teachingCollege('Deans');
   const school = programById('ENGL')!.school;
   s.seats = [{ seatId: 'dean', school, holder: 'Dean Test', internal: false, policy: 'collegial', salary: 190_000, appointedYear: 1 }];
   orphanEnglish(s);
@@ -125,7 +125,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- sport clubs on their own cap -------------------------------------------
 {
-  const s = createInitialState('Clubs');
+  const s = teachingCollege('Clubs');
   s.tech.find((t) => t.facilityType === 'studentCenter')!.status = 'done';
   s.students.classes = { freshman: 3_000, sophomore: 3_000, junior: 3_000, senior: 3_000 };
   s.orgs.clubs = Array.from({ length: clubCapacity(s) }, (_, i) => ({
@@ -141,7 +141,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- the research letters ---------------------------------------------------
 {
-  const s = createInitialState('Labs');
+  const s = teachingCollege('Labs');
   s.events.opening.read = OPENING_LETTERS.filter((l) => !l.id.startsWith('the-')).map((l) => l.id);
   const lab = s.tech.find((t) => t.facilityType === 'lab')!;
   lab.status = 'done';
@@ -164,7 +164,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- the library adds a story from its panel --------------------------------
 {
-  let s = createInitialState('Library');
+  let s = teachingCollege('Library');
   const lib = s.tech.find((t) => t.id === LIBRARY_TIER1_ID)!;
   lib.status = 'done';
   s.finance.cash = 50_000_000;
@@ -180,7 +180,7 @@ function orphanEnglish(s: GameState): void {
 
 // --- the Second Quad is gone ------------------------------------------------
 {
-  const s = createInitialState('Quad');
+  const s = teachingCollege('Quad');
   assert(!s.tech.some((t) => t.id === 'QUAD-S2'), 'no Second Quad in a new game');
   assert(FOUNDING_PROGRAMS.length === 3, 'and the founding programs are untouched');
 }

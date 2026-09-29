@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { GameState, LogEntry } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import type { GameState, LogEntry, PendingCatalogueEvent } from '../state/types';
+import { COLLEGE_NAME_MAX, WEEKS_PER_YEAR, bareSchoolName } from '../state/types';
+import type { CatalogueEvent } from '../data/eventCatalogueTypes';
+import { CHARTER_INSTANCE } from '../systems/events/charter';
+import { NAME_LIMIT_NOTE } from '../data/foundingData';
 import type { Action } from '../state/actions';
 import { answered, boardAsks, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
 import { foundingNotes } from '../systems/inbox/foundingNote';
@@ -263,6 +266,38 @@ function ReadHead({ tier, from, subject, meta }: { tier: InboxTier; from: string
   );
 }
 
+// The charter's answers (Plan 80D), with the college's one rename beside
+// them: the name as it stands, which the President may change before
+// answering. The answers read with the name typed; an answer with a new
+// name renames the college (RENAME_COLLEGE, refused once the charter is
+// settled), then settles the charter. Nothing renames the college after.
+function CharterAnswer({ s, act, p, e }: {
+  s: GameState;
+  act: (a: Action) => void;
+  p: PendingCatalogueEvent;
+  e: CatalogueEvent;
+}) {
+  const [name, setName] = useState(s.self.name);
+  const typed = bareSchoolName(name);
+  const shown: PendingCatalogueEvent = { ...p, vars: { ...p.vars, name: typed || s.self.name } };
+  return (
+    <>
+      <label className="charter-rename">
+        <span className="eyebrow">The name over the door</span>
+        <input type="text" value={name} maxLength={COLLEGE_NAME_MAX} onChange={(ev) => setName(ev.target.value)} aria-label="The college's name" />
+        <span className="charter-rename-note">{name.length >= COLLEGE_NAME_MAX ? NAME_LIMIT_NOTE : 'Change it here, once: the answer carves it.'}</span>
+      </label>
+      <CatalogueChoices
+        s={s} p={shown} e={e}
+        onChoose={(choiceId) => {
+          if (typed !== '' && typed !== s.self.name) act({ type: 'RENAME_COLLEGE', name: typed, suffix: s.self.suffix === 'University' ? 'University' : 'College' });
+          act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId: p.instanceId, choiceId });
+        }}
+      />
+    </>
+  );
+}
+
 function ReadingPane({ s, act, item, onOpenTab }: {
   s: GameState;
   act: (a: Action) => void;
@@ -292,7 +327,9 @@ function ReadingPane({ s, act, item, onOpenTab }: {
           <div className="inbox-read-main">
             <div className="inbox-body"><CatalogueText text={text} className="inbox-para" /></div>
             <p className="inbox-section-label eyebrow">Answers</p>
-            <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId: p.instanceId, choiceId })} />
+            {p.instanceId === CHARTER_INSTANCE
+              ? <CharterAnswer key={p.instanceId} s={s} act={act} p={p} e={e} />
+              : <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId: p.instanceId, choiceId })} />}
           </div>
           <aside className="inbox-side">
             <span className="inbox-side-key eyebrow">Time to answer</span>

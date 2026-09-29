@@ -2,7 +2,6 @@ import type { GameState } from '../state/types';
 import { coursesDone, totalEnrolled } from '../state/types';
 import type { TabId } from '../components/TabNav';
 import { FIRST_HALL_COURSE_GATE } from './techData';
-import { FOUNDING_PROGRAMS } from './foundingData';
 import {
   GROCERY_POPULATION_GATE,
   HEALTH_CENTER_TIER1_POPULATION_GATE,
@@ -13,6 +12,10 @@ import {
 } from './facilitiesData';
 import { MEDICAL_CENTER_PROJECT } from './projectData';
 import { count } from '../format';
+
+// Programs housed for the 'campus-life' milestone: the fourth (until Plan
+// 80D, the first beyond the three a college opened teaching).
+const CAMPUS_LIFE_PROGRAMS = 4;
 
 // The research reputation rung's prestige (Plan 53: it opened the research
 // library too, until the library was retired).
@@ -33,12 +36,13 @@ export type LadderTier = 'Founding' | 'Growing' | 'Established' | 'National';
 // A named part of a tab, `<tab>.<section>`. The ladder can hold one back
 // while the tab itself is open (Plan 78B): the tab shows from the charter,
 // and the section waits on its milestone. A section no milestone names shows
-// whenever its tab does, and is somewhere a link can land (Plan 78C: the
-// dock's chips open History › Standing and Students › the breakdown, and
-// Plan 80E's committee chip the Curriculum's committee).
+// whenever its tab does, and is somewhere a link can land (Plans 78C and
+// 80C: the dock's chips open History › Prestige, History › the guide and
+// Students › the breakdown, and Plan 80E's committee chip the Curriculum's
+// committee).
 export type TabSection =
   | 'students.guidebook' | 'students.clubs' | 'students.funnel' | 'students.breakdown'
-  | 'history.standing' | 'history.record' | 'curriculum.committee';
+  | 'history.prestige' | 'history.rankings' | 'history.record' | 'curriculum.committee';
 
 export interface Progress {
   value: number;
@@ -106,10 +110,10 @@ export const MILESTONES: readonly Milestone[] = [
     tier: 'Founding',
     name: 'A fourth program',
     condition: 'a fourth program founded',
-    reached: (s) => housedPrograms(s) > FOUNDING_PROGRAMS.length,
+    reached: (s) => housedPrograms(s) >= CAMPUS_LIFE_PROGRAMS,
     buildables: ['SCTR-T1', 'REC-T1', 'AMENITY-STATUE'],
     tabs: [],
-    letter: 'The college teaches four subjects now, and has chosen its first on its own. The board thinks the students have earned somewhere to be when they are not in class.',
+    letter: 'The college teaches four subjects now. The board thinks the students have earned somewhere to be when they are not in class.',
     opens: [
       'Student Center: somewhere to be between classes, and a lift to social life',
       'Recreation Center: somewhere to play, and a lift to social life',

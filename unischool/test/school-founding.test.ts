@@ -16,7 +16,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { FOUNDERS_HALL_ID, programs } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
@@ -47,7 +47,7 @@ const majorsOf = (school: string) => programs().filter((p) => p.kind === 'major'
 
 // A school with two halls standing and placed, both empty.
 function withHalls(): GameState {
-  const s = createInitialState('Dedication');
+  const s = teachingCollege('Dedication');
   for (const id of ['HALL-01', 'HALL-02', 'HALL-03']) {
     s.tech.find((t) => t.id === id)!.status = 'done';
     s.placements[id] = { row: 10 + 10 * Number(id.slice(-1)), col: 10, w: 7, h: 5 };
@@ -168,7 +168,7 @@ console.log('school founding tests');
 
 // ---- Founders Hall is an ordinary hall: three schools begun, none its own ----
 {
-  let s = createInitialState('Founders');
+  let s = teachingCollege('Founders');
   const schools = new Set(FOUNDING_PROGRAMS.map((id) => programs().find((p) => p.id === id)!.school));
   assert(schools.size === FOUNDING_PROGRAMS.length, 'each founding program is of a different school (Plan 52)');
   assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === null, 'so Founders Hall is not dedicated');

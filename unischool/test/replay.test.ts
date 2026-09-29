@@ -12,6 +12,7 @@ import { firstFreeSpot, footprintOf, isPlaceableKind } from '../src/state/campus
 import type { GameState } from '../src/state/types';
 import { canStartDevelopment, eligibleInstructors } from '../src/systems/techtree/techSystem';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
+import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 
 let checks = 0;
@@ -31,14 +32,26 @@ const store = new Map<string, string>();
   removeItem: (k: string) => { store.delete(k); },
 };
 
-// A crude player: answers every interrupt with the shared defaults, starts
-// any course it can staff, and builds the first affordable building on the
+// A crude player: answers every interrupt with the shared defaults, founds
+// the first program on offer with a professor off the market, starts any
+// course it can staff, and builds the first affordable building on the
 // first free ground. Enough to reach hiring, building, events, the summer
 // and the rivals' drift, which is where the draws are.
 function nextMove(s: GameState): Action {
   if (s.pendingInterrupt) {
     const answer = defaultAnswer(s);
     if (answer) return answer;
+  }
+  // A college opens with nothing to teach (Plan 80D): the first program,
+  // with a professor off the market to teach it.
+  const housed = s.halls[FOUNDERS_HALL_ID]?.some((slot) => slot.programId !== null) ?? true;
+  if (!housed && s.programOffers.length > 0) {
+    const program = programById(s.programOffers[0])!;
+    const entry = s.tech.find((t) => t.id === program.entryCourseId)!;
+    const teacher = eligibleInstructors(s, entry)[0];
+    if (teacher) return { type: 'FOUND_PROGRAM', programId: program.id, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: teacher.id };
+    const candidate = s.candidates.find((c) => c.field === entry.requiresFaculty);
+    if (candidate) return { type: 'HIRE_FACULTY', facultyId: candidate.id };
   }
   if (s.clock.week % 4 === 0) {
     const course = s.tech.find((t) => t.kind === 'course' && t.status === 'available' && canStartDevelopment(s, t, eligibleInstructors(s, t)[0]?.id));

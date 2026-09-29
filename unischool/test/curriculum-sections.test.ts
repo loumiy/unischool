@@ -11,6 +11,7 @@
 // ---------------------------------------------------------------------
 
 import { foundGame } from '../sim/harness/game';
+import { teachPillars } from './fixtures/teaching';
 import { curriculumGroups, discoverySections, visibleCourseIds } from '../src/tabs/CurriculumTab';
 import { graduatePrograms, programById } from '../src/data/techData';
 import { schoolMark } from '../src/data/schoolPalette';
@@ -27,8 +28,10 @@ function assert(cond: boolean, msg: string): void {
 
 console.log('curriculum sections tests');
 
+// A college teaching its pillars (fixtures/teaching.ts): a new one has
+// nothing housed (Plan 80D).
 const g = foundGame({ seed: 12345 });
-const s = g.s;
+const s = teachPillars(g.s);
 const GRADUATE = new Set(graduatePrograms().map((p) => p.id));
 
 {

@@ -21,14 +21,16 @@ export interface PoolChange {
   parts: PoolMove[]; // the factors that moved, biggest first; the ones that did not are left out
 }
 
-// Player-facing names, in the order the funnel multiplies them.
+// Player-facing names, in the order the funnel multiplies them. Price and
+// sticker shock are one line (Plan 80C): both are what the price did, and
+// who it turned away shows in the class mix. The price line is their
+// product, keyed as the price.
 const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['prestigePool', 'prestige'],
   ['priceFactor', 'price'],
   ['wordOfMouth', 'word of mouth'],
   ['capacityFactor', 'beds'],
   ['cohortDemand', 'new pulls'],
-  ['stickerShock', 'sticker shock'],
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
   ['crowding', 'crowding'],
@@ -59,14 +61,20 @@ export function takesColon(key: keyof FunnelFactors): boolean {
 // Moves smaller than this are rounding and are left off the line.
 const MOVE_FLOOR = 0.005;
 
+// A factor as the line reads it: the price carries sticker shock with it.
+function factorOf(factors: FunnelFactors, key: keyof FunnelFactors): number | undefined {
+  if (key === 'priceFactor') return factors.priceFactor * factors.stickerShock;
+  return factors[key];
+}
+
 export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null): PoolChange | null {
   if (!last || last.applicants <= 0) return null;
   const parts: PoolMove[] = [];
   for (const [key, label] of LABELS) {
     // A record from before beauty or the tags counted reads them as neutral.
-    const before = last.factors[key] ?? 1;
+    const before = factorOf(last.factors, key) ?? 1;
     if (!(before > 0)) continue;
-    const change = (now.factors[key] ?? 1) / before - 1;
+    const change = (factorOf(now.factors, key) ?? 1) / before - 1;
     if (Math.abs(change) < MOVE_FLOOR) continue;
     const named = key === 'crowding' ? crowdingLabel(change) : key === 'lift' ? liftLabel(now.factors.lift ?? 1) : label;
     parts.push({ key, label: named, change });

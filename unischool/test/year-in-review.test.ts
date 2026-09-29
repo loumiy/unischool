@@ -15,7 +15,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { buildYearInReview, projectedAttrition, yearLog } from '../src/state/yearInReview';
@@ -57,7 +57,7 @@ console.log('year in review tests');
 
 // --- a year of play files under the right sections ------------------------
 {
-  let s = createInitialState('Review');
+  let s = teachingCollege('Review');
   // Start every open course in week 1, so the year has courses to finish
   // (the founding programs' next courses are open from day one — Plan 19;
   // the founding faculty have one free slot among the three fields, so
@@ -112,7 +112,7 @@ console.log('year in review tests');
   assert(!buildYearInReview(s).truncated, 'a quiet founding year fits inside the log');
 
   // Every term carries its "what moves it" (Plan 78C), and it is the line
-  // History › Standing shows for that term, from the one function.
+  // History › Prestige shows for that term, from the one function.
   const inputs = prestigeBreakdown(s).inputs;
   const termLines = section(s, 'standing').lines.filter((l) => inputs.some((i) => l.text.startsWith(`${i.label}: `)));
   assert(termLines.length >= 9, `the review lists the grade's terms (${termLines.length})`);
@@ -129,7 +129,7 @@ console.log('year in review tests');
 
 // --- the review reads topics, not sentences -------------------------------
 {
-  const s = toSummer(createInitialState('Topics'));
+  const s = toSummer(teachingCollege('Topics'));
   s.log.unshift({ year: s.clock.year, week: 30, message: 'A line worded however the system likes.', kind: 'good', topic: 'program' });
   s.log.unshift({ year: s.clock.year, week: 31, message: 'Developed: Something.', kind: 'good' }); // untagged: texture
   const built = text(s, 'built');
@@ -141,7 +141,7 @@ console.log('year in review tests');
 
 // --- the forward-looking lines are the boundary's own readings ------------
 {
-  const s = toSummer(createInitialState('Forward'));
+  const s = toSummer(teachingCollege('Forward'));
   // A miserable year: the average the funnel will read is 35.
   s.students.satisfactionYearSum = 35 * s.students.satisfactionYearWeeks;
   const leaving = projectedAttrition(s);
@@ -154,7 +154,7 @@ console.log('year in review tests');
 
 // --- the snapshot's own figures --------------------------------------------
 {
-  const s = toSummer(createInitialState('Snapshot'));
+  const s = toSummer(teachingCollege('Snapshot'));
   const before = s.finance.cash;
   const after = reducer(s, { type: 'RESOLVE_ADMISSIONS', tuition: 17_500, admitRate: 0.25, approvedPetitionIds: [] });
   const row = after.history[0];
@@ -162,7 +162,7 @@ console.log('year in review tests');
   assert(row.applicants === after.students.applicantPool, 'the pool the funnel drew');
   assert(Math.abs(row.admitRate - 0.25) < 1e-9, 'the share chosen');
   assert(row.incomingQuality === after.students.incomingQuality, 'the class\'s quality');
-  assert(row.coursesFinished === 0 && row.coursesDone === 6, 'nothing finished in a year nothing was started — the founding six were developed before it');
+  assert(row.coursesFinished === 6 && row.coursesDone === 6, 'a college founded with no course counts every course it teaches as finished in year one (Plan 80D)');
   void before;
 
   // A second year measures from the first row.
@@ -174,7 +174,7 @@ console.log('year in review tests');
 
 // --- a year busier than the log says so -------------------------------------
 {
-  const s = toSummer(createInitialState('Busy'));
+  const s = toSummer(teachingCollege('Busy'));
   for (let i = 0; i < LOG_CAP + 5; i += 1) {
     s.log.unshift({ year: s.clock.year, week: 20, message: `Line ${i}`, kind: 'info' });
   }
@@ -184,7 +184,7 @@ console.log('year in review tests');
 
 // --- the year's events and the graduating class (Plan 33) ------------------
 {
-  const s = toSummer(createInitialState('Events'));
+  const s = toSummer(teachingCollege('Events'));
   const section = (key: string) => buildYearInReview(s).sections.find((x) => x.key === key)!;
   assert(section('events').lines.length === 0, 'a year nothing reached the desk says so');
   const letter = EVENT_CATALOGUE.find((e) => e.kind === 'seismic')!;

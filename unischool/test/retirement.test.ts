@@ -2,7 +2,7 @@
 // years at the college, read from the id; a year's notice, then gone, and
 // their courses wait for a new instructor.
 
-import { createInitialState } from '../src/state/actions';
+import { teachingCollege } from './fixtures/teaching';
 import { CAREER_MIN_YEARS, CAREER_SPAN_YEARS, careerWeeks, tickFaculty } from '../src/systems/faculty/facultySystem';
 import { bindScriptStream } from '../src/engine/random';
 import { WEEKS_PER_YEAR } from '../src/state/types';
@@ -29,7 +29,7 @@ console.log('retirement tests');
 }
 
 {
-  const s = createInitialState('Retirement');
+  const s = teachingCollege('Retirement');
   const f = s.faculty[0];
   const career = careerWeeks(f.id);
   const taught = Object.entries(s.courseFaculty).filter(([, id]) => id === f.id).map(([course]) => course);

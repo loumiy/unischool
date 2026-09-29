@@ -1,13 +1,11 @@
 import { WEEKS_PER_YEAR, type GameState, type LogEntry } from '../../state/types';
 import { FOUNDING_NOTES, FOUNDING_NOTE_WEEKS } from '../../data/foundingNotes';
 import { STARTING_DORM_ID } from '../../data/campusData';
-import { programById } from '../../data/techData';
 import { fillLine } from '../../data/logWords';
 
-// The founding years' notes (Plan 70I, data/foundingNotes.ts): the first
-// program the college chose, and its first residence, each a letter in the
-// inbox (Plan 77) from the week it happens in years 1 and 2. Read off the
-// log, so they need nothing saved.
+// The founding years' notes (Plan 70I, data/foundingNotes.ts): the
+// college's first residence, a letter in the inbox (Plan 77) from the week
+// it happens in years 1 and 2. Read off the log, so it needs nothing saved.
 
 const FOUNDING_YEARS = 2;
 const weekOf = (l: { year: number; week: number }) => (l.year - 1) * WEEKS_PER_YEAR + l.week;
@@ -29,11 +27,6 @@ export function foundingNotes(s: GameState): FoundingNote[] {
   // The log is newest first: the earliest match is the last.
   const firstOf = (test: (l: LogEntry) => boolean) => [...s.log].reverse().find(test);
   const out: FoundingNote[] = [];
-  const program = firstOf((l) => l.topic === 'program' && l.year <= FOUNDING_YEARS);
-  if (program) {
-    const name = programById(program.subject ?? '')?.name ?? 'The new program';
-    out.push(note('firstProgram', program, fillLine(FOUNDING_NOTES.firstProgram.text, { program: name }), now));
-  }
   const residence = firstOf((l) => l.topic === 'building' && l.subject === STARTING_DORM_ID && l.year <= FOUNDING_YEARS);
   if (residence) {
     const dorm = s.tech.find((t) => t.id === STARTING_DORM_ID)?.name ?? 'the first residence hall';

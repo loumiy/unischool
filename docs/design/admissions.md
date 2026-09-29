@@ -75,8 +75,11 @@ beat, which disagree on purpose about how much the player is allowed to know:
    Plan 71), last summer's six are recorded
    at the boundary (`students.lastFunnel`), and the line is this year's divided
    by last year's, biggest move first, a factor that did not move left off
-   (`systems/admissions/yearOverYear.ts`). The decomposition is exact: the six
-   ratios compose to the pool's own ratio before rounding. Each cohort card
+   (`systems/admissions/yearOverYear.ts`). Price and sticker shock are **one
+   "price" part** (Plan 80C): the line reads their product, since both are
+   what the price did, and who it turned away shows in the class mix. The
+   decomposition is exact: the ratios compose to the pool's own ratio before
+   rounding. Each cohort card
    shows last summer's count small beneath this year's.
 
    **The year's lift** (Plan 79C). A grand landmark finished during the year
@@ -138,7 +141,7 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   instead by noticing the pool grow the year after the students got happier.
   The September 2026 review found the rule was never learned; a player who
   reads "word of mouth +21%" the year after building a dining hall has learned
-  it. Sticker shock is named the same way when it moves.
+  it. Sticker shock moves the same line, inside its "price" part (Plan 80C).
 - **Sticker shock** is the *band-specific* half of the price response, and it
   is what ties price to **who** applies rather than only how many. A price that
   overreaches what the school's prestige has earned (`priceTolerance`) scares
@@ -146,8 +149,8 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   the top band (the real-world "undermatching" effect), so an overreaching
   school gets a smaller pool that is also relatively richer in the applicants
   least sensitive to price. It has **no reading of its own at the price step**
-  — that step is blind — and appears afterwards only as its share of the
-  year-over-year move. See `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`,
+  — that step is blind — and appears afterwards only inside the price's share
+  of the year-over-year move, and in the class mix. See `admissionsSystem.ts`'s `STICKER_SHOCK_RATE`,
   whose rates were sized to close an exploit that no longer exists — with one
   price, the "inflate the sticker and match it with aid" construction cannot be
   written — and which are kept for the effect itself.
@@ -340,8 +343,9 @@ The settled v1 rules:
 - **Seats are the one ceiling; beds are a demand floor.** The freshman class
   cannot exceed the seats the housed catalogue has left after graduation
   (`instructionCapacity.ts`'s `intakeCeiling`: `SEATS_PER_COURSE` for every
-  developed course in a housed program, the founding college's six included, less
-  the three classes that stay on). A program moving halls at the summer
+  developed course in a housed program, less the three classes that stay
+  on; since Plan 80D the college opens with none, so its first class is
+  held to what the player has developed by the first summer). A program moving halls at the summer
   counts its seats, since it is dark for weeks of a class that stays four
   years; an unstaffed one counts none (Plan 79C). The funnel clips the class to it from the
   bottom band up — a school that must turn people away turns away its weakest

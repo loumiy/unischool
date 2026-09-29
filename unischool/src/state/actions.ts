@@ -7,20 +7,20 @@ import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/stu
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { centredPlacement, footprintOf, isPlaceableKind } from './campusMap';
-import { initialTech, FOUNDERS_HALL_REPUTATION_BONUS, FOUNDERS_HALL_ID, ACADEMIC_HALL_SLOTS, programById } from '../data/techData';
+import { initialTech, FOUNDERS_HALL_REPUTATION_BONUS, FOUNDERS_HALL_ID, ACADEMIC_HALL_SLOTS } from '../data/techData';
 import { repriceCatalogue, unlockAvailable } from '../systems/techtree/techSystem';
 import { refillOffers } from '../systems/techtree/programOffers';
 import { initialDorms } from '../data/campusData';
 import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
-import { initialCandidatePool, facultySalary, grownStat, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
+import { initialCandidatePool } from '../data/facultyData';
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../systems/prestige/prestigeSystem';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
   FOUNDING_PRESET, FOUNDING_VERNACULAR, STARTING_ENDOWMENT, STARTING_TUITION,
-  FOUNDING_CLASSES, FOUNDING_PROGRAMS, FOUNDING_COURSES_PER_PROGRAM,
+  FOUNDING_CLASSES, FOUNDING_PROGRAMS,
 } from '../data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 import { OPENING_LETTERS } from '../data/eventData';
@@ -30,17 +30,11 @@ import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSyste
 // A founded university opens with only Founders Hall built, pre-placed at the
 // map's center unless the founding is guided (state/opening.ts sites it then).
 // The founding body is all commuters and enrollment is never capacity-gated,
-// so `capacity` starts at 0. The three founding programs each open with their
-// first two courses, which is what seats the founding body of 350.
-const FOUNDING_INSTRUCTOR_BY_PROGRAM: Record<string, string> = { ENGL: 'f3', MATH: 'f4', ECON: 'f2' };
-// The founding offer draw guarantees one of these majors (programOffers.ts's
-// refillOffers): programs the roster can already staff, in two more schools.
-export const FOUNDING_OFFER_GUARANTEE: readonly string[] = ['SOCY', 'PSYC'];
-
-// The 101 and 110 of each founding program, in program order.
-export function foundingCourseIds(): string[] {
-  return FOUNDING_PROGRAMS.flatMap((id) => programById(id)!.courseIds.slice(0, FOUNDING_COURSES_PER_PROGRAM));
-}
+// so `capacity` starts at 0. Since Plan 80D it opens with nothing to teach:
+// no professor, no course, and every program slot of Founders Hall empty.
+// The first offers are the founding pillars (foundingData.ts's
+// FOUNDING_PROGRAMS), and the market lists a professor for each; until the
+// courses come, the college is crowded (instructionCapacity.ts).
 
 // Swapped for "University" only by the charter offer.
 export const STARTING_INSTITUTION_SUFFIX = 'College';
@@ -147,7 +141,8 @@ export type Action =
   | { type: 'RESOLVE_RESEARCH_REPORT' }
   // A demand is answered only by building what it asks for before the
   // deadline; there is deliberately no accept/refuse.
-  // The one-time College -> University charter offer; cosmetic.
+  // The college's one rename, in the charter's letter while it waits
+  // (Plan 80D); cosmetic.
   | { type: 'RENAME_COLLEGE'; name: string; suffix: 'College' | 'University' }
   // Restaffing (Plan 59, systems/faculty/restaffing.ts): every unstaffed
   // course of a school, or of the college when school is null; `courseIds`
@@ -307,15 +302,6 @@ function foundState(
 
   const tech = [...initialTech(), ...initialDorms(), ...initialFacilities()];
 
-  // The founding courses start 'done'; unlockAvailable (below) opens the rest.
-  const courseFaculty: GameState['courseFaculty'] = {};
-  for (const programId of FOUNDING_PROGRAMS) {
-    for (const id of programById(programId)!.courseIds.slice(0, FOUNDING_COURSES_PER_PROGRAM)) {
-      tech.find((t) => t.id === id)!.status = 'done';
-      courseFaculty[id] = FOUNDING_INSTRUCTOR_BY_PROGRAM[programId];
-    }
-  }
-
   const foundersHall = tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   foundersHall.builtYear = 1;
   const foundingPlacements: Placements = guided ? {} : { [FOUNDERS_HALL_ID]: centredPlacement(footprintOf(foundersHall)) };
@@ -363,59 +349,18 @@ function foundState(
       incomingQuality: 50,
       lastFunnel: null,
     },
-    // Stats and salary derive from FOUNDING_TENURE_WEEKS through the curves
-    // growFaculty reapplies every tick; literal figures would be overwritten.
-    // One professor for each founding program (Plan 52: Bennett teaches
-    // English, Iyer Mathematics, Okafor Economics), and two whose free slots
-    // (Reyes's in Sociology, Novak's in Psychology) are what
-    // FOUNDING_OFFER_GUARANTEE is written against, with Bennett's third.
-    faculty: [
-      {
-        id: 'f1', name: 'Dr. Alma Reyes', field: 'Sociology', teaching: grownStat(82, FOUNDING_TENURE_WEEKS), research: grownStat(78, FOUNDING_TENURE_WEEKS), teachingPotential: 82, researchPotential: 78,
-        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
-        salary: facultySalary(grownStat(82, FOUNDING_TENURE_WEEKS), grownStat(78, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
-        nationality: 'United States', flag: '🇺🇸', gender: 'female', heritage: 'Hispanic/Latin American',
-        bio: 'Earned a doctorate in Sociology at Ravensmoor Institute; research centers on social networks and urban communities.',
-      },
-      {
-        id: 'f2', name: 'Dr. John Okafor', field: 'Economics', teaching: grownStat(88, FOUNDING_TENURE_WEEKS), research: grownStat(68, FOUNDING_TENURE_WEEKS), teachingPotential: 88, researchPotential: 68,
-        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
-        salary: facultySalary(grownStat(88, FOUNDING_TENURE_WEEKS), grownStat(68, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
-        nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
-        bio: 'Earned a doctorate in Economics at the University of Calderwood; research centers on trade and development.',
-      },
-      {
-        id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teaching: grownStat(85, FOUNDING_TENURE_WEEKS), research: grownStat(72, FOUNDING_TENURE_WEEKS), teachingPotential: 85, researchPotential: 72,
-        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
-        salary: facultySalary(grownStat(85, FOUNDING_TENURE_WEEKS), grownStat(72, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 3,
-        nationality: 'United Kingdom', flag: '🇬🇧', gender: 'female', heritage: 'Anglo/Western European',
-        bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
-      },
-      {
-        id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teaching: grownStat(80, FOUNDING_TENURE_WEEKS), research: grownStat(79, FOUNDING_TENURE_WEEKS), teachingPotential: 80, researchPotential: 79,
-        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
-        salary: facultySalary(grownStat(80, FOUNDING_TENURE_WEEKS), grownStat(79, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
-        nationality: 'India', flag: '🇮🇳', gender: 'female', heritage: 'South Asian',
-        bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
-      },
-      {
-        id: 'f5', name: 'Dr. Elena Novak', field: 'Psychology', teaching: grownStat(83, FOUNDING_TENURE_WEEKS), research: grownStat(71, FOUNDING_TENURE_WEEKS), teachingPotential: 83, researchPotential: 71,
-        tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
-        salary: facultySalary(grownStat(83, FOUNDING_TENURE_WEEKS), grownStat(71, FOUNDING_TENURE_WEEKS), FOUNDING_TENURE_WEEKS, 0), courseSlots: 2,
-        nationality: 'Poland', flag: '🇵🇱', gender: 'female', heritage: 'Slavic/Eastern European',
-        bio: 'Earned a doctorate in Psychology at Amberfield University; research centers on memory and decision-making.',
-      },
-    ],
+    // Nobody on the payroll: the first professors are appointed from the
+    // founding market (initialCandidatePool).
+    faculty: [],
     tech,
     developing: {},
-    courseFaculty,
+    courseFaculty: {},
     halls: {
-      [FOUNDERS_HALL_ID]: Array.from({ length: ACADEMIC_HALL_SLOTS }, (_, i) => ({
-        programId: i < FOUNDING_PROGRAMS.length ? FOUNDING_PROGRAMS[i] : null,
-      })),
+      [FOUNDERS_HALL_ID]: Array.from({ length: ACADEMIC_HALL_SLOTS }, () => ({ programId: null })),
     },
-    // Drawn at the bottom by refillOffers.
-    programOffers: [],
+    // The founding pillars; refillOffers draws their replacements as they
+    // are founded.
+    programOffers: [...FOUNDING_PROGRAMS],
     searches: {},
     placements: foundingPlacements,
     pathways: {},
@@ -433,7 +378,7 @@ function foundState(
       researchStanding: RESEARCH_STANDING_BASELINE,
       vernacular,
       colors: { ...colors },
-      facultyServed: 5,
+      facultyServed: 0,
     },
     history: [],
     log: [
@@ -492,7 +437,7 @@ function foundState(
     else if (isPlaceableKind(node)) state.seen.buildableIds[node.id] = true;
   }
 
-  refillOffers(state, FOUNDING_OFFER_GUARANTEE);
+  refillOffers(state);
   repriceCatalogue(state);
   return state;
 }

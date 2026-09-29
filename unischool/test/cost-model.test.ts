@@ -9,14 +9,13 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
 import {
   COURSES_PER_STUDENT, SECTION_COST, SECTION_SIZE, SERVICES_PER_STUDENT_PER_WEEK,
   facultyPay, financeBreakdown, instructionCostPerStudent, instructionDetail,
 } from '../src/systems/finance/financeSystem';
 import { marketRateMultiplier } from '../src/data/facultyData';
 import { SEATS_PER_COURSE } from '../src/systems/techtree/instructionCapacity';
-import { foundingCourseIds } from '../src/state/actions';
+import { teachingCollege, teachingCourseIds } from './fixtures/teaching';
 import { programOfCourse } from '../src/data/techData';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import type { GameState } from '../src/state/types';
@@ -44,14 +43,14 @@ const near = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) < eps;
 // At prestige 50 exactly, so the market rate is 1 and the section and
 // services lines read their base values.
 function fresh(): GameState {
-  const s = createInitialState('Costs');
+  const s = teachingCollege('Costs');
   s.self.reputation = 50;
   return s;
 }
-// The founding college opens teaching six courses (Plan 19); a statement
+// The college teaching its pillars teaches six courses (fixtures/teaching.ts); a statement
 // with no course offered has to un-teach them first.
 function withoutFoundingCourses(s: GameState): void {
-  for (const id of foundingCourseIds()) s.tech.find((t) => t.id === id)!.status = 'available';
+  for (const id of teachingCourseIds()) s.tech.find((t) => t.id === id)!.status = 'available';
 }
 // Exactly n courses developed: the founding six are un-taught first, so
 // the count is the count.
@@ -79,7 +78,7 @@ console.log('cost model tests');
   withoutFoundingCourses(s);
   assert(instructionDetail(s).cost === 0 && instructionDetail(s).sections === 0, 'no course offered, no section, no cost');
 
-  withCourses(s, foundingCourseIds().length);
+  withCourses(s, teachingCourseIds().length);
   enrol(s, 350);
   const d = instructionDetail(s);
   assert(d.courses === 6, 'six courses offered');

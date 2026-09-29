@@ -246,7 +246,8 @@ npm run profile -- /tmp/y40.json --seconds=10 # fps, 95th-percentile frame and l
 ```
 
 `newplayer` passes the title screen, does only what the walkthrough and the
-Next line ask, and plays year one at the fastest speed open (2x, since 4x
+Next line ask (since Plan 80D: site Founders Hall, appoint Dr. Grace Bennett
+from the founding market in the hall's panel, found English), and plays year one at the fastest speed open (2x, since 4x
 waits for a Provost). It answers every stop with its last button; a matter
 that pauses the clock on arrival it opens from its notice, answers in the
 inbox with its last answer, and resumes. It reports each step, each kind of
