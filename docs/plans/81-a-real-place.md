@@ -3,7 +3,7 @@
 *Planning document only. Its job is to turn the owner's ask, that the
 campus feel like a place and not a model hanging in space, into PRs.*
 
-**Status: Landed.** A to D merged (#254, #255, #256, #257).
+**Status: Landed.** A to E merged (#254–#258).
 
 ---
 
@@ -33,6 +33,7 @@ beside the faster renderer, which would carry elevation natively.
 | B | The land around the campus | no | no |
 | C | Fewer fields, more woods and hills | no | no |
 | D | Open grass, scattered trees | no | no |
+| E | Grass margins between fields | no | no |
 
 ## PR 81B — The land around the campus
 
@@ -258,6 +259,45 @@ farmland, the borders look too harsh, try no border."
   `docs/reviews/2026-10-campus-fixes/81d-*.jpg`: 81C's set again, the
   fields close to in summer and winter (`81d-8`, `81d-9`), and
   `81d-before-2-year30-wide.jpg` from main.
+
+## PR 81E — Grass margins between fields
+
+The owner, on 81D's pictures: "Instead of no border between fields, just
+use the grass color for a border."
+
+- **A margin of grass** round each farm field, so neighbours are parted by
+  a strip of grass like a headland, not by a line or a hedge; thin enough
+  not to weigh at the widest zoom, wide enough to read at the opening one.
+- **With the year:** the ground's own grass color, summer, autumn and snow.
+- 81D's hairline seam stroke goes; the margin does its work.
+- **Checks:** the field borders drawn in the grass token, tested; `npm run
+  check`, `npm run phone`, the sim unchanged; the fields close to in
+  summer and winter, the year-30 campus wide, Mission, and a before.
+
+**As implemented (#258):**
+
+- Each farm field (crop, hay, plough) is stroked in `--grass`, the token
+  the ring's plate, the meadows and the campus's own lawn take, so the
+  margin is the surrounding grass and moves with the seasons (white under
+  snow). The stroke is 14 world units, about a third of a tile (some 3 m):
+  about five pixels at the opening zoom, three at the widest, 35 at the
+  closest. A stroke rather than an inset: the same path data, no new
+  shapes, and two neighbours' strokes lie on their shared edge, so the
+  strip between them is one width wide. The farm fields are drawn after
+  the open ground so their margins lie over it too. No other field is
+  stroked; 81D's hairline in each field's own color is gone.
+- **Kept** 81D's rule that touching farm fields never share a cover: with
+  a strip of grass between them two alike would still read as one field
+  cut in two, and the mixed patchwork is what the owner has been looking
+  at.
+- **Cost:** none: the same paths, the same 554 ring nodes, so no timing
+  run.
+- **Checks:** `test/surroundings.test.ts` reads the stylesheet: the farm
+  fields' border is `stroke: var(--grass)` in world units, and no other
+  field is stroked. `npm run check`, `npm run phone`; the sim unchanged.
+  `docs/reviews/2026-10-campus-fixes/81e-*.jpg`: the fields close to in
+  summer and winter, the year-30 campus wide, Saint Aldric in Mission,
+  and `81e-before-fields-close.jpg` from main.
 
 ## 2. The backlog
 

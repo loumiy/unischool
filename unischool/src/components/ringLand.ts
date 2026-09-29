@@ -12,8 +12,8 @@ import { treeOutline } from './trees';
 
 // The land around the campus (Plan 81B): a ring of country drawn past the
 // parcel's edge on every side, so the campus stands somewhere rather than
-// on a board in space. The road runs on off both ends; farm fields told
-// apart by their colors alone (Plan 81D), open grass with scattered trees,
+// on a board in space. The road runs on off both ends; farm fields parted
+// by margins of grass (Plan 81E), open grass with scattered trees,
 // a low town edge along the road, and gentle hills rising away from a flat
 // valley floor, all fading into haze with distance.
 //
@@ -68,8 +68,9 @@ export const CROWNS_MAX = 200;
 const CROWN_REACH = 125;
 const TREE_FALLOFF = 55;
 
-// A field's cover. Farm fields are crop, hay or plough, with no border
-// (Plan 81D): neighbours differ in cover, so their colors tell them apart.
+// A field's cover. Farm fields are crop, hay or plough, each with a margin
+// of grass round it (Plan 81E, styles.css), and neighbours differ in cover
+// (Plan 81D) so the patchwork reads.
 // Meadow and rough grass lie open, with trees scattered over them.
 export type Cover = 'meadow' | 'rough' | 'crop' | 'hay' | 'plough' | 'town';
 const FARM: ReadonlySet<Cover> = new Set(['crop', 'hay', 'plough']);
@@ -429,8 +430,8 @@ function buildLand(name: string): Land {
   return land.town === 'west' ? land : mirror(land);
 }
 
-// Farm fields have no border (Plan 81D), so two that touch along an edge
-// must not share a cover. Each field starts from the cover it drew; then,
+// Two farm fields that touch along an edge do not share a cover (Plan 81D;
+// kept under 81E's grass margins, so the patchwork still varies). Each field starts from the cover it drew; then,
 // pass after pass, a field that shares its cover with a neighbour takes the
 // cover fewest of its neighbours have (a random one of those), until none
 // clash or the passes run out. Three covers cannot colour every patchwork:
@@ -682,7 +683,10 @@ function buildView(land: Land): RingView {
       byCover.set(f.cover, list);
     }
   }
-  const covers = [...byCover.entries()].map(([cover, ds]) => ({ cover, d: ds.join('') }));
+  // Farm fields last, so their grass margins (Plan 81E) lie over the open
+  // ground beside them as well as over each other.
+  const covers = [...byCover.entries()].map(([cover, ds]) => ({ cover, d: ds.join('') }))
+    .sort((a, b) => Number(isFarm(a.cover)) - Number(isFarm(b.cover)));
   const loopsD = (ls: Loop[]) => ls.map((l) => polyD(l.map((p) => at(land, p.col, p.row)))).join('');
 
   // The road, on off both ends of the parcel's own.

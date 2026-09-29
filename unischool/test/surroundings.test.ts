@@ -10,6 +10,8 @@ import {
 import { PITCHES, VIEWS, setCamera, unproject } from '../src/components/isoProjection';
 import { CAMPUS_GRID_HEIGHT as GH, CAMPUS_GRID_WIDTH as GW } from '../src/state/types';
 import { ROAD_FIRST_ROW } from '../src/state/campusMap';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 let checks = 0;
 let failures = 0;
@@ -165,8 +167,21 @@ for (const azimuth of VIEWS) {
   const sprites = view.back.length + view.front.length;
   assert(view.covers.length <= 40 && sprites < 450, `view ${azimuth.toFixed(2)}: ${view.covers.length} field shapes, ${sprites} sprites`);
   assert(!('woods' in view) && !('pines' in view), 'no wood shapes (Plan 81D)');
-  assert(!('hedges' in view), 'no borders round the fields (Plan 81D)');
+  assert(!('hedges' in view), 'no hedgerows round the fields (Plan 81D)');
   assert(view.back.every((s, i) => i === 0 || s.y >= view.back[i - 1]!.y), 'sprites go down back to front');
+}
+
+// Plan 81E: a farm field's border is a margin of the ground's own grass
+// (the --grass token, which the seasons move), not a line of its own color
+// or a hedge's; and no other field is stroked.
+{
+  const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+  const rules = [...css.matchAll(/([^{}]*)\{([^}]*)\}/g)].map((m) => ({ sel: m[1]!.trim(), body: m[2]! }));
+  const stroked = rules.filter((r) => /(^|,)\s*\.ring-(crop|hay|plough|field|rough|town|meadow)\b/.test(r.sel) && /(^|;)\s*stroke\s*:/.test(r.body));
+  const farm = stroked.find((r) => ['crop', 'hay', 'plough'].every((c) => r.sel.includes(`.ring-${c}`)));
+  assert(!!farm && /stroke\s*:\s*var\(--grass\)/.test(farm.body), 'farm fields are bordered in the grass token (Plan 81E)');
+  assert(!!farm && /stroke-width\s*:\s*\d/.test(farm.body) && !/non-scaling-stroke/.test(farm.body), 'the margin is a width of ground, scaling with the world');
+  assert(stroked.length === 1, `only the farm fields are bordered (${stroked.map((r) => r.sel).join(' | ')})`);
 }
 
 if (failures === 0) {
