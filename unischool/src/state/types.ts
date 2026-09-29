@@ -13,7 +13,6 @@ export type DistressRung = 0 | 1 | 2 | 3 | 4 | 5;
 export interface Distress {
   rung: DistressRung;
   termsAtRung: number;
-  confidence: number;          // the board's, 0–100
   termNet: number;             // this term's operating result so far
   surplusRun: number;          // consecutive surplus terms
   deficitRun: number;          // consecutive deficit terms
@@ -984,6 +983,9 @@ export interface YearSnapshot {
   standingValues?: Record<string, number>;
   // The endowment at the close (Plan 33), for the chronicle's money line.
   endowment?: number;
+  // Research prizes won by the close (Plan 80C), for the chronicle's
+  // prize years. Absent before it.
+  prizes?: number;
 }
 
 export interface RunningCampaign {
@@ -1108,6 +1110,9 @@ export interface GameState {
   started: boolean;              // false only during the pre-game startup screen
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
+  // The year each milestone was awarded (Plan 80C), which the chronicle
+  // names eras from. One awarded before it has no year.
+  milestoneYears?: Record<string, number>;
   seen: SeenState;               // what the player has been shown, for alert badges
   ladder: LadderState;           // the milestones reached, and their letters not yet read (data/ladderData.ts)
 }

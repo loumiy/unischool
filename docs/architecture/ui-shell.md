@@ -24,8 +24,8 @@ that is already open (its `sections`, read by `sectionAvailable`). Students
 (the one tab that Enrollment and Student Life became) is open from the first
 week with the satisfaction breakdown, the demands and the student body; its
 guidebook, its clubs and chapters and last summer's funnel wait for the
-first commencement (Plan 78B). History is open from the first week with its
-Standing; its record of the years (the Final Report's draft, the promises,
+first commencement (Plan 78B). History is open from the first week with
+Prestige and the guide (Plans 78C and 80C); its record of the years (the Final Report's draft, the promises,
 the chronicle, the charts and the table) waits for the first commencement,
 and one note says so until then (Plan 78C). A section no milestone names is
 somewhere a link can land: the tab scrolls to its `data-section`
@@ -121,9 +121,11 @@ Each chip keeps its sentence as a tooltip: satisfaction's names the lowest of
 the five needs and its figure (Plan 78B), and rank's says that the rank
 follows prestige, which rises at the summer by at most its step, read from
 `prestigeSystem.ts` (Plan 78C). Three chips are doors, like the funds figure:
-rank and prestige open History › Standing, satisfaction opens Students ›
-the satisfaction breakdown, each a button named with its figure ("Prestige
-51.5 — open History, Standing"). The map is `data/statChips.ts`'s
+prestige opens History › Prestige (its breakdown and nothing else), rank
+opens History › the guide (the guide's table, the top fifty and, below them,
+the college's own row with its neighbors; Plan 80C), satisfaction opens
+Students › the satisfaction breakdown, each a button named with its figure
+("Prestige 51.5 — open History, Prestige"). The map is `data/statChips.ts`'s
 `chipDoor`; enrolled is a figure only. The right zone stacks the clock over
 five round gears (pause, play, 2×, 4×, 8×), with the **committee chip**
 beside the gears (Plan 80E): "Committee 3 of 4", the courses the curriculum

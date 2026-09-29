@@ -6,7 +6,9 @@ reads and writes it; nothing else holds simulation state.
 Records of the run's own story sit beside the systems' state (Plan 33): the
 `promises` made, kept, missed and declined; the journal the chronicle reads
 (the history rows' standing values and endowment, the identity's tag `log`,
-the rival's `since`, the catalogue's `letters` and `answered`); and `ending`,
+the rival's `since`, the catalogue's `letters` and `answered`, and since Plan
+80C the history rows' `prizes` and `milestoneYears`, the year each milestone
+was awarded); and `ending`,
 the Final Report written once at the fiftieth summer with the Epilogue's
 addenda. All are optional and plain JSON, for the reason below.
 

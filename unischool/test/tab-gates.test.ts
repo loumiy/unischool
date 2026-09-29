@@ -60,7 +60,7 @@ console.log('tab gate tests');
   assert(GATED_TABS.length === 2, 'exactly two tabs are gated (Students and History open from the first week, Plans 78B and 78C)');
   assert(!GATED_TABS.includes('students') && tabAvailable(s, 'students'), 'Students is available in week 1');
   assert(!GATED_TABS.includes('history') && tabAvailable(s, 'history'), 'History is available in week 1');
-  assert(sectionAvailable(s, 'history.standing'), 'and shows its Standing');
+  assert(sectionAvailable(s, 'history.prestige') && sectionAvailable(s, 'history.rankings'), 'and shows Prestige and the guide');
   for (const id of GATED_TABS) {
     assert(!tabAvailable(s, id), `${id} is not offered at founding`);
   }

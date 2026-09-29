@@ -40,7 +40,6 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
         break;
       }
       case 'mood': out.push(`satisfaction ${signed(v)}`); break;
-      case 'confidence': out.push(`board confidence ${signed(v)}`); break;
       case 'warmth': out.push(`alumni warmth ${signed(v)}`); break;
       case 'quality': out.push(`incoming quality ${signed(v)}`); break;
       case 'enrollment': {
