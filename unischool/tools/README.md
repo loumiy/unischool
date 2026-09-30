@@ -95,17 +95,31 @@ card in royal blue.
 
 ### Hand-built campuses
 
-`campuses/` keeps campuses laid out by hand in the game itself, exported
-as saves, for pictures a scripted plan cannot give. Each loads straight into
-`shot` (an older save version is migrated on load):
-
-```sh
-npm run shot -- tools/campuses/tudor-year-1.unischool.json /tmp/tudor.png --zoom=-1
-```
+`campuses/` keeps campuses laid out by hand in the game itself (a sandbox
+run, every building open and nothing to wait for) and exported as saves.
+They are **placement plans**, not pictures: the school in them is a sandbox
+at year 1 with nothing earned, so it is never shot as it stands. Its
+arrangement is what is kept — where each building sits, the walks between
+them, the lamps and benches, and the woodland round them — to be put onto a
+real run's buildings the way `layout.ts` puts its own plan onto them. The
+architecture is not part of the plan: the same arrangement serves any
+vernacular (`scenario --vernacular`) and any colours.
 
 | Save | Holds |
 |---|---|
-| `tudor-year-1.unischool.json` | Tudor College, a sandbox run at year 1 week 1 (save v86): 73 placed buildings round two quads and the gate, the walks, and 78 lamps and benches |
+| `tudor-year-1.unischool.json` | Tudor College, save v86: 73 placed buildings (the Grand Quad and the second quad on one axis with the gate between them, the halls, labs, dorms and dining, the capital projects, the venues and the amenities), 1,630 path tiles, 78 lamps and benches, 599 trees |
+
+What such a plan carries, all of it in `state`: `placements` (building id →
+top-left `row`/`col` and the footprint `w`/`h` as placed, so a swapped `w`/`h`
+is a rotation), `pathways` and `dressing` (`"row,col"` keys) and `trees`.
+Nothing else in the file is read.
+
+**Not built yet.** `layout.ts`'s plan is hardcoded (its `PLAN` anchors and
+hand-drawn walks); it cannot yet take its plan from one of these saves. The
+work is in `BACKLOG.md` under *Named, not sequenced*. Until it lands, keep
+these files as exported — do not load and re-save one to "upgrade" it:
+the save migrations bring an old version forward on read, and a re-save
+rewrites the whole state, not only the layout.
 
 ### The tabs and the modals
 
