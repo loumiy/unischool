@@ -16,7 +16,7 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import {
-  SPORTS, promoteToVarsityTeam, teamQuality, coachingQuality, departmentPot, orderedTeams, sportEconomics,
+  SPORTS, promoteToVarsityTeam, teamQuality, teamQualityEarned, UNSPECIALIZED_TEAM_CEILING, coachingQuality, departmentPot, orderedTeams, sportEconomics,
   rollAthleticDirectorCandidates, athleticBreadth, NON_FLAGSHIP_FUNDED_SHARE,
 } from '../src/data/studentLifeData';
 import { VENUE_SEATS } from '../src/data/facilitiesData';
@@ -191,8 +191,10 @@ function testCeiling(): void {
   s.orgs.athleticDirector.quality = 90;
   const team = s.orgs.teams[0];
   assert(departmentPot(s).programs[0].funded === 1, 'the one program is fully funded');
-  const q = teamQuality(team, s);
+  const q = teamQualityEarned(team, s);
   assert(q === 100, `three chairs at 90, fully funded, a 90 director, is exactly 100 (got ${q})`);
+  // Plan 85C: without the athletics specialization it plays at the team ceiling.
+  assert(teamQuality(team, s) === UNSPECIALIZED_TEAM_CEILING, `and plays at ${UNSPECIALIZED_TEAM_CEILING} without the athletics specialization (got ${teamQuality(team, s)})`);
   team.headCoach!.quality = 80;
   assert(teamQuality(team, s) < 100, 'and ten points off the head coach shows');
 }

@@ -611,6 +611,9 @@ export interface EventState {
 // See state/opening.ts, which owns the order and the meaning.
 export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'play';
 
+// The four pillars of prestige (Plan 85; systems/prestige/prestigeSystem.ts).
+export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';
+
 export interface Rival {
   id: string;
   name: string;
@@ -634,6 +637,10 @@ export interface Rival {
   researchStanding: number;
   socialMomentum: number;
   researchMomentum: number;
+  // The pillar it specializes in (Plan 85C), dealt off the id
+  // (rivalData.ts's dealtSpecialization): that axis runs higher and
+  // steadier, and the other three stop at the unspecialized ceilings.
+  specialization: Pillar;
 }
 
 // Research (docs/design/research.md): initiatives keyed by facility id,

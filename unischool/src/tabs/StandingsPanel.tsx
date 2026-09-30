@@ -1,7 +1,8 @@
 import type { GameState } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
-import { STANDINGS, rankedListBy } from '../systems/rivals/rivalsSystem';
+import { PILLAR_AXES, STANDINGS, rankedListBy, specializations } from '../systems/rivals/rivalsSystem';
+import { ledBy } from '../data/specializationData';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { rivalRanks } from '../systems/rivals/collegeRival';
 import { sportById } from '../data/studentLifeData';
@@ -19,12 +20,13 @@ export default function StandingsPanel({ s }: { s: GameState }) {
   const rows = s.history.filter((h) => h.standings !== undefined);
   const rival = rivalRanks(s);
   const series = rival ? s.orgs.rivalries[rival.sport] : undefined;
+  const specs = specializations(s);
   return (
     <section className="panel standings-panel">
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text="Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, for the college and every rival alike. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige." />
+          <HelpHint text="Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, for the college and every rival alike. Each rival specializes in one pillar, which runs higher and steadier than its others; without a specialization, each of the college's pillars stops at a limit short of the top. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige." />
         </span>
         <span className="stat">of {field}</span>
       </div>
@@ -42,7 +44,11 @@ export default function StandingsPanel({ s }: { s: GameState }) {
                 <span className="standings-card-label">{label}</span>
                 <strong className="standings-card-rank">#{rank}</strong>
               </header>
-              <p className="standings-card-leader">{leader.isPlayer ? 'The college leads.' : `Led by ${leader.name}`}</p>
+              <p className="standings-card-leader">
+                {leader.isPlayer
+                  ? 'The college leads.'
+                  : (axis === 'reputation' || PILLAR_AXES.includes(axis)) && specs.has(leader.key) ? ledBy(leader.name, specs.get(leader.key)!) : `Led by ${leader.name}`}
+              </p>
               {rows.length > 1 && (
                 <HistoryChart
                   label={label}

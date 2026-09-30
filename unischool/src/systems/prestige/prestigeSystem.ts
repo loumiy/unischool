@@ -2,7 +2,7 @@ import { projectLift, projectLiftMax, standingProjects } from '../estate/project
 import { campusBeauty } from '../estate/beauty';
 import { conditionOf, historicPrestige } from '../estate/estate';
 import { isPlaceableKind } from '../../state/campusMap';
-import type { GameState, ReportCard, SatisfactionAttributes } from '../../state/types';
+import type { GameState, Pillar, ReportCard, SatisfactionAttributes } from '../../state/types';
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
@@ -15,7 +15,11 @@ import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
 import { isSchoolFounded } from '../techtree/schools';
 import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
 import { count, money, multiplier, pct, satisfactionFigure } from '../../format';
+import { CEILING_LABEL, ceilingDetail, ceilingHeld } from '../../data/specializationData';
+import { specializationOf } from './specialization';
 import { clamp, clamp01 } from '../../math';
+
+export { specializationOf };
 
 // Prestige (s.self.reputation) is a slow-moving stock pulled toward a target
 // computed from durable inputs. It moves in two ways: the summer report card
@@ -52,7 +56,7 @@ const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
 // target is these shares of the four, plus the adjustments that stay outside
 // every pillar (endowment, and the condition and crowding penalties).
 // Athletics counts least, by the owner's decision; tuned in Plan 85C.
-export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';
+export type { Pillar };
 export const PILLARS: readonly Pillar[] = ['academics', 'research', 'studentLife', 'athletics'];
 export const PILLAR_WEIGHTS: Readonly<Record<Pillar, number>> = {
   academics: 0.35,
@@ -66,6 +70,28 @@ export const PILLAR_LABELS: Readonly<Record<Pillar, string>> = {
   studentLife: 'Student life',
   athletics: 'Athletics',
 };
+
+// The unspecialized ceilings (Plan 85C): without its specialization, a
+// pillar stands no higher than this on the prestige scale, however much its
+// terms earn. A specialization (Plan 85D) lifts its own pillar's to
+// PRESTIGE_MAX. Tuned so that optimal play without one reaches the top ten
+// overall and near the top of every pillar, and never first place: that
+// takes a specialization. Rivals keep to the same ceilings on the three
+// axes they are not specialized in (rivalsSystem.ts). Athletics' is the
+// lowest: without the athletics specialization no program plays above the
+// unspecialized team ceiling and titles are rare (Plan 85C), so its pillar
+// stops about where a strong department without titles stands.
+export const UNSPECIALIZED_CEILINGS: Readonly<Record<Pillar, number>> = {
+  academics: 126,
+  research: 126,
+  studentLife: 120,
+  athletics: 110,
+};
+
+// How high a pillar may stand for this college.
+export function pillarCeiling(s: GameState, pillar: Pillar): number {
+  return specializationOf(s) === pillar ? PRESTIGE_MAX : UNSPECIALIZED_CEILINGS[pillar];
+}
 
 // Each pillar's terms, weighted among themselves. The weights are the terms'
 // old weights where they had one: academics and student life keep their
@@ -305,8 +331,12 @@ export interface StandingBreakdown {
   driftRate: number;        // the share of the gap that closes each week between summers
   summer?: SummerModel;     // set on the standing that steps at the summer (academic)
   // A cap on the target set by something no sum of inputs can buy past
-  // (Plan 71: academic standing and the teaching standard). Absent: none.
-  ceiling?: { value: number; label: string; detail: string };
+  // (Plan 71: academic standing and the teaching standard; Plan 85C: a
+  // pillar's unspecialized ceiling). Absent: none. `held` is the sentence
+  // shown while the ceiling is what sets the target.
+  ceiling?: { value: number; label: string; detail: string; held?: string };
+  // The inputs earn more than the ceiling allows: it is holding the target.
+  held: boolean;
   min: number;
   max: number;
   // A pillar (Plan 85B): its share of prestige, and whether it is read as
@@ -347,9 +377,11 @@ function breakdown(
   readings: StandingReading[] = [], summer?: SummerModel, ceiling?: StandingBreakdown['ceiling'],
 ): StandingBreakdown {
   const total = inputs.reduce((sum, input) => sum + input.contribution, baseline);
+  const earned = clamp(total, PRESTIGE_MIN, PRESTIGE_MAX);
   return {
     label, baseline, inputs, readings, current, summer, ceiling,
-    target: Math.min(clamp(total, PRESTIGE_MIN, PRESTIGE_MAX), ceiling?.value ?? PRESTIGE_MAX),
+    target: Math.min(earned, ceiling?.value ?? PRESTIGE_MAX),
+    held: ceiling !== undefined && earned > ceiling.value,
     driftRate: summer ? PRESTIGE_TREMOR_RATE : PRESTIGE_DRIFT_RATE,
     min: PRESTIGE_MIN,
     max: PRESTIGE_MAX,
@@ -417,10 +449,18 @@ function scaled(inputs: StandingInput[]): StandingInput[] {
   return inputs.map((i) => ({ ...i, weight: i.weight * k, contribution: i.contribution * k }));
 }
 
+// A pillar's ceiling as its breakdown shows it: none once the college is
+// specialized in it.
+function pillarCeilingLine(s: GameState, pillar: Pillar): StandingBreakdown['ceiling'] {
+  const value = pillarCeiling(s, pillar);
+  if (value >= PRESTIGE_MAX) return undefined;
+  return { value, label: CEILING_LABEL, detail: ceilingDetail(pillar, value, PRESTIGE_MAX), held: ceilingHeld(pillar, value) };
+}
+
 function pillarOf(
-  pillar: Pillar, current: number | null, core: StandingInput[], bonus: StandingInput[],
+  s: GameState, pillar: Pillar, current: number | null, core: StandingInput[], bonus: StandingInput[],
 ): StandingBreakdown {
-  const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, [...scaled(core), ...bonus]);
+  const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, [...scaled(core), ...bonus], [], undefined, pillarCeilingLine(s, pillar));
   // Academics and athletics are read as they stand; research and student
   // life are the stocks that drift toward them (tickPrestige).
   return { ...made, current: current ?? made.target, share: PILLAR_WEIGHTS[pillar], live: current === null };
@@ -428,7 +468,7 @@ function pillarOf(
 
 function academicsBreakdown(s: GameState): StandingBreakdown {
   const avgQuality = campusAverageCourseQuality(s);
-  return pillarOf('academics', null, [
+  return pillarOf(s, 'academics', null, [
     weigh(
       'breadth', 'Curriculum breadth', CURRICULUM_BREADTH_WEIGHT, curriculumBreadthScore(s),
       'Programs established and distinguished, schools distinguished, graduate programs founded.',
@@ -455,7 +495,7 @@ function academicsBreakdown(s: GameState): StandingBreakdown {
 
 function studentLifeBreakdown(s: GameState): StandingBreakdown {
   const average = trailingYearSatisfaction(s);
-  return pillarOf('studentLife', s.self.socialStanding, [
+  return pillarOf(s, 'studentLife', s.self.socialStanding, [
     weigh(
       'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
       `Students have averaged ${satisfactionFigure(average)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
@@ -475,7 +515,7 @@ function athleticsBreakdown(s: GameState): StandingBreakdown {
   const titles = s.orgs.titles.length;
   const teams = s.orgs.teams.filter((t) => t.status === 'active').length;
   const flagships = flagshipStrength(s);
-  return pillarOf('athletics', null, [
+  return pillarOf(s, 'athletics', null, [
     weigh(
       'program', 'Program strength', ATHLETICS_PROGRAM_WEIGHT, clamp01(athleticProgramStrength(s) / 100),
       `${teams} team${teams === 1 ? '' : 's'} fielding, at program strength ${athleticProgramStrength(s).toFixed(0)} of 100.`,
@@ -523,7 +563,8 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     const made = pillarBreakdown(s, p);
     const input = weigh(
       p, PILLAR_LABELS[p], PILLAR_WEIGHTS[p] * PILLAR_SPAN, pillarScoreOf(made.target),
-      `${PILLAR_LABELS[p]} stands at ${made.target.toFixed(1)} of ${PRESTIGE_MAX}, and counts for ${pct(PILLAR_WEIGHTS[p])} of prestige.`,
+      `${PILLAR_LABELS[p]} stands at ${made.target.toFixed(1)} of ${PRESTIGE_MAX}, and counts for ${pct(PILLAR_WEIGHTS[p])} of prestige.`
+        + (made.held && made.ceiling?.held ? ` ${made.ceiling.held}` : ''),
     );
     return { ...input, pillar: made };
   });
@@ -735,7 +776,7 @@ function researchBreadthScore(s: GameState): number {
 export function researchStandingBreakdown(s: GameState): StandingBreakdown {
   const equipped = labEquippedFields(s).size;
   const fields = researchableFields().length;
-  return pillarOf('research', s.self.researchStanding, [
+  return pillarOf(s, 'research', s.self.researchStanding, [
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
       clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),

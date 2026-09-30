@@ -99,11 +99,15 @@ function testMissedIsARecordedResult(): void {
   assert(result.champion.length > 0, 'and still says who did win it — the season happened without you');
 }
 
-// ---- A strong department wins, sometimes ----
+// ---- A strong department wins, rarely (Plan 85C) ----
+// Without the athletics specialization no program plays above the team
+// ceiling, and the big stage stands against it in a semifinal and a final:
+// a title is rare, not never.
 function testStrongDepartmentWins(): void {
   let titles = 0;
   let entered = 0;
-  for (let run = 0; run < 40; run += 1) {
+  const runs = 400;
+  for (let run = 0; run < runs; run += 1) {
     const s = fresh();
     fieldTeam(s, 'soccer-m', 95);
     s.orgs.athleticDirector = rollAthleticDirectorCandidates()[2];
@@ -112,12 +116,12 @@ function testStrongDepartmentWins(): void {
     if (result.finish !== 'missed') entered += 1;
     if (result.finish === 'champion') titles += 1;
   }
-  assert(entered === 40, `an elite program qualifies every year (entered ${entered} of 40)`);
-  // Neither a coin flip nor a certainty: seeding matters a great deal, and
-  // an upset is always available. Bracketed rather than pinned, since the
+  assert(entered === runs, `an elite program qualifies every year (entered ${entered} of ${runs})`);
+  // Neither never nor often: an upset is always available, but the big
+  // stage makes a title rare. Bracketed rather than pinned, since the
   // exact rate is a tuning value.
-  assert(titles > 4 && titles < 36,
-    `and wins some but not all of them — a title is earned, not owed (${titles} of 40)`);
+  assert(titles > 0 && titles < runs * 0.1,
+    `and wins a title now and then, not often — a title is earned, not owed (${titles} of ${runs})`);
 }
 
 // ---- A bracket is not a season ----

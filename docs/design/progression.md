@@ -184,6 +184,37 @@ of its terms. Three **adjustments** stay outside every pillar:
   *below* what its pillars earned. The same reading shrinks next year's
   applicant pool (see [admissions.md](admissions.md)).
 
+**Each pillar stops at a ceiling without its specialization**
+([Plan 85](../plans/85-specializations.md) PR C). However much its terms
+earn, a pillar stands no higher than its unspecialized ceiling
+(`prestigeSystem.ts`'s `UNSPECIALIZED_CEILINGS`, beside `PILLAR_WEIGHTS`):
+
+| Pillar | Ceiling | Of 150 |
+|---|---|---|
+| Academics | 126 | 80% of its span above the floor of 32 |
+| Research | 126 | 80% |
+| Student life | 120 | 75% |
+| Athletics | 110 | 66% |
+
+A specialization (Plan 85D on) lifts its own pillar's ceiling to 150; until
+the choice is saved `specializationOf` answers none, so every college keeps
+to all four (`pillarCeiling`). The ceiling is the pillar breakdown's
+`ceiling`, and its target is the lower of the ceiling and what the terms
+earn, so prestige counts a held pillar at its ceiling. Student life's is
+lower because it is the easiest pillar to fill (welfare is full within a
+few years for any college that keeps its students happy); athletics' is the
+lowest because without the athletics specialization no program plays above
+the team ceiling and titles are rare (see
+[student-life.md](student-life.md)'s postseason), so the pillar stops about
+where a strong department without titles stands. The ceilings are tuned so
+that optimal play without a specialization reaches the overall top ten and
+the top ten or so of each pillar it builds, and never first place: at
+the ceilings the college's blend sits below the few rivals whose own
+specialization runs past them (below). History › Prestige marks a held
+pillar's row *At its limit* (the player's word for a ceiling) and says that
+only a specialization in it would lift it; the pillar's own breakdown says
+the same under its terms.
+
 The pillars' terms, as they were weighted inside prestige before:
 
 - **curriculum breadth** — majors/schools completed *right now* (a stock
@@ -325,10 +356,41 @@ academic place, as the college would.
 **The elite band chases the leader's prestige with its overall.** The closing
 step (`eliteClosingStep`) is read on the rival's overall and added to every
 one of its pillars, so its overall rises by the step; the no-leapfrog cap
-likewise shifts every pillar down. The field's own drift is unchanged: the
-academic axis still rises toward `FIELD_CEILING`, the others drift on their
-own momentum, and the whole annual pass still takes one draw on the global
-stream.
+likewise shifts every pillar down. The academic axis rises toward
+`FIELD_CEILING`, the others drift on their own momentum, and the whole
+annual pass still takes one draw on the global stream.
+
+**Rivals specialize** (Plan 85C). Each rival is dealt one pillar off its id
+(`rivalData.ts`'s `dealtSpecialization`, a hash under the salt
+`specialization`), saved on the rival (`Rival.specialization`) and never
+changed. Of the 99, 35 are academic, 23 research, 19 student-life and 22
+athletic specialists, and the six strongest authored schools cover all four,
+so every pillar has a leader to catch. The deal changes how the axes drift,
+never how many draws they take:
+
+- **The specialized axis runs higher and steadier.** It rises as the field's
+  academics does (`fieldRise`: the strongest schools most, by the fourth
+  power of their authored standing), at twice the rate
+  (`SPECIALIZED_RISE_RATE`), easing toward `SPECIALIZED_CEILING`, 150 (for
+  athletics, the top of its 0–100 band, 85). It takes half its momentum and
+  its yearly shock (`SPECIALIZED_STEADINESS`). An academic specialist's
+  academics rises this way instead of toward `FIELD_CEILING`.
+- **The other three stop at the college's unspecialized ceilings.** Drift
+  never carries them past (athletics at the strength the athletics ceiling
+  maps to, 66); the elite band's closing is held there too. An axis already
+  above, in a save from before, keeps its place until it falls.
+- A year-ago estimate (the report's movers) steps each axis back by its
+  momentum at its steadiness.
+
+The guide tags each rival with its specialization after its name and marks
+its specialized pillar's figure; the standings name each leader's
+specialization. A save from before is dealt the same way on load (the
+87 → 88 migration), with its standings left where they were.
+
+The result is the shape the owner asked for: at year 50 the leader of each
+pillar is a specialist in it, a handful of specialists stand above the
+college's unspecialized best, and the college without a specialization
+finishes in the top ten but not first.
 
 **Access and financial strength** are ranked beside them and count toward
 nothing.
@@ -519,7 +581,8 @@ prestige able to fall (above), a school that coasts in the defend era now loses
 Every rival gains a little each year, in proportion to the fourth power of
 its authored standing (`FIELD_RISE_RATE`, 1.05 a year at an authored 100),
 easing to nothing at the field's ceiling (`FIELD_CEILING`, 138), past which
-no rival drifts. The top of the field climbs from the high 90s to the
+no rival drifts (its unspecialized academics ceiling, 126, since Plan 85C,
+and an academic specialist's own ceiling of 150). The top of the field climbs from the high 90s to the
 ceiling over about forty years, the tenth and twenty-fifth places with it, so
 the top 25, the top ten and first place come in the build era's second half
 and the defend era, not the found era. The elite's closing on a leader is not

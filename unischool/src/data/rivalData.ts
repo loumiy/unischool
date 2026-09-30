@@ -1,4 +1,4 @@
-import type { Rival } from '../state/types';
+import type { Pillar, Rival } from '../state/types';
 import { rivalColorsFor } from './schoolColors';
 
 // ---------------------------------------------------------------------
@@ -113,6 +113,21 @@ export function sportStrengthFor(rival: Rival, sportId: string): number {
   return Math.max(5, Math.min(100, Math.round(rival.athleticStrength + swing)));
 }
 
+// Each rival's specialization (Plan 85C): one pillar, dealt off its id and
+// never changed. The same deal at founding and in the migration of a save
+// from before it (persistence.ts), so a school is always the same kind of
+// school. The salt was chosen so the strongest half-dozen authored schools
+// cover all four pillars, and every pillar has a leader to catch.
+const SPECIALIZATIONS: readonly Pillar[] = ['academics', 'research', 'studentLife', 'athletics'];
+
+export function dealtSpecialization(id: string): Pillar {
+  return SPECIALIZATIONS[Math.min(SPECIALIZATIONS.length - 1, Math.floor(hashUnit(`${id}:specialization`) * SPECIALIZATIONS.length))];
+}
+
+export function isSpecialization(value: unknown): value is Pillar {
+  return SPECIALIZATIONS.includes(value as Pillar);
+}
+
 export function initialRivals(): Rival[] {
   return baseRivals().map((r) => {
     const athleticStrength = athleticStrengthFor(r.reputation, r.id);
@@ -126,13 +141,14 @@ export function initialRivals(): Rival[] {
       researchStanding: researchStandingFor(r.reputation, r.id),
       socialMomentum: standingMomentumFor(r.id, 'social'),
       researchMomentum: standingMomentumFor(r.id, 'research'),
+      specialization: dealtSpecialization(r.id),
     };
   });
 }
 
 // The authored fields; everything omitted is derived in initialRivals.
 export type AuthoredRival = Omit<Rival,
-  'colors' | 'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum'>;
+  'colors' | 'athleticStrength' | 'athleticMomentum' | 'socialStanding' | 'researchStanding' | 'socialMomentum' | 'researchMomentum' | 'specialization'>;
 
 // The elite band: the eleven schools authored at 87-99 (Ashcombe, r1, among them). Once the player is above
 // ELITE_CLOSE_ABOVE_PRESTIGE they close on the leader (rivalsSystem.ts's

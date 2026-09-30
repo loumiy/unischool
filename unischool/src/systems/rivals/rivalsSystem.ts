@@ -1,11 +1,11 @@
 import { totalEnrolled } from '../../state/types';
 import { priceTolerance } from '../admissions/admissionsSystem';
-import type { GameState, Rival, VarsityTeam } from '../../state/types';
+import type { GameState, Pillar, Rival, VarsityTeam } from '../../state/types';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
 import { ELITE_RIVAL_IDS, baseRivals, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { clamp } from '../../math';
-import { PILLAR_FLOOR, PILLAR_SPAN, PILLAR_WEIGHTS, athleticStanding, pillarValue } from '../prestige/prestigeSystem';
+import { PILLAR_FLOOR, PILLAR_SPAN, PILLAR_WEIGHTS, UNSPECIALIZED_CEILINGS, athleticStanding, pillarValue, specializationOf } from '../prestige/prestigeSystem';
 import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
@@ -37,10 +37,68 @@ export const FIELD_RISE_RATE = 1.05;
 export const FIELD_CEILING = 138;
 const FIELD_EASE = 12;
 const AUTHORED = new Map(baseRivals().map((r) => [r.id, r.reputation]));
-export function fieldRise(id: string, reputation: number): number {
+export function fieldRise(id: string, reputation: number, ceiling = FIELD_CEILING, rate = FIELD_RISE_RATE): number {
   const authored = AUTHORED.get(id) ?? reputation;
-  const ease = clamp((FIELD_CEILING - reputation) / FIELD_EASE, 0, 1);
-  return FIELD_RISE_RATE * (Math.max(authored, 0) / 100) ** 4 * ease;
+  const ease = clamp((ceiling - reputation) / FIELD_EASE, 0, 1);
+  return rate * (Math.max(authored, 0) / 100) ** 4 * ease;
+}
+
+// Rival specializations (Plan 85C). Each rival is dealt one pillar
+// (rivalData.ts's dealtSpecialization), and that axis runs higher and
+// steadier: it rises as the field's academics do (fieldRise: the strongest
+// schools most, easing to nothing near the ceiling) at twice the field's
+// rate, toward SPECIALIZED_CEILING, the top of the scale, and takes only
+// SPECIALIZED_STEADINESS of its momentum and its yearly shock. Its other
+// three axes stop at the unspecialized ceilings the college's pillars do
+// (prestigeSystem.ts's UNSPECIALIZED_CEILINGS): drift never carries them
+// past, though one already above (a save from before) may keep its place
+// until it falls. The draws are the same whatever the specialization.
+export const SPECIALIZED_CEILING = 150;
+export const SPECIALIZED_RISE_RATE = 2 * FIELD_RISE_RATE;
+export const SPECIALIZED_STEADINESS = 0.5;
+
+// The four pillars' stored axes, in the pillars' order.
+const PILLAR_OF_AXIS = {
+  reputation: 'academics', researchStanding: 'research', socialStanding: 'studentLife', athleticStrength: 'athletics',
+} as const satisfies Record<string, Pillar>;
+type PillarAxis = keyof typeof PILLAR_OF_AXIS;
+
+// Athletics is stored on its own 0-100 strength scale.
+function toStrength(value: number): number {
+  return ((value - PILLAR_FLOOR) * 100) / PILLAR_SPAN;
+}
+
+// How high drift may carry an axis, on the axis's own scale.
+export function rivalCeiling(r: Rival, axis: PillarAxis): number {
+  const pillar = PILLAR_OF_AXIS[axis];
+  if (axis === 'athleticStrength') {
+    return r.specialization === pillar ? ATHLETIC_STRENGTH_MAX : Math.min(ATHLETIC_STRENGTH_MAX, toStrength(UNSPECIALIZED_CEILINGS[pillar]));
+  }
+  if (r.specialization === pillar) return SPECIALIZED_CEILING;
+  // The field's academics already stop at FIELD_CEILING.
+  return axis === 'reputation' ? Math.min(FIELD_CEILING, UNSPECIALIZED_CEILINGS[pillar]) : UNSPECIALIZED_CEILINGS[pillar];
+}
+
+// What share of its momentum and shock an axis takes.
+function steadiness(r: Rival, axis: PillarAxis): number {
+  return r.specialization === PILLAR_OF_AXIS[axis] ? SPECIALIZED_STEADINESS : 1;
+}
+
+// A specialized axis's own rise a year, on the axis's scale. Academics
+// already rises for every rival (fieldRise); a specialist's rises toward
+// the higher ceiling instead.
+function specialistRise(r: Rival, axis: PillarAxis, value: number): number {
+  if (r.specialization !== PILLAR_OF_AXIS[axis]) return 0;
+  if (axis !== 'athleticStrength') return fieldRise(r.id, value, SPECIALIZED_CEILING, SPECIALIZED_RISE_RATE);
+  const onScale = PILLAR_FLOOR + (PILLAR_SPAN * value) / 100;
+  return (fieldRise(r.id, onScale, PILLAR_FLOOR + (PILLAR_SPAN * ATHLETIC_STRENGTH_MAX) / 100, SPECIALIZED_RISE_RATE) * 100) / PILLAR_SPAN;
+}
+
+// Where an axis lands after a year's drift: nothing climbs past its
+// ceiling on its own (Plan 67's rule for the field's academics, Plan 85C's
+// for every axis). An axis there may fall and recover, never drift beyond.
+function held(next: number, current: number, ceiling: number): number {
+  return next > ceiling && next > current ? Math.max(current, ceiling) : next;
 }
 
 // The top has to be held. Above ELITE_CLOSE_ABOVE_PRESTIGE, the elite band
@@ -146,37 +204,29 @@ export function tickRivals(s: GameState): void {
       }
       const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
       const elite = ELITE_RIVAL_IDS.has(r.id) && s.self.reputation > ELITE_CLOSE_ABOVE_PRESTIGE;
-      let next = r.reputation + r.momentum + shock + fieldRise(r.id, r.reputation);
-      // Nothing climbs past the field's ceiling on its own (Plan 67): a rival
-      // there may fall and recover, never drift beyond it, so the top of the
-      // field is the ceiling and first place goes to the college that
-      // outgrows it. The elite's closing on a leader (below) is not drift: a
-      // leader above the ceiling is still chased, and passed if it coasts.
-      if (next > FIELD_CEILING && next > r.reputation) next = Math.max(r.reputation, FIELD_CEILING);
-      r.reputation = clamp(next, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+      // A specialist's academics rises toward the higher ceiling instead
+      // (specialistRise). Nothing climbs past its ceiling on its own (Plan
+      // 67, held): the top of the field is the ceiling and first place goes
+      // to the college that outgrows it. The elite's closing on a leader
+      // (below) is not drift: a leader above the ceiling is still chased,
+      // and passed if it coasts.
+      const rise = r.specialization === 'academics' ? specialistRise(r, 'reputation', r.reputation) : fieldRise(r.id, r.reputation, rivalCeiling(r, 'reputation'));
+      const next = r.reputation + steadiness(r, 'reputation') * (r.momentum + shock) + rise;
+      r.reputation = clamp(held(next, r.reputation, rivalCeiling(r, 'reputation')), RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
 
       // The other standings drift on their own momentum, so the tables tell
-      // different stories.
+      // different stories; a specialized one also rises (specialistRise).
       r.socialMomentum = driftMomentum(r.socialMomentum, socialRoll);
       r.researchMomentum = driftMomentum(r.researchMomentum, researchRoll);
-      r.socialStanding = clamp(
-        r.socialStanding + r.socialMomentum + (socialRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
-        RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX,
-      );
-      r.researchStanding = clamp(
-        r.researchStanding + r.researchMomentum + (researchRoll() - 0.5) * ANNUAL_SHOCK_RANGE,
-        RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX,
-      );
+      r.socialStanding = drifted(r, 'socialStanding', r.socialMomentum + (socialRoll() - 0.5) * ANNUAL_SHOCK_RANGE, 0);
+      r.researchStanding = drifted(r, 'researchStanding', r.researchMomentum + (researchRoll() - 0.5) * ANNUAL_SHOCK_RANGE, 0);
 
       // Athletic strength drifts too, so playoff seeding is not fixed a
       // decade ahead. Clamped to its own band because the player's side
       // (teamQuality) cannot exceed 100.
       r.athleticMomentum = driftMomentum(r.athleticMomentum, athleticRoll);
       const athleticClosing = athleticElite.has(r.id) ? athleticClosingStep(r.athleticStrength, playerStrength) : 0;
-      r.athleticStrength = clamp(
-        r.athleticStrength + r.athleticMomentum + (athleticRoll() - 0.5) * ANNUAL_SHOCK_RANGE + athleticClosing,
-        ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX,
-      );
+      r.athleticStrength = drifted(r, 'athleticStrength', r.athleticMomentum + (athleticRoll() - 0.5) * ANNUAL_SHOCK_RANGE, athleticClosing);
 
       // The elite band's pull (eliteClosingStep) on top of the year's drift,
       // on its overall: every pillar rises by the step, so the overall does.
@@ -231,14 +281,26 @@ export function rivalOverall(r: Rival): number {
     + PILLAR_WEIGHTS.studentLife * p.studentLife + PILLAR_WEIGHTS.athletics * p.athletics;
 }
 
+// One of research, student life or athletics after a year: `noise` (its
+// momentum and shock) at the axis's steadiness, a specialist's rise, and
+// `pull` (the athletic closing), held at its ceiling and clamped to its band.
+function drifted(r: Rival, axis: 'researchStanding' | 'socialStanding' | 'athleticStrength', noise: number, pull: number): number {
+  const current = r[axis];
+  const next = current + steadiness(r, axis) * noise + specialistRise(r, axis, current) + pull;
+  const [min, max] = axis === 'athleticStrength' ? [ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX] : [RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX];
+  return clamp(held(next, current, rivalCeiling(r, axis)), min, max);
+}
+
 // Moves a rival's overall by `step`: every pillar by the same amount on the
-// prestige scale, within its band (a pillar at its band's edge moves less).
+// prestige scale, within its band and, rising, its ceiling (a pillar at
+// either moves less).
 function shiftPillars(r: Rival, step: number): void {
   if (step === 0) return;
-  r.reputation = clamp(r.reputation + step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
-  r.researchStanding = clamp(r.researchStanding + step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
-  r.socialStanding = clamp(r.socialStanding + step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
-  r.athleticStrength = clamp(r.athleticStrength + (step * 100) / PILLAR_SPAN, ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX);
+  const shift = (axis: PillarAxis, by: number, min: number, max: number) => clamp(held(r[axis] + by, r[axis], rivalCeiling(r, axis)), min, max);
+  r.reputation = shift('reputation', step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+  r.researchStanding = shift('researchStanding', step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+  r.socialStanding = shift('socialStanding', step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+  r.athleticStrength = shift('athleticStrength', (step * 100) / PILLAR_SPAN, ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX);
 }
 
 // One axis's momentum reroll, shared so a retune moves all axes together.
@@ -437,11 +499,22 @@ export function pillarColumns(s: GameState): Map<string, readonly number[]> {
   return out;
 }
 
+// Every specialized school's pillar, by key (Plan 85C): every rival's, and
+// the college's once it has one (Plan 85D).
+export function specializations(s: GameState): Map<string, Pillar> {
+  const out = new Map<string, Pillar>(s.rivals.map((r) => [r.id, r.specialization]));
+  const mine = specializationOf(s);
+  if (mine) out.set('self', mine);
+  return out;
+}
+
 // A rival's overall a year ago, estimated: each pillar stepped back one
 // momentum step.
 function lastYearsMove(r: Rival): number {
-  return PILLAR_WEIGHTS.academics * r.momentum + PILLAR_WEIGHTS.research * r.researchMomentum
-    + PILLAR_WEIGHTS.studentLife * r.socialMomentum + PILLAR_WEIGHTS.athletics * (r.athleticMomentum * PILLAR_SPAN) / 100;
+  return PILLAR_WEIGHTS.academics * steadiness(r, 'reputation') * r.momentum
+    + PILLAR_WEIGHTS.research * steadiness(r, 'researchStanding') * r.researchMomentum
+    + PILLAR_WEIGHTS.studentLife * steadiness(r, 'socialStanding') * r.socialMomentum
+    + PILLAR_WEIGHTS.athletics * (steadiness(r, 'athleticStrength') * r.athleticMomentum * PILLAR_SPAN) / 100;
 }
 
 function placesByKey(entries: RankedEntry[]): Map<string, number> {

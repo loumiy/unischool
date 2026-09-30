@@ -3,6 +3,7 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 import { makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { sportRankedList } from '../../systems/rivals/rivalsSystem';
 import { random } from '../../engine/random';
+import { specializationOf } from '../prestige/specialization';
 
 // The postseason: once a year the top eight schools in each fielded sport,
 // seeded on the standings' strength number, play a three-round bracket.
@@ -26,6 +27,21 @@ export function wins(a: number, b: number, roll: () => number): boolean {
 
 // Named so a finish can be reported by round.
 const ROUND_NAMES = ['quarterfinal', 'semifinal', 'final'] as const;
+type Round = (typeof ROUND_NAMES)[number];
+
+// The big stage (Plan 85C): in the postseason an established power plays
+// above its number, the more so the deeper the round, and a college without
+// the athletic performance complex has nothing to match it. In each round
+// the college's opponent plays this many points stronger; the complex (Plan
+// 85G, the athletics specialization) closes it. With the team ceiling
+// (studentLifeData.ts's UNSPECIALIZED_TEAM_CEILING) it makes a first title
+// rare before year 20 on the unspecialized path. Only the college's own
+// games: a bracket between rivals is as it was, and the draws are the same.
+export const STAGE_EDGE: Readonly<Record<Round, number>> = { quarterfinal: 8, semifinal: 20, final: 35 };
+
+export function stageEdge(s: GameState, round: Round): number {
+  return specializationOf(s) === 'athletics' ? 0 : STAGE_EDGE[round];
+}
 
 // Resolve one sport's postseason from the player's side. Only fielded sports
 // run a bracket.
@@ -57,7 +73,9 @@ export function resolveSport(s: GameState, sportId: string, roll: () => number):
     for (let i = 0; i < alive.length / 2; i += 1) {
       const a = alive[i];
       const b = alive[alive.length - 1 - i];
-      const aWins = wins(a.value, b.value, roll);
+      // The edge goes to whoever plays the college.
+      const edge = a.isPlayer || b.isPlayer ? stageEdge(s, round) : 0;
+      const aWins = wins(a.value + (b.isPlayer ? edge : 0), b.value + (a.isPlayer ? edge : 0), roll);
       const winner = aWins ? a : b;
       const loser = aWins ? b : a;
       if (winner.isPlayer) beaten.push(`${loser.name} ${loser.mascot}`);

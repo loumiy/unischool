@@ -94,15 +94,18 @@ function place(r: Rival, overall: number, momentum = 0): void {
 
   // A leader who coasts falls into the band and is passed: the field does
   // not follow them down.
+  // At 130, about the most an unspecialized college stands (Plan 85C's
+  // ceilings): the band closes to eight below it, as high as its own
+  // ceilings let it.
   const coasting = createInitialState('Coasting');
-  coasting.self.reputation = 150;
+  coasting.self.reputation = 130;
   coasting.clock.week = WEEKS_PER_YEAR;
   for (let y = 0; y < 12; y += 1) tickRivals(coasting);
-  assert(playerRank(coasting) === 1, 'a school holding the cap for twelve years is first');
-  coasting.self.reputation = 138;
+  assert(playerRank(coasting) === 1, 'a school holding 130 for twelve years is first');
+  coasting.self.reputation = 118;
   tickRivals(coasting);
   assert(playerRank(coasting) > 1, `and one that falls twelve points is passed (rank #${playerRank(coasting)})`);
-  const above = coasting.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id) && rivalOverall(r) > 138).length;
+  const above = coasting.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id) && rivalOverall(r) > 118).length;
   assert(above >= 1, `by rivals the band left standing above it (${above})`);
 
   // A leader below the gate meets the field it always did: no elite

@@ -18,6 +18,7 @@ import {
 } from './campusMap';
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
+import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_FULL_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
@@ -58,7 +59,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 87; // Plan 84C: each professor's career record
+export const SAVE_VERSION = 88; // Plan 85C: each rival's specialization
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -181,6 +182,16 @@ function careersFromTenure(state: GameState): void {
   for (const c of state.candidates ?? []) delete c.career;
 }
 
+// 87 -> 88, Plan 85C: each rival specializes in one pillar (types.ts's
+// Rival.specialization), dealt off its id as a new run deals it
+// (rivalData.ts's dealtSpecialization), so a loaded field is the field a
+// new game would have. Its standings are left where they are: the
+// unspecialized ceilings hold what drift would add from here on, and
+// nothing is taken away at the load.
+function dealSpecializations(state: GameState): void {
+  for (const r of state.rivals ?? []) r.specialization = dealtSpecialization(r.id);
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
@@ -194,6 +205,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   84: milestoneWeeks,
   85: noRecruitingYet,
   86: careersFromTenure,
+  87: dealSpecializations,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -1079,6 +1091,9 @@ function sanitize(state: GameState): void {
   sanitizeEnding(state);
   refreshAuthoredText(state);
   sanitizeIdentity(state);
+  // A rival's specialization (Plan 85C) is one of the four pillars; anything
+  // else is dealt again off its id.
+  for (const r of state.rivals) if (!isSpecialization(r.specialization)) r.specialization = dealtSpecialization(r.id);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;

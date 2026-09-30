@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A and B merged (#268, #274).**
+**Status: In progress: A–C merged (#268, #274, #275).**
 
 ---
 
@@ -292,6 +292,162 @@ save change.
 - **Checks:** the sim report's new pillar ranks per player; the
   milestone's rank reached in years 25–40 by Guided (it has no effect
   until D).
+
+**As implemented (#275):** every pillar stops at a ceiling without its
+specialization, a title is rare without the athletics one, and every rival
+is dealt a pillar that runs higher and steadier. Save version 88.
+
+- **The ceilings** (`prestigeSystem.ts`'s `UNSPECIALIZED_CEILINGS`, beside
+  `PILLAR_WEIGHTS`; the repository has no `tuning.ts`):
+
+  | Pillar | Ceiling |
+  |---|---|
+  | Academics | 126 |
+  | Research | 126 |
+  | Student life | 120 |
+  | Athletics | 110 |
+
+  - `pillarCeiling(s, pillar)` is 150 for the college's specialization and
+    the ceiling otherwise. `specializationOf(s)` reads the choice and answers
+    none until 85D saves `s.specialization`; it has a module of its own
+    (`systems/prestige/specialization.ts`, types only) so the data files can
+    read it without an import cycle.
+  - The ceiling is the pillar breakdown's `ceiling`, so the target is the
+    lower of the ceiling and what the terms earn, and prestige counts a held
+    pillar at its ceiling. The breakdown carries `held`, true while the
+    ceiling is what sets the target.
+  - Student life's is lower because it is the easiest to fill; athletics' is
+    about where a strong department without titles stands (the team
+    ceiling, below, caps its program strength and flagships).
+  - **The words** are in `data/specializationData.ts`. To the player a
+    ceiling is a *limit* (Plan 47's glossary). History › Prestige marks a
+    held pillar's row *At its limit*, and its line ends "Held at its limit
+    of 126. Only a specialization in academics would lift it." The pillar's
+    breakdown, there and in the standings, names the limit under its note.
+    "Specialization" throughout, never "archetype"; the glossary gains the
+    word.
+- **Athletics, harder.** The target, set here for review: on the
+  unspecialized path a first title comes after year 20 in most runs, and a
+  handful at most by year 50. Two levers, both lifted by the athletics
+  specialization (85G):
+  - **The team ceiling:** no program plays above 90
+    (`studentLifeData.ts`'s `UNSPECIALIZED_TEAM_CEILING`). `teamQuality` is
+    the lower of that and `teamQualityEarned`. A team card held there says
+    so, and the department's help names the ceiling.
+  - **The big stage:** in the college's own games the opponent plays 8
+    points stronger in a quarterfinal, 20 in a semifinal and 35 in a final
+    (`playoffs.ts`'s `STAGE_EDGE`, `stageEdge`). Brackets between rivals are
+    as they were, and the postseason still takes one draw.
+  - The rivals' athletic specialists, which run higher, make the field
+    stronger as the run goes on. Before this, the championships goal player
+    had team qualities of 100 by year 15 and several at 100 all run.
+- **Rival specializations:**
+  - `Rival.specialization`, dealt by `rivalData.ts`'s `dealtSpecialization`
+    (a hash of the id under the salt `specialization`): 35 academic, 23
+    research, 19 student-life and 22 athletic specialists. The six strongest
+    authored schools cover all four, and the elite band has a specialist in
+    each.
+  - **The specialized axis** rises as the field's academics does
+    (`fieldRise`, by the fourth power of the authored standing) at twice
+    the rate (`SPECIALIZED_RISE_RATE`), easing toward
+    `SPECIALIZED_CEILING`, 150 (athletics: the top of its band, 85), and
+    takes half its momentum and its yearly shock
+    (`SPECIALIZED_STEADINESS`).
+  - **The other three** stop at the college's unspecialized ceilings
+    (athletics at strength 66, what 110 maps to). Drift never carries an
+    axis past its ceiling, and the elite band's closing is held there too;
+    an axis already above in an old save keeps its place until it falls.
+  - The draws are unchanged: one a year for the whole field, the same rolls
+    in the same order whatever the specializations (the test counts them).
+  - **The screens:** the guide tags every rival after its name (*Aca*,
+    *Res*, *Life*, *Ath*, the words on hover) and underlines its
+    specialized pillar's figure; the standings name each leader's
+    specialization ("Led by Ravensmoor Institute, specialized in student
+    life"). The annual report's printed table is a snapshot and is not
+    tagged.
+- **Save:** `SAVE_VERSION` 87 → 88, migration `dealSpecializations` at
+  `MIGRATIONS[87]`: each rival dealt its pillar as a new game deals it, its
+  standings left where they were. A specialization that is not one of the
+  four is dealt again on load. `test/fixtures/save-v87.json` is the
+  `year-8-balanced` scenario written before the bump (the chain test wants
+  a fixture written at each version the chain starts from).
+  `sim/harness/invariants.ts` checks every rival holds its dealt pillar.
+- **The Guided harness fix.** The Guided player never activated a varsity
+  team because it never built a venue: the next-step line never asks for
+  one, and its plain-sense builds (`buildFor`, and the labs, projects and
+  buildings a course waits on) left varsity venues out. Every team waited
+  on the Multi-Sport Field, the Arena, the Diamond, the Natatorium or the
+  Football Stadium all run. It now also builds the venue a team waits on, as
+  it builds the building a course waits on. A harness fix, not a game
+  change: all 20 teams are active by year 50. It hires no coaches and picks
+  no flagships, so its athletics pillar is about 67 and ranks in the 60s,
+  and adds about 5 to its prestige at year 50 (seed 12345: 115.5 with the
+  fix, 110.0 without).
+- **The sim moves** (medians of three seeds, against 85B's baseline; pillar
+  ranks at year 50, academics / research / student life / athletics):
+
+  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 |
+  |---|---|---|---|---|
+  | Guided | 55 (+1) / 16 (+1) / 6 (+5) | 59.4 (+1.4) / 94.8 (+1.7) / 115.5 (−14.3) | 87.6 (−1.0) / 84.5 (−0.1) / 87.9 (+1.7) | 11 / 8 / 4 / 67, was 1 / 3 / 1 / 100 |
+  | Completionist | 53 / 16 (+5) / 7 (+6) | 59.7 / 94.1 (−1.1) / 115.5 (−18.6) | 84.9 / 86.8 (−2.7) / 87.5 (−0.4) | 9 / 12 / 4 / 61, was 2 / 7 / 1 / 59 |
+  | Selective | 56 / 50 (+1) / 53 (+1) | 51.6 / 63.5 / 65.1 (+0.5) | 85.2 / 79.8 / 77.1 (+0.2) | 53 / 58 / 5 / 100, was 48 / 59 / 4 / 100 |
+  | Lean | 58 (−1) / 57 / 63 | 47.0 / 52.0 / 51.9 | 74.1 / 67.3 / 67.6 | 51 / 77 / 7 / 100, was 48 / 78 / 5 / 100 |
+  | Idle | 78 / 59 / 66 | 31.7 / 49.7 / 46.0 | 84.0 flat | 81 / 75 / 7 / 100, was 84 / 75 / 5 / 100 |
+
+  When the strong players first reach each place (seeds 12345, 4242, 777):
+
+  | | Top 15 | Top 10 | #1 |
+  |---|---|---|---|
+  | Guided | 26, 26, 24 (was 25, 25, 26) | 29, 29, 30 (was 27, 28, 28) | never, best 6, 4, 3 (was never, 42, 36) |
+  | Completionist | 27, 26, 26 (was 24, 23, 24) | 34, 27, 39 (was 27, 26, 25) | never, best 6, 6, 9 (was 36, 34, 36) |
+
+  - **The targets:** both reach the top 10 by year 50 and neither is ever
+    first; at year 50 each holds academics, research and student life at
+    their ceilings, which ranks about 10th, 8th to 12th and 4th. Their
+    athletics ranks in the 60s because neither runs its department (no
+    coaches, no flagships); the championships goal player, which does,
+    ranks 17th (12–24).
+  - **Titles:** Guided and Completionist won none before and none after.
+    The championships goal player (`npm run review:goals -- --goals
+    championships`, five seeds, two names): first title a median year 29
+    (13–40; four runs of ten won none), against year 9 (8–11); titles by
+    year 25 a median 0, against 19; by year 50 a median 1 (0–3), against 69
+    (59–95). Its overall rank at year 50 falls from 11 to 26.
+  - **The milestone** (no effect until 85D): Guided first stands in the
+    top 15 in years 24–26, Completionist in 26–27, at the early edge of
+    the 25–40 wanted.
+  - **Cash at year 50** moves a lot (Guided $128M → $654M, Completionist
+    +$70M), and is the report's noisiest figure: late in the run both bank
+    most of what they earn (Guided seed 12345 held $166M at year 45 and
+    $1.1B at year 50).
+  - Selective, Lean and Idle barely move: their pillars sit under the
+    ceilings. Idle's student life, 101 from welfare alone, ranks 7th
+    against 5th: student-life specialists now run above it.
+- **Open, for review:**
+  - **Ties at a ceiling.** The college shares a held pillar's value with
+    any rival held at the same ceiling, and the tables' sort puts the
+    college after them (85B's rule). Its pillar ranks would be a few
+    places better if it took the tie.
+  - **The endowment** stays outside the pillars (up to +8). A college with
+    every pillar at its ceiling, athletics included, and a full endowment
+    would stand near 130, level with the field's best specialists; none of
+    the harness's players comes close. 85I's balance pass should include
+    one.
+  - **The team ceiling and the big stage** are this PR's reading of
+    "rare"; 85G decides how far the complex lifts each.
+- **Checks:** `npm run check`; `npm run sim` re-recorded (`--save`), then 0
+  deltas; `npm run phone` on the launch fixture and a year-46 Guided save;
+  `review:strings`, nothing new flagged. `test/specializations.test.ts`
+  pins the ceilings and the held line, the deal (the same every time, all
+  four dealt, all four among the strongest), the field after fifty years
+  (each pillar led by its specialist, no other axis past its ceiling, one
+  draw a year), the migration and the harder titles. The closing-field,
+  first-place, department and playoffs tests were rescaled to standings
+  and teams an unspecialized college can hold.
+- **Screenshots** in `docs/reviews/2026-10-pillars/`, from a Guided run
+  named Blackmoor at year 46: `85c-prestige.jpg` (academics, research and
+  student life held, academics opened), `85c-standings.jpg` and
+  `85c-guide.jpg` (the rival tags).
 
 ## PR 85D — The milestone and the choice
 
