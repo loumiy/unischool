@@ -4,7 +4,7 @@
 PRs: a market that reflects the college's standing, and a Faculty tab that
 shows each professor as a person with a career.*
 
-**Status: In progress: A and B merged (#267, #269).**
+**Status: Proposed.**
 
 ---
 
@@ -114,7 +114,7 @@ Proposed here, for the owner to confirm on review:
   - the weeks a retirement's courses wait for an instructor;
   - `npm run sim` re-recorded, with the moves described.
 
-**As implemented (#269):** the market follows standing, and the Faculty
+**As implemented (#272):** the market follows standing, and the Faculty
 tab says so.
 
 - **The draw** (`facultyData.ts`: `marketCenters`, `potentialAround`,
