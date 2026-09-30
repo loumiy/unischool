@@ -206,6 +206,34 @@ puts someone on the list only every few months, so specialization is a choice
 forced by what you can afford and who happens to be available that week, not
 by losing people you already have.
 
+### The career record (Plan 84C)
+
+Each professor on the roster keeps a record of their career at the college
+(`types.ts`'s `Career`, written only by `systems/faculty/career.ts`), for the
+Faculty tab's person view. Nothing in the simulation reads it, and nothing
+that writes it draws on the random stream.
+
+- **Arrival:** the absolute week of appointment. The founding market's
+  professors arrive with tenure served elsewhere (`FOUNDING_TENURE_WEEKS`),
+  which is not counted as time at the college.
+- **Courses taught, as spans:** a course id with its first and last week.
+  A course counts once it is taught (`done`), not while it is developed.
+  Once a week, after the roster's week, every course a professor teaches
+  extends its span if the span reached last week, and opens a new one
+  otherwise, so adjacent weeks of one course are one span and a course
+  that moves closes its span at the last week it was taught.
+- **Research:** a line per project they were on, written when it ends: the
+  topic, the depth, the year it ended, how long it ran, its papers and
+  breakthroughs, and whether it was wound up early or abandoned.
+- **Prizes:** by name, year and the project it was won for.
+- **A mark a year:** teaching and research, rounded, at the last week of
+  every year on the roster.
+
+A candidate has no record. A professor who leaves (retirement, dismissal, a
+seat) takes theirs with them; the chronicle and the research record keep
+what the college remembers. On a year-50 campus the records add about
+50 KB to a save of about 490 KB.
+
 ## Course quality: every course carries a grade
 
 Every offered course has a letter grade, A–F, and it is **derived on read** —

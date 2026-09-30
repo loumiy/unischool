@@ -132,6 +132,49 @@ Proposed here, for the owner to confirm on review:
 - **Checks:** tests that spans open and close as courses move, that a
   project and a prize land in the record, and that the migration holds.
 
+**As implemented (#270):** `Faculty.career` (`types.ts`'s `Career`),
+written only by `systems/faculty/career.ts`. Nothing in the simulation
+reads it and nothing that writes it draws on the random stream, so
+`npm run sim` is unchanged (0 deltas). Save version 87.
+
+- **What is kept, and when:**
+  - `arrivedWeek`, set by `appointFaculty` (every appointment, the event's
+    chair included). A candidate has no record.
+  - `courses`: spans of `{ courseId, from, to }` in absolute weeks. Rather
+    than hooking the six places that write `courseFaculty` (the reducer's
+    reassign, restaffing, the swap, a project's cover, a course started,
+    a departure), the record reads `courseFaculty` once a week, after the
+    roster's week in `tickFaculty`: each course a professor teaches
+    extends its span if the span reached last week, and opens a new one
+    otherwise. So adjacent weeks merge by construction, and a course that
+    moves or ends closes at the last week it was taught. A course counts
+    once it is taught (`done`), not while it is developed.
+  - `research`: a line per participant when a project ends (the topic, the
+    depth, the year it ended, how long it ran, papers, breakthroughs, and
+    `cancelled` when wound up early or abandoned), from `concludeInitiative`.
+  - `prizes`: name, year and the project's topic, on the winner.
+  - `years`: one `[year, teaching, research]` mark, rounded, at the last
+    week of each year on the roster.
+- **The migration (86 → 87):** each professor arrives as many weeks ago as
+  their tenure, less the founding market's head start
+  (`FOUNDING_TENURE_WEEKS`, served elsewhere), never before week 1, with
+  an empty record. `test/fixtures/save-v86.json` is the year-8-balanced
+  scenario written by main before the bump. A record that is missing or
+  malformed on load starts empty that week (`sanitizeCareers`).
+- **Rules:** `sim/harness/invariants.ts` checks that every professor has
+  a record, no candidate does, and a course's spans run forward without
+  touching.
+- **Size, year 50:**
+  - Guided: 92 professors, about 50 KB of a 490 KB save. That is 582
+    spans (26 KB), 1,196 yearly marks (13 KB) and 54 project lines (5 KB).
+  - Completionist: 100 professors, about 46 KB of 500 KB.
+
+  Spans barely fragment: 565 professor-course pairs held 582 spans. A
+  veteran teaches a dozen courses at once, so the spans are most of it.
+- **Tests:** `test/career.test.ts` covers the migration, spans opening,
+  running on and closing as a course moves and comes back, a project and a
+  prize on the record, and six guided years under the rules.
+
 ## PR 84D — The faculty grid
 
 - **Tiles:** a portrait at a size that reads, name, field, teaching and

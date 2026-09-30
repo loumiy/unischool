@@ -60,7 +60,9 @@ JSON-round-trippable breaks save/load silently. State must also stay
 reasonably light as it grows: a fresh run is ~165 KiB (the standing
 candidate market is ~24 KiB of that — 30 listings with bios), and the per-year
 `YearSnapshot` and the capped log are what keep a decades-long run in the low
-hundreds of KiB.
+hundreds of KiB. Each professor's career record (Plan 84C) is bounded by a
+career's length and kept only while they are on the roster: about 50 KB of
+a 490 KB year-50 save.
 
 `SAVE_VERSION` is the escape hatch for the shape changing. Bump it whenever a
 field is added-as-required, renamed, retyped, or given a new meaning. Additive
