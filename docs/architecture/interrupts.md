@@ -74,7 +74,7 @@ Everything that needs to stop time rides on this one mechanism:
   (`RESOLVE_DEAN_RECOMMENDATIONS`). Unanswered, the programs stay dark.
 - **The specialization** (`specialization`, Plan 85D) — raised by
   `RESOLVE_ADMISSIONS` at the close of the first summer the college stands
-  at the milestone (the guide's top 12), and of every summer after until a
+  at the milestone (the guide's top 20), and of every summer after until a
   specialization is chosen (`systems/prestige/milestone.ts`). It is raised
   after the page has turned, on the new year's first week before it runs,
   so its answer (`RESOLVE_SPECIALIZATION`, a pillar or null for "not this

@@ -216,7 +216,7 @@ specialization a program's quality slows above 80 and titles are rare (see
 without a specialization reaches the overall top ten and never first place.
 Its cost, measured in Plan 85D: with no slack above a cap, every shortfall
 shows, so every college stands lower through the middle of the run than it
-did under the ceilings, and the strong players reach the top 12 about six
+did under the ceilings, and the strong players climb the guide about six
 years later.
 
 **The milestone and the choice** ([Plan 85](../plans/85-specializations.md)
@@ -224,12 +224,15 @@ PR D; `systems/prestige/milestone.ts`). The specialization is chosen once,
 late, and kept:
 
 - **The milestone is a rank, not a prestige figure,** so it survives a
-  retune: the guide's top 12 (`SPECIALIZATION_MILESTONE_RANK`, beside the
-  term weights). The plan's first number was the top 15. Guided reaches the
-  top 12 in years 35–36; the Completionist in years 40, 43 and 49, later
-  than the owner's 25–40 on two seeds of three (Plan 85D's note).
+  retune: the guide's top 20 (`SPECIALIZATION_MILESTONE_RANK`, beside the
+  term weights). The plan's first number was the top 15, and the first
+  version, with ceilings, used the top 12. Without them the climb is
+  slower, and the owner kept the structure and lowered the milestone (Plan
+  85 §2, 2026-09-30): the top 20 is the tightest rank the Guided and
+  Completionist players reach in the owner's years 25–40 on every seed
+  (Guided 29–31, the Completionist 30–38).
 - **The board's notice** comes the first week the college stands within
-  four places of it (`SPECIALIZATION_NOTICE_PLACES`, the top 16): a board
+  four places of it (`SPECIALIZATION_NOTICE_PLACES`, the top 24): a board
   letter in the inbox, which never stops the clock, naming the four
   specializations and the points of its pillar each opens. The strong
   players have it two to five years ahead of the milestone.
@@ -265,10 +268,10 @@ late, and kept:
   known first for its teaching"), in place of the guidebooks' tag.
 
 With only the term filling, the Guided player (which chooses its strongest
-pillar, academics, in years 35–36) reaches first place in years 47–50 and
+pillar, academics, in years 29–31) reaches first place in years 42–44 and
 holds it at year 50 on every seed; the Completionist (academics, years
-40–49) finishes third, first on one seed after the fiftieth summer. Held to
-no specialization, neither is ever first (best 4th).
+30–38) is first on two seeds of three, from years 45 and 49. Held to no
+specialization, neither is ever first (best 4th).
 
 The pillars' terms, as they were weighted inside prestige before:
 

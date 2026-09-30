@@ -105,10 +105,10 @@ export const UNSPECIALIZED_MAXIMA: Readonly<Record<Pillar, number>> = {
 // specialization is offered at the first summer the college stands this
 // high in the guide's overall ranking. A rank, not a prestige figure, so it
 // survives a retune. Tuned so the Guided and Completionist players first
-// stand there in years 25-40 (the owner's range) with some margin: at the
-// top 15 they reached it in years 24-27 (Plan 85C's measure), at the top 12
-// in years 27-30 on every seed.
-export const SPECIALIZATION_MILESTONE_RANK = 12;
+// stand there in years 25-40 (the owner's range) on every seed, with some
+// margin. Without caps (Plan 85D's review) they climb later: they reach the
+// top 20 in years 29-38; the top 18 would be 30-41, the top 15 32-45.
+export const SPECIALIZATION_MILESTONE_RANK = 20;
 // The board's notice comes when the college first stands within this many
 // places of the milestone: two to four years ahead of it for a college
 // climbing as the strong players do.
