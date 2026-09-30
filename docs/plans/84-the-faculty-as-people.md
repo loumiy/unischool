@@ -132,7 +132,7 @@ Proposed here, for the owner to confirm on review:
 - **Checks:** tests that spans open and close as courses move, that a
   project and a prize land in the record, and that the migration holds.
 
-**As implemented (#270):** `Faculty.career` (`types.ts`'s `Career`),
+**As implemented (#269):** `Faculty.career` (`types.ts`'s `Career`),
 written only by `systems/faculty/career.ts`. Nothing in the simulation
 reads it and nothing that writes it draws on the random stream, so
 `npm run sim` is unchanged (0 deltas). Save version 87.
@@ -197,7 +197,7 @@ reads it and nothing that writes it draws on the random stream, so
 - **Checks:** `npm run phone`; screenshots of the grid early and late, and
   of the market.
 
-**As implemented (#271):** the tab opens on the grid. A view switch
+**As implemented (#270):** the tab opens on the grid. A view switch
 shows *Faculty*, *Market* and *Departments*. The department board
 (Plan 72F's meters, demand and search offers) is kept whole as the third
 view, and a Curriculum door to a department still opens it on that row.
