@@ -1,30 +1,30 @@
-import { quirkById } from '../data/quirkData';
 import AdministrationPanel from './AdministrationPanel';
 import { useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
-import type { Buildable, Faculty, GameState } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import type { Faculty, GameState } from '../state/types';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
-import { PUBLICATION_POINTS, facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
-import { effectiveCourseSlots, facultyLoad } from '../systems/techtree/techSystem';
+import { hasFreeSlot, unstaffedCourses } from '../systems/techtree/techSystem';
 import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/faculty/facultyCapacity';
-import { facultyPay } from '../systems/finance/financeSystem';
-import { coursesTaughtBy } from '../systems/faculty/facultyAssignment';
+import { facultyLoads, type FacultyLoads } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
-import ConfirmButton from '../components/ConfirmButton';
 import { DisclosureIcon } from '../components/icons';
 import { GradeChip, SearchOffer } from './CurriculumTab';
 import { searchCost } from '../systems/faculty/facultySearch';
-import { projectedQuality } from '../systems/faculty/facultyAssignment';
 import {
   deptAction, payroll, searchable, waitingCourses, worthTaking, type Listing,
 } from '../systems/faculty/hiringNext';
-import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
-import { FACULTY_SORTS, compareFaculty, showsDepartment, type FacultyFilter, type FacultySort } from './facultySort';
+import {
+  FACULTY_SORTS, GROUP_SCOPE, NO_GRID_FILTER, compareFaculty, retiringSoon, showsDepartment, showsPerson,
+  type FacultyFilter, type FacultySort, type GridFilter,
+} from './facultySort';
+import FacultyTile, { waitingCount, type Commitment, type FieldWaiting } from './FacultyTile';
 import { money, moneyShort, pct, surnameOf, weeksShort } from '../format';
 
+// The Faculty tab (Plan 84D): the faculty as a grid of tiles (FacultyTile.tsx)
+// to sort and filter, the market as the same tiles, and the department board.
+//
 // The department board: every department the university could have (all 29,
 // in the eight FACULTY_FIELD_GROUPS divisions), what each can teach, and who
 // is in it. Empty departments are rendered too: seeing that twelve courses
@@ -36,189 +36,6 @@ import { money, moneyShort, pct, surnameOf, weeksShort } from '../format';
 // churn block, facultySystem.ts's tickCandidatePool); appointing is immediate
 // and the cost is salary. Shortages are felt on the Curriculum tab; this
 // board is for deciding whether to grow a department before that.
-
-// Teaching or research as a bar, with the headroom to this person's
-// potential shown behind the filled part.
-function StatBar({ label, value, potential }: { label: string; value: number; potential: number }) {
-  return (
-    <span className="faculty-bar" title={`${label} ${value} of a possible ${potential}`}>
-      <span className="faculty-bar-label">{label}</span>
-      <span className="faculty-bar-track">
-        <span className="faculty-bar-headroom" style={{ width: `${Math.max(0, Math.min(100, potential))}%` }} />
-        <span className="faculty-bar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
-      </span>
-      <span className="faculty-bar-value">{value}</span>
-    </span>
-  );
-}
-
-// One person, as a card: portrait (FacultyPortrait.tsx), name, rank badge
-// (facultyQualityTier) and stat bars. The face also carries salary, load and,
-// for a listing, time left; everything else is behind the expand toggle.
-// No flag glyph: emoji flags do not render everywhere, so nationality is
-// plain text in the detail.
-function FacultyCard(
-  { s, act, f, isCandidate, commitment, waiting }:
-  {
-    s: GameState; act: (a: Action) => void; f: Faculty; isCandidate: boolean;
-    // For a listing: the first course waiting on their department, so the
-    // card can show the grade they would earn on it.
-    waiting?: Buildable;
-    // Their research commitment, if any (see the commitment map below): a
-    // committed scholar teaches two courses fewer, so it shows on the card.
-    commitment?: Commitment;
-  },
-) {
-  const [open, setOpen] = useState(false);
-  const taught = isCandidate ? [] : coursesTaughtBy(s, f);
-  const weeksLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
-  const researches = !isCandidate && labEquippedFields(s).has(f.field);
-  const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
-  const load = isCandidate ? 0 : facultyLoad(s, f.id);
-  const projected = isCandidate && waiting ? projectedQuality(s, waiting, f) : null;
-  // Every card shows what this school pays, listing or roster: the market
-  // rate is applied at payroll (financeSystem.ts's facultyPay).
-  const pay = facultyPay(s, f.salary);
-  const quirk = quirkById(f.quirk);
-
-  return (
-    <li className={`faculty-card${isCandidate ? ' listed' : ''}${commitment ? ' committed' : ''}`}>
-      <div className="faculty-card-main">
-        <FacultyPortrait f={portraitOf(f)} size={36} />
-        <div className="faculty-card-body">
-          <div className="faculty-card-head">
-            <span className="faculty-name">{f.name}</span>
-            {/* The prize badge: permanent (see types.ts's Faculty.acclaim). */}
-            {f.acclaim > 0 && (
-              <span className="faculty-acclaim" title={`${f.acclaim} research ${f.acclaim === 1 ? 'prize' : 'prizes'}`}>
-                {'★'.repeat(f.acclaim)}
-              </span>
-            )}
-            <span className="faculty-card-spacer" />
-            {projected && waiting && (
-              <GradeChip grade={projected.grade} title={`Would earn a ${projected.grade} on ${waiting.name}`} />
-            )}
-            <span className="kind-tag">{facultyQualityTier(f)}</span>
-          </div>
-          <div className="faculty-card-field">
-            {commitment ? (
-              <span className="faculty-commitment" title={`${commitment.topic} · ${commitment.labName}`}>
-                On <strong>{commitment.topic}</strong>
-                <span className="faculty-commitment-left">
-                  {' '}· {weeksShort(commitment.weeksRemaining)} left
-                </span>
-              </span>
-            ) : isCandidate ? (
-              <span className="faculty-card-listing">{f.courseSlots} slots if appointed</span>
-            ) : taught.length > 0 ? (
-              <span className="faculty-card-teaching">
-                Teaching {taught.length} {taught.length === 1 ? 'course' : 'courses'}
-              </span>
-            ) : (
-              <span className="faculty-card-teaching idle">Teaching nothing</span>
-            )}
-          </div>
-          {quirk && <span className="faculty-quirk" title={quirk.line}>{quirk.name}</span>}
-          <div className="faculty-bars">
-            <StatBar label="T" value={f.teaching} potential={f.teachingPotential} />
-            <StatBar label="R" value={f.research} potential={f.researchPotential} />
-          </div>
-          <div className="faculty-card-foot">
-            <span className="faculty-card-salary" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}; the college pays ${money(pay)} at its market rate`}>{moneyShort(pay)}/yr</span>
-            {isCandidate ? (
-              <span className={weeksLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'}>withdraws in {weeksShort(weeksLeft)}</span>
-            ) : (
-              <span
-                className={load >= slots ? 'faculty-card-load full' : 'faculty-card-load'}
-                title={`Teaching ${load} of the ${slots} course slots they supply${commitment ? ' while committed to a project' : ''}`}
-              >
-                {load}/{slots} slots
-              </span>
-            )}
-            <button
-              type="button"
-              className="faculty-expand-btn"
-              onClick={() => setOpen((v) => !v)}
-              aria-expanded={open}
-              aria-label={open ? `Show less about ${f.name}` : `Show more about ${f.name}`}
-            >
-              <DisclosureIcon open={open} /> {open ? 'Less' : 'More'}
-            </button>
-            {isCandidate ? (
-              <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
-            ) : (
-              // Dismissing someone orphans their courses (the reducer's
-              // FIRE_FACULTY) and leaves any research team one short, so it
-              // asks first and names the loss. Someone teaching nothing and
-              // on no project is dismissed on the first click.
-              <ConfirmButton
-                className="btn-danger"
-                label="Dismiss"
-                armedLabel={taught.length > 0
-                  ? `Confirm — ${taught.length} ${taught.length === 1 ? 'course' : 'courses'} left unstaffed`
-                  : `Confirm — the ${commitment?.topic ?? 'research'} team one short`}
-                warning={<>
-                  {taught.length > 0 && <>
-                    {f.name} teaches {taught.map((c) => c.name.split(' · ')[0]).join(', ')}, which will be left without an instructor.
-                  </>}
-                  {taught.length > 0 && commitment && ' '}
-                  {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
-                </>}
-                needsConfirm={taught.length > 0 || !!commitment}
-                onConfirm={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-      {open && (
-        <div className="faculty-card-detail">
-          <p className="faculty-bio">{f.bio}{quirk && <> <em>{quirk.line}</em></>}</p>
-          <dl>
-            <dt>Nationality</dt><dd>{f.nationality}</dd>
-            <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
-            <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
-            <dt>Salary</dt><dd>{money(f.salary)}/yr <span className="outcome-note">({money(facultyPay(s, f.salary))} paid, at the college's market rate)</span></dd>
-            <dt>Course slots</dt><dd>{f.courseSlots}</dd>
-            {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)} years</dd></>}
-            {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}
-            {/* Research output: roster only, since a candidate produces nothing yet. */}
-            {!isCandidate && (
-              <>
-                <dt>Scholarly output</dt>
-                <dd>
-                  {researches
-                    ? `${facultyResearchOutput(f).toFixed(2)} a week, of the ${PUBLICATION_POINTS} a paper takes`
-                    : `none — no research facility in ${f.field}'s school`}
-                </dd>
-              </>
-            )}
-          </dl>
-          {!isCandidate && (
-            <div className="faculty-courses">
-              <span className="stat">Courses taught</span>
-              {taught.length > 0 ? (
-                <ul className="faculty-courses-list">
-                  {taught.map((t) => <li key={t.id}>{t.name}{t.status === 'developing' ? ' — in development' : ''}</li>)}
-                </ul>
-              ) : (
-                <p className="empty-note">No {f.field} courses currently offered.</p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </li>
-  );
-}
-
-// What somebody is committed to, flattened from the running initiatives.
-interface Commitment {
-  topic: string;
-  labName: string;
-  weeksRemaining: number;
-  weeksTotal: number;
-}
 
 // Everyone committed to a project right now, by faculty id.
 function commitmentsByFaculty(s: GameState): Map<string, Commitment> {
@@ -384,20 +201,19 @@ function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
 
 // One department: the row you scan, and everything it opens into.
 function DepartmentRow(
-  { s, act, c, scale, demand, open, onToggle, hired, listed, commitments, view, onOpenCurriculum }:
+  { s, act, c, scale, demand, open, onToggle, hired, listed, commitments, waiting, loads, onOpenCurriculum }:
   {
     s: GameState; act: (a: Action) => void; c: FieldCapacity; scale: number;
     demand: DemandByMajor | undefined;
     open: boolean; onToggle: () => void;
     hired: Faculty[]; listed: Faculty[];
     commitments: Map<string, Commitment>;
-    view: View;
+    waiting: FieldWaiting | undefined;
+    loads: FacultyLoads;
     onOpenCurriculum?: (target: string) => void;
   },
 ) {
-  const showRoster = view !== 'market';
-  const showMarket = view !== 'roster';
-  const waiting = waitingCourses(s, c.field);
+  const openCourses = waiting?.open ?? [];
   const demandCount = demand ? demand.reduce((n, g) => n + g.courses.length, 0) : 0;
 
   return (
@@ -442,20 +258,20 @@ function DepartmentRow(
               <>
                 {' '}
                 <button type="button" className="dept-demand-door" onClick={() => onOpenCurriculum(`field:${c.field}`)} title={`Open the Curriculum on the ${c.field} courses still ahead of you`}>
-                  {waiting.length === 0
+                  {openCourses.length === 0
                     ? 'Open in Curriculum →'
                     : c.state === 'short' || c.state === 'over'
-                      ? `${waiting.length} waiting on faculty →`
-                      : `${waiting.length} still ahead →`}
+                      ? `${openCourses.length} waiting on faculty →`
+                      : `${openCourses.length} still ahead →`}
                 </button>
               </>
             )}
           </p>
 
-          {showRoster && (hired.length > 0 ? (
+          {hired.length > 0 ? (
             <ul className="faculty-list">
               {hired.map((f) => (
-                <FacultyCard key={f.id} s={s} act={act} f={f} isCandidate={false} commitment={commitments.get(f.id)} />
+                <FacultyTile key={f.id} s={s} act={act} f={f} isCandidate={false} commitment={commitments.get(f.id)} waiting={waiting} load={loads.get(f.id) ?? 0} />
               ))}
             </ul>
           ) : (
@@ -464,9 +280,9 @@ function DepartmentRow(
                 ? ` ${c.offered} ${c.offered === 1 ? 'course is' : 'courses are'} offered with no one to teach them.`
                 : ''}
             </p>
-          ))}
+          )}
 
-          {showMarket && (listed.length > 0 || c.state === 'over' || c.state === 'short') && (
+          {(listed.length > 0 || c.state === 'over' || c.state === 'short') && (
             <>
               <div className="faculty-market-head">
                 <span>On the market</span>
@@ -479,7 +295,7 @@ function DepartmentRow(
               {listed.length > 0 ? (
                 <ul className="faculty-list candidate-list">
                   {listed.map((cand) => (
-                    <FacultyCard key={cand.id} s={s} act={act} f={cand} isCandidate={true} waiting={waiting[0]} />
+                    <FacultyTile key={cand.id} s={s} act={act} f={cand} isCandidate={true} waiting={waiting} />
                   ))}
                 </ul>
               ) : (
@@ -500,9 +316,13 @@ function DepartmentRow(
 // Next up (hiringNext.ts): who is worth appointing this week and for how
 // long, which departments only a search can help, which have courses nobody
 // holds, and what payroll is doing. Empty readings are left out.
-function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
+function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
   s: GameState; act: (a: Action) => void; fields: FieldCapacity[]; onOpenCurriculum?: (target: string) => void;
+  // To the market, filtered to a field: a retirement's successor (Plan 84D).
+  onOpenMarket: (field: string) => void;
 }) {
+  // Everyone whose year's notice has been given, soonest first.
+  const retiring = s.faculty.filter(retiringSoon).sort((a, b) => b.tenureWeeks - a.tenureWeeks);
   const listings = worthTaking(s);
   const searches = searchable(s, fields);
   const over = fields.filter((c) => c.state === 'over');
@@ -558,6 +378,25 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
           </span>
         </div>
       )}
+      {retiring.length > 0 && (
+        <div className="next-up-item retiring">
+          <span className="next-up-label">Retiring</span>
+          <span className="next-up-doors">
+            {retiring.slice(0, 4).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className="next-up-door"
+                onClick={() => onOpenMarket(f.field)}
+                title={`${f.name} retires within the year. The market in ${f.field}, to find a successor.`}
+              >
+                {surnameOf(f.name)} · {f.field} <span className="next-up-meta">the market →</span>
+              </button>
+            ))}
+            {retiring.length > 4 && <span className="next-up-note">+{retiring.length - 4} more</span>}
+          </span>
+        </div>
+      )}
       {over.length > 0 && (
         <div className="next-up-item wall">
           <span className="next-up-label">Short-staffed</span>
@@ -579,23 +418,122 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum }: {
   );
 }
 
-// The sort and filter (Plan 72F), kept for the session: closing the tab
-// unmounts it, and the choice should be there when it opens again.
-const session: { sort: FacultySort; filter: FacultyFilter } = { sort: 'teaching', filter: { field: null, shortOnly: false } };
+// The view, sort and filters (Plans 72F and 84D), kept for the session:
+// closing the tab unmounts it, and the choice should be there when it
+// opens again.
+type View = 'faculty' | 'market' | 'departments';
 
-// Roster-only, market-only, or both (the default).
-type View = 'both' | 'roster' | 'market';
-
-const VIEWS: Array<{ id: View; label: string }> = [
-  { id: 'both', label: 'Both' },
-  { id: 'roster', label: 'Roster' },
-  { id: 'market', label: 'Market' },
+const VIEWS: Array<{ id: View; label: string; title: string }> = [
+  { id: 'faculty', label: 'Faculty', title: 'On the faculty' },
+  { id: 'market', label: 'Market', title: 'On the market' },
+  { id: 'departments', label: 'Departments', title: 'Departments' },
 ];
+
+const session: { view: View; sort: FacultySort; grid: GridFilter; board: FacultyFilter } = {
+  view: 'faculty', sort: 'teaching', grid: NO_GRID_FILTER, board: { field: null, shortOnly: false },
+};
+
+// A target the tab can open on: a department on the board (the Curriculum's
+// doors), or the market in a field (a retirement's notice).
+export const MARKET_TARGET = 'market:';
+
+// The courses waiting in each field, read once for every tile.
+function waitingByField(s: GameState): Map<string, FieldWaiting> {
+  const map = new Map<string, FieldWaiting>();
+  const at = (field: string) => {
+    let w = map.get(field);
+    if (!w) { w = { unstaffed: 0, open: waitingCourses(s, field) }; map.set(field, w); }
+    return w;
+  };
+  for (const t of unstaffedCourses(s)) at(t.requiresFaculty!).unstaffed += 1;
+  for (const f of [...s.faculty, ...s.candidates]) at(f.field);
+  return map;
+}
+
+// The filter bar over the grid: sort, field or division, the two toggles,
+// search, and the departments short of people as one-click filters.
+function GridTools({ sort, setSort, filter, setFilter, fields, market, shown, total }: {
+  sort: FacultySort; setSort: (s: FacultySort) => void;
+  filter: GridFilter; setFilter: (f: GridFilter) => void;
+  fields: FieldCapacity[]; market: boolean; shown: number; total: number;
+}) {
+  const inUse = new Set(fields.filter((c) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.listed > 0).map((c) => c.field));
+  const short = fields.filter((c) => c.state === 'short' || c.state === 'over');
+  const narrowed = filter.scope !== null || filter.retiring || filter.canTake || filter.query !== '';
+  return (
+    <div className="faculty-grid-tools">
+      <div className="dept-tools">
+        <label className="dept-tool">
+          Sort by
+          <select value={sort} onChange={(e) => setSort(e.target.value as FacultySort)}>
+            {FACULTY_SORTS.filter((o) => !market || (o.id !== 'here' && o.id !== 'years')).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+        </label>
+        <label className="dept-tool">
+          Field
+          <select value={filter.scope ?? ''} onChange={(e) => setFilter({ ...filter, scope: e.target.value === '' ? null : e.target.value })}>
+            <option value="">All</option>
+            {FACULTY_FIELD_GROUPS.filter((g) => g.fields.some((f) => inUse.has(f) || filter.scope === f)).map((g) => (
+              <optgroup key={g.name} label={g.name}>
+                {g.fields.length > 1 && <option value={`${GROUP_SCOPE}${g.name}`}>All of {g.name}</option>}
+                {g.fields.filter((f) => inUse.has(f) || filter.scope === f).map((f) => <option key={f} value={f}>{f}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        {!market && (
+          <label className="dept-tool dept-tool-check">
+            <input type="checkbox" checked={filter.retiring} onChange={(e) => setFilter({ ...filter, retiring: e.target.checked })} />
+            Retiring soon
+          </label>
+        )}
+        <label className="dept-tool dept-tool-check" title={market ? 'Candidates in a field with a course waiting' : 'Professors with a free course slot in a field with a course waiting'}>
+          <input type="checkbox" checked={filter.canTake} onChange={(e) => setFilter({ ...filter, canTake: e.target.checked })} />
+          Can take a course
+        </label>
+        <input
+          type="search"
+          className="faculty-search"
+          placeholder="Search names, fields, quirks"
+          aria-label="Search the faculty"
+          value={filter.query}
+          onChange={(e) => setFilter({ ...filter, query: e.target.value })}
+        />
+        <span className="dept-tool-count">
+          {narrowed ? `${shown} of ${total}` : `${total}`}
+          {narrowed && <button type="button" className="faculty-clear" onClick={() => setFilter(NO_GRID_FILTER)}>Clear</button>}
+        </span>
+      </div>
+      {/* The departments short of people (Plan 72F's flags), one click from
+          their people or their market. */}
+      {short.length > 0 && (
+        <div className="faculty-short">
+          <span className="faculty-short-label">Short-staffed</span>
+          {short.map((c) => (
+            <button
+              key={c.field}
+              type="button"
+              className={`dept-note ${c.state}${filter.scope === c.field ? ' on' : ''}`}
+              aria-pressed={filter.scope === c.field}
+              onClick={() => setFilter({ ...filter, scope: filter.scope === c.field ? null : c.field })}
+              title={c.state === 'over'
+                ? `${c.field} offers ${c.offered - c.supply} more ${c.offered - c.supply === 1 ? 'course' : 'courses'} than its people can teach`
+                : `${c.field} has courses open and no course slot free to develop them`}
+            >
+              {c.field} · {c.state === 'over' ? `over by ${c.offered - c.supply}` : 'short'}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCurriculum }: {
   s: GameState; act: (a: Action) => void;
-  // A department to open and scroll to on arrival (from the Curriculum tab's
-  // wall or a drawer's dead end). Consumed on arrival.
+  // A department to open on the board (from the Curriculum tab's wall or a
+  // drawer's dead end), or MARKET_TARGET and a field (a retirement's
+  // notice). Consumed on arrival.
   target?: string;
   onTargetConsumed?: () => void;
   // To the Curriculum tab: "field:<name>" for courses waiting on a
@@ -605,48 +543,58 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   const cap = useMemo(() => facultyCapacity(s), [s.faculty, s.candidates, s.tech, s.research.initiatives]);
   const commitments = useMemo(() => commitmentsByFaculty(s), [s.research.initiatives, s.tech]);
   const demand = useMemo(() => courseDemandByField(s), [s.tech]);
+  const waiting = useMemo(() => waitingByField(s), [s.tech, s.courseFaculty, s.programOffers, s.faculty, s.candidates]);
+  const loads = useMemo(() => facultyLoads(s), [s.tech, s.courseFaculty]);
 
-  // The player's sort (Plan 72F; strongest teacher first until they pick
-  // another), on the roster and the market alike.
+  const [view, setViewState] = useState<View>(session.view);
   const [sort, setSortState] = useState<FacultySort>(session.sort);
-  const [filter, setFilterState] = useState<FacultyFilter>(session.filter);
+  const [grid, setGridState] = useState<GridFilter>(session.grid);
+  const [board, setBoardState] = useState<FacultyFilter>(session.board);
+  const setView = (next: View) => { session.view = next; setViewState(next); };
   const setSort = (next: FacultySort) => { session.sort = next; setSortState(next); };
-  const setFilter = (next: FacultyFilter) => { session.filter = next; setFilterState(next); };
+  const setGrid = (next: GridFilter) => { session.grid = next; setGridState(next); };
+  const setBoard = (next: FacultyFilter) => { session.board = next; setBoardState(next); };
+  const openMarket = (field: string) => {
+    setView('market');
+    setGrid({ ...NO_GRID_FILTER, scope: field });
+    window.setTimeout(() => document.querySelector('.faculty-people')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+  };
 
-  const hired = useMemo(() => {
+  // Years here and years left mean nothing on the market.
+  const gridSort: FacultySort = view === 'market' && (sort === 'here' || sort === 'years') ? 'teaching' : sort;
+  const market = view === 'market';
+  const people = market ? s.candidates : s.faculty;
+  const canTake = (f: Faculty) => waitingCount(waiting.get(f.field)) > 0 && (market || hasFreeSlot(s, f));
+  const shownPeople = useMemo(
+    () => (view === 'departments' ? [] : people.filter((f) => showsPerson(grid, f, !grid.canTake || canTake(f))).sort(compareFaculty(gridSort))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view, people, grid, gridSort, waiting, loads],
+  );
+
+  // The board's people, by field, in the chosen order.
+  const byField = (list: Faculty[]) => {
     const map = new Map<string, Faculty[]>();
-    for (const f of s.faculty) {
+    for (const f of list) {
       if (!map.has(f.field)) map.set(f.field, []);
       map.get(f.field)!.push(f);
     }
-    for (const list of map.values()) list.sort(compareFaculty(sort));
+    for (const l of map.values()) l.sort(compareFaculty(sort));
     return map;
-  }, [s.faculty, sort]);
+  };
+  const hired = useMemo(() => byField(s.faculty), [s.faculty, sort]);
+  const listed = useMemo(() => byField(s.candidates), [s.candidates, sort]);
 
-  const listed = useMemo(() => {
-    const map = new Map<string, Faculty[]>();
-    for (const c of s.candidates) {
-      if (!map.has(c.field)) map.set(c.field, []);
-      map.get(c.field)!.push(c);
-    }
-    for (const list of map.values()) list.sort(compareFaculty(sort));
-    return map;
-  }, [s.candidates, sort]);
-
-  const [view, setView] = useState<View>('both');
   // Only the departments the college uses (Plan 29): a course offered or
-  // revealed, or somebody on the roster. The rest wait behind a toggle, so
-  // the market scans without scrolling every field there is.
+  // revealed, or somebody on the roster. The rest wait behind a toggle.
   const [everyField, setEveryField] = useState(false);
-  const developed = (c: FieldCapacity) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.field === target || c.field === filter.field;
-  const shown = (c: FieldCapacity) => (everyField || developed(c)) && showsDepartment(filter, c.field, c.state);
+  const developed = (c: FieldCapacity) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.field === target || c.field === board.field;
+  const shownDept = (c: FieldCapacity) => (everyField || developed(c)) && showsDepartment(board, c.field, c.state);
   const departments = cap.fields.filter(developed).map((c) => c.field).sort();
   const hiddenFields = cap.fields.filter((c) => !developed(c)).length;
   // Expansion is stored as per-row overrides over a default (collapsed), so
   // "Expand all" and a row's own toggle compose.
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  const defaultOpen = (_c: FieldCapacity) => false;
-  const isOpen = (c: FieldCapacity) => overrides[c.field] ?? defaultOpen(c);
+  const isOpen = (c: FieldCapacity) => overrides[c.field] ?? false;
   const setAll = (open: boolean) => {
     const next: Record<string, boolean> = {};
     for (const c of cap.fields) next[c.field] = open;
@@ -655,8 +603,13 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
 
   useEffect(() => {
     if (!target) return;
-    setOverrides((o) => ({ ...o, [target]: true }));
-    window.setTimeout(() => document.querySelector(`[data-field="${CSS.escape(target)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+    if (target.startsWith(MARKET_TARGET)) {
+      openMarket(target.slice(MARKET_TARGET.length));
+    } else {
+      setView('departments');
+      setOverrides((o) => ({ ...o, [target]: true }));
+      window.setTimeout(() => document.querySelector(`[data-field="${CSS.escape(target)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+    }
     onTargetConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
@@ -665,6 +618,8 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   // Summed department by department (facultyCapacity.ts's total.shortfall):
   // school-wide totals would count one department's surplus against another's gap.
   const toFinish = cap.total.shortfall;
+  // The field the market is narrowed to, if it is one field.
+  const scopedField = grid.scope !== null && !grid.scope.startsWith(GROUP_SCOPE) ? cap.byField.get(grid.scope) : undefined;
 
   return (
     <div className="tab-content">
@@ -672,14 +627,14 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text="Every department the college could have, whether or not anybody is in it. The meter on each row is drawn to one scale across every department: the solid part is the course slots its courses take now, the half-tone the courses open but not yet developed, the dotted tail the rest of the catalog — and the upright rule is what the roster actually supplies, which is the thing hiring moves. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
+            <HelpHint text="Every professor and every candidate as a tile: teaching and research as letters on the scale courses are graded on, with the letter each is growing toward. Sort and filter the grid, or open the Departments view for each department's course slots against what its courses take. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
           </span>
           <span className="stat">{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
           {committedCount > 0 && <span className="stat">{committedCount} on projects</span>}
         </div>
         {/* The one school-wide figure, in people rather than slots. */}
-        <FacultyNextUp s={s} act={act} fields={cap.fields} onOpenCurriculum={onOpenCurriculum} />
+        <FacultyNextUp s={s} act={act} fields={cap.fields} onOpenCurriculum={onOpenCurriculum} onOpenMarket={openMarket} />
         <p className="faculty-horizon">
           <strong>{cap.total.supply}</strong> course slots supplied,
           {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
@@ -690,102 +645,143 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         </p>
       </section>
 
-      <section className="panel dept-board">
+      <section className="panel faculty-people">
         <div className="panel-head">
-          <span className="panel-head-title"><h3>Departments</h3></span>
+          <span className="panel-head-title"><h3>{VIEWS.find((v) => v.id === view)!.title}</h3></span>
           <span className="dept-views segmented">
             {VIEWS.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                className={view === v.id ? 'on' : undefined}
-                onClick={() => { setView(v.id); setOverrides({}); }}
-              >
+              <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
                 {v.label}
               </button>
             ))}
           </span>
-          <span className="dept-bulk">
-            <button type="button" onClick={() => setAll(true)}>Expand all</button>
-            <button type="button" onClick={() => setAll(false)}>Collapse all</button>
-            {hiddenFields > 0 || everyField ? (
-              <button type="button" aria-pressed={everyField} onClick={() => setEveryField((v) => !v)}>
-                {everyField ? 'Only the fields in use' : `Show every field (${hiddenFields} more)`}
-              </button>
-            ) : null}
-          </span>
-        </div>
-
-        {/* Sort and filter (Plan 72F). */}
-        <div className="dept-tools">
-          <label className="dept-tool">
-            Sort people by
-            <select value={sort} onChange={(e) => setSort(e.target.value as FacultySort)}>
-              {FACULTY_SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
-          </label>
-          <label className="dept-tool">
-            Department
-            <select
-              value={filter.field ?? ''}
-              onChange={(e) => {
-                const field = e.target.value === '' ? null : e.target.value;
-                setFilter({ ...filter, field });
-                if (field) setOverrides((o) => ({ ...o, [field]: true }));
-              }}
-            >
-              <option value="">All</option>
-              {departments.map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </label>
-          <label className="dept-tool dept-tool-check">
-            <input type="checkbox" checked={filter.shortOnly} onChange={(e) => setFilter({ ...filter, shortOnly: e.target.checked })} />
-            Short-staffed only
-          </label>
-          {(filter.field !== null || filter.shortOnly) && !cap.fields.some(shown) && (
-            <span className="dept-tool-empty">No department matches.</span>
+          {view === 'departments' && (
+            <span className="dept-bulk">
+              <button type="button" onClick={() => setAll(true)}>Expand all</button>
+              <button type="button" onClick={() => setAll(false)}>Collapse all</button>
+              {hiddenFields > 0 || everyField ? (
+                <button type="button" aria-pressed={everyField} onClick={() => setEveryField((v) => !v)}>
+                  {everyField ? 'Only the fields in use' : `Show every field (${hiddenFields} more)`}
+                </button>
+              ) : null}
+            </span>
           )}
         </div>
 
-        <div className="dept-head">
-          <span className="dept-name">Department</span>
-          <span className="capacity-legend">
-            <span className="capacity-key-pair"><span className="capacity-key offered" />offered</span>
-            <span className="capacity-key-pair"><span className="capacity-key available" />open</span>
-            <span className="capacity-key-pair"><span className="capacity-key locked" />catalog</span>
-            <span className="capacity-key-pair"><span className="capacity-key rule" />course slots supplied</span>
-          </span>
-          <span className="dept-slots">used/have</span>
-          <span className="dept-catalogue">all</span>
-          <span className="dept-people">people</span>
-          <span className="dept-note">next</span>
-        </div>
+        {view !== 'departments' && (
+          <>
+            <GridTools
+              sort={gridSort} setSort={setSort} filter={grid} setFilter={setGrid}
+              fields={cap.fields} market={market} shown={shownPeople.length} total={people.length}
+            />
+            {market && (
+              <p className="faculty-market-note">
+                {s.candidates.length} listed · a listing withdraws after {CANDIDATE_LISTING_WEEKS} weeks, and the market turns over every week.
+              </p>
+            )}
+            {shownPeople.length > 0 ? (
+              <ul className="faculty-list faculty-grid">
+                {shownPeople.map((f) => (
+                  <FacultyTile
+                    key={f.id} s={s} act={act} f={f} isCandidate={market}
+                    commitment={market ? undefined : commitments.get(f.id)}
+                    waiting={waiting.get(f.field)}
+                    load={market ? 0 : loads.get(f.id) ?? 0}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-note">
+                {people.length === 0
+                  ? (market ? 'Nobody is on the market this week.' : 'Nobody is on the faculty yet. Appoint someone from the market.')
+                  : market && scopedField
+                    ? `No ${scopedField.field} candidate is listed. The market turns over every week — or pay for a search.`
+                    : 'Nobody matches.'}
+              </p>
+            )}
+            {/* A search, when the market is narrowed to one field that is
+                short of people or has nobody listed (a retirement's). */}
+            {market && scopedField && (scopedField.state === 'over' || scopedField.state === 'short' || shownPeople.length === 0) && (
+              <SearchOffer s={s} act={act} field={scopedField.field} />
+            )}
+          </>
+        )}
 
-        {FACULTY_FIELD_GROUPS.filter((group) => group.fields.some((field) => shown(cap.byField.get(field)!))).map((group) => (
-          <section key={group.name} className="dept-group">
-            <h4>{group.name}</h4>
-            {group.fields.filter((field) => shown(cap.byField.get(field)!)).map((field) => {
-              const c = cap.byField.get(field)!;
-              return (
-                <DepartmentRow
-                  key={field}
-                  s={s}
-                  act={act}
-                  c={c}
-                  scale={cap.scale}
-                  demand={demand.get(field)}
-                  open={isOpen(c)}
-                  onToggle={() => setOverrides((o) => ({ ...o, [field]: !isOpen(c) }))}
-                  hired={hired.get(field) ?? []}
-                  listed={listed.get(field) ?? []}
-                  commitments={commitments}
-                  view={view}
-                  onOpenCurriculum={onOpenCurriculum}
-                />
-              );
-            })}
-          </section>
-        ))}
+        {view === 'departments' && (
+          <>
+            {/* Sort and filter (Plan 72F). */}
+            <div className="dept-tools">
+              <label className="dept-tool">
+                Sort people by
+                <select value={sort} onChange={(e) => setSort(e.target.value as FacultySort)}>
+                  {FACULTY_SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="dept-tool">
+                Department
+                <select
+                  value={board.field ?? ''}
+                  onChange={(e) => {
+                    const field = e.target.value === '' ? null : e.target.value;
+                    setBoard({ ...board, field });
+                    if (field) setOverrides((o) => ({ ...o, [field]: true }));
+                  }}
+                >
+                  <option value="">All</option>
+                  {departments.map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </label>
+              <label className="dept-tool dept-tool-check">
+                <input type="checkbox" checked={board.shortOnly} onChange={(e) => setBoard({ ...board, shortOnly: e.target.checked })} />
+                Short-staffed only
+              </label>
+              {(board.field !== null || board.shortOnly) && !cap.fields.some(shownDept) && (
+                <span className="dept-tool-empty">No department matches.</span>
+              )}
+            </div>
+
+            <div className="dept-head">
+              <span className="dept-name">Department</span>
+              <span className="capacity-legend">
+                <span className="capacity-key-pair"><span className="capacity-key offered" />offered</span>
+                <span className="capacity-key-pair"><span className="capacity-key available" />open</span>
+                <span className="capacity-key-pair"><span className="capacity-key locked" />catalog</span>
+                <span className="capacity-key-pair"><span className="capacity-key rule" />course slots supplied</span>
+              </span>
+              <span className="dept-slots">used/have</span>
+              <span className="dept-catalogue">all</span>
+              <span className="dept-people">people</span>
+              <span className="dept-note">next</span>
+            </div>
+
+            {FACULTY_FIELD_GROUPS.filter((group) => group.fields.some((field) => shownDept(cap.byField.get(field)!))).map((group) => (
+              <section key={group.name} className="dept-group">
+                <h4>{group.name}</h4>
+                {group.fields.filter((field) => shownDept(cap.byField.get(field)!)).map((field) => {
+                  const c = cap.byField.get(field)!;
+                  return (
+                    <DepartmentRow
+                      key={field}
+                      s={s}
+                      act={act}
+                      c={c}
+                      scale={cap.scale}
+                      demand={demand.get(field)}
+                      open={isOpen(c)}
+                      onToggle={() => setOverrides((o) => ({ ...o, [field]: !isOpen(c) }))}
+                      hired={hired.get(field) ?? []}
+                      listed={listed.get(field) ?? []}
+                      commitments={commitments}
+                      waiting={waiting.get(field)}
+                      loads={loads}
+                      onOpenCurriculum={onOpenCurriculum}
+                    />
+                  );
+                })}
+              </section>
+            ))}
+          </>
+        )}
       </section>
 
       <AdministrationPanel s={s} act={act} />
