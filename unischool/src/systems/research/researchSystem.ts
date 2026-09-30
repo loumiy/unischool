@@ -9,6 +9,7 @@ import { researchTopic } from '../../data/researchTopics';
 import { generateCandidate, marketStandingOf } from '../../data/facultyData';
 import { money, weeksProse } from '../../format';
 import { random } from '../../engine/random';
+import { recordProject } from '../faculty/career';
 
 // The research tick (docs/design/research.md). Each running initiative, one
 // per research facility, in order:
@@ -151,6 +152,9 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
       award,
     });
   }
+
+  // Each participant's own record (Plan 84C).
+  recordProject(s, initiative, participants, cancelled, award);
 
   s.research.completedInitiatives.unshift({
     topicId: initiative.topicId,

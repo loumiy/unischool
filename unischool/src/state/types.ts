@@ -222,7 +222,51 @@ export interface Faculty {
   // The name's cultural pool (facultyData.ts's NAME_POOLS), distinct from
   // nationality; FacultyPortrait.tsx biases skin tone by it.
   heritage: string;
+  // The career at this college (Plan 84C), from the week of appointment
+  // (systems/faculty/career.ts). Absent on a candidate, who has no history
+  // here yet; every rostered professor has one. It leaves with them.
+  career?: Career;
 }
+
+// A professor's record at the college (Plan 84C). Kept small: a span per
+// run of weeks teaching a course, a line per project and prize, and one
+// mark a year. Nothing in the simulation reads it; the Faculty tab does.
+export interface Career {
+  arrivedWeek: number;          // absolute week of appointment (eventData.ts's absoluteWeek)
+  courses: CourseSpan[];        // oldest first
+  research: ResearchStint[];    // oldest first
+  prizes: CareerPrize[];        // oldest first
+  years: YearMark[];            // one per year ended on the roster, oldest first
+}
+
+// A run of weeks teaching one course: opened the first week it is theirs
+// and taught ('done'), extended each week it stays so, closed when it moves
+// or ends. A course that comes back the very next week extends the span.
+export interface CourseSpan {
+  courseId: string;
+  from: number;                 // absolute week, first taught
+  to: number;                   // absolute week, last taught
+}
+
+// A research project they were on, recorded when it ended.
+export interface ResearchStint {
+  topicId: string;
+  depth: InitiativeDepth;
+  year: number;                 // the year it ended
+  years: number;                // how long it ran, to one decimal
+  publications: number;
+  breakthroughs: number;
+  cancelled?: true;             // wound up early, or abandoned
+}
+
+export interface CareerPrize {
+  name: string;
+  year: number;
+  topicId: string;              // the project it was won for
+}
+
+// Teaching and research, rounded, at the end of a year on the roster.
+export type YearMark = [year: number, teaching: number, research: number];
 
 export type BuildableStatus = 'locked' | 'available' | 'developing' | 'done';
 

@@ -92,13 +92,37 @@ Two consequences fall straight out of the record existing:
 - **Committing somebody to research takes two of their course slots**, the same
   way and with the same bookkeeping (see [research.md](research.md)).
 
-**The Faculty tab is a DEPARTMENT BOARD** (`FacultyTab.tsx`): one compact row
-per department — **all twenty-nine of them, always**, grouped into the eight
-divisions `FACULTY_FIELD_GROUPS` carries as data — over a card grid of the
-people in whichever departments are open. Clicking a row expands it in place:
+**The Faculty tab opens on a grid of people** (Plan 84D, `FacultyTab.tsx`
+and `FacultyTile.tsx`): every professor as a tile, with a view switch to the
+market (the candidates as the same tiles, so a candidate and a professor
+compare like for like) and to the department board below.
+
+- **A tile** carries a portrait that reads, the name and field, teaching and
+  research as letters on the course-grade bands (`courseQuality.ts`'s
+  `gradeFor`: A from 78, B from 62), with an arrow to the letter the
+  potential reaches when it is higher, and badges: prizes, *Retiring*
+  (the year's notice given), *On a project*, the courses waiting in their
+  field (unstaffed, or open to develop) where they could take one, and the
+  quirk. The foot has pay, load or the listing's weeks, and the action.
+- **Sort** by teaching, research, potential (both together), salary, years
+  here (from the arrival, Plan 84C), years left and name.
+- **Filter** by field or division, *retiring soon*, *can take a course* (a
+  free course slot, or a candidate, in a field with a course waiting), and a
+  search over names, fields, quirks and nationality. The departments short
+  of people or over-committed sit in the filter bar as one-click filters.
+- **A retirement's notice** opens the market filtered to its field: from the
+  log line while the professor is still here, and from the *Retiring*
+  reading in the strip below. A market narrowed to one field with nobody
+  listed offers a search.
+- **Scale:** a year-50 roster (92 professors) scrolls at 60 frames a second
+  on a phone, two tiles to a row, with no windowing.
+
+**The department board** is the third view: one compact row per department —
+**all twenty-nine of them, always**, grouped into the eight divisions
+`FACULTY_FIELD_GROUPS` carries as data. Clicking a row expands it in place:
 the courses that pull on the field (grouped by major — the answer to "why do I
 need a physicist"), its faculty, and the candidates listed in it underneath
-them. A view switch shows the roster alone, the market alone, or both.
+them. A Curriculum door to a department opens the board on its row.
 
 **Every department is rendered whether or not anybody is in it.** The previous
 version hid any field with nobody hired, nobody listed and no revealed course,
@@ -144,7 +168,9 @@ rate, and an Appoint button whose title says which courses the appointment
 opens; **nobody listed** — the short departments only a search or time can
 help, each a Post-a-search button with its cost, or the weeks left on one
 already running; **over** — the departments teaching more than they supply,
-as a door to the Curriculum's unstaffed courses; and **payroll** — salaries a
+as a door to the Curriculum's unstaffed courses; **retiring** — each
+professor whose year's notice is given, as a door to the market in their
+field; and **payroll** — salaries a
 week, their share of expenses, and what the appointments above would add.
 An empty reading is left out, and a board with nothing to do shows no strip.
 
@@ -205,6 +231,34 @@ attrition: salaries compound as a roster matures, and a thin-market field
 puts someone on the list only every few months, so specialization is a choice
 forced by what you can afford and who happens to be available that week, not
 by losing people you already have.
+
+### The career record (Plan 84C)
+
+Each professor on the roster keeps a record of their career at the college
+(`types.ts`'s `Career`, written only by `systems/faculty/career.ts`), for the
+Faculty tab's person view. Nothing in the simulation reads it, and nothing
+that writes it draws on the random stream.
+
+- **Arrival:** the absolute week of appointment. The founding market's
+  professors arrive with tenure served elsewhere (`FOUNDING_TENURE_WEEKS`),
+  which is not counted as time at the college.
+- **Courses taught, as spans:** a course id with its first and last week.
+  A course counts once it is taught (`done`), not while it is developed.
+  Once a week, after the roster's week, every course a professor teaches
+  extends its span if the span reached last week, and opens a new one
+  otherwise, so adjacent weeks of one course are one span and a course
+  that moves closes its span at the last week it was taught.
+- **Research:** a line per project they were on, written when it ends: the
+  topic, the depth, the year it ended, how long it ran, its papers and
+  breakthroughs, and whether it was wound up early or abandoned.
+- **Prizes:** by name, year and the project it was won for.
+- **A mark a year:** teaching and research, rounded, at the last week of
+  every year on the roster.
+
+A candidate has no record. A professor who leaves (retirement, dismissal, a
+seat) takes theirs with them; the chronicle and the research record keep
+what the college remembers. On a year-50 campus the records add about
+50 KB to a save of about 490 KB.
 
 ## Course quality: every course carries a grade
 

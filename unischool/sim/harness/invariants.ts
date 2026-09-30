@@ -98,6 +98,19 @@ export function brokenRules(s: GameState): string[] {
     if (!staff.has(facultyId)) out.push(`${courseId} is taught by ${facultyId}, who is not on the payroll`);
   }
 
+  // The career record (Plan 84C): every professor has one, no candidate
+  // does, and a course's spans run forward without touching.
+  for (const f of s.faculty) {
+    if (!f.career) { out.push(`${f.name} is on the payroll with no career record`); continue; }
+    const last = new Map<string, number>();
+    for (const span of f.career.courses) {
+      const before = last.get(span.courseId);
+      if (span.from > span.to || (before !== undefined && span.from <= before + 1)) out.push(`${f.name}'s spans of ${span.courseId} overlap or run backward`);
+      last.set(span.courseId, span.to);
+    }
+  }
+  for (const c of s.candidates) if (c.career) out.push(`${c.name} is a candidate with a career record`);
+
   // The students: no class below zero, every score on its scale.
   for (const [year, counts] of Object.entries(s.students.cohortsByClass)) {
     for (const [band, n] of Object.entries(counts as unknown as Record<string, number>)) {
