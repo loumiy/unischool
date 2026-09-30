@@ -116,6 +116,15 @@ compare like for like) and to the department board below.
   listed offers a search.
 - **Scale:** a year-50 roster (92 professors) scrolls at 60 frames a second
   on a phone, two tiles to a row, with no windowing.
+- **A tile opens into the person** (Plan 84E, `FacultyPerson.tsx`): in
+  place across the row on a wide screen, full screen on a phone. It reads
+  the career record: when they arrived, the person (background,
+  nationality, and the quirk explained in the numbers), the courses they
+  taught as a timeline, their research, their recognition (prizes, a
+  distinguished program they taught in, 25 years of service, and nothing
+  else), and teaching and research over the years as a small chart. A
+  candidate has no history here, and the page says so. The words are
+  `data/careerWords.ts`'s.
 
 **The department board** is the third view: one compact row per department —
 **all twenty-nine of them, always**, grouped into the eight divisions

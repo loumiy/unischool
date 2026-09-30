@@ -271,7 +271,7 @@ function DepartmentRow(
           {hired.length > 0 ? (
             <ul className="faculty-list">
               {hired.map((f) => (
-                <FacultyTile key={f.id} s={s} act={act} f={f} isCandidate={false} commitment={commitments.get(f.id)} waiting={waiting} load={loads.get(f.id) ?? 0} />
+                <FacultyTile key={f.id} s={s} act={act} f={f} isCandidate={false} commitment={commitments.get(f.id)} waiting={waiting} load={loads.get(f.id) ?? 0} onOpenCurriculum={onOpenCurriculum} />
               ))}
             </ul>
           ) : (
@@ -704,6 +704,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
                     commitment={market ? undefined : commitments.get(f.id)}
                     waiting={waiting.get(f.field)}
                     load={market ? 0 : loads.get(f.id) ?? 0}
+                    onOpenCurriculum={onOpenCurriculum}
                   />
                 ))}
               </ul>
