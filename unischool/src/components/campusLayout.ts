@@ -54,7 +54,7 @@ export interface CampusLayout {
 
 // Everything the scene reads from a placed Buildable. Fields the catalog
 // never changes for a given id (kind, facilityType, tier) ride on the id.
-function entryKey(e: PlacedEntry): string {
+export function entryKey(e: PlacedEntry): string {
   const { t, p } = e;
   const fx = t.effects;
   return [

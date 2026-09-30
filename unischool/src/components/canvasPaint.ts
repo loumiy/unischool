@@ -1,29 +1,36 @@
 import * as React from 'react';
 import { PointList, setRawPoints } from './isoProjection';
 
-// The canvas painter (Plan 83B's prototype, the map's renderer since 83C).
-// It walks the element tree the map's art returns (the same components the
-// SVG map renders) and draws it on a 2D canvas, instead of handing it to
-// React DOM to build ~17,000 SVG nodes.
+// The canvas painter (Plan 83B's prototype, the map's renderer since 83C;
+// a recorder and a player since 83D). It walks the element tree the map's
+// art returns (the same components the SVG map renders) and records what it
+// would draw as a list of ops (`Recorder.record`), which `replay` then
+// draws on any 2D canvas, at any transform, as often as needed: a
+// building's drawing, a strip of the ground, or a frame of a turn.
 //
 // - Plain components are called directly. A component that reads a hook
 //   (a context, a memo) is registered with its art (`registerArt`): a plain
 //   function of its props and the painter's scope, which carries the map's
 //   occasions (colors, snow, banner, college name, developing weeks, venue,
 //   crowd) as values set by the providers in the tree (`registerProvider`),
-//   and keeps memoised values from paint to paint (`scope.keep`). Nothing
-//   here reaches into React: elements are read through their public shape
-//   (`type`, `props`, `key`).
+//   and keeps memoised values from recording to recording (`scope.keep`).
+//   Nothing here reaches into React: elements are read through their public
+//   shape (`type`, `props`, `key`).
 // - A registered memo keeps its output while its props are unchanged, as
 //   React skips it; what it returns is walked again, so the components
-//   under it still read the occasions of this paint.
+//   under it still read the occasions of this recording.
 // - Color and stroke come, as in the SVG, from presentation attributes, the
-//   stylesheet's class rules (resolved once per chain of classes and season
-//   by `StyleResolver`, from probe elements in the map) and inline style, in
-//   that order of precedence, inherited down the tree as SVG inherits them.
-// - What it draws and can be pointed at is recorded (`HitList`), so the map
-//   can pick the building under the pointer as the SVG's hit test did: the
-//   topmost shape that takes pointer events, and the building it is in.
+//   stylesheet's class rules (resolved once per chain of classes, season
+//   and map class by `StyleResolver`, from probe elements in the map) and
+//   inline style, in that order of precedence, inherited down the tree as
+//   SVG inherits them. A hook (`extraClass`) adds classes as it records:
+//   the map's doors that walkers hold open.
+// - Each op carries the building it belongs to, so the map can pick the
+//   building under the pointer from the ops (`HitList`) as the SVG's hit
+//   test did: the topmost shape that takes pointer events.
+// - `replay` given a region draws only the ops that reach it, and of a long
+//   path only the subpaths that do (the map's layers are drawn a tile at a
+//   time).
 // - What it cannot draw it counts by name (`PaintStats.unsupported`).
 //
 // Browser-only in use (it reads computed style and draws on a canvas); the
@@ -204,6 +211,9 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 export class StyleResolver implements ClassRules {
   generation = 0;
   private cache = new Map<string, ClassStyle>();
+  // The rules read under each of the map's classes (a tool put away finds
+  // its rules as it left them).
+  private byRoot = new Map<string, Map<string, ClassStyle>>();
   private colors = new Map<string, string>();
   private root: SVGSVGElement;
   // The map's classes, worn by the probe only while it is read, so nothing
@@ -219,6 +229,8 @@ export class StyleResolver implements ClassRules {
   // The season or the theme changed: every rule reads its tokens again.
   reset(): void {
     this.cache.clear();
+    this.byRoot.clear();
+    this.byRoot.set(this.rootClass, this.cache);
     this.colors.clear();
     this.generation += 1;
   }
@@ -227,8 +239,9 @@ export class StyleResolver implements ClassRules {
   setRootClass(cls: string): void {
     const full = `campus-map-svg ${cls}`.trim().replace(/\s+/g, ' ');
     if (this.rootClass === full) return;
+    this.byRoot.set(this.rootClass, this.cache);
     this.rootClass = full;
-    this.cache.clear();
+    this.cache = this.byRoot.get(full) ?? new Map();
     this.generation += 1;
   }
   dispose(): void {
@@ -317,7 +330,7 @@ function num(v: unknown, d = 0): number {
 // straight onto the context) or a Path2D.
 type Shape =
   | { kind: 'pts'; xy: number[]; close: boolean }
-  | { kind: 'path'; path: Path2D; d?: string; box?: Box };
+  | { kind: 'path'; path: Path2D; d?: string; box?: Box; subs?: { d: string; box: Box }[] | null };
 type Box = [number, number, number, number];   // x0, y0, x1, y1
 
 function pointsOf(points: unknown): number[] | null {
@@ -395,8 +408,42 @@ function boxOf(s: Shape): Box {
     }
     return [x0, y0, x1, y1];
   }
-  if (!s.box) s.box = s.d ? pathBox(s.d) : [-Infinity, -Infinity, Infinity, Infinity];
+  if (!s.box) s.box = s.d ? boxOfPath(s.d) : [-Infinity, -Infinity, Infinity, Infinity];
   return s.box;
+}
+// A path's box, from the boxes of its subpaths when it is long (a record
+// again after a change meets the same strings: the path network's outline
+// changes a subpath or two when a tile is drawn).
+function boxOfPath(d: string): Box {
+  if (d.length < LONG_PATH) return pathBox(d);
+  const subs = splitPath(d);
+  if (!subs) return cachedBox(d);
+  const b: Box = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const q of subs) {
+    if (q.box[0] < b[0]) b[0] = q.box[0];
+    if (q.box[1] < b[1]) b[1] = q.box[1];
+    if (q.box[2] > b[2]) b[2] = q.box[2];
+    if (q.box[3] > b[3]) b[3] = q.box[3];
+  }
+  return b[0] === Infinity ? [0, 0, 0, 0] : b;
+}
+const LONG_PATH = 4000;
+const boxes = new Map<string, Box>();
+function cachedBox(d: string): Box {
+  let b = boxes.get(d);
+  if (!b) {
+    if (boxes.size > 20_000) boxes.clear();
+    b = pathBox(d);
+    boxes.set(d, b);
+  }
+  return b;
+}
+// A long path cut at its absolute movetos, when it has no relative one (a
+// relative moveto would need the pen's place, so such a path is cut by
+// subpathsOf's parse instead).
+function splitPath(d: string): { d: string; box: Box }[] | null {
+  if (d.includes('m')) return null;
+  return d.split(/(?=M)/).filter((q) => q.trim()).map((q) => ({ d: q, box: cachedBox(q) }));
 }
 export function pathBox(d: string): Box {
   let x0 = Infinity; let y0 = Infinity; let x1 = -Infinity; let y1 = -Infinity;
@@ -451,6 +498,68 @@ export function pathBox(d: string): Box {
   run();
   return x0 === Infinity ? [0, 0, 0, 0] : [x0, y0, x1, y1];
 }
+// A long path's subpaths, each with its own box, each starting with an
+// absolute moveto (so it stands alone): drawing part of a big layer need
+// only draw the subpaths that reach it (ViewLayer's strips, mapCanvas.ts).
+// Null for a path too short to be worth it.
+function subpathsOf(s: Extract<Shape, { kind: 'path' }>): { d: string; box: Box }[] | null {
+  if (s.subs !== undefined) return s.subs;
+  const d = s.d;
+  if (!d || d.length < LONG_PATH) return (s.subs = null);
+  const split = splitPath(d);
+  if (split) return (s.subs = split.length > 1 ? split : null);
+  const out: { d: string; box: Box }[] = [];
+  const re = /([MmLlHhVvCcSsQqTtAaZz])|(-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)/g;
+  const tokens: (string | number)[] = [];
+  let x: RegExpExecArray | null;
+  while ((x = re.exec(d))) tokens.push(x[1] ?? Number(x[2]));
+  let cx = 0; let cy = 0; let sx = 0; let sy = 0;
+  let cur: string[] = []; let bx: Box = [Infinity, Infinity, -Infinity, -Infinity];
+  const add = (px: number, py: number) => {
+    if (px < bx[0]) bx[0] = px;
+    if (px > bx[2]) bx[2] = px;
+    if (py < bx[1]) bx[1] = py;
+    if (py > bx[3]) bx[3] = py;
+  };
+  const flush = () => {
+    if (cur.length) out.push({ d: cur.join(' '), box: bx });
+    cur = []; bx = [Infinity, Infinity, -Infinity, -Infinity];
+  };
+  let i = 0;
+  let cmd = 'M';
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (typeof t === 'string') { cmd = t; i++; if (cmd === 'Z' || cmd === 'z') { cur.push('Z'); cx = sx; cy = sy; } continue; }
+    const C = cmd.toUpperCase(); const rel = cmd !== C;
+    const n = C === 'H' || C === 'V' ? 1 : C === 'A' ? 7 : C === 'C' ? 6 : C === 'S' || C === 'Q' ? 4 : 2;
+    const a = tokens.slice(i, i + n) as number[];
+    if (a.length < n) break;
+    i += n;
+    const bxo = rel ? cx : 0; const byo = rel ? cy : 0;
+    if (C === 'M') {
+      flush();
+      cx = bxo + a[0]!; cy = byo + a[1]!; sx = cx; sy = cy;
+      cur.push(`M${cx} ${cy}`);
+      add(cx, cy);
+      cmd = rel ? 'l' : 'L';
+      continue;
+    }
+    cur.push(`${cmd}${a.join(' ')}`);
+    if (C === 'H') { cx = bxo + a[0]!; add(cx, cy); continue; }
+    if (C === 'V') { cy = byo + a[0]!; add(cx, cy); continue; }
+    if (C === 'A') {
+      const ex = bxo + a[5]!; const ey = byo + a[6]!; const r = Math.max(Math.abs(a[0]!), Math.abs(a[1]!));
+      add(cx - r, cy - r); add(cx + r, cy + r); add(ex - r, ey - r); add(ex + r, ey + r);
+      cx = ex; cy = ey;
+      continue;
+    }
+    for (let j = 0; j < n; j += 2) add(bxo + a[j]!, byo + a[j + 1]!);
+    cx = bxo + a[n - 2]!; cy = byo + a[n - 1]!;
+  }
+  flush();
+  return (s.subs = out.length > 1 ? out : null);
+}
+
 function boxThrough(b: Box, m: Affine, pad: number): Box {
   let x0 = Infinity; let y0 = Infinity; let x1 = -Infinity; let y1 = -Infinity;
   for (const x of [b[0], b[2]]) {
@@ -465,6 +574,50 @@ function boxThrough(b: Box, m: Affine, pad: number): Box {
   return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
 }
 
+// --- what is drawn: the ops a recording leaves --------------------------------
+
+// A fill or a stroke: a color, a pattern (made for each canvas it is used
+// on) or a gradient, or none.
+export type Style = string | { pattern: Def } | { gradient: Def } | null;
+
+// What a recording leaves: shapes in world units, each with its paint and
+// the transform from its own units to the world's, in paint order; a group
+// drawn at an opacity (a layer) and a masked group (a clip) hold their own.
+export type Op =
+  | {
+    k: 'shape'; shape: Shape; m: Affine; fill: Style; stroke: Style; width: number; nonScaling: boolean;
+    dash: number[] | null; cap: CanvasLineCap; join: CanvasLineJoin; fa: number; sa: number; evenodd: boolean;
+    events: boolean; owner: string | null;
+  }
+  | { k: 'text'; m: Affine; text: string; x: number; y: number; size: number; font: string; spacing: number; align: CanvasTextAlign; baseline: CanvasTextBaseline; fill: string; a: number }
+  | { k: 'layer'; alpha: number; ops: Op[] }
+  | { k: 'clip'; cuts: { shape: Shape; m: Affine }[]; ops: Op[] };
+
+// The world box of what `ops` draw at this zoom (a stroke that does not
+// scale is wider in world units the further out the view is).
+export function opsBox(ops: readonly Op[], zoom: number, into: Box = [Infinity, Infinity, -Infinity, -Infinity]): Box {
+  for (const op of ops) {
+    if (op.k === 'shape') {
+      const w = op.stroke === null ? 0 : op.nonScaling ? op.width / zoom : op.width * (Math.hypot(op.m[0], op.m[1]) || 1);
+      const b = boxThrough(boxOf(op.shape), op.m, w / 2 + 1 / zoom);
+      if (b[0] < into[0]) into[0] = b[0];
+      if (b[1] < into[1]) into[1] = b[1];
+      if (b[2] > into[2]) into[2] = b[2];
+      if (b[3] > into[3]) into[3] = b[3];
+    } else if (op.k === 'text') {
+      const half = op.size * (op.text.length * 0.45 + 1);
+      const b = boxThrough([op.x - half, op.y - op.size, op.x + half, op.y + op.size], op.m, 1);
+      if (b[0] < into[0]) into[0] = b[0];
+      if (b[1] < into[1]) into[1] = b[1];
+      if (b[2] > into[2]) into[2] = b[2];
+      if (b[3] > into[3]) into[3] = b[3];
+    } else {
+      opsBox(op.ops, zoom, into);
+    }
+  }
+  return into;
+}
+
 // --- what can be pointed at -------------------------------------------------
 
 interface Hit {
@@ -473,16 +626,19 @@ interface Hit {
   m: Affine;
   fill: boolean;
   evenodd: boolean;
-  // The stroke's width in world units, or 0.
+  // The stroke's width: in world units, or in screen pixels if it does not
+  // scale; 0 for none.
   stroke: number;
+  nonScaling: boolean;
   // The building it is part of (its `data-building`), or null.
   owner: string | null;
   box?: Box;
 }
 
-// Every shape a paint drew that takes pointer events, in paint order, and
-// the question the map asks of them: what is under this point? The index
-// is built on the first question after a paint, so a turn pays nothing.
+// Every shape drawn that takes pointer events, in paint order, and the
+// question the map asks of them: what is under this point? The index is
+// built on the first question after the list changes, so a turn pays
+// nothing for it.
 export class HitList {
   static readonly CELL = 48;
   private hits: Hit[] = [];
@@ -490,18 +646,27 @@ export class HitList {
   private big: number[] = [];
   private probe: CanvasRenderingContext2D | null = null;
   private owned = false;
+  private zoom = 1;
   clear(): void {
     this.hits = [];
     this.grid = null;
     this.owned = false;
   }
-  // What is drawn before the first building (the land, the ground, the
-  // paths) can never be over one, so it is not kept: under the pointer it
-  // would only ever say "no building".
-  add(h: Hit): void {
-    if (h.owner === null && !this.owned) return;
-    this.owned ||= h.owner !== null;
-    this.hits.push(h);
+  // The shapes of a recording, in order. What is drawn before the first
+  // building (the land, the ground, the paths) can never be over one, so it
+  // is not kept: under the pointer it would only ever say "no building".
+  addOps(ops: readonly Op[]): void {
+    for (const op of ops) {
+      if (op.k === 'layer' || op.k === 'clip') { this.addOps(op.ops); continue; }
+      if (op.k !== 'shape' || !op.events) continue;
+      if (op.owner === null && !this.owned) continue;
+      this.owned ||= op.owner !== null;
+      this.hits.push({
+        shape: op.shape, m: op.m, fill: op.fill !== null, evenodd: op.evenodd,
+        stroke: op.stroke === null ? 0 : op.width * (op.nonScaling ? 1 : Math.hypot(op.m[0], op.m[1]) || 1),
+        nonScaling: op.nonScaling, owner: op.owner,
+      });
+    }
     this.grid = null;
   }
   get size(): number {
@@ -511,12 +676,15 @@ export class HitList {
   owners(): string[] {
     return [...new Set(this.hits.map((h) => h.owner).filter((o): o is string => o !== null))];
   }
+  private widthOf(h: Hit): number {
+    return h.nonScaling ? h.stroke / this.zoom : h.stroke;
+  }
   private build(): Map<number, number[]> {
     const grid = new Map<number, number[]>();
     this.big = [];
     const C = HitList.CELL;
     this.hits.forEach((h, i) => {
-      const b = h.box ?? (h.box = boxThrough(boxOf(h.shape), h.m, h.stroke / 2 + 0.5));
+      const b = h.box = boxThrough(boxOf(h.shape), h.m, this.widthOf(h) / 2 + 0.5);
       const c0 = Math.floor(b[0] / C); const c1 = Math.floor(b[2] / C);
       const r0 = Math.floor(b[1] / C); const r1 = Math.floor(b[3] / C);
       if (!Number.isFinite(c0 + c1 + r0 + r1) || (c1 - c0 + 1) * (r1 - r0 + 1) > 400) { this.big.push(i); return; }
@@ -531,14 +699,15 @@ export class HitList {
     this.grid = grid;
     return grid;
   }
-  // The topmost shape under the world point (x, y): `undefined` when there
-  // is none, else the building it belongs to (null for none).
-  at(x: number, y: number): string | null | undefined {
+  // The topmost shape under the world point (x, y) at this zoom: the
+  // building it belongs to, or null for none.
+  at(x: number, y: number, zoom: number): string | null {
+    if (zoom !== this.zoom) { this.zoom = zoom; this.grid = null; }
     const grid = this.grid ?? this.build();
     const C = HitList.CELL;
     const cell = grid.get(Math.floor(y / C) * 100003 + Math.floor(x / C)) ?? [];
     const ctx = this.probe ?? (this.probe = document.createElement('canvas').getContext('2d'));
-    if (!ctx) return undefined;
+    if (!ctx) return null;
     // The lowest candidate that belongs to a building: under it, whatever
     // is hit, it is no building.
     let lowestOwned = Infinity;
@@ -555,23 +724,24 @@ export class HitList {
       ctx.setTransform(asInit(h.m));
       const path = asPath(h.shape);
       if (h.fill && ctx.isPointInPath(path, x, y, h.evenodd ? 'evenodd' : 'nonzero')) return h.owner;
-      if (h.stroke > 0) {
-        ctx.lineWidth = h.stroke / (Math.hypot(h.m[0], h.m[1]) || 1);
+      const w = this.widthOf(h);
+      if (w > 0) {
+        ctx.lineWidth = w / (Math.hypot(h.m[0], h.m[1]) || 1);
         if (ctx.isPointInStroke(path, x, y)) return h.owner;
       }
     }
-    return undefined;
+    return null;
   }
 }
 
-// --- the walk -----------------------------------------------------------------
+// --- the walk: recording ------------------------------------------------------
 
 type El = React.ReactElement<Record<string, unknown>> & { type: unknown; key: string | null };
 const SKIP_TAGS = new Set(['title', 'desc', 'metadata']);
 const DRAW_TAGS = new Set(['polygon', 'polyline', 'path', 'rect', 'circle', 'ellipse', 'line']);
 
-// The classed ancestors of an element, as links kept from paint to paint,
-// each holding its rule once resolved.
+// The classed ancestors of an element, as links kept from recording to
+// recording, each holding its rule once resolved.
 interface Link { tag: string; cls: string; up: Link | null; kids: Map<string, Link>; style?: ClassStyle; gen: number }
 const rootLink = (tag = ''): Link => ({ tag, cls: '', up: null, kids: new Map(), gen: -1 });
 function chainArray(c: Link | null): { tag: string; cls: string }[] {
@@ -580,72 +750,80 @@ function chainArray(c: Link | null): { tag: string; cls: string }[] {
   return out;
 }
 
-interface Def {
+export interface Def {
   kind: 'linear' | 'radial' | 'pattern' | 'mask';
+  id: string;
   props: Record<string, unknown>;
   stops: { offset: number; color: string; opacity: number }[];
   children: React.ReactNode;
+  // A pattern's tile, recorded once.
+  tile?: Op[];
 }
 
-export interface PaintOptions {
+export interface RecordOptions {
   rules: ClassRules;
   // Elements carrying this ref (the map's label layer) are left to the SVG.
   skipRef?: unknown;
-  // Elements with this class are left to the SVG (the completion ring,
-  // which plays its animation there).
+  // Elements with this class are not recorded (the completion ring, which
+  // the map draws itself, in its time).
   skipClass?: string;
-  // Device pixels to a CSS pixel, for strokes that do not scale.
-  dpr: number;
-  // The view's zoom, for the width of a stroke that does not scale.
-  zoom: number;
-  // Where to record what can be pointed at, if anywhere.
-  hits?: HitList;
+  // More classes for an element, by its classes, its props and the building
+  // it is in: how a door a walker holds is drawn open.
+  extraClass?: (cls: string, props: Record<string, unknown>, owner: string | null) => string;
+  // The defs (gradients, patterns, masks) seen, shared with other recorders.
+  defs?: Map<string, Def>;
 }
 
-export class Painter {
+// Records element trees as ops. Kept from recording to recording: the
+// component instances of each named recording (so a memo holds), the class
+// rules' links, and the defs (gradients, patterns) any recording declared.
+export class Recorder {
   stats: PaintStats = { elements: 0, drawn: 0, unsupported: new Map() };
-  private defs = new Map<string, Def>();
-  private patterns = new Map<string, CanvasPattern | null>();
-  private ctx: CanvasRenderingContext2D;
-  private opts: PaintOptions;
-  // The world transform of the element being drawn (local to world).
+  readonly defs: Map<string, Def>;
+  private opts: RecordOptions;
+  private out: Op[] = [];
   private m: Affine = IDENTITY;
   private values: Readonly<Record<string, unknown>> = {};
   private owner: string | null = null;
-  // Offscreen layers for a group drawn at an opacity (a building dimmed
-  // while another is inspected), reused from paint to paint; each is kept
-  // clear, and only the part a group drew on is laid down and cleared.
-  private layers: CanvasRenderingContext2D[] = [];
-  private layerStack: { base: CanvasRenderingContext2D; dirty: Box }[] = [];
   private links: Link = rootLink();
-  private rootInst: Instance = newInstance();
-  private inst: Instance = this.rootInst;
+  private roots = new Map<string, Instance>();
+  private inst: Instance = newInstance();
   private gen = 0;
-  constructor(ctx: CanvasRenderingContext2D, opts: PaintOptions) {
-    this.ctx = ctx;
+  constructor(opts: RecordOptions) {
     this.opts = opts;
+    this.defs = opts.defs ?? new Map();
+  }
+  resetStats(): void {
+    this.stats = { elements: 0, drawn: 0, unsupported: new Map() };
+  }
+  // Forget a recording's instances (a building gone).
+  forget(key: string): void {
+    this.roots.delete(key);
   }
 
   private miss(name: string): void {
     this.stats.unsupported.set(name, (this.stats.unsupported.get(name) ?? 0) + 1);
   }
 
-  // Draws `node` into the canvas at its current transform (the world's).
-  paint(node: React.ReactNode): PaintStats {
-    this.stats = { elements: 0, drawn: 0, unsupported: new Map() };
+  // The ops of `node`, recorded under `key` (whose component instances are
+  // kept for the next recording under it), with these occasion values.
+  record(key: string, node: React.ReactNode, values: Readonly<Record<string, unknown>> = {}): Op[] {
     this.gen += 1;
-    this.inst = this.rootInst;
+    let root = this.roots.get(key);
+    if (!root) { root = newInstance(); this.roots.set(key, root); }
+    this.inst = root;
     this.m = IDENTITY;
-    this.values = {};
+    this.values = values;
     this.owner = null;
-    this.opts.hits?.clear();
+    const out: Op[] = [];
+    this.out = out;
     setRawPoints(true);
     try {
       this.walk(node, INITIAL, 1, this.links);
     } finally {
       setRawPoints(false);
     }
-    return this.stats;
+    return out;
   }
 
   // The component instance an element names, under the one being walked.
@@ -770,8 +948,9 @@ export class Painter {
       this.collectDefs(React.createElement(tag, props));
       return;
     }
-    const cls = typeof props.className === 'string' ? props.className : '';
+    let cls = typeof props.className === 'string' ? props.className : '';
     if (cls && this.opts.skipClass && cls.split(' ').includes(this.opts.skipClass)) return;
+    if (cls && this.opts.extraClass) cls = this.opts.extraClass(cls, props, this.owner);
     const own = cls ? this.link(chain, tag, cls) : chain;
     const cs = cls ? own.style! : null;
     if (props.display === 'none' || (cs && !cs.display)) return;
@@ -821,15 +1000,17 @@ export class Painter {
 
     const transform = typeof props.transform === 'string' ? props.transform : null;
     const mask = typeof props.mask === 'string' ? props.mask : null;
-    const saved = transform !== null || mask !== null;
     const prevM = this.m;
-    if (saved) this.ctx.save();
-    if (transform) {
-      const t = transformOf(transform);
-      this.ctx.transform(t[0], t[1], t[2], t[3], t[4], t[5]);
-      this.m = mul(this.m, t);
+    const prevOut = this.out;
+    if (transform) this.m = mul(this.m, transformOf(transform));
+    if (mask) {
+      const cuts = this.maskCuts(mask);
+      if (cuts) {
+        const clip: Op = { k: 'clip', cuts, ops: [] };
+        this.out.push(clip);
+        this.out = clip.ops;
+      }
     }
-    if (mask) this.applyMask(mask);
     if (tag === 'g' || tag === 'svg') {
       const building = props['data-building'];
       const prevOwner = this.owner;
@@ -837,9 +1018,12 @@ export class Painter {
       if (opacity < 1) {
         // A group's opacity applies to the group as a whole: drawn on a
         // layer, then laid down at that opacity.
-        this.pushLayer();
+        const layer: Op = { k: 'layer', alpha: alpha * opacity, ops: [] };
+        this.out.push(layer);
+        const outer = this.out;
+        this.out = layer.ops;
         this.walk(props.children as React.ReactNode, p, 1, own);
-        this.popLayer(alpha * opacity);
+        this.out = outer;
       } else {
         this.walk(props.children as React.ReactNode, p, alpha, own);
       }
@@ -851,73 +1035,21 @@ export class Painter {
     } else if (!p.hidden) {
       const shape = shapeOf(tag, props);
       if (shape) {
-        this.fillStroke(shape, p, alpha * opacity, tag !== 'line');
+        this.shape(shape, p, alpha * opacity, tag !== 'line');
         this.stats.drawn += 1;
       }
     }
-    if (saved) this.ctx.restore();
+    this.out = prevOut;
     this.m = prevM;
-  }
-
-  private pushLayer(): void {
-    const base = this.ctx;
-    const depth = this.layerStack.length;
-    let layer = this.layers[depth];
-    if (!layer) {
-      layer = document.createElement('canvas').getContext('2d')!;
-      this.layers[depth] = layer;
-    }
-    const { width, height } = base.canvas;
-    if (layer.canvas.width !== width || layer.canvas.height !== height) {
-      layer.canvas.width = width;
-      layer.canvas.height = height;
-    }
-    layer.setTransform(base.getTransform());
-    this.layerStack.push({ base, dirty: [Infinity, Infinity, -Infinity, -Infinity] });
-    this.ctx = layer;
-  }
-  private popLayer(a: number): void {
-    const layer = this.ctx;
-    const { base, dirty } = this.layerStack.pop()!;
-    this.ctx = base;
-    if (dirty[0] > dirty[2]) return;
-    const x = Math.max(0, Math.floor(dirty[0])); const y = Math.max(0, Math.floor(dirty[1]));
-    const w = Math.min(layer.canvas.width, Math.ceil(dirty[2])) - x;
-    const h = Math.min(layer.canvas.height, Math.ceil(dirty[3])) - y;
-    if (w <= 0 || h <= 0) return;
-    base.save();
-    base.setTransform(1, 0, 0, 1, 0, 0);
-    base.globalAlpha = a;
-    base.drawImage(layer.canvas, x, y, w, h, x, y, w, h);
-    base.restore();
-    layer.save();
-    layer.setTransform(1, 0, 0, 1, 0, 0);
-    layer.clearRect(x, y, w, h);
-    layer.restore();
-    // The layer under it, if any, was drawn on here too.
-    const outer = this.layerStack[this.layerStack.length - 1];
-    if (outer) {
-      const d = outer.dirty;
-      d[0] = Math.min(d[0], x); d[1] = Math.min(d[1], y); d[2] = Math.max(d[2], x + w); d[3] = Math.max(d[3], y + h);
-    }
-  }
-  // A shape drawn on a layer marks the part of it to lay down.
-  private markDirty(shape: Shape, stroke: number): void {
-    const top = this.layerStack[this.layerStack.length - 1];
-    if (!top) return;
-    const t = this.ctx.getTransform();
-    const b = boxThrough(boxOf(shape), [t.a, t.b, t.c, t.d, t.e, t.f], stroke * Math.hypot(t.a, t.b) + 2);
-    const d = top.dirty;
-    d[0] = Math.min(d[0], b[0]); d[1] = Math.min(d[1], b[1]); d[2] = Math.max(d[2], b[2]); d[3] = Math.max(d[3], b[3]);
   }
 
   // A mask of the art's one kind (ageMarks.tsx): white everywhere, black
   // over the nearer volumes. Each black shape is cut out of the clip.
-  private applyMask(ref: string): void {
+  private maskCuts(ref: string): { shape: Shape; m: Affine }[] | null {
     const id = /^url\(["']?#([^"')]+)["']?\)/.exec(ref)?.[1];
     const def = id ? this.defs.get(id) : undefined;
-    if (!def || def.kind !== 'mask') { this.miss('mask'); return; }
-    const shapes: { shape: Shape; fill: string }[] = [];
+    if (!def || def.kind !== 'mask') { this.miss('mask'); return null; }
+    const cuts: { shape: Shape; m: Affine }[] = [];
     const visit = (n: React.ReactNode, fill: string): void => {
       if (Array.isArray(n)) { for (const x of n) visit(x as React.ReactNode, fill); return; }
       if (!React.isValidElement(n)) return;
@@ -925,97 +1057,48 @@ export class Painter {
       if (el.type === 'g') { visit(el.props.children as React.ReactNode, el.props.fill !== undefined ? String(el.props.fill) : fill); return; }
       if (typeof el.type !== 'string') { this.miss('mask content'); return; }
       const shape = shapeOf(el.type, el.props);
-      if (shape) shapes.push({ shape, fill: el.props.fill !== undefined ? String(el.props.fill) : fill });
+      const f = (el.props.fill !== undefined ? String(el.props.fill) : fill).toLowerCase();
+      if (!shape || f === 'white' || f === '#fff' || f === '#ffffff') return;
+      if (f !== 'black' && f !== '#000' && f !== '#000000') { this.miss('mask (grey)'); return; }
+      cuts.push({ shape, m: this.m });
     };
     visit(def.children, '#000');
-    for (const s of shapes) {
-      const f = s.fill.toLowerCase();
-      if (f === 'white' || f === '#fff' || f === '#ffffff') continue;
-      if (f !== 'black' && f !== '#000' && f !== '#000000') { this.miss('mask (grey)'); continue; }
-      const cut = new Path2D();
-      cut.rect(-1e5, -1e5, 2e5, 2e5);
-      cut.addPath(asPath(s.shape));
-      this.ctx.clip(cut, 'evenodd');
-    }
+    return cuts;
   }
 
-  private fillStroke(shape: Shape, p: Paint, a: number, fillable: boolean): void {
-    const ctx = this.ctx;
-    const fillStyle = fillable && p.fill !== 'none' ? this.paintStyle(p.fill) : null;
-    const strokeStyle = p.stroke !== 'none' && p.strokeWidth > 0 ? this.paintStyle(p.stroke) : null;
-    let width = 0;
-    if (strokeStyle !== null && !(strokeStyle instanceof GradientFill)) {
-      width = p.strokeWidth;
-      if (p.nonScaling) {
-        const t = ctx.getTransform();
-        width = (p.strokeWidth * this.opts.dpr) / (Math.hypot(t.a, t.b) || 1);
-      }
-    }
-    if (fillStyle === null && width === 0) return;
-    if (this.layerStack.length) this.markDirty(shape, width);
-    if (shape.kind === 'pts') { ctx.beginPath(); tracePts(ctx, shape.xy, shape.close); }
-    const rule: CanvasFillRule = p.evenodd ? 'evenodd' : 'nonzero';
-    if (fillStyle !== null) {
-      ctx.globalAlpha = a * p.fillOpacity;
-      if (fillStyle instanceof GradientFill) fillStyle.fill(ctx, asPath(shape), p.evenodd);
-      else {
-        ctx.fillStyle = fillStyle;
-        if (shape.kind === 'pts') ctx.fill(rule); else ctx.fill(shape.path, rule);
-      }
-    }
-    if (width > 0) {
-      ctx.globalAlpha = a * p.strokeOpacity;
-      ctx.strokeStyle = strokeStyle as string | CanvasPattern;
-      ctx.lineWidth = width;
-      ctx.lineCap = p.cap;
-      ctx.lineJoin = p.join;
-      if (p.dash) ctx.setLineDash(p.nonScaling ? p.dash.map((d) => (d * width) / p.strokeWidth) : p.dash);
-      if (shape.kind === 'pts') ctx.stroke(); else ctx.stroke(shape.path);
-      if (p.dash) ctx.setLineDash([]);
-    }
-    const hits = this.opts.hits;
-    if (hits && p.events) {
-      // The stroke's width in world units: a stroke that does not scale is
-      // its screen width over the zoom.
-      const k = Math.hypot(this.m[0], this.m[1]) || 1;
-      const stroke = width > 0 ? (p.nonScaling ? p.strokeWidth / (this.opts.zoom || 1) : width * k) : 0;
-      hits.add({ shape, m: this.m, fill: fillStyle !== null, evenodd: p.evenodd, stroke, owner: this.owner });
-    }
+  private shape(shape: Shape, p: Paint, a: number, fillable: boolean): void {
+    const fill = fillable && p.fill !== 'none' ? this.styleOf(p.fill) : null;
+    let stroke = p.stroke !== 'none' && p.strokeWidth > 0 ? this.styleOf(p.stroke) : null;
+    if (stroke !== null && typeof stroke === 'object' && 'gradient' in stroke) stroke = null;
+    if (fill === null && stroke === null) return;
+    this.out.push({
+      k: 'shape', shape, m: this.m, fill, stroke, width: p.strokeWidth, nonScaling: p.nonScaling, dash: p.dash,
+      cap: p.cap, join: p.join, fa: a * p.fillOpacity, sa: a * p.strokeOpacity, evenodd: p.evenodd,
+      events: p.events, owner: this.owner,
+    });
   }
 
-  // A fill or stroke value as the canvas takes it: a color, a pattern, a
-  // gradient, or null for none.
-  private paintStyle(v: string): string | CanvasPattern | GradientFill | null {
+  private styleOf(v: string): Style {
     if (!v || v === 'none' || v === 'transparent') return null;
     if (v.charCodeAt(0) === 117 /* u */) {
       const url = /^url\(["']?#([^"')]+)["']?\)/.exec(v);
       if (url) {
         const def = this.defs.get(url[1]!);
         if (!def || def.kind === 'mask') { this.miss(`url(#${url[1]})`); return null; }
-        if (def.kind === 'pattern') return this.pattern(url[1]!, def);
-        return new GradientFill(def);
+        if (def.kind === 'pattern') {
+          if (!def.tile) {
+            const out = this.out; const m = this.m;
+            this.out = []; this.m = IDENTITY;
+            this.walk(def.children, INITIAL, 1, rootLink('pattern'));
+            def.tile = this.out;
+            this.out = out; this.m = m;
+          }
+          return { pattern: def };
+        }
+        return { gradient: def };
       }
     }
     return this.opts.rules.color(v);
-  }
-
-  private pattern(id: string, def: Def): CanvasPattern | null {
-    if (this.patterns.has(id)) return this.patterns.get(id)!;
-    const w = num(def.props.width, 1);
-    const h = num(def.props.height, 1);
-    const k = 4;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.ceil(w * k);
-    canvas.height = Math.ceil(h * k);
-    const c = canvas.getContext('2d');
-    if (!c) { this.patterns.set(id, null); return null; }
-    c.scale(k, k);
-    const inner = new Painter(c, { ...this.opts, hits: undefined });
-    inner.walk(def.children, INITIAL, 1, rootLink('pattern'));
-    const pat = this.ctx.createPattern(canvas, 'repeat');
-    pat?.setTransform({ a: 1 / k, b: 0, c: 0, d: 1 / k, e: 0, f: 0 });
-    this.patterns.set(id, pat);
-    return pat;
   }
 
   private collectDefs(children: React.ReactNode): void {
@@ -1041,12 +1124,13 @@ export class Painter {
             : cls ? this.opts.rules.resolve([{ tag, cls: '' }, { tag: 'stop', cls }], true).stopColor ?? '#000' : '#000';
           stops.push({ offset: num(sp.offset), color: this.opts.rules.color(color), opacity: num(sp.stopOpacity, 1) });
         }
-        this.defs.set(id, { kind: tag === 'linearGradient' ? 'linear' : 'radial', props: el.props, stops, children: null });
+        this.defs.set(id, { kind: tag === 'linearGradient' ? 'linear' : 'radial', id, props: el.props, stops, children: null });
       } else if (tag === 'pattern' && id) {
-        this.defs.set(id, { kind: 'pattern', props: el.props, stops: [], children: el.props.children as React.ReactNode });
-        this.patterns.delete(id);
+        const old = this.defs.get(id);
+        // Kept, with its tile, while it is the same pattern.
+        if (!old || old.props !== el.props) this.defs.set(id, { kind: 'pattern', id, props: el.props, stops: [], children: el.props.children as React.ReactNode });
       } else if (tag === 'mask' && id) {
-        this.defs.set(id, { kind: 'mask', props: el.props, stops: [], children: el.props.children as React.ReactNode });
+        this.defs.set(id, { kind: 'mask', id, props: el.props, stops: [], children: el.props.children as React.ReactNode });
       } else {
         visit(el.props.children as React.ReactNode);
       }
@@ -1059,24 +1143,202 @@ export class Painter {
   private text(props: Record<string, unknown>, p: Paint, a: number, cs: ClassStyle | null): void {
     const content = React.Children.toArray(props.children as React.ReactNode).filter((c) => typeof c === 'string' || typeof c === 'number').join('');
     if (!content || p.hidden) return;
-    const ctx = this.ctx;
-    const style = this.paintStyle(p.fill);
+    const style = this.styleOf(p.fill);
     if (typeof style !== 'string') return;
     const f = cs?.font;
     const size = num(props.fontSize, 16);
-    ctx.globalAlpha = a * p.fillOpacity;
-    ctx.fillStyle = style;
-    ctx.font = `${f?.weight ?? '400'} ${size}px ${f?.family ?? 'sans-serif'}`;
-    ctx.letterSpacing = f ? `${f.spacing * size}px` : '0px';
     const anchor = (props.textAnchor as string | undefined) ?? f?.anchor ?? 'start';
     const baseline = (props.dominantBaseline as string | undefined) ?? f?.baseline ?? 'auto';
-    ctx.textAlign = anchor === 'middle' ? 'center' : anchor === 'end' ? 'right' : 'left';
-    ctx.textBaseline = baseline === 'central' || baseline === 'middle' ? 'middle' : 'alphabetic';
-    ctx.fillText(content, num(props.x), num(props.y));
-    ctx.letterSpacing = '0px';
+    this.out.push({
+      k: 'text', m: this.m, text: content, x: num(props.x), y: num(props.y), size,
+      font: `${f?.weight ?? '400'} ${size}px ${f?.family ?? 'sans-serif'}`, spacing: f ? f.spacing * size : 0,
+      align: anchor === 'middle' ? 'center' : anchor === 'end' ? 'right' : 'left',
+      baseline: baseline === 'central' || baseline === 'middle' ? 'middle' : 'alphabetic',
+      fill: style, a: a * p.fillOpacity,
+    });
     this.stats.drawn += 1;
   }
 }
+
+// --- replay: drawing the ops ----------------------------------------------------
+
+// Offscreen layers for a group drawn at an opacity (a building dimmed, a
+// sprite faded), shared by every replay; each is kept clear, and only the
+// part a group drew on is laid down and cleared.
+const layerPool: CanvasRenderingContext2D[] = [];
+const patternCache = new WeakMap<CanvasRenderingContext2D, Map<Def, CanvasPattern | null>>();
+
+export interface ReplayView {
+  // World to the target's device pixels.
+  base: Affine;
+  // The view's zoom and the device's pixel ratio, for strokes that do not
+  // scale.
+  zoom: number;
+  dpr: number;
+  // The part of the target being drawn, in its pixels (the rest is clipped
+  // away): shapes that do not reach it are skipped, and of a long path
+  // only the subpaths that do are drawn.
+  region?: Box;
+}
+
+// The transform last set on a context by a replay, so a run of shapes in
+// one space sets it once.
+const lastSet = new WeakMap<CanvasRenderingContext2D, { base: Affine; m: Affine; t: Affine }>();
+function transformFor(ctx: CanvasRenderingContext2D, base: Affine, m: Affine): Affine {
+  const last = lastSet.get(ctx);
+  if (last && last.base === base && last.m === m) return last.t;
+  const t = mul(base, m);
+  ctx.setTransform(t[0], t[1], t[2], t[3], t[4], t[5]);
+  lastSet.set(ctx, { base, m, t });
+  return t;
+}
+
+// Draws recorded ops onto `ctx`. (Whoever sets the context's transform
+// between replays must not rely on it being set again: see transformFor,
+// which a replay's start forgets.)
+export function replay(ctx: CanvasRenderingContext2D, ops: readonly Op[], view: ReplayView, depth = 0): void {
+  if (depth === 0) lastSet.delete(ctx);
+  for (const op of ops) {
+    if (op.k === 'shape') drawShape(ctx, op, view);
+    else if (op.k === 'text') drawText(ctx, op, view);
+    else if (op.k === 'clip') {
+      ctx.save();
+      for (const c of op.cuts) {
+        const t = mul(view.base, c.m);
+        ctx.setTransform(t[0], t[1], t[2], t[3], t[4], t[5]);
+        const cut = new Path2D();
+        cut.rect(-1e5, -1e5, 2e5, 2e5);
+        cut.addPath(asPath(c.shape));
+        ctx.clip(cut, 'evenodd');
+      }
+      lastSet.delete(ctx);
+      replay(ctx, op.ops, view, depth);
+      ctx.restore();
+      lastSet.delete(ctx);
+    } else {
+      drawLayer(ctx, op, view, depth);
+    }
+  }
+}
+
+function drawLayer(ctx: CanvasRenderingContext2D, op: { alpha: number; ops: Op[] }, view: ReplayView, depth: number): void {
+  const box = boxThrough(opsBox(op.ops, view.zoom), view.base, 2);
+  const W = ctx.canvas.width; const H = ctx.canvas.height;
+  // Only the part of it in the region being drawn, when there is one.
+  const r = view.region ?? [0, 0, W, H];
+  const x = Math.max(0, Math.floor(r[0]), Math.floor(box[0])); const y = Math.max(0, Math.floor(r[1]), Math.floor(box[1]));
+  const w = Math.min(W, Math.ceil(r[2]), Math.ceil(box[2])) - x; const h = Math.min(H, Math.ceil(r[3]), Math.ceil(box[3])) - y;
+  if (w <= 0 || h <= 0) return;
+  let layer = layerPool[depth];
+  if (!layer) {
+    layer = document.createElement('canvas').getContext('2d')!;
+    layerPool[depth] = layer;
+  }
+  // Drawn at the part's own origin, so a layer need only be as big as it.
+  if (layer.canvas.width < w || layer.canvas.height < h) {
+    layer.canvas.width = Math.max(layer.canvas.width, w);
+    layer.canvas.height = Math.max(layer.canvas.height, h);
+  }
+  replay(layer, op.ops, { ...view, base: mul([1, 0, 0, 1, -x, -y], view.base), region: view.region ? [0, 0, w, h] : undefined }, depth + 1);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = op.alpha;
+  ctx.drawImage(layer.canvas, 0, 0, w, h, x, y, w, h);
+  ctx.restore();
+  lastSet.delete(ctx);
+  layer.setTransform(1, 0, 0, 1, 0, 0);
+  layer.clearRect(0, 0, w, h);
+}
+
+function styleFor(ctx: CanvasRenderingContext2D, s: Style, view: ReplayView): string | CanvasPattern | null {
+  if (s === null || typeof s === 'string') return s;
+  if ('pattern' in s) {
+    let cache = patternCache.get(ctx);
+    if (!cache) { cache = new Map(); patternCache.set(ctx, cache); }
+    if (cache.has(s.pattern)) return cache.get(s.pattern)!;
+    const def = s.pattern;
+    const w = num(def.props.width, 1); const h = num(def.props.height, 1);
+    const k = 4;
+    const tile = document.createElement('canvas');
+    tile.width = Math.ceil(w * k); tile.height = Math.ceil(h * k);
+    const c = tile.getContext('2d');
+    let pat: CanvasPattern | null = null;
+    if (c) {
+      replay(c, def.tile ?? [], { base: [k, 0, 0, k, 0, 0], zoom: k, dpr: 1 });
+      pat = ctx.createPattern(tile, 'repeat');
+      pat?.setTransform({ a: 1 / k, b: 0, c: 0, d: 1 / k, e: 0, f: 0 });
+    }
+    cache.set(def, pat);
+    void view;
+    return pat;
+  }
+  return null;
+}
+
+function drawShape(ctx: CanvasRenderingContext2D, op: Extract<Op, { k: 'shape' }>, view: ReplayView): void {
+  let shape = op.shape;
+  if (view.region) {
+    const tm = mul(view.base, op.m);
+    const k = Math.hypot(tm[0], tm[1]) || 1;
+    const pad = (op.stroke === null ? 0 : op.nonScaling ? op.width * view.dpr : op.width * k) / 2 + 2;
+    const r = view.region;
+    const b = boxThrough(boxOf(shape), tm, pad);
+    if (b[2] < r[0] || b[0] > r[2] || b[3] < r[1] || b[1] > r[3]) return;
+    if (shape.kind === 'path') {
+      const subs = subpathsOf(shape);
+      if (subs) {
+        const inv = invert(tm);
+        const lr = boxThrough([r[0] - pad, r[1] - pad, r[2] + pad, r[3] + pad], inv, 0);
+        const reach = subs.filter((q) => !(q.box[2] < lr[0] || q.box[0] > lr[2] || q.box[3] < lr[1] || q.box[1] > lr[3]));
+        if (reach.length === 0) return;
+        if (reach.length < subs.length) shape = { kind: 'path', path: new Path2D(reach.map((q) => q.d).join(' ')) };
+      }
+    }
+  }
+  const t = transformFor(ctx, view.base, op.m);
+  if (shape.kind === 'pts') { ctx.beginPath(); tracePts(ctx, shape.xy, shape.close); }
+  const rule: CanvasFillRule = op.evenodd ? 'evenodd' : 'nonzero';
+  if (op.fill !== null) {
+    ctx.globalAlpha = op.fa;
+    if (typeof op.fill === 'object' && 'gradient' in op.fill) { new GradientFill(op.fill.gradient).fill(ctx, asPath(shape), op.evenodd); lastSet.delete(ctx); }
+    else {
+      const f = styleFor(ctx, op.fill, view);
+      if (f !== null) {
+        ctx.fillStyle = f;
+        if (shape.kind === 'pts') ctx.fill(rule); else ctx.fill(shape.path, rule);
+      }
+    }
+  }
+  if (op.stroke !== null) {
+    const s = styleFor(ctx, op.stroke, view);
+    if (s === null) return;
+    const scale = Math.hypot(t[0], t[1]) || 1;
+    const width = op.nonScaling ? (op.width * view.dpr) / scale : op.width;
+    ctx.globalAlpha = op.sa;
+    ctx.strokeStyle = s;
+    ctx.lineWidth = width;
+    ctx.lineCap = op.cap;
+    ctx.lineJoin = op.join;
+    if (op.dash) ctx.setLineDash(op.nonScaling ? op.dash.map((d) => (d * width) / op.width) : op.dash);
+    if (shape.kind === 'pts') ctx.stroke(); else ctx.stroke(shape.path);
+    if (op.dash) ctx.setLineDash([]);
+  }
+}
+
+function drawText(ctx: CanvasRenderingContext2D, op: Extract<Op, { k: 'text' }>, view: ReplayView): void {
+  transformFor(ctx, view.base, op.m);
+  ctx.globalAlpha = op.a;
+  ctx.fillStyle = op.fill;
+  ctx.font = op.font;
+  ctx.letterSpacing = `${op.spacing}px`;
+  ctx.textAlign = op.align;
+  ctx.textBaseline = op.baseline;
+  ctx.fillText(op.text, op.x, op.y);
+  ctx.letterSpacing = '0px';
+}
+
+export { mul, IDENTITY, boxThrough };
+export type { Box };
 
 // A gradient fill: laid out in user space (or in a gradientTransform's), as
 // the ring's haze is.

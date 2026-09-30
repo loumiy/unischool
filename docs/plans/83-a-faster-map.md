@@ -4,7 +4,7 @@
 into PRs, starting with a prototype that decides whether the rest are
 worth doing.*
 
-**Status: In progress: A, B and C merged (#260–#262).**
+**Status: In progress: A to D merged (#260–#262, #264, #265).**
 
 ---
 
@@ -406,9 +406,156 @@ in; `test/canvas-scene.test.ts` now paints six sites at different stages
   scene each frame at Play (if B's numbers allow it), or cache the scene
   per camera and draw the walkers into it in order. PR D chooses and
   records why.
+- **The long repaint frame (from C).** C repainted the whole scene when
+  anything on the map changed (80–110 ms). D keeps each building's
+  drawing ready per view, so a change redraws only that building: a
+  change at Play under about 16 ms on the year-30 campus. A turn frame
+  may stay at about 100 ms.
+- **The completion ring** in the depth order, if it comes easily.
 - **Checks:** the walker and door checks; a frame at Play timed against
-  main with 340 walkers; frames of a turn showing walkers behind
-  buildings.
+  main with 340 walkers; a building finishing, a path drawn, a week's
+  change at Play and a pan past the margin timed; frames of a turn
+  showing walkers behind buildings, and a door opening.
+
+**As implemented (#265):** walkers are drawn on the canvas in the depth
+order, doors open again, and the scene is kept as a drawing per thing.
+The canvas no longer repaints the whole scene when something changes.
+
+- **The scene as drawings** (`mapCanvas.ts`).
+  - Each entry of the sorted scene (a building, a tree, a prop) is
+    recorded once into a list of drawing ops (`canvasPaint.ts`'s
+    `Recorder`) and drawn into its own `ImageBitmap` at the view's
+    scale.
+  - It is kept while its signature holds. The map computes that
+    signature from what the art reads: the camera, the building's layout
+    entry, whether it is inspected, its works' weeks, its crowd, the
+    colors, the name.
+  - So a week in which one building changes records and draws that
+    building alone.
+  - The C canvas (the view and a margin, moved by a CSS transform) is
+    gone: the map's canvas is the size of the view.
+  - Each frame lays the drawings down in paint order: the land behind,
+    the ground, each thing, then the land in front (a few dozen sprites,
+    drawn straight on).
+- **Why drawings per thing,** rather than a repaint each frame or depth
+  bands:
+  - A repaint of the scene costs about 100 ms, so it cannot run at every
+    frame of Play.
+  - A cached picture of the scene cannot put a walker between two
+    buildings.
+  - Depth bands would redraw a whole band for one building's change, and
+    a walker needs a boundary at every building in front of it.
+  - Drawings per thing give both at once: walkers go between any two
+    things, and a change redraws one thing.
+- **Walkers in the depth order** (`walkerDepth.ts`).
+  - Each walker is drawn just before the first thing nearer the camera
+    whose drawing reaches it: the Plan 42 axis rules on its footprint,
+    with a small thing (a tree, a lamp) compared by its centre.
+  - A nearer building covers a walker by being drawn after it, at every
+    frame, turns included.
+  - `Walkers.tsx` lost its outlines, clip paths and screen-cell index.
+    Routes, gait and doors are unchanged, and it hands the map its crowd
+    (where each walker stands, and a painter for it).
+  - On `?map=svg` the walkers are now drawn unclipped over the scene
+    until E removes it.
+- **Doors.**
+  - The map reads the doors the walkers hold (building and wall), and
+    the recorder draws those doors with `door-open` (`extraClass`), the
+    class the SVG door took.
+  - A building keeps up to six door variants, so a walker going in and
+    out costs nothing the second time.
+  - Door changes past 5 ms of a frame wait for the next frame.
+  - The door checker's report is byte-identical to main's (70 saves,
+    1,842 hits).
+- **Frames that change little draw little.** When the view, the camera,
+  the season and the layers stand as the last frame left them (Play),
+  the frame is clipped to 32 px cells round:
+  - what moved: the walkers where they were and are;
+  - what changed: a thing whose drawing changed or was drawn straight
+    on, and ground tiles drawn again.
+
+  At Play at 1× that is about 170–240k of 1.14M pixels. A clipped frame
+  matched a full one to within one pixel in twelve samples at 1× and 2×.
+- **The ground and the land behind** are each one drawing of the view
+  and a margin, kept in 128 px tiles.
+  - A pan past half the margin wraps the drawing round instead of moving
+    its pixels. After four long pans it matched a fresh drawing at 0
+    pixels (1×) and 5 of 4.6M (2×).
+  - A change the map can place (a path tile) is drawn at once there, and
+    every other tile again within 150,000 CSS px² a frame, in view first.
+    Desire lines can move anywhere when a path is drawn.
+  - `replay` given a region draws only the ops that reach it, and of a
+    long path only the subpaths that do.
+  - Subpath boxes are cached by their text, and the stylesheet's rules
+    are kept per map class (placing, a path tool, inspecting).
+- **Turns.** Every frame of a turn records the scene at its camera and
+  draws it straight onto the map, walkers in order (vector, as C did).
+  - The frame that ends the turn does the same.
+  - The drawings for the new view are made over the next frames: 20 ms
+    of drawings a frame, and the tiles in view at once, with the rest
+    drawn straight on meanwhile.
+- **The completion ring** is drawn in the depth order, after its
+  building. Its CSS keyframes are played on the canvas (1.5 s, in and
+  out, eased; still under reduced motion).
+- **A safety net.** A canvas frame that throws stops the canvas, logs
+  the error and falls back to the SVG map for the session, instead of
+  stopping the game. Checked by making a frame throw at Play: the SVG map
+  took over and the game played on.
+- **The numbers.** Main-thread CPU on the year-30 campus with about 340
+  walkers, headless Chromium (software raster), against main (#264):
+
+  | | main (C) | D |
+  |---|---|---|
+  | A frame of a turn, 1× / 2× | 112 / 133 ms | 128 / 132 ms |
+  | The whole turn, 1× / 2× | 396 / 332 ms | 502 / 575 ms |
+  | The settling frame, 1× / 2× | 104 / 125 ms | 190 / 291 ms |
+  | A frame at Play, 1× | 13.0 ms at 56 fps, max 207 | 9.3 ms at 59 fps, max 81 |
+  | A frame at Play, 2× | 15.8 ms at 49 fps, max 216 | 16.4 ms at 56 fps, max 87 |
+  | A frame of a pan, 1× | 7.7 ms (p90 12.3, max 268) | 0.9 ms (p90 10.7, max 25) |
+  | A frame of a pan, 2× | 9.9 ms (p90 12.9, max 371) | 0.7 ms (p90 24.9, max 34) |
+
+  The changes, as the longest main-thread tasks and, for D, the canvas's
+  own share:
+
+  | | main (C) | D |
+  |---|---|---|
+  | A building finishing at Play | 176 ms | 76 ms (canvas 8 ms) |
+  | A week's change at Play (doors, crowds, works) | 139–250 ms | 24–29 ms (canvas 5–11 ms) |
+  | A building sited | 114–135 ms | 25–42 ms (canvas 17–24 ms) |
+  | A path tile drawn | 108–312 ms | 30–36 ms (canvas 23–26 ms); the tool's first 160 ms |
+  | A pan past the margin | 162–247 ms | 21–24 ms (canvas under 14 ms) |
+
+  - **Changes at Play.** A building's change stays under the 16 ms the
+    canvas was promised. A path redraws the ground's ops (6–14 ms of
+    recording) and its tiles, 23–26 ms.
+  - **The path tool's first tile** costs 160 ms. Most of that is
+    recomputing the desire lines and shadows for the new layout, as the
+    SVG map's render does, plus reading the stylesheet's rules under the
+    tool's class once.
+  - **The turn costs more in all:**
+    - its frames cost about what C's do;
+    - the frame that ends it, with the next, makes the new view's
+      drawings, about 300 bitmaps and the tiles in view;
+    - in this software raster the canvas's resource upload (about 40 ms a
+      frame) lands in separate tasks.
+  - That is the price of the drawings that make Play, pans and changes
+    cheap. On a GPU the raster share is smaller.
+- **Checks:**
+  - `test/walker-depth.test.ts` checks the depth slot rules (14 checks),
+    and `test/walk-routes.test.ts` is unchanged;
+  - `test/canvas-scene.test.ts` records the scene and replays it (45
+    checks), including the door hook and six sites under works;
+  - the door checker is identical to main's;
+  - `npm run phone` and the touch check pass;
+  - `npm run check` passes and `npm run sim` shows 0 deltas.
+- **Screenshots:** `docs/reviews/2026-10-canvas/`:
+  - `83d-turn-{1,2,3}.jpg`: frames from the middle of a turn, and
+    `83d-turn-{1,2,3}-walkers-on-top.jpg`, the same frames with the
+    walkers drawn over everything, to compare;
+  - `83d-behind.jpg`: crops of walkers behind buildings, over everything
+    and in the depth order;
+  - `83d-door.jpg`: a door a walker holds, drawn open, beside the same
+    frame with no door held.
 
 ## PR 83E — The SVG scene retired; tools and access
 
