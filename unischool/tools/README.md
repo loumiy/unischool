@@ -256,9 +256,24 @@ screen asking for anything. It writes a screenshot of each stall to
 `node_modules/.tmp/` and exits non-zero if it stalled or never reached year 2.
 
 `node tools/touchCheck.mjs [save.json]` (Plan 70F) plays the map by touch in
-Chromium with touch emulated: a one-finger pan, a pinch, a tap on a hall, and
-a building picked up, set down with a tap and built with the touch bar's
-Place. It exits non-zero on the first failed check.
+Chromium with touch emulated: a one-finger pan, a pinch, a tap on a building
+the map finds under the finger, and a building picked up, set down with a tap
+and built with the touch bar's Place. It exits non-zero on the first failed
+check.
+
+`node tools/keyboardCheck.mjs [save.json] [--shot=file.png]` (Plan 83E) plays
+the map by keyboard. It checks that:
+- Tab reaches the map's hidden list of buildings, one Tab stop;
+- the arrow keys walk it in the order the map reads, without panning;
+- the focused building is lit on the map;
+- Enter inspects it;
+- leaving the list puts the light out.
+
+Both read the map through `tools/mapReview.mjs`: the map's own report of
+what is up (the canvas or its SVG fallback), its view, whether it has
+settled, and the building under a point (`window.__campusMap`,
+`src/components/mapProbe.ts`). They do not read the SVG's DOM, so they check
+the map the player sees.
 
 `profile` loads a save and samples frames at Paused, Play, 2x and 4x. Headless
 Chromium draws in software, so compare its numbers with each other (before

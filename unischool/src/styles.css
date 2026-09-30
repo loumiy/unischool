@@ -1102,6 +1102,10 @@ button.build-tile { font-family: inherit; }
 .iso-clock-hand { stroke: rgba(48, 38, 18, 0.85); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .iso-ridge { stroke: rgba(42, 56, 28, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
+/* The map's buildings for the keyboard and a screen reader (CampusMap.tsx's
+   MapBuildingList): visually hidden, the focus shown on the map itself. */
+.map-building-list { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
 /* The info panel is a fixed corner card, so the map marks the inspected
    footprint and dims every other building. */
 /* Light, not brass: brass was invisible under brass academic halls. */

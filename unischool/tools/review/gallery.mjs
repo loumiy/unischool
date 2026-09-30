@@ -20,6 +20,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium } from 'playwright-core';
+import { mapMissed, waitForMap } from '../mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const VALUE_FLAGS = ['out', 'sizes', 'settings'];
@@ -166,6 +167,10 @@ async function session(savePath, size) {
   } else {
     await page.locator('.title-primary').first().click().catch(() => {});
     await page.waitForTimeout(1200);
+    const renderer = await waitForMap(page);
+    if (renderer !== 'canvas') rows.push({ save: name, size, what: 'the map', errors: [`the ${renderer ?? 'no'} map is up, not the canvas`] });
+    const missed = Object.entries(await mapMissed(page) ?? {});
+    if (missed.length) rows.push({ save: name, size, what: 'the map', errors: missed.map(([k, n]) => `the canvas could not draw ${k} (${n})`) });
     await capture(page, ctx, 'map');
     await stepModals(page, ctx);
     await tour(page, ctx);

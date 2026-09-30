@@ -239,9 +239,10 @@ a sequence of PRs.*
   and shadows), so it is a geometry change to all of them; a faster
   renderer (Plan 83) removes only its cost, not that work, and it does not
   wait for one. Plan 81 puts the hills around the campus instead.
-- **A faster map** (the owner, Plan 80). Now Plan 83, in progress. Its
-  prototype (83B, #261) missed its 30 ms bar, and the owner chose to go
-  ahead with the canvas anyway.
+- **A faster map** (the owner, Plan 80). Plan 83, landed (#260–#262,
+  #264–#266): the map is a canvas, with the SVG map kept as its fallback.
+  Its prototype (83B, #261) missed its 30 ms bar, and the owner chose to
+  go ahead with the canvas anyway.
   - **What the prototype showed.** A canvas painter reusing the art drew
     the scene with no visible difference and halved a turn: a turn frame
     went from about 200 ms to 98 ms at 1×.
@@ -258,6 +259,20 @@ a sequence of PRs.*
     - or a turn's in-between frames drawn from the last image, with only
       the settled view redrawn.
   - A desktop wrapper runs the same engine and would not be faster.
+- **The sim on a worker thread** (after Plan 83). The sim is pure
+  TypeScript with no React and no dependencies (DD §15), so its weekly tick
+  and the snapshot the UI reads could run in a Web Worker, off the main
+  thread.
+  - **Why.** After Plan 83 most of a change's main-thread cost at Play is
+    the game's own update, not the map: when a building finishes, 68 of
+    the 76 ms, the canvas taking 8.
+  - **What it takes.** The tick posts each week's state back. The
+    snapshot must cross the thread boundary, either by structured clone
+    or as the changed records. Actions go the other way, with the one
+    seeded RNG staying in the worker. Saves and the headless harness are
+    unchanged.
+  - A desktop wrapper would not be faster, for the same reason as the map
+    (above): it runs the same engine.
 - **From Plan 70's "does not do":** key rebinding and more than one save
   slot. Unlocks that carry across runs now exist for the four bonus
   vernaculars (`state/unlocks.ts`), with no in-run notice yet when one is

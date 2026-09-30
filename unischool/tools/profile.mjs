@@ -14,6 +14,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
+import { waitForMap } from './mapReview.mjs';
 
 const [savePath, ...flags] = process.argv.slice(2);
 if (!savePath || !existsSync(savePath)) {
@@ -43,6 +44,7 @@ await page.addInitScript(
 );
 await page.goto(URL, { waitUntil: 'load' });
 await page.waitForTimeout(1500);
+const renderer = await waitForMap(page, 5_000);
 
 // Samples frames for `seconds` while answering any modal that stops the clock.
 async function sample(seconds) {
@@ -81,7 +83,7 @@ async function sample(seconds) {
 }
 
 const SPEEDS = ['Paused', 'Play', '2×', '4×'];
-console.log(`${savePath} at ${W}×${H}, ${SECONDS}s per speed`);
+console.log(`${savePath} at ${W}×${H}, ${SECONDS}s per speed, the ${renderer ?? 'unknown'} map`);
 console.log('speed        fps    p95 frame   long tasks   clock after');
 for (const label of SPEEDS) {
   await page.locator(`button[aria-label="${label}"]`).first().click();

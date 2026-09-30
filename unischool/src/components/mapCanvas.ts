@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { HitList, Recorder, StyleResolver, mul, opsBox, replay, type Affine, type Box, type Op } from './canvasPaint';
+import { HitList, Recorder, StyleResolver, opsBox, replay, type Affine, type Box, type Op } from './canvasPaint';
 import type { DepthBox } from './depthSort';
 import { projectorFor, type Camera, type Pt } from './isoProjection';
 import { walkerSlot } from './walkerDepth';
@@ -198,6 +198,8 @@ class ViewLayer {
   }
   // Whether the drawing shows all the view has of it (no blank tile in it).
   covers = false;
+  // Whether the last update drew blank tiles in view (a new drawing's).
+  drewView = false;
   // Draws the ops over a rectangle of the drawing (its own pixels, as it
   // is laid: the canvas holds them wrapped round at (wx, wy)).
   private paint(r: Box, dpr = window.devicePixelRatio || 1): number {
@@ -295,8 +297,11 @@ class ViewLayer {
     // map costs about as much again at every frame until it is laid. A
     // frame already late (the one that ends a turn) draws none, and the
     // layer straight onto the map, that frame only.
+    this.drewView = false;
     if (!late) {
+      const was = ViewLayer.painted;
       this.paintTiles((i, col, row) => t[i] === BLANK && inView(col, row), null, dpr);
+      this.drewView = ViewLayer.painted > was;
       this.paintTiles((i, col, row) => t[i] !== FRESH && inView(col, row), budget, dpr);
       this.paintTiles((i) => t[i] !== FRESH, budget, dpr);
     }
@@ -350,14 +355,17 @@ export class MapCanvas implements CrowdSink {
   private ringStart = new Map<string, number>();
   private softSeen = '';
   private raf = 0;
+  // The last frame left something to draw.
+  private pending = true;
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
   private walkerColors: WalkerColors | null = null;
-  lastWalkers: readonly { i: number; slot: number; fig: Box }[] = [];
-  // For the review tools: the crowd drawn over everything, as the SVG map
-  // drew it through a turn, to compare with.
-  walkersOnTop = false;
+  // Where each walker shown in the last frame was drawn.
+  private lastWalkers: readonly { i: number; slot: number; fig: Box }[] = [];
   private gold = '#c9a227';
-  // For the review tools: what the last frame did.
+  // Everything in the scene it could not draw since it started, by name
+  // (the review tools read it through the map's MapReview).
+  readonly missed: Record<string, number> = {};
+  // What the last frame did: its time, what it recorded, drew and laid.
   stats = { ms: 0, recorded: 0, drawn: 0, laid: 0, direct: 0, walkers: 0, unsupported: {} as Record<string, number>, parts: { record: 0, draw: 0, layers: 0, compose: 0, area: 0 }, partial: -1 };
 
   constructor(canvas: HTMLCanvasElement, host: Element) {
@@ -443,6 +451,12 @@ export class MapCanvas implements CrowdSink {
   flush(): void {
     if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
     this.frame(performance.now());
+  }
+
+  // Nothing left to draw but the walkers: the view is shown in full, its
+  // drawings made (for the review tools).
+  settled(): boolean {
+    return !this.failed && !this.sceneDirty && this.settleTimer === null && !this.pending && !this.scene?.turning;
   }
 
   // --- the frame -------------------------------------------------------------------
@@ -676,7 +690,9 @@ export class MapCanvas implements CrowdSink {
       const area = { area: TILE_AREA * dpr * dpr };
       const late = performance.now() - t0 > BUILD_MS;
       if (this.land.update(v, size, s, dpr, area, late)) more = true;
-      if (this.ground.update(v, size, s, dpr, area, late)) more = true;
+      // After a turn, one layer's view a frame: the ground waits a frame
+      // (drawn straight on meanwhile) when the land drew its view in this one.
+      if (this.ground.update(v, size, s, dpr, area, late || this.land.drewView)) more = true;
       st.parts.layers = performance.now() - t2;
     }
     const t3 = performance.now();
@@ -808,11 +824,12 @@ export class MapCanvas implements CrowdSink {
     if (sNow !== this.scale) more = true;
     for (const [key, n2] of this.entryRec.stats.unsupported) st.unsupported[key] = (st.unsupported[key] ?? 0) + n2;
     for (const [key, n2] of this.groundRec.stats.unsupported) st.unsupported[key] = (st.unsupported[key] ?? 0) + n2;
+    for (const [key, n2] of Object.entries(st.unsupported)) this.missed[key] = (this.missed[key] ?? 0) + n2;
     st.ms = performance.now() - t0;
     st.parts.compose = performance.now() - t3;
     st.parts.area = ViewLayer.painted;
     this.stats = st;
-    (window as unknown as { __canvasPaint?: unknown }).__canvasPaint = st;
+    this.pending = more;
     if (more) this.request();
   }
 
@@ -911,10 +928,9 @@ export class MapCanvas implements CrowdSink {
         }
       }
       const candidates = [...found].sort((a, b) => a - b);
-      keyed.push({ i, y: p.y, slot: this.walkersOnTop ? boxes.length : walkerSlot(boxes, candidates, at.col, at.row, ax), fig });
+      keyed.push({ i, y: p.y, slot: walkerSlot(boxes, candidates, at.col, at.row, ax), fig });
     }
     keyed.sort((a, b) => a.slot - b.slot || a.y - b.y);
-    // For the review tools: where each shown walker went.
     this.lastWalkers = keyed;
     for (const k of keyed) {
       const list = out.get(k.slot);
@@ -979,4 +995,3 @@ function overlaps(a: Box, b: Box): boolean {
 function ease(u: number): number {
   return 1 - (1 - u) * (1 - u);
 }
-void mul;

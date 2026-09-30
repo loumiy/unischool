@@ -10,6 +10,7 @@
 
 import { chromium } from 'playwright-core';
 import { existsSync, readFileSync } from 'node:fs';
+import { mapBuildingAt, mapBuildings, mapView, waitForMap } from './mapReview.mjs';
 
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 const savePath = process.argv[2] ?? 'test/fixtures/save-launch.json';
@@ -57,11 +58,8 @@ async function tap(x, y) {
   await page.touchscreen.tap(x, y);
   await page.waitForTimeout(250);
 }
-const view = () => page.evaluate(() => {
-  const t = document.querySelector('.campus-map-svg > g')?.getAttribute('transform') ?? '';
-  const m = /translate\(([-\d.e]+) ([-\d.e]+)\) scale\(([-\d.e]+)\)/.exec(t);
-  return m ? { x: Number(m[1]), y: Number(m[2]), zoom: Number(m[3]) } : null;
-});
+// The map's pan and zoom, as the map reports them (mapReview.mjs).
+const view = () => mapView(page);
 
 await page.goto(URL);
 await page.evaluate((s) => localStorage.setItem('unischool.save', s), readFileSync(savePath, 'utf8'));
@@ -76,6 +74,8 @@ for (let i = 0; i < 10; i += 1) {
   await noted.first().tap();
   await page.waitForTimeout(150);
 }
+const renderer = await waitForMap(page);
+check(renderer === (URL.includes('map=svg') ? 'svg' : 'canvas'), `the map is up (${renderer})`);
 
 // One finger pans.
 const v0 = await view();
@@ -92,15 +92,21 @@ check(v1 && v2 && v2.zoom > v1.zoom * 1.6, `two fingers spread to twice the gap 
 await page.locator('.map-tools-toggle').tap();
 check(await page.locator('.campus-map-zoom-controls.touch-ui [aria-label="Turn the view left"]').count() === 1, 'the camera buttons show once the map is touched and its tools are open');
 
-// A tap opens a building: the first hall's slot marks.
-const mark = page.locator('.campus-hall-marks').first();
-const box = await mark.boundingBox();
-if (box) {
-  await tap(box.x + box.width / 2, box.y + box.height / 2);
-  check(await page.locator('.building-info-line, [class*=building-info]').count() > 0, 'a tap on a hall opens its panel');
+// A tap opens a building: the first one on screen whose middle the map
+// itself finds under the finger (on the canvas, its drawn shapes).
+await page.locator('.map-tools-toggle').tap();
+await waitForMap(page);
+let target = null;
+for (const b of await mapBuildings(page)) {
+  if (b.x < 80 || b.y < 80 || b.x > 944 || b.y > 600) continue;
+  if (await mapBuildingAt(page, b.x, b.y) === b.id) { target = b; break; }
+}
+if (target) {
+  await tap(target.x, target.y);
+  check(await page.locator('.building-info-line, [class*=building-info]').count() > 0, `a tap on a building opens its panel (${target.name})`);
   await page.keyboard.press('Escape');
 } else {
-  check(false, 'a hall to tap');
+  check(false, 'a building to tap');
 }
 
 // Picking up a building and placing it by touch.

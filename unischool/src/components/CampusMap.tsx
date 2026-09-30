@@ -43,9 +43,9 @@ import {
 } from './isoProjection';
 import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
-import { setMapProbe } from './mapProbe';
+import { setMapProbe, setMapReview } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
-import { registerArt, replay, type ArtScope } from './canvasPaint';
+import { registerArt, type ArtScope } from './canvasPaint';
 import { MapCanvas, type CanvasEntry, type CanvasScene } from './mapCanvas';
 import type { Crowd, CrowdSink } from './Walkers';
 import { occasion, registerMapArt } from './canvasArt';
@@ -946,6 +946,73 @@ function typeIdOf(t: object): number {
   return id;
 }
 
+// The map's buildings for the keyboard and a screen reader (Plan 83E): one
+// button each, visually hidden, named as the map names them and ordered as
+// the map reads, top to bottom and left to right at this camera. The list
+// is one Tab stop: the arrow keys (and Home, End) move between buildings,
+// and do not pan while it has the focus. The focused building is lit on the
+// map as an inspected one is (the others dimmed, its name pinned), and
+// Enter or Space inspects it.
+const MapBuildingList = memo(function MapBuildingList({ placed, camera, focusedId, onFocusBuilding, onInspectBuilding }: {
+  placed: CampusLayout['placed'];
+  // A prop so the order follows a turn.
+  camera: Camera;
+  focusedId: string | null;
+  onFocusBuilding: (id: string | null) => void;
+  onInspectBuilding: (id: string) => void;
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+  // The building the list's Tab stop is on, kept when the focus leaves.
+  const [current, setCurrent] = useState<string | null>(null);
+  const order = useMemo(() => placed
+    .map((e) => ({ e, c: project(e.p.col + e.p.w / 2, e.p.row + e.p.h / 2) }))
+    .sort((a, b) => Math.round(a.c.y / 48) - Math.round(b.c.y / 48) || a.c.x - b.c.x)
+    .map(({ e }) => e),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [placed, camera]);
+  if (order.length === 0) return null;
+  const stop = order.some((e) => e.t.id === current) ? current : order[0]!.t.id;
+  const move = (to: number) => {
+    const next = order[Math.max(0, Math.min(order.length - 1, to))]!;
+    listRef.current?.querySelector<HTMLButtonElement>(`[data-building-button="${next.t.id}"]`)?.focus();
+  };
+  return (
+    <div
+      ref={listRef}
+      className="map-building-list"
+      role="group"
+      aria-label={`Buildings on the map, ${order.length}. Arrow keys move between them; Enter inspects.`}
+      onKeyDown={(e) => {
+        const at = order.findIndex((x) => x.t.id === focusedId);
+        if (at < 0) return;
+        const to = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? at + 1
+          : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? at - 1
+            : e.key === 'Home' ? 0 : e.key === 'End' ? order.length - 1 : null;
+        if (to === null) return;
+        e.preventDefault();
+        e.stopPropagation();
+        move(to);
+      }}
+      onBlur={(e) => {
+        if (!(e.relatedTarget instanceof Node && listRef.current?.contains(e.relatedTarget))) onFocusBuilding(null);
+      }}
+    >
+      {order.map(({ t, label, developing }) => (
+        <button
+          key={t.id}
+          type="button"
+          data-building-button={t.id}
+          tabIndex={t.id === stop ? 0 : -1}
+          onFocus={() => { setCurrent(t.id); onFocusBuilding(t.id); }}
+          onClick={() => onInspectBuilding(t.id)}
+        >
+          {developing ? `${label}, under construction` : label}
+        </button>
+      ))}
+    </div>
+  );
+});
+
 // The labels alone, for the canvas map; a prop for the camera so the memo
 // redraws on a turn, as CampusScene does.
 const CanvasLabels = memo(function CanvasLabels({ camera, ...rest }: Parameters<typeof LabelLayer>[0] & { camera: Camera }) {
@@ -1431,10 +1498,17 @@ export default function CampusMap({
       turn.at = t >= 1 ? VIEWS[st.view] : turnStep(from, to, t);
       anchorRef.current = anchor;
       if (t >= 1) {
-        turnRef.current = null;
-        // The last frame rests on the view: the walkers' outlines and the
-        // ring's cache are this view's again.
-        setTurning(false);
+        // The view the turn ends on is drawn as a frame of the turn; the
+        // next frame rests on it, and the canvas makes that view's drawings
+        // from there, over the frames after (mapCanvas.ts), rather than in
+        // the frame that also records the new view.
+        turn.raf = requestAnimationFrame(() => {
+          if (turnRef.current !== turn) return;
+          turnRef.current = null;
+          anchorRef.current = null;
+          setTurning(false);
+          applyView(viewRef.current);
+        });
       } else {
         turn.raf = requestAnimationFrame(frame);
       }
@@ -1927,7 +2001,41 @@ export default function CampusMap({
   // through a ref so CampusScene's memo holds.
   const inspectRef = useRef(inspectBuilding);
   inspectRef.current = inspectBuilding;
+  const placementsRef = useRef(s.placements);
+  placementsRef.current = s.placements;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const pathToolRef = useRef(pathTool);
+  pathToolRef.current = pathTool;
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
   const onInspect = useCallback((id: string) => inspectRef.current(id), []);
+
+  // The building the keyboard is on in the map's list (MapBuildingList):
+  // lit as an inspected one is, and brought into view. An inspected
+  // building takes the light over it.
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const highlightId = inspectedId ?? focusedId;
+  const focusBuilding = useCallback((id: string | null) => {
+    setFocusedId(id);
+    const p = id ? placementsRef.current[id] : undefined;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!p || !rect) return;
+    const v = viewRef.current;
+    const c = project(p.col + p.w / 2, p.row + p.h / 2);
+    const x = c.x * v.zoom + v.x;
+    const y = c.y * v.zoom + v.y;
+    const m = Math.min(120, rect.width / 4, rect.height / 4);
+    if (x < m || y < m || x > rect.width - m || y > rect.height - m) {
+      applyView({ x: rect.width / 2 - c.x * v.zoom, y: rect.height / 2 - c.y * v.zoom, zoom: v.zoom });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Enter on the list: as a click on the building, without a pan to undo.
+  const inspectByKey = useCallback((id: string) => {
+    if (selectedRef.current || pathToolRef.current) return;
+    setInspectedId((cur) => (cur === id ? null : id));
+  }, []);
 
 
   // Which way a bench set on this tile would face: as R turned it, or
@@ -2002,19 +2110,19 @@ export default function CampusMap({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const groundGeo = useMemo(() => groundGeometry(), [camera]);
   const seasonKey = useMemo(() => JSON.stringify(season), [season]);
-  const groundClass = `${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${inspectedId ? 'inspecting' : ''}`;
+  const groundClass = `${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${highlightId ? 'inspecting' : ''}`;
   const prevLayoutRef = useRef<CampusLayout | null>(null);
   const canvasScene = useMemo(() => {
     if (!canvasOn()) return null;
     const scene = canvasSceneOf({
       layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners,
-      inspectedId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, prevLayout: prevLayoutRef.current,
+      inspectedId: highlightId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, prevLayout: prevLayoutRef.current,
     });
     prevLayoutRef.current = layout;
     return scene;
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, inspectedId, justFinished, seasonKey, groundClass, canvasBroke]);
+  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
   // The compositor, once its canvas is mounted.
   useLayoutEffect(() => {
     const canvas = sceneCanvasRef.current;
@@ -2027,14 +2135,41 @@ export default function CampusMap({
       setCanvasBroke(true);
     };
     if (crowdRef.current) mc.crowd(crowdRef.current);
-    // For the review tools.
-    (window as unknown as { __mapCanvas?: MapCanvas; __replay?: unknown }).__mapCanvas = mc;
-    (window as unknown as { __replay?: unknown }).__replay = replay;
     return () => {
       mc.dispose();
       mapCanvasRef.current = null;
     };
   }, [canvasBroke]);
+  // What the review tools read of the map (mapProbe.ts's MapReview).
+  useEffect(() => {
+    setMapReview({
+      renderer: () => (canvasOn() ? 'canvas' : 'svg'),
+      view: () => ({ ...viewRef.current }),
+      settled: () => (canvasOn() ? mapCanvasRef.current?.settled() ?? false : true),
+      frame: () => {
+        const mc = canvasOn() ? mapCanvasRef.current : null;
+        return mc ? { ms: mc.stats.ms, unsupported: { ...mc.missed } } : null;
+      },
+      buildingAt: (clientX, clientY) => {
+        if (!canvasOn()) {
+          const hit = document.elementFromPoint(clientX, clientY)?.closest('[data-building]');
+          return hit?.getAttribute('data-building') ?? null;
+        }
+        const w = worldFromEvent({ clientX, clientY });
+        return w ? mapCanvasRef.current?.buildingAt(w.x, w.y) ?? null : null;
+      },
+      buildings: () => {
+        const rect = svgRef.current?.getBoundingClientRect();
+        const v = viewRef.current;
+        return layoutRef.current.placed.map(({ t, p, label }) => {
+          const c = project(p.col + p.w / 2, p.row + p.h / 2);
+          return { id: t.id, name: label, x: (rect?.left ?? 0) + c.x * v.zoom + v.x, y: (rect?.top ?? 0) + c.y * v.zoom + v.y };
+        });
+      },
+    });
+    return () => setMapReview(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Fallen back to the SVG map: its land and scene take the view.
   useLayoutEffect(() => {
     if (canvasBroke) applyView(viewRef.current);
@@ -2059,6 +2194,7 @@ export default function CampusMap({
 
   return (
     <section className="campus-map" style={season}>
+      <MapBuildingList placed={layout.placed} camera={camera} focusedId={focusedId} onFocusBuilding={focusBuilding} onInspectBuilding={inspectByKey} />
       <div className="campus-map-canvas">
         {/* The land around the campus (Plan 81B), in an <svg> of its own
             under the map's, carrying the same pan/zoom transform (applyView
@@ -2075,7 +2211,7 @@ export default function CampusMap({
         )}
         <svg
           ref={svgRef}
-          className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${inspectedId ? 'inspecting' : ''}`}
+          className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${highlightId ? 'inspecting' : ''}`}
           // No viewBox: 1 user unit is 1 CSS px, so the pan/zoom transform
           // needs no conversion.
           width="100%"
@@ -2115,7 +2251,7 @@ export default function CampusMap({
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
             {canvasOn() ? (<>
-              <CanvasLabels placed={layout.placed} inspectedId={inspectedId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} />
+              <CanvasLabels placed={layout.placed} inspectedId={highlightId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} />
             </>) : (<>
             <CrowdContext.Provider value={crowds}>
             <BannerContext.Provider value={banners}>
@@ -2125,7 +2261,7 @@ export default function CampusMap({
             <SnowContext.Provider value={snow}>
               <CampusScene
                 layout={layout}
-                inspectedId={inspectedId}
+                inspectedId={highlightId}
                 justFinished={justFinished}
                 onInspect={onInspect}
                 labelLayerRef={labelLayerRef}

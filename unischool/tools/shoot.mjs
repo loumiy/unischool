@@ -34,6 +34,7 @@
 // ---------------------------------------------------------------------
 import { readFileSync, existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
+import { waitForMap } from './mapReview.mjs';
 
 const [savePath, outPath, ...flags] = process.argv.slice(2);
 if (!savePath || !outPath) {
@@ -158,6 +159,8 @@ for (const selector of flagAll('press')) {
 // hover tooltip on that (an audience card's, a button's) would be in shot.
 await page.mouse.move(0, 0);
 await page.waitForTimeout(300);
+// The map shows its view in full (the canvas has made its drawings).
+await waitForMap(page);
 
 const clip = nums(flag('clip', null));
 const element = flag('element', null);

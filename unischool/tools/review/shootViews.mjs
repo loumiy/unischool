@@ -22,6 +22,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium } from 'playwright-core';
+import { mapMissed, waitForMap } from '../mapReview.mjs';
 
 // `--k=v` and `--k v` both work; everything else is a save.
 const VALUE_FLAGS = ['out', 'zoom', 'pitch', 'size', 'scale', 'clip'];
@@ -78,6 +79,8 @@ async function canvasClip() {
 async function shoot(path) {
   await page.mouse.move(2, 2);
   await page.waitForTimeout(700);
+  // The view in full: the canvas has made its drawings for it.
+  await waitForMap(page);
   await page.screenshot({ path, clip: await canvasClip() });
 }
 
@@ -124,6 +127,10 @@ for (const savePath of saves) {
       await turn();
     }
   }
+  const renderer = await page.evaluate(() => window.__campusMap?.renderer() ?? null);
+  const missed = Object.entries(await mapMissed(page) ?? {});
+  if (renderer !== 'canvas') errors.push(`${name}: the ${renderer ?? 'no'} map is up, not the canvas`);
+  if (missed.length) errors.push(`${name}: the canvas could not draw ${missed.map(([k, n]) => `${k} (${n})`).join(', ')}`);
   console.log(`${name}: ${pitch !== 0 ? 8 : 4} views`);
   await context.close();
 }
