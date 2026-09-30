@@ -99,8 +99,9 @@ export function collegeSpecialization(s: GameState): string {
 }
 
 // Each specialization as the choice shows it: the college's value and rank
-// in its pillar (as the standings read them), the points of it the choice opens, and the
-// rivals already specialized in it, the strongest first.
+// in its pillar (as the standings read them), the points of the pillar the
+// choice opens, and the rivals already specialized in it, the strongest
+// first.
 export interface SpecializationOption {
   pillar: Pillar;
   value: number;
