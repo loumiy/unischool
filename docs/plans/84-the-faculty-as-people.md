@@ -132,7 +132,7 @@ Proposed here, for the owner to confirm on review:
 - **Checks:** tests that spans open and close as courses move, that a
   project and a prize land in the record, and that the migration holds.
 
-**As implemented (#270):** `Faculty.career` (`types.ts`'s `Career`),
+**As implemented (#269):** `Faculty.career` (`types.ts`'s `Career`),
 written only by `systems/faculty/career.ts`. Nothing in the simulation
 reads it and nothing that writes it draws on the random stream, so
 `npm run sim` is unchanged (0 deltas). Save version 87.
