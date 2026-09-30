@@ -614,6 +614,10 @@ export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'play
 // The four pillars of prestige (Plan 85; systems/prestige/prestigeSystem.ts).
 export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';
 
+// The college's specialization (Plan 85D): none until the player chooses one
+// at the milestone, then one pillar for good (GameState.specialization).
+export type Specialization = 'none' | Pillar;
+
 export interface Rival {
   id: string;
   name: string;
@@ -639,7 +643,8 @@ export interface Rival {
   researchMomentum: number;
   // The pillar it specializes in (Plan 85C), dealt off the id
   // (rivalData.ts's dealtSpecialization): that axis runs higher and
-  // steadier, and the other three stop at the unspecialized ceilings.
+  // steadier, and the other three drift toward the rivals' unspecialized
+  // targets (rivalsSystem.ts).
   specialization: Pillar;
 }
 
@@ -1175,6 +1180,20 @@ export interface GameState {
   // Absent in a normal run.
   sandbox?: boolean;
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
+  // The college's specialization (Plan 85D, systems/prestige/milestone.ts):
+  // 'none' until chosen at the milestone, then one pillar, permanently. It
+  // opens that pillar's specialization term (prestigeSystem.ts's
+  // SPECIALIZATION_TERM_WEIGHTS).
+  specialization: Specialization;
+  // The summer it was chosen. Absent while none.
+  specializationYear?: number;
+  // The year the board's notice came, when the college first stood within
+  // reach of the milestone. Absent before.
+  specializationNotice?: number;
+  // The summer the college first stood at the milestone: the choice is
+  // offered at the close of that summer and of every summer after until it
+  // is made. Absent before.
+  specializationOffered?: number;
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
   // The year each milestone was awarded (Plan 80C), which the chronicle
   // names eras from. One awarded before it has no year.

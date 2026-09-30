@@ -19,6 +19,7 @@ import ReportCardActions from '../components/ReportCardActions';
 import { hallEntryFor } from '../state/hall';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { collegeSpecialization } from '../systems/prestige/milestone';
 import { Standing, StandingFigure } from './StandingBreakdown';
 import RankingsPanel from './RankingsPanel';
 
@@ -43,9 +44,10 @@ function PrestigePanel({ s }: { s: GameState }) {
         </div>
         <HelpHint
           align="end"
-          text="Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings. Without a specialization, each pillar stops at a limit short of the top, and a pillar held there is marked."
+          text="Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings. Each pillar holds a share only its own specialization fills, so without one no pillar reaches the top; the college's specialization, once chosen, opens its own."
         />
       </div>
+      <p className="stat specialization-status">{collegeSpecialization(s)}</p>
       <Standing breakdown={breakdown} titled={false} />
     </section>
   );

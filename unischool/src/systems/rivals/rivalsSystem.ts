@@ -5,7 +5,7 @@ import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR, institutionName } from '../../stat
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
 import { ELITE_RIVAL_IDS, baseRivals, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { clamp } from '../../math';
-import { PILLAR_FLOOR, PILLAR_SPAN, PILLAR_WEIGHTS, UNSPECIALIZED_CEILINGS, athleticStanding, pillarValue, specializationOf } from '../prestige/prestigeSystem';
+import { PILLAR_FLOOR, PILLAR_SPAN, PILLAR_WEIGHTS, athleticStanding, pillarValue, specializationOf } from '../prestige/prestigeSystem';
 import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
@@ -49,13 +49,27 @@ export function fieldRise(id: string, reputation: number, ceiling = FIELD_CEILIN
 // schools most, easing to nothing near the ceiling) at twice the field's
 // rate, toward SPECIALIZED_CEILING, the top of the scale, and takes only
 // SPECIALIZED_STEADINESS of its momentum and its yearly shock. Its other
-// three axes stop at the unspecialized ceilings the college's pillars do
-// (prestigeSystem.ts's UNSPECIALIZED_CEILINGS): drift never carries them
-// past, though one already above (a save from before) may keep its place
-// until it falls. The draws are the same whatever the specialization.
+// three axes are not capped (the owner's decision in Plan 85D's review,
+// replacing 85C's ceilings): each drifts toward RIVAL_UNSPECIALIZED_TARGETS,
+// at or below the natural maxima the college's pillars have without their
+// specialization (prestigeSystem.ts's UNSPECIALIZED_MAXIMA). A move upward
+// eases to nothing over the last RIVAL_TARGET_EASE points below the target,
+// a move downward is whole, and an axis above its target (an authored
+// standing, or an old save) takes no move upward until it has fallen below
+// it; nothing pushes it down. The draws are the same whatever the
+// specialization.
 export const SPECIALIZED_CEILING = 150;
 export const SPECIALIZED_RISE_RATE = 2 * FIELD_RISE_RATE;
 export const SPECIALIZED_STEADINESS = 0.5;
+// Where an unspecialized axis drifts toward, on the prestige scale (tuned
+// in Plan 85D's review): below the natural maxima the college's pillars
+// have without their specialization (UNSPECIALIZED_MAXIMA), about where a
+// strong college's stand, so that one without a specialization can reach
+// the top ten but, against the specialists, not first place.
+export const RIVAL_UNSPECIALIZED_TARGETS: Readonly<Record<Pillar, number>> = {
+  academics: 112, research: 112, studentLife: 107, athletics: 90,
+};
+export const RIVAL_TARGET_EASE = 8;
 
 // The four pillars' stored axes, in the pillars' order.
 const PILLAR_OF_AXIS = {
@@ -68,15 +82,16 @@ function toStrength(value: number): number {
   return ((value - PILLAR_FLOOR) * 100) / PILLAR_SPAN;
 }
 
-// How high drift may carry an axis, on the axis's own scale.
-export function rivalCeiling(r: Rival, axis: PillarAxis): number {
+// Where drift carries an axis, on the axis's own scale: the top of the
+// scale for its specialization, its target for the other three.
+export function rivalTarget(r: Rival, axis: PillarAxis): number {
   const pillar = PILLAR_OF_AXIS[axis];
   if (axis === 'athleticStrength') {
-    return r.specialization === pillar ? ATHLETIC_STRENGTH_MAX : Math.min(ATHLETIC_STRENGTH_MAX, toStrength(UNSPECIALIZED_CEILINGS[pillar]));
+    return r.specialization === pillar ? ATHLETIC_STRENGTH_MAX : Math.min(ATHLETIC_STRENGTH_MAX, toStrength(RIVAL_UNSPECIALIZED_TARGETS[pillar]));
   }
   if (r.specialization === pillar) return SPECIALIZED_CEILING;
-  // The field's academics already stop at FIELD_CEILING.
-  return axis === 'reputation' ? Math.min(FIELD_CEILING, UNSPECIALIZED_CEILINGS[pillar]) : UNSPECIALIZED_CEILINGS[pillar];
+  // The field's academics already ease toward FIELD_CEILING.
+  return axis === 'reputation' ? Math.min(FIELD_CEILING, RIVAL_UNSPECIALIZED_TARGETS[pillar]) : RIVAL_UNSPECIALIZED_TARGETS[pillar];
 }
 
 // What share of its momentum and shock an axis takes.
@@ -94,11 +109,17 @@ function specialistRise(r: Rival, axis: PillarAxis, value: number): number {
   return (fieldRise(r.id, onScale, PILLAR_FLOOR + (PILLAR_SPAN * ATHLETIC_STRENGTH_MAX) / 100, SPECIALIZED_RISE_RATE) * 100) / PILLAR_SPAN;
 }
 
-// Where an axis lands after a year's drift: nothing climbs past its
-// ceiling on its own (Plan 67's rule for the field's academics, Plan 85C's
-// for every axis). An axis there may fall and recover, never drift beyond.
-function held(next: number, current: number, ceiling: number): number {
-  return next > ceiling && next > current ? Math.max(current, ceiling) : next;
+// Where an axis lands after a year's move. A specialized axis stops at the
+// top of its scale. Any other eases toward its target: a move up shrinks to
+// nothing over the last RIVAL_TARGET_EASE points below it, a move down is
+// whole, and an axis above it takes no move up.
+function landed(r: Rival, axis: PillarAxis, next: number, current: number): number {
+  const target = rivalTarget(r, axis);
+  if (r.specialization === PILLAR_OF_AXIS[axis]) return next > target && next > current ? Math.max(current, target) : next;
+  if (current >= target) return Math.min(next, current);
+  if (next <= current) return next;
+  const ease = RIVAL_TARGET_EASE * (axis === 'athleticStrength' ? 100 / PILLAR_SPAN : 1);
+  return current + (next - current) * clamp((target - current) / ease, 0, 1);
 }
 
 // The top has to be held. Above ELITE_CLOSE_ABOVE_PRESTIGE, the elite band
@@ -204,15 +225,15 @@ export function tickRivals(s: GameState): void {
       }
       const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
       const elite = ELITE_RIVAL_IDS.has(r.id) && s.self.reputation > ELITE_CLOSE_ABOVE_PRESTIGE;
-      // A specialist's academics rises toward the higher ceiling instead
-      // (specialistRise). Nothing climbs past its ceiling on its own (Plan
-      // 67, held): the top of the field is the ceiling and first place goes
-      // to the college that outgrows it. The elite's closing on a leader
-      // (below) is not drift: a leader above the ceiling is still chased,
-      // and passed if it coasts.
-      const rise = r.specialization === 'academics' ? specialistRise(r, 'reputation', r.reputation) : fieldRise(r.id, r.reputation, rivalCeiling(r, 'reputation'));
+      // A specialist's academics rises toward the top of the scale instead
+      // (specialistRise). Drift eases toward the target (Plan 67 for the
+      // field's academics, landed): first place goes to the college that
+      // outgrows the field. The elite's closing on a leader (below) is not
+      // drift: a leader above the targets is still chased, and passed if it
+      // coasts.
+      const rise = r.specialization === 'academics' ? specialistRise(r, 'reputation', r.reputation) : fieldRise(r.id, r.reputation, rivalTarget(r, 'reputation'));
       const next = r.reputation + steadiness(r, 'reputation') * (r.momentum + shock) + rise;
-      r.reputation = clamp(held(next, r.reputation, rivalCeiling(r, 'reputation')), RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+      r.reputation = clamp(landed(r, 'reputation', next, r.reputation), RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
 
       // The other standings drift on their own momentum, so the tables tell
       // different stories; a specialized one also rises (specialistRise).
@@ -283,20 +304,21 @@ export function rivalOverall(r: Rival): number {
 
 // One of research, student life or athletics after a year: `noise` (its
 // momentum and shock) at the axis's steadiness, a specialist's rise, and
-// `pull` (the athletic closing), held at its ceiling and clamped to its band.
+// `pull` (the athletic closing), eased toward its target and clamped to its
+// band.
 function drifted(r: Rival, axis: 'researchStanding' | 'socialStanding' | 'athleticStrength', noise: number, pull: number): number {
   const current = r[axis];
   const next = current + steadiness(r, axis) * noise + specialistRise(r, axis, current) + pull;
   const [min, max] = axis === 'athleticStrength' ? [ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX] : [RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX];
-  return clamp(held(next, current, rivalCeiling(r, axis)), min, max);
+  return clamp(landed(r, axis, next, current), min, max);
 }
 
 // Moves a rival's overall by `step`: every pillar by the same amount on the
-// prestige scale, within its band and, rising, its ceiling (a pillar at
-// either moves less).
+// prestige scale, within its band and, rising, easing toward its target (a
+// pillar near either moves less).
 function shiftPillars(r: Rival, step: number): void {
   if (step === 0) return;
-  const shift = (axis: PillarAxis, by: number, min: number, max: number) => clamp(held(r[axis] + by, r[axis], rivalCeiling(r, axis)), min, max);
+  const shift = (axis: PillarAxis, by: number, min: number, max: number) => clamp(landed(r, axis, r[axis] + by, r[axis]), min, max);
   r.reputation = shift('reputation', step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
   r.researchStanding = shift('researchStanding', step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
   r.socialStanding = shift('socialStanding', step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);

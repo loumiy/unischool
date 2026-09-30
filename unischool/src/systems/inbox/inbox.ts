@@ -104,6 +104,7 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
     case 'first-sport-club': return ['Athletics', 'The first sport club'];
     case 'athletic-director': return ['Athletics', 'An Athletic Director'];
     case 'dean-recommendations': return ['The Deans', 'The Deans\' recommendations'];
+    case 'specialization': return ['From the board', 'A specialization'];
     case 'letter': {
       const id = (payload as { id?: string } | undefined)?.id ?? '';
       return ['From the chair of the board', findOpeningLetter(id)?.title ?? 'A letter'];

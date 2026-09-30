@@ -14,7 +14,7 @@ import type { GameState } from '../../src/state/types';
 import { WEEKS_PER_YEAR } from '../../src/state/types';
 import { NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_FULL_LIFT, departmentPot } from '../../src/data/studentLifeData';
 import { programById } from '../../src/data/techData';
-import { dealtSpecialization } from '../../src/data/rivalData';
+import { dealtSpecialization, isSpecialization } from '../../src/data/rivalData';
 import { isGraduateHost } from '../../src/data/projectData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
 import { isInBounds, placementTiles } from '../../src/state/campusMap';
@@ -137,6 +137,15 @@ export function brokenRules(s: GameState): string[] {
   // Rivals (Plan 85C): each specialized in the pillar its id deals.
   for (const r of s.rivals) {
     if (r.specialization !== dealtSpecialization(r.id)) out.push(`${r.id} is specialized in ${String(r.specialization)}, not ${dealtSpecialization(r.id)}`);
+  }
+
+  // The college's specialization (Plan 85D): none, or one pillar with the
+  // year it was chosen, never before the milestone offered it.
+  if (s.specialization !== 'none' && !isSpecialization(s.specialization)) out.push(`the college is specialized in ${String(s.specialization)}`);
+  if (s.specialization === 'none' && s.specializationYear !== undefined) out.push(`no specialization, but one chosen in Year ${s.specializationYear}`);
+  if (s.specialization !== 'none') {
+    if (s.specializationYear === undefined) out.push(`specialized in ${s.specialization} with no year`);
+    else if (s.specializationOffered !== undefined && s.specializationYear < s.specializationOffered) out.push(`specialized in Year ${s.specializationYear}, before the offer in Year ${s.specializationOffered}`);
   }
 
   return out;

@@ -21,6 +21,7 @@ import { catalogueOf } from '../systems/events/catalogueEngine';
 //                     "deal with it properly, and pay"); else a free one
 //   - athletic dir.   the middle candidate of three that differ only in salary
 //   - letter          read it and carry on; never "I know the way"
+//   - specialization  not this year: the choice is never made for the player
 //   - catalog-letter its default, as an unanswered inline event takes
 //   - everything else read and dismiss
 //
@@ -76,6 +77,13 @@ export function defaultAnswer(s: GameState, admissions?: AdmissionsPolicy): Acti
 
     case 'championship':
       return { type: 'RESOLVE_CHAMPIONSHIP' };
+
+    // The specialization (Plan 85D) is the player's to make, never the
+    // game's: unanswered, it is put off and offered again next summer. The
+    // harness's players choose by their own rule (sim/harness/
+    // specialization.ts).
+    case 'specialization':
+      return { type: 'RESOLVE_SPECIALIZATION', pillar: null };
 
     case 'letter':
       // Read and put down, never skipped: a fast-forward should see the

@@ -12,6 +12,7 @@ import { catalogueOf } from '../systems/events/catalogueEngine';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { milestoneById, tabOfSection } from '../data/ladderData';
 import { BOARD_LETTERS } from '../data/boardData';
+import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { SWEEP_DEFAULT_WEEKS } from '../systems/finance/sweep';
@@ -397,7 +398,10 @@ function ReadingPane({ s, act, item, onOpenTab }: {
             ) : (
               <>
                 <button type="button" onClick={() => act({ type: 'READ_BOARD_LETTER' })}>Noted</button>
-                <button type="button" className="btn-quiet" onClick={() => onOpenTab('treasury')}>Open Treasury</button>
+                {/* The milestone's notice (Plan 85D) is about the standings, not the money. */}
+                {id === SPECIALIZATION_NOTICE_ID
+                  ? <button type="button" className="btn-quiet" onClick={() => onOpenTab('history')}>Open History</button>
+                  : <button type="button" className="btn-quiet" onClick={() => onOpenTab('treasury')}>Open Treasury</button>}
               </>
             )}
           </div>

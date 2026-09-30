@@ -128,15 +128,20 @@ function stand(s: GameState, id: string): void {
 {
   const s = fresh(20);
   const before = computeResearchTarget(s);
-  assert(!pillarBreakdown(s, 'academics').inputs.some((i) => i.key === 'projects'), 'no line for projects until one stands');
+  // A term of the pillar like the others since Plan 85D's review: shown
+  // empty until one stands, scaled with the rest.
+  const empty = pillarBreakdown(s, 'academics').inputs.find((i) => i.key === 'projects');
+  assert(empty !== undefined && empty.contribution === 0, 'an empty line for projects until one stands');
+  const researchShare = pillarBreakdown(s, 'research').inputs.find((i) => i.key === 'projects')!.weight / projectLiftMax('research');
   stand(s, 'PROJ-RESEARCH-PARK');
   assert(Math.abs(projectLift(s, 'research') - 18) < 1e-9, 'the research park lifts research 18 points');
-  assert(Math.abs(computeResearchTarget(s) - before - 18) < 0.01 || computeResearchTarget(s) === 150, 'and the research standing\'s target with it');
+  assert(Math.abs(computeResearchTarget(s) - before - 18 * researchShare) < 0.01, `and the research standing's target with it, scaled with the pillar's other terms (${(18 * researchShare).toFixed(1)})`);
   node(s, 'PROJ-RESEARCH-PARK').backlog = node(s, 'PROJ-RESEARCH-PARK').cost / 4;
   assert(Math.abs(projectLift(s, 'research') - 9) < 0.01, 'half as much at half condition');
   stand(s, 'HLTH-T3');
   const input = pillarBreakdown(s, 'academics').inputs.find((i) => i.key === 'projects');
-  assert(input !== undefined && Math.abs(input.contribution - 6) < 0.01, `the medical center lifts the academics pillar (${input?.contribution})`);
+  const share = input ? input.weight / projectLiftMax('academics') : 0;
+  assert(input !== undefined && Math.abs(input.contribution - 6 * share) < 0.01, `the medical center lifts the academics pillar its 6 points, scaled (${input?.contribution})`);
   assert(Math.abs(projectLift(s, 'research') - 9 - 8) < 0.01, 'and research, beside the park');
   assert(projectLiftMax('academics') === PROJECTS.reduce((t, p) => t + (p.project.boosts.academics ?? 0), 0) + 6, 'the most is every project standing, the Medical Center among them');
   assert(projectLiftMax('athletics') === 0, 'and nothing lifts athletics since the championship stadium went');

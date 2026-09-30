@@ -24,6 +24,8 @@ export function modalWidth(interrupt: PendingInterrupt): ModalWidth {
     }
     case 'rankings-entry':
     case 'annual-report':
+    // The four specializations side by side (Plan 85D).
+    case 'specialization':
       return 'page';
     case 'athletic-director':
     case 'championship':

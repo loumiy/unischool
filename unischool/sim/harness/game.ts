@@ -26,6 +26,7 @@ import { bindScriptStream } from '../../src/engine/random';
 import { FOUNDING_VERNACULAR } from '../../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../../src/data/schoolColors';
 import { makeRivalRng } from '../../src/data/rivalData';
+import { specializationAnswer, type SpecializationRule } from './specialization';
 
 // The game saves to localStorage; a headless run keeps it in memory.
 export const fakeStorage = new Map<string, string>();
@@ -55,6 +56,11 @@ export interface Player {
   act(g: Game): void;
   // An interrupt's answer; null or absent takes the game's default.
   answer?(g: Game): Action | null;
+  // How it chooses a specialization at the milestone (specialization.ts):
+  // absent, its strongest pillar. 'wait' leaves the choice standing, for a
+  // tool that stops at it (tools/scenario.ts); a run that plays on past it
+  // then stalls.
+  specialization?: SpecializationRule | 'wait';
 }
 
 export interface FoundOptions {
@@ -91,10 +97,14 @@ export class StuckInterrupt extends Error {}
 export function answerAll(g: Game, player?: Player): number {
   let answers = 0;
   while (g.s.pendingInterrupt) {
+    if (g.s.pendingInterrupt.type === 'specialization' && player?.specialization === 'wait') return answers;
     if (answers >= MAX_ANSWERS) {
       throw new StuckInterrupt(`a ${g.s.pendingInterrupt.type} interrupt is still standing after ${MAX_ANSWERS} answers in year ${g.s.clock.year}, week ${g.s.clock.week}`);
     }
-    const answer = player?.answer?.(g) ?? defaultAnswer(g.s);
+    // A specialization is the player's rule's, never the game's default
+    // (which puts it off): every player chooses at the milestone.
+    const rule = player?.specialization === 'wait' ? undefined : player?.specialization;
+    const answer = player?.answer?.(g) ?? specializationAnswer(g.s, rule) ?? defaultAnswer(g.s);
     if (!answer) throw new StuckInterrupt(`nothing answers a ${g.s.pendingInterrupt.type} interrupt`);
     g.act(answer);
     answers += 1;

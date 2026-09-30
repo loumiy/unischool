@@ -30,6 +30,7 @@ import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import RankingsTable from './RankingsTable';
+import SpecializationChoice from './SpecializationChoice';
 import AnimatedNumber from './AnimatedNumber';
 import Figure from './Figure';
 import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
@@ -1353,6 +1354,8 @@ export function InterruptContent({ s, act, onOpenBuild }: { s: GameState; act: (
           onResolve={(skipAll) => act({ type: 'RESOLVE_LETTER', skipAll })}
           onOpenBuild={onOpenBuild}
         />
+      ) : interrupt.type === 'specialization' ? (
+        <SpecializationChoice s={s} onResolve={(pillar) => act({ type: 'RESOLVE_SPECIALIZATION', pillar })} />
       ) : interrupt.type === 'catalogue-letter' ? (
         <CatalogueLetterView s={s} instanceId={(interrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? ''} act={act} />
       ) : decision ? (

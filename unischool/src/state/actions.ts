@@ -1,7 +1,7 @@
 import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, GameState, InitiativeDepth, Placements, ScholarshipLevel, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, GameState, InitiativeDepth, Pillar, Placements, ScholarshipLevel, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import type { DecisionEventContext } from '../data/eventData';
@@ -150,6 +150,11 @@ export type Action =
   | { type: 'RESTAFF'; school: string | null; courseIds?: string[] }
   // The Deans' year-end recommendations: accept every school's plan, or not.
   | { type: 'RESOLVE_DEAN_RECOMMENDATIONS'; accept: boolean }
+  // The specialization (Plan 85D, systems/prestige/milestone.ts), at the
+  // close of a summer at the milestone: a pillar, for good, or null for not
+  // this year (offered again at the next summer's close). Holds no week: the
+  // choice is raised after the summer turned the page.
+  | { type: 'RESOLVE_SPECIALIZATION'; pillar: Pillar | null }
   // `candidate` is the whole person: they exist only in the interrupt
   // payload. `null` declines and records the week asked.
   | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }
@@ -270,6 +275,7 @@ export function createPreStartState(): GameState {
     candidates: [],
     started: false,
     hasEnteredRankings: false,
+    specialization: 'none',
     milestones: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
@@ -422,6 +428,7 @@ function foundState(
     candidates: initialCandidatePool(),
     started: true,
     hasEnteredRankings: false,
+    specialization: 'none',
     milestones: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),

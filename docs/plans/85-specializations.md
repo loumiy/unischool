@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A–C merged (#268, #274, #275).**
+**Status: In progress: A–D merged (#268, #274–#276).**
 
 ---
 
@@ -106,6 +106,23 @@ pillars, and this plan records the change.
   ceiling is tuned so that optimal play reaches the top 10 overall and
   near the top of every pillar ranking. The owner's shape for #1 is every
   pillar near the top and one clearly above.
+- **No hard caps (the owner's decision, 2026-09-30, in 85D's review; it
+  replaces the ceilings above).** "I don't think the pillar scores should
+  be hard-capped, the game should just be structured such that it's not
+  possible (or highly improbable) to get as high as 150 without the
+  specialization bonus." So each pillar holds a term only its own
+  specialization fills, and its other terms share the rest in their old
+  proportions: a perfect college without the specialization stands where
+  the ceilings were because a term is empty, not because a clamp holds it.
+  Athletics' team ceiling becomes a slowdown of a program's quality above a
+  knee, and the rivals' unspecialized axes drift toward targets instead of
+  stopping at the ceilings. See 85D's note.
+- **The milestone lowered, the structure kept (the owner's decision,
+  2026-09-30, reviewing the no-caps rework).** Without the ceilings' slack
+  the strong players climb later, and at the top 12 the Completionist
+  reached the milestone after year 40 on two seeds. The owner kept the
+  structure (the missing specialization term, no diminishing returns
+  instead) and lowered the milestone to the top 20. See 85D's note.
 - **The milestone is a rank, not a prestige number,** so it survives the
   retune:
   - the choice is offered at the first summer the college stands in the
@@ -296,6 +313,10 @@ save change.
 **As implemented (#275):** every pillar stops at a ceiling without its
 specialization, a title is rare without the athletics one, and every rival
 is dealt a pillar that runs higher and steadier. Save version 88.
+
+*The ceilings, the team ceiling and the rivals' held axes were superseded in
+#276 by the owner's decision in 85D's review: no hard caps (§2, and 85D's
+note).*
 
 - **The ceilings** (`prestigeSystem.ts`'s `UNSPECIALIZED_CEILINGS`, beside
   `PILLAR_WEIGHTS`; the repository has no `tuning.ts`):
@@ -489,6 +510,285 @@ is dealt a pillar that runs higher and steadier. Save version 88.
   or a fixed pick for the specialized variants in I.
 - **Checks:** the notice and the choice at the milestone, a save round
   trip, and `review:strings`.
+
+**As implemented (#276):** the college chooses a specialization once, at the
+close of the first summer it stands in the guide's top 20, and keeps it. In
+the owner's review of the first version (which lifted a hard ceiling), the
+owner decided against hard caps (§2), so this PR also replaces 85C's
+ceilings: each pillar now holds a specialization term that only its own
+specialization fills. The choice opens that term, which fills over ten
+years until 85E–H give it a mechanic. Reviewing that, the owner kept the
+structure and lowered the milestone from the top 12 to the top 20 (§2).
+Save version 89.
+
+- **`s.specialization`** is `'none'` or a pillar (`types.ts`'s
+  `Specialization`, the pillar keys 85B and 85C use), with
+  `specializationYear`, the summer it was chosen. Two more fields keep the
+  milestone's beats: `specializationNotice` (the year the board's notice
+  came) and `specializationOffered` (the summer the college first stood at
+  the milestone). `specializationOf(s)` reads the field.
+- **No hard caps: the specialization term** (`prestigeSystem.ts`'s
+  `SPECIALIZATION_TERM_WEIGHTS`, beside `PILLAR_WEIGHTS`):
+
+  | Pillar | Term (of the 118 above the floor) | Natural maximum without it |
+  |---|---|---|
+  | Academics | 24 | 126 |
+  | Research | 24 | 126 |
+  | Student life | 30 | 120 |
+  | Athletics | 30 | 120 |
+
+  - Each pillar's other terms, the capital projects among them, share the
+    rest of the span in their old proportions (`pillarOf`'s `scaled`). A
+    capital project's lift was points on top of a pillar; it is now a term
+    like the others, scaled with them, and its row shows before one stands,
+    so the terms add up. A perfect unspecialized college stands at the
+    natural maximum (`UNSPECIALIZED_MAXIMA`), because its term is empty.
+  - `pillarCeiling` and the clamp are gone, and so are the "At its limit"
+    tag and the "Held at its limit" lines. The term is an ordinary row in
+    the pillar's breakdown, named for its program ("The faculty training
+    program"): "+0.0 of 24", "Comes only with a specialization in
+    academics"; specialized in another, "The college is specialized in
+    research, so this stays empty"; specialized in it, how far it has
+    filled.
+  - **How it fills in 85D:** a tenth for each year since the choice, full
+    after ten (`specializationData.ts`'s `SPECIALIZATION_READINGS`, one
+    reading per pillar, `SPECIALIZATION_FILL_YEARS`). 85E–H replace their
+    pillar's reading with their mechanic's (the share of the faculty
+    trained, the park's output, and so on).
+  - **Athletics' term is 30, not the 40 the ceiling took away.** At 40 the
+    championships goal player's athletics ranked 36th at year 50 (it was
+    10th), because a strong department without titles stood at about 78;
+    at 30 it stands near 90 and ranks 15th. Its natural maximum is 120.
+- **Athletics' team ceiling is a slowdown** (`studentLifeData.ts`'s
+  `teamQualityCurve`): a program's quality is what its staff, money,
+  recruiting and pull earn up to `TEAM_QUALITY_KNEE`, 80; above it, each
+  further point is worth less, easing toward 80 + `TEAM_QUALITY_SOFT_SPAN`,
+  90, which it never passes. So 100 is out of reach without the athletics
+  specialization, which takes the slowdown away. A team card slowed by it is
+  marked "slowed", with what it would have earned. The big stage is
+  unchanged.
+- **The rivals are unclamped** (`rivalsSystem.ts`): an unspecialized axis
+  drifts toward `RIVAL_UNSPECIALIZED_TARGETS` (academics and research 112,
+  student life 107, athletics 90; each at or below the college's natural
+  maximum). An upward move shrinks to nothing over the last
+  `RIVAL_TARGET_EASE` (8) points below the target, a downward move is
+  whole, and an axis already above (an authored standing, or an old save)
+  takes no upward move until it has fallen below. Nothing pushes an axis
+  down, and nothing holds it at a number. A specialized axis still
+  approaches 150 as before. The draws are unchanged.
+- **What the choice does now:** its pillar's term opens and fills, so the
+  pillar can rise to 150. Athletics also takes away the teams' slowdown and
+  the big stage's edge, both through one hook, `specialization.ts`'s
+  `athleticsLifted`, which `teamQualityCurve` and `stageEdge` read and 85G's
+  complex extends.
+- **The milestone** (`prestigeSystem.ts`'s `SPECIALIZATION_MILESTONE_RANK`,
+  beside the term weights): **the top 20**. It is read at the summer's own
+  week after the field has moved: the table the summer's review prints.
+  - On the first version, with the ceilings, the strong players reached the
+    top 15 in years 24–27, so the milestone was the top 12 (years 27–30).
+  - Without caps they climb about six years later, and at the top 12 the
+    Completionist arrived in years 43 and 49 on two seeds.
+  - The owner kept the structure and asked for the tightest rank inside
+    25–40 on every seed. First summer at each rank (seeds 12345, 4242,
+    777; Guided, then the Completionist):
+
+    | Rank | Guided | Completionist |
+    |---|---|---|
+    | Top 12 | 35, 35, 36 | 43, 49, 40 |
+    | Top 15 | 34, 32, 34 | 40, 45, 36 |
+    | Top 18 | 33, 31, 30 | 39, 41, 34 |
+    | Top 19 | 32, 30, 30 | 36, 41, 33 |
+    | Top 20 | 31, 29, 30 | 36, 38, 30 |
+
+    The top 20 is the tightest that holds on every seed, with two years to
+    spare at the late end (the Completionist's 38) and four at the early
+    (Guided's 29). The rank changes only when the choice comes: the climb
+    to it is the same whatever it is.
+- **The notice** (`SPECIALIZATION_NOTICE_PLACES`): the first week the college
+  stands within four places of the milestone (the top 24), the board's
+  letter ("Within reach of the top 20") arrives in the inbox as a board
+  letter, which never stops the clock. It names the four specializations and
+  the points of its pillar each opens, says athletics also frees the teams,
+  and says the rest arrives in time. The strong players have it two to five
+  years ahead (Guided in years 28, 27, 28; Completionist 31, 36, 28, on
+  seeds 12345, 4242, 777). Its second button opens History, not the
+  Treasury. It comes once.
+- **The choice** is raised by `RESOLVE_ADMISSIONS` after the page has turned
+  (`milestone.ts`'s `raiseSpecializationChoice`), on the new year's first
+  week before it runs, so its answer (`RESOLVE_SPECIALIZATION`) holds no week
+  and never moves the clock. It is filed under the summer's year. A page in
+  the inbox (`components/SpecializationChoice.tsx`, `modalWidth` "page"):
+  the four side by side (two by two under 1100px, stacked on a phone), each
+  card with its pillar and name; **Now:** "Opens the faculty training
+  program's share of academics, worth 24 points, filling over 10 years"
+  (and, for athletics, the teams); **Still to come:** its mechanics,
+  "Arrives in a later update"; the college's value and rank in the pillar;
+  and how many rivals are specialized in it and the strongest of them.
+  Choosing asks twice (Plan 47's `ConfirmButton`: "Confirm: this is for
+  good", with the warning that it cannot be changed or undone). The words
+  and the cards are in `data/specializationData.ts` (`SPECIALIZATION_CARDS`:
+  each mechanic has `ready`, which 85E–H flip as they build it).
+- **Decided here: closing without choosing.** The card has a "Not this
+  year" button (an interrupt cannot be closed otherwise). The offer stands:
+  the choice comes back at the close of every summer until it is made, even
+  if the college has slipped below the milestone since, because reaching it
+  once earned it. Nothing chooses for the player: the game's default answer
+  (`defaultAnswers.ts`, which the debug panel's Jump uses) is "not this
+  year". A college that never reaches the milestone is never offered it; a
+  sandbox run neither gets the notice nor the offer.
+- **Once chosen:** History › Prestige and the standings open with a line
+  saying where the college stands on the choice ("The college is
+  specialized in academics, chosen in Year 31: academics may rise to the
+  full 150, and the other three pillars' specialization terms stay empty";
+  before it, the offer standing or the milestone to reach, and that the
+  terms are empty). The specialized pillar's row and standings card are
+  marked *Specialized*. The Athletics tab's help says what the
+  specialization leaves of the slowdown. The guide tags the college with
+  its specialization as it tags every rival. The chronicle's era says "In
+  Year 31 it chose to specialize in academics: the faculty training
+  program."
+- **The Final Report names the specialization first** (the owner's "fix the
+  report"): once the college has one, the title's phrase is the card's own,
+  "Blackmoor University: a college known first for its teaching, with no
+  glaring weakness" (`SPECIALIZATION_CARDS`' `known`,
+  `finalReport.ts`'s `composeTitle`, `reportData.ts`'s
+  `SPECIALIZATION_AXIS` for the standing it claims). A college that never
+  specialized keeps the guidebooks' tag phrase.
+- **The harness** (`sim/harness/specialization.ts`): every player chooses by
+  a rule, `Player.specialization`. The default, `'strongest'`, is the pillar
+  with the highest value on the prestige scale, and on a tie (within half a
+  point) the better rank in that pillar; a pillar names a fixed pick (the
+  hook for 85I's specialized Guided players); `'never'` puts it off every
+  time (the unspecialized player, for measuring); `'wait'` leaves the choice
+  standing, for `tools/scenario.ts`. `answerAll` asks the rule before the
+  game's default. The report prints each run's pick and year. `npm run
+  scenario -- specialization` stops at the choice, and
+  `specialization-notice` at the notice.
+- **Save:** `SAVE_VERSION` 88 → 89, migration `noSpecializationYet` at
+  `MIGRATIONS[88]`: none, with no notice and no offer, so a college already
+  at the milestone is told at its next week and offered the choice at its
+  next summer. `test/fixtures/save-v88.json` is the `year-8-balanced`
+  scenario written before the bump. The load sanitizes a specialization that
+  is not a pillar to none, and gives a choice without a year its offer's.
+  `sim/harness/invariants.ts` checks the specialization and its year. The
+  review's change moves no saved field.
+- **What each player picks** (seeds 12345, 4242, 777): Guided academics in
+  years 31, 29, 30; Completionist academics in years 36, 38, 30. Academics
+  is the highest value when the choice comes (Guided seed 12345 at year 32:
+  academics 111, #10; research 107, #11; student life 93, #10; athletics 60,
+  #77). Selective, Lean and Idle never reach the milestone (best ranks 55)
+  and never specialize.
+- **The sim moves**, against main's baseline (85C), medians of three seeds;
+  pillar ranks at year 50, academics / research / student life / athletics:
+
+  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 |
+  |---|---|---|---|---|
+  | Guided | 56 (+1) / 31 (+15) / 1 (−5) | 50.0 (−9.4) / 81.7 (−13.1) / 119.2 (+3.7) | 85.8 (−1.8) / 84.9 (+0.4) / 85.1 (−2.8) | 5 / 8 / 4 / 78, was 9 / 8 / 4 / 67 |
+  | Completionist | 56 (+3) / 35 (+19) / 1 (−6) | 50.1 (−9.6) / 76.4 (−17.6) / 117.2 (+1.7) | 85.7 (+0.8) / 89.6 (+2.8) / 89.9 (+2.5) | 5 / 10 / 4 / 75, was 7 / 12 / 4 / 61 |
+  | Selective | 60 (+4) / 58 (+8) / 61 (+8) | 43.2 (−8.4) / 51.3 (−12.2) / 52.1 (−13.0) | 86.4 (+1.2) / 83.1 (+3.3) / 81.7 (+4.6) | 56 / 65 / 22 / 100, was 53 / 58 / 5 / 100 |
+  | Lean | 64 (+6) / 64 (+7) / 72 (+9) | 40.1 (−6.9) / 43.3 (−8.7) / 42.8 (−9.0) | 75.8 (+1.7) / 75.0 (+7.7) / 73.8 (+6.2) | 56 / 81 / 27 / 100, was 51 / 77 / 7 / 100 |
+  | Idle | 80 (+2) / 66 (+7) / 75 (+9) | 30.4 (−1.3) / 41.9 (−7.8) / 38.8 (−7.2) | 84.0 flat | 79 / 80 / 28 / 100, was 81 / 75 / 7 / 100 |
+
+  When the strong players first reach each place (seeds 12345, 4242, 777;
+  the year's first week; the milestone is read at the summer before):
+
+  | | Top 20 | Top 15 | Top 10 | #1 |
+  |---|---|---|---|---|
+  | Guided, 85C | 24, 23, 23 | 26, 26, 24 | 29, 29, 30 | never (best 6, 4, 3) |
+  | Guided, first 85D (top 12, ceilings) | 24, 23, 23 | 26, 26, 24 | 29, 29, 30 | 41, 42, 39 |
+  | Guided, no caps, top 12 | 31, 29, 30 | 34, 32, 34 | 36, 36, 39 | 48, 47, 50 |
+  | Guided, now (top 20) | 31, 29, 30 | 34, 32, 34 | 35, 35, 38 | 42, 42, 44 |
+  | Completionist, 85C | 24, 22, 22 | 27, 26, 26 | 34, 27, 39 | never (best 6, 6, 9) |
+  | Completionist, first 85D (top 12, ceilings) | 24, 22, 22 | 27, 26, 26 | 33, 27, 35 | never, 46, never |
+  | Completionist, no caps, top 12 | 36, 38, 30 | 40, 46, 37 | 45, 50, 43 | year 51, never, never |
+  | Completionist, now (top 20) | 36, 38, 30 | 40, 44, 35 | 42, 45, 39 | 49, never (best 2), 45 |
+
+  At year 50 Guided is first on every seed (prestige 119.8, 119.0, 119.2);
+  the Completionist is first on seeds 12345 and 777 (117.2, 119.5) and
+  second on 4242 (113.6). The
+  same players held to no specialization (`'never'`): Guided's best place
+  5, 4, 4 and year-50 prestige 111.3; the Completionist's 5, 10, 7 and
+  110.5, 106.0, 110.4. They never reach first.
+
+  - **The balance targets, all met.** Unspecialized optimal play reaches the
+    top 10 and is never first (the best any reaches is 4th). The milestone
+    comes in years 25–40 on every seed (Guided 29–31, the Completionist
+    30–38, at the summer). A specialized strong player reaches #1: Guided on
+    every seed, from years 42–44; the Completionist on two, from 45 and 49.
+    Choosing earlier fills the term sooner, so first place came five or six
+    years earlier than with the milestone at the top 12.
+  - **Why it moves.** With no slack above a cap, a college's every shortfall
+    shows: each pillar's other terms now fill 94 (or 88) of its 118 points
+    rather than all of them, and the capital projects share them rather than
+    sitting on top. Every player stands lower through the middle of the run
+    (prestige at year 25 is 13 to 18 lower for the strong players), and the
+    climb up the guide comes about six years later. Before the owner
+    lowered the milestone, the rivals' targets were the one lever on the
+    field: lowering them brings the milestone
+    earlier but lets an unspecialized college reach first place late. In the
+    trials, with targets 80% of the way from the floor to the natural
+    maxima, Guided without a specialization was first in year 49 on one
+    seed (milestone: Guided 33–35, Completionist 38–46); at 75%, the same
+    (Guided 32–37, Completionist 36–44). The chosen targets keep the
+    unspecialized college out of first place and put Guided's milestone
+    inside the range. Smaller terms (18, 18, 24, 32), with the targets tied
+    to the natural maxima, left the milestone where it was (Guided 33–41,
+    Completionist 40–44). Then the owner lowered the milestone (above).
+  - Selective, Lean and Idle fall 7 to 13 in prestige and 7 to 9 places:
+    their pillars shrink with the same rescale, and student life, which
+    their welfare filled, ranks in the 20s, not the top ten.
+  - Enrollment falls with prestige through the middle of the run (at year
+    25, Guided 22,800 and the Completionist 21,200: 1,920 and 3,360 fewer
+    than the first 85D), and the smaller colleges end poorer (Selective
+    $235M and Lean $97M less cash at year 50). By year 50 the strong
+    players enroll as many as before.
+- **The championships goal player** (`npm run review:goals -- --goals
+  championships`, five seeds, two names; year 50, medians):
+
+  | | First title | Titles by 25 | Titles by 50 | Athletics rank | Overall rank |
+  |---|---|---|---|---|---|
+  | 85C (and first 85D, unchanged) | 29 (13–40; 4 of 10 none) | 0 | 1 (0–3) | 11 (9–25) | 26 (22–30) |
+  | Now | 23 (14–43; none without) | 1 | 2 (1–5) | 15 (11–25) | 48 (45–51) |
+
+  Titles stay rare: a handful at most by year 50, though now every run
+  wins at least one. Its athletics ranks about where it did, and its
+  overall rank falls with every player's pillars (above). The milestone at
+  the top 20 does not move it: its best place in any run is 41st, so it is
+  never offered the choice.
+- **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
+  re-recorded (`--save`), then 0 deltas; `npm run phone` on the
+  `specialization` scenario (the choice at 390 and 820 wide), the launch
+  fixture, the notice and a year-47 save; `review:strings`, nothing new
+  flagged. `test/specialization-choice.test.ts` pins the notice before the
+  milestone (and once, and only within reach), the offer at the milestone's
+  summer to the place (and not one place short, nor mid-year), the choice at
+  the summer's close holding no week, not this year and its return, the
+  opening of only the chosen pillar's term (athletics' teams too), the other
+  terms' words after the choice, permanence, a save round trip (mid-choice
+  too), the chronicle's line, the Final Report's title (specialized, and a
+  college that never was), the migration and the load's sanitizing, and the
+  harness's rule. `test/specializations.test.ts` pins the terms: every
+  pillar's weights add up, a perfect unspecialized college stands at its
+  natural maximum, a specialized one with its term full passes it and every
+  term in full is 150, the term fills a tenth a year; the team-quality
+  curve (whole below the knee, slower above, never 100, whole again with
+  the specialization); the rivals unclamped (none climbs past its target,
+  one above is not snapped back) and the draws.
+- **Screenshots** in `docs/reviews/2026-10-pillars/`, from a Guided run
+  named Blackmoor (seed 12345): `85d-notice.jpg` (the board's letter in the
+  inbox), `85d-choice.jpg` and `85d-choice-phone.jpg` (the choice at 1400
+  and 390 wide), `85d-choice-confirm.jpg` (the confirm step armed),
+  `85d-prestige-unspecialized.jpg` (History › Prestige before the choice,
+  academics opened on its empty term; taken with the milestone at the top
+  12, in year 33), `85d-prestige.jpg` (after choosing, year 47), `85d-standings.jpg`, `85d-guide.jpg` and `85d-final-report.jpg`
+  (the Final Report's line naming the specialization).
+- **Open, for review:**
+  - **The milestone is now the top 20**, nearly twice the first version's
+    rank, because the climb without caps is slower (above).
+  - **Both strong players pick academics.** 85I's fixed-pick variants will
+    show what the other three are worth.
+  - **Athletics' term is 30**, not the 40 asked for, for the championships
+    player's athletics rank (above).
 
 ## PR 85E — The faculty training program
 

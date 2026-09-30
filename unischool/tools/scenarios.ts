@@ -136,6 +136,25 @@ export const SCENARIOS: Scenario[] = [
     stopWhen: atModal('milestone'),
   },
   {
+    // The board's notice (Plan 85D): the week the college first stands
+    // within reach of the milestone; the letter waits in the inbox.
+    name: 'specialization-notice',
+    what: 'the board\'s notice that the specialization\'s milestone is within reach',
+    player: 'Guided',
+    year: 45,
+    stopWhen: (s) => s.specializationNotice !== undefined,
+  },
+  {
+    // The specialization (Plan 85D): the choice at the close of the first
+    // summer in the guide's top SPECIALIZATION_MILESTONE_RANK, left
+    // standing (scenario.ts sets the player to wait on it).
+    name: 'specialization',
+    what: 'the choice of a specialization at the milestone, unanswered',
+    player: 'Guided',
+    year: 45,
+    stopWhen: atModal('specialization'),
+  },
+  {
     name: 'rankings-entry',
     what: 'the week the school enters the top 50',
     player: 'Guided',

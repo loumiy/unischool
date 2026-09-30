@@ -15,7 +15,7 @@ import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
 import { isSchoolFounded } from '../techtree/schools';
 import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
 import { count, money, multiplier, pct, satisfactionFigure } from '../../format';
-import { CEILING_LABEL, ceilingDetail, ceilingHeld } from '../../data/specializationData';
+import { SPECIALIZATION_CARDS, specializationTerm, specializedLine } from '../../data/specializationData';
 import { specializationOf } from './specialization';
 import { clamp, clamp01 } from '../../math';
 
@@ -71,27 +71,48 @@ export const PILLAR_LABELS: Readonly<Record<Pillar, string>> = {
   athletics: 'Athletics',
 };
 
-// The unspecialized ceilings (Plan 85C): without its specialization, a
-// pillar stands no higher than this on the prestige scale, however much its
-// terms earn. A specialization (Plan 85D) lifts its own pillar's to
-// PRESTIGE_MAX. Tuned so that optimal play without one reaches the top ten
-// overall and near the top of every pillar, and never first place: that
-// takes a specialization. Rivals keep to the same ceilings on the three
-// axes they are not specialized in (rivalsSystem.ts). Athletics' is the
-// lowest: without the athletics specialization no program plays above the
-// unspecialized team ceiling and titles are rare (Plan 85C), so its pillar
-// stops about where a strong department without titles stands.
-export const UNSPECIALIZED_CEILINGS: Readonly<Record<Pillar, number>> = {
-  academics: 126,
-  research: 126,
-  studentLife: 120,
-  athletics: 110,
+// The specialization terms (the owner's decision in Plan 85D's review,
+// replacing Plan 85C's ceilings): no pillar is capped. Each holds a term
+// only its own specialization fills, worth this many of the PILLAR_SPAN
+// points above the floor, and its other terms share the rest in their old
+// proportions. A college without the specialization can do everything else
+// perfectly and still stand no higher than PILLAR_FLOOR + PILLAR_SPAN less
+// this (UNSPECIALIZED_MAXIMA: 126, 126, 120, 110, where 85C's ceilings
+// were), because the term is empty, not because anything holds it. Tuned so
+// that optimal play without one reaches the top ten overall and near the top
+// of every pillar, and never first place. Athletics' is the largest: without
+// the athletics specialization a program's quality slows above
+// TEAM_QUALITY_KNEE and titles are rare (studentLifeData.ts), so a strong
+// department without titles stands about where its term leaves it.
+export const SPECIALIZATION_TERM_WEIGHTS: Readonly<Record<Pillar, number>> = {
+  academics: 24,
+  research: 24,
+  studentLife: 30,
+  athletics: 30,
 };
 
-// How high a pillar may stand for this college.
-export function pillarCeiling(s: GameState, pillar: Pillar): number {
-  return specializationOf(s) === pillar ? PRESTIGE_MAX : UNSPECIALIZED_CEILINGS[pillar];
-}
+// The most each pillar can stand at without its specialization: its
+// natural maximum, every other term in full. Rivals' unspecialized axes
+// drift toward no more than the same (rivalsSystem.ts).
+export const UNSPECIALIZED_MAXIMA: Readonly<Record<Pillar, number>> = {
+  academics: 150 - SPECIALIZATION_TERM_WEIGHTS.academics,
+  research: 150 - SPECIALIZATION_TERM_WEIGHTS.research,
+  studentLife: 150 - SPECIALIZATION_TERM_WEIGHTS.studentLife,
+  athletics: 150 - SPECIALIZATION_TERM_WEIGHTS.athletics,
+};
+
+// The milestone (Plan 85D, systems/prestige/milestone.ts): the choice of a
+// specialization is offered at the first summer the college stands this
+// high in the guide's overall ranking. A rank, not a prestige figure, so it
+// survives a retune. Tuned so the Guided and Completionist players first
+// stand there in years 25-40 (the owner's range) on every seed, with some
+// margin. Without caps (Plan 85D's review) they climb later: they reach the
+// top 20 in years 29-38; the top 18 would be 30-41, the top 15 32-45.
+export const SPECIALIZATION_MILESTONE_RANK = 20;
+// The board's notice comes when the college first stands within this many
+// places of the milestone: two to four years ahead of it for a college
+// climbing as the strong players do.
+export const SPECIALIZATION_NOTICE_PLACES = 4;
 
 // Each pillar's terms, weighted among themselves. The weights are the terms'
 // old weights where they had one: academics and student life keep their
@@ -119,7 +140,7 @@ const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see cro
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
 const PRESTIGE_MIN = 5;
-const PRESTIGE_MAX = 150;
+export const PRESTIGE_MAX = 150;
 
 // Curriculum breadth: a stock read off the durable milestones techSystem.ts
 // awards; the four shares sum to 1. Graduate programs are a share inside
@@ -332,7 +353,8 @@ export interface StandingBreakdown {
   summer?: SummerModel;     // set on the standing that steps at the summer (academic)
   // A cap on the target set by something no sum of inputs can buy past
   // (Plan 71: academic standing and the teaching standard; Plan 85C: a
-  // pillar's unspecialized ceiling). Absent: none. `held` is the sentence
+  // pillar's unspecialized ceiling, until Plan 85D's review replaced it).
+  // Absent: none. `held` is the sentence
   // shown while the ceiling is what sets the target.
   ceiling?: { value: number; label: string; detail: string; held?: string };
   // The inputs earn more than the ceiling allows: it is holding the target.
@@ -344,6 +366,9 @@ export interface StandingBreakdown {
   // its target (research, student life).
   share?: number;
   live?: boolean;
+  // The college's specialization (Plan 85D): the line saying its limit is
+  // lifted. Absent on every other pillar.
+  specialized?: string;
 }
 
 function weigh(
@@ -360,15 +385,18 @@ function penalise(key: string, label: string, weight: number, score: number, det
   return { key, label, weight, score, detail, penalty: true, contribution: -weight * score };
 }
 
-// The capital projects standing (Plan 33, estate/projects.ts): a line of
-// their own, shown once one stands, each lifting in proportion to its
-// condition.
+// The capital projects standing (Plan 33, estate/projects.ts): a term of
+// the pillar like the others (since Plan 85D's review, scaled with them
+// rather than points on top), each project lifting in proportion to its
+// condition. Shown before one stands, so the pillar's terms add up.
 function projectInput(s: GameState, axis: 'academics' | 'research' | 'experience'): StandingInput[] {
-  const lift = projectLift(s, axis);
-  if (lift <= 0) return [];
   const max = projectLiftMax(axis);
+  if (max <= 0) return [];
+  const lift = projectLift(s, axis);
   const names = standingProjects(s).filter((t) => (t.project!.boosts[axis] ?? 0) > 0).map((t) => t.name);
-  return [weigh('projects', 'Capital projects', max, lift / max, `${names.join(', ')}: ${lift.toFixed(1)} of the ${max} points every project in full repair would add.`)];
+  return [weigh('projects', 'Capital projects', max, clamp01(lift / max), names.length === 0
+    ? 'No capital project that lifts this pillar stands yet.'
+    : `${names.join(', ')}: ${pct(clamp01(lift / max))} of what every such project in full repair would add.`)];
 }
 
 // Computes its own target, so no caller can disagree with the sum.
@@ -440,30 +468,34 @@ export function teachingCeiling(s: GameState): NonNullable<StandingBreakdown['ce
 export const PILLAR_FLOOR = PRESTIGE_BASELINE;
 export const PILLAR_SPAN = PRESTIGE_MAX - PILLAR_FLOOR;
 
-// A pillar's terms, scaled so the core terms in full fill PILLAR_SPAN: the
-// pillar reads on the prestige scale. A capital project's lift is points on
-// that scale, on top (projectInput), as it was on the standing it lifted.
-function scaled(inputs: StandingInput[]): StandingInput[] {
+// A pillar's terms, scaled so that in full they fill `span` points of the
+// prestige scale, in their old proportions.
+function scaled(inputs: StandingInput[], span: number): StandingInput[] {
   const full = inputs.reduce((sum, i) => sum + (i.penalty ? 0 : i.weight), 0);
-  const k = full > 0 ? PILLAR_SPAN / full : 0;
+  const k = full > 0 ? span / full : 0;
   return inputs.map((i) => ({ ...i, weight: i.weight * k, contribution: i.contribution * k }));
 }
 
-// A pillar's ceiling as its breakdown shows it: none once the college is
-// specialized in it.
-function pillarCeilingLine(s: GameState, pillar: Pillar): StandingBreakdown['ceiling'] {
-  const value = pillarCeiling(s, pillar);
-  if (value >= PRESTIGE_MAX) return undefined;
-  return { value, label: CEILING_LABEL, detail: ceilingDetail(pillar, value, PRESTIGE_MAX), held: ceilingHeld(pillar, value) };
+// The pillar's specialization term (Plan 85D): SPECIALIZATION_TERM_WEIGHTS
+// of the span, filled only by its own specialization, as
+// specializationData.ts's reading says (85E-H replace the reading with
+// their mechanics').
+function specializationInput(s: GameState, pillar: Pillar): StandingInput {
+  const term = specializationTerm(s, pillar);
+  return weigh('specialization', SPECIALIZATION_CARDS[pillar].name, SPECIALIZATION_TERM_WEIGHTS[pillar], term.score, term.detail);
 }
 
 function pillarOf(
   s: GameState, pillar: Pillar, current: number | null, core: StandingInput[], bonus: StandingInput[],
 ): StandingBreakdown {
-  const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, [...scaled(core), ...bonus], [], undefined, pillarCeilingLine(s, pillar));
+  const terms = [...scaled([...core, ...bonus], PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[pillar]), specializationInput(s, pillar)];
+  const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, terms);
   // Academics and athletics are read as they stand; research and student
   // life are the stocks that drift toward them (tickPrestige).
-  return { ...made, current: current ?? made.target, share: PILLAR_WEIGHTS[pillar], live: current === null };
+  return {
+    ...made, current: current ?? made.target, share: PILLAR_WEIGHTS[pillar], live: current === null,
+    specialized: specializationOf(s) === pillar ? specializedLine(pillar, PRESTIGE_MAX, s.specializationYear) : undefined,
+  };
 }
 
 function academicsBreakdown(s: GameState): StandingBreakdown {
@@ -564,7 +596,7 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     const input = weigh(
       p, PILLAR_LABELS[p], PILLAR_WEIGHTS[p] * PILLAR_SPAN, pillarScoreOf(made.target),
       `${PILLAR_LABELS[p]} stands at ${made.target.toFixed(1)} of ${PRESTIGE_MAX}, and counts for ${pct(PILLAR_WEIGHTS[p])} of prestige.`
-        + (made.held && made.ceiling?.held ? ` ${made.ceiling.held}` : ''),
+        + (made.specialized ? ` ${made.specialized}` : ''),
     );
     return { ...input, pillar: made };
   });

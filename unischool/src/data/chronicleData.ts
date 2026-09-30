@@ -74,6 +74,8 @@ export const CHRONICLE_LINES = {
   graduates: '{list} taught their full degrees for the first time.',
   prize: 'Its faculty won a research prize.',
   prizes: 'Its faculty won {count} research prizes.',
+  // The year the college chose its specialization (Plan 85D).
+  specialized: 'In Year {year} it chose to specialize in {pillar}: {name}.',
 } as const;
 
 export const CHRONICLE_WORDS = {

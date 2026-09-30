@@ -516,10 +516,13 @@ by Year 50. Two levers now stand against a college that has not specialized
 in athletics, and the athletic performance complex (Plan 85G) is what lifts
 them:
 
-- **The team ceiling.** No program plays above 90
-  (`studentLifeData.ts`'s `UNSPECIALIZED_TEAM_CEILING`), however it is
-  staffed, funded and recruited: `teamQuality` is the lower of that and what
-  the program earns (`teamQualityEarned`). A card held there says so.
+- **The slowdown above the knee** (Plan 85D's review, replacing Plan 85C's
+  hard team ceiling of 90). A program's quality is what its staff, money,
+  recruiting and pull earn up to 80 (`studentLifeData.ts`'s
+  `TEAM_QUALITY_KNEE`); above it each further point is worth less, easing
+  toward 90 and never passing it (`teamQualityCurve`), so 100 is out of
+  reach. The athletics specialization takes the slowdown away. A card
+  slowed by it says so, with what the program would have earned.
 - **The big stage.** In the college's own games the opponent plays 8 points
   stronger in a quarterfinal, 20 in a semifinal and 35 in a final
   (`playoffs.ts`'s `STAGE_EDGE`). Brackets between rivals are as they were,

@@ -59,7 +59,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 88; // Plan 85C: each rival's specialization
+export const SAVE_VERSION = 89; // Plan 85D: the college's specialization
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -186,10 +186,40 @@ function careersFromTenure(state: GameState): void {
 // Rival.specialization), dealt off its id as a new run deals it
 // (rivalData.ts's dealtSpecialization), so a loaded field is the field a
 // new game would have. Its standings are left where they are: the
-// unspecialized ceilings hold what drift would add from here on, and
-// nothing is taken away at the load.
+// unspecialized ceilings (since Plan 85D's review, targets) hold what drift
+// would add from here on, and nothing is taken away at the load.
 function dealSpecializations(state: GameState): void {
   for (const r of state.rivals ?? []) r.specialization = dealtSpecialization(r.id);
+}
+
+// 88 -> 89, Plan 85D: the college's own specialization (types.ts's
+// GameState.specialization), chosen at the milestone. A save from before it
+// has chosen nothing and heard nothing: none, with no notice sent and no
+// choice offered. A college already at the milestone is told at its next
+// week and offered the choice at its next summer (systems/prestige/
+// milestone.ts), as a new run would be.
+function noSpecializationYet(state: GameState): void {
+  state.specialization = 'none';
+  delete state.specializationYear;
+  delete state.specializationNotice;
+  delete state.specializationOffered;
+}
+
+// The college's specialization (Plan 85D): one of the four pillars, with the
+// year it was chosen, or none. The milestone's years are whole years, and a
+// choice cannot stand before its offer.
+function sanitizeSpecialization(state: GameState): void {
+  const year = (y: unknown) => (Number.isInteger(y) && (y as number) >= 1 ? (y as number) : undefined);
+  if (!isSpecialization(state.specialization)) state.specialization = 'none';
+  const notice = year(state.specializationNotice);
+  const offered = year(state.specializationOffered);
+  const chosen = state.specialization === 'none' ? undefined : year(state.specializationYear) ?? offered ?? state.clock.year;
+  for (const [key, value] of [['specializationNotice', notice], ['specializationOffered', offered], ['specializationYear', chosen]] as const) {
+    if (value === undefined) delete state[key];
+    else state[key] = value;
+  }
+  // A pending choice for a college that has already chosen is spent.
+  if (state.pendingInterrupt?.type === 'specialization' && state.specialization !== 'none') state.pendingInterrupt = null;
 }
 
 // The chain: from-version -> the step to the next. A step mutates the parsed
@@ -206,6 +236,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   85: noRecruitingYet,
   86: careersFromTenure,
   87: dealSpecializations,
+  88: noSpecializationYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -1094,6 +1125,7 @@ function sanitize(state: GameState): void {
   // A rival's specialization (Plan 85C) is one of the four pillars; anything
   // else is dealt again off its id.
   for (const r of state.rivals) if (!isSpecialization(r.specialization)) r.specialization = dealtSpecialization(r.id);
+  sanitizeSpecialization(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;

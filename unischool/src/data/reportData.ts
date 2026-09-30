@@ -1,3 +1,5 @@
+import type { Pillar } from '../state/types';
+
 // THE FINAL REPORT's words (Plan 33, from v2's report.json; V2 #54): the
 // grade bands (on v2's 0–100 scale; this game's standings are read at two
 // thirds of their 150), the phrases a title is built from, and the money's
@@ -29,6 +31,15 @@ export const TAG_PHRASES: Readonly<Record<string, string>> = {
   'pressure-cooker': 'a pressure cooker',
   'the-bargain': 'a bargain college',
   'old-money': 'an old-money college',
+};
+
+// The standing each specialization is a claim about (Plan 85D): the
+// college's specialization names it first in the Final Report's title.
+export const SPECIALIZATION_AXIS: Readonly<Record<Pillar, ReportAxis>> = {
+  academics: 'academics',
+  research: 'research',
+  studentLife: 'experience',
+  athletics: 'athletics',
 };
 
 // The standing each tag is, in effect, a claim about.
