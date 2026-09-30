@@ -22,7 +22,7 @@ export default function RankingsPanel({ s }: { s: GameState }) {
         </div>
         <HelpHint
           align="end"
-          text={`The guide's ranking, which Rank shows: every college in the field by its prestige, highest first, with its four pillars beside it (academics, research, student life, athletics). Prestige is their blend, the same for every college: 35%, 25%, 25% and 15%. Each rival specializes in one pillar, tagged after its name, and runs higher there; the college's pillars stop short of the top without a specialization. The guide prints the top ${TOP_50_CUTOFF}. Each pillar's own ranking is in the standings.`}
+          text={`The guide's ranking, which Rank shows: every college in the field by its prestige, highest first, with its four pillars beside it (academics, research, student life, athletics). Prestige is their blend, the same for every college: 35%, 25%, 25% and 15%. Each rival specializes in one pillar, tagged after its name, and runs higher there; without a specialization of its own, none of the college's pillars reaches the top. The guide prints the top ${TOP_50_CUTOFF}. Each pillar's own ranking is in the standings.`}
         />
       </div>
       <p className="stat">

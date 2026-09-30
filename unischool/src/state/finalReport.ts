@@ -1,9 +1,11 @@
+import { specializationOf } from '../systems/prestige/specialization';
+import { SPECIALIZATION_CARDS } from '../data/specializationData';
 import type { GameState } from './types';
 import { institutionName, totalEnrolled } from './types';
 import { STARTING_ENDOWMENT } from '../data/foundingData';
 import { settledTitle } from '../systems/promises/promises';
 import {
-  AXIS_PHRASES, REPORT_SHAPES, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
+  AXIS_PHRASES, REPORT_SHAPES, SPECIALIZATION_AXIS, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
 } from '../data/reportData';
 import { STANDINGS, playerRank, standingValue, type StandingAxis } from '../systems/rivals/rivalsSystem';
 import { debtOutstanding } from '../systems/finance/treasury';
@@ -111,15 +113,19 @@ export function gradeAxes(s: GameState): AxisGrade[] {
 }
 
 // "Blackmoor University: a research powerhouse that never gave its students
-// much of a campus life." What the guidebooks call it first (or its strongest
-// standing), and its weakest if that is weak, never the one the tag claims.
+// much of a campus life." Its specialization first, once it has one (Plan
+// 85D: "a college known first for its teaching", the card's own words);
+// else what the guidebooks call it first (or its strongest standing). Then
+// its weakest if that is weak, never the one the phrase claims.
 export function composeTitle(s: GameState, grades: AxisGrade[]): string {
   const college = institutionName(s.self);
   const byScore = [...grades].sort((a, b) => b.score - a.score);
+  const specialization = specializationOf(s);
   const tag = s.identity?.tags[0];
-  const claims = tag ? TAG_AXIS[tag] : null;
+  const claims = specialization ? SPECIALIZATION_AXIS[specialization] : tag ? TAG_AXIS[tag] : null;
   const weakest = [...byScore].reverse().find((g) => g.axis !== claims) ?? byScore[byScore.length - 1];
-  const phrase = tag && TAG_PHRASES[tag] ? TAG_PHRASES[tag] : AXIS_PHRASES[byScore[0].axis];
+  const phrase = specialization ? SPECIALIZATION_CARDS[specialization].known
+    : tag && TAG_PHRASES[tag] ? TAG_PHRASES[tag] : AXIS_PHRASES[byScore[0].axis];
   const shape = weakest.score < WEAKNESS_BELOW ? REPORT_SHAPES.title.replace('{tail}', WEAKNESSES[weakest.axis]) : REPORT_SHAPES.strength;
   return shape.replace('{college}', college).replace('{phrase}', phrase);
 }

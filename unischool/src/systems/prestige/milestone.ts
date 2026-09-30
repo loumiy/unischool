@@ -1,5 +1,5 @@
 import type { GameState, Pillar } from '../../state/types';
-import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, UNSPECIALIZED_CEILINGS } from './prestigeSystem';
+import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS } from './prestigeSystem';
 import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
 import { foundingDistress } from '../finance/distress';
@@ -74,6 +74,7 @@ export function resolveSpecialization(s: GameState, pillar: Pillar | null): void
   const payload = s.pendingInterrupt.payload as SpecializationPayload | undefined;
   s.pendingInterrupt = null;
   if (!specializationOpen(s)) return;
+  if (pillar !== null && !PILLARS.includes(pillar)) pillar = null;
   if (pillar === null) {
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
@@ -86,7 +87,7 @@ export function resolveSpecialization(s: GameState, pillar: Pillar | null): void
   s.specializationYear = payload?.year ?? s.clock.year - 1;
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
-    message: `The college specializes in ${PILLAR_WORDS[pillar]}: ${SPECIALIZATION_CARDS[pillar].name.replace(/^The /, 'the ')}. Its limit is lifted, for good.`,
+    message: `The college specializes in ${PILLAR_WORDS[pillar]}: ${SPECIALIZATION_CARDS[pillar].name.replace(/^The /, 'the ')}. Its share of ${PILLAR_WORDS[pillar]} opens, for good.`,
     kind: 'good',
   });
 }
@@ -98,14 +99,14 @@ export function collegeSpecialization(s: GameState): string {
 }
 
 // Each specialization as the choice shows it: the college's value and rank
-// in its pillar (as the standings read them), the limit it lifts, and the
+// in its pillar (as the standings read them), the points of it the choice opens, and the
 // rivals already specialized in it, the strongest first.
 export interface SpecializationOption {
   pillar: Pillar;
   value: number;
   rank: number;
-  ceiling: number;
-  max: number;
+  // The points of the pillar's span only its specialization fills.
+  weight: number;
   rivals: number;
   strongest: { name: string; value: number } | null;
 }
@@ -121,8 +122,7 @@ export function specializationOptions(s: GameState): SpecializationOption[] {
       pillar,
       value: mine[i] ?? 0,
       rank: rankBy(s, PILLAR_AXES[i]),
-      ceiling: UNSPECIALIZED_CEILINGS[pillar],
-      max: PRESTIGE_MAX,
+      weight: SPECIALIZATION_TERM_WEIGHTS[pillar],
       rivals: specialists.length,
       strongest: specialists[0] ?? null,
     };

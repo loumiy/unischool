@@ -3,7 +3,7 @@ import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
-import { CEILING_TAG, teamCeilingHeld, teamLimitHelp } from '../data/specializationData';
+import { teamLimitHelp, teamSlowed } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/specialization';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
@@ -11,7 +11,7 @@ import {
   ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, COLLEGE_PULL_MAX,
   NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_CLASSES, RECRUITING_FULL_LIFT, SCHOLARSHIP_LEVELS, SCHOLARSHIP_ORDER, TRAINER_FIELD,
   VARSITY_PETITION_MIN_TENURE_YEARS, annualScholarships, ceilingResolved, coachProfile, collegePull, departmentPot, orderedTeams,
-  recruitingTarget, scholarshipCostFor, sportById, teamQuality, teamQualityEarned, UNSPECIALIZED_TEAM_CEILING, varsityEligibleYear, venueForCategory,
+  recruitingTarget, scholarshipCostFor, sportById, teamQuality, teamQualityEarned, TEAM_QUALITY_KNEE, varsityEligibleYear, venueForCategory,
 } from '../data/studentLifeData';
 import type { ProgramFunding } from '../data/studentLifeData';
 import FacultyPortrait from '../components/FacultyPortrait';
@@ -440,9 +440,9 @@ function TeamCard({ s, act, team, funding, rank }: {
       {team.status === 'active' && <SportLine s={s} team={team} />}
       <div className="team-card-meta">
         <span>quality <strong>{quality}</strong>
-          {/* The unspecialized team ceiling (Plan 85C), said where the number is. */}
+          {/* The slowdown above the knee (Plan 85D's review), said where the number is. */}
           {team.status === 'active' && teamQualityEarned(team, s) > quality && (
-            <span className="team-held" title={teamCeilingHeld(quality, specializationOf(s))}> {CEILING_TAG.toLowerCase()}</span>
+            <span className="team-held" title={teamSlowed(TEAM_QUALITY_KNEE, teamQualityEarned(team, s), quality, specializationOf(s))}> slowed</span>
           )}
         </span>
         <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
@@ -494,7 +494,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
-        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships the ${s.orgs.athleticsBudget} subsidy allows — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(UNSPECIALIZED_TEAM_CEILING, specializationOf(s))} Hover the rank for the colleges either side.`} />
+        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships the ${s.orgs.athleticsBudget} subsidy allows — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(TEAM_QUALITY_KNEE, specializationOf(s))} Hover the rank for the colleges either side.`} />
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">

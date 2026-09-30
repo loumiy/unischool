@@ -2,7 +2,7 @@ import { pct, prestigeFigure, signed } from '../format';
 import {
   multiplierLine, type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
-import { CEILING_TAG, SPECIALIZED_TAG } from '../data/specializationData';
+import { SPECIALIZED_TAG } from '../data/specializationData';
 
 // ---------------------------------------------------------------------
 // A standing, explained: prestige's in History's Prestige panel, each of its
@@ -28,8 +28,6 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
       <div className="standing-row-head">
         <span className="standing-row-label">
           {input.label}
-          {/* A pillar its ceiling holds (Plan 85C), said on the row itself. */}
-          {input.pillar?.held && <span className="standing-row-held">{CEILING_TAG}</span>}
           {/* The college's specialization (Plan 85D): its limit is lifted. */}
           {input.pillar?.specialized && <span className="standing-row-specialized">{SPECIALIZED_TAG}</span>}
         </span>
@@ -59,8 +57,8 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
       {input.pillar && (
         <details className="standing-pillar">
           <summary>What {input.label.toLowerCase()} is made of</summary>
-          {/* The row's line already says the pillar is held: said once. */}
-          <Standing breakdown={input.pillar} titled={false} heldSaid />
+          {/* The row's line already says the pillar is specialized: said once. */}
+          <Standing breakdown={input.pillar} titled={false} rowSaid />
         </details>
       )}
     </li>
@@ -126,10 +124,10 @@ function summerNote(breakdown: StandingBreakdown, gap: number): string {
 
 // `titled`: the breakdown's own heading, with its figure. The Prestige panel
 // (HistoryTab.tsx) carries both in its own head and leaves it off.
-// `heldSaid`: the ceiling's held sentence, or the specialization's, is
+// `rowSaid`: the specialization's sentence is
 // already on the row this breakdown opens under (a pillar in History ›
 // Prestige), so it is left off.
-export function Standing({ breakdown, titled = true, heldSaid = false }: { breakdown: StandingBreakdown; titled?: boolean; heldSaid?: boolean }) {
+export function Standing({ breakdown, titled = true, rowSaid = false }: { breakdown: StandingBreakdown; titled?: boolean; rowSaid?: boolean }) {
   // All bars share one scale, the largest weight in this standing, so terms
   // are comparable at a glance.
   const max = Math.max(...breakdown.inputs.map((i) => i.weight));
@@ -156,13 +154,13 @@ export function Standing({ breakdown, titled = true, heldSaid = false }: { break
         {' '}Everything starts from a baseline of {breakdown.baseline}.
       </p>
       {/* The specialized pillar (Plan 85D): said once, on its row when it opens under one. */}
-      {breakdown.specialized && !heldSaid && (
+      {breakdown.specialized && !rowSaid && (
         <p className="standing-note standing-specialized">{breakdown.specialized}</p>
       )}
       {breakdown.ceiling && (
         <p className={`standing-note standing-ceiling${breakdown.held ? ' binding' : ''}`}>
           <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}
-          {breakdown.held && !heldSaid && ` ${breakdown.ceiling.held ?? 'It is holding the target down now.'}`}
+          {breakdown.held && !rowSaid && ` ${breakdown.ceiling.held ?? 'It is holding the target down now.'}`}
         </p>
       )}
       <ul className="standing-rows">

@@ -3,7 +3,7 @@ import ConfirmButton from './ConfirmButton';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { PILLAR_LABELS, SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
 import { specializationOptions } from '../systems/prestige/milestone';
-import { CHOICE_WORDS, SPECIALIZATION_CARDS, liftLine } from '../data/specializationData';
+import { CHOICE_WORDS, SPECIALIZATION_CARDS, opensLine } from '../data/specializationData';
 
 // ---------------------------------------------------------------------
 // The choice (Plan 85D, systems/prestige/milestone.ts): at the close of a
@@ -36,7 +36,7 @@ export default function SpecializationChoice({ s, onResolve }: { s: GameState; o
               <div className="spec-card-block">
                 <h4>{W.now}</h4>
                 <ul>
-                  <li><strong>{liftLine(o.pillar, o.ceiling, o.max)}</strong></li>
+                  <li><strong>{opensLine(o.pillar, o.weight)}</strong></li>
                   {card.alsoNow && <li>{card.alsoNow}</li>}
                   {ready.map((m) => <li key={m.text}>{m.text}</li>)}
                 </ul>

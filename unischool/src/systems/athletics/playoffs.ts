@@ -34,8 +34,8 @@ type Round = (typeof ROUND_NAMES)[number];
 // the athletic performance complex has nothing to match it. In each round
 // the college's opponent plays this many points stronger. The athletics
 // specialization closes it (Plan 85D, specialization.ts's athleticsLifted,
-// the hook the complex of Plan 85G extends). With the team ceiling
-// (studentLifeData.ts's UNSPECIALIZED_TEAM_CEILING) it makes a first title
+// the hook the complex of Plan 85G extends). With the slowdown of a
+// program's quality above studentLifeData.ts's TEAM_QUALITY_KNEE it makes a first title
 // rare before year 20 on the unspecialized path. Only the college's own
 // games: a bracket between rivals is as it was, and the draws are the same.
 export const STAGE_EDGE: Readonly<Record<Round, number>> = { quarterfinal: 8, semifinal: 20, final: 35 };

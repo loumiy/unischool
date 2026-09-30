@@ -25,17 +25,20 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Action } from '../src/state/actions';
-import type { GameState } from '../src/state/types';
+import type { GameState, Pillar } from '../src/state/types';
 import { exportSave, readSave, SAVE_VERSION } from '../src/state/persistence';
 import { reduceInPlace } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
-  PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, UNSPECIALIZED_CEILINGS,
-  pillarBreakdown, pillarCeiling, prestigeBreakdown, specializationOf,
+  PILLARS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS,
+  pillarBreakdown, prestigeBreakdown, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
 import { specializationOptions, tickSpecialization, type SpecializationPayload } from '../src/systems/prestige/milestone';
 import { playerRank, rankedList } from '../src/systems/rivals/rivalsSystem';
-import { teamCeiling, UNSPECIALIZED_TEAM_CEILING } from '../src/data/studentLifeData';
+import { teamQualityCurve } from '../src/data/studentLifeData';
+import { finalReport } from '../src/state/finalReport';
+import { TAG_PHRASES } from '../src/data/reportData';
+import { athleticsLifted } from '../src/systems/prestige/specialization';
 import { STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
 import { inboxItems } from '../src/systems/inbox/inbox';
 import { BOARD_LETTERS } from '../src/data/boardData';
@@ -115,9 +118,9 @@ function closeSummer(s: GameState): GameState {
   assert(letter.title.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`), `its title names the milestone ("${letter.title}")`);
   for (const p of PILLARS) {
     const name = SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ');
-    assert(letter.text.includes(name) && letter.text.includes(`from ${UNSPECIALIZED_CEILINGS[p]} to ${PRESTIGE_MAX}`), `it names ${name} and what it lifts`);
+    assert(letter.text.includes(name) && letter.text.includes(`opens ${SPECIALIZATION_TERM_WEIGHTS[p]} points`), `it names ${name} and what it opens`);
   }
-  assert(!/archetype|ceiling/i.test(letter.text), 'in the glossary\'s words: specialization and limit');
+  assert(!/archetype|ceiling|limit/i.test(letter.text), 'in the glossary\'s words, and no limit it no longer has');
   // Once only.
   const letters = s.finance.distress!.letters.filter((l) => l === SPECIALIZATION_NOTICE_ID).length;
   s = act(s, { type: 'TICK' });
@@ -159,7 +162,7 @@ function closeSummer(s: GameState): GameState {
   assert(s.pendingInterrupt?.type === 'summer', 'and the summer is answered first');
   s = closeSummer(s);
   assert(s.pendingInterrupt?.type === 'specialization', 'at the summer\'s close, the choice is raised');
-  assert((s.pendingInterrupt?.payload as SpecializationPayload).year === summerYear, 'filed under the summer\'s year');
+  assert((s.pendingInterrupt?.payload as SpecializationPayload | undefined)?.year === summerYear, 'filed under the summer\'s year');
   assert(s.clock.year === summerYear + 1 && s.clock.week === 1, `on the new year's first week (Year ${s.clock.year}, week ${s.clock.week})`);
   assert(inboxItems(s)[0]?.tier === 'hold', 'held first in the inbox');
   // The clock waits on it.
@@ -179,26 +182,25 @@ function closeSummer(s: GameState): GameState {
   const mid = readSave(exportSave(s).text);
   assert(!('refused' in mid) && mid.state.pendingInterrupt?.type === 'specialization', 'a save written mid-choice loads with the choice standing');
 
-  // Choosing research lifts only research.
+  // Choosing research opens only research's term.
   const before = pillarBreakdown(s, 'academics');
+  const researchBefore = pillarBreakdown(s, 'research');
   s = act(s, { type: 'RESOLVE_SPECIALIZATION', pillar: 'research' });
   assert(s.specialization === 'research' && specializationOf(s) === 'research', 'research is chosen');
   assert(s.specializationYear === summerYear + 1, `in the year of the summer it closed (Year ${s.specializationYear})`);
   assert(s.pendingInterrupt === null && s.clock.week === 1, 'and the clock is free, with no week passed');
-  assert(pillarCeiling(s, 'research') === PRESTIGE_MAX, 'research\'s limit rises to the full maximum');
+  const term = (x: GameState, p: Pillar) => pillarBreakdown(x, p).inputs.find((i) => i.key === 'specialization')!;
+  assert(term(s, 'research').score > 0 && term(s, 'research').weight === SPECIALIZATION_TERM_WEIGHTS.research, `research's term opens (${term(s, 'research').score} of it)`);
+  assert(pillarBreakdown(s, 'research').target > researchBefore.target, 'and research\'s target rises with it');
   for (const p of PILLARS.filter((x) => x !== 'research')) {
-    assert(pillarCeiling(s, p) === UNSPECIALIZED_CEILINGS[p], `${p} keeps its limit of ${UNSPECIALIZED_CEILINGS[p]}`);
+    assert(term(s, p).score === 0 && /specialized in research, so this stays empty/.test(term(s, p).detail), `${p}'s term stays empty, and says why`);
   }
-  assert(teamCeiling(s) === UNSPECIALIZED_TEAM_CEILING && stageEdge(s, 'final') === STAGE_EDGE.final, 'the teams keep the team limit and the big stage');
+  assert(Math.abs(pillarBreakdown(s, 'academics').target - before.target) < 1e-9, 'academics is where it was');
+  assert(stageEdge(s, 'final') === STAGE_EDGE.final && !athleticsLifted(s), 'the teams keep their slowdown and the big stage');
   const research = pillarBreakdown(s, 'research');
-  assert(research.ceiling === undefined && research.specialized !== undefined, 'research\'s breakdown has no limit, and says it is specialized');
+  assert(research.ceiling === undefined && research.specialized !== undefined, 'research\'s breakdown has no cap, and says it is specialized');
   const rows = prestigeBreakdown(s).inputs;
   assert(/specialized in research/.test(rows.find((i) => i.key === 'research')!.detail), 'prestige\'s research row says so');
-  const academics = pillarBreakdown(s, 'academics');
-  assert(academics.ceiling?.value === before.ceiling?.value, 'academics\' limit is where it was');
-  assert(!/Only a specialization/.test(academics.ceiling?.held ?? '') && /where it stays/.test(academics.ceiling?.held ?? ''), `a held pillar now says it stays at its limit ("${academics.ceiling?.held}")`);
-  assert(/specialized in research/.test(academics.ceiling?.held ?? ''), 'and why');
-  assert(!/specialization in academics/.test(academics.ceiling?.detail ?? ''), `its limit no longer speaks of a specialization it could take ("${academics.ceiling?.detail}")`);
   assert(brokenRules(s).length === 0, `the rules hold (${brokenRules(s).join('; ')})`);
 
   // Permanent: no second choice, and never raised again.
@@ -211,18 +213,36 @@ function closeSummer(s: GameState): GameState {
   // A save round trip.
   const back = readSave(exportSave(s).text);
   assert(!('refused' in back) && back.state.specialization === 'research' && back.state.specializationYear === summerYear + 1, 'a save round trip keeps the specialization and its year');
+  // The Final Report names the specialization first, in the card's words.
+  const title = finalReport(s).title;
+  assert(title.includes(': a college known first for what its laboratories find'), `the Final Report names the specialization first ("${title}")`);
+  assert(!Object.values(TAG_PHRASES).some((p) => title.includes(`: ${p}`)), 'not a guidebook tag');
   // The chronicle marks the year.
   const said = chronicleOf(s).eras.flatMap((e) => e.lines).filter((l) => /chose to specialize in research/.test(l));
   assert(said.length === 1 && said[0].includes(`Year ${summerYear + 1}`), `the chronicle marks the year once (${said.join(' | ')})`);
+}
+
+// ---- A college that never specialized keeps the guidebooks' phrase ----
+{
+  const s = launch();
+  s.identity = { tags: ['jock-school'], earning: {}, shedding: {} };
+  const title = finalReport(s).title;
+  assert(title.includes(`: ${TAG_PHRASES['jock-school']}`) && !/known first/.test(title), `unspecialized, the report keeps the tag's phrase ("${title}")`);
+  s.specialization = 'academics';
+  s.specializationYear = s.clock.year;
+  const specialized = finalReport(s).title;
+  assert(specialized.includes(': a college known first for its teaching') && !specialized.includes(TAG_PHRASES['jock-school']), `specialized, its specialization comes first ("${specialized}")`);
 }
 
 // ---- Athletics lifts the teams too ----
 {
   const s = launch();
   s.specialization = 'athletics';
-  s.specializationYear = s.clock.year;
-  assert(pillarCeiling(s, 'athletics') === PRESTIGE_MAX && pillarCeiling(s, 'academics') === UNSPECIALIZED_CEILINGS.academics, 'athletics lifts only its own pillar');
-  assert(teamCeiling(s) === 100 && stageEdge(s, 'final') === 0, 'and frees the teams from the team limit and the big stage');
+  s.specializationYear = s.clock.year - 3;
+  const athletics = pillarBreakdown(s, 'athletics').inputs.find((i) => i.key === 'specialization')!;
+  const academics = pillarBreakdown(s, 'academics').inputs.find((i) => i.key === 'specialization')!;
+  assert(athletics.score > 0 && academics.score === 0, 'athletics opens only its own term');
+  assert(athleticsLifted(s) && teamQualityCurve(95, athleticsLifted(s)) === 95 && stageEdge(s, 'final') === 0, 'and takes away the teams\' slowdown and the big stage');
 }
 
 // ---- A college that never reaches the milestone never specializes ----

@@ -186,8 +186,8 @@ function careersFromTenure(state: GameState): void {
 // Rival.specialization), dealt off its id as a new run deals it
 // (rivalData.ts's dealtSpecialization), so a loaded field is the field a
 // new game would have. Its standings are left where they are: the
-// unspecialized ceilings hold what drift would add from here on, and
-// nothing is taken away at the load.
+// unspecialized ceilings (since Plan 85D's review, targets) hold what drift
+// would add from here on, and nothing is taken away at the load.
 function dealSpecializations(state: GameState): void {
   for (const r of state.rivals ?? []) r.specialization = dealtSpecialization(r.id);
 }

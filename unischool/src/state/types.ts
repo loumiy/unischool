@@ -643,7 +643,8 @@ export interface Rival {
   researchMomentum: number;
   // The pillar it specializes in (Plan 85C), dealt off the id
   // (rivalData.ts's dealtSpecialization): that axis runs higher and
-  // steadier, and the other three stop at the unspecialized ceilings.
+  // steadier, and the other three drift toward the rivals' unspecialized
+  // targets (rivalsSystem.ts).
   specialization: Pillar;
 }
 
@@ -1181,7 +1182,8 @@ export interface GameState {
   hasEnteredRankings: boolean;   // true once the one-time "you've entered the top 50" reveal has fired
   // The college's specialization (Plan 85D, systems/prestige/milestone.ts):
   // 'none' until chosen at the milestone, then one pillar, permanently. It
-  // lifts that pillar's limit (prestigeSystem.ts's pillarCeiling).
+  // opens that pillar's specialization term (prestigeSystem.ts's
+  // SPECIALIZATION_TERM_WEIGHTS).
   specialization: Specialization;
   // The summer it was chosen. Absent while none.
   specializationYear?: number;

@@ -141,7 +141,7 @@ export const SCENARIOS: Scenario[] = [
     name: 'specialization-notice',
     what: 'the board\'s notice that the specialization\'s milestone is within reach',
     player: 'Guided',
-    year: 35,
+    year: 45,
     stopWhen: (s) => s.specializationNotice !== undefined,
   },
   {
@@ -151,7 +151,7 @@ export const SCENARIOS: Scenario[] = [
     name: 'specialization',
     what: 'the choice of a specialization at the milestone, unanswered',
     player: 'Guided',
-    year: 35,
+    year: 45,
     stopWhen: atModal('specialization'),
   },
   {

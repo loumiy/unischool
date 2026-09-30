@@ -1,22 +1,25 @@
 // ---------------------------------------------------------------------
-// Ceilings, harder athletics and rivals that specialize (Plan 85C). What is
-// worth pinning:
+// Specialization terms, harder athletics and rivals that specialize (Plans
+// 85C, and 85D's review, which replaced 85C's ceilings). What is worth
+// pinning:
 //
-//   - without a specialization every pillar stops at its unspecialized
-//     ceiling, the breakdown says it is held there, and prestige's row for
-//     it says so and that a specialization would lift it;
+//   - no pillar is capped: each holds a term only its own specialization
+//     fills, the rest share what is left in their old proportions, so a
+//     perfect college without the specialization stands no higher than its
+//     natural maximum, and one with it, its term full, can reach 150;
 //   - every rival is dealt one pillar off its id, the same deal every time,
 //     all four pillars dealt and all four among the strongest schools;
 //   - a specialized axis runs higher: after fifty years each pillar is led
 //     by a school specialized in it, and no school's other axes drift past
-//     the unspecialized ceilings; the year's drift still takes one draw;
+//     their targets; nothing clamps them (one above settles back over the
+//     years); the year's drift still takes one draw;
 //   - on a tie in the standings the college ranks ahead; a sport's own
 //     table (its playoff seeds) still leaves a tie to the rival;
 //   - a save from before (the version-87 fixture) loads with each rival
 //     dealt its pillar as a new game deals it, and a bad one is dealt again;
-//   - a title is hard to come by without the athletics specialization: no
-//     program plays above the team ceiling, and the big stage goes against
-//     the college in a semifinal and a final.
+//   - a title is hard to come by without the athletics specialization: a
+//     program's quality slows above the knee and never reaches 100, and the
+//     big stage goes against the college in a semifinal and a final.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -27,11 +30,12 @@ import { createInitialState } from '../src/state/actions';
 import { readSave } from '../src/state/persistence';
 import { dealtSpecialization, ELITE_RIVAL_IDS, hashUnit, initialRivals, makeRivalRng, sportStrengthFor } from '../src/data/rivalData';
 import {
-  PILLARS, PILLAR_FLOOR, UNSPECIALIZED_CEILINGS, pillarBreakdown, pillarCeiling, prestigeBreakdown, specializationOf,
+  PILLARS, PILLAR_FLOOR, PILLAR_SPAN, SPECIALIZATION_TERM_WEIGHTS, UNSPECIALIZED_MAXIMA, pillarBreakdown, prestigeBreakdown, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
-import { PILLAR_AXES, playerRank, rankBy, rankedListBy, rivalOverall, rivalPillars, specializations, sportRankedList, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
+import { PILLAR_AXES, RIVAL_UNSPECIALIZED_TARGETS, playerRank, rankBy, rankedListBy, rivalOverall, rivalPillars, specializations, sportRankedList, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
 import { STAGE_EDGE, resolveSport, stageEdge } from '../src/systems/athletics/playoffs';
-import { SPORTS, UNSPECIALIZED_TEAM_CEILING, promoteToVarsityTeam, teamQuality, teamQualityEarned } from '../src/data/studentLifeData';
+import { SPORTS, TEAM_QUALITY_KNEE, TEAM_QUALITY_SOFT_SPAN, promoteToVarsityTeam, teamQuality, teamQualityCurve, teamQualityEarned } from '../src/data/studentLifeData';
+import { SPECIALIZATION_FILL_YEARS } from '../src/data/specializationData';
 import { graduatePrograms, milestoneSchools } from '../src/data/techData';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { bindScriptStream, drawsSoFar } from '../src/engine/random';
@@ -50,19 +54,26 @@ function assert(cond: boolean, msg: string): void {
 console.log('specialization tests');
 bindScriptStream(12345);
 
-// ---- The ceilings ----
+// ---- The specialization terms: no caps ----
 {
-  const s = createInitialState('Ceilings');
+  const s = createInitialState('Terms');
   assert(specializationOf(s) === null && s.specialization === 'none', 'a new college has no specialization (Plan 85D)');
   for (const p of PILLARS) {
-    assert(pillarCeiling(s, p) === UNSPECIALIZED_CEILINGS[p], `${p} keeps to its unspecialized ceiling (${UNSPECIALIZED_CEILINGS[p]})`);
-    assert(UNSPECIALIZED_CEILINGS[p] > PILLAR_FLOOR && UNSPECIALIZED_CEILINGS[p] < 150, `${p}'s ceiling sits short of the top`);
+    const b = pillarBreakdown(s, p);
+    const term = b.inputs.find((i) => i.key === 'specialization');
+    assert(term !== undefined && term.weight === SPECIALIZATION_TERM_WEIGHTS[p] && term.score === 0, `${p} holds a specialization term of ${SPECIALIZATION_TERM_WEIGHTS[p]}, empty`);
+    assert(/Comes only with a specialization in/.test(term?.detail ?? ''), `which says only a specialization fills it ("${term?.detail}")`);
+    const rest = b.inputs.filter((i) => i.key !== 'specialization').reduce((sum, i) => sum + i.weight, 0);
+    assert(Math.abs(rest - (PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[p])) < 1e-9, `${p}'s other terms share the rest of the span (${rest.toFixed(1)})`);
+    assert(b.ceiling === undefined && !b.held, `${p} has no cap`);
+    assert(UNSPECIALIZED_MAXIMA[p] === PILLAR_FLOOR + PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[p], `${p}'s natural maximum is ${UNSPECIALIZED_MAXIMA[p]}`);
   }
 
   // A college that has finished the whole catalog: every program
   // established and distinguished, every school founded and distinguished,
-  // every graduate program, a full class of the best students at scale.
-  // Its academics earns more than the ceiling allows.
+  // every graduate program, a full class of the best students at scale, and
+  // every other academic term in full. Its academics reaches its natural
+  // maximum and no further without the specialization.
   const raw = JSON.parse(readFileSync(join(process.cwd(), 'test/fixtures/save-launch.json'), 'utf8')) as { state: GameState };
   const read = readSave(JSON.stringify(raw));
   if ('refused' in read) throw new Error(`the launch fixture is refused: ${read.refused}`);
@@ -78,19 +89,29 @@ bindScriptStream(12345);
   for (const program of graduatePrograms()) late.milestones[`grad-program-complete:${program.id}`] = true;
   late.students.incomingQuality = 100;
   const academics = pillarBreakdown(late, 'academics');
-  const earned = academics.inputs.reduce((sum, i) => sum + i.contribution, academics.baseline);
-  assert(earned > UNSPECIALIZED_CEILINGS.academics, `the finished catalog earns more than the ceiling (${earned.toFixed(1)})`);
-  assert(academics.target === UNSPECIALIZED_CEILINGS.academics, `and academics is held at ${UNSPECIALIZED_CEILINGS.academics} (${academics.target.toFixed(1)})`);
-  assert(academics.held && academics.ceiling?.held !== undefined, 'the breakdown says the ceiling holds it');
-  assert(/specialization/.test(academics.ceiling?.detail ?? '') && !/archetype/i.test(academics.ceiling?.detail ?? ''), 'in the glossary\'s word, specialization');
+  assert(academics.target <= UNSPECIALIZED_MAXIMA.academics + 1e-9, `the finished catalog's academics stands no higher than ${UNSPECIALIZED_MAXIMA.academics} (${academics.target.toFixed(1)})`);
+  const perfect = academics.inputs.filter((i) => i.key !== 'specialization').reduce((sum, i) => sum + i.weight, PILLAR_FLOOR);
+  assert(Math.abs(perfect - UNSPECIALIZED_MAXIMA.academics) < 1e-9, 'even with every other term in full it would stand at the natural maximum');
   const row = prestigeBreakdown(late).inputs.find((i) => i.key === 'academics')!;
-  assert(row.pillar?.held === true && /limit/.test(row.detail) && /specialization in academics would lift it/.test(row.detail), `prestige's academics row says it is held, and what would lift it ("${row.detail}")`);
-  assert(Math.abs(row.contribution - 0.35 * (UNSPECIALIZED_CEILINGS.academics - PILLAR_FLOOR)) < 1e-9, 'and prestige counts it at the ceiling');
+  assert(!/limit|Held/.test(row.detail), `prestige's academics row speaks of no limit ("${row.detail}")`);
 
-  // A pillar under its ceiling says nothing of being held.
-  const fresh = pillarBreakdown(s, 'academics');
-  assert(!fresh.held && fresh.ceiling !== undefined, 'a founding college\'s academics is under its ceiling, and not held');
-  assert(!/limit/.test(prestigeBreakdown(s).inputs.find((i) => i.key === 'academics')!.detail), 'and its row does not mention one');
+  // Specialized, the term full: it passes the natural maximum, and every
+  // term in full is the top of the scale.
+  late.specialization = 'academics';
+  late.specializationYear = late.clock.year - SPECIALIZATION_FILL_YEARS;
+  const specialized = pillarBreakdown(late, 'academics');
+  const term = specialized.inputs.find((i) => i.key === 'specialization')!;
+  assert(term.score === 1 && specialized.target > UNSPECIALIZED_MAXIMA.academics, `specialized, its term full, academics passes ${UNSPECIALIZED_MAXIMA.academics} (${specialized.target.toFixed(1)})`);
+  assert(Math.abs(perfect + term.weight - 150) < 1e-9, 'and every term in full is 150');
+  // It fills a tenth a year.
+  for (let k = 0; k <= SPECIALIZATION_FILL_YEARS + 2; k += 1) {
+    late.specializationYear = late.clock.year - k;
+    const score = pillarBreakdown(late, 'academics').inputs.find((i) => i.key === 'specialization')!.score;
+    assert(Math.abs(score - Math.min(1, k / SPECIALIZATION_FILL_YEARS)) < 1e-9, `${k} years after the choice the term is ${Math.min(1, k / SPECIALIZATION_FILL_YEARS)} full (${score})`);
+  }
+  // Another pillar's term stays empty, and says why.
+  const research = pillarBreakdown(late, 'research').inputs.find((i) => i.key === 'specialization')!;
+  assert(research.score === 0 && /specialized in academics/.test(research.detail), `research's term stays empty ("${research.detail}")`);
 }
 
 // ---- The deal ----
@@ -130,14 +151,27 @@ bindScriptStream(12345);
     const rival = s.rivals.find((r) => r.id === leader.key)!;
     assert(rival.specialization === pillar, `after fifty years ${pillar} is led by a school specialized in it (${rival.id}, ${rival.specialization})`);
   }
+  // None that started below a target climbs past it.
+  const start = new Map(initialRivals().map((r) => [r.id, rivalPillars(r)]));
   const over = s.rivals.filter((r) => {
     const p = rivalPillars(r);
-    return PILLARS.some((pillar) => pillar !== r.specialization && p[pillar] > UNSPECIALIZED_CEILINGS[pillar] + 1e-9);
+    return PILLARS.some((pillar) => pillar !== r.specialization && start.get(r.id)![pillar] <= RIVAL_UNSPECIALIZED_TARGETS[pillar] && p[pillar] > RIVAL_UNSPECIALIZED_TARGETS[pillar] + 1e-9);
   });
-  assert(over.length === 0, `no school's other axes drift past the unspecialized ceilings (${over.map((r) => r.id).join(', ')})`);
+  assert(over.length === 0, `no school's other axes drift past their targets (${over.map((r) => r.id).join(', ')})`);
+  for (const pillar of PILLARS) {
+    assert(RIVAL_UNSPECIALIZED_TARGETS[pillar] <= UNSPECIALIZED_MAXIMA[pillar], `the rivals' ${pillar} target sits at or below the college's natural maximum`);
+  }
   const specialistTop = Math.max(...s.rivals.map((r) => Math.max(...PILLARS.filter((p) => p === r.specialization && p !== 'athletics').map((p) => rivalPillars(r)[p]))));
-  assert(specialistTop > Math.max(UNSPECIALIZED_CEILINGS.academics, UNSPECIALIZED_CEILINGS.research, UNSPECIALIZED_CEILINGS.studentLife) && specialistTop <= SPECIALIZED_CEILING + 1e-9,
-    `a specialized axis runs above the ceilings, to at most ${SPECIALIZED_CEILING} (${specialistTop.toFixed(1)})`);
+  assert(specialistTop > Math.max(UNSPECIALIZED_MAXIMA.academics, UNSPECIALIZED_MAXIMA.research, UNSPECIALIZED_MAXIMA.studentLife) && specialistTop <= SPECIALIZED_CEILING + 1e-9,
+    `a specialized axis runs above the natural maxima, to at most ${SPECIALIZED_CEILING} (${specialistTop.toFixed(1)})`);
+
+  // Unclamped: an unspecialized axis set well above its target is not
+  // snapped back to it; it takes no move up, and falls only as it drifts.
+  const r = s.rivals.find((x) => x.specialization !== 'research')!;
+  r.researchStanding = RIVAL_UNSPECIALIZED_TARGETS.research + 20;
+  s.clock.year = 51;
+  tickRivals(s);
+  assert(r.researchStanding > RIVAL_UNSPECIALIZED_TARGETS.research + 5 && r.researchStanding <= RIVAL_UNSPECIALIZED_TARGETS.research + 20, `an axis 20 above its target is left above it, and rises no further (${(r.researchStanding - RIVAL_UNSPECIALIZED_TARGETS.research).toFixed(1)} above)`);
 }
 
 // ---- Ties: the college ranks ahead (the owner's rule) ----
@@ -147,11 +181,11 @@ bindScriptStream(12345);
   const best = Math.max(...s.rivals.map((r) => r.researchStanding));
   s.self.researchStanding = best;
   assert(rankBy(s, 'researchStanding') === 1, `level with the best research standing, the college is first (#${rankBy(s, 'researchStanding')})`);
-  // A pillar held at its ceiling, level with rivals held there too.
-  for (const r of s.rivals.slice(0, 5)) r.socialStanding = UNSPECIALIZED_CEILINGS.studentLife;
-  s.self.socialStanding = UNSPECIALIZED_CEILINGS.studentLife;
-  const above = s.rivals.filter((r) => r.socialStanding > UNSPECIALIZED_CEILINGS.studentLife).length;
-  assert(rankBy(s, 'socialStanding') === above + 1, `at the student-life ceiling, ahead of every rival held there (#${rankBy(s, 'socialStanding')}, ${above} above)`);
+  // Level with several rivals at one figure.
+  for (const r of s.rivals.slice(0, 5)) r.socialStanding = 120;
+  s.self.socialStanding = 120;
+  const above = s.rivals.filter((r) => r.socialStanding > 120).length;
+  assert(rankBy(s, 'socialStanding') === above + 1, `level at 120 in student life, ahead of every rival there (#${rankBy(s, 'socialStanding')}, ${above} above)`);
   // Prestige: level with the leader's overall.
   s.self.reputation = Math.max(...s.rivals.map(rivalOverall));
   assert(playerRank(s) === 1, `level with the field's best overall, the college is first (#${playerRank(s)})`);
@@ -200,8 +234,21 @@ function coach(quality: number, field: string): Coach {
   team.assistantCoach = coach(100, sport.id);
   team.trainer = coach(100, 'strength-conditioning');
   team.recruiting = 15;
-  assert(teamQualityEarned(team, s) > UNSPECIALIZED_TEAM_CEILING, `a program with the best staff and recruiting earns more than the team ceiling (${teamQualityEarned(team, s)})`);
-  assert(teamQuality(team, s) === UNSPECIALIZED_TEAM_CEILING, `and plays at ${UNSPECIALIZED_TEAM_CEILING} without the athletics specialization`);
+  const earned = teamQualityEarned(team, s);
+  assert(earned > TEAM_QUALITY_KNEE + 10, `a program with the best staff and recruiting earns well above the knee (${earned})`);
+  assert(teamQuality(team, s) < earned && teamQuality(team, s) <= TEAM_QUALITY_KNEE + TEAM_QUALITY_SOFT_SPAN, `and plays slower than it earns, no higher than ${TEAM_QUALITY_KNEE + TEAM_QUALITY_SOFT_SPAN}, without the athletics specialization (${teamQuality(team, s)})`);
+  // The curve: whole below the knee, slower above, rising all the way, and
+  // never 100; the specialization takes the slowdown away.
+  assert(teamQualityCurve(70, false) === 70 && teamQualityCurve(TEAM_QUALITY_KNEE, false) === TEAM_QUALITY_KNEE, 'below the knee a point is a point');
+  let last = 0;
+  let rising = true;
+  for (let raw = 60; raw <= 160; raw += 1) {
+    const q = teamQualityCurve(raw, false);
+    if (q < last) rising = false;
+    last = q;
+  }
+  assert(rising && last < 100, `above it each point is worth less, and 100 is out of reach (at 160 earned: ${last})`);
+  assert(teamQualityCurve(95, true) === 95 && teamQualityCurve(120, true) === 100, 'specialized in athletics, a point is a point up to 100');
   assert(STAGE_EDGE.quarterfinal <= STAGE_EDGE.semifinal && STAGE_EDGE.semifinal < STAGE_EDGE.final && stageEdge(s, 'final') === STAGE_EDGE.final, 'the big stage grows round by round, and stands against an unspecialized college');
 
   // The strongest school in the sport, seeded first: a title in a season
@@ -222,7 +269,7 @@ function coach(quality: number, field: string): Coach {
 
   // A sport's table keeps the old tie rule: level, the rival seeds ahead.
   const r = s.rivals[0];
-  r.athleticStrength = UNSPECIALIZED_TEAM_CEILING - (hashUnit(`${r.id}:${sport.id}`) * 2 - 1) * 28;
+  r.athleticStrength = teamQuality(team, s) - (hashUnit(`${r.id}:${sport.id}`) * 2 - 1) * 28;
   assert(sportStrengthFor(r, sport.id) === teamQuality(team, s), `a rival level with the team in its sport (${sportStrengthFor(r, sport.id)})`);
   const table = sportRankedList(s, sport.id);
   assert(table.findIndex((e) => e.key === r.id) < table.findIndex((e) => e.isPlayer), 'is seeded ahead of it: a sport\'s table leaves ties to the rival');

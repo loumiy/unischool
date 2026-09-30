@@ -2264,10 +2264,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .standing-penalty .standing-bar-fill { background: var(--bad-on-light); }
 .standing-penalty .standing-row-figure { color: var(--bad-on-light); }
 .standing-row-grade { color: var(--ink-muted); font-weight: 400; }
-/* A pillar held at its unspecialized ceiling, and a program at the team ceiling (Plan 85C). */
+/* A program its quality's slowdown holds back (Plan 85D's review). */
 .team-held { color: var(--bad-on-light); font-weight: 700; }
-.standing-row-held { margin-left: 8px; padding: 0 6px; border: 1px solid var(--bad-on-light); border-radius: var(--radius-sm);
-  font-size: var(--text-2xs); font-weight: 700; color: var(--bad-on-light); white-space: nowrap; vertical-align: 1px; }
 /* The college's specialization (Plan 85D): its pillar's row, and the line under it. */
 .standing-row-specialized { margin-left: 8px; padding: 0 6px; border-radius: var(--radius-sm); background: var(--school-primary);
   color: var(--school-on-primary); font-size: var(--text-2xs); font-weight: 700; white-space: nowrap; vertical-align: 1px; }
