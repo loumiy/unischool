@@ -3,6 +3,7 @@ import { tickSearches } from './facultySearch';
 import type { Buildable, Faculty, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { neededFacultyFields, unstaffedCourses } from '../techtree/techSystem';
+import { recordCourses, recordYear, startCareer } from './career';
 
 // The one way somebody joins the roster, shared by HIRE_FACULTY and the
 // visiting-chair event so an appointment always means the same thing.
@@ -10,6 +11,7 @@ import { neededFacultyFields, unstaffedCourses } from '../techtree/techSystem';
 // first is what moves a person from one to the other.
 export function appointFaculty(s: GameState, person: Faculty): void {
   person.weeksListed = 0;
+  startCareer(s, person);
   s.faculty.push(person);
   // Lifetime count for the final report (University.facultyServed).
   s.self.facultyServed += 1;
@@ -95,6 +97,9 @@ export function tickFaculty(s: GameState): void {
   tickCandidatePool(s);
   for (const f of s.faculty) growFaculty(f);
   tickRetirements(s);
+  // The career record (Plan 84C), for whoever is still on the roster.
+  recordCourses(s);
+  recordYear(s);
 }
 
 // ---- Retirement (Plan 29, v2's faculty churn) ----

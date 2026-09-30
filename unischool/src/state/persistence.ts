@@ -22,7 +22,9 @@ import { glyphsFor, RECRUITING_FULL_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../d
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
-import { FACULTY_FIELDS } from '../data/facultyData';
+import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
+import { FOUNDING_MARKET } from '../data/foundingData';
+import { emptyCareer } from '../systems/faculty/career';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
 // ---------------------------------------------------------------------
@@ -36,7 +38,9 @@ import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/prog
 // Size: a new university serializes to ~175 KiB, and a long run adds only
 // bounded amounts (one YearSnapshot per year, a capped log), so a mature
 // save stays in the low hundreds of KiB, well inside localStorage's ~5 MB.
-// Unbounded per-week state is what would change that.
+// Unbounded per-week state is what would change that. The career records
+// (Plan 84C) are bounded by a career and kept for the current roster only:
+// about 50 KB of a year-50 save's 490 KB.
 // ---------------------------------------------------------------------
 
 // The single save key: one run at a time. Exported so
@@ -54,7 +58,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 86; // Plan 80G: each team's scholarships and recruiting
+export const SAVE_VERSION = 87; // Plan 84C: each professor's career record
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -162,6 +166,21 @@ function noRecruitingYet(state: GameState): void {
   }
 }
 
+// 86 -> 87, Plan 84C: each professor keeps a career record (types.ts's
+// Career). A save from before it knows only their tenure: they arrived that
+// many weeks ago (a founding professor's head start, FOUNDING_TENURE_WEEKS,
+// was served elsewhere), never before the founding, and their record at
+// the college begins empty from here on. Candidates have none.
+function careersFromTenure(state: GameState): void {
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const founders = new Set(FOUNDING_MARKET.map((p) => p.id));
+  for (const f of state.faculty ?? []) {
+    const here = f.tenureWeeks - (founders.has(f.id) ? FOUNDING_TENURE_WEEKS : 0);
+    f.career = emptyCareer(Math.max(1, now - here));
+  }
+  for (const c of state.candidates ?? []) delete c.career;
+}
+
 // The chain: from-version -> the step to the next. A step mutates the parsed
 // state in place and may assume only what its from-version wrote.
 export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = {
@@ -174,6 +193,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   83: dropBoardConfidence,
   84: milestoneWeeks,
   85: noRecruitingYet,
+  86: careersFromTenure,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -781,6 +801,29 @@ function sanitizeQuirks(state: GameState): void {
   }
 }
 
+// The career record (Plan 84C): a professor whose record is missing or
+// malformed starts an empty one this week, and malformed entries are
+// dropped. A candidate has none.
+function sanitizeCareers(state: GameState): void {
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const int = (n: unknown): n is number => Number.isInteger(n);
+  const record = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null;
+  for (const f of state.faculty) {
+    const c = f.career as unknown;
+    if (!record(c) || !int(c.arrivedWeek) || ![c.courses, c.research, c.prizes, c.years].every(Array.isArray)) {
+      f.career = emptyCareer(now);
+      continue;
+    }
+    const career = f.career!;
+    career.courses = career.courses.filter((x) => record(x) && typeof x.courseId === 'string' && int(x.from) && int(x.to) && x.from <= x.to);
+    career.research = career.research.filter((x) => record(x) && typeof x.topicId === 'string' && typeof x.depth === 'string'
+      && int(x.year) && Number.isFinite(x.years) && int(x.publications) && int(x.breakthroughs));
+    career.prizes = career.prizes.filter((x) => record(x) && typeof x.name === 'string' && int(x.year) && typeof x.topicId === 'string');
+    career.years = career.years.filter((x) => Array.isArray(x) && x.length === 3 && x.every(int));
+  }
+  for (const c of state.candidates) delete c.career;
+}
+
 function sanitizeCourseFaculty(state: GameState): void {
   const source = (typeof state.courseFaculty === 'object' && state.courseFaculty !== null) ? state.courseFaculty : {};
   const courseIds = new Set(state.tech.map((t) => t.id));
@@ -1028,6 +1071,7 @@ function sanitize(state: GameState): void {
   sanitizeMilestoneYears(state);
   sanitizeSeats(state);
   sanitizeQuirks(state);
+  sanitizeCareers(state);
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);
