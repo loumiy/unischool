@@ -98,6 +98,27 @@ what Plan 72 leaves.*
 *Each is a real piece of work with a known shape; none has been turned into
 a sequence of PRs.*
 
+- **Hand-built campuses as layout plans** (the owner, September 2026).
+  `tools/campuses/` holds campuses the owner laid out by hand in a sandbox
+  run and exported (`tudor-year-1.unischool.json` first); see
+  `tools/README.md`, *Hand-built campuses*. They are meant to replace
+  `tools/layout.ts`'s hardcoded plan for screenshots, sample builds and
+  marketing, on a real (non-sandbox) scenario run's buildings:
+  - `layout.ts` takes `--plan <save>` and reads `placements`, `pathways`,
+    `dressing` and `trees` from it in place of its own `PLAN` and walks;
+  - each building the run built goes to the plan's site for the same id,
+    keeping the plan's `w`/`h` (a rotation); ids the plan names that the
+    run did not build stay empty ground (and their doorstep walks are
+    dropped), and ids the run built that the plan does not name
+    (chapter houses, whatever the plan left out) go to the overflow block
+    as now;
+  - the existing rules still run over the result — clear footprints, every
+    visible door on a path, one connected walk network — so a plan drawn
+    against an older catalogue fails loudly rather than drawing through a
+    building;
+  - the run's own vernacular, colours and name are kept; the plan's
+    `self`, finances and everything else in its `state` are ignored, which
+    is what lets one plan be shot in every vernacular.
 - **Events that do what they say** (the October review, A2-2; left by
   Plan 76). Plan 76D relabels the event choices whose truth needs a system
   the events cannot reach. Each would make the event richer:
