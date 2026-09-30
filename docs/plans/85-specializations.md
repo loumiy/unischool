@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A and B merged (#268, #273).**
+**Status: In progress: A and B merged (#268, #274).**
 
 ---
 
@@ -164,7 +164,7 @@ E needs Plan 84's grid (84D). E–H can go in any order after D.
   high it goes. The sim baseline is re-recorded with the moves described.
 - Writes the change of decision into the design doc.
 
-**As implemented (#273):** prestige is the blend of the four pillars, for the
+**As implemented (#274):** prestige is the blend of the four pillars, for the
 college and every rival alike. No ceilings, no specialization state, and no
 save change.
 
