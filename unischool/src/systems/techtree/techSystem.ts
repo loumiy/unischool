@@ -1,5 +1,6 @@
 import { canPayFromEndowment, endowmentHalf, projectOpen } from '../estate/projects';
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
+import { PLACEABLE_KINDS } from '../../state/types';
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
@@ -377,12 +378,20 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   return true;
 }
 
+// A sandbox run (systems/sandbox) has every building open from the start:
+// no prereqs, milestones, years or reveals, only the one-landmark rule.
+function sandboxOpens(s: GameState, t: Buildable): boolean {
+  return s.sandbox === true && PLACEABLE_KINDS.includes(t.kind)
+    && !(t.facilityType === 'landmark' && landmarkChosen(s, t.id));
+}
+
 export function unlockAvailable(s: GameState): void {
   for (const t of s.tech) {
     if (
-      t.status === 'locked' &&
-      t.prereqs.every((p) => s.tech.find((x) => x.id === p)?.status === 'done') &&
-      meetsUnlockGates(s, t)
+      t.status === 'locked' && (sandboxOpens(s, t) || (
+        t.prereqs.every((p) => s.tech.find((x) => x.id === p)?.status === 'done') &&
+        meetsUnlockGates(s, t)
+      ))
     ) {
       t.status = 'available';
     }
@@ -676,6 +685,26 @@ export function tickTech(s: GameState): void {
     }
   }
 
+  completeDevelopment(s, finished, arrived);
+}
+
+// A sandbox run finishes everything under way at once (systems/sandbox),
+// dark programs' courses included.
+export function finishAllDevelopment(s: GameState): void {
+  const ids = Object.keys(s.developing);
+  if (ids.length === 0) return;
+  const finished: Buildable[] = [];
+  for (const id of ids) {
+    delete s.developing[id];
+    const node = s.tech.find((t) => t.id === id);
+    if (node) finished.push(node);
+  }
+  completeDevelopment(s, finished, false);
+}
+
+// What a finished countdown does: the node is done, its first finish
+// applies its effects, and the gates it may have opened are read again.
+function completeDevelopment(s: GameState, finished: Buildable[], arrived: boolean): void {
   for (const node of finished) {
     node.status = 'done';
     // First finished, not renovated: the map dates its weathering from here.

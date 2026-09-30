@@ -454,7 +454,11 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
   );
 }
 
-export default function StartupScreen({ onStart }: { onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void }) {
+export default function StartupScreen({ onStart, sandbox = false }: {
+  onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void;
+  // A sandbox founding (systems/sandbox): says so, and every architecture is open.
+  sandbox?: boolean;
+}) {
   const [name, setName] = useState('');
   const [vernacular, setVernacular] = useState<Vernacular>(FOUNDING_VERNACULAR);
   // Held as the table's choice so the picker can show its name; the save
@@ -464,7 +468,8 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
   // The bonus sets earlier runs have unlocked (state/unlocks.ts). A locked
   // one can still be previewed on the facade, but not founded.
   const [unlocked] = useState(readUnlocks);
-  const locked = !isUnlocked(vernacular, unlocked);
+  const open = (id: Vernacular) => sandbox || isUnlocked(id, unlocked);
+  const locked = !open(vernacular);
 
   // Preview the theme live: the pick is written to the root properties as
   // it changes (App.tsx writes it again once the run exists).
@@ -474,7 +479,7 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
     <div className="startup">
       <div className="startup-card">
         {/* What the game is, in one line. */}
-        <div className="dateline">Fifty years to build a university.</div>
+        <div className="dateline">{sandbox ? 'Sandbox: unlimited funds, and nothing to wait for.' : 'Fifty years to build a university.'}</div>
         <h1>Name your college</h1>
         <input
           className="startup-name"
@@ -496,19 +501,19 @@ export default function StartupScreen({ onStart }: { onStart: (name: string, ver
             the facade redraws as the player moves between them. Permanent. */}
         <div className="startup-vernaculars" role="radiogroup" aria-label="Architecture">
           {[...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES].map((choice) => {
-            const open = isUnlocked(choice.id, unlocked);
+            const isOpen = open(choice.id);
             return (
               <button
                 key={choice.id}
                 type="button"
                 role="radio"
-                className={`startup-vern-btn ${vernacular === choice.id ? 'active' : ''} ${unlockOf(choice.id) ? 'bonus' : ''} ${open ? '' : 'locked'}`}
+                className={`startup-vern-btn ${vernacular === choice.id ? 'active' : ''} ${unlockOf(choice.id) ? 'bonus' : ''} ${isOpen ? '' : 'locked'}`}
                 onClick={() => setVernacular(choice.id)}
                 aria-checked={vernacular === choice.id}
-                title={open ? choice.blurb : `Locked. ${unlockOf(choice.id)?.condition ?? ''}`}
+                title={isOpen ? choice.blurb : `Locked. ${unlockOf(choice.id)?.condition ?? ''}`}
               >
                 {choice.label}
-                {!open && <span className="startup-vern-lock">Locked</span>}
+                {!isOpen && <span className="startup-vern-lock">Locked</span>}
               </button>
             );
           })}

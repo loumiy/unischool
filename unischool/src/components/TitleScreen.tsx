@@ -16,10 +16,11 @@ import { calendarDate, gameDate } from '../format';
 
 const SHOWN = 3;
 
-export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSettings, onCredits }: {
+export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, onHall, onSettings, onCredits }: {
   s: GameState;
   onContinue: () => void;
   onNewCollege: () => void;
+  onSandbox: () => void;
   onHall: () => void;
   onSettings: () => void;
   onCredits: () => void;
@@ -64,6 +65,17 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onHall, onSet
             warning={`${institutionName(s.self)} is erased and another is founded.`}
             needsConfirm={underway}
             onConfirm={onNewCollege}
+          />
+          {/* A college with funds that never run out and nothing to wait on
+              (systems/sandbox). It replaces the run here as New game does. */}
+          <ConfirmButton
+            className="menu-btn"
+            title="Found a college with unlimited funds, where buildings and courses are finished the moment they are started."
+            label="Sandbox"
+            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            warning={`${institutionName(s.self)} is erased and a sandbox college is founded.`}
+            needsConfirm={underway}
+            onConfirm={onSandbox}
           />
           <ImportSave current={s} />
           <button type="button" className="menu-btn" onClick={onSettings}>Settings</button>

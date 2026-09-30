@@ -75,7 +75,8 @@ export function tickSweep(s: GameState): void {
   }
 
   // The watch on idle cash: only while no sweep is set.
-  const idle = weeks === null && s.finance.weeklyOpEx > 0 && s.finance.cash > IDLE_CASH_WEEKS * s.finance.weeklyOpEx;
+  // A sandbox run's funds are always idle, and never a board's concern.
+  const idle = weeks === null && !s.sandbox && s.finance.weeklyOpEx > 0 && s.finance.cash > IDLE_CASH_WEEKS * s.finance.weeklyOpEx;
   if (!idle) {
     delete s.finance.idleSince;
     return;

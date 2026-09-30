@@ -160,6 +160,20 @@ export function historicPrestige(s: GameState): number {
   return Math.min(HISTORIC_PRESTIGE_MAX, n) * HISTORIC_PRESTIGE;
 }
 
+// A sandbox run's works end the moment they start (systems/sandbox).
+export function finishEstateWorks(s: GameState): void {
+  for (const t of s.tech) {
+    if (t.extensionWeeks !== undefined && t.extensionWeeks > 0) {
+      delete t.extensionWeeks;
+      finishExtension(s, t);
+    }
+    if (t.renovationWeeks !== undefined && t.renovationWeeks > 0) {
+      delete t.renovationWeeks;
+      delete t.backlog;
+    }
+  }
+}
+
 // The estate's week: unpaid upkeep becomes backlog, backlogs compound while
 // maintenance is underfunded and are paid down at full funding, and
 // renovations run down and, when done, clear their backlog. Nothing here

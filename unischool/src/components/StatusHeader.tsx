@@ -9,6 +9,7 @@ import {
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { committeeStatus } from '../systems/techtree/techSystem';
+import { isSandbox } from '../systems/sandbox/sandbox';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
@@ -128,9 +129,14 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
       >
         {/* Money ticks to its new value. Rank does not animate: it is an
             ordinal, and counting through places would be misleading. */}
-        <span className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>
-          <AnimatedNumber value={s.finance.cash} format={money} />
-        </span>
+        {isSandbox(s) ? (
+          // A sandbox run's funds never run out (systems/sandbox).
+          <span className="stat-value money" aria-label="Unlimited funds">∞</span>
+        ) : (
+          <span className={`stat-value ${s.finance.cash < 0 ? 'money-negative' : 'money'}`}>
+            <AnimatedNumber value={s.finance.cash} format={money} />
+          </span>
+        )}
         <span className="toolbar-funds-net">{signedMoney(netWeekly)}/wk</span>
         <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
@@ -200,8 +206,8 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress, onO
   // The committee chip's door, as FundsAndStats's.
   onOpenSection: (tab: TabId, section: TabSection) => void;
 }) {
-  // The sandbox speed's gate (playtest.ts).
-  const showPlaytestControls = playtestEnabled();
+  // The sandbox speed's gate (playtest.ts); a sandbox run has it too.
+  const showPlaytestControls = playtestEnabled() || isSandbox(s);
   const visibleSpeeds = (Object.keys(SPEEDS) as Speed[]).filter(
     (sp) => showPlaytestControls || !SANDBOX_SPEEDS.includes(sp),
   );

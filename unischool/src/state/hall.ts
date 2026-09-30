@@ -67,7 +67,9 @@ export function hallEntryFor(s: GameState, report: FinalReport, now = Date.now()
 }
 
 // Hangs the run once: the same college's report is not hung twice.
+// A sandbox run (systems/sandbox) is never hung, and unlocks nothing.
 export function hangInHall(s: GameState, report: FinalReport, now = Date.now()): boolean {
+  if (s.sandbox) return false;
   const entry = hallEntryFor(s, report, now);
   recordUnlocks(s);
   const hall = readHall();
