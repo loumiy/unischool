@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { quirkById } from '../data/quirkData';
 import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
-import { PUBLICATION_POINTS, facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import type { Grade } from '../data/courseQuality';
 import { effectiveCourseSlots } from '../systems/techtree/techSystem';
 import { careerWeeks } from '../systems/faculty/facultySystem';
@@ -16,6 +16,8 @@ import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { GradeChip } from './CurriculumTab';
 import { letterOf, retiringSoon } from './facultySort';
 import { money, moneyShort, weeksShort } from '../format';
+import { CAREER_WORDS } from '../data/careerWords';
+import FacultyPerson from './FacultyPerson';
 
 // ---------------------------------------------------------------------
 // One person as a tile (Plan 84D): the Faculty tab's grid, the market and
@@ -26,8 +28,11 @@ import { money, moneyShort, weeksShort } from '../format';
 // research as letters on the course-grade bands with where each is
 // heading, and badges for a quirk, prizes, a retirement within the year
 // and the courses waiting in their field. The foot carries pay, load or
-// the listing's time left, and the action. Everything else is behind the
-// disclosure.
+// the listing's time left, and the action.
+//
+// Opened (Plan 84E), the tile becomes the person (FacultyPerson.tsx): in
+// place, across the grid's whole row, on a wide screen; full screen on a
+// phone, where a row is too narrow to read a career in.
 // ---------------------------------------------------------------------
 
 // What somebody is committed to, flattened from the running initiatives.
@@ -64,8 +69,22 @@ function StatGrade({ label, value, potential }: { label: string; value: number; 
   );
 }
 
+// A phone, where the person opens full screen (styles.css's breakpoint).
+const PHONE = '(max-width: 520px)';
+function usePhone(): boolean {
+  const query = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(PHONE) : null;
+  const [phone, setPhone] = useState(query?.matches ?? false);
+  useEffect(() => {
+    if (!query) return;
+    const on = () => setPhone(query.matches);
+    query.addEventListener('change', on);
+    return () => query.removeEventListener('change', on);
+  }, [query]);
+  return phone;
+}
+
 export default function FacultyTile(
-  { s, act, f, isCandidate, commitment, waiting, load }:
+  { s, act, f, isCandidate, commitment, waiting, load, onOpenCurriculum }:
   {
     s: GameState; act: (a: Action) => void; f: Faculty; isCandidate: boolean;
     // Their research commitment, if any: a committed scholar teaches two
@@ -76,12 +95,19 @@ export default function FacultyTile(
     // Courses they hold now (facultyAssignment.ts's facultyLoads), read once
     // for the grid.
     load?: number;
+    // The person's door to their field's courses.
+    onOpenCurriculum?: (target: string) => void;
   },
 ) {
   const [open, setOpen] = useState(false);
+  const phone = usePhone();
+  const tileRef = useRef<HTMLLIElement>(null);
+  // Opened in place, the person is brought into view.
+  useEffect(() => {
+    if (open && !phone) tileRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [open, phone]);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
   const listingLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
-  const researches = !isCandidate && labEquippedFields(s).has(f.field);
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
   const held = isCandidate ? 0 : (load ?? taught.length);
   const firstWaiting = waiting?.open[0];
@@ -96,16 +122,18 @@ export default function FacultyTile(
   // candidate always could, a professor only with a course slot free.
   const waits = isCandidate || held < slots ? waitingCount(waiting) : 0;
 
-  return (
-    <li className={`faculty-card faculty-tile${isCandidate ? ' listed' : ''}${commitment ? ' committed' : ''}`} data-faculty={f.id}>
-      <div className="faculty-tile-top">
+  const toggle = () => setOpen((v) => !v);
+  const face = (
+    <>
+      {/* The top opens the person, as the disclosure does. */}
+      <button type="button" className="faculty-tile-top" onClick={toggle} aria-expanded={open} tabIndex={-1}>
         <FacultyPortrait f={portraitOf(f)} size={56} />
-        <div className="faculty-tile-who">
+        <span className="faculty-tile-who">
           <span className="faculty-name">{f.name}</span>
           <span className="faculty-tile-field">{f.field}</span>
           <span className="faculty-tile-rank">{facultyQualityTier(f)}</span>
-        </div>
-      </div>
+        </span>
+      </button>
 
       <div className="faculty-tile-stats">
         <StatGrade label="Teaching" value={f.teaching} potential={f.teachingPotential} />
@@ -166,7 +194,7 @@ export default function FacultyTile(
         <button
           type="button"
           className="faculty-expand-btn"
-          onClick={() => setOpen((v) => !v)}
+          onClick={toggle}
           aria-expanded={open}
           aria-label={open ? `Show less about ${f.name}` : `Show more about ${f.name}`}
         >
@@ -198,49 +226,46 @@ export default function FacultyTile(
         )}
       </div>
 
-      {open && (
-        <div className="faculty-card-detail">
-          <p className="faculty-bio">{f.bio}{quirk && <> <em>{quirk.line}</em></>}</p>
-          {commitment && (
-            <p className="faculty-commitment">
-              On <strong>{commitment.topic}</strong> at {commitment.labName}
-              <span className="faculty-commitment-left"> · {weeksShort(commitment.weeksRemaining)} left</span>
-            </p>
-          )}
-          <dl>
-            <dt>Nationality</dt><dd>{f.nationality}</dd>
-            <dt>Teaching</dt><dd>{f.teaching} <span className="outcome-note">(→ {f.teachingPotential})</span></dd>
-            <dt>Research</dt><dd>{f.research} <span className="outcome-note">(→ {f.researchPotential})</span></dd>
-            <dt>Salary</dt><dd>{money(f.salary)}/yr <span className="outcome-note">({money(pay)} paid, at the college's market rate)</span></dd>
-            <dt>Course slots</dt><dd>{f.courseSlots}</dd>
-            {!isCandidate && <><dt>Tenure</dt><dd>{Math.floor(f.tenureWeeks / WEEKS_PER_YEAR)} years</dd></>}
-            {f.acclaim > 0 && <><dt>Prizes won</dt><dd>{f.acclaim}</dd></>}
-            {/* Research output: roster only, since a candidate produces nothing yet. */}
-            {!isCandidate && (
-              <>
-                <dt>Scholarly output</dt>
-                <dd>
-                  {researches
-                    ? `${facultyResearchOutput(f).toFixed(2)} a week, of the ${PUBLICATION_POINTS} a paper takes`
-                    : `none — no research facility in ${f.field}'s school`}
-                </dd>
-              </>
-            )}
-          </dl>
-          {!isCandidate && (
-            <div className="faculty-courses">
-              <span className="stat">Courses taught</span>
-              {taught.length > 0 ? (
-                <ul className="faculty-courses-list">
-                  {taught.map((t) => <li key={t.id}>{t.name}{t.status === 'developing' ? ' — in development' : ''}</li>)}
-                </ul>
-              ) : (
-                <p className="empty-note">No {f.field} courses currently offered.</p>
-              )}
+    </>
+  );
+
+  const className = `faculty-card faculty-tile${isCandidate ? ' listed' : ''}${commitment ? ' committed' : ''}`;
+  const person = <FacultyPerson s={s} f={f} isCandidate={isCandidate} commitment={commitment} onOpenCurriculum={onOpenCurriculum} />;
+
+  // A phone: the tile stays in the grid, and the person opens over the
+  // whole screen, with its own Close. Escape closes it and nothing else.
+  if (open && phone) {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); }
+    };
+    return (
+      <li className={className} data-faculty={f.id}>
+        {face}
+        {createPortal(
+          <div className="faculty-sheet" role="dialog" aria-modal="true" aria-label={f.name} onKeyDown={onKeyDown}>
+            <div className="faculty-sheet-head">
+              <span className="faculty-sheet-title">{f.name}</span>
+              <button type="button" className="tab-overlay-close faculty-sheet-close" onClick={() => setOpen(false)} autoFocus>{CAREER_WORDS.close}</button>
             </div>
-          )}
-        </div>
-      )}
+            <div className={`${className} faculty-sheet-body`}>
+              {face}
+              {person}
+            </div>
+          </div>,
+          document.body,
+        )}
+      </li>
+    );
+  }
+
+  return (
+    <li ref={tileRef} className={`${className}${open ? ' expanded' : ''}`} data-faculty={f.id}>
+      {open ? (
+        <>
+          <div className="faculty-tile-face">{face}</div>
+          {person}
+        </>
+      ) : face}
     </li>
   );
 }

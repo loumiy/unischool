@@ -49,7 +49,7 @@ assert(typeRule.length === 4, 'the type rule is in the typecheck');
 
 // ---- The tabs' bare figures can only fall ----
 // Raise nothing here: when a tab's <dd> becomes a Figure, lower the ceiling.
-const BARE_CEILING = 29;
+const BARE_CEILING = 27;
 {
   // process.cwd(), not import.meta: this file runs bundled (invariants.test.ts).
   const dir = join(process.cwd(), 'src', 'tabs');
