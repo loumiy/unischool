@@ -569,12 +569,69 @@ function rollBio(field: string): string {
 // plateau". facultySystem.ts's weekly tick applies them; generateCandidate
 // uses them at tenure 0.
 // ---------------------------------------------------------------------
-const FACULTY_POTENTIAL_MIN = 45;
-const FACULTY_POTENTIAL_RANGE = 55; // potential (the ceiling) rolls in [45, 100]
+// --- The market follows standing (Plan 84B). A candidate's potentials are
+// drawn around a center that rises with the college's standing: teaching
+// with prestige, research mostly with research standing and partly with
+// prestige. About 50 at founding standing, toward 80 at the top; a wide
+// spread around it, and rarely a standout far above it. The same draw
+// serves every listing: the weekly market, a posted search, the retirement
+// listing and an event's hire. (The founding market's professors are
+// written, not drawn: foundingData.ts.)
+const MARKET_CENTER_AT_FOUNDING = 50;   // a candidate's typical potential at founding standing
+const MARKET_CENTER_AT_TOP = 80;        // ... and at the top of the table
+const MARKET_PRESTIGE_FOUNDING = 50;    // prestige at founding (foundingData.ts's startingReputation)
+const MARKET_RESEARCH_FOUNDING = 18;    // research standing at founding (prestigeSystem.ts's RESEARCH_STANDING_BASELINE)
+const MARKET_STANDING_TOP = 150;        // the top of both scales (rivalData.ts's STANDING_MAX)
+const MARKET_RESEARCH_WEIGHT = 0.7;     // research potential's center: this much research standing, the rest prestige
+const MARKET_SPREAD = 20;               // most candidates within this of the center (a triangular spread)
+const MARKET_STANDOUT_SHARE = 0.03;     // the top share of draws: a standout, above the spread
+const MARKET_STANDOUT_REACH = 20;       // ... up to this much further above it
+const FACULTY_POTENTIAL_FLOOR = 30;     // a drawn potential stays in [30, 100]
+
+// The college's standing as the market reads it.
+export interface MarketStanding { prestige: number; research: number }
+export const FOUNDING_STANDING: MarketStanding = { prestige: MARKET_PRESTIGE_FOUNDING, research: MARKET_RESEARCH_FOUNDING };
+export function marketStandingOf(s: { self: { reputation: number; researchStanding: number } }): MarketStanding {
+  return { prestige: s.self.reputation, research: s.self.researchStanding };
+}
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+// The typical candidate's potentials at a standing, before quirks.
+export function marketCenters(standing: MarketStanding): { teaching: number; research: number } {
+  const prestige = clamp01((standing.prestige - MARKET_PRESTIGE_FOUNDING) / (MARKET_STANDING_TOP - MARKET_PRESTIGE_FOUNDING));
+  const research = clamp01((standing.research - MARKET_RESEARCH_FOUNDING) / (MARKET_STANDING_TOP - MARKET_RESEARCH_FOUNDING));
+  const at = (u: number) => MARKET_CENTER_AT_FOUNDING + (MARKET_CENTER_AT_TOP - MARKET_CENTER_AT_FOUNDING) * u;
+  return {
+    teaching: at(prestige),
+    research: at(MARKET_RESEARCH_WEIGHT * research + (1 - MARKET_RESEARCH_WEIGHT) * prestige),
+  };
+}
+
+// One draw of the stream (u in [0, 1)) made a potential around `center`:
+// the inverse of the market's distribution, so a potential still takes one
+// draw, as the flat roll it replaced did, and the stream is not moved.
+// Most of the range is a triangular spread of MARKET_SPREAD either side;
+// the top MARKET_STANDOUT_SHARE is the standouts, above it.
+export function potentialAround(center: number, u: number): number {
+  const body = 1 - MARKET_STANDOUT_SHARE;
+  let offset: number;
+  if (u < body) {
+    const v = u / body;
+    offset = v < 0.5 ? MARKET_SPREAD * (Math.sqrt(2 * v) - 1) : MARKET_SPREAD * (1 - Math.sqrt(2 * (1 - v)));
+  } else {
+    offset = MARKET_SPREAD + MARKET_STANDOUT_REACH * ((u - body) / MARKET_STANDOUT_SHARE);
+  }
+  return Math.round(center + offset);
+}
 
 const FACULTY_STARTING_POTENTIAL_FRACTION = 0.55; // a fresh hire arrives at this fraction of their eventual ceiling
 const FACULTY_GROWTH_PLATEAU_YEARS = 6;            // tenure (years) to close FACULTY_GROWTH_PLATEAU_FRACTION of the start->potential gap
 const FACULTY_GROWTH_PLATEAU_FRACTION = 0.95;
+// Plan 84B kept this curve with the market that follows standing: a hire
+// starts at a little over half their potential, and a good early one grows
+// good within about five years (a standout of 80 reaches Full, 70, in under
+// three; a 75 in about four). A faster curve would also move the founding
+// market's professors, whose stats come from the same curve (below).
 const FACULTY_GROWTH_RATE_PER_WEEK =
   1 - (1 - FACULTY_GROWTH_PLATEAU_FRACTION) ** (1 / (FACULTY_GROWTH_PLATEAU_YEARS * WEEKS_PER_YEAR));
 
@@ -754,10 +811,13 @@ export function rollCandidateField(): string {
 
 // One freshly rolled candidate in the given field. Pass the names already in
 // play so the new name can't collide.
-export function generateCandidate(field: string, existingNames: Iterable<string> = []): Faculty {
+// `standing` is the college's, which sets how good the market's candidates
+// are (marketCenters); the founding standing where no college is in view.
+export function generateCandidate(field: string, existingNames: Iterable<string> = [], standing: MarketStanding = FOUNDING_STANDING): Faculty {
   const used = new Set(existingNames);
-  const rolledTeaching = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
-  const rolledResearch = FACULTY_POTENTIAL_MIN + Math.round(random() * FACULTY_POTENTIAL_RANGE);
+  const center = marketCenters(standing);
+  const rolledTeaching = potentialAround(center.teaching, random());
+  const rolledResearch = potentialAround(center.research, random());
   const gender = rollGender();
   const { name, origin } = rollFullName(used, gender);
   const { nationality, flag } = rollNationality(origin);
@@ -793,7 +853,7 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
 }
 
 function clampPotential(v: number): number {
-  return Math.max(0, Math.min(100, v));
+  return Math.max(FACULTY_POTENTIAL_FLOOR, Math.min(100, v));
 }
 
 // The founding market's professors (Plan 80D), as candidates: listed from
@@ -819,7 +879,7 @@ export function initialCandidatePool(): Faculty[] {
   const pool: Faculty[] = foundingCandidates();
   const names: string[] = pool.map((c) => c.name);
   while (pool.length < CANDIDATE_POOL_TARGET) {
-    const candidate = generateCandidate(rollCandidateField(), names);
+    const candidate = generateCandidate(rollCandidateField(), names, FOUNDING_STANDING);
     candidate.weeksListed = Math.floor(random() * CANDIDATE_LISTING_WEEKS);
     pool.push(candidate);
     names.push(candidate.name);

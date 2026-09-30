@@ -2,7 +2,7 @@ import type { EventDomain } from './seatData';
 import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName, servingPopulation, totalEnrolled } from '../state/types';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
-import { FACULTY_FIELDS, generateCandidate, marketRateMultiplier, rollSurname } from './facultyData';
+import { FACULTY_FIELDS, generateCandidate, marketRateMultiplier, marketStandingOf, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
 import { rollAmount, weeksOfOpEx } from './moneyScale';
 import {
@@ -875,9 +875,9 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       const fields = [...new Set(s.faculty.map((f) => f.field))];
       const field = fields.length > 0 ? pick(fields) : pick(FACULTY_FIELDS);
       const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
-      let best = generateCandidate(field, existing);
+      let best = generateCandidate(field, existing, marketStandingOf(s));
       for (let i = 1; i < TRUSTEE_CHAIR_CANDIDATE_ROLLS; i += 1) {
-        const next = generateCandidate(field, [...existing, best.name]);
+        const next = generateCandidate(field, [...existing, best.name], marketStandingOf(s));
         if (next.teachingPotential + next.researchPotential > best.teachingPotential + best.researchPotential) best = next;
       }
       return {
@@ -905,7 +905,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         apply: (s, ctx) => {
           const field = ctx.subjectField ?? pick(FACULTY_FIELDS);
           const person = ctx.candidate
-            ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name));
+            ?? generateCandidate(field, [...s.faculty, ...s.candidates].map((f) => f.name), marketStandingOf(s));
           appointFaculty(s, person);
           return entry(s, `${person.name} (${field}) takes the trustees' chair, funded in answer to ${ctx.subjectName}, at ${money(person.salary * marketRateMultiplier(s.self.reputation))}/yr.`, 'good', 'appointment', person.id);
         },

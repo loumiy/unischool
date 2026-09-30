@@ -27,7 +27,7 @@ export function leaveFaculty(s: GameState, f: Faculty): Buildable[] {
 }
 
 import {
-  generateCandidate, grownStat, facultySalary, rollCandidateField, candidateArrivalsThisWeek,
+  generateCandidate, marketStandingOf, grownStat, facultySalary, rollCandidateField, candidateArrivalsThisWeek,
   SLOT_GROWTH_INTERVAL_WEEKS, MAX_FACULTY_SLOTS, CANDIDATE_LISTING_WEEKS,
 } from '../../data/facultyData';
 
@@ -57,6 +57,8 @@ function growFaculty(f: Faculty): void {
 // neededFacultyFields); logging all ~2.5 a week would drown the ticker.
 function tickCandidatePool(s: GameState): void {
   for (const c of s.candidates) c.weeksListed += 1;
+  // Who the market sends follows the college's standing (Plan 84B).
+  const standing = marketStandingOf(s);
   s.candidates = s.candidates.filter((c) => c.weeksListed < CANDIDATE_LISTING_WEEKS);
 
   const arrivals = candidateArrivalsThisWeek(s.candidates.length);
@@ -64,7 +66,7 @@ function tickCandidatePool(s: GameState): void {
   const short = arrivals > 0 ? neededFacultyFields(s) : null;
   for (let i = 0; i < arrivals; i += 1) {
     const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
-    const candidate = generateCandidate(rollCandidateField(), existingNames);
+    const candidate = generateCandidate(rollCandidateField(), existingNames, standing);
     s.candidates.push(candidate);
     if (short?.has(candidate.field)) {
       s.log.unshift({
@@ -84,7 +86,7 @@ function tickCandidatePool(s: GameState): void {
   for (const field of new Set(unstaffedCourses(s).map((t) => t.requiresFaculty!))) {
     if (listed.has(field)) continue;
     const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
-    s.candidates.push(generateCandidate(field, existingNames));
+    s.candidates.push(generateCandidate(field, existingNames, standing));
     listed.add(field);
   }
   // A posted search's listing lands on top of the churn (facultySearch.ts).
