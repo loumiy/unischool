@@ -29,9 +29,9 @@ import RankingsPanel from './RankingsPanel';
 // Rows of the year-by-year table shown before it scrolls.
 const TABLE_VISIBLE_ROWS = 12;
 
-// Prestige (Plan 80C): the Prestige chip's page, its breakdown and nothing
-// else. Research and campus life are rankings of their own, in the
-// standings.
+// Prestige (Plans 80C, 85B): the Prestige chip's page, its breakdown and
+// nothing else: the four pillars' blend, each pillar's make-up under its
+// row.
 function PrestigePanel({ s }: { s: GameState }) {
   const breakdown = prestigeBreakdown(s);
   return (
@@ -43,7 +43,7 @@ function PrestigePanel({ s }: { s: GameState }) {
         </div>
         <HelpHint
           align="end"
-          text="Prestige is the college's academic standing, the number the guide ranks. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Research and campus life are ranked on their own, in the standings."
+          text="Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings."
         />
       </div>
       <Standing breakdown={breakdown} titled={false} />

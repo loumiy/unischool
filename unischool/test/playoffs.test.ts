@@ -8,7 +8,7 @@
 //   - a department with empty chairs does not qualify, and a well-staffed
 //     one does — which is the whole loop this plan was written around;
 //   - "did not qualify" is a recorded RESULT, not an absence;
-//   - a title is monotone, and moves campus-life standing;
+//   - a title is monotone, and moves the athletics pillar (Plan 85B);
 //   - the report QUEUES, so the playoff week can belong to something else.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
@@ -19,7 +19,7 @@ import { SPORTS, promoteToVarsityTeam, teamQuality, rollAthleticDirectorCandidat
 import { tickAthletics } from '../src/systems/athletics/athleticsSystem';
 import { PLAYOFF_FIELD, resolveSport } from '../src/systems/athletics/playoffs';
 import { tickEvents } from '../src/systems/events/eventSystem';
-import { computeSocialTarget } from '../src/systems/prestige/prestigeSystem';
+import { pillarValue } from '../src/systems/prestige/prestigeSystem';
 import { sportRankedList } from '../src/systems/rivals/rivalsSystem';
 import { makeRivalRng } from '../src/data/rivalData';
 import type { Coach, GameState, StudentClub } from '../src/state/types';
@@ -27,6 +27,8 @@ import { bindScriptStream } from '../src/engine/random';
 
 // Read through a call so TypeScript does not narrow the interrupt to what
 // the test last assigned: the system under test sets it.
+const athletics = (s: GameState) => pillarValue(s, 'athletics');
+
 function interruptType(g: GameState): string | undefined {
   return g.pendingInterrupt?.type;
 }
@@ -163,27 +165,26 @@ function testTitleQueues(): void {
   assert(s.orgs.pendingTitles.length === 0, 'and drains the queue');
 }
 
-// ---- A title moves campus-life standing ----
+// ---- A title moves the athletics pillar ----
 function testTitleMovesStanding(): void {
   const s = fresh();
   fieldTeam(s, 'soccer-m', 80);
-  const before = computeSocialTarget(s);
+  const before = athletics(s);
   s.orgs.titles.push({ sport: 'soccer-m', year: s.clock.year });
-  const after = computeSocialTarget(s);
-  assert(after > before, `a championship lifts campus-life standing (${before.toFixed(1)} -> ${after.toFixed(1)})`);
+  const after = athletics(s);
+  assert(after > before, `a championship lifts the athletics pillar (${before.toFixed(1)} -> ${after.toFixed(1)})`);
 
   // Monotone: a banner does not come down in a quiet decade.
   const later = { ...s, clock: { ...s.clock, year: s.clock.year + 20 } };
-  assert(computeSocialTarget(later) >= after, 'and keeps lifting it twenty years later');
+  assert(athletics(later) >= after, 'and keeps lifting it twenty years later');
 
-  // And it reaches nothing else. The academic number athletics is forbidden
-  // to touch stays exactly where it was.
+  // The pillar reads the titles themselves.
   const academicBefore = fresh();
   fieldTeam(academicBefore, 'soccer-m', 80);
   const withTitles = { ...academicBefore, orgs: { ...academicBefore.orgs, titles: [{ sport: 'soccer-m', year: 1 }] } };
   assert(
-    JSON.stringify(computeSocialTarget(withTitles)) !== JSON.stringify(computeSocialTarget(academicBefore)),
-    'the social target reads titles',
+    JSON.stringify(athletics(withTitles)) !== JSON.stringify(athletics(academicBefore)),
+    'the athletics pillar reads titles',
   );
 }
 

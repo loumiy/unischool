@@ -16,7 +16,7 @@ import { teachPillars, teachingCourseIds } from './fixtures/teaching';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../src/data/facilitiesData';
 import {
   computePrestigeTarget, concentrationScore, crowdingCoverages, crowdingScore, crowdingShortfallNow,
-  prestigeBreakdown, prestigeReadings, researchStandingBreakdown, socialStandingBreakdown, welfareScore,
+  pillarBreakdown, prestigeBreakdown, prestigeReadings, researchStandingBreakdown, socialStandingBreakdown, welfareScore,
 } from '../src/systems/prestige/prestigeSystem';
 import {
   instructionCapacity, instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE,
@@ -79,7 +79,9 @@ console.log('standing readings tests');
   const s = fresh();
   const made = prestigeBreakdown(s);
   const keys = made.inputs.map((i) => i.key);
-  assert(keys.includes('concentration') && keys.includes('welfare'), 'concentration and welfare are inputs');
+  assert(['academics', 'research', 'studentLife', 'athletics'].every((k) => keys.includes(k)), 'the four pillars are inputs (Plan 85B)');
+  assert(pillarBreakdown(s, 'academics').inputs.some((i) => i.key === 'concentration') && pillarBreakdown(s, 'studentLife').inputs.some((i) => i.key === 'welfare'),
+    'concentration is an academics term, and welfare a student-life one');
   const crowding = made.inputs.find((i) => i.key === 'crowding')!;
   assert(crowding.penalty === true, 'crowding is the penalty');
   assert(crowding.contribution <= 0, 'and subtracts');
@@ -232,14 +234,14 @@ console.log('standing readings tests');
   const s = fresh();
   assert(concentrationScore(s) === 0, 'no school founded reads nothing');
   assert(
-    prestigeBreakdown(s).inputs.find((r) => r.key === 'concentration')!.detail.startsWith('No school founded'),
+    pillarBreakdown(s, 'academics').inputs.find((r) => r.key === 'concentration')!.detail.startsWith('No school founded'),
     'and says how one is',
   );
 
   s.milestones[schoolFoundedKey('Business')] = true;
   assert(near(concentrationScore(s), 0.4), 'a founded school is 0.4');
   assert(
-    prestigeBreakdown(s).inputs.find((r) => r.key === 'concentration')!.detail.includes('Business'),
+    pillarBreakdown(s, 'academics').inputs.find((r) => r.key === 'concentration')!.detail.includes('Business'),
     'the row names the school',
   );
 
@@ -253,7 +255,7 @@ console.log('standing readings tests');
   d.milestones['school-distinguished:Science'] = true;
   assert(near(concentrationScore(d), 0.6), 'distinguished without ever sharing a hall is 0.6');
   assert(
-    prestigeBreakdown(d).inputs.find((r) => r.key === 'concentration')!.detail.includes('never founded'),
+    pillarBreakdown(d, 'academics').inputs.find((r) => r.key === 'concentration')!.detail.includes('never founded'),
     'and the row says which half is missing',
   );
 

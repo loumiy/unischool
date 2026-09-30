@@ -15,9 +15,10 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
-  applyReportCard, computePrestigeTarget, gradeYear, prestigeBreakdown,
-  PRESTIGE_FALL_RATE, PRESTIGE_MAX_RISE, PRESTIGE_RISE_RATE, setPrestigeForPlaytest,
+  applyReportCard, computePrestigeTarget, gradeYear, pillarBreakdown, prestigeBreakdown,
+  PILLAR_SPAN, PILLAR_WEIGHTS, PRESTIGE_FALL_RATE, PRESTIGE_MAX_RISE, PRESTIGE_RISE_RATE, setPrestigeForPlaytest,
 } from '../src/systems/prestige/prestigeSystem';
+import { milestoneSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
@@ -45,6 +46,21 @@ function fresh(): GameState {
   return createInitialState('Report Card');
 }
 
+// A college with something to its name: one school founded and
+// distinguished, every program of it established and distinguished, and a
+// year uncrowded.
+function accomplished(s: GameState): void {
+  s.students.crowdingYearSum = 0;
+  s.students.crowdingYearWeeks = 1;
+  const school = milestoneSchools().find((x) => x.schoolName === 'Engineering')!;
+  s.milestones['school-founded:Engineering'] = true;
+  s.milestones['school-distinguished:Engineering'] = true;
+  for (const m of school.majors) {
+    s.milestones[`program-established:${m.prefix}`] = true;
+    s.milestones[`program-distinguished:${m.prefix}`] = true;
+  }
+}
+
 // Plays until the summer decision is on screen, answering everything else
 // with the harness's own defaults, then returns the state with it pending.
 function toSummer(start: GameState): GameState {
@@ -65,8 +81,7 @@ console.log('report card tests');
   // crowding penalty in full — so give it a school to its name first,
   // to keep thirty below the grade inside the band.
   const s = fresh();
-  s.milestones['school-founded:Engineering'] = true;
-  s.milestones['school-distinguished:Engineering'] = true;
+  accomplished(s);
   const target = computePrestigeTarget(s);
   assert(target - 30 > 5, `the grade sits high enough to test against (${target.toFixed(1)})`);
 
@@ -97,8 +112,7 @@ console.log('report card tests');
 // ---- the climb is unblocked: a school at a low standing with a good grade climbs every year ----
 {
   const s = fresh();
-  s.milestones['school-founded:Engineering'] = true;
-  s.milestones['school-distinguished:Engineering'] = true;
+  accomplished(s);
   const target = computePrestigeTarget(s);
   setPrestigeForPlaytest(s, 20);
   assert(target > 40, `a school with something to its name grades well above 20 (${target.toFixed(1)})`);
@@ -145,12 +159,22 @@ console.log('report card tests');
   const s = fresh();
   const made = prestigeBreakdown(s);
   const weight = (key: string) => made.inputs.find((i) => i.key === key)!.weight;
-  assert(weight('breadth') === 50 && weight('concentration') === 30, 'breadth gave thirty of its ninety to concentration');
-  assert(weight('welfare') === 20 && weight('crowding') === 25, 'welfare at twenty, crowding up to twenty-five');
-  assert(weight('campus') === 12 && weight('endowment') === 8, 'campus life restored to twelve (Plan 21 PR B); endowment cut to eight');
-  assert(weight('teaching') === 30 && weight('students') === 24 && weight('research') === 22, 'teaching, students and research unchanged');
-  const ceiling = made.inputs.filter((i) => !i.penalty).reduce((sum, i) => sum + i.weight, made.baseline);
-  assert(ceiling >= made.max, `every input at its cap still reaches the top of the band (${ceiling} >= ${made.max})`);
+  // Plan 85B: the four pillars at 35, 25, 25 and 15 per cent of the span
+  // above the baseline, and the three adjustments outside them.
+  assert(near(PILLAR_WEIGHTS.academics + PILLAR_WEIGHTS.research + PILLAR_WEIGHTS.studentLife + PILLAR_WEIGHTS.athletics, 1), 'the pillars\' shares sum to one');
+  assert(near(weight('academics'), 0.35 * PILLAR_SPAN) && near(weight('research'), 0.25 * PILLAR_SPAN)
+    && near(weight('studentLife'), 0.25 * PILLAR_SPAN) && near(weight('athletics'), 0.15 * PILLAR_SPAN), 'academics 35%, research 25%, student life 25%, athletics 15%');
+  assert(weight('endowment') === 8 && weight('crowding') === 25 && weight('condition') === 4, 'endowment eight, crowding up to twenty-five, condition up to four');
+  // Inside a pillar, the terms keep their old weights' proportions.
+  const within = (p: Parameters<typeof pillarBreakdown>[1], a: string, b: string) => {
+    const inputs = pillarBreakdown(s, p).inputs;
+    return inputs.find((i) => i.key === a)!.weight / inputs.find((i) => i.key === b)!.weight;
+  };
+  assert(near(within('academics', 'breadth', 'concentration'), 50 / 30) && near(within('academics', 'teaching', 'students'), 30 / 24), 'academics: breadth 50, concentration 30, teaching 30, students 24');
+  assert(near(within('studentLife', 'welfare', 'campus'), 20 / 12) && near(within('studentLife', 'campus', 'beauty'), 12 / 6), 'student life: welfare 20, campus life 12, beauty 6');
+  assert(near(within('research', 'output', 'breadth'), 80 / 40), 'research: output 80, fields 40');
+  const ceiling = made.inputs.filter((i) => !i.penalty && i.key !== 'endowment').reduce((sum, i) => sum + i.weight, made.baseline);
+  assert(near(ceiling, made.max), `every pillar in full reaches the top of the band (${ceiling} = ${made.max})`);
 }
 
 // ---- the summer, through the reducer ----

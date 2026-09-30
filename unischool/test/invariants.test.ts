@@ -300,9 +300,9 @@ const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pair
   assert(!/rankBy|rankedListBy/.test(prestigeText),
     'prestigeSystem.ts never reads any ranked list (the rule covers all three axes, not just the academic one)');
 
-  // THE CENTRAL PROMISE OF THE THREE-STANDINGS CHANGE, asserted rather than
-  // intended: the two new axes are READINGS of the school, never inputs to
-  // the academic number. computePrestigeTarget is the function the whole
+  // THE CENTRAL PROMISE OF THE THREE-STANDINGS CHANGE, kept by Plan 85B's
+  // pillars: prestige blends the research and student-life PILLARS, read
+  // from their terms, never the drifting stocks the rankings show. computePrestigeTarget is the function the whole
   // economy hangs off — admitRate, the applicant pool, price tolerance, every
   // recorded YearSnapshot — and if either stock ever appeared inside it, the
   // headline would start depending on campus life and the balance sim's

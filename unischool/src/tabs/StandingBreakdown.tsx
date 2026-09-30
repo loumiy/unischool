@@ -4,8 +4,8 @@ import {
 } from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
-// A standing, explained: prestige's in History's Prestige panel, research's
-// and campus life's in the standings (Plan 80C). Every figure comes from
+// A standing, explained: prestige's in History's Prestige panel, each of its
+// four pillars' under its row there and in the standings (Plans 80C, 85B). Every figure comes from
 // prestigeSystem.ts's breakdown, the object its target function sums, so
 // the panel cannot disagree with the tick; nothing here names a row.
 //
@@ -30,7 +30,7 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
           {grade !== undefined && (
             <span className="standing-row-grade" title="Graded last summer">{sign}{Math.abs(grade).toFixed(1)} → </span>
           )}
-          {sign}{worth.toFixed(1)}<span className="standing-row-of"> of {input.weight}</span>
+          {sign}{worth.toFixed(1)}<span className="standing-row-of"> of {weightFigure(input.weight)}</span>
         </span>
       </div>
       <div className="standing-bar" aria-hidden="true">
@@ -48,8 +48,21 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
           </>
         )}
       </p>
+      {/* A pillar of prestige (Plan 85B): what it is made of. */}
+      {input.pillar && (
+        <details className="standing-pillar">
+          <summary>What {input.label.toLowerCase()} is made of</summary>
+          <Standing breakdown={input.pillar} titled={false} />
+        </details>
+      )}
     </li>
   );
+}
+
+// A weight as its row prints it: a pillar's terms are scaled onto the
+// prestige scale, so a weight may carry a fraction.
+function weightFigure(weight: number): string {
+  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1);
 }
 
 // A reading is an input that does not count yet (prestigeSystem.ts's
@@ -121,11 +134,14 @@ export function Standing({ breakdown, titled = true }: { breakdown: StandingBrea
       <p className="standing-note">
         {breakdown.summer
           ? summerNote(breakdown, gap)
-          : Math.abs(gap) < 0.05
+          : breakdown.live
+            ? `Read as it stands, week by week, and ${pct(breakdown.share ?? 0)} of prestige.`
+            : Math.abs(gap) < 0.05
             ? 'Sitting at its target.'
             : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${prestigeFigure(breakdown.target)}, by `
               + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week — about `
               + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
+        {breakdown.share !== undefined && !breakdown.live && ` It is ${pct(breakdown.share)} of prestige.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
       </p>
       {breakdown.ceiling && (

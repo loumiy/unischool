@@ -88,11 +88,12 @@ the consequence — an old club keeps an old club's budget and fades to noise
 against a mature school's spending — is deliberate, and is part of what
 makes clubs low-stakes.
 
-**Prestige is untouched.** Student life moves satisfaction and cash and
-nothing else, the same discipline the decision events hold: `self.reputation`
-is a stock graded once a year against a computed target, and student life
-reaches that target only through welfare — the year's average satisfaction —
-never as an input of its own.
+**Student life is a pillar of prestige** (Plan 85B; until then prestige
+was untouched by it). Clubs and chapters reach prestige through the
+student-life pillar's campus-life term, and satisfaction through its
+welfare term; nothing here writes `self.reputation`, which stays a stock
+graded once a year against a computed target (see
+[progression.md](progression.md)).
 
 **Satisfaction effects are transient by construction**, exactly like the
 decision events': the stock drifts back toward its facilities-derived target
@@ -414,18 +415,19 @@ than four separate classes would.
 (`collegePull`), so a large college with a stadium plays like one: up to +2.5
 from the stage of the program's own venue (its expansions over the venue's
 most, Plan 54 — the field alone reads nothing, full seating the whole half)
-and up to +2.5 from **campus life standing**, counted from 25 (just above the
+and up to +2.5 from the **student-life standing** (`socialStanding`), counted from 25 (just above the
 baseline of 22 a college starts from) to 100. It is on every active team, flagship or
-not; the card shows it with its two halves in the tooltip. Campus life
-standing reads athletic program strength, so pull feeds back a little into
-itself; the loop is bounded at +2.5.
+not; the card shows it with its two halves in the tooltip. Since Plan 85B
+the student-life standing no longer reads athletic program strength, so pull
+no longer feeds back into itself.
 
 **Where athletics reaches now.** Satisfaction, through the same shared social
-contribution clubs and Greek life use. **Campus-life standing**, one of the
-three the school is ranked on (see [progression.md](progression.md)'s "Three
-standings"), through the venues, the programs and the titles — and through
-it the **seventh legacy axis** and the campus-life prestige input, restored to
-its weight of 12 once the venues made it earnable (PR B). **The applicant
+contribution clubs and Greek life use. **The athletics pillar** of prestige
+(Plan 85B, 15% of it; see [progression.md](progression.md)'s "Four pillars"),
+through the programs' strength, the flagships' quality and the titles, and
+the student-life pillar through the venues' own contribution to campus life.
+Before Plan 85B it reached campus-life standing, a ranking that fed nothing,
+and prestige only through the venues' campus-life input. **The applicant
 pool**: the athletes cohort reads results beside capacity — titles and deep
 postseason runs on a decaying window — and the summer modal names the cause
 (PR C). **The class the school admits**: the realised band mix shifts
@@ -510,7 +512,7 @@ exactly that, gets there by about Year 7, a year or two after choosing (its
 **This is the loop the whole athletics feature was built for**, and every arrow
 in it now exists: fund a program → hire a coach → team quality rises → the
 team seeds higher in its sport → it qualifies, and sometimes wins → a title
-lifts **campus-life standing** and the legacy's seventh axis, swells the next
+lifts the **athletics pillar** of prestige (Plan 85B) and the legacy's seventh axis, swells the next
 summer's applicant pool, opens the donors for a year, and makes better coaches
 want the job. Titles are a monotone stock, like curriculum breadth and research
 credits — weighted by the sport's scale, so a football title is most of a
@@ -633,8 +635,8 @@ Clubs are what a happy student body gives the institution. A **demand** is what
 an unhappy one asks of it, on a clock. One system
 (`systems/demands/demandSystem.ts`), one content/tuning file
 (`data/demandData.ts`), and no new economy: demands move satisfaction and,
-through it, admissions — **prestige is untouched**, exactly as it is for
-student life and the decision events.
+through it, admissions and the student-life pillar's welfare term; nothing
+here writes prestige.
 
 - **Trigger.** Satisfaction below `DEMAND_SATISFACTION_THRESHOLD` and the
   student body organises. Above it nothing is ever demanded, which is why a

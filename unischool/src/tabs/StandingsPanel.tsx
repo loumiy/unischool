@@ -5,14 +5,14 @@ import { STANDINGS, rankedListBy } from '../systems/rivals/rivalsSystem';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { rivalRanks } from '../systems/rivals/collegeRival';
 import { sportById } from '../data/studentLifeData';
-import { researchStandingBreakdown, socialStandingBreakdown } from '../systems/prestige/prestigeSystem';
+import { PILLARS, pillarBreakdown } from '../systems/prestige/prestigeSystem';
 import { Standing } from './StandingBreakdown';
 
-// The league table (Plan 31, V1-22, V1-33): where the college stands on each
-// of the six axes this year, who leads each, and each rank charted over the
-// run. Lower is better; the charts are drawn upside down to read that way.
-// Under the cards, what the research and campus life rankings read (Plan
-// 80C moved them here from the Prestige panel: neither feeds prestige).
+// The league table (Plan 31, V1-22, V1-33): where the college stands on
+// prestige, its four pillars, access and financial strength this year, who
+// leads each, and each rank charted over the run. Lower is better; the
+// charts are drawn upside down to read that way. Under the cards, what each
+// pillar reads (Plan 85B): prestige is their blend.
 
 export default function StandingsPanel({ s }: { s: GameState }) {
   const field = s.rivals.length + 1;
@@ -24,7 +24,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text="Six rankings, one field. Academics is the ranking the guide leads with, and the one Rank shows; the others say what the college is good at besides. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student." />
+          <HelpHint text="Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, for the college and every rival alike. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige." />
         </span>
         <span className="stat">of {field}</span>
       </div>
@@ -58,11 +58,10 @@ export default function StandingsPanel({ s }: { s: GameState }) {
         })}
       </div>
       <p className="standing-note standing-readings-note">
-        Research and campus life are standings of their own, scored as prestige is and ranked beside it; neither counts toward prestige.
+        The four pillars, each on the prestige scale. Prestige is their blend: academics 35%, research 25%, student life 25%, athletics 15%.
       </p>
       <div className="standings">
-        <Standing breakdown={researchStandingBreakdown(s)} />
-        <Standing breakdown={socialStandingBreakdown(s)} />
+        {PILLARS.map((p) => <Standing key={p} breakdown={pillarBreakdown(s, p)} />)}
       </div>
       {rival && (
         <p className="stat">
