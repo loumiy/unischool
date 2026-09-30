@@ -93,6 +93,20 @@ Mission in maroon and gold, Modern in purple and gold; the tabs in maroon,
 royal blue, forest, navy and orange, black, purple and crimson; the summer
 card in royal blue.
 
+### Hand-built campuses
+
+`campuses/` keeps campuses laid out by hand in the game itself, exported
+as saves, for pictures a scripted plan cannot give. Each loads straight into
+`shot` (an older save version is migrated on load):
+
+```sh
+npm run shot -- tools/campuses/tudor-year-1.unischool.json /tmp/tudor.png --zoom=-1
+```
+
+| Save | Holds |
+|---|---|
+| `tudor-year-1.unischool.json` | Tudor College, a sandbox run at year 1 week 1 (save v86): 73 placed buildings round two quads and the gate, the walks, and 78 lamps and benches |
+
 ### The tabs and the modals
 
 The same driver photographs the screens laid over the map. `--tab=<id>`
