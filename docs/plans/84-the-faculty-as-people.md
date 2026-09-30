@@ -197,7 +197,7 @@ reads it and nothing that writes it draws on the random stream, so
 - **Checks:** `npm run phone`; screenshots of the grid early and late, and
   of the market.
 
-**As implemented (#271):** the tab opens on the grid. A view switch
+**As implemented (#270):** the tab opens on the grid. A view switch
 shows *Faculty*, *Market* and *Departments*. The department board
 (Plan 72F's meters, demand and search offers) is kept whole as the third
 view, and a Curriculum door to a department still opens it on that row.
