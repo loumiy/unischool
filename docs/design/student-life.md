@@ -509,6 +509,27 @@ to twelve years; `npm run review:goals`' championships player, which does
 exactly that, gets there by about Year 7, a year or two after choosing (its
 "Flagships on full scholarships" table).
 
+**A title is rare without the athletics specialization** ([Plan
+85](../plans/85-specializations.md) PR C, by the owner's decision). Before
+it, the championships player won its first title by about Year 8 and dozens
+by Year 50. Two levers now stand against a college that has not specialized
+in athletics, and the athletic performance complex (Plan 85G) is what lifts
+them:
+
+- **The team ceiling.** No program plays above 90
+  (`studentLifeData.ts`'s `UNSPECIALIZED_TEAM_CEILING`), however it is
+  staffed, funded and recruited: `teamQuality` is the lower of that and what
+  the program earns (`teamQualityEarned`). A card held there says so.
+- **The big stage.** In the college's own games the opponent plays 8 points
+  stronger in a quarterfinal, 20 in a semifinal and 35 in a final
+  (`playoffs.ts`'s `STAGE_EDGE`). Brackets between rivals are as they were,
+  and the postseason still takes one draw.
+
+The target is a first title after Year 20 in most runs and a handful by Year
+50 for the championships player; the rivals' athletic specialists, which
+run higher in every sport (see [progression.md](progression.md)), make the
+field it meets stronger as the run goes on.
+
 **This is the loop the whole athletics feature was built for**, and every arrow
 in it now exists: fund a program → hire a coach → team quality rises → the
 team seeds higher in its sport → it qualifies, and sometimes wins → a title

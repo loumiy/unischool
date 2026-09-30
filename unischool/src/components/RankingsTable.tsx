@@ -1,4 +1,6 @@
 import type { RankedEntry } from '../systems/rivals/rivalsSystem';
+import type { Pillar } from '../state/types';
+import { SPECIALIZATION_TAGS, specializedIn } from '../data/specializationData';
 
 // The guide's table (Plan 80C): the one-time top-fifty reveal and the
 // annual report print it (InterruptModal.tsx's RankingsReportView), and the
@@ -29,17 +31,20 @@ export function rankingsRows(list: readonly RankedEntry[], printed: number): (Ra
 }
 
 // The four pillars' columns (Plan 85B), when the table is given them.
-const PILLAR_HEADS: ReadonlyArray<{ short: string; label: string }> = [
-  { short: 'Aca', label: 'Academics' },
-  { short: 'Res', label: 'Research' },
-  { short: 'Life', label: 'Student life' },
-  { short: 'Ath', label: 'Athletics' },
+const PILLAR_HEADS: ReadonlyArray<{ pillar: Pillar; short: string; label: string }> = [
+  { pillar: 'academics', short: SPECIALIZATION_TAGS.academics, label: 'Academics' },
+  { pillar: 'research', short: SPECIALIZATION_TAGS.research, label: 'Research' },
+  { pillar: 'studentLife', short: SPECIALIZATION_TAGS.studentLife, label: 'Student life' },
+  { pillar: 'athletics', short: SPECIALIZATION_TAGS.athletics, label: 'Athletics' },
 ];
 
-export default function RankingsTable({ rows, lastYear, pillars }: {
+export default function RankingsTable({ rows, lastYear, pillars, specializations }: {
   rows: readonly (RankingsRow | 'gap')[]; lastYear: boolean;
   // Each school's four pillars on the prestige scale, by key (rivalsSystem.ts's pillarColumns).
   pillars?: ReadonlyMap<string, readonly number[]>;
+  // Each specialized school's pillar, by key (Plan 85C): a tag after its
+  // name, and its pillar's figure marked.
+  specializations?: ReadonlyMap<string, Pillar>;
 }) {
   const columns = 3 + (lastYear ? 1 : 0) + (pillars ? PILLAR_HEADS.length : 0);
   return (
@@ -59,14 +64,24 @@ export default function RankingsTable({ rows, lastYear, pillars }: {
           // Keyed by identity, not by name: the player may name their
           // school anything, including something a rival is already called.
           const previous = r.previousRank ?? null;
+          const spec = specializations?.get(r.key);
           const move = previous === null ? null : previous - r.place;
           return (
             <tr key={r.key} className={r.isPlayer ? 'me' : ''}>
               <td className="report-table-rank">{r.place}</td>
-              <td className="report-table-name">{r.name}</td>
+              <td className="report-table-name">
+                {r.name}
+                {spec && <span className="spec-tag" title={specializedIn(spec)}>{SPECIALIZATION_TAGS[spec]}</span>}
+              </td>
               <td className="report-table-score">{Math.round(r.value)}</td>
               {pillars && PILLAR_HEADS.map((h, j) => (
-                <td key={h.short} className="report-table-pillar" title={h.label}>{Math.round(pillars.get(r.key)?.[j] ?? 0)}</td>
+                <td
+                  key={h.short}
+                  className={`report-table-pillar${spec === h.pillar ? ' specialized' : ''}`}
+                  title={spec === h.pillar ? `${h.label}: ${specializedIn(spec).toLowerCase()}` : h.label}
+                >
+                  {Math.round(pillars.get(r.key)?.[j] ?? 0)}
+                </td>
               ))}
               {lastYear && (
                 <td className="report-table-last">

@@ -1,5 +1,6 @@
 import { projectLift } from '../systems/estate/projects';
 import { tagTeeth } from '../systems/identity/teeth';
+import { specializationOf } from '../systems/prestige/specialization';
 import type {
   AthleticsBudgetTier, Buildable, Coach, FacilityType, GameState, GreekChapter, OrgPetition, ScholarshipLevel,
   StudentClub, StudentOrgBase, VarsityTeam,
@@ -687,6 +688,12 @@ const UNDERFUNDING_PENALTY = 0.15; // a program drawing nothing runs at 85% of w
 // the same for all of them, and computing it reads every team's gate, so a
 // loop that let each team compute its own was quadratic (Plan 57).
 export function teamQuality(team: VarsityTeam, s: GameState, pot?: DepartmentPot): number {
+  return Math.min(teamCeiling(s), teamQualityEarned(team, s, pot));
+}
+
+// What the staff, the money, the recruiting and the pull make of a program,
+// before the unspecialized team ceiling.
+export function teamQualityEarned(team: VarsityTeam, s: GameState, pot?: DepartmentPot): number {
   const funded = pot ? fundedFrom(pot, team) : fundedFractionFor(s, team);
   const quality = (coachingQuality(team, s) + FUNDED_QUALITY_BONUS * funded) * (1 - UNDERFUNDING_PENALTY * (1 - funded))
     // The recruited classes and the college's pull (Plan 80G): on top of
@@ -696,6 +703,18 @@ export function teamQuality(team: VarsityTeam, s: GameState, pot?: DepartmentPot
   // 31): every team, as the tag says, not only the department's total
   // (Plan 76C).
   return Math.max(0, Math.min(100, Math.round(quality) + tagTeeth(s, 'athletics')));
+}
+
+// The unspecialized team ceiling (Plan 85C): without the athletics
+// specialization (the performance complex, Plan 85G), no program plays
+// above this, however it is staffed, funded and recruited. With the big
+// stage (playoffs.ts's STAGE_EDGE) it makes a title rare on the
+// unspecialized path; before it, a college that staffed and funded two
+// flagships had its first title by about year 8 and dozens by year 50.
+export const UNSPECIALIZED_TEAM_CEILING = 90;
+
+export function teamCeiling(s: GameState): number {
+  return specializationOf(s) === 'athletics' ? 100 : UNSPECIALIZED_TEAM_CEILING;
 }
 
 // The college's pull (Plan 80G): what a program draws for being where it

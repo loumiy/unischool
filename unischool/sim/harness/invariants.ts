@@ -14,6 +14,7 @@ import type { GameState } from '../../src/state/types';
 import { WEEKS_PER_YEAR } from '../../src/state/types';
 import { NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_FULL_LIFT, departmentPot } from '../../src/data/studentLifeData';
 import { programById } from '../../src/data/techData';
+import { dealtSpecialization } from '../../src/data/rivalData';
 import { isGraduateHost } from '../../src/data/projectData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
 import { isInBounds, placementTiles } from '../../src/state/campusMap';
@@ -131,6 +132,11 @@ export function brokenRules(s: GameState): string[] {
   if (flagships > pot.cap) out.push(`${flagships} flagships at a cap of ${pot.cap}`);
   for (const p of pot.programs) {
     if (p.band !== 'flagship' && p.funded > NON_FLAGSHIP_FUNDED_SHARE + 1e-9) out.push(`${p.team.name} is no flagship but draws ${p.funded.toFixed(2)} of its cost`);
+  }
+
+  // Rivals (Plan 85C): each specialized in the pillar its id deals.
+  for (const r of s.rivals) {
+    if (r.specialization !== dealtSpecialization(r.id)) out.push(`${r.id} is specialized in ${String(r.specialization)}, not ${dealtSpecialization(r.id)}`);
   }
 
   return out;

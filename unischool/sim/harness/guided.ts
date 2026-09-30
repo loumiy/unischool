@@ -7,8 +7,9 @@
 // priced at "fair", whose margin is thin), research only from what lies
 // above RESEARCH_RESERVE_WEEKS, nothing recurring while the week runs at a
 // loss, the cheapest course next, a dorm when the beds are nearly full, a
-// lab or a capital project when it opens and can be paid for, a graduate
-// program where its host offers one. The summer is priced at what the
+// lab or a capital project when it opens and can be paid for, the venue a
+// varsity team waits on (Plan 85C: before, every team it was granted waited
+// all run), a graduate program where its host offers one. The summer is priced at what the
 // college's standing tolerates, the line the admissions screen colors as
 // fair; the intake is the screen's own.
 //
@@ -254,11 +255,15 @@ function background(g: Game, reserve: number): void {
   const worst = (Object.keys(scores) as Array<keyof SatisfactionAttributes>).sort((a, b) => scores[a] - scores[b])[0];
   if (scores[worst] < LIVABLE) buildFor(g, worst, reserve);
   // What opens and nothing on the line mentions: a lab, a capital project,
-  // and a building a course waits on (Plan 69: the Art Gallery, the Clinic).
+  // a building a course waits on (Plan 69: the Art Gallery, the Clinic),
+  // and the venue a varsity team waits on (Plan 85C: the Athletics tab
+  // lists the team as waiting on it, and until then it never plays).
   const waitedOn = new Set(g.s.tech
     .filter((t) => t.kind === 'course' && t.status === 'locked')
     .flatMap((t) => t.prereqs));
-  const opened = buildable(g.s, reserve).filter((t) => t.facilityType === 'lab' || t.project !== undefined || waitedOn.has(t.id));
+  const venuesAwaited = new Set(g.s.orgs.teams.filter((team) => team.status === 'awaitingVenue').map((team) => team.venueCategory));
+  const opened = buildable(g.s, reserve).filter((t) => t.facilityType === 'lab' || t.project !== undefined || waitedOn.has(t.id)
+    || (t.athleticsVenueReveal === true && t.facilityType !== undefined && venuesAwaited.has(t.facilityType)));
   const next = cheapest(opened);
   if (next) site(g, next);
   // A graduate program its host offers.
