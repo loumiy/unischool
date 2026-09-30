@@ -1288,8 +1288,8 @@ export function studentLifeSocialCurve(raw: number): number {
 }
 
 // What satisfactionSystem.ts adds: all three sources, on the curve.
-// Athletics also feeds campus-life standing (prestigeSystem.ts's
-// computeSocialTarget), but none of this touches academic standing.
+// Campus life reads the same clubs and chapters in the student-life pillar
+// (prestigeSystem.ts's socialLifeScore).
 export function studentLifeSocialBonus(s: GameState): number {
   return studentLifeSocialCurve(studentLifeSocialRaw(s));
 }

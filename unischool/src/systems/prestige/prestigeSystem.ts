@@ -8,7 +8,7 @@ import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
 import { GRADE_POINTS, gradeFor, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
-import { athleticProgramStrength, sportEconomics, studentLifeSocialRaw, STUDENT_LIFE_PRESTIGE_FULL } from '../../data/studentLifeData';
+import { athleticProgramStrength, departmentPot, sportEconomics, studentLifeSocialRaw, teamQuality, STUDENT_LIFE_PRESTIGE_FULL } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
 import { TARGET_RATIO, attributeCoverage } from '../satisfaction/satisfactionSystem';
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
@@ -46,17 +46,39 @@ export const PRESTIGE_MAX_RISE = 2.1;
 // Weekly movement between summers; the summer step is the beat.
 const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
 
-// Weight of each 0..1 input; the target is clamped to PRESTIGE_MAX. Faculty
-// stats are not an input: teaching and research already count through
-// course grades and research output.
+// The four pillars (Plan 85): prestige is their weighted blend. Each pillar
+// is a standing of its own on the prestige scale, from PILLAR_FLOOR (a
+// college with nothing) to PRESTIGE_MAX (every term in full), and prestige's
+// target is these shares of the four, plus the adjustments that stay outside
+// every pillar (endowment, and the condition and crowding penalties).
+// Athletics counts least, by the owner's decision; tuned in Plan 85C.
+export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';
+export const PILLARS: readonly Pillar[] = ['academics', 'research', 'studentLife', 'athletics'];
+export const PILLAR_WEIGHTS: Readonly<Record<Pillar, number>> = {
+  academics: 0.35,
+  research: 0.25,
+  studentLife: 0.25,
+  athletics: 0.15,
+};
+export const PILLAR_LABELS: Readonly<Record<Pillar, string>> = {
+  academics: 'Academics',
+  research: 'Research',
+  studentLife: 'Student life',
+  athletics: 'Athletics',
+};
+
+// Each pillar's terms, weighted among themselves. The weights are the terms'
+// old weights where they had one: academics and student life keep their
+// prestige weights, research the research standing's, athletics the campus
+// life standing's (flagship strength is new, at the titles' weight).
 const CURRICULUM_BREADTH_WEIGHT = 50; // majors/schools completed; the largest single term
 const CONCENTRATION_WEIGHT = 30;      // how deep the deepest school is — founded and distinguished (see concentrationScore below)
 const TEACHING_QUALITY_WEIGHT = 30;   // how good the courses actually are, as its own input (see teachingScore below)
 const STUDENT_QUALITY_WEIGHT = 24;    // emergent avg incoming quality — grows with a low-tuition, selective posture
-const RESEARCH_WEIGHT = 22;           // what the university's research has actually produced (see researchScore below)
 const WELFARE_WEIGHT = 20;            // the year's average satisfaction, scored from 40 to 80 (see welfareScore below)
-// Campus life: every athletics venue and rec-center rung carries a
-// prestigeContribution (facilitiesData.ts); a full build reads about 0.55.
+// Campus life: the campus life standing's own reading of the places, the
+// clubs and chapters and what students report (socialLifeScore below), less
+// its athletics, which are the athletics pillar's.
 const CAMPUS_LIFE_WEIGHT = 12;
 // Campus beauty (systems/estate/beauty.ts): either way from a neutral 50.
 const BEAUTY_WEIGHT = 6;
@@ -176,17 +198,17 @@ function campusLifeScore(s: GameState): number {
   return clamp01(total + historicPrestige(s));
 }
 
-// Research: its only path into prestige, as a capped, small-weighted input,
-// so research supplements standing and never substitutes for curriculum. A
-// monotone lifetime count. Publications are heavily discounted because they
-// are common; canceled initiatives earn nothing.
+// Research credits: a monotone lifetime count of what the labs have
+// produced, read by the research pillar (against RESEARCH_STANDING_CREDITS_FOR_FULL)
+// and, against its own smaller denominator, by researchScore (the legacy
+// reading, sim/legacyReading.ts; prestige's own research term until Plan
+// 85B). Publications are heavily discounted because they are common;
+// canceled initiatives earn nothing.
 const PUBLICATION_PRESTIGE_CREDIT = 0.1;
 const BREAKTHROUGH_PRESTIGE_CREDIT = 1;
 const PRIZE_PRESTIGE_CREDIT = 3;      // on top of what the winner's own output gains
 const DOCTORATE_PRESTIGE_CREDIT = 2;  // a founded research doctorate, worth two breakthroughs
 export const RESEARCH_CREDITS_FOR_FULL_SCORE = 20;
-// Shared by the academic input and the research standing, which differ only
-// in the denominator.
 export function researchCredits(s: GameState): number {
   const doctorates = graduatePrograms().filter(
     (program) => program.type === 'doctoral' && s.milestones[`grad-program-complete:${program.id}`],
@@ -251,6 +273,8 @@ export interface StandingInput {
   multiplier?: StandingMultiplier;
   penalty?: boolean;     // a subtraction rather than an input: the contribution is -weight * score
   detail: string;        // one line about what the score actually read
+  // A pillar of prestige (Plan 85B): its own make-up, shown under its row.
+  pillar?: StandingBreakdown;
 }
 
 export interface SummerModel {
@@ -285,6 +309,11 @@ export interface StandingBreakdown {
   ceiling?: { value: number; label: string; detail: string };
   min: number;
   max: number;
+  // A pillar (Plan 85B): its share of prestige, and whether it is read as
+  // it stands (academics, athletics) rather than a stock drifting toward
+  // its target (research, student life).
+  share?: number;
+  live?: boolean;
 }
 
 function weigh(
@@ -374,12 +403,32 @@ export function teachingCeiling(s: GameState): NonNullable<StandingBreakdown['ce
   };
 }
 
-export function prestigeBreakdown(s: GameState): StandingBreakdown {
+// ---- The pillars (Plan 85B) ----
+// The floor every pillar starts from, and the span its terms fill.
+export const PILLAR_FLOOR = PRESTIGE_BASELINE;
+export const PILLAR_SPAN = PRESTIGE_MAX - PILLAR_FLOOR;
+
+// A pillar's terms, scaled so the core terms in full fill PILLAR_SPAN: the
+// pillar reads on the prestige scale. A capital project's lift is points on
+// that scale, on top (projectInput), as it was on the standing it lifted.
+function scaled(inputs: StandingInput[]): StandingInput[] {
+  const full = inputs.reduce((sum, i) => sum + (i.penalty ? 0 : i.weight), 0);
+  const k = full > 0 ? PILLAR_SPAN / full : 0;
+  return inputs.map((i) => ({ ...i, weight: i.weight * k, contribution: i.contribution * k }));
+}
+
+function pillarOf(
+  pillar: Pillar, current: number | null, core: StandingInput[], bonus: StandingInput[],
+): StandingBreakdown {
+  const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, [...scaled(core), ...bonus]);
+  // Academics and athletics are read as they stand; research and student
+  // life are the stocks that drift toward them (tickPrestige).
+  return { ...made, current: current ?? made.target, share: PILLAR_WEIGHTS[pillar], live: current === null };
+}
+
+function academicsBreakdown(s: GameState): StandingBreakdown {
   const avgQuality = campusAverageCourseQuality(s);
-  const average = trailingYearSatisfaction(s);
-  const coverages = crowdingCoverages(s);
-  const worst = coverages[0];
-  return breakdown('Prestige', PRESTIGE_BASELINE, s.self.reputation, [
+  return pillarOf('academics', null, [
     weigh(
       'breadth', 'Curriculum breadth', CURRICULUM_BREADTH_WEIGHT, curriculumBreadthScore(s),
       'Programs established and distinguished, schools distinguished, graduate programs founded.',
@@ -401,27 +450,89 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       `${s.history.length === 0 ? 'The founding class' : 'The class that enrolled last summer'} averaged ${s.students.incomingQuality.toFixed(0)} of 100.`,
       scaleMultiplier(s),
     ),
-    weigh(
-      'research', 'The labs\' output', RESEARCH_WEIGHT, researchScore(s),
-      `${researchCredits(s).toFixed(1)} research credits of the ${RESEARCH_CREDITS_FOR_FULL_SCORE} for the top score: each publication, finished project, breakthrough, prize and doctorate earns some. This is prestige's own reading; the research standing is ranked on its own, in the standings.`,
-    ),
-    weigh(
-      'campus', 'Recreation buildings and venues', CAMPUS_LIFE_WEIGHT, campusLifeScore(s),
-      'What the recreation buildings and the athletics venues contribute on their own, as prestige reads them; the campus life standing is ranked on its own, in the standings.',
-    ),
+  ], projectInput(s, 'academics'));
+}
+
+function studentLifeBreakdown(s: GameState): StandingBreakdown {
+  const average = trailingYearSatisfaction(s);
+  return pillarOf('studentLife', s.self.socialStanding, [
     weigh(
       'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
       `Students have averaged ${satisfactionFigure(average)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
     ),
     weigh(
+      'campus', 'Campus life', CAMPUS_LIFE_WEIGHT, socialLifeScore(s),
+      `The recreation buildings and venues, ${s.orgs.clubs.length} club${s.orgs.clubs.length === 1 ? '' : 's'} and ${s.orgs.chapters.length} chapter${s.orgs.chapters.length === 1 ? '' : 's'}, and a social life students rate ${satisfactionFigure(s.students.satisfactionBreakdown.social)} of 100.`,
+    ),
+    weigh(
       'beauty', 'Campus beauty', BEAUTY_WEIGHT, beautyScore(s),
       `The campus scores ${campusBeauty(s).toFixed(0)} of 100 for its trees, landmarks, upkeep and quads; 50 is neutral.`,
     ),
+  ], projectInput(s, 'experience'));
+}
+
+function athleticsBreakdown(s: GameState): StandingBreakdown {
+  const titles = s.orgs.titles.length;
+  const teams = s.orgs.teams.filter((t) => t.status === 'active').length;
+  const flagships = flagshipStrength(s);
+  return pillarOf('athletics', null, [
+    weigh(
+      'program', 'Program strength', ATHLETICS_PROGRAM_WEIGHT, clamp01(athleticProgramStrength(s) / 100),
+      `${teams} team${teams === 1 ? '' : 's'} fielding, at program strength ${athleticProgramStrength(s).toFixed(0)} of 100.`,
+    ),
+    weigh(
+      'titles', 'Championships', ATHLETICS_TITLES_WEIGHT, titlesScore(s),
+      `${titles} national title${titles === 1 ? '' : 's'} of the ${TITLES_FOR_FULL_SCORE} a dynasty is.`,
+    ),
+    weigh(
+      'flagships', 'Flagship programs', ATHLETICS_FLAGSHIP_WEIGHT, flagships.score,
+      flagships.count === 0
+        ? 'No flagship program yet: the first programs in the department\'s order are its flagships, as many as the subsidy allows.'
+        : `${flagships.count} flagship${flagships.count === 1 ? '' : 's'}, at a mean quality of ${(flagships.score * 100).toFixed(0)} of 100.`,
+    ),
+  ], []);
+}
+
+export function pillarBreakdown(s: GameState, pillar: Pillar): StandingBreakdown {
+  switch (pillar) {
+    case 'academics': return academicsBreakdown(s);
+    case 'research': return researchStandingBreakdown(s);
+    case 'studentLife': return studentLifeBreakdown(s);
+    case 'athletics': return athleticsBreakdown(s);
+  }
+}
+
+// A pillar on the prestige scale, and as a 0..1 score.
+export function pillarValue(s: GameState, pillar: Pillar): number {
+  return pillarBreakdown(s, pillar).target;
+}
+export function pillarScoreOf(value: number): number {
+  return clamp01((value - PILLAR_FLOOR) / PILLAR_SPAN);
+}
+export function pillarScore(s: GameState, pillar: Pillar): number {
+  return pillarScoreOf(pillarValue(s, pillar));
+}
+
+// Prestige (Plan 85B): the four pillars' blend, then the adjustments. The
+// baseline is the pillars' floor, so the pillar inputs sum to the weighted
+// mean of their values.
+export function prestigeBreakdown(s: GameState): StandingBreakdown {
+  const coverages = crowdingCoverages(s);
+  const worst = coverages[0];
+  const pillars = PILLARS.map((p) => {
+    const made = pillarBreakdown(s, p);
+    const input = weigh(
+      p, PILLAR_LABELS[p], PILLAR_WEIGHTS[p] * PILLAR_SPAN, pillarScoreOf(made.target),
+      `${PILLAR_LABELS[p]} stands at ${made.target.toFixed(1)} of ${PRESTIGE_MAX}, and counts for ${pct(PILLAR_WEIGHTS[p])} of prestige.`,
+    );
+    return { ...input, pillar: made };
+  });
+  return breakdown('Prestige', PRESTIGE_BASELINE, s.self.reputation, [
+    ...pillars,
     weigh(
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
       `${money(s.finance.endowment)} against a student body of ${count(totalEnrolled(s.students))}.`,
     ),
-    ...projectInput(s, 'academics'),
     penalise(
       'condition', 'Condition of the buildings', CONDITION_PENALTY, conditionScore(s),
       'The buildings\' mean condition: a fully maintained campus costs nothing, a run-down one up to four points.',
@@ -594,16 +705,18 @@ export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly stri
   return computePrestigeTarget({ ...s, milestones });
 }
 
-// The other two standings (docs/design/progression.md): stocks beside
-// `reputation`, never inside it, and never read back into a decision
+// The research and student-life pillars are also stocks (s.self's
+// researchStanding and socialStanding): each drifts toward its pillar's
+// value at the full weekly rate, as its old standing did, and is what the
+// rankings read. Neither is read back into a decision
 // (test/invariants.test.ts section 5).
 
-// Both sit below the academic baseline: these are earned, not arrived with.
+// Both start below the pillars' floor: these are earned, not arrived with.
 export const RESEARCH_STANDING_BASELINE = 18;
 export const SOCIAL_STANDING_BASELINE = 22;
 
-// Three times the academic denominator, so the axis does not max out within
-// a decade.
+// Three times prestige's old denominator, so the pillar does not max out
+// within a decade.
 const RESEARCH_STANDING_CREDITS_FOR_FULL = 60;
 
 const RESEARCH_OUTPUT_WEIGHT = 80;  // what the labs have actually produced
@@ -616,32 +729,64 @@ function researchBreadthScore(s: GameState): number {
   return clamp01(labEquippedFields(s).size / fields);
 }
 
+// The research pillar: what the labs have produced (publications, finished
+// projects, breakthroughs, prizes and doctorates) and how many fields have
+// a lab.
 export function researchStandingBreakdown(s: GameState): StandingBreakdown {
   const equipped = labEquippedFields(s).size;
   const fields = researchableFields().length;
-  return breakdown('Research standing', RESEARCH_STANDING_BASELINE, s.self.researchStanding, [
+  return pillarOf('research', s.self.researchStanding, [
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
       clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),
-      `${researchCredits(s).toFixed(1)} research credits of ${RESEARCH_STANDING_CREDITS_FOR_FULL} — the same tally prestige reads, against a national denominator.`,
+      `${researchCredits(s).toFixed(1)} research credits of the ${RESEARCH_STANDING_CREDITS_FOR_FULL} for the top score: each publication, finished project, breakthrough, prize and doctorate earns some.`,
     ),
     weigh(
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
       `${equipped} of the ${fields} fields the college could research in ${equipped === 1 ? 'has' : 'have'} a lab.`,
     ),
-    ...projectInput(s, 'research'),
-  ]);
+  ], projectInput(s, 'research'));
 }
 
 export function computeResearchTarget(s: GameState): number {
   return researchStandingBreakdown(s).target;
 }
 
-const SOCIAL_FACILITIES_WEIGHT = 30;   // the rec-center chain's own prestigeContribution, the same sum campusLifeScore reads
+// Campus life, as the campus life standing read it before the pillars
+// (Plan 31): the places, the clubs and chapters, what students report.
+// Its athletics went to the athletics pillar.
+const SOCIAL_FACILITIES_WEIGHT = 30;   // the rec-center chain's and venues' own prestigeContribution
 const SOCIAL_ORGANISATIONS_WEIGHT = 35; // clubs, chapters and housed chapters, through their own capped bonus
-const SOCIAL_ATHLETICS_WEIGHT = 30;     // athleticProgramStrength
 const SOCIAL_SATISFACTION_WEIGHT = 25;  // what the student body actually reports about its social life
-const SOCIAL_TITLES_WEIGHT = 20;        // championships won (see systems/athletics/playoffs.ts)
+
+function socialOrganisationsScore(s: GameState): number {
+  // Full at the old cap, as before Plan 72H's curve (studentLifeData.ts).
+  return clamp01(studentLifeSocialRaw(s) / STUDENT_LIFE_PRESTIGE_FULL);
+}
+
+export function socialLifeScore(s: GameState): number {
+  return (
+    SOCIAL_FACILITIES_WEIGHT * campusLifeScore(s)
+    + SOCIAL_ORGANISATIONS_WEIGHT * socialOrganisationsScore(s)
+    + SOCIAL_SATISFACTION_WEIGHT * clamp01(s.students.satisfactionBreakdown.social / 100)
+  ) / (SOCIAL_FACILITIES_WEIGHT + SOCIAL_ORGANISATIONS_WEIGHT + SOCIAL_SATISFACTION_WEIGHT);
+}
+
+// The student-life pillar, under its old name for its callers.
+export function socialStandingBreakdown(s: GameState): StandingBreakdown {
+  return studentLifeBreakdown(s);
+}
+
+export function computeSocialTarget(s: GameState): number {
+  return studentLifeBreakdown(s).target;
+}
+
+// ---- Athletics ----
+// The campus life standing's weights for program strength and titles;
+// flagship strength is new, at the titles' weight.
+const ATHLETICS_PROGRAM_WEIGHT = 30;
+const ATHLETICS_TITLES_WEIGHT = 20;
+const ATHLETICS_FLAGSHIP_WEIGHT = 20;
 
 // Championships: a monotone stock; maxing it takes a dynasty.
 const TITLES_FOR_FULL_SCORE = 12;
@@ -650,42 +795,20 @@ function titlesScore(s: GameState): number {
   return clamp01(weighted / TITLES_FOR_FULL_SCORE);
 }
 
-function socialOrganisationsScore(s: GameState): number {
-  // Full at the old cap, as before Plan 72H's curve (studentLifeData.ts).
-  return clamp01(studentLifeSocialRaw(s) / STUDENT_LIFE_PRESTIGE_FULL);
+// The flagships' mean quality (Plan 80G's funded programs), 0..1; none
+// reads 0.
+function flagshipStrength(s: GameState): { count: number; score: number } {
+  const pot = departmentPot(s);
+  const flags = pot.programs.filter((p) => p.band === 'flagship');
+  if (flags.length === 0) return { count: 0, score: 0 };
+  const mean = flags.reduce((sum, p) => sum + teamQuality(p.team, s, pot), 0) / flags.length;
+  return { count: flags.length, score: clamp01(mean / 100) };
 }
 
-export function socialStandingBreakdown(s: GameState): StandingBreakdown {
-  const titles = s.orgs.titles.length;
-  const teams = s.orgs.teams.filter((t) => t.status === 'active').length;
-  return breakdown('Campus life standing', SOCIAL_STANDING_BASELINE, s.self.socialStanding, [
-    weigh(
-      'facilities', 'Places built for it', SOCIAL_FACILITIES_WEIGHT, campusLifeScore(s),
-      'The recreation buildings, read off the same contribution prestige reads.',
-    ),
-    weigh(
-      'organisations', 'Clubs and chapters', SOCIAL_ORGANISATIONS_WEIGHT, socialOrganisationsScore(s),
-      `${s.orgs.clubs.length} club${s.orgs.clubs.length === 1 ? '' : 's'} and ${s.orgs.chapters.length} chapter${s.orgs.chapters.length === 1 ? '' : 's'}.`,
-    ),
-    weigh(
-      'athletics', 'Varsity athletics', SOCIAL_ATHLETICS_WEIGHT, clamp01(athleticProgramStrength(s) / 100),
-      `${teams} team${teams === 1 ? '' : 's'} fielding, at program strength ${athleticProgramStrength(s).toFixed(0)}.`,
-    ),
-    weigh(
-      'satisfaction', 'What students report', SOCIAL_SATISFACTION_WEIGHT,
-      clamp01(s.students.satisfactionBreakdown.social / 100),
-      `The social need in student satisfaction, at ${satisfactionFigure(s.students.satisfactionBreakdown.social)} of 100.`,
-    ),
-    weigh(
-      'titles', 'Championships', SOCIAL_TITLES_WEIGHT, titlesScore(s),
-      `${titles} national title${titles === 1 ? '' : 's'} of the ${TITLES_FOR_FULL_SCORE} a dynasty is.`,
-    ),
-    ...projectInput(s, 'experience'),
-  ]);
-}
-
-export function computeSocialTarget(s: GameState): number {
-  return socialStandingBreakdown(s).target;
+// The athletic ranking's reading (rivalsSystem.ts's athleticStrength axis),
+// on athletics' own 0-100 scale: the pillar's score.
+export function athleticStanding(s: GameState): number {
+  return 100 * pillarScore(s, 'athletics');
 }
 
 // Academic standing trembles toward its target; the other two drift at the

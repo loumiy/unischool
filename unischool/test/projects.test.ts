@@ -10,7 +10,7 @@ import { schoolCurriculumIds } from '../src/data/techData';
 import { canStartDevelopment, startDevelopment, unlockAvailable } from '../src/systems/techtree/techSystem';
 import { canPayFromEndowment, endowmentHalf, lateTierOpen, projectLift, projectLiftMax, projectOpen } from '../src/systems/estate/projects';
 import { financingFor } from '../src/systems/finance/treasury';
-import { computeResearchTarget, prestigeBreakdown } from '../src/systems/prestige/prestigeSystem';
+import { computeResearchTarget, pillarBreakdown } from '../src/systems/prestige/prestigeSystem';
 import { eligible, whenMet } from '../src/systems/events/catalogue';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { depthOpen, initiativeOffers } from '../src/data/researchData';
@@ -128,15 +128,15 @@ function stand(s: GameState, id: string): void {
 {
   const s = fresh(20);
   const before = computeResearchTarget(s);
-  assert(!prestigeBreakdown(s).inputs.some((i) => i.key === 'projects'), 'no line for projects until one stands');
+  assert(!pillarBreakdown(s, 'academics').inputs.some((i) => i.key === 'projects'), 'no line for projects until one stands');
   stand(s, 'PROJ-RESEARCH-PARK');
   assert(Math.abs(projectLift(s, 'research') - 18) < 1e-9, 'the research park lifts research 18 points');
   assert(Math.abs(computeResearchTarget(s) - before - 18) < 0.01 || computeResearchTarget(s) === 150, 'and the research standing\'s target with it');
   node(s, 'PROJ-RESEARCH-PARK').backlog = node(s, 'PROJ-RESEARCH-PARK').cost / 4;
   assert(Math.abs(projectLift(s, 'research') - 9) < 0.01, 'half as much at half condition');
   stand(s, 'HLTH-T3');
-  const input = prestigeBreakdown(s).inputs.find((i) => i.key === 'projects');
-  assert(input !== undefined && Math.abs(input.contribution - 6) < 0.01, `the medical center lifts academics (${input?.contribution})`);
+  const input = pillarBreakdown(s, 'academics').inputs.find((i) => i.key === 'projects');
+  assert(input !== undefined && Math.abs(input.contribution - 6) < 0.01, `the medical center lifts the academics pillar (${input?.contribution})`);
   assert(Math.abs(projectLift(s, 'research') - 9 - 8) < 0.01, 'and research, beside the park');
   assert(projectLiftMax('academics') === PROJECTS.reduce((t, p) => t + (p.project.boosts.academics ?? 0), 0) + 6, 'the most is every project standing, the Medical Center among them');
   assert(projectLiftMax('athletics') === 0, 'and nothing lifts athletics since the championship stadium went');

@@ -108,22 +108,21 @@ console.log('year in review tests');
 
   const standing = text(s, 'standing');
   assert(/graded \d+: prestige [\d.]+ → [\d.]+/.test(standing), `the standing section reads the report card before it is applied (${standing})`);
-  assert(standing.includes('Curriculum breadth'), 'and lists the inputs by name');
+  assert(['Academics', 'Research', 'Student life', 'Athletics'].every((p) => standing.includes(p)), 'and lists the four pillars by name');
   assert(!buildYearInReview(s).truncated, 'a quiet founding year fits inside the log');
 
   // Every term carries its "what moves it" (Plan 78C), and it is the line
   // History › Prestige shows for that term, from the one function.
   const inputs = prestigeBreakdown(s).inputs;
   const termLines = section(s, 'standing').lines.filter((l) => inputs.some((i) => l.text.startsWith(`${i.label}: `)));
-  assert(termLines.length >= 9, `the review lists the grade's terms (${termLines.length})`);
+  assert(termLines.length >= 5, `the review lists the grade's terms: the pillars and the endowment at least (${termLines.length})`);
   for (const line of termLines) {
     const input = inputs.find((i) => line.text.startsWith(`${i.label}: `))!;
     assert(!!line.detail && line.detail.trim().length > 0, `${input.label} has a detail line`);
     assert(line.detail === standingDetailLine(input), `${input.label}'s detail is History's line`);
   }
-  const multiplied = inputs.find((i) => i.multiplier);
-  assert(!!multiplied && !!termLines.find((l) => l.text.startsWith(`${multiplied.label}: `))?.detail?.includes(multiplied.multiplier!.label),
-    'a term with a multiplier names it under the term');
+  const academics = termLines.find((l) => l.text.startsWith('Academics: '));
+  assert(!!academics?.detail?.includes('35%'), 'a pillar says what share of prestige it is');
   assert(section(s, 'standing').lines.filter((l) => l.detail).length === termLines.length, 'and only the terms carry a detail');
 }
 

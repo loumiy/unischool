@@ -72,7 +72,7 @@ export interface FinalReport {
 
 // The report's six (data/reportData.ts), read off rivalsSystem.ts's axes.
 const REPORT_AXES: ReadonlyArray<{ axis: ReportAxis; standing: StandingAxis }> = [
-  { axis: 'academics', standing: 'reputation' },
+  { axis: 'academics', standing: 'academics' },
   { axis: 'research', standing: 'researchStanding' },
   { axis: 'experience', standing: 'socialStanding' },
   { axis: 'athletics', standing: 'athleticStrength' },

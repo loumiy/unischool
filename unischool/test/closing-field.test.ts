@@ -17,7 +17,9 @@
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { tickRivals, ELITE_CLOSE_ABOVE_PRESTIGE, ELITE_CLOSE_GAP, ELITE_NO_LEAPFROG_GAP, eliteClosingStep, buildReportPayload, playerRank } from '../src/systems/rivals/rivalsSystem';
+import { tickRivals, ELITE_CLOSE_ABOVE_PRESTIGE, ELITE_CLOSE_GAP, ELITE_NO_LEAPFROG_GAP, eliteClosingStep, buildReportPayload, playerRank, rivalOverall } from '../src/systems/rivals/rivalsSystem';
+import { PILLAR_FLOOR, PILLAR_SPAN } from '../src/systems/prestige/prestigeSystem';
+import type { Rival } from '../src/state/types';
 import { ELITE_RIVAL_IDS, initialRivals } from '../src/data/rivalData';
 import { tickEvents } from '../src/systems/events/eventSystem';
 import { DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR, findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
@@ -43,6 +45,15 @@ function assert(cond: boolean, msg: string): void {
 }
 
 console.log('closing field tests');
+
+// A rival's prestige is the blend of its four pillars (Plan 85B): set every
+// pillar to one value, and every pillar's momentum to one step, to place it.
+function place(r: Rival, overall: number, momentum = 0): void {
+  r.reputation = r.researchStanding = r.socialStanding = overall;
+  r.athleticStrength = ((overall - PILLAR_FLOOR) / PILLAR_SPAN) * 100;
+  r.momentum = r.researchMomentum = r.socialMomentum = momentum;
+  r.athleticMomentum = (momentum * 100) / PILLAR_SPAN;
+}
 
 // --- the term's shape -----------------------------------------------------------
 {
@@ -75,11 +86,11 @@ console.log('closing field tests');
   s.clock.week = WEEKS_PER_YEAR;
   for (let y = 0; y < 8; y += 1) tickRivals(s);
   const elite = s.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id));
-  assert(elite.every((r) => r.reputation > 110), `every elite school has closed to within reach after eight years (${elite.map((r) => r.reputation.toFixed(0)).join(', ')})`);
-  assert(elite.every((r) => r.reputation <= 125 - ELITE_NO_LEAPFROG_GAP), 'and none has leapfrogged a leader who held');
+  assert(elite.every((r) => rivalOverall(r) > 110), `every elite school has closed to within reach after eight years (${elite.map((r) => rivalOverall(r).toFixed(0)).join(', ')})`);
+  assert(elite.every((r) => rivalOverall(r) <= 125 - ELITE_NO_LEAPFROG_GAP + 1e-9), 'and none has leapfrogged a leader who held');
   assert(playerRank(s) === 1, 'so the leader who held is still first');
   const rest = s.rivals.filter((r) => !ELITE_RIVAL_IDS.has(r.id));
-  assert(rest.every((r) => r.reputation < 110), 'and the rest of the field drifted as it always did');
+  assert(rest.every((r) => rivalOverall(r) < 110), 'and the rest of the field drifted as it always did');
 
   // A leader who coasts falls into the band and is passed: the field does
   // not follow them down.
@@ -91,7 +102,7 @@ console.log('closing field tests');
   coasting.self.reputation = 138;
   tickRivals(coasting);
   assert(playerRank(coasting) > 1, `and one that falls twelve points is passed (rank #${playerRank(coasting)})`);
-  const above = coasting.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id) && r.reputation > 138).length;
+  const above = coasting.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id) && rivalOverall(r) > 138).length;
   assert(above >= 1, `by rivals the band left standing above it (${above})`);
 
   // A leader below the gate meets the field it always did: no elite
@@ -99,9 +110,9 @@ console.log('closing field tests');
   const quiet = createInitialState('Quiet');
   quiet.self.reputation = 95;
   quiet.clock.week = WEEKS_PER_YEAR;
-  const before = quiet.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id)).map((r) => r.reputation);
+  const before = quiet.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id)).map(rivalOverall);
   for (let y = 0; y < 8; y += 1) tickRivals(quiet);
-  const after = quiet.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id)).map((r) => r.reputation);
+  const after = quiet.rivals.filter((r) => ELITE_RIVAL_IDS.has(r.id)).map(rivalOverall);
   const drift = after.map((v, i) => v - before[i]);
   assert(Math.max(...drift) < 20, `below the gate the elite band only drifts (largest move ${Math.max(...drift).toFixed(1)})`);
 }
@@ -116,14 +127,13 @@ console.log('closing field tests');
   s.clock.week = 30;
   s.events.opening.skipped = true;
   const rival = s.rivals.find((r) => r.id === 'r6')!;
-  rival.reputation = 110;
+  place(rival, 110);
   s.history.push(captureYearSnapshot(s, { attrition: 0, satisfactionAverage: 70, graduated: 0 }));
   assert(s.history[0].rank === 1, 'first last summer');
-  rival.reputation = 130;
   // The report reconstructs a rival's standing a year ago by stepping its
   // momentum back (see rivalsSystem.ts's previousEntries), so a surge is a
   // large momentum: 130 today, 105 a year ago.
-  rival.momentum = 25;
+  place(rival, 130, 25);
   assert(playerRank(s) === 2, 'second today');
   assert(buildReportPayload(s).passedBy.includes(rival.name), 'the report says who passed');
   const standing = buildYearInReview(s).sections.find((x) => x.key === 'standing')!;

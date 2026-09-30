@@ -163,7 +163,13 @@ nothing in the view names an input, so reweighting the model changes one file.
 `test/invariants.test.ts` asserts the identity on hand-built states (founding,
 saturated, crowded — the interesting cases are where the clamps bite).
 
-**Readings.** Below the academic standing's inputs sits a second list, *read,
+**Pillars.** Since Plan 85B prestige's inputs are its four pillars and
+three adjustments. Each pillar row carries its own breakdown (`pillar` on
+the input, `pillarBreakdown`), which the view renders under the row, and
+whose own target is again a sum over its inputs, so the identity holds at
+both levels.
+
+**Readings.** Below prestige's inputs sits a second list, *read,
 not counted*: terms the model measures and shows but does not sum. Plan 15's
 PR A put four there — welfare, concentration, crowding and the instruction
 capacity crowding reads — so that the year of play before PR B made them
@@ -177,7 +183,7 @@ a sum over `inputs` alone, and the invariant sweep asserts that no reading's
 key is also an input's. `test/standing-readings.test.ts` pins each term's
 arithmetic; `test/report-card.test.ts` pins the summer step that grades them.
 
-**Grades.** Since Plan 15's PR B the academic standing carries a *summer
+**Grades.** Since Plan 15's PR B prestige carries a *summer
 model*: the panel's note says what the year is grading toward and what the
 summer step would move, and each row shows last summer's grade beside what it
 is worth now. A penalty row (crowding) is drawn in the bad colour and reads as

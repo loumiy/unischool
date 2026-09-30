@@ -221,7 +221,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity athletics'}</h2>
         <HelpHint
-          text={`A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant post is a real gap rather than a hard block. The department runs on its own fund: the college's subsidy plus what the programs earn at the gate. The subsidy level here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). The subsidy level also sets how many programs may be flagships: 2, 4 or 6, the first on the list. A flagship takes its sport's whole cost to compete from the fund and may carry a scholarship budget, which recruits; every other program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in the order of the cards, until the money runs out. Whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Campus life is one of the three standings the college carries from year to year (the History tab), and varsity athletics is the only thing on this screen that moves it.`}
+          text={`A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant post is a real gap rather than a hard block. The department runs on its own fund: the college's subsidy plus what the programs earn at the gate. The subsidy level here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). The subsidy level also sets how many programs may be flagships: 2, 4 or 6, the first on the list. A flagship takes its sport's whole cost to compete from the fund and may carry a scholarship budget, which recruits; every other program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in the order of the cards, until the money runs out. Whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Athletics is one of the four pillars of prestige (the History tab): the programs' strength, the flagships' and the titles make it, and it counts for less than the other three.`}
         />
       </div>
 
@@ -243,14 +243,14 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
         )}
       </div>
 
-      {/* Two standings: the department's, and campus life, which athletics moves. */}
+      {/* Two pillars of prestige: athletics, the department's own, and student life. */}
       <dl className="department-standings">
         <div>
-          <dt>Athletic standing</dt>
+          <dt>Athletics</dt>
           <dd>{active.length > 0 ? <><strong>#{athleticRank(s)}</strong> of {s.rivals.length + 1}</> : <span className="stat">no program yet</span>}</dd>
         </div>
         <div>
-          <dt>Campus life</dt>
+          <dt>Student life</dt>
           <dd><strong>#{rankBy(s, 'socialStanding')}</strong> of {s.rivals.length + 1}</dd>
         </div>
         {/* Championships only once there is one. */}
@@ -346,7 +346,7 @@ function TrophyCase({ s }: { s: GameState }) {
     <section className="panel">
       <div className="panel-head">
         <h2>Trophy case</h2>
-        <HelpHint text="Every national title the college has won, by year and sport. A title lifts Campus life for good, swells the next summer's applicant pool for a few years, and for about a year makes donors easier to find and a campaign worth more." />
+        <HelpHint text="Every national title the college has won, by year and sport. A title lifts the athletics pillar for good, swells the next summer's applicant pool for a few years, and for about a year makes donors easier to find and a campaign worth more." />
       </div>
       <ul className="org-list trophy-case">
         {titles.map((title) => (
@@ -403,7 +403,7 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
             recruiting <strong>+{decimal(now, 1)}</strong>{trend}
           </span>
         )}
-        <span title={`The college's pull, up to +${COLLEGE_PULL_MAX}: +${decimal(pull.venue, 1)} from the venue's stage (its expansions) and +${decimal(pull.standing, 1)} from campus life standing.`}>
+        <span title={`The college's pull, up to +${COLLEGE_PULL_MAX}: +${decimal(pull.venue, 1)} from the venue's stage (its expansions) and +${decimal(pull.standing, 1)} from the student-life standing.`}>
           pull <strong>+{decimal(pull.total, 1)}</strong>
         </span>
       </div>

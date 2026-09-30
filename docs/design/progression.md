@@ -148,9 +148,45 @@ falls short falls faster than it climbs. Between summers a weekly tremor, a
 tenth of the old drift, keeps the toolbar number alive. Welfare and crowding
 are graded on the year's *average*, because those are the two a player could
 game by timing a dorm's completion in week 50; everything else on state at
-the summer. The inputs, with their weights:
+the summer.
 
-- **curriculum breadth** (50) — majors/schools completed *right now* (a stock
+**Prestige is the blend of four pillars** ([Plan 85](../plans/85-specializations.md)
+PR B, by the owner's decision). Until then prestige *was* academic standing,
+and research and campus life were rankings beside it that never fed it
+([Plan 80](../plans/80-the-owners-playtest.md) §1). The owner asked for
+prestige to measure all four things a college is known for, so each pillar
+is now a standing on the prestige scale, from 32 (a college with nothing)
+to 150 (every term in full), and prestige's target is their weighted mean:
+
+| Pillar | Share | Its terms (their weights among themselves) |
+|---|---|---|
+| Academics | 35% | curriculum breadth (50, × library adequacy), concentration (30), teaching quality (30), incoming student quality (24, × scale) |
+| Research | 25% | what the labs have produced (80: publications, finished projects, breakthroughs, prizes, doctorates, against 60 credits), fields with a lab (40) |
+| Student life | 25% | welfare (20), campus life (12: the places, the clubs and chapters, what students report of their social life), beauty (6, either way from 50) |
+| Athletics | 15% | program strength (30), championships (20), the flagships' quality (20) |
+
+Athletics counts least, by the owner's decision; the shares are
+`prestigeSystem.ts`'s `PILLAR_WEIGHTS`, beside the other prestige
+constants, and Plan 85C tunes them. A term keeps its old weight where it had
+one: academics' and student life's are prestige's, research's the research
+standing's, athletics' the campus life standing's (the flagships' is new, at
+the titles' weight). A capital project's lift is points on its pillar, on top
+of its terms. Three **adjustments** stay outside every pillar:
+
+- **financial resources per student** (+8, endowment against the enrolled
+  body) — what the late-game endowment campaigns buy;
+- **condition of the buildings** (up to −4) — only neglect counts;
+- **crowding** — a *penalty* of up to 25, not an input: the worst of the
+  housing, dining and health coverage ratios and the instruction-capacity
+  ratio, averaged over the year as a shortfall below 85% coverage (Plan 71
+  dropped the library and social space: a college that has not built one is
+  short of it, not overcrowded). A subtraction, so it can take a school
+  *below* what its pillars earned. The same reading shrinks next year's
+  applicant pool (see [admissions.md](admissions.md)).
+
+The pillars' terms, as they were weighted inside prestige before:
+
+- **curriculum breadth** — majors/schools completed *right now* (a stock
   read off the milestone booleans — see [curriculum.md](curriculum.md)) plus
   the **graduate programs** founded on top of them, not courses added this
   year. The four shares inside this one input sum to 1, so finishing
@@ -158,41 +194,21 @@ the summer. The inputs, with their weights:
   occupies the last 0.15 of the one that already existed (see
   [graduate-programs.md](graduate-programs.md)). Multiplied by library
   adequacy.
-- **concentration** (30) — the "known for" term, breadth's other half: how
+- **concentration** — the "known for" term, breadth's other half: how
   deep the school's *deepest* school is — founded (six of its programs housed
   in one hall, 0.4) and distinguished (every one of its programs complete,
   0.6). Only the best school counts; a second founded school is breadth, and
   breadth already pays for it. This is what lets a small elite college and a
   broad state university both be real.
-- **teaching quality** (30) — the campus average course grade (see
+- **teaching quality** — the campus average course grade (see
   [faculty.md](faculty.md)'s "Course quality"). Its own input, not a multiplier
   on anything: a school teaching twenty courses beautifully in its first decade
   is credited for them, years before any milestone gate opens.
-- **incoming student quality** (24) — the average quality of the class that
+- **incoming student quality** — the average quality of the class that
   actually enrolled that cycle, scaled by how big the school is.
-- **research standing** (22) — what the university's research has actually
-  produced: publications, breakthroughs, prizes, doctorates, and a credit for
-  every initiative carried to completion (see [research.md](research.md)). A
-  monotone count of the same shape as curriculum breadth, weighted small and
-  clamped like every other input.
-- **welfare** (20) — the year's average satisfaction, scored `(sat − 40)/40`:
+- **welfare** — the year's average satisfaction, scored `(sat − 40)/40`:
   below 40 it earns nothing, at 80 it pays in full. What lets a happy small
   college hold a standing a crowded large one cannot.
-- **campus life** (12) and **financial resources per student** (8, endowment
-  against the enrolled body) — the second is what the late-game endowment
-  campaigns buy. Campus life was cut to 8 with a named condition — it returns
-  when athletics and student life reach it — and [Plan 21](../plans/21-the-department.md)'s
-  PR B met it: every athletics venue carries a contribution, so the score
-  reads 0.55 at a full build rather than the rec chain's 0.15, and the weight
-  is restored.
-- **crowding** — a *penalty* of up to 25, not an input: the worst of the
-  housing, dining and health coverage ratios and the instruction-capacity
-  ratio, averaged over the year as a shortfall below 85% coverage (Plan 71
-  dropped the library and social space: a college that has not built one is
-  short of it, not overcrowded). A subtraction rather than a weighted input,
-  so it can take a school *below* what its curriculum earned. The same
-  reading shrinks next year's applicant pool (see
-  [admissions.md](admissions.md)).
 
 **The teaching standard caps the target** ([Plan 71](../plans/71-economy.md),
 the owner's rule: "you don't become a highly prestigious school with mediocre
@@ -232,18 +248,15 @@ breadth term too — i.e. sustained, decades-long buildout, not an early
 course-development sprint.
 
 **The player can see all of this.** The History tab opens with **Prestige**
-— one row per input, each row a bar of what that input is *worth* against the
-weight it could reach, the two multipliers named on the rows they touch, and
-today's stock against the target it is drifting toward. It shows prestige's
-breakdown and nothing else (Plan 80C): research standing and campus life
-standing are rankings of their own and are broken down under History's
-standings, where they belong, and prestige's own research and campus inputs
-are named for what they are ("The labs' output", "Recreation buildings and
-venues"), so they are not read as the standings of the same name.
-It is read off `prestigeSystem.ts`'s `prestigeBreakdown` /
-`researchStandingBreakdown` / `socialStandingBreakdown`, and **each target
-function is a sum over its own breakdown**, so the panel cannot disagree with the
-tick that produced the number. The rows are data: an input that is added, retired
+— one row per pillar and per adjustment, each row a bar of what it is *worth*
+against the most it could reach, and today's stock against the target it is
+drifting toward. Each pillar's row opens onto its own make-up: its terms,
+the two multipliers on the academic rows they touch, and a capital project's
+lift. History's standings show the four pillars again, each broken down,
+beside their rankings. It is read off `prestigeSystem.ts`'s
+`prestigeBreakdown` and `pillarBreakdown`, and **each target function is a
+sum over its own breakdown**, so the panel cannot disagree with the tick that
+produced the number. The rows are data: an input that is added, retired
 or reweighted changes that one file and the panel follows.
 Prestige is there **from the first week**, and the dock's Prestige chip opens
 it (Plan 78C; the Rank chip opens the guide's table, below); before the first summer its note says that prestige
@@ -284,56 +297,47 @@ rankings are a measurement *of* prestige (see "Rankings"), a strictly one-way
 read. Any future change must preserve this: prestige is composed from inputs, it
 is not a running tally of bonuses.
 
-## Three standings
+## Four pillars, and their rankings
 
-A school is ranked on **three** numbers, not one. All three are stocks of the
-same shape — a target computed weekly from durable inputs, drifted toward at
-`PRESTIGE_DRIFT_RATE`, clamped to the same band — and all three live in
-`prestigeSystem.ts`, which is what lets one file hold every writer of any of
-them.
+A school is ranked on **prestige** and on each of its **four pillars**
+(Plan 85B; before it, on three standings, academic, research and campus
+life, of which only the first was prestige). All live in `prestigeSystem.ts`,
+which is what lets one file hold every writer.
 
-| Standing | Field | Composed from |
+| Ranking | The player's | A rival's |
 |---|---|---|
-| Academic | `reputation` | Curriculum breadth (×library adequacy), teaching quality, incoming student quality (×admissions scale), research output, campus life, endowment per student |
-| Research | `researchStanding` | What the labs have produced, and how many fields the school can research in at all |
-| Campus life | `socialStanding` | Social facilities, student organisations, **varsity athletics**, and the `social` satisfaction attribute |
+| Prestige | `reputation`, graded each summer toward the blend | the same blend of its four pillars (`rivalsSystem.ts`'s `rivalOverall`) |
+| Academics | the academics pillar, read as it stands | its `reputation`, the stock the field has always drifted |
+| Research | `researchStanding`, a stock drifting toward the research pillar | its `researchStanding` |
+| Student life | `socialStanding`, a stock drifting toward the student-life pillar | its `socialStanding` |
+| Athletics | the athletics pillar's score, 0–100 | its `athleticStrength`, 0–100 |
 
-**The academic number was not decomposed, and this is not that.** The earlier
-direction here was to split `reputation` into underlying components; what
-happened instead is that two more standings were added *beside* it. The reason
-is that `reputation` is what the economy reads — `admitRate`, the applicant
-pool, price tolerance, every recorded `YearSnapshot`, and
-the harness's players — so a decomposition moves all of them at
-once. `computePrestigeTarget` is untouched by the three-standings change, and
-the sim's forty-year trajectories are byte-identical across it.
+**A rival's prestige is the same blend.** Its stored `reputation` became its
+academics, its research and campus life standings its research and student
+life, all already on the prestige scale; its athletic strength runs 0–100 as
+the player's athletic ranking does, and maps onto the scale the way the
+player's athletics pillar does (32 + 118 × strength/100). The player's
+prestige adds the endowment and loses its penalties, which a rival does not
+carry. So a rival's overall and the player's are one scale and one formula:
+a rival that is an academic power and an athletic minnow ranks below its
+academic place, as the college would.
 
-**The new standings are readings, never inputs.** Nothing in
-`computePrestigeTarget` reads either one, and no system reads either back into
-a decision. This is the same one-way rule rankings already follow, extended to
-cover all three, and `test/invariants.test.ts` asserts it rather than trusting
-it: every writer of all three stocks is confined, and the academic target is
-checked for any mention of the other two.
+**The elite band chases the leader's prestige with its overall.** The closing
+step (`eliteClosingStep`) is read on the rival's overall and added to every
+one of its pillars, so its overall rises by the step; the no-leapfrog cap
+likewise shifts every pillar down. The field's own drift is unchanged: the
+academic axis still rises toward `FIELD_CEILING`, the others drift on their
+own momentum, and the whole annual pass still takes one draw on the global
+stream.
 
-**This is where athletics finally reaches a standing.**
-[student-life.md](student-life.md) records that athletics touches satisfaction
-and "never prestige directly; if athletics should eventually touch prestige,
-that is a separate prestige-model decision, flagged rather than wired." That is
-the decision, made in the narrow shape it was flagged in: a varsity program
-moves **campus-life** standing, which no system reads back. The headline number
-athletics is forbidden to touch remains untouched.
+**Access and financial strength** are ranked beside them and count toward
+nothing.
 
-Rivals carry the same three fields under the same names — which is what lets
-one `rankedListBy(axis)` serve every leaderboard — seeded by a deterministic
-spread off each school's own id and drifted annually on independent momentum,
-so the three tables tell different stories. A school can be an academic power
-and an athletic minnow, or a modest college that is a wonderful place to spend
-four years.
-
-Each axis's drift runs on its own generator, all three seeded from a single
-global draw. That keeps the field's whole annual pass at one draw however many
-axes it grows — and, because the academic stream is then untouched by the
-others, adding a standing cannot perturb the trajectory the balance harness
-measures.
+Rivals carry the same field names as the player — which is what lets one
+`rankedListBy(axis)` serve every leaderboard — seeded by a deterministic
+spread off each school's own id and drifted annually on independent
+momentum, so the tables tell different stories. Each axis's drift runs on its
+own generator, all seeded from a single global draw.
 
 ## Rankings: the U.S. News report
 
@@ -384,11 +388,12 @@ published* is the event.
   fifty and, for a college below them, a gap and its own row with a neighbor
   either side.
 
-The report's subject is the academic table — as a real table now, with a
+The report's subject is the prestige table — as a real table now, with a
 column for where each school stood a year ago (the player's exact, a rival's
-the same momentum-step estimate the movers list uses) — with the other two
-standings as a line each beneath the headline rank: the school's place, and
-who leads that axis. Deliberately not two more tables: a full list belongs
+the same momentum-step estimate the movers list uses, each pillar stepped
+back) — with the four pillars and access and financial strength as a line
+each beneath the headline rank: the school's place, and who leads that axis.
+The live guide adds each school's four pillars as columns beside its score. Deliberately not two more tables: a full list belongs
 where its subject does (research standing reads on the Research tab). Neither
 line carries a year-over-year move, because `YearSnapshot` records only the
 academic rank and a move needs a stored prior; naming the leader is the

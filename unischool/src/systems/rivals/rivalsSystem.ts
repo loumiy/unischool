@@ -5,6 +5,7 @@ import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR, institutionName } from '../../stat
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
 import { ELITE_RIVAL_IDS, baseRivals, makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { clamp } from '../../math';
+import { PILLAR_FLOOR, PILLAR_SPAN, PILLAR_WEIGHTS, athleticStanding, pillarValue } from '../prestige/prestigeSystem';
 import { random } from '../../engine/random';
 
 // ---------------------------------------------------------------------
@@ -137,13 +138,14 @@ export function tickRivals(s: GameState): void {
       [...s.rivals].sort((a, b) => b.athleticStrength - a.athleticStrength).slice(0, ATHLETIC_CLOSING_FIELD).map((r) => r.id),
     );
     for (const r of s.rivals) {
+      // The elite band chases the leader's prestige with its own overall
+      // (rivalOverall, Plan 85B), read as the year opens.
+      const overallBefore = rivalOverall(r);
       if (roll() < MOMENTUM_REROLL_CHANCE) {
         r.momentum = (roll() - MOMENTUM_UPWARD_BIAS) * MOMENTUM_RANGE;
       }
       const shock = (roll() - 0.5) * ANNUAL_SHOCK_RANGE;
-      // The elite band's pull (eliteClosingStep) on top of momentum and shock.
       const elite = ELITE_RIVAL_IDS.has(r.id) && s.self.reputation > ELITE_CLOSE_ABOVE_PRESTIGE;
-      const closing = elite ? eliteClosingStep(r.reputation, chased) : 0;
       let next = r.reputation + r.momentum + shock + fieldRise(r.id, r.reputation);
       // Nothing climbs past the field's ceiling on its own (Plan 67): a rival
       // there may fall and recover, never drift beyond it, so the top of the
@@ -151,10 +153,6 @@ export function tickRivals(s: GameState): void {
       // outgrows it. The elite's closing on a leader (below) is not drift: a
       // leader above the ceiling is still chased, and passed if it coasts.
       if (next > FIELD_CEILING && next > r.reputation) next = Math.max(r.reputation, FIELD_CEILING);
-      next += closing;
-      // No leapfrogging (ELITE_NO_LEAPFROG_GAP), unless contested.
-      const ceiling = s.self.reputation - ELITE_NO_LEAPFROG_GAP;
-      if (elite && !contested && r.reputation <= ceiling) next = Math.min(next, ceiling);
       r.reputation = clamp(next, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
 
       // The other standings drift on their own momentum, so the tables tell
@@ -179,6 +177,16 @@ export function tickRivals(s: GameState): void {
         r.athleticStrength + r.athleticMomentum + (athleticRoll() - 0.5) * ANNUAL_SHOCK_RANGE + athleticClosing,
         ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX,
       );
+
+      // The elite band's pull (eliteClosingStep) on top of the year's drift,
+      // on its overall: every pillar rises by the step, so the overall does.
+      if (elite) {
+        shiftPillars(r, eliteClosingStep(overallBefore, chased));
+        // No leapfrogging (ELITE_NO_LEAPFROG_GAP), unless contested.
+        const ceiling = s.self.reputation - ELITE_NO_LEAPFROG_GAP;
+        const over = rivalOverall(r) - ceiling;
+        if (!contested && overallBefore <= ceiling && over > 0) shiftPillars(r, -over);
+      }
     }
   }
 
@@ -200,6 +208,39 @@ export function tickRivals(s: GameState): void {
   }
 }
 
+// A rival's four pillars on the prestige scale (Plan 85B). Its stored
+// reputation is its academics, and its research and campus life standings
+// its research and student life, all already on that scale; its athletic
+// strength runs 0-100, as the player's athletic standing does, and maps onto
+// the scale as the player's athletics pillar does.
+export function rivalPillars(r: Rival): { academics: number; research: number; studentLife: number; athletics: number } {
+  return {
+    academics: r.reputation,
+    research: r.researchStanding,
+    studentLife: r.socialStanding,
+    athletics: PILLAR_FLOOR + PILLAR_SPAN * r.athleticStrength / 100,
+  };
+}
+
+// A rival's prestige: the same blend of its four pillars the player's is
+// (prestigeSystem.ts's PILLAR_WEIGHTS). The player's own adds its
+// endowment and loses its penalties; a rival has neither.
+export function rivalOverall(r: Rival): number {
+  const p = rivalPillars(r);
+  return PILLAR_WEIGHTS.academics * p.academics + PILLAR_WEIGHTS.research * p.research
+    + PILLAR_WEIGHTS.studentLife * p.studentLife + PILLAR_WEIGHTS.athletics * p.athletics;
+}
+
+// Moves a rival's overall by `step`: every pillar by the same amount on the
+// prestige scale, within its band (a pillar at its band's edge moves less).
+function shiftPillars(r: Rival, step: number): void {
+  if (step === 0) return;
+  r.reputation = clamp(r.reputation + step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+  r.researchStanding = clamp(r.researchStanding + step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+  r.socialStanding = clamp(r.socialStanding + step, RIVAL_REPUTATION_MIN, RIVAL_REPUTATION_MAX);
+  r.athleticStrength = clamp(r.athleticStrength + (step * 100) / PILLAR_SPAN, ATHLETIC_STRENGTH_MIN, ATHLETIC_STRENGTH_MAX);
+}
+
 // One axis's momentum reroll, shared so a retune moves all axes together.
 function driftMomentum(current: number, roll: () => number): number {
   if (roll() >= MOMENTUM_REROLL_CHANCE) return current;
@@ -211,18 +252,26 @@ function driftMomentum(current: number, roll: () => number): number {
 // field identically (types.ts), except athletics, where the player's
 // strength is computed live (athleticProgramStrength).
 // ---------------------------------------------------------------------
-export type StandingAxis = 'reputation' | 'socialStanding' | 'researchStanding' | 'athleticStrength' | 'access' | 'financial';
+// 'reputation' is prestige, the overall: the blend of the four pillars
+// (Plan 85B). 'academics', 'researchStanding', 'socialStanding' and
+// 'athleticStrength' are the pillars.
+export type StandingAxis = 'reputation' | 'academics' | 'socialStanding' | 'researchStanding' | 'athleticStrength' | 'access' | 'financial';
 
-// The six standings in the league (Plan 31, V1-22), in the order the History
-// tab lists them.
+// The standings in the league (Plan 31, V1-22), in the order the History
+// tab lists them: prestige, its four pillars, then access and financial
+// strength, which are ranked but count toward nothing.
 export const STANDINGS: ReadonlyArray<{ axis: StandingAxis; label: string }> = [
-  { axis: 'reputation', label: 'Academics' },
+  { axis: 'reputation', label: 'Prestige' },
+  { axis: 'academics', label: 'Academics' },
   { axis: 'researchStanding', label: 'Research' },
-  { axis: 'socialStanding', label: 'Campus life' },
-  { axis: 'athleticStrength', label: 'Athletic standing' },
+  { axis: 'socialStanding', label: 'Student life' },
+  { axis: 'athleticStrength', label: 'Athletics' },
   { axis: 'access', label: 'Access' },
   { axis: 'financial', label: 'Financial strength' },
 ];
+
+// The four pillars' axes, in the pillars' order.
+export const PILLAR_AXES: ReadonlyArray<StandingAxis> = ['academics', 'researchStanding', 'socialStanding', 'athleticStrength'];
 
 // Access and financial strength (Plan 31) are read, not stored. The player's:
 // access is half the admit rate and half how far the price sits under what
@@ -256,6 +305,8 @@ function tilt(id: string, salt: number): number {
 function rivalValue(r: Rival, axis: StandingAxis): number {
   if (axis === 'access') return Math.max(0, ACCESS_SCALE - r.reputation * 0.75 * tilt(r.id, 1));
   if (axis === 'financial') return Math.min(ACCESS_SCALE, r.reputation * 0.8 * tilt(r.id, 2));
+  if (axis === 'reputation') return rivalOverall(r);
+  if (axis === 'academics') return r.reputation;
   return r[axis];
 }
 
@@ -268,7 +319,8 @@ export interface RankedEntry {
 }
 
 function selfValue(s: GameState, axis: StandingAxis): number {
-  if (axis === 'athleticStrength') return athleticProgramStrength(s);
+  if (axis === 'academics') return pillarValue(s, 'academics');
+  if (axis === 'athleticStrength') return athleticStanding(s);
   if (axis === 'access') return selfAccess(s);
   if (axis === 'financial') return selfFinancial(s);
   return s.self[axis];
@@ -368,8 +420,28 @@ function currentEntries(s: GameState): RankedEntry[] {
 function previousEntries(s: GameState, previousPrestige: number): RankedEntry[] {
   return sortedByValue([
     { key: 'self', name: institutionName(s.self), mascot: s.self.mascot, value: previousPrestige, isPlayer: true },
-    ...s.rivals.map((r) => ({ key: r.id, name: r.name, mascot: r.mascot, value: r.reputation - r.momentum, isPlayer: false })),
+    ...s.rivals.map((r) => ({ key: r.id, name: r.name, mascot: r.mascot, value: rivalOverall(r) - lastYearsMove(r), isPlayer: false })),
   ]);
+}
+
+// Every school's four pillars on the prestige scale, by key, in the
+// pillars' order (the guide's columns, Plan 85B). The player's research and
+// student life are its stocks, as their rankings read them.
+export function pillarColumns(s: GameState): Map<string, readonly number[]> {
+  const out = new Map<string, readonly number[]>();
+  for (const r of s.rivals) {
+    const p = rivalPillars(r);
+    out.set(r.id, [p.academics, p.research, p.studentLife, p.athletics]);
+  }
+  out.set('self', [pillarValue(s, 'academics'), s.self.researchStanding, s.self.socialStanding, pillarValue(s, 'athletics')]);
+  return out;
+}
+
+// A rival's overall a year ago, estimated: each pillar stepped back one
+// momentum step.
+function lastYearsMove(r: Rival): number {
+  return PILLAR_WEIGHTS.academics * r.momentum + PILLAR_WEIGHTS.research * r.researchMomentum
+    + PILLAR_WEIGHTS.studentLife * r.socialMomentum + PILLAR_WEIGHTS.athletics * (r.athleticMomentum * PILLAR_SPAN) / 100;
 }
 
 function placesByKey(entries: RankedEntry[]): Map<string, number> {
@@ -429,8 +501,10 @@ function otherStanding(s: GameState, label: string, axis: StandingAxis): OtherSt
 
 function otherStandings(s: GameState): OtherStanding[] {
   return [
+    otherStanding(s, 'Academics', 'academics'),
     otherStanding(s, 'Research', 'researchStanding'),
-    otherStanding(s, 'Campus life', 'socialStanding'),
+    otherStanding(s, 'Student life', 'socialStanding'),
+    otherStanding(s, 'Athletics', 'athleticStrength'),
     otherStanding(s, 'Access', 'access'),
     otherStanding(s, 'Financial strength', 'financial'),
   ];

@@ -28,16 +28,33 @@ export function rankingsRows(list: readonly RankedEntry[], printed: number): (Ra
   return rows;
 }
 
-export default function RankingsTable({ rows, lastYear }: { rows: readonly (RankingsRow | 'gap')[]; lastYear: boolean }) {
+// The four pillars' columns (Plan 85B), when the table is given them.
+const PILLAR_HEADS: ReadonlyArray<{ short: string; label: string }> = [
+  { short: 'Aca', label: 'Academics' },
+  { short: 'Res', label: 'Research' },
+  { short: 'Life', label: 'Student life' },
+  { short: 'Ath', label: 'Athletics' },
+];
+
+export default function RankingsTable({ rows, lastYear, pillars }: {
+  rows: readonly (RankingsRow | 'gap')[]; lastYear: boolean;
+  // Each school's four pillars on the prestige scale, by key (rivalsSystem.ts's pillarColumns).
+  pillars?: ReadonlyMap<string, readonly number[]>;
+}) {
+  const columns = 3 + (lastYear ? 1 : 0) + (pillars ? PILLAR_HEADS.length : 0);
   return (
-    <table className="report-table">
+    <table className={`report-table${pillars ? ' with-pillars' : ''}`}>
       <thead>
-        <tr><th>#</th><th>School</th><th>Score</th>{lastYear && <th>Last year</th>}</tr>
+        <tr>
+          <th>#</th><th>School</th><th title="Prestige: the blend of the four pillars">Score</th>
+          {pillars && PILLAR_HEADS.map((h) => <th key={h.short} className="report-table-pillar" title={h.label}>{h.short}</th>)}
+          {lastYear && <th>Last year</th>}
+        </tr>
       </thead>
       <tbody>
         {rows.map((r, i) => {
           if (r === 'gap') {
-            return <tr key={`gap-${i}`} className="report-table-gap"><td colSpan={lastYear ? 4 : 3}>…</td></tr>;
+            return <tr key={`gap-${i}`} className="report-table-gap"><td colSpan={columns}>…</td></tr>;
           }
           // Keyed by identity, not by name: the player may name their
           // school anything, including something a rival is already called.
@@ -48,6 +65,9 @@ export default function RankingsTable({ rows, lastYear }: { rows: readonly (Rank
               <td className="report-table-rank">{r.place}</td>
               <td className="report-table-name">{r.name}</td>
               <td className="report-table-score">{Math.round(r.value)}</td>
+              {pillars && PILLAR_HEADS.map((h, j) => (
+                <td key={h.short} className="report-table-pillar" title={h.label}>{Math.round(pillars.get(r.key)?.[j] ?? 0)}</td>
+              ))}
               {lastYear && (
                 <td className="report-table-last">
                   {previous === null

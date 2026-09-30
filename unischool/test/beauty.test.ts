@@ -6,7 +6,7 @@ import { createInitialState } from '../src/state/actions';
 import { beautyPoolFactor, beautyTerms, campusBeauty, LAYOUT_CAP } from '../src/systems/estate/beauty';
 import { projectAdmissions } from '../src/systems/admissions/admissionsSystem';
 import { NEUTRAL_COHORT_SIGNALS } from '../src/systems/admissions/cohorts';
-import { prestigeBreakdown } from '../src/systems/prestige/prestigeSystem';
+import { pillarBreakdown } from '../src/systems/prestige/prestigeSystem';
 import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
 import { AMENITIES } from '../src/data/facilitiesData';
@@ -63,11 +63,11 @@ const fresh = (): GameState => createInitialState('Beauty');
   assert(beautyTerms(grand).landmarks > 0 && campusBeauty(grand) > base.score, 'a grand landmark adds to it');
 }
 
-// ---- Prestige hears it, either way from 50 ----
+// ---- Prestige hears it, either way from 50, through student life (Plan 85B) ----
 {
-  const input = (s: GameState) => prestigeBreakdown(s).inputs.find((i) => i.key === 'beauty')!;
+  const input = (s: GameState) => pillarBreakdown(s, 'studentLife').inputs.find((i) => i.key === 'beauty')!;
   const s = fresh();
-  assert(input(s) !== undefined, 'prestige has a beauty input');
+  assert(input(s) !== undefined, 'the student-life pillar has a beauty input');
   const felled = fresh();
   felled.trees = {};
   for (const t of felled.tech) if (t.id in felled.placements) t.backlog = t.cost * 10 + 1e7;

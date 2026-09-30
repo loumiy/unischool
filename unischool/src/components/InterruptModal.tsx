@@ -21,7 +21,7 @@ import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
 import { admitRateOpening, poolChange, takesColon } from '../systems/admissions/yearOverYear';
-import { computePrestigeTarget, computeSocialTarget, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
+import { computePrestigeTarget, pillarValue, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { restaffPlan } from '../systems/faculty/restaffing';
 import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
@@ -881,11 +881,11 @@ function ChampionshipView({ s, result, onDismiss }: {
 
   // What this one was worth, by asking the model what the target would be
   // with one fewer title on the board.
-  const now = computeSocialTarget(s);
-  const without = computeSocialTarget({
+  const now = pillarValue(s, 'athletics');
+  const without = pillarValue({
     ...s,
     orgs: { ...s.orgs, titles: s.orgs.titles.slice(0, -1) },
-  });
+  }, 'athletics');
   const worth = now - without;
 
   return (
@@ -918,8 +918,8 @@ function ChampionshipView({ s, result, onDismiss }: {
           <dd>{s.orgs.titles.length}</dd>
         </div>
         <div>
-          <dt>Campus life</dt>
-          {/* Standing drifts toward its target, so this is what the target
+          <dt>Athletics</dt>
+          {/* The athletics pillar (Plan 85B), which titles lift: what it
               moved by. */}
           <dd>{worth >= 0.05 ? `${signed(worth, 1)} to the target` : 'already at its limit'}</dd>
         </div>

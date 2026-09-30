@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: Proposed.**
+**Status: In progress: A and B merged (#268, #274).**
 
 ---
 
@@ -163,6 +163,119 @@ E needs Plan 84's grid (84D). E–H can go in any order after D.
 - **No ceilings yet.** This PR changes how the number is built, not how
   high it goes. The sim baseline is re-recorded with the moves described.
 - Writes the change of decision into the design doc.
+
+**As implemented (#274):** prestige is the blend of the four pillars, for the
+college and every rival alike. No ceilings, no specialization state, and no
+save change.
+
+- **Each pillar is a standing on the prestige scale** (`prestigeSystem.ts`'s
+  `pillarBreakdown`). It starts from a floor of 32, prestige's old
+  baseline, and its terms fill the remaining 118 to 150. Each term keeps its
+  old weight where it had one, scaled onto that span, and a capital
+  project's lift is points on top. Its 0–1 score is (value − 32) / 118.
+  - **Academics:** curriculum breadth 50 (× library adequacy),
+    concentration 30, teaching quality 30, student quality 24 (× scale).
+    These are prestige's old weights. Academic capital projects on top.
+  - **Research:** what the labs have produced, 80 (60 credits for full:
+    publications, finished projects, breakthroughs, prizes, doctorates), and
+    fields with a lab, 40. This is the research standing's own reading. Its
+    old stock, `researchStanding`, now drifts toward this pillar and is what
+    the research ranking reads. Prestige's own research term (credits over
+    20) is gone.
+  - **Student life:** welfare 20, campus life 12 and beauty 6, prestige's
+    old weights. *Campus life* is the campus life standing's reading less
+    its athletics: facilities 30, clubs and chapters 35, and the social
+    satisfaction students report, 25, as a 0–1 score. `socialStanding`
+    drifts toward this pillar. Experience capital projects on top.
+  - **Athletics:** program strength 30 and championships 20, the campus
+    life standing's weights. Flagship strength is 20, the mean quality of
+    the flagship programs. That weight is new: I set it equal to the titles'.
+    The athletic ranking reads the pillar's score on its 0–100 scale.
+- **Prestige's target** = 32 + 118 × (0.35 academics + 0.25 research +
+  0.25 student life + 0.15 athletics), which is the weighted mean of the
+  four values. Then the endowment adds up to 8, condition takes up to 4 and
+  crowding up to 25.
+  - The teaching standard's ceiling, the 5–150 band, `PRESTIGE_MAX_RISE` and
+    the drift are unchanged.
+  - `PILLAR_WEIGHTS` sits with the other prestige constants in
+    `prestigeSystem.ts`; the repository has no `tuning.ts`.
+  - The breakdown's rows are the four pillars and the three adjustments.
+    Each pillar row carries its own breakdown, so the report card grades
+    pillars.
+- **Rivals:**
+  - A rival's pillars are its stored axes: `reputation` is its academics,
+    `researchStanding` its research and `socialStanding` its student life,
+    all already on the scale. Its `athleticStrength` (0–100) maps as the
+    player's does, 32 + 118 × strength / 100.
+  - **A rival's prestige is the same blend** (`rivalsSystem.ts`'s
+    `rivalOverall`), with no adjustments. The player's endowment and
+    penalties have no rival counterpart. That asymmetry is at most +8 for
+    the player.
+  - The overall is derived, not stored, so nothing is saved. Every table
+    ranks by it: the guide, Rank, the report, the chronicle's eras and the
+    college rival.
+  - **The elite band chases on the overall.** The closing step is read on
+    the rival's overall and added to all four of its pillars, so the
+    overall rises by exactly the step. The no-leapfrog cap shifts all four
+    down.
+  - The field's own drift is unchanged. Academics still rises toward
+    `FIELD_CEILING`, the other three drift on their momentum, and the pass
+    takes one draw a year. A year-ago estimate (the report's movers) steps
+    each pillar back by its momentum.
+- **The screens:**
+  - History › Prestige shows the pillars and the adjustments, and each
+    pillar opens onto its make-up.
+  - The standings have seven cards: Prestige, Academics, Research,
+    Student life, Athletics, Access and Financial strength. The four pillar
+    breakdowns sit under them.
+  - The guide adds each school's four pillars as columns.
+  - The report's lines name the four pillars.
+  - The Athletics tab's standings read Athletics and Student life. A
+    title's modal reports what it added to the athletics pillar.
+  - The Final Report's academics axis reads the academics pillar.
+- **The sim moves** (medians of three seeds, against the old baseline):
+
+  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 |
+  |---|---|---|---|
+  | Guided | 54 (+9) / 15 (+4) / 1 | 58.0 (−11.0) / 93.0 (−14.1) / 129.8 (−13.2) | 88.6 (+4.5) / 84.6 (+0.6) / 86.2 (+0.5) |
+  | Completionist | 53 (+6) / 11 (−3) / 1 | 59.7 (−6.9) / 95.2 (−9.5) / 134.1 (−9.9) | 84.9 (+1.4) / 89.4 (+6.2) / 87.8 (+0.4) |
+  | Selective | 56 (+5) / 49 (+29) / 52 (+34) | 51.6 (−9.6) / 63.5 (−32.2) / 64.6 (−47.4) | 85.2 (+11.3) / 79.8 (+11.5) / 76.9 (+1.8) |
+  | Lean | 59 (+6) / 57 (+30) / 63 (+40) | 47.0 (−12.2) / 52.0 (−37.5) / 51.9 (−50.2) | 74.1 (−3.0) / 67.3 (−13.9) / 67.6 (−7.9) |
+  | Idle | 78 (+1) / 59 (+1) / 66 (+2) | 31.7 (−0.7) / 49.7 (−4.9) / 46.0 (−2.8) | 84.0 flat |
+
+  Prestige falls for everyone.
+  - The field's overall falls with it: rivals' research, student life and
+    athletics sit below their academics.
+  - Guided and Completionist still reach #1 by year 50.
+  - Selective and Lean fall far, since they build little outside
+    academics. Selective's and Lean's cash fall with prestige, through
+    price tolerance and the pool.
+
+  When the strong players reach #1 (seeds 12345, 4242, 777):
+  - **Guided:** before, first #1 in years 39, 32 and 39. Now years 41 and
+    35, and seed 12345 finishes second. Prestige at year 50 is 125–131,
+    against 140–145 before.
+  - **Completionist:** before, years 39, 40 and 40. Now years 35, 33 and
+    35. Prestige at year 50 is about 134, against 144–145.
+
+  **For 85C:** the Guided player never activates a varsity team (every
+  team waits on a venue), so its athletics pillar sits at 32 all run and is
+  #100 of 100. Its #1 comes from academics (150) and student life (139).
+  Student life is the easiest pillar: welfare is full from about year 5
+  for every player that keeps students happy.
+- **Checks:**
+  - `npm run check`; `npm run sim` re-recorded (`--save`), then 0 deltas;
+  - `npm run phone` on the launch fixture and a year-45 save;
+  - `review:strings`: nothing flagged.
+  - Tests follow the model: the report card's weight budget is by pillar,
+    beauty and the capital projects are read inside their pillars, a title
+    lifts the athletics pillar, and the closing field places rivals by
+    their overall.
+- **Screenshots** in `docs/reviews/2026-10-pillars/`, from a Guided run
+  named Blackmoor at years 7 and 46:
+  - `85b-prestige-early.jpg` and `85b-prestige-late.jpg` (a pillar opened);
+  - `85b-standings-early.jpg` and `85b-standings-late.jpg`;
+  - `85b-guide-early.jpg` and `85b-guide-late.jpg`.
 
 ## PR 85C — Ceilings, harder athletics, rivals that specialize; the retune
 
