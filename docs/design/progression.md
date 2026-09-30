@@ -196,9 +196,9 @@ earn, a pillar stands no higher than its unspecialized ceiling
 | Student life | 120 | 75% |
 | Athletics | 110 | 66% |
 
-A specialization (Plan 85D on) lifts its own pillar's ceiling to 150; until
-the choice is saved `specializationOf` answers none, so every college keeps
-to all four (`pillarCeiling`). The ceiling is the pillar breakdown's
+A specialization (Plan 85D, below) lifts its own pillar's ceiling to 150
+(`pillarCeiling`); until the college has chosen one, `specializationOf`
+answers none and it keeps to all four. The ceiling is the pillar breakdown's
 `ceiling`, and its target is the lower of the ceiling and what the terms
 earn, so prestige counts a held pillar at its ceiling. Student life's is
 lower because it is the easiest pillar to fill (welfare is full within a
@@ -213,7 +213,59 @@ the ceilings the college's blend sits below the few rivals whose own
 specialization runs past them (below). History › Prestige marks a held
 pillar's row *At its limit* (the player's word for a ceiling) and says that
 only a specialization in it would lift it; the pillar's own breakdown says
-the same under its terms.
+the same under its terms. Once the college has chosen, the specialized
+pillar's row is marked *Specialized* and has no limit, and a held pillar's
+line says it stays there: "Held at its limit of 126, where it stays: the
+college is specialized in research."
+
+**The milestone and the choice** ([Plan 85](../plans/85-specializations.md)
+PR D; `systems/prestige/milestone.ts`). The specialization is chosen once,
+late, and kept:
+
+- **The milestone is a rank, not a prestige figure,** so it survives a
+  retune: the guide's top 12 (`SPECIALIZATION_MILESTONE_RANK`, beside the
+  ceilings). The plan's first number was the top 15; the strong players
+  reached it in years 24–27, at the early edge of the owner's 25–40, and
+  reach the top 12 in years 27–30.
+- **The board's notice** comes the first week the college stands within
+  four places of it (`SPECIALIZATION_NOTICE_PLACES`, the top 16): a board
+  letter in the inbox, which never stops the clock, naming the four
+  specializations and what each lifts. The strong players have it two to
+  four years ahead of the milestone.
+- **The offer** is made at the first summer the college stands at the
+  milestone, read on the summer's own week after the field has moved (the
+  table the summer's review prints), and stands for good.
+- **The choice** is raised at that summer's close, after the page has
+  turned (so it holds no week), as a page of its own in the inbox: the four
+  specializations side by side, each with its pillar and the limit it
+  lifts, its mechanics (those still to come are said to be), the college's
+  value and rank in the pillar, and the rivals already specialized in it
+  with the strongest of them. Choosing asks twice (Plan 47's confirm): the
+  choice is permanent, saved as `s.specialization` with the summer's year
+  (`specializationYear`), and the chronicle marks the year.
+- **Not this year** leaves the offer standing: the choice comes back at
+  the close of every summer until it is made, even if the college has
+  slipped below the milestone since. The game never chooses for the player
+  (the default answer puts it off). A college that never reaches the
+  milestone is never offered it, and a sandbox run never is.
+- **What it gives now:** its pillar's limit rises to 150. The athletics
+  specialization also lifts the team ceiling to 100 and takes away the big
+  stage's edge (`specialization.ts`'s `athleticsLifted`, the hook Plan 85G's
+  performance complex extends). Each specialization's own mechanics (the
+  faculty training program, the research park, the downtown and the
+  festival, the performance complex) are Plans 85E–H; the choice lists
+  them as still to come, from `specializationData.ts`'s
+  `SPECIALIZATION_CARDS`, where each PR marks its own ready.
+- History › Prestige and the standings say where the college stands on the
+  choice (specialized, and since when; the offer standing; or the milestone
+  still to reach), and the guide tags the college with its specialization as
+  it tags every rival.
+
+With only the lifted limit, the Guided player (which chooses its strongest
+pillar, academics, in years 28–29) reaches first place in years 39–42 and
+holds it at year 50; the Completionist (academics, years 27–30) finishes
+third, first on one seed of three. Without a specialization neither was
+ever first (Plan 85C).
 
 The pillars' terms, as they were weighted inside prestige before:
 
@@ -390,7 +442,8 @@ specialization. A save from before is dealt the same way on load (the
 The result is the shape the owner asked for: at year 50 the leader of each
 pillar is a specialist in it, a handful of specialists stand above the
 college's unspecialized best, and the college without a specialization
-finishes in the top ten but not first.
+finishes in the top ten but not first. The college's own specialization
+(Plan 85D, above) is what lets it past them.
 
 **Access and financial strength** are ranked beside them and count toward
 nothing.

@@ -2,7 +2,7 @@ import { pct, prestigeFigure, signed } from '../format';
 import {
   multiplierLine, type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
-import { CEILING_TAG } from '../data/specializationData';
+import { CEILING_TAG, SPECIALIZED_TAG } from '../data/specializationData';
 
 // ---------------------------------------------------------------------
 // A standing, explained: prestige's in History's Prestige panel, each of its
@@ -30,6 +30,8 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
           {input.label}
           {/* A pillar its ceiling holds (Plan 85C), said on the row itself. */}
           {input.pillar?.held && <span className="standing-row-held">{CEILING_TAG}</span>}
+          {/* The college's specialization (Plan 85D): its limit is lifted. */}
+          {input.pillar?.specialized && <span className="standing-row-specialized">{SPECIALIZED_TAG}</span>}
         </span>
         <span className="standing-row-figure">
           {grade !== undefined && (
@@ -124,8 +126,9 @@ function summerNote(breakdown: StandingBreakdown, gap: number): string {
 
 // `titled`: the breakdown's own heading, with its figure. The Prestige panel
 // (HistoryTab.tsx) carries both in its own head and leaves it off.
-// `heldSaid`: the ceiling's held sentence is already on the row this
-// breakdown opens under (a pillar in History › Prestige), so it is left off.
+// `heldSaid`: the ceiling's held sentence, or the specialization's, is
+// already on the row this breakdown opens under (a pillar in History ›
+// Prestige), so it is left off.
 export function Standing({ breakdown, titled = true, heldSaid = false }: { breakdown: StandingBreakdown; titled?: boolean; heldSaid?: boolean }) {
   // All bars share one scale, the largest weight in this standing, so terms
   // are comparable at a glance.
@@ -152,6 +155,10 @@ export function Standing({ breakdown, titled = true, heldSaid = false }: { break
         {breakdown.share !== undefined && !breakdown.live && ` It is ${pct(breakdown.share)} of prestige.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
       </p>
+      {/* The specialized pillar (Plan 85D): said once, on its row when it opens under one. */}
+      {breakdown.specialized && !heldSaid && (
+        <p className="standing-note standing-specialized">{breakdown.specialized}</p>
+      )}
       {breakdown.ceiling && (
         <p className={`standing-note standing-ceiling${breakdown.held ? ' binding' : ''}`}>
           <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}

@@ -2,7 +2,9 @@ import type { GameState } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
 import { PILLAR_AXES, STANDINGS, rankedListBy, specializations } from '../systems/rivals/rivalsSystem';
-import { ledBy } from '../data/specializationData';
+import { SPECIALIZED_TAG, ledBy } from '../data/specializationData';
+import { collegeSpecialization } from '../systems/prestige/milestone';
+import { specializationOf } from '../systems/prestige/specialization';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { rivalRanks } from '../systems/rivals/collegeRival';
 import { sportById } from '../data/studentLifeData';
@@ -21,15 +23,17 @@ export default function StandingsPanel({ s }: { s: GameState }) {
   const rival = rivalRanks(s);
   const series = rival ? s.orgs.rivalries[rival.sport] : undefined;
   const specs = specializations(s);
+  const mine = specializationOf(s);
   return (
     <section className="panel standings-panel">
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text="Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, for the college and every rival alike. Each rival specializes in one pillar, which runs higher and steadier than its others; without a specialization, each of the college's pillars stops at a limit short of the top. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige." />
+          <HelpHint text="Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, for the college and every rival alike. Each rival specializes in one pillar, which runs higher and steadier than its others; without a specialization, each of the college's pillars stops at a limit short of the top, and the college's specialization, once chosen, lifts its own. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige." />
         </span>
         <span className="stat">of {field}</span>
       </div>
+      <p className="stat specialization-status">{collegeSpecialization(s)}</p>
       {/* One card per axis (Plan 60): the rank, who leads, and the rank over
           the run beneath, instead of a label table and a separate chart grid
           that drifted apart. */}
@@ -41,7 +45,11 @@ export default function StandingsPanel({ s }: { s: GameState }) {
           return (
             <article key={axis} className="standings-card">
               <header className="standings-card-head">
-                <span className="standings-card-label">{label}</span>
+                <span className="standings-card-label">
+                  {label}
+                  {/* The college's own specialization (Plan 85D). */}
+                  {mine !== null && PILLAR_AXES[PILLARS.indexOf(mine)] === axis && <span className="standing-row-specialized">{SPECIALIZED_TAG}</span>}
+                </span>
                 <strong className="standings-card-rank">#{rank}</strong>
               </header>
               <p className="standings-card-leader">

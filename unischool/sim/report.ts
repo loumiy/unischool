@@ -4,7 +4,9 @@
 // player (sim/harness/guided.ts) for fifty years on three seeds and prints
 // their trajectories — the median across seeds at years 10, 25 and 50 —
 // with the change from the committed baseline (sim/baseline.json), which is
-// main's numbers once a branch that moved them lands.
+// main's numbers once a branch that moved them lands. Each run's
+// specialization (Plan 85D: which pillar the player chose at the milestone,
+// by its rule, and the year) is printed under its player, not diffed.
 //
 //   npm run sim               the report, diffed against the baseline
 //   npm run sim -- --save     and write this run as the new baseline
@@ -19,6 +21,7 @@ import { ARCHETYPES, createArchetype, type ArchetypeRecord, type ArchetypeYear }
 import { createGuidedPlayer } from './harness/guided';
 import { weeklyNet } from '../src/systems/finance/financeSystem';
 import { playerRank } from '../src/systems/rivals/rivalsSystem';
+import { PILLAR_LABELS, specializationOf } from '../src/systems/prestige/prestigeSystem';
 import { totalEnrolled } from '../src/state/types';
 
 const SEEDS = [12345, 4242, 777];
@@ -69,12 +72,20 @@ const players: Array<{ name: string; make: () => Player & { record: ArchetypeRec
 ];
 
 const report: Record<string, Summary> = {};
+// Each run's specialization (Plan 85D): what the player chose at the
+// milestone by its rule (harness/specialization.ts), and when. Printed, not
+// diffed: the baseline holds figures.
+const picks: Record<string, string[]> = {};
 for (const { name, make } of players) {
   const runs: ArchetypeRecord[] = [];
+  picks[name] = [];
   for (const seed of SEEDS) {
     const player = make();
-    playYears(foundGame({ seed }), player, YEARS);
+    const g = foundGame({ seed });
+    playYears(g, player, YEARS);
     runs.push(player.record);
+    const chosen = specializationOf(g.s);
+    picks[name].push(chosen ? `${PILLAR_LABELS[chosen].toLowerCase()} in Y${g.s.specializationYear}` : 'none');
   }
   const summary: Summary = {};
   for (const year of AT) {
@@ -113,6 +124,7 @@ for (const { name } of players) {
     console.log(`  ${figure.padEnd(13)} ${cells.join('   ')}`);
   }
   console.log(`  ${'in the red'.padEnd(13)} ${show('weeksInRed', summary.weeksInRed)} weeks${change(name, 'weeksInRed', 'weeksInRed', summary.weeksInRed)}; lowest cash ${show('minCash', summary.minCash)}${change(name, 'minCash', 'minCash', summary.minCash)}`);
+  console.log(`  ${'specialized'.padEnd(13)} ${picks[name].map((p, i) => `${p} on seed ${SEEDS[i]}`).join(', ')}`);
 }
 
 if (save) {

@@ -1,6 +1,6 @@
 import { projectLift } from '../systems/estate/projects';
 import { tagTeeth } from '../systems/identity/teeth';
-import { specializationOf } from '../systems/prestige/specialization';
+import { athleticsLifted } from '../systems/prestige/specialization';
 import type {
   AthleticsBudgetTier, Buildable, Coach, FacilityType, GameState, GreekChapter, OrgPetition, ScholarshipLevel,
   StudentClub, StudentOrgBase, VarsityTeam,
@@ -706,15 +706,17 @@ export function teamQualityEarned(team: VarsityTeam, s: GameState, pot?: Departm
 }
 
 // The unspecialized team ceiling (Plan 85C): without the athletics
-// specialization (the performance complex, Plan 85G), no program plays
-// above this, however it is staffed, funded and recruited. With the big
+// specialization, no program plays above this, however it is staffed,
+// funded and recruited. The specialization lifts it to 100 (Plan 85D,
+// specialization.ts's athleticsLifted, the hook the performance complex of
+// Plan 85G extends). With the big
 // stage (playoffs.ts's STAGE_EDGE) it makes a title rare on the
 // unspecialized path; before it, a college that staffed and funded two
 // flagships had its first title by about year 8 and dozens by year 50.
 export const UNSPECIALIZED_TEAM_CEILING = 90;
 
 export function teamCeiling(s: GameState): number {
-  return specializationOf(s) === 'athletics' ? 100 : UNSPECIALIZED_TEAM_CEILING;
+  return athleticsLifted(s) ? 100 : UNSPECIALIZED_TEAM_CEILING;
 }
 
 // The college's pull (Plan 80G): what a program draws for being where it

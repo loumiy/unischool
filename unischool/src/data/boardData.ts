@@ -3,6 +3,9 @@
 // letter in the inbox (components/InboxTab.tsx, Plan 77) that never stops
 // the clock.
 
+import { PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, UNSPECIALIZED_CEILINGS } from '../systems/prestige/prestigeSystem';
+import { SPECIALIZATION_NOTICE_ID, specializationNotice } from './specializationData';
+
 export interface BoardLetter {
   title: string;
   text: string;
@@ -44,6 +47,9 @@ export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
     title: 'Still doing nothing',
     text: 'The cash has piled up again, and still earns nothing. The board repeats its suggestion of a standing sweep into the endowment, and will not raise it again for a decade.',
   },
+  // The milestone's notice (Plan 85D, systems/prestige/milestone.ts): the
+  // college has come within reach of the specialization's milestone.
+  [SPECIALIZATION_NOTICE_ID]: specializationNotice(SPECIALIZATION_MILESTONE_RANK, UNSPECIALIZED_CEILINGS, PRESTIGE_MAX),
   recovered: {
     title: 'On a sound footing',
     text: 'The college is paying its way again, with reserves to cover a term. The board notes it with relief, and would like it kept that way.',

@@ -72,6 +72,17 @@ Everything that needs to stop time rides on this one mechanism:
   school with a Dean and an unstaffed course has a plan to restaff it
   (`faculty/restaffing.ts`), accepted all at once or not at all
   (`RESOLVE_DEAN_RECOMMENDATIONS`). Unanswered, the programs stay dark.
+- **The specialization** (`specialization`, Plan 85D) — raised by
+  `RESOLVE_ADMISSIONS` at the close of the first summer the college stands
+  at the milestone (the guide's top 12), and of every summer after until a
+  specialization is chosen (`systems/prestige/milestone.ts`). It is raised
+  after the page has turned, on the new year's first week before it runs,
+  so its answer (`RESOLVE_SPECIALIZATION`, a pillar or null for "not this
+  year") clears it without moving the clock. A page in the inbox
+  (`SpecializationChoice.tsx`); choosing asks twice. The game's default
+  answer puts it off; the harness's players choose by their own rule
+  (`sim/harness/specialization.ts`). The board's notice before it is a
+  board letter, which stops nothing.
 - **The opening walkthrough** — not an interrupt, but the same hold on the
   clock, so it is listed here. A founding from the startup screen
   (`START_GAME` with `guided`) opens on `s.events.opening.stage = 'welcome'`

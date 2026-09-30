@@ -96,6 +96,9 @@ const wantedModal = flags.modal ?? null;
 
 const player = playerNamed(recipe.player);
 if (!player) throw new Error(`no player matching "${recipe.player}". Known: ${PLAYERS.join(', ')}`);
+// A run that stops at the specialization (Plan 85D) leaves it standing
+// rather than choosing by the player's rule (sim/harness/specialization.ts).
+if (wantedModal === 'specialization' || recipe.name === 'specialization') player.specialization = 'wait';
 const seed = flags.seed ? Number(flags.seed) : DEFAULT_SEED;
 const outPath = pathArg ?? flags.out ?? `node_modules/.tmp/${recipe.name}.json`;
 

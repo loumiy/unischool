@@ -35,6 +35,7 @@ import { restaff } from '../systems/faculty/restaffing';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
 import { buildReportPayload, tickRivals } from '../systems/rivals/rivalsSystem';
+import { raiseSpecializationChoice, resolveSpecialization, tickSpecialization } from '../systems/prestige/milestone';
 import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
 import { setPrestigeForPlaytest, tickPrestige } from '../systems/prestige/prestigeSystem';
@@ -96,6 +97,9 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // promises' readings would import in a circle.
   tickPromises,
   tickRivals,
+  // After the field has moved: the board's notice near the milestone, and
+  // the offer on the summer's week (Plan 85D).
+  tickSpecialization,
   // Near last: the summer decision and the U.S. News report own their weeks
   // and only one interrupt can be pending, so the texture system sees their
   // claim and stands down (see eventSystem.ts).
@@ -543,6 +547,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'RESOLVE_ADMISSIONS':
       resolveAdmissions(s, action);
+      // The summer's close: the specialization, while the choice is open
+      // (Plan 85D), on the new year's first week, filed under the summer's.
+      raiseSpecializationChoice(s, s.clock.year - 1);
+      return s;
+
+    // Raised after the page turned, so it holds no week: no advanceClock.
+    case 'RESOLVE_SPECIALIZATION':
+      resolveSpecialization(s, action.pillar);
       return s;
 
     // Dismisses a research prize celebration. Grants nothing: the award

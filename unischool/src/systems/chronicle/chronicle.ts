@@ -1,4 +1,6 @@
-import type { GameState } from '../../state/types';
+import type { GameState, Pillar } from '../../state/types';
+import { specializationOf } from '../prestige/specialization';
+import { PILLAR_WORDS, SPECIALIZATION_CARDS } from '../../data/specializationData';
 import {
   BUILDING_BOOM, CHRONICLE_LINES, CHRONICLE_WORDS, ERA_MAX, ERA_MAX_YEARS, ERA_MIN_YEARS, ERA_NAMES, ERA_PRIORITY, RANK_FALL, RANK_FALL_WITHIN,
   type EraKind,
@@ -48,6 +50,8 @@ export interface YearRecord {
   projects: string[];   // capital projects and grand landmarks finished, largest first
   prizes: number;       // research prizes won
   sport: string | null; // the sport of the year's first title
+  // The pillar the college chose to specialize in that year (Plan 85D).
+  specialized?: Pillar;
 }
 
 export interface Era {
@@ -115,6 +119,7 @@ export function yearRecords(s: GameState): YearRecord[] {
       projects: built.filter((t) => t.project !== undefined || GRAND_LANDMARK_IDS.includes(t.id)).map((t) => t.name.replace(/^The /, '')),
       prizes: h.prizes !== undefined && before !== undefined ? Math.max(0, h.prizes - before) : 0,
       sport: titles.length > 0 ? (sportById(titles[0].sport)?.teamName ?? titles[0].sport).replace(/ Team$/, '') : null,
+      specialized: s.specializationYear === y ? specializationOf(s) ?? undefined : undefined,
     };
   });
 }
@@ -375,6 +380,11 @@ function summarise(span: Span, recs: YearRecord[]): string[] {
   if (titles) lines.push(titles === 1 ? L.title : fill(L.titles, { count: titles }));
   const prizes = years.reduce((t, r) => t + r.prizes, 0);
   if (prizes) lines.push(prizes === 1 ? L.prize : fill(L.prizes, { count: prizes }));
+  const specialized = years.find((r) => r.specialized);
+  if (specialized?.specialized) {
+    const p = specialized.specialized;
+    lines.push(fill(L.specialized, { year: specialized.year, pillar: PILLAR_WORDS[p], name: SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ') }));
+  }
   const tags = years.flatMap((r) => r.tags);
   if (tags.length) lines.push(fill(L.tags, { tags: listOf(tags) }));
   const rival = years.find((r) => r.rivalNamed)?.rivalNamed;

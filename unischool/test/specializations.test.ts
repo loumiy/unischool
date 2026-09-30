@@ -53,7 +53,7 @@ bindScriptStream(12345);
 // ---- The ceilings ----
 {
   const s = createInitialState('Ceilings');
-  assert(specializationOf(s) === null, 'no college is specialized before Plan 85D');
+  assert(specializationOf(s) === null && s.specialization === 'none', 'a new college has no specialization (Plan 85D)');
   for (const p of PILLARS) {
     assert(pillarCeiling(s, p) === UNSPECIALIZED_CEILINGS[p], `${p} keeps to its unspecialized ceiling (${UNSPECIALIZED_CEILINGS[p]})`);
     assert(UNSPECIALIZED_CEILINGS[p] > PILLAR_FLOOR && UNSPECIALIZED_CEILINGS[p] < 150, `${p}'s ceiling sits short of the top`);
