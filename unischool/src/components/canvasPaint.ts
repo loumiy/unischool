@@ -1,29 +1,36 @@
 import * as React from 'react';
 import { PointList, setRawPoints } from './isoProjection';
 
-// The canvas painter (Plan 83B's prototype, the map's renderer since 83C).
-// It walks the element tree the map's art returns (the same components the
-// SVG map renders) and draws it on a 2D canvas, instead of handing it to
-// React DOM to build ~17,000 SVG nodes.
+// The canvas painter (Plan 83B's prototype, the map's renderer since 83C;
+// a recorder and a player since 83D). It walks the element tree the map's
+// art returns (the same components the SVG map renders) and records what it
+// would draw as a list of ops (`Recorder.record`), which `replay` then
+// draws on any 2D canvas, at any transform, as often as needed: a
+// building's drawing, a strip of the ground, or a frame of a turn.
 //
 // - Plain components are called directly. A component that reads a hook
 //   (a context, a memo) is registered with its art (`registerArt`): a plain
 //   function of its props and the painter's scope, which carries the map's
 //   occasions (colors, snow, banner, college name, developing weeks, venue,
 //   crowd) as values set by the providers in the tree (`registerProvider`),
-//   and keeps memoised values from paint to paint (`scope.keep`). Nothing
-//   here reaches into React: elements are read through their public shape
-//   (`type`, `props`, `key`).
+//   and keeps memoised values from recording to recording (`scope.keep`).
+//   Nothing here reaches into React: elements are read through their public
+//   shape (`type`, `props`, `key`).
 // - A registered memo keeps its output while its props are unchanged, as
 //   React skips it; what it returns is walked again, so the components
-//   under it still read the occasions of this paint.
+//   under it still read the occasions of this recording.
 // - Color and stroke come, as in the SVG, from presentation attributes, the
-//   stylesheet's class rules (resolved once per chain of classes and season
-//   by `StyleResolver`, from probe elements in the map) and inline style, in
-//   that order of precedence, inherited down the tree as SVG inherits them.
-// - What it draws and can be pointed at is recorded (`HitList`), so the map
-//   can pick the building under the pointer as the SVG's hit test did: the
-//   topmost shape that takes pointer events, and the building it is in.
+//   stylesheet's class rules (resolved once per chain of classes, season
+//   and map class by `StyleResolver`, from probe elements in the map) and
+//   inline style, in that order of precedence, inherited down the tree as
+//   SVG inherits them. A hook (`extraClass`) adds classes as it records:
+//   the map's doors that walkers hold open.
+// - Each op carries the building it belongs to, so the map can pick the
+//   building under the pointer from the ops (`HitList`) as the SVG's hit
+//   test did: the topmost shape that takes pointer events.
+// - `replay` given a region draws only the ops that reach it, and of a long
+//   path only the subpaths that do (the map's layers are drawn a tile at a
+//   time).
 // - What it cannot draw it counts by name (`PaintStats.unsupported`).
 //
 // Browser-only in use (it reads computed style and draws on a canvas); the

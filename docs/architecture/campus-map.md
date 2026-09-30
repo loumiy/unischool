@@ -60,10 +60,9 @@ cheaper and a turn no quicker, and the owner saw things vanish). The
 walkers are drawn at the camera the scene has committed (`projectorFor`,
 taken in a layout effect with each commit), never the projection's current
 one, which a turn sets for its next frame before the scene has drawn it:
-reading that is what once drew them displaced. Through a turn they go
-unclipped (a walker may show through a building for the quarter second);
-the outlines that clip them are built again for the view the turn settles
-on, and a tilt, which snaps, builds them for its view the same way.
+reading that is what once drew them displaced. On the canvas map they are
+drawn inside the depth order (Plan 83D), so a building in front covers them
+at every frame of a turn as at rest.
 
 Three consequences, each in its own place:
 
@@ -134,28 +133,49 @@ The hall pips and the walkers are drawn after the scene from the live
 state. `npm run profile` gates every change to the
 map.
 
-## The canvas (Plan 83C)
+## The canvas (Plans 83C–83D)
 
-The scene and the land around it are painted on a canvas under the
-map's SVG. `canvasPaint.ts` walks the element tree the art returns (the
-same components the SVG map renders) and draws it with Path2D.
-`canvasArt.ts` registers the art that reads a hook as a plain function
-of its props and the painter's scope. That scope holds the occasions
-above, set by the same providers, and memoised values kept from paint to
-paint. Colors, strokes and pointer events come from the stylesheet,
-probed once per chain of classes and season.
+The scene, the land around it and the walkers are drawn on a canvas under
+the map's SVG. `canvasPaint.ts` walks the element tree the art returns
+(the same components the SVG map renders) and records what it draws as a
+list of ops, which it replays onto any canvas. `canvasArt.ts` registers
+the art that reads a hook as a plain function of its props and the
+painter's scope. That scope holds the occasions above, set by the same
+providers, and memoised values kept from recording to recording. Colors,
+strokes and pointer events come from the stylesheet, probed once per
+chain of classes, season and map class.
 
-The labels, walkers, hall and lab marks, the completion ring, the ghost
-and the dust stay SVG over it.
+The labels, hall and lab marks, the ghost and the dust stay SVG over it.
 
-- **Pan and zoom.** The image reaches 35% past each edge. A pan moves it
-  and a zoom scales it by a CSS transform. It repaints at the view the
-  gesture settles on, or when a pan would show past the edge.
+`mapCanvas.ts` composites the canvas each frame:
+
+- **Drawings per thing.** Each entry of the sorted scene (a building, a
+  tree, a prop) is recorded and drawn once into its own bitmap, kept while
+  its signature holds. The signature is what its drawing depends on:
+  camera, layout entry, inspected, works, crowd, colors, name. A week in
+  which one building changes redraws that building alone. A building keeps
+  a few variants with other doors open.
+- **The layers.** The land behind and the ground (paths, plates, shadows)
+  are each one drawing of the view and a margin, in 128 px tiles. A pan
+  wraps it round; a change is drawn where the map says, the rest a few
+  tiles a frame. The land in front is drawn every frame.
+- **Walkers in the depth order.** Each frame lays the ground, then each
+  thing in paint order, each walker just before the first thing nearer
+  the camera whose drawing reaches it (`walkerDepth.ts`), then the land in
+  front. The completion ring is drawn after its building.
+- **Only what changed.** When nothing but walkers and a few things
+  changed (Play), a frame is clipped to the cells round what moved or
+  changed.
+- **Turns** draw everything straight onto the canvas each frame. The
+  drawings for the settled view are made over the next frames.
+- **Pan and zoom.** A pan moves the drawings. A zoom scales them, and they
+  are drawn again at the new scale once it settles.
 - **Picking.** Hover and click find the building under the pointer from
-  the shapes the last paint recorded, topmost first, as the SVG's hit
-  test did.
-- **The SVG scene.** `?map=svg` keeps it until Plan 83E. Outside a
-  browser the map renders its SVG.
+  the recorded ops, topmost first, as the SVG's hit test did.
+- **If it fails.** A canvas frame that throws is logged, and the SVG map
+  takes over for the session.
+- **The SVG scene.** `?map=svg` keeps it (walkers unclipped over it) until
+  Plan 83E. Outside a browser the map renders its SVG.
 
 ## The land around the campus (Plans 81B–81E)
 
@@ -269,9 +289,12 @@ placements.
 ## Life on the map
 
 Walkers (`Walkers.tsx`) walk routes between doors (`walkRoutes.ts`),
-preferring paths. They are drawn imperatively on the frame clock, clipped
-by the buildings and trees in front of them (found through a screen-cell
-index, `ShapeIndex`), and more numerous as the college grows. A Campus
+preferring paths, stepped on the frame clock and more numerous as the
+college grows. On the canvas map `Walkers` keeps no DOM: it hands the map
+its crowd (where each walker stands, a painter for it, and the doors held
+open), and the map draws each walker inside the depth order (below). A
+walker going through a door holds it open, and the building is drawn with
+that door open. A Campus
 Quad's walks are paths to them, its lawn is lawn at a lawn's cost (Plan
 80H: at half of it they cut across the grass), and its centerpiece is not
 walkable (`quadGeometry.ts`): on the Grand Quad they go round the fountain

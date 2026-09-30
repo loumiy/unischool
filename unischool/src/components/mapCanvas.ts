@@ -12,20 +12,31 @@ import { FIGURE_H, FIGURE_HALF_W, type Crowd, type CrowdSink, type WalkerColors 
 //   once (canvasPaint.ts's Recorder) and kept as a drawing (an ImageBitmap,
 //   made on an offscreen canvas), while what it draws is unchanged: its
 //   signature, which the map computes from what the art reads. A week in
-//   which one building changes records and draws that building alone.
-// - What lies under the sorted scene (the land behind, the ground, the
-//   paths, the open-ground plates, the shadows) and the land behind are each
-//   one drawing of the view and a margin past its edges; the land in front
-//   (a few dozen sprites) is drawn every frame.
+//   which one building changes records and draws that building alone. The
+//   doors walkers hold open are part of what a building draws; a few of its
+//   door variants are kept.
+// - The land behind, and the ground under the sorted scene (the paths, the
+//   open-ground plates, the shadows), are each one drawing of the view and a
+//   margin past its edges, kept in tiles (ViewLayer): a pan past half the
+//   margin wraps it round instead of moving its pixels, and a change is
+//   drawn at once where the map says it is, the rest a few tiles a frame.
+//   The land in front (a few dozen sprites) is drawn every frame.
 // - Every frame lays the ground down, then each thing's drawing in paint
 //   order, each walker just before the first thing nearer the camera whose
 //   drawing reaches it (walkerDepth.ts), then the land in front: a building
 //   covers a walker behind it by being drawn after it.
+// - A frame whose view, camera and season are as the last one left them (at
+//   Play: walkers moving, a door opening, a building changing) draws only
+//   where something moved or changed, clipped to it.
 // - A pan moves the drawings; a zoom scales them until it settles, then
-//   they are drawn again at the new scale. A turn draws them afresh every
-//   frame (the camera changes what everything looks like).
+//   they are drawn again at the new scale. A turn draws everything straight
+//   onto the map every frame (the camera changes what everything looks
+//   like); the drawings for the view it settles on are made over the next
+//   frames.
 // - A change of season or snow redraws everything, a few things a frame
 //   within a budget, the old drawings standing in meanwhile.
+// - A frame that throws stops it for good and tells the map (`onFail`),
+//   which falls back to the SVG map for the session.
 //
 // Browser-only; the map drives it (CampusMap.tsx).
 
@@ -108,6 +119,11 @@ interface Rec {
   // the rest of it is unchanged: a walker going in by a door and coming out
   // again costs nothing the second time.
   variants: Map<string, { ops: Op[]; box: Box; drawing: Drawing | null }>;
+  // What the last frame put on the map for it (its drawing, or null when
+  // drawn straight on), and where, in device pixels: a frame that changes
+  // only some things draws only where they were and are.
+  laid?: Drawing | null;
+  laidBox?: Box;
 }
 
 // How far the ground's and the land in front's drawings reach past each
@@ -124,6 +140,8 @@ const DOOR_MS = 5;
 // Drawings an old one can stand in for (after a zoom, or a change of
 // season) are made again about this many shapes a frame.
 const BUILD_SHAPES = 2500;
+// The cells a frame that draws only what changed is clipped to.
+const CELL_PX = 32;
 // How far into a frame drawings that must be made (a thing changed, or seen
 // from a new camera) are still made; the rest are drawn straight onto the
 // map until theirs are made, over the next frames. The frame that ends a
@@ -156,6 +174,8 @@ class ViewLayer {
   ops: Op[] = [];
   // Device pixels drawn, for the frame's figures.
   static painted = 0;
+  // What has been drawn again since the map last laid it (its pixels).
+  touched: Box[] = [];
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   // What it shows: its pixel (0, 0) is the world point (ox, oy) / scale.
@@ -200,6 +220,7 @@ class ViewLayer {
       }
     }
     ViewLayer.painted += (x1 - x0) * (y1 - y0);
+    this.touched.push([x0, y0, x1, y1]);
     return (x1 - x0) * (y1 - y0);
   }
   // Draws the tiles `pick` chooses, a run along a row at a time, while the
@@ -269,13 +290,13 @@ class ViewLayer {
     const r1 = Math.floor((((size.height - view.y) / view.zoom) * s - d.oy) / TILE);
     const inView = (col: number, row: number) => col >= c0 && col <= c1 && row >= r0 && row <= r1;
     const t = this.tiles;
-    // Blank tiles in view are drawn at once while the drawing is laid (a
-    // pan brought them in); a drawing not yet laid (made anew, as after a
-    // turn) is drawn straight onto the map meanwhile, and they wait their
-    // turn in the budget like the rest. A frame already late (the one that
-    // ends a turn) draws none.
+    // Blank tiles in view are drawn at once (a pan brought them in, or the
+    // drawing is new, as after a turn): drawing the layer straight onto the
+    // map costs about as much again at every frame until it is laid. A
+    // frame already late (the one that ends a turn) draws none, and the
+    // layer straight onto the map, that frame only.
     if (!late) {
-      if (this.covers) this.paintTiles((i, col, row) => t[i] === BLANK && inView(col, row), null, dpr);
+      this.paintTiles((i, col, row) => t[i] === BLANK && inView(col, row), null, dpr);
       this.paintTiles((i, col, row) => t[i] !== FRESH && inView(col, row), budget, dpr);
       this.paintTiles((i) => t[i] !== FRESH, budget, dpr);
     }
@@ -316,6 +337,12 @@ export class MapCanvas implements CrowdSink {
   private crowdSrc: Crowd | null = null;
   private heldSeen: ReadonlySet<string> | null = null;
   private doorsPending = false;
+  // What the last frame drew, for a frame that draws only what changed:
+  // its view and the rest it stood on, the things shown, the walkers.
+  private composed: { x: number; y: number; zoom: number; W: number; H: number; inspected: string | null; soft: string; front: Op[]; land: Drawing | null; ground: Drawing | null } | null = null;
+  private shown = new Set<Rec>();
+  private figs: Box[] = [];
+  private forceFull = true;
   // The transform the map's context has in a frame: none, or the world's
   // (set once for a run of walkers, not for each).
   private xf: 0 | 2 = 0;
@@ -331,7 +358,7 @@ export class MapCanvas implements CrowdSink {
   walkersOnTop = false;
   private gold = '#c9a227';
   // For the review tools: what the last frame did.
-  stats = { ms: 0, recorded: 0, drawn: 0, laid: 0, direct: 0, walkers: 0, unsupported: {} as Record<string, number>, parts: { record: 0, draw: 0, layers: 0, compose: 0, area: 0 } };
+  stats = { ms: 0, recorded: 0, drawn: 0, laid: 0, direct: 0, walkers: 0, unsupported: {} as Record<string, number>, parts: { record: 0, draw: 0, layers: 0, compose: 0, area: 0 }, partial: -1 };
 
   constructor(canvas: HTMLCanvasElement, host: Element) {
     this.canvas = canvas;
@@ -383,6 +410,7 @@ export class MapCanvas implements CrowdSink {
   // CrowdSink: the walkers' crowd, and word that it moved.
   crowd(c: Crowd | null): void {
     this.crowdSrc = c;
+    this.forceFull = true;
     this.request();
   }
   moved(): void {
@@ -439,7 +467,7 @@ export class MapCanvas implements CrowdSink {
     const size = this.size;
     if (!scene || !size) return;
     const t0 = performance.now();
-    const st = { ms: 0, recorded: 0, drawn: 0, laid: 0, direct: 0, walkers: 0, unsupported: {} as Record<string, number>, parts: { record: 0, draw: 0, layers: 0, compose: 0, area: 0 } };
+    const st = { ms: 0, recorded: 0, drawn: 0, laid: 0, direct: 0, walkers: 0, unsupported: {} as Record<string, number>, parts: { record: 0, draw: 0, layers: 0, compose: 0, area: 0 }, partial: -1 };
     ViewLayer.painted = 0;
     this.entryRec.resetStats();
     this.groundRec.resetStats();
@@ -549,7 +577,7 @@ export class MapCanvas implements CrowdSink {
         }
         order.push(r);
       }
-      for (const key of [...this.recs.keys()]) {
+      for (const key of this.recs.keys()) {
         if (!seen.has(key)) {
           const gone = this.recs.get(key);
           if (gone) this.dropVariants(gone);
@@ -654,15 +682,84 @@ export class MapCanvas implements CrowdSink {
     const t3 = performance.now();
 
     // 3. The frame: the ground, the scene with the walkers in it, the land
-    // in front.
+    // in front. When the view, the camera, the season and the layers all
+    // stand as the last frame left them (Play: the walkers moved, a door
+    // opened, a building changed), only where something moved or changed
+    // is drawn again, clipped to it; everything else stays on the map.
     const ctx = this.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.xf = 0;
     ctx.globalAlpha = 1;
-    ctx.clearRect(0, 0, W, H);
     const tx = v.x * dpr;
     const ty = v.y * dpr;
     const world: Affine = [sNow, 0, 0, sNow, tx, ty];
+    const toDevice = (b: Box): Box => [b[0] * sNow + tx, b[1] * sNow + ty, b[2] * sNow + tx, b[3] * sNow + ty];
+    const slots = this.walkerSlots(scene, view);
+    const figs = this.lastWalkers.map((k) => toDevice(k.fig));
+    const c = this.composed;
+    const reduced = scene.rings.length > 0 && (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+      || document.documentElement.dataset.motion === 'reduce');
+    const ringsLive = reduced || scene.rings.some((r) => { const at = this.ringStart.get(r.id); return at === undefined || now - at < RING_MS; });
+    const partial = !this.forceFull && !moving && c !== null && sNow === this.scale && !ringsLive
+      && c.x === v.x && c.y === v.y && c.zoom === v.zoom && c.W === W && c.H === H && c.inspected === scene.inspected && c.soft === scene.soft
+      && c.front === this.front.ops && c.land === this.land.drawing && c.ground === this.ground.drawing && this.land.covers && this.ground.covers;
+    // Where this frame draws, in cells of CELL_PX device pixels.
+    const dirty = new Set<number>();
+    const cols = Math.ceil(W / CELL_PX) + 1;
+    const mark = (b: Box) => {
+      const x0 = Math.max(0, Math.floor((b[0] - 2) / CELL_PX)); const x1 = Math.min(cols - 1, Math.floor((b[2] + 2) / CELL_PX));
+      const y0 = Math.max(0, Math.floor((b[1] - 2) / CELL_PX)); const y1 = Math.min(Math.ceil(H / CELL_PX), Math.floor((b[3] + 2) / CELL_PX));
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) dirty.add(y * cols + x);
+    };
+    const touches = (b: Box) => {
+      const x0 = Math.max(0, Math.floor(b[0] / CELL_PX)); const x1 = Math.min(cols - 1, Math.floor(b[2] / CELL_PX));
+      const y0 = Math.max(0, Math.floor(b[1] / CELL_PX)); const y1 = Math.min(Math.ceil(H / CELL_PX), Math.floor(b[3] / CELL_PX));
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (dirty.has(y * cols + x)) return true;
+      return false;
+    };
+    const shown = new Set<Rec>();
+    for (const r of this.order) {
+      if (!overlaps(r.box, view)) continue;
+      shown.add(r);
+      const laid = r.drawing && !r.redraw && !moving ? r.drawing : null;
+      const box = toDevice(r.box);
+      if (partial && (laid === null || r.laid !== laid || !r.laidBox || r.laidBox.some((x, i) => x !== box[i]))) {
+        mark(box);
+        if (r.laidBox) mark(r.laidBox);
+      }
+      r.laid = laid;
+      r.laidBox = box;
+    }
+    if (partial) {
+      for (const r of this.shown) if (!shown.has(r) && r.laidBox) mark(r.laidBox);
+      for (const f of this.figs) mark(f);
+      for (const f of figs) mark(f);
+      for (const [layer, d] of [[this.land, this.land.drawing], [this.ground, this.ground.drawing]] as const) {
+        for (const t of layer.touched) mark([t[0] + d!.ox + tx, t[1] + d!.oy + ty, t[2] + d!.ox + tx, t[3] + d!.oy + ty]);
+      }
+    }
+    this.land.touched.length = 0;
+    this.ground.touched.length = 0;
+    this.shown = shown;
+    this.figs = figs;
+    this.forceFull = false;
+    this.composed = { x: v.x, y: v.y, zoom: v.zoom, W, H, inspected: scene.inspected, soft: scene.soft, front: this.front.ops, land: this.land.drawing, ground: this.ground.drawing };
+    st.partial = partial ? dirty.size * CELL_PX * CELL_PX : -1;
+    if (partial) {
+      ctx.save();
+      ctx.beginPath();
+      const rows = Math.ceil(H / CELL_PX) + 1;
+      for (let y = 0; y < rows; y++) {
+        let run = -1;
+        for (let x = 0; x <= cols; x++) {
+          const on = x < cols && dirty.has(y * cols + x);
+          if (on && run < 0) run = x;
+          if (!on && run >= 0) { ctx.rect(run * CELL_PX, y * CELL_PX, (x - run) * CELL_PX, CELL_PX); run = -1; }
+        }
+      }
+      ctx.clip();
+    }
+    ctx.clearRect(0, 0, W, H);
     const direct = (ops: readonly Op[], alpha = 1) => {
       ctx.globalAlpha = 1;
       replay(ctx, alpha < 1 ? [{ k: 'layer', alpha, ops: ops as Op[] }] : ops, { base: world, zoom: v.zoom, dpr });
@@ -682,7 +779,6 @@ export class MapCanvas implements CrowdSink {
       if (ring) more = this.ring(ring, now, world, dpr) || more;
     };
     for (const r of scene.rings) if (!scene.entries.some((e) => e.kind === 'mass' && e.owner === r.id)) drawRing(r.id);
-    const slots = this.walkerSlots(scene, view);
     st.walkers = [...slots.values()].reduce((n, l) => n + l.length, 0);
     const n = this.order.length;
     for (let i = 0; i <= n; i++) {
@@ -690,7 +786,7 @@ export class MapCanvas implements CrowdSink {
       if (here) this.walkers(here, world);
       if (i === n) break;
       const r = this.order[i]!;
-      if (!overlaps(r.box, view)) continue;
+      if (!shown.has(r) || (partial && !touches(r.laidBox!))) continue;
       const dim = scene.inspected !== null && r.entry.kind === 'mass' && r.entry.owner !== scene.inspected ? 0.45 : 1;
       // A drawing stands in only if it shows what the thing draws now (at
       // whatever scale); a thing changed and not yet drawn again, or seen
@@ -707,6 +803,7 @@ export class MapCanvas implements CrowdSink {
     direct(this.front.ops);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
+    if (partial) ctx.restore();
 
     if (sNow !== this.scale) more = true;
     for (const [key, n2] of this.entryRec.stats.unsupported) st.unsupported[key] = (st.unsupported[key] ?? 0) + n2;
