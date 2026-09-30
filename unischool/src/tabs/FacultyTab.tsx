@@ -2,7 +2,7 @@ import AdministrationPanel from './AdministrationPanel';
 import { useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
-import { facultyQualityTier, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
+import { facultyQualityTier, marketCenters, marketStandingOf, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
 import { hasFreeSlot, unstaffedCourses } from '../systems/techtree/techSystem';
@@ -423,6 +423,22 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
 // opens again.
 type View = 'faculty' | 'market' | 'departments';
 
+// What the market sends follows the college's standing (Plan 84B): said
+// plainly, with the typical candidate's potentials at the standing now
+// (facultyData.ts's marketCenters, before a quirk moves them).
+function FacultyMarketNote({ s }: { s: GameState }) {
+  const center = marketCenters(marketStandingOf(s));
+  return (
+    <p className="faculty-market-standing">
+      The candidates the college attracts improve with its standing: their teaching potential rises with its
+      prestige, and their research potential with its research standing, and a little with prestige. At its
+      standing now, a typical candidate's potential is about <strong>{Math.round(center.teaching)}</strong> for
+      teaching and <strong>{Math.round(center.research)}</strong> for research, with a wide spread and now and then
+      a standout well above it. Everyone arrives below their potential and grows toward it over the years they stay.
+    </p>
+  );
+}
+
 const VIEWS: Array<{ id: View; label: string; title: string }> = [
   { id: 'faculty', label: 'Faculty', title: 'On the faculty' },
   { id: 'market', label: 'Market', title: 'On the market' },
@@ -643,6 +659,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
             ? ` Teaching the whole catalog takes ${cap.total.catalogue} course slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the course slots a new hire brings, fewer if you keep them long enough to grow.`
             : ' Every department can already teach its whole catalog.'}
         </p>
+        <FacultyMarketNote s={s} />
       </section>
 
       <section className="panel faculty-people">

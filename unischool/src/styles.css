@@ -2151,6 +2151,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 .faculty-horizon { margin: 8px 0 0; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.5; }
 .faculty-horizon strong { font-family: var(--display); font-weight: 800; color: var(--ink); }
+.faculty-market-standing { margin: 6px 0 0; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.5; }
+.faculty-market-standing strong { font-family: var(--display); font-weight: 800; color: var(--ink); }
 .faculty-summary .panel-head { flex-wrap: wrap; }
 .faculty-summary .panel-head .stat + .stat { margin-left: 12px; }
 

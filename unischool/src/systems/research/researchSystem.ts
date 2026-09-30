@@ -6,7 +6,7 @@ import {
   isBreakthroughRollWeek, rollGrantAmount, rollGrantFunder, rollPrizeName, teamStrength,
 } from '../../data/researchData';
 import { researchTopic } from '../../data/researchTopics';
-import { generateCandidate } from '../../data/facultyData';
+import { generateCandidate, marketStandingOf } from '../../data/facultyData';
 import { money, weeksProse } from '../../format';
 import { random } from '../../engine/random';
 import { recordProject } from '../faculty/career';
@@ -42,7 +42,7 @@ const PUBLICATIONS_PER_CANDIDATE_PULL = 4;
 function pullCandidate(s: GameState, participants: Faculty[], why: string): void {
   const who = pickFrom(participants);
   if (!who) return;
-  const candidate = generateCandidate(who.field, [...s.faculty, ...s.candidates].map((f) => f.name));
+  const candidate = generateCandidate(who.field, [...s.faculty, ...s.candidates].map((f) => f.name), marketStandingOf(s));
   s.candidates.unshift(candidate);
   log(s, `${candidate.name} (${candidate.field}) saw ${why} and is on the market.`, 'info', 'candidate', candidate.id);
 }

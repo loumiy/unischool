@@ -1,5 +1,5 @@
 import type { GameState } from '../../state/types';
-import { FACULTY_FIELDS, generateCandidate } from '../../data/facultyData';
+import { FACULTY_FIELDS, generateCandidate, marketStandingOf } from '../../data/facultyData';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { random } from '../../engine/random';
 
@@ -51,7 +51,7 @@ export function tickSearches(s: GameState): void {
   for (const field of Object.keys(s.searches)) {
     if (random() < SEARCH_LISTING_CHANCE) {
       const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
-      const found = generateCandidate(field, existingNames);
+      const found = generateCandidate(field, existingNames, marketStandingOf(s));
       s.candidates.push(found);
       s.log.unshift({
         year: s.clock.year, week: s.clock.week,
