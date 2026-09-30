@@ -395,6 +395,12 @@ finishes in the top ten but not first.
 **Access and financial strength** are ranked beside them and count toward
 nothing.
 
+**Ties go to the college** (Plan 85C, the owner's decision). Every table
+sorts by `rivalsSystem.ts`'s `byStanding`: the higher value first and, level,
+the college ahead; rivals among themselves keep the field's order. Ties are
+common at the unspecialized ceilings, where the college and the rivals held
+there share one value.
+
 Rivals carry the same field names as the player — which is what lets one
 `rankedListBy(axis)` serve every leaderboard — seeded by a deterministic
 spread off each school's own id and drifted annually on independent

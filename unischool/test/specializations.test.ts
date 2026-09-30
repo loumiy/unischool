@@ -10,6 +10,7 @@
 //   - a specialized axis runs higher: after fifty years each pillar is led
 //     by a school specialized in it, and no school's other axes drift past
 //     the unspecialized ceilings; the year's drift still takes one draw;
+//   - on a tie in any table the college ranks ahead;
 //   - a save from before (the version-87 fixture) loads with each rival
 //     dealt its pillar as a new game deals it, and a bad one is dealt again;
 //   - a title is hard to come by without the athletics specialization: no
@@ -27,7 +28,7 @@ import { dealtSpecialization, ELITE_RIVAL_IDS, initialRivals, makeRivalRng, spor
 import {
   PILLARS, PILLAR_FLOOR, UNSPECIALIZED_CEILINGS, pillarBreakdown, pillarCeiling, prestigeBreakdown, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
-import { PILLAR_AXES, rankedListBy, rivalPillars, specializations, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
+import { PILLAR_AXES, playerRank, rankBy, rankedListBy, rivalOverall, rivalPillars, specializations, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
 import { STAGE_EDGE, resolveSport, stageEdge } from '../src/systems/athletics/playoffs';
 import { SPORTS, UNSPECIALIZED_TEAM_CEILING, promoteToVarsityTeam, teamQuality, teamQualityEarned } from '../src/data/studentLifeData';
 import { graduatePrograms, milestoneSchools } from '../src/data/techData';
@@ -136,6 +137,26 @@ bindScriptStream(12345);
   const specialistTop = Math.max(...s.rivals.map((r) => Math.max(...PILLARS.filter((p) => p === r.specialization && p !== 'athletics').map((p) => rivalPillars(r)[p]))));
   assert(specialistTop > Math.max(UNSPECIALIZED_CEILINGS.academics, UNSPECIALIZED_CEILINGS.research, UNSPECIALIZED_CEILINGS.studentLife) && specialistTop <= SPECIALIZED_CEILING + 1e-9,
     `a specialized axis runs above the ceilings, to at most ${SPECIALIZED_CEILING} (${specialistTop.toFixed(1)})`);
+}
+
+// ---- Ties: the college ranks ahead (the owner's rule) ----
+{
+  const s = createInitialState('Ties');
+  // Research: the college level with the field's best.
+  const best = Math.max(...s.rivals.map((r) => r.researchStanding));
+  s.self.researchStanding = best;
+  assert(rankBy(s, 'researchStanding') === 1, `level with the best research standing, the college is first (#${rankBy(s, 'researchStanding')})`);
+  // A pillar held at its ceiling, level with rivals held there too.
+  for (const r of s.rivals.slice(0, 5)) r.socialStanding = UNSPECIALIZED_CEILINGS.studentLife;
+  s.self.socialStanding = UNSPECIALIZED_CEILINGS.studentLife;
+  const above = s.rivals.filter((r) => r.socialStanding > UNSPECIALIZED_CEILINGS.studentLife).length;
+  assert(rankBy(s, 'socialStanding') === above + 1, `at the student-life ceiling, ahead of every rival held there (#${rankBy(s, 'socialStanding')}, ${above} above)`);
+  // Prestige: level with the leader's overall.
+  s.self.reputation = Math.max(...s.rivals.map(rivalOverall));
+  assert(playerRank(s) === 1, `level with the field's best overall, the college is first (#${playerRank(s)})`);
+  // And a school just above is still above.
+  s.self.reputation -= 1e-6;
+  assert(playerRank(s) === 2, 'a hair below it, second');
 }
 
 // ---- The migration ----

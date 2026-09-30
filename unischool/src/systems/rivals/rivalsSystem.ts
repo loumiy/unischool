@@ -388,6 +388,14 @@ function selfValue(s: GameState, axis: StandingAxis): number {
   return s.self[axis];
 }
 
+// Every table's order: the higher value first, and on a tie the college
+// ahead (the owner's rule, Plan 85C). Ties are common at the unspecialized
+// ceilings, where the college and the rivals held there share one value;
+// the rivals among themselves keep the field's order (the sort is stable).
+export function byStanding(a: RankedEntry, b: RankedEntry): number {
+  return b.value - a.value || Number(b.isPlayer) - Number(a.isPlayer);
+}
+
 // Every leaderboard's core: one entry per school, sorted by the caller's
 // reading. `self` is null when the player does not belong on the table
 // (a sport they do not field).
@@ -402,7 +410,7 @@ function rankedFrom(
   if (self !== null) {
     all.push({ key: 'self', name: institutionName(s.self), mascot: s.self.mascot, value: self, isPlayer: true });
   }
-  return all.sort((a, b) => b.value - a.value);
+  return all.sort(byStanding);
 }
 
 export function rankedListBy(s: GameState, axis: StandingAxis): RankedEntry[] {
@@ -470,7 +478,7 @@ export function sportRank(s: GameState, sportId: string): number | null {
 
 // Keyed by identity, not name: two schools may share a name.
 function sortedByValue(entries: RankedEntry[]): RankedEntry[] {
-  return [...entries].sort((a, b) => b.value - a.value);
+  return [...entries].sort(byStanding);
 }
 
 function currentEntries(s: GameState): RankedEntry[] {
