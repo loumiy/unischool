@@ -388,12 +388,21 @@ function selfValue(s: GameState, axis: StandingAxis): number {
   return s.self[axis];
 }
 
-// Every table's order: the higher value first, and on a tie the college
-// ahead (the owner's rule, Plan 85C). Ties are common at the unspecialized
+// The standings' order (prestige, the four pillars, access, financial
+// strength, the movers' year-ago table): the higher value first, and on a
+// tie the college ahead (the owner's rule, Plan 85C). A sport's own table
+// keeps the old rule (byStrength). Ties are common at the unspecialized
 // ceilings, where the college and the rivals held there share one value;
 // the rivals among themselves keep the field's order (the sort is stable).
 export function byStanding(a: RankedEntry, b: RankedEntry): number {
   return b.value - a.value || Number(b.isPlayer) - Number(a.isPlayer);
+}
+
+// A sport's table, and so its playoff seeds, keeps the old rule: the higher
+// value first and, level, the rivals ahead of the college (who is listed
+// last; the sort is stable). The owner's tie ruling is the standings'.
+function byStrength(a: RankedEntry, b: RankedEntry): number {
+  return b.value - a.value;
 }
 
 // Every leaderboard's core: one entry per school, sorted by the caller's
@@ -403,6 +412,7 @@ function rankedFrom(
   s: GameState,
   self: number | null,
   rivalValue: (r: Rival) => number,
+  order: (a: RankedEntry, b: RankedEntry) => number = byStanding,
 ): RankedEntry[] {
   const all: RankedEntry[] = s.rivals.map((r) => ({
     key: r.id, name: r.name, mascot: r.mascot, value: rivalValue(r), isPlayer: false,
@@ -410,7 +420,7 @@ function rankedFrom(
   if (self !== null) {
     all.push({ key: 'self', name: institutionName(s.self), mascot: s.self.mascot, value: self, isPlayer: true });
   }
-  return all.sort(byStanding);
+  return all.sort(order);
 }
 
 export function rankedListBy(s: GameState, axis: StandingAxis): RankedEntry[] {
@@ -460,6 +470,7 @@ export function sportRankedList(s: GameState, sportId: string): RankedEntry[] {
     s,
     team ? teamQuality(team, s) : null,
     (r) => sportStrengthFor(r, sportId),
+    byStrength,
   );
 }
 

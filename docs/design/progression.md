@@ -395,11 +395,13 @@ finishes in the top ten but not first.
 **Access and financial strength** are ranked beside them and count toward
 nothing.
 
-**Ties go to the college** (Plan 85C, the owner's decision). Every table
-sorts by `rivalsSystem.ts`'s `byStanding`: the higher value first and, level,
-the college ahead; rivals among themselves keep the field's order. Ties are
-common at the unspecialized ceilings, where the college and the rivals held
-there share one value.
+**Ties go to the college in the standings** (Plan 85C, the owner's
+decision). Prestige, the four pillars, access, financial strength and the
+report's year-ago table sort by `rivalsSystem.ts`'s `byStanding`: the higher
+value first and, level, the college ahead; rivals among themselves keep the
+field's order. Ties are common at the unspecialized ceilings, where the
+college and the rivals held there share one value. A sport's own table, and
+so its playoff seeds, keeps the old rule: level, the rival is ahead.
 
 Rivals carry the same field names as the player — which is what lets one
 `rankedListBy(axis)` serve every leaderboard — seeded by a deterministic

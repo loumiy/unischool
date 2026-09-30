@@ -328,13 +328,15 @@ is dealt a pillar that runs higher and steadier. Save version 88.
     just said it, and in the standings it says it once.
     "Specialization" throughout, never "archetype"; the glossary gains the
     word.
-- **Ties go to the college** (the owner's decision in review). Every
-  table sorts by `rivalsSystem.ts`'s `byStanding`: the higher value first,
-  and on a tie the college ahead; rivals among themselves keep the field's
-  order. That covers prestige, the four pillars, access, financial
-  strength, each sport's table (and so a playoff seed) and the year-ago
-  table the report's movers read. Ties are common at the ceilings, where
-  the college and the rivals held there share one value.
+- **Ties go to the college in the standings** (the owner's decision in
+  review). The standings sort by `rivalsSystem.ts`'s `byStanding`: the
+  higher value first, and on a tie the college ahead; rivals among
+  themselves keep the field's order. That covers prestige, the four
+  pillars, access, financial strength and the year-ago table the report's
+  movers read. Ties are common at the ceilings, where the college and the
+  rivals held there share one value. A sport's own table, and so its
+  playoff seeds, keeps the old rule (`byStrength`): level, the rival is
+  seeded ahead.
 - **Athletics, harder.** The target, set here for review: on the
   unspecialized path a first title comes after year 20 in most runs, and a
   handful at most by year 50. Two levers, both lifted by the athletics
@@ -415,24 +417,26 @@ is dealt a pillar that runs higher and steadier. Save version 88.
     their ceilings, which ranks about 7th to 10th, 8th to 14th and 3rd to
     6th. Their athletics ranks in the 60s because neither runs its
     department (no coaches, no flagships); the championships goal player,
-    which does, ranks 18th (8–24).
+    which does, ranks 10th (8–24): the runs that hold athletics at its
+    limit rank 8th to 10th, the rest 19th to 24th.
   - **What the tie-break moved** (measured before the baseline was
     re-recorded): academics rank at year 50, Guided 12, 11, 11 → 10, 8, 9
     by seed, Completionist 9, 9, 10 → 7, 7, 9; research, student life and
     athletics did not move, nor did either player's overall rank (Guided
     6, Completionist 7; best 6, 4, 3 and 6, 6, 9) or any other figure in
-    the report. The championships player's overall rank at year 50 is 27
-    (24–29), against 26 without it, and its athletics 18 (8–24) against 17
-    (12–24): the sports' tables now seed it ahead on a tie, which moves
-    which bracket it meets. No unspecialized player is ever first: the
+    the report. The championships player's athletics rank at year 50 is 10
+    (8–24), against 17 (12–24) without it: where it holds the athletics
+    limit it now takes the tie. Its titles and overall rank are as before,
+    since the sports' tables and seeds keep the old rule. No unspecialized
+    player is ever first: the
     best any reaches in any year is Guided's 3rd, the championships
     player's 20th.
   - **Titles:** Guided and Completionist won none before and none after.
     The championships goal player (`npm run review:goals -- --goals
-    championships`, five seeds, two names): first title a median year 37
+    championships`, five seeds, two names): first title a median year 29
     (13–40; four runs of ten won none), against year 9 (8–11); titles by
-    year 25 a median 0, against 19; by year 50 a median 1 (0–2), against 69
-    (59–95). Its overall rank at year 50 falls from 11 to 27.
+    year 25 a median 0, against 19; by year 50 a median 1 (0–3), against 69
+    (59–95). Its overall rank at year 50 falls from 11 to 27 (22–29).
   - **The milestone** (no effect until 85D): Guided first stands in the
     top 15 in years 24–26, Completionist in 26–27, at the early edge of
     the 25–40 wanted.
@@ -455,7 +459,8 @@ is dealt a pillar that runs higher and steadier. Save version 88.
   deltas; `npm run phone` on the launch fixture and a year-46 Guided save;
   `review:strings`, nothing new flagged. `test/specializations.test.ts`
   pins the ceilings and the held line, the tie-break (level with the best,
-  the college is first, and ahead of every rival held at its ceiling), the
+  the college is first, and ahead of every rival held at its ceiling; in a
+  sport's table a level rival is still seeded ahead), the
   deal (the same every time, all
   four dealt, all four among the strongest), the field after fifty years
   (each pillar led by its specialist, no other axis past its ceiling, one

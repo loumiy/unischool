@@ -10,7 +10,8 @@
 //   - a specialized axis runs higher: after fifty years each pillar is led
 //     by a school specialized in it, and no school's other axes drift past
 //     the unspecialized ceilings; the year's drift still takes one draw;
-//   - on a tie in any table the college ranks ahead;
+//   - on a tie in the standings the college ranks ahead; a sport's own
+//     table (its playoff seeds) still leaves a tie to the rival;
 //   - a save from before (the version-87 fixture) loads with each rival
 //     dealt its pillar as a new game deals it, and a bad one is dealt again;
 //   - a title is hard to come by without the athletics specialization: no
@@ -24,11 +25,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInitialState } from '../src/state/actions';
 import { readSave } from '../src/state/persistence';
-import { dealtSpecialization, ELITE_RIVAL_IDS, initialRivals, makeRivalRng, sportStrengthFor } from '../src/data/rivalData';
+import { dealtSpecialization, ELITE_RIVAL_IDS, hashUnit, initialRivals, makeRivalRng, sportStrengthFor } from '../src/data/rivalData';
 import {
   PILLARS, PILLAR_FLOOR, UNSPECIALIZED_CEILINGS, pillarBreakdown, pillarCeiling, prestigeBreakdown, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
-import { PILLAR_AXES, playerRank, rankBy, rankedListBy, rivalOverall, rivalPillars, specializations, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
+import { PILLAR_AXES, playerRank, rankBy, rankedListBy, rivalOverall, rivalPillars, specializations, sportRankedList, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
 import { STAGE_EDGE, resolveSport, stageEdge } from '../src/systems/athletics/playoffs';
 import { SPORTS, UNSPECIALIZED_TEAM_CEILING, promoteToVarsityTeam, teamQuality, teamQualityEarned } from '../src/data/studentLifeData';
 import { graduatePrograms, milestoneSchools } from '../src/data/techData';
@@ -218,6 +219,13 @@ function coach(quality: number, field: string): Coach {
   }
   assert(titles / seasons < 0.1, `the sport's strongest program wins fewer than one title in ten seasons (${(titles / seasons * 100).toFixed(1)}%)`);
   assert(titles / finals < 0.35, `and loses most of its finals (${titles} of ${finals} won)`);
+
+  // A sport's table keeps the old tie rule: level, the rival seeds ahead.
+  const r = s.rivals[0];
+  r.athleticStrength = UNSPECIALIZED_TEAM_CEILING - (hashUnit(`${r.id}:${sport.id}`) * 2 - 1) * 28;
+  assert(sportStrengthFor(r, sport.id) === teamQuality(team, s), `a rival level with the team in its sport (${sportStrengthFor(r, sport.id)})`);
+  const table = sportRankedList(s, sport.id);
+  assert(table.findIndex((e) => e.key === r.id) < table.findIndex((e) => e.isPlayer), 'is seeded ahead of it: a sport\'s table leaves ties to the rival');
 }
 
 if (failures > 0) {
