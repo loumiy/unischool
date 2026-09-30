@@ -4,7 +4,7 @@
 into PRs, starting with a prototype that decides whether the rest are
 worth doing.*
 
-**Status: In progress: A to D merged (#260–#262, #264, #265).**
+**Status: Landed. A to E merged (#260–#262, #264–#266).**
 
 ---
 
@@ -70,7 +70,7 @@ existing art, with a measured prototype first.
 | B | Measure, and a canvas prototype: go or stop | no | no |
 | C | The scene on canvas, with picking | no | no |
 | D | Walkers in the depth order | no | no |
-| E | The SVG scene retired; tools and access | no | no |
+| E | Tools and access; the SVG scene kept as the fallback | no | no |
 
 C to E happen only if B says go.
 
@@ -557,9 +557,19 @@ The canvas no longer repaints the whole scene when something changes.
   - `83d-door.jpg`: a door a walker holds, drawn open, beside the same
     frame with no door held.
 
-## PR 83E — The SVG scene retired; tools and access
+## PR 83E — Tools and access; the SVG scene kept as the fallback
 
-- **Remove** the SVG scene and the `?map=svg` flag.
+- ~~**Remove** the SVG scene and the `?map=svg` flag.~~ **Changed from
+  the plan: the SVG scene stays**, as the map D's safety net falls back to
+  when a canvas frame throws, and `?map=svg` stays as a debugging switch.
+  - The reason: the canvas walks the same art the SVG map renders, so
+    keeping the SVG scene costs next to nothing. A fallback that already
+    draws the same campus is worth more than the few lines its removal
+    would save.
+  - What is left behind is only what nothing uses, the SVG path's or
+    the canvas's (below).
+  - On the fallback the walkers draw over the scene, not in the depth
+    order. That is acceptable for a fallback.
 - **Review tools** that read the map's DOM move to the canvas or to the
   scene list:
   - `tools/touchCheck.mjs` reads the world group's transform;
@@ -571,10 +581,91 @@ The canvas no longer repaints the whole scene when something changes.
   Enter inspects it.
 - **Docs:** `docs/architecture/campus-map.md` describes the painter,
   picking and the layers that stay SVG.
+- **Added with the owner:** D's settling frame after a turn (about 190 ms
+  against C's 104) is brought down if that is cheap without hurting Play
+  or pans. The backlog gains the sim on a worker thread.
+
+**As implemented (#266):** the SVG scene stays as the fallback, the
+review tools read the map the player sees, and the map's buildings are
+reachable by keyboard.
+
+- **The tools read the map, not its DOM.**
+  - The map registers a small probe for them, `window.__campusMap`
+    (`mapProbe.ts`'s `MapReview`). It reports:
+    - which map is up (the canvas, or the SVG fallback);
+    - the pan and zoom;
+    - whether the view is shown in full (the canvas's drawings made);
+    - the building a click at a point would find;
+    - each building's name and place on the page;
+    - what the canvas could not draw.
+  - `tools/mapReview.mjs` wraps it for the tools.
+  - `tools/touchCheck.mjs` reads the view from it, not from the world
+    group's transform. It taps a building on the canvas (one the map
+    itself finds under the finger), where it used to tap a hall's SVG
+    marks. It also checks the canvas is up, or the SVG with `?map=svg`,
+    and passes on both.
+  - `tools/review/shootViews.mjs`, `tools/shoot.mjs`,
+    `tools/timelapseShoot.mjs` and `tools/profile.mjs` wait until the map
+    has settled before a shot or a sample, not a fixed delay alone.
+  - `tools/review/gallery.mjs` and `shootViews` report when the canvas is
+    not the map that is up, and anything it could not draw.
+  - `tools/sheet.tsx` (the art sheet) renders the art as SVG on purpose:
+    both maps draw that art. `tools/newPlayer.mjs` reads the map's
+    `placing` class, which the SVG over the canvas still carries.
+  - The debugging globals D left (`window.__mapCanvas`,
+    `window.__replay`, `window.__canvasPaint`) are gone. So are the
+    compositor's walkers-on-top switch, which only D's screenshots used,
+    and a stale comment about the walkers' outlines.
+- **Keyboard and screen reader** (`MapBuildingList` in `CampusMap.tsx`).
+  - A visually hidden group of buttons, one per placed building, each
+    named as the map names it ("…, under construction" while it goes up).
+  - The buttons run in the order the map reads at this camera: top to
+    bottom in bands of 48 world pixels, then left to right.
+  - The group is one Tab stop, the map's first. The arrow keys move
+    between buildings, and Home and End go to the ends; while the group
+    has the focus the arrow keys do not pan.
+  - The focused building is lit as an inspected one is: the others dimmed,
+    its halo drawn and its name pinned. A building off screen is brought
+    into view. Enter or Space inspects it, and Escape closes the panel.
+  - Leaving the group puts the light out, and Shift+Tab comes back to
+    the building it left.
+  - A mouse player sees no change: the group takes no room, and nothing
+    is lit until it has the focus.
+  - `tools/keyboardCheck.mjs` walks all of this in a browser, and
+    `test/map-access.test.ts` checks the list's names, order and single
+    Tab stop.
+- **The turn's end.**
+  - A turn now draws the view it ends on as one more frame of the turn:
+    it records that view and draws it straight on, as every turn frame
+    does. The next frame rests on it.
+  - So the canvas makes the new view's drawings from the frame after,
+    with the same camera. Its bitmaps come within 20 ms a frame, and the
+    view's tiles of the land one frame and of the ground the next.
+  - Before, the frame that ended the turn recorded the new view and then
+    made those drawings in the frame after it: about 130–155 ms, then
+    about 145.
+  - Now the turn's last frame costs what a turn frame costs, and the
+    frames after it 65–100 ms, about 70 typically.
+  - A turn's total main-thread time is about the same (about 770–830 ms
+    with the clock paused, both, at 1×).
+  - This spreads the work; it does not remove it. The trace measure
+    earlier plans used for the settling frame (to the next layerize) no
+    longer brackets it, so it is not quoted.
+  - Frames at Play (9.2 ms median at 1×, both) and in a pan (0.9 ms, both)
+    are unchanged. The view a turn settles on is identical, pixel for
+    pixel, to D's after three turns.
+- **Checks:**
+  - `npm run check` passes and `npm run sim` shows 0 deltas;
+  - `npm run phone` passes;
+  - the touch check passes on the canvas and on `?map=svg`;
+  - the keyboard check passes;
+  - the door checker's report is identical.
+- **Screenshot:** `docs/reviews/2026-10-canvas/83e-keyboard-focus.jpg`, a
+  building focused from the keyboard, lit on the canvas.
 
 ## 4. The backlog
 
-- **A faster map:** now this plan (in progress after B).
+- **A faster map:** now this plan (landed).
 - **Real slopes on campus:** corrected. Slopes are a geometry change
   (siting, paths, doors, walkers, the depth sort, the projection), and a
   faster renderer removes only their cost, not that work. It no longer

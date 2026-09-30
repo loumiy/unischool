@@ -29,6 +29,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
+import { waitForMap } from './mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const dir = argv.find((a) => !a.startsWith('--'));
@@ -144,6 +145,7 @@ async function shootFrame(file) {
   }
   await page.mouse.move(1, 1);
   await page.waitForTimeout(1_200);
+  await waitForMap(page);
   const base = join(shots, file.replace(/\.json$/, ''));
   await page.screenshot({ path: `${base}.jpg`, type: 'jpeg', quality: 92 });
   if (png) await page.screenshot({ path: `${base}.png` });

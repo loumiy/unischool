@@ -133,7 +133,7 @@ The hall pips and the walkers are drawn after the scene from the live
 state. `npm run profile` gates every change to the
 map.
 
-## The canvas (Plans 83C–83D)
+## The canvas (Plan 83)
 
 The scene, the land around it and the walkers are drawn on a canvas under
 the map's SVG. `canvasPaint.ts` walks the element tree the art returns
@@ -166,16 +166,44 @@ The labels, hall and lab marks, the ghost and the dust stay SVG over it.
 - **Only what changed.** When nothing but walkers and a few things
   changed (Play), a frame is clipped to the cells round what moved or
   changed.
-- **Turns** draw everything straight onto the canvas each frame. The
-  drawings for the settled view are made over the next frames.
+- **Turns** draw everything straight onto the canvas each frame, the view
+  a turn ends on included. The drawings for that view are made over the
+  frames after it, the camera at rest.
 - **Pan and zoom.** A pan moves the drawings. A zoom scales them, and they
   are drawn again at the new scale once it settles.
 - **Picking.** Hover and click find the building under the pointer from
   the recorded ops, topmost first, as the SVG's hit test did.
 - **If it fails.** A canvas frame that throws is logged, and the SVG map
   takes over for the session.
-- **The SVG scene.** `?map=svg` keeps it (walkers unclipped over it) until
-  Plan 83E. Outside a browser the map renders its SVG.
+- **The SVG scene** is that fallback, kept on purpose (Plan 83E): the
+  canvas walks the same art, so it costs next to nothing. `?map=svg`
+  shows it, for debugging. On it the walkers draw over the scene, not in
+  the depth order. Outside a browser the map renders its SVG.
+
+**By keyboard.** The map's buildings are a visually hidden group of
+buttons (`MapBuildingList`), one per building, named as the map names
+them and ordered as the map reads at this camera.
+- The group is one Tab stop, the map's first.
+- The arrow keys, Home and End move between buildings, and do not pan
+  while it has the focus.
+- The focused building is lit as an inspected one is (the others dimmed,
+  its name pinned) and brought into view if it is off screen.
+- Enter or Space inspects it.
+
+`tools/keyboardCheck.mjs` walks it in a browser.
+
+**For the review tools.** The map registers `window.__campusMap`
+(`mapProbe.ts`'s `MapReview`), wrapped by `tools/mapReview.mjs`. It
+reports:
+- which map is up;
+- the pan and zoom;
+- whether the view is shown in full;
+- the building under a point;
+- each building's place on the page;
+- what the canvas could not draw.
+
+The touch check, the shooting tools, the gallery and the profile read the
+map through it rather than through the SVG's DOM.
 
 ## The land around the campus (Plans 81B–81E)
 
