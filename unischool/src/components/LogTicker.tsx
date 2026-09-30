@@ -1,6 +1,6 @@
 import type { GameState } from '../state/types';
 import ToolbarPopup from './ToolbarPopup';
-import LogStrip from './LogStrip';
+import LogStrip, { SuccessorDoor, retirementNotice } from './LogStrip';
 import { LogIcon } from './icons';
 import { inboxPointer, nextStep, type NextStep } from '../systems/guidance/nextStep';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
@@ -33,13 +33,16 @@ function progressText(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)} of ${figure(p.target, p.unit)} ${p.unit}`;
 }
 
-export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, inboxOpen }: {
+export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, inboxOpen, onOpenMarket }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
   onGo: (go: NonNullable<NextStep['go']>, hallId?: string, programId?: string) => void;
   inboxOpen: boolean;
+  // A retirement's notice opens the market in its field (Plan 84D).
+  onOpenMarket?: (field: string) => void;
 }) {
   const latest = s.log[0];
+  const leaving = latest && onOpenMarket ? retirementNotice(s, latest) : undefined;
   const step = s.pendingInterrupt ? null : (inboxOpen ? null : inboxPointer(s)) ?? nextStep(s);
   const milestone = nextMilestone(s);
   const progress = milestone?.progress?.(s);
@@ -60,6 +63,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           <span className={latest.kind}>
             <span className="ts">Y{latest.year}W{latest.week}</span>
             {latest.message}
+            {leaving && onOpenMarket && <> <SuccessorDoor f={leaving} onOpenMarket={onOpenMarket} /></>}
           </span>
         ) : (
           <span className="log-ticker-empty">No activity yet.</span>
@@ -94,7 +98,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
       </div>
       {open && (
         <ToolbarPopup title="Activity log" onClose={() => onSetOpen(false)} className="log-popup">
-          <LogStrip s={s} />
+          <LogStrip s={s} onOpenMarket={onOpenMarket ? (field) => { onSetOpen(false); onOpenMarket(field); } : undefined} />
         </ToolbarPopup>
       )}
       {ladderOpen && (

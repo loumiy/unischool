@@ -197,6 +197,63 @@ reads it and nothing that writes it draws on the random stream, so
 - **Checks:** `npm run phone`; screenshots of the grid early and late, and
   of the market.
 
+**As implemented (#271):** the tab opens on the grid. A view switch
+shows *Faculty*, *Market* and *Departments*. The department board
+(Plan 72F's meters, demand and search offers) is kept whole as the third
+view, and a Curriculum door to a department still opens it on that row.
+One tile (`tabs/FacultyTile.tsx`) serves the grid, the market and the
+board.
+
+- **The tile:**
+  - a 56 px portrait (40 on a phone), the name, field and rank;
+  - teaching and research as course-grade letters (`gradeFor`: A from 78,
+    B from 62), with `→B` when the potential reaches a higher letter;
+  - badges: ★ and the prize count, *Retiring* (the year's notice given),
+    *On a project*, *N waiting* and the quirk (its line as the title);
+  - pay, load (or a listing's weeks left, and the grade a candidate would
+    earn on the first course waiting), *More* and the action.
+
+  *More* keeps the old card's detail until 84E replaces it.
+- **Decisions the plan left open:**
+  - *Potential* sorts by the two potentials together.
+  - *Years here* reads the arrival (84C), so a founding professor's
+    head start does not count. The owner's *Years left* stays beside it.
+    The market hides both.
+  - *N waiting* counts the unstaffed and the open courses in the field. It
+    shows only where the person could take one: always on a candidate,
+    and on a professor with a course slot free. Otherwise every early tile
+    carried it.
+  - *Can take a course* uses the same test.
+  - *Field* lists the divisions (`FACULTY_FIELD_GROUPS`, as "All of …")
+    and the fields in use.
+  - The search matches the name, field, quirk and nationality.
+- **Short and over** departments sit under the filter bar as chips. Each
+  chip toggles the field filter.
+- **The retirement notice:**
+  - The log line carries *Find a successor →* while the professor is
+    still here (`LogStrip.tsx`'s `retirementNotice`, in the ticker and
+    the activity log).
+  - Next up gains a *Retiring* reading.
+  - Both open the tab on `market:<field>`: the market, filtered to the
+    field. A market narrowed to one field with nobody listed offers a
+    search.
+- **Scale, measured** (year-50 Guided, 92 professors, headless Chromium,
+  90 scroll steps):
+  - Phone: two tiles to a row, a median frame of 16.7 ms (p95 19). The
+    grid is 10,500 px tall.
+  - Desktop at 1400×900: 16.7 ms (p95 23).
+
+  `content-visibility` did not help, and nothing is windowed.
+- **Checks:**
+  - `npm run check`; `npm run sim` unchanged (0 deltas);
+  - `npm run phone` on the launch fixture and the year-50 save. The
+    Market and Departments views were also checked at 390 px.
+  - `test/faculty-sort.test.ts` covers the new orders, letters and
+    filters.
+  - Screenshots in `docs/reviews/2026-10-faculty/`: `84d-grid-early.jpg`
+    (year 4), `84d-grid-late.jpg` (year 51), `84d-market.jpg`,
+    `84d-retiring-market.jpg` (the retirement's door) and `84d-phone.jpg`.
+
 ## PR 84E — The person, expanded
 
 - **Clicking a tile expands it in place** (on a phone, it opens full

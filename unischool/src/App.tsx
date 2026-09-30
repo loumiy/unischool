@@ -33,7 +33,7 @@ import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
 import OpeningCoach from './components/OpeningCoach';
 import type { OpeningStage } from './state/types';
-import FacultyTab from './tabs/FacultyTab';
+import FacultyTab, { MARKET_TARGET } from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
@@ -454,6 +454,7 @@ export default function App() {
             else openTab(go);
           }}
             inboxOpen={overlay?.tab === 'inbox'}
+            onOpenMarket={(field) => openTab('faculty', `${MARKET_TARGET}${field}`)}
           />
           <Toolbar
             ref={toolbarRef}
