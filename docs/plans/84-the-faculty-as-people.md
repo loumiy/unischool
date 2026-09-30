@@ -273,7 +273,7 @@ board.
   hire, a veteran with prizes, and a candidate (who has no history, which
   is said plainly).
 
-**As implemented (#272):** a tile opens into the person
+**As implemented (#271):** a tile opens into the person
 (`tabs/FacultyPerson.tsx`), read off the career record through
 `tabs/facultyCareer.ts`. The words live in `data/careerWords.ts`.
 
