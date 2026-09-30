@@ -199,11 +199,8 @@ a sequence of PRs.*
   today is the interim one at the bottom of the distress ladder. The
   precondition the old entry set, money that is actually scarce, now
   holds for the first half of a run (Plan 71).
-- **The Faculty tab, and a person page.** The tab has roster and market
-  views, *Show every field*, and per-department short and over flags; the
-  order is fixed by teaching. Sort and filter are Plan 72F. Missing
-  still: a page that narrates a career, which is half of what makes the
-  faculty lifecycle worth having.
+- **The Faculty tab, and a person page:** now [Plan 84](docs/plans/84-the-faculty-as-people.md),
+  with a market that follows standing.
 - **Per-major mechanical effects.** A cohort pull, a grant rate, a major
   that recruits differently. Today the pull is by category
   (`cohorts.ts`) and one tag (*artsy*) reads the arts. The content half
