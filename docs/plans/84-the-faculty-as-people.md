@@ -4,7 +4,7 @@
 PRs: a market that reflects the college's standing, and a Faculty tab that
 shows each professor as a person with a career.*
 
-**Status: Proposed.**
+**Status: Landed. A to E merged (#267, #269–#272).**
 
 ---
 
@@ -272,6 +272,66 @@ board.
 - **Checks:** `review:strings`, `npm run phone`; screenshots of a young
   hire, a veteran with prizes, and a candidate (who has no history, which
   is said plainly).
+
+**As implemented (#272):** a tile opens into the person
+(`tabs/FacultyPerson.tsx`), read off the career record through
+`tabs/facultyCareer.ts`. The words live in `data/careerWords.ts`.
+
+- **Where it opens:**
+  - On a wide screen it opens in place. The tile spans the grid's whole
+    row, with its face (and its actions) on the left and the person
+    beside it.
+  - On a phone (≤ 520 px) the tile stays in the grid and the person
+    opens full screen over the tab, in a portal, with its own Close.
+    Escape closes the person and not the tab.
+  - The tile's top and its *More* both open it.
+- **What it shows:**
+  - "Joined Blackmoor University in Year 8, spring term.", then the years
+    here and the years to retirement. A founding professor gets a note
+    that their record from elsewhere counts toward growth but not years
+    here.
+  - The person: the background (bio), the nationality and the quirk,
+    each with a line saying what it is. The quirk is explained in the
+    numbers from its effects (`quirkExplained`: "teaching potential +10,
+    research potential −10 and the students take to them"). Then pay,
+    course slots and scholarly output, moved from the old detail.
+  - Courses taught: a timeline, one row per course, from the arrival to
+    the week just played. A course taught now is drawn in the school
+    color and reads "Since Year 9". Fourteen rows are drawn, and the rest
+    are named under them.
+  - Research: each project, newest first, with its depth, length, the
+    year it ended and its outcome, or "wound up early". A running
+    project leads.
+  - Recognition, exactly as §2 defines it:
+    - prizes by name, year and project;
+    - each distinguished program they taught in, dated by its milestone
+      (`milestoneYears`);
+    - 25 years of service (`LONG_SERVICE_YEARS`), with the year reached.
+
+    Nothing else is counted, and an empty list says what would count.
+  - A chart of teaching and research, a mark at each year's end and
+    today, with the A and B bands. The scale runs to 100 from a floor
+    under the lowest mark, so growth fills the height.
+  - The actions stay where they were, on the face: Dismiss or Appoint.
+    A door opens the field's courses in the Curriculum.
+- **A candidate** shows the person and pay, then says plainly: "… has
+  not worked at Blackmoor University. There is no history here yet: the
+  record starts the week they are appointed."
+- **Checks:**
+  - `npm run check`; `npm run sim` unchanged (0 deltas);
+  - `npm run phone`. The expanded person, at 390 px (full screen) and at
+    820 px (in place), has nothing past the edge.
+  - `npm run review:strings`: nothing flagged in the new files.
+  - `test/faculty-person.test.ts` covers the arrival line, the timeline,
+    the research lines, recognition (the three kinds and nothing else),
+    the chart's last mark, the quirk's words and the candidate.
+  - The bare-figure ceiling falls from 29 to 27: the old detail's
+    figures moved into the person's list, less two.
+  - Screenshots in `docs/reviews/2026-10-faculty/`: `84e-young-hire.jpg`,
+    `84e-veteran.jpg` (two prizes, two distinguished programs, 32 years),
+    `84e-candidate.jpg` and `84e-phone-veteran.jpg`. They are from a
+    year-40 Natural run named Blackmoor: the Guided and Completionist
+    runs win no prize a professor keeps by year 50.
 
 ## What this plan does not do
 

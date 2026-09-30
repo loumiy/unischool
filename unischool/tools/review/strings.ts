@@ -67,7 +67,7 @@ const SCREENS: Array<[RegExp, string]> = [
   [/components\/(CampusMap|Walkers|campusLayout|dressing|groundMarkings|buildingMotifs|landmarks|pathways|siteWorks|ageMarks|trees)\.tsx?$/, 'Campus map'],
   [/components\/DebugPanel\.tsx$|engine\/devBuild\.ts$/, 'Debug panel (developer only)'],
   [/tabs\/CurriculumTab\.tsx$/, 'Curriculum tab'],
-  [/tabs\/(FacultyTab|FacultyTile|AdministrationPanel|facultySort)\.tsx?$/, 'Faculty tab'],
+  [/tabs\/(FacultyTab|FacultyTile|FacultyPerson|AdministrationPanel|facultySort|facultyCareer)\.tsx?$|data\/careerWords\.ts$/, 'Faculty tab'],
   [/tabs\/ResearchTab\.tsx$/, 'Research tab'],
   [/tabs\/(StudentsTab|EnrollmentTab|StudentLifeTab|IdentityPanel)\.tsx$/, 'Students tab'],
   [/tabs\/AthleticsTab\.tsx$/, 'Athletics tab'],
