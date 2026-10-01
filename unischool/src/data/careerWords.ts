@@ -17,6 +17,7 @@ export const CAREER_WORDS = {
     courses: 'Courses taught',
     research: 'Research',
     recognition: 'Recognition',
+    training: 'Training',
     growth: 'Teaching and research over the years',
   },
 
@@ -62,6 +63,13 @@ export const CAREER_WORDS = {
     `Taught in ${program}, a distinguished program${year !== undefined ? ` since Year ${year}` : ''}.`,
   longService: (years: number, year: number) => `${years} years of service, reached in Year ${year}.`,
   noRecognition: 'Nothing yet. Prizes, a distinguished program and 25 years of service are what count.',
+
+  // Training at the Faculty Training Institute (Plan 85E).
+  trained: (year: number, from: number, to: number, gradeFrom: string, gradeTo: string) =>
+    `Trained at the Faculty Training Institute in Year ${year}: teaching from ${from} (${gradeFrom}) to ${to} (${gradeTo}), and their potential with it.`,
+  trainingNow: (until: string) => `At the institute this term: one course fewer until ${until}.`,
+  notTrained: 'Not trained at the institute yet. A training raises teaching a full grade, for good.',
+  trainingPoints: (points: number) => `Training has added ${points} to their teaching in all.`,
 
   // The chart.
   chartLegend: { teaching: 'Teaching', research: 'Research' },

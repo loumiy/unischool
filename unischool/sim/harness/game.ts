@@ -27,6 +27,7 @@ import { FOUNDING_VERNACULAR } from '../../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../../src/data/schoolColors';
 import { makeRivalRng } from '../../src/data/rivalData';
 import { specializationAnswer, type SpecializationRule } from './specialization';
+import { useTrainingPicks } from './training';
 
 // The game saves to localStorage; a headless run keeps it in memory.
 export const fakeStorage = new Map<string, string>();
@@ -61,6 +62,11 @@ export interface Player {
   // tool that stops at it (tools/scenario.ts); a run that plays on past it
   // then stalls.
   specialization?: SpecializationRule | 'wait';
+  // Whether it spends the faculty training program's picks (training.ts)
+  // once a Faculty Training Institute stands: absent, it does; false, never;
+  // a test of the state, only while it holds (tools/scenarios.ts's
+  // training, which stops with a year's picks unspent).
+  trains?: false | ((s: GameState) => boolean);
 }
 
 export interface FoundOptions {
@@ -118,6 +124,7 @@ export function answerAll(g: Game, player?: Player): number {
 export function playWeek(g: Game, player: Player): void {
   answerAll(g, player);
   player.act(g);
+  if (player.trains === undefined || (player.trains !== false && player.trains(g.s))) useTrainingPicks(g);
   answerAll(g, player);
   g.act({ type: 'TICK' });
 }

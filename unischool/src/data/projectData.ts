@@ -1,4 +1,10 @@
-import type { CapitalProject } from '../state/types';
+import type { CapitalProject, Pillar } from '../state/types';
+
+// A pillar in a sentence (specializationData.ts's PILLAR_WORDS, written out:
+// that module reads this one's neighbors).
+const SPECIALIZED_WORDS: Readonly<Record<Pillar, string>> = {
+  academics: 'academics', research: 'research', studentLife: 'student life', athletics: 'athletics',
+};
 
 // CAPITAL PROJECTS (Plan 33, V2 #27, V1-24): big, slow builds, one of each
 // to a campus, that lift a standing while they stand (in proportion to
@@ -79,6 +85,18 @@ export const PROJECTS: readonly ProjectDef[] = [
     cost: 35_000_000, weeks: 130, upkeep: 35_000,
     project: { fromYear: 15, curriculum: 'Business', boosts: { academics: 3 } },
   },
+  // The faculty training program's building (Plan 85E): only a college
+  // specialized in academics may build it. It lifts no standing of its own:
+  // the academics pillar's specialization term reads what it does, the
+  // share of the faculty trained there (data/trainingData.ts). Costed beside
+  // the Graduate College and the professional schools; its upkeep is the
+  // program's running cost.
+  {
+    id: 'PROJ-TRAINING', name: 'The Faculty Training Institute',
+    description: 'Seminar rooms, a teaching studio with cameras at the back and a faculty lounge where old hands talk shop with new ones. Each year it takes professors for a term, and they come back a full grade better in the classroom.',
+    cost: 30_000_000, weeks: 104, upkeep: 35_000, beauty: 1,
+    project: { fromYear: 1, specialization: 'academics', boosts: {} },
+  },
   {
     id: 'PROJ-MUSEUM', name: 'The University Museum',
     description: 'Decades of gifts, loans and bequests finally in one place and on show: a museum that schoolchildren are taken to and graduates bring their own children back to.',
@@ -92,6 +110,7 @@ export const PROJECT_IDS: readonly string[] = PROJECTS.map((p) => p.id);
 // When a project opens, read off its gates (Plan 76C), so the sentence
 // cannot drift from them as the typed "Opens once…" lines did.
 export function projectOpens(p: CapitalProject): string {
+  if (p.specialization !== undefined) return `Opens once the college is specialized in ${SPECIALIZED_WORDS[p.specialization]}; no other college may build it.`;
   const year = p.late
     ? `Year ${p.fromYear}, or Year ${DEFEND_ERA_YEAR} for a college at prestige ${DEFEND_ERA_PRESTIGE}`
     : `Year ${p.fromYear}`;

@@ -15,6 +15,7 @@ import { darkPrograms } from './darkness';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 import { ladderAllows } from '../ladder/ladderSystem';
 import { COMPLETION_LINES, fillLine, pickLine } from '../../data/logWords';
+import { TRAINING_SLOTS, trainingSlotsOff } from '../../data/trainingData';
 
 // Milestone bonuses reward aggregate conditions (docs/design/curriculum.md).
 // They grant no reputation directly (prestigeSystem.ts reads s.milestones);
@@ -65,35 +66,47 @@ export function isCommitted(s: GameState, facultyId: string): boolean {
 // slots grow with tenure, facultyData.ts's grownSlots) are cheaper to commit.
 export const RESEARCH_COMMITMENT_SLOTS = 2;
 
-// Slots this person offers now, net of any commitment. Every capacity read
-// goes through this so the commitment is never forgotten in one place.
+// Slots this person offers now, net of any commitment and of a term at the
+// Faculty Training Institute (Plan 85E: one fewer, trainingData.ts's
+// trainingSlotsOff). Every capacity read goes through this so neither is
+// ever forgotten in one place.
 export function effectiveCourseSlots(s: GameState, f: Faculty): number {
-  return isCommitted(s, f.id) ? Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS) : f.courseSlots;
+  return Math.max(0, f.courseSlots - (isCommitted(s, f.id) ? RESEARCH_COMMITMENT_SLOTS : 0) - trainingSlotsOff(s, f));
 }
 
-// Courses a team would give up by committing: the one answer shared by
-// ResearchTab's warning and START_INITIATIVE (reducer.ts). Each member keeps
-// as many as the reduced load allows and sheds the lowest tier first; ties
-// break on course id for determinism.
+// What a commitment leaves someone, computed from courseSlots: the
+// commitment is read before it is recorded (ResearchTab's warning) and after
+// (START_INITIATIVE), and must come out the same both times.
+function slotsCommitted(s: GameState, f: Faculty): number {
+  return Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS - trainingSlotsOff(s, f));
+}
+
+// Courses these people would give up by keeping only `keeps` each: the one
+// answer shared by ResearchTab's warning and START_INITIATIVE (reducer.ts),
+// and by training (systems/faculty/training.ts). Each keeps as many as the
+// reduced load allows and sheds the lowest tier first; ties break on course
+// id for determinism.
 const TIER_RANK: Record<string, number> = { '1': 1, '2': 2, '3': 3, graduate: 4 };
 function tierRank(tier: CourseTier): number {
   return TIER_RANK[String(tier)] ?? 0;
 }
 
-export function coursesShedByCommitment(s: GameState, facultyIds: readonly string[]): Buildable[] {
+function coursesShed(s: GameState, facultyIds: readonly string[], keepsOf: (f: Faculty) => number): Buildable[] {
   const shed: Buildable[] = [];
   for (const id of facultyIds) {
     const f = s.faculty.find((person) => person.id === id);
     if (!f) continue;
-    // Computed from courseSlots: effectiveCourseSlots reads the current state,
-    // where they are not committed yet.
-    const keeps = Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS);
+    const keeps = keepsOf(f);
     const theirs = s.tech
       .filter((t) => isOffered(t) && s.courseFaculty[t.id] === id)
       .sort((a, b) => tierRank(tierOf(b.id)) - tierRank(tierOf(a.id)) || a.id.localeCompare(b.id));
     shed.push(...theirs.slice(keeps));
   }
   return shed;
+}
+
+export function coursesShedByCommitment(s: GameState, facultyIds: readonly string[]): Buildable[] {
+  return coursesShed(s, facultyIds, (f) => slotsCommitted(s, f));
 }
 
 // The full re-homing plan for a commitment, shared by the Research tab and
@@ -110,14 +123,22 @@ export interface CommitmentCoverage {
 }
 
 export function planCommitmentCoverage(s: GameState, facultyIds: readonly string[]): CommitmentCoverage {
-  const shed = coursesShedByCommitment(s, facultyIds);
+  return planCoverage(s, facultyIds, (f) => slotsCommitted(s, f));
+}
+
+// The same plan for one professor going to the Faculty Training Institute
+// (Plan 85E): a course slot fewer for the term, read before it begins.
+export function planTrainingCoverage(s: GameState, facultyId: string): CommitmentCoverage {
+  return planCoverage(s, [facultyId], (f) => Math.max(0, effectiveCourseSlots(s, f) - TRAINING_SLOTS));
+}
+
+function planCoverage(s: GameState, facultyIds: readonly string[], keepsOf: (f: Faculty) => number): CommitmentCoverage {
+  const shed = coursesShed(s, facultyIds, keepsOf);
 
   const capacity = new Map<string, number>();
   const load = new Map<string, number>();
   for (const f of s.faculty) {
-    capacity.set(f.id, facultyIds.includes(f.id)
-      ? Math.max(0, f.courseSlots - RESEARCH_COMMITMENT_SLOTS)
-      : effectiveCourseSlots(s, f));
+    capacity.set(f.id, facultyIds.includes(f.id) ? keepsOf(f) : effectiveCourseSlots(s, f));
     load.set(f.id, facultyLoad(s, f.id));
   }
   // Shed courses leave their old instructor's load before anyone takes one.

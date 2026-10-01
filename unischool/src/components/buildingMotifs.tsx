@@ -1778,6 +1778,34 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
         </g>
       );
     }
+    case 'cupola': {
+      // A glazed cupola astride the ridge (the Faculty Training Institute,
+      // Plan 85E): a square drum in the trim stone with a window to each
+      // face, a cornice, a lead pyramid and a gilt finial.
+      const plan = across(8);
+      const [cc, cr] = at(0.5, 0.5);
+      const z0 = base + ridge * 0.85;
+      const rise = up(7);
+      const drum = boxFaces(cc - plan / 2, cr - plan / 2, plan, plan, z0, rise);
+      const cap = boxFaces(cc - plan * 0.6, cr - plan * 0.6, plan * 1.2, plan * 1.2, z0 + rise, up(0.9));
+      const apex = lift(project(cc, cr), z0 + rise + up(0.9) + up(5.5));
+      const tip = lift(project(cc, cr), z0 + rise + up(0.9) + up(8));
+      const trimTone = stone.trim !== 'none' ? stone.trim : '#e4dcc8';
+      const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+      const lead = '#5d6a72';
+      return (
+        <g className="sig-cupola">
+          {sideFaces(drum, shade(trimTone, 0.96), shade(trimTone, 0.8))}
+          <polygon points={polyPoints(wallQuad(drum.D, drum.C, rise, 0.28, 0.72, rise * 0.18, rise * 0.82))} className="glass-pane" />
+          <polygon points={polyPoints(wallQuad(drum.C, drum.B, rise, 0.28, 0.72, rise * 0.18, rise * 0.82))} className="glass-pane" />
+          {solid(cap, trimTone)}
+          <polygon points={polyPoints([cap.Ct, cap.Dt, apex])} fill={shade(lead, 0.95)} />
+          <polygon points={polyPoints([cap.Bt, cap.Ct, apex])} fill={shade(lead, 0.8)} />
+          <line x1={apex.x} y1={apex.y} x2={tip.x} y2={tip.y} stroke={gilt} strokeWidth={1.6} />
+          <circle cx={tip.x} cy={tip.y} r={1.5} fill={gilt} />
+        </g>
+      );
+    }
     case 'tanks': {
       // The scanners' cryogen tanks, two white cylinders on the roof.
       const r = Math.min(across(1.7), short * 0.18);
@@ -3991,6 +4019,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         {hasClockTower(t) && apex === 'core' && (
           <StairCore stone={stone} col={col} row={row} w={w} h={h} base={H} />
         )}
+        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={0} f={f} stone={stone} pal={pal} />}
         {entrance === 'recess' && (
           <>
             {fronts.map((dir) => <Recess key={dir} pal={pal} col={col} row={row} w={w} h={h} wallHeight={H * STACK_LOWER_TOP} outward={dir} />)}
@@ -4122,8 +4151,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         {/* The corner tower, after the roof and before the porch. */}
         {turrets && cornerInFront && turretNode}
         {turrets && towerProudFace && <CornerTower {...turretProps} face={towerProudFace} />}
+        {/* A signifier on the ridge (Plan 85E: the Faculty Training
+            Institute's cupola), standing in for the bell-gable. */}
+        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={WH} ridge={ridge} f={hf} stone={stone} pal={pal} />}
         {/* The bell-gable, on every hall but the campanile's. */}
-        {bellGable && !hasClockTower(t) && (
+        {bellGable && !hasClockTower(t) && !signifier && (
           <BellGable pal={pal} stone={stone}
             origin={hf.D} along={hf.C}
             inward={gableInward(col, row, w, h)}

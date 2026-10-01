@@ -158,6 +158,10 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
   3", never a bare number that reads as a count (Plan 78F).
 - **Grade**, beside a count, is written on its chip: "3/9 grade B". A course
   cell's chip, in a grid with its key, stays a bare letter (Plan 78F).
+- **Training pick.** One of the year's places at the Faculty Training
+  Institute ([Plan 85](85-specializations.md) PR E): "3 of 5 training picks
+  left this year". The action on a professor's tile is **Train**, and a
+  professor so raised is *trained*. Picks not used *lapse*.
 - **Specialization.** The one pillar a college, or a rival, may be the very
   best at ([Plan 85](85-specializations.md)): "specialized in research".
   Never "archetype", which names the harness's players. A pillar's cap

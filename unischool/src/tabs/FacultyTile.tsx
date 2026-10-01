@@ -18,6 +18,10 @@ import { letterOf, retiringSoon } from './facultySort';
 import { money, moneyShort, weeksShort } from '../format';
 import { CAREER_WORDS } from '../data/careerWords';
 import FacultyPerson from './FacultyPerson';
+import { TRAINING_SLOTS, TRAINING_WORDS, instituteStands, trainingSlotsOff } from '../data/trainingData';
+import { trainingOutcome, trainingUntil, whyNotTrain } from '../systems/faculty/training';
+import { planTrainingCoverage } from '../systems/techtree/techSystem';
+import { gradeFor } from '../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // One person as a tile (Plan 84D): the Faculty tab's grid, the market and
@@ -122,6 +126,18 @@ export default function FacultyTile(
   // candidate always could, a professor only with a course slot free.
   const waits = isCandidate || held < slots ? waitingCount(waiting) : 0;
 
+  // The faculty training program (Plan 85E): where the institute stands, a
+  // professor below an A can be sent for a term. A pick that would move one
+  // of their courses asks first and names where it goes.
+  const institute = !isCandidate && instituteStands(s);
+  const trainRefusal = institute ? whyNotTrain(s, f) : null;
+  const outcome = institute && trainRefusal === null ? trainingOutcome(s, f) : null;
+  // Planned only when a course would have to move: the plan reads every
+  // colleague's load, too much for every tile on every render.
+  const trainCoverage = outcome && held > Math.max(0, slots - TRAINING_SLOTS) ? planTrainingCoverage(s, f.id) : null;
+  const atInstitute = !isCandidate && trainingSlotsOff(s, f) > 0;
+  const timesTrained = f.career?.training?.length ?? (f.training ? 1 : 0);
+
   const toggle = () => setOpen((v) => !v);
   const face = (
     <>
@@ -140,7 +156,7 @@ export default function FacultyTile(
         <StatGrade label="Research" value={f.research} potential={f.researchPotential} />
       </div>
 
-      {(quirk || f.acclaim > 0 || retiring || waits > 0 || commitment) && (
+      {(quirk || f.acclaim > 0 || retiring || waits > 0 || commitment || f.training) && (
         <div className="faculty-badges">
           {/* The prize badge: permanent (see types.ts's Faculty.acclaim). */}
           {f.acclaim > 0 && (
@@ -156,6 +172,14 @@ export default function FacultyTile(
           {commitment && (
             <span className="faculty-badge project" title={`On ${commitment.topic} at ${commitment.labName}, ${weeksShort(commitment.weeksRemaining)} left: two course slots fewer until it ends`}>
               On a project
+            </span>
+          )}
+          {f.training && !isCandidate && (
+            <span
+              className={`faculty-badge trained${atInstitute ? ' training' : ''}`}
+              title={atInstitute ? TRAINING_WORDS.inTraining(trainingUntil(f.training.untilWeek)) : TRAINING_WORDS.trainedBadgeTitle(timesTrained, f.training.points)}
+            >
+              {TRAINING_WORDS.trainedBadge}
             </span>
           )}
           {waits > 0 && (
@@ -200,6 +224,31 @@ export default function FacultyTile(
         >
           <DisclosureIcon open={open} /> {open ? 'Less' : 'More'}
         </button>
+        {institute && trainRefusal !== 'top-grade' && (
+          outcome ? (
+            <ConfirmButton
+              className="btn-train"
+              label={TRAINING_WORDS.train}
+              title={TRAINING_WORDS.trainTitle(outcome.from, outcome.to, gradeFor(outcome.from), gradeFor(outcome.to), trainingUntil(outcome.untilWeek))}
+              armedLabel={TRAINING_WORDS.trainArmed(trainCoverage?.shed[0]?.name.split(' · ')[0] ?? '')}
+              warning={trainCoverage?.shed[0] && TRAINING_WORDS.trainWarning(
+                f.name, trainCoverage.shed[0].name.split(' · ')[0],
+                trainCoverage.covered[0]?.instructor.name ?? null, trainingUntil(outcome.untilWeek),
+              )}
+              needsConfirm={(trainCoverage?.shed.length ?? 0) > 0}
+              onConfirm={() => act({ type: 'TRAIN_FACULTY', facultyId: f.id })}
+            />
+          ) : (
+            <button
+              type="button"
+              className="btn-train"
+              disabled
+              title={trainRefusal === 'this-year' ? TRAINING_WORDS.whyNot.thisYear : TRAINING_WORDS.whyNot.noPicks(s.clock.year)}
+            >
+              {TRAINING_WORDS.train}
+            </button>
+          )
+        )}
         {isCandidate ? (
           <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
         ) : (

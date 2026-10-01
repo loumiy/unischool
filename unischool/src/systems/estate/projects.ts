@@ -3,6 +3,7 @@ import { standsOnCampus } from '../../state/types';
 import { ALL_PROJECT_TERMS, DEFEND_ERA_PRESTIGE, DEFEND_ERA_YEAR, ENDOWMENT_PROJECT_SHARE, LATE_TIER_YEAR } from '../../data/projectData';
 import { curriculumGateMet } from '../../data/techData';
 import { conditionOf } from './estate';
+import { specializationOf } from '../prestige/specialization';
 
 // CAPITAL PROJECTS (Plan 33, data/projectData.ts): when one opens, what it
 // lifts while it stands, and paying for half of it from the endowment.
@@ -35,6 +36,9 @@ export function everyLabFinished(s: GameState): boolean {
 export function projectOpen(s: GameState, t: Buildable): boolean {
   const p = t.project;
   if (!p) return true;
+  // A specialization's own building (Plan 85E: the Faculty Training
+  // Institute) opens to the college specialized in it, and to no other.
+  if (p.specialization !== undefined && specializationOf(s) !== p.specialization) return false;
   if (p.late) return lateTierOpen(s);
   if (s.clock.year < p.fromYear) return false;
   // A graduate program's host waits on its school's whole curriculum (Plan 51).

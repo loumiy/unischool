@@ -79,6 +79,9 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   // The professional schools (Plan 51): a courthouse, and an office block.
   'PROJ-LAW': 'portico',
   'PROJ-BUSINESS': 'block',
+  // The Faculty Training Institute (Plan 85E): an academic hall, for the
+  // teaching it is about, in the civic stone and under a cupola.
+  'PROJ-TRAINING': 'hall',
 };
 
 // What a laboratory carries on its roof to say which science it is: an
@@ -113,7 +116,8 @@ export type Signifier =
   | 'lantern'     // the Humanities Research Institute: a reading-room lantern
   | 'exhibition'  // the Art Gallery: one tall exhibition banner a front
   | 'mast'        // Computing: a mast and a dish
-  | 'tanks';      // Neuroscience: the scanners' cryogen tanks
+  | 'tanks'       // Neuroscience: the scanners' cryogen tanks
+  | 'cupola';     // the Faculty Training Institute: a glazed cupola astride the ridge
 const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-MECH': 'gantry',
   'LAB-AERO': 'windTunnel',
@@ -125,6 +129,7 @@ const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-HIST': 'lantern',
   'LAB-COMP': 'mast',
   'LAB-NEUR': 'tanks',
+  'PROJ-TRAINING': 'cupola',
 };
 const SIGNIFIERS_BY_TYPE: Partial<Record<FacilityType, Signifier>> = {
   diningHall: 'kitchen',
@@ -327,6 +332,9 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
   'PROJ-MUSEUM': { storeys: facilityStoreys('artGallery', 0), material: 'limestone' },
   'PROJ-LAW': { storeys: 3, material: 'limestone' },
   'PROJ-BUSINESS': { storeys: 5, material: 'curtain' },
+  // An academic hall a story lower than the halls, in the civic stone
+  // rather than their brick.
+  'PROJ-TRAINING': { storeys: 3, material: 'limestone' },
 };
 
 // How many floors this building has. Zero means open ground, or a clear-span
@@ -503,7 +511,8 @@ const DOOR_FAMILIES: Record<DoorFamily, DoorSpec> = {
 export function doorFamilyOf(t: Buildable): DoorFamily | null {
   const motif = motifOf(t);
   if (motif === 'grounds' || motif === 'bowl' || motif === 'village' || motif === 'landmark') return null;
-  if (t.kind === 'building') return 'formal';
+  // An academic hall's portal, the Faculty Training Institute's too (Plan 85E).
+  if (t.kind === 'building' || motif === 'hall') return 'formal';
   if (t.kind === 'dorm') return motif === 'tower' ? 'shopfront' : residenceStyleOf(t).door;
   switch (t.facilityType) {
     // Every lab-gated building takes a service door whatever its motif.

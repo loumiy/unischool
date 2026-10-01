@@ -6,8 +6,10 @@ import { GRADE_A, GRADE_B } from '../data/courseQuality';
 import { CAREER_WORDS as W, quirkExplained } from '../data/careerWords';
 import { facultyPay } from '../systems/finance/financeSystem';
 import {
-  courseTimeline, isFounder, joinedLine, recognitions, researchLines, statSeries, yearOfWeek, yearsHere,
+  courseTimeline, isFounder, joinedLine, recognitions, researchLines, statSeries, trainingLines, yearOfWeek, yearsHere,
 } from './facultyCareer';
+import { instituteStands, trainingSlotsOff } from '../data/trainingData';
+import { trainingUntil } from '../systems/faculty/training';
 import { yearsLeft } from './facultySort';
 import type { Commitment } from './FacultyTile';
 import { money, weeksShort } from '../format';
@@ -114,6 +116,9 @@ export default function FacultyPerson(
   const research = researchLines(f);
   const honors = recognitions(s, f);
   const here = yearsHere(s, f);
+  // Training (Plan 85E): shown once there is any, or an institute to give it.
+  const trainings = trainingLines(f);
+  const showTraining = !isCandidate && (trainings.length > 0 || instituteStands(s));
 
   return (
     <div className="faculty-person">
@@ -186,6 +191,19 @@ export default function FacultyPerson(
               </ul>
             ) : <p className="empty-note">{W.noRecognition}</p>}
           </section>
+
+          {showTraining && (
+            <section className="faculty-person-section">
+              <h5>{W.headings.training}</h5>
+              {f.training && trainingSlotsOff(s, f) > 0 && <p className="faculty-commitment">{W.trainingNow(trainingUntil(f.training.untilWeek))}</p>}
+              {trainings.length > 0 ? (
+                <ul className="career-list">
+                  {trainings.map((line, i) => <li key={i} className="honor training">{line}</li>)}
+                </ul>
+              ) : <p className="empty-note">{W.notTrained}</p>}
+              {f.training && trainings.length > 1 && <p className="faculty-person-note">{W.trainingPoints(f.training.points)}</p>}
+            </section>
+          )}
 
           <section className="faculty-person-section">
             <h5>{W.headings.growth}</h5>

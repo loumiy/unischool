@@ -12,6 +12,7 @@ import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../src/systems/techtree/programOffers';
 import { claimedHalls, programsAwayFromHome, suggestedMove } from '../src/systems/techtree/schools';
 import { relocateProgram, unlockAvailable } from '../src/systems/techtree/techSystem';
+import { instituteStands } from '../src/data/trainingData';
 
 export interface Scenario {
   name: string;
@@ -31,6 +32,9 @@ export interface Scenario {
   // Break the state after the run, before it is written: no player
   // digs a hole deep enough on its own.
   mutate?: (s: GameState) => void;
+  // While the player spends the faculty training program's picks (Plan
+  // 85E, sim/harness/game.ts's Player.trains): absent, always.
+  trains?: (s: GameState) => boolean;
 }
 
 // A school in crisis: satisfaction in the thirties, a body half again too
@@ -153,6 +157,18 @@ export const SCENARIOS: Scenario[] = [
     player: 'Guided',
     year: 45,
     stopWhen: atModal('specialization'),
+  },
+  {
+    // The faculty training program (Plan 85E): a college specialized in
+    // academics with its institute standing, professors trained in earlier
+    // years, and Year 38's picks not yet spent: the player trains until
+    // then, and the run stops a few weeks into it.
+    name: 'training',
+    what: 'the faculty training program at work, the year\'s training picks still to spend',
+    player: 'Guided',
+    year: 45,
+    trains: (s) => s.clock.year < 38,
+    stopWhen: (s) => s.clock.year >= 38 && s.clock.week >= 6 && instituteStands(s),
   },
   {
     name: 'rankings-entry',

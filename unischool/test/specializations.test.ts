@@ -36,6 +36,7 @@ import { PILLAR_AXES, RIVAL_UNSPECIALIZED_TARGETS, playerRank, rankBy, rankedLis
 import { STAGE_EDGE, resolveSport, stageEdge } from '../src/systems/athletics/playoffs';
 import { SPORTS, TEAM_QUALITY_KNEE, TEAM_QUALITY_SOFT_SPAN, promoteToVarsityTeam, teamQuality, teamQualityCurve, teamQualityEarned } from '../src/data/studentLifeData';
 import { SPECIALIZATION_FILL_YEARS } from '../src/data/specializationData';
+import { TRAINING_INSTITUTE_ID } from '../src/data/trainingData';
 import { graduatePrograms, milestoneSchools } from '../src/data/techData';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
 import { bindScriptStream, drawsSoFar } from '../src/engine/random';
@@ -96,18 +97,24 @@ bindScriptStream(12345);
   assert(!/limit|Held/.test(row.detail), `prestige's academics row speaks of no limit ("${row.detail}")`);
 
   // Specialized, the term full: it passes the natural maximum, and every
-  // term in full is the top of the scale.
+  // term in full is the top of the scale. Academics' term reads the faculty
+  // training program (Plan 85E): an institute standing, and the faculty
+  // trained.
   late.specialization = 'academics';
   late.specializationYear = late.clock.year - SPECIALIZATION_FILL_YEARS;
+  late.tech.find((t) => t.id === TRAINING_INSTITUTE_ID)!.status = 'done';
+  for (const f of late.faculty) f.training = { points: 1, potential: f.teachingPotential - 1, untilWeek: 0 };
   const specialized = pillarBreakdown(late, 'academics');
   const term = specialized.inputs.find((i) => i.key === 'specialization')!;
   assert(term.score === 1 && specialized.target > UNSPECIALIZED_MAXIMA.academics, `specialized, its term full, academics passes ${UNSPECIALIZED_MAXIMA.academics} (${specialized.target.toFixed(1)})`);
   assert(Math.abs(perfect + term.weight - 150) < 1e-9, 'and every term in full is 150');
-  // It fills a tenth a year.
+  // A pillar whose mechanic is still to come fills a tenth a year.
+  const timed = structuredClone(late);
+  timed.specialization = 'research';
   for (let k = 0; k <= SPECIALIZATION_FILL_YEARS + 2; k += 1) {
-    late.specializationYear = late.clock.year - k;
-    const score = pillarBreakdown(late, 'academics').inputs.find((i) => i.key === 'specialization')!.score;
-    assert(Math.abs(score - Math.min(1, k / SPECIALIZATION_FILL_YEARS)) < 1e-9, `${k} years after the choice the term is ${Math.min(1, k / SPECIALIZATION_FILL_YEARS)} full (${score})`);
+    timed.specializationYear = timed.clock.year - k;
+    const score = pillarBreakdown(timed, 'research').inputs.find((i) => i.key === 'specialization')!.score;
+    assert(Math.abs(score - Math.min(1, k / SPECIALIZATION_FILL_YEARS)) < 1e-9, `${k} years after the choice research's term is ${Math.min(1, k / SPECIALIZATION_FILL_YEARS)} full (${score})`);
   }
   // Another pillar's term stays empty, and says why.
   const research = pillarBreakdown(late, 'research').inputs.find((i) => i.key === 'specialization')!;

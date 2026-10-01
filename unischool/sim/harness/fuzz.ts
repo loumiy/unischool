@@ -46,6 +46,9 @@ function rawGenerators(g: Game): Array<[number, Generator]> {
       return programId && to ? { type: 'RELOCATE_PROGRAM', programId, ...to } : null;
     }],
     [1, (g) => { const f = any(g.s.faculty); return f ? { type: 'FIRE_FACULTY', facultyId: f.id } : null; }],
+    // A training pick for anyone (Plan 85E): refused without the institute,
+    // for an A, twice in a year or with the picks spent.
+    [1, (g) => { const f = any(g.s.faculty); return f ? { type: 'TRAIN_FACULTY', facultyId: f.id } : null; }],
     // Decline any offer, a second time in a year included (Plan 78D).
     [1, (g) => { const id = any(g.s.programOffers); return id ? { type: 'DECLINE_OFFER', programId: id } : null; }],
     [1, (g) => { const id = any(Object.keys(g.s.placements)); return id ? { type: 'DEMOLISH_BUILDING', id } : null; }],

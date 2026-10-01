@@ -623,7 +623,8 @@ const AUDIO: AudioFile = {
     "organisations": "letter",
     "attrition": "loss",
     "report-card": "letter",
-    "admissions": "yearTurn"
+    "admissions": "yearTurn",
+    "training": "tick"
   },
   "ambience": {
     "crowd": {
