@@ -288,13 +288,36 @@ Its code is `sim/harness/`; the old scripted-strategy sim
   1.7–2.3× its funding (Plan 70D), and the money and each player's
   Financial strength, watched). The fair-price players' net shape is watched, not counted
   (Plan 69). A report, not a gate.
-- **The report** (`sim/report.ts`, `npm run sim`): the archetypes and the
-  guided player, fifty years on three seeds, the median at years 10, 25 and
-  50 of rank, prestige, students, cash, satisfaction, courses, schools and
-  teams, with weeks in the red and the lowest cash — each with its change
-  from the committed baseline, `sim/baseline.json`. `npm run sim -- --save`
-  writes a new baseline; a PR that moves the numbers on purpose commits it,
-  so main's baseline is main's numbers. Measures, never fails.
+- **The report** (`sim/report.ts`, `npm run sim`): the archetypes, the
+  guided player and its specialized variants, fifty years on three seeds,
+  the median at years 10, 25 and 50 of rank, prestige, students, cash,
+  satisfaction, courses, schools and teams and the college's rank in each
+  of the four pillars, with weeks in the red and the lowest cash — each with
+  its change from the committed baseline, `sim/baseline.json`. The variants
+  (Plan 85I) are the guided player with a fixed pick at the milestone
+  (`Player.specialization`, Plan 85D's hook): *Guided, academics*, *Guided,
+  research*, *Guided, student life*, *Guided, athletics* and *Guided,
+  unspecialized* (`'never'`), beside the plain *Guided*, which picks its
+  strongest pillar. Under each player, per seed and not diffed: its pick and
+  the year, the first year it stood in the top 20, the top 10 and first,
+  and its own pillar's place and margin over the next school at Year 50.
+  Every run is a process of its own, as many at once as the machine has
+  cores (`SIM_JOBS` to change it): thirty runs take about eleven minutes on
+  four cores. `--players <regex>` and `--seeds a,b,c` measure part of it
+  (never saved), and every run's rows land in
+  `node_modules/.tmp/report-runs.json`. `npm run sim -- --save` writes a new
+  baseline; a PR that moves the numbers on purpose commits it, so main's
+  baseline is main's numbers. Measures, never fails.
+- **The specializations' mechanics in the harness** (`sim/harness/`,
+  Plans 85E–I, each at the top of the week before the player's own moves,
+  each with a `Player` switch): a college specialized in academics spends
+  its training picks (`training.ts`), one in research keeps Landmark
+  Programs running at the park (`researchPark.ts`), one in student life
+  holds the festival and answers the town (`downtown.ts`), and every college
+  that has reached the milestone runs the athletics department as a strong
+  college runs every pillar's, whatever it chose (`athletics.ts`; Plan 85I:
+  before, only the athletics specialist did), the complex being the
+  athletics specialist's alone.
 
 ## When you add something
 

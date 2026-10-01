@@ -21,7 +21,9 @@
 //     an empty record; a round trip keeps the record, and a malformed one is
 //     dropped;
 //   - the harness's athletics specialist builds the complex, runs the high
-//     subsidy and fills every flagship slot on full scholarships.
+//     subsidy and fills every flagship slot on full scholarships; since Plan
+//     85I every college at the milestone runs the department alike, the
+//     complex aside.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -265,11 +267,23 @@ function college(specialization: GameState['specialization'], status: 'locked' |
     t.headCoach === null ? t.sport : null, t.assistantCoach === null ? t.sport : null, t.trainer === null ? TRAINER_FIELD : null,
   ]).filter((f): f is string => f !== null);
   assert(open.length < 3 * g.s.orgs.teams.length && open.every((f) => !g.s.orgs.coachCandidates.some((c) => c.field === f)), `and fills every coaching post the market has a candidate for (${open.length} left open)`);
-  const other = college('research');
-  other.finance.cash = 1e9;
-  const before = JSON.stringify(other.orgs);
-  runAthletics(foundGame({ from: other }));
-  assert(!runAthletics(foundGame({ from: other })) && JSON.stringify(other.orgs) === before, 'a college specialized in anything else is left to its own player');
+  // Plan 85I: once at the milestone, a college runs the department whatever
+  // it chose, and if it chose nothing; the complex stays the athletics
+  // specialist's.
+  for (const chosen of ['research', 'none'] as const) {
+    const other = college(chosen, 'locked');
+    other.orgs.athleticsBudget = 'medium';
+    other.finance.cash = 1e9;
+    other.specializationOffered = other.clock.year;
+    const og = foundGame({ from: other });
+    assert(runAthletics(og) && og.s.orgs.athleticsBudget === 'high', `a college at the milestone, specialized in ${chosen === 'none' ? 'nothing' : chosen}, runs the department`);
+    assert(complex(og.s).status === 'locked' && !(ATHLETICS_COMPLEX_ID in og.s.placements), 'and never builds the complex');
+  }
+  const early = college('none');
+  early.finance.cash = 1e9;
+  const before = JSON.stringify(early.orgs);
+  const eg = foundGame({ from: early });
+  assert(!runAthletics(eg) && JSON.stringify(eg.s.orgs) === before, 'a college short of the milestone is left to its own player');
 }
 
 if (failures > 0) {

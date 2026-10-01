@@ -173,8 +173,8 @@ standing's, athletics' the campus life standing's (the flagships' is new, at
 the titles' weight). A capital project's lift is points on its pillar, on top
 of its terms. Three **adjustments** stay outside every pillar:
 
-- **financial resources per student** (+8, endowment against the enrolled
-  body) — what the late-game endowment campaigns buy;
+- **financial resources per student** (+4, endowment against the enrolled
+  body; +8 until Plan 85I, when the owner halved it) — what the late-game endowment campaigns buy;
 - **condition of the buildings** (up to −4) — only neglect counts;
 - **crowding** — a *penalty* of up to 25, not an input: the worst of the
   housing, dining and health coverage ratios and the instruction-capacity
@@ -195,17 +195,23 @@ points above the floor in their old proportions:
 
 | Pillar | Specialization term | Natural maximum without it |
 |---|---|---|
-| Academics | 24 | 126 |
-| Research | 24 | 126 |
-| Student life | 30 | 120 |
-| Athletics | 30 | 120 |
+| Academics | 28 | 122 |
+| Research | 28 | 122 |
+| Student life | 34 | 116 |
+| Athletics | 34 | 116 |
+
+(Plan 85D set the terms at 24, 24, 30 and 30. Plan 85I's balance pass added
+4 to each, once the harness's strong players ran every pillar's department
+alike: the term is what a specialization is worth over unspecialized play,
+and with an athletics department of its own an unspecialized college stood
+within reach of first place.)
 
 A college that does everything else perfectly stands at the natural maximum
 (`UNSPECIALIZED_MAXIMA`), because the term is empty, not because anything
 holds it. The capital projects are one of a pillar's terms, scaled with the
 rest (before, their lift was points on top). The term is an ordinary row in
 the pillar's breakdown, named for its program ("The faculty training
-program": "+0.0 of 24 · comes only with a specialization in academics";
+program": "+0.0 of 28 · comes only with a specialization in academics";
 specialized in another pillar, "so this stays empty"). The college's own
 specialization (below) fills its term (`specializationData.ts`'s
 `SPECIALIZATION_READINGS`), each by its own mechanic (Plans 85E–H; Plan
@@ -338,6 +344,39 @@ one, in Year 51's first week on another, and second on the third. Held to no
 specialization, neither is ever first (best 4th; since Plan 85F, best
 3rd).
 
+**The balance pass** ([Plan 85](../plans/85-specializations.md) PR I). The
+report (`npm run sim`) plays the Guided player held to each specialization
+and to none beside the plain Guided player, and every harness player that
+reaches the milestone now runs the athletics department alike, whatever it
+chooses (before, only the athletics specialist did, so every other pick's
+athletics ranked in the 70s and 80s of the field). Run alike, an
+unspecialized college gained about 4.5 points and reached first place on
+two seeds of three, so three constants were retuned: the rivals'
+specialists ease toward 140, not 150 (`SPECIALIZED_CEILING`), so the
+college's specialized pillar can lead its field; the specialization terms
+are 28, 28, 34 and 34, four more each; and the rivals' unspecialized
+academics eases toward 118, not 112. Measured then, the academic and
+student-life picks were first by Year 50 on every seed and the research and
+athletics picks on two; the unspecialized player never was. Athletics and
+academics led their own pillar; research (5th to 6th) and student life
+(3rd) did not, because their rankings read stocks that trailed the pillar
+by years. **The owner's decisions on review (2026-10-01):** keep the
+three constants; a clear margin is 5 points or more over the next school at
+Year 50; rank research and student life on their pillar values, as
+academics and athletics already were, so every table, the guide, the
+report, the Final Report and the history read the pillar, never the stock
+(the stocks are still saved, and read only by the faculty market, a varsity
+program's pull and the research-powerhouse tag); and halve the endowment's
+adjustment, from up to 8 to up to 4. With those, every specialist is first
+by Year 50 on every seed (113 to 122) and leads its own pillar, by 8.5 to
+12.3 points in academics, research and athletics and by 3.9 to 7.0 in
+student life; the unspecialized player is 3rd to 6th and never first. The
+plain Guided player now picks research, its strongest pillar when the
+choice reads the pillar values. The milestone comes in years 30–35 for
+Guided and 35–44 for the Completionist. A full endowment, now worth 4,
+still carries an unspecialized college to first on two seeds of three (by
+2.0 and 3.3 at Year 50), for the owner to decide.
+
 The pillars' terms, as they were weighted inside prestige before:
 
 - **curriculum breadth** — majors/schools completed *right now* (a stock
@@ -462,8 +501,8 @@ which is what lets one file hold every writer.
 |---|---|---|
 | Prestige | `reputation`, graded each summer toward the blend | the same blend of its four pillars (`rivalsSystem.ts`'s `rivalOverall`) |
 | Academics | the academics pillar, read as it stands | its `reputation`, the stock the field has always drifted |
-| Research | `researchStanding`, a stock drifting toward the research pillar | its `researchStanding` |
-| Student life | `socialStanding`, a stock drifting toward the student-life pillar | its `socialStanding` |
+| Research | the research pillar, read as it stands (until Plan 85I, `researchStanding`, a stock drifting toward it) | its `researchStanding` |
+| Student life | the student-life pillar, read as it stands (until Plan 85I, `socialStanding`, a stock drifting toward it) | its `socialStanding` |
 | Athletics | the athletics pillar's score, 0–100 | its `athleticStrength`, 0–100 |
 
 **A rival's prestige is the same blend.** Its stored `reputation` became its
@@ -494,13 +533,20 @@ never how many draws they take:
 - **The specialized axis runs higher and steadier.** It rises as the field's
   academics does (`fieldRise`: the strongest schools most, by the fourth
   power of their authored standing), at twice the rate
-  (`SPECIALIZED_RISE_RATE`), easing toward `SPECIALIZED_CEILING`, 150 (for
-  athletics, the top of its 0–100 band, 85). It takes half its momentum and
+  (`SPECIALIZED_RISE_RATE`), easing toward `SPECIALIZED_CEILING`, 140 (for
+  athletics, the top of its 0–100 band, 85, which is 132 on the prestige
+  scale). Plan 85I lowered it from 150, the top of the scale: a college
+  that specializes and runs its program stands at 148 to 150 in its pillar,
+  and only with the rivals' specialists below that can its pillar lead the
+  field by a clear margin. It takes half its momentum and
   its yearly shock (`SPECIALIZED_STEADINESS`). An academic specialist's
   academics rises this way instead of toward `FIELD_CEILING`.
 - **The other three are not capped** (Plan 85D's review): each drifts
-  toward `RIVAL_UNSPECIALIZED_TARGETS` (academics and research 112, student
-  life 107, athletics 90, each at or below the college's natural maximum).
+  toward `RIVAL_UNSPECIALIZED_TARGETS` (academics 118, research 112,
+  student life 107, athletics 90, each at or below the college's natural
+  maximum; academics was 112 until Plan 85I, which raised it to hold the
+  top of the field above an unspecialized college once the specialists'
+  ceiling came down).
   An upward move shrinks to nothing over the last 8 points below the
   target (`RIVAL_TARGET_EASE`), a downward move is whole, and an axis
   already above (an authored standing, or an old save) takes no upward move
@@ -517,7 +563,11 @@ specialization. A save from before is dealt the same way on load (the
 The result is the shape the owner asked for: at year 50 the leader of each
 pillar is a specialist in it, a handful of specialists stand above the
 college's unspecialized best, and the college without a specialization
-finishes in the top ten but not first. The college's own specialization
+finishes in the top ten but not first. A college that specializes leads
+that pillar's table (Plan 85I: the rivals' specialists stop at 140, the
+athletic ones at 132, and the college's research and student life are
+ranked on their pillar values), and with its pillars blended no rival
+stands above about 118, which is where first place is decided. The college's own specialization
 (Plan 85D, above) is what lets it past them.
 
 **Access and financial strength** are ranked beside them and count toward
@@ -718,8 +768,8 @@ Every rival gains a little each year, in proportion to the fourth power of
 its authored standing (`FIELD_RISE_RATE`, 1.05 a year at an authored 100),
 easing to nothing at the field's ceiling (`FIELD_CEILING`, 138), past which
 no rival drifts (since Plan 85D's review, an unspecialized rival's
-academics eases toward its target of 112 instead, and an academic
-specialist's toward 150). The top of the field climbs from the high 90s to the
+academics eases toward its target instead, 118 since Plan 85I, and an
+academic specialist's toward `SPECIALIZED_CEILING`, 140 since Plan 85I). The top of the field climbs from the high 90s to the
 ceiling over about forty years, the tenth and twenty-fifth places with it, so
 the top 25, the top ten and first place come in the build era's second half
 and the defend era, not the found era. The elite's closing on a leader is not

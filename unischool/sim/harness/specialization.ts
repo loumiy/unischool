@@ -22,7 +22,7 @@
 
 import type { Action } from '../../src/state/actions';
 import type { GameState, Pillar } from '../../src/state/types';
-import { specializationOptions } from '../../src/systems/prestige/milestone';
+import { specializationOptions, type SpecializationOption } from '../../src/systems/prestige/milestone';
 
 export type SpecializationRule = 'strongest' | 'never' | Pillar;
 
@@ -31,7 +31,11 @@ export type SpecializationRule = 'strongest' | 'never' | Pillar;
 const LEVEL = 0.5;
 
 export function strongestPillar(s: GameState): Pillar {
-  const options = specializationOptions(s);
+  return strongestOf(specializationOptions(s));
+}
+
+// The rule on the choice's own figures (each pillar's value and rank).
+export function strongestOf(options: ReadonlyArray<Pick<SpecializationOption, 'pillar' | 'value' | 'rank'>>): Pillar {
   const top = Math.max(...options.map((o) => o.value));
   // The sort is stable: level on rank too, the pillars' order.
   return options.filter((o) => top - o.value <= LEVEL).sort((a, b) => a.rank - b.rank)[0].pillar;

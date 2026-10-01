@@ -47,8 +47,14 @@ export function fieldRise(id: string, reputation: number, ceiling = FIELD_CEILIN
 // (rivalData.ts's dealtSpecialization), and that axis runs higher and
 // steadier: it rises as the field's academics do (fieldRise: the strongest
 // schools most, easing to nothing near the ceiling) at twice the field's
-// rate, toward SPECIALIZED_CEILING, the top of the scale, and takes only
-// SPECIALIZED_STEADINESS of its momentum and its yearly shock. Its other
+// rate, toward SPECIALIZED_CEILING, and takes only SPECIALIZED_STEADINESS of
+// its momentum and its yearly shock. The ceiling sits below the top of the
+// scale (Plan 85I's balance pass; it was 150): a college that specializes
+// and runs its specialization's own program stands at 148 to 150 in its
+// pillar, and only below it can that pillar lead the field by a clear
+// margin; at 150 the rivals' specialists stood level with it or above. An
+// athletic specialist's band already stopped at 85 of 100, 132 on the
+// prestige scale (ATHLETIC_STRENGTH_MAX). Its other
 // three axes are not capped (the owner's decision in Plan 85D's review,
 // replacing 85C's ceilings): each drifts toward RIVAL_UNSPECIALIZED_TARGETS,
 // at or below the natural maxima the college's pillars have without their
@@ -58,16 +64,21 @@ export function fieldRise(id: string, reputation: number, ceiling = FIELD_CEILIN
 // standing, or an old save) takes no move upward until it has fallen below
 // it; nothing pushes it down. The draws are the same whatever the
 // specialization.
-export const SPECIALIZED_CEILING = 150;
+export const SPECIALIZED_CEILING = 140;
 export const SPECIALIZED_RISE_RATE = 2 * FIELD_RISE_RATE;
 export const SPECIALIZED_STEADINESS = 0.5;
 // Where an unspecialized axis drifts toward, on the prestige scale (tuned
 // in Plan 85D's review): below the natural maxima the college's pillars
 // have without their specialization (UNSPECIALIZED_MAXIMA), about where a
 // strong college's stand, so that one without a specialization can reach
-// the top ten but, against the specialists, not first place.
+// the top ten but, against the specialists, not first place. Academics
+// was 112 until Plan 85I's balance pass: with the specialists' ceiling
+// lowered to 140 the top of the field fell, and an unspecialized college
+// that runs every department reached first place; the field's academics
+// rising toward 118 (where a strong unspecialized college's stands, 4
+// under its natural maximum) holds it out.
 export const RIVAL_UNSPECIALIZED_TARGETS: Readonly<Record<Pillar, number>> = {
-  academics: 112, research: 112, studentLife: 107, athletics: 90,
+  academics: 118, research: 112, studentLife: 107, athletics: 90,
 };
 export const RIVAL_TARGET_EASE = 8;
 
@@ -402,8 +413,15 @@ export interface RankedEntry {
   isPlayer: boolean;
 }
 
+// The college's four pillars are ranked on their values, as prestige reads
+// them (Plan 85I, the owner's decision): research and student life were
+// ranked on the stocks that drift toward their pillars (about an eighth of
+// the gap a year), so a college's specialized research or student life
+// trailed its own pillar by years in every table.
 function selfValue(s: GameState, axis: StandingAxis): number {
   if (axis === 'academics') return pillarValue(s, 'academics');
+  if (axis === 'researchStanding') return pillarValue(s, 'research');
+  if (axis === 'socialStanding') return pillarValue(s, 'studentLife');
   if (axis === 'athleticStrength') return athleticStanding(s);
   if (axis === 'access') return selfAccess(s);
   if (axis === 'financial') return selfFinancial(s);
@@ -528,15 +546,15 @@ function previousEntries(s: GameState, previousPrestige: number): RankedEntry[] 
 }
 
 // Every school's four pillars on the prestige scale, by key, in the
-// pillars' order (the guide's columns, Plan 85B). The player's research and
-// student life are its stocks, as their rankings read them.
+// pillars' order (the guide's columns, Plan 85B). The college's are its
+// pillar values, as their rankings read them (Plan 85I).
 export function pillarColumns(s: GameState): Map<string, readonly number[]> {
   const out = new Map<string, readonly number[]>();
   for (const r of s.rivals) {
     const p = rivalPillars(r);
     out.set(r.id, [p.academics, p.research, p.studentLife, p.athletics]);
   }
-  out.set('self', [pillarValue(s, 'academics'), s.self.researchStanding, s.self.socialStanding, pillarValue(s, 'athletics')]);
+  out.set('self', [pillarValue(s, 'academics'), pillarValue(s, 'research'), pillarValue(s, 'studentLife'), pillarValue(s, 'athletics')]);
   return out;
 }
 

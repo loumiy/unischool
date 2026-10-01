@@ -576,11 +576,14 @@ stands. The Athletics tab's department panel says what the complex does and
 how many flagships it carries, and the flagships figure counts its slots.
 
 Measured on the harness's athletics specialist (Guided with a fixed pick of
-athletics, which runs the department as the specialization asks:
-`sim/harness/athletics.ts`): titles regularly from two or three years after the
-choice, 32 to 46 by Year 50 for Guided and 16 to 38 for the Completionist,
-about one or two a year against the owner's 25 to 40, and the term full 9 to
-12 years after the choice. The unspecialized championships player still
+athletics, which builds the complex and runs the department:
+`sim/harness/athletics.ts`; since Plan 85I every harness college at the
+milestone runs the department alike, whatever it chose): titles regularly
+from two or three years after the choice, 32 to 46 by Year 50 for Guided and
+16 to 38 for the Completionist, about one or two a year against the owner's
+25 to 40 (26 to 36 for Guided after Plan 85I's balance pass, which has it
+choose two or three years later), and the term full 9 to 12 years after the
+choice. The unspecialized championships player still
 wins one to five. Before the quarter of the big stage was kept, the
 specialists won 49 to 69 with the halved edge and boost and 56 to 80 with
 the first version's: with no edge at all against it, every flagship played

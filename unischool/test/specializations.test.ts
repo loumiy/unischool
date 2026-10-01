@@ -30,7 +30,7 @@ import { createInitialState } from '../src/state/actions';
 import { readSave } from '../src/state/persistence';
 import { dealtSpecialization, ELITE_RIVAL_IDS, hashUnit, initialRivals, makeRivalRng, sportStrengthFor } from '../src/data/rivalData';
 import {
-  PILLARS, PILLAR_FLOOR, PILLAR_SPAN, SPECIALIZATION_TERM_WEIGHTS, UNSPECIALIZED_MAXIMA, pillarBreakdown, prestigeBreakdown, specializationOf,
+  PILLARS, PILLAR_FLOOR, PILLAR_SPAN, SPECIALIZATION_TERM_WEIGHTS, UNSPECIALIZED_MAXIMA, pillarBreakdown, pillarValue, prestigeBreakdown, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
 import { PILLAR_AXES, RIVAL_UNSPECIALIZED_TARGETS, playerRank, rankBy, rankedListBy, rivalOverall, rivalPillars, specializations, sportRankedList, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
 import { STAGE_EDGE, resolveSport, stageEdge } from '../src/systems/athletics/playoffs';
@@ -186,15 +186,17 @@ bindScriptStream(12345);
 // ---- Ties: the college ranks ahead (the owner's rule) ----
 {
   const s = createInitialState('Ties');
-  // Research: the college level with the field's best.
-  const best = Math.max(...s.rivals.map((r) => r.researchStanding));
-  s.self.researchStanding = best;
+  // Research: the college level with the field's best. Since Plan 85I the
+  // college ranks on its pillar values, so the field is set level with it.
+  const research = pillarValue(s, 'research');
+  for (const r of s.rivals) r.researchStanding = Math.min(r.researchStanding, research);
+  s.rivals[0].researchStanding = research;
   assert(rankBy(s, 'researchStanding') === 1, `level with the best research standing, the college is first (#${rankBy(s, 'researchStanding')})`);
   // Level with several rivals at one figure.
-  for (const r of s.rivals.slice(0, 5)) r.socialStanding = 120;
-  s.self.socialStanding = 120;
-  const above = s.rivals.filter((r) => r.socialStanding > 120).length;
-  assert(rankBy(s, 'socialStanding') === above + 1, `level at 120 in student life, ahead of every rival there (#${rankBy(s, 'socialStanding')}, ${above} above)`);
+  const life = pillarValue(s, 'studentLife');
+  for (const r of s.rivals.slice(0, 5)) r.socialStanding = life;
+  const above = s.rivals.filter((r) => r.socialStanding > life).length;
+  assert(rankBy(s, 'socialStanding') === above + 1, `level in student life, ahead of every rival there (#${rankBy(s, 'socialStanding')}, ${above} above)`);
   // Prestige: level with the leader's overall.
   s.self.reputation = Math.max(...s.rivals.map(rivalOverall));
   assert(playerRank(s) === 1, `level with the field's best overall, the college is first (#${playerRank(s)})`);

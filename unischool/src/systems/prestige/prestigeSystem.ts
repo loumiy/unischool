@@ -77,18 +77,23 @@ export const PILLAR_LABELS: Readonly<Record<Pillar, string>> = {
 // points above the floor, and its other terms share the rest in their old
 // proportions. A college without the specialization can do everything else
 // perfectly and still stand no higher than PILLAR_FLOOR + PILLAR_SPAN less
-// this (UNSPECIALIZED_MAXIMA: 126, 126, 120, 110, where 85C's ceilings
-// were), because the term is empty, not because anything holds it. Tuned so
-// that optimal play without one reaches the top ten overall and near the top
-// of every pillar, and never first place. Athletics' is the largest: without
-// the athletics specialization a program's quality slows above
+// this (UNSPECIALIZED_MAXIMA: 122, 122, 116, 116), because the term is
+// empty, not because anything holds it. Tuned so that optimal play without
+// one reaches the top ten overall and near the top of every pillar, and
+// never first place. Plan 85D set 24, 24, 30 and 30; Plan 85I's balance pass
+// added 4 to each, once the harness's strong players ran every pillar's
+// department alike (an unspecialized college's athletics department lifted
+// it about 4.5 points, to within reach of first place): the term is what a
+// specialization is worth over unspecialized play. Student life's and
+// athletics' are the largest: student life is the easiest pillar to fill,
+// and without the athletics specialization a program's quality slows above
 // TEAM_QUALITY_KNEE and titles are rare (studentLifeData.ts), so a strong
 // department without titles stands about where its term leaves it.
 export const SPECIALIZATION_TERM_WEIGHTS: Readonly<Record<Pillar, number>> = {
-  academics: 24,
-  research: 24,
-  studentLife: 30,
-  athletics: 30,
+  academics: 28,
+  research: 28,
+  studentLife: 34,
+  athletics: 34,
 };
 
 // The most each pillar can stand at without its specialization: its
@@ -106,8 +111,9 @@ export const UNSPECIALIZED_MAXIMA: Readonly<Record<Pillar, number>> = {
 // high in the guide's overall ranking. A rank, not a prestige figure, so it
 // survives a retune. Tuned so the Guided and Completionist players first
 // stand there in years 25-40 (the owner's range) on every seed, with some
-// margin. Without caps (Plan 85D's review) they climb later: they reach the
-// top 20 in years 29-38; the top 18 would be 30-41, the top 15 32-45.
+// margin. Without caps (Plan 85D's review) they climb later: they reached
+// the top 20 in years 29-38; the top 18 would be 30-41, the top 15 32-45.
+// With Plan 85I's larger terms they reach it in years 31-40.
 export const SPECIALIZATION_MILESTONE_RANK = 20;
 // The board's notice comes when the college first stands within this many
 // places of the milestone: two to four years ahead of it for a college
@@ -134,7 +140,10 @@ const BEAUTY_WEIGHT = 6;
 // nothing, and a mean of half or worse costs the whole weight.
 const CONDITION_PENALTY = 4;
 const CONDITION_FLOOR = 0.5;
-const ENDOWMENT_WEIGHT = 8;           // financial resources per student; any larger and it is a term nobody could earn
+// Financial resources per student, outside every pillar. It was 8 until
+// Plan 85I: the owner halved it, since a full endowment carried a college
+// with no specialization to first place, past what the pillars allow.
+const ENDOWMENT_WEIGHT = 4;
 const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
@@ -490,8 +499,8 @@ function pillarOf(
 ): StandingBreakdown {
   const terms = [...scaled([...core, ...bonus], PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[pillar]), specializationInput(s, pillar)];
   const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, terms);
-  // Academics and athletics are read as they stand; research and student
-  // life are the stocks that drift toward them (tickPrestige).
+  // Every pillar is read as it stands (Plan 85I: research and student life
+  // were shown as the stocks that drift toward them, tickPrestige).
   return {
     ...made, current: current ?? made.target, share: PILLAR_WEIGHTS[pillar], live: current === null,
     specialized: specializationOf(s) === pillar ? specializedLine(pillar, PRESTIGE_MAX, s.specializationYear) : undefined,
@@ -527,7 +536,7 @@ function academicsBreakdown(s: GameState): StandingBreakdown {
 
 function studentLifeBreakdown(s: GameState): StandingBreakdown {
   const average = trailingYearSatisfaction(s);
-  return pillarOf(s, 'studentLife', s.self.socialStanding, [
+  return pillarOf(s, 'studentLife', null, [
     weigh(
       'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
       `Students have averaged ${satisfactionFigure(average)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
@@ -780,8 +789,13 @@ export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly stri
 
 // The research and student-life pillars are also stocks (s.self's
 // researchStanding and socialStanding): each drifts toward its pillar's
-// value at the full weekly rate, as its old standing did, and is what the
-// rankings read. Neither is read back into a decision
+// value at the full weekly rate, as its old standing did. Since Plan 85I no
+// ranking, table or breakdown reads them: the standings, the guide, the
+// report, the Final Report and the history rank the pillar values, as they
+// did academics and athletics. Three slow readings still do: the faculty
+// market's research center (facultyData.ts's marketStandingOf), a varsity
+// program's pull from campus life (studentLifeData.ts's collegePull) and the
+// research-powerhouse tag (identity/tags.ts). Neither reaches prestige
 // (test/invariants.test.ts section 5).
 
 // Both start below the pillars' floor: these are earned, not arrived with.
@@ -808,7 +822,7 @@ function researchBreadthScore(s: GameState): number {
 export function researchStandingBreakdown(s: GameState): StandingBreakdown {
   const equipped = labEquippedFields(s).size;
   const fields = researchableFields().length;
-  return pillarOf(s, 'research', s.self.researchStanding, [
+  return pillarOf(s, 'research', null, [
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
       clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),
