@@ -987,7 +987,7 @@ button.build-tile { font-family: inherit; }
 .campus-flag-pole { stroke: #d8d4c8; stroke-width: 1.4; }
 .campus-flag-finial { fill: #d9b44a; }
 /* A site's shell rising in scaffolding (CampusMap.tsx's SiteProgress). */
-.campus-site-shell polygon { fill: rgba(214, 206, 188, 0.78); stroke: rgba(90, 84, 70, 0.5); stroke-width: 0.8; }
+.campus-site-wall { fill: rgba(214, 206, 188, 0.78); stroke: rgba(90, 84, 70, 0.5); stroke-width: 0.8; }
 .campus-site-shell polygon.campus-site-hatch { fill: url(#campus-scaffold); stroke: none; }
 /* A building's frame going up (siteWorks.tsx's SiteFrame, Plan 74H). */
 .campus-site-frame { pointer-events: none; }
@@ -1002,7 +1002,7 @@ button.build-tile { font-family: inherit; }
 /* Weathering (ageMarks.tsx). */
 .campus-age { pointer-events: none; }
 .campus-age-streak { stroke: rgba(40, 36, 30, 0.22); stroke-width: 1.6; stroke-linecap: round; fill: none; }
-.campus-ivy circle { fill: #4d7a3a; fill-opacity: 0.82; }
+.campus-ivy-leaf { fill: #4d7a3a; fill-opacity: 0.82; }
 .campus-age-boards { fill: #8a6a42; stroke: #2e2216; stroke-width: 1; }
 .campus-age-plank { stroke: #2e2216; stroke-width: 1; fill: none; }
 .campus-age-grime { fill: rgba(58, 58, 56, 0.4); }

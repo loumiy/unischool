@@ -133,6 +133,64 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
   assert(Object.keys(unsupported).length === 0, `the sites hold nothing it cannot draw (${JSON.stringify(unsupported)})`);
 }
 
+// No shape falls back to the canvas's initial black. The painter reads the
+// stylesheet by an element's own classes, so a rule on a bare tag under a
+// class (`.campus-site-shell polygon`) never reached the canvas: a site's
+// shell in its last stage drew as a solid black box, and a historic
+// building's ivy as black dots. Here the rules are the stylesheet's, as
+// far as which classes give a fill; a closed shape with no fill of its own,
+// from its classes or from above, is black on the canvas.
+{
+  const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const filled = new Set<string>();
+  for (const [, selectors, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!/(^|[;\s])fill\s*:/.test(body!)) continue;
+    for (const sel of selectors!.split(',')) {
+      const subject = sel.trim().split(/[\s>+~]+/).pop() ?? '';
+      for (const [, c] of subject.matchAll(/\.([\w-]+)/g)) filled.add(c!);
+    }
+  }
+  const sheet: ClassRules = {
+    generation: 0,
+    resolve: (chain) => (chain[chain.length - 1]!.cls.split(' ').some((c) => filled.has(c))
+      ? { opacity: 1, display: true, fill: 'rgb(1, 2, 3)' }
+      : { opacity: 1, display: true }),
+    color: (v) => v,
+  };
+  const s3 = structuredClone(s);
+  const standing = layout.placed.filter((e) => !e.developing).map((e) => e.t.id);
+  // Sites at every stage, the last ones closed in; and historic buildings.
+  const sites = standing.slice(0, 9);
+  for (const [i, id] of sites.entries()) {
+    const node = s3.tech.find((t) => t.id === id)!;
+    node.status = 'developing';
+    s3.developing[id] = Math.max(1, Math.round((node.duration * (i + 0.5)) / sites.length));
+  }
+  for (const id of standing.slice(9, 15)) s3.tech.find((t) => t.id === id)!.historic = true;
+  const layout3 = campusLayout(s3);
+  const camera = setCamera(cameras[0]!);
+  const scene = canvasSceneOf({
+    layout: layout3, camera, scene: sceneEntries(layout3), groundGeo: groundGeometry(), name: s3.self.name, developing: s3.developing,
+    turning: false, snow: 0, crowds: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
+    labelLayerRef: { current: null }, season: 'sheet', groundClass: '',
+  });
+  const rec = new Recorder({ rules: sheet, skipClass: 'campus-building-complete' });
+  const black = new Map<string, number>();
+  const visit = (ops: readonly Op[]): void => {
+    for (const op of ops) {
+      if (op.k === 'layer' || op.k === 'clip') { visit(op.ops); continue; }
+      if (op.k !== 'shape' || op.fill !== '#000') continue;
+      // A closed shape (a polygon, a rect, a circle); a path's area is not
+      // known here, and a clock's hands are a path with no area to fill.
+      const closed = op.shape.kind === 'pts' ? op.shape.close : op.shape.d === undefined;
+      if (closed) black.set(op.owner ?? '?', (black.get(op.owner ?? '?') ?? 0) + 1);
+    }
+  };
+  for (const e of scene.entries) visit(rec.record(`sheet-${e.key}`, e.node, scene.values));
+  assert(layout3.placed.some((e) => e.historic) && layout3.placed.filter((e) => e.developing).length >= sites.length, 'sites under way and historic buildings to draw');
+  assert(black.size === 0, `no shape is filled with the canvas's initial black (${JSON.stringify(Object.fromEntries(black))})`);
+}
+
 // A thing's signature changes with what it draws, and only then.
 {
   const camera = setCamera(cameras[0]!);
