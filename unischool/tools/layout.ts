@@ -173,6 +173,10 @@ const PLAN: Site[] = [
   // The field house (Plan 21's PR Q) closes the corner east of the pool,
   // on the same lane as the aquatic center.
   { id: 'ATH-FIELDHOUSE', row: 22, col: 103 },             // 9x6
+  // The Athletic Performance Complex (Plan 85G), only on an athletics
+  // campus: below the diamond, between the arena's row and the recreation
+  // lane, where the venues meet the campus.
+  { id: 'PROJ-ATHLETICS-COMPLEX', row: 35, col: 68 },      // 13x9
 ];
 
 // GREEK ROW. A chapter house granted by an event carries an id minted at

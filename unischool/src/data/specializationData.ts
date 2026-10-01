@@ -1,6 +1,7 @@
 import type { GameState, Pillar } from '../state/types';
 import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
 import { PARK_WORDS, landmarkYears, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
+import { COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -47,7 +48,10 @@ export function specializedIn(pillar: Pillar): string {
 // (trainingData.ts's trainingReading), and nothing while none stands.
 // Research reads the research park (Plan 85F): the years of Landmark work it
 // has hosted in the last ten (researchParkData.ts's parkReading), and
-// nothing while none stands.
+// nothing while none stands. Athletics reads the athletic performance
+// complex (Plan 85G): the deep postseason runs its programs have made in the
+// last ten years with the complex standing (athleticsComplexData.ts's
+// complexReading), and nothing while none stands.
 // ---------------------------------------------------------------------
 
 export const SPECIALIZATION_FILL_YEARS = 10;
@@ -63,7 +67,7 @@ export const SPECIALIZATION_READINGS: Readonly<Record<Pillar, SpecializationRead
   academics: trainingReading,
   research: parkReading,
   studentLife: yearsSinceChoice,
-  athletics: yearsSinceChoice,
+  athletics: complexReading,
 };
 
 // How a mechanic's reading says itself in the term's row, for the college
@@ -76,6 +80,9 @@ export const SPECIALIZATION_DETAILS: Partial<Readonly<Record<Pillar, (s: GameSta
   research: (s, score) => (parkStands(s)
     ? PARK_WORDS.termReading(chosenIn(s), landmarkYears(s), landmarksRunning(s), score >= 1)
     : PARK_WORDS.termNoPark(chosenIn(s), parkGoingUp(s))),
+  athletics: (s, score) => (complexStands(s)
+    ? COMPLEX_WORDS.termReading(chosenIn(s), s, score >= 1)
+    : COMPLEX_WORDS.termNoComplex(chosenIn(s), complexGoingUp(s))),
 };
 
 // What the term's row adds while it is empty for want of the
@@ -237,9 +244,10 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     summary: 'A college known first for its teams.',
     known: 'a college known first for its teams',
     alsoNow: 'A program\'s quality no longer slows above 80, so a team may play to 100, and the established powers lose their edge in the postseason.',
+    fills: COMPLEX_WORDS.fills,
     mechanics: [
-      { text: 'An athletic performance complex on the map, which only this specialization may build.', ready: false },
-      { text: 'More flagship programs than the subsidy allows, a recruiting boost and better odds deep in the postseason.', ready: false },
+      { text: COMPLEX_WORDS.cardComplex, ready: true },
+      { text: COMPLEX_WORDS.cardMechanics, ready: true },
     ],
   },
 };

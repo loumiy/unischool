@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import {
-  COLLEGE_PULL_MAX, RECRUITING_CLASSES, RECRUITING_FULL_LIFT, SOLID_COACH_POTENTIAL, SPORTS, annualScholarships, collegePull,
+  COLLEGE_PULL_MAX, RECRUITING_CLASSES, RECRUITING_FULL_LIFT, RECRUITING_MAX_LIFT, SOLID_COACH_POTENTIAL, SPORTS, annualScholarships, collegePull,
   departmentPot, isFlagship, orderedTeams, promoteToVarsityTeam, scholarshipCostFor, teamQuality,
 } from '../src/data/studentLifeData';
 import { venueExpansionsMax } from '../src/data/facilitiesData';
@@ -214,7 +214,7 @@ function years(s: GameState, n: number): void {
   edited.state.orgs.teams[0].recruiting = 400;
   edited.state.orgs.teams[0].scholarships = 'lavish' as never;
   const back = readSave(JSON.stringify(edited));
-  assert(!('refused' in back) && back.state.orgs.teams[0].recruiting === RECRUITING_FULL_LIFT && back.state.orgs.teams[0].scholarships === 'none', 'an edited save is brought back on the scale');
+  assert(!('refused' in back) && back.state.orgs.teams[0].recruiting === RECRUITING_MAX_LIFT && back.state.orgs.teams[0].scholarships === 'none', 'an edited save is brought back on the scale (Plan 85G: the complex\'s lift is its top)');
 }
 
 console.log('recruiting tests');

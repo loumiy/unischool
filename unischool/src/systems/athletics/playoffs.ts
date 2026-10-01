@@ -4,6 +4,7 @@ import { makeRivalRng, sportStrengthFor } from '../../data/rivalData';
 import { sportRankedList } from '../../systems/rivals/rivalsSystem';
 import { random } from '../../engine/random';
 import { athleticsLifted } from '../prestige/specialization';
+import { complexEdge, recordComplexRun } from '../../data/athleticsComplexData';
 
 // The postseason: once a year the top eight schools in each fielded sport,
 // seeded on the standings' strength number, play a three-round bracket.
@@ -38,10 +39,14 @@ type Round = (typeof ROUND_NAMES)[number];
 // program's quality above studentLifeData.ts's TEAM_QUALITY_KNEE it makes a first title
 // rare before year 20 on the unspecialized path. Only the college's own
 // games: a bracket between rivals is as it was, and the draws are the same.
+// The Athletic Performance Complex (Plan 85G) turns the stage the college's
+// way: while it works, the edge is negative, the college playing
+// athleticsComplexData.ts's COMPLEX_HOME_EDGE stronger in a semifinal and a
+// final.
 export const STAGE_EDGE: Readonly<Record<Round, number>> = { quarterfinal: 8, semifinal: 20, final: 35 };
 
 export function stageEdge(s: GameState, round: Round): number {
-  return athleticsLifted(s) ? 0 : STAGE_EDGE[round];
+  return athleticsLifted(s) ? -complexEdge(s, round) : STAGE_EDGE[round];
 }
 
 // Resolve one sport's postseason from the player's side. Only fielded sports
@@ -119,6 +124,9 @@ export function runPlayoffs(s: GameState): void {
     }
     const result = resolveSport(s, team.sport, roll);
     s.orgs.lastSeason[team.sport] = result;
+    // A deep run at the Athletic Performance Complex (Plan 85G), which the
+    // athletics pillar's specialization term reads.
+    recordComplexRun(s, team.sport, result.finish);
     if (result.finish === 'champion') {
       s.orgs.titles.push({ sport: team.sport, year: s.clock.year });
       s.orgs.pendingTitles.push(team.sport);

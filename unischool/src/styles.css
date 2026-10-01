@@ -1609,6 +1609,8 @@ button.build-tile { font-family: inherit; }
 
 /* The Research Park's progress (ResearchTab.tsx's ResearchParkProgress). */
 .research-park { margin-top: var(--space-16); border-top: 2px dashed var(--parchment-line); }
+.athletics-complex { margin-top: var(--space-16); border-top: 2px dashed var(--parchment-line); }
+.athletics-complex-line { margin: 0 0 6px; font-size: var(--text-sm); color: var(--ink); line-height: 1.4; }
 .research-park-line, .research-park-count, .research-park-note { margin: 0 0 6px; font-size: var(--text-sm); color: var(--ink); line-height: 1.4; }
 .research-park-count b { font-family: var(--display); font-weight: 800; }
 .research-park-note { font-size: var(--text-xs); color: var(--ink-muted); font-style: italic; }

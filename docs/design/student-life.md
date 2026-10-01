@@ -370,7 +370,8 @@ gate is uncapped, so once the band was just "fully funded" a large college's
 gate (about $8M a year) funded all twenty programs on the low subsidy, and
 every sport was a flagship. Now the subsidy level also caps how many programs
 may be flagships — **2 at low, 4 at medium, 6 at high**
-(`ATHLETICS_BUDGET_TIERS.flagships`) — and they are **the first active
+(`ATHLETICS_BUDGET_TIERS.flagships`; two more at the Athletic Performance
+Complex, Plan 85G, below) — and they are **the first active
 programs on the list**, so dragging the cards is choosing them. A flagship
 draws its sport's whole cost to compete; any other program draws at most
 **60%** of it (`NON_FLAGSHIP_FUNDED_SHARE`) however rich the pot, and is
@@ -513,8 +514,9 @@ exactly that, gets there by about Year 7, a year or two after choosing (its
 85](../plans/85-specializations.md) PR C, by the owner's decision). Before
 it, the championships player won its first title by about Year 8 and dozens
 by Year 50. Two levers now stand against a college that has not specialized
-in athletics, and the athletic performance complex (Plan 85G) is what lifts
-them:
+in athletics; the athletics specialization takes both away (Plan 85D,
+`specialization.ts`'s `athleticsLifted`), and the athletic performance
+complex (Plan 85G, below) turns the second the college's way:
 
 - **The slowdown above the knee** (Plan 85D's review, replacing Plan 85C's
   hard team ceiling of 90). A program's quality is what its staff, money,
@@ -532,6 +534,46 @@ The target is a first title after Year 20 in most runs and a handful by Year
 50 for the championships player; the rivals' athletic specialists, which
 run higher in every sport (see [progression.md](progression.md)), make the
 field it meets stronger as the run goes on.
+
+**The athletic performance complex** ([Plan
+85](../plans/85-specializations.md) PR G; `data/athleticsComplexData.ts`).
+The Athletic Performance Complex (`projectData.ts`'s
+`PROJ-ATHLETICS-COMPLEX`) is a capital project only a college specialized in
+athletics may build: $30M over 104 weeks and $35,000 a week, the Faculty
+Training Institute's figures. On the map it is a glazed modern block beside
+the venues with a running track on its roof. While it stands at a college
+specialized in athletics (`complexWorks`), and only then:
+
+- **Two more flagships** (`COMPLEX_FLAGSHIPS`): the department may name the
+  subsidy level's 2, 4 or 6 and two more (`departmentPot`'s `cap`, with
+  `baseCap` the subsidy level's). Each is funded in full from the
+  department's fund and may recruit.
+- **Recruiting a third better** (`COMPLEX_RECRUITING_BOOST`): full
+  scholarships build to +20 over the four classes, not +15
+  (`recruitingTarget`'s boost; `RECRUITING_MAX_LIFT` is the scale's top).
+- **Better odds deep in the postseason** (`COMPLEX_HOME_EDGE`): the college
+  plays 5 points stronger in its own semifinals and 8 in its finals
+  (`playoffs.ts`'s `stageEdge` turns negative). At 25 points of difference
+  the stronger side wins three times in four, so 8 points is about a
+  three-in-five final between equals.
+
+The sizes are proposals, for the owner's review. The specialization alone
+keeps Plan 85D's lift (no slowdown above the knee, no edge for the
+established powers) and gets none of these. The athletics pillar's
+specialization term reads what the complex produces: each postseason the
+college reaches the last four while it works goes on its record
+(`orgs.complexRuns`, the window's years only), and the term is the deep runs
+of the last ten years, a title 1, a lost final a half and a lost semifinal a
+quarter, full at 40 points (`complexReading`); nothing while no complex
+stands. The Athletics tab's department panel says what the complex does and
+how many flagships it carries, and the flagships figure counts its slots.
+
+Measured on the harness's athletics specialist (Guided with a fixed pick of
+athletics, which runs the department as the specialization asks:
+`sim/harness/athletics.ts`): titles every year from the year after the
+choice, 56 to 80 by Year 50 (35 to 38 with the specialization and none of
+the complex's mechanics), and the term full 10 or 11 years after the
+choice. The unspecialized championships player still wins one to five.
 
 **This is the loop the whole athletics feature was built for**, and every arrow
 in it now exists: fund a program → hire a coach → team quality rises → the
