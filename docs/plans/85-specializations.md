@@ -1712,7 +1712,9 @@ student-life pillar's specialization term now reads the festivals of the
 last ten springs, carried by the district's growth and the town's goodwill,
 in place of 85D's ten years. Save version 93. *"Lifts the student-life
 pillar's ceiling" is the term since 85D's review: no pillar has a ceiling
-(§2).* **Every size below is a proposal, for the owner's review.**
+(§2).* **Every size below was proposed here and kept as proposed by the
+owner on review (2026-10-01); evening student life against the other
+specializations is left to 85I.**
 
 - **The district** (`data/downtownData.ts`, `systems/studentlife/
   downtown.ts`'s `tickDowntown`): `s.downtown.growth`, 0 to 1, rises each
@@ -1747,7 +1749,7 @@ pillar's ceiling" is the term since 85D's review: no pillar has a ceiling
     (a few times a year), never per frame. The canvas and the SVG map draw
     it from the same components, with presentation attributes only.
 - **Off-campus life** (`satisfactionSystem.ts`'s `offCampusPlaces`):
-  `OFF_CAMPUS_SHARE` (**15%**, a proposal) of each of the social, dining and
+  `OFF_CAMPUS_SHARE` (**15%**) of each of the social, dining and
   housing needs, times the growth, as the dial reads the need
   (`expectedRatio`). They count with the buildings in `servedPopulationFor`
   and, for housing, beside the beds (`bedsWithDowntown`), so the dials,
