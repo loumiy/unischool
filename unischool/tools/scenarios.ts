@@ -15,6 +15,7 @@ import { relocateProgram, unlockAvailable } from '../src/systems/techtree/techSy
 import { instituteStands } from '../src/data/trainingData';
 import { RESEARCH_PARK_ID, parkStands } from '../src/data/researchParkData';
 import { complexStands } from '../src/data/athleticsComplexData';
+import { FESTIVAL_EVENT } from '../src/data/downtownData';
 import { firstFreeSpot, footprintOf, placementFor } from '../src/state/campusMap';
 import type { SpecializationRule } from '../sim/harness/specialization';
 
@@ -215,6 +216,38 @@ export const SCENARIOS: Scenario[] = [
     year: 45,
     specialization: 'athletics',
     stopWhen: (s) => s.clock.year >= 37 && s.clock.week >= 6 && complexStands(s),
+  },
+  {
+    // The downtown and the festival (Plan 85H): a college specialized in
+    // student life, its district grown, the spring festival waiting in the
+    // inbox: the run plays a fixed pick of student life and stops in Year
+    // 38's Spring Term, the week the festival is raised.
+    name: 'downtown',
+    what: 'the downtown grown and the spring festival to decide: specialized in student life',
+    player: 'Guided',
+    year: 45,
+    specialization: 'studentLife',
+    stopWhen: (s) => s.clock.year >= 38 && (s.catalogue?.pending ?? []).some((p) => p.eventId === FESTIVAL_EVENT.id),
+  },
+  {
+    // Town and gown (Plan 85H): the first town-and-gown event waiting in
+    // the inbox at a college specialized in student life.
+    name: 'town-and-gown',
+    what: 'a town-and-gown event waiting in the inbox: specialized in student life',
+    player: 'Guided',
+    year: 45,
+    specialization: 'studentLife',
+    stopWhen: (s) => (s.catalogue?.pending ?? []).some((p) => p.eventId.startsWith('town-')),
+  },
+  {
+    // The downtown early (Plan 85H): two years after the choice, the first
+    // shopfronts along Main Street.
+    name: 'downtown-early',
+    what: 'the downtown two years after the choice of student life: the first shopfronts',
+    player: 'Guided',
+    year: 45,
+    specialization: 'studentLife',
+    stopWhen: (s) => s.specialization === 'studentLife' && s.clock.year >= (s.specializationYear ?? 99) + 2 && s.clock.week >= 6,
   },
   {
     // The choice (Plan 85D) at a college whose Research Park was built

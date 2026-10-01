@@ -212,7 +212,7 @@ function college(specialization: GameState['specialization'], status: 'locked' |
   // The card.
   assert(/as its programs make deep runs once the Athletic Performance Complex stands/.test(opensLine('athletics', 30)), `the card says how it fills ("${opensLine('athletics', 30)}")`);
   assert(SPECIALIZATION_CARDS.athletics.mechanics.length === 2 && SPECIALIZATION_CARDS.athletics.mechanics.every((m) => m.ready), 'the complex and its mechanics are now, not still to come');
-  assert(SPECIALIZATION_CARDS.studentLife.mechanics.every((m) => !m.ready), 'student life\'s are still to come');
+  assert(SPECIALIZATION_CARDS.studentLife.mechanics.every((m) => m.ready), 'student life\'s are now too (Plan 85H)');
 }
 
 // ---- The migration, and a round trip ----

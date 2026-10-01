@@ -17,6 +17,7 @@ import { RUNG_NAMES } from '../finance/distress';
 import { TAG_PHRASES } from '../../data/reportData';
 import { graduateProgram } from '../../data/techData';
 import { GRAND_LANDMARK_IDS } from '../../data/facilitiesData';
+import type { FestivalScale } from '../../state/types';
 
 // THE CHRONICLE (Plan 33, from v2's chronicle.ts; V2 #53): the run written
 // as eras named from what happened. Every closed year is read from what the
@@ -52,6 +53,9 @@ export interface YearRecord {
   sport: string | null; // the sport of the year's first title
   // The pillar the college chose to specialize in that year (Plan 85D).
   specialized?: Pillar;
+  // The spring festival that year (Plan 85H): its scale, or 'none' for a
+  // spring the college let pass. Absent where no festival was raised.
+  festival?: FestivalScale | 'none';
 }
 
 export interface Era {
@@ -120,6 +124,7 @@ export function yearRecords(s: GameState): YearRecord[] {
       prizes: h.prizes !== undefined && before !== undefined ? Math.max(0, h.prizes - before) : 0,
       sport: titles.length > 0 ? (sportById(titles[0].sport)?.teamName ?? titles[0].sport).replace(/ Team$/, '') : null,
       specialized: s.specializationYear === y ? specializationOf(s) ?? undefined : undefined,
+      festival: (s.downtown?.festivals ?? []).find((f) => f.year === y)?.scale,
     };
   });
 }
@@ -171,6 +176,8 @@ export function yearKind(recs: YearRecord[], i: number): EraKind {
     campaign: r.campaigns > 0,
     fall: turn === 'fall',
     building: r.built.length >= BUILDING_BOOM,
+    // A year whose spring festival was a headline gala (Plan 85H).
+    festival: r.festival === 'gala',
     // A year of nothing new that answered one of the board's letters.
     eventful: r.seismic.length > 0,
     quiet: true,
@@ -380,6 +387,7 @@ function summarise(span: Span, recs: YearRecord[]): string[] {
   if (titles) lines.push(titles === 1 ? L.title : fill(L.titles, { count: titles }));
   const prizes = years.reduce((t, r) => t + r.prizes, 0);
   if (prizes) lines.push(prizes === 1 ? L.prize : fill(L.prizes, { count: prizes }));
+  lines.push(...festivalLines(years));
   const specialized = years.find((r) => r.specialized);
   if (specialized?.specialized) {
     const p = specialized.specialized;
@@ -394,6 +402,22 @@ function summarise(span: Span, recs: YearRecord[]): string[] {
   if (kept.length) lines.push(fill(kept.length === 1 ? L.kept : L.keptMany, { list: listOf(kept) }));
   if (missed.length) lines.push(fill(missed.length === 1 ? L.missed : L.missedMany, { list: listOf(missed) }));
   return lines;
+}
+
+// The spring festivals of an era (Plan 85H): how many were held, how many
+// as a gala, and the springs the town went without.
+function festivalLines(years: YearRecord[]): string[] {
+  const L = CHRONICLE_LINES;
+  const held = years.filter((r) => r.festival !== undefined && r.festival !== 'none');
+  const galas = held.filter((r) => r.festival === 'gala').length;
+  const out: string[] = [];
+  if (held.length > 0) {
+    const galaWords = galas === 0 ? '' : held.length === 1 ? L.festivalGalaOnly : galas === 1 ? L.festivalGala : fill(L.festivalGalas, { galas });
+    out.push(held.length === 1 ? fill(L.festivalHeldOne, { galas: galaWords }) : fill(L.festivalHeld, { count: held.length, galas: galaWords }));
+  }
+  const skipped = years.filter((r) => r.festival === 'none').map((r) => `Year ${r.year}`);
+  if (skipped.length > 0) out.push(fill(L.festivalSkipped, { years: listOf(skipped) }));
+  return out;
 }
 
 // One stretch of years in the chronicle's sentences (the Epilogue's

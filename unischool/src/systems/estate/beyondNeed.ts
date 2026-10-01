@@ -2,7 +2,7 @@ import type { Buildable, GameState, SatisfactionAttributes } from '../../state/t
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { BEYOND_NEED_FROM, BEYOND_NEED_UPKEEP, isRetailFood } from '../../data/facilitiesData';
 import { NEED_SPACE } from '../../data/needWords';
-import { expectedRatio, servedPopulationFor } from '../satisfaction/satisfactionSystem';
+import { expectedRatio, offCampusPlaces, servedPopulationFor } from '../satisfaction/satisfactionSystem';
 import { isPriceUpkept, upkeepShare } from './estate';
 import { count, decimal, pct } from '../../format';
 
@@ -40,8 +40,13 @@ export function needCapacity(s: GameState, attribute: keyof SatisfactionAttribut
   const project = s.tech
     .filter((t) => t.project !== undefined && t.effects?.satisfactionAttribute === attribute)
     .reduce((sum, t) => sum + servingPopulation(t), 0);
-  const charged = Math.max(0, capacity - project);
-  const beyondShare = enrolled > 0 && charged > 0 ? Math.max(0, charged - BEYOND_NEED_FROM * need) / charged : 0;
+  // The downtown's places (Plan 85H) cost the college nothing and count
+  // first toward the need, so the buildings pay the extra past the line
+  // less what the downtown meets.
+  const downtown = offCampusPlaces(s, attribute);
+  const charged = Math.max(0, capacity - project - downtown);
+  const line = Math.max(0, BEYOND_NEED_FROM * need - downtown);
+  const beyondShare = enrolled > 0 && charged > 0 ? Math.max(0, charged - line) / charged : 0;
   return { attribute, capacity, need, enrolled, beyondShare };
 }
 

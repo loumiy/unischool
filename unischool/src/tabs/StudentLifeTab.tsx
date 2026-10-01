@@ -13,6 +13,8 @@ import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
+import { DOWNTOWN_WORDS, districtGrowth, goodwillOf } from '../data/downtownData';
+import { offCampusPlaces } from '../systems/satisfaction/satisfactionSystem';
 import { count, fraction, gameDateOfWeek, money, moneyShort, satisfactionFigure, satisfactionShown, signed, weeksShort } from '../format';
 
 const ATTRIBUTE_LABELS = NEED_LABELS;
@@ -313,6 +315,33 @@ function StudentDemandPanel({ s }: { s: GameState }) {
   );
 }
 
+// The downtown (Plan 85H): at a college specialized in student life, the
+// district's growth, what it meets of the needs, the town's goodwill and the
+// festivals, all read off downtownData.ts.
+function DowntownPanel({ s }: { s: GameState }) {
+  const W = DOWNTOWN_WORDS;
+  const festivals = s.downtown.festivals;
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <h2>{W.head}</h2>
+        <HelpHint align="end" text={W.panelHelp} />
+      </div>
+      <dl>
+        <Figure label={W.growth} value={`${Math.round(districtGrowth(s) * 100)}%`} hint={W.hintGrowth} />
+        <Figure
+          label={W.offCampusLabel}
+          value={W.places(count(offCampusPlaces(s, 'social')), count(offCampusPlaces(s, 'basicNeeds')), count(offCampusPlaces(s, 'housing')))}
+          hint={W.hintOffCampus}
+        />
+        <Figure label={W.goodwill} value={`${Math.round(goodwillOf(s))}`} hint={W.hintGoodwill} />
+        <Figure label={W.festivalsLabel} value={W.festivals(s)} hint={W.hintFestivals} />
+        <Figure label={W.lastLabel} value={W.lastFestival(festivals[festivals.length - 1])} hint={W.hintLast} />
+      </dl>
+    </section>
+  );
+}
+
 // `clubs` is false before the first commencement (Plan 78B): the
 // organizations' panels wait for it, and one note says so.
 export default function StudentLifeTab({ s, clubs: clubsOpen = true }: { s: GameState; clubs?: boolean }) {
@@ -332,6 +361,7 @@ export default function StudentLifeTab({ s, clubs: clubsOpen = true }: { s: Game
         {/* First, and always: the reading that explains the headline. */}
         <SatisfactionBreakdownPanel s={s} />
         <StudentDemandPanel s={s} />
+        {s.specialization === 'studentLife' && <DowntownPanel s={s} />}
         {!clubsOpen ? (
           <section className="panel">
             <h2>Student organizations</h2>

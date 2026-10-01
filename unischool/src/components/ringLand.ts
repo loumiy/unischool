@@ -3,9 +3,10 @@ import { ROAD_FIRST_ROW } from '../state/campusMap';
 import { hashUnit } from '../data/rivalData';
 import type { Species } from '../data/treeData';
 import {
-  boxFaces, currentCamera, heightScale, lift, polyPoints, project, unproject, visibleWalls,
+  boxFaces, currentCamera, facePoint, heightScale, lift, polyPoints, project, unproject, visibleWalls, wallOf,
   type Camera, type FaceDir, type Pt,
 } from './isoProjection';
+import { DISTRICT_STEPS } from '../data/downtownData';
 import { SUN_FROM } from './light';
 import { UNITS_PER_TILE_UP } from './campusScale';
 import { treeOutline } from './trees';
@@ -106,6 +107,30 @@ export interface Land {
   shadow: [Loop[], Loop[]];
   // The far hills' outline: phases of its waves.
   ridge: number[];
+  // The downtown (Plan 85H): the district the town grows into at a college
+  // specialized in student life, drawn in DISTRICT_STEPS steps (buildDistrict).
+  district: District;
+}
+
+// A building of the downtown district (Plan 85H): a flat-roofed block of
+// `storeys`, terraced along Main Street with its shopfront and awning on the
+// side facing the road (`road`), or set behind the street with apartments
+// over it (no awning). `wall` and `awning` index the district's palette
+// (Surroundings.tsx). It stands from district step `step` on.
+export interface Shop {
+  col: number; row: number; w: number; h: number;
+  storeys: number; wall: number; awning: number;
+  road: FaceDir; step: number;
+}
+// A string of lights across Main Street, pole to pole at `col`, from step
+// `step` on.
+export interface LightString { col: number; r0: number; r1: number; step: number; }
+export interface District {
+  shops: Shop[];
+  strings: LightString[];
+  // The step at which each of the land's houses gives way to the district
+  // (by index), or DISTRICT_STEPS + 1 if it stays.
+  houseStep: number[];
 }
 
 // --- the land, per name ----------------------------------------------------
@@ -244,7 +269,7 @@ function buildLand(name: string): Land {
   const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]!;
   const land: Land = {
     town: rand() < 0.5 ? 'west' : 'east', fields: [], hills: [], houses: [], trees: [], crowns: [], lanes: [],
-    light: [[], []], shadow: [[], []], ridge: [],
+    light: [[], []], shadow: [[], []], ridge: [], district: { shops: [], strings: [], houseStep: [] },
   };
   land.ridge = Array.from({ length: 6 }, () => rand() * Math.PI * 2);
 
@@ -426,8 +451,85 @@ function buildLand(name: string): Land {
     t.col > h.col - 1 && t.col < h.col + h.w + 1 && t.row > h.row - 1 && t.row < h.row + h.h + 1);
   land.trees = land.trees.filter((t) => !yard(t));
   land.crowns = land.crowns.filter((t) => !yard(t));
+  // The downtown, on its own random numbers, so the land is the same with
+  // it or without it.
+  land.district = buildDistrict(name, houses, { road0, length, across, lanes });
 
   return land.town === 'west' ? land : mirror(land);
+}
+
+// The downtown district (Plan 85H): what the town along the road grows into
+// at a college specialized in student life. Shops terraced along both sides
+// of Main Street (the road west of the parcel, and across it from the
+// campus's west end), out from the corner nearest the campus as the
+// district grows; from the middle steps a second row behind, taller, with
+// apartments over it; and strings of lights across the street. Each piece
+// has the step it appears at; a house a shop stands on gives way at that
+// step. Built as the town is, west of the parcel, and mirrored with it.
+function buildDistrict(
+  name: string, houses: readonly House[],
+  town: { road0: number; length: number; across: number; lanes: number[] },
+): District {
+  const rand = rng(Math.floor(hashUnit(`${name}:downtown`) * 4294967296));
+  const { road0, length, across, lanes } = town;
+  const nearLane = (c0: number, c1: number) => lanes.some((c) => c0 < c + 2.4 && c1 > c - 2.4);
+  const west = -length + 1;
+  // How far from the corner nearest the campus: 0 across the road from it.
+  const far = (col: number, w: number) => Math.max(0, -(col + w / 2));
+  const front: Shop[] = [];
+  const back: Shop[] = [];
+  for (const north of [true, false]) {
+    const start = north ? -2.2 : across - 1;
+    const lastRow: { col: number; c: number }[] = [];
+    for (let c = start; c - 2 > west;) {
+      const w = 1.7 + rand() * 1.2;
+      const col = c - w;
+      const depth = 2.1 + rand() * 0.8;
+      if (!nearLane(col, c)) {
+        front.push({
+          col, row: north ? road0 - 0.7 - depth : GH + 0.7, w, h: depth,
+          storeys: 2 + (rand() < 0.55 ? 1 : 0) + (rand() < 0.15 ? 1 : 0),
+          wall: Math.floor(rand() * 6), awning: Math.floor(rand() * 5),
+          road: north ? 'posRow' : 'negRow', step: 0,
+        });
+        lastRow.push({ col, c });
+      }
+      c -= w + 0.1 + rand() * 0.3;
+    }
+    // The second row, behind the shops: an alley's width back.
+    for (const { col, c } of lastRow) {
+      if (rand() < 0.3) continue;
+      const w = c - col;
+      const depth = 2.4 + rand() * 1.2;
+      const frontDepth = front.find((f) => f.col === col && (north ? f.road === 'posRow' : f.road === 'negRow'))!.h;
+      back.push({
+        col: col + 0.1, row: north ? road0 - 0.7 - frontDepth - 0.8 - depth : GH + 0.7 + frontDepth + 0.8, w: w - 0.2, h: depth,
+        storeys: 3 + (rand() < 0.45 ? 1 : 0), wall: Math.floor(rand() * 6), awning: -1,
+        road: north ? 'posRow' : 'negRow', step: 0,
+      });
+    }
+  }
+  // The steps: the frontage fills out from the corner across the steps;
+  // the second row from the third step on.
+  const spread = (xs: Shop[], from: number) => {
+    const order = [...xs].sort((a, b) => far(a.col, a.w) - far(b.col, b.w));
+    order.forEach((x, k) => { x.step = Math.min(DISTRICT_STEPS, from + Math.floor((k * (DISTRICT_STEPS - from + 1)) / order.length)); });
+  };
+  spread(front, 1);
+  spread(back, 3);
+  const shops = [...front, ...back];
+  // The lights: a string across the street every few tiles of the district.
+  const strings: LightString[] = [];
+  const reach = Math.max(0, ...front.map((f) => far(f.col, f.w)));
+  for (let c = -3; c > west + 2; c -= 5 + rand() * 2) {
+    if (nearLane(c - 0.3, c + 0.3)) continue;
+    const step = Math.min(DISTRICT_STEPS, 1 + Math.floor((far(c, 0) / Math.max(1, reach)) * DISTRICT_STEPS));
+    strings.push({ col: c, r0: road0 - 0.45, r1: GH + 0.45, step });
+  }
+  // A house a shop stands on gives way at the shop's step.
+  const overlaps = (h: House, x: Shop) => h.col < x.col + x.w + 0.3 && h.col + h.w > x.col - 0.3 && h.row < x.row + x.h + 0.3 && h.row + h.h > x.row - 0.3;
+  const houseStep = houses.map((h) => Math.min(DISTRICT_STEPS + 1, ...shops.filter((x) => overlaps(h, x)).map((x) => x.step)));
+  return { shops, strings, houseStep };
 }
 
 // Two farm fields that touch along an edge do not share a cover (Plan 81D;
@@ -483,6 +585,11 @@ function mirror(land: Land): Land {
     lanes: land.lanes.map(([c0, r0, c1, r1]) => [c(c0), r0, c(c1), r1]),
     light: [loops(land.light[0]), loops(land.light[1])],
     shadow: [loops(land.shadow[0]), loops(land.shadow[1])],
+    district: {
+      ...land.district,
+      shops: land.district.shops.map((x) => ({ ...x, col: c(x.col + x.w) })),
+      strings: land.district.strings.map((x) => ({ ...x, col: c(x.col) })),
+    },
   };
 }
 
@@ -492,7 +599,11 @@ export type RingSprite =
   | { kind: 'tree'; key: string; y: number; tree: TreeSpot }
   // A run of far trees' crowns, near in depth, merged into four shapes.
   | { kind: 'crowns'; key: string; y: number; body: string; top: string; pineBody: string; pineTop: string }
-  | { kind: 'house'; key: string; y: number; house: House; walls: { d: string; dir: FaceDir }[]; roofs: { d: string; dir: FaceDir }[] };
+  | { kind: 'house'; key: string; y: number; house: House; walls: { d: string; dir: FaceDir }[]; roofs: { d: string; dir: FaceDir }[] }
+  // The downtown's (Plan 85H): a shop or block, and a string of lights.
+  | { kind: 'shop'; key: string; y: number; shop: Shop; walls: { d: string; dir: FaceDir }[]; roof: string; parapet: string;
+      glass: string; awning: string; valance: string; sign: string; facing: boolean; windows: string; litWindows: string; glow: string; lit: boolean }
+  | { kind: 'lights'; key: string; y: number; poles: string; wire: string; bulbs: string; halo: string; pool: string; lit: boolean };
 
 export interface RingView {
   // One flat plate under the whole ring (and the parcel).
@@ -659,6 +770,118 @@ function houseShape(land: Land, h: House) {
   return { walls, roofs: slopes, pts, y: f.C.y, foot: f.C };
 }
 
+// The downtown's shapes (Plan 85H). A storey's height, in the motifs' units.
+const STOREY = 12;
+const PARAPET = 2.5;
+// The awning: from just under the first floor's windows, out over the
+// pavement and down; and a blade sign over it, square to the street.
+const AWNING_TOP = STOREY - 1.5;
+const AWNING_DROP = 4;
+const AWNING_OUT = 0.45;
+const SIGN_OUT = 0.5;
+
+// The outward step from a wall facing `dir`, in tiles.
+const OUTWARD: Record<FaceDir, [number, number]> = { posRow: [0, 1], negRow: [0, -1], posCol: [1, 0], negCol: [-1, 0] };
+
+// A shop or block: its two visible walls, its flat roof and parapet; on
+// the side facing the road the shopfront's glass, an awning over the
+// pavement and a blade sign square to the street (drawn behind the walls
+// when that side faces away from the camera); windows on the floors above
+// (a share of them lit when the district is lit); and, lit, a warm spill of
+// light on the pavement in front of the shopfront.
+function shopShape(land: Land, x: Shop, lit: boolean) {
+  const base = heightAt(land, x.col + x.w / 2, x.row + x.h / 2);
+  const H = STOREY * x.storeys + PARAPET;
+  const f = boxFaces(x.col, x.row, x.w, x.h, base, H);
+  const walls = [{ d: houseD(f.left), dir: f.dir.CD }, { d: houseD(f.right), dir: f.dir.BC }];
+  const parapetTop = f.top;
+  const roofTop = boxFaces(x.col + 0.18, x.row + 0.18, x.w - 0.36, x.h - 0.36, base, H - PARAPET * 0.7).top;
+  let glass = ''; let windows = ''; let litWindows = ''; let glow = '';
+  const quad = (origin: Pt, along: Pt, u0: number, u1: number, v0: number, v1: number) => houseD([
+    facePoint(origin, along, H, u0, v0), facePoint(origin, along, H, u1, v0),
+    facePoint(origin, along, H, u1, v1), facePoint(origin, along, H, u0, v1),
+  ]);
+  const seen = new Set<FaceDir>([f.dir.CD, f.dir.BC]);
+  for (const dir of [f.dir.CD, f.dir.BC]) {
+    const { origin, along } = wallOf(f, dir);
+    const span = dir === 'negRow' || dir === 'posRow' ? x.w : x.h;
+    const n = Math.max(1, Math.round(span / 0.85));
+    const shopfront = dir === x.road && x.awning >= 0;
+    for (let k = 0; k < x.storeys; k++) {
+      if (k === 0 && shopfront) {
+        glass += quad(origin, along, 0.07, 0.93, 0.4 / H, (AWNING_TOP - AWNING_DROP + 0.5) / H);
+        continue;
+      }
+      for (let i = 0; i < n; i++) {
+        const d = quad(origin, along, (i + 0.28) / n, (i + 0.72) / n, (k * STOREY + 3.5) / H, (k * STOREY + 9) / H);
+        // Which windows are lit is fixed per shop, so the lights hold still.
+        if (lit && (i * 7 + k * 3 + Math.round(x.col * 5 + x.row * 3)) % 5 < 3) litWindows += d; else windows += d;
+      }
+    }
+  }
+  // The road side's edge on the ground, from one end to the other, and the
+  // step out from it.
+  const [oc, or] = OUTWARD[x.road];
+  const edge: [[number, number], [number, number]] = x.road === 'posRow' ? [[x.col, x.row + x.h], [x.col + x.w, x.row + x.h]]
+    : x.road === 'negRow' ? [[x.col, x.row], [x.col + x.w, x.row]]
+      : x.road === 'posCol' ? [[x.col + x.w, x.row], [x.col + x.w, x.row + x.h]] : [[x.col, x.row], [x.col, x.row + x.h]];
+  const at3 = (c: number, r: number, h: number) => lift(project(c, r), base + h);
+  let awning = ''; let valance = ''; let sign = '';
+  if (x.awning >= 0) {
+    const [[c0, r0], [c1, r1]] = edge;
+    // Inset a little from the corners.
+    const ic = (c1 - c0) * 0.04; const ir = (r1 - r0) * 0.04;
+    const a0 = at3(c0 + ic, r0 + ir, AWNING_TOP); const a1 = at3(c1 - ic, r1 - ir, AWNING_TOP);
+    const b1 = at3(c1 - ic + oc * AWNING_OUT, r1 - ir + or * AWNING_OUT, AWNING_TOP - AWNING_DROP);
+    const b0 = at3(c0 + ic + oc * AWNING_OUT, r0 + ir + or * AWNING_OUT, AWNING_TOP - AWNING_DROP);
+    awning = houseD([a0, a1, b1, b0]);
+    valance = houseD([b0, b1, lift(b1, -1.6), lift(b0, -1.6)]);
+    // The blade sign, at the end of the frontage nearer the corner.
+    const sc = c0 + (c1 - c0) * 0.12; const sr = r0 + (r1 - r0) * 0.12;
+    sign = houseD([
+      at3(sc, sr, STOREY + 1.5), at3(sc + oc * SIGN_OUT, sr + or * SIGN_OUT, STOREY + 1.5),
+      at3(sc + oc * SIGN_OUT, sr + or * SIGN_OUT, STOREY + 9), at3(sc, sr, STOREY + 9),
+    ]);
+    if (lit) {
+      const out = 0.8;
+      const g0 = at3(c0, r0, 0); const g1 = at3(c1, r1, 0);
+      glow = houseD([g0, g1, at3(c1 + oc * out, r1 + or * out, 0), at3(c0 + oc * out, r0 + or * out, 0)]);
+    }
+  }
+  const pts = [f.D, f.C, f.B, f.A, f.At, f.Bt, f.Ct, f.Dt];
+  return {
+    walls, roof: houseD(roofTop), parapet: houseD(parapetTop), glass, awning, valance, sign, windows, litWindows, glow,
+    // The shopfront's side faces the camera: its awning and sign are drawn
+    // over the walls, else under them.
+    facing: seen.has(x.road), pts, y: f.C.y, foot: f.C,
+  };
+}
+
+// A string of lights across Main Street: a pole each side, the wire sagging
+// between them, and its bulbs; lit, each bulb glows.
+const POLE = 21;
+const SAG = 4;
+function lightsShape(land: Land, l: LightString, lit: boolean, hs: number) {
+  const a = at(land, l.col, l.r0);
+  const b = at(land, l.col, l.r1);
+  const ta = lift(a, POLE);
+  const tb = lift(b, POLE);
+  const point = (t: number): Pt => ({ x: ta.x + (tb.x - ta.x) * t, y: ta.y + (tb.y - ta.y) * t + SAG * hs * Math.sin(Math.PI * t) });
+  const n = Math.max(4, Math.round((l.r1 - l.r0) / 0.6));
+  const wire = houseD(Array.from({ length: n + 1 }, (_, i) => point(i / n))).replace(/Z$/, '');
+  const poles = `M${f1(a.x)},${f1(a.y)}L${f1(ta.x)},${f1(ta.y)}M${f1(b.x)},${f1(b.y)}L${f1(tb.x)},${f1(tb.y)}`;
+  let bulbs = ''; let halo = '';
+  for (let i = 1; i < n; i++) {
+    const p = point(i / n);
+    bulbs += circleD(p.x, p.y + 1, lit ? 1.7 : 1);
+    if (lit) halo += circleD(p.x, p.y + 1, 4.8);
+  }
+  // Lit, the light it throws on the street below.
+  const pool = lit ? houseD([at(land, l.col - 1.8, l.r0), at(land, l.col + 1.8, l.r0), at(land, l.col + 1.8, l.r1), at(land, l.col - 1.8, l.r1)]) : '';
+  const mid = project(l.col, (l.r0 + l.r1) / 2);
+  return { poles, wire, bulbs, halo, pool, pts: [a, b, ta, tb], y: mid.y, foot: mid };
+}
+
 const VIEW_CACHE = new Map<string, RingView>();
 
 // The last view built and not kept: the frame of a turn draws the ring
@@ -669,12 +892,15 @@ let passing: { key: string; view: RingView } | null = null;
 // camera where the camera rests (`keep`). A turn's in-between angles are
 // built each frame and not kept, so they never push the views the camera
 // rests on out of the cache (Plan 82).
-export function ringView(name: string, keep = true): RingView {
+// `district` is the downtown's step (Plan 85H; 0, the plain town, at any
+// college not specialized in student life) and `lit` whether its lights are
+// on: part of the key, so a step or a festival builds the view once.
+export function ringView(name: string, keep = true, district = 0, lit = false): RingView {
   const cam = currentCamera();
-  const key = `${name}|${cam.azimuth.toFixed(5)}|${cam.pitch.toFixed(5)}`;
+  const key = `${name}|${cam.azimuth.toFixed(5)}|${cam.pitch.toFixed(5)}|${district}|${lit && district > 0 ? 'lit' : ''}`;
   const hit = VIEW_CACHE.get(key) ?? (passing?.key === key ? passing.view : undefined);
   if (hit) return hit;
-  const view = buildView(landOf(name));
+  const view = buildView(landOf(name), district, lit && district > 0);
   if (!keep) {
     passing = { key, view };
     return view;
@@ -684,7 +910,7 @@ export function ringView(name: string, keep = true): RingView {
   return view;
 }
 
-function buildView(land: Land): RingView {
+function buildView(land: Land, district = 0, lit = false): RingView {
   const byCover = new Map<Cover, string[]>();
   for (const f of land.fields) {
     const pts = outline(land, f.c0, f.r0, f.c1, f.r1);
@@ -725,8 +951,28 @@ function buildView(land: Land): RingView {
     (inFront(foot, treeOutline(t.col, t.row, t.species, t.scale)) ? front : back).push(sprite);
   });
   land.houses.forEach((h, i) => {
+    // A house the downtown has built over is gone (Plan 85H).
+    if ((land.district.houseStep[i] ?? Infinity) <= district) return;
     const shape = houseShape(land, h);
     const sprite: RingSprite = { kind: 'house', key: `h${i}`, y: shape.y, house: h, walls: shape.walls, roofs: shape.roofs };
+    (inFront(shape.foot, shape.pts) ? front : back).push(sprite);
+  });
+  // The downtown (Plan 85H): its shops and blocks to the step it has
+  // reached, and its strings of lights.
+  land.district.shops.forEach((x, i) => {
+    if (x.step > district) return;
+    const shape = shopShape(land, x, lit);
+    const sprite: RingSprite = {
+      kind: 'shop', key: `s${i}`, y: shape.y, shop: x, walls: shape.walls, roof: shape.roof, parapet: shape.parapet,
+      glass: shape.glass, awning: shape.awning, valance: shape.valance, sign: shape.sign, facing: shape.facing,
+      windows: shape.windows, litWindows: shape.litWindows, glow: shape.glow, lit,
+    };
+    (inFront(shape.foot, shape.pts) ? front : back).push(sprite);
+  });
+  land.district.strings.forEach((l, i) => {
+    if (l.step > district) return;
+    const shape = lightsShape(land, l, lit, hs);
+    const sprite: RingSprite = { kind: 'lights', key: `l${i}`, y: shape.y, poles: shape.poles, wire: shape.wire, bulbs: shape.bulbs, halo: shape.halo, pool: shape.pool, lit };
     (inFront(shape.foot, shape.pts) ? front : back).push(sprite);
   });
   // The far trees, in runs of sixteen by depth: each run is four shapes, so

@@ -25,6 +25,8 @@ import {
 import { count, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
 import { LOAN_RATE, LOAN_YEARS, financingFor, giftFunds, loanFor } from '../systems/finance/treasury';
 import { constructionFrozen } from '../systems/finance/distress';
+import { offCampusPlaces } from '../systems/satisfaction/satisfactionSystem';
+import { DOWNTOWN_WORDS } from '../data/downtownData';
 
 // The build menu: every physical building the university can have, as a
 // row of category icons over a horizontal strip of building tiles. A wide
@@ -714,6 +716,8 @@ export default function BuildPopup({
     return firstBuild?.id ?? TOOLS_SECTION_ID;
   });
   const active = sections.find((sec) => sec.id === activeId) ?? sections[0];
+  // The downtown's beds (Plan 85H), beside the campus's.
+  const offCampusBeds = offCampusPlaces(s, 'housing');
 
   // The alert badge's other half: marks unseen tiles in the active tab only
   // seen, since switching to a tab is what "seeing" it means. The tools tab
@@ -756,7 +760,9 @@ export default function BuildPopup({
     >
       <div className="build-mode">
         <div className="build-mode-topline">
-          <span className="stat">{count(s.students.capacity)} beds · {count(totalEnrolled(s.students))} enrolled</span>
+          <span className="stat">
+            {count(s.students.capacity)} beds{offCampusBeds > 0 && <span title={DOWNTOWN_WORDS.offCampusHint}> · {DOWNTOWN_WORDS.offCampusBeds(count(offCampusBeds))}</span>} · {count(totalEnrolled(s.students))} enrolled
+          </span>
           <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>
         </div>
 

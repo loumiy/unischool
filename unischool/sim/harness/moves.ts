@@ -27,6 +27,7 @@ import { CROWDING_GRACE, crowdingCoverages } from '../../src/systems/prestige/pr
 import { claimedHalls, claimedSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
 import { declineRefusal, schoolOffers } from '../../src/systems/techtree/programOffers';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
+import { bedsWithDowntown } from '../../src/systems/satisfaction/satisfactionSystem';
 import type { Game } from './game';
 
 export type Pick = <T>(items: readonly T[]) => T | undefined;
@@ -201,11 +202,13 @@ export function buildForShortfall(g: Game, below: number, { reserve = 0 }: MoveO
 }
 
 // The next residence hall, once the beds are `fill` full (or there are none
-// and there are students).
+// and there are students). The downtown's beds (Plan 85H) count with the
+// campus's.
 export function buildDorm(g: Game, fill: number, { reserve = 0 }: MoveOptions = {}): boolean {
   const s = g.s;
   const enrolled = totalEnrolled(s.students);
-  const wanted = s.students.capacity === 0 ? enrolled > 0 : enrolled / s.students.capacity >= fill;
+  const beds = bedsWithDowntown(s);
+  const wanted = beds === 0 ? enrolled > 0 : enrolled / beds >= fill;
   const next = buildable(s, reserve).find((t) => t.kind === 'dorm');
   return wanted && next ? site(g, next) : false;
 }

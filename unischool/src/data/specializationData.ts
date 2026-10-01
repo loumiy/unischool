@@ -2,6 +2,7 @@ import type { GameState, Pillar } from '../state/types';
 import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
 import { PARK_WORDS, landmarkYears, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
 import { COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
+import { DOWNTOWN_WORDS, downtownReading, festivalPoints } from './downtownData';
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -38,11 +39,10 @@ export function specializedIn(pillar: Pillar): string {
 // ---------------------------------------------------------------------
 // The specialization term (Plan 85D, the owner's decision replacing Plan
 // 85C's ceilings): each pillar holds a share only its own specialization
-// fills (prestigeSystem.ts's SPECIALIZATION_TERM_WEIGHTS). Until Plans
-// 85F-H give each its mechanic, the reading is time: a tenth of the term
-// for each year since the choice, full after SPECIALIZATION_FILL_YEARS. A
-// PR that builds a pillar's mechanic replaces that pillar's reading here
-// (SPECIALIZATION_READINGS), and says how it reads in the term's row
+// fills (prestigeSystem.ts's SPECIALIZATION_TERM_WEIGHTS). Plan 85D filled
+// each with the years: a tenth of the term for each year since the choice.
+// Plans 85E-H replaced each pillar's reading with its mechanic's here
+// (SPECIALIZATION_READINGS), and say how it reads in the term's row
 // (SPECIALIZATION_DETAILS). Academics reads the faculty training program
 // (Plan 85E): the share of the faculty trained at the institute
 // (trainingData.ts's trainingReading), and nothing while none stands.
@@ -51,29 +51,26 @@ export function specializedIn(pillar: Pillar): string {
 // nothing while none stands. Athletics reads the athletic performance
 // complex (Plan 85G): the deep postseason runs its programs have made in the
 // last ten years with the complex standing (athleticsComplexData.ts's
-// complexReading), and nothing while none stands.
+// complexReading), and nothing while none stands. Student life reads the
+// downtown and the festival (Plan 85H): the festivals held in the last ten
+// years, carried by the district's growth and the town's goodwill
+// (downtownData.ts's downtownReading), and nothing without a festival.
 // ---------------------------------------------------------------------
-
-export const SPECIALIZATION_FILL_YEARS = 10;
 
 // The share of the term filled, 0 to 1, for the college specialized in it.
 export type SpecializationReading = (s: GameState) => number;
 
-function yearsSinceChoice(s: GameState): number {
-  return s.specializationYear === undefined ? 0 : Math.max(0, Math.min(1, (s.clock.year - s.specializationYear) / SPECIALIZATION_FILL_YEARS));
-}
-
 export const SPECIALIZATION_READINGS: Readonly<Record<Pillar, SpecializationReading>> = {
   academics: trainingReading,
   research: parkReading,
-  studentLife: yearsSinceChoice,
+  studentLife: downtownReading,
   athletics: complexReading,
 };
 
 // How a mechanic's reading says itself in the term's row, for the college
-// specialized in it; a pillar without one reads the years since the choice.
+// specialized in it.
 const chosenIn = (s: GameState) => (s.specializationYear !== undefined ? ` (Year ${s.specializationYear})` : '');
-export const SPECIALIZATION_DETAILS: Partial<Readonly<Record<Pillar, (s: GameState, score: number) => string>>> = {
+export const SPECIALIZATION_DETAILS: Readonly<Record<Pillar, (s: GameState, score: number) => string>> = {
   academics: (s, score) => (instituteStands(s)
     ? TRAINING_WORDS.termReading(chosenIn(s), trainedCount(s), s.faculty.length, score >= 1)
     : TRAINING_WORDS.termNoInstitute(chosenIn(s))),
@@ -83,6 +80,9 @@ export const SPECIALIZATION_DETAILS: Partial<Readonly<Record<Pillar, (s: GameSta
   athletics: (s, score) => (complexStands(s)
     ? COMPLEX_WORDS.termReading(chosenIn(s), s, score >= 1)
     : COMPLEX_WORDS.termNoComplex(chosenIn(s), complexGoingUp(s))),
+  studentLife: (s, score) => (festivalPoints(s) > 0
+    ? DOWNTOWN_WORDS.termReading(chosenIn(s), s, score >= 1)
+    : DOWNTOWN_WORDS.termEmpty(chosenIn(s))),
 };
 
 // What the term's row adds while it is empty for want of the
@@ -106,15 +106,7 @@ export function specializationTerm(s: GameState, pillar: Pillar): { score: numbe
     };
   }
   const score = SPECIALIZATION_READINGS[pillar](s);
-  const own = SPECIALIZATION_DETAILS[pillar];
-  if (own) return { score, detail: own(s, score) };
-  const years = Math.round(score * SPECIALIZATION_FILL_YEARS);
-  return {
-    score,
-    detail: score >= 1
-      ? `The college is specialized in ${PILLAR_WORDS[pillar]}${s.specializationYear !== undefined ? ` (Year ${s.specializationYear})` : ''}, and the term is full.`
-      : `The college is specialized in ${PILLAR_WORDS[pillar]}${s.specializationYear !== undefined ? ` (Year ${s.specializationYear})` : ''}: it fills a tenth for each year since, ${years} of ${SPECIALIZATION_FILL_YEARS} so far.`,
-  };
+  return { score, detail: SPECIALIZATION_DETAILS[pillar](s, score) };
 }
 
 // A program's quality slows above the knee without the athletics
@@ -179,8 +171,8 @@ export function ledBy(name: string, specialization: Pillar): string {
 // to a quarter,
 // specialization.ts's athleticsLifted). `mechanics` are the plan's
 // (docs/plans/85-specializations.md, PRs 85E-H): each is `ready` once its PR
-// builds it, and until then the screen says it is still to come. Plans
-// 85E-H add to these lists, flip `ready` and replace their reading.
+// builds it, and until then the screen says it is still to come. Since Plan
+// 85H every one is ready.
 // ---------------------------------------------------------------------
 
 export interface SpecializationMechanic {
@@ -199,9 +191,9 @@ export interface SpecializationCard {
   known: string;
   // What the choice gives besides its term, now (athletics' teams).
   alsoNow?: string;
-  // How its term fills, once its mechanic reads it (Plan 85E on): the end
-  // of the card's "Opens …" line. Without it, the term fills with the years.
-  fills?: string;
+  // How its term fills, as its mechanic reads it (Plans 85E-H): the end of
+  // the card's "Opens …" line.
+  fills: string;
   mechanics: readonly SpecializationMechanic[];
 }
 
@@ -233,10 +225,11 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     name: 'The downtown and the festival',
     summary: 'A college known first as the place to be a student.',
     known: 'a college known first as the place to be a student',
+    fills: DOWNTOWN_WORDS.fills,
     mechanics: [
-      { text: 'The town beside the campus grows into a downtown district that meets part of the students\' social, dining and housing needs.', ready: false },
-      { text: 'An annual festival each spring, from a modest weekend to a headline gala.', ready: false },
-      { text: 'Town-and-gown events from a lively downtown.', ready: false },
+      { text: DOWNTOWN_WORDS.cardDistrict, ready: true },
+      { text: DOWNTOWN_WORDS.cardFestival, ready: true },
+      { text: DOWNTOWN_WORDS.cardTown, ready: true },
     ],
   },
   athletics: {
@@ -267,7 +260,7 @@ export function choiceParkNote(s: GameState, pillar: Pillar): string | null {
 // What opens, said on each card: it works from the moment of the choice.
 export function opensLine(pillar: Pillar, weight: number): string {
   const card = SPECIALIZATION_CARDS[pillar];
-  return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, worth ${weight} points, ${card.fills ?? `filling over ${SPECIALIZATION_FILL_YEARS} years`}.`;
+  return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, worth ${weight} points, ${card.fills}.`;
 }
 
 export const CHOICE_WORDS = {
@@ -298,6 +291,6 @@ export function specializationNotice(milestone: number, weights: Readonly<Record
     .join('; ');
   return {
     title: `Within reach of the top ${milestone}`,
-    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. Each pillar holds a share that only its own specialization fills, so without one no pillar reaches the top. There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each will bring more of its own in time; the choice will say what arrives now and what is still to come. Whichever the college chooses, the other three pillars' shares stay empty.`,
+    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. Each pillar holds a share that only its own specialization fills, so without one no pillar reaches the top. There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
   };
 }

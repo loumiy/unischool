@@ -2432,11 +2432,118 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     ],
     default: 'keep',
   },
+  // Town and gown (Plan 85H): the downtown district a college specialized in
+  // student life grows (data/downtownData.ts). Each waits on the district
+  // (downtownAtLeast reads 0 at any other college) and trades money, the
+  // students' mood and the town's goodwill.
+  {
+    id: 'town-noise',
+    kind: 'inline',
+    domain: 'students',
+    weight: 3,
+    cooldownYears: 4,
+    when: { downtownAtLeast: 0.15 },
+    title: 'Noise on Main Street',
+    text: 'The residents\' association on the streets behind Main Street has written, for the third time this term, about the noise on Friday nights. The letter is signed by forty households and one dog, whose name appears to have been added as a matter of principle.',
+    timeoutWeeks: 4,
+    choices: [
+      { id: 'patrol', label: 'Pay for a late-night student patrol', effects: { cash: -60000, goodwill: 5 } },
+      { id: 'quiet', label: 'Ask the students to keep it down', effects: { mood: -2, goodwill: 3 } },
+      { id: 'shrug', label: 'Point out that the downtown was the town\'s idea', effects: { goodwill: -5 } },
+    ],
+    default: 'shrug',
+  },
+  {
+    id: 'town-bar',
+    kind: 'inline',
+    domain: 'students',
+    weight: 3,
+    cooldownYears: 6,
+    when: { downtownAtLeast: 0.25 },
+    title: 'The Bell\'s offer',
+    text: 'The Bell, the oldest bar on Main Street, proposes a partnership: a student night every Thursday, the college\'s crest over the door and a fee for the privilege. The owner has already had the crest painted, slightly wrong, and is prepared to discuss the lion.',
+    timeoutWeeks: 4,
+    choices: [
+      { id: 'accept', label: 'Accept, crest and all', effects: { cash: 40000, mood: 2, goodwill: -3 } },
+      { id: 'terms', label: 'Accept on the college\'s terms: no drinks promotions', effects: { mood: 1, goodwill: 2 } },
+      { id: 'decline', label: 'Decline politely', effects: { goodwill: -1 } },
+    ],
+    default: 'decline',
+  },
+  {
+    id: 'town-street-festival',
+    kind: 'inline',
+    domain: 'students',
+    weight: 3,
+    cooldownYears: 5,
+    when: { downtownAtLeast: 0.3 },
+    needs: ['great-lawn'],
+    title: 'The street festival',
+    text: 'The town\'s summer street festival has outgrown Main Street, and the organizers would like to borrow the college\'s main quad for one Saturday. They promise to put it back exactly as they found it, and have attached a plan of the stalls drawn on the back of a menu.',
+    timeoutWeeks: 4,
+    choices: [
+      { id: 'lend', label: 'Lend them the quad', effects: { cash: -30000, mood: -1, goodwill: 6 } },
+      { id: 'fee', label: 'Lend it for a fee', effects: { cash: 50000, goodwill: 1 } },
+      { id: 'decline', label: 'Keep the quad for the students', effects: { mood: 1, goodwill: -5 } },
+    ],
+    default: 'decline',
+  },
+  {
+    id: 'town-rents',
+    kind: 'inline',
+    domain: 'students',
+    weight: 3,
+    cooldownYears: 6,
+    when: { downtownAtLeast: 0.4 },
+    title: 'Rents downtown',
+    text: 'The landlords downtown have raised the rents on student apartments for the third year running, citing demand, which the college created, and the downtown, which the college also created. The student newspaper has run the figures on its front page under a headline the Dean of Students has asked not to be quoted.',
+    timeoutWeeks: 4,
+    choices: [
+      { id: 'grant', label: 'A housing grant for students in need', effects: { cash: -150000, mood: 3 } },
+      { id: 'code', label: 'Press the landlords for a code of practice', effects: { mood: 1, goodwill: -4 } },
+      { id: 'market', label: 'Leave it to the market', effects: { mood: -3 } },
+    ],
+    default: 'market',
+  },
+  {
+    id: 'town-night-buses',
+    kind: 'inline',
+    domain: 'students',
+    weight: 2,
+    cooldownYears: 8,
+    when: { downtownAtLeast: 0.2 },
+    needs: ['residence-hall'],
+    title: 'Late-night buses',
+    text: 'The town council proposes late-night buses between Main Street and the residence halls, and suggests the college pay half. The council\'s own half is to come from a parking fee that the council has not yet voted on and the merchants have already opposed.',
+    timeoutWeeks: 4,
+    choices: [
+      { id: 'share', label: 'Pay the college\'s half', effects: { cash: -100000, mood: 2, goodwill: 4 } },
+      { id: 'decline', label: 'Decline: the walk does them good', effects: { goodwill: -3 } },
+    ],
+    default: 'decline',
+  },
+  {
+    id: 'town-colors',
+    kind: 'inline',
+    domain: 'students',
+    weight: 2,
+    cooldownYears: 6,
+    when: { downtownAtLeast: 0.5 },
+    title: 'The college\'s colors downtown',
+    text: 'The Downtown Merchants\' Association would like to put the college\'s colors in every shop window for the first week of term, and asks whether the college would pay for the banners. The hardware store has offered to hang them, and has been asked not to.',
+    timeoutWeeks: 4,
+    choices: [
+      { id: 'banners', label: 'Pay for banners down Main Street', effects: { cash: -40000, mood: 1, goodwill: 4 } },
+      { id: 'thanks', label: 'Thank them, and leave the windows to them', effects: { goodwill: 1 } },
+    ],
+    default: 'thanks',
+  },
 ];
 
-// The university charter (Plan 78G): the one inline event that is never
-// drawn. It is raised the first quiet week a lab is at work (eventSystem.ts's
-// fireCharter), once a run, and waits in the inbox like any other; left
+// The university charter (Plan 78G): an inline event that is never drawn
+// (the spring festival, data/downtownData.ts, is the other). It is raised
+// the first quiet week a lab is at work (eventSystem.ts's fireCharter), once
+// a run, and waits in the inbox like any other; left
 // unanswered, the college becomes a University, as it did before the
 // question. {name} is the first half of the college's name. Its letter
 // carries the college's one rename (Plan 80D, InboxTab.tsx's CharterAnswer).

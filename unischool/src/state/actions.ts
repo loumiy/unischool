@@ -4,6 +4,7 @@ import type {
   AthleticsBudgetTier, BenchFacing, Coach, DressingKind, GameState, InitiativeDepth, Pillar, Placements, ScholarshipLevel, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
+import { emptyDowntown } from '../data/downtownData';
 import type { DecisionEventContext } from '../data/eventData';
 import { WEEKS_PER_YEAR } from './types';
 import { centredPlacement, footprintOf, isPlaceableKind } from './campusMap';
@@ -284,6 +285,7 @@ export function createPreStartState(): GameState {
     hasEnteredRankings: false,
     specialization: 'none',
     training: { year: 1, trained: [] },
+    downtown: emptyDowntown(),
     milestones: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
@@ -439,6 +441,7 @@ function foundState(
     hasEnteredRankings: false,
     specialization: 'none',
     training: { year: 1, trained: [] },
+    downtown: emptyDowntown(),
     milestones: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),

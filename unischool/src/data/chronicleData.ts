@@ -9,13 +9,13 @@
 // board's letters, and is named for it.
 export type EraKind =
   | 'founding' | 'receivership' | 'troubles' | 'first' | 'school' | 'graduate' | 'topTen'
-  | 'project' | 'titles' | 'prizes' | 'campaign' | 'fall' | 'building' | 'quiet' | 'eventful';
+  | 'project' | 'titles' | 'prizes' | 'campaign' | 'fall' | 'building' | 'festival' | 'quiet' | 'eventful';
 
 // Largest first: a year is the first of these it has, and an era the first
 // of its years'.
 export const ERA_PRIORITY: readonly EraKind[] = [
   'founding', 'receivership', 'troubles', 'first', 'school', 'graduate', 'topTen',
-  'project', 'titles', 'prizes', 'campaign', 'fall', 'building', 'eventful', 'quiet',
+  'project', 'titles', 'prizes', 'campaign', 'fall', 'building', 'festival', 'eventful', 'quiet',
 ];
 
 export const ERA_MIN_YEARS = 4;   // shorter runs fold into a neighbor
@@ -44,6 +44,8 @@ export const ERA_NAMES: Readonly<Record<EraKind | 'schools', readonly string[]>>
   campaign: ['The Campaign Years', 'The Years of Asking', 'The {ordinal} Campaign'],
   fall: ['The Slide', 'The Fall', 'The Long Afternoon'],
   building: ['The Building of {building}', 'The Years of {building}', 'The Scaffolding Years', 'The Building Boom'],
+  // A year of a headline gala (Plan 85H, the spring festival).
+  festival: ['The Gala Years', 'The Festival Years', 'The Years of the Downtown'],
   quiet: ['The Quiet Years', 'The Middle Years', 'The Settled Years', 'The Long Peace', 'The Years of Routine', 'The Steady State'],
   eventful: ['{event} and After', 'The Years of {event}', 'After {event}'],
 };
@@ -76,6 +78,13 @@ export const CHRONICLE_LINES = {
   prizes: 'Its faculty won {count} research prizes.',
   // The year the college chose its specialization (Plan 85D).
   specialized: 'In Year {year} it chose to specialize in {pillar}: {name}.',
+  // The spring festival (Plan 85H).
+  festivalHeld: 'It held the spring festival in {count} of these years{galas}.',
+  festivalHeldOne: 'It held the spring festival once{galas}.',
+  festivalGalas: ', {galas} of them as a headline gala',
+  festivalGala: ', once as a headline gala',
+  festivalGalaOnly: ', as a headline gala',
+  festivalSkipped: 'The town went without its festival in {years}.',
 } as const;
 
 export const CHRONICLE_WORDS = {

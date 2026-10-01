@@ -25,6 +25,8 @@ import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../data/tech
 import { isSchoolFounded } from '../techtree/schools';
 import { inTitleYear, sportById } from '../../data/studentLifeData';
 import { grantCharter } from './charter';
+import { FESTIVAL_EVENT, districtGrowth } from '../../data/downtownData';
+import { changeGoodwill, holdFestival } from '../studentlife/downtown';
 
 // THE CATALOGUE (Plan 32, from v2's events.ts): v2's events, read against
 // this game's state. An inline event waits in the panel and, if nobody
@@ -146,6 +148,9 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   // The Spring Term's first weeks (Plan 76D): 0 in the Fall Term, which
   // the bound reads as never.
   springWeekAtMost: [(s) => springTermWeek(s.clock.week) || Infinity, 'max'],
+  // The downtown district's growth (Plan 85H), 0 at a college not
+  // specialized in student life: the town-and-gown events' gate.
+  downtownAtLeast: [districtGrowth, 'min'],
 };
 
 // One condition's reading now, unscaled: what a promise's target line says
@@ -393,6 +398,8 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
         break;
       }
       case 'charter': grantCharter(s, v > 0); break; // charter.ts
+      case 'goodwill': changeGoodwill(s, v); break; // studentlife/downtown.ts
+      case 'festival': holdFestival(s, v); break;
     }
   }
 }
@@ -411,10 +418,11 @@ function departs(s: GameState, vars: Readonly<Record<string, string>>): void {
   });
 }
 
-// Any event a firing can name: the drawn catalog, and the charter, which is
-// raised rather than drawn (charter.ts).
+// Any event a firing can name: the drawn catalog, and the charter and the
+// spring festival, which are raised rather than drawn (charter.ts,
+// catalogueEngine.ts's raiseFestival).
 export function eventById(id: string): CatalogueEvent | undefined {
-  return EVENT_CATALOGUE.find((e) => e.id === id) ?? (id === CHARTER_EVENT.id ? CHARTER_EVENT : undefined);
+  return EVENT_CATALOGUE.find((e) => e.id === id) ?? (id === CHARTER_EVENT.id ? CHARTER_EVENT : id === FESTIVAL_EVENT.id ? FESTIVAL_EVENT : undefined);
 }
 
 export { EVENT_CATALOGUE };

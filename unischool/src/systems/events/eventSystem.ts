@@ -1,5 +1,5 @@
 import { restaffPlan } from '../faculty/restaffing';
-import { raiseCharter, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
+import { raiseCharter, raiseFestival, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
@@ -280,6 +280,9 @@ export function tickEvents(s: GameState): void {
   // The panel's unanswered events take their defaults whoever claims the
   // week.
   timeOutCatalogue(s);
+  // The spring festival (Plan 85H) joins the inbox whoever claims the week:
+  // it never stops the clock.
+  raiseFestival(s);
   // Another system already claimed this week.
   if (s.pendingInterrupt) return;
 

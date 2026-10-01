@@ -30,6 +30,7 @@ import { specializationAnswer, type SpecializationRule } from './specialization'
 import { useTrainingPicks } from './training';
 import { commissionLandmarks } from './researchPark';
 import { runAthletics } from './athletics';
+import { runDowntown } from './downtown';
 
 // The game saves to localStorage; a headless run keeps it in memory.
 export const fakeStorage = new Map<string, string>();
@@ -78,6 +79,10 @@ export interface Player {
   // the flagships and their scholarships): absent, it does; false, never
   // (a player that runs its own, the championships goal player).
   athletics?: false;
+  // Whether, specialized in student life, it answers what the downtown asks
+  // (downtown.ts: the festival each spring, the town-and-gown events):
+  // absent, it does; false, never (the festival then takes its default).
+  downtown?: false;
 }
 
 export interface FoundOptions {
@@ -138,6 +143,7 @@ export function playWeek(g: Game, player: Player): void {
   // something cheaper.
   if (player.landmarks !== false) commissionLandmarks(g);
   if (player.athletics !== false) runAthletics(g);
+  if (player.downtown !== false) runDowntown(g);
   player.act(g);
   if (player.trains === undefined || (player.trains !== false && player.trains(g.s))) useTrainingPicks(g);
   answerAll(g, player);
