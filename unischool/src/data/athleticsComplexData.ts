@@ -27,20 +27,22 @@ export const ATHLETICS_COMPLEX_NAME = 'the Athletic Performance Complex';
 // for the owner's review.
 export const COMPLEX_FLAGSHIPS = 2;
 
-// The recruiting boost (a proposal, for the owner's review): while the
-// complex works, every flagship's scholarships recruit this much more, so
-// full scholarships build to +20 over the four classes, not +15
+// The recruiting boost (the owner's decision, 2026-10-01: halved from the
+// first version's third, for fewer titles): while the complex works, every
+// flagship's scholarships recruit this much more, so full scholarships
+// build to +17.5 over the four classes, not +15
 // (studentLifeData.ts's RECRUITING_FULL_LIFT). It builds a class a year, as
 // recruiting does, and falls away a class a year if the complex goes.
-export const COMPLEX_RECRUITING_BOOST = 1 / 3;
+export const COMPLEX_RECRUITING_BOOST = 1 / 6;
 
-// Better odds deep in the postseason (a proposal, for the owner's review):
-// while the complex works, the college plays this many points stronger in
+// Better odds deep in the postseason (the owner's decision, 2026-10-01:
+// about halved from the first version's 5 and 8, for fewer titles): while
+// the complex works, the college plays this many points stronger in
 // its own semifinals and finals (playoffs.ts's stageEdge; at 25 points of
 // difference the stronger side wins about three times in four). The
 // athletics specialization alone takes the established powers' edge away
 // (Plan 85D); the complex turns the big stage the college's way.
-export const COMPLEX_HOME_EDGE: Readonly<Record<'quarterfinal' | 'semifinal' | 'final', number>> = { quarterfinal: 0, semifinal: 5, final: 8 };
+export const COMPLEX_HOME_EDGE: Readonly<Record<'quarterfinal' | 'semifinal' | 'final', number>> = { quarterfinal: 0, semifinal: 3, final: 4 };
 
 // The athletics pillar's specialization term reads the complex's deep
 // runs: each postseason the department reached the last four while the
@@ -128,7 +130,7 @@ export function complexReading(s: GameState): number {
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const points = (x: number) => (Math.abs(x - Math.round(x)) < 0.01 ? `${Math.round(x)}` : x.toFixed(2).replace(/0$/, ''));
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-const recruitedFull = (full: number) => Math.round(full * (1 + COMPLEX_RECRUITING_BOOST));
+const recruitedFull = (full: number) => Number((full * (1 + COMPLEX_RECRUITING_BOOST)).toFixed(1));
 const SCORING = 'a title counts 1, a lost final a half and a lost semifinal a quarter';
 
 export function runsSummary(s: GameState): string {

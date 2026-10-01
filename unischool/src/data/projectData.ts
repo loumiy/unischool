@@ -116,7 +116,7 @@ export const PROJECTS: readonly ProjectDef[] = [
   // Costed beside the Faculty Training Institute, the other specialization
   // building a college can raise at the choice, and well above the venues
   // (the Football Stadium is $6.5M), since it is a capital project; its
-  // upkeep is the complex's running cost. A proposal, for the owner's review.
+  // upkeep is the complex's running cost. Kept by the owner (2026-10-01).
   {
     id: 'PROJ-ATHLETICS-COMPLEX', name: 'The Athletic Performance Complex',
     description: `A glass-walled training center beside the venues: a strength hall, a sports-science lab, recovery pools, film rooms and a running track on the roof, where every varsity athlete trains. At a college specialized in athletics it carries ${COMPLEX_FLAGSHIPS} more flagship programs than the subsidy level allows, its scholarships recruit ${Math.round(COMPLEX_RECRUITING_BOOST * 100)}% more, its teams play stronger in a semifinal and a final, and its deep runs fill athletics' specialization share.`,

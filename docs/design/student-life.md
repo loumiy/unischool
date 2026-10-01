@@ -548,16 +548,17 @@ specialized in athletics (`complexWorks`), and only then:
   subsidy level's 2, 4 or 6 and two more (`departmentPot`'s `cap`, with
   `baseCap` the subsidy level's). Each is funded in full from the
   department's fund and may recruit.
-- **Recruiting a third better** (`COMPLEX_RECRUITING_BOOST`): full
-  scholarships build to +20 over the four classes, not +15
+- **Recruiting a sixth better** (`COMPLEX_RECRUITING_BOOST`): full
+  scholarships build to +17.5 over the four classes, not +15
   (`recruitingTarget`'s boost; `RECRUITING_MAX_LIFT` is the scale's top).
 - **Better odds deep in the postseason** (`COMPLEX_HOME_EDGE`): the college
-  plays 5 points stronger in its own semifinals and 8 in its finals
+  plays 3 points stronger in its own semifinals and 4 in its finals
   (`playoffs.ts`'s `stageEdge` turns negative). At 25 points of difference
-  the stronger side wins three times in four, so 8 points is about a
-  three-in-five final between equals.
+  the stronger side wins three times in four, so 4 points makes a final
+  between equals about 59 in 100.
 
-The sizes are proposals, for the owner's review. The specialization alone
+The owner kept the cost and halved the first version's edge (5 and 8) and
+boost (a third) on 2026-10-01, asking for fewer titles. The specialization alone
 keeps Plan 85D's lift (no slowdown above the knee, no edge for the
 established powers) and gets none of these. The athletics pillar's
 specialization term reads what the complex produces: each postseason the
@@ -571,9 +572,14 @@ how many flagships it carries, and the flagships figure counts its slots.
 Measured on the harness's athletics specialist (Guided with a fixed pick of
 athletics, which runs the department as the specialization asks:
 `sim/harness/athletics.ts`): titles every year from the year after the
-choice, 56 to 80 by Year 50 (35 to 38 with the specialization and none of
-the complex's mechanics), and the term full 10 or 11 years after the
-choice. The unspecialized championships player still wins one to five.
+choice, 49 to 64 by Year 50 (31 to 38 with the specialization and none of
+the complex's mechanics, 56 to 80 with the first version's edge and boost),
+and the term full 10 or 11 years after the choice. The unspecialized
+championships player still wins one to five. The owner's target is about 25
+to 40: what drives the count is the specialization's own lift, which lets
+every flagship play at 100 with no edge against it, and Plan 85's 85G note
+measures a lever for it (a quarter of the big stage kept for the
+specialized college), not yet built.
 
 **This is the loop the whole athletics feature was built for**, and every arrow
 in it now exists: fund a program → hire a coach → team quality rises → the

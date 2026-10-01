@@ -294,9 +294,9 @@ late, and kept:
   chooses research. So is athletics' (Plan 85G): the Athletic Performance
   Complex, a capital project only a college specialized in athletics may
   build, which while it stands gives the department two flagships above the
-  subsidy level's, scholarships that recruit a third more and a college 5
-  points stronger in its semifinals and 8 in its finals (proposals, for the
-  owner's review; see [student-life.md](student-life.md)). The build menu
+  subsidy level's, scholarships that recruit a sixth more and a college 3
+  points stronger in its semifinals and 4 in its finals (the owner's
+  decisions, 2026-10-01; see [student-life.md](student-life.md)). The build menu
   lists a specialization's building closed, with the reason, to a college
   that has earned it otherwise.
 - History › Prestige and the standings say where the college stands on the
@@ -316,8 +316,7 @@ specialization's (Plan 85F), Guided is first from years 42–47 on every
 seed, the Completionist from 47 on two of three; both still choose
 academics. Held to research, Guided is first from years 46–47 on every
 seed. Held to athletics (Plan 85G, the complex built), Guided is first from
-years 42–45 on every seed and the Completionist from 46 and 43 on two of
-three. Held to no
+years 40–45 on every seed and the Completionist from 45 on two of three. Held to no
 specialization, neither is ever first (best 4th; since Plan 85F, best
 3rd).
 
