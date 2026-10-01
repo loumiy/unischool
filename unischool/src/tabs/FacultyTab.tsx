@@ -20,6 +20,9 @@ import {
   type FacultyFilter, type FacultySort, type GridFilter,
 } from './facultySort';
 import FacultyTile, { waitingCount, type Commitment, type FieldWaiting } from './FacultyTile';
+import { TRAINING_INSTITUTE_ID, TRAINING_WORDS, instituteStands, trainedCount } from '../data/trainingData';
+import { picksLeft, trainingPicks, whyNotTrain } from '../systems/faculty/training';
+import { specializationOf } from '../systems/prestige/specialization';
 import { money, moneyShort, pct, surnameOf, weeksShort } from '../format';
 
 // The Faculty tab (Plan 84D): the faculty as a grid of tiles (FacultyTile.tsx)
@@ -466,16 +469,41 @@ function waitingByField(s: GameState): Map<string, FieldWaiting> {
   return map;
 }
 
+// The faculty training program (Plan 85E), over the grid: the year's
+// training picks and what they do, or what the college must build first.
+// Shown to a college specialized in academics, and wherever an institute is
+// going up or stands (a sandbox's).
+function TrainingBar({ s }: { s: GameState }) {
+  const W = TRAINING_WORDS;
+  const institute = s.tech.find((t) => t.id === TRAINING_INSTITUTE_ID);
+  const building = institute?.status === 'developing';
+  if (!instituteStands(s)) {
+    if (!building && specializationOf(s) !== 'academics') return null;
+    return <p className="training-bar pending">{building ? W.building : W.noInstitute}</p>;
+  }
+  const of = trainingPicks(s);
+  const left = picksLeft(s);
+  return (
+    <div className={`training-bar${left === 0 ? ' spent' : ''}`}>
+      <strong className="training-bar-title">{W.barTitle}</strong>
+      <span className="training-bar-count" aria-live="polite">{W.picksLeft(left, of)}</span>
+      <p className="training-bar-note">{W.picksNote(s.clock.year)} {W.trainedShare(trainedCount(s), s.faculty.length)}</p>
+    </div>
+  );
+}
+
 // The filter bar over the grid: sort, field or division, the two toggles,
 // search, and the departments short of people as one-click filters.
-function GridTools({ sort, setSort, filter, setFilter, fields, market, shown, total }: {
+function GridTools({ sort, setSort, filter, setFilter, fields, market, training, shown, total }: {
   sort: FacultySort; setSort: (s: FacultySort) => void;
   filter: GridFilter; setFilter: (f: GridFilter) => void;
-  fields: FieldCapacity[]; market: boolean; shown: number; total: number;
+  // The Faculty Training Institute stands (Plan 85E): the grid can show
+  // only those it could train.
+  fields: FieldCapacity[]; market: boolean; training: boolean; shown: number; total: number;
 }) {
   const inUse = new Set(fields.filter((c) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.listed > 0).map((c) => c.field));
   const short = fields.filter((c) => c.state === 'short' || c.state === 'over');
-  const narrowed = filter.scope !== null || filter.retiring || filter.canTake || filter.query !== '';
+  const narrowed = filter.scope !== null || filter.retiring || filter.canTake || (training && filter.trainable) || filter.query !== '';
   return (
     <div className="faculty-grid-tools">
       <div className="dept-tools">
@@ -507,6 +535,12 @@ function GridTools({ sort, setSort, filter, setFilter, fields, market, shown, to
           <input type="checkbox" checked={filter.canTake} onChange={(e) => setFilter({ ...filter, canTake: e.target.checked })} />
           Can take a course
         </label>
+        {!market && training && (
+          <label className="dept-tool dept-tool-check" title="Professors below an A in teaching and not yet trained this year">
+            <input type="checkbox" checked={filter.trainable} onChange={(e) => setFilter({ ...filter, trainable: e.target.checked })} />
+            {TRAINING_WORDS.filterTrainable}
+          </label>
+        )}
         <input
           type="search"
           className="faculty-search"
@@ -581,10 +615,11 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   const market = view === 'market';
   const people = market ? s.candidates : s.faculty;
   const canTake = (f: Faculty) => waitingCount(waiting.get(f.field)) > 0 && (market || hasFreeSlot(s, f));
+  const training = !market && instituteStands(s);
   const shownPeople = useMemo(
-    () => (view === 'departments' ? [] : people.filter((f) => showsPerson(grid, f, !grid.canTake || canTake(f))).sort(compareFaculty(gridSort))),
+    () => (view === 'departments' ? [] : people.filter((f) => showsPerson(grid, f, !grid.canTake || canTake(f), !training || !grid.trainable || whyNotTrain(s, f) === null)).sort(compareFaculty(gridSort))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, people, grid, gridSort, waiting, loads],
+    [view, people, grid, gridSort, waiting, loads, training, s.training, s.clock.year],
   );
 
   // The board's people, by field, in the chosen order.
@@ -643,7 +678,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text="Every professor and every candidate as a tile: teaching and research as letters on the scale courses are graded on, with the letter each is growing toward. Sort and filter the grid, or open the Departments view for each department's course slots against what its courses take. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer. Appointing is immediate and costs nothing up front; what costs is the salary." />
+            <HelpHint text="Every professor and every candidate as a tile: teaching and research as letters on the scale courses are graded on, with the letter each is growing toward. Sort and filter the grid, or open the Departments view for each department's course slots against what its courses take. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer, as a professor at the Faculty Training Institute supplies one fewer for a term. Appointing is immediate and costs nothing up front; what costs is the salary." />
           </span>
           <span className="stat">{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
@@ -689,8 +724,9 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           <>
             <GridTools
               sort={gridSort} setSort={setSort} filter={grid} setFilter={setGrid}
-              fields={cap.fields} market={market} shown={shownPeople.length} total={people.length}
+              fields={cap.fields} market={market} training={training} shown={shownPeople.length} total={people.length}
             />
+            {!market && <TrainingBar s={s} />}
             {market && (
               <p className="faculty-market-note">
                 {s.candidates.length} listed · a listing withdraws after {CANDIDATE_LISTING_WEEKS} weeks, and the market turns over every week.

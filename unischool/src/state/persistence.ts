@@ -25,6 +25,7 @@ import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
+import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
 import { emptyCareer } from '../systems/faculty/career';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -59,7 +60,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 89; // Plan 85D: the college's specialization
+export const SAVE_VERSION = 90; // Plan 85E: the faculty training program
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -205,6 +206,45 @@ function noSpecializationYet(state: GameState): void {
   delete state.specializationOffered;
 }
 
+// 89 -> 90, Plan 85E: the faculty training program. The Faculty Training
+// Institute joins the catalog (a save keeps the catalog it was founded with,
+// so it is added, locked: it opens at the next week for a college
+// specialized in academics, as a new run's does); the year's list of
+// professors trained starts empty; nobody has been trained.
+function trainingProgram(state: GameState): void {
+  if (Array.isArray(state.tech) && !state.tech.some((t) => t.id === TRAINING_INSTITUTE_ID)) {
+    const institute = initialFacilities().find((t) => t.id === TRAINING_INSTITUTE_ID);
+    if (institute) state.tech.push(institute);
+  }
+  state.training = { year: state.clock.year, trained: [] };
+  for (const f of state.faculty ?? []) delete f.training;
+  for (const f of state.faculty ?? []) if (f.career) delete f.career.training;
+}
+
+// The faculty training program (Plan 85E), on every load: the year's list
+// is a year and faculty ids; a professor's training is whole numbers, its
+// points no more than the potential holds; a career's trainings are years
+// and teaching figures. Anything else is dropped (a training dropped leaves
+// the professor growing toward the potential it raised).
+function sanitizeTraining(state: GameState): void {
+  const int = (n: unknown): n is number => Number.isInteger(n);
+  const year = state.training as unknown as { year?: unknown; trained?: unknown } | undefined;
+  if (typeof year !== 'object' || year === null || !int(year.year) || !Array.isArray(year.trained)) {
+    state.training = { year: state.clock.year, trained: [] };
+  } else {
+    state.training.trained = [...new Set(state.training.trained.filter((id): id is string => typeof id === 'string'))];
+  }
+  for (const f of state.faculty) {
+    const tr = f.training as unknown as Record<string, unknown> | undefined;
+    if (tr === undefined) continue;
+    if (typeof tr !== 'object' || tr === null || !int(tr.points) || !int(tr.potential) || !int(tr.untilWeek)
+      || (tr.points as number) <= 0 || (tr.potential as number) < 0 || (tr.potential as number) > 100) {
+      delete f.training;
+    }
+  }
+  for (const c of state.candidates) delete c.training;
+}
+
 // The college's specialization (Plan 85D): one of the four pillars, with the
 // year it was chosen, or none. The milestone's years are whole years, and a
 // choice cannot stand before its offer.
@@ -237,6 +277,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   86: careersFromTenure,
   87: dealSpecializations,
   88: noSpecializationYet,
+  89: trainingProgram,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -863,6 +904,11 @@ function sanitizeCareers(state: GameState): void {
       && int(x.year) && Number.isFinite(x.years) && int(x.publications) && int(x.breakthroughs));
     career.prizes = career.prizes.filter((x) => record(x) && typeof x.name === 'string' && int(x.year) && typeof x.topicId === 'string');
     career.years = career.years.filter((x) => Array.isArray(x) && x.length === 3 && x.every(int));
+    // Trainings at the institute (Plan 85E), when there are any.
+    if (career.training !== undefined) {
+      if (!Array.isArray(career.training)) delete career.training;
+      else career.training = career.training.filter((x) => record(x) && int(x.year) && int(x.from) && int(x.to));
+    }
   }
   for (const c of state.candidates) delete c.career;
 }
@@ -1126,6 +1172,7 @@ function sanitize(state: GameState): void {
   // else is dealt again off its id.
   for (const r of state.rivals) if (!isSpecialization(r.specialization)) r.specialization = dealtSpecialization(r.id);
   sanitizeSpecialization(state);
+  sanitizeTraining(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;

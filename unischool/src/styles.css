@@ -1946,6 +1946,21 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-short > button.dept-note { border: 1.5px solid transparent; box-shadow: none; cursor: pointer; min-height: 0; }
 .faculty-short > button.dept-note.on { border-color: var(--outline); box-shadow: 0 0 0 2px var(--cream-hi), 0 0 0 3.5px var(--outline); }
 .faculty-market-note { margin: 0 0 8px; font-size: var(--text-xs); color: var(--ink-muted); }
+/* The faculty training program (Plan 85E): the year's picks over the grid,
+   and the Train action and the Trained badge on a tile. */
+.training-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0 0 10px; padding: 8px 10px;
+  border: 2px solid var(--outline); border-left-width: 6px; border-left-color: var(--school-primary); border-radius: var(--radius-sm);
+  background: var(--cream-hi); font-size: var(--text-xs); }
+.training-bar.pending { display: block; border-left-color: var(--ink-muted); color: var(--ink-muted); }
+.training-bar-title { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: var(--text-2xs); }
+.training-bar-count { font-weight: 800; color: var(--school-primary); }
+.training-bar.spent .training-bar-count { color: var(--ink-muted); }
+.training-bar-note { flex: 1 1 100%; margin: 2px 0 0; color: var(--ink-muted); }
+.faculty-badge.trained { color: var(--cream); background: var(--ok-on-light); }
+.faculty-badge.trained.training { color: var(--school-on-primary); background: var(--school-primary); }
+.faculty-card-foot.faculty-tile-actions .confirm-button:has(.btn-train) { margin-left: auto; margin-right: 4px; }
+.faculty-card-foot button.btn-train { color: var(--school-primary); border-color: var(--school-primary); }
+.faculty-card-foot button.btn-train:disabled { color: var(--ink-muted); border-color: var(--ink-muted); }
 .faculty-people .panel-head { flex-wrap: wrap; gap: 8px; }
 
 /* ---------- The person, expanded (Plan 84E) ---------- */
@@ -1973,6 +1988,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .career-list li.honor::before { content: '★ '; color: var(--school-primary); }
 .career-list li.honor.program::before { content: '◆ '; }
 .career-list li.honor.service::before { content: '● '; }
+.career-list li.honor.training::before { content: '▲ '; color: var(--ok-on-light); }
 
 /* The courses taught, as a timeline across their years here. */
 .career-timeline { display: flex; flex-direction: column; gap: 3px; }

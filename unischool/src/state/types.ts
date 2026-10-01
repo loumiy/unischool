@@ -226,6 +226,21 @@ export interface Faculty {
   // (systems/faculty/career.ts). Absent on a candidate, who has no history
   // here yet; every rostered professor has one. It leaves with them.
   career?: Career;
+  // The faculty training program (Plan 85E, systems/faculty/training.ts):
+  // absent until they are first trained at the Faculty Training Institute.
+  training?: FacultyTraining;
+}
+
+// What training has done for a professor (Plan 85E). Each training raises
+// teaching a letter grade (courseQuality.ts's oneGradeUp), and the potential
+// by as much, so the gain lasts: teaching grows on the potential they were
+// hired with (`potential`) and the points are added on top
+// (facultySystem.ts's growFaculty). teachingPotential holds the two together,
+// at most 100.
+export interface FacultyTraining {
+  points: number;               // teaching points training has added, in all
+  potential: number;            // the teaching potential before any training
+  untilWeek: number;            // absolute week the term's lighter load ends: one course slot fewer before it
 }
 
 // A professor's record at the college (Plan 84C). Kept small: a span per
@@ -237,6 +252,15 @@ export interface Career {
   research: ResearchStint[];    // oldest first
   prizes: CareerPrize[];        // oldest first
   years: YearMark[];            // one per year ended on the roster, oldest first
+  training?: CareerTraining[];  // each training at the institute (Plan 85E), oldest first; absent before the first
+}
+
+// A training at the Faculty Training Institute (Plan 85E): the year, and the
+// teaching it raised, from and to.
+export interface CareerTraining {
+  year: number;
+  from: number;
+  to: number;
 }
 
 // A run of weeks teaching one course: opened the first week it is theirs
@@ -379,6 +403,9 @@ export interface CapitalProject {
   curriculum?: string;
   // Waits on every standing lab having finished an initiative (Plan 53).
   everyLabFinished?: true;
+  // Waits on the college's specialization (Plan 85E: the Faculty Training
+  // Institute, academics'): only a college specialized in it may build it.
+  specialization?: Pillar;
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
 
@@ -617,6 +644,12 @@ export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';
 // The college's specialization (Plan 85D): none until the player chooses one
 // at the milestone, then one pillar for good (GameState.specialization).
 export type Specialization = 'none' | Pillar;
+
+// The faculty training program's year (Plan 85E): GameState.training.
+export interface TrainingYear {
+  year: number;
+  trained: string[];            // faculty ids, in the order trained
+}
 
 export interface Rival {
   id: string;
@@ -1194,6 +1227,11 @@ export interface GameState {
   // offered at the close of that summer and of every summer after until it
   // is made. Absent before.
   specializationOffered?: number;
+  // The faculty training program's year (Plan 85E, systems/faculty/
+  // training.ts): the professors trained at the institute in `year`. The
+  // picks left are the year's allowance less these; a new year starts a new
+  // list, so picks not used by the year's end lapse.
+  training: TrainingYear;
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
   // The year each milestone was awarded (Plan 80C), which the chronicle
   // names eras from. One awarded before it has no year.
@@ -1254,6 +1292,7 @@ export const LOG_TOPICS = [
   'team',                // a varsity team's venue finished, or a game played
   'event',               // a catalogue event answered (Plan 70H)
   'admissions', 'attrition', 'report-card', 'money',
+  'training',            // a professor trained at the Faculty Training Institute (Plan 85E)
 ] as const;
 export type LogTopic = (typeof LOG_TOPICS)[number];
 

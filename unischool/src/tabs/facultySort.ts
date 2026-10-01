@@ -71,10 +71,12 @@ export interface GridFilter {
   scope: string | null;
   retiring: boolean;
   canTake: boolean;
+  // Those the Faculty Training Institute could train now (Plan 85E).
+  trainable: boolean;
   query: string;
 }
 
-export const NO_GRID_FILTER: GridFilter = { scope: null, retiring: false, canTake: false, query: '' };
+export const NO_GRID_FILTER: GridFilter = { scope: null, retiring: false, canTake: false, trainable: false, query: '' };
 
 export const GROUP_SCOPE = 'group:';
 
@@ -94,10 +96,11 @@ export function matchesQuery(f: Faculty, query: string): boolean {
   return words.every((w) => hay.includes(w));
 }
 
-export function showsPerson(filter: GridFilter, f: Faculty, canTake: boolean): boolean {
+export function showsPerson(filter: GridFilter, f: Faculty, canTake: boolean, canTrain = false): boolean {
   if (!inScope(filter.scope, f.field)) return false;
   if (filter.retiring && !retiringSoon(f)) return false;
   if (filter.canTake && !canTake) return false;
+  if (filter.trainable && !canTrain) return false;
   return matchesQuery(f, filter.query);
 }
 

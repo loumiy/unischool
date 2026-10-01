@@ -60,13 +60,15 @@ function stand(s: GameState, id: string): void {
 // ---- The set ----
 {
   const s = fresh();
-  assert(PROJECTS.length === 6 && new Set(PROJECT_IDS).size === 6, 'six projects, each its own');
+  assert(PROJECTS.length === 7 && new Set(PROJECT_IDS).size === 7, 'seven projects, each its own (Plan 85E: the Faculty Training Institute)');
   assert(PROJECT_IDS.every((id) => node(s, id)?.facilityType === 'project' && node(s, id).project !== undefined), 'each is a buildable the college can place');
   assert(PROJECTS.filter((p) => p.project.late).length === 1, 'one in the late tier');
   const medical = node(s, 'HLTH-T3');
   assert(medical.name === 'Medical Center' && medical.project !== undefined && medical.facilityType === 'healthCenter', 'and the health chain\'s Medical Center is one too');
   assert(PROJECTS.every((p) => !('beds' in p)), 'no project adds beds: the game houses no graduate students');
-  assert(PROJECTS.every((p) => Object.values(p.project.boosts).some((b) => (b ?? 0) > 0)), 'every one lifts a standing');
+  // The Faculty Training Institute (Plan 85E) lifts none of its own: the
+  // academics pillar's specialization term reads what it does.
+  assert(PROJECTS.every((p) => p.project.specialization !== undefined || Object.values(p.project.boosts).some((b) => (b ?? 0) > 0)), 'every one lifts a standing, but a specialization\'s own building');
 }
 
 // ---- When they open ----

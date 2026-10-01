@@ -1,4 +1,5 @@
 import type { GameState, Pillar } from '../state/types';
+import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -36,11 +37,13 @@ export function specializedIn(pillar: Pillar): string {
 // The specialization term (Plan 85D, the owner's decision replacing Plan
 // 85C's ceilings): each pillar holds a share only its own specialization
 // fills (prestigeSystem.ts's SPECIALIZATION_TERM_WEIGHTS). Until Plans
-// 85E-H give each its mechanic, the reading is time: a tenth of the term
+// 85F-H give each its mechanic, the reading is time: a tenth of the term
 // for each year since the choice, full after SPECIALIZATION_FILL_YEARS. A
 // PR that builds a pillar's mechanic replaces that pillar's reading here
-// (SPECIALIZATION_READINGS), for example with the share of the faculty
-// trained or what the park has produced.
+// (SPECIALIZATION_READINGS), and says how it reads in the term's row
+// (SPECIALIZATION_DETAILS). Academics reads the faculty training program
+// (Plan 85E): the share of the faculty trained at the institute
+// (trainingData.ts's trainingReading), and nothing while none stands.
 // ---------------------------------------------------------------------
 
 export const SPECIALIZATION_FILL_YEARS = 10;
@@ -53,10 +56,19 @@ function yearsSinceChoice(s: GameState): number {
 }
 
 export const SPECIALIZATION_READINGS: Readonly<Record<Pillar, SpecializationReading>> = {
-  academics: yearsSinceChoice,
+  academics: trainingReading,
   research: yearsSinceChoice,
   studentLife: yearsSinceChoice,
   athletics: yearsSinceChoice,
+};
+
+// How a mechanic's reading says itself in the term's row, for the college
+// specialized in it; a pillar without one reads the years since the choice.
+const chosenIn = (s: GameState) => (s.specializationYear !== undefined ? ` (Year ${s.specializationYear})` : '');
+export const SPECIALIZATION_DETAILS: Partial<Readonly<Record<Pillar, (s: GameState, score: number) => string>>> = {
+  academics: (s, score) => (instituteStands(s)
+    ? TRAINING_WORDS.termReading(chosenIn(s), trainedCount(s), s.faculty.length, score >= 1)
+    : TRAINING_WORDS.termNoInstitute(chosenIn(s))),
 };
 
 // The term as its row reads: how full, and why.
@@ -71,6 +83,8 @@ export function specializationTerm(s: GameState, pillar: Pillar): { score: numbe
     };
   }
   const score = SPECIALIZATION_READINGS[pillar](s);
+  const own = SPECIALIZATION_DETAILS[pillar];
+  if (own) return { score, detail: own(s, score) };
   const years = Math.round(score * SPECIALIZATION_FILL_YEARS);
   return {
     score,
@@ -150,6 +164,9 @@ export interface SpecializationCard {
   known: string;
   // What the choice gives besides its term, now (athletics' teams).
   alsoNow?: string;
+  // How its term fills, once its mechanic reads it (Plan 85E on): the end
+  // of the card's "Opens …" line. Without it, the term fills with the years.
+  fills?: string;
   mechanics: readonly SpecializationMechanic[];
 }
 
@@ -159,9 +176,10 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     name: 'The faculty training program',
     summary: 'A college known first for its teaching.',
     known: 'a college known first for its teaching',
+    fills: TRAINING_WORDS.fills,
     mechanics: [
-      { text: 'A faculty training institute on the map, which only this specialization may build.', ready: false },
-      { text: 'Each year, professors picked for training rise a full letter grade in teaching, and keep it.', ready: false },
+      { text: 'The Faculty Training Institute on the map, a capital project only this specialization may build.', ready: true },
+      { text: `Each year the institute takes professors picked for training, one for every ${FACULTY_PER_TRAINING_PICK} on the faculty and at least ${MIN_TRAINING_PICKS}. Each rises a full letter grade in teaching and keeps it, and teaches one course fewer for a term.`, ready: true },
     ],
   },
   research: {
@@ -200,7 +218,8 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
 
 // What opens, said on each card: it works from the moment of the choice.
 export function opensLine(pillar: Pillar, weight: number): string {
-  return `Opens ${SPECIALIZATION_CARDS[pillar].name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, worth ${weight} points, filling over ${SPECIALIZATION_FILL_YEARS} years.`;
+  const card = SPECIALIZATION_CARDS[pillar];
+  return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, worth ${weight} points, ${card.fills ?? `filling over ${SPECIALIZATION_FILL_YEARS} years`}.`;
 }
 
 export const CHOICE_WORDS = {

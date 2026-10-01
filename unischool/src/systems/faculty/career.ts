@@ -104,3 +104,10 @@ export function recordProject(
     }
   }
 }
+
+// A training at the Faculty Training Institute (Plan 85E,
+// systems/faculty/training.ts): the year, and the teaching before and after.
+export function recordTraining(s: GameState, f: Faculty, from: number, to: number): void {
+  if (!f.career) return;
+  (f.career.training ??= []).push({ year: s.clock.year, from: Math.round(from), to: Math.round(to) });
+}

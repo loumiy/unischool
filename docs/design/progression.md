@@ -207,9 +207,14 @@ rest (before, their lift was points on top). The term is an ordinary row in
 the pillar's breakdown, named for its program ("The faculty training
 program": "+0.0 of 24 · comes only with a specialization in academics";
 specialized in another pillar, "so this stays empty"). The college's own
-specialization (below) fills its term: in Plan 85D a tenth for each year
-since the choice (`specializationData.ts`'s `SPECIALIZATION_READINGS`), until
-Plans 85E–H give each its mechanic. Student life's term is larger because
+specialization (below) fills its term (`specializationData.ts`'s
+`SPECIALIZATION_READINGS`), each by its own mechanic as Plans 85E–H build
+them, and until then a tenth for each year since the choice. Academics reads
+the faculty training program (Plan 85E): the share of the faculty on the
+roster trained at the Faculty Training Institute, full at 40%
+(`trainingData.ts`'s `TRAINED_SHARE_FOR_FULL`), and nothing while no
+institute stands (see [faculty.md](faculty.md)'s training). The strong
+players fill it 10 to 12 years after the choice. Student life's term is larger because
 it is the easiest pillar to fill; athletics' because without the athletics
 specialization a program's quality slows above 80 and titles are rare (see
 [student-life.md](student-life.md)'s postseason). Tuned so that optimal play
@@ -252,25 +257,32 @@ late, and kept:
   slipped below the milestone since. The game never chooses for the player
   (the default answer puts it off). A college that never reaches the
   milestone is never offered it, and a sandbox run never is.
-- **What it gives now:** its pillar's term opens and fills over ten years,
-  so the pillar can rise to 150. The athletics specialization also takes
+- **What it gives now:** its pillar's term opens and fills (academics as
+  its faculty is trained at the institute, the others over ten years), so
+  the pillar can rise to 150. The athletics specialization also takes
   away the slowdown of a program's quality above 80 and the big stage's
   edge (`specialization.ts`'s `athleticsLifted`, the hook Plan 85G's
   performance complex extends). Each specialization's own mechanics (the
   faculty training program, the research park, the downtown and the
   festival, the performance complex) are Plans 85E–H; the choice lists
-  them as still to come, from `specializationData.ts`'s
-  `SPECIALIZATION_CARDS`, where each PR marks its own ready.
+  those not yet built as still to come, from `specializationData.ts`'s
+  `SPECIALIZATION_CARDS`, where each PR marks its own ready. Academics'
+  (Plan 85E) is built: the Faculty Training Institute, a capital project
+  only a college specialized in academics may build, and the year's
+  training picks (see [faculty.md](faculty.md)).
 - History › Prestige and the standings say where the college stands on the
   choice (specialized, and since when; the offer standing; or the milestone
   still to reach), and the guide tags the college with its specialization as
   it tags every rival. The Final Report's title names it first ("a college
   known first for its teaching"), in place of the guidebooks' tag.
 
-With only the term filling, the Guided player (which chooses its strongest
-pillar, academics, in years 29–31) reaches first place in years 42–44 and
-holds it at year 50 on every seed; the Completionist (academics, years
-30–38) is first on two seeds of three, from years 45 and 49. Held to no
+With only the term filling (Plan 85D), the Guided player (which chooses
+its strongest pillar, academics, in years 29–31) reached first place in
+years 42–44 and held it at year 50 on every seed; the Completionist
+(academics, years 30–38) was first on two seeds of three, from years 45 and
+49. With the training program filling it (Plan 85E), Guided is first from
+years 43–45 on every seed and holds it; the Completionist is first on one
+seed from year 43 and on another the week after year 50. Held to no
 specialization, neither is ever first (best 4th).
 
 The pillars' terms, as they were weighted inside prestige before:

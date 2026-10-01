@@ -144,6 +144,7 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'PROJ-MUSEUM': { w: 11, h: 8 },
   'PROJ-LAW': { w: 11, h: 8 },
   'PROJ-BUSINESS': { w: 9, h: 8 },
+  'PROJ-TRAINING': { w: 11, h: 7 },
 };
 
 export function footprintOf(t: Buildable): Footprint {

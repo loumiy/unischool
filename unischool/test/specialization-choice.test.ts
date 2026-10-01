@@ -272,7 +272,7 @@ function closeSummer(s: GameState): GameState {
   if (!('refused' in read)) {
     assert(read.state.specialization === 'none' && read.state.specializationYear === undefined && read.state.specializationOffered === undefined && read.state.specializationNotice === undefined,
       'with no specialization, no notice and no offer');
-    assert(SAVE_VERSION === 89, `the save version is 89 (${SAVE_VERSION})`);
+    assert(SAVE_VERSION >= 89, `at version 89 or later (${SAVE_VERSION})`);
   }
   // A bad value is none; a choice without its year takes the offer's.
   const bad = { ...parsed, version: SAVE_VERSION, state: { ...parsed.state, specialization: 'archery', specializationYear: 12 } };

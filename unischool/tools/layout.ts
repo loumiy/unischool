@@ -124,6 +124,9 @@ const PLAN: Site[] = [
   { id: 'PROJ-BUSINESS', row: 93, col: 69 },               // 9x8
   { id: 'PROJ-MUSEUM', row: 103, col: 50 },                // 11x8
   { id: 'PROJ-RESEARCH-PARK', row: 103, col: 63 },         // 13x8
+  // The Faculty Training Institute (Plan 85E), only on an academics
+  // campus: closing the axis at the court's foot.
+  { id: 'PROJ-TRAINING', row: 113, col: 57 },              // 11x7
   // The chapel and the fountain on the axis between them.
   { id: 'AMENITY-CHAPEL', row: 87, col: 61 },              // 5x3
   { id: 'AMENITY-FOUNTAIN', row: 97, col: 62 },            // 3x3

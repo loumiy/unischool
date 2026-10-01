@@ -126,6 +126,35 @@ compare like for like) and to the department board below.
   candidate has no history here, and the page says so. The words are
   `data/careerWords.ts`'s.
 
+**The faculty training program** (Plan 85E, the academics specialization's
+mechanic; `systems/faculty/training.ts`, `data/trainingData.ts`). A college
+specialized in academics may build the Faculty Training Institute, a capital
+project ($30M, 104 weeks, $35,000 a week to run; `projectData.ts`'s
+`PROJ-TRAINING`). While it stands, each year brings training picks:
+
+- **How many:** one for every 15 professors on the roster, at least 2.
+  Picks not used by the year's end lapse, and the log says how many.
+- **A pick** is a professor below an A in teaching, not already trained
+  that year. Their teaching moves to the same place in the next letter's
+  band (`courseQuality.ts`'s `oneGradeUp`: C's 61 to B's 77, B's 70 to A's
+  89), and their teaching potential rises by as much, to at most 100. The
+  gain lasts: teaching grows on the potential they came with, and the
+  points ride on top (`Faculty.training`, `growFaculty`). A professor may be
+  trained again in a later year, until they teach at an A.
+- **The cost to the classroom:** for a term (26 weeks) the trainee supplies
+  one course slot fewer (`effectiveCourseSlots`). A course that no longer
+  fits moves, lowest tier first, to the strongest colleague in the field
+  with a course slot free, or waits for an instructor, by the same plan as
+  a research commitment (`planTrainingCoverage`).
+- **On the tab:** the grid's bar counts the picks left this year and the
+  share of the faculty trained; a *Can be trained* filter; a Train action on
+  a professor's tile, which asks first when a course would move; a
+  *Trained* badge. The career record notes each training
+  (`Career.training`), and the person view lists them.
+- **The academics pillar's specialization term** reads the share of the
+  faculty trained, full at 40% (see [progression.md](progression.md)). A
+  professor who leaves takes their training with them.
+
 **The department board** is the third view: one compact row per department —
 **all twenty-nine of them, always**, grouped into the eight divisions
 `FACULTY_FIELD_GROUPS` carries as data. Clicking a row expands it in place:
@@ -261,6 +290,8 @@ that writes it draws on the random stream.
   topic, the depth, the year it ended, how long it ran, its papers and
   breakthroughs, and whether it was wound up early or abandoned.
 - **Prizes:** by name, year and the project it was won for.
+- **Training** (Plan 85E): each training at the Faculty Training Institute,
+  with the year and the teaching before and after.
 - **A mark a year:** teaching and research, rounded, at the last week of
   every year on the roster.
 

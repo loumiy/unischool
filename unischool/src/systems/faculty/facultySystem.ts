@@ -4,6 +4,7 @@ import type { Buildable, Faculty, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import { neededFacultyFields, unstaffedCourses } from '../techtree/techSystem';
 import { recordCourses, recordYear, startCareer } from './career';
+import { lapseTrainingPicks } from './training';
 
 // The one way somebody joins the roster, shared by HIRE_FACULTY and the
 // visiting-chair event so an appointment always means the same thing.
@@ -38,7 +39,11 @@ import {
 // grownStat/facultySalary). Candidates in the pool do not grow.
 function growFaculty(f: Faculty): void {
   f.tenureWeeks += 1;
-  f.teaching = grownStat(f.teachingPotential, f.tenureWeeks);
+  // A trained professor (Plan 85E) grows on the potential they came with,
+  // and training's points ride on top: the letter it gave them lasts.
+  f.teaching = f.training
+    ? Math.min(100, grownStat(f.training.potential, f.tenureWeeks) + f.training.points)
+    : grownStat(f.teachingPotential, f.tenureWeeks);
   f.research = grownStat(f.researchPotential, f.tenureWeeks);
   // A prize's raise is passed in as acclaim because this line overwrites
   // last week's salary.
@@ -102,6 +107,9 @@ export function tickFaculty(s: GameState): void {
   // The career record (Plan 84C), for whoever is still on the roster.
   recordCourses(s);
   recordYear(s);
+  // The faculty training program's picks left unused lapse at the year's
+  // end (Plan 85E).
+  lapseTrainingPicks(s);
 }
 
 // ---- Retirement (Plan 29, v2's faculty churn) ----

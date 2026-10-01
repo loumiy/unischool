@@ -155,6 +155,12 @@ export type Action =
   // this year (offered again at the next summer's close). Holds no week: the
   // choice is raised after the summer turned the page.
   | { type: 'RESOLVE_SPECIALIZATION'; pillar: Pillar | null }
+  // The faculty training program (Plan 85E, systems/faculty/training.ts):
+  // one of the year's training picks at the Faculty Training Institute.
+  // Teaching and its potential rise a letter grade; the professor teaches
+  // one course fewer for a term, and a course that no longer fits moves to a
+  // colleague with room, or waits for an instructor.
+  | { type: 'TRAIN_FACULTY'; facultyId: string }
   // `candidate` is the whole person: they exist only in the interrupt
   // payload. `null` declines and records the week asked.
   | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }
@@ -276,6 +282,7 @@ export function createPreStartState(): GameState {
     started: false,
     hasEnteredRankings: false,
     specialization: 'none',
+    training: { year: 1, trained: [] },
     milestones: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
@@ -429,6 +436,7 @@ function foundState(
     started: true,
     hasEnteredRankings: false,
     specialization: 'none',
+    training: { year: 1, trained: [] },
     milestones: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),

@@ -58,6 +58,7 @@ import { resolveAdmissions } from '../systems/admissions/resolveAdmissions';
 import { startInitiative } from '../systems/research/startInitiative';
 import { placeBuildable } from '../state/placeBuildable';
 import { fireFaculty, hireFaculty } from '../systems/faculty/appointments';
+import { trainFaculty } from '../systems/faculty/training';
 import { tickLadder } from '../systems/ladder/ladderSystem';
 import { cancelConstruction, demolish } from '../state/demolition';
 import { isSandbox, settleSandbox } from '../systems/sandbox/sandbox';
@@ -248,6 +249,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'FIRE_FACULTY':
       fireFaculty(s, action);
       return s;
+
+    // The faculty training program (Plan 85E): one of the year's picks.
+    case 'TRAIN_FACULTY':
+      return trainFaculty(s, action.facultyId) ? s : state;
 
     case 'START_INITIATIVE':
       startInitiative(s, action);

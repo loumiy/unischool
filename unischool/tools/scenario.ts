@@ -99,6 +99,8 @@ if (!player) throw new Error(`no player matching "${recipe.player}". Known: ${PL
 // A run that stops at the specialization (Plan 85D) leaves it standing
 // rather than choosing by the player's rule (sim/harness/specialization.ts).
 if (wantedModal === 'specialization' || recipe.name === 'specialization') player.specialization = 'wait';
+// A run that stops with a year's training picks unspent (Plan 85E).
+if (named?.trains) player.trains = named.trains;
 const seed = flags.seed ? Number(flags.seed) : DEFAULT_SEED;
 const outPath = pathArg ?? flags.out ?? `node_modules/.tmp/${recipe.name}.json`;
 

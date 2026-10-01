@@ -28,6 +28,22 @@ export function gradeFor(score: number): Grade {
   return 'F';
 }
 
+// A letter grade up (Plan 85E, the faculty training program): a score moved
+// to the same place in the next band up, so it rises exactly one letter
+// whatever the bands' widths (C's 61 to B's 77, B's 70 to A's 89). The bands
+// run F 0-30, D 30-44, C 44-62, B 62-78 and A 78-100. An A has no letter
+// above it: null.
+const GRADE_BANDS: ReadonlyArray<readonly [number, number]> = [[0, GRADE_D], [GRADE_D, GRADE_C], [GRADE_C, GRADE_B], [GRADE_B, GRADE_A], [GRADE_A, 100]];
+export function oneGradeUp(score: number): number | null {
+  const i = GRADE_BANDS.findIndex(([lo, hi]) => score >= lo && score < hi);
+  if (i < 0 || i === GRADE_BANDS.length - 1) return null;
+  const [lo, hi] = GRADE_BANDS[i];
+  const [nextLo, nextHi] = GRADE_BANDS[i + 1];
+  const raised = Math.round(nextLo + ((score - lo) / (hi - lo)) * (nextHi - nextLo));
+  // Rounding never carries it into the band after.
+  return Math.min(raised, i + 1 === GRADE_BANDS.length - 1 ? 100 : nextHi - 1);
+}
+
 // Grade points (Plan 71): what a grade is worth where the courses are read
 // together, by prestige's teaching ceiling (prestigeSystem.ts) and, since
 // Plan 80F, by academic satisfaction (satisfactionSystem.ts). A campus of

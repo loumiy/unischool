@@ -16,6 +16,7 @@ import { NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_FULL_LIFT, departmentPot } from '
 import { programById } from '../../src/data/techData';
 import { dealtSpecialization, isSpecialization } from '../../src/data/rivalData';
 import { isGraduateHost } from '../../src/data/projectData';
+import { picksFor } from '../../src/data/trainingData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
 import { isInBounds, placementTiles } from '../../src/state/campusMap';
 
@@ -147,6 +148,26 @@ export function brokenRules(s: GameState): string[] {
     if (s.specializationYear === undefined) out.push(`specialized in ${s.specialization} with no year`);
     else if (s.specializationOffered !== undefined && s.specializationYear < s.specializationOffered) out.push(`specialized in Year ${s.specializationYear}, before the offer in Year ${s.specializationOffered}`);
   }
+
+  // The faculty training program (Plan 85E): the year's list is this year's
+  // or an earlier one, holds nobody twice, and never more than the year's
+  // picks; a trained professor holds their points inside a potential of at
+  // most 100, and teaches no higher than it.
+  if (s.training.year > s.clock.year) out.push(`the training list is for Year ${s.training.year}, ahead of the clock`);
+  if (new Set(s.training.trained).size !== s.training.trained.length) out.push('somebody is on the year\'s training list twice');
+  // (The faculty may have shrunk since a pick, so the bound counts those
+  // trained this year among it.)
+  if (s.training.year === s.clock.year && s.training.trained.length > picksFor(s.faculty.length + s.training.trained.length)) {
+    out.push(`${s.training.trained.length} trained this year, more than the picks`);
+  }
+  for (const f of s.faculty) {
+    if (f.teachingPotential > 100 || f.teaching > f.teachingPotential) out.push(`${f.name} teaches at ${f.teaching} against a potential of ${f.teachingPotential}`);
+    if (f.training && (f.training.points <= 0 || f.teachingPotential !== Math.min(100, f.training.potential + f.training.points))) {
+      out.push(`${f.name}'s training (+${f.training.points} on ${f.training.potential}) does not add up to a potential of ${f.teachingPotential}`);
+    }
+  }
+  for (const c of s.candidates) if (c.training) out.push(`${c.name} is a candidate with training`);
+  if (s.training.trained.length > 0 && s.specialization !== 'academics' && s.sandbox !== true) out.push('professors trained at a college not specialized in academics');
 
   return out;
 }
