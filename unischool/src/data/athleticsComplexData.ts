@@ -40,8 +40,9 @@ export const COMPLEX_RECRUITING_BOOST = 1 / 6;
 // the complex works, the college plays this many points stronger in
 // its own semifinals and finals (playoffs.ts's stageEdge; at 25 points of
 // difference the stronger side wins about three times in four). The
-// athletics specialization alone takes the established powers' edge away
-// (Plan 85D); the complex turns the big stage the college's way.
+// athletics specialization alone shrinks the established powers' edge to a
+// quarter (playoffs.ts's SPECIALIZED_STAGE_SHARE); the complex's edge comes
+// off what is left.
 export const COMPLEX_HOME_EDGE: Readonly<Record<'quarterfinal' | 'semifinal' | 'final', number>> = { quarterfinal: 0, semifinal: 3, final: 4 };
 
 // The athletics pillar's specialization term reads the complex's deep
@@ -52,10 +53,12 @@ export const COMPLEX_HOME_EDGE: Readonly<Record<'quarterfinal' | 'semifinal' | '
 // complex has to keep producing, as the research park's Landmark work
 // must. Nothing while no complex stands. Tuned (Plan 85G) so the harness's
 // athletics specialist fills it 10 to 12 years after the choice, the
-// complex's build included, as academics and research fill.
+// complex's build included, as academics and research fill. It was 40 until
+// the owner kept a quarter of the big stage against the specialized college
+// (playoffs.ts's SPECIALIZED_STAGE_SHARE), which brought the deep runs down.
 export const COMPLEX_WINDOW_YEARS = 10;
 export const COMPLEX_POINTS: Readonly<Record<ComplexRun['finish'], number>> = { champion: 1, final: 0.5, semifinal: 0.25 };
-export const COMPLEX_POINTS_FOR_FULL = 40;
+export const COMPLEX_POINTS_FOR_FULL = 30;
 
 export function complexStands(s: GameState): boolean {
   const t = s.tech.find((x) => x.id === ATHLETICS_COMPLEX_ID);
@@ -152,13 +155,13 @@ export const COMPLEX_WORDS = {
   // The choice's card (specializationData.ts's SPECIALIZATION_CARDS).
   fills: `filling as its programs make deep runs once the Athletic Performance Complex stands, full at ${COMPLEX_POINTS_FOR_FULL} points in the last ${COMPLEX_WINDOW_YEARS} years (${SCORING})`,
   cardComplex: 'The Athletic Performance Complex on the map, a capital project only this specialization may build.',
-  cardMechanics: `While it stands: ${COMPLEX_FLAGSHIPS} more flagship programs than the subsidy level allows, scholarships that recruit ${pct(COMPLEX_RECRUITING_BOOST)} more, and a college ${COMPLEX_HOME_EDGE.semifinal} points stronger in its semifinals and ${COMPLEX_HOME_EDGE.final} in its finals.`,
+  cardMechanics: `While it stands: ${COMPLEX_FLAGSHIPS} more flagship programs than the subsidy level allows, scholarships that recruit ${pct(COMPLEX_RECRUITING_BOOST)} more, and the established powers' edge over the college cut by a further ${COMPLEX_HOME_EDGE.semifinal} points in a semifinal and ${COMPLEX_HOME_EDGE.final} in a final.`,
 
   // The Athletics tab, under the department.
   head: 'The Athletic Performance Complex',
   works: (s: GameState, full: boolean, flagships: number, cap: number, base: number, recruitFull: number) =>
-    `The complex stands. The department may name ${cap} flagships, ${COMPLEX_FLAGSHIPS} more than the subsidy level's ${base}, and names ${flagships}. Full scholarships recruit to +${recruitedFull(recruitFull)}, not +${recruitFull}, and the college plays ${COMPLEX_HOME_EDGE.semifinal} points stronger in its semifinals and ${COMPLEX_HOME_EDGE.final} in its finals. Deep runs in the last ${COMPLEX_WINDOW_YEARS} years: ${runsSummary(s)}, ${points(complexPoints(s))} of the ${COMPLEX_POINTS_FOR_FULL} points that fill athletics' specialization share${full ? ', which is full' : ''}.`,
-  goingUp: 'The Athletic Performance Complex is going up. Once it stands, the department may name more flagships, its scholarships recruit better and the college plays stronger in its semifinals and finals; and each deep run fills athletics\' specialization share.',
+    `The complex stands. The department may name ${cap} flagships, ${COMPLEX_FLAGSHIPS} more than the subsidy level's ${base}, and names ${flagships}. Full scholarships recruit to +${recruitedFull(recruitFull)}, not +${recruitFull}, and the established powers' edge over the college is cut by a further ${COMPLEX_HOME_EDGE.semifinal} points in a semifinal and ${COMPLEX_HOME_EDGE.final} in a final. Deep runs in the last ${COMPLEX_WINDOW_YEARS} years: ${runsSummary(s)}, ${points(complexPoints(s))} of the ${COMPLEX_POINTS_FOR_FULL} points that fill athletics' specialization share${full ? ', which is full' : ''}.`,
+  goingUp: 'The Athletic Performance Complex is going up. Once it stands, the department may name more flagships, its scholarships recruit better and the established powers\' edge in a semifinal and a final shrinks further; and each deep run fills athletics\' specialization share.',
   build: `The college is specialized in athletics, and may build the Athletic Performance Complex from the capital projects in the build menu: ${COMPLEX_FLAGSHIPS} more flagships, scholarships that recruit ${pct(COMPLEX_RECRUITING_BOOST)} more and a stronger college in its semifinals and finals; and its deep runs fill athletics' specialization share.`,
   gatedUnchosen: (milestone: number) => `The Athletic Performance Complex is the athletics specialization's own building: ${COMPLEX_FLAGSHIPS} more flagships, better recruiting and a stronger college deep in the postseason. The board offers the choice of a specialization at the first summer the college stands in the guide's top ${milestone}.`,
   gatedElsewhere: (chosen: string) => `The Athletic Performance Complex is the athletics specialization's own building, and the college is specialized in ${chosen}, so it cannot be built here.`,

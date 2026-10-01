@@ -581,6 +581,9 @@ Save version 89.
   the big stage's edge, both through one hook, `specialization.ts`'s
   `athleticsLifted`, which `teamQualityCurve` and `stageEdge` read and 85G's
   complex extends.
+  *Amended in 85G's review (the owner, 2026-10-01): the big stage is shrunk
+  to a quarter for an athletics specialist, not taken away (`playoffs.ts`'s
+  `SPECIALIZED_STAGE_SHARE`); see 85G's note.*
 - **The milestone** (`prestigeSystem.ts`'s `SPECIALIZATION_MILESTONE_RANK`,
   beside the term weights): **the top 20**. It is read at the summer's own
   week after the field has moved: the table the summer's review prints.
@@ -1372,9 +1375,17 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
    is the athletics specialization's own lift (85D), not the complex: with
    no slowdown and no edge for the established powers, every flagship plays
    at 100 and wins, and with none of the complex's mechanics at all Guided
-   still won 31 to 38. The lever proposed below (a quarter of the big stage
-   kept for the specialized college) is measured, not built: it touches
-   85D's lift, which the owner asked not to change here.
+   still won 31 to 38.
+3. **A quarter of the big stage stays (the owner chose the lever,
+   2026-10-01), amending 85D's lift.** Against a college specialized in
+   athletics the established powers keep a quarter of their postseason edge,
+   2 in a quarterfinal, 5 in a semifinal and 9 in a final (`playoffs.ts`'s
+   `SPECIALIZED_STAGE_SHARE`, 0.25, beside `STAGE_EDGE`; 85D took it all
+   away). The complex's +3 and +4 come off what is left, so a college with
+   the complex faces 2, 2 and 5. Unspecialized colleges keep the full 8, 20
+   and 35. The term's full mark comes down with the runs, from 40 to 30.
+   The specialists now win 32 to 46 (Guided) and 16 to 38 (the
+   Completionist) by year 50, about one or two a year.
 
 - **The complex** (`projectData.ts`'s `PROJ-ATHLETICS-COMPLEX`, "The
   Athletic Performance Complex") is a capital project like the others, built
@@ -1403,8 +1414,9 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
     between the arena's row and the recreation lane (row 35, column 68).
 - **Its mechanics** (`data/athleticsComplexData.ts`), only while the complex
   stands at a college specialized in athletics (`complexWorks`). The
-  specialization alone keeps 85D's lift (no slowdown above the knee, no edge
-  for the established powers) and gets none of these.
+  specialization alone keeps 85D's lift, as amended (no slowdown above the
+  knee; the established powers' edge shrunk to a quarter), and gets none of
+  these.
   - **More flagships** (`COMPLEX_FLAGSHIPS`, 2): `departmentPot`'s cap is the
     subsidy level's 2, 4 or 6 and two more; the pot carries `baseCap`, the
     subsidy level's alone. Each is funded in full and may recruit.
@@ -1416,21 +1428,22 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
     the invariants read.
   - **Better odds deep in the postseason (the owner's halving:
     `COMPLEX_HOME_EDGE`, 3 in a semifinal and 4 in a final; it was 5 and
-    8):** with the athletics specialization `stageEdge` is the complex's edge
-    negated, so the college plays that much stronger in its own semifinals
-    and finals. At 25 points of difference the stronger side wins three
-    times in four; 4 points makes a final between equals about 59 in 100.
-    The draws are unchanged.
+    8):** with the athletics specialization `stageEdge` is the quarter of
+    the big stage left (2 / 5 / 9) less the complex's edge, so the college
+    faces 2, 2 and 5 points in its own quarterfinals, semifinals and finals.
+    At 25 points of difference the stronger side wins three times in four.
+    The words say the complex cuts the established powers' edge by a
+    further 3 and 4 points. The draws are unchanged.
 - **The term reads the complex** (`complexReading`,
   `SPECIALIZATION_READINGS.athletics`): the department's deep runs in the
   last `COMPLEX_WINDOW_YEARS` (10), a title worth 1, a lost final a half and
   a lost semifinal a quarter (`COMPLEX_POINTS`), full at
-  `COMPLEX_POINTS_FOR_FULL` (40). Nothing while no complex stands: the row
+  `COMPLEX_POINTS_FOR_FULL` (30). Nothing while no complex stands: the row
   says the complex is missing, or still going up, and how it fills.
   Standing, it reads "…training at the Athletic Performance Complex, its
-  programs have made 11 titles, 9 lost finals and 14 lost semifinals in the
+  programs have made 12 titles, 9 lost finals and 10 lost semifinals in the
   last 10 years, 19 points (a title counts 1, a lost final a half and a lost
-  semifinal a quarter). It fills as that rises, full at 40."
+  semifinal a quarter). It fills as that rises, full at 30."
   - **The record:** `orgs.complexRuns`, a year, a sport and a finish, the
     window's years only, written by the postseason (`playoffs.ts`'s
     `runPlayoffs`, `recordComplexRun`), and only while the complex works:
@@ -1443,30 +1456,30 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
     slowdown gone, every flagship of the harness's specialist plays at 100
     about six years after the choice.
   - **Pacing:** at 12 points the term filled three years after the complex
-    opened; at 40 it fills 10 or 11 years after the choice, the build
-    included, as academics and research fill. With the owner's halved edge
-    and boost the deep runs barely fell (most of them come from flagships
-    playing at 100, above), so the full mark stays at 40, which still fills
-    it in 10 or 11 years. The deep runs stand at 39 to 51
-    points a window at year 50, so it stays nearly full (0.97 to 1.0). (The
-    first version's figures: 40, 43, 40 and 45, 51, 41.)
+    opened; the first version's 40 filled it in 10 to 12 years. With a
+    quarter of the big stage kept the deep runs fall to 26 to 40 points a
+    window at year 50, and the full mark comes down to 30, which fills it 9
+    to 12 years after the choice, the build included, as academics and
+    research fill. At 25 (the coordinator's "about 25") it filled in 8 to
+    10, early on four of six runs, so 30 it is. At year 50 the term reads
+    1.0 on five runs and 0.88 on one.
 
     | | Choice | Complex begun / open | Half full | Full | Years to fill |
     |---|---|---|---|---|---|
-    | Guided, athletics | 30, 32, 30 | 31 / 33, 33 / 35, 31 / 33 | 38, 39, 36 | 41, 43, 40 | 11, 11, 10 |
-    | Completionist, athletics | 34, 39, 31 | 35 / 37, 40 / 42, 32 / 34 | 42, 47, 38 | 44, 50, 41 | 10, 11, 10 |
+    | Guided, athletics | 30, 32, 30 | 31 / 33, 33 / 35, 31 / 33 | 37, 39, 37 | 40, 44, 41 | 10, 12, 11 |
+    | Completionist, athletics | 34, 39, 31 | 35 / 37, 40 / 42, 32 / 34 | 41, 47, 37 | 45, 51, 40 | 11, 12, 9 |
 - **The words** (`athleticsComplexData.ts`'s `COMPLEX_WORDS`, Plan 47's
   glossary, which gains *deep run*):
   - **the choice's card:** the athletics card's opening line ends "filling
     as its programs make deep runs once the Athletic Performance Complex
-    stands, full at 40 points in the last 10 years (a title counts 1, a lost
+    stands, full at 30 points in the last 10 years (a title counts 1, a lost
     final a half and a lost semifinal a quarter)", and the complex and its
     mechanics move from *Still to come* to *Now*. Student life's are the
     only ones still to come;
   - **the Athletics tab:** the department panel gains *The Athletic
     Performance Complex*: standing, the flagships it may name against the
     subsidy level's, the recruiting and the postseason edge, and the deep
-    runs against the 40 points; going up, or open to build, what it will do;
+    runs against the 30 points; going up, or open to build, what it will do;
     otherwise that it is the athletics specialization's own building. The
     Flagships figure reads "8 of 8" and its hint counts the complex's slots;
     the order's help says the line is the subsidy's and the complex's; a
@@ -1516,8 +1529,8 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
   | Selective | 60 / 57 / 61 | 43.2 / 51.6 / 53.1 | 86.4 / 81.1 / 82.3 | 57 / 63 / 21 / 100 |
   | Lean | 64 / 64 / 72 | 40.1 / 43.3 / 42.8 | 75.8 / 75.0 / 73.8 | 56 / 81 / 27 / 100 |
   | Idle | 80 / 66 / 75 | 30.4 / 41.9 / 38.8 | 84.0 / 84.0 / 84.1 | 79 / 80 / 28 / 100 |
-  | Guided, athletics (fixed pick) | 56 / 29 / 1 (−1) | 50.2 / 80.0 / 123.9 (+8.3) | 85.8 / 83.7 / 87.3 (+0.5) | 8 / 8 / 4 / 1, was 8 / 9 / 4 / 19 |
-  | Completionist, athletics (fixed pick) | 56 / 34 / 1 (−2) | 50.1 / 79.1 / 121.7 (+8.4) | 85.7 / 88.2 / 89.9 (+0.6) | 9 / 10 / 4 / 1, was 9 / 14 / 4 / 13 |
+  | Guided, athletics (fixed pick) | 56 / 29 / 1 (−1) | 50.2 / 80.0 / 123.5 (+7.8) | 85.8 / 83.7 / 87.1 (+0.3) | 8 / 9 / 4 / 1, was 8 / 9 / 4 / 19 |
+  | Completionist, athletics (fixed pick) | 56 / 34 / 1 (−2) | 50.1 / 79.1 / 120.5 (+7.2) | 85.7 / 88.2 / 88.9 (−0.4) | 8 / 14 / 4 / 1, was 9 / 14 / 4 / 13 |
 
   When each first reached each place, its pick and the complex (seeds 12345,
   4242, 777; the year's first week):
@@ -1527,9 +1540,9 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
   | Guided | 30, 32, 29 | 36, 40, 35 | 46, 47, 42 | academics 30, 32, 30 | never |
   | Completionist | 33, 39, 31 | 40, 43, 40 | 47, never (best 2), 47 | academics 34, 39, 31 | never |
   | Guided, athletics, 85F | 30, 32, 29 | 35, 42, 34 | 49, never (best 4), never (best 2) | athletics 30, 32, 30 | (none) |
-  | Guided, athletics, now | 30, 32, 29 | 34, 38, 35 | 42, 45, 40 | athletics 30, 32, 30 | 31 / 33, 33 / 35, 31 / 33 |
+  | Guided, athletics, now | 30, 32, 29 | 34, 38, 36 | 43, 45, 42 | athletics 30, 32, 30 | 31 / 33, 33 / 35, 31 / 33 |
   | Completionist, athletics, 85F | 33, 39, 31 | 39, 43, 42 | 50, never (best 3), never (best 3) | athletics 34, 39, 31 | (none) |
-  | Completionist, athletics, now | 33, 39, 31 | 38, 43, 38 | 45, never (best 2), 45 | athletics 34, 39, 31 | 35 / 37, 40 / 42, 32 / 34 |
+  | Completionist, athletics, now | 33, 39, 31 | 39, 43, 38 | 46, 50, 44 | athletics 34, 39, 31 | 35 / 37, 40 / 42, 32 / 34 |
 
   - **Nothing moves but the athletics specialists.** Guided, the
     Completionist, Selective, Lean and Idle are identical to main's on every
@@ -1539,14 +1552,16 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
   - **The targets hold.** Held to no specialization (`'never'`), Guided's best
     place is 3, 3 and 5 and its prestige at year 50 110.9; the
     Completionist's 4, 4 and 7 and 110.5: as before, never first.
-    Specialized in athletics, Guided is first on every seed, from years 42,
-    45 and 40 and at year 50; the Completionist on two of three, from 45 and
-    45 (second on 4242, which chooses in Year 39). With the first version's
-    larger edge and boost the years were 42, 45, 42 and 46, 43. Before, held to
+    Specialized in athletics, Guided is first on every seed, from years 43,
+    45 and 42 and at year 50; the Completionist on every seed too, from 46,
+    50 and 44 (4242, which chooses in Year 39, in year 50's first week).
+    With the halved edge and boost but no quarter of the big stage the
+    years were 42, 45, 40 and 45, never (2nd), 45; with the first version's
+    42, 45, 42 and 46, never, 43. Before, held to
     athletics, Guided was first on one seed (Year 49) and the Completionist
     on one (Year 50).
   - **Why the athletics specialist now stands highest of all:** its prestige
-    at year 50 is 122.6 to 124.1, against 119.0 to 120.6 for Guided's own
+    at year 50 is 122.1 to 123.8, against 119.0 to 120.6 for Guided's own
     academics pick. Most of it is the department, not the complex: Guided
     hires no coaches and names no flagships unless it is specialized in
     athletics, so its athletics pillar stands at 57 to 61 (80th to 81st)
@@ -1568,22 +1583,32 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
   | Championships goal player, handed athletics at Year 30 (what-if) | 22 (13–30) | 1 | 95 (75–105) | 1 | 38 (34–41) |
   | Guided, athletics, 85F | never | 0 | 0 | 18, 19, 19 | 1, 4, 2 |
   | Guided, athletics, first version (+5 / +8, +⅓) | 31, 35, 31 | 0 | 65, 56, 80 | 1, 1, 1 | 1, 1, 1 |
-  | **Guided, athletics, now (+3 / +4, +⅙)** | 31, 35, 31 | 0 | 61, 49, 64 | 1, 1, 1 | 1, 1, 1 |
-  | Guided, athletics, now but no extra flagships | 31, 35, 31 | 0 | 44, 43, 52 | 1, 1, 1 | 1, 1, 1 |
-  | Guided, athletics, none of the complex's mechanics | 31, 36, 31 | 0 | 35, 31, 38 | 1, 1, 1 | (measured with the term at 12) |
-  | Guided, athletics, now, with the lever: ¼ of the big stage kept | 33, 35, 32 | 0 | 41, 18, 32 | 1, 1, 1 | 1, 1, 1 |
+  | Guided, athletics, halved (+3 / +4, +⅙), no quarter | 31, 35, 31 | 0 | 61, 49, 64 | 1, 1, 1 | 1, 1, 1 |
+  | Guided, halved, no quarter, no extra flagships | 31, 35, 31 | 0 | 44, 43, 52 | 1, 1, 1 | 1, 1, 1 |
+  | Guided, none of the complex's mechanics, no quarter | 31, 36, 31 | 0 | 35, 31, 38 | 1, 1, 1 | (measured with the term at 12) |
+  | Guided, halved, a quarter kept, term full at 25 | 33, 35, 32 | 0 | 40, 30, 26 | 1, 1, 1 | 1, 1, 1 |
+  | **Guided, athletics, now (halved, a quarter kept, full at 30)** | 33, 35, 32 | 0 | **41, 32, 46** | 1, 1, 1 | 1, 1, 1 |
   | Completionist, athletics, 85F | never | 0 | 0 | 13, 11, 15 | 1, 3, 3 |
   | Completionist, athletics, first version | 35, 42, 32 | 0 | 48, 33, 70 | 1, 1, 1 | 1, 2, 1 |
-  | **Completionist, athletics, now** | 35, 42, 32 | 0 | 48, 28, 69 | 1, 1, 1 | 1, 2, 1 |
-  | Completionist, athletics, now but no extra flagships | 35, 42, 32 | 0 | 28, 22, 43 | 1, 1, 1 | 1, 2, 1 |
-  | Completionist, athletics, now, with the lever: ¼ kept | 37, 42, 33 | 0 | 19, 12, 30 | 1, 1, 1 | 1, 2, 1 |
+  | Completionist, halved, no quarter | 35, 42, 32 | 0 | 48, 28, 69 | 1, 1, 1 | 1, 2, 1 |
+  | Completionist, halved, no quarter, no extra flagships | 35, 42, 32 | 0 | 28, 22, 43 | 1, 1, 1 | 1, 2, 1 |
+  | Completionist, halved, a quarter kept, full at 25 | 37, 42, 33 | 0 | 18, 16, 40 | 1, 1, 1 | 1, 2, 1 |
+  | **Completionist, athletics, now** | 37, 42, 33 | 0 | **19, 16, 38** | 1, 1, 1 | 1, 1, 1 |
 
-  - **The check is met:** the athletics specialist wins titles every year
-    from the year after its choice, about three a year once the complex
-    stands (up to seven in one year), and the unspecialized championships
-    player wins one to five in fifty years. Nothing moves before the choice
-    (no title by year 25 for anyone held to athletics).
-  - **The owner's target (25 to 40) is not met by the complex's numbers.**
+  - **The check is met:** the athletics specialist wins titles regularly
+    from two or three years after its choice, one to two a year (at most
+    five in one year), and the unspecialized championships player still
+    wins one to five in fifty years (unchanged: first title a median 22,
+    one by year 25, two by year 50, athletics 15th, overall 48th). Nothing
+    moves before the choice (no title by year 25 for anyone held to
+    athletics).
+  - **The owner's target, about 25 to 40:** Guided wins 32 to 46 and the
+    Completionist 16 to 38. Medians 41 and 19; across the two runs measured
+    with the quarter (full at 25 and at 30) Guided won 26 to 46 and the
+    Completionist 16 to 40. The full mark moves prestige a little, and with
+    it the whole run, so title counts shift a few between runs.
+  - **Why the lever was needed** (the measurements behind the owner's
+    choice): halving the complex's edge and boost was not enough on its own.
     Halving the edge and the boost took off only 4 to 16 titles for Guided.
     Of what is left, the two extra flagships are worth 6 to 17 for Guided
     and 6 to 26 for the Completionist (without them Guided wins 43 to 52,
@@ -1592,19 +1617,10 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
     mechanics, every flagship plays at 100 about six years after the choice
     and no established power has an edge over it. The extra flagships are
     the complex's largest driver but not the main one, so they are kept.
-  - **The lever proposed, for the owner's decision** (measured only, in a
-    copy; nothing changed in the game): keep part of the big stage
-    (`STAGE_EDGE`, 8 / 20 / 35) against a college specialized in athletics,
-    in place of 85D's taking it all away, with the complex's edge then
-    offsetting it. With a quarter kept (2 / 5 / 9 before the complex, so
-    2 / 2 / 5 with it) and everything else as now, Guided wins 18 to 41 by
-    year 50 and the Completionist 12 to 30, about one or two a year, and
-    both are still first where they were (Guided in years 43, 45 and 43; the
-    Completionist in 47 and 44, second on 4242). With half kept, Guided
-    wins 13 to 26 and the Completionist 9 to 10; with three quarters, 7 to
-    10 and 2 to 7. The term's full mark would then come down with the runs
-    (they stand at 23 to 40 points a window at year 50 with a quarter kept),
-    to about 25.
+  - **The lever, measured before the owner chose it** (in a copy, with the
+    term still at 40): with a quarter kept Guided won 18 to 41 and the
+    Completionist 12 to 30; with half kept, 13 to 26 and 9 to 10; with three
+    quarters, 7 to 10 and 2 to 7. The owner chose a quarter.
   - **The championships goal player never reaches the milestone,** so a
     fixed athletics pick changes nothing for it (its best place in any run
     is 41st): it builds athletics first and the college that pays for it
@@ -1617,14 +1633,11 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
     alone cannot carry a college to first place: that needs the other three
     pillars near the top, as the Guided and Completionist variants have.
 - **What is left for 85I** (open):
-  - **The lever above,** for the owner: a quarter of the big stage kept for
-    the athletics specialist, which would bring the titles into 25 to 40
-    and the term's full mark to about 25.
-  - **Titles are still plentiful** for the athletics specialist: 49 to 64
-    (Guided) and 28 to 69 (the Completionist) by year 50. The athletics
-    pillar is full either way (its titles term fills at 12 weighted titles),
-    so the count matters for the term's pacing and the side effects
-    (applicants, donors) more than for prestige.
+  - **The title counts are noisy:** 16 to 46 across seeds and players, a
+    seed's late choice (the Completionist on 4242, Year 39) leaving it the
+    fewest. The athletics pillar is full either way (its titles term fills
+    at 12 weighted titles), so the count matters for the term's pacing and
+    the side effects (applicants, donors) more than for prestige.
   - **The athletics specialist stands above the academic one** at year 50
     (above): a harness asymmetry, for 85I's variants.
   - **The championships goal player cannot specialize:** it never reaches
@@ -1641,9 +1654,9 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
     athletics, no lift, its words), the extra flagship slots (only with the
     complex standing at an athletics college; on any subsidy level; the
     rules counting them), the recruiting boost (past +15 only with both),
-    the postseason edge (the established powers' edge without the
-    specialization, none with it alone or while the complex goes up, the
-    complex's with both), the term reading the deep runs (the window, the
+    the postseason edge (the established powers' full edge without the
+    specialization, a quarter of it, 2 / 5 / 9, with it alone or while the
+    complex goes up, and the quarter less the complex's with both), the term reading the deep runs (the window, the
     points, the full mark, nothing without the complex or while it goes up,
     empty for another specialization, the record written only while the
     complex works), the card, the migration from the version-91 fixture, a
@@ -1662,7 +1675,7 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
   - `85g-athletics-tab.jpg`, the Athletics tab: eight flagships, the
     complex's section, the trophy case;
   - `85g-athletics-term.jpg`, History › Prestige with athletics opened on
-    the term (19 of 40 points);
+    the term (19 of 30 points);
   - `85g-choice.jpg`, the choice in Year 31 (the `specialization`
     scenario) with the complex and its mechanics under *Now*.
 

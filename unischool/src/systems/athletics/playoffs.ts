@@ -45,8 +45,17 @@ type Round = (typeof ROUND_NAMES)[number];
 // final.
 export const STAGE_EDGE: Readonly<Record<Round, number>> = { quarterfinal: 8, semifinal: 20, final: 35 };
 
+// What is left of the big stage against a college specialized in athletics
+// (the owner's decision, 2026-10-01, in Plan 85G's review, amending 85D,
+// which took it all away): a quarter, 2, 5 and 9 points. With no slowdown
+// and no edge at all every flagship of a specialist played at 100 and won,
+// some 50 to 80 titles by year 50; the owner asked for about 25 to 40. The
+// Athletic Performance Complex's own edge (+3 in a semifinal, +4 in a
+// final) is taken off what is left.
+export const SPECIALIZED_STAGE_SHARE = 0.25;
+
 export function stageEdge(s: GameState, round: Round): number {
-  return athleticsLifted(s) ? -complexEdge(s, round) : STAGE_EDGE[round];
+  return athleticsLifted(s) ? Math.round(STAGE_EDGE[round] * SPECIALIZED_STAGE_SHARE) - complexEdge(s, round) : STAGE_EDGE[round];
 }
 
 // Resolve one sport's postseason from the player's side. Only fielded sports

@@ -129,7 +129,7 @@ export function teamSlowed(knee: number, earned: number, quality: number, chosen
 // The team quality in the Athletics tab's help (Plan 85C), as the college's
 // specialization leaves it (Plan 85D).
 export function teamLimitHelp(knee: number, chosen: Pillar | null): string {
-  if (chosen === 'athletics') return 'The college is specialized in athletics: a program\'s quality comes as easily above ' + knee + ' as below it, and the established powers have no edge over it in the postseason.';
+  if (chosen === 'athletics') return 'The college is specialized in athletics: a program\'s quality comes as easily above ' + knee + ' as below it, and the established powers keep only a quarter of their edge over it in the postseason.';
   return chosen
     ? `The college is specialized in ${PILLAR_WORDS[chosen]}, so above ${knee} each point of a program's quality comes harder and 100 is out of reach, and the established powers are stronger still in a semifinal and a final: a title is rare.`
     : `Without a specialization in athletics, each point of a program's quality comes harder above ${knee} and 100 is out of reach, and the established powers are stronger still in a semifinal and a final, so a title is rare.`;
@@ -175,7 +175,8 @@ export function ledBy(name: string, specialization: Pillar): string {
 // The choice (Plan 85D). Each specialization's card: what it is called,
 // what it gives now, and what arrives with it later. What works now: the
 // pillar's specialization term opens and fills over the years (above; and,
-// for athletics, the teams' slowdown and the big stage stand down,
+// for athletics, the teams' slowdown stands down and the big stage shrinks
+// to a quarter,
 // specialization.ts's athleticsLifted). `mechanics` are the plan's
 // (docs/plans/85-specializations.md, PRs 85E-H): each is `ready` once its PR
 // builds it, and until then the screen says it is still to come. Plans
@@ -243,7 +244,7 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     name: 'The athletic performance complex',
     summary: 'A college known first for its teams.',
     known: 'a college known first for its teams',
-    alsoNow: 'A program\'s quality no longer slows above 80, so a team may play to 100, and the established powers lose their edge in the postseason.',
+    alsoNow: 'A program\'s quality no longer slows above 80, so a team may play to 100, and the established powers keep only a quarter of their edge in the postseason.',
     fills: COMPLEX_WORDS.fills,
     mechanics: [
       { text: COMPLEX_WORDS.cardComplex, ready: true },
@@ -297,6 +298,6 @@ export function specializationNotice(milestone: number, weights: Readonly<Record
     .join('; ');
   return {
     title: `Within reach of the top ${milestone}`,
-    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. Each pillar holds a share that only its own specialization fills, so without one no pillar reaches the top. There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and takes away the established powers' edge in the postseason. Each will bring more of its own in time; the choice will say what arrives now and what is still to come. Whichever the college chooses, the other three pillars' shares stay empty.`,
+    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. Each pillar holds a share that only its own specialization fills, so without one no pillar reaches the top. There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each will bring more of its own in time; the choice will say what arrives now and what is still to come. Whichever the college chooses, the other three pillars' shares stay empty.`,
   };
 }

@@ -223,10 +223,10 @@ park). The Guided player held to research fills it 10 to 12 years after the
 choice. Athletics reads the athletic performance complex (Plan 85G): the
 deep runs its programs have made in the last ten years with the Athletic
 Performance Complex standing, a title counting 1, a lost final a half and a
-lost semifinal a quarter, full at 40 (`athleticsComplexData.ts`'s
+lost semifinal a quarter, full at 30 (`athleticsComplexData.ts`'s
 `complexReading`), and nothing while no complex stands (see
 [student-life.md](student-life.md)'s complex). The Guided player held to
-athletics fills it 10 or 11 years after the choice. Student life's term is larger because
+athletics fills it 10 to 12 years after the choice. Student life's term is larger because
 it is the easiest pillar to fill; athletics' because without the athletics
 specialization a program's quality slows above 80 and titles are rare (see
 [student-life.md](student-life.md)'s postseason). Tuned so that optimal play
@@ -274,9 +274,10 @@ late, and kept:
   run at the Research Park, athletics as its programs make deep runs with
   the Athletic Performance Complex standing, student life over ten years),
   so the pillar can rise to 150. The athletics specialization also takes
-  away the slowdown of a program's quality above 80 and the big stage's
-  edge (`specialization.ts`'s `athleticsLifted`, the hook Plan 85G's
-  performance complex extends). Each specialization's own mechanics (the
+  away the slowdown of a program's quality above 80 and shrinks the big
+  stage's edge to a quarter (`specialization.ts`'s `athleticsLifted`, the
+  hook Plan 85G's performance complex extends; the quarter is the owner's
+  decision in Plan 85G's review, 2026-10-01, where 85D took it all away). Each specialization's own mechanics (the
   faculty training program, the research park, the downtown and the
   festival, the performance complex) are Plans 85E–H; the choice lists
   those not yet built as still to come, from `specializationData.ts`'s
@@ -316,7 +317,8 @@ specialization's (Plan 85F), Guided is first from years 42–47 on every
 seed, the Completionist from 47 on two of three; both still choose
 academics. Held to research, Guided is first from years 46–47 on every
 seed. Held to athletics (Plan 85G, the complex built), Guided is first from
-years 40–45 on every seed and the Completionist from 45 on two of three. Held to no
+years 42–45 on every seed and the Completionist from 44–50 on every seed
+(with a quarter of the big stage left against it, the owner's decision). Held to no
 specialization, neither is ever first (best 4th; since Plan 85F, best
 3rd).
 

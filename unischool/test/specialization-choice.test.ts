@@ -40,7 +40,7 @@ import { teamQualityCurve } from '../src/data/studentLifeData';
 import { finalReport } from '../src/state/finalReport';
 import { TAG_PHRASES } from '../src/data/reportData';
 import { athleticsLifted } from '../src/systems/prestige/specialization';
-import { STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
+import { SPECIALIZED_STAGE_SHARE, STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
 import { inboxItems } from '../src/systems/inbox/inbox';
 import { BOARD_LETTERS } from '../src/data/boardData';
 import { SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID } from '../src/data/specializationData';
@@ -247,7 +247,7 @@ function closeSummer(s: GameState): GameState {
   const academics = pillarBreakdown(s, 'academics').inputs.find((i) => i.key === 'specialization')!;
   assert(athletics.score > 0 && academics.score === 0, 'athletics opens only its own term');
   s.tech.find((t) => t.id === ATHLETICS_COMPLEX_ID)!.status = 'locked';
-  assert(athleticsLifted(s) && teamQualityCurve(95, athleticsLifted(s)) === 95 && stageEdge(s, 'final') === 0, 'and takes away the teams\' slowdown and the big stage, with or without the complex');
+  assert(athleticsLifted(s) && teamQualityCurve(95, athleticsLifted(s)) === 95 && stageEdge(s, 'final') === Math.round(STAGE_EDGE.final * SPECIALIZED_STAGE_SHARE), 'and takes away the teams\' slowdown and shrinks the big stage to a quarter, without the complex');
 }
 
 // ---- A college that never reaches the milestone never specializes ----

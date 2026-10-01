@@ -10,7 +10,8 @@
 //     the complex stands at a college specialized in athletics;
 //   - the recruiting boost and the better odds deep in the postseason, only
 //     with both the complex and the specialization; the specialization alone
-//     keeps 85D's lift (no slowdown, no edge for the established powers);
+//     keeps 85D's lift (no slowdown; the established powers' edge shrunk to
+//     a quarter, the owner's decision in 85G's review);
 //   - the athletics pillar's specialization term reads the complex's deep
 //     runs over the last ten years, full at COMPLEX_POINTS_FOR_FULL; nothing
 //     without the complex, and the row says why; only a deep run while the
@@ -41,7 +42,7 @@ import { SPECIALIZATION_CARDS, opensLine } from '../src/data/specializationData'
 import { closedBySpecialization, projectLift, projectOpen } from '../src/systems/estate/projects';
 import { unlockAvailable } from '../src/systems/techtree/techSystem';
 import { pillarBreakdown } from '../src/systems/prestige/prestigeSystem';
-import { STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
+import { SPECIALIZED_STAGE_SHARE, STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
 import { tickRecruiting } from '../src/systems/athletics/athleticsSystem';
 import { brokenRules } from '../sim/harness/invariants';
 import { foundGame } from '../sim/harness/game';
@@ -152,11 +153,15 @@ function college(specialization: GameState['specialization'], status: 'locked' |
   const at = (s: GameState) => rounds.map((r) => stageEdge(s, r));
   assert(at(college('none')).join() === rounds.map((r) => STAGE_EDGE[r]).join(), 'unspecialized, the established powers keep their edge');
   assert(at(college('research')).join() === rounds.map((r) => STAGE_EDGE[r]).join(), 'and with the complex at a college specialized in research');
-  assert(at(college('athletics', 'locked')).every((e) => e === 0), 'specialized in athletics without the complex, no edge either way (85D)');
-  assert(at(college('athletics', 'developing')).every((e) => e === 0), 'nor while it goes up');
+  // The specialization shrinks the big stage to a quarter (the owner's
+  // decision in 85G's review): 2, 5 and 9.
+  const quarter = rounds.map((r) => Math.round(STAGE_EDGE[r] * SPECIALIZED_STAGE_SHARE));
+  assert(SPECIALIZED_STAGE_SHARE === 0.25 && quarter.join() === '2,5,9', `a quarter of the big stage (${quarter.join(', ')})`);
+  assert(at(college('athletics', 'locked')).join() === quarter.join(), 'specialized in athletics without the complex, a quarter of the edge stands against it');
+  assert(at(college('athletics', 'developing')).join() === quarter.join(), 'and while it goes up');
   const works = at(college('athletics'));
-  assert(works[0] === -COMPLEX_HOME_EDGE.quarterfinal && works[1] === -COMPLEX_HOME_EDGE.semifinal && works[2] === -COMPLEX_HOME_EDGE.final,
-    `with the complex, the college plays ${COMPLEX_HOME_EDGE.semifinal} stronger in a semifinal and ${COMPLEX_HOME_EDGE.final} in a final (${works.join(', ')})`);
+  assert(works.join() === rounds.map((r, i) => quarter[i] - COMPLEX_HOME_EDGE[r]).join(),
+    `with the complex, the college plays ${COMPLEX_HOME_EDGE.semifinal} stronger in a semifinal and ${COMPLEX_HOME_EDGE.final} in a final than the quarter left (${works.join(', ')})`);
   assert(COMPLEX_HOME_EDGE.semifinal > 0 && COMPLEX_HOME_EDGE.final >= COMPLEX_HOME_EDGE.semifinal, 'deeper rounds, a bigger edge');
 }
 

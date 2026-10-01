@@ -514,9 +514,10 @@ exactly that, gets there by about Year 7, a year or two after choosing (its
 85](../plans/85-specializations.md) PR C, by the owner's decision). Before
 it, the championships player won its first title by about Year 8 and dozens
 by Year 50. Two levers now stand against a college that has not specialized
-in athletics; the athletics specialization takes both away (Plan 85D,
-`specialization.ts`'s `athleticsLifted`), and the athletic performance
-complex (Plan 85G, below) turns the second the college's way:
+in athletics; the athletics specialization takes the first away and shrinks
+the second to a quarter (Plan 85D, `specialization.ts`'s `athleticsLifted`;
+the quarter is the owner's decision in Plan 85G's review), and the athletic
+performance complex (Plan 85G, below) takes a little more off it:
 
 - **The slowdown above the knee** (Plan 85D's review, replacing Plan 85C's
   hard team ceiling of 90). A program's quality is what its staff, money,
@@ -527,8 +528,11 @@ complex (Plan 85G, below) turns the second the college's way:
   slowed by it says so, with what the program would have earned.
 - **The big stage.** In the college's own games the opponent plays 8 points
   stronger in a quarterfinal, 20 in a semifinal and 35 in a final
-  (`playoffs.ts`'s `STAGE_EDGE`). Brackets between rivals are as they were,
-  and the postseason still takes one draw.
+  (`playoffs.ts`'s `STAGE_EDGE`). Against a college specialized in athletics
+  a quarter of it stands, 2, 5 and 9 (`SPECIALIZED_STAGE_SHARE`, the owner's
+  decision, 2026-10-01: with none, every specialist flagship played at 100
+  and won 50 to 80 titles by Year 50). Brackets between rivals are as they
+  were, and the postseason still takes one draw.
 
 The target is a first title after Year 20 in most runs and a handful by Year
 50 for the championships player; the rivals' athletic specialists, which
@@ -552,34 +556,35 @@ specialized in athletics (`complexWorks`), and only then:
   scholarships build to +17.5 over the four classes, not +15
   (`recruitingTarget`'s boost; `RECRUITING_MAX_LIFT` is the scale's top).
 - **Better odds deep in the postseason** (`COMPLEX_HOME_EDGE`): the college
-  plays 3 points stronger in its own semifinals and 4 in its finals
-  (`playoffs.ts`'s `stageEdge` turns negative). At 25 points of difference
-  the stronger side wins three times in four, so 4 points makes a final
-  between equals about 59 in 100.
+  plays 3 points stronger in its own semifinals and 4 in its finals, taken
+  off the quarter of the big stage left against it (`playoffs.ts`'s
+  `stageEdge`: 2, 2 and 5 points against the college, not 2, 5 and 9). At
+  25 points of difference the stronger side wins three times in four.
 
 The owner kept the cost and halved the first version's edge (5 and 8) and
-boost (a third) on 2026-10-01, asking for fewer titles. The specialization alone
-keeps Plan 85D's lift (no slowdown above the knee, no edge for the
-established powers) and gets none of these. The athletics pillar's
+boost (a third) on 2026-10-01, asking for fewer titles, and kept a quarter
+of the big stage against the specialized college (above). The
+specialization alone keeps Plan 85D's lift as amended (no slowdown above the
+knee; the established powers' edge shrunk to a quarter) and gets none of
+these. The athletics pillar's
 specialization term reads what the complex produces: each postseason the
 college reaches the last four while it works goes on its record
 (`orgs.complexRuns`, the window's years only), and the term is the deep runs
 of the last ten years, a title 1, a lost final a half and a lost semifinal a
-quarter, full at 40 points (`complexReading`); nothing while no complex
+quarter, full at 30 points (`complexReading`); nothing while no complex
 stands. The Athletics tab's department panel says what the complex does and
 how many flagships it carries, and the flagships figure counts its slots.
 
 Measured on the harness's athletics specialist (Guided with a fixed pick of
 athletics, which runs the department as the specialization asks:
-`sim/harness/athletics.ts`): titles every year from the year after the
-choice, 49 to 64 by Year 50 (31 to 38 with the specialization and none of
-the complex's mechanics, 56 to 80 with the first version's edge and boost),
-and the term full 10 or 11 years after the choice. The unspecialized
-championships player still wins one to five. The owner's target is about 25
-to 40: what drives the count is the specialization's own lift, which lets
-every flagship play at 100 with no edge against it, and Plan 85's 85G note
-measures a lever for it (a quarter of the big stage kept for the
-specialized college), not yet built.
+`sim/harness/athletics.ts`): titles regularly from two or three years after the
+choice, 32 to 46 by Year 50 for Guided and 16 to 38 for the Completionist,
+about one or two a year against the owner's 25 to 40, and the term full 9 to
+12 years after the choice. The unspecialized championships player still
+wins one to five. Before the quarter of the big stage was kept, the
+specialists won 49 to 69 with the halved edge and boost and 56 to 80 with
+the first version's: with no edge at all against it, every flagship played
+at 100 and won (Plan 85's 85G note).
 
 **This is the loop the whole athletics feature was built for**, and every arrow
 in it now exists: fund a program → hire a coach → team quality rises → the
