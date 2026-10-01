@@ -35,7 +35,7 @@ export const LANDMARK_WINDOW_YEARS = 10;
 export const LANDMARK_YEARS_FOR_FULL = 12;
 export const LANDMARKS_COUNTED = 3;
 
-// The boost (a proposal, for the owner's review): while the park stands at a
+// The boost (the owner's decision, 2026-10-01): while the park stands at a
 // college specialized in research, every lab's output is this much higher
 // (researchData.ts's researchRateMultiplier): more papers, and the grants
 // that ride on them. A park at a college specialized in anything else gives

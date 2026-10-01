@@ -158,7 +158,7 @@ choice is [progression.md](progression.md)'s).
   full. Nothing while no park stands, and the row says why. The weekly
   record is `s.research.landmarkWork` (a year and its weeks, the window's
   years only), kept by the research tick (`recordLandmarkWork`).
-- **The boost** (a proposal, for the owner's review): while the park
+- **The boost** (the owner's decision, 2026-10-01): while the park
   stands at a college specialized in research, `researchRateMultiplier` is
   15% higher (`PARK_RESEARCH_BOOST`): every lab's papers come 15% sooner,
   with the grants that ride on them. It shows in every offer's expected

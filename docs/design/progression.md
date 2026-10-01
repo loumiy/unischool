@@ -279,7 +279,7 @@ late, and kept:
   training picks (see [faculty.md](faculty.md)). So is research's (Plan
   85F): the Research Park, which only a college specialized in research may
   build now, with the Landmark Program it opens and, while it stands, a 15%
-  boost to every lab's output (a proposal for the owner's review; see
+  boost to every lab's output (the owner's decision, 2026-10-01; see
   [research.md](research.md)). It lifts no standing of its own: its 18
   points of research went to the pillar's other terms, by the rule above. A
   park built before Plan 85F stays, with its Landmark Programs, whatever
