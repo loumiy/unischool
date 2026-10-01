@@ -28,6 +28,7 @@ import { FOUNDING_COLORS, schoolColorsOf } from '../../src/data/schoolColors';
 import { makeRivalRng } from '../../src/data/rivalData';
 import { specializationAnswer, type SpecializationRule } from './specialization';
 import { useTrainingPicks } from './training';
+import { commissionLandmarks } from './researchPark';
 
 // The game saves to localStorage; a headless run keeps it in memory.
 export const fakeStorage = new Map<string, string>();
@@ -67,6 +68,10 @@ export interface Player {
   // a test of the state, only while it holds (tools/scenarios.ts's
   // training, which stops with a year's picks unspent).
   trains?: false | ((s: GameState) => boolean);
+  // Whether, specialized in research with the Research Park standing, it
+  // keeps Landmark Programs running (researchPark.ts): absent, it does;
+  // false, never.
+  landmarks?: false;
 }
 
 export interface FoundOptions {
@@ -123,6 +128,9 @@ export function answerAll(g: Game, player?: Player): number {
 // weeks reads the clock.
 export function playWeek(g: Game, player: Player): void {
   answerAll(g, player);
+  // Before the player's own moves, which would fill an idle lab with
+  // something cheaper.
+  if (player.landmarks !== false) commissionLandmarks(g);
   player.act(g);
   if (player.trains === undefined || (player.trains !== false && player.trains(g.s))) useTrainingPicks(g);
   answerAll(g, player);

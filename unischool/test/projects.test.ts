@@ -77,6 +77,9 @@ function stand(s: GameState, id: string): void {
   unlockAvailable(s);
   assert(PROJECT_IDS.every((id) => node(s, id).status === 'locked'), 'none is open to a founding college');
   s.clock.year = 12;
+  // The research park is the research specialization's own building (Plan
+  // 85F); for that college it still waits on the labs (Plan 53).
+  s.specialization = 'research';
   unlockAvailable(s);
   assert(node(s, 'PROJ-RESEARCH-PARK').status === 'locked', 'the research park waits on the labs (Plan 53)');
   const labId = labFinished(s);
@@ -87,6 +90,7 @@ function stand(s: GameState, id: string): void {
   s.research.finishedLabs = [labId, second.id];
   unlockAvailable(s);
   assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available', 'and opens once each has seen an initiative through');
+  s.specialization = 'none';
   assert(node(s, 'PROJ-ARTS').status === 'locked', 'a graduate host waits on its school\'s curriculum too');
   for (const id of schoolCurriculumIds('Arts & Media')) node(s, id).status = 'done';
   unlockAvailable(s);
@@ -110,6 +114,7 @@ function stand(s: GameState, id: string): void {
 // ---- Half from the endowment ----
 {
   const s = fresh(12);
+  s.specialization = 'research';
   labFinished(s);
   unlockAvailable(s);
   const park = node(s, 'PROJ-RESEARCH-PARK');
@@ -134,17 +139,21 @@ function stand(s: GameState, id: string): void {
   // empty until one stands, scaled with the rest.
   const empty = pillarBreakdown(s, 'academics').inputs.find((i) => i.key === 'projects');
   assert(empty !== undefined && empty.contribution === 0, 'an empty line for projects until one stands');
-  const researchShare = pillarBreakdown(s, 'research').inputs.find((i) => i.key === 'projects')!.weight / projectLiftMax('research');
+  // The research park lifts no standing of its own since Plan 85F (it
+  // lifted research 18 points for any college): the research pillar's
+  // specialization term reads its Landmark work (test/researchPark.test.ts).
   stand(s, 'PROJ-RESEARCH-PARK');
-  assert(Math.abs(projectLift(s, 'research') - 18) < 1e-9, 'the research park lifts research 18 points');
-  assert(Math.abs(computeResearchTarget(s) - before - 18 * researchShare) < 0.01, `and the research standing's target with it, scaled with the pillar's other terms (${(18 * researchShare).toFixed(1)})`);
-  node(s, 'PROJ-RESEARCH-PARK').backlog = node(s, 'PROJ-RESEARCH-PARK').cost / 4;
-  assert(Math.abs(projectLift(s, 'research') - 9) < 0.01, 'half as much at half condition');
+  assert(projectLift(s, 'research') === 0 && computeResearchTarget(s) === before, 'the research park lifts no standing of its own (Plan 85F)');
   stand(s, 'HLTH-T3');
+  const researchShare = pillarBreakdown(s, 'research').inputs.find((i) => i.key === 'projects')!.weight / projectLiftMax('research');
+  assert(Math.abs(projectLift(s, 'research') - 8) < 1e-9 && projectLiftMax('research') === 8, 'the medical center is the one project that lifts research, 8 points');
+  assert(Math.abs(computeResearchTarget(s) - before - 8 * researchShare) < 0.01, `and the research standing's target with it, scaled with the pillar's other terms (${(8 * researchShare).toFixed(1)})`);
+  node(s, 'HLTH-T3').backlog = node(s, 'HLTH-T3').cost / 4;
+  assert(Math.abs(projectLift(s, 'research') - 4) < 0.01, 'half as much at half condition');
+  node(s, 'HLTH-T3').backlog = 0;
   const input = pillarBreakdown(s, 'academics').inputs.find((i) => i.key === 'projects');
   const share = input ? input.weight / projectLiftMax('academics') : 0;
   assert(input !== undefined && Math.abs(input.contribution - 6 * share) < 0.01, `the medical center lifts the academics pillar its 6 points, scaled (${input?.contribution})`);
-  assert(Math.abs(projectLift(s, 'research') - 9 - 8) < 0.01, 'and research, beside the park');
   assert(projectLiftMax('academics') === PROJECTS.reduce((t, p) => t + (p.project.boosts.academics ?? 0), 0) + 6, 'the most is every project standing, the Medical Center among them');
   assert(projectLiftMax('athletics') === 0, 'and nothing lifts athletics since the championship stadium went');
 }

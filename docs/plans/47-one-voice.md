@@ -162,6 +162,11 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
   Institute ([Plan 85](85-specializations.md) PR E): "3 of 5 training picks
   left this year". The action on a professor's tile is **Train**, and a
   professor so raised is *trained*. Picks not used *lapse*.
+- **Landmark work.** What the research specialization's share of research
+  reads ([Plan 85](85-specializations.md) PR F): the years Landmark
+  Programs have run at the Research Park, "a year for each program, each
+  year it runs", over the last ten. The research park (lower case) is the
+  specialization's name; the Research Park is the building.
 - **Specialization.** The one pillar a college, or a rival, may be the very
   best at ([Plan 85](85-specializations.md)): "specialized in research".
   Never "archetype", which names the harness's players. A pillar's cap

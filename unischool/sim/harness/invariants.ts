@@ -17,6 +17,7 @@ import { programById } from '../../src/data/techData';
 import { dealtSpecialization, isSpecialization } from '../../src/data/rivalData';
 import { isGraduateHost } from '../../src/data/projectData';
 import { picksFor } from '../../src/data/trainingData';
+import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../../src/data/researchParkData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
 import { isInBounds, placementTiles } from '../../src/state/campusMap';
 
@@ -168,6 +169,20 @@ export function brokenRules(s: GameState): string[] {
   }
   for (const c of s.candidates) if (c.training) out.push(`${c.name} is a candidate with training`);
   if (s.training.trained.length > 0 && s.specialization !== 'academics' && s.sandbox !== true) out.push('professors trained at a college not specialized in academics');
+
+  // The research park (Plan 85F): open to build only at a college
+  // specialized in research (one standing at another, built before Plan
+  // 85F, stays); its Landmark work is a year at most once, oldest first,
+  // inside the window, and no more than LANDMARKS_COUNTED a week.
+  const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
+  if (park?.status === 'available' && s.specialization !== 'research' && s.sandbox !== true) out.push('the Research Park is open at a college not specialized in research');
+  const work = s.research.landmarkWork;
+  for (let i = 0; i < work.length; i += 1) {
+    const w = work[i];
+    if (i > 0 && w.year <= work[i - 1].year) out.push(`Landmark work for Year ${w.year} out of order`);
+    if (w.year > s.clock.year || w.year <= s.clock.year - LANDMARK_WINDOW_YEARS - 1) out.push(`Landmark work for Year ${w.year}, outside the window`);
+    if (!(w.weeks >= 0 && w.weeks <= LANDMARKS_COUNTED * WEEKS_PER_YEAR)) out.push(`${w.weeks} weeks of Landmark work in Year ${w.year}`);
+  }
 
   return out;
 }

@@ -838,7 +838,7 @@ function assetsPolicy(): Policy {
       postSearchIfStuck(g, j, reserve);
       foundGraduate(g, j, reserve);
       staffTeams(g, j, reserve, false);
-      fundResearch(g, j, reserveOf(s, 4), false, 'The Research Park waits on every standing lab having seen an initiative through.');
+      fundResearch(g, j, reserveOf(s, 4), false, 'The Research Park waits on every standing lab having seen an initiative through (and, since Plan 85F, on a specialization in research).');
       if (s.clock.week % TEND_EVERY_WEEKS === 0) j.because('tend-teaching', 'Keep the teaching up.', () => tendTeaching(g, { reserve }));
     },
     summer(g) {

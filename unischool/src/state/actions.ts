@@ -276,7 +276,7 @@ export function createPreStartState(): GameState {
     research: {
       publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingCompletions: [],
+      lastOutputWeek: 0, pendingCompletions: [], landmarkWork: [],
     },
     candidates: [],
     started: false,
@@ -430,7 +430,7 @@ function foundState(
     research: {
       publications: 0, grants: 0, grantIncome: 0,
       breakthroughs: 0, prizes: 0, initiatives: {}, completedInitiatives: [],
-      lastOutputWeek: 0, pendingCompletions: [],
+      lastOutputWeek: 0, pendingCompletions: [], landmarkWork: [],
     },
     candidates: initialCandidatePool(),
     started: true,

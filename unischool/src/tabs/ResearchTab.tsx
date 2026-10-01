@@ -18,6 +18,10 @@ import { CloseIcon, RemoveIcon, StatusIcon } from '../components/icons';
 import { projectOpens } from '../data/projectData';
 import { labsTowardPark, projectOpen } from '../systems/estate/projects';
 import { standsOnCampus } from '../state/types';
+import { PARK_WORDS, landmarkYears, landmarksRunning, parkReading } from '../data/researchParkData';
+import { PILLAR_WORDS } from '../data/specializationData';
+import { specializationOf } from '../systems/prestige/specialization';
+import { SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
 
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
@@ -212,7 +216,7 @@ function VacantPanel(
         </div>
       )}
       {open && !depthOpen(s, 'landmark') && (
-        <p className="empty-note landmark-note">Landmark Programs, four scholars across disciplines over five years, are commissioned once the Research Park stands.</p>
+        <p className="empty-note landmark-note">{PARK_WORDS.landmarkClosed}</p>
       )}
 
       {open && picked && !picked.blockedReason && (
@@ -295,23 +299,49 @@ function VacantPanel(
   );
 }
 
-// The Research Park's progress (Plan 80B): it waits on every standing lab
-// having finished a project (projects.ts's everyLabFinished), so the count,
-// each lab marked, and what a new lab does to it. Gone once the park stands.
+// The Research Park (Plan 80B; Plan 85F). Standing: what it does for the
+// college, the research specialization's share it fills or that it fills
+// none. Not yet standing: it is the research specialization's own building
+// (Plan 85F), so a college specialized otherwise is told it cannot build
+// it; any other sees its progress, since it also waits on every standing
+// lab having finished a project (projects.ts's everyLabFinished): the
+// count, each lab marked, and what a new lab does to it.
 function ResearchParkProgress({ s }: { s: GameState }) {
   const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
-  if (!park?.project || standsOnCampus(park)) return null;
+  if (!park?.project) return null;
+  const chosen = specializationOf(s);
+  if (standsOnCampus(park)) {
+    return (
+      <section className="research-park" aria-label={PARK_WORDS.head}>
+        <h3 className="facility-group-head">{PARK_WORDS.head}</h3>
+        <p className="research-park-line">
+          {chosen === 'research'
+            ? PARK_WORDS.works(landmarkYears(s), landmarksRunning(s), parkReading(s) >= 1)
+            : chosen ? PARK_WORDS.idle(PILLAR_WORDS[chosen]) : PARK_WORDS.idleUnchosen}
+        </p>
+      </section>
+    );
+  }
+  const weeksLeft = park.status === 'developing' ? s.developing[park.id] : undefined;
+  if (weeksLeft === undefined && chosen !== null && chosen !== 'research') {
+    return (
+      <section className="research-park" aria-label={PARK_WORDS.head}>
+        <h3 className="facility-group-head">{PARK_WORDS.head}</h3>
+        <p className="research-park-line">{PARK_WORDS.gatedElsewhere(PILLAR_WORDS[chosen])}</p>
+      </section>
+    );
+  }
   const labs = labsTowardPark(s);
   if (labs.length === 0) return null;
   const finished = labs.filter((l) => l.finished).length;
-  const weeksLeft = park.status === 'developing' ? s.developing[park.id] : undefined;
   return (
-    <section className="research-park" aria-label="The Research Park">
-      <h3 className="facility-group-head">The Research Park</h3>
+    <section className="research-park" aria-label={PARK_WORDS.head}>
+      <h3 className="facility-group-head">{PARK_WORDS.head}</h3>
       {weeksLeft !== undefined ? (
         <p className="research-park-line">Going up: {weeksShort(weeksLeft)} left. Landmark Programs open when it stands.</p>
       ) : (
         <>
+          {chosen === null && <p className="research-park-line">{PARK_WORDS.gatedUnchosen(SPECIALIZATION_MILESTONE_RANK)}</p>}
           <p className="research-park-line">
             {projectOpens(park.project)}
             {projectOpen(s, park) && ' It is open: build it from the capital projects in the build menu.'}

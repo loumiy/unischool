@@ -10,6 +10,7 @@ import {
   promoteToVarsityTeam, sportById, sportClubsAwaitingVarsity, VARSITY_PETITION_MIN_TENURE_YEARS, venueForCategory,
   CHAIR_LABEL, coachNamesInUse, fieldForChair, generateCoachCandidate, inTitleYear, seatCoach, vacantChairs, departmentPot, sportEconomics, ATHLETICS_BUDGET_TIERS } from './studentLifeData';
 import { RESEARCH_PARK_ID } from './researchData';
+import { PARK_RESEARCH_BOOST } from './researchParkData';
 import { PROJECTS } from './projectData';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, academicHallId, graduateProgram, milestoneSchools, programById } from './techData';
 import { FOUNDING_MARKET } from './foundingData';
@@ -1276,7 +1277,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const park = PROJECTS.find((p) => p.id === RESEARCH_PARK_ID)?.project;
       const parkOpens = park ? `from Year ${park.fromYear}` : 'in time';
       const graduateYear = PROJECTS.find((p) => p.id === 'PROJ-GRADUATE')?.project.fromYear ?? 15;
-      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one research project at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see a project through in every lab this college builds. When each has finished one, the Research Park opens (${parkOpens}), which opens Landmark research to every lab, and the college is a research university in fact, whatever its name. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
+      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one research project at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see a project through in every lab this college builds. A college whose every lab has finished one has earned the Research Park (${parkOpens}), which opens Landmark research to every lab, though only a college that chooses, in time, to specialize in research may build it. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
     },
     ask: (s) => {
       const lab = standingLabs(s).find((t) => !finishedLab(s, t.id));
@@ -1288,14 +1289,19 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     },
     done: (s) => standingLabs(s).length > 0 && standingLabs(s).every((t) => finishedLab(s, t.id)),
   },
+  // Since Plan 85F the park opens only to a college specialized in
+  // research, so the letter comes after the choice. Its ask is done once the
+  // park is going up or standing, or if it is closed again (a save from
+  // before Plan 85F whose college had not built it: the migration closes it
+  // to any college not specialized in research).
   {
     id: 'the-research-park',
     week: 1,
     arrives: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'locked'),
     title: 'The Research Park',
-    body: () => 'Every lab on campus has finished a research project, and the board has found the land: the Research Park, laboratories where faculty and industry work side by side, can be built. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes.',
+    body: () => `The college is specialized in research, every lab on campus has finished a research project, and the board has found the land: the Research Park, laboratories where faculty and industry work side by side, can be built. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes. Its Landmark work fills research's specialization share, and while it stands every lab's output is ${Math.round(PARK_RESEARCH_BOOST * 100)}% higher.`,
     ask: () => ({ text: 'Site the Research Park', go: 'build', intent: { kind: 'site', buildableIds: [RESEARCH_PARK_ID] } }),
-    done: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && (t.status === 'developing' || t.status === 'done')),
+    done: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'available'),
   },
 ];
 

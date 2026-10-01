@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A–E merged (#268, #274–#277).**
+**Status: In progress: A–F merged (#268, #274–#278).**
 
 ---
 
@@ -1011,258 +1011,6 @@ an A (kept).
   - **Cash at year 50:** Guided +$22M, the Completionist +$123M (a smaller
     payroll), the report's noisiest figure as before.
 - **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
-  re-recorded (`--save`), then 0 deltas; `npm run phone` on the
-  `specialization` scenario (the choice at 390 and 820 wide), the launch
-  fixture, the notice and a year-47 save; `review:strings`, nothing new
-  flagged. `test/specialization-choice.test.ts` pins the notice before the
-  milestone (and once, and only within reach), the offer at the milestone's
-  summer to the place (and not one place short, nor mid-year), the choice at
-  the summer's close holding no week, not this year and its return, the
-  opening of only the chosen pillar's term (athletics' teams too), the other
-  terms' words after the choice, permanence, a save round trip (mid-choice
-  too), the chronicle's line, the Final Report's title (specialized, and a
-  college that never was), the migration and the load's sanitizing, and the
-  harness's rule. `test/specializations.test.ts` pins the terms: every
-  pillar's weights add up, a perfect unspecialized college stands at its
-  natural maximum, a specialized one with its term full passes it and every
-  term in full is 150, the term fills a tenth a year; the team-quality
-  curve (whole below the knee, slower above, never 100, whole again with
-  the specialization); the rivals unclamped (none climbs past its target,
-  one above is not snapped back) and the draws.
-- **Screenshots** in `docs/reviews/2026-10-pillars/`, from a Guided run
-  named Blackmoor (seed 12345): `85d-notice.jpg` (the board's letter in the
-  inbox), `85d-choice.jpg` and `85d-choice-phone.jpg` (the choice at 1400
-  and 390 wide), `85d-choice-confirm.jpg` (the confirm step armed),
-  `85d-prestige-unspecialized.jpg` (History › Prestige before the choice,
-  academics opened on its empty term; taken with the milestone at the top
-  12, in year 33), `85d-prestige.jpg` (after choosing, year 47), `85d-standings.jpg`, `85d-guide.jpg` and `85d-final-report.jpg`
-  (the Final Report's line naming the specialization).
-- **Open, for review:**
-  - **The milestone is now the top 20**, nearly twice the first version's
-    rank, because the climb without caps is slower (above).
-  - **Both strong players pick academics.** 85I's fixed-pick variants will
-    show what the other three are worth.
-  - **Athletics' term is 30**, not the 40 asked for, for the championships
-    player's athletics rank (above).
-
-## PR 85E — The faculty training program
-
-- **An institute on the map** (a building in the catalog), buildable only
-  with this specialization.
-- **Each year the player picks professors for training** from Plan 84's
-  grid. A pick's teaching rises by one letter grade (the course-grade
-  bands), and so does its potential, so the gain lasts.
-- **How many:** a number that scales with the size of the faculty.
-- **Costs to decide in review:** whether a trainee teaches less for a term
-  while training, and the institute's own running cost.
-- **Lifts the academic pillar's ceiling.**
-- **Checks:** a test that a grade is gained; the harness's teaching
-  specialist in I.
-
-**As implemented (#277):** a college specialized in academics may build the
-Faculty Training Institute, and while it stands it trains professors each
-year: a pick's teaching rises a full grade, the width of its band on the
-course-grade scale, and its potential with it. The academics pillar's specialization term now reads the program, the share
-of the faculty trained, in place of 85D's ten years. Save version 90.
-*"Lifts the academic pillar's ceiling" is the term since 85D's review: no
-pillar has a ceiling (§2).* The owner decided the four questions the first
-version left open on review (2026-10-01): a trainee teaches one course fewer
-for a term (kept); the institute runs at $35,000 a week (kept); a training
-adds a band's width, not a move to the same place in the next band
-(changed); and a strong college's picks lapse once its faculty is all at
-an A (kept).
-
-- **The institute** (`projectData.ts`'s `PROJ-TRAINING`, "The Faculty
-  Training Institute") is a capital project like the others, built from the
-  build menu's capital projects and payable half from the endowment. It
-  opens only to a college specialized in academics: `CapitalProject` gains
-  `specialization`, which `projects.ts`'s `projectOpen` reads (85F's research
-  park can use the same gate). It lifts no standing of its own: the term
-  reads what it does.
-  - **Cost:** $30M and 104 weeks, between the Graduate College ($25M, 104
-    weeks) and the Law and Business Schools ($35M, 130 weeks).
-  - **Its running cost, the owner's decision (2026-10-01):** upkeep of $35,000 a week
-    ($1.8M a year), the Law and Business Schools' figure. There is no fee
-    per trainee. A trained professor also costs more, since salary follows
-    teaching.
-  - **On the map:** an academic hall (the `hall` motif, the halls' deep
-    roof), three stories, 11 by 7, in the civic limestone rather than the
-    halls' brick, under a glazed cupola on the ridge. The cupola is a new
-    signifier (`buildingSpec.ts`'s `cupola`, drawn by `buildingMotifs.tsx`'s
-    `RoofSignifier`, which the hall's own branch now calls in place of the
-    bell-gable). The canvas painter walks the same components
-    (`canvasArt.ts`'s `registerArt(BuildingMotif, …)`), so the canvas and
-    the SVG map draw it alike. It is entered through the halls' formal
-    portal, and `tools/layout.ts` sites it at the foot of the capital
-    projects' court.
-- **Training** (`systems/faculty/training.ts`; numbers and words in
-  `data/trainingData.ts`). `TRAIN_FACULTY` spends one of the year's picks.
-  - **The picks:** one for every 15 professors on the roster, at least 2
-    (`FACULTY_PER_TRAINING_PICK`, `MIN_TRAINING_PICKS`): 5 for a faculty of
-    80, 6 for 90 to 104. A professor can be picked once a year, while below
-    an A, and again in a later year.
-  - **A grade's width up, the owner's decision (2026-10-01)**
-    (`courseQuality.ts`'s `gradeWidth` and `oneGradeUp`): teaching rises by
-    the width of the band it sits in, read off the course-grade bands: 16
-    points from a B (a B's 77 becomes 93), 18 from a C, 14 from a D. An F,
-    whose band has no floor of its own, takes a D's width. Teaching stops at
-    100. An A has no grade above it and cannot be picked. The teaching
-    potential rises by the same points, to at most 100. A professor at the
-    top of a band crosses two letters (a C's 61 becomes 79); one at its
-    bottom lands on the next band's floor (a B's 62 becomes 78).
-    - The first version moved teaching to the same place in the next band
-      up, exactly one letter: a B's 77 became 99, since A's band is the
-      widest (22 points). The owner chose the band's width instead.
-  - **The gain lasts:** `Faculty.training` holds the points added and the
-    potential before training, and `growFaculty` grows teaching on that
-    potential and adds the points (at most 100). A trainee keeps growing
-    along the curve they were hired on, a grade higher.
-  - **Does a trainee teach less? The owner's decision (2026-10-01):** yes, one course
-    fewer for a term (26 weeks from the pick). `effectiveCourseSlots`
-    subtracts one course slot while the term runs (`trainingSlotsOff`). A
-    course that no longer fits moves, lowest tier first, to the strongest
-    colleague in the field with a course slot free, or waits for an
-    instructor. That is the research commitment's plan, shared
-    (`techSystem.ts`'s `planTrainingCoverage`). The Train button asks first
-    when a course would move, and names where it goes; the log says so.
-  - **Picks lapse** (kept by the owner, 2026-10-01, for a faculty all at
-    an A too): `s.training` is the year and the professors trained in it;
-    a new year starts the list again. At the year's last week the log
-    says how many went unused, and the Faculty tab says that picks not used
-    by the end of the year lapse.
-- **The career record** notes each training (`Career.training`, a year with
-  the teaching before and after, written by `career.ts`'s `recordTraining`).
-  The person view gains a Training section: "Trained at the Faculty Training
-  Institute in Year 34: teaching from 73 (B) to 93 (A), and their potential
-  with it." The words are `careerWords.ts`'s.
-- **The Faculty tab:**
-  - Over the grid, the program's bar: "3 of 5 training picks left this
-    year", the rule, the lapse, and the share trained against the 40% that
-    fills the term. Before the institute stands it says to build one, or
-    that it is going up.
-  - A *Can be trained* filter, a **Train** action on a professor's tile and
-    a *Trained* badge. The Train button is hidden for an A, and disabled,
-    with the reason, once the picks are spent or the professor was trained
-    this year. While a trainee is at the institute, the badge takes the
-    school color and gives the date the course slot returns.
-  - The log has a `training` topic.
-- **The term reads the program** (`specializationData.ts`'s
-  `SPECIALIZATION_READINGS.academics` is `trainingData.ts`'s
-  `trainingReading`). It is the share of the faculty on the roster who have
-  been trained, over `TRAINED_SHARE_FOR_FULL`, 40%, at most full.
-  - A professor who retires takes their training with them, and a new hire
-    arrives untrained, so the program has to keep going.
-  - **Without the institute standing, the term is empty,** specialized or
-    not. The row says why: "…but no Faculty Training Institute stands, so
-    this stays empty. Build one from the capital projects, then train
-    professors there each year…". Standing, it says "21 of 87 professors
-    (24%) have been trained at the Faculty Training Institute. It fills as
-    that share rises, full at 40%."
-  - The other three pillars still fill with the years until 85F-H.
-  - **Pacing against 85D.** 85D filled the term ten years after the choice's
-    summer. Now it fills in 10 or 11 years: the year the share first stood
-    at 40%, from the choice (seeds 12345, 4242, 777; with the band's width):
-
-    | | Choice | Institute opens | Half full | Full | Years to fill |
-    |---|---|---|---|---|---|
-    | Guided | 31, 29, 30 | 34, 32, 34 | 38, 36, 38 | 41, 39, 41 | 10, 10, 11 |
-    | Completionist | 36, 38, 30 | 39, 41, 33 | 43, 45, 37 | 47, 49, 41 | 11, 11, 11 |
-
-    It starts later, since the institute takes two years to build (half
-    full after about seven years, against five), and then fills faster, at
-    about 15% of the term a year.
-    - At a third, it filled in 9 to 10 years (measured with the first
-      version's gain). First place moved by a year or two either way,
-      within the field's noise. I kept 40% to stay inside the 10 to 15
-      years asked. With the first version's gain it filled in 10 to 12.
-- **The choice's card** moves the institute and training from *Still to
-  come* to *Now*, and the academics card's opening line ends "filling as
-  professors are trained at the institute, full once 40% of the faculty has
-  been trained" (the card's `fills`). The other three keep "filling over 10
-  years".
-- **The harness** (`sim/harness/training.ts`):
-  - Guided and the Completionist already build any capital project that
-    opens, so each builds the institute at once. The institute opens two
-    to three years after the choice.
-  - Every harness player spends the year's picks as soon as it has them
-    (`game.ts`'s `playWeek`; `Player.trains` turns this off, or limits it to
-    a test of the state).
-  - **The pick** is the untrained professor below A with the highest
-    teaching potential; once nobody untrained is left below A, the same
-    among those trained before.
-    - Trying the lowest potential first measured worse. Those professors
-      would never reach an A unaided, but they are older, retire sooner and
-      take their training with them. The term filled more slowly (40 to 47
-      trained of about 83 at year 50, against 46 to 55), and Guided first
-      reached first place a year later.
-  - `npm run scenario -- training` stops a few weeks into Year 38 with the
-    year's picks unspent. `invariants.ts` checks the list, the picks, and
-    that a trained professor's potential is the potential before plus the
-    points.
-- **Save:** `SAVE_VERSION` 89 → 90, migration `trainingProgram` at
-  `MIGRATIONS[89]`. It adds the institute to the catalog, locked (a save
-  keeps the catalog it was founded with; a college already specialized in
-  academics sees it open the next week), and an empty year's list.
-  `test/fixtures/save-v89.json` is the `year-8-balanced` scenario written
-  before the bump. The load drops a malformed training or list
-  (`sanitizeTraining`, and the career's lines in `sanitizeCareers`).
-- **The sim moves**, against main's baseline (85D), medians of three seeds.
-  Teaching is the faculty's median teaching at years 30, 40 and 50; the
-  pillar ranks are at year 50, academics / research / student life /
-  athletics:
-
-  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 | Teaching Y30 / Y40 / Y50 |
-  |---|---|---|---|---|---|
-  | Guided | 56 / 31 / 1 | 50.0 / 81.7 / 120.2 (+1.0) | 85.8 / 84.9 / 86.1 (+1.0) | 6 / 8 / 4 / 79, was 5 / 8 / 4 / 78 | 80 / 91 (+7) / 99 (+13) |
-  | Completionist | 56 / 35 / 2 (+1) | 50.1 / 76.4 / 116.7 (−0.6) | 85.7 / 89.6 / 88.3 (−1.6) | 4 / 14 / 4 / 76, was 5 / 10 / 4 / 75 | 81 / 87 (+3) / 94 (+8) |
-  | Selective | 60 / 58 / 61 | 43.2 / 51.3 / 52.1 | 86.4 / 83.1 / 81.7 | 56 / 65 / 22 / 100 | 54 / 49 / 50 |
-  | Lean | 64 / 64 / 72 | 40.1 / 43.3 / 42.8 | 75.8 / 75.0 / 73.8 | 56 / 81 / 27 / 100 | 55 / 50 / 47 |
-  | Idle | 80 / 66 / 75 | 30.4 / 41.9 / 38.8 | 84.0 / 84.0 / 84.1 | 79 / 80 / 28 / 100 | none |
-
-  When the strong players first reach each place (seeds 12345, 4242, 777;
-  the year's first week):
-
-  | | Top 20 | Top 10 | #1 |
-  |---|---|---|---|
-  | Guided, 85D | 31, 29, 30 | 35, 35, 38 | 42, 42, 44 |
-  | Guided, now | 31, 29, 30 | 36, 36, 38 | 44, 43, 45 |
-  | Completionist, 85D | 36, 38, 30 | 42, 45, 39 | 49, never (best 2), 45 |
-  | Completionist, now | 36, 38, 30 | 43, 47, 38 | never (best 2), year 51, 43 |
-
-  - **The picks** are unchanged: academics, Guided in years 31, 29 and 30,
-    the Completionist in 36, 38 and 30. Selective, Lean and Idle never reach
-    the milestone, never specialize and do not move.
-  - **Trainees a year:** Guided trains 5 or 6 a year until about year 44.
-    By then nearly every professor is at an A, so it trains 1 to 5 a year
-    and lets the rest lapse (68, 84 and 79 trainings in all). The
-    Completionist trains 5 or 6 a year throughout (71, 55 and 92). At year
-    50, 46 to 54 of 77 to 86 professors are trained.
-  - **The targets hold.** Held to no specialization (`'never'`), both
-    players are exactly as before: Guided's best place 5, 4 and 4, the
-    Completionist's 5, 10 and 7, and never first. Specialized, Guided is
-    first on every seed from years 43 to 45 and at year 50. The
-    Completionist is first on seed 777 from year 43 and on 4242 in year 51's
-    first week; on 12345 it is second, as 4242 was before.
-  - **Why first place comes a year or two later for Guided:** the term
-    starts filling about three years after the choice, while 85D's started
-    at once. Prestige runs up to 1.4 lower through years 33 to 42, is level
-    by year 44, and at year 50 is a point higher in the median (from −0.6 to
-    +1.2 by seed). With prestige level,
-    the rank still turns on the elite band, which closes on the college as
-    it rises. Guided seed 12345 stood at 116.0 in year 43, the same as
-    before, but third rather than first.
-  - **Teaching:** trained professors run to the top of the A band. The
-    harness's picks are the high-potential professors just below an A, and
-    B's 77 becomes A's 99. The faculty's median teaching at year 50 is 99
-    for Guided, against 86.
-  - **Fewer professors:** Guided ends year 50 with 78 against 91, the
-    Completionist with 85 against 92. The harness hires a stronger teacher
-    for a course below an A (`moves.ts`'s `tendTeaching`), and with
-    training fewer courses are below an A. Enrollment, courses and schools
-    do not move.
-  - **Cash at year 50:** Guided +$18M, the Completionist +$51M (a smaller
-    payroll), the report's noisiest figure as before.
-- **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
   re-recorded (`--save`), then 0 deltas; `npm run phone` on the launch
   fixture, the `training` scenario and the `specialization` scenario;
   `review:strings`. One new flag, "common room", was rewritten. The jargon
@@ -1327,6 +1075,272 @@ an A (kept).
   ceiling. The migration and the words say so.
 - **The harness** players that build the park today (Plan 53) follow the
   new rule.
+
+**As implemented (#278):** only a college specialized in research may build
+the Research Park, and while it stands there its Landmark work fills the
+research pillar's specialization term and every lab's output is 15% higher.
+The Landmark Program stays tied to the park, not to the specialization, so a
+park built before this PR keeps it whatever the college chooses. Save
+version 91. *"Lifts the research pillar's ceiling" is the term since 85D's
+review: no pillar has a ceiling (§2).* The owner decided both questions the
+first version left open on review (2026-10-01), as built: the park adds no
+direct lift, and the boost is 15%.
+
+- **The gate** (`projectData.ts`'s `PROJ-RESEARCH-PARK`): 85E's
+  `CapitalProject.specialization`, `'research'`, beside its Year 12 and its
+  labs (Plan 53: every standing lab has finished a research project), which
+  still apply to the college specialized in research. `projectOpens` says
+  both: "Opens once the college is specialized in research and every lab on
+  campus has finished a research project; no other college may build it."
+- **The park lifts no standing of its own, the owner's decision
+  (2026-10-01).** Until now it lifted research
+  18 points for any college; like 85E's institute, the term reads what it
+  does instead. By 85D's rule (a pillar's other terms share the span in
+  their old proportions) the 18 points' share went to the research
+  pillar's other terms: what the labs have produced (80), the fields with a
+  lab (40) and the Medical Center (8) now share the 94 points the park's 18
+  shared with them. So the natural maximum is still 126, and a college
+  without the park is no longer short of it. Keeping the lift for the
+  research specialist alone would have made its term 24 plus about 12, and
+  every other college's natural maximum about 114 (measured below; the
+  owner kept it out).
+- **The term reads the park** (`data/researchParkData.ts`'s `parkReading`,
+  `SPECIALIZATION_READINGS.research`): the years of Landmark work in the
+  last `LANDMARK_WINDOW_YEARS` (10), a year for each program each year it
+  runs, at most `LANDMARKS_COUNTED` (3) at once, full at
+  `LANDMARK_YEARS_FOR_FULL` (12). Two running without a break fill it in six
+  years, three in four, and a little over one at a time holds it full. The
+  window makes it a rate, not a stock, as the academics term's trained
+  faculty retire. Nothing while no park stands: the row says the park is
+  missing, or still going up, and how it fills.
+  - **The record:** `s.research.landmarkWork`, a year and its weeks, the
+    window's years only, written each week by the research tick
+    (`recordLandmarkWork`). Landmark Programs could already run; nothing
+    counted them.
+  - **Why Landmark work:** it is the one thing only the park makes
+    possible, and it costs what the specialization should: four scholars,
+    eight course slots, for five years, and four weeks of operating cost
+    up front.
+  - **Pacing** (the harness's research variant, below): at 20 years it
+    filled 13 to 16 years after the choice; at 12, in 10 to 12, as academics
+    does. Money is what holds it back: the funding is four weeks of
+    operating cost, about $40M in the thirties, and the research specialist
+    runs one Landmark Program, at most, until about Year 40, then three.
+- **The boost, the owner's decision (2026-10-01)** (`PARK_RESEARCH_BOOST`,
+  15%): while the park
+  stands at a college specialized in research, `researchRateMultiplier` is
+  15% higher, so every lab's papers come 15% sooner, with the grants that
+  ride on them; every offer's expected papers show it. A park at any other
+  college gives none. Measured on the research variant: without it, first
+  place came on two seeds of three (years 46 and 48; best 2nd on 4242), the
+  term filled in years 41, 42 and 49, and seed 777 started only 5 Landmark
+  Programs; with it, first place on every seed (years 46–47) and the term
+  full in 41–42. Its effect on the pillar is small (the output term is full
+  at 60 credits, which the strong players pass between years 30 and 43); it
+  works through the grants, which pay for Landmark Programs.
+- **Existing saves.** `SAVE_VERSION` 90 → 91, migration `researchParkGate` at
+  `MIGRATIONS[90]`:
+  - a park built or going up stays, with its Landmark Programs, whatever
+    the college chooses; it fills no term and gives no boost unless the
+    college specializes in research;
+  - a park open but not begun at a college not specialized in research is
+    closed again, as a new run's would be (it opens again if the college
+    chooses research), and its letter's ask is done while it is closed;
+  - the Landmark work is read back from what the save kept: each Landmark
+    Program running, for the weeks it has run, and each finished in the
+    window, for its five years, ended in the middle of its year; no more
+    than three a week.
+  - The park's terms and description are the catalog's on every load
+    (`refreshAuthoredText`), so the gate and the lost lift reach old saves
+    without the migration. `test/fixtures/save-v90.json` is the
+    `year-8-balanced` scenario written before the bump. The load drops a
+    malformed record (`sanitizeLandmarkWork`).
+- **The words** (`researchParkData.ts`'s `PARK_WORDS`, Plan 47's glossary):
+  - **the build menu** lists the park closed at the end of the capital
+    projects, "specialized in research only", the reason on hover, once the
+    labs have earned it (`projects.ts`'s `closedBySpecialization`). It is
+    the one locked building the menu shows; the Faculty Training Institute
+    shows the same way to a college not specialized in academics;
+  - **the park's description**: "At a college specialized in research, its
+    Landmark work fills research's specialization share and every lab's
+    output is 15% higher; a park at a college specialized in anything else
+    keeps its Landmark Programs and adds nothing more";
+  - **History › Prestige**: the research row's term, as above; specialized
+    elsewhere, "…so this stays empty. Its Research Park stays, with its
+    Landmark Programs, but fills none of this"; unspecialized with a park,
+    "The Research Park on campus would fill it with its Landmark work, once
+    the college specializes in research";
+  - **the choice's cards**: research's opening line ends "filling as
+    Landmark Programs run at the park, full at 12 years of Landmark work in
+    the last 10", and the park and the boost move from *Still to come* to
+    *Now*. A college whose park already stands sees on the research card
+    that it works at once, and on the other three that it stays but fills
+    nothing and adds nothing;
+  - **the Research tab**: the park's section says what it does for a
+    college specialized in research (the Landmark work against the 12, the
+    boost), that it does nothing for one specialized elsewhere, that it is
+    the research specialization's building before the choice, and that it
+    cannot be built after another;
+  - **the letters**: *The laboratories* says only a college that chooses
+    research may build the park; *The Research Park* comes after the choice
+    and names the term and the boost; the next-step line at an unproven lab
+    says the park waits on a specialization in research.
+  - **Event conditions and eras:** the catalog's `research-park` need was
+    already "the park stands, or three labs", so it reads true for every
+    strong college; the chronicle names eras from whatever capital projects
+    a college finished and assumes no park. Nothing changed.
+- **The harness** (`sim/harness/researchPark.ts`):
+  - Guided and the Completionist build any capital project that opens, so
+    no unspecialized or academic player builds the park, and the research
+    specialist builds it the year after the choice, when it can afford it.
+  - Before this PR no harness player commissioned a Landmark Program (each
+    lab took its cheapest research project). Now, at the top of each week
+    and before the player's own moves, a college specialized in research
+    with the park standing starts a Landmark Program in an idle lab whose
+    offer is open, while fewer than three run and the funding leaves the
+    guided player's research reserve (`commissionLandmarks`;
+    `Player.landmarks` turns it off).
+  - `invariants.ts` checks that the park is never open at a college not
+    specialized in research, and the record's years and weeks.
+  - `npm run scenario -- research-park` stops in Year 40 at a research
+    specialist with the park at work; `specialization-old-park` stops at
+    the choice with a park built in Year 17 (`scenarios.ts`'s
+    `withOldPark`). A scenario can name a fixed pick (`specialization`).
+- **The sim moves**, against main's baseline (85E), medians of three seeds;
+  pillar ranks at year 50, academics / research / student life / athletics;
+  the research pillar is the stock the guide prints:
+
+  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 | Research Y25 / Y50 |
+  |---|---|---|---|---|---|
+  | Guided | 56 / 29 (−2) / 1 | 50.2 (+0.2) / 80.0 (−1.6) / 120.4 (+0.1) | 85.8 / 83.7 (−1.1) / 87.8 (−0.4) | 6 / 8 / 4 / 81, was 5 / 7 / 4 / 77 | 76.3 (−3.9) / 123.1 (−0.2) |
+  | Completionist | 56 / 34 (−1) / 1 | 50.1 / 79.1 (+2.7) / 118.1 (+1.7) | 85.7 / 88.2 (−1.4) / 89.8 (+1.5) | 5 / 9 / 3 / 70, was 6 / 16 / 4 / 77 | 69.6 (+7.4) / 111.7 (+4.7) |
+  | Selective | 60 / 57 (−1) / 61 | 43.2 / 51.6 (+0.2) / 53.1 (+1.1) | 86.4 / 81.1 (−2.0) / 82.3 (+0.6) | 57 / 63 / 21 / 100, was 56 / 65 / 22 / 100 | 35.7 (+0.4) / 48.8 (+2.8) |
+  | Lean | 64 / 64 / 72 | 40.1 / 43.3 / 42.8 | 75.8 / 75.0 / 73.8 | 56 / 81 / 27 / 100 | 31.4 / 32.0 |
+  | Idle | 80 / 66 / 75 | 30.4 / 41.9 / 38.8 | 84.0 / 84.0 / 84.1 | 79 / 80 / 28 / 100 | 31.4 / 32.0 |
+  | Guided, research (fixed pick) | 56 / 29 (−2) / 1 | 50.2 (+0.2) / 80.0 (−1.6) / 117.6 (−0.4) | 85.8 / 83.7 (−1.1) / 87.1 (+0.2) | 9 / 6 / 5 / 77, was 8 / 6 / 4 / 74 | 76.3 (−3.9) / 140.5 (−3.1) |
+
+  When each first reached each place, its pick and the park (seeds 12345,
+  4242, 777; the year's first week):
+
+  | | Top 20 | Top 10 | #1 | Pick | Park begun / open |
+  |---|---|---|---|---|---|
+  | Guided, 85E | 31, 29, 30 | 36, 36, 38 | 45, 43, 45 | academics 31, 29, 30 | 14 / 17 on every seed |
+  | Guided, now | 30, 32, 29 | 36, 40, 35 | 46, 47, 42 | academics 30, 32, 30 | never |
+  | Completionist, 85E | 36, 38, 30 | 43, 46, 38 | never (best 2), 50, 46 | academics 36, 38, 30 | 28 / 31, 31 / 34, 20 / 23 |
+  | Completionist, now | 33, 39, 31 | 40, 43, 40 | 47, never (best 2), 47 | academics 34, 39, 31 | never |
+  | Guided, research, 85E | 31, 29, 30 | 35, 35, 38 | 45, 46, 46 | research 31, 29, 30 | 14 / 17 on every seed |
+  | Guided, research, now | 30, 32, 29 | 36, 41, 35 | 47, 47, 46 | research 30, 32, 30 | 31 / 33, 33 / 35, 31 / 33 |
+
+  Selective, Lean and Idle never reach the milestone (best 55th), never
+  specialize and never built the park.
+
+  - **The research path** (Guided with a fixed pick of research, the 85D
+    hook): it builds the park the year after the choice (open two years
+    later), starts its first Landmark Program within four years of the
+    park's opening, as the money allows, and runs three from about Year 40
+    (10, 9 and 10 in all). The term is half full in years
+    39, 40 and 40 and full in 41, 42 and 42: 11, 10 and 12 years after the
+    choice. It is first from years 47, 47 and 46 and at year 50 on every
+    seed (prestige 118.4, 116.4, 117.6), a year or two later than the
+    academic Guided and than 85E's research variant, whose term filled with
+    the years and whose park had stood since Year 17. Its research pillar
+    ranks 5th to 7th at year 50 (target 149.9, but the stock drifts toward
+    it: 137 to 143), with the rivals' research specialists near 150; its
+    academics ranks 9th to 10th, the Landmark Programs' scholars teaching
+    eight fewer course slots each. 85I's "its pillar is #1 by a clear
+    margin" is not met by research, and should be looked at there.
+  - **Neither strong player now picks research.** Both pick academics, as
+    before, in nearly the same years: losing the park did not change their
+    strongest pillar.
+  - **The targets hold.** Held to no specialization (`'never'`): Guided's
+    best place 3, 3 and 5 (was 5, 4, 4), prestige at year 50 110.9 (was
+    111.3); the Completionist's 4, 3 and 7 (was 5, 10, 7), 110.5 (was
+    110.4). Neither is ever first. Specialized, both reach first place:
+    Guided on every seed (academics or research), the Completionist on two
+    of three, as before.
+- **What unspecialized colleges lose**, measured:
+  - **The Landmark Program.** No harness player commissioned one before
+    (85E's research variant started 0 to 2 by the guided line), so the
+    harness loses nothing it used; a player loses the deepest research and
+    the likeliest prize (a 45% base award chance against 20% for a Major
+    Program).
+  - **The park's lift, mid-run.** Guided built the park in Year 14 and had
+    its 18 points from Year 17; now its research target at year 25 is 98.9,
+    against 108.1 (the stock 76.3 against 80.2; on seed 4242 70.0 against
+    80.2). By Year 50 the other terms are full and it is level (123.1). The
+    Completionist, which built the park late (years 23 to 34), gains: its
+    other terms count for more from the start (research 69.6 against 62.2
+    at year 25, 111.7 against 107.0 at year 50).
+  - **The cost.** The park's $45M and $45,000 a week are saved.
+  - **The net:** the unspecialized strong players stand a little higher,
+    and come a place or two closer to first (best 3rd, against 4th), never
+    reaching it. That is the rescale of the research pillar's terms (above),
+    not a change anywhere else.
+  - **Measured for the decision, the park's lift kept** (18 points, for
+    the research specialist alone; everything else as here): held to no
+    specialization, Guided's best place 7, 6 and 9 and prestige at year 50
+    107.9 (−3.4 against 85E), research at year 50 111.4 (−12.2); the
+    Completionist's best 5, 10 and 8, 107.4 (−3.0). The top 20 came 0 to 5
+    years later. Neither was first.
+- **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
+  re-recorded (`--save`), then 0 deltas; `npm run phone` on the launch
+  fixture (a pre-85F park standing), the `research-park` scenario and the
+  `specialization-old-park` choice; `review:strings`, nothing new flagged
+  (new strings avoid "standing"; the jargon count for "Landmark Program"
+  rises with the feature).
+  - `test/researchPark.test.ts` pins the gate (closed to every other
+    specialization and to none, open to research once the labs have
+    finished, listed closed in the build menu, its words), the lost lift,
+    an existing park keeping its Landmark Programs and offers, a non-research
+    pick keeping the park with no term and no boost (and the row and cards
+    saying so), the term reading the Landmark work (the window, the full
+    mark, three at once, nothing without the park or while it goes up), the
+    research tick's record, the card, the boost only when specialized with
+    the park, the migration (a closed park, an open one kept for research,
+    the launch fixture's running Landmark Program read back), a round trip
+    and a malformed record, and the harness's rule.
+  - `test/projects.test.ts` opens the park for a research college, and pins
+    the Medical Center as the one project lifting research;
+    `test/specializations.test.ts` and `test/training.test.ts` read the
+    years' fill through student life; `test/guided.test.ts` holds its third
+    run ("Harrow College") to research, so the Research Park's letter, which
+    the other two are no longer sent, is delivered and done there (by Year
+    30), and fifty years of a research specialist keep the rules.
+- **Screenshots** in `docs/reviews/2026-10-pillars/`, from Guided runs named
+  Blackmoor (seed 12345):
+  - `85f-build-gated.jpg`, the capital projects in Year 21, unspecialized:
+    the park and the institute closed;
+  - `85f-research.jpg`, History › Prestige in Year 40 at a research
+    specialist (the `research-park` scenario), research opened on its term;
+  - `85f-research-tab.jpg`, the Research tab's park section there;
+  - `85f-choice.jpg`, the choice in Year 31 with the park and the boost
+    under *Now*;
+  - `85f-choice-old-park.jpg`, the same choice at a college whose park was
+    built in Year 17 (`specialization-old-park`).
+
+  The park's look on the map is unchanged.
+- **Decided on review (the owner, 2026-10-01):**
+  - The park adds no direct lift: its 18 points go to the research
+    pillar's other terms by 85D's rule, and the natural maximum stays 126.
+    Kept as built.
+  - The boost is 15% to every lab's output while the park stands at a
+    college specialized in research. Kept as built.
+- **For 85I** (open):
+  - **The reading's pace:** a player who can fund three Landmark Programs
+    at once fills the term four years after the park opens, faster than
+    the academics term can fill. The harness's research specialist, held
+    back by the funding, fills it in 10 to 12 years.
+  - **The research specialist's research pillar** ranks 5th to 7th at
+    year 50 (its stock 137 to 143, drifting toward 149.9, with the rivals'
+    research specialists near 150): "its pillar is #1 by a clear margin" is
+    not met.
+  - **The unspecialized players come closer to first:** held to no
+    specialization, best 3rd (Guided 3, 3, 5; the Completionist 4, 3, 7),
+    against 4th before, never first. The margin is a place or two.
+  - **The labs' gate stays:** the research specialist's park still waits on
+    every standing lab having finished a research project (Plan 53).
+  - **Neither strong player picks research;** the specialized variants are
+    85I's.
 
 ## PR 85G — The athletic performance complex
 

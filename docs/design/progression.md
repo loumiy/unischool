@@ -214,7 +214,13 @@ the faculty training program (Plan 85E): the share of the faculty on the
 roster trained at the Faculty Training Institute, full at 40%
 (`trainingData.ts`'s `TRAINED_SHARE_FOR_FULL`), and nothing while no
 institute stands (see [faculty.md](faculty.md)'s training). The strong
-players fill it 10 or 11 years after the choice. Student life's term is larger because
+players fill it 10 or 11 years after the choice. Research reads the research
+park (Plan 85F): the years of Landmark work the Research Park has hosted in
+the last ten, a year for each program each year it runs and no more than
+three at once, full at twelve (`researchParkData.ts`'s `parkReading`), and
+nothing while no park stands (see [research.md](research.md)'s research
+park). The Guided player held to research fills it 10 to 12 years after the
+choice. Student life's term is larger because
 it is the easiest pillar to fill; athletics' because without the athletics
 specialization a program's quality slows above 80 and titles are rare (see
 [student-life.md](student-life.md)'s postseason). Tuned so that optimal play
@@ -258,7 +264,8 @@ late, and kept:
   (the default answer puts it off). A college that never reaches the
   milestone is never offered it, and a sandbox run never is.
 - **What it gives now:** its pillar's term opens and fills (academics as
-  its faculty is trained at the institute, the others over ten years), so
+  its faculty is trained at the institute, research as Landmark Programs
+  run at the Research Park, student life and athletics over ten years), so
   the pillar can rise to 150. The athletics specialization also takes
   away the slowdown of a program's quality above 80 and the big stage's
   edge (`specialization.ts`'s `athleticsLifted`, the hook Plan 85G's
@@ -269,7 +276,16 @@ late, and kept:
   `SPECIALIZATION_CARDS`, where each PR marks its own ready. Academics'
   (Plan 85E) is built: the Faculty Training Institute, a capital project
   only a college specialized in academics may build, and the year's
-  training picks (see [faculty.md](faculty.md)).
+  training picks (see [faculty.md](faculty.md)). So is research's (Plan
+  85F): the Research Park, which only a college specialized in research may
+  build now, with the Landmark Program it opens and, while it stands, a 15%
+  boost to every lab's output (the owner's decision, 2026-10-01; see
+  [research.md](research.md)). It lifts no standing of its own: its 18
+  points of research went to the pillar's other terms, by the rule above. A
+  park built before Plan 85F stays, with its Landmark Programs, whatever
+  the college chooses, and fills no term and gives no boost unless it
+  chooses research. The build menu lists a specialization's building closed,
+  with the reason, to a college that has earned it otherwise.
 - History › Prestige and the standings say where the college stands on the
   choice (specialized, and since when; the offer standing; or the milestone
   still to reach), and the guide tags the college with its specialization as
@@ -282,8 +298,13 @@ years 42–44 and held it at year 50 on every seed; the Completionist
 (academics, years 30–38) was first on two seeds of three, from years 45 and
 49. With the training program filling it (Plan 85E), Guided is first from
 years 43–45 on every seed and holds it; the Completionist is first on two
-seeds of three, from years 46 and 50. Held to no
-specialization, neither is ever first (best 4th).
+seeds of three, from years 46 and 50. With the research park a
+specialization's (Plan 85F), Guided is first from years 42–47 on every
+seed, the Completionist from 47 on two of three; both still choose
+academics. Held to research, Guided is first from years 46–47 on every
+seed. Held to no
+specialization, neither is ever first (best 4th; since Plan 85F, best
+3rd).
 
 The pillars' terms, as they were weighted inside prestige before:
 

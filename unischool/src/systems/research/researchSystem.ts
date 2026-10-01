@@ -10,6 +10,7 @@ import { generateCandidate, marketStandingOf } from '../../data/facultyData';
 import { money, weeksProse } from '../../format';
 import { random } from '../../engine/random';
 import { recordProject } from '../faculty/career';
+import { recordLandmarkWork } from '../../data/researchParkData';
 
 // The research tick (docs/design/research.md). Each running initiative, one
 // per research facility, in order:
@@ -195,6 +196,9 @@ function pickFrom(participants: Faculty[]): Faculty | null {
 }
 
 export function tickResearch(s: GameState): void {
+  // The week's Landmark work, which the research specialization's term
+  // reads (Plan 85F, researchParkData.ts), counted before any run ends.
+  recordLandmarkWork(s);
   // A run whose whole team was dismissed is ended; a partial team carries on.
   for (const initiative of Object.values(s.research.initiatives)) {
     const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));

@@ -1,4 +1,6 @@
-import { endowmentHalf } from '../systems/estate/projects';
+import { closedBySpecialization, endowmentHalf } from '../systems/estate/projects';
+import { CLOSED_BUILD_WORDS } from '../data/specializationData';
+import { SPECIALIZATION_MILESTONE_RANK, specializationOf } from '../systems/prestige/prestigeSystem';
 import { useEffect, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
@@ -30,7 +32,11 @@ import { constructionFrozen } from '../systems/finance/distress';
 // ToolbarPopup). Each tile arms a pickup the map resolves into
 // PLACE_BUILDABLE when a tile is clicked (CampusMap.tsx's placeById).
 //
-// Locked Buildables are left off entirely rather than teased. Repeatable
+// Locked Buildables are left off entirely rather than teased, but for one
+// kind: a specialization's own building that would be open but for the
+// specialization (Plan 85F: the Research Park, once the labs have earned
+// it, is the case the old game built for every college) shows closed at the
+// end of the capital projects, saying why. Repeatable
 // chains (housing, dining, fitness, halls, labs) collapse their finished
 // instances into one "Built ×N" tile; distinct single buildings stay one tile
 // each. Courses are absent: they are not places.
@@ -85,6 +91,9 @@ interface TypeGroup {
   // plus housing and academic. Absent groups render as their own tab.
   category?: BuildCategory;
   items: Buildable[];
+  // Shown closed after the items, never counted as visible (Plan 85F's
+  // specialization buildings; projects.ts's closedBySpecialization).
+  closed: Buildable[];
 }
 
 // One group per type. Shapes: repeatable sequential chains (dorm, dining,
@@ -172,6 +181,7 @@ function buildGroups(s: GameState): TypeGroup[] {
         : ACADEMIC_GROUP_KEYS.has(key) ? 'academic'
           : FACILITY_CATEGORY_OF[key as FacilityType]) as BuildCategory | undefined,
       items: s.tech.filter((t) => match(t) && t.status !== 'locked'),
+      closed: key === 'project' ? s.tech.filter((t) => match(t) && closedBySpecialization(s, t)) : [],
     }))
     .filter((g) => g.items.length > 0);
 }
@@ -543,7 +553,24 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
       {rest.map(({ t, marker }) => (
         <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}
+      {group.closed.map((t) => <ClosedTile key={t.id} s={s} t={t} />)}
     </>
+  );
+}
+
+// A specialization's own building the college may not build (Plan 85F):
+// a closed tile with the reason, never armed.
+function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
+  const Icon = iconForBuildable(t);
+  const pillar = t.project!.specialization!;
+  const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), SPECIALIZATION_MILESTONE_RANK);
+  return (
+    <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
+      <span className="build-tile-icon"><Icon /></span>
+      <span className="build-tile-name">{t.name}</span>
+      <span className="build-tile-sub">{CLOSED_BUILD_WORDS.sub(pillar)}</span>
+      <span className="build-tile-foot">{CLOSED_BUILD_WORDS.foot}</span>
+    </button>
   );
 }
 

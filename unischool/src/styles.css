@@ -3430,6 +3430,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .spec-card-block li + li { margin-top: 3px; }
 .spec-card-coming ul { color: var(--ink-muted); }
 .spec-card-note { margin: 4px 0 0; font-size: var(--text-xs); font-style: italic; color: var(--ink-muted); }
+.spec-card-block li.spec-card-park { font-style: italic; }
 .spec-card-standing { margin-top: auto; padding-top: var(--space-8); border-top: 1px solid var(--parchment-line); font-size: var(--text-sm); }
 .spec-card-standing p { margin: 0 0 4px; }
 .spec-card-yours { font-weight: 700; }

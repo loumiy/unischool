@@ -1,4 +1,5 @@
 import type { CapitalProject, Pillar } from '../state/types';
+import { PARK_RESEARCH_BOOST } from './researchParkData';
 
 // A pillar in a sentence (specializationData.ts's PILLAR_WORDS, written out:
 // that module reads this one's neighbors).
@@ -59,11 +60,19 @@ export const PROJECTS: readonly ProjectDef[] = [
     cost: 35_000_000, weeks: 144, upkeep: 40_000, beauty: 2,
     project: { fromYear: 10, curriculum: 'Arts & Media', boosts: { experience: 6 } },
   },
+  // The research specialization's own building (Plan 85F): only a college
+  // specialized in research may build it, and it still waits on every lab
+  // having finished a research project (Plan 53). It opens the Landmark
+  // Program to every lab, whatever the college's specialization, for as long
+  // as it stands. It lifts no standing of its own (until Plan 85F it lifted
+  // research 18 points, for any college): at a college specialized in
+  // research the pillar's specialization term reads its Landmark work, and
+  // the labs' output rises (data/researchParkData.ts).
   {
     id: 'PROJ-RESEARCH-PARK', name: 'The Research Park',
-    description: 'Laboratories at the edge of campus where faculty and industry work side by side. Once it stands, any lab can take on a Landmark Program.',
+    description: `Laboratories at the edge of campus where faculty and industry work side by side. Once it stands, any lab can take on a Landmark Program. At a college specialized in research, its Landmark work fills research's specialization share and every lab's output is ${Math.round(PARK_RESEARCH_BOOST * 100)}% higher; a park at a college specialized in anything else keeps its Landmark Programs and adds nothing more.`,
     cost: 45_000_000, weeks: 144, upkeep: 45_000,
-    project: { fromYear: 12, everyLabFinished: true, boosts: { research: 18 } },
+    project: { fromYear: 12, everyLabFinished: true, specialization: 'research', boosts: {} },
   },
   {
     id: 'PROJ-GRADUATE', name: 'The Graduate College',
@@ -110,13 +119,17 @@ export const PROJECT_IDS: readonly string[] = PROJECTS.map((p) => p.id);
 // When a project opens, read off its gates (Plan 76C), so the sentence
 // cannot drift from them as the typed "Opens once…" lines did.
 export function projectOpens(p: CapitalProject): string {
-  if (p.specialization !== undefined) return `Opens once the college is specialized in ${SPECIALIZED_WORDS[p.specialization]}; no other college may build it.`;
-  const year = p.late
-    ? `Year ${p.fromYear}, or Year ${DEFEND_ERA_YEAR} for a college at prestige ${DEFEND_ERA_PRESTIGE}`
-    : `Year ${p.fromYear}`;
   const once = p.everyLabFinished ? 'every lab on campus has finished a research project'
     : p.curriculum === ANY_SCHOOL ? 'any school\'s undergraduate courses are all taught'
       : p.curriculum ? `every ${p.curriculum} course is taught` : null;
+  // A specialization's own building (Plan 85E, 85F): the specialization
+  // first, then any gate of its own (the Research Park's labs).
+  if (p.specialization !== undefined) {
+    return `Opens once the college is specialized in ${SPECIALIZED_WORDS[p.specialization]}${once ? ` and ${once}` : ''}; no other college may build it.`;
+  }
+  const year = p.late
+    ? `Year ${p.fromYear}, or Year ${DEFEND_ERA_YEAR} for a college at prestige ${DEFEND_ERA_PRESTIGE}`
+    : `Year ${p.fromYear}`;
   return once ? `Opens from ${year}, once ${once}.` : `Opens from ${year}.`;
 }
 

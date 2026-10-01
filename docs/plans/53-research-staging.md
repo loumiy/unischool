@@ -43,3 +43,10 @@ For "every field" the owner chose every built lab.
 - **Docs:** `research.md` and `progression.md`.
 
 **As implemented:** as above. The harness is untouched.
+
+*Since [Plan 85F](85-specializations.md), the Research Park is also the
+research specialization's own building: only a college specialized in
+research may build it (the labs' gate still applies to that college), it
+lifts no standing of its own, and its Landmark work fills the research
+pillar's specialization term. A park built before then keeps its Landmark
+Programs.*
