@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A–I merged (#268, #274–#278, #280–#282); left: the owner's call on the endowment (a full one, at +4, still carries an unspecialized college to first on two seeds of three), student life's margin on one seed, and the Completionist's milestone past Year 40 on two seeds.**
+**Status: Landed: A–I merged (#268, #274–#278, #280–#282).**
 
 ---
 
@@ -2390,6 +2390,12 @@ first version's numbers above):
 - **What remains:** the owner's call on the endowment (still first on two
   seeds of three at +4), student life's margin on one seed (3.9), and the
   Completionist's milestone past Year 40 on two seeds.
+
+- **Decided on review (the owner, 2026-10-01):** the three items left open
+  are accepted as they stand. A full endowment (at +4) may still carry an
+  unspecialized college to first; student life's margin of 3.9 on one seed
+  stands; the Completionist reaching the milestone in Years 42 and 44 on two
+  seeds stands. Plan 85 is landed.
 
 ## What this plan does not do
 
