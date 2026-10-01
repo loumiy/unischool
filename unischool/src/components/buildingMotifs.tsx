@@ -1525,6 +1525,10 @@ function Cylinder({ cc, cr, r, z0, z1, fill }: { cc: number; cr: number; r: numb
 
 const SIGNAL_RED = '#c8392e';
 const GANTRY_YELLOW = '#d9a92f';
+// The Athletic Performance Complex's roof track (Plan 85G): the lanes'
+// rubber and the infield's turf.
+const TRACK_RED = '#b0533c';
+const TRACK_INFIELD = '#5d8a4a';
 const BANNER_COLORS = ['#9e2b2b', '#c29a2c', '#2b3f6b'];
 
 // A quad on a wall face, in its own u and in heights.
@@ -1803,6 +1807,40 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
           <polygon points={polyPoints([cap.Bt, cap.Ct, apex])} fill={shade(lead, 0.8)} />
           <line x1={apex.x} y1={apex.y} x2={tip.x} y2={tip.y} stroke={gilt} strokeWidth={1.6} />
           <circle cx={tip.x} cy={tip.y} r={1.5} fill={gilt} />
+        </g>
+      );
+    }
+    case 'track': {
+      // A running track on the roof (the Athletic Performance Complex, Plan
+      // 85G): a rust-red oval of lanes round a green infield, a white line
+      // between the lanes, on the glazed block's flat deck. Laid out in tiles
+      // along the long axis: two straights joined by half circles.
+      const margin = Math.min(across(2.5), short * 0.08);
+      const z = base + up(0.35);
+      const oval = (r: number, n = 14): string => {
+        const straight = Math.max(0, long / 2 - margin - (short / 2 - margin));
+        const pts: Pt[] = [];
+        const pt = (a: number, c: number) => {
+          const [pc, pr] = at(a / long, c / short);
+          return lift(project(pc, pr), z);
+        };
+        for (let i = 0; i <= n; i += 1) {
+          const th = -Math.PI / 2 + (Math.PI * i) / n;
+          pts.push(pt(long / 2 + straight + r * Math.cos(th), short / 2 + r * Math.sin(th)));
+        }
+        for (let i = 0; i <= n; i += 1) {
+          const th = Math.PI / 2 + (Math.PI * i) / n;
+          pts.push(pt(long / 2 - straight + r * Math.cos(th), short / 2 + r * Math.sin(th)));
+        }
+        return polyPoints(pts);
+      };
+      const outer = short / 2 - margin;
+      const lanes = Math.min(across(9), outer * 0.42);
+      return (
+        <g className="sig-track">
+          <polygon points={oval(outer)} fill={TRACK_RED} />
+          <polygon points={oval(outer - lanes / 2)} fill="none" stroke="#f1ece4" strokeWidth={1.1} />
+          <polygon points={oval(outer - lanes)} fill={TRACK_INFIELD} />
         </g>
       );
     }
@@ -3895,10 +3933,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
     );
   }
 
-  if (motif === 'block' && !site && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES) {
+  if (motif === 'block' && !site && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES && signifier !== 'track') {
     // The hospital: a tall ward slab at the back and a lower glazed public
     // wing in front. Only large `block`s split (BLOCK_SPLIT_MIN_TILES); small
-    // ones read better as one box.
+    // ones read better as one box. The Athletic Performance Complex (Plan
+    // 85G) is one glazed box under its roof track.
     const slabStoreys = storeysOf(t);
     const wingStoreys = Math.max(2, Math.round(slabStoreys * WING_STOREY_FRACTION));
     const slabH = slabStoreys * STOREY;
@@ -4736,7 +4775,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
               </>
             );
           })()}
-          {!site && flatRoofItems(motif, labFeatureOf(t), col, row, w, h).map((item) => {
+          {/* Roof plant, but not where a roof track runs (Plan 85G). */}
+          {!site && signifier !== 'track' && flatRoofItems(motif, labFeatureOf(t), col, row, w, h).map((item) => {
             if (item.kind === 'observatory' || item.kind === 'glasshouse') {
               return <LabRoofFeature key={item.key} feature={item.kind} col={col} row={row} w={w} h={h} base={H} />;
             }

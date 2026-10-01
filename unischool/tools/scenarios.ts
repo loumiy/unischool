@@ -14,6 +14,7 @@ import { claimedHalls, programsAwayFromHome, suggestedMove } from '../src/system
 import { relocateProgram, unlockAvailable } from '../src/systems/techtree/techSystem';
 import { instituteStands } from '../src/data/trainingData';
 import { RESEARCH_PARK_ID, parkStands } from '../src/data/researchParkData';
+import { complexStands } from '../src/data/athleticsComplexData';
 import { firstFreeSpot, footprintOf, placementFor } from '../src/state/campusMap';
 import type { SpecializationRule } from '../sim/harness/specialization';
 
@@ -202,6 +203,18 @@ export const SCENARIOS: Scenario[] = [
     year: 45,
     specialization: 'research',
     stopWhen: (s) => s.clock.year >= 40 && s.clock.week >= 6 && parkStands(s),
+  },
+  {
+    // The athletic performance complex (Plan 85G): a college specialized in
+    // athletics with the complex standing, eight flagships and its deep runs
+    // part filling the term: the run plays a fixed pick of athletics and
+    // stops a few weeks into Year 37.
+    name: 'athletics-complex',
+    what: 'the athletic performance complex at work: specialized in athletics, the complex standing, eight flagships',
+    player: 'Guided',
+    year: 45,
+    specialization: 'athletics',
+    stopWhen: (s) => s.clock.year >= 37 && s.clock.week >= 6 && complexStands(s),
   },
   {
     // The choice (Plan 85D) at a college whose Research Park was built

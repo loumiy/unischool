@@ -1,5 +1,6 @@
 import type { CapitalProject, Pillar } from '../state/types';
 import { PARK_RESEARCH_BOOST } from './researchParkData';
+import { COMPLEX_FLAGSHIPS, COMPLEX_RECRUITING_BOOST } from './athleticsComplexData';
 
 // A pillar in a sentence (specializationData.ts's PILLAR_WORDS, written out:
 // that module reads this one's neighbors).
@@ -105,6 +106,22 @@ export const PROJECTS: readonly ProjectDef[] = [
     description: 'Seminar rooms, a teaching studio with cameras at the back and a faculty lounge where old hands talk shop with new ones. Each year it takes professors for a term, and they come back a full grade better in the classroom.',
     cost: 30_000_000, weeks: 104, upkeep: 35_000, beauty: 1,
     project: { fromYear: 1, specialization: 'academics', boosts: {} },
+  },
+  // The athletics specialization's own building (Plan 85G): only a college
+  // specialized in athletics may build it. It lifts no standing of its own:
+  // while it stands at such a college the department may name more
+  // flagships, its scholarships recruit better and the college plays
+  // stronger deep in the postseason, and the athletics pillar's
+  // specialization term reads its deep runs (data/athleticsComplexData.ts).
+  // Costed beside the Faculty Training Institute, the other specialization
+  // building a college can raise at the choice, and well above the venues
+  // (the Football Stadium is $6.5M), since it is a capital project; its
+  // upkeep is the complex's running cost. Kept by the owner (2026-10-01).
+  {
+    id: 'PROJ-ATHLETICS-COMPLEX', name: 'The Athletic Performance Complex',
+    description: `A glass-walled training center beside the venues: a strength hall, a sports-science lab, recovery pools, film rooms and a running track on the roof, where every varsity athlete trains. At a college specialized in athletics it carries ${COMPLEX_FLAGSHIPS} more flagship programs than the subsidy level allows, its scholarships recruit ${Math.round(COMPLEX_RECRUITING_BOOST * 100)}% more, its teams play stronger in a semifinal and a final, and its deep runs fill athletics' specialization share.`,
+    cost: 30_000_000, weeks: 104, upkeep: 35_000,
+    project: { fromYear: 1, specialization: 'athletics', boosts: {} },
   },
   {
     id: 'PROJ-MUSEUM', name: 'The University Museum',

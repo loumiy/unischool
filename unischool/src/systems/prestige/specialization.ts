@@ -16,8 +16,11 @@ export function specializationOf(s: GameState): Pillar | null {
 
 // The athletics specialization's lift (Plan 85D): with it, a program's
 // quality no longer slows above the knee (studentLifeData.ts's
-// teamQualityCurve) and the big stage (playoffs.ts's stageEdge) stands down. The one hook both read, which the
-// athletic performance complex (Plan 85G) extends.
+// teamQualityCurve) and the big stage (playoffs.ts's stageEdge) shrinks to a quarter
+// (SPECIALIZED_STAGE_SHARE; Plan 85G's review). The one hook both read. The
+// athletic performance complex (Plan 85G) adds its own mechanics on top, while
+// it stands (data/athleticsComplexData.ts's complexWorks): more flagships, a
+// recruiting boost and the college's own edge in a semifinal and a final.
 export function athleticsLifted(s: GameState): boolean {
   return specializationOf(s) === 'athletics';
 }

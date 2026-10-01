@@ -1,6 +1,7 @@
 import type { GameState, Pillar } from '../state/types';
 import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
 import { PARK_WORDS, landmarkYears, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
+import { COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -47,7 +48,10 @@ export function specializedIn(pillar: Pillar): string {
 // (trainingData.ts's trainingReading), and nothing while none stands.
 // Research reads the research park (Plan 85F): the years of Landmark work it
 // has hosted in the last ten (researchParkData.ts's parkReading), and
-// nothing while none stands.
+// nothing while none stands. Athletics reads the athletic performance
+// complex (Plan 85G): the deep postseason runs its programs have made in the
+// last ten years with the complex standing (athleticsComplexData.ts's
+// complexReading), and nothing while none stands.
 // ---------------------------------------------------------------------
 
 export const SPECIALIZATION_FILL_YEARS = 10;
@@ -63,7 +67,7 @@ export const SPECIALIZATION_READINGS: Readonly<Record<Pillar, SpecializationRead
   academics: trainingReading,
   research: parkReading,
   studentLife: yearsSinceChoice,
-  athletics: yearsSinceChoice,
+  athletics: complexReading,
 };
 
 // How a mechanic's reading says itself in the term's row, for the college
@@ -76,6 +80,9 @@ export const SPECIALIZATION_DETAILS: Partial<Readonly<Record<Pillar, (s: GameSta
   research: (s, score) => (parkStands(s)
     ? PARK_WORDS.termReading(chosenIn(s), landmarkYears(s), landmarksRunning(s), score >= 1)
     : PARK_WORDS.termNoPark(chosenIn(s), parkGoingUp(s))),
+  athletics: (s, score) => (complexStands(s)
+    ? COMPLEX_WORDS.termReading(chosenIn(s), s, score >= 1)
+    : COMPLEX_WORDS.termNoComplex(chosenIn(s), complexGoingUp(s))),
 };
 
 // What the term's row adds while it is empty for want of the
@@ -122,7 +129,7 @@ export function teamSlowed(knee: number, earned: number, quality: number, chosen
 // The team quality in the Athletics tab's help (Plan 85C), as the college's
 // specialization leaves it (Plan 85D).
 export function teamLimitHelp(knee: number, chosen: Pillar | null): string {
-  if (chosen === 'athletics') return 'The college is specialized in athletics: a program\'s quality comes as easily above ' + knee + ' as below it, and the established powers have no edge over it in the postseason.';
+  if (chosen === 'athletics') return 'The college is specialized in athletics: a program\'s quality comes as easily above ' + knee + ' as below it, and the established powers keep only a quarter of their edge over it in the postseason.';
   return chosen
     ? `The college is specialized in ${PILLAR_WORDS[chosen]}, so above ${knee} each point of a program's quality comes harder and 100 is out of reach, and the established powers are stronger still in a semifinal and a final: a title is rare.`
     : `Without a specialization in athletics, each point of a program's quality comes harder above ${knee} and 100 is out of reach, and the established powers are stronger still in a semifinal and a final, so a title is rare.`;
@@ -168,7 +175,8 @@ export function ledBy(name: string, specialization: Pillar): string {
 // The choice (Plan 85D). Each specialization's card: what it is called,
 // what it gives now, and what arrives with it later. What works now: the
 // pillar's specialization term opens and fills over the years (above; and,
-// for athletics, the teams' slowdown and the big stage stand down,
+// for athletics, the teams' slowdown stands down and the big stage shrinks
+// to a quarter,
 // specialization.ts's athleticsLifted). `mechanics` are the plan's
 // (docs/plans/85-specializations.md, PRs 85E-H): each is `ready` once its PR
 // builds it, and until then the screen says it is still to come. Plans
@@ -236,10 +244,11 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     name: 'The athletic performance complex',
     summary: 'A college known first for its teams.',
     known: 'a college known first for its teams',
-    alsoNow: 'A program\'s quality no longer slows above 80, so a team may play to 100, and the established powers lose their edge in the postseason.',
+    alsoNow: 'A program\'s quality no longer slows above 80, so a team may play to 100, and the established powers keep only a quarter of their edge in the postseason.',
+    fills: COMPLEX_WORDS.fills,
     mechanics: [
-      { text: 'An athletic performance complex on the map, which only this specialization may build.', ready: false },
-      { text: 'More flagship programs than the subsidy allows, a recruiting boost and better odds deep in the postseason.', ready: false },
+      { text: COMPLEX_WORDS.cardComplex, ready: true },
+      { text: COMPLEX_WORDS.cardMechanics, ready: true },
     ],
   },
 };
@@ -289,6 +298,6 @@ export function specializationNotice(milestone: number, weights: Readonly<Record
     .join('; ');
   return {
     title: `Within reach of the top ${milestone}`,
-    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. Each pillar holds a share that only its own specialization fills, so without one no pillar reaches the top. There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and takes away the established powers' edge in the postseason. Each will bring more of its own in time; the choice will say what arrives now and what is still to come. Whichever the college chooses, the other three pillars' shares stay empty.`,
+    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. Each pillar holds a share that only its own specialization fills, so without one no pillar reaches the top. There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each will bring more of its own in time; the choice will say what arrives now and what is still to come. Whichever the college chooses, the other three pillars' shares stay empty.`,
   };
 }

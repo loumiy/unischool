@@ -60,7 +60,7 @@ function stand(s: GameState, id: string): void {
 // ---- The set ----
 {
   const s = fresh();
-  assert(PROJECTS.length === 7 && new Set(PROJECT_IDS).size === 7, 'seven projects, each its own (Plan 85E: the Faculty Training Institute)');
+  assert(PROJECTS.length === 8 && new Set(PROJECT_IDS).size === 8, 'eight projects, each its own (Plan 85E: the Faculty Training Institute; Plan 85G: the Athletic Performance Complex)');
   assert(PROJECT_IDS.every((id) => node(s, id)?.facilityType === 'project' && node(s, id).project !== undefined), 'each is a buildable the college can place');
   assert(PROJECTS.filter((p) => p.project.late).length === 1, 'one in the late tier');
   const medical = node(s, 'HLTH-T3');

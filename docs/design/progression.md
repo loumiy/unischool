@@ -220,7 +220,13 @@ the last ten, a year for each program each year it runs and no more than
 three at once, full at twelve (`researchParkData.ts`'s `parkReading`), and
 nothing while no park stands (see [research.md](research.md)'s research
 park). The Guided player held to research fills it 10 to 12 years after the
-choice. Student life's term is larger because
+choice. Athletics reads the athletic performance complex (Plan 85G): the
+deep runs its programs have made in the last ten years with the Athletic
+Performance Complex standing, a title counting 1, a lost final a half and a
+lost semifinal a quarter, full at 30 (`athleticsComplexData.ts`'s
+`complexReading`), and nothing while no complex stands (see
+[student-life.md](student-life.md)'s complex). The Guided player held to
+athletics fills it 10 to 12 years after the choice. Student life's term is larger because
 it is the easiest pillar to fill; athletics' because without the athletics
 specialization a program's quality slows above 80 and titles are rare (see
 [student-life.md](student-life.md)'s postseason). Tuned so that optimal play
@@ -265,11 +271,13 @@ late, and kept:
   milestone is never offered it, and a sandbox run never is.
 - **What it gives now:** its pillar's term opens and fills (academics as
   its faculty is trained at the institute, research as Landmark Programs
-  run at the Research Park, student life and athletics over ten years), so
-  the pillar can rise to 150. The athletics specialization also takes
-  away the slowdown of a program's quality above 80 and the big stage's
-  edge (`specialization.ts`'s `athleticsLifted`, the hook Plan 85G's
-  performance complex extends). Each specialization's own mechanics (the
+  run at the Research Park, athletics as its programs make deep runs with
+  the Athletic Performance Complex standing, student life over ten years),
+  so the pillar can rise to 150. The athletics specialization also takes
+  away the slowdown of a program's quality above 80 and shrinks the big
+  stage's edge to a quarter (`specialization.ts`'s `athleticsLifted`, the
+  hook Plan 85G's performance complex extends; the quarter is the owner's
+  decision in Plan 85G's review, 2026-10-01, where 85D took it all away). Each specialization's own mechanics (the
   faculty training program, the research park, the downtown and the
   festival, the performance complex) are Plans 85E–H; the choice lists
   those not yet built as still to come, from `specializationData.ts`'s
@@ -284,8 +292,14 @@ late, and kept:
   points of research went to the pillar's other terms, by the rule above. A
   park built before Plan 85F stays, with its Landmark Programs, whatever
   the college chooses, and fills no term and gives no boost unless it
-  chooses research. The build menu lists a specialization's building closed,
-  with the reason, to a college that has earned it otherwise.
+  chooses research. So is athletics' (Plan 85G): the Athletic Performance
+  Complex, a capital project only a college specialized in athletics may
+  build, which while it stands gives the department two flagships above the
+  subsidy level's, scholarships that recruit a sixth more and a college 3
+  points stronger in its semifinals and 4 in its finals (the owner's
+  decisions, 2026-10-01; see [student-life.md](student-life.md)). The build menu
+  lists a specialization's building closed, with the reason, to a college
+  that has earned it otherwise.
 - History › Prestige and the standings say where the college stands on the
   choice (specialized, and since when; the offer standing; or the milestone
   still to reach), and the guide tags the college with its specialization as
@@ -302,7 +316,9 @@ seeds of three, from years 46 and 50. With the research park a
 specialization's (Plan 85F), Guided is first from years 42–47 on every
 seed, the Completionist from 47 on two of three; both still choose
 academics. Held to research, Guided is first from years 46–47 on every
-seed. Held to no
+seed. Held to athletics (Plan 85G, the complex built), Guided is first from
+years 42–45 on every seed and the Completionist from 44–50 on every seed
+(with a quarter of the big stage left against it, the owner's decision). Held to no
 specialization, neither is ever first (best 4th; since Plan 85F, best
 3rd).
 

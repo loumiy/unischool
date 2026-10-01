@@ -19,7 +19,7 @@ import {
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
 import { dealtSpecialization, isSpecialization } from '../data/rivalData';
-import { glyphsFor, RECRUITING_FULL_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
+import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
@@ -27,6 +27,7 @@ import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
 import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../data/researchParkData';
+import { ATHLETICS_COMPLEX_ID, isDeepRun } from '../data/athleticsComplexData';
 import { emptyCareer } from '../systems/faculty/career';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -61,7 +62,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 91; // Plan 85F: the research park as a specialization
+export const SAVE_VERSION = 92; // Plan 85G: the athletic performance complex
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -257,6 +258,31 @@ function researchParkGate(state: GameState): void {
     .map(([year, weeks]) => ({ year, weeks: Math.min(weeks, LANDMARKS_COUNTED * WEEKS_PER_YEAR) }));
 }
 
+// 91 -> 92, Plan 85G: the athletic performance complex. The Athletic
+// Performance Complex joins the catalog (a save keeps the catalog it was
+// founded with, so it is added, locked: it opens at the next week for a
+// college specialized in athletics, as a new run's does), and its record of
+// deep runs starts empty: no complex stood before, so nothing it produced
+// is counted.
+function athleticsComplex(state: GameState): void {
+  if (Array.isArray(state.tech) && !state.tech.some((t) => t.id === ATHLETICS_COMPLEX_ID)) {
+    const complex = initialFacilities().find((t) => t.id === ATHLETICS_COMPLEX_ID);
+    if (complex) state.tech.push(complex);
+  }
+  if (state.orgs) state.orgs.complexRuns = [];
+}
+
+// The Athletic Performance Complex's deep runs (Plan 85G), on every load: a
+// year, a sport and a finish in the last four, no later than the save's
+// year; anything else is dropped.
+function sanitizeComplexRuns(state: GameState): void {
+  const raw = state.orgs.complexRuns as unknown;
+  state.orgs.complexRuns = (Array.isArray(raw) ? raw : []).filter((r): r is { year: number; sport: string; finish: 'champion' | 'final' | 'semifinal' } => (
+    typeof r === 'object' && r !== null && Number.isInteger(r.year) && r.year >= 1 && r.year <= state.clock.year
+      && typeof r.sport === 'string' && typeof r.finish === 'string' && isDeepRun(r.finish)
+  )).map((r) => ({ year: r.year, sport: r.sport, finish: r.finish }));
+}
+
 // The Research Park's Landmark work (Plan 85F), on every load: a list of
 // whole years and weeks, each year once, no more than LANDMARKS_COUNTED a
 // week; anything else is dropped, which only empties a year of the record.
@@ -329,6 +355,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   88: noSpecializationYet,
   89: trainingProgram,
   90: researchParkGate,
+  91: athleticsComplex,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -744,7 +771,8 @@ const KNOWN_SPORT_IDS: ReadonlySet<string> = new Set(SPORTS.map((sp) => sp.id));
 //   - 'active' with no standing venue (standsOnCampus): reset to 'awaitingVenue',
 //     since the team, coach and upkeep are still real.
 //   - a scholarship level that isn't one: none; recruiting off the scale:
-//     clamped to 0..RECRUITING_FULL_LIFT.
+//     clamped to 0..RECRUITING_MAX_LIFT (full scholarships at the Athletic
+//     Performance Complex, Plan 85G).
 function sanitizeTeams(state: GameState): void {
   if (!Array.isArray(state.orgs?.teams)) {
     if (state.orgs) state.orgs.teams = [];
@@ -755,7 +783,7 @@ function sanitizeTeams(state: GameState): void {
   );
   for (const team of state.orgs.teams) {
     if (!SCHOLARSHIP_ORDER.includes(team.scholarships)) team.scholarships = 'none';
-    team.recruiting = Number.isFinite(team.recruiting) ? Math.max(0, Math.min(RECRUITING_FULL_LIFT, team.recruiting)) : 0;
+    team.recruiting = Number.isFinite(team.recruiting) ? Math.max(0, Math.min(RECRUITING_MAX_LIFT, team.recruiting)) : 0;
     if (team.status !== 'active') continue;
     // A venue open through an expansion still stands: saving mid-expansion
     // used to demote every team of its sport on load.
@@ -1225,6 +1253,7 @@ function sanitize(state: GameState): void {
   sanitizeSpecialization(state);
   sanitizeTraining(state);
   sanitizeLandmarkWork(state);
+  sanitizeComplexRuns(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;

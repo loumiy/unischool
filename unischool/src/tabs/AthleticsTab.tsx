@@ -3,7 +3,9 @@ import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
-import { teamLimitHelp, teamSlowed } from '../data/specializationData';
+import { PILLAR_WORDS, teamLimitHelp, teamSlowed } from '../data/specializationData';
+import { ATHLETICS_COMPLEX_ID, COMPLEX_WORDS, complexReading, complexRecruiting, complexStands } from '../data/athleticsComplexData';
+import { SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
 import { specializationOf } from '../systems/prestige/specialization';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
@@ -223,7 +225,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity athletics'}</h2>
         <HelpHint
-          text={`A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant post is a real gap rather than a hard block. The department runs on its own fund: the college's subsidy plus what the programs earn at the gate. The subsidy level here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). The subsidy level also sets how many programs may be flagships: 2, 4 or 6, the first on the list. A flagship takes its sport's whole cost to compete from the fund and may carry a scholarship budget, which recruits; every other program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in the order of the cards, until the money runs out. Whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Athletics is one of the four pillars of prestige (the History tab): the programs' strength, the flagships' and the titles make it, and it counts for less than the other three.`}
+          text={`A sport club (see the Students tab) can petition to go varsity: a program budget and a shared competition venue for its sport's category. Coaching staff is hired separately, from the one market below — every team wants a head coach, an assistant and a trainer, and a vacant post is a real gap rather than a hard block. The department runs on its own fund: the college's subsidy plus what the programs earn at the gate. The subsidy level here sets the subsidy, and with it the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). The subsidy level also sets how many programs may be flagships: 2, 4 or 6, the first on the list, and two more while the Athletic Performance Complex stands at a college specialized in athletics. A flagship takes its sport's whole cost to compete from the fund and may carry a scholarship budget, which recruits; every other program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in the order of the cards, until the money runs out. Whatever is left over goes back to the college. The Athletic Director adds a smaller lift to every team at once. Athletics is one of the four pillars of prestige (the History tab): the programs' strength, the flagships' and the titles make it, and it counts for less than the other three.`}
         />
       </div>
 
@@ -288,7 +290,9 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <Figure
           label="Flagships"
           value={`${pot.programs.filter((p) => p.band === 'flagship').length} of ${pot.cap}`}
-          hint={`How many programs are flagships, of the ${pot.cap} the ${s.orgs.athleticsBudget} subsidy allows: the first on the list. Only a flagship is funded in full and recruits.`}
+          hint={pot.cap > pot.baseCap
+            ? COMPLEX_WORDS.flagshipsHint(pot.cap, pot.baseCap, s.orgs.athleticsBudget)
+            : `How many programs are flagships, of the ${pot.cap} the ${s.orgs.athleticsBudget} subsidy allows: the first on the list. Only a flagship is funded in full and recruits.`}
         />
         {scholarships > 0 && (
           <Figure label="Scholarships" value={`${money(scholarships)}/yr`} hint="What the flagships' scholarship budgets cost the college in a year, paid from its own funds rather than the department's: the Treasury's Athletic scholarships line." />
@@ -302,6 +306,32 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           </>
         )}
       </dl>
+      <ComplexSection s={s} />
+    </section>
+  );
+}
+
+// The Athletic Performance Complex (Plan 85G), under the department's
+// figures: standing at a college specialized in athletics, what it does (the
+// flagships above the subsidy's, the recruiting, the postseason, the deep
+// runs that fill athletics' specialization share); going up, or open to
+// build; and otherwise that it is the athletics specialization's own
+// building, which this college may or may not yet choose.
+function ComplexSection({ s }: { s: GameState }) {
+  const complex = s.tech.find((t) => t.id === ATHLETICS_COMPLEX_ID);
+  if (!complex) return null;
+  const chosen = specializationOf(s);
+  const pot = departmentPot(s);
+  const flagships = pot.programs.filter((p) => p.band === 'flagship').length;
+  const line = chosen === 'athletics'
+    ? complexStands(s)
+      ? COMPLEX_WORDS.works(s, complexReading(s) >= 1, flagships, pot.cap, pot.baseCap, RECRUITING_FULL_LIFT)
+      : complex.status === 'developing' ? COMPLEX_WORDS.goingUp : COMPLEX_WORDS.build
+    : chosen ? COMPLEX_WORDS.gatedElsewhere(PILLAR_WORDS[chosen]) : COMPLEX_WORDS.gatedUnchosen(SPECIALIZATION_MILESTONE_RANK);
+  return (
+    <section className="athletics-complex" aria-label={COMPLEX_WORDS.head}>
+      <h3 className="facility-group-head">{COMPLEX_WORDS.head}</h3>
+      <p className="athletics-complex-line">{line}</p>
     </section>
   );
 }
@@ -370,10 +400,14 @@ const SCHOLARSHIP_LABEL: Record<ScholarshipLevel, string> = { none: 'None', some
 // where it is heading, and what the venue and campus life add. A program
 // that is no flagship shows only what it still carries, falling away.
 function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action) => void; team: VarsityTeam; flagship: boolean }) {
-  const target = recruitingTarget(team, flagship);
+  // The Athletic Performance Complex's boost (Plan 85G), while it works.
+  const boost = complexRecruiting(s);
+  const target = recruitingTarget(team, flagship, boost);
   const now = team.recruiting;
   const pull = collegePull(s, team);
-  const perClass = RECRUITING_FULL_LIFT / RECRUITING_CLASSES;
+  const full = RECRUITING_FULL_LIFT * boost;
+  const perClass = full / RECRUITING_CLASSES;
+  const atComplex = boost > 1 ? ' at the Athletic Performance Complex' : '';
   const trend = now < target - 0.05 ? `, building toward +${decimal(target)}` : now > target + 0.05 ? ', falling away' : '';
   return (
     <>
@@ -389,7 +423,7 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
                 aria-pressed={level === team.scholarships}
                 title={level === 'none'
                   ? 'No scholarships: nothing spent, and the recruited classes graduate away'
-                  : `${money(scholarshipCostFor(team.sport, level))}/yr; recruits toward +${decimal(RECRUITING_FULL_LIFT * SCHOLARSHIP_LEVELS[level].liftShare)}, up to +${decimal(perClass * SCHOLARSHIP_LEVELS[level].liftShare, 1)} a class a year`}
+                  : `${money(scholarshipCostFor(team.sport, level))}/yr; recruits toward +${decimal(full * SCHOLARSHIP_LEVELS[level].liftShare)}${atComplex}, up to +${decimal(perClass * SCHOLARSHIP_LEVELS[level].liftShare, 1)} a class a year`}
                 onClick={() => act({ type: 'SET_SCHOLARSHIPS', teamId: team.id, level })}
               >
                 {SCHOLARSHIP_LABEL[level]}
@@ -401,7 +435,7 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
       )}
       <div className="team-card-meta">
         {(flagship || now > 0.05) && (
-          <span title={`What the recruited classes add to the team: a class a year, up to +${decimal(perClass, 1)} each, built over ${RECRUITING_CLASSES} years to at most +${RECRUITING_FULL_LIFT} on full scholarships, and lost a class a year when the money stops or the program is no longer a flagship.`}>
+          <span title={`What the recruited classes add to the team: a class a year, up to +${decimal(perClass, 1)} each, built over ${RECRUITING_CLASSES} years to at most +${decimal(full)} on full scholarships${atComplex}, and lost a class a year when the money stops or the program is no longer a flagship.`}>
             recruiting <strong>+{decimal(now, 1)}</strong>{trend}
           </span>
         )}
@@ -494,7 +528,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
-        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships the ${s.orgs.athleticsBudget} subsidy allows — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(TEAM_QUALITY_KNEE, specializationOf(s))} Hover the rank for the colleges either side.`} />
+        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships ${pot.cap > pot.baseCap ? `the ${s.orgs.athleticsBudget} subsidy and the Athletic Performance Complex allow` : `the ${s.orgs.athleticsBudget} subsidy allows`} — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(TEAM_QUALITY_KNEE, specializationOf(s))} Hover the rank for the colleges either side.`} />
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">

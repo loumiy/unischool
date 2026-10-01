@@ -1,6 +1,7 @@
 import { projectLift } from '../systems/estate/projects';
 import { tagTeeth } from '../systems/identity/teeth';
 import { athleticsLifted } from '../systems/prestige/specialization';
+import { COMPLEX_RECRUITING_BOOST, complexFlagships } from './athleticsComplexData';
 import type {
   AthleticsBudgetTier, Buildable, Coach, FacilityType, GameState, GreekChapter, OrgPetition, ScholarshipLevel,
   StudentClub, StudentOrgBase, VarsityTeam,
@@ -305,6 +306,9 @@ export const SCHOLARSHIP_LEVELS: Record<ScholarshipLevel, { costShare: number; l
 };
 export const RECRUITING_FULL_LIFT = 15;
 export const RECRUITING_CLASSES = 4;
+// The most recruiting can add: full scholarships at the Athletic Performance
+// Complex (Plan 85G, athleticsComplexData.ts's COMPLEX_RECRUITING_BOOST).
+export const RECRUITING_MAX_LIFT = RECRUITING_FULL_LIFT * (1 + COMPLEX_RECRUITING_BOOST);
 
 // Flat per active team; an 'awaitingVenue' team contributes nothing, so
 // petitioning and stalling on the venue cannot be gamed. Sized between a club
@@ -791,7 +795,8 @@ export interface DepartmentPot {
   programs: ProgramFunding[]; // in list order; 'awaitingVenue' teams are not here
   drawn: number;     // what the programs took between them
   surplus: number;   // pot - drawn: what spills into general income
-  cap: number;       // how many flagships the subsidy level allows
+  cap: number;       // how many flagships the department may name: the subsidy level's, and the complex's (Plan 85G)
+  baseCap: number;   // how many the subsidy level alone allows
   fundedLine: number; // programs[0..fundedLine) are the flagships; the line is drawn under that index
 }
 
@@ -828,11 +833,14 @@ export function departmentPot(s: GameState): DepartmentPot {
   const subsidy = tier.subsidyPerYear;
   const earned = gateReader ? gateReader(s) : 0;
   const pot = subsidy + earned;
+  // The Athletic Performance Complex's flagships above the subsidy's (Plan
+  // 85G), while it stands at a college specialized in athletics.
+  const cap = tier.flagships + complexFlagships(s);
   let remaining = pot;
   const programs: ProgramFunding[] = [];
   for (const team of orderedTeams(s)) {
     if (team.status !== 'active') continue;
-    const flagship = programs.length < tier.flagships;
+    const flagship = programs.length < cap;
     const cost = sportEconomics(team.sport).costToCompete;
     const wants = flagship ? cost : cost * NON_FLAGSHIP_FUNDED_SHARE;
     const drawn = Math.max(0, Math.min(remaining, wants));
@@ -841,8 +849,8 @@ export function departmentPot(s: GameState): DepartmentPot {
     const band: ProgramBand = flagship ? 'flagship' : drawn > 0 ? 'competitive' : 'developmental';
     programs.push({ team, cost, drawn, funded, band });
   }
-  const fundedLine = Math.min(tier.flagships, programs.length);
-  return { subsidy, earned, pot, programs, drawn: pot - remaining, surplus: remaining, cap: tier.flagships, fundedLine };
+  const fundedLine = Math.min(cap, programs.length);
+  return { subsidy, earned, pot, programs, drawn: pot - remaining, surplus: remaining, cap, baseCap: tier.flagships, fundedLine };
 }
 
 // Whether a team is one of the department's flagships this week.
@@ -868,9 +876,11 @@ export function annualScholarships(s: GameState, pot: DepartmentPot = department
 }
 
 // Where a team's recruiting is heading: its level's share of the full lift
-// while it is a flagship, nothing otherwise.
-export function recruitingTarget(team: VarsityTeam, flagship: boolean): number {
-  return flagship ? RECRUITING_FULL_LIFT * SCHOLARSHIP_LEVELS[team.scholarships ?? 'none'].liftShare : 0;
+// while it is a flagship, nothing otherwise. `boost` is the Athletic
+// Performance Complex's (Plan 85G, athleticsComplexData.ts's
+// complexRecruiting): 1 without it.
+export function recruitingTarget(team: VarsityTeam, flagship: boolean, boost = 1): number {
+  return flagship ? RECRUITING_FULL_LIFT * SCHOLARSHIP_LEVELS[team.scholarships ?? 'none'].liftShare * boost : 0;
 }
 
 // A class a year, a week at a time: the step athleticsSystem.ts takes

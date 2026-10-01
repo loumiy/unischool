@@ -865,8 +865,9 @@ export interface VarsityTeam extends StudentOrgBase {
   // Absent or past means eligible.
   postseasonBanThroughYear?: number;
   // Recruiting (Plan 80G): the scholarship budget the player set, and the
-  // strength the recruited classes add, 0..RECRUITING_FULL_LIFT
-  // (studentLifeData.ts). The budget is spent, and the strength builds, only
+  // strength the recruited classes add, 0..RECRUITING_MAX_LIFT
+  // (studentLifeData.ts; above RECRUITING_FULL_LIFT only at the Athletic
+  // Performance Complex, Plan 85G). The budget is spent, and the strength builds, only
   // while the team is a flagship; otherwise the strength falls away.
   scholarships: ScholarshipLevel;
   recruiting: number;
@@ -907,6 +908,14 @@ export interface SeasonResult {
   lostTo: string | null;
   champion: string;         // who took the title — may be the player
   championMascot: string;
+}
+
+// A deep run at the Athletic Performance Complex (Plan 85G): a postseason
+// that reached the last four, and how far.
+export interface ComplexRun {
+  year: number;
+  sport: string;
+  finish: 'champion' | 'final' | 'semifinal';
 }
 
 // One occasion's result, in a season record (see StudentOrgState.season).
@@ -972,6 +981,11 @@ export interface StudentOrgState {
   lastSeason: Record<string, SeasonResult>;
   titles: Array<{ sport: string; year: number }>;
   pendingTitles: string[];
+  // The Athletic Performance Complex's record (Plan 85G,
+  // data/athleticsComplexData.ts): each postseason the college reached the
+  // last four while the complex worked for it, the window's years only.
+  // The athletics pillar's specialization term reads it.
+  complexRuns: ComplexRun[];
   // The regular season (season.ts). `season` is per sport and overwritten
   // yearly; `rivalries` is the all-time record against each sport's rival.
   season: Record<string, SeasonRecord>;

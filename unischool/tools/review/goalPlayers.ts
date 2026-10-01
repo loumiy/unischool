@@ -23,6 +23,9 @@
 //   npm run review:goals -- --goals revenue,prestige --seeds 12345 --years 20
 //   npm run review:goals -- --run --goal revenue --seed 7 --name Blackmoor --out f.json
 //   npm run review:goals -- --report <dir>      re-write the report from saved runs
+//   npm run review:goals -- --goals championships --specialization athletics
+//                                               a fixed pick at the milestone
+//                                               (Plan 85D's hook), for every run
 //
 // Each run is its own process (the harness binds one random stream per
 // process), four at a time. Runs land in node_modules/.tmp/goals/ as JSON;
@@ -84,6 +87,8 @@ import {
 } from '../../sim/harness/moves';
 import { buildFor, foundIn, reserveOf } from '../../sim/harness/guided';
 import { brokenRules } from '../../sim/harness/invariants';
+import type { SpecializationRule } from '../../sim/harness/specialization';
+import { ATHLETICS_COMPLEX_ID, complexFlagships } from '../../src/data/athleticsComplexData';
 
 export const GOALS = ['revenue', 'prestige', 'satisfaction', 'assets', 'championships', 'good-then-big', 'big-then-good'] as const;
 export type Goal = (typeof GOALS)[number];
@@ -167,6 +172,9 @@ export interface RunRecord {
   // The championships player's flagships (Plan 80G's target): the year each
   // was chosen and put on full scholarships, and its first final four.
   flagships?: Array<{ sport: string; chosen: number; finalFour?: number }>;
+  // The specialization chosen at the milestone (Plan 85D), and when.
+  specialization?: string;
+  specializationYear?: number;
   broken: string[];
   seconds: number;
   error?: string;
@@ -896,12 +904,14 @@ function championshipsPolicy(): Policy {
       // strongest active program when a place is free — at the top of the
       // list, the rest by strength below them.
       const teams = orderedTeams(s).filter((t) => t.status === 'active');
-      if (chosen.length < CHOSEN_FLAGSHIPS) {
+      // The Athletic Performance Complex's slots (Plan 85G) are chosen too.
+      const chooses = CHOSEN_FLAGSHIPS + complexFlagships(s);
+      if (chosen.length < chooses) {
         const next = [...teams].filter((t) => !chosen.includes(t.sport)).sort((a, b) => teamQuality(b, s) - teamQuality(a, s))[0];
         if (next) chosen.push(next.sport);
       }
       if (teams.length > 1 && s.clock.week % 13 === 0) {
-        const rank = (sport: string) => (chosen.includes(sport) ? chosen.indexOf(sport) : CHOSEN_FLAGSHIPS);
+        const rank = (sport: string) => (chosen.includes(sport) ? chosen.indexOf(sport) : chooses);
         const sorted = [...teams].sort((a, b) => rank(a.sport) - rank(b.sport) || teamQuality(b, s) - teamQuality(a, s));
         const order = sorted.map((t) => t.id);
         const current = (s.orgs.teamOrder ?? []).filter((id) => order.includes(id));
@@ -929,6 +939,9 @@ function championshipsPolicy(): Policy {
       }
       const house = menu(s).find((t) => t.id === 'ATH-FIELDHOUSE');
       if (house) j.because('field-house', 'The field house lifts every program\'s coaching.', () => place(g, house, reserve, true));
+      // Specialized in athletics (Plan 85G): the complex, once it opens.
+      const complex = menu(s).find((t) => t.id === ATHLETICS_COMPLEX_ID);
+      if (complex) j.because('athletics-complex', 'The Athletic Performance Complex: more flagships, better recruiting, a stronger college deep in the postseason.', () => place(g, complex, reserve, true));
       // Titles need rivals beaten; once coaches and budget are maxed, nothing else moves team quality.
       if (s.clock.week === 40 && teams.length > 0) {
         const weakest = [...teams].sort((a, b) => teamQuality(a, s) - teamQuality(b, s))[0];
@@ -1136,6 +1149,7 @@ function goalMarks(s: GameState, j: Journal, goal: Goal): void {
   const rank = playerRank(s);
   if (rank <= 50) j.mark(s, 'top 50');
   if (rank <= 25) j.mark(s, 'top 25');
+  if (rank <= 20) j.mark(s, 'top 20');
   if (rank <= 10) j.mark(s, 'top 10');
   if (rank === 1) j.mark(s, 'first');
   if (s.orgs.titles.length > 0) j.mark(s, 'first title');
@@ -1150,7 +1164,7 @@ function goalMarks(s: GameState, j: Journal, goal: Goal): void {
   if (goal === 'satisfaction' && ATTRIBUTES.every((a) => s.students.satisfactionBreakdown[a] >= 90)) j.mark(s, 'every need 90');
 }
 
-export function playGoal(goal: Goal, seed: number, name: string, years = YEARS): RunRecord {
+export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, specialization?: SpecializationRule): RunRecord {
   const t0 = Date.now();
   const j = new Journal(goal, seed, name);
   const policy = policyFor(goal);
@@ -1160,6 +1174,11 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS):
   let lastYear = 0;
   const player: Player = {
     name: goal,
+    // Plan 85D's hook: a fixed pick at the milestone, or the strongest pillar.
+    ...(specialization ? { specialization } : {}),
+    // The championships player runs its own department; specialized in
+    // athletics it also fills the complex's flagship slots (Plan 85G).
+    ...(goal === 'championships' ? { athletics: false as const } : {}),
     act(game) {
       if (game.s.clock.year !== lastYear) {
         lastYear = game.s.clock.year;
@@ -1180,6 +1199,10 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS):
     j.row(g.s);
   } catch (e) {
     j.rec.error = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+  }
+  if (g.s.specialization !== 'none') {
+    j.rec.specialization = g.s.specialization;
+    j.rec.specializationYear = g.s.specializationYear;
   }
   const report = g.s.ending?.report ?? (g.s.clock.year >= 50 ? finalReport(g.s) : null);
   if (report) {
@@ -1399,7 +1422,7 @@ const OUT_DIR = arg('--dir') ?? 'node_modules/.tmp/goals';
 if (argv.includes('--run')) {
   const goal = arg('--goal') as Goal;
   if (!GOALS.includes(goal)) throw new Error(`no goal "${goal}". Known: ${GOALS.join(', ')}`);
-  const rec = playGoal(goal, Number(arg('--seed') ?? DEFAULT_SEEDS[0]), arg('--name') ?? DEFAULT_NAMES[0], Number(arg('--years') ?? YEARS));
+  const rec = playGoal(goal, Number(arg('--seed') ?? DEFAULT_SEEDS[0]), arg('--name') ?? DEFAULT_NAMES[0], Number(arg('--years') ?? YEARS), arg('--specialization') as SpecializationRule | undefined);
   writeFileSync(arg('--out') ?? join(OUT_DIR, `${goal}.json`), JSON.stringify(rec));
   console.log(`${goal} seed ${rec.seed} ${rec.name}: ${rec.seconds.toFixed(0)} s${rec.error ? ` — FAILED: ${rec.error.split('\n')[0]}` : ''}`);
 } else if (argv.includes('--report')) {
@@ -1421,7 +1444,8 @@ if (argv.includes('--run')) {
   const t0 = Date.now();
   let done = 0;
   const run = (job: (typeof jobs)[number]) => new Promise<void>((resolve) => {
-    const child = spawn(process.execPath, [process.argv[1], '--run', '--goal', job.goal, '--seed', String(job.seed), '--name', job.name, '--years', years, '--out', file(job)], { stdio: ['ignore', 'pipe', 'inherit'] });
+    const pick = arg('--specialization');
+    const child = spawn(process.execPath, [process.argv[1], '--run', '--goal', job.goal, '--seed', String(job.seed), '--name', job.name, '--years', years, '--out', file(job), ...(pick ? ['--specialization', pick] : [])], { stdio: ['ignore', 'pipe', 'inherit'] });
     child.stdout.on('data', (d) => process.stdout.write(`[${++done}/${todo.length}] ${d}`));
     child.on('close', () => resolve());
   });

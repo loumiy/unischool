@@ -29,6 +29,7 @@ import { makeRivalRng } from '../../src/data/rivalData';
 import { specializationAnswer, type SpecializationRule } from './specialization';
 import { useTrainingPicks } from './training';
 import { commissionLandmarks } from './researchPark';
+import { runAthletics } from './athletics';
 
 // The game saves to localStorage; a headless run keeps it in memory.
 export const fakeStorage = new Map<string, string>();
@@ -72,6 +73,11 @@ export interface Player {
   // keeps Landmark Programs running (researchPark.ts): absent, it does;
   // false, never.
   landmarks?: false;
+  // Whether, specialized in athletics, it runs the department as the
+  // specialization asks (athletics.ts: the complex, the subsidy, the posts,
+  // the flagships and their scholarships): absent, it does; false, never
+  // (a player that runs its own, the championships goal player).
+  athletics?: false;
 }
 
 export interface FoundOptions {
@@ -131,6 +137,7 @@ export function playWeek(g: Game, player: Player): void {
   // Before the player's own moves, which would fill an idle lab with
   // something cheaper.
   if (player.landmarks !== false) commissionLandmarks(g);
+  if (player.athletics !== false) runAthletics(g);
   player.act(g);
   if (player.trains === undefined || (player.trains !== false && player.trains(g.s))) useTrainingPicks(g);
   answerAll(g, player);

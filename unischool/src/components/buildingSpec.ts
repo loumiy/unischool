@@ -82,6 +82,9 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   // The Faculty Training Institute (Plan 85E): an academic hall, for the
   // teaching it is about, in the civic stone and under a cupola.
   'PROJ-TRAINING': 'hall',
+  // The Athletic Performance Complex (Plan 85G): a big modern block, glazed
+  // from plinth to eaves, with a running track on its roof.
+  'PROJ-ATHLETICS-COMPLEX': 'block',
 };
 
 // What a laboratory carries on its roof to say which science it is: an
@@ -117,7 +120,8 @@ export type Signifier =
   | 'exhibition'  // the Art Gallery: one tall exhibition banner a front
   | 'mast'        // Computing: a mast and a dish
   | 'tanks'       // Neuroscience: the scanners' cryogen tanks
-  | 'cupola';     // the Faculty Training Institute: a glazed cupola astride the ridge
+  | 'cupola'      // the Faculty Training Institute: a glazed cupola astride the ridge
+  | 'track';      // the Athletic Performance Complex: a running track on the roof
 const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-MECH': 'gantry',
   'LAB-AERO': 'windTunnel',
@@ -130,6 +134,7 @@ const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-COMP': 'mast',
   'LAB-NEUR': 'tanks',
   'PROJ-TRAINING': 'cupola',
+  'PROJ-ATHLETICS-COMPLEX': 'track',
 };
 const SIGNIFIERS_BY_TYPE: Partial<Record<FacilityType, Signifier>> = {
   diningHall: 'kitchen',
@@ -335,6 +340,9 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
   // An academic hall a story lower than the halls, in the civic stone
   // rather than their brick.
   'PROJ-TRAINING': { storeys: 3, material: 'limestone' },
+  // A training center as tall as a sports hall and a floor more, in the
+  // curtain wall the natatorium shares: glass, not brick.
+  'PROJ-ATHLETICS-COMPLEX': { storeys: 3, material: 'curtain' },
 };
 
 // How many floors this building has. Zero means open ground, or a clear-span

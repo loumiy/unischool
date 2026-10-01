@@ -5,6 +5,7 @@ import {
   rollCoachField, sportsWithoutSolidListing, stepRecruiting, uncoveredChairFields,
 } from '../../data/studentLifeData';
 import { WEEKS_PER_YEAR } from '../../state/types';
+import { complexRecruiting } from '../../data/athleticsComplexData';
 import { PLAYOFF_WEEK, runPlayoffs } from './playoffs';
 import { tickSeason } from './season';
 
@@ -53,8 +54,10 @@ export function tickRecruiting(s: GameState): void {
   if (s.orgs.teams.length === 0) return;
   const pot = departmentPot(s);
   const flagships = new Set(pot.programs.filter((p) => p.band === 'flagship').map((p) => p.team.id));
+  // The Athletic Performance Complex's boost (Plan 85G), while it works.
+  const boost = complexRecruiting(s);
   for (const t of s.orgs.teams) {
-    t.recruiting = stepRecruiting(t.recruiting ?? 0, recruitingTarget(t, flagships.has(t.id)));
+    t.recruiting = stepRecruiting(t.recruiting ?? 0, recruitingTarget(t, flagships.has(t.id), boost));
   }
 }
 

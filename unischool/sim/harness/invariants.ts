@@ -12,12 +12,13 @@
 
 import type { GameState } from '../../src/state/types';
 import { WEEKS_PER_YEAR } from '../../src/state/types';
-import { NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_FULL_LIFT, departmentPot } from '../../src/data/studentLifeData';
+import { NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_MAX_LIFT, departmentPot } from '../../src/data/studentLifeData';
 import { programById } from '../../src/data/techData';
 import { dealtSpecialization, isSpecialization } from '../../src/data/rivalData';
 import { isGraduateHost } from '../../src/data/projectData';
 import { picksFor } from '../../src/data/trainingData';
 import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../../src/data/researchParkData';
+import { ATHLETICS_COMPLEX_ID, COMPLEX_WINDOW_YEARS, isDeepRun } from '../../src/data/athleticsComplexData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
 import { isInBounds, placementTiles } from '../../src/state/campusMap';
 
@@ -128,7 +129,7 @@ export function brokenRules(s: GameState): string[] {
   // Recruiting (Plan 80G): on its scale, and built only by a flagship.
   const pot = departmentPot(s);
   for (const team of s.orgs.teams) {
-    if (!(team.recruiting >= 0 && team.recruiting <= RECRUITING_FULL_LIFT)) out.push(`${team.name} recruits at ${team.recruiting}, off the 0–${RECRUITING_FULL_LIFT} scale`);
+    if (!(team.recruiting >= 0 && team.recruiting <= RECRUITING_MAX_LIFT + 1e-9)) out.push(`${team.name} recruits at ${team.recruiting}, off the 0–${RECRUITING_MAX_LIFT} scale`);
   }
   const flagships = pot.programs.filter((p) => p.band === 'flagship').length;
   if (flagships > pot.cap) out.push(`${flagships} flagships at a cap of ${pot.cap}`);
@@ -183,6 +184,21 @@ export function brokenRules(s: GameState): string[] {
     if (w.year > s.clock.year || w.year <= s.clock.year - LANDMARK_WINDOW_YEARS - 1) out.push(`Landmark work for Year ${w.year}, outside the window`);
     if (!(w.weeks >= 0 && w.weeks <= LANDMARKS_COUNTED * WEEKS_PER_YEAR)) out.push(`${w.weeks} weeks of Landmark work in Year ${w.year}`);
   }
+
+  // The athletic performance complex (Plan 85G): open to build only at a
+  // college specialized in athletics; its deep runs are inside the window,
+  // in the last four, one a sport a year, and only at such a college.
+  const complex = s.tech.find((t) => t.id === ATHLETICS_COMPLEX_ID);
+  if (complex?.status === 'available' && s.specialization !== 'athletics' && s.sandbox !== true) out.push('the Athletic Performance Complex is open at a college not specialized in athletics');
+  const runs = s.orgs.complexRuns;
+  const seen = new Set<string>();
+  for (const r of runs) {
+    if (r.year > s.clock.year || r.year <= s.clock.year - COMPLEX_WINDOW_YEARS) out.push(`a deep run in Year ${r.year}, outside the window`);
+    if (!isDeepRun(r.finish)) out.push(`a deep run finishing "${r.finish}"`);
+    if (seen.has(`${r.sport}:${r.year}`)) out.push(`two deep runs in ${r.sport} in Year ${r.year}`);
+    seen.add(`${r.sport}:${r.year}`);
+  }
+  if (runs.length > 0 && s.specialization !== 'athletics' && s.sandbox !== true) out.push('deep runs recorded at a college not specialized in athletics');
 
   return out;
 }

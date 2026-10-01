@@ -167,6 +167,12 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
   Programs have run at the Research Park, "a year for each program, each
   year it runs", over the last ten. The research park (lower case) is the
   specialization's name; the Research Park is the building.
+- **Deep run.** What the athletics specialization's share of athletics
+  reads ([Plan 85](85-specializations.md) PR G): a postseason that reaches
+  the last four with the Athletic Performance Complex standing, "a title
+  counts 1, a lost final a half and a lost semifinal a quarter", over the
+  last ten years. The athletic performance complex (lower case) is the
+  specialization's name; the Athletic Performance Complex is the building.
 - **Specialization.** The one pillar a college, or a rival, may be the very
   best at ([Plan 85](85-specializations.md)): "specialized in research".
   Never "archetype", which names the harness's players. A pillar's cap
