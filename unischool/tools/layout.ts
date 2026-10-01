@@ -16,6 +16,14 @@
 //     --name "Blackmoor University" /tmp/in.json
 //   npm run layout -- /tmp/in.json /tmp/out.json [--ascii]
 //   npm run shot -- /tmp/out.json /tmp/campus.png --zoom=-2
+//   npm run layout -- /tmp/in.json /tmp/out.json \
+//     --plan tools/campuses/tudor-year-1.unischool.json
+//
+// `--plan <save>` takes the plan from a hand-built campus (campusPlan.ts)
+// in place of the one below: each building the run built stands at the
+// plan's site for its id, the walks, lamps, benches and trees are the
+// plan's, and anything the run built that the plan does not place takes
+// the nearest open lot beside a walk. The rules below still run over it.
 //
 // The plan below is a PRECINCT plan, the way a real campus is read: an
 // academic core round the Grand Quad with the capital projects' court on
@@ -51,8 +59,11 @@ import {
 import { seedTrees } from '../src/data/treeData';
 import { bindScriptStream } from '../src/engine/random';
 import { doorFamilyOf } from '../src/components/buildingSpec';
+import { planFlag, readPlan, takePlansLandmark } from './campusPlan';
 
-interface Site { id: string; row: number; col: number; rotated?: boolean }
+// `w` and `h` are a hand-built plan's (--plan): the footprint as it was
+// placed, kept as is — the map draws a building at its stored footprint.
+interface Site { id: string; row: number; col: number; rotated?: boolean; w?: number; h?: number }
 
 // ---------------------------------------------------------------------
 // THE PLAN. Anchors are top-left tiles; `rotated` swaps the footprint's
@@ -274,23 +285,37 @@ for (const site_ of PLAN) { site_.row += OFFSET.row; site_.col += OFFSET.col; }
 for (const t of WALKS) { t.row += OFFSET.row; t.col += OFFSET.col; }
 for (const g of GREEK_ROW) { g.row += OFFSET.row; g.col += OFFSET.col; }
 
-const [inPath, outPath, ...flags] = process.argv.slice(2);
+const { plan: planPath, rest: argv } = planFlag(process.argv.slice(2));
+const [inPath, outPath, ...flags] = argv;
 if (!inPath || !outPath) {
-  console.error('usage: layout <in.json> <out.json> [--ascii]');
+  console.error('usage: layout <in.json> <out.json> [--plan <save>] [--ascii]');
   process.exit(2);
 }
 const payload = JSON.parse(readFileSync(inPath, 'utf8')) as { version: number; savedAt: number; state: GameState };
 const s = payload.state;
+const handPlan = planPath ? readPlan(planPath) : null;
+if (handPlan) {
+  const swap = takePlansLandmark(s, handPlan);
+  if (swap) console.log(`the run's landmark takes the plan's: ${swap}`);
+  // The hand-built plan replaces the drawn one: its sites, in the
+  // orientation they were placed in, and its walks. No offset: it was laid
+  // out on the map as it opens.
+  PLAN.length = 0;
+  for (const [id, p] of Object.entries(handPlan.placements)) PLAN.push({ id, row: p.row, col: p.col, w: p.w, h: p.h });
+  WALKS.length = 0;
+  for (const key of Object.keys(handPlan.pathways)) { const [row, col] = key.split(',').map(Number); WALKS.push({ row, col }); }
+  GREEK_ROW.length = 0;
+}
 const byId = new Map<string, Buildable>(s.tech.map((t) => [t.id, t]));
 const wasPlaced = new Set(Object.keys(s.placements));
 
 const placements: Placements = {};
 const problems: string[] = [];
 
-function site(id: string, row: number, col: number, rotated: boolean): void {
+function site(id: string, row: number, col: number, rotated: boolean, asPlaced?: { w: number; h: number }): void {
   const node = byId.get(id);
   if (!node) { problems.push(`${id}: not in this save's catalog`); return; }
-  const fp = orientedFootprint(node, rotated);
+  const fp = asPlaced ?? orientedFootprint(node, rotated);
   if (!footprintIsClear(placements, row, col, fp)) {
     const hit = Object.entries(placements).find(([, p]) =>
       placementTiles(placementFor(row, col, fp)).some((t) => covers(p, t)));
@@ -305,12 +330,47 @@ function covers(p: Placement, t: TileCoord): boolean {
 
 for (const site_ of PLAN) {
   if (!wasPlaced.has(site_.id)) continue; // not built in this run; nothing to site
-  site(site_.id, site_.row, site_.col, site_.rotated ?? false);
+  const asPlaced = site_.w !== undefined && site_.h !== undefined ? { w: site_.w, h: site_.h } : undefined;
+  site(site_.id, site_.row, site_.col, site_.rotated ?? false, asPlaced);
+}
+
+// A hand-built plan has no overflow block: what it does not place takes
+// the open lot nearest the middle of the plan with a walk within two tiles
+// of it, a tile clear all round and off every walk, so the doorstep pass
+// has a short run to draw and no planned walk is built over.
+// Chapter houses keep together: each after the first takes the lot nearest
+// the last, so they make a row of their own rather than filling gaps.
+const planWalks = new Set(WALKS.map(pathTileKey));
+function nearestLot(fp: { w: number; h: number }, near?: Placement): Placement | null {
+  const sites = near ? [near] : Object.values(placements);
+  const midRow = sites.reduce((a, p) => a + p.row + p.h / 2, 0) / sites.length;
+  const midCol = sites.reduce((a, p) => a + p.col + p.w / 2, 0) / sites.length;
+  const lots: Array<{ row: number; col: number; d: number }> = [];
+  for (let r = 1; r + fp.h < CAMPUS_GRID_HEIGHT; r++) {
+    for (let c = 1; c + fp.w < CAMPUS_GRID_WIDTH; c++) {
+      lots.push({ row: r, col: c, d: Math.hypot(r + fp.h / 2 - midRow, c + fp.w / 2 - midCol) });
+    }
+  }
+  lots.sort((a, b) => a.d - b.d);
+  for (const { row, col } of lots) {
+    if (!footprintIsClear(placements, row - 1, col - 1, { w: fp.w + 2, h: fp.h + 2 })) continue;
+    let onWalk = false, nearWalk = false;
+    for (let r = row - 3; r < row + fp.h + 3 && !onWalk; r++) {
+      for (let c = col - 3; c < col + fp.w + 3; c++) {
+        if (!planWalks.has(pathTileKey({ row: r, col: c }))) continue;
+        if (r >= row - 1 && r <= row + fp.h && c >= col - 1 && c <= col + fp.w) { onWalk = true; break; }
+        nearWalk = true;
+      }
+    }
+    if (!onWalk && nearWalk) return placementFor(row, col, fp);
+  }
+  return null;
 }
 // Anything the run built that the plan never named: chapter houses take
 // Greek Row's slots in order, and anything else goes to the overflow block.
 const planned = new Set(PLAN.map((p) => p.id));
 let greekSlot = 0;
+let lastHouse: Placement | undefined;
 for (const id of [...wasPlaced].sort()) {
   if (planned.has(id)) continue;
   const node = byId.get(id)!;
@@ -323,6 +383,14 @@ for (const id of [...wasPlaced].sort()) {
       console.log(`${node.name} on Greek Row at ${slot.row},${slot.col}`);
       continue;
     }
+  }
+  if (handPlan) {
+    const lot = nearestLot(fp, node.chapterHouse ? lastHouse : undefined);
+    if (!lot) { problems.push(`${id} (${node.name}): unplanned and no open lot beside a walk`); continue; }
+    placements[id] = lot;
+    if (node.chapterHouse) lastHouse = lot;
+    console.log(`unplanned ${id} (${node.name}) sited at ${lot.row},${lot.col}`);
+    continue;
   }
   // A tile clear all round, so no door in the strip faces a neighbor.
   const padded = { w: fp.w + 2, h: fp.h + 2 };
@@ -349,7 +417,9 @@ const free = (t: TileCoord) => inBounds(t) && !occupied.has(pathTileKey(t));
 
 const pathways: Record<string, true> = {};
 const isPath = (t: TileCoord) => pathways[pathTileKey(t)] === true;
-for (const t of WALKS) if (free(t)) pathways[pathTileKey(t)] = true;
+// A hand-built plan's walks are kept whole, those its own buildings stand
+// over included (the Triumphal Gate's passage shows its paving).
+for (const t of WALKS) if (handPlan || free(t)) pathways[pathTileKey(t)] = true;
 
 const N4 = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
 const step = (t: TileCoord, [dr, dc]: readonly [number, number]) => ({ row: t.row + dr, col: t.col + dc });
@@ -412,7 +482,9 @@ for (const [id, p] of Object.entries(placements)) {
 }
 const neighbours = (t: TileCoord) => N4.filter((d) => isPath(step(t, d))).length;
 let pruned = 0;
-for (let changed = true; changed;) {
+// A hand-built plan's walks are kept as drawn, a stub to a building this
+// run never built included.
+for (let changed = !handPlan; changed;) {
   changed = false;
   for (const key of Object.keys(pathways)) {
     if (keep.has(key)) continue;
@@ -422,7 +494,13 @@ for (let changed = true; changed;) {
 }
 
 const doorsteps: string[] = [];
+const blockedDoors: string[] = [];
+// A hand-built plan's walks are its own: doorsteps are drawn only to the
+// buildings it does not place, and nothing is joined (its diagonal walks
+// touch at a corner, which the flood below would read as islands).
+const handPlaced = new Set(handPlan ? Object.keys(handPlan.placements) : []);
 for (const [id, p] of Object.entries(placements)) {
+  if (handPlaced.has(id)) continue;
   const node = byId.get(id)!;
   const doors = visibleDoors(node, p);
   if (doors.length === 0) {
@@ -443,7 +521,9 @@ for (const [id, p] of Object.entries(placements)) {
     if (!inBounds(door)) { problems.push(`${id}: ${face} door is off the grid`); continue; }
     if (occupied.has(pathTileKey(door))) {
       const blocker = Object.entries(placements).find(([, q]) => covers(q, door))![0];
-      problems.push(`${id}: ${face} door is blocked by ${blocker}`);
+      // A hand-built plan may terrace buildings door to wall, as the game
+      // allows: noted, not refused.
+      (handPlan ? blockedDoors : problems).push(`${id}: ${face} door is blocked by ${blocker}`);
       continue;
     }
     if (isPath(door)) continue;
@@ -479,7 +559,7 @@ function components(): TileCoord[][] {
   return out.sort((a, b) => b.length - a.length);
 }
 const joins: number[] = [];
-for (let comps = components(); comps.length > 1; comps = components()) {
+for (let comps = handPlan ? [] : components(); comps.length > 1; comps = components()) {
   const main = new Set(comps[0].map(pathTileKey));
   const island = comps[1];
   const r = route(
@@ -502,12 +582,20 @@ s.pathways = pathways;
 // The woodland rolls dice: on a fixed stream, so a layout is reproducible.
 bindScriptStream(2026);
 s.trees = seedTrees(placements);
+if (handPlan) {
+  // The plan's own grounds: its trees and its lamps and benches, off
+  // whatever the run stood or paved that the plan did not.
+  s.trees = {};
+  for (const [key, v] of Object.entries(handPlan.trees)) if (!occupied.has(key) && !pathways[key]) s.trees[key] = v;
+  s.dressing = {};
+  for (const [key, v] of Object.entries(handPlan.dressing)) if (!occupied.has(key)) s.dressing[key] = v;
+}
 // The founding woodland keeps its groves out of the middle, which leaves a
-// built-out campus bare between its walks. Real grounds are planted: a
+// built-out campus bare between its walks (a hand-built plan brings its own). Real grounds are planted: a
 // light scatter over the open tiles inside the campus, kept a tile clear
 // of every building so no facade is stood in front of, and off the paths
 // (a tree under paving is hidden at render time anyway).
-{
+if (!handPlan) {
   const rows: number[] = [], cols: number[] = [];
   for (const p of Object.values(placements)) { rows.push(p.row, p.row + p.h - 1); cols.push(p.col, p.col + p.w - 1); }
   const [r0, r1, c0, c1] = [Math.min(...rows), Math.max(...rows), Math.min(...cols), Math.max(...cols)];
@@ -557,6 +645,7 @@ if (pruned) console.log(`dead ends pruned: ${pruned} tiles`);
 const leaves = Object.keys(pathways).filter((key) => { const [r, c] = key.split(',').map(Number); return neighbours({ row: r, col: c }) <= 1; });
 console.log(`dead ends left: ${leaves.length}${leaves.length ? ` (${leaves.join(' ')})` : ''} — each a doorstep`);
 if (doorsteps.length) console.log(`doorsteps drawn: ${doorsteps.join(', ')}`);
+if (blockedDoors.length) console.log(`doors the plan builds against: ${blockedDoors.join(', ')}`);
 if (joins.length) console.log(`islands joined: ${joins.length} (${joins.join(', ')} tiles)`);
 writeFileSync(outPath, JSON.stringify(payload));
 console.log(`${outPath}: ${Object.keys(placements).length} buildings sited, ${Object.keys(pathways).length} path tiles, ${Object.keys(s.trees).length} trees`);

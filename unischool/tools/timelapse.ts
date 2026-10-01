@@ -9,6 +9,8 @@
 //   npm run timelapse -- --player Completionist --years 50 --every 13 \
 //     --name Blackmoor --colors navy-gold --vernacular gothic --out dir
 //   npm run timelapse:shoot -- node_modules/.tmp/timelapse
+//   npm run timelapse -- --plan tools/campuses/tudor-year-1.unischool.json \
+//     --name Tudor --vernacular tudor --out node_modules/.tmp/tudor
 //
 // How a frame is made:
 //   - the run's final state goes through tools/layout.ts, the same precinct
@@ -25,9 +27,19 @@
 //     walk has arrived, plus layout.ts's planted grounds once a building
 //     stands near them.
 //
+// With --plan <save>, the final plan is a hand-built campus's
+// (tools/campuses/, campusPlan.ts; layout.ts --plan): the run's landmark
+// takes the plan's, and the frames grow the plan's own walks, lamps,
+// benches and trees in place of the drawn plan's. A walk the plan runs
+// under a building waits for that building (it was paved over, all but the
+// Triumphal Gate's passage); a lamp or bench arrives with the walk beside
+// it; the plan's trees stand from the first frame, off whatever has been
+// built or paved.
+//
 // Flags: --player <name> (default Completionist, which builds the most)
 //        --years N (50) --every N (weeks between frames, 13) --seed N
 //        --name <school> --colors <pair id> --vernacular <v> --out <dir>
+//        --plan <save>
 //
 // Not part of the game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
@@ -41,12 +53,14 @@ import { SCHOOL_COLOR_PAIRS, schoolColorsOf } from '../src/data/schoolColors';
 import { seedTrees } from '../src/data/treeData';
 import { bindScriptStream } from '../src/engine/random';
 import { pathTileKey, placementTiles } from '../src/state/campusMap';
-import type { GameState, Pathways, Placement, Placements, TileCoord, Trees, Vernacular } from '../src/state/types';
+import type { Dressing, GameState, Pathways, Placement, Placements, TileCoord, Trees, Vernacular } from '../src/state/types';
+import { planFlag, readPlan, takePlansLandmark } from './campusPlan';
 
 const VALUE_FLAGS = ['player', 'years', 'every', 'seed', 'name', 'colors', 'vernacular', 'out'];
 const flags: Record<string, string> = {};
+const { plan: planPath, rest: argv } = planFlag(process.argv.slice(2));
+const handPlan = planPath ? readPlan(planPath) : null;
 {
-  const argv = process.argv.slice(2);
   for (let i = 0; i < argv.length; i++) {
     const [key, inline] = argv[i].replace(/^--/, '').split(/=(.*)/s);
     if (!VALUE_FLAGS.includes(key)) throw new Error(`unknown argument ${argv[i]}`);
@@ -71,6 +85,10 @@ for (let week = 0, limit = years * 52 * 4 + 100; week < limit && game.s.clock.ye
   playWeek(game, player);
 }
 // No frame once the clock has turned into year N + 1: the video ends in year N.
+if (handPlan) {
+  const swaps = new Set(snapshots.map((state) => takePlansLandmark(state, handPlan)).filter(Boolean));
+  for (const swap of swaps) console.log(`the run's landmark takes the plan's: ${swap}`);
+}
 console.log(`${player.name}, seed ${seed}: ${snapshots.length} frames to year ${snapshots[snapshots.length - 1].clock.year}`);
 
 // Cosmetic overrides and a clear screen, as scenario.ts's flags do them.
@@ -99,7 +117,7 @@ const finalOut = join(out, 'final-layout.json');
 const last = structuredClone(snapshots[snapshots.length - 1]);
 dress(last);
 writeFileSync(finalIn, JSON.stringify({ version: SAVE_VERSION, savedAt: Date.now(), state: last }));
-execFileSync('npm', ['run', '-s', 'layout', '--', finalIn, finalOut], { stdio: ['ignore', 'ignore', 'inherit'] });
+execFileSync('npm', ['run', '-s', 'layout', '--', finalIn, finalOut, ...(planPath ? ['--plan', planPath] : [])], { stdio: ['ignore', 'ignore', 'inherit'] });
 const plan = (JSON.parse(readFileSync(finalOut, 'utf8')) as { state: GameState }).state;
 
 // The planted grounds: layout.ts's trees less the woodland it regrew.
@@ -160,17 +178,35 @@ snapshots.forEach((state, i) => {
   const placements: Placements = {};
   for (const id of ids) placements[id] = plan.placements[id];
   const walks = walksFor(ids);
+  if (handPlan) {
+    // A walk under a building not yet standing is not paved yet.
+    for (const [id, p] of Object.entries(plan.placements)) {
+      if (id in placements) continue;
+      for (const t of placementTiles(p)) delete walks[keyOf(t)];
+    }
+  }
 
   const taken = new Set<string>(Object.keys(walks));
   for (const p of Object.values(placements)) for (const t of placementTiles(p)) taken.add(keyOf(t));
   const trees: Trees = {};
-  for (const [k, v] of Object.entries(woodland)) if (!taken.has(k)) trees[k] = v;
+  if (handPlan) {
+    for (const [k, v] of Object.entries(plan.trees)) if (!taken.has(k)) trees[k] = v;
+    const dressing: Dressing = {};
+    for (const [k, v] of Object.entries(plan.dressing ?? {})) {
+      const t = tileOf(k);
+      const besideWalk = walks[k] || N4.some(([dr, dc]) => walks[keyOf({ row: t.row + dr, col: t.col + dc })]);
+      const underBuilding = taken.has(k) && !walks[k];
+      if (besideWalk && !underBuilding) dressing[k] = v;
+    }
+    state.dressing = dressing;
+  }
+  if (!handPlan) for (const [k, v] of Object.entries(woodland)) if (!taken.has(k)) trees[k] = v;
   const near = (k: string) => {
     const t = tileOf(k);
     return Object.values(placements).some((p) =>
       t.row >= p.row - NEAR && t.row < p.row + p.h + NEAR && t.col >= p.col - NEAR && t.col < p.col + p.w + NEAR);
   };
-  for (const [k, v] of Object.entries(planted)) if (!taken.has(k) && near(k)) trees[k] = v;
+  if (!handPlan) for (const [k, v] of Object.entries(planted)) if (!taken.has(k) && near(k)) trees[k] = v;
 
   state.placements = placements;
   state.pathways = walks;

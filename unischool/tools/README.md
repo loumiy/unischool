@@ -114,10 +114,47 @@ top-left `row`/`col` and the footprint `w`/`h` as placed, so a swapped `w`/`h`
 is a rotation), `pathways` and `dressing` (`"row,col"` keys) and `trees`.
 Nothing else in the file is read.
 
-**Not built yet.** `layout.ts`'s plan is hardcoded (its `PLAN` anchors and
-hand-drawn walks); it cannot yet take its plan from one of these saves. The
-work is in `BACKLOG.md` under *Named, not sequenced*. Until it lands, keep
-these files as exported — do not load and re-save one to "upgrade" it:
+`layout.ts` and `timelapse.ts` take one with `--plan <save>`
+(`campusPlan.ts` reads it):
+
+```sh
+npm run scenario -- --player Completionist --year 50 --vernacular tudor \
+  --name Tudor --colors forest-gold --clear-modal node_modules/.tmp/in.json
+npm run layout -- node_modules/.tmp/in.json node_modules/.tmp/out.json \
+  --plan tools/campuses/tudor-year-1.unischool.json --ascii
+npm run shot -- node_modules/.tmp/out.json /tmp/tudor.png --zoom=-2 --pan=-170,70 --size=1920,1080
+```
+
+What `--plan` does with the run's buildings:
+
+- **Each building the plan places** stands at the plan's site, at the
+  footprint the plan stored, turned or not. The run's footprint is not
+  used, because the map draws a building at its stored footprint and a
+  library grown since the plan was drawn would push into its neighbour.
+  An id the plan places that the run never built stays empty ground.
+- **The landmark.** A run builds one grand landmark and the other two
+  close. If the run's is not the plan's (the Completionist builds the
+  Campanile; the Tudor plan has the Triumphal Gate between its quads), the
+  run's takes the plan's id. The three have one price, one build time and
+  one set of effects, so this changes the picture and nothing else.
+- **Anything the plan does not place** (chapter houses, a capital project
+  or a hall the plan was drawn without) takes the open lot nearest the
+  middle of the plan with a walk within two tiles. It needs a tile clear
+  all round, and it must stay off every planned walk. The chapter houses
+  each take the lot nearest the last one, so they end up as a group. Each
+  gets doorsteps to the nearest walk.
+- **The plan's walks are kept exactly as drawn**, including stubs to
+  buildings the run never built, diagonal walks that touch only at a
+  corner, and walks the plan's buildings stand over (the Triumphal Gate's
+  passage shows its paving). The dead-end pruning and the island joining
+  are off.
+- **Doors.** A terrace of buildings door to wall (the Tudor plan's lab
+  rows) is allowed, as the game allows it. It is reported, not refused.
+- **The grounds.** The trees, lamps and benches are the plan's, minus any
+  tile that something unplanned now stands on. The regrown woodland and
+  the interior planting are skipped.
+
+Keep these files as exported. Do not load and re-save one to "upgrade" it:
 the save migrations bring an old version forward on read, and a re-save
 rewrites the whole state, not only the layout.
 
@@ -213,6 +250,20 @@ every walk drawn is connected), and the founding woodland is felled where
 buildings and walks arrive. `--vernacular` runs the same college in another
 set; since a seeded run replays exactly, the five time-lapses are one campus
 in five styles.
+
+`--plan <save>` builds it on a hand-built campus instead (see *Hand-built
+campuses* above). The final plan is `layout.ts --plan`'s. The frames grow
+the plan's own walks from Founders Hall. A walk under a building waits
+until that building stands, and a lamp or bench arrives with the walk
+beside it. The plan's trees stand from the first frame, except where a
+building or a walk has arrived. The plan's footprint is wider than the
+drawn plan's, so it is shot one step further out:
+
+```sh
+npm run timelapse -- --plan tools/campuses/tudor-year-1.unischool.json \
+  --name Tudor --vernacular tudor --colors forest-gold --out node_modules/.tmp/tudor
+npm run timelapse:shoot -- node_modules/.tmp/tudor --zoom=-2 --pan=-170,70 --fps=8 --png
+```
 
 The shooter takes `--zoom`, `--pan`, `--size` and `--scale` as `shot` does
 (the default framing, `--zoom=-1 --pan=60,-10` at 1920 by 1080, holds the
