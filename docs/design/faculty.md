@@ -135,9 +135,12 @@ project ($30M, 104 weeks, $35,000 a week to run; `projectData.ts`'s
 - **How many:** one for every 15 professors on the roster, at least 2.
   Picks not used by the year's end lapse, and the log says how many.
 - **A pick** is a professor below an A in teaching, not already trained
-  that year. Their teaching moves to the same place in the next letter's
-  band (`courseQuality.ts`'s `oneGradeUp`: C's 61 to B's 77, B's 70 to A's
-  89), and their teaching potential rises by as much, to at most 100. The
+  that year. Their teaching rises by the width of the band it sits in on
+  the course-grade scale, a full grade (`courseQuality.ts`'s `gradeWidth`
+  and `oneGradeUp`: 16 points from a B, so a B's 77 becomes 93; 18 from a
+  C; 14 from a D, and from an F), to at most 100, and their teaching
+  potential rises by as much, to at most 100 (the owner's decision,
+  2026-10-01). The
   gain lasts: teaching grows on the potential they came with, and the
   points ride on top (`Faculty.training`, `growFaculty`). A professor may be
   trained again in a later year, until they teach at an A.

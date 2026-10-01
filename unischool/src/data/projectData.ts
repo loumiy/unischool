@@ -93,7 +93,7 @@ export const PROJECTS: readonly ProjectDef[] = [
   // program's running cost.
   {
     id: 'PROJ-TRAINING', name: 'The Faculty Training Institute',
-    description: 'Seminar rooms, a teaching studio with cameras at the back and a faculty lounge where old hands talk shop with new ones. Each year it takes professors for a term, and they come back a full letter grade better in the classroom.',
+    description: 'Seminar rooms, a teaching studio with cameras at the back and a faculty lounge where old hands talk shop with new ones. Each year it takes professors for a term, and they come back a full grade better in the classroom.',
     cost: 30_000_000, weeks: 104, upkeep: 35_000, beauty: 1,
     project: { fromYear: 1, specialization: 'academics', boosts: {} },
   },

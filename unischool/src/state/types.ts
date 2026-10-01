@@ -232,7 +232,7 @@ export interface Faculty {
 }
 
 // What training has done for a professor (Plan 85E). Each training raises
-// teaching a letter grade (courseQuality.ts's oneGradeUp), and the potential
+// teaching by a grade's width (courseQuality.ts's oneGradeUp), and the potential
 // by as much, so the gain lasts: teaching grows on the potential they were
 // hired with (`potential`) and the points are added on top
 // (facultySystem.ts's growFaculty). teachingPotential holds the two together,

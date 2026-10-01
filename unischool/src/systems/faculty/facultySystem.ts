@@ -40,7 +40,7 @@ import {
 function growFaculty(f: Faculty): void {
   f.tenureWeeks += 1;
   // A trained professor (Plan 85E) grows on the potential they came with,
-  // and training's points ride on top: the letter it gave them lasts.
+  // and training's points ride on top: the grade it gave them lasts.
   f.teaching = f.training
     ? Math.min(100, grownStat(f.training.potential, f.tenureWeeks) + f.training.points)
     : grownStat(f.teachingPotential, f.tenureWeeks);

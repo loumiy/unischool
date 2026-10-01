@@ -179,7 +179,7 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     fills: TRAINING_WORDS.fills,
     mechanics: [
       { text: 'The Faculty Training Institute on the map, a capital project only this specialization may build.', ready: true },
-      { text: `Each year the institute takes professors picked for training, one for every ${FACULTY_PER_TRAINING_PICK} on the faculty and at least ${MIN_TRAINING_PICKS}. Each rises a full letter grade in teaching and keeps it, and teaches one course fewer for a term.`, ready: true },
+      { text: `Each year the institute takes professors picked for training, one for every ${FACULTY_PER_TRAINING_PICK} on the faculty and at least ${MIN_TRAINING_PICKS}. Each rises a full grade in teaching (the width of their grade on the course scale) and keeps it, and teaches one course fewer for a term.`, ready: true },
     ],
   },
   research: {

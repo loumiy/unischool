@@ -14,8 +14,8 @@ import { gameDateOfWeek } from '../../format';
 // PROJ-TRAINING, open only to a college specialized in academics), each year
 // brings training picks, one for every FACULTY_PER_TRAINING_PICK professors
 // and at least MIN_TRAINING_PICKS (data/trainingData.ts). A pick raises a
-// professor's teaching one letter grade on the course-grade bands
-// (courseQuality.ts's oneGradeUp) and their teaching potential by as much, so
+// professor's teaching by a grade's width on the course-grade bands (16
+// points from a B, 18 from a C, at most 100; courseQuality.ts's oneGradeUp) and their teaching potential by as much, so
 // the gain lasts (facultySystem.ts's growFaculty grows teaching on the
 // potential they came with and adds the points on top). For a term the
 // trainee teaches one course fewer: a course that no longer fits moves to the

@@ -1,5 +1,6 @@
 import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus } from '../state/types';
+import { GRADE_A, GRADE_B, GRADE_C } from './courseQuality';
 
 // ---------------------------------------------------------------------
 // The faculty training program (Plan 85E): the academics specialization's
@@ -7,9 +8,9 @@ import { WEEKS_PER_YEAR, standsOnCampus } from '../state/types';
 // specialization term, and the words. The rules are in
 // systems/faculty/training.ts; the building is data/projectData.ts's
 // PROJ-TRAINING, which only a college specialized in academics may build.
-// Imports nothing but the state's types module, so specializationData.ts
-// (which prestige reads) can read the program without joining an import
-// cycle.
+// Imports nothing but the state's types module and the course-grade bands,
+// so specializationData.ts (which prestige reads) can read the program
+// without joining an import cycle.
 // ---------------------------------------------------------------------
 
 export const TRAINING_INSTITUTE_ID = 'PROJ-TRAINING';
@@ -73,6 +74,10 @@ export function trainingReading(s: GameState): number {
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
+// What a training adds, in words: a full grade, the width of the trainee's
+// band on the course scale (courseQuality.ts's gradeWidth).
+export const GRADE_GAIN_WORDS = `a full grade, the width of their grade on the course scale (${GRADE_A - GRADE_B} points from a B, ${GRADE_B - GRADE_C} from a C)`;
+
 export const TRAINING_WORDS = {
   // The academics pillar's specialization term, as its row reads.
   termNoInstitute: (year: string) =>
@@ -87,11 +92,11 @@ export const TRAINING_WORDS = {
   barTitle: 'The Faculty Training Institute',
   picksLeft: (left: number, of: number) => `${left} of ${of} training ${of === 1 ? 'pick' : 'picks'} left this year`,
   picksNote: (year: number) =>
-    `One pick for every ${FACULTY_PER_TRAINING_PICK} professors, at least ${MIN_TRAINING_PICKS}. A pick raises a professor's teaching a full letter grade, and their potential by as much, so the gain lasts; for a term they teach one course fewer. Picks not used by the end of Year ${year} lapse.`,
+    `One pick for every ${FACULTY_PER_TRAINING_PICK} professors, at least ${MIN_TRAINING_PICKS}. A pick raises a professor's teaching by ${GRADE_GAIN_WORDS}, and their potential by as much, so the gain lasts; for a term they teach one course fewer. Picks not used by the end of Year ${year} lapse.`,
   trainedShare: (trained: number, faculty: number) =>
     `${trained} of ${faculty} professors trained so far (${faculty > 0 ? pct(trained / faculty) : '0%'}); the academics pillar's specialization term is full at ${pct(TRAINED_SHARE_FOR_FULL)}.`,
   building: 'The Faculty Training Institute is under construction. Training begins once it opens.',
-  noInstitute: 'The college is specialized in academics. Build the Faculty Training Institute from the capital projects in the build menu to train professors: each year it takes some for a term, and they come back a full letter grade better in the classroom.',
+  noInstitute: 'The college is specialized in academics. Build the Faculty Training Institute from the capital projects in the build menu to train professors: each year it takes some for a term, and they come back a full grade better in the classroom.',
   filterTrainable: 'Can be trained',
 
   // On a professor's tile.
@@ -105,7 +110,7 @@ export const TRAINING_WORDS = {
     : `${name} teaches one course fewer until ${until}: ${course} will be left without an instructor, since nobody in the field has a course slot free.`),
   whyNot: {
     noPicks: (year: number) => `No training picks are left in Year ${year}. The next year brings more.`,
-    topGrade: 'Already teaches at an A: there is no letter above it.',
+    topGrade: 'Already teaches at an A: there is no grade above it.',
     thisYear: 'Already trained this year.',
   },
   trainedBadge: 'Trained',

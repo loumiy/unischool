@@ -2,7 +2,7 @@
 // The faculty training program (Plan 85E, systems/faculty/training.ts).
 // What is worth pinning:
 //
-//   - a pick raises teaching exactly one letter grade on the course-grade
+//   - a pick raises teaching by its grade's width on the course-grade
 //     bands, and the teaching potential by as much, and the gain lasts as
 //     the professor keeps growing;
 //   - the picks scale with the faculty (one for every 15, at least 2), are
@@ -28,7 +28,7 @@ import type { Faculty, GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { exportSave, readSave, SAVE_VERSION } from '../src/state/persistence';
 import { reduceInPlace } from '../src/engine/reducer';
-import { gradeFor, oneGradeUp } from '../src/data/courseQuality';
+import { GRADE_A, GRADE_B, GRADE_C, gradeFor, gradeWidth, oneGradeUp } from '../src/data/courseQuality';
 import {
   FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINED_SHARE_FOR_FULL, TRAINING_INSTITUTE_ID, TRAINING_WEEKS,
   picksFor, trainingReading,
@@ -85,15 +85,18 @@ function toNextYear(s: GameState): GameState {
   return g.s;
 }
 
-// ---- A letter grade up, on the bands ----
+// ---- A grade's width up, on the bands (the owner's decision, 2026-10-01) ----
 {
-  for (const score of [0, 12, 29, 30, 43, 44, 50, 61, 62, 70, 77]) {
+  assert(gradeWidth(77) === GRADE_A - GRADE_B && oneGradeUp(77) === 93, `a B's 77 rises a B's width, ${GRADE_A - GRADE_B}, to 93 (${oneGradeUp(77)})`);
+  assert(gradeWidth(62) === 16 && oneGradeUp(62) === 78, 'the bottom of B goes to the bottom of A');
+  assert(gradeWidth(50) === GRADE_B - GRADE_C && oneGradeUp(50) === 68, `a C's 50 rises a C's width, ${GRADE_B - GRADE_C}, to 68`);
+  assert(gradeWidth(35) === GRADE_C - 30 && oneGradeUp(35) === 49, 'a D rises a D\'s width, 14');
+  assert(gradeWidth(20) === 14 && oneGradeUp(20) === 34, 'an F, with no floor of its own, rises a D\'s width');
+  for (const score of [16, 29, 30, 43, 44, 61, 62, 77]) {
     const up = oneGradeUp(score)!;
-    const order = 'FDCBA';
-    assert(up !== null && order.indexOf(gradeFor(up)) === order.indexOf(gradeFor(score)) + 1, `${score} (${gradeFor(score)}) rises one letter, to ${up} (${gradeFor(up)})`);
+    assert(up - score === gradeWidth(score) && up <= 100 && 'FDCBA'.indexOf(gradeFor(up)) > 'FDCBA'.indexOf(gradeFor(score)), `${score} (${gradeFor(score)}) rises its band's width, to ${up} (${gradeFor(up)})`);
   }
-  assert(oneGradeUp(78) === null && oneGradeUp(100) === null, 'an A has no letter above it');
-  assert(oneGradeUp(44) === 62 && oneGradeUp(62) === 78, 'the bottom of a band goes to the bottom of the next');
+  assert(oneGradeUp(78) === null && oneGradeUp(100) === null && gradeWidth(90) === null, 'an A has no grade above it');
 }
 
 // ---- The institute is the academics specialization's ----
@@ -128,7 +131,7 @@ function toNextYear(s: GameState): GameState {
   assert(trainingPicks(s) === picksFor(s.faculty.length) && picksLeft(s) === trainingPicks(s), `the college's ${s.faculty.length} have ${trainingPicks(s)}, all left`);
 }
 
-// ---- A pick: a letter up, the potential with it, and it lasts ----
+// ---- A pick: a grade's width up, the potential with it, and it lasts ----
 {
   let s = program();
   const f = belowA(s).sort((a, b) => a.teaching - b.teaching)[0];
@@ -140,7 +143,7 @@ function toNextYear(s: GameState): GameState {
   s = reduceInPlace(s, { type: 'TRAIN_FACULTY', facultyId: f.id });
   const g = s.faculty.find((x) => x.id === f.id)!;
   const gain = to - teaching;
-  assert(g.teaching === to && 'FDCBA'.indexOf(gradeFor(g.teaching)) === 'FDCBA'.indexOf(gradeFor(teaching)) + 1, `teaching rises a letter, ${teaching} (${gradeFor(teaching)}) to ${g.teaching} (${gradeFor(g.teaching)})`);
+  assert(g.teaching === to && to === Math.min(100, teaching + gradeWidth(teaching)!), `teaching rises its grade's width, ${teaching} (${gradeFor(teaching)}) to ${g.teaching} (${gradeFor(g.teaching)})`);
   assert(g.teachingPotential === Math.min(100, teachingPotential + gain), `the potential rises as much, ${teachingPotential} to ${g.teachingPotential}`);
   assert(g.training?.points === gain && g.training.potential === teachingPotential, 'the record holds the points and the potential before');
   assert(picksLeft(s) === left - 1 && s.training.trained.includes(f.id), 'one pick is spent');

@@ -214,7 +214,7 @@ the faculty training program (Plan 85E): the share of the faculty on the
 roster trained at the Faculty Training Institute, full at 40%
 (`trainingData.ts`'s `TRAINED_SHARE_FOR_FULL`), and nothing while no
 institute stands (see [faculty.md](faculty.md)'s training). The strong
-players fill it 10 to 12 years after the choice. Student life's term is larger because
+players fill it 10 or 11 years after the choice. Student life's term is larger because
 it is the easiest pillar to fill; athletics' because without the athletics
 specialization a program's quality slows above 80 and titles are rare (see
 [student-life.md](student-life.md)'s postseason). Tuned so that optimal play
@@ -281,8 +281,8 @@ its strongest pillar, academics, in years 29–31) reached first place in
 years 42–44 and held it at year 50 on every seed; the Completionist
 (academics, years 30–38) was first on two seeds of three, from years 45 and
 49. With the training program filling it (Plan 85E), Guided is first from
-years 43–45 on every seed and holds it; the Completionist is first on one
-seed from year 43 and on another the week after year 50. Held to no
+years 43–45 on every seed and holds it; the Completionist is first on two
+seeds of three, from years 46 and 50. Held to no
 specialization, neither is ever first (best 4th).
 
 The pillars' terms, as they were weighted inside prestige before:

@@ -806,11 +806,16 @@ Save version 89.
 
 **As implemented (#277):** a college specialized in academics may build the
 Faculty Training Institute, and while it stands it trains professors each
-year: a pick's teaching rises one letter grade and its potential with it.
-The academics pillar's specialization term now reads the program, the share
+year: a pick's teaching rises a full grade, the width of its band on the
+course-grade scale, and its potential with it. The academics pillar's specialization term now reads the program, the share
 of the faculty trained, in place of 85D's ten years. Save version 90.
 *"Lifts the academic pillar's ceiling" is the term since 85D's review: no
-pillar has a ceiling (§2).*
+pillar has a ceiling (§2).* The owner decided the four questions the first
+version left open on review (2026-10-01): a trainee teaches one course fewer
+for a term (kept); the institute runs at $35,000 a week (kept); a training
+adds a band's width, not a move to the same place in the next band
+(changed); and a strong college's picks lapse once its faculty is all at
+an A (kept).
 
 - **The institute** (`projectData.ts`'s `PROJ-TRAINING`, "The Faculty
   Training Institute") is a capital project like the others, built from the
@@ -821,7 +826,7 @@ pillar has a ceiling (§2).*
   reads what it does.
   - **Cost:** $30M and 104 weeks, between the Graduate College ($25M, 104
     weeks) and the Law and Business Schools ($35M, 130 weeks).
-  - **Its running cost, a proposal for review:** upkeep of $35,000 a week
+  - **Its running cost, the owner's decision (2026-10-01):** upkeep of $35,000 a week
     ($1.8M a year), the Law and Business Schools' figure. There is no fee
     per trainee. A trained professor also costs more, since salary follows
     teaching.
@@ -841,16 +846,23 @@ pillar has a ceiling (§2).*
     (`FACULTY_PER_TRAINING_PICK`, `MIN_TRAINING_PICKS`): 5 for a faculty of
     80, 6 for 90 to 104. A professor can be picked once a year, while below
     an A, and again in a later year.
-  - **A letter grade up** (`courseQuality.ts`'s `oneGradeUp`): teaching
-    moves to the same place in the next band up, so it rises exactly one
-    letter whatever the bands' widths: C's 61 to B's 77, B's 70 to A's 89, a
-    gain of 14 to 22 points. An A has no letter above it and cannot be
-    picked. The teaching potential rises by as much, to at most 100.
+  - **A grade's width up, the owner's decision (2026-10-01)**
+    (`courseQuality.ts`'s `gradeWidth` and `oneGradeUp`): teaching rises by
+    the width of the band it sits in, read off the course-grade bands: 16
+    points from a B (a B's 77 becomes 93), 18 from a C, 14 from a D. An F,
+    whose band has no floor of its own, takes a D's width. Teaching stops at
+    100. An A has no grade above it and cannot be picked. The teaching
+    potential rises by the same points, to at most 100. A professor at the
+    top of a band crosses two letters (a C's 61 becomes 79); one at its
+    bottom lands on the next band's floor (a B's 62 becomes 78).
+    - The first version moved teaching to the same place in the next band
+      up, exactly one letter: a B's 77 became 99, since A's band is the
+      widest (22 points). The owner chose the band's width instead.
   - **The gain lasts:** `Faculty.training` holds the points added and the
     potential before training, and `growFaculty` grows teaching on that
     potential and adds the points (at most 100). A trainee keeps growing
-    along the curve they were hired on, a letter higher.
-  - **Does a trainee teach less? A proposal for review:** yes, one course
+    along the curve they were hired on, a grade higher.
+  - **Does a trainee teach less? The owner's decision (2026-10-01):** yes, one course
     fewer for a term (26 weeks from the pick). `effectiveCourseSlots`
     subtracts one course slot while the term runs (`trainingSlotsOff`). A
     course that no longer fits moves, lowest tier first, to the strongest
@@ -858,8 +870,9 @@ pillar has a ceiling (§2).*
     instructor. That is the research commitment's plan, shared
     (`techSystem.ts`'s `planTrainingCoverage`). The Train button asks first
     when a course would move, and names where it goes; the log says so.
-  - **Picks lapse:** `s.training` is the year and the professors trained in
-    it; a new year starts the list again. At the year's last week the log
+  - **Picks lapse** (kept by the owner, 2026-10-01, for a faculty all at
+    an A too): `s.training` is the year and the professors trained in it;
+    a new year starts the list again. At the year's last week the log
     says how many went unused, and the Faculty tab says that picks not used
     by the end of the year lapse.
 - **The career record** notes each training (`Career.training`, a year with
@@ -892,20 +905,276 @@ pillar has a ceiling (§2).*
     that share rises, full at 40%."
   - The other three pillars still fill with the years until 85F-H.
   - **Pacing against 85D.** 85D filled the term ten years after the choice's
-    summer. Now it fills in 10 to 12 years: the year the share first stood
-    at 40%, from the choice (seeds 12345, 4242, 777):
+    summer. Now it fills in 10 or 11 years: the year the share first stood
+    at 40%, from the choice (seeds 12345, 4242, 777; with the band's width):
 
-    | | Choice | Institute opens | Half full | Full |
-    |---|---|---|---|---|
-    | Guided | 31, 29, 30 | 34, 32, 34 | 38, 36, 38 | 41, 40, 42 |
-    | Completionist | 36, 38, 30 | 39, 41, 33 | 43, 45, 37 | 46, 48, 41 |
+    | | Choice | Institute opens | Half full | Full | Years to fill |
+    |---|---|---|---|---|---|
+    | Guided | 31, 29, 30 | 34, 32, 34 | 38, 36, 38 | 41, 39, 41 | 10, 10, 11 |
+    | Completionist | 36, 38, 30 | 39, 41, 33 | 43, 45, 37 | 47, 49, 41 | 11, 11, 11 |
 
     It starts later, since the institute takes two years to build (half
     full after about seven years, against five), and then fills faster, at
     about 15% of the term a year.
-    - At a third, it filled in 9 to 10 years. First place moved by a year or
-      two either way, within the field's noise. I kept 40% to stay inside
-      the 10 to 15 years asked.
+    - At a third, it filled in 9 to 10 years (measured with the first
+      version's gain). First place moved by a year or two either way,
+      within the field's noise. I kept 40% to stay inside the 10 to 15
+      years asked. With the first version's gain it filled in 10 to 12.
+- **The choice's card** moves the institute and training from *Still to
+  come* to *Now*, and the academics card's opening line ends "filling as
+  professors are trained at the institute, full once 40% of the faculty has
+  been trained" (the card's `fills`). The other three keep "filling over 10
+  years".
+- **The harness** (`sim/harness/training.ts`):
+  - Guided and the Completionist already build any capital project that
+    opens, so each builds the institute at once. The institute opens two
+    to three years after the choice.
+  - Every harness player spends the year's picks as soon as it has them
+    (`game.ts`'s `playWeek`; `Player.trains` turns this off, or limits it to
+    a test of the state).
+  - **The pick** is the untrained professor below A with the highest
+    teaching potential; once nobody untrained is left below A, the same
+    among those trained before.
+    - Trying the lowest potential first measured worse. Those professors
+      would never reach an A unaided, but they are older, retire sooner and
+      take their training with them. The term filled more slowly (40 to 47
+      trained of about 83 at year 50, against 46 to 55), and Guided first
+      reached first place a year later.
+  - `npm run scenario -- training` stops a few weeks into Year 38 with the
+    year's picks unspent. `invariants.ts` checks the list, the picks, and
+    that a trained professor's potential is the potential before plus the
+    points.
+- **Save:** `SAVE_VERSION` 89 → 90, migration `trainingProgram` at
+  `MIGRATIONS[89]`. It adds the institute to the catalog, locked (a save
+  keeps the catalog it was founded with; a college already specialized in
+  academics sees it open the next week), and an empty year's list.
+  `test/fixtures/save-v89.json` is the `year-8-balanced` scenario written
+  before the bump. The load drops a malformed training or list
+  (`sanitizeTraining`, and the career's lines in `sanitizeCareers`).
+- **The sim moves**, against main's baseline (85D), medians of three seeds,
+  with the owner's band-width gain. Teaching is the faculty's median teaching
+  at years 30, 40 and 50; the pillar ranks are at year 50, academics /
+  research / student life / athletics:
+
+  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 | Teaching Y30 / Y40 / Y50 |
+  |---|---|---|---|---|---|
+  | Guided | 56 / 31 / 1 | 50.0 / 81.7 / 120.3 (+1.1) | 85.8 / 84.9 / 88.2 (+3.1) | 5 / 7 / 4 / 77, was 5 / 8 / 4 / 78 | 80 / 91 (+7) / 97 (+11) |
+  | Completionist | 56 / 35 / 1 | 50.1 / 76.4 / 116.3 (−0.9) | 85.7 / 89.6 / 88.3 (−1.6) | 6 / 16 / 4 / 77, was 5 / 10 / 4 / 75 | 81 / 87 (+3) / 94 (+8) |
+  | Selective | 60 / 58 / 61 | 43.2 / 51.3 / 52.1 | 86.4 / 83.1 / 81.7 | 56 / 65 / 22 / 100 | 54 / 49 / 50 |
+  | Lean | 64 / 64 / 72 | 40.1 / 43.3 / 42.8 | 75.8 / 75.0 / 73.8 | 56 / 81 / 27 / 100 | 55 / 50 / 47 |
+  | Idle | 80 / 66 / 75 | 30.4 / 41.9 / 38.8 | 84.0 / 84.0 / 84.1 | 79 / 80 / 28 / 100 | none |
+
+  When the strong players first reach each place (seeds 12345, 4242, 777;
+  the year's first week):
+
+  | | Top 20 | Top 10 | #1 |
+  |---|---|---|---|
+  | Guided, 85D | 31, 29, 30 | 35, 35, 38 | 42, 42, 44 |
+  | Guided, now | 31, 29, 30 | 36, 36, 38 | 45, 43, 45 |
+  | Completionist, 85D | 36, 38, 30 | 42, 45, 39 | 49, never (best 2), 45 |
+  | Completionist, now | 36, 38, 30 | 43, 46, 38 | never (best 2), 50, 46 |
+
+  The first version's gain (a move to the same place in the next band) had
+  Guided first in years 44, 43 and 45, the Completionist never (best 2), in
+  year 51's first week and in 43, and median teaching of 99 at year 50.
+
+  - **The picks** are unchanged: academics, Guided in years 31, 29 and 30,
+    the Completionist in 36, 38 and 30. Selective, Lean and Idle never reach
+    the milestone, never specialize and do not move.
+  - **Trainees a year:** Guided trains 5 or 6 a year until about year 42.
+    By then nearly every professor is at an A, so it trains 1 to 5 a year
+    and lets the rest lapse (73, 88 and 78 trainings in all). The
+    Completionist trains 5 a year throughout, 3 to 4 in a few late years
+    (65, 50 and 91). At year 50, 38 to 54 of 77 to 83 professors are
+    trained.
+  - **The targets hold.** Held to no specialization (`'never'`), both
+    players are exactly as before: Guided's best place 5, 4 and 4 and
+    prestige 111.3 at year 50, the Completionist's 5, 10 and 7 and 110.4,
+    and never first. Specialized, Guided is first on every seed from years
+    43 to 45 and at year 50. The Completionist is first on 4242 at year 50
+    and on 777 from year 46; on 12345 it is second, as 4242 was before.
+  - **Why first place comes a year or two later:** the term starts filling
+    about three years after the choice, while 85D's started at once.
+    Prestige runs up to 1.2 lower through years 34 to 42 and is level by
+    year 44. At year 50 Guided is 0.5 to 1.3 higher on every seed; the
+    Completionist is −0.9 to +1.4. With prestige level, the rank still turns
+    on the elite band, which closes on the college as it rises.
+  - **Teaching:** the harness's picks are the high-potential professors just
+    below an A, so a B's 77 becomes 93, and they then keep growing toward
+    their raised potential. The faculty's median teaching at year 50 is 97
+    for Guided (99 with the first version's gain), against 86.
+  - **Fewer professors:** Guided ends year 50 with 77 to 82 against 87 to
+    95, the Completionist with 80 to 83 against 87 to 93. The harness hires a
+    stronger teacher for a course below an A (`moves.ts`'s `tendTeaching`),
+    and with training fewer courses are below an A. Enrollment, courses and
+    schools do not move.
+  - **Cash at year 50:** Guided +$22M, the Completionist +$123M (a smaller
+    payroll), the report's noisiest figure as before.
+- **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
+  re-recorded (`--save`), then 0 deltas; `npm run phone` on the
+  `specialization` scenario (the choice at 390 and 820 wide), the launch
+  fixture, the notice and a year-47 save; `review:strings`, nothing new
+  flagged. `test/specialization-choice.test.ts` pins the notice before the
+  milestone (and once, and only within reach), the offer at the milestone's
+  summer to the place (and not one place short, nor mid-year), the choice at
+  the summer's close holding no week, not this year and its return, the
+  opening of only the chosen pillar's term (athletics' teams too), the other
+  terms' words after the choice, permanence, a save round trip (mid-choice
+  too), the chronicle's line, the Final Report's title (specialized, and a
+  college that never was), the migration and the load's sanitizing, and the
+  harness's rule. `test/specializations.test.ts` pins the terms: every
+  pillar's weights add up, a perfect unspecialized college stands at its
+  natural maximum, a specialized one with its term full passes it and every
+  term in full is 150, the term fills a tenth a year; the team-quality
+  curve (whole below the knee, slower above, never 100, whole again with
+  the specialization); the rivals unclamped (none climbs past its target,
+  one above is not snapped back) and the draws.
+- **Screenshots** in `docs/reviews/2026-10-pillars/`, from a Guided run
+  named Blackmoor (seed 12345): `85d-notice.jpg` (the board's letter in the
+  inbox), `85d-choice.jpg` and `85d-choice-phone.jpg` (the choice at 1400
+  and 390 wide), `85d-choice-confirm.jpg` (the confirm step armed),
+  `85d-prestige-unspecialized.jpg` (History › Prestige before the choice,
+  academics opened on its empty term; taken with the milestone at the top
+  12, in year 33), `85d-prestige.jpg` (after choosing, year 47), `85d-standings.jpg`, `85d-guide.jpg` and `85d-final-report.jpg`
+  (the Final Report's line naming the specialization).
+- **Open, for review:**
+  - **The milestone is now the top 20**, nearly twice the first version's
+    rank, because the climb without caps is slower (above).
+  - **Both strong players pick academics.** 85I's fixed-pick variants will
+    show what the other three are worth.
+  - **Athletics' term is 30**, not the 40 asked for, for the championships
+    player's athletics rank (above).
+
+## PR 85E — The faculty training program
+
+- **An institute on the map** (a building in the catalog), buildable only
+  with this specialization.
+- **Each year the player picks professors for training** from Plan 84's
+  grid. A pick's teaching rises by one letter grade (the course-grade
+  bands), and so does its potential, so the gain lasts.
+- **How many:** a number that scales with the size of the faculty.
+- **Costs to decide in review:** whether a trainee teaches less for a term
+  while training, and the institute's own running cost.
+- **Lifts the academic pillar's ceiling.**
+- **Checks:** a test that a grade is gained; the harness's teaching
+  specialist in I.
+
+**As implemented (#277):** a college specialized in academics may build the
+Faculty Training Institute, and while it stands it trains professors each
+year: a pick's teaching rises a full grade, the width of its band on the
+course-grade scale, and its potential with it. The academics pillar's specialization term now reads the program, the share
+of the faculty trained, in place of 85D's ten years. Save version 90.
+*"Lifts the academic pillar's ceiling" is the term since 85D's review: no
+pillar has a ceiling (§2).* The owner decided the four questions the first
+version left open on review (2026-10-01): a trainee teaches one course fewer
+for a term (kept); the institute runs at $35,000 a week (kept); a training
+adds a band's width, not a move to the same place in the next band
+(changed); and a strong college's picks lapse once its faculty is all at
+an A (kept).
+
+- **The institute** (`projectData.ts`'s `PROJ-TRAINING`, "The Faculty
+  Training Institute") is a capital project like the others, built from the
+  build menu's capital projects and payable half from the endowment. It
+  opens only to a college specialized in academics: `CapitalProject` gains
+  `specialization`, which `projects.ts`'s `projectOpen` reads (85F's research
+  park can use the same gate). It lifts no standing of its own: the term
+  reads what it does.
+  - **Cost:** $30M and 104 weeks, between the Graduate College ($25M, 104
+    weeks) and the Law and Business Schools ($35M, 130 weeks).
+  - **Its running cost, the owner's decision (2026-10-01):** upkeep of $35,000 a week
+    ($1.8M a year), the Law and Business Schools' figure. There is no fee
+    per trainee. A trained professor also costs more, since salary follows
+    teaching.
+  - **On the map:** an academic hall (the `hall` motif, the halls' deep
+    roof), three stories, 11 by 7, in the civic limestone rather than the
+    halls' brick, under a glazed cupola on the ridge. The cupola is a new
+    signifier (`buildingSpec.ts`'s `cupola`, drawn by `buildingMotifs.tsx`'s
+    `RoofSignifier`, which the hall's own branch now calls in place of the
+    bell-gable). The canvas painter walks the same components
+    (`canvasArt.ts`'s `registerArt(BuildingMotif, …)`), so the canvas and
+    the SVG map draw it alike. It is entered through the halls' formal
+    portal, and `tools/layout.ts` sites it at the foot of the capital
+    projects' court.
+- **Training** (`systems/faculty/training.ts`; numbers and words in
+  `data/trainingData.ts`). `TRAIN_FACULTY` spends one of the year's picks.
+  - **The picks:** one for every 15 professors on the roster, at least 2
+    (`FACULTY_PER_TRAINING_PICK`, `MIN_TRAINING_PICKS`): 5 for a faculty of
+    80, 6 for 90 to 104. A professor can be picked once a year, while below
+    an A, and again in a later year.
+  - **A grade's width up, the owner's decision (2026-10-01)**
+    (`courseQuality.ts`'s `gradeWidth` and `oneGradeUp`): teaching rises by
+    the width of the band it sits in, read off the course-grade bands: 16
+    points from a B (a B's 77 becomes 93), 18 from a C, 14 from a D. An F,
+    whose band has no floor of its own, takes a D's width. Teaching stops at
+    100. An A has no grade above it and cannot be picked. The teaching
+    potential rises by the same points, to at most 100. A professor at the
+    top of a band crosses two letters (a C's 61 becomes 79); one at its
+    bottom lands on the next band's floor (a B's 62 becomes 78).
+    - The first version moved teaching to the same place in the next band
+      up, exactly one letter: a B's 77 became 99, since A's band is the
+      widest (22 points). The owner chose the band's width instead.
+  - **The gain lasts:** `Faculty.training` holds the points added and the
+    potential before training, and `growFaculty` grows teaching on that
+    potential and adds the points (at most 100). A trainee keeps growing
+    along the curve they were hired on, a grade higher.
+  - **Does a trainee teach less? The owner's decision (2026-10-01):** yes, one course
+    fewer for a term (26 weeks from the pick). `effectiveCourseSlots`
+    subtracts one course slot while the term runs (`trainingSlotsOff`). A
+    course that no longer fits moves, lowest tier first, to the strongest
+    colleague in the field with a course slot free, or waits for an
+    instructor. That is the research commitment's plan, shared
+    (`techSystem.ts`'s `planTrainingCoverage`). The Train button asks first
+    when a course would move, and names where it goes; the log says so.
+  - **Picks lapse** (kept by the owner, 2026-10-01, for a faculty all at
+    an A too): `s.training` is the year and the professors trained in it;
+    a new year starts the list again. At the year's last week the log
+    says how many went unused, and the Faculty tab says that picks not used
+    by the end of the year lapse.
+- **The career record** notes each training (`Career.training`, a year with
+  the teaching before and after, written by `career.ts`'s `recordTraining`).
+  The person view gains a Training section: "Trained at the Faculty Training
+  Institute in Year 34: teaching from 73 (B) to 93 (A), and their potential
+  with it." The words are `careerWords.ts`'s.
+- **The Faculty tab:**
+  - Over the grid, the program's bar: "3 of 5 training picks left this
+    year", the rule, the lapse, and the share trained against the 40% that
+    fills the term. Before the institute stands it says to build one, or
+    that it is going up.
+  - A *Can be trained* filter, a **Train** action on a professor's tile and
+    a *Trained* badge. The Train button is hidden for an A, and disabled,
+    with the reason, once the picks are spent or the professor was trained
+    this year. While a trainee is at the institute, the badge takes the
+    school color and gives the date the course slot returns.
+  - The log has a `training` topic.
+- **The term reads the program** (`specializationData.ts`'s
+  `SPECIALIZATION_READINGS.academics` is `trainingData.ts`'s
+  `trainingReading`). It is the share of the faculty on the roster who have
+  been trained, over `TRAINED_SHARE_FOR_FULL`, 40%, at most full.
+  - A professor who retires takes their training with them, and a new hire
+    arrives untrained, so the program has to keep going.
+  - **Without the institute standing, the term is empty,** specialized or
+    not. The row says why: "…but no Faculty Training Institute stands, so
+    this stays empty. Build one from the capital projects, then train
+    professors there each year…". Standing, it says "21 of 87 professors
+    (24%) have been trained at the Faculty Training Institute. It fills as
+    that share rises, full at 40%."
+  - The other three pillars still fill with the years until 85F-H.
+  - **Pacing against 85D.** 85D filled the term ten years after the choice's
+    summer. Now it fills in 10 or 11 years: the year the share first stood
+    at 40%, from the choice (seeds 12345, 4242, 777; with the band's width):
+
+    | | Choice | Institute opens | Half full | Full | Years to fill |
+    |---|---|---|---|---|---|
+    | Guided | 31, 29, 30 | 34, 32, 34 | 38, 36, 38 | 41, 39, 41 | 10, 10, 11 |
+    | Completionist | 36, 38, 30 | 39, 41, 33 | 43, 45, 37 | 47, 49, 41 | 11, 11, 11 |
+
+    It starts later, since the institute takes two years to build (half
+    full after about seven years, against five), and then fills faster, at
+    about 15% of the term a year.
+    - At a third, it filled in 9 to 10 years (measured with the first
+      version's gain). First place moved by a year or two either way,
+      within the field's noise. I kept 40% to stay inside the 10 to 15
+      years asked. With the first version's gain it filled in 10 to 12.
 - **The choice's card** moves the institute and training from *Still to
   come* to *Now*, and the academics card's opening line ends "filling as
   professors are trained at the institute, full once 40% of the faculty has
@@ -999,12 +1268,13 @@ pillar has a ceiling (§2).*
   `review:strings`. One new flag, "common room", was rewritten. The jargon
   count for "pot" rises by 4 only because the check matches "potential".
   - `test/training.test.ts` pins:
-    - a letter up on every band, and none for an A;
+    - a band's width up on every band (a B's 77 to 93, a C's 50 to 68, an
+      F taking a D's width), at most 100, and none for an A;
     - the institute locked without academics and with research, open with
       academics, and its description saying so;
     - training refused without the institute;
     - the picks' scale;
-    - a pick raising teaching a letter and the potential as much, a year on
+    - a pick raising teaching its band's width and the potential as much, a year on
       still there, with the course slot back;
     - the career line and the log;
     - not twice a year;
@@ -1026,22 +1296,23 @@ pillar has a ceiling (§2).*
     `tools/layout.ts`);
   - `85e-grid.jpg`, the grid filtered to *Can be trained*, after two picks:
     "3 of 5 training picks left this year";
-  - `85e-person.jpg`, a professor trained in Year 34;
+  - `85e-person.jpg`, a professor trained in Year 34 (73 to 89);
   - `85e-academics.jpg`, History › Prestige with academics opened on the
     term;
   - `85e-choice.jpg`, the choice card at Year 32 with the institute and
     training under *Now*.
-- **Open, for review:**
-  - **The two costs are proposals:**
-    - a trainee teaches one course fewer for a term;
-    - the institute's upkeep is $35,000 a week, with no fee per trainee.
-  - **A trainee reaches the top of the A band.** The proportional letter
-    makes B's 77 into A's 99. Adding the band's width (+16) instead would
-    stop it at 93. Under either, teaching beyond 78 changes a course's
-    letter by nothing, but it raises the salary.
-  - **A strong college runs out of people to train** about ten years after
-    the choice, and its picks lapse. Training an A (toward 100) would give
-    the picks a use, but the owner's letter grade has no letter above A.
+
+  The grid, the person and the choice card were retaken after the owner's
+  change to the gain; the institute and the academics breakdown are from
+  the first version's run (their words did not change).
+- **Decided on review (the owner, 2026-10-01):**
+  - A trainee teaches one course fewer for a term. Kept.
+  - The institute's upkeep is $35,000 a week, with no fee per trainee.
+    Kept.
+  - A training adds its band's width (about 16 points), not a move to the
+    same place in the next band; the potential rises as much, to at most
+    100. Changed in this PR.
+  - Picks lapse once the faculty is all at an A. Kept.
 
 ## PR 85F — The research park as a specialization
 

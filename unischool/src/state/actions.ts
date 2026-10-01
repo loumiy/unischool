@@ -157,7 +157,7 @@ export type Action =
   | { type: 'RESOLVE_SPECIALIZATION'; pillar: Pillar | null }
   // The faculty training program (Plan 85E, systems/faculty/training.ts):
   // one of the year's training picks at the Faculty Training Institute.
-  // Teaching and its potential rise a letter grade; the professor teaches
+  // Teaching and its potential rise a grade's width; the professor teaches
   // one course fewer for a term, and a course that no longer fits moves to a
   // colleague with room, or waits for an instructor.
   | { type: 'TRAIN_FACULTY'; facultyId: string }
