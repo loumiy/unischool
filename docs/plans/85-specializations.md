@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A–I merged (#268, #274–#278, #280–#282); left: the owner's decisions on 85I's balance (research's and student life's margin, the endowment).**
+**Status: In progress: A–I merged (#268, #274–#278, #280–#282); left: the owner's call on the endowment (a full one, at +4, still carries an unspecialized college to first on two seeds of three), student life's margin on one seed, and the Completionist's milestone past Year 40 on two seeds.**
 
 ---
 
@@ -2280,6 +2280,116 @@ change.
   - the endowment: into a pillar, halved, or the rivals' own;
   - athletics as "near the top" for a college not specialized in it;
   - the milestone's later arrival (the Completionist on 4242 in Year 40).
+
+**The owner's decisions (2026-10-01), reviewing the first version:**
+
+1. **The three constants are kept** (the 140 ceiling, the terms of 28, 28,
+   34 and 34, the rivals' academics target of 118). **A clear margin is 5
+   points or more** over the next school at Year 50.
+2. **Research and student life are ranked on their pillar values**, as
+   academics and athletics already were, not on the stocks that drift
+   toward them. Built: `rivalsSystem.ts`'s `selfValue` (every ranking:
+   the standings, the guide's place in each pillar, the annual report's
+   other standings, the History record's `standingValues`, so the Final
+   Report's research and experience axes and its charts, the Research and
+   Athletics tabs' ranks) and `pillarColumns` (the guide's columns and the
+   choice's figures) read `pillarValue`; and the two pillars' breakdowns
+   read as they stand (`pillarOf` with no stock), so History › Prestige and
+   the standings say "Read as it stands, week by week" where they said
+   "Drifting up toward". The chronicle names eras from the overall rank
+   and reads neither stock.
+   - **Where the stocks are still read:** three slow readings that are not
+     rankings: the faculty market's research center (`facultyData.ts`'s
+     `marketStandingOf`), a varsity program's pull from campus life
+     (`studentLifeData.ts`'s `collegePull`) and the research-powerhouse
+     tag (`identity/tags.ts`), plus the debug panel. Moving those would
+     change play, not a table, so they are left; the save fields stay
+     (`tickPrestige` still drifts them), and no save version changes.
+   - **The choice reads the pillar too**, so the harness's strongest-pillar
+     rule (`specialization.ts`'s `strongestOf`) now sees research at its
+     value (112 at the milestone on seed 12345, against 103 for
+     academics): **the plain Guided player picks research** on every
+     seed, and the Completionist student life, research and academics.
+     `test/specialization-choice.test.ts` checks the rule on the choice's
+     figures, since a test cannot set two pillar values level by hand;
+     `test/specializations.test.ts`'s ties set the field level with the
+     college's pillar.
+3. **The endowment's adjustment is halved**, up to 4 (was 8), and stays
+   outside the pillars (`prestigeSystem.ts`'s `ENDOWMENT_WEIGHT`;
+   `test/report-card.test.ts`).
+4. **The Landmark count is left alone:** three at once still count.
+5. **Athletics outside the top 10 without its specialization, and the later
+   milestone,** are accepted and stay noted.
+
+**The numbers with the decisions** (`sim/baseline.json` re-recorded again;
+seeds 12345, 4242 and 777; the year's first week; the moves against the
+first version's numbers above):
+
+| | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 |
+|---|---|---|---|---|
+| Guided (picks research) | 57 / 31 (−3) / 1 | 49.3 (−0.2) / 79.4 (+1.5) / 117.5 (−2.7) | 88.7 / 88.0 (+3.6) / 87.4 (−2.0) | 10 / 1 / 4 / 40, was 1 / 8 / 4 / 29 |
+| Completionist | 57 / 36 (−2) / 7 (+6) | 49.8 (+0.6) / 77.1 (+2.1) / 109.4 (−6.7) | 86.1 (+0.7) / 85.4 (−2.0) / 90.4 (+2.4) | 12 / 10 / 3 / 31, was 1 / 19 / 4 / 35 |
+| Selective | 60 / 58 / 61 (−1) | 43.3 (−0.1) / 49.4 (−1.4) / 51.0 (−0.2) | 85.6 (−0.9) / 84.8 (+3.0) / 81.8 (−0.4) | 60 / 62 / 27 / 100 |
+| Lean | 66 / 68 (+2) / 75 (+1) | 39.7 (−0.1) / 42.0 (+0.2) / 41.0 (−1.6) | 79.9 (+0.1) / 77.6 (+6.9) / 75.7 (−2.4) | 61 / 75 / 28 / 100 |
+| Idle | 82 / 66 (−1) / 75 (+1) | 29.5 (−0.2) / 41.6 / 37.9 (−0.3) | 84.0 / 84.0 / 84.1 | 78 / 80 / 31 / 100 |
+| Guided, academics | 57 / 31 (−3) / 1 | 49.3 (−0.2) / 79.4 (+1.5) / 121.0 (+0.8) | 88.7 / 88.0 (+3.6) / 84.4 (−5.0) | 1 / 8 / 4 / 38 |
+| Guided, research | 57 / 31 (−3) / 1 | 49.3 (−0.2) / 79.4 (+1.5) / 117.5 (−0.3) | 88.7 / 88.0 (+3.6) / 87.4 (+2.5) | 10 / 1 / 4 / 40, was 9 / 5 / 4 / 37 |
+| Guided, student life | 57 / 31 (−3) / 1 | 49.3 (−0.2) / 79.4 (+1.5) / 118.8 (+0.1) | 88.7 / 88.0 (+3.6) / 88.7 (−0.7) | 10 / 8 / 1 / 41, was 10 / 7 / 3 / 42 |
+| Guided, athletics | 57 / 31 (−3) / 1 | 49.3 (−0.2) / 79.4 (+1.5) / 119.7 (+0.7) | 88.7 / 88.0 (+3.6) / 86.3 (−0.8) | 10 / 8 / 4 / 1 |
+| Guided, unspecialized | 57 / 31 (−3) / 5 (+2) | 49.3 (−0.2) / 79.4 (+1.5) / 111.7 (+0.7) | 88.7 / 88.0 (+3.6) / 88.1 (−0.4) | 9 / 8 / 4 / 37 |
+
+| | Milestone (the pick) | Top 10 | #1 | Rank Y50 | Prestige Y50 | Own pillar Y50: rank, margin | Other pillars Y50 (aca/res/life/ath) |
+|---|---|---|---|---|---|---|---|
+| Guided, academics | 30, 35, 33 | 38, 41, 39 | 43, 45, 45 | 1, 1, 1 | 121.5, 120.6, 121.0 | #1 +8.6; #1 +8.6; #1 +8.5 | –/8/4/36; –/8/3/38; –/8/5/41 |
+| Guided, research (= Guided) | 30, 35, 33 | 41, 42, 40 | 43, 46, 46 | 1, 1, 1 | 117.5, 117.0, 117.8 | #1 +9.7; #1 +10.0; #1 +9.9 | 10/–/4/40; 10/–/3/22; 10/–/5/42 |
+| Guided, student life | 30, 35, 33 | 37, 41, 39 | 43, 44, 45 | 1, 1, 1 | 118.8, 118.6, 119.0 | #1 +3.9; #1 +7.0; #1 +5.7 | 11/9/–/30; 10/8/–/41; 10/7/–/43 |
+| Guided, athletics | 30, 35, 33 | 37, 40, 40 | 42, 45, 45 | 1, 1, 1 | 120.9, 119.7, 119.6 | #1 +12.3; #1 +11.9; #1 +11.8 | 9/8/4/–; 10/8/4/–; 10/7/4/– |
+| Guided, unspecialized | (offered 30, 35, 33) | 39, 41, 40 | never (best 3, 5, 4) | 3, 6, 5 | 111.5, 111.8, 111.7 | (best: student life #4) | 11/9/4/37; 9/8/4/12; 9/8/4/41 |
+| Completionist | life 42, research 44, academics 35 | 48, 47, 43 | never (best 4), never (best 4), 47 | 7, 7, 1 | 109.4, 107.7, 119.2 | #1 +1.4; #10 −15.3; #1 +8.5 | 12/13/–/31; 12/–/4/29; –/8/3/42 |
+
+- **Against the targets** (the harness's three seeds):
+  1. **Each specialist first by Year 50 on some seeds: met, on every
+     seed** for all four (from years 42 to 46), at 117.0 to 121.5.
+  2. **Its pillar first by 5 points or more: met for academics, research
+     and athletics on every seed** (8.5 to 12.3); **student life on two of
+     three** (7.0 and 5.7; 3.9 on 12345).
+  3. **Its other pillars in the top 10: met for academics, research and
+     student life**, but for two 11th places (student life's academics and
+     the unspecialized player's, both on 12345); athletics, without its
+     specialization, 22nd to 43rd (accepted).
+  4. **Unspecialized play top 10, never first: met.** 3rd, 6th and 5th at
+     Year 50 (best 3rd, 5th, 4th), at 111.5 to 111.8.
+- **The endowment, halved** (the what-if again: the unspecialized Guided
+  player with a full endowment from the milestone): **it is still first on
+  two seeds of three**, from Year 45 on 12345 (116.7 at Year 50, 3.3 above
+  the best rival) and from Year 47 on 4242 (115.7, 2.0 above); on 777 it is
+  second, 1.1 behind (115.6 against 116.7). A full endowment is worth about
+  +4 to +5 against the same player's 111.5 to 111.8, and leaves it 1 to 5
+  points under every specialist on its seed. Not tuned further; the owner
+  decides.
+- **The Completionist** is the one player the decisions moved a lot: the
+  halved endowment moves every run a little from the first years (it counts
+  from the founding), and the Completionist then hovers at 20th to 25th
+  for a decade on two seeds, so it reaches the milestone in years 42 and 44,
+  **past the owner's 25 to 40** (35 to 40 before), picks student life and
+  research there (its strongest pillars now that the choice reads them),
+  and is 7th at Year 50; on 777 it picks academics in Year 35 and is first
+  from Year 47. The Guided players reach the milestone in years 30 to 35.
+- **Screenshots** in `docs/reviews/2026-10-pillars/`, from a Guided run
+  named Blackmoor (seed 12345), which now picks research in Year 30, at
+  Year 48: `85i-prestige.jpg` (History › Prestige, research opened: read as
+  it stands at 149.7; the endowment of 4), `85i-standings.jpg` (research
+  #1, every pillar read as it stands) and `85i-guide.jpg` (the college's
+  research column at 150); and `85i-choice.jpg`, the choice in Year 31 (the
+  `specialization` scenario), each card with the pillar's value (research
+  112, #7).
+- **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
+  re-recorded (`--save`), then 0 deltas; `npm run phone` on the launch
+  fixture, the `specialization` choice and the Year 48 save;
+  `review:strings`, nothing new flagged.
+- **What remains:** the owner's call on the endowment (still first on two
+  seeds of three at +4), student life's margin on one seed (3.9), and the
+  Completionist's milestone past Year 40 on two seeds.
 
 ## What this plan does not do
 

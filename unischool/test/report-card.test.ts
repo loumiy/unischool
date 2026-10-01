@@ -164,7 +164,7 @@ console.log('report card tests');
   assert(near(PILLAR_WEIGHTS.academics + PILLAR_WEIGHTS.research + PILLAR_WEIGHTS.studentLife + PILLAR_WEIGHTS.athletics, 1), 'the pillars\' shares sum to one');
   assert(near(weight('academics'), 0.35 * PILLAR_SPAN) && near(weight('research'), 0.25 * PILLAR_SPAN)
     && near(weight('studentLife'), 0.25 * PILLAR_SPAN) && near(weight('athletics'), 0.15 * PILLAR_SPAN), 'academics 35%, research 25%, student life 25%, athletics 15%');
-  assert(weight('endowment') === 8 && weight('crowding') === 25 && weight('condition') === 4, 'endowment eight, crowding up to twenty-five, condition up to four');
+  assert(weight('endowment') === 4 && weight('crowding') === 25 && weight('condition') === 4, 'endowment four (Plan 85I: it was eight), crowding up to twenty-five, condition up to four');
   // Inside a pillar, the terms keep their old weights' proportions.
   const within = (p: Parameters<typeof pillarBreakdown>[1], a: string, b: string) => {
     const inputs = pillarBreakdown(s, p).inputs;

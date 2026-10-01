@@ -46,7 +46,7 @@ import { BOARD_LETTERS } from '../src/data/boardData';
 import { SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID } from '../src/data/specializationData';
 import { chronicleOf } from '../src/systems/chronicle/chronicle';
 import { answerAll, foundGame, type Player } from '../sim/harness/game';
-import { chooseSpecialization, strongestPillar } from '../sim/harness/specialization';
+import { chooseSpecialization, strongestOf, strongestPillar } from '../sim/harness/specialization';
 import { brokenRules } from '../sim/harness/invariants';
 
 let checks = 0;
@@ -297,22 +297,18 @@ function closeSummer(s: GameState): GameState {
   const picked = options.find((o) => o.pillar === pick)!;
   assert(top - picked.value <= 0.5, `the strongest pillar has the highest value (${pick} at ${picked.value.toFixed(1)}, top ${top.toFixed(1)})`);
   assert(options.filter((o) => top - o.value <= 0.5).every((o) => o.rank >= picked.rank), 'and, level with another, the better rank');
-  // Two pillars level at the top: the better rank wins.
-  const level = launch();
-  const ranks = (v: number) => {
-    level.self.researchStanding = v;
-    level.self.socialStanding = v;
-    return (['research', 'studentLife'] as const).map((p) => specializationOptions(level).find((o) => o.pillar === p)!);
-  };
-  // A figure above academics and athletics at which the two rank apart.
-  let v = 127;
-  while (v < 150 && ranks(v)[0].rank === ranks(v)[1].rank) v += 1;
-  const [r, l] = ranks(v);
-  assert(r.rank !== l.rank, `the two rank apart at ${v} (research #${r.rank}, student life #${l.rank})`);
-  assert(strongestPillar(level) === (l.rank < r.rank ? 'studentLife' : 'research'), `level on value, the better rank is chosen (${strongestPillar(level)})`);
-  const worse = l.rank < r.rank ? 'research' : 'studentLife';
-  if (worse === 'research') level.self.researchStanding = v + 1; else level.self.socialStanding = v + 1;
-  assert(strongestPillar(level) === worse, 'a clear point higher, the higher value is');
+  // Two pillars level at the top: the better rank wins. On the choice's own
+  // figures (since Plan 85I every pillar ranks on its value, which a test
+  // cannot set level by hand).
+  const level = [
+    { pillar: 'academics' as const, value: 120, rank: 9 },
+    { pillar: 'research' as const, value: 131, rank: 7 },
+    { pillar: 'studentLife' as const, value: 131.3, rank: 3 },
+    { pillar: 'athletics' as const, value: 90, rank: 30 },
+  ];
+  assert(strongestOf(level) === 'studentLife', `level on value, the better rank is chosen (${strongestOf(level)})`);
+  level[1].value = 132.3;
+  assert(strongestOf(level) === 'research', 'a clear point higher, the higher value is');
   for (const p of PILLARS) assert(chooseSpecialization(s, p) === p, `a fixed pick of ${p} is ${p}`);
 
   // Through the harness's answer: a player's rule, else the strongest.

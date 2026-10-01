@@ -413,8 +413,15 @@ export interface RankedEntry {
   isPlayer: boolean;
 }
 
+// The college's four pillars are ranked on their values, as prestige reads
+// them (Plan 85I, the owner's decision): research and student life were
+// ranked on the stocks that drift toward their pillars (about an eighth of
+// the gap a year), so a college's specialized research or student life
+// trailed its own pillar by years in every table.
 function selfValue(s: GameState, axis: StandingAxis): number {
   if (axis === 'academics') return pillarValue(s, 'academics');
+  if (axis === 'researchStanding') return pillarValue(s, 'research');
+  if (axis === 'socialStanding') return pillarValue(s, 'studentLife');
   if (axis === 'athleticStrength') return athleticStanding(s);
   if (axis === 'access') return selfAccess(s);
   if (axis === 'financial') return selfFinancial(s);
@@ -539,15 +546,15 @@ function previousEntries(s: GameState, previousPrestige: number): RankedEntry[] 
 }
 
 // Every school's four pillars on the prestige scale, by key, in the
-// pillars' order (the guide's columns, Plan 85B). The player's research and
-// student life are its stocks, as their rankings read them.
+// pillars' order (the guide's columns, Plan 85B). The college's are its
+// pillar values, as their rankings read them (Plan 85I).
 export function pillarColumns(s: GameState): Map<string, readonly number[]> {
   const out = new Map<string, readonly number[]>();
   for (const r of s.rivals) {
     const p = rivalPillars(r);
     out.set(r.id, [p.academics, p.research, p.studentLife, p.athletics]);
   }
-  out.set('self', [pillarValue(s, 'academics'), s.self.researchStanding, s.self.socialStanding, pillarValue(s, 'athletics')]);
+  out.set('self', [pillarValue(s, 'academics'), pillarValue(s, 'research'), pillarValue(s, 'studentLife'), pillarValue(s, 'athletics')]);
   return out;
 }
 

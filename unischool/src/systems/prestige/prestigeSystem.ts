@@ -140,7 +140,10 @@ const BEAUTY_WEIGHT = 6;
 // nothing, and a mean of half or worse costs the whole weight.
 const CONDITION_PENALTY = 4;
 const CONDITION_FLOOR = 0.5;
-const ENDOWMENT_WEIGHT = 8;           // financial resources per student; any larger and it is a term nobody could earn
+// Financial resources per student, outside every pillar. It was 8 until
+// Plan 85I: the owner halved it, since a full endowment carried a college
+// with no specialization to first place, past what the pillars allow.
+const ENDOWMENT_WEIGHT = 4;
 const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
@@ -496,8 +499,8 @@ function pillarOf(
 ): StandingBreakdown {
   const terms = [...scaled([...core, ...bonus], PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[pillar]), specializationInput(s, pillar)];
   const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, terms);
-  // Academics and athletics are read as they stand; research and student
-  // life are the stocks that drift toward them (tickPrestige).
+  // Every pillar is read as it stands (Plan 85I: research and student life
+  // were shown as the stocks that drift toward them, tickPrestige).
   return {
     ...made, current: current ?? made.target, share: PILLAR_WEIGHTS[pillar], live: current === null,
     specialized: specializationOf(s) === pillar ? specializedLine(pillar, PRESTIGE_MAX, s.specializationYear) : undefined,
@@ -533,7 +536,7 @@ function academicsBreakdown(s: GameState): StandingBreakdown {
 
 function studentLifeBreakdown(s: GameState): StandingBreakdown {
   const average = trailingYearSatisfaction(s);
-  return pillarOf(s, 'studentLife', s.self.socialStanding, [
+  return pillarOf(s, 'studentLife', null, [
     weigh(
       'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
       `Students have averaged ${satisfactionFigure(average)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
@@ -786,8 +789,13 @@ export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly stri
 
 // The research and student-life pillars are also stocks (s.self's
 // researchStanding and socialStanding): each drifts toward its pillar's
-// value at the full weekly rate, as its old standing did, and is what the
-// rankings read. Neither is read back into a decision
+// value at the full weekly rate, as its old standing did. Since Plan 85I no
+// ranking, table or breakdown reads them: the standings, the guide, the
+// report, the Final Report and the history rank the pillar values, as they
+// did academics and athletics. Three slow readings still do: the faculty
+// market's research center (facultyData.ts's marketStandingOf), a varsity
+// program's pull from campus life (studentLifeData.ts's collegePull) and the
+// research-powerhouse tag (identity/tags.ts). Neither reaches prestige
 // (test/invariants.test.ts section 5).
 
 // Both start below the pillars' floor: these are earned, not arrived with.
@@ -814,7 +822,7 @@ function researchBreadthScore(s: GameState): number {
 export function researchStandingBreakdown(s: GameState): StandingBreakdown {
   const equipped = labEquippedFields(s).size;
   const fields = researchableFields().length;
-  return pillarOf(s, 'research', s.self.researchStanding, [
+  return pillarOf(s, 'research', null, [
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
       clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),
