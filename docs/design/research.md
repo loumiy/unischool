@@ -124,9 +124,49 @@ The Landmark Program opens with **the Research Park**, a capital
 project that itself waits on every standing lab having seen an initiative
 through (`s.research.finishedLabs`, recorded when one ends uncancelled): a
 college earns its landmark work by doing research everywhere it can first.
-The Research tab shows the count until the park stands (Plan 80B, `labsTowardPark`):
+Since [Plan 85F](../plans/85-specializations.md) the park is also **the
+research specialization's own building** (below): only a college
+specialized in research may build it. The Research tab shows the count until the park stands (Plan 80B, `labsTowardPark`):
 "Labs that have finished a project: n of m", each lab marked, and that a new
-lab raises the count. A lab's panel on the map shows its project and how far
+lab raises the count; for a college yet to choose it first says the park is
+the research specialization's, and for a college specialized in another
+pillar it says the park cannot be built there.
+
+### The research park (Plan 85F)
+
+The research specialization's mechanic (`data/researchParkData.ts`; the
+choice is [progression.md](progression.md)'s).
+
+- **The gate.** `PROJ-RESEARCH-PARK` carries `specialization: 'research'`
+  (Plan 85E's `CapitalProject` gate, read by `projects.ts`'s `projectOpen`)
+  beside its Year 12 and its labs. It lifts no standing of its own: until
+  85F it lifted research 18 points for any college, and every strong
+  player built it in its teens. The build menu lists it closed at the end
+  of the capital projects, "specialized in research only", with the reason
+  on hover, once the labs have earned it (`closedBySpecialization`; the
+  one locked building the menu shows).
+- **The Landmark Program stays tied to the park**, not to the
+  specialization (`depthOpen` reads only that the park stands), so a park
+  built before 85F keeps its Landmark Programs whatever the college
+  chooses.
+- **The term.** The research pillar's specialization term (24 of its 118
+  points) reads the park's **Landmark work**: the years Landmark Programs
+  have run in the last `LANDMARK_WINDOW_YEARS` (10), one for each running at
+  once and no more than `LANDMARKS_COUNTED` (3), full at
+  `LANDMARK_YEARS_FOR_FULL` (12). Two running without a break fill it in
+  six years, three in four, and a little more than one at a time holds it
+  full. Nothing while no park stands, and the row says why. The weekly
+  record is `s.research.landmarkWork` (a year and its weeks, the window's
+  years only), kept by the research tick (`recordLandmarkWork`).
+- **The boost** (a proposal, for the owner's review): while the park
+  stands at a college specialized in research, `researchRateMultiplier` is
+  15% higher (`PARK_RESEARCH_BOOST`): every lab's papers come 15% sooner,
+  with the grants that ride on them. It shows in every offer's expected
+  papers.
+- **A park at a college specialized otherwise** (a save from before 85F)
+  stays, with its Landmark Programs, and fills no term and gives no boost.
+  Its description, the research row in History › Prestige, the Research
+  tab and the choice's cards say so. A lab's panel on the map shows its project and how far
 along it is, or "Start research" when it is idle, which opens the Research
 tab at that lab with its choices open; "Open in Research →" goes to the lab.
 
@@ -157,7 +197,9 @@ university worth building rather than a deep one worth drilling.
 `researchRateMultiplier` is live-read off every finished Buildable carrying
 `effects.researchRateBonus` (each facility; the research library that added
 to it was retired in Plan 53) — that
-field multiplies output, it never creates it.
+field multiplies output, it never creates it. The research park's boost
+multiplies it again for a college specialized in research (Plan 85F,
+above).
 
 **Output is guaranteed** (Plan 15's PR C). The weekly lottery that used to
 draw an output at 0.5–3.4% a week is gone; three legible rules replace it:

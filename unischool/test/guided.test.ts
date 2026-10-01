@@ -5,7 +5,8 @@
 // hold, never for how well: the rules every state keeps
 // (sim/harness/invariants.ts), no interrupt left standing, and every
 // letter delivered with its ask done — a letter whose ask the guided
-// player cannot carry out is a line of play the game does not support —
+// player cannot carry out is a line of play the game does not support; the
+// Research Park's only to the run held to research (Plan 85F) —
 // and a chronicle whose eras never repeat a kind in a row (Plan 80C; the
 // archetypes' are checked in test/archetypes.test.ts); and an opening the
 // money carries (Plan 80F): the Year 2 class seated without a loan, and
@@ -23,6 +24,8 @@ import { brokenRules } from '../sim/harness/invariants';
 import { OPENING_LETTERS } from '../src/data/eventData';
 import { chronicleOf } from '../src/systems/chronicle/chronicle';
 import { totalEnrolled } from '../src/state/types';
+import type { Pillar } from '../src/state/types';
+import { specializationOf } from '../src/systems/prestige/specialization';
 import { instructionCapacity } from '../src/systems/techtree/instructionCapacity';
 
 let checks = 0;
@@ -37,12 +40,15 @@ function assert(cond: boolean, msg: string): void {
 
 console.log('guided player tests');
 
-const RUNS = [{ seed: 12345 }, { seed: 4242 }, { seed: 12345, name: 'Harrow College' }];
+// The third run is also held to research (Plan 85F), so the Research Park's
+// letter, which only a college specialized in research is sent, is read.
+const RUNS: Array<{ seed: number; name?: string; specialization?: Pillar }> = [{ seed: 12345 }, { seed: 4242 }, { seed: 12345, name: 'Harrow College', specialization: 'research' }];
 const YEARS = 50;
 
 for (const run of RUNS) {
   const label = run.name ? `"${run.name}"` : `seed ${run.seed}`;
   const player = createGuidedPlayer();
+  if (run.specialization) player.specialization = run.specialization;
   const g = foundGame(run);
   let firstBreak: string | null = null;
   let weeks = 0;
@@ -71,6 +77,12 @@ for (const run of RUNS) {
   assert(firstBreak === null, `${label}: every quarter keeps the rules${firstBreak ? ` — first broken at ${firstBreak}` : ''}`);
   const r = player.record;
   for (const letter of OPENING_LETTERS) {
+    // The Research Park's letter comes only to a college specialized in
+    // research (Plan 85F): the park opens to no other.
+    if (letter.id === 'the-research-park' && specializationOf(g.s) !== 'research') {
+      assert(r.delivered[letter.id] === undefined, `${label}: "${letter.title}" is not sent to a college specialized in ${specializationOf(g.s) ?? 'nothing'}`);
+      continue;
+    }
     assert(r.delivered[letter.id] !== undefined, `${label}: "${letter.title}" is delivered`);
     assert(r.done[letter.id] !== undefined, `${label}: and its ask is done ("${letter.ask(g.s).text}")`);
   }

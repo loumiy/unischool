@@ -37,7 +37,8 @@ export function projectOpen(s: GameState, t: Buildable): boolean {
   const p = t.project;
   if (!p) return true;
   // A specialization's own building (Plan 85E: the Faculty Training
-  // Institute) opens to the college specialized in it, and to no other.
+  // Institute; Plan 85F: the Research Park) opens to the college specialized
+  // in it, and to no other.
   if (p.specialization !== undefined && specializationOf(s) !== p.specialization) return false;
   if (p.late) return lateTierOpen(s);
   if (s.clock.year < p.fromYear) return false;
@@ -47,6 +48,15 @@ export function projectOpen(s: GameState, t: Buildable): boolean {
   // initiative (Plan 53).
   if (p.everyLabFinished && !everyLabFinished(s)) return false;
   return true;
+}
+
+// A specialization's own building that would be open but for the
+// specialization (Plan 85F): the build menu lists it, closed, with the
+// reason, so the college sees what the choice would let it build.
+export function closedBySpecialization(s: GameState, t: Buildable): boolean {
+  const p = t.project;
+  if (!p || p.specialization === undefined || specializationOf(s) === p.specialization) return false;
+  return t.status === 'locked' && projectOpen(s, { ...t, project: { ...p, specialization: undefined } });
 }
 
 // What the standing projects lift an axis by, in points, each in

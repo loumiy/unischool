@@ -15,6 +15,8 @@ import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { satisfactionFigure } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
+import { PARK_WORDS, parkStands } from '../../data/researchParkData';
+import { specializationOf } from '../prestige/specialization';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the earliest undone letter ask (the letters' order must
@@ -236,16 +238,20 @@ function darkProgram(s: GameState): NextStep | null {
 
 // A finished lab with nothing running in it.
 // A lab that has not seen an initiative through comes first: every lab
-// finishing one opens the Research Park (Plan 59).
+// finishing one opens the Research Park (Plan 59), which since Plan 85F only
+// a college specialized in research may build, so only such a college (or
+// one yet to choose) is told the park comes closer.
 function idleLab(s: GameState): NextStep | null {
   const idle = s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id]);
   if (idle.length === 0) return null;
   const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
   const unproven = idle.find((t) => !finished.has(t.id));
   const lab = unproven ?? idle[0];
+  const chosen = specializationOf(s);
+  const parkAhead = !parkStands(s) && (chosen === null || chosen === 'research');
   return {
-    text: unproven
-      ? `${lab.name} has not finished a research project — every lab that does brings the Research Park closer`
+    text: unproven && parkAhead
+      ? PARK_WORDS.unprovenLab(lab.name, chosen === 'research')
       : `${lab.name} is idle — commission research`,
     go: 'research',
     intent: { kind: 'research', labId: lab.id },

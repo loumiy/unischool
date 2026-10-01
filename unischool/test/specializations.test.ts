@@ -108,13 +108,14 @@ bindScriptStream(12345);
   const term = specialized.inputs.find((i) => i.key === 'specialization')!;
   assert(term.score === 1 && specialized.target > UNSPECIALIZED_MAXIMA.academics, `specialized, its term full, academics passes ${UNSPECIALIZED_MAXIMA.academics} (${specialized.target.toFixed(1)})`);
   assert(Math.abs(perfect + term.weight - 150) < 1e-9, 'and every term in full is 150');
-  // A pillar whose mechanic is still to come fills a tenth a year.
+  // A pillar whose mechanic is still to come fills a tenth a year (student
+  // life's; research's reads the research park since Plan 85F).
   const timed = structuredClone(late);
-  timed.specialization = 'research';
+  timed.specialization = 'studentLife';
   for (let k = 0; k <= SPECIALIZATION_FILL_YEARS + 2; k += 1) {
     timed.specializationYear = timed.clock.year - k;
-    const score = pillarBreakdown(timed, 'research').inputs.find((i) => i.key === 'specialization')!.score;
-    assert(Math.abs(score - Math.min(1, k / SPECIALIZATION_FILL_YEARS)) < 1e-9, `${k} years after the choice research's term is ${Math.min(1, k / SPECIALIZATION_FILL_YEARS)} full (${score})`);
+    const score = pillarBreakdown(timed, 'studentLife').inputs.find((i) => i.key === 'specialization')!.score;
+    assert(Math.abs(score - Math.min(1, k / SPECIALIZATION_FILL_YEARS)) < 1e-9, `${k} years after the choice student life's term is ${Math.min(1, k / SPECIALIZATION_FILL_YEARS)} full (${score})`);
   }
   // Another pillar's term stays empty, and says why.
   const research = pillarBreakdown(late, 'research').inputs.find((i) => i.key === 'specialization')!;

@@ -1,5 +1,6 @@
 import type { GameState, Pillar } from '../state/types';
 import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
+import { PARK_WORDS, landmarkYears, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -44,6 +45,9 @@ export function specializedIn(pillar: Pillar): string {
 // (SPECIALIZATION_DETAILS). Academics reads the faculty training program
 // (Plan 85E): the share of the faculty trained at the institute
 // (trainingData.ts's trainingReading), and nothing while none stands.
+// Research reads the research park (Plan 85F): the years of Landmark work it
+// has hosted in the last ten (researchParkData.ts's parkReading), and
+// nothing while none stands.
 // ---------------------------------------------------------------------
 
 export const SPECIALIZATION_FILL_YEARS = 10;
@@ -57,7 +61,7 @@ function yearsSinceChoice(s: GameState): number {
 
 export const SPECIALIZATION_READINGS: Readonly<Record<Pillar, SpecializationReading>> = {
   academics: trainingReading,
-  research: yearsSinceChoice,
+  research: parkReading,
   studentLife: yearsSinceChoice,
   athletics: yearsSinceChoice,
 };
@@ -69,17 +73,29 @@ export const SPECIALIZATION_DETAILS: Partial<Readonly<Record<Pillar, (s: GameSta
   academics: (s, score) => (instituteStands(s)
     ? TRAINING_WORDS.termReading(chosenIn(s), trainedCount(s), s.faculty.length, score >= 1)
     : TRAINING_WORDS.termNoInstitute(chosenIn(s))),
+  research: (s, score) => (parkStands(s)
+    ? PARK_WORDS.termReading(chosenIn(s), landmarkYears(s), landmarksRunning(s), score >= 1)
+    : PARK_WORDS.termNoPark(chosenIn(s), parkGoingUp(s))),
+};
+
+// What the term's row adds while it is empty for want of the
+// specialization, where the college has its mechanic's building already
+// (Plan 85F: a Research Park built before the park became the research
+// specialization's).
+const SPECIALIZATION_ASIDES: Partial<Readonly<Record<Pillar, (s: GameState, chosen: Pillar | null) => string | null>>> = {
+  research: (s, chosen) => (parkStands(s) ? (chosen ? PARK_WORDS.asideElsewhere : PARK_WORDS.asideUnchosen) : null),
 };
 
 // The term as its row reads: how full, and why.
 export function specializationTerm(s: GameState, pillar: Pillar): { score: number; detail: string } {
   const chosen = s.specialization === 'none' ? null : s.specialization;
   if (chosen !== pillar) {
+    const aside = SPECIALIZATION_ASIDES[pillar]?.(s, chosen);
     return {
       score: 0,
-      detail: chosen
+      detail: (chosen
         ? `The college is specialized in ${PILLAR_WORDS[chosen]}, so this stays empty.`
-        : `Comes only with a specialization in ${PILLAR_WORDS[pillar]}.`,
+        : `Comes only with a specialization in ${PILLAR_WORDS[pillar]}.`) + (aside ? ` ${aside}` : ''),
     };
   }
   const score = SPECIALIZATION_READINGS[pillar](s);
@@ -131,6 +147,17 @@ export function specializationStatus(
   if (offered) return 'The college has not chosen a specialization, so each pillar\'s specialization term is empty. The board\'s offer stands, and comes back at the close of every summer until one is chosen.';
   return `The college has no specialization, so each pillar's specialization term is empty. The board offers the choice at the first summer the college stands in the guide's top ${milestone}.`;
 }
+
+// A specialization's own building in the build menu, closed to a college
+// not specialized in it (Plan 85F): its tile's line, and why.
+export const CLOSED_BUILD_WORDS = {
+  sub: (pillar: Pillar) => `specialized in ${PILLAR_WORDS[pillar]} only`,
+  foot: 'closed',
+  why: (name: string, pillar: Pillar, chosen: Pillar | null, milestone: number) =>
+    `Only a college specialized in ${PILLAR_WORDS[pillar]} may build ${name.replace(/^The /, 'the ')}. ${chosen
+      ? `The college is specialized in ${PILLAR_WORDS[chosen]}, for good.`
+      : `The board offers the choice of a specialization at the first summer the college stands in the guide's top ${milestone}.`}`,
+};
 
 // A rival leading a pillar, on its standings card.
 export function ledBy(name: string, specialization: Pillar): string {
@@ -187,9 +214,10 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     name: 'The research park',
     summary: 'A college known first for what its laboratories find.',
     known: 'a college known first for what its laboratories find',
+    fills: PARK_WORDS.fills,
     mechanics: [
-      { text: 'The Research Park becomes this specialization\'s own building, and with it the Landmark Program.', ready: false },
-      { text: 'A boost to research output.', ready: false },
+      { text: PARK_WORDS.cardPark, ready: true },
+      { text: PARK_WORDS.cardBoost, ready: true },
     ],
   },
   studentLife: {
@@ -215,6 +243,17 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     ],
   },
 };
+
+// A college whose Research Park already stands, or is going up (one built
+// before Plan 85F made it the research specialization's), keeps it and its
+// Landmark Programs whatever it chooses (Plan 85F). Each card says what the
+// choice makes of it: the research card that it works at once; the others
+// that it stays but fills nothing and lifts nothing. Null without a park.
+export function choiceParkNote(s: GameState, pillar: Pillar): string | null {
+  const goingUp = parkGoingUp(s);
+  if (!parkStands(s) && !goingUp) return null;
+  return pillar === 'research' ? PARK_WORDS.cardParkStands(goingUp) : PARK_WORDS.cardParkElsewhere(goingUp);
+}
 
 // What opens, said on each card: it works from the moment of the choice.
 export function opensLine(pillar: Pillar, weight: number): string {

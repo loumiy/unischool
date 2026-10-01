@@ -98,7 +98,9 @@ const player = playerNamed(recipe.player);
 if (!player) throw new Error(`no player matching "${recipe.player}". Known: ${PLAYERS.join(', ')}`);
 // A run that stops at the specialization (Plan 85D) leaves it standing
 // rather than choosing by the player's rule (sim/harness/specialization.ts).
-if (wantedModal === 'specialization' || recipe.name === 'specialization') player.specialization = 'wait';
+if (wantedModal === 'specialization' || (recipe.name.startsWith('specialization') && recipe.name !== 'specialization-notice')) player.specialization = 'wait';
+// A fixed pick (Plan 85F's research park).
+else if (named?.specialization) player.specialization = named.specialization;
 // A run that stops with a year's training picks unspent (Plan 85E).
 if (named?.trains) player.trains = named.trains;
 const seed = flags.seed ? Number(flags.seed) : DEFAULT_SEED;

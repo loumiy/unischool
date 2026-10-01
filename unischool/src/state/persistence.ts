@@ -26,6 +26,7 @@ import { initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
+import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../data/researchParkData';
 import { emptyCareer } from '../systems/faculty/career';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -60,7 +61,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 90; // Plan 85E: the faculty training program
+export const SAVE_VERSION = 91; // Plan 85F: the research park as a specialization
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -221,6 +222,55 @@ function trainingProgram(state: GameState): void {
   for (const f of state.faculty ?? []) if (f.career) delete f.career.training;
 }
 
+// 90 -> 91, Plan 85F: the Research Park is the research specialization's
+// own building. A park standing or going up stays, with its Landmark
+// Programs, whatever the college chooses (its terms are the catalog's on
+// every load, refreshAuthoredText: it lifts no standing of its own now, and
+// opens only to a college specialized in research). A park open but not
+// begun at a college not specialized in research is closed again, as a new
+// run's would be; it opens again if the college chooses research. The
+// Landmark work the research term reads (ResearchState.landmarkWork) is
+// read back from what the save kept: each Landmark Program running, for the
+// weeks it has run, and each finished in the window, for its length, ended
+// in the middle of its year; no more than LANDMARKS_COUNTED a week.
+function researchParkGate(state: GameState): void {
+  const park = Array.isArray(state.tech) ? state.tech.find((t) => t.id === RESEARCH_PARK_ID) : undefined;
+  if (park && park.status === 'available' && state.specialization !== 'research') park.status = 'locked';
+  const research = state.research;
+  if (!research) return;
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const from = state.clock.year - LANDMARK_WINDOW_YEARS + 1;
+  const byYear = new Map<number, number>();
+  const span = (end: number, weeks: number) => {
+    for (let w = Math.max(0, end - weeks); w < end; w += 1) {
+      const year = Math.floor(w / WEEKS_PER_YEAR) + 1;
+      if (year >= from && year <= state.clock.year) byYear.set(year, (byYear.get(year) ?? 0) + 1);
+    }
+  };
+  for (const i of Object.values(research.initiatives ?? {})) {
+    if (i.depth === 'landmark') span(now, Math.max(0, i.weeksTotal - i.weeksRemaining));
+  }
+  for (const done of research.completedInitiatives ?? []) {
+    if (done.depth === 'landmark' && !done.cancelled) span((done.year - 1) * WEEKS_PER_YEAR + WEEKS_PER_YEAR / 2, 5 * WEEKS_PER_YEAR);
+  }
+  research.landmarkWork = [...byYear.entries()].sort((a, b) => a[0] - b[0])
+    .map(([year, weeks]) => ({ year, weeks: Math.min(weeks, LANDMARKS_COUNTED * WEEKS_PER_YEAR) }));
+}
+
+// The Research Park's Landmark work (Plan 85F), on every load: a list of
+// whole years and weeks, each year once, no more than LANDMARKS_COUNTED a
+// week; anything else is dropped, which only empties a year of the record.
+function sanitizeLandmarkWork(state: GameState): void {
+  const raw = state.research.landmarkWork as unknown;
+  const seen = new Set<number>();
+  state.research.landmarkWork = (Array.isArray(raw) ? raw : []).filter((w): w is { year: number; weeks: number } => {
+    const ok = typeof w === 'object' && w !== null && Number.isInteger(w.year) && w.year >= 1 && w.year <= state.clock.year
+      && Number.isInteger(w.weeks) && w.weeks >= 0 && w.weeks <= LANDMARKS_COUNTED * WEEKS_PER_YEAR && !seen.has(w.year);
+    if (ok) seen.add(w.year);
+    return ok;
+  }).sort((a, b) => a.year - b.year);
+}
+
 // The faculty training program (Plan 85E), on every load: the year's list
 // is a year and faculty ids; a professor's training is whole numbers, its
 // points no more than the potential holds; a career's trainings are years
@@ -278,6 +328,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   87: dealSpecializations,
   88: noSpecializationYet,
   89: trainingProgram,
+  90: researchParkGate,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -1173,6 +1224,7 @@ function sanitize(state: GameState): void {
   for (const r of state.rivals) if (!isSpecialization(r.specialization)) r.specialization = dealtSpecialization(r.id);
   sanitizeSpecialization(state);
   sanitizeTraining(state);
+  sanitizeLandmarkWork(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;

@@ -13,6 +13,9 @@ import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../src/systems/techtree/
 import { claimedHalls, programsAwayFromHome, suggestedMove } from '../src/systems/techtree/schools';
 import { relocateProgram, unlockAvailable } from '../src/systems/techtree/techSystem';
 import { instituteStands } from '../src/data/trainingData';
+import { RESEARCH_PARK_ID, parkStands } from '../src/data/researchParkData';
+import { firstFreeSpot, footprintOf, placementFor } from '../src/state/campusMap';
+import type { SpecializationRule } from '../sim/harness/specialization';
 
 export interface Scenario {
   name: string;
@@ -35,6 +38,24 @@ export interface Scenario {
   // While the player spends the faculty training program's picks (Plan
   // 85E, sim/harness/game.ts's Player.trains): absent, always.
   trains?: (s: GameState) => boolean;
+  // How the player chooses its specialization (sim/harness/
+  // specialization.ts): absent, its strongest pillar.
+  specialization?: SpecializationRule;
+}
+
+// A Research Park built before Plan 85F made it the research
+// specialization's: standing, sited at the first free spot, built in Year
+// 17 as the strong players built it then. For the choice's cards on a save
+// that already has one.
+export function withOldPark(s: GameState): void {
+  const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
+  if (!park || park.status === 'done') return;
+  const fp = footprintOf(park);
+  const spot = firstFreeSpot(s, park, fp);
+  if (!spot) return;
+  park.status = 'done';
+  park.builtYear = 17;
+  s.placements[park.id] = placementFor(spot.row, spot.col, fp);
 }
 
 // A school in crisis: satisfaction in the thirties, a body half again too
@@ -169,6 +190,28 @@ export const SCENARIOS: Scenario[] = [
     year: 45,
     trains: (s) => s.clock.year < 38,
     stopWhen: (s) => s.clock.year >= 38 && s.clock.week >= 6 && instituteStands(s),
+  },
+  {
+    // The research park (Plan 85F): a college specialized in research with
+    // the park standing and its Landmark Programs running, its term part
+    // full: the run plays a fixed pick of research and stops a few weeks
+    // into Year 40.
+    name: 'research-park',
+    what: 'the research park at work: specialized in research, the park standing, Landmark Programs running',
+    player: 'Guided',
+    year: 45,
+    specialization: 'research',
+    stopWhen: (s) => s.clock.year >= 40 && s.clock.week >= 6 && parkStands(s),
+  },
+  {
+    // The choice (Plan 85D) at a college whose Research Park was built
+    // before Plan 85F: each card says what the choice makes of the park.
+    name: 'specialization-old-park',
+    what: 'the choice of a specialization at a college that already has a Research Park',
+    player: 'Guided',
+    year: 45,
+    stopWhen: atModal('specialization'),
+    mutate: withOldPark,
   },
   {
     name: 'rankings-entry',

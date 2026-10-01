@@ -404,7 +404,8 @@ export interface CapitalProject {
   // Waits on every standing lab having finished an initiative (Plan 53).
   everyLabFinished?: true;
   // Waits on the college's specialization (Plan 85E: the Faculty Training
-  // Institute, academics'): only a college specialized in it may build it.
+  // Institute, academics'; Plan 85F: the Research Park, research's): only a
+  // college specialized in it may build it.
   specialization?: Pillar;
   boosts: Partial<Record<'academics' | 'research' | 'experience' | 'athletics', number>>;
 }
@@ -766,6 +767,18 @@ export interface ResearchState {
   finishedLabs?: string[];
   lastOutputWeek: number;  // absolute week of the last research output; 0 = never
   pendingCompletions: InitiativeReport[]; // queued like pendingMilestones; drained one per modal (eventSystem.ts)
+  // The Landmark work the Research Park has hosted (Plan 85F,
+  // data/researchParkData.ts): for each recent year, the weeks Landmark
+  // Programs ran, one a week for each running at once (at most
+  // LANDMARKS_COUNTED of them). Oldest first; years older than the window
+  // the research specialization's term reads are dropped.
+  landmarkWork: LandmarkWorkYear[];
+}
+
+// One year's Landmark work (ResearchState.landmarkWork).
+export interface LandmarkWorkYear {
+  year: number;
+  weeks: number;
 }
 
 // Student organizations (docs/design/student-life.md): clubs once there is

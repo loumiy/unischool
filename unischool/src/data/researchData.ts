@@ -3,6 +3,7 @@ import { RESEARCH_TOPICS, isCrossDisciplinary, type ResearchTopic } from './rese
 import { standsOnCampus, WEEKS_PER_YEAR } from '../state/types';
 import { hostableFields, researchSchools } from './techData';
 import { random } from '../engine/random';
+import { RESEARCH_PARK_ID, parkBoost } from './researchParkData';
 
 // Research tuning and tables; systems/research/researchSystem.ts applies
 // them each tick. Outputs never write prestige directly: breakthroughs,
@@ -55,12 +56,14 @@ export function labEquippedFields(s: GameState): Set<string> {
 
 // 1 plus effects.researchRateBonus across finished Buildables, read live
 // off s.tech. Campus-wide on purpose: shared equipment on top of each
-// initiative's own facility and team.
+// initiative's own facility and team. The Research Park adds its boost on
+// top while it stands at a college specialized in research (Plan 85F,
+// researchParkData.ts's parkBoost).
 export function researchRateMultiplier(s: GameState): number {
   const bonus = s.tech
     .filter((t) => t.status === 'done')
     .reduce((sum, t) => sum + (t.effects?.researchRateBonus ?? 0), 0);
-  return 1 + bonus;
+  return (1 + bonus) * parkBoost(s);
 }
 
 // What the equipped roster could produce if fully committed. Not banked
@@ -262,9 +265,9 @@ export const INITIATIVE_DEPTHS: readonly InitiativeDepthDef[] = [
   },
 ];
 
-// The research park's id (projectData.ts), written out: research is staged
-// on it (Plan 53).
-export const RESEARCH_PARK_ID = 'PROJ-RESEARCH-PARK';
+// The research park's id (projectData.ts; researchParkData.ts since Plan
+// 85F): research is staged on it (Plan 53).
+export { RESEARCH_PARK_ID };
 
 // Which depths a college may commission: the first three always, the
 // Landmark Program only once the Research Park stands (Plan 53).
