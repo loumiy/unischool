@@ -275,9 +275,9 @@ function siteProgressArt({ t, p, label }: SiteProgressProps, developing: GameSta
       )}
       {shell && (
         <g className="campus-site-shell">
-          <polygon points={polyPoints(shell.left)} />
-          <polygon points={polyPoints(shell.right)} />
-          <polygon points={polyPoints(shell.top)} />
+          <polygon className="campus-site-wall" points={polyPoints(shell.left)} />
+          <polygon className="campus-site-wall" points={polyPoints(shell.right)} />
+          <polygon className="campus-site-wall" points={polyPoints(shell.top)} />
           <polygon className="campus-site-hatch" points={polyPoints(shell.left)} />
           <polygon className="campus-site-hatch" points={polyPoints(shell.right)} />
         </g>

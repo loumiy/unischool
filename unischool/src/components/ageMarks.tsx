@@ -58,7 +58,7 @@ function Ivy({ t, f, salt = 0 }: { t: Buildable; f: ReturnType<typeof boxFaces>;
       const u = r < 0.5 ? r * 0.5 : 1 - (r - 0.5) * 0.5;
       const v = hash(t.id, salt * 1000 + 340 + k * 40 + i) * 0.7 * (1 - Math.abs(u - 0.5));
       const q = lerp(lerp(g0, g1, u), lerp(e0, e1, u), v);
-      leaves.push(<circle key={`${k}-${i}`} cx={q.x.toFixed(1)} cy={q.y.toFixed(1)} r={2.2 + hash(t.id, 380 + i) * 1.8} />);
+      leaves.push(<circle key={`${k}-${i}`} className="campus-ivy-leaf" cx={q.x.toFixed(1)} cy={q.y.toFixed(1)} r={2.2 + hash(t.id, 380 + i) * 1.8} />);
     }
   });
   return <g className="campus-ivy">{leaves}</g>;

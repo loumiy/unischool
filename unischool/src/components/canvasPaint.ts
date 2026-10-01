@@ -23,8 +23,11 @@ import { PointList, setRawPoints } from './isoProjection';
 //   stylesheet's class rules (resolved once per chain of classes, season
 //   and map class by `StyleResolver`, from probe elements in the map) and
 //   inline style, in that order of precedence, inherited down the tree as
-//   SVG inherits them. A hook (`extraClass`) adds classes as it records:
-//   the map's doors that walkers hold open.
+//   SVG inherits them. A rule reaches a shape only through a class the
+//   shape wears itself: one on a bare tag under a class (`.x polygon`)
+//   is not read, and the shape falls back to SVG's initial black fill
+//   (the scene test checks none does). A hook (`extraClass`) adds classes
+//   as it records: the map's doors that walkers hold open.
 // - Each op carries the building it belongs to, so the map can pick the
 //   building under the pointer from the ops (`HitList`) as the SVG's hit
 //   test did: the topmost shape that takes pointer events.
