@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A–H merged (#268, #274–#278, #280, #281).**
+**Status: In progress: A–I merged (#268, #274–#278, #280–#282); left: the owner's decisions on 85I's balance (research's and student life's margin, the endowment).**
 
 ---
 
@@ -2009,7 +2009,8 @@ specializations is left to 85I.**
   - **The student-life specialist** reaches first on two seeds of three for
     each strong player, a little behind the academic pick in prestige, and
     its pillar ranks 3rd (85I).
- — The balance pass, and the specialized players
+
+## PR 85I — The balance pass, and the specialized players
 
 - **Four specialized variants** of the Guided player in the sim report,
   one per specialization, beside the unspecialized one.
@@ -2021,6 +2022,264 @@ specializations is left to 85I.**
   - unspecialized play stays top 10.
 - **The re-recorded baseline** is described; the owner reviews the
   report.
+
+**As implemented (#282):** the sim report plays the Guided player held to
+each of the four specializations and to none, beside the plain Guided
+player, which picks its strongest pillar (academics). Every player at the
+milestone now runs the athletics department alike, which was the harness's
+asymmetry, and three constants were retuned so that unspecialized play stays
+out of first place once it does. `sim/baseline.json` is re-recorded with
+the five new players and each player's rank in the four pillars. No save
+change.
+
+- **The players** (`sim/report.ts`'s `VARIANTS`): *Guided, academics*,
+  *Guided, research*, *Guided, student life* and *Guided, athletics*, each
+  a fixed pick through 85D's hook (`Player.specialization`), and *Guided,
+  unspecialized* (`'never'`), the fourth target's own player. Everything but
+  the pick is the Guided player's. Under each player the report prints, per
+  seed, its pick and year, the first year it stood in the top 20, the top 10
+  and first, and its own pillar's place and margin over the next school at
+  Year 50 (a player without a pick, its best pillar's). The pillar ranks at
+  years 10, 25 and 50 are figures of their own, diffed like the rest.
+  `--players <regex>` and `--seeds a,b,c` measure part of the report and are
+  never saved; every run's rows land in `node_modules/.tmp/report-runs.json`.
+- **Every pillar run alike** (`sim/harness/athletics.ts`'s
+  `runsDepartment`): until now only a college specialized in athletics ran
+  its department (the high subsidy, every coaching post filled, the
+  flagships ordered and on full scholarships, the Field House), so the
+  academic, research and student-life picks and the unspecialized player
+  hired no coaches and named no flagships, and their athletics stood 56 to
+  62, 71st to 90th. Now every player runs it once the college reaches the
+  milestone (offered the choice: the overall top 20), whatever it chooses or
+  if it chooses nothing; only the complex stays the athletics specialist's.
+  Nothing changes before the milestone, nor for Selective, Lean and Idle,
+  which never reach it; the championships goal player runs its own
+  (`athletics: false`). The research park's Landmark Programs, the
+  institute's training and the festival are each their own
+  specialization's mechanics, so they stay with it. The fix alone, before
+  any tuning (Guided players, seeds 12345, 4242 and 777):
+  - their athletics rises to 83 to 88 and ranks 20th to 40th, and prestige
+    at Year 50 by 2.6 to 4.8: Guided (academics) 124.1, 121.6 and 123.5
+    (was 120.4, 119.0 and 120.6), first from years 40, 43 and 42 (was 46,
+    47 and 42); the athletics pick, which ran it already, is unchanged;
+  - **the unspecialized player reaches first place** on two seeds of
+    three (115.8 from Year 49 on 12345, 115.4 from Year 47 on 777; second on
+    4242 at 114.4), against best places 3, 3 and 5 before. That is the
+    fourth target broken, and what the tuning below answers.
+- **The untouched numbers** (main's harness and constants with the variants
+  added; seeds 12345, 4242 and 777; the year's first week):
+
+  | | Top 20 | Top 10 | #1 | Prestige Y50 | Own pillar Y50: rank, margin | Other pillars Y50 (aca/res/life/ath) |
+  |---|---|---|---|---|---|---|
+  | Guided, academics (= Guided) | 30, 32, 29 | 36, 40, 35 | 46, 47, 42 | 120.4, 119.0, 120.6 | #6 −1.5; #6 −1.6; #6 −1.6 | –/8/4/80; –/9/4/81; –/8/5/81 |
+  | Guided, research | 30, 32, 29 | 36, 41, 35 | 47, 47, 46 | 118.4, 116.4, 117.6 | #5 −7.0; #7 −12.7; #6 −9.5 | 9/–/4/76; 9/–/5/77; 10/–/5/81 |
+  | Guided, student life | 30, 32, 29 | 36, 40, 35 | 44, never (best 2), 44 | 119.0, 117.2, 118.6 | #3 −13.1; #3 −15.7; #3 −14.4 | 8/8/–/81; 9/9/–/71; 10/8/–/82 |
+  | Guided, athletics | 30, 32, 29 | 34, 38, 36 | 43, 45, 42 | 123.8, 122.1, 123.5 | #1 +12.0; #1 +11.7; #1 +11.8 | 8/9/4/–; 8/9/4/–; 10/8/5/– |
+  | Guided, unspecialized | 30, 32, 29 | 38, 44, 34 | never (best 3, 3, 5) | 112.6, 109.8, 110.9 | (best: student life #4, #4, #5) | 9/7/4/78; 9/8/4/85; 10/9/5/90 |
+
+  Each specialist reached first on two or three seeds, and the
+  unspecialized player never did; but only athletics led its own pillar.
+  The rivals' specialists stood at the top of the scale: at Year 50 four
+  academic and three research specialists stood at 150, and two student-life
+  ones near 148, so the college could at best tie them, and its research
+  and student-life rankings read stocks that drift toward the pillar (about
+  12% of the gap a year) and stood at 137 to 143 and 133 to 137. Athletics'
+  rivals stop at 85 of 100, 132 on the prestige scale.
+- **The tuning** (three constants; the owner's decided values are untouched:
+  the top-20 milestone, no hard caps, the band-width training gain, the
+  park's no-lift rule and 15% boost, the complex's $30M, the quarter of the
+  big stage and 85H's sizes):
+  1. **The rivals' specialists ease toward 140, not 150**
+     (`rivalsSystem.ts`'s `SPECIALIZED_CEILING`; athletics' band is
+     unchanged at 85, 132). Reason: a college that specializes and runs its
+     program stands at 148 to 150 in its pillar, and only below that can it
+     lead the field by a clear margin. On its own (measured): academics
+     #1 by 8.0 to 8.4 on every seed, research #1 on one seed (by 1.8),
+     student life still 3rd; but the top of the field fell with the
+     specialists' pillars and the unspecialized player was first on all
+     three seeds, from years 47, 48 and 41.
+  2. **The specialization terms, 24/24/30/30 → 28/28/34/34**
+     (`prestigeSystem.ts`'s `SPECIALIZATION_TERM_WEIGHTS`; natural maxima
+     122, 122, 116 and 116). Reason: the term is what a specialization is
+     worth over unspecialized play, and with every department run alike the
+     unspecialized college stood within 6 to 8 points of the specialists and
+     level with the top of the field. Four more points each widen it: by the
+     arithmetic they take about 3.7 points off an unspecialized strong
+     college's prestige and 2.3 to 3.3 off a specialist's (its own pillar's
+     term is full either way). With the ceiling at 140 and the terms but not
+     change 3, the unspecialized player was first on one seed of three (Year
+     47 on 4242).
+  3. **The rivals' unspecialized academics eases toward 118, not 112**
+     (`RIVAL_UNSPECIALIZED_TARGETS.academics`; research 112, student life 107
+     and athletics 90 are unchanged). Reason: with the specialists' ceiling
+     lower, the top of the field needed lifting where it does not cost the
+     college its other pillars. The field's academics is the one
+     unspecialized axis that rises steadily (`fieldRise`, the others random
+     walks), 118 is where a strong unspecialized college's academics stands
+     at Year 50 (113.7 to 119.7) and 4 under its natural maximum, and it
+     raised the best rival at Year 50 by about 1.8 (a median 114.5 against
+     112.8 over the five variants' runs). Raising research's or student
+     life's would have pushed the college's own unspecialized pillars down
+     the tables.
+
+  Changes 2 and 3 move every run from the founding, so the climb to the
+  milestone is 1 to 7 years later (below).
+- **The final numbers.** The moves, against main's baseline (85H), medians
+  of three seeds; pillar ranks at Year 50, academics / research / student
+  life / athletics (the five new players against the untouched numbers
+  above):
+
+  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 |
+  |---|---|---|---|---|
+  | Guided | 57 (+1) / 34 (+5) / 1 | 49.6 (−0.6) / 77.9 (−2.1) / 120.2 (−0.2) | 88.8 (+3.0) / 84.4 (+0.6) / 89.4 (+1.6) | 1 / 8 / 4 / 29, was 6 / 8 / 4 / 81 |
+  | Completionist | 57 (+1) / 38 (+4) / 1 | 49.2 (−1.0) / 75.0 (−4.0) / 116.0 (−2.0) | 85.4 (−0.3) / 87.4 (−0.8) / 87.9 (−1.9) | 1 / 19 / 4 / 35, was 5 / 9 / 3 / 70 |
+  | Selective | 60 / 58 (+1) / 62 (+1) | 43.4 (+0.2) / 50.8 (−0.8) / 51.2 (−1.9) | 86.5 (+0.1) / 81.8 (+0.7) / 82.3 (−0.1) | 60 / 61 / 24 / 100, was 57 / 63 / 21 / 100 |
+  | Lean | 66 (+2) / 66 (+2) / 74 (+2) | 39.8 (−0.3) / 41.8 (−1.5) / 42.6 (−0.3) | 79.8 (+4.0) / 70.7 (−4.3) / 78.1 (+4.2) | 58 / 83 / 24 / 100, was 56 / 81 / 27 / 100 |
+  | Idle | 82 (+2) / 67 (+1) / 74 (−1) | 29.7 (−0.7) / 41.6 (−0.4) / 38.2 (−0.6) | 84.0 / 84.0 / 84.1 | 78 / 80 / 33 / 100, was 79 / 80 / 28 / 100 |
+  | Guided, academics | as Guided | | | |
+  | Guided, research | 57 (+1) / 34 (+5) / 1 | 49.6 (−0.6) / 77.9 (−2.1) / 117.8 (+0.2) | 88.8 (+3.0) / 84.4 (+0.6) / 84.9 (−2.2) | 9 / 5 / 4 / 37, was 9 / 6 / 5 / 77 |
+  | Guided, student life | 57 (+1) / 34 (+5) / 1 | 49.6 (−0.6) / 77.9 (−2.1) / 118.7 | 88.8 (+3.0) / 84.4 (+0.6) / 89.4 (+0.7) | 10 / 7 / 3 / 42, was 9 / 8 / 3 / 81 |
+  | Guided, athletics | 57 (+1) / 34 (+5) / 1 | 49.6 (−0.6) / 77.9 (−2.1) / 119.1 (−4.4) | 88.8 (+3.0) / 84.4 (+0.6) / 87.1 | 9 / 8 / 4 / 1, was 8 / 9 / 4 / 1 |
+  | Guided, unspecialized | 57 (+1) / 34 (+5) / 3 (−1) | 49.6 (−0.6) / 77.9 (−2.1) / 111.0 (+0.1) | 88.8 (+3.0) / 84.4 (+0.6) / 88.5 (+1.8) | 9 / 8 / 4 / 34, was 9 / 8 / 4 / 85 |
+
+  When each first reached each place, and where it stood at Year 50 (seeds
+  12345, 4242, 777; the year's first week):
+
+  | | Top 20 (the pick) | Top 10 | #1 | Rank Y50 | Prestige Y50 | Own pillar Y50: rank, margin | Other pillars Y50 (aca/res/life/ath) |
+  |---|---|---|---|---|---|---|---|
+  | Guided, academics (= Guided) | 33, 35, 31 | 42, 41, 39 | 47, 47, 43 | 1, 1, 1 | 115.5, 120.2, 121.4 | #1 +3.7; #1 +8.1; #1 +8.6 | –/18/6/27; –/7/4/29; –/8/4/40 |
+  | Guided, research | 33, 35, 31 | 42, 41, 41 | never (best 2), 46, 47 | 2, 1, 1 | 113.6, 117.8, 118.0 | #6 −8.5; #5 −1.7; #5 −1.5 | 16/–/6/32; 9/–/4/41; 9/–/4/37 |
+  | Guided, student life | 33, 35, 31 | 41, 41, 40 | 49, 44, 45 | 1, 1, 1 | 115.7, 118.7, 118.7 | #3 −8.3; #3 −9.7; #3 −8.1 | 18/14/–/13; 10/6/–/42; 9/7/–/45 |
+  | Guided, athletics | 33, 35, 31 | 41, 42, 39 | 51 (the run's last week), 45, 44 | 2, 1, 1 | 116.0, 119.1, 119.9 | #1 +11.0; #1 +11.4; #1 +11.9 | 20/15/4/–; 9/8/7/–; 9/8/4/– |
+  | Guided, unspecialized | 33, 35, 31 | 47, 44, 42 | never (best 8, 3, 3) | 8, 3, 3 | 105.0, 111.0, 111.0 | (best: student life #4, #5, #4) | 15/22/4/34; 9/7/5/39; 9/8/4/31 |
+  | Completionist (academics) | 35, 40, 38 | 44, 45, 44 | 49, 51 (the run's last week), 49 | 1, 2, 1 | 117.1, 112.4, 116.0 | #1 +8.7; #1 +6.4; #1 +7.7 | –/16/4/39; –/20/4/34; –/19/5/35 |
+
+- **Against the targets** (the harness's three seeds):
+  1. **Each specialized variant reaches first by Year 50 on some seeds:
+     met.** Academics on three (from years 47, 47 and 43), student life on
+     three (49, 44, 45), research on two (46, 47; second on 12345) and
+     athletics on two (45, 44; on 12345 second at Year 50 and first in the
+     run's last week). Prestige at Year 50: 113.6 to 121.4.
+  2. **Its pillar #1 by a clear margin: met for academics and athletics,
+     not for research and student life.** *Proposed: "clear" is 5 points or
+     more over the next school at Year 50, on the prestige scale the guide
+     prints.* Athletics leads by 11.0 to 11.9 on every seed, academics by 8.1
+     and 8.6 on two (3.7 on 12345, whose academics stood at 143.7). Research
+     ranks 5th to 6th (1.5 to 8.5 behind) and student life 3rd (8.1 to 9.7
+     behind): their rankings read the stocks, 131.5 to 138.5 and 129.3 to
+     131.9, while the pillars themselves stood at 143.0 to 149.9 and 144.2
+     to 146.6. The levers cannot close that: the stock trails its pillar by
+     years (about 12% of the gap a year), and a rival ceiling low enough to
+     sit under it (about 125) would sink the whole field.
+     **The smallest change that would meet it (proposed, not built):** rank
+     the college's research and student life on their pillar values, as its
+     academics and athletics already are, not on the stocks
+     (`rivalsSystem.ts`'s `selfValue` and `pillarColumns`; nothing reads the
+     stocks back into a decision). Read that way, at Year 50, research leads
+     by 9.9 and 9.8 on two seeds (3.0 on 12345) and student life by 6.6, 7.1
+     and 6.4 on all three. Alternatively the stocks could drift faster
+     (`PRESTIGE_DRIFT_RATE`).
+  3. **Its other pillars near the top: met for academics, research and
+     student life on two seeds of three; not for athletics.** *Proposed:
+     the top 10.* Academics, research and student life rank 4th to 10th on
+     4242 and 777; on 12345, the weakest run (below), student life ranks 4th
+     to 6th but academics and research 14th to 22nd.
+     Athletics without its specialization ranks 13th to 45th, a median
+     around 35th: titles are rare without it by the owner's design (85C), so
+     its titles term (a fifth of the pillar's span) stays nearly empty, and
+     the rivals' 22 athletic specialists stand above. It was 71st to 90th
+     before the harness ran the department.
+  4. **Unspecialized play stays top 10 and never first: met.** Best places
+     8, 3 and 3; 8th, 3rd and 3rd at Year 50, at 105.0 to 111.0 (the
+     specialists' 113.6 to 121.4). On five more seeds (1, 2, 3, 99, 2024;
+     measured only) it was first on one, seed 1, in its last two years by
+     0.6 (110.7 against 110.1), and best 2nd to 4th on the others; the
+     research variant was first on four of the five, the athletics variant
+     on all five.
+- **The weakest run is seed 12345** under the new terms: every Guided
+  player there reaches the milestone in Year 33 (it was 30) and stands
+  lower all run (prestige at Year 40 about 98 to 102, against 103 to 108 on
+  the other seeds; about 31,000 students at Year 50 against 34,480), so its
+  specialists end
+  at 113.6 to 116.0 and its academics, research and student life lower in
+  their tables.
+- **Side effects:**
+  - **The milestone comes later.** The Guided players reach the top 20 in
+    years 31 to 35 (were 29 to 32), the Completionist in 35, 40 and 38 (were
+    33, 39 and 31): inside the owner's 25 to 40, with the Completionist on
+    4242 at its edge. Moving the milestone (the owner's top 20) would buy
+    margin; I left it.
+  - **The top of the field holds less above about 118:** a rival's
+    unspecialized pillars ease toward their targets and its specialized one
+    toward 140, so its prestige tops out at about 117.8 (a student-life
+    specialist), against about 120.8 with 150. So a late leader standing
+    above that (72I's contested first place) can no longer be passed when it
+    slips. `test/first-place.test.ts`'s leader is rescaled from 119 (best
+    125) to 112 (best 118), as 85C rescaled it.
+  - **The athletics specialist** stands lower than the others' gain would
+    suggest (119.1 median, −4.4), its three-point lead over the academic pick
+    gone: every pick now runs the department, and the terms' change costs a
+    specialist in athletics the most. Its titles by Year 50 are 36, 26 and
+    35 (were 41, 32 and 46), inside the owner's 25 to 40; it chooses two to
+    three years later.
+  - **The Completionist** runs the department too and now leads academics
+    on every seed; it is first at Year 50 on 12345 and 777 (from Year 49),
+    as before on two seeds of three, and on 4242 in the run's last week.
+  - Selective, Lean and Idle move a little with the terms (prestige −0.3 to
+    −1.9 at Year 50, a place or two) and never reach the milestone (best
+    55th). Cash at Year 50 moves as ever (Guided $270M, +$154M).
+- **The endowment** (85C's open question). Measured as a what-if (a copy
+  of the unspecialized Guided player whose endowment is topped up each week
+  from the milestone; not a harness rule): with a full endowment ($400,000
+  a student, about $13.8 billion at 34,480 students, +8 points) it is
+  **first on every seed**, from years 47, 44 and 42, at 115.1, 119.0 and
+  119.7; with half (+4 to +5) it is first on two seeds of three (years 45
+  and 46). Before the tuning (the department run, the constants
+  untouched) a full endowment was first from years 39, 44 and 41. The
+  report's players never come near it (a fifth of full at best, +1.6), but
+  it is within a real player's reach: the natural player, which prices high,
+  holds $8.6 billion in cash at Year 40 and $20.6 billion at Year 50 beside
+  a $3.1 billion endowment (seed 12345), so a college that swept its cash
+  into the endowment would fill it years before Year 50. A rich
+  unspecialized college can buy first place with the endowment, which the
+  pillars are built to prevent. **Proposed, not
+  built:** fold the endowment into a pillar as one of its terms (academics',
+  say), where 85D's rule shares the pillar's span and no term lifts an
+  unspecialized college past its natural maximum; a full endowment would
+  then be worth about 2 points, not 8. Alternatives: halve it (+4), or give
+  the rivals an endowment of their own so the asymmetry 85B noted goes.
+- **Run time:** the report plays each run in a process of its own, as many
+  at once as there are cores (`SIM_JOBS` to change it), as `npm run
+  review:goals` does. The 30 runs now take 10.6 to 11.6 minutes on four
+  cores, against 13.5 minutes for main's 15 runs one at a time, so the five
+  new players need no flag; on one core it would be about 27 minutes. Each
+  process plays one run, so the numbers are the same as one process playing
+  them in turn (the untouched run reproduced main's baseline exactly).
+- **Not changed, for the owner:**
+  - **A research player funding three Landmark Programs fills its term in
+    four years** (12 years of Landmark work, three at once), where academics
+    takes six at the least (about a fifteenth of the faculty trained a year,
+    full at 40%) and student life about nine (ten points of festivals, a
+    gala worth 1.2). The harness's specialist is held back by money and
+    fills it 9 to 11 years after the choice, so nothing in the report shows
+    it. Counting two at once (`LANDMARKS_COUNTED`) would make six years the
+    fastest.
+  - **The student-life term on seed 777** filled only in Year 47 (half in
+    40): the festival's scale follows the week's net.
+- **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
+  re-recorded (`--save`), then 0 deltas; `npm run phone`; `review:strings`.
+  `test/athleticsComplex.test.ts` pins the harness's new rule (a college at
+  the milestone runs the department whatever it chose, and if it chose
+  nothing, never the complex; one short of it is left alone);
+  `test/first-place.test.ts` is rescaled (above). No UI changed, so no
+  screenshots.
+- **Open, for the owner's review:**
+  - the three constants above, and "clear" as 5 points;
+  - research's and student life's margin: rank them on the pillar, not the
+    stock (or a faster stock);
+  - the endowment: into a pillar, halved, or the rivals' own;
+  - athletics as "near the top" for a college not specialized in it;
+  - the milestone's later arrival (the Completionist on 4242 in Year 40).
 
 ## What this plan does not do
 

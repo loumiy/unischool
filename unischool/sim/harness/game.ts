@@ -74,9 +74,10 @@ export interface Player {
   // keeps Landmark Programs running (researchPark.ts): absent, it does;
   // false, never.
   landmarks?: false;
-  // Whether, specialized in athletics, it runs the department as the
-  // specialization asks (athletics.ts: the complex, the subsidy, the posts,
-  // the flagships and their scholarships): absent, it does; false, never
+  // Whether, once at the milestone, it runs the athletics department as a
+  // strong college runs every pillar's (athletics.ts, Plan 85I: the subsidy,
+  // the posts, the flagships and their scholarships, whatever it chose; the
+  // complex too, specialized in athletics): absent, it does; false, never
   // (a player that runs its own, the championships goal player).
   athletics?: false;
   // Whether, specialized in student life, it answers what the downtown asks

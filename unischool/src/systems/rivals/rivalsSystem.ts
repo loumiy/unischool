@@ -47,8 +47,14 @@ export function fieldRise(id: string, reputation: number, ceiling = FIELD_CEILIN
 // (rivalData.ts's dealtSpecialization), and that axis runs higher and
 // steadier: it rises as the field's academics do (fieldRise: the strongest
 // schools most, easing to nothing near the ceiling) at twice the field's
-// rate, toward SPECIALIZED_CEILING, the top of the scale, and takes only
-// SPECIALIZED_STEADINESS of its momentum and its yearly shock. Its other
+// rate, toward SPECIALIZED_CEILING, and takes only SPECIALIZED_STEADINESS of
+// its momentum and its yearly shock. The ceiling sits below the top of the
+// scale (Plan 85I's balance pass; it was 150): a college that specializes
+// and runs its specialization's own program stands at 148 to 150 in its
+// pillar, and only below it can that pillar lead the field by a clear
+// margin; at 150 the rivals' specialists stood level with it or above. An
+// athletic specialist's band already stopped at 85 of 100, 132 on the
+// prestige scale (ATHLETIC_STRENGTH_MAX). Its other
 // three axes are not capped (the owner's decision in Plan 85D's review,
 // replacing 85C's ceilings): each drifts toward RIVAL_UNSPECIALIZED_TARGETS,
 // at or below the natural maxima the college's pillars have without their
@@ -58,16 +64,21 @@ export function fieldRise(id: string, reputation: number, ceiling = FIELD_CEILIN
 // standing, or an old save) takes no move upward until it has fallen below
 // it; nothing pushes it down. The draws are the same whatever the
 // specialization.
-export const SPECIALIZED_CEILING = 150;
+export const SPECIALIZED_CEILING = 140;
 export const SPECIALIZED_RISE_RATE = 2 * FIELD_RISE_RATE;
 export const SPECIALIZED_STEADINESS = 0.5;
 // Where an unspecialized axis drifts toward, on the prestige scale (tuned
 // in Plan 85D's review): below the natural maxima the college's pillars
 // have without their specialization (UNSPECIALIZED_MAXIMA), about where a
 // strong college's stand, so that one without a specialization can reach
-// the top ten but, against the specialists, not first place.
+// the top ten but, against the specialists, not first place. Academics
+// was 112 until Plan 85I's balance pass: with the specialists' ceiling
+// lowered to 140 the top of the field fell, and an unspecialized college
+// that runs every department reached first place; the field's academics
+// rising toward 118 (where a strong unspecialized college's stands, 4
+// under its natural maximum) holds it out.
 export const RIVAL_UNSPECIALIZED_TARGETS: Readonly<Record<Pillar, number>> = {
-  academics: 112, research: 112, studentLife: 107, athletics: 90,
+  academics: 118, research: 112, studentLife: 107, athletics: 90,
 };
 export const RIVAL_TARGET_EASE = 8;
 

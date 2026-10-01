@@ -77,18 +77,23 @@ export const PILLAR_LABELS: Readonly<Record<Pillar, string>> = {
 // points above the floor, and its other terms share the rest in their old
 // proportions. A college without the specialization can do everything else
 // perfectly and still stand no higher than PILLAR_FLOOR + PILLAR_SPAN less
-// this (UNSPECIALIZED_MAXIMA: 126, 126, 120, 110, where 85C's ceilings
-// were), because the term is empty, not because anything holds it. Tuned so
-// that optimal play without one reaches the top ten overall and near the top
-// of every pillar, and never first place. Athletics' is the largest: without
-// the athletics specialization a program's quality slows above
+// this (UNSPECIALIZED_MAXIMA: 122, 122, 116, 116), because the term is
+// empty, not because anything holds it. Tuned so that optimal play without
+// one reaches the top ten overall and near the top of every pillar, and
+// never first place. Plan 85D set 24, 24, 30 and 30; Plan 85I's balance pass
+// added 4 to each, once the harness's strong players ran every pillar's
+// department alike (an unspecialized college's athletics department lifted
+// it about 4.5 points, to within reach of first place): the term is what a
+// specialization is worth over unspecialized play. Student life's and
+// athletics' are the largest: student life is the easiest pillar to fill,
+// and without the athletics specialization a program's quality slows above
 // TEAM_QUALITY_KNEE and titles are rare (studentLifeData.ts), so a strong
 // department without titles stands about where its term leaves it.
 export const SPECIALIZATION_TERM_WEIGHTS: Readonly<Record<Pillar, number>> = {
-  academics: 24,
-  research: 24,
-  studentLife: 30,
-  athletics: 30,
+  academics: 28,
+  research: 28,
+  studentLife: 34,
+  athletics: 34,
 };
 
 // The most each pillar can stand at without its specialization: its
@@ -106,8 +111,9 @@ export const UNSPECIALIZED_MAXIMA: Readonly<Record<Pillar, number>> = {
 // high in the guide's overall ranking. A rank, not a prestige figure, so it
 // survives a retune. Tuned so the Guided and Completionist players first
 // stand there in years 25-40 (the owner's range) on every seed, with some
-// margin. Without caps (Plan 85D's review) they climb later: they reach the
-// top 20 in years 29-38; the top 18 would be 30-41, the top 15 32-45.
+// margin. Without caps (Plan 85D's review) they climb later: they reached
+// the top 20 in years 29-38; the top 18 would be 30-41, the top 15 32-45.
+// With Plan 85I's larger terms they reach it in years 31-40.
 export const SPECIALIZATION_MILESTONE_RANK = 20;
 // The board's notice comes when the college first stands within this many
 // places of the milestone: two to four years ahead of it for a college

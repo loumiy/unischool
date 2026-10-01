@@ -1,16 +1,22 @@
 // ---------------------------------------------------------------------
-// The harness's athletics specialist (Plan 85G). Until a college specializes
-// in athletics the harness's players run its department as they always
-// have (the Guided player builds the venues its teams wait on and nothing
-// more; the championships goal player runs its own). Once one does, every
-// player, unless it says otherwise (Player.athletics), runs the department
-// the way the specialization asks, at the top of each week (game.ts's
-// playWeek), before its own moves:
+// The harness's athletics department (Plans 85G and 85I). Until a college
+// reaches the milestone the harness's players run its department as they
+// always have (the Guided player builds the venues its teams wait on and
+// nothing more; the championships goal player runs its own). Once one
+// reaches it (offered the choice of a specialization: the overall top 20),
+// every player, unless it says otherwise (Player.athletics), runs the
+// department as a strong college runs every pillar's, whatever it chooses,
+// at the top of each week (game.ts's playWeek), before its own moves. Plan
+// 85I's balance pass: before it, only a college specialized in athletics ran
+// it, so every other pick's athletics stood in the 70s and 80s of the
+// field and the comparison between specializations was the harness's, not
+// the game's. Now only the complex is the athletics specialist's own:
 //
-//   the complex    builds the Athletic Performance Complex once it can pay
-//                  for it and keep the guided player's reserve (Guided and
-//                  the Completionist build any capital project that opens
-//                  anyway; this is for any other player)
+//   the complex    (specialized in athletics) builds the Athletic Performance
+//                  Complex once it can pay for it and keep the guided
+//                  player's reserve (Guided and the Completionist build any
+//                  capital project that opens anyway; this is for any other
+//                  player)
 //   the subsidy    the high subsidy level: the most flagships
 //   the posts      every program's empty coaching posts filled with the best
 //                  candidate listed, while the week is in the black; a
@@ -80,15 +86,22 @@ function staff(g: Game, team: VarsityTeam, flagship: boolean): void {
   }
 }
 
-// Runs the department for a college specialized in athletics. Returns
-// whether it did anything.
+// Whether the harness runs the department: at a college specialized in
+// athletics, and (Plan 85I) at any college that has reached the milestone,
+// whatever it chose, or if it chose nothing.
+export function runsDepartment(s: GameState): boolean {
+  return specializationOf(s) === 'athletics' || s.specializationOffered !== undefined;
+}
+
+// Runs the department for a college that has reached the milestone, and the
+// complex for one specialized in athletics. Returns whether it did anything.
 export function runAthletics(g: Game): boolean {
-  if (specializationOf(g.s) !== 'athletics') return false;
+  if (!runsDepartment(g.s)) return false;
   const before = g.actions;
   const reserve = reserveOf(g.s);
   // The complex, once it opens and the money is there.
   const complex = g.s.tech.find((t) => t.id === ATHLETICS_COMPLEX_ID);
-  if (complex && complex.status === 'available' && !(complex.id in g.s.placements) && g.s.finance.cash - complex.cost >= reserve) site(g, complex);
+  if (specializationOf(g.s) === 'athletics' && complex && complex.status === 'available' && !(complex.id in g.s.placements) && g.s.finance.cash - complex.cost >= reserve) site(g, complex);
   if (g.s.orgs.teams.length === 0) return g.actions > before;
   if (g.s.orgs.athleticsBudget !== 'high') g.act({ type: 'SET_ATHLETICS_BUDGET', tier: 'high' });
   // The list: kept in order a quarter at a time, and at once while a

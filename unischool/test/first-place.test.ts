@@ -29,10 +29,12 @@ function assert(cond: boolean, msg: string): void {
 console.log('first place tests');
 
 // A leader at `now` whose best was `best`, in `year`, the elite band a few
-// points below it and everyone else well under. Standings an unspecialized
-// college can hold (Plan 85C): its pillars stop at their ceilings, and so
-// do the three a rival is not specialized in, so the band cannot close past
-// the high 120s.
+// points below it and everyone else well under. Standings the field can
+// close to: a rival's three unspecialized pillars ease toward their targets
+// and its specialized one toward SPECIALIZED_CEILING, so the band cannot
+// close past the high 110s (Plan 85I: 140 for a specialist's pillar, 118
+// for academics; it was the low 120s, and Plan 85C's ceilings the high
+// 120s).
 function leader(year: number, best: number, now: number): GameState {
   const s = createInitialState('Crown');
   s.clock.year = year;
@@ -49,19 +51,19 @@ function years(s: GameState, n: number): void {
 }
 
 {
-  const s = leader(40, 125, 119);
-  assert(bestStanding(s) === 125 && standingContested(s), 'late, six points below its best: contested');
+  const s = leader(40, 118, 112);
+  assert(bestStanding(s) === 118 && standingContested(s), 'late, six points below its best: contested');
   years(s, 8);
   assert(playerRank(s) > 1, `and passed within eight years (rank ${playerRank(s)})`);
 }
 {
-  const s = leader(40, 121, 119);
+  const s = leader(40, 114, 112);
   assert(!standingContested(s), `late, within ${CONTEST_SLIP} of its best: not contested`);
   years(s, 8);
   assert(playerRank(s) === 1, `and it keeps first place (rank ${playerRank(s)})`);
 }
 {
-  const s = leader(30, 125, 119);
+  const s = leader(30, 118, 112);
   assert(!standingContested(s), 'the same slip before the last fifteen years: not contested');
   years(s, 5);
   assert(playerRank(s) === 1, `and it keeps first place (rank ${playerRank(s)})`);
