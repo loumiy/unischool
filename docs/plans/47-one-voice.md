@@ -173,6 +173,19 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
   counts 1, a lost final a half and a lost semifinal a quarter", over the
   last ten years. The athletic performance complex (lower case) is the
   specialization's name; the Athletic Performance Complex is the building.
+- **The downtown.** The district the town beside the campus grows into at a
+  college specialized in student life ([Plan 85](85-specializations.md) PR
+  H), along *Main Street*. Its places are *downtown* or *off campus*
+  ("1,773 downtown", "Downtown, off campus"), never "external capacity".
+  *The downtown and the festival* (capitalized as a card's name) is the
+  specialization's name.
+- **The festival.** The spring festival, decided each spring in the inbox:
+  *a modest weekend*, *a street fair*, *a festival with a headline act*, *a
+  headline gala*, or *no festival*. Its share of student life is read in
+  points, "a festival with a headline act counts 1".
+- **Goodwill.** *The town's goodwill*, 0 to 100; "town goodwill +4" on an
+  answer. The students' own goodwill, which a missed demand costs, is not a
+  number and keeps the plain word.
 - **Specialization.** The one pillar a college, or a rival, may be the very
   best at ([Plan 85](85-specializations.md)): "specialized in research".
   Never "archetype", which names the harness's players. A pillar's cap

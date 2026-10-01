@@ -208,8 +208,8 @@ the pillar's breakdown, named for its program ("The faculty training
 program": "+0.0 of 24 · comes only with a specialization in academics";
 specialized in another pillar, "so this stays empty"). The college's own
 specialization (below) fills its term (`specializationData.ts`'s
-`SPECIALIZATION_READINGS`), each by its own mechanic as Plans 85E–H build
-them, and until then a tenth for each year since the choice. Academics reads
+`SPECIALIZATION_READINGS`), each by its own mechanic (Plans 85E–H; Plan
+85D filled each with a tenth for each year since the choice). Academics reads
 the faculty training program (Plan 85E): the share of the faculty on the
 roster trained at the Faculty Training Institute, full at 40%
 (`trainingData.ts`'s `TRAINED_SHARE_FOR_FULL`), and nothing while no
@@ -226,7 +226,13 @@ Performance Complex standing, a title counting 1, a lost final a half and a
 lost semifinal a quarter, full at 30 (`athleticsComplexData.ts`'s
 `complexReading`), and nothing while no complex stands (see
 [student-life.md](student-life.md)'s complex). The Guided player held to
-athletics fills it 10 to 12 years after the choice. Student life's term is larger because
+athletics fills it 10 to 12 years after the choice. Student life reads the
+downtown and the festival (Plan 85H): the spring festivals of the last ten
+springs by their scale, full at ten springs of a headline act, carried by
+the downtown district's growth and the town's goodwill
+(`downtownData.ts`'s `downtownReading`), and nothing without a festival (see
+[student-life.md](student-life.md)'s downtown). The Guided and Completionist
+players held to student life fill it 10 to 13 years after the choice. Student life's term is larger because
 it is the easiest pillar to fill; athletics' because without the athletics
 specialization a program's quality slows above 80 and titles are rare (see
 [student-life.md](student-life.md)'s postseason). Tuned so that optimal play
@@ -272,16 +278,18 @@ late, and kept:
 - **What it gives now:** its pillar's term opens and fills (academics as
   its faculty is trained at the institute, research as Landmark Programs
   run at the Research Park, athletics as its programs make deep runs with
-  the Athletic Performance Complex standing, student life over ten years),
+  the Athletic Performance Complex standing, student life as the college
+  holds its spring festival, the downtown grows and the town warms to it),
   so the pillar can rise to 150. The athletics specialization also takes
   away the slowdown of a program's quality above 80 and shrinks the big
   stage's edge to a quarter (`specialization.ts`'s `athleticsLifted`, the
   hook Plan 85G's performance complex extends; the quarter is the owner's
   decision in Plan 85G's review, 2026-10-01, where 85D took it all away). Each specialization's own mechanics (the
   faculty training program, the research park, the downtown and the
-  festival, the performance complex) are Plans 85E–H; the choice lists
-  those not yet built as still to come, from `specializationData.ts`'s
-  `SPECIALIZATION_CARDS`, where each PR marks its own ready. Academics'
+  festival, the performance complex) are Plans 85E–H, all built since Plan
+  85H; the choice lists them from `specializationData.ts`'s
+  `SPECIALIZATION_CARDS` (a mechanic not yet built would be listed as still
+  to come). Academics'
   (Plan 85E) is built: the Faculty Training Institute, a capital project
   only a college specialized in academics may build, and the year's
   training picks (see [faculty.md](faculty.md)). So is research's (Plan
@@ -299,7 +307,12 @@ late, and kept:
   points stronger in its semifinals and 4 in its finals (the owner's
   decisions, 2026-10-01; see [student-life.md](student-life.md)). The build menu
   lists a specialization's building closed, with the reason, to a college
-  that has earned it otherwise.
+  that has earned it otherwise. Student life's (Plan 85H) has no building:
+  the town beside the campus grows into a downtown district that meets up to
+  15% of the students' social, dining and housing needs, the college holds a
+  festival each spring, and town-and-gown events trade money, mood and the
+  town's goodwill (sizes proposed for the owner's review; see
+  [student-life.md](student-life.md)).
 - History › Prestige and the standings say where the college stands on the
   choice (specialized, and since when; the offer standing; or the milestone
   still to reach), and the guide tags the college with its specialization as
@@ -318,7 +331,10 @@ seed, the Completionist from 47 on two of three; both still choose
 academics. Held to research, Guided is first from years 46–47 on every
 seed. Held to athletics (Plan 85G, the complex built), Guided is first from
 years 42–45 on every seed and the Completionist from 44–50 on every seed
-(with a quarter of the big stage left against it, the owner's decision). Held to no
+(with a quarter of the big stage left against it, the owner's decision).
+Held to student life (Plan 85H), Guided is first from Year 44 on two seeds
+of three and second on the third; the Completionist first from Year 49 on
+one, in Year 51's first week on another, and second on the third. Held to no
 specialization, neither is ever first (best 4th; since Plan 85F, best
 3rd).
 

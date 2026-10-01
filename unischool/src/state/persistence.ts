@@ -28,6 +28,7 @@ import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
 import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../data/researchParkData';
 import { ATHLETICS_COMPLEX_ID, isDeepRun } from '../data/athleticsComplexData';
+import { FESTIVAL_EVENT, FESTIVAL_SCALES, GOODWILL_MAX, GOODWILL_START, emptyDowntown } from '../data/downtownData';
 import { emptyCareer } from '../systems/faculty/career';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -62,7 +63,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 92; // Plan 85G: the athletic performance complex
+export const SAVE_VERSION = 93; // Plan 85H: the downtown and the festival
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -272,6 +273,38 @@ function athleticsComplex(state: GameState): void {
   if (state.orgs) state.orgs.complexRuns = [];
 }
 
+// 92 -> 93, Plan 85H: the downtown and the festival. The district, the
+// town's goodwill and the festivals start where a new run's do: no growth,
+// the goodwill a town starts with, no festival held. A college already
+// specialized in student life (its term filled with the years until now)
+// sees the district begin to grow at its next week and is asked about its
+// first festival at the next Spring Term's fourth week; until a festival is
+// held its term reads empty, as a new specialist's does.
+function downtownStarts(state: GameState): void {
+  state.downtown = emptyDowntown();
+}
+
+// The downtown (Plan 85H), on every load: growth 0 to 1, goodwill 0 to 100,
+// and the festivals a year each, no later than the save's year, of a scale
+// the game knows or none, oldest first; anything else is dropped or put
+// back where a new run starts.
+function sanitizeDowntown(state: GameState): void {
+  const raw = state.downtown as unknown as { growth?: unknown; goodwill?: unknown; festivals?: unknown } | undefined;
+  if (typeof raw !== 'object' || raw === null) { state.downtown = emptyDowntown(); return; }
+  const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+  const growth = finite(raw.growth) ? Math.max(0, Math.min(1, raw.growth)) : 0;
+  const goodwill = finite(raw.goodwill) ? Math.max(0, Math.min(GOODWILL_MAX, raw.goodwill)) : GOODWILL_START;
+  const scales: readonly string[] = [...FESTIVAL_SCALES, 'none'];
+  const seen = new Set<number>();
+  const festivals = (Array.isArray(raw.festivals) ? raw.festivals : []).filter((f): f is { year: number; week?: number; scale: (typeof FESTIVAL_SCALES)[number] | 'none' } => (
+    typeof f === 'object' && f !== null && Number.isInteger(f.year) && f.year >= 1 && f.year <= state.clock.year
+      && typeof f.scale === 'string' && scales.includes(f.scale) && (f.week === undefined || Number.isInteger(f.week))
+  )).filter((f) => !seen.has(f.year) && seen.add(f.year) !== undefined)
+    .map((f) => ({ year: f.year, ...(f.week !== undefined ? { week: f.week } : {}), scale: f.scale }))
+    .sort((a, b) => a.year - b.year);
+  state.downtown = { growth, goodwill, festivals };
+}
+
 // The Athletic Performance Complex's deep runs (Plan 85G), on every load: a
 // year, a sport and a finish in the last four, no later than the save's
 // year; anything else is dropped.
@@ -356,6 +389,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   89: trainingProgram,
   90: researchParkGate,
   91: athleticsComplex,
+  92: downtownStarts,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -877,7 +911,7 @@ function sanitizeCatalogue(state: GameState): void {
   state.catalogue!.pending = (c.pending as unknown[]).filter((p): p is PendingCatalogueEvent => {
     const e = p as Partial<PendingCatalogueEvent> | null;
     return typeof e === 'object' && e !== null && typeof e.instanceId === 'string' && typeof e.eventId === 'string'
-      && (e.eventId === CHARTER_EVENT.id || EVENT_CATALOGUE.some((x) => x.id === e.eventId)) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
+      && (e.eventId === CHARTER_EVENT.id || e.eventId === FESTIVAL_EVENT.id || EVENT_CATALOGUE.some((x) => x.id === e.eventId)) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
       && typeof e.vars === 'object' && e.vars !== null;
   });
   // The journal: malformed entries are dropped.
@@ -1254,6 +1288,7 @@ function sanitize(state: GameState): void {
   sanitizeTraining(state);
   sanitizeLandmarkWork(state);
   sanitizeComplexRuns(state);
+  sanitizeDowntown(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;

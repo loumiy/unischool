@@ -33,6 +33,7 @@ import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle } from './seasons';
 import { RingBack, RingFront } from './Surroundings';
+import { districtLit, districtStep } from '../data/downtownData';
 import { clampView, ringZoomFloor } from './ringLand';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
@@ -833,6 +834,9 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
   scene: readonly SceneEntry[]; groundGeo: ReturnType<typeof groundGeometry>;
   name: string; developing: GameState['developing']; turning: boolean; snow: number;
   crowds: ReadonlySet<string>; banners: GameState['self']['colors'] | null;
+  // The downtown's step and whether it is lit (Plan 85H): 0 and false at a
+  // college not specialized in student life.
+  district?: number; lit?: boolean;
   // The season's tokens, as a key, and the map's own classes.
   season: string; groundClass: string;
   // The layout the scene before was drawn from, if any: when only the
@@ -872,8 +876,8 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
     values: { colors: layout.colors, snow: a.snow, banner: a.banners, collegeName: a.name, developing: a.developing, crowds: a.crowds },
     soft: `${a.season}|${a.snow}`,
     ring: {
-      node: <RingBack name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} />,
-      sig: `${cam}|${a.name}|${layout.vernacular}`,
+      node: <RingBack name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} lit={a.lit ?? false} />,
+      sig: `${cam}|${a.name}|${layout.vernacular}|${a.district ?? 0}${a.lit ? 'lit' : ''}`,
     },
     ground: {
       node: (
@@ -885,8 +889,8 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
       sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}${a.crowds.has(id) ? 'c' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
     },
     front: {
-      node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} />,
-      sig: `${cam}|${a.name}|${layout.vernacular}`,
+      node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} lit={a.lit ?? false} />,
+      sig: `${cam}|${a.name}|${layout.vernacular}|${a.district ?? 0}${a.lit ? 'lit' : ''}`,
     },
     entries,
     inspected: a.inspectedId,
@@ -2089,11 +2093,15 @@ export default function CampusMap({
   const week = seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK;
   const season = useMemo(() => seasonStyle(week), [week]);
   const snow = useMemo(() => seasonOf(week).snow, [week]);
+  // The downtown (Plan 85H): its step, and whether it is lit (a festival's
+  // weeks, and the winter's). Both change a few times a year at most.
+  const district = districtStep(s);
+  const lit = districtLit(s, snow);
   // The land around the campus that stands in front of it, drawn by the
   // scene over the campus; an element kept while nothing it draws changes.
   const ringFront = useMemo(
-    () => <RingFront name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />,
-    [s.self.name, layout.vernacular, camera, turning, snow],
+    () => <RingFront name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} district={district} lit={lit} />,
+    [s.self.name, layout.vernacular, camera, turning, snow, district, lit],
   );
   // The path tool's ghost: the tile the next click would pave or lift.
   // Needs no `ok`, since a path tile can never be refused.
@@ -2115,14 +2123,14 @@ export default function CampusMap({
   const canvasScene = useMemo(() => {
     if (!canvasOn()) return null;
     const scene = canvasSceneOf({
-      layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners,
+      layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners, district, lit,
       inspectedId: highlightId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, prevLayout: prevLayoutRef.current,
     });
     prevLayoutRef.current = layout;
     return scene;
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
+  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, lit, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
   // The compositor, once its canvas is mounted.
   useLayoutEffect(() => {
     const canvas = sceneCanvasRef.current;
@@ -2205,7 +2213,7 @@ export default function CampusMap({
         ) : (
           <svg className="campus-map-ring" width="100%" height="100%" aria-hidden="true">
             <g ref={ringWorldRef}>
-              <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} />
+              <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} district={district} lit={lit} />
             </g>
           </svg>
         )}

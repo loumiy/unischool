@@ -231,4 +231,13 @@ export const EVENT_VARIANTS: Readonly<Record<string, readonly [string, string]>>
     'The summer school has twice the students it planned for and the same four instructors, who have each been offered a second section on terms the Provost\'s office calls flexible. The pay is flexible.',
     'Summer enrollment has doubled. The instructors have not. Each has been asked to take another section, on a contract the Provost\'s office describes as flexible, meaning the pay can go down.',
   ],
+  // Town and gown (Plan 85H).
+  'town-noise': [
+    'A councilman who lives two streets behind Main Street has called the President\'s office to describe, in some detail, what he heard at one in the morning on Saturday. He would like to know what the college proposes, and has copied the local paper.',
+    'The residents\' association has sent a petition about the noise downtown, with a recording attached. The recording is of a crowd singing the college\'s fight song in three keys at once, which the association feels makes its case.',
+  ],
+  'town-street-festival': [
+    'The street festival\'s committee has come back about the quad. Main Street is full, the band has been booked, and they would be grateful for the lawn for a single Saturday, with the grass left as they found it, give or take.',
+    'The town would like to hold its street festival on the college\'s main quad this year, which it describes as the obvious place and the groundskeepers describe as the only good grass for a mile. The organizers have offered to bring their own tents.',
+  ],
 };

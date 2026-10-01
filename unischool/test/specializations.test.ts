@@ -35,7 +35,7 @@ import {
 import { PILLAR_AXES, RIVAL_UNSPECIALIZED_TARGETS, playerRank, rankBy, rankedListBy, rivalOverall, rivalPillars, specializations, sportRankedList, tickRivals, SPECIALIZED_CEILING } from '../src/systems/rivals/rivalsSystem';
 import { STAGE_EDGE, resolveSport, stageEdge } from '../src/systems/athletics/playoffs';
 import { SPORTS, TEAM_QUALITY_KNEE, TEAM_QUALITY_SOFT_SPAN, promoteToVarsityTeam, teamQuality, teamQualityCurve, teamQualityEarned } from '../src/data/studentLifeData';
-import { SPECIALIZATION_FILL_YEARS } from '../src/data/specializationData';
+import { FESTIVAL_POINTS_FOR_FULL } from '../src/data/downtownData';
 import { TRAINING_INSTITUTE_ID } from '../src/data/trainingData';
 import { graduatePrograms, milestoneSchools } from '../src/data/techData';
 import { schoolFoundedKey } from '../src/systems/techtree/schools';
@@ -101,22 +101,23 @@ bindScriptStream(12345);
   // training program (Plan 85E): an institute standing, and the faculty
   // trained.
   late.specialization = 'academics';
-  late.specializationYear = late.clock.year - SPECIALIZATION_FILL_YEARS;
+  late.specializationYear = late.clock.year - 10;
   late.tech.find((t) => t.id === TRAINING_INSTITUTE_ID)!.status = 'done';
   for (const f of late.faculty) f.training = { points: 1, potential: f.teachingPotential - 1, untilWeek: 0 };
   const specialized = pillarBreakdown(late, 'academics');
   const term = specialized.inputs.find((i) => i.key === 'specialization')!;
   assert(term.score === 1 && specialized.target > UNSPECIALIZED_MAXIMA.academics, `specialized, its term full, academics passes ${UNSPECIALIZED_MAXIMA.academics} (${specialized.target.toFixed(1)})`);
   assert(Math.abs(perfect + term.weight - 150) < 1e-9, 'and every term in full is 150');
-  // A pillar whose mechanic is still to come fills a tenth a year (student
-  // life's; research's reads the research park since Plan 85F).
+  // Student life's reads the downtown and the festival (Plan 85H): empty
+  // without a festival, full with ten points of festivals in the window, the
+  // district grown and the town's goodwill at its full mark.
   const timed = structuredClone(late);
   timed.specialization = 'studentLife';
-  for (let k = 0; k <= SPECIALIZATION_FILL_YEARS + 2; k += 1) {
-    timed.specializationYear = timed.clock.year - k;
-    const score = pillarBreakdown(timed, 'studentLife').inputs.find((i) => i.key === 'specialization')!.score;
-    assert(Math.abs(score - Math.min(1, k / SPECIALIZATION_FILL_YEARS)) < 1e-9, `${k} years after the choice student life's term is ${Math.min(1, k / SPECIALIZATION_FILL_YEARS)} full (${score})`);
-  }
+  timed.downtown = { growth: 1, goodwill: 60, festivals: [] };
+  const lifeTerm = () => pillarBreakdown(timed, 'studentLife').inputs.find((i) => i.key === 'specialization')!.score;
+  assert(lifeTerm() === 0, `without a festival student life's term is empty (${lifeTerm()})`);
+  for (let k = 1; k <= FESTIVAL_POINTS_FOR_FULL; k += 1) timed.downtown.festivals.push({ year: timed.clock.year - k, scale: 'concert' });
+  assert(Math.abs(lifeTerm() - 1) < 1e-9, `with ten festivals and a headline act each, it is full (${lifeTerm()})`);
   // Another pillar's term stays empty, and says why.
   const research = pillarBreakdown(late, 'research').inputs.find((i) => i.key === 'specialization')!;
   assert(research.score === 0 && /specialized in academics/.test(research.detail), `research's term stays empty ("${research.detail}")`);

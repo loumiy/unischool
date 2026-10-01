@@ -13,6 +13,7 @@ import { GRADE_POINTS, meanGradePoints } from '../../data/courseQuality';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
+import { DOWNTOWN_WORDS, offCampusShare } from '../../data/downtownData';
 import { pct } from '../../format';
 
 // Satisfaction is the weighted sum of five attributes, each fed by its own
@@ -155,7 +156,27 @@ export function servedPopulationFor(s: GameState, attribute: keyof SatisfactionA
   };
   for (const t of s.tech) if (t.effects?.satisfactionAttribute === attribute) add(t, servingPopulation(t));
   for (const t of extra) if (t.effects?.satisfactionAttribute === attribute) add(t, t.effects?.servesPopulation ?? 0);
-  return served + Math.min(retail, retailFoodCap(s));
+  return served + Math.min(retail, retailFoodCap(s)) + offCampusPlaces(s, attribute);
+}
+
+// Off-campus life (Plan 85H): at a college specialized in student life, the
+// downtown district meets a share of the students' social, dining and
+// housing needs (data/downtownData.ts's offCampusShare: up to
+// OFF_CAMPUS_SHARE of each once grown in full), read against the need as
+// the dial reads it. Counted with the buildings in servedPopulationFor (so
+// crowding, demands and the building panel read it too) and, for housing,
+// beside the beds.
+export const OFF_CAMPUS_NEEDS: ReadonlyArray<keyof SatisfactionAttributes> = ['social', 'basicNeeds', 'housing'];
+export function offCampusPlaces(s: GameState, attribute: keyof SatisfactionAttributes): number {
+  if (!OFF_CAMPUS_NEEDS.includes(attribute)) return 0;
+  const share = offCampusShare(s);
+  if (share <= 0) return 0;
+  return Math.round(share * totalEnrolled(s.students) * expectedRatio(s, attribute));
+}
+
+// The beds the students have: the campus's, and the downtown's (Plan 85H).
+export function bedsWithDowntown(s: GameState): number {
+  return s.students.capacity + offCampusPlaces(s, 'housing');
 }
 
 // The most the grocery and the towers' shops can count for: RETAIL_FOOD_SHARE
@@ -184,7 +205,7 @@ function flatBonusFor(s: GameState, attribute: keyof SatisfactionAttributes): nu
 export function attributeCoverage(s: GameState, attribute: keyof SatisfactionAttributes): number {
   const enrolled = totalEnrolled(s.students);
   if (enrolled <= 0) return 1;
-  const served = attribute === 'housing' ? s.students.capacity : servedPopulationFor(s, attribute);
+  const served = attribute === 'housing' ? bedsWithDowntown(s) : servedPopulationFor(s, attribute);
   return clamp(served / (enrolled * expectedRatio(s, attribute)), 0, 1);
 }
 
@@ -238,8 +259,9 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
     ? 100
     : ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1);
 
-  // Housing: bed capacity (dorms plus housed Greek chapters) over enrolled.
-  const housing = clamp(ratioScore(s.students.capacity, enrolled, expectedRatio(s, 'housing'), 1) + pairing.housing, ATTRIBUTE_SCORE_FLOOR, 100);
+  // Housing: bed capacity (dorms plus housed Greek chapters, and the
+  // downtown's, Plan 85H) over enrolled.
+  const housing = clamp(ratioScore(bedsWithDowntown(s), enrolled, expectedRatio(s, 'housing'), 1) + pairing.housing, ATTRIBUTE_SCORE_FLOOR, 100);
 
   return { academic, social, basicNeeds, health, housing };
 }
@@ -291,6 +313,9 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
           ? { label: `${t.name} (the grocery and shops cover ${pct(RETAIL_FOOD_SHARE)} of meals at most)`, value: servingPopulation(t) * retailScale(s) }
           : { label: t.name, value: servingPopulation(t) }))
         .sort((a, b) => b.value - a.value);
+  // The downtown's places (Plan 85H), last.
+  const offCampus = offCampusPlaces(s, attribute);
+  if (offCampus > 0) contributors.push({ label: DOWNTOWN_WORDS.offCampus, value: offCampus });
   const totalServed = contributors.reduce((sum, c) => sum + c.value, 0);
 
   const bonuses: AttributeContributor[] = [];

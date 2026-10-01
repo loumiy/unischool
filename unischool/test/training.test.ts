@@ -229,7 +229,7 @@ function toNextYear(s: GameState): GameState {
   // The choice's card says so.
   assert(/as professors are trained at the institute/.test(opensLine('academics', 24)), `the card says how it fills ("${opensLine('academics', 24)}")`);
   assert(SPECIALIZATION_CARDS.academics.mechanics.every((m) => m.ready), 'and its mechanics are now, not still to come');
-  assert(/filling over 10 years/.test(opensLine('studentLife', 30)), 'student life still fills with the years');
+  assert(/spring festival/.test(opensLine('studentLife', 30)), 'student life fills with its festivals (Plan 85H)');
 }
 
 // ---- The harness's pick ----

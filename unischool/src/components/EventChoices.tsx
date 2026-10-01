@@ -3,10 +3,12 @@ import { totalEnrolled } from '../state/types';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
 import { fill, scaledEffects } from '../systems/events/catalogue';
 import { choiceCost } from '../systems/events/catalogueEngine';
-import { money, signed, signedMoney } from '../format';
+import { money, moneyShort, signed, signedMoney } from '../format';
 import { debtOutstanding } from '../systems/finance/treasury';
 import { promiseById } from '../data/promiseData';
 import { promiseTitle } from '../systems/promises/promises';
+import { festivalPhrases } from '../data/downtownData';
+import { annualGiving } from '../systems/alumni/giving';
 
 // An event's text and its answers (Plan 32), shared by the inbox's reading
 // pane (InboxTab.tsx, Plan 77) and the board's letters, which are modal
@@ -17,6 +19,9 @@ import { promiseTitle } from '../systems/promises/promises';
 function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
   const out: string[] = [];
   for (const [k, v] of Object.entries(effects) as [EffectKey, number][]) {
+    // The spring festival (Plan 85H): what its scale does, or what a spring
+    // without one costs (0).
+    if (k === 'festival') { out.push(...festivalPhrases(v, s.students.applicantPool, annualGiving(s), { signed, money: moneyShort })); continue; }
     if (!v) continue;
     switch (k) {
       case 'cash': out.push(v < 0 ? `costs ${money(-v)}` : `brings ${money(v)}`); break;
@@ -55,6 +60,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       // The charter (Plan 78G): the name, for good (Plan 80D: nothing renames
       // the college after it).
       case 'charter': out.push(v > 0 ? 'University from now on' : 'College for good'); break;
+      case 'goodwill': out.push(`town goodwill ${signed(v)}`); break;
     }
   }
   return out;

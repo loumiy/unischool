@@ -706,6 +706,91 @@ September 2026 playtest ([Plan 80](../plans/80-the-owners-playtest.md)):
   more of a large campus. A loaded save reads the complex as health (the
   catalog's terms are refreshed on load; no save version).
 
+### The downtown and the festival (Plan 85H)
+
+The student-life specialization's mechanic ([Plan
+85](../plans/85-specializations.md) PR H; the numbers and words are
+`data/downtownData.ts`'s, the rules `systems/studentlife/downtown.ts`'s).
+Once a college specializes in student life, and only then:
+
+- **The district.** The town drawn beside the campus (Plan 81's
+  `ringLand.ts`) grows into a downtown district: `s.downtown.growth` rises
+  each week, full after `DISTRICT_YEARS_TO_FULL` (10) years at the goodwill a
+  town starts with, half again as fast at full goodwill and half as fast
+  with none (`districtPace`). The map draws it in six steps
+  (`DISTRICT_STEPS`): terraced shops along Main Street, across the road from
+  the campus first and then out along the town's frontage, each with its
+  awning, shopfront and blade sign on the street side; from the third step a
+  taller row behind with apartments over it; strings of lights across the
+  street; a house a shop stands on gives way. The plain houses stay
+  everywhere else, and at every other college. It is drawn only, never
+  built on. The map has no night: the district is **lit** (windows, the
+  shopfronts, the bulbs and the light they throw on the street) for three
+  weeks from a festival and through the winter weeks, when the evenings come
+  early (`districtLit`). Both maps draw it from the same components, and the
+  ring's cached view is keyed by the step and the lights, so it is rebuilt a
+  few times a year, never per frame.
+- **Off-campus life.** The district meets `OFF_CAMPUS_SHARE` (15%) of each
+  of the social, dining and housing needs once grown, and as much of that as
+  it has grown before then (`satisfactionSystem.ts`'s `offCampusPlaces`). The
+  places count with the buildings wherever a need is read
+  (`servedPopulationFor`, and `bedsWithDowntown` beside the beds): the dials,
+  crowding, a demand, the building panel's need line. The Students tab lists
+  them in each need's drawer as "Downtown, off campus", the housing card
+  counts them among the beds, the build menu's top line reads "19,590 beds ·
+  1,773 downtown · 33,440 enrolled", and a panel, *The downtown*, gives the
+  district's growth, its places, the town's goodwill and the festivals. They
+  cost nothing to keep and count first toward the need, so they never push
+  the buildings past the line where space beyond need costs more.
+- **The festival.** Each spring, at the Spring Term's fourth week
+  (`FESTIVAL_WEEK`), the student government asks in the inbox how large a
+  festival to hold (`FESTIVAL_EVENT`, raised like the charter: undrawn,
+  drawing nothing from the run's stream, answered by the President alone,
+  never stopping the clock). Left six weeks, it is the modest weekend.
+
+  | Scale | Cost (a large college) | Satisfaction | Next summer's applicants | Goodwill | Term points |
+  |---|---|---|---|---|---|
+  | A modest weekend | $50,000 × the price scale ($600,000) | +1 | +1% of last summer's pool | +2 | 0.4 |
+  | A street fair | $125,000 ($1.5M) | +2 | +2% | +4 | 0.7 |
+  | A festival with a headline act | $250,000 ($3M) | +3 | +3% | +6 | 1 |
+  | A headline gala | $500,000 ($6M) | +4 | +4% | +8 | 1.2 |
+  | No festival | nothing | | | −10 | 0 |
+
+  Costs are the catalog's sums, scaled by the budget as every event's are
+  (`catalogue.ts`'s `priceScale`, twelve times at a large college). At the
+  gala the alumni give 6% of a year's annual giving to the endowment (about
+  $2.6M at a Year-38 college). The applicants are a one-summer lift
+  (`students.applicantLift`). The festivals are kept
+  (`s.downtown.festivals`), the log says each, and the chronicle counts them
+  in its eras ("It held the spring festival in 8 of these years, 3 of them
+  as a headline gala"; "The town went without its festival in Year 41"); a
+  gala year is an era's kind of its own, *The Gala Years*, below a building
+  boom.
+- **The town's goodwill**, 0 to 100 from 50: each festival raises it, a
+  spring without one costs 10, and the town-and-gown events trade it.
+- **Town and gown.** Six events in the catalog (`eventCatalogue.ts`'s
+  `town-*`: the noise on Main Street, the Bell's offer, the street festival
+  wanting the quad, the rents downtown, late-night buses, the college's
+  colors in the shop windows), each gated on the district
+  (`downtownAtLeast`, which reads 0 at any other college) and trading money,
+  the students' mood and the town's goodwill (the catalog's `goodwill`
+  lever).
+- **The term.** The student-life pillar's specialization term reads the
+  festivals of the last ten springs, by their points, full at 10 (ten springs
+  of a headline act), carried by the district (half the term at first, all of
+  it once grown) and the town's goodwill (in full from 60, half at none):
+  `downtownReading`. Nothing at all without a festival in the window, and
+  the row says so.
+
+All of these sizes are Plan 85H's proposals, for the owner's review.
+Measured on the harness's student-life specialist (Guided and the
+Completionist with a fixed pick of student life, which hold the festival
+every spring at the largest scale two weeks of the week's net cover, answer
+the town for its goodwill and the students' mood, and count the downtown's
+beds before building a residence hall: `sim/harness/downtown.ts`): the term
+fills 10 to 13 years after the choice, and Guided is first from Year 44 on
+two seeds of three (second on the third).
+
 ## Student demands: the inverse of clubs
 
 Clubs are what a happy student body gives the institution. A **demand** is what

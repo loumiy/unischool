@@ -1,5 +1,5 @@
 import type { CatalogueState, GameState, PendingCatalogueEvent } from '../../state/types';
-import { totalEnrolled } from '../../state/types';
+import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR } from '../../data/eventData';
 import { random, newId } from '../../engine/random';
@@ -11,6 +11,7 @@ import { weeksOfOpEx } from '../../data/moneyScale';
 import { ESCALATION_WEEKS_OF_OPEX, seatDef } from '../../data/seatData';
 import { CHARTER_EVENT } from '../../data/eventCatalogue';
 import { CHARTER_INSTANCE, charterVars } from './charter';
+import { FESTIVAL_EVENT, FESTIVAL_INSTANCE, FESTIVAL_WEEK, downtownWorks, festivalHeld } from '../../data/downtownData';
 
 // THE PANEL (Plan 32): when the catalog's events fire, how they wait, and
 // how they are answered. Inline events queue in the panel and never stop
@@ -111,10 +112,10 @@ export function tickCatalogue(s: GameState): void {
   if (choice) resolveCatalogueEvent(s, p.instanceId, choice, 'seat');
 }
 
-// The drawn events waiting: the charter is raised, not drawn, and holds no
-// place in the queue the draws are held to.
+// The drawn events waiting: the charter and the spring festival are raised,
+// not drawn, and hold no place in the queue the draws are held to.
 function drawnWaiting(c: CatalogueState): number {
-  return c.pending.filter((p) => p.eventId !== CHARTER_EVENT.id).length;
+  return c.pending.filter((p) => p.eventId !== CHARTER_EVENT.id && p.eventId !== FESTIVAL_EVENT.id).length;
 }
 
 // The charter (charter.ts), raised by eventSystem.ts rather than drawn: a
@@ -124,6 +125,23 @@ export function raiseCharter(s: GameState): void {
   const c = s.catalogue ??= { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
   if (c.pending.some((p) => p.eventId === CHARTER_EVENT.id)) return;
   c.pending.push({ instanceId: CHARTER_INSTANCE, eventId: CHARTER_EVENT.id, firedWeek: absoluteWeek(s), vars: charterVars(s), scale: priceScale(s) });
+}
+
+// The spring festival (Plan 85H, data/downtownData.ts), raised by
+// eventSystem.ts each week before anything can claim it: from FESTIVAL_WEEK
+// of each year at a college specialized in student life, once a year, while
+// none waits. A fixed id and no names, so it takes nothing from the run's
+// stream, and no seat answers it: the festival is the President's. An inbox
+// matter, so it never stops the clock.
+export function raiseFestival(s: GameState): boolean {
+  if (!downtownWorks(s) || s.sandbox) return false;
+  if (s.clock.week < FESTIVAL_WEEK || s.clock.week >= WEEKS_PER_YEAR) return false;
+  if (festivalHeld(s, s.clock.year)) return false;
+  const c = s.catalogue ??= { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
+  if (c.pending.some((p) => p.eventId === FESTIVAL_EVENT.id)) return false;
+  c.pending.push({ instanceId: FESTIVAL_INSTANCE, eventId: FESTIVAL_EVENT.id, firedWeek: absoluteWeek(s), vars: {}, scale: priceScale(s) });
+  c.lastFired[FESTIVAL_EVENT.id] = s.clock.year;
+  return true;
 }
 
 function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {

@@ -19,6 +19,7 @@ import { isGraduateHost } from '../../src/data/projectData';
 import { picksFor } from '../../src/data/trainingData';
 import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../../src/data/researchParkData';
 import { ATHLETICS_COMPLEX_ID, COMPLEX_WINDOW_YEARS, isDeepRun } from '../../src/data/athleticsComplexData';
+import { FESTIVAL_SCALES, GOODWILL_MAX } from '../../src/data/downtownData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
 import { isInBounds, placementTiles } from '../../src/state/campusMap';
 
@@ -199,6 +200,20 @@ export function brokenRules(s: GameState): string[] {
     seen.add(`${r.sport}:${r.year}`);
   }
   if (runs.length > 0 && s.specialization !== 'athletics' && s.sandbox !== true) out.push('deep runs recorded at a college not specialized in athletics');
+
+  // The downtown and the festival (Plan 85H): the district grows, and
+  // festivals are held, only at a college specialized in student life; the
+  // growth is 0 to 1 and the goodwill 0 to 100; a festival a spring at most,
+  // in order, none later than now.
+  const d = s.downtown;
+  if (!(d.growth >= 0 && d.growth <= 1)) out.push(`the downtown grown ${d.growth}`);
+  if (!(d.goodwill >= 0 && d.goodwill <= GOODWILL_MAX)) out.push(`the town's goodwill at ${d.goodwill}`);
+  if (s.specialization !== 'studentLife' && (d.growth > 0 || d.festivals.length > 0)) out.push('a downtown at a college not specialized in student life');
+  d.festivals.forEach((f, i) => {
+    if (f.year > s.clock.year) out.push(`a festival in Year ${f.year}, still to come`);
+    if (i > 0 && f.year <= d.festivals[i - 1]!.year) out.push(`festivals out of order at Year ${f.year}`);
+    if (f.scale !== 'none' && !FESTIVAL_SCALES.includes(f.scale)) out.push(`a festival of scale "${f.scale}"`);
+  });
 
   return out;
 }

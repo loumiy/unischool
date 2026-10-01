@@ -181,8 +181,8 @@ Everything that needs to stop time rides on this one mechanism:
   instead of adding a stream on top of it.
 - **The university charter** — no longer an interrupt (Plan 72E). Raised
   the first quiet week a lab is at work, which it still takes as its own,
-  as a matter to decide in the inbox (Plan 78G): the catalogue's one inline
-  event that is raised rather than drawn (`CHARTER_EVENT` in
+  as a matter to decide in the inbox (Plan 78G): the catalogue's first inline
+  event raised rather than drawn (`CHARTER_EVENT` in
   `src/data/eventCatalogue.ts`, `src/systems/events/charter.ts`). It has a
   fixed instance id and reads its names off the state, so raising it draws
   nothing from the run's stream; no seat answers it, and it holds no place
@@ -190,6 +190,15 @@ Everything that needs to stop time rides on this one mechanism:
   University" after four weeks in the tick, like any inline event. The
   pennant renames the college (see
   [progression.md](../design/progression.md)'s "College, and University").
+- **The spring festival** — never an interrupt (Plan 85H). At a college
+  specialized in student life, from the Spring Term's fourth week, once a
+  year, the student government's question joins the inbox as the
+  catalogue's second raised inline event (`FESTIVAL_EVENT` in
+  `src/data/downtownData.ts`, `catalogueEngine.ts`'s `raiseFestival`, called
+  at the top of `tickEvents` whoever claims the week). Like the charter it
+  has a fixed instance id, draws nothing, is answered by no seat and holds
+  no place in the draws' queue; unanswered for six weeks it takes the modest
+  weekend (see [student-life.md](../design/student-life.md)'s downtown).
 - **The athletic director's offer** — the one interrupt athletics raises of its
   own, the first quiet week after the school fields a varsity team: three
   candidates rolled into the payload, and the mascot named in the same modal

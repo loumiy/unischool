@@ -646,6 +646,30 @@ export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';
 // at the milestone, then one pillar for good (GameState.specialization).
 export type Specialization = 'none' | Pillar;
 
+// The downtown and the festival (Plan 85H, data/downtownData.ts): the
+// student-life specialization's mechanic. The festival's scales, smallest
+// first; 'none' is a spring the college let pass.
+export type FestivalScale = 'weekend' | 'fair' | 'concert' | 'gala';
+export interface FestivalYear {
+  year: number;
+  // The week it was decided (the map lights the district from it).
+  week?: number;
+  scale: FestivalScale | 'none';
+}
+
+export interface DowntownState {
+  // How far the town beside the campus has grown into a district, 0 to 1
+  // (downtownData.ts's DISTRICT_YEARS_TO_FULL). Grows each week while the
+  // college is specialized in student life; nothing else moves it.
+  growth: number;
+  // The town's goodwill toward the college, 0 to 100, from GOODWILL_START:
+  // festivals raise it, a skipped one costs it, and the town-and-gown events
+  // trade it.
+  goodwill: number;
+  // Each spring's festival, oldest first: what the college held, or 'none'.
+  festivals: FestivalYear[];
+}
+
 // The faculty training program's year (Plan 85E): GameState.training.
 export interface TrainingYear {
   year: number;
@@ -1259,6 +1283,10 @@ export interface GameState {
   // picks left are the year's allowance less these; a new year starts a new
   // list, so picks not used by the year's end lapse.
   training: TrainingYear;
+  // The downtown and the festival (Plan 85H, systems/studentlife/
+  // downtown.ts): the district's growth, the town's goodwill and the
+  // festivals held. Moves only at a college specialized in student life.
+  downtown: DowntownState;
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
   // The year each milestone was awarded (Plan 80C), which the chronicle
   // names eras from. One awarded before it has no year.

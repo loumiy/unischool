@@ -42,6 +42,7 @@ import { setPrestigeForPlaytest, tickPrestige } from '../systems/prestige/presti
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { fireMilestoneCelebration, tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
+import { tickDowntown } from '../systems/studentlife/downtown';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
 import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventData';
@@ -91,6 +92,9 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   // and before tickSatisfaction. Raises no interrupt: organizations are
   // answered in a batch at the summer boundary.
   tickStudentLife,
+  // The downtown district's growth (Plan 85H), before satisfaction, so its
+  // off-campus places count this week.
+  tickDowntown,
   tickSatisfaction,
   tickAdmissions,
   // The week the summer opens: promises due are read out and the year's

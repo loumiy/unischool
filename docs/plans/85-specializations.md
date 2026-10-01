@@ -5,7 +5,7 @@ trade-offs into PRs: four pillars of success, a college that can be
 excellent at all four, and a late, permanent choice that lets it be the
 very best at one.*
 
-**Status: In progress: A–G merged (#268, #274–#278, #280).**
+**Status: In progress: A–H merged (#268, #274–#278, #280, #281).**
 
 ---
 
@@ -1702,7 +1702,312 @@ ceiling" is the term since 85D's review: no pillar has a ceiling (§2).*
 - **Save version bump:** the district's growth and the festival's
   history.
 
-## PR 85I — The balance pass, and the specialized players
+**As implemented (#281):** a college specialized in student life sees the
+town beside its campus grow into a downtown district, holds a festival each
+spring, and hears from the town. The district meets part of the students'
+social, dining and housing needs; the festival buys satisfaction, next
+summer's applicants and, at the gala, alumni gifts; a spring without one,
+and some of the town-and-gown events' answers, cost the town's goodwill. The
+student-life pillar's specialization term now reads the festivals of the
+last ten springs, carried by the district's growth and the town's goodwill,
+in place of 85D's ten years. Save version 93. *"Lifts the student-life
+pillar's ceiling" is the term since 85D's review: no pillar has a ceiling
+(§2).* **Every size below is a proposal, for the owner's review.**
+
+- **The district** (`data/downtownData.ts`, `systems/studentlife/
+  downtown.ts`'s `tickDowntown`): `s.downtown.growth`, 0 to 1, rises each
+  week at a college specialized in student life, full after
+  `DISTRICT_YEARS_TO_FULL` (10) years at the goodwill a town starts with (50),
+  scaled by `districtPace` (0.5 + goodwill / 100: half again as fast at full
+  goodwill, half as fast at none). Nothing else moves it, and it never
+  shrinks. Guided held to student life (seed 12345, choosing in Year 30)
+  has it grown in full in Year 39, its goodwill high from the festivals.
+- **On the map** (`ringLand.ts`'s `buildDistrict`, drawn by
+  `Surroundings.tsx`), in `DISTRICT_STEPS` (6) steps by the growth:
+  - terraced shops along Main Street, two to four stories, flat-roofed with
+    a parapet, in the town's own brick, buff and stone and three painted
+    fronts; on the street side a shopfront, an awning in one of five colors
+    and a blade sign square to the street. They fill out from the frontage
+    across the road from the campus, then along the town's;
+  - from the third step a taller row behind the shops, an alley back, with
+    apartments over it;
+  - strings of lights across the street on poles;
+  - a house a shop stands on gives way at the shop's step; every other house
+    stays, and a college specialized in anything else keeps the plain town
+    (the owner's earlier choice). The land is built on its own random
+    numbers, so the district never moves a field, a tree or a house.
+  - **Lit:** the map has no night. The district is lit (the shopfronts and a
+    share of the windows warm, the bulbs glowing, pools of light on the
+    street under each string) for `FESTIVAL_LIT_WEEKS` (3) from a festival
+    and through the winter weeks, when the evenings come early (the map's
+    snow at `WINTER_LIT_SNOW`, 0.5, or deeper; with the seasons setting off,
+    only the festival's weeks). `districtLit`.
+  - **Cost:** the step and the lights are part of `ringView`'s cache key and
+    the canvas's ring signature, so the ring is rebuilt when either changes
+    (a few times a year), never per frame. The canvas and the SVG map draw
+    it from the same components, with presentation attributes only.
+- **Off-campus life** (`satisfactionSystem.ts`'s `offCampusPlaces`):
+  `OFF_CAMPUS_SHARE` (**15%**, a proposal) of each of the social, dining and
+  housing needs, times the growth, as the dial reads the need
+  (`expectedRatio`). They count with the buildings in `servedPopulationFor`
+  and, for housing, beside the beds (`bedsWithDowntown`), so the dials,
+  crowding, a demand and the building panel's need line all read them. At a
+  Year-50 college of 34,480 that is about 1,880 social places, 5,170 meals
+  and 1,930 beds. They cost nothing and count first toward the need, so they
+  never push the buildings past the space-beyond-need line
+  (`beyondNeed.ts`'s `needCapacity`). **Where they show:** each need's
+  drawer in the Students tab ("Downtown, off campus"), the housing card's
+  beds, the build menu's top line ("19,590 beds · 1,773 downtown · 33,440
+  enrolled"), and a new Students-tab panel, *The downtown* (growth, places,
+  goodwill, festivals, the last festival).
+- **The festival** (`downtownData.ts`'s `FESTIVAL_EVENT`, raised by
+  `catalogueEngine.ts`'s `raiseFestival`): at the Spring Term's fourth week
+  (`FESTIVAL_WEEK`, 30), an inline matter in the inbox from the student
+  government, once a spring, raised like the charter (undrawn, so the run's
+  stream is untouched; no seat answers it; the clock runs). Six weeks to
+  answer; left, the modest weekend (the student government holds one
+  whatever the administration decides). Its answer is the catalog's new
+  `festival` lever (`downtown.ts`'s `holdFestival`). **Proposed sizes:**
+
+  | Scale | Cost (catalog sum; at a large college) | Satisfaction | Next summer's applicants | Town goodwill | Term points |
+  |---|---|---|---|---|---|
+  | A modest weekend | $50,000; $600,000 | +1 | +1% of last summer's pool | +2 | 0.4 |
+  | A street fair | $125,000; $1.5M | +2 | +2% | +4 | 0.7 |
+  | A festival with a headline act | $250,000; $3M | +3 | +3% | +6 | 1 |
+  | A headline gala | $500,000; $6M | +4 | +4% | +8 | 1.2 |
+  | No festival | nothing | | | **−10** | 0 |
+
+  - The costs scale with the budget as every catalog event's do
+    (`priceScale`: twelve times by the time any college specializes); late
+    in the run a large college's week's net is about $2.5M.
+  - At the gala the alumni give `FESTIVAL.gala.gifts` (6%) of a year's
+    annual giving to the endowment: about $2.6M in Year 38, $5–6M in the
+    late forties, so the gala comes close to paying for itself late in the
+    run. The applicants are the summer's one-time lift
+    (`students.applicantLift`, about 1,100 for a headline act at a pool of
+    36,000).
+  - The answers' words in the inbox say each effect ("+1,458 applicants next
+    summer · town goodwill +8 · alumni gifts of about $2.6M to the
+    endowment"). The log says what was held, and a spring without one.
+  - **A chronicle occasion:** each era says how many springs held the
+    festival and how many as a gala, and names the springs the town went
+    without (`chronicleData.ts`'s `festival*` lines); a gala year is an era
+    kind of its own, *The Gala Years* (below a building boom, above a quiet
+    year).
+- **The town's goodwill** (`s.downtown.goodwill`, 0 to 100, from
+  `GOODWILL_START`, 50; none existed): each festival raises it, a skipped
+  spring costs `SKIPPED_GOODWILL` (10), and the town-and-gown events trade
+  it (the catalog's new `goodwill` lever). It paces the district and carries
+  the term.
+- **Town and gown** (six events, `eventCatalogue.ts`'s `town-*`, gated on
+  the new condition `downtownAtLeast`, the district's growth, which reads 0
+  at a college not specialized in student life, so no other college's draws
+  move): the noise on Main Street (patrol, quiet, or "the downtown was the
+  town's idea"), the Bell's partnership offer (crest and all, on the
+  college's terms, or no), the street festival wanting the main quad, the
+  rents downtown, late-night buses and the college's colors in the shop
+  windows. Each trades money, the students' mood and the town's goodwill;
+  the two with a cooldown of five years or less have two more tellings
+  (`eventVariants.ts`), and each has a title for the inbox. Plan 47's
+  glossary gains *the downtown*, *the festival* and the town's *goodwill*.
+- **The term reads the program** (`downtownReading`,
+  `SPECIALIZATION_READINGS.studentLife`): festival points in the last
+  `FESTIVAL_WINDOW_YEARS` (10) springs (this spring's once decided), over
+  `FESTIVAL_POINTS_FOR_FULL` (10), times (0.5 + 0.5 × growth), times (0.5 +
+  0.5 × goodwill / `GOODWILL_FOR_FULL`, 60, at most 1). So a headline act
+  every spring fills it in ten, the district carries half of it at first,
+  and a town gone cold halves it. **Empty with no festival in the window,
+  and the row says so:** "…no spring festival has been held in the last 10
+  years, so this stays empty. Hold the festival each spring…". Filling, it
+  reads "7 festivals in the last 10 years, 7 of the 10 points that fill it
+  (a modest weekend counts 0.4, …). The downtown has grown 96% of the way,
+  which carries half the term at first and all of it once grown, and the
+  town's goodwill stands at 100, in full from 60."
+  - **Pacing** (the harness's variants, below; the year the term first read
+    half and full):
+
+    | | Choice | Half full | Full | Years to fill | Festivals held |
+    |---|---|---|---|---|---|
+    | Guided, student life | 30, 32, 30 | 37, 39, 38 | 41, 42, 43 | 11, 10, 13 | 20 headline acts; 13 galas and 5 headline acts; 16 headline acts, 3 galas and a weekend |
+    | Completionist, student life | 34, 39, 31 | 42, 46, 38 | 46, 50, 42 | 12, 11, 11 | 15 headline acts and a weekend; 11 headline acts; 19 headline acts |
+
+    About 10 to 12 years, as the other three fill; Guided on seed 777 took
+    13, a weekend and a slower start costing it a year.
+  - 85D's years' fill is gone: every pillar reads its mechanic, and
+    `SPECIALIZATION_DETAILS` is a full record.
+- **The choice's card** (`SPECIALIZATION_CARDS.studentLife`): the district,
+  the festival and town and gown move from *Still to come* to *Now*; its
+  opening line ends "filling as the college holds its spring festival, full
+  at 10 points of festivals in the last 10 years (a festival with a headline
+  act counts 1), carried by the downtown's growth and the town's goodwill".
+  Nothing on any card is still to come, and the board's notice no longer
+  says the rest arrives in time.
+- **The harness** (`sim/harness/downtown.ts`, `Player.downtown`): once a
+  college specializes in student life, every player, at the top of each
+  week:
+  - holds the festival each spring at the largest scale whose cost two weeks
+    of the week's net cover with the guided player's reserve kept
+    (`FESTIVAL_NET_WEEKS`), the modest weekend at the least, never none;
+  - answers each town-and-gown event for the town's goodwill and the
+    students' mood together, the cheaper of two alike, within the reserve;
+  - counts the downtown's beds with the campus's before building a residence
+    hall (`moves.ts`'s `buildDorm`); the dining and social places need no
+    move, since every player's plain sense reads the needs through the
+    satisfaction model.
+  - `invariants.ts` checks the growth and goodwill ranges, the festivals'
+    order and scales, and that no downtown grows at another college. `npm
+    run scenario -- downtown` stops in Year 38 with the festival waiting
+    (the district grown), `downtown-early` two years after the choice, and
+    `town-and-gown` at the first town-and-gown event.
+- **Save:** `SAVE_VERSION` 92 → 93, migration `downtownStarts` at
+  `MIGRATIONS[92]`: no growth, the starting goodwill and no festival. A
+  college already specialized in student life (its term filling with the
+  years) starts its district at the next week and is asked about its first
+  festival at the next Spring Term's fourth week; until then its term reads
+  empty. `test/fixtures/save-v92.json` is the `year-8-balanced` scenario
+  written before the bump. The load clamps the growth and goodwill and drops
+  a malformed festival (`sanitizeDowntown`; one a year, a known scale, none
+  later than the save's year).
+- **The sim moves**, against main's baseline (85G), medians of three seeds;
+  pillar ranks at year 50, academics / research / student life / athletics:
+
+  | | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Satisfaction Y10 / Y25 / Y50 | Pillar ranks Y50 |
+  |---|---|---|---|---|
+  | Guided | 56 / 29 / 1 | 50.2 / 80.0 / 120.4 | 85.8 / 83.7 / 87.8 | 6 / 8 / 4 / 81 |
+  | Completionist | 56 / 34 / 1 | 50.1 / 79.1 / 118.1 | 85.7 / 88.2 / 89.8 | 6 / 9 / 3 / 70 |
+  | Selective | 60 / 57 / 61 | 43.2 / 51.6 / 53.1 | 86.4 / 81.1 / 82.3 | 57 / 63 / 21 / 100 |
+  | Lean | 64 / 64 / 72 | 40.1 / 43.3 / 42.8 | 75.8 / 75.0 / 73.8 | 56 / 81 / 27 / 100 |
+  | Idle | 80 / 66 / 75 | 30.4 / 41.9 / 38.8 | 84.0 / 84.0 / 84.1 | 79 / 80 / 28 / 100 |
+  | Guided, student life (fixed pick) | 56 / 29 / 1 | 50.2 / 80.0 / 118.6 (−1.8) | 85.8 / 83.7 / 88.8 (+1.0) | 9 / 8 / 3 / 81 |
+  | Completionist, student life (fixed pick) | 56 / 34 / 2 (+1) | 50.1 / 79.1 / 117.0 (−1.1) | 85.7 / 88.2 / 87.9 (−1.9) | 9 / 9 / 3 / 75 |
+  | Guided, no specialization (`'never'`) | 56 / 29 / 4 | 50.2 / 80.0 / 110.9 | 85.8 / 83.7 / 86.8 | 9 / 8 / 4 / 85 |
+  | Completionist, no specialization | 56 / 34 / 5 | 50.1 / 79.1 / 110.5 | 85.7 / 88.2 / 88.2 | 8 / 9 / 4 / 75 |
+
+  The variants' moves are against the same player's own academic pick.
+  When each first reached each place, and its pick (seeds 12345, 4242, 777;
+  the year's first week):
+
+  | | Top 20 | Top 10 | #1 | Pick | Prestige Y50 |
+  |---|---|---|---|---|---|
+  | Guided | 30, 32, 29 | 36, 40, 35 | 46, 47, 42 | academics 30, 32, 30 | 120.4, 119.0, 120.6 |
+  | Completionist | 33, 39, 31 | 40, 43, 40 | 47, never (best 2), 47 | academics 34, 39, 31 | 118.1, 113.1, 119.5 |
+  | Guided, student life | 30, 32, 29 | 36, 40, 35 | 44, never (best 2), 44 | student life 30, 32, 30 | 119.0, 117.2, 118.6 |
+  | Completionist, student life | 33, 39, 31 | 39, 44, 41 | 51 (the run's last week), never (best 2), 49 | student life 34, 39, 31 | 117.0, 112.3, 118.1 |
+  | Guided, no specialization | 30, 32, 29 | 38, 44, 34 | never (best 3, 3, 5) | none | 112.6, 109.8, 110.9 |
+  | Completionist, no specialization | 33, 39, 31 | 39, 44, 44 | never (best 4, 3, 7) | none | 110.5, 107.6, 110.8 |
+
+  - **Nothing moves but the student-life specialists.** Guided, the
+    Completionist, Selective, Lean and Idle are identical to main's, year by
+    year: the strong players pick academics, the rest never reach the
+    milestone (best 56th), and no other college grows a downtown, holds a
+    festival or draws a town-and-gown event. `sim/baseline.json` is
+    re-recorded unchanged.
+  - **The targets.** Unspecialized (`'never'`), neither strong player is
+    ever first: Guided's best place 3, 3 and 5, the Completionist's 4, 3 and
+    7. Specialized in student life, Guided is first from Year 44 on seeds
+    12345 and 777 and holds it at Year 50; on 4242 it is second (117.2,
+    choosing in Year 32 and holding galas from Year 33). The Completionist is
+    first on 777 from Year 49 and on 12345 in Year 51's first week, at the
+    run's close; on 4242, which chooses in Year 39, it is second. The default
+    players are unchanged.
+  - **Against the other specializations:** held to student life, Guided is
+    first two years earlier than its own academic pick on 12345 (44 against
+    46), two years later on 777 (44 against 42) and not at all on 4242
+    (against 47); its prestige at Year 50 is 1 to 2 lower (118.6 median
+    against 120.4). The academic term is worth
+    more to prestige (24 points at 35%, about 8.4, against student life's 30
+    at 25%, 7.5), and the training program lifts teaching beyond its term.
+    Research (Guided first on every seed, years 46 to 47) and athletics (42
+    to 45) are measured in their notes.
+  - **The pillar:** student life stands at 133 to 138 at Year 50 and ranks
+    3rd on every run: the rivals' student-life specialists stand near 150.
+    Welfare is full (satisfaction pays in full from 80), but campus life,
+    beauty and the capital projects are a few points short (in Year 38,
+    18.2 of 21.1, 9.9 of 10.6 and 20.2 of 21.1), and the pillar's stock
+    drifts toward its target. As for research (85F), "its pillar is #1 by
+    a clear margin" is for 85I.
+  - **Off-campus places in use:** the harness's dining halls and social
+    buildings are the same in number as its academic pick's (Guided 6 and
+    10, the Completionist 8 and 12): its plain sense builds for what the
+    model calls short, and the downtown's meals carry the dining need the
+    halls leave short (Guided's basic needs read 90 in Year 38 with
+    academics and 100 with student life), which is most of the student-life
+    Guided's satisfaction gain. Its residence halls move by a hall either way by
+    seed (beds at Year 50: Guided 29,630, 14,750 and 29,670, against 29,670,
+    19,670 and 24,710; the Completionist 19,710, 24,470 and 29,550 against
+    24,670, 19,470 and 24,670), since a hall is 5,000 beds and the harness
+    builds beds for nine students in ten, far past the housing need, so the
+    downtown's 1,930 beds delay a hall a year or two rather than save one.
+  - **Town and gown:** the specialists drew 0 to 6 of the six
+    town-and-gown events in their 11 to 20 years (the inline catalog's cadence, a handful of
+    eligible events among some 150), answering each for goodwill and mood;
+    the goodwill stood at 100 at Year 50 on every run, the festivals alone
+    raising it 6 to 8 a spring.
+  - **Cash at year 50** moves with the run, the report's noisiest figure as
+    before (Guided held to student life $986M, $113M and $540M; the gala
+    years cost Guided on 4242 about $6M a spring).
+- **Checks:** `npm run check`; `npm run test:slow`; `npm run sim`
+  re-recorded (`--save`), then 0 deltas; `npm run phone` on the launch
+  fixture, the `downtown` scenario and the `specialization` choice;
+  `review:strings`: one new flag, "the Saturday" (British idiom), rewritten;
+  new strings avoid "standing".
+  - `test/downtown.test.ts` pins the district's growth (a tenth a year at a
+    goodwill of 50, faster warm and slower cold, none at another college,
+    the week's tick, the map's steps), the off-campus places (15% of each
+    need grown, half at half, none at another college, counted with the
+    buildings and in the drawers, the housing dial and coverage, the space
+    past need untouched), the festival (raised from the Spring Term's fourth
+    week, once, drawing nothing, only at a student-life college; the gala's
+    cost, mood, applicants, goodwill and gifts; the record; the lights; a
+    smaller scale; the default; a skipped spring's goodwill and log; goodwill
+    floored at none), the town-and-gown events (gated at every other
+    specialization and before the district, trading goodwill), the term
+    (empty without a festival and saying so, full with ten headline acts,
+    three quarters half grown, half with no goodwill, the window), the
+    card, the chronicle's lines, the map (step 0 the plain town, shops for
+    houses as it grows, lit and dark, the land untouched), the migration
+    from the version-92 fixture, a round trip and a malformed downtown, and
+    the harness's rule.
+  - `test/specializations.test.ts` fills student life's term through the
+    festivals; `test/training.test.ts` and `test/athleticsComplex.test.ts`
+    read the student-life card as built.
+- **Screenshots** in `docs/reviews/2026-10-pillars/`, from a Guided run
+  named Blackmoor (seed 12345) held to student life (it chooses in Year 30):
+  - `85h-district-early.jpg`, Year 32: the first shops across Main Street
+    from the campus;
+  - `85h-district-grown.jpg`, Year 38 (the `downtown` scenario): the
+    district grown, by day;
+  - `85h-district-lit.jpg`, the same week after the gala was answered: lit;
+  - `85h-festival.jpg`, the festival in the inbox, each scale's effects;
+  - `85h-town-and-gown.jpg`, Year 33 (the `town-and-gown` scenario): the
+    late-night buses;
+  - `85h-off-campus.jpg`, the Students tab: the downtown in the basic needs
+    and housing drawers, and the downtown's panel; `85h-build-beds.jpg`, the
+    build menu's line of beds;
+  - `85h-student-life-term.jpg`, History › Prestige with student life opened
+    on the term;
+  - `85h-choice.jpg`, the choice in Year 31 (the `specialization` scenario)
+    with the district, the festival and town and gown under *Now*.
+- **Open, for the owner's review:**
+  - **Every size:** the off-campus share (15%), the district's ten years
+    and its pace with goodwill, the festival's costs and effects (the
+    table), the gala's gifts (6% of a year's giving), a skipped spring's
+    10 points of goodwill, the term's reading (10 points in 10 springs,
+    half carried by the district, goodwill in full from 60), and the
+    town-and-gown events' sums.
+  - **The default if nobody answers** is the modest weekend, so only a
+    deliberate "No festival this year" costs goodwill. A default of none
+    would make an inattentive specialist pay.
+  - **Lit:** the map has no night, so "lights at night" became the
+    festival's three weeks and the winter weeks. A night of the map's own
+    would be a larger change.
+  - **The gala late in the run** nearly pays for itself in gifts, so a rich
+    college holds one every spring; the harness's rule (two weeks of the
+    week's net) holds the headline act most years.
+  - **The student-life specialist** reaches first on two seeds of three for
+    each strong player, a little behind the academic pick in prestige, and
+    its pillar ranks 3rd (85I).
+ — The balance pass, and the specialized players
 
 - **Four specialized variants** of the Guided player in the sim report,
   one per specialization, beside the unspecialized one.
