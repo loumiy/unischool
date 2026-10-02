@@ -228,7 +228,7 @@ export function baseRivals(): AuthoredRival[] {
     // --- The tail: the field below a founding school ---------------------
     // Authored below the ~45 floor so the 50th school by reputation is the
     // same as with a 56-school field, and the top-50 threshold is unchanged
-    // (docs/plans/07-athletics-rivals.md, section 0). It gives a founding
+    // (docs/plans/08-athletics-rivals.md, section 0). It gives a founding
     // school a meaningful mid-table rank from week one (StatusHeader.tsx),
     // and somewhere to fall to.
     { id: 'r56', name: 'Pinehurst College', mascot: 'Pilots', reputation: 44, momentum: 0.5 },

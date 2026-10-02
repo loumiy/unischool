@@ -29,8 +29,13 @@ fifty years".
   then lives with the class those two decisions drew.
 - **Grows student life** through clubs, Greek chapters, varsity teams and the
   facilities they need.
-- **Answers interrupts** — donor offers, faculty departures, facility failures,
-  chapter scandals, student demands — which give the quiet weeks their texture.
+- **Answers the inbox** — donor offers, faculty departures, facility failures,
+  chapter scandals, student demands — which give the quiet weeks their texture
+  (Plan 77: matters to decide, letters and the week's bulletins in one tab).
+- **Builds a standing on four pillars** — academics, research, student life
+  and athletics, blended into prestige — and, at a rank milestone some time in
+  years 25–40, specializes in one of them for good (Plan 85; see
+  [progression.md](progression.md)).
 - **Makes promises** — the summer Review offers the board a promise (a rank,
   a size, a school by a given year); each is kept or missed when it falls
   due, and the Final Report lists both.

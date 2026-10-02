@@ -38,14 +38,15 @@ tech tick that same week. See "The ladder" in [progression.md](../design/progres
 - `src/data/` — seed content (the curriculum, buildings, rival universities, and
   the authored decision-event table)
 - `src/components/` — the always-on-screen base layer plus shared chrome: the
-  campus map (`CampusMap.tsx`), the build rail beside it (`BuildPanel.tsx`),
+  campus map (`CampusMap.tsx`), the toolbar and its build menu (`Toolbar.tsx`,
+  `BuildPopup.tsx`), the inbox (`InboxTab.tsx`),
   the log ticker under it (`LogStrip.tsx`), the frame every other view pops up
   in (`TabOverlay.tsx`), and the persistent header/status bar, interrupt modal,
   tab metadata, and startup screen
 - `src/tabs/` — one component per overlay view (Faculty, Curriculum, Research,
-  Treasury, Enrollment, Student Life, History, Athletics); each reads the slice
+  Treasury, Students, History, Athletics), and the panels they are built from; each reads the slice
   of `GameState` it needs and dispatches actions, and knows nothing about being
   rendered in an overlay
 - `src/App.tsx` — the shell: owns the game loop hook and which view (if any) is
-  open over the map, renders the persistent chrome, the map + build rail + log,
+  open over the map, renders the persistent chrome, the map + toolbar + log,
   and the active overlay (see [ui-shell.md](ui-shell.md))
