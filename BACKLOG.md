@@ -9,53 +9,39 @@ does (see `docs/plans/README.md` for how that is done and named).*
 in `docs/plans/` are closed records of work that has landed. If something is
 going to happen but has not, it belongs here.
 
-*Re-read against the code after Plan 70J (September 2026): what later plans
+*Re-read against the code after Plan 85 (October 2026): what later plans
 delivered came off, and what plans left open "for the owner" came on. The
-last section lists what came off and where it went.*
+last two sections list what came off and where it went.*
 
 ---
 
-## Awaiting the owner's triage: the October 2026 review (Plan 73)
+## Awaiting the owner: the October 2026 review's area 6
 
-*The review's findings are in
-[`docs/reviews/2026-10-game-review/`](docs/reviews/2026-10-game-review/README.md).
-The owner triages them area by area. **Area 1 (the campus) is
-[Plan 74](docs/plans/74-campus.md)**: every fix but A1-7 and A1-8, which
-are under *Named, not sequenced* with the area's decorative assets.
-**Area 2 (the screens and the words) is
-[Plan 76](docs/plans/76-ui-and-text.md)**, which also takes G7-3, G7-4,
-G7-5 and G7-14, the effect side of area 2's false claims; what it leaves
-is under *Named, not sequenced*. **Area 3 (teaching the game) is
-[Plan 78](docs/plans/78-learning-the-game.md)**, weighed against the inbox
-(Plan 77), with area 4's A4-5 (decline an offer). **Area 4 (strategy)
-is held by the owner**, who will playtest balance and strategy before
-taking any of its fixes; its athletics direction, with the owner's
-own playtest notes, is [Plan 80](docs/plans/80-the-owners-playtest.md).
-**Area 7 (the bugs) is [Plan 79](docs/plans/79-the-bugs.md)**,
-with what Plans 74 to 78 had not already fixed. Area 6 waits for triage;
-this entry comes off when every area is answered.*
+*Areas 1, 2, 3 and 7 of the October review
+([`docs/reviews/2026-10-game-review/`](docs/reviews/2026-10-game-review/README.md))
+were answered by Plans 74–79. Area 4 was answered by Plans 76B, 78D, 80 and 85,
+except what is listed under *Named, not sequenced* below (the digest, size
+levers, the blind price, the report's last phrase). The fix-first list and
+eight of the ten ranked improvements are done; what became of every finding
+is in [the review's status note](docs/reviews/2026-10-game-review/STATUS.md).*
 
-- **Fix first:**
-  - two tabs on one save lose progress (G7-1, Plan 79B);
-  - the winter model is half a year off (G7-3, taken into Plan 76D);
-  - the tag attrition point is previewed but never applied (G7-4, Plan 76C);
-  - the athletics axis is scaled twice (G7-5, Plan 76C);
-  - the stale hall price in the second-year letter (G7-14, Plan 76C);
-  - the committed `node_modules` symlink (G7-17a), already removed on the review branch.
-- **The ten ranked improvements**, in the README's order:
-  1. the first year explains itself (Plan 78B, C, F);
-  2. the move to school halls is unstuck (Plan 78D);
-  3. decisions stop happening unseen (Plan 78E; A4-3's digest waits for
-     area 4);
-  4. the text is made true;
-  5. the late game gets a worklist and a lever;
-  6. a usable Curriculum;
-  7. strategies that end in different colleges (a plan of its own);
-  8. a fair Final Report;
-  9. one way to write a number;
-  10. a campus worth a screenshot (area 1's part in Plan 74).
+**Area 6 (marketability) has not been triaged.** Its memo
+([`6-marketability.md`](docs/reviews/2026-10-game-review/6-marketability.md))
+made shipping depend on three things. Where each stands:
 
----
+- **A picture a stranger wants to click.** Seasons, the landmarks and the
+  ring of land are built (Plans 74, 81). The title screen still shows no
+  campus, and the README's screenshots predate Plans 80–85 (the History
+  and Faculty captions describe screens that have since changed).
+- **Choices that exclude each other.** Plan 85's specializations.
+- **AI disclosure and visible human direction.** Only the Credits line
+  ("Claude Code, plan by plan"). Nothing on the title screen or a store
+  page.
+
+And the owner's decisions: a free web demo of the first decade, a Steam
+page, Next Fest (February or June 2027), and a price ($14.99 was
+recommended). Whether the owner's playtest (70L) or the demo comes first
+is part of the same decision.
 
 ## On hold from Plan 70: analytics (K) and launch (L)
 
@@ -74,29 +60,46 @@ here until they are picked up again.*
 - **70L — launch.** Not started. The owner plays a full run on a fresh
   browser and a second session on a tablet, against a short checklist in
   `docs/reviews/` (the first hour, the first school, the first summer, a
-  save exported and re-imported, a rank change, the Final Report, play
-  again); small findings are fixed in the PR, larger ones come here. Then
-  1.0.0: `package.json`, `LAUNCH_SAVE_VERSION` confirmed as the public
-  build's, the README re-shot, and this file updated with what launch left
-  for later. Depends on K only if analytics should ship with 1.0.
-
-## Taken into Plan 72
-
-*The owner answered the backlog's questions in September 2026;
-[Plan 72](docs/plans/72-owners-answers.md) sequences what they said yes to:
-the high-price line's targets reset, a first place that can be taken late,
-a poached professor who actually leaves, the graduate course descriptions,
-v2's residence types, the charter as a log line, the two unused building
-effects removed, sort and filter on the Faculty tab, a full residence on
-the map, and clubs with diminishing returns; and, from later answers, the
-Japanese garden, the split-school trap (the game suggests the merge) and
-the statue and fountain drawn on their own. The entries below keep only
-what Plan 72 leaves.*
+  save exported and re-imported, a rank change, a specialization, the
+  Final Report, play again); small findings are fixed in the PR, larger
+  ones come here. Then 1.0.0: `package.json` (still `0.0.0`),
+  `LAUNCH_SAVE_VERSION` confirmed as the public build's, the README
+  re-shot, and this file updated with what launch left for later. Depends
+  on K only if analytics should ship with 1.0.
 
 ## Named, not sequenced
 
 *Each is a real piece of work with a known shape; none has been turned into
 a sequence of PRs.*
+
+### From the October review, still open
+
+- **A digest for the stops that ask nothing** (A4-3, with the rest of Plan
+  77B). Milestone notes and research reports still stop the clock as
+  interrupts (`systems/events/eventSystem.ts`), now answered in the inbox;
+  60–85% of weeks ask nothing while these crowd the rest. Fold them into
+  the summer or a weekly digest, and keep stops for choices. Plan 77B's
+  other half belongs here too: the year's review counts the matters that
+  took their default ("N left unanswered", `state/yearInReview.ts`) but
+  does not name them. Plan 78E built 77B's setting (pause when a matter
+  arrives); Plan 78 left the digest to this entry.
+- **Size levers** (A4-5). Declining an offer (78D) and recruiting (80G)
+  exist; a target enrolment, or *stay small on purpose*, in the summer's
+  admissions beat does not.
+- **The price is set blind** (A4-6). The summer's tuition slider shows a
+  tier but not how last year's price moved the pool
+  (`components/InterruptModal.tsx`). Show last year's response beside it.
+- **Small leftovers of the Final Report and the worklist** (A4-2, A4-4):
+  - the access weakness still reads "never opened its doors very wide"
+    (`data/reportData.ts`), which goes to the largest colleges; the
+    review proposed "stayed hard to get into";
+  - the Curriculum's *Below A* filter exists (76B) but nothing links to it
+    from the Prestige panel's teaching line.
+- **Hide other schools' offers in a claimed hall** (Plan 78D, for the
+  owner). They show behind a confirmation today; hiding them is one line
+  (`78-learning-the-game.md`, the owner's notes).
+
+### The campus
 
 - **Hand-built campuses as layout plans** (the owner, September 2026).
   `tools/campuses/` holds campuses the owner laid out by hand in a sandbox
@@ -119,72 +122,26 @@ a sequence of PRs.*
   - the run's own vernacular, colours and name are kept; the plan's
     `self`, finances and everything else in its `state` are ignored, which
     is what lets one plan be shot in every vernacular.
-- **Events that do what they say** (the October review, A2-2; left by
-  Plan 76). Plan 76D relabels the event choices whose truth needs a system
-  the events cannot reach. Each would make the event richer:
-  - a hire from an event, through `appointFaculty` with a rolled
-    candidate ("Fill the post", "Hire, whatever it costs", "Fund a
-    teaching line");
-  - closing a program ("Teach out … and close it");
-  - placing a statue or paving a path from an event;
-  - setting the draw rate ("Cut the draw", "Stop drawing");
-  - starting a real campaign ("Run a capital campaign");
-  - named funds, scholarships and chairs, kept apart from the general
-    endowment;
-  - retirement stories fired from the real retirement notice and naming
-    that person;
-  - **a memory of answers**, so decisions are not undone by recurrence:
-    the boiler replaced and then "installed in the college's first
-    decade", the writing course debated again, term limits adopted and
-    the trustee of twenty-six years back, the strip sold and offered
-    again, the guidebook's "first time" three times a game.
-  - the offer (`star-poached`) and the tenure case naming their professor
-    by kind, the strongest researcher and one a few years in: both let the
-    professor go, so naming them changes who leaves and moves the run
-    (Plan 79D measured it and left them drawn);
-  - what Plan 76D left of the vague rows: a library lever for the
-    acquisition, the booster club's gift routed to athletics, the essay
-    ring's enrollment cost spread over the class years, repair letters
-    that load backlog onto the named building, and the sinkhole and the
-    ivy drawn on the map.
-- **The Selective archetype restaffs** (found by Plan 76D). When a
-  professor leaves, the Selective harness player hires only for blocked
-  courses. Its academic score can sit below the 65 at which it builds
-  for its worst need, and since nothing on the build menu serves
-  academic, it stops building for the rest of the game and banks the
-  cash (seed 12345, from year 16). It should restaff or retune a weak
-  course the way the Guided player does (`tendTeaching`).
-- **The course catalog's shape** (A2-5; left by Plan 76G, which fixes the
-  sentences and titles). No course is numbered above 200. Five of the
-  Social Sciences majors lack a standard core course (statistics,
-  research methods, anthropological theory, modern philosophy,
-  non-Western history), no major has a senior seminar, the JD has no
-  Professional Responsibility, and the MD has no internal medicine,
-  pediatrics or obstetrics. Plan 76G rewrote sentences rather than move
-  courses where the audit swaps or renumbers them; the moves themselves
-  wait here: FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and
-  bridges before ACCT110 and MATH130. Each change moves course ids in
-  every save.
-
-- **Walks that draw straight** (the October review, A1-7). A walk is a run
-  of square tiles with no diagonal piece, so a diagonal walk draws as a
-  zigzag ribbon and a curve as a staircase, and desire lines across a lawn
-  are the most campus-like path there is. Either draw a walk as a polyline
-  through its tiles' centers with rounded joins over the tiles (the tiles
-  stay the data), or fill the triangle between two diagonally adjacent
-  walk tiles. About one PR either way.
-- **Doors that meet the campus** (A1-8). The door checker
-  (`npm run review:doors`) counts, over 63 saves and four views: 1,555
-  doors onto lawn (the game never joins a door to a walk), 296 on the
-  seam between two tiles (every even-length wall), 118 into another
+- **Walks that draw straight** (A1-7, partly done). Diagonal runs whose
+  tiles touch only at corners already draw as one straight band (Plan 24F,
+  `components/pathways.tsx`). A run of edge-joined tiles (a slow freehand
+  drag, and the walks the tools lay) still draws as steps, and a curve is
+  only rounded corners. Either draw such a run as a polyline through its
+  tiles' centres, or have the path tool lay corner-joined diagonals. About
+  one PR.
+- **Doors that meet the campus** (A1-8). At the review's commit the door
+  checker (`npm run review:doors`) counted, over 63 saves and four views:
+  1,555 doors onto lawn (the game never joins a door to a walk), 296 on
+  the seam between two tiles (every even-length wall), 118 into another
   building's wall, 53 onto courts, a pool or a quad, 45 under trees, 22
-  under a bike rack or a lamp, and 39 overhangs. The fixes: put an even
-  wall's door on the tile nearest a walk; clear trees from a door's tile
-  when the building is placed, and keep racks, lamps and the flag off door
-  tiles and trees (`dressing.tsx`); and draw a short path from each door
-  to the nearest walk.
-- **Decorative assets** (the review's area 1 list, after seasons, which is
-  Plan 74I), in its ranked order:
+  under a bike rack or a lamp, and 39 overhangs. Re-run it before
+  planning. The fixes: put an even wall's door on the tile nearest a walk;
+  clear trees from a door's tile when the building is placed, and keep
+  racks, lamps and the flag off door tiles and trees (`dressing.tsx`); and
+  draw a short path from each door to the nearest walk.
+- **Decorative assets** (the review's area 1 list, after seasons), in its
+  ranked order. None is built; the ring of land (Plan 81) has no water,
+  and the only gate is the player-built Triumphal Gate (Plan 75B):
   1. water: a pond or a lake edge with a boathouse (a place for rowing,
      and bridges for the paths), a new tile kind beside the road;
   2. walls and gates along the road, so the campus has a front;
@@ -192,59 +149,6 @@ a sequence of PRs.*
   4. sculpture of several kinds, picked by a hash of the tile;
   5. parking beside the road, a grounds lot with stall markings;
   6. signage: a plate by each door naming the building, shown from zoom 3.
-- **Faculty lifecycle: rival poaching and paid retention.** A departure the
-  player did not choose, and money spent to prevent it. **This has gone
-  backwards and is the most visible gap:** Plan 29 left poaching to the
-  old `faculty-outside-offer` event and built only retirement; Plan 32
-  retired that event, and its catalogue successor `star-poached` says a
-  professor has an offer but, answered *Wish them well*, costs two points
-  of mood and nobody leaves (the catalogue's effects cannot remove a
-  person). Plan 72B makes that departure real; a retention offer and the
-  rest of the lifecycle stay here. Their shape stands: the paid faculty
-  search is what a retention offer would reuse, salaries scale with
-  standing so a poach has a price, and the closing elite band gives a
-  poacher a motive. The athletics side already works (`coach-poached`).
-- **A school-wide budget, and a CFO to run it.** Most expense lines are
-  still derived from what the college owns and enrolls, so underfunding
-  can only have a consequence where there is a lever. The levers that
-  exist: maintenance funding (backlog, condition, and the heating and roof
-  events that read them, Plan 26), the endowment draw and borrowing (Plan
-  27), the sweep (Plan 70D), research funding per initiative, and the
-  athletics pot (Plan 21). Missing: instruction, student services and
-  financial aid as low/adequate/generous levers with one visible
-  consequence each, and a pot sized as a share of income, so that "spend
-  now or compound the endowment" is the top-level dial. **A CFO is what
-  stops it being tedious**, hired as the athletic director is, whose
-  quality decides how good the auto-allocation is; the budget arrives
-  pre-filled in the summer and the CFO flags exceptions. The only CFO
-  today is the interim one at the bottom of the distress ladder. The
-  precondition the old entry set, money that is actually scarce, now
-  holds for the first half of a run (Plan 71).
-- **The Faculty tab, and a person page:** now [Plan 84](docs/plans/84-the-faculty-as-people.md),
-  with a market that follows standing.
-- **Per-major mechanical effects.** A cohort pull, a grant rate, a major
-  that recruits differently. Today the pull is by category
-  (`cohorts.ts`) and one tag (*artsy*) reads the arts. The content half
-  landed in Plan 20, and the graduate courses' sentences are Plan 72C.
-- **Events that reach further.** The catalogue has 154 events (134 inline,
-  20 seismic), but their effects reach only cash, the endowment, debt, the
-  maintenance backlog, mood, the board's confidence, alumni warmth, course
-  quality, enrollment and trees. None reaches the faculty (see poaching),
-  a prestige input through durable state (a scandal that costs a program
-  its distinguished status for a year), or campus life. Nobody has
-  audited the catalogue for dominant choices since it replaced the old
-  table.
-- **Athletics deferrals.** Capped flagships, recruiting, the college's
-  pull and a coach market that always offers someone solid landed in
-  [Plan 80G](docs/plans/80-the-owners-playtest.md). **Founding a team
-  directly** (not through a sport club's petition) is unbuilt.
-  **Disbanding a team** is unbuilt, and so what
-  happens to a venue whose last team folds is unanswered. **Match
-  simulation and a fixture list** stay out by the argument at the head of
-  `systems/athletics/season.ts`: three dated occasions and the postseason
-  produce a record and a rivalry, and a schedule would produce nothing
-  more. **Rowing** wants a lake, a lake is terrain, and the map has none;
-  golf stays declined.
 - **Half-step camera views (45°)** (the owner, Plan 80). A turn of 45°
   lands on straight-on angles, where every building shows a single wall;
   the art assumes two (doors, steps, corner towers, window bays), so each
@@ -254,29 +158,18 @@ a sequence of PRs.*
   the parcel, with buildings on leveled pads and a plinth or steps on the
   downhill side. Everything on the map assumes flat ground today (the
   projection, the depth sort, siting, paths, walkers, doors, hit-testing
-  and shadows), so it is a geometry change to all of them; a faster
-  renderer (Plan 83) removes only its cost, not that work, and it does not
-  wait for one. Plan 81 puts the hills around the campus instead.
-- **A faster map** (the owner, Plan 80). Plan 83, landed (#260–#262,
-  #264–#266): the map is a canvas, with the SVG map kept as its fallback.
-  Its prototype (83B, #261) missed its 30 ms bar, and the owner chose to
-  go ahead with the canvas anyway.
-  - **What the prototype showed.** A canvas painter reusing the art drew
-    the scene with no visible difference and halved a turn: a turn frame
-    went from about 200 ms to 98 ms at 1×.
-  - **Why the owner went ahead.** The canvas scales better as the campus
-    grows. SVG's cost per element in a turn is about three times the
-    canvas's, and at Play SVG restyles the whole scene every frame, while
-    the canvas pays only for the walkers.
-  - **The floor is the art's own JS.** The art recomputes every projected
-    point for each camera, which alone costs 40–50 ms a frame.
-  - **What a truly smooth turn would still need:**
-    - geometry projected by a transform instead of recomputed in JS
-      (WebGL, or an affine transform per face on a canvas), which is an
-      art change;
-    - or a turn's in-between frames drawn from the last image, with only
-      the settled view redrawn.
-  - A desktop wrapper runs the same engine and would not be faster.
+  and shadows), so it is a geometry change to all of them; the canvas
+  renderer (Plan 83) removes only its cost, not that work. Plan 81 puts
+  the hills around the campus instead.
+- **A smoother turn** (what Plan 83 left). The map is a canvas now, and a
+  turn frame takes about half what the SVG's did, but not the 30 ms the
+  prototype aimed for. The floor is the art's own JS, which recomputes
+  every projected point for each camera (40–50 ms a frame). A truly
+  smooth turn needs either geometry projected by a transform (WebGL, or an
+  affine transform per face on a canvas), which is an art change, or a
+  turn's in-between frames drawn from the last image, with only the
+  settled view redrawn. A desktop wrapper runs the same engine and would
+  not be faster.
 - **The sim on a worker thread** (after Plan 83). The sim is pure
   TypeScript with no React and no dependencies (DD §15), so its weekly tick
   and the snapshot the UI reads could run in a Web Worker, off the main
@@ -289,18 +182,130 @@ a sequence of PRs.*
     or as the changed records. Actions go the other way, with the one
     seeded RNG staying in the worker. Saves and the headless harness are
     unchanged.
-  - A desktop wrapper would not be faster, for the same reason as the map
-    (above): it runs the same engine.
+
+### The events
+
+- **Events that do what they say** (the October review, A2-2; left by
+  Plan 76). Plan 76D relabelled the event choices whose truth needs a
+  system the events cannot reach. Each would make the event richer:
+  - a hire from an event, through `appointFaculty` with a rolled
+    candidate (the trustees' chair letter in `data/eventData.ts` already
+    does this outside the catalogue; the catalogue's effects have no hire);
+  - closing a program;
+  - placing a statue or paving a path from an event;
+  - setting the draw rate;
+  - starting a real campaign;
+  - scholarships and chairs as named funds (a restricted `buildingFund`
+    exists since 76D);
+  - retirement stories fired from the real retirement notice and naming
+    that person;
+  - **a memory of answers**, so decisions are not undone by recurrence
+    (only `cooldownYears` exists today): the boiler replaced and then
+    "installed in the college's first decade", the writing course debated
+    again, term limits adopted and the trustee of twenty-six years back,
+    the strip sold and offered again, the guidebook's "first time" three
+    times a game;
+  - the offer (`star-poached`) and the tenure case naming their professor
+    by kind, the strongest researcher and one a few years in: both let the
+    professor go, so naming them changes who leaves and moves the run
+    (Plan 79D measured it and left them drawn);
+  - what Plan 76D left of the vague rows: a library lever for the
+    acquisition, the booster club's gift routed to athletics, the essay
+    ring's enrollment cost spread over the class years, repair letters
+    that load backlog onto the named building, and the sinkhole and the
+    ivy drawn on the map.
+- **Events that reach further.** The catalogue has 160 events (140 inline,
+  20 seismic). Their effects reach cash, the endowment, debt, the
+  maintenance backlog, mood, alumni warmth, the incoming class's quality,
+  enrollment, trees, a restricted building fund, historic status, the
+  charter, the town's goodwill and the festival, and one faculty
+  departure (`departs`). None reaches a prestige input through durable
+  state (a scandal that costs a program its distinguished status for a
+  year). Nobody has audited the catalogue for **dominant choices** (Plan
+  76D audited truth, not dominance).
+
+### The people and the money
+
+- **Faculty lifecycle: rival poaching and paid retention.** A departure is
+  real now (`star-poached`'s *Wish them well* lets the professor go, Plan
+  72B), and the event offers a retention bonus, but a flat $50,000 that
+  ignores the salary. Missing: rivals that poach by standing as a system
+  rather than one event, and a retention offer priced from the salary and
+  the career record (Plan 84C), reusing the paid faculty search. Plan 84
+  kept this here. The athletics side already works (`coach-poached`).
+- **A school-wide budget, and a CFO to run it.** Most expense lines are
+  still derived from what the college owns and enrolls, so underfunding
+  can only have a consequence where there is a lever. The levers that
+  exist: maintenance funding, the endowment draw and borrowing, the sweep,
+  research funding per initiative, the athletics subsidy tier (which caps
+  the flagships, 80G) and team scholarships, the festival's scale (85H)
+  and the training program's picks (85E). Missing: instruction, student
+  services and financial aid as low/adequate/generous levers with one
+  visible consequence each, and a pot sized as a share of income, so that
+  "spend now or compound the endowment" is the top-level dial. **A CFO is
+  what stops it being tedious**, hired as the athletic director is, whose
+  quality decides how good the auto-allocation is; the budget arrives
+  pre-filled in the summer and the CFO flags exceptions. The only CFO
+  today is the interim one at the bottom of the distress ladder. Money is
+  scarce for the first half of a run (Plan 71) but still piles up late: a
+  guided run held $1.1B at year 50 (Plan 85C).
+- **Per-major mechanical effects.** A cohort pull, a grant rate, a major
+  that recruits differently. Today the pull is by category
+  (`cohorts.ts`) and one tag (*artsy*) reads the arts.
+- **The course catalog's shape** (A2-5; left by Plan 76G, which fixed the
+  sentences and titles). No undergraduate course is numbered above the
+  200s. Five of the Social Sciences majors lack a standard core course
+  (statistics, research methods, anthropological theory, modern
+  philosophy, non-Western history), no major has a senior seminar, the JD
+  has no Professional Responsibility, and the MD has no internal medicine,
+  pediatrics or obstetrics. The moves Plan 76G did not make wait here:
+  FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and bridges
+  before ACCT110 and MATH130. Each change moves course ids in every save.
+- **Athletics deferrals.** **Founding a team directly** (not through a
+  sport club's petition) is unbuilt. **Disbanding a team** is unbuilt,
+  and so what happens to a venue whose last team folds is unanswered.
+  **Match simulation and a fixture list** stay out by the argument at the
+  head of `systems/athletics/season.ts`: three dated occasions and the
+  postseason produce a record and a rivalry, and a schedule would produce
+  nothing more. **Rowing** wants a lake (see water, above); golf stays
+  declined.
+
+### Plan 85's leftovers
+
+- **Three slow readings still read the old stocks**, not the pillars: the
+  faculty market's standing (`facultyData.ts`, `marketStandingOf`), the
+  sports' pull (`studentLifeData.ts`, `collegePull`) and the research
+  powerhouse tag (Plan 85I, the owner's decision 2).
+- **A full endowment can still carry an unspecialized college to first**
+  (accepted by the owner in 85I; worth watching).
+- **The championships goal player never reaches the specialization
+  milestone** (85G), so the review tool cannot measure the athletics
+  specialization.
+- A dead string: `comingNote: 'Arrives in a later update.'` in
+  `data/specializationData.ts`, now that every card is `ready`.
+
+### The harness
+
+- **The Selective archetype never tends teaching.** When a professor
+  leaves it hires only for blocked courses (`sim/harness/archetypes.ts`;
+  Completionist, Guided and Natural call `tendTeaching`, Selective does
+  not), and since Plans 80 and 85 it ends around 61st at year 50 (Plan
+  85I's table). Give it `tendTeaching` and re-measure.
+- **The guided line's lab-project step** asks for a project when one can
+  be started only about a third of the weeks (Plan 58), not re-measured
+  since.
+
+### Small things
+
 - **From Plan 70's "does not do":** key rebinding and more than one save
-  slot. Unlocks that carry across runs now exist for the four bonus
-  vernaculars (`state/unlocks.ts`), with no in-run notice yet when one is
-  earned.
-- **From earlier plans' notes for the owner, partly answered:** a narrow
-  college cannot choose which schools it founds (Plan 63; Plan 71's offers
-  from started schools help); money piles up with nowhere to go late in a
-  run (Plan 63; Plans 70D and 71 help); the guided line asks for a lab
-  project when one can be started only about a third of the weeks (Plan
-  58, not re-measured since).
+  slot. Unlocks that carry across runs exist for the four bonus
+  vernaculars (`state/unlocks.ts`), and `recordUnlocks` returns what was
+  newly earned, but both callers ignore it, so there is still no in-run
+  notice when one is earned.
+- **Report tags whose test does not read the standing they claim**
+  (commuter, country club, pressure cooker; left by Plan 76C).
+- **What Plan 76H skipped:** the share card's embedded fonts, its own
+  glyphs for fell, lamps and benches, and one set of rank arrows.
 
 ## Direction, not plan
 
@@ -313,15 +318,51 @@ designed in a way that forecloses them.*
 - **A board of directors as people**, and the executive seats beyond Plan
   28's (Provost, a Dean per school, Facilities, Dean of Students, VP of
   Advancement): a CFO above all (see the budget). The board acts today
-  through its confidence and the distress ladder's letters.
+  through the distress ladder's letters and its seismic letters (its
+  confidence was removed in Plan 80C).
 - **The mix needs ears** (the merge review's §5, #4): the sound and the
   four state-switched music themes were built without a listening pass on
   real speakers.
 - **Camera polish:** a look at the stands from behind.
 
+## Taken off in October 2026
+
+*Delivered or settled since the September re-read.*
+
+- **The October review's fix-first list:** all six (G7-1 in 79B; G7-3,
+  G7-4, G7-5 and G7-14 in 76C–D; the `node_modules` symlink on the review
+  branch).
+- **The October review's ranked improvements:** the first year explains
+  itself, the move to school halls unstuck, the text made true, a usable
+  Curriculum, one way to write a number, and a campus worth a screenshot
+  (Plans 74–79); strategies that end in different colleges (Plan 85). The
+  rest of 3, 5 and 8 is above.
+- **Area 4 of the review:** A4-1 (Plan 85), A4-2 (the *Below A* filter in
+  76B, the training program in 85E; the Provost's auto-fill declined by
+  the owner in Plan 80), A4-4 (76C and 85I: athletics scaled once, the
+  finance phrase, the student-life pillar on the experience axis), and
+  A4-5's decline and recruiting (78D, 80G).
+- **Plan 72's list** (the owner's answers on the September backlog):
+  landed, A–M.
+- **The Faculty tab, and a person page:** Plan 84.
+- **A faster map:** Plan 83, the canvas, with the SVG map kept as its
+  fallback. Its prototype missed the 30 ms bar and the owner went ahead
+  anyway; what is left is *A smoother turn*, above.
+- **A narrow college choosing which schools it founds:** a claimed hall
+  offers its own school's programs, and one offer a year can be declined
+  (Plan 78D).
+- **Research and campus life as inputs rather than ranked axes:** reversed
+  by Plan 85, which made prestige a blend of four pillars (academics 35%,
+  research 25%, student life 25%, athletics 15%).
+- **Seasons on the map:** built (Plan 74I). Only night stays declined.
+- **Board confidence:** removed (Plan 80C).
+- **Athletics deferrals:** capped flagships, recruiting, the college's
+  pull and a coach market that always offers someone solid (Plan 80G),
+  and the athletic performance complex's extra flagship slots (85G).
+
 ## Taken off in September 2026
 
-*Delivered or settled since the entries were written; each now lives in the
+*Delivered or settled before the October review; each now lives in the
 plan named and in `docs/design/` or `docs/architecture/`.*
 
 - **Research grants after the hosting rule:** re-fitted per depth in Plan
@@ -329,27 +370,23 @@ plan named and in `docs/design/` or `docs/architecture/`.*
   scorecard's band.
 - **A richer demand curve:** the frontier bites now, with price tolerance
   rising with prestige, an overreach penalty, a crowding factor and an
-  applicant trickle (Plan 71). Prestige and scale archetypes were not
-  built, and nothing asks for them.
+  applicant trickle (Plan 71).
 - **Campus map feedback:** beauty feeding the pool and prestige, and capped
   pairing bumps (Plan 26).
 - **More authored events:** the catalogue (Plan 32), three tellings each
   for the frequent ones (Plan 70I). What is left is reach, above.
 - **The old event table (H4):** replaced by the catalogue (Plan 32).
 - **The tutorial:** the opening walkthrough, the board's letters, the
-  school letters and the next-step line (Plans 16, 55, 58).
+  school letters and the next-step line (Plans 16, 55, 58), and Plan 78.
 - **The startup screen and the mascot:** Plans 07, 08 and 21.
 - **The dead `prize` row:** deleted with its table (Plan 22C).
-- **Research and campus life as inputs rather than ranked axes, and a
-  simpler athletics:** declined in effect; Plan 31 made six standings and
-  Plan 21 built the department out.
 - **Camera rotation and tilt, moving pedestrians, the README screenshots,
   sound and music:** Plans 24, 34, 37, 38, 44, 48, 62, 64 and 70H.
 - **The consistency review's questions:** all sixteen answered (Plans
   46–51, 59, 70C).
-- **The quiet founding years, and night and seasons on the map:** declined
-  by the owner (September 2026). The founding years are the tutorial by
-  design, with the board's letters and Plan 70I's notes.
+- **The quiet founding years:** declined by the owner (September 2026).
+  The founding years are the tutorial by design, with the board's letters
+  and Plan 70I's notes.
 - **The rest of the map reading the college:** walkers by enrollment, the
   crane, labs at work, crowds, banners and weathering are built; a full
   residence's mark is Plan 72G.

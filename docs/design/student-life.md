@@ -645,8 +645,8 @@ chapters with founding year and current membership, the petitions waiting on
 the next digest, and an empty state that reads sensibly through the founding
 years before any student center exists. **Athletics has its own tab**: once a sport club goes varsity it moves there.
 The screen is four sections, in the order the questions arrive in — **the
-department** (the director, the name the teams play under, the athletic and
-campus-life standings, the one budget lever, how many flagships it allows and
+department** (the director, the name the teams play under, the athletics and
+student-life pillars, the one budget lever, how many flagships it allows and
 what the scholarships cost), **the programs** as a grid of
 team cards (a flagship's with its scholarship control, and every active one
 with its recruiting and pull), **by sport** (each fielded sport's own rank, with the schools

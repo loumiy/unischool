@@ -224,6 +224,8 @@ See [BACKLOG.md](BACKLOG.md) for planned work.
 | [`docs/architecture/`](docs/architecture/) | Technical documentation for the codebase |
 | [`docs/architecture/playtesting.md`](docs/architecture/playtesting.md) | How to stand the game up somewhere and measure a change |
 | [`docs/plans/`](docs/plans/) | Closed records of how work was sequenced and shipped |
+| [`docs/reviews/`](docs/reviews/README.md) | Reviews of the game on a given date, and the evidence plans cite |
+| [`docs/assets/`](docs/assets/) | Every buildable asset in every vernacular, as the game draws it |
 
 Three tenses, three homes: the docs describe the game as it **is**, the backlog
 what **will** happen, the plans what **did**. Nothing belongs in two of them at

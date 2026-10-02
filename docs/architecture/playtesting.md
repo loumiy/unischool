@@ -11,7 +11,7 @@ breakdown, which is a player feature the developer happens to need first.
 |---|---|
 | A school at year 8, or the week a modal is pending | `npm run scenario` |
 | To read, set, jump, force, or load, in the browser | the debug panel |
-| To know why prestige is what it is | the History tab's **Standing** section |
+| To know why prestige is what it is | the History tab's **Prestige** section |
 | To know whether a change moved a trajectory | `npm run sim`, the report against its baseline |
 | To know how the intended line of play goes | `npm run guided` |
 | To know how the owner's natural line of play goes, year by year | `npm run natural` |
@@ -147,14 +147,16 @@ trajectory. **Add the case when you add the interrupt.**
 
 ## Standing: the prestige breakdown
 
-The History tab opens with a **Standing** section: one panel per standing,
-one row per input, each row a two-layer bar — the pale layer is what the
+The History tab opens with a **Prestige** section (Plans 80C and 85B): the
+blend of the four pillars, each pillar opening to its own inputs, one row per
+input, each row a two-layer bar — the pale layer is what the
 input reaches on its own (weight × score), the solid one what it is worth
 after its multiplier. The gap between them is what a short library or a small
 student body is costing the school.
 
-It is read off `prestigeSystem.ts`'s `prestigeBreakdown`,
-`researchStandingBreakdown` and `socialStandingBreakdown`, and **each target
+It is read off `prestigeSystem.ts`'s `prestigeBreakdown` and `pillarBreakdown`
+(with `researchStandingBreakdown` and `socialStandingBreakdown` behind the
+research and student-life pillars), and **each target
 function is a sum over its own breakdown**. A panel that computed its own
 version of the arithmetic would be wrong within a release, quietly, and the
 only reader who would notice is the one it exists for. The rows are data:

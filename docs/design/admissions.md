@@ -322,7 +322,7 @@ rather than being the number, so it costs nothing until it is asked for.
 
 **Two cohort displays, showing different things.** The reveal above is one
 year's *applicants* — who was interested, before any of them were admitted.
-The Enrollment tab's standing body (below) is four years of *enrolled
+The Students tab's standing body (below) is four years of *enrolled
 students*. They are drawn from the same eight cohorts and are not the same
 picture: one is demand, the other is the school. Keeping the distinction
 visible is the reason the tab shows classes stacked rather than a single

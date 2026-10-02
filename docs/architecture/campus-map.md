@@ -424,6 +424,6 @@ split in two. Its **paint** has no height, can never legitimately occlude
 anything, and is drawn in a pass of its own *under* every mass, needing no
 depth at all. What genuinely **stands** on it — planting, hedges, a
 fountain, a monument, a stand, an outfield fence — comes back from
-`groundMarkings.ts`'s `groundProps` and joins the ordinary sorted pass, each
+`groundMarkings.tsx`'s `groundProps` and joins the ordinary sorted pass, each
 prop on the point it actually stands on, so a quad's own trees interleave
 correctly with the woodland around them.
