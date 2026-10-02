@@ -948,19 +948,6 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }:
   return <>{out}</>;
 }
 
-// A small box on a roof: plant, a stair head, a lift overrun.
-function RoofBox({ col, row, w, h, base, height, tint }: {
-  col: number; row: number; w: number; h: number; base: number; height: number; tint: string;
-}) {
-  const f = boxFaces(col, row, w, h, base, height);
-  return (
-    <>
-      {sideFaces(f, shade(tint, 0.66), shade(tint, 0.56))}
-      <polygon points={polyPoints(f.top)} fill={shade(tint, 0.8)} />
-    </>
-  );
-}
-
 // The academic hall: the landmark, drawn from a real reference building.
 // Plinth, floor courses, cornice and parapet, a shallow hipped roof, a
 // projecting pedimented center bay, raised end blocks, and on Founders Hall
@@ -7693,9 +7680,9 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         <polygon points={polyPoints(sf.top)} fill={pal.roofDeck} />
         {[[0.08, 0.16, 0.26, 0.34], [0.40, 0.12, 0.22, 0.30], [0.70, 0.20, 0.24, 0.36]]
           .map(([fx, fy, fw, fh], i) => (
-            <RoofBox
+            <PlantScreen
               key={i} col={slab.col + slab.w * fx} row={slab.row + slab.h * fy}
-              w={slab.w * fw} h={slab.h * fh} base={slabH} height={15} tint={plantTint}
+              w={slab.w * fw} h={slab.h * fh} base={slabH}
             />
           ))}
         {(() => {
@@ -8484,14 +8471,9 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
                 </g>
               );
             }
-            return (
-              <RoofBox
-                key={item.key}
-                col={item.col} row={item.row} w={item.w} h={item.h}
-                base={H} height={motif === 'works' ? 12 : motif === 'block' ? 15 : 9}
-                tint={plantTint}
-              />
-            );
+            // Roof plant reads as plant: a louvred screen with its fans
+            // showing, not a bare box (Plan 87).
+            return <PlantScreen key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} />;
           })}
           {/* The line into the transformer yard, over it (Plan 87I). */}
           {!site && labFeatureOf(t) === 'transformers' && pylonLines(flatRoofItems(motif, labFeatureOf(t), col, row, w, h), H, w >= h)}
