@@ -1,0 +1,41 @@
+
+## Completionist, seed 12345
+  year 1: backlog $0.0M; derelict 0 of 1; Founders Hall condition 1.00; weeks with maintenance under full so far 0
+  year 11: backlog $1.3M; derelict 0 of 33; Founders Hall condition 0.88; weeks with maintenance under full so far 0
+  year 21: backlog $0.5M; derelict 0 of 65; Founders Hall condition 0.95; weeks with maintenance under full so far 0
+  year 31: backlog $19.7M; derelict 0 of 73; Founders Hall condition 0.89; weeks with maintenance under full so far 0
+  year 41: backlog $19.7M; derelict 0 of 78; Founders Hall condition 0.93; weeks with maintenance under full so far 0
+  year 51: backlog $26.3M; derelict 0 of 82; Founders Hall condition 0.93; weeks with maintenance under full so far 0
+answers that moved the backlog:
+  year 7 week 24: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"1bl6l9j3q9oh","choiceId":"repair"} moved it +$1.80M
+  year 29 week 8: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"r4pa5mleyynm","choiceId":"patch"} moved it +$22.00M
+  year 39 week 36: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"lwc8k6pt08wt","choiceId":"repair"} moved it +$9.60M
+  year 45 week 7: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"u0yext6boceo","choiceId":"patch"} moved it +$22.00M
+
+## Natural, seed 12345
+  year 1: backlog $0.0M; derelict 0 of 1; Founders Hall condition 1.00; weeks with maintenance under full so far 0
+  year 11: backlog $1.0M; derelict 0 of 22; Founders Hall condition 0.90; weeks with maintenance under full so far 0
+  year 21: backlog $0.4M; derelict 0 of 49; Founders Hall condition 0.96; weeks with maintenance under full so far 0
+  year 31: backlog $11.3M; derelict 0 of 59; Founders Hall condition 0.84; weeks with maintenance under full so far 0
+  year 41: backlog $22.9M; derelict 0 of 71; Founders Hall condition 0.86; weeks with maintenance under full so far 0
+  year 51: backlog $24.4M; derelict 0 of 73; Founders Hall condition 0.90; weeks with maintenance under full so far 0
+answers that moved the backlog:
+  year 8 week 3: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"lav5ye1zanv3","choiceId":"repair"} moved it +$1.10M
+  year 21 week 14: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"uw6ztk9rxyru","choiceId":"fill"} moved it +$19.00M
+  year 37 week 18: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"3id46vb5t4sy","choiceId":"patch"} moved it +$22.00M
+  year 46 week 47: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"559j9cdhimz8","choiceId":"fill"} moved it +$19.00M
+
+## Natural, seed 4242
+  year 1: backlog $0.0M; derelict 0 of 1; Founders Hall condition 1.00; weeks with maintenance under full so far 0
+  year 11: backlog $0.0M; derelict 0 of 22; Founders Hall condition 1.00; weeks with maintenance under full so far 0
+  year 21: backlog $2.3M; derelict 0 of 50; Founders Hall condition 0.96; weeks with maintenance under full so far 0
+  year 31: backlog $2.3M; derelict 0 of 58; Founders Hall condition 0.97; weeks with maintenance under full so far 0
+  year 41: backlog $6.3M; derelict 0 of 71; Founders Hall condition 0.97; weeks with maintenance under full so far 0
+  year 51: backlog $23.1M; derelict 0 of 73; Founders Hall condition 0.92; weeks with maintenance under full so far 0
+answers that moved the backlog:
+  year 15 week 24: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"8b3fp621h203","choiceId":"repair"} moved it +$4.10M
+  year 50 week 42: {"type":"RESOLVE_CATALOGUE_EVENT","instanceId":"ewzbu3w1agcq","choiceId":"fill"} moved it +$19.00M
+
+real	9m31.266s
+user	3m10.632s
+sys	0m3.705s
