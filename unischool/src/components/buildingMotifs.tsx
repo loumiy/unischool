@@ -3384,6 +3384,352 @@ function Chapel({ t, p, vernacular, pal, stone, wall }: {
   );
 }
 
+// --- The Law School and the University Museum (Plan 87G) -----------------
+// Both are 11x8 limestone porticos; each now says what it is. The Law
+// School wears a temple front on each visible face, after the Supreme
+// Court: a wide flight to a podium, a full-height rank of round columns,
+// and a pediment carrying the scales of justice, round a raised attic hall.
+// Its Gothic set builds Michigan's Law Quad instead: a steep-roofed reading
+// room with a great traceried gable window over a Gothic porch. The Museum
+// is a gallery wing top-lit by glazed barrel vaults (Yale, Kimbell), set
+// back behind a paved forecourt with a sculpture before each visible front.
+
+const LAW_ID = 'PROJ-LAW';
+const MUSEUM_ID = 'PROJ-MUSEUM';
+// Whether the Law School wears its temple front: all but the Gothic set.
+function lawTemple(t: Buildable, v: Vernacular): boolean {
+  return t.id === LAW_ID && v !== 'gothic';
+}
+// The attic's low roof, in weathered copper.
+const LAW_ATTIC_ROOF = '#8fa39a';
+// The Gothic reading room's slate, darker than the flat roofs round it.
+const READING_ROOM_SLATE = '#59616b';
+// The Museum's forecourt: how far the gallery stands back from its plot.
+const MUSEUM_COURT = across(8);
+
+// A box against wall `dir` from `s0` to `s1` tiles out, `along0` to
+// `along0 + width` along it.
+function outFromWall(col: number, row: number, w: number, h: number, dir: FaceDir, along0: number, width: number, s0: number, s1: number): DepthBox {
+  const b = againstWall(col, row, w, h, dir, along0, width, s1 - s0);
+  const o = outwardOf(dir);
+  return { col: b.col + o.col * s0, row: b.row + o.row * s0, w: b.w, h: b.h };
+}
+
+// The temple front on wall `dir`: steps to a podium, columns to the eaves,
+// an entablature, a pitched roof back to the wall and a pediment with the
+// scales of justice in its tympanum.
+function LawTemple({ col, row, w, h, H, dir, stone }: {
+  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette;
+}) {
+  const span = wallSpan(w, h, dir);
+  const width = Math.min(span * 0.52, across(44));
+  const n = width >= across(34) ? 8 : 6;
+  const along0 = span / 2 - width / 2;
+  const depth = across(7.5);
+  const podiumH = up(2.4);
+  const treads = 6;
+  // In the set's dressed stone, never its brick (Tudor's tower stone).
+  const marble = stone.trim !== 'none' ? stone.trim : stone.towerStone;
+  const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+  // The flight and podium: stacked slabs, the highest the podium itself.
+  const steps = Array.from({ length: treads }, (_, k) => treads - 1 - k).map((i) => {
+    const b = outFromWall(col, row, w, h, dir, along0 - across(1.2), width + across(2.4), 0, depth + across(0.5) + (treads - 1 - i) * TREAD_DEPTH);
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, ((i + 1) * podiumH) / treads);
+    return (
+      <g key={`s${i}`}>
+        {sideFaces(f, shade(marble, 0.86), shade(marble, 0.7))}
+        <polygon points={polyPoints(f.top)} fill={shade(marble, i === treads - 1 ? 1.0 : 0.95)} stroke="rgba(60, 54, 44, 0.25)" strokeWidth={0.4} />
+      </g>
+    );
+  });
+  // Round columns along the front, back to front.
+  const r = across(0.72);
+  const gap = (width - across(1.6)) / (n - 1);
+  const shafts = Array.from({ length: n }, (_, i) => outsideWall(col, row, w, h, dir, along0 + across(0.8) + i * gap, depth - across(0.9)))
+    .sort((a, b) => project(a.col, a.row).y - project(b.col, b.row).y);
+  const ENT = ENTABLATURE * 1.3;
+  const entBox = outFromWall(col, row, w, h, dir, along0, width, 0, depth);
+  const ent = boxFaces(entBox.col, entBox.row, entBox.w, entBox.h, H - ENT, ENT);
+  const front = wallOf(ent, dir);
+  // A point on the pediment's plane, u along the front, z above its eaves
+  // (the entablature's top; wallOf gives its foot).
+  const P = (u: number, z: number) => facePoint(front.origin, front.along, 1, u, ENT + z);
+  const rise = up((width * METRES_PER_TILE / 2) * 0.26);
+  const o0 = project(0, 0);
+  const out = outwardOf(dir);
+  const o1 = project(-out.col * depth, -out.row * depth);
+  const back = (q: Pt) => ({ x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y });
+  const eL = P(0, 0); const eR = P(1, 0); const apex = P(0.5, rise);
+  const lit = WALL_LIGHT[dir];
+  // The tympanum, set in from the raking cornices.
+  const t0 = up(0.55); const rake = (z: number) => 0.5 * (z / rise);
+  const tym = [P(rake(t0) + 0.035, t0), P(1 - rake(t0) - 0.035, t0), P(0.5, rise - up(0.9))];
+  // The scales: a post, a beam, two pans on their cords.
+  const sc = (u: number, k: number) => P(0.5 + u, t0 + (rise - t0) * k);
+  const bw = 0.075;
+  // A shallow bowl: its rim, then its curve below.
+  const pan = (u: number) => [sc(u - 0.042, 0.3), sc(u + 0.042, 0.3), sc(u + 0.03, 0.22), sc(u, 0.18), sc(u - 0.03, 0.22)];
+  const seg = (a: Pt, b: Pt) => `M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`;
+  return (
+    <g className="law-temple">
+      {steps}
+      {shafts.map((c, i) => (
+        <g key={`c${i}`}>
+          <Cylinder cc={c.col} cr={c.row} r={r} z0={podiumH} z1={H - ENT - up(0.6)} fill={shade(marble, 0.96)} />
+          {sideFaces(boxFaces(c.col - r * 1.25, c.row - r * 1.25, r * 2.5, r * 2.5, H - ENT - up(0.6), up(0.6)), shade(marble, 0.94), shade(marble, 0.76))}
+        </g>
+      ))}
+      {sideFaces(ent, shade(marble, 0.94), shade(marble, 0.76))}
+      <polygon points={polyPoints([eL, apex, back(apex), back(eL)])} fill={shade(marble, 0.74)} />
+      <polygon points={polyPoints([apex, eR, back(eR), back(apex)])} fill={shade(marble, 0.64)} />
+      <polygon points={polyPoints([eL, eR, apex])} fill={shade(marble, lit)} stroke="rgba(60, 54, 44, 0.5)" strokeWidth={0.8} />
+      <polygon points={polyPoints(tym)} fill={shade(marble, lit * 0.84)} />
+      <path className="sig-scales" d={seg(sc(0, 0.1), sc(0, 0.74)) + seg(sc(-0.03, 0.1), sc(0.03, 0.1)) + seg(sc(-bw, 0.6), sc(bw, 0.6)) + seg(sc(-bw, 0.6), sc(-bw - 0.04, 0.3)) + seg(sc(-bw, 0.6), sc(-bw + 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw - 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw + 0.04, 0.3))} stroke={gilt} strokeWidth={1.5} strokeLinecap="round" fill="none" />
+      <polygon points={polyPoints(pan(-bw))} fill={gilt} />
+      <polygon points={polyPoints(pan(bw))} fill={gilt} />
+    </g>
+  );
+}
+
+// The raised attic over the Law School's middle: a clerestoried hall under
+// a low hipped roof (the Supreme Court's), or in the Gothic set a reading
+// room under a steep slate gable, lancets down its side and a great
+// traceried window in its visible end.
+function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
+  col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean;
+}) {
+  const aw = w * (gothic ? 0.56 : 0.38); const ah = h * (gothic ? 0.36 : 0.42);
+  const ac = col + (w - aw) / 2; const ar = row + (h - ah) / 2;
+  const rise = gothic ? up(5.5) : up(5);
+  const f = boxFaces(ac, ar, aw, ah, H, rise);
+  const trimTone = stone.trim !== 'none' ? stone.trim : shade(pal.wall.posRow, 1.1);
+  const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
+  const alongW = aw >= ah;
+  if (!gothic) {
+    return (
+      <g className="law-attic">
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faces.map(({ o, a, span }, i) => {
+          const k = Math.max(3, Math.round(span * 2.2));
+          return (
+            <g key={i}>
+              {Array.from({ length: k }, (_, j) => (
+                <polygon key={j} className="iso-window" points={polyPoints(wallQuad(o, a, rise, (j + 0.3) / k, (j + 0.7) / k, rise * 0.25, rise * 0.68))} fill={stone.glass} />
+              ))}
+              <polygon points={polyPoints(wallQuad(o, a, rise, 0, 1, rise - up(0.8), rise))} fill={trimTone} />
+            </g>
+          );
+        })}
+        <HippedRoof col={ac - across(0.3)} row={ar - across(0.3)} w={aw + across(0.6)} h={ah + across(0.6)} base={H + rise} rise={up(2.4)} pal={{ ...pal, ...SLOPE(LAW_ATTIC_ROOF) }} />
+      </g>
+    );
+  }
+  // The reading room: a steep gable along its long axis.
+  const ridge = up(9);
+  const rs = lift(alongW ? project(ac, ar + ah / 2) : project(ac + aw / 2, ar), H + rise + ridge);
+  const re = lift(alongW ? project(ac + aw, ar + ah / 2) : project(ac + aw / 2, ar + ah), H + rise + ridge);
+  const endDir: FaceDir[] = alongW ? ['negCol', 'posCol'] : ['negRow', 'posRow'];
+  return (
+    <g className="law-attic law-reading-room">
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {faces.map(({ o, a, span }, i) => {
+        // Lancets down the long side; the end wall's window is drawn with
+        // its gable.
+        const isEnd = endDir.includes(i === 0 ? f.dir.CD : f.dir.BC);
+        if (isEnd) return null;
+        const k = Math.max(4, Math.round(span * 2));
+        return (
+          <g key={i}>
+            {Array.from({ length: k }, (_, j) => (
+              <polygon key={j} points={polyPoints(windowOutline('lancet', (j + 0.32) / k, (j + 0.68) / k, 0.18, 0.86).map(([u, v]) => facePoint(o, a, rise, u, v)))} fill={stone.glass} />
+            ))}
+          </g>
+        );
+      })}
+      {gableSlopes(f, alongW, rs, re, { ...pal, ...SLOPE(READING_ROOM_SLATE) })}
+      {endDir.map((dir) => {
+        const wall = wallOf(f, dir);
+        if (!wall.visible) return null;
+        const apex = alongW ? (dir === 'negCol' ? rs : re) : (dir === 'negRow' ? rs : re);
+        const tl = lift(wall.origin, rise); const tr = lift(wall.along, rise);
+        // The great window: a pointed arch through the end wall into its
+        // gable, mullioned, in the reading room's glass.
+        const hgt = rise + ridge;
+        const win = windowOutline('lancet', 0.24, 0.76, 0.14, 0.86).map(([u, v]) => facePoint(wall.origin, wall.along, hgt, u, v));
+        const mull = [0.37, 0.5, 0.63].map((u) => `M${facePoint(wall.origin, wall.along, hgt, u, 0.14).x.toFixed(1)},${facePoint(wall.origin, wall.along, hgt, u, 0.14).y.toFixed(1)}L${facePoint(wall.origin, wall.along, hgt, u, 0.7).x.toFixed(1)},${facePoint(wall.origin, wall.along, hgt, u, 0.7).y.toFixed(1)}`).join('');
+        return (
+          <g key={dir}>
+            <polygon points={polyPoints([tl, tr, apex])} fill={pal.wall[dir]} />
+            <polygon points={polyPoints(win)} fill={stone.glass} stroke={trimTone} strokeWidth={1.2} />
+            <path d={mull} stroke={trimTone} strokeWidth={0.9} />
+          </g>
+        );
+      })}
+      <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+    </g>
+  );
+}
+
+// The Museum's gallery roof: glazed barrel vaults side by side along the
+// long axis, ribbed, closed by solid arched ends, each facet drawn only
+// where it faces the camera.
+function GalleryVaults({ col, row, w, h, base, pal }: {
+  col: number; row: number; w: number; h: number; base: number; pal: Palette;
+}) {
+  const alongW = w >= h;
+  const long = alongW ? w : h; const short = alongW ? h : w;
+  const inset = across(5);
+  const count = Math.max(2, Math.round((short - inset * 2) / across(15)));
+  const bay = (short - inset * 2) / count;
+  const R = bay * 0.42;
+  const K = 8; const M = Math.max(4, Math.round(long / across(9)));
+  // World point: x along the long axis, y across it, z up.
+  const W = (x: number, y: number, z: number) => (alongW ? lift(project(col + x, row + y), z) : lift(project(col + y, row + x), z));
+  const area = (q: Pt[]) => q.reduce((a, p, i) => { const n = q[(i + 1) % q.length]!; return a + p.x * n.y - n.x * p.y; }, 0);
+  // Grid-frame winding of the deck seen from above; a face wound the other
+  // way about its own outward normal is seen when its screen area has the
+  // deck's sign. The long axis along row mirrors the frame.
+  const deck = Math.sign(area([lift(project(0, 0), 0), lift(project(1, 0), 0), lift(project(1, 1), 0), lift(project(0, 1), 0)]));
+  const seen = (q: Pt[]) => Math.sign(area(alongW ? q : [...q].reverse())) !== deck;
+  const zUp = (tiles: number) => up(tiles * METRES_PER_TILE);
+  const x0 = inset; const x1 = long - inset;
+  const vaults = depthOrder(Array.from({ length: count }, (_, i) => {
+    const yc = inset + bay * (i + 0.5);
+    return alongW ? { col: col + x0, row: row + yc - R, w: x1 - x0, h: R * 2, yc } : { col: col + yc - R, row: row + x0, w: R * 2, h: x1 - x0, yc };
+  }));
+  return (
+    <g className="gallery-vaults">
+      {vaults.map(({ yc }, vi) => {
+        const prof = (k: number) => {
+          const ph = (k / K) * Math.PI;
+          return [yc - Math.cos(ph) * R, zUp(R) * 0.78 * Math.sin(ph)] as const;
+        };
+        const quads: React.JSX.Element[] = [];
+        for (let k = 0; k < K; k++) {
+          const [ya, za] = prof(k); const [yb, zb] = prof(k + 1);
+          for (let m = 0; m < M; m++) {
+            const xa = x0 + ((x1 - x0) * m) / M; const xb = x0 + ((x1 - x0) * (m + 1)) / M;
+            // Up the curve, then along: wound about the inward normal.
+            const q = [W(xa, ya, base + za), W(xa, yb, base + zb), W(xb, yb, base + zb), W(xb, ya, base + za)];
+            if (!seen(q)) continue;
+            quads.push(<polygon key={`${k}-${m}`} points={polyPoints(q)} fill={shade(NORTH_LIGHT_GLASS, 0.9 + 0.2 * Math.sin(((k + 0.5) / K) * Math.PI))} stroke={pal.roofDeck} strokeWidth={0.5} />);
+          }
+        }
+        const end = (x: number, outwardSign: number) => {
+          const pts = Array.from({ length: K + 1 }, (_, k) => { const [y, z] = prof(k); return W(x, y, base + z); });
+          // Over the crown, the profile winds about -x: the far end's way,
+          // which the seen test (inward winding) wants at the near end.
+          const q = outwardSign > 0 ? pts : [...pts].reverse();
+          const dir: FaceDir = alongW ? (outwardSign > 0 ? 'posCol' : 'negCol') : (outwardSign > 0 ? 'posRow' : 'negRow');
+          return seen(q) ? <polygon key={`e${x}`} points={polyPoints(pts)} fill={pal.wall[dir]} stroke={pal.roofDeck} strokeWidth={0.5} /> : null;
+        };
+        return (
+          <g key={vi}>
+            {end(x0, -1)}
+            {end(x1, 1)}
+            {quads}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// A forecourt sculpture before a Museum front: a red steel cube on its
+// corner before the row-facing front, a bronze figure on a plinth before
+// the column-facing one, so each view shows one of each.
+function ForecourtSculpture({ cc, cr, dir, stone }: { cc: number; cr: number; dir: FaceDir; stone: StonePalette }) {
+  if (dir === 'posRow' || dir === 'negRow') {
+    // A great red steel cube balanced on one corner (Noguchi's Red Cube):
+    // its faces wound about their outward normals, each drawn where it
+    // faces the camera, lit by the way it points.
+    const a = 6;
+    const n0 = [1 / Math.sqrt(2), -1 / Math.sqrt(2), 0];
+    const n1 = [1 / Math.sqrt(6), 1 / Math.sqrt(6), -2 / Math.sqrt(6)];
+    const n2 = [1 / Math.sqrt(3), 1 / Math.sqrt(3), 1 / Math.sqrt(3)];
+    // A cube corner (±1 each way) in metres: the long diagonal stood upright.
+    const world = (v: number[]) => {
+      const x = (v[0]! * n0[0]! + v[1]! * n0[1]! + v[2]! * n0[2]!) * a / 2;
+      const y = (v[0]! * n1[0]! + v[1]! * n1[1]! + v[2]! * n1[2]!) * a / 2;
+      const z = (v[0]! * n2[0]! + v[1]! * n2[1]! + v[2]! * n2[2]!) * a / 2 + (a * Math.sqrt(3)) / 2;
+      return { x, y, z };
+    };
+    const at = (q: { x: number; y: number; z: number }) => lift(project(cc + across(q.x), cr + across(q.y)), up(q.z));
+    const area = (q: Pt[]) => q.reduce((acc, p, i) => { const m = q[(i + 1) % q.length]!; return acc + p.x * m.y - m.x * p.y; }, 0);
+    const deck = Math.sign(area([lift(project(0, 0), 0), lift(project(1, 0), 0), lift(project(1, 1), 0), lift(project(0, 1), 0)]));
+    const faces = [0, 1, 2].flatMap((axis) => [-1, 1].map((sign) => {
+      // The four corners round the face, counterclockwise about its normal.
+      const [i, j] = [(axis + 1) % 3, (axis + 2) % 3];
+      const ring = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([p, q]) => { const v = [0, 0, 0]; v[axis] = sign; v[i] = p!; v[j] = q!; return v; });
+      const corners = (sign > 0 ? ring : [...ring].reverse()).map(world);
+      const normal = world([axis === 0 ? sign : 0, axis === 1 ? sign : 0, axis === 2 ? sign : 0]);
+      return { pts: corners.map(at), lightness: 0.78 + 0.22 * ((normal.z - (a * Math.sqrt(3)) / 2) / (a / 2)) - 0.1 * (normal.x / (a / 2)) };
+    }));
+    return (
+      <g className="museum-sculpture museum-red-cube">
+        <polygon points={polyPoints(projectedCircle(cc, cr, across(2.2), 16))} fill={shade(stone.towerStone, 0.78)} />
+        {faces.filter((f) => Math.sign(area(f.pts)) === deck).map((f, i) => (
+          <polygon key={i} points={polyPoints(f.pts)} fill={shade(SIGNAL_RED, Math.max(0.6, Math.min(1.2, f.lightness)))} stroke="rgba(60, 20, 14, 0.5)" strokeWidth={0.6} />
+        ))}
+      </g>
+    );
+  }
+  const s = across(2.8);
+  const plinthH = up(3.6);
+  const plinth = boxFaces(cc - s / 2, cr - s / 2, s, s, 0, plinthH);
+  const BRONZE_FIGURE = '#4c4232';
+  const foot = lift(project(cc, cr), plinthH);
+  const k = heightScale();
+  const m = up(1.9);
+  return (
+    <g className="museum-sculpture museum-statue">
+      {sideFaces(plinth, shade(stone.towerStone, 0.92), shade(stone.towerStone, 0.74))}
+      <polygon points={polyPoints(plinth.top)} fill={stone.towerStone} />
+      {/* A standing figure, an arm raised: body, head, arm. */}
+      <polygon points={polyPoints([
+        { x: foot.x - m * 0.45, y: foot.y }, { x: foot.x + m * 0.45, y: foot.y },
+        { x: foot.x + m * 0.4, y: foot.y - m * 2.4 * k }, { x: foot.x + m * 0.5, y: foot.y - m * 3.1 * k },
+        { x: foot.x - m * 0.5, y: foot.y - m * 3.1 * k }, { x: foot.x - m * 0.4, y: foot.y - m * 2.4 * k },
+      ])} fill={BRONZE_FIGURE} />
+      <circle cx={foot.x} cy={foot.y - m * 3.55 * k} r={m * 0.42} fill={BRONZE_FIGURE} />
+      <line x1={foot.x + m * 0.45} y1={foot.y - m * 3 * k} x2={foot.x + m * 1.1} y2={foot.y - m * 4.2 * k} stroke={BRONZE_FIGURE} strokeWidth={m * 0.35} strokeLinecap="round" />
+    </g>
+  );
+}
+
+// The Museum (a function the canvas walker calls through): a paved
+// forecourt over its whole plot, the gallery set back on it, and a
+// sculpture before each visible front.
+function MuseumCourt({ t, p, material, vernacular, glyphs }: {
+  t: Buildable; p: { row: number; col: number; w: number; h: number }; material: Material; vernacular: Vernacular; glyphs?: string;
+}) {
+  const { col, row, w, h } = p;
+  const c = MUSEUM_COURT;
+  const inner = { col: col + c, row: row + c, w: w - c * 2, h: h - c * 2 };
+  const stone = stoneFor(vernacular);
+  const pave = stone.trim !== 'none' ? shade(stone.trim, 0.96) : shade(stone.towerStone, 0.94);
+  const court = boxFaces(col, row, w, h, 0, 0).top;
+  const seen = visibleWalls();
+  const joints = [0.25, 0.5, 0.75].flatMap((k) => [
+    [project(col + w * k, row), project(col + w * k, row + h)],
+    [project(col, row + h * k), project(col + w, row + h * k)],
+  ]).map(([a, b]) => `M${a!.x.toFixed(1)},${a!.y.toFixed(1)}L${b!.x.toFixed(1)},${b!.y.toFixed(1)}`).join('');
+  return (
+    <>
+      <polygon className="museum-forecourt" points={polyPoints(court)} fill={pave} />
+      <path d={joints} stroke="rgba(60, 54, 44, 0.18)" strokeWidth={0.6} fill="none" />
+      <BuildingMass t={t} p={inner} material={material} vernacular={vernacular} developing={false} glyphs={glyphs} />
+      {[seen.left, seen.right].map((dir) => {
+        const span = wallSpan(inner.w, inner.h, dir);
+        const at = outsideWall(inner.col, inner.row, inner.w, inner.h, dir, span * 0.2, c * 0.55);
+        return <ForecourtSculpture key={dir} cc={at.col} cr={at.row} dir={dir} stone={stone} />;
+      })}
+    </>
+  );
+}
+
 // Wraps BuildingMass. A building being extended (a library renovation,
 // RENOVATE_LIBRARY) is drawn at its standing height, windows and all, with
 // scaffolding on its roof rather than as a ground-level site.
@@ -3401,7 +3747,9 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   camera?: Camera;
 }) {
   // The grand landmarks draw themselves, stage by stage (landmarks.tsx).
-  if (motifOf(t) === 'landmark') return <Landmark t={t} p={p} developing={developing} />;
+  if (motifOf(t) === 'landmark') return <Landmark t={t} p={p} developing={developing} vernacular={vernacular} />;
+  // The Museum stands back behind its forecourt (Plan 87G).
+  if (t.id === MUSEUM_ID && !developing) return <MuseumCourt t={t} p={p} material={material} vernacular={vernacular} glyphs={glyphs} />;
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
   if (!extending) return <BuildingMass t={t} p={p} material={material} vernacular={vernacular} developing={developing} glyphs={glyphs} />;
 
@@ -3439,7 +3787,12 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
   const trim = hasTrim(vernacular);
   const feature = signatureOf(t)?.feature;
   // An exchange's temple front stands where the vernacular's entrance would.
-  const entrance: EntrancePart = feature === 'exchange' ? 'portico' : entrancePartOf(t, vernacular);
+  // The Law School's temple front stands in for it; its Gothic set has a
+  // porch (Plan 87G).
+  const lawTempleFront = lawTemple(t, vernacular);
+  const entrance: EntrancePart = feature === 'exchange' ? 'portico'
+    : t.id === LAW_ID ? (lawTempleFront ? 'none' : 'porch')
+      : entrancePartOf(t, vernacular);
   const rooflineEnd = rooflineEndPartOf(vernacular);
   const apex = apexPartOf(vernacular);
   const hood = partsFor(vernacular).hood === true;
@@ -4698,7 +5051,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       {/* Steps after the walls and doors, landing at the entrance's face;
           none behind an arcade (entered at grade) or a colonnade (Plan 61:
           they ran out under the columns). */}
-      {!site && door && !(entrance === 'arcade' && arcadeFits(H)) && entrance !== 'colonnade' && fronts.map((dir) => {
+      {!site && door && !(entrance === 'arcade' && arcadeFits(H)) && entrance !== 'colonnade' && !lawTempleFront && fronts.map((dir) => {
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, stepStandoff);
         const out = outwardOf(dir);
@@ -4751,7 +5104,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           {!site && feature === 'studio' && <SawtoothRoof col={col} row={row} w={w} h={h} base={H} pal={pal} glass={NORTH_LIGHT_GLASS} />}
           {!site && feature === 'exchange' && <Dome col={col} row={row} w={w} h={h} base={H} stone={stone} hemisphere />}
 
-          {!site && motif === 'portico' && !feature && [0.3, 0.5, 0.7].map((v) => (
+          {!site && t.id === MUSEUM_ID && <GalleryVaults col={col} row={row} w={w} h={h} base={H} pal={pal} />}
+          {!site && motif === 'portico' && !feature && t.id !== MUSEUM_ID && t.id !== LAW_ID && [0.3, 0.5, 0.7].map((v) => (
             // Rooflights on top-lit civic buildings, capped at a real size.
             [0.3, 0.55].map((u) => (
               <polygon
@@ -4813,7 +5167,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         );
       })}
       {/* A signifier on the roof, after it (Plan 74F). */}
-      {!site && signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} />}
+      {!site && signifier && !lawTempleFront && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} />}
       {/* The residence turret, after the roof. */}
       {!site && turretPlan > 0 && cornerInFront && residentialTurret}
       {!site && turretPlan > 0 && towerProudFace && <CornerTower {...residentialTurretProps} face={towerProudFace} />}
@@ -4838,6 +5192,10 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           {fronts.map((dir) => <Balustrade key={dir} pal={pal} stone={stone} col={col} row={row} w={w} h={h} base={H} outward={dir} />)}
         </>
       )}
+      {/* The Law School's attic hall and temple fronts, after its parapet
+          (Plan 87G). */}
+      {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} />}
+      {!site && lawTempleFront && fronts.map((dir) => <LawTemple key={`lt${dir}`} col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} />)}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}
       {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && (
