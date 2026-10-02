@@ -273,6 +273,24 @@ const ACADEMIC_HALL_STOREYS = 4;
 export const TOWER_PODIUM_STOREYS = 2;
 const TOWER_SHAFT_STOREYS = 12;
 
+// The four residence towers (Plan 87H): one height and one crown each, so
+// they never read as copies. The crown is the lit common room on the top
+// floor: a pitched roof with a cupola, a stepped crown with a beacon, a
+// roof terrace beside a glazed lounge, or a glass lantern. Keyed by id,
+// like RESIDENCE_FORMS; drawing only (beds, costs and footprints are the
+// rungs' own).
+export type TowerCrown = 'pitched' | 'stepped' | 'terrace' | 'lantern';
+export interface TowerForm { shaftStoreys: number; crown: TowerCrown }
+const TOWER_FORMS: Readonly<Record<string, TowerForm>> = {
+  'DORM-12': { shaftStoreys: 10, crown: 'pitched' },   // Meridian
+  'DORM-13': { shaftStoreys: 12, crown: 'stepped' },   // Beacon: "lit at the top"
+  'DORM-14': { shaftStoreys: 14, crown: 'terrace' },   // Horizon: "a roof terrace"
+  'DORM-15': { shaftStoreys: 17, crown: 'lantern' },   // Aurora: "the tallest ... under a glass crown"
+};
+export function towerFormOf(t: Buildable): TowerForm {
+  return TOWER_FORMS[t.id] ?? { shaftStoreys: TOWER_SHAFT_STOREYS, crown: 'pitched' };
+}
+
 function dormStoreys(beds: number): number {
   if (beds >= DORM_TOWER_MIN_BEDS) return TOWER_PODIUM_STOREYS + TOWER_SHAFT_STOREYS;
   // A village is a plot of small houses, so its story count is one house's.
@@ -350,7 +368,7 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
 export function storeysOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark' || motif === 'chapel') return 0;
-  if (motif === 'tower') return dormStoreys(t.effects?.capacityBonus ?? 0);
+  if (motif === 'tower') return TOWER_PODIUM_STOREYS + towerFormOf(t).shaftStoreys;
   if (t.kind === 'building') {
     return ACADEMIC_HALL_STOREYS + addedFloors(t);
   }
@@ -763,7 +781,11 @@ export type EntrancePart =
   | 'none';
 
 // What closes the ends of a pitched roofline.
-export type RooflineEndPart = 'pavilion' | 'none';
+// 'balustrade' (Plan 87H): a white balustrade along the eaves with an urn
+// at each corner, the Georgian way of finishing a hipped roof behind a
+// parapet; Plan 61's L-shaped corner caps ('pavilion') read as floating
+// brackets.
+export type RooflineEndPart = 'pavilion' | 'balustrade' | 'none';
 
 // What finishes the parapet of a flat-roofed block, lab or shed (Plan 74E).
 export type CrestPart =
@@ -857,7 +879,7 @@ const GEORGIAN: VernacularSpec = {
       residential: 'canopy',
       village: 'none',
     },
-    rooflineEnd: 'pavilion',
+    rooflineEnd: 'balustrade',
     apex: 'cupola',
     surfaceEntrance: 'canopy',
     crest: 'coping',
@@ -1287,7 +1309,7 @@ export const VERNACULAR_INVARIANT_MOTIFS = [
   'hangar',   // clear-span sheds are engineering, not architecture
   'works',    // the dullest wall on the map, by design
   'block',    // a teaching hospital is a modern hospital
-  'tower',    // a late-game apartment tower postdates the founding campus
+  'tower',    // a shaft on a podium in every era; its wall follows the set (Plan 87H)
   'landmark', // bespoke in limestone, whatever the campus around it
 ] as const satisfies readonly Motif[];
 
@@ -1302,7 +1324,8 @@ export function variesByVernacular(m: Motif): boolean {
 // these motifs are most of a campus, so without this about half of it
 // looked the same whatever was chosen at the founding (review A1-1). Their
 // walls stay invariant materials; see materialOf.
-export const SURFACE_FOLLOWS_MOTIFS = ['block', 'works', 'hangar'] as const satisfies readonly Motif[];
+// The residence tower too (Plan 87H), which also takes the set's wall.
+export const SURFACE_FOLLOWS_MOTIFS = ['block', 'works', 'hangar', 'tower'] as const satisfies readonly Motif[];
 
 export function surfaceFollowsVernacular(m: Motif): boolean {
   return variesByVernacular(m) || (SURFACE_FOLLOWS_MOTIFS as readonly Motif[]).includes(m);
@@ -1387,7 +1410,7 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // The parts that have geometry behind them. test/building-spec.test.ts
 // asserts every part a vernacular names is listed here.
 export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'archway', 'none'];
-export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
+export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'balustrade', 'none'];
 export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'gatehouse', 'belvedere', 'pavilionTower', 'ziggurat', 'none'];
 export const IMPLEMENTED_CREST_PARTS: CrestPart[] = ['coping', 'merlons', 'balustrade', 'tile', 'none'];
 
@@ -1459,6 +1482,34 @@ export function windowOutline(
   }
 }
 
+// Glass that reads against its wall (Plan 87H). A set's glazing is tuned
+// for its halls; on its dark residential wall Modern's and Art Deco's dark
+// glass (and Tudor's and Italianate's) came out the wall's own tone, and a
+// long face read as a windowless slab. Where the pane, laid over the
+// wall's shaded face, would differ from it by less than GLASS_MIN_CONTRAST
+// in luminance, it takes a pale glass that reflects the sky instead.
+const GLASS_MIN_CONTRAST = 0.08;
+export const REFLECTED_GLASS = 'rgba(208, 222, 230, 0.62)';
+const WALL_SHADED_FACE = 0.8;
+function rgbaOf(c: string): [number, number, number, number] | null {
+  const m = c.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+  if (m) return [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]];
+  if (/^#[0-9a-f]{6}$/i.test(c)) return [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)).concat(1) as [number, number, number, number];
+  return null;
+}
+const luminanceOf = (r: number, g: number, b: number) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+// `light` is the face's tone off the wall: its shaded side by default.
+export function glassContrast(wall: string, glass: string, light = WALL_SHADED_FACE): number {
+  const w = rgbaOf(wall); const g = rgbaOf(glass);
+  if (!w || !g) return 1;
+  const face = w.slice(0, 3).map((x) => Math.min(255, x * light));
+  const pane = face.map((x, i) => g[i] * g[3] + x * (1 - g[3]));
+  return Math.abs(luminanceOf(pane[0], pane[1], pane[2]) - luminanceOf(face[0], face[1], face[2]));
+}
+export function readableGlass(wall: string, glass: string): string {
+  return glassContrast(wall, glass) < GLASS_MIN_CONTRAST ? REFLECTED_GLASS : glass;
+}
+
 export function materialsFor(v: Vernacular): MaterialSet {
   return VERNACULARS[v].materials;
 }
@@ -1491,7 +1542,10 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
   }
   if (t.kind === 'dorm') {
     const motif = motifOf(t);
-    if (motif === 'tower') return MATERIALS.curtain;
+    // A residence tower in the vernacular's own wall (Plan 87H): brick in
+    // Georgian and Tudor, stone in Gothic and Classical, stucco in Mission,
+    // panel in Modern; not the curtain wall of an office tower.
+    if (motif === 'tower') return MATERIALS.brickRed;
     return motif === 'village' ? MATERIALS.brickDark : MATERIALS[residenceStyleOf(t).material];
   }
   // A chapter house is housing, in the residence halls' wall.

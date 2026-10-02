@@ -35,6 +35,7 @@ import {
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
+import { glassContrast, readableGlass, towerFormOf } from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
 import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
@@ -826,6 +827,83 @@ function cornerPavilions(col: number, row: number, w: number, h: number, plan: n
     out.push({ col: atEndCol ? col + w - depth : col, row: atEndRow ? row + h - plan : row + depth, w: depth, h: plan - depth });
   }
   return out;
+}
+
+// A balustrade along the eaves, all four sides, with an urn on a pedestal at
+// each corner (Plan 87H): how a Georgian hall finishes a hipped roof behind
+// its parapet (Harvard's University Hall, the pavilions of Jefferson's
+// Lawn). Plinth, balusters, rail and piers in the trim, painted after the
+// roof: far sides first, then the corners far to near.
+const EAVES_BALUSTRADE_RISE = up(1.1);
+const EAVES_BALUSTRADE_DEPTH = across(0.45);
+const BALUSTER_SPACING = across(0.7);
+const BALUSTRADE_PIER_EVERY = across(13);
+function EavesBalustrade({ col, row, w, h, base, stone }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette;
+}) {
+  const trim = stone.trim === NO_STONE ? stone.towerStone : stone.trim;
+  const R = EAVES_BALUSTRADE_RISE; const D = EAVES_BALUSTRADE_DEPTH;
+  const dirs: FaceDir[] = ['negRow', 'posCol', 'posRow', 'negCol'];
+  const runOf = (dir: FaceDir) => againstWall(col, row, w, h, dir, 0, wallSpan(w, h, dir), D, D);
+  const midY = (b: DepthBox) => project(b.col + b.w / 2, b.row + b.h / 2).y;
+  const side = (dir: FaceDir) => {
+    const b = runOf(dir);
+    const span = wallSpan(w, h, dir);
+    const plinth = boxFaces(b.col, b.row, b.w, b.h, base, R * 0.16);
+    const rail = boxFaces(b.col, b.row, b.w, b.h, base + R * 0.78, R * 0.18);
+    // The balusters, one path on the run's outer face.
+    const face = wallOf(boxFaces(b.col, b.row, b.w, b.h, base + R * 0.16, R * 0.62), dir);
+    const n = Math.max(2, Math.round(span / BALUSTER_SPACING));
+    const bars = Array.from({ length: n }, (_, i) => {
+      const u = (i + 0.5) / n;
+      const a = facePoint(face.origin, face.along, R * 0.62, u, 0); const c = facePoint(face.origin, face.along, R * 0.62, u, 1);
+      return `M${a.x},${a.y}L${c.x},${c.y}`;
+    }).join('');
+    // Piers between the corners, on a wide run.
+    const piers = Math.max(0, Math.round(span / BALUSTRADE_PIER_EVERY) - 1);
+    return (
+      <g key={dir}>
+        {sideFaces(plinth, shade(trim, 0.92), shade(trim, 0.76))}
+        <polygon points={polyPoints(plinth.top)} fill={trim} />
+        <path d={bars} stroke={shade(trim, face.visible ? 0.98 : 0.86)} strokeWidth={1} fill="none" />
+        {sideFaces(rail, shade(trim, 0.95), shade(trim, 0.8))}
+        <polygon points={polyPoints(rail.top)} fill={shade(trim, 1.02)} />
+        {Array.from({ length: piers }, (_, i) => {
+          const at = (span * (i + 1)) / (piers + 1);
+          const pb = againstWall(col, row, w, h, dir, at - D * 0.6, D * 1.2, D * 1.2, D * 1.1);
+          return <g key={i}>{plainBox(boxFaces(pb.col, pb.row, pb.w, pb.h, base, R), shade(trim, 0.95), shade(trim, 0.78), trim, `p${i}`)}</g>;
+        })}
+      </g>
+    );
+  };
+  // An urn on its pedestal at each corner of the roof.
+  const P = D * 1.5;
+  const corners: Array<[number, number]> = [[col, row], [col + w - P, row], [col + w - P, row + h - P], [col, row + h - P]];
+  const urn = ([c, r]: [number, number], i: number) => {
+    const ped = boxFaces(c, r, P, P, base, R * 1.1);
+    const foot = lift(project(c + P / 2, r + P / 2), base + R * 1.1);
+    const at = (z: number) => lift(foot, z).y;
+    const k = foot.y - at(1);                  // screen units per world unit of height
+    // Drawn a little over life size (Plan 87H) so the urns read at the map's zoom.
+    const rx = 2.6;
+    const vase = [
+      [-0.35, 0], [0.35, 0], [0.25, 0.25], [1, 0.75], [0.9, 1.25], [0.45, 1.5], [0.6, 1.62], [-0.6, 1.62], [-0.45, 1.5], [-0.9, 1.25], [-1, 0.75], [-0.25, 0.25],
+    ].map(([x, z]) => ({ x: foot.x + x * rx, y: foot.y - z * up(1.4) * k }));
+    return (
+      <g key={`u${i}`}>
+        {plainBox(ped, shade(trim, 0.95), shade(trim, 0.78), trim, `ped${i}`)}
+        <polygon points={polyPoints(vase)} fill={shade(trim, 0.93)} stroke={shade(trim, 0.7)} strokeWidth={0.4} />
+        <circle cx={foot.x} cy={foot.y - up(2.6) * k} r={1.3} fill={shade(trim, 0.9)} />
+      </g>
+    );
+  };
+  return (
+    <g className="iso-eaves-balustrade">
+      {[...dirs].sort((a, b) => midY(runOf(a)) - midY(runOf(b))).map(side)}
+      {corners.map((p, i) => ({ p, i, y: project(p[0] + P / 2, p[1] + P / 2).y }))
+        .sort((a, b) => a.y - b.y).map(({ p, i }) => urn(p, i))}
+    </g>
+  );
 }
 
 // The center bay projects from the front past the cornice, capped with a
@@ -3387,6 +3465,323 @@ function Chapel({ t, p, vernacular, pal, stone, wall }: {
 // Wraps BuildingMass. A building being extended (a library renovation,
 // RENOVATE_LIBRARY) is drawn at its standing height, windows and all, with
 // scaffolding on its roof rather than as a ground-level site.
+// --- The residence towers (Plan 87H) ----------------------------------
+// A residence tower is not an office tower: a shaft of punched windows in
+// the campus's own wall (brick, stone, stucco or panel), stacked balconies
+// down its two row faces, a podium of shops under an entrance canopy, and
+// a lit common room at the top whose crown is the tower's own
+// (buildingSpec's towerFormOf): Meridian a pitched roof and cupola, Beacon
+// a stepped crown and a beacon mast, Horizon a roof terrace with a glazed
+// lounge, planters and umbrellas, Aurora a glass lantern under a glass
+// spire. Precedents: the brick and stone residence towers of the 1960s
+// campus (Penn's Harnwell, Harvard's Peabody Terrace), lounges and roof
+// terraces on top of the newer ones.
+const TOWER_INSET = 0.17;                    // the shaft, set back from the podium's edge
+const TOWER_DECK = '#7c8377';                // the lead deck every flat roof shares
+const LOUNGE_GLOW = '#f2d08c';               // a common room's lit glazing
+const TERRACE_DECK = '#a7845c';              // timber decking
+const PLANTER_GREEN = '#5d8a4a';
+const UMBRELLA_CLOTH = ['#e9e1cf', '#b9533f'];
+const TOWER_WINDOW = across(1.7);
+const TOWER_DARK_GLASS = 'rgba(64, 78, 92, 0.6)';
+const LIT_FACE = 1.14;                       // light.ts's brightest wall
+const BALCONY_W = across(4.2);
+const BALCONY_D = across(1.5);
+const BALCONY_SLAB = up(0.35);
+const BALCONY_RAIL = up(1.05);
+
+// A storey of lit glazing across a wall, `from` to `to`, with mullions on
+// the bay grid: the common room's glass, glowing.
+function LitGlazing({ origin, along, wallHeight, span, from, to, mullion, id }: {
+  origin: Pt; along: Pt; wallHeight: number; span: number; from: number; to: number; mullion: string; id: string;
+}) {
+  if (wallHeight <= 0) return null;
+  const v0 = from / wallHeight; const v1 = to / wallHeight;
+  const bays = Math.max(2, baysAcross(span));
+  const q = (u: number, v: number) => facePoint(origin, along, wallHeight, u, v);
+  const bars = Array.from({ length: bays - 1 }, (_, i) => {
+    const u = (i + 1) / bays; const a = q(u, v0); const b = q(u, v1);
+    return `M${a.x},${a.y}L${b.x},${b.y}`;
+  }).join('');
+  return (
+    <g key={id}>
+      <polygon points={polyPoints([q(0.02, v0), q(0.98, v0), q(0.98, v1), q(0.02, v1)])} fill={LOUNGE_GLOW} />
+      <path d={bars} stroke={mullion} strokeWidth={0.8} fill="none" />
+    </g>
+  );
+}
+
+function hexLuminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+}
+
+// A box in two wall tones with a deck on top.
+function plainBox(f: BoxFaces, lit: string, dark: string, top: string, key: string) {
+  return (
+    <g key={key}>
+      {sideFaces(f, lit, dark)}
+      <polygon points={polyPoints(f.top)} fill={top} />
+    </g>
+  );
+}
+
+// A garden umbrella over a café table: a striped cone on a pole.
+function Umbrella({ cc, cr, z }: { cc: number; cr: number; z: number }) {
+  const r = across(2.1);
+  const rim = projectedCircle(cc, cr, r, 12).map((q) => lift(q, z + up(2.1)));
+  const apex = lift(project(cc, cr), z + up(2.8));
+  const foot = lift(project(cc, cr), z);
+  const table = projectedCircle(cc, cr, across(0.7), 10).map((q) => lift(q, z + up(0.75)));
+  // Fan triangles far to near (the rim's lower screen edge is the near one).
+  const tris = rim.map((p, i) => ({ i, a: p, b: rim[(i + 1) % rim.length] }))
+    .sort((x, y) => (x.a.y + x.b.y) - (y.a.y + y.b.y));
+  return (
+    <g className="tower-umbrella">
+      <polygon points={polyPoints(table)} fill="#e6e1d4" stroke="rgba(40,40,40,0.35)" strokeWidth={0.4} />
+      <line x1={foot.x} y1={foot.y} x2={apex.x} y2={apex.y} stroke="#4a4540" strokeWidth={0.8} />
+      {tris.map(({ i, a, b }) => (
+        <polygon key={i} points={polyPoints([a, b, apex])} fill={shade(UMBRELLA_CLOTH[i % 2], (a.y + b.y) / 2 > apex.y ? 1 : 0.85)} />
+      ))}
+    </g>
+  );
+}
+
+// A mast: a thin line up from `at`, and a lamp at its head.
+function Mast({ at, z, rise, lamp }: { at: Pt; z: number; rise: number; lamp?: string }) {
+  const a = lift(at, z); const b = lift(at, z + rise);
+  return (
+    <g className="tower-mast">
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#5b5f63" strokeWidth={1.1} />
+      {lamp && <circle cx={b.x} cy={b.y} r={3.2} fill={lamp} opacity={0.35} />}
+      {lamp && <circle cx={b.x} cy={b.y} r={1.4} fill={lamp} />}
+    </g>
+  );
+}
+
+function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, crest, vernacular, material }: {
+  t: Buildable; col: number; row: number; w: number; h: number; H: number;
+  pal: Palette; deck: string; stone: StonePalette; paneShape: WindowShape; crest: CrestPart;
+  vernacular: Vernacular; material: Material;
+}) {
+  const { crown, shaftStoreys } = towerFormOf(t);
+  const trimmed = stone.trim !== NO_STONE;
+  const trimStone = trimmed ? stone.trim : stone.towerStone;
+  const seen = visibleWalls();
+  const fronts: FaceDir[] = [seen.left, seen.right];
+  // Punched openings: a ribbon is an office's, so Modern gets plain ones.
+  const pane: WindowShape = paneShape === 'ribbon' ? 'rect' : paneShape;
+  // A pale sash vanishes on the sunlit face of a pale wall (Mission's
+  // stucco, Classical's limestone); the shaft's windows are then a darker
+  // glass, so the punched grid reads from every side.
+  const glass = glassContrast(material.wall, stone.glass, LIT_FACE) < 0.12 ? TOWER_DARK_GLASS : stone.glass;
+
+  // The podium: shops behind tall glass, in the set's tower stone (a dark
+  // base under a pale wall in Modern, where there is no trim).
+  const PODIUM_H = TOWER_PODIUM_STOREYS * STOREY;
+  const podiumStone = trimmed ? stone.towerStone : shade(material.wall, 0.72);
+  const podiumDoor = doorDimensions('shopfront');
+  const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
+
+  // The shaft, every residential floor above the podium.
+  const sc = col + w * TOWER_INSET; const sr = row + h * TOWER_INSET;
+  const sw = w * (1 - TOWER_INSET * 2); const sh = h * (1 - TOWER_INSET * 2);
+  const shaftH = H - PODIUM_H;
+  const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, shaftH);
+  const shaftSills = rankSills(shaftStoreys);
+  const courses = Array.from({ length: shaftStoreys - 1 }, (_, i) => (i + 1) * STOREY);
+
+  // Balconies stacked up the two row faces (grid-fixed, so the tower has a
+  // balconied front and plain ends), two stacks a face, every floor but the
+  // first; slab, then rail, bottom up so a higher one overlaps a lower.
+  // Stone balconies where the trim shows on the wall; wrought iron where
+  // it would not (a cream trim on Mission's cream stucco); tinted glass in
+  // Modern, which has no trim.
+  const ironRails = trimmed && Math.abs(hexLuminance(stone.trim) - hexLuminance(material.wall)) < 0.15;
+  const railFill = ironRails ? '#34363a' : trimmed ? shade(stone.trim, 0.97) : 'rgba(62, 82, 94, 0.82)';
+  const railShade = ironRails ? '#26282b' : trimmed ? shade(stone.trim, 0.8) : 'rgba(48, 64, 74, 0.82)';
+  const balconies = fronts.filter(isRowWall).flatMap((dir) => {
+    const span = wallSpan(sw, sh, dir);
+    return [0.27, 0.73].flatMap((u) => Array.from({ length: shaftStoreys - 1 }, (_, i) => {
+      const z = PODIUM_H + (i + 1) * STOREY;
+      const b = againstWall(sc, sr, sw, sh, dir, span * u - BALCONY_W / 2, BALCONY_W, BALCONY_D);
+      const slab = boxFaces(b.col, b.row, b.w, b.h, z, BALCONY_SLAB);
+      const rail = boxFaces(b.col, b.row, b.w, b.h, z + BALCONY_SLAB, BALCONY_RAIL);
+      return { z, key: `b${dir}${u}${i}`, slab, rail };
+    }));
+  }).sort((a, b) => a.z - b.z);
+
+  // --- the crown ---
+  const top = H;
+  const centre = project(sc + sw / 2, sr + sh / 2);
+  const roofs = roofFor(vernacular);
+  const flatSet = Object.keys(roofs.ridgeMetres).length === 0;
+  const crownNode = (() => {
+    switch (crown) {
+      case 'pitched': {
+        // The common room under a pitched roof: a lit storey, a cornice, a
+        // hip (a mansard in Second Empire) and a cupola. A flat-roofed set
+        // gets a thin roof oversailing the lit storey instead.
+        const lounge = boxFaces(sc, sr, sw, sh, top, STOREY);
+        const eave = flatSet ? across(1.4) : across(0.9) + eavesOf(vernacular);
+        const base = top + STOREY;
+        const rise = up(Math.max(6, (roofs.ridgeMetres.pavilion ?? 3) * 2));
+        const cup = across(5);
+        // Seated where the hip's slope meets the cupola's walls.
+        const cupBase = base + up(0.5) + rise * (1 - cup / 2 / (Math.min(sw, sh) / 2 + eave));
+        const cupBox = boxFaces(sc + sw / 2 - cup / 2, sr + sh / 2 - cup / 2, cup, cup, cupBase, up(3.2));
+        const cap = pyramid(sc + sw / 2 - cup * 0.6, sr + sh / 2 - cup * 0.6, cup * 1.2, cupBase + up(3.2), up(3.4), pal.roof);
+        return (
+          <>
+            <polygon points={polyPoints(lounge.left)} fill={pal.wallLeft} />
+            <polygon points={polyPoints(lounge.right)} fill={pal.wallRight} />
+            <LitGlazing id="gl" origin={lounge.D} along={lounge.C} wallHeight={STOREY} span={lounge.spanLeft} from={STOREY * 0.12} to={STOREY * 0.86} mullion={trimStone} />
+            <LitGlazing id="gr" origin={lounge.C} along={lounge.B} wallHeight={STOREY} span={lounge.spanRight} from={STOREY * 0.12} to={STOREY * 0.86} mullion={trimStone} />
+            {flatSet ? (
+              plainBox(boxFaces(sc - eave, sr - eave, sw + eave * 2, sh + eave * 2, base, up(0.7)), shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'fly')
+            ) : isMansard(vernacular) ? (
+              <MansardRoof col={sc - eave} row={sr - eave} w={sw + eave * 2} h={sh + eave * 2} base={base} rise={up(4.4)} pal={pal} stone={stone} />
+            ) : (
+              <>
+                {plainBox(boxFaces(sc - eave, sr - eave, sw + eave * 2, sh + eave * 2, base, up(0.5)), shade(trimStone, 0.9), shade(trimStone, 0.74), pal.roof, 'eave')}
+                <HippedRoof col={sc - eave} row={sr - eave} w={sw + eave * 2} h={sh + eave * 2} base={base + up(0.5)} rise={rise} pal={pal} />
+                {/* The cupola: a lit lantern on the hip, under its own cap. */}
+                {sideFaces(cupBox, shade(trimStone, 0.97), shade(trimStone, 0.8))}
+                <LitGlazing id="cl" origin={cupBox.D} along={cupBox.C} wallHeight={up(3.2)} span={cupBox.spanLeft} from={up(0.5)} to={up(2.7)} mullion={trimStone} />
+                <LitGlazing id="cr" origin={cupBox.C} along={cupBox.B} wallHeight={up(3.2)} span={cupBox.spanRight} from={up(0.5)} to={up(2.7)} mullion={trimStone} />
+                {cap.faces}
+                <Mast at={centre} z={cupBase + up(6.6)} rise={up(2.4)} />
+              </>
+            )}
+          </>
+        );
+      }
+      case 'stepped': {
+        // Two lit set-backs in the trim stone, then a beacon on a mast.
+        const tiers = [0.45, 0.95].map((inset, i) => boxFaces(sc + inset, sr + inset, sw - inset * 2, sh - inset * 2, top + i * STOREY * 1.25, STOREY * 1.25));
+        return (
+          <>
+            {tiers.map((f, i) => (
+              <g key={i}>
+                {sideFaces(f, shade(trimStone, 0.95), shade(trimStone, 0.78))}
+                <LitGlazing id={`sl${i}`} origin={f.D} along={f.C} wallHeight={STOREY * 1.25} span={f.spanLeft} from={STOREY * 0.18} to={STOREY * 0.95} mullion={shade(trimStone, 0.8)} />
+                <LitGlazing id={`sr${i}`} origin={f.C} along={f.B} wallHeight={STOREY * 1.25} span={f.spanRight} from={STOREY * 0.18} to={STOREY * 0.95} mullion={shade(trimStone, 0.8)} />
+                <polygon points={polyPoints(f.top)} fill={deck} />
+              </g>
+            ))}
+            <Mast at={centre} z={top + STOREY * 2.5} rise={up(16)} lamp="#ff6b4a" />
+          </>
+        );
+      }
+      case 'terrace': {
+        // A glazed lounge on the -col half and a roof terrace beside it:
+        // timber deck, planters, café tables under umbrellas, and a glass
+        // rail round the edge (the far edges first, the near ones last).
+        const g = across(1.1);
+        const items: Array<DepthBox & { node: React.JSX.Element }> = [];
+        const lw = sw * 0.42;
+        const lounge = boxFaces(sc + g, sr + g, lw, sh - g * 2, top, STOREY * 1.1);
+        items.push({ col: sc + g, row: sr + g, w: lw, h: sh - g * 2, node: (
+          <>
+            {sideFaces(lounge, shade(trimStone, 0.93), shade(trimStone, 0.76))}
+            <LitGlazing id="tl" origin={lounge.D} along={lounge.C} wallHeight={STOREY * 1.1} span={lounge.spanLeft} from={STOREY * 0.08} to={STOREY * 0.96} mullion={shade(trimStone, 0.85)} />
+            <LitGlazing id="tr" origin={lounge.C} along={lounge.B} wallHeight={STOREY * 1.1} span={lounge.spanRight} from={STOREY * 0.08} to={STOREY * 0.96} mullion={shade(trimStone, 0.85)} />
+            {plainBox(boxFaces(sc + g * 0.7, sr + g * 0.7, lw + g * 0.6, sh - g * 1.4, top + STOREY * 1.1, up(0.5)), shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'lr')}
+          </>
+        ) });
+        const tc = sc + g + lw + across(1.5);           // the terrace's near edge to the lounge
+        const tw = sc + sw - g - tc;
+        const plant = (c: number, r: number, pw: number, ph: number, k: string) => {
+          const f = boxFaces(c, r, pw, ph, top, up(0.9));
+          items.push({ col: c, row: r, w: pw, h: ph, node: plainBox(f, '#8a7a66', '#6f6252', PLANTER_GREEN, k) });
+        };
+        plant(sc + sw - g - across(1.4), sr + g, across(1.4), sh - g * 2, 'pe');
+        plant(tc, sr + g, tw - across(1.6), across(1.3), 'pn');
+        plant(tc, sr + sh - g - across(1.3), tw - across(1.6), across(1.3), 'ps');
+        [[0.3, 0.32], [0.62, 0.55], [0.3, 0.75]].forEach(([u, v]) => {
+          const cc = tc + tw * u; const cr = sr + sh * v;
+          items.push({ col: cc - across(1.6), row: cr - across(1.6), w: across(3.2), h: across(3.2), node: <Umbrella cc={cc} cr={cr} z={top} /> });
+        });
+        const RT = across(0.25);
+        const rail = (dir: FaceDir) => {
+          const b = againstWall(sc, sr, sw, sh, dir, 0, wallSpan(sw, sh, dir), RT, RT);
+          const f = boxFaces(b.col, b.row, b.w, b.h, top, up(1.1));
+          return <g key={`r${dir}`}>{sideFaces(f, 'rgba(214, 230, 238, 0.55)', 'rgba(190, 210, 220, 0.55)')}<polygon points={polyPoints(f.top)} fill={shade(trimStone, 0.85)} /></g>;
+        };
+        const all: FaceDir[] = ['negRow', 'posCol', 'posRow', 'negCol'];
+        return (
+          <>
+            <polygon points={polyPoints(boxFaces(tc - across(0.6), sr + across(0.2), sc + sw - tc + across(0.4), sh - across(0.4), top, 0).top)} fill={TERRACE_DECK} />
+            {all.filter((d) => !fronts.includes(d)).map(rail)}
+            {depthOrder(items).map((it, i) => <g key={i}>{it.node}</g>)}
+            {fronts.map(rail)}
+          </>
+        );
+      }
+      case 'lantern': {
+        // A two-storey glass lantern, a lit glazed crown on it and a
+        // slender spire: the tallest tower's glass crown.
+        const i = across(1.6);
+        const LH = STOREY * 2;
+        const lan = boxFaces(sc + i, sr + i, sw - i * 2, sh - i * 2, top, LH);
+        const slab = boxFaces(sc + i * 0.6, sr + i * 0.6, sw - i * 1.2, sh - i * 1.2, top + LH, up(0.6));
+        const plan = (sw - i * 2) * 0.82;
+        const crownGlass = pyramid(sc + sw / 2 - plan / 2, sr + sh / 2 - plan / 2, plan, top + LH + up(0.6), up(9), '#a9c6d6');
+        return (
+          <>
+            {sideFaces(lan, shade(trimStone, 0.95), shade(trimStone, 0.78))}
+            <LitGlazing id="al" origin={lan.D} along={lan.C} wallHeight={LH} span={lan.spanLeft} from={STOREY * 0.12} to={LH * 0.97} mullion={shade(trimStone, 0.9)} />
+            <LitGlazing id="ar" origin={lan.C} along={lan.B} wallHeight={LH} span={lan.spanRight} from={STOREY * 0.12} to={LH * 0.97} mullion={shade(trimStone, 0.9)} />
+            {floorCourses(lan.D, lan.C, LH, [STOREY], 'alc')}
+            {floorCourses(lan.C, lan.B, LH, [STOREY], 'arc')}
+            {plainBox(slab, shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'as')}
+            {crownGlass.faces}
+            <Mast at={centre} z={top + LH + up(9.6)} rise={up(12)} lamp="#fff3c4" />
+          </>
+        );
+      }
+    }
+  })();
+
+  return (
+    <>
+      {/* Podium: shopfronts round the street level, a cornice and a deck. */}
+      {sideFaces(pod, shade(podiumStone, 0.92), shade(podiumStone, 0.76))}
+      {windows(pod.D, pod.C, PODIUM_H, pod.spanLeft, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', pane, stone.glass, doorBay(podiumDoor, pod.spanLeft, PODIUM_H))}
+      {windows(pod.C, pod.B, PODIUM_H, pod.spanRight, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', pane, stone.glass, doorBay(podiumDoor, pod.spanRight, PODIUM_H))}
+      <WallBand origin={pod.D} along={pod.C} wallHeight={PODIUM_H} from={PODIUM_H - CORNICE} to={PODIUM_H} className="iso-cornice" fill={shade(trimStone, 0.95)} />
+      <WallBand origin={pod.C} along={pod.B} wallHeight={PODIUM_H} from={PODIUM_H - CORNICE} to={PODIUM_H} className="iso-cornice" fill={shade(trimStone, 0.8)} />
+      <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} side={pod.dir.CD} shape={pane === 'arched' ? 'arched' : 'rect'} />
+      <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} side={pod.dir.BC} shape={pane === 'arched' ? 'arched' : 'rect'} />
+      <polygon points={polyPoints(pod.top)} fill={deck} />
+      {fronts.map((dir) => (
+        <Canopy key={`c${dir}`} d={podiumDoor} col={col} row={row} w={w} h={h} outward={dir} wallHeight={PODIUM_H} stone={stone} />
+      ))}
+
+      {/* The shaft: punched windows floor by floor, in the set's wall. */}
+      <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
+      {trimmed && floorCourses(shaft.D, shaft.C, shaftH, courses.filter((_, i) => i % 3 === 2), 'tlc')}
+      {trimmed && floorCourses(shaft.C, shaft.B, shaftH, courses.filter((_, i) => i % 3 === 2), 'trc')}
+      {windows(shaft.D, shaft.C, shaftH, shaft.spanLeft, shaftSills, TOWER_WINDOW, 'tl', pane, glass)}
+      {windows(shaft.C, shaft.B, shaftH, shaft.spanRight, shaftSills, TOWER_WINDOW, 'tr', pane, glass)}
+      <WallBand origin={shaft.D} along={shaft.C} wallHeight={shaftH} from={shaftH - CORNICE} to={shaftH} className="iso-cornice" fill={shade(trimStone, 0.95)} />
+      <WallBand origin={shaft.C} along={shaft.B} wallHeight={shaftH} from={shaftH - CORNICE} to={shaftH} className="iso-cornice" fill={shade(trimStone, 0.8)} />
+      <polygon points={polyPoints(shaft.top)} fill={deck} />
+      {balconies.map(({ key, slab, rail }) => (
+        <g key={key}>
+          {sideFaces(slab, shade(trimStone, 0.86), shade(trimStone, 0.7))}
+          <polygon points={polyPoints(slab.top)} fill={shade(trimStone, 0.8)} />
+          {sideFaces(rail, railFill, railShade)}
+        </g>
+      ))}
+      {/* The podium's parapet in the set's crest, in front of the shaft. */}
+      <Crest crest={crest} col={col} row={row} w={w} h={h} base={PODIUM_H} fronts={fronts} pal={pal} stone={stone} tile={surfaceRoofOf(vernacular)} />
+      {crownNode}
+    </>
+  );
+}
+
 function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
@@ -3417,6 +3812,21 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   );
 }
 
+// A vernacular's stone with its glass swapped for one that reads on this
+// wall (buildingSpec's readableGlass, Plan 87H): the dark glass of Modern
+// and Art Deco vanished on their dark residential brick. One stable object
+// per stone and wall, so the memo still holds.
+const STONE_ON_WALL = new Map<StonePalette, Map<string, StonePalette>>();
+function stoneOnWall(stone: StonePalette, wall: string): StonePalette {
+  const glass = readableGlass(wall, stone.glass);
+  if (glass === stone.glass) return stone;
+  let byWall = STONE_ON_WALL.get(stone);
+  if (!byWall) { byWall = new Map(); STONE_ON_WALL.set(stone, byWall); }
+  let out = byWall.get(wall);
+  if (!out) { out = { ...stone, glass }; byWall.set(wall, out); }
+  return out;
+}
+
 export type BuildingMassProps = {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
@@ -3430,8 +3840,9 @@ export function BuildingMass(props: BuildingMassProps) {
 }
 // The mass given the snow on the roofs: what the canvas map draws.
 export function buildingMassArt({ t, p, material, vernacular, developing, glyphs }: BuildingMassProps, snow: number): React.JSX.Element {
-  // Stable references off buildingSpec's VERNACULARS table.
-  const stone: StonePalette = stoneFor(vernacular);
+  // Stable references off buildingSpec's VERNACULARS table, the glass made
+  // to read against this building's wall (Plan 87H).
+  const stone: StonePalette = stoneOnWall(stoneFor(vernacular), shade(material.wall, wallShadeOf(t)));
   const paneShape = paneShapeOf(t, vernacular);
   // The vernacular's parts (buildingSpec's VernacularParts): branches below
   // ask what goes in each slot, so a new vernacular is a table row.
@@ -3600,14 +4011,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
 
   if (motif === 'tower') {
     // A retail podium over the whole footprint (campusData.ts's
-    // TOWER_RETAIL_SERVES), with an inset shaft carried up from it.
-    const PODIUM_H = TOWER_PODIUM_STOREYS * STOREY;
-    // The shopfront door, measured against the podium's height, not the shaft's.
-    const podiumDoor = doorDimensions('shopfront');
-    const inset = 0.17;
-    const sc = col + w * inset; const sr = row + h * inset;
-    const sw = w * (1 - inset * 2); const sh = h * (1 - inset * 2);
-
+    // TOWER_RETAIL_SERVES), with an inset shaft carried up from it
+    // (ResidenceTower).
     if (site) {
       return (
         <>
@@ -3620,34 +4025,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       );
     }
 
-    const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
-    const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, H - PODIUM_H);
-    // The shaft carries every story the tower has except the podium's.
-    const shaftRanks = Math.max(1, storeysOf(t) - TOWER_PODIUM_STOREYS);
-    const shaftSills = rankSills(shaftRanks);
-    const shaftW = windowWidthOf(t);
+    // A residence tower in the set's own wall, under its own crown (Plan 87H).
+    const deck = snowOnRoofs(paletteFrom({ wall: material.wall, roof: TOWER_DECK }), snow).roofDeck;
     return (
-      <>
-        {/* Podium: one tall rank of shopfront. */}
-        {sideFaces(pod, shade(tint, 0.88), shade(tint, 0.70))}
-        {windows(pod.D, pod.C, PODIUM_H, pod.spanLeft, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', paneShape, stone.glass, doorBay(podiumDoor, pod.spanLeft, PODIUM_H))}
-        {windows(pod.C, pod.B, PODIUM_H, pod.spanRight, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', paneShape, stone.glass, doorBay(podiumDoor, pod.spanRight, PODIUM_H))}
-        <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} side={pod.dir.CD} />
-        <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} side={pod.dir.BC} />
-        <polygon points={polyPoints(pod.top)} fill={pal.roofDeck} />
-
-        {/* The shaft, ranked floor by floor. */}
-        <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
-        <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
-        {windows(shaft.D, shaft.C, H - PODIUM_H, shaft.spanLeft, shaftSills, shaftW, 'tl', paneShape, stone.glass)}
-        {windows(shaft.C, shaft.B, H - PODIUM_H, shaft.spanRight, shaftSills, shaftW, 'tr', paneShape, stone.glass)}
-        <polygon points={polyPoints(shaft.top)} fill={pal.roof} />
-        {/* Lift overrun and plant on the roof. */}
-        <RoofBox
-          col={sc + sw * 0.24} row={sr + sh * 0.24} w={sw * 0.5} h={sh * 0.5}
-          base={H} height={16} tint={tint}
-        />
-      </>
+      <ResidenceTower t={t} col={col} row={row} w={w} h={h} H={H} pal={pal} deck={deck} stone={stone}
+        paneShape={paneShape} crest={crest} vernacular={vernacular} material={material} />
     );
   }
 
@@ -4182,6 +4564,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         )}
         {chimneys && ridgeChimneys({ col: col + inset, row: row + inset, w: w - inset * 2, h: h - inset * 2, base: WH, rise: ridge, at: [], ends: true, pal, stone })}
         {dormers && <Dormers col={col + inset} row={row + inset} w={w - inset * 2} h={h - inset * 2} base={WH} rise={ridge} pal={pal} stone={stone} glass={stone.glass} />}
+        {/* The eaves balustrade (Plan 87H), after the roof so it stands on its edge. */}
+        {rooflineEnd === 'balustrade' && <EavesBalustrade col={col} row={row} w={w} h={h} base={WH} stone={stone} />}
         {/* Raised roofline ends, after the roof so they close it. */}
         {rooflineEnd === 'pavilion' && depthOrder(cornerPavilions(col, row, w, h, endPlan, Math.min(END_PAVILION_DEPTH, endPlan / 2))).map((b, i) => (
           <EndPavilion stone={stone} key={`e${i}`} col={b.col} row={b.row} w={b.w} h={b.h} base={WH} pal={pal} />
