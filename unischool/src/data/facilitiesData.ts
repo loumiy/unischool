@@ -223,17 +223,17 @@ const STUDENT_CENTER_TIER2_SERVES = 3_000;
 const STUDENT_CENTER_TIER2_COST = 1_150_000;
 const STUDENT_CENTER_TIER2_WEEKS = 26;
 
-// --- The fitness chain: Gym -> Pool -> Tennis Courts -> Athletics Complex ---
+// --- The fitness chain: Gym -> Pool -> Tennis Courts -> Sports & Recreation Complex ---
 // Four one-off facilities chained strictly in order, like the dorm and
 // dining chains, so recreation reads as a queue. The gym opens behind the
 // Health & Counseling Center, not the Recreation Center (Plan 68): a college
 // short of health could not see the way to it through a social building. BuildPopup.tsx's
 // TYPE_MATCHERS groups the four as Fitness, under Health. Costs are not monotonic
-// along the chain; the order is judgment. The Athletics Complex also needs
+// along the chain; the order is judgment. The Sports & Recreation Complex also needs
 // REC_CENTER_TIER2_PRESTIGE_GATE (techSystem.ts's meetsUnlockGates).
 //
 // The Recreation Center feeds `social`; the gym, pool, tennis courts and,
-// since Plan 80F, the Athletics Complex feed `health`, which needs scaling
+// since Plan 80F, the Sports & Recreation Complex feed `health`, which needs scaling
 // capacity of its own. The build menu files the four under Health.
 //
 // Rec facilities are never varsity venues: competition venues are separate
@@ -678,7 +678,7 @@ export function initialFacilities(): Buildable[] {
       id: REC_CENTER_TIER2_ID,
       kind: 'facility',
       facilityType: 'recCenter',
-      name: 'Athletics Complex',
+      name: 'Sports & Recreation Complex',
       description: `The last of the fitness buildings: a complex keeping ${count(REC_CENTER_TIER2_SERVES)} more students fit, and a bigger prestige lift, though not a competition venue. Can be built at prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}.`,
       cost: REC_CENTER_TIER2_COST,
       duration: REC_CENTER_TIER2_WEEKS,

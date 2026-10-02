@@ -115,7 +115,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // any order), so no "#N".
   { key: 'lab', label: FACILITY_LABELS.lab, repeatable: true, sequential: false, match: (t) => t.facilityType === 'lab' },
   // Social: the student center, the Recreation Center, the arts
-  // facilities. The gym, pool, tennis courts and Athletics Complex, which
+  // facilities. The gym, pool, tennis courts and Sports & Recreation Complex, which
   // feed health, sit with the health chain (Plans 80B and 80F).
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
   { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' && t.id !== REC_CENTER_TIER2_ID },
@@ -130,9 +130,9 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // so it keeps tier chips; the tab says "Health", the rungs name themselves.
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
   // The fitness chain after it, in the same Health tab: gym, pool, tennis
-  // courts and the Athletics Complex, strictly in order (facilitiesData.ts
+  // courts and the Sports & Recreation Complex, strictly in order (facilitiesData.ts
   // above GYM_ID). Keyed by its first type, as the grocery rides under
-  // 'diningHall'. The Athletics Complex is a recCenter by type (its art),
+  // 'diningHall'. The Sports & Recreation Complex is a recCenter by type (its art),
   // so it is matched by id.
   {
     key: 'gym',

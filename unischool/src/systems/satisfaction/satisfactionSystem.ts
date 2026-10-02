@@ -40,7 +40,7 @@ const ATTRIBUTE_SCORE_FLOOR = 12;
 
 // servesPopulation needed per enrolled student for a score of 100.
 // Social at 0.34: a maxed student center and the Recreation Center (5,200,
-// the Athletics Complex feeding health since Plan 80F) cover only ~15,300
+// the Sports & Recreation Complex feeding health since Plan 80F) cover only ~15,300
 // enrolled, so growing schools must lean on the quad and student
 // life. Intended; do not raise it. Housing at 0.35: commuting is the norm.
 export const TARGET_RATIO: SatisfactionAttributes = {

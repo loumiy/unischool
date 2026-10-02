@@ -700,7 +700,7 @@ September 2026 playtest ([Plan 80](../plans/80-the-owners-playtest.md)):
   Basic Needs card lists the grocery and each tower at what they count for,
   and says so; the grocery's tile says it covers 40% of meals at most.
 - **Fitness is health.** The gym, pool and tennis courts already fed health;
-  the **Athletics Complex** (the fitness chain's fourth building) now does too,
+  the **Sports & Recreation Complex** (the fitness chain's fourth building) now does too,
   and the build menu files all four as Fitness under Health (80B moved the
   first three). The **Recreation Center** stays social, as the one
   recreational building in the Social tab. Social loses the complex's 3,500

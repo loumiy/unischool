@@ -169,7 +169,7 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: ['REC-T2', 'AMENITY-CHAPEL'],
     tabs: [],
     letter: 'People outside the county know the name now, and the fitness buildings can be finished with an athletics complex.',
-    opens: ['Athletics Complex: the top of the fitness buildings', 'The Chapel: a small stone landmark'],
+    opens: ['Sports & Recreation Complex: the top of the fitness buildings', 'The Chapel: a small stone landmark'],
   },
   {
     id: 'school',

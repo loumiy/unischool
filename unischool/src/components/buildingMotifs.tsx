@@ -38,6 +38,7 @@ import {
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
+import { rakedStandArt } from './groundMarkings';
 import { shade } from './tint';
 import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
 import { Crane, Scaffolding } from './siteWorks';
@@ -2606,6 +2607,622 @@ function DecoPortal({ col, row, w, h, outward, wallHeight, stone }: {
         return <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={gilt} strokeWidth={1.1} />;
       })()}
     </g>
+  );
+}
+
+// --- The sports sheds (Plan 87C) ------------------------------------------
+// The Recreation Center, the Gym, the Sports & Recreation Complex, the Field
+// House and the Natatorium shared one render shed with a roof monitor (the
+// natatorium a flat glass box). Each is drawn here as the kind of building it
+// is. The arena keeps its own vault in the hangar branch.
+type SportsShed = 'rec' | 'gym' | 'courts' | 'fieldHouse' | 'natatorium';
+function sportsShedOf(t: Buildable): SportsShed | undefined {
+  if (t.id === 'REC-T1') return 'rec';
+  if (t.id === 'REC-T2') return 'courts';
+  if (t.facilityType === 'gym') return 'gym';
+  if (t.facilityType === 'fieldHouse') return 'fieldHouse';
+  if (t.facilityType === 'athleticsNatatorium') return 'natatorium';
+  return undefined;
+}
+
+// What every sports shed needs from BuildingMotif.
+interface ShedCtx {
+  col: number; row: number; w: number; h: number; H: number;
+  pal: Palette; stone: StonePalette; door: DoorDimensions | null; fronts: FaceDir[];
+  crest: CrestPart; plantTint: string; hood: boolean; entrance: EntrancePart;
+  cornice?: string; expansions: number;
+}
+interface ShedFace { o: Pt; a: Pt; span: number; dir: FaceDir }
+// A box's two visible walls, left then right.
+function shedFaces(f: BoxFaces): [ShedFace, ShedFace] {
+  return [{ o: f.D, a: f.C, span: f.spanLeft, dir: f.dir.CD }, { o: f.C, a: f.B, span: f.spanRight, dir: f.dir.BC }];
+}
+const SHED_INTERIOR = '#39444a';
+const SHED_SHEEN = 'rgba(214, 232, 242, 0.16)';
+const TRACK_LANE = '#c2493b';
+const MAPLE = '#c99a5c';
+const POOL_WATER = '#3d9fc6';
+const POOL_DECK = '#ddd9cc';
+const LANE_LINE = 'rgba(240, 250, 252, 0.9)';
+const CLIMB_WALL = '#e0873a';
+const HOLD_COLOURS = ['#f3d13a', '#3f9c4a', '#8a52b8', '#d63c3c', '#2d6fc0', '#f4f1e8'];
+const SEAT_RED = '#b6473a';
+const SIGN_PANEL = '#1f5566';
+const SHED_SIGN_LETTER = '#f3eee1';
+const ZINC = '#aeb7ba';
+const POOL_ROOF = '#dfe3e1';
+const frac = (x: number) => x - Math.floor(x);
+
+// A quad on a wall, in u and heights.
+const wq = (s: ShedFace, H: number, u0: number, u1: number, z0: number, z1: number) => polyPoints(wallQuad(s.o, s.a, H, u0, u1, z0, z1));
+// Thin mullions across a stretch of glazing, as one path: verticals every
+// `pitch` tiles and transoms at the given heights.
+function mullionPath(s: ShedFace, H: number, u0: number, u1: number, z0: number, z1: number, pitch: number, transoms: number[] = []): string {
+  const n = Math.max(1, Math.round((s.span * (u1 - u0)) / pitch));
+  const m = 0.006 * (4 / Math.max(2, s.span));
+  const out: string[] = [];
+  const quad = (a: number, b: number, c: number, d: number) => `M${polyPoints(wallQuad(s.o, s.a, H, a, b, c, d)).replace(/ /g, 'L')}Z`;
+  for (let i = 0; i <= n; i++) {
+    const u = u0 + ((u1 - u0) * i) / n;
+    out.push(quad(Math.max(u0, u - m), Math.min(u1, u + m), z0, z1));
+  }
+  const tz = up(0.12);
+  for (const z of transoms) out.push(quad(u0, u1, z - tz, z + tz));
+  return out.join('');
+}
+// Glazing that shows what is inside: the room's dark, then `inside` (drawn
+// in the wall's u and heights), then a sheen and the mullions over it.
+function SeeThrough({ s, H, u0, u1, z0, z1, pitch, transoms, children }: {
+  s: ShedFace; H: number; u0: number; u1: number; z0: number; z1: number; pitch: number; transoms?: number[];
+  children?: React.ReactNode;
+}) {
+  return (
+    <>
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SHED_INTERIOR} />
+      {children}
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SHED_SHEEN} />
+      <path className="iso-mullion" d={mullionPath(s, H, u0, u1, z0, z1, pitch, transoms)} />
+    </>
+  );
+}
+// Plinth and eaves course on a box's visible walls.
+function shedCourses(f: BoxFaces, H: number, cornice?: string) {
+  return shedFaces(f).map((s, i) => (
+    <g key={`c${i}`}>
+      <WallBand origin={s.o} along={s.a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
+      <WallBand origin={s.o} along={s.a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={cornice} />
+    </g>
+  ));
+}
+// A door in the middle of each visible wall of box b, with its steps.
+function shedDoors(c: ShedCtx, b: DepthBox, f: BoxFaces, H: number) {
+  const d = c.door;
+  if (!d) return null;
+  return (
+    <>
+      {shedFaces(f).map((s) => <Door key={s.dir} d={d} origin={s.o} along={s.a} wallHeight={H} span={s.span} side={s.dir} />)}
+      {c.fronts.map((dir) => {
+        const span = wallSpan(b.w, b.h, dir);
+        const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, 0);
+        const out = outwardOf(dir);
+        return <EntranceSteps key={dir} stone={c.stone} d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} />;
+      })}
+    </>
+  );
+}
+// The vernacular's way in on the given walls (as the fitness shed's, Plan 74E).
+function shedEntrance(c: ShedCtx, b: DepthBox, H: number, dirs: FaceDir[]) {
+  const d = c.door;
+  if (!d) return null;
+  return dirs.map((dir) => {
+    if (c.entrance === 'archway') return <Archway key={dir} pal={c.pal} stone={c.stone} d={d} col={b.col} row={b.row} w={b.w} h={b.h} outward={dir} wallHeight={H} />;
+    if (c.entrance === 'portico') {
+      const span = wallSpan(b.w, b.h, dir);
+      const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, PORTICO_STANDOFF);
+      return <Portico key={dir} stone={c.stone} centreCol={at.col} centreRow={at.row} width={Math.min(d.widthTiles * 3.2, span * 0.6)} outward={dir} height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} />;
+    }
+    return <Canopy key={dir} stone={c.stone} d={d} col={b.col} row={b.row} w={b.w} h={b.h} outward={dir} wallHeight={H} hood={c.hood} roof={c.plantTint} />;
+  });
+}
+// A signboard on a wall: a panel with a roundel and a line of letter-like
+// marks.
+function WallSign({ s, H, uc, width, z0, z1 }: { s: ShedFace; H: number; uc: number; width: number; z0: number; z1: number }) {
+  const half = Math.min(0.45, width / s.span / 2);
+  const u0 = uc - half; const u1 = uc + half;
+  const hgt = z1 - z0;
+  const disc = facePoint(s.o, s.a, H, u0 + (u1 - u0) * 0.1, (z0 + hgt / 2) / H);
+  const marks: string[] = [];
+  const widths = [0.8, 1, 0.7, 1, 0.9, 0, 0.5, 1, 0.8, 0.9, 1, 0.7];
+  const total = widths.reduce((a, x) => a + x + 0.5, 0);
+  let u = u0 + (u1 - u0) * 0.2;
+  const per = ((u1 - u0) * 0.74) / total;
+  // A word, a space, a word: narrow marks with gaps between.
+  for (const k of widths) {
+    if (k > 0) marks.push(`M${polyPoints(wallQuad(s.o, s.a, H, u, u + per * k, z0 + hgt * 0.28, z0 + hgt * 0.72)).replace(/ /g, 'L')}Z`);
+    u += per * (k + 0.5);
+  }
+  return (
+    <>
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SIGN_PANEL} stroke="rgba(240, 236, 224, 0.7)" strokeWidth={0.6} />
+      <circle cx={disc.x} cy={disc.y} r={Math.max(1.4, hgt * 0.32)} fill={CLIMB_WALL} />
+      <path d={marks.join('')} fill={SHED_SIGN_LETTER} />
+    </>
+  );
+}
+
+// The Recreation Center: a glazed corner with the climbing wall inside, a
+// signboard over the entrance canopy, rooflights (Plan 87C). Precedent: any
+// campus rec center's climbing-wall atrium at its main corner.
+function RecCenterShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal, stone } = c;
+  const f = boxFaces(col, row, w, h, 0, H);
+  const [L, R] = shedFaces(f);
+  const box = { col, row, w, h };
+  const top = H - EAVES_COURSE; const sill = BASE_COURSE;
+  // Sixteen meters of glass each way round the near corner.
+  const gL = Math.min(0.42, across(16) / L.span);
+  const gR = Math.min(0.42, across(16) / R.span);
+  // The climbing wall: three panels each side, their heads stepping like a
+  // real wall's overhangs, holds dotted over them.
+  const heads = [0.84, 0.7, 0.93, 0.76];
+  const panels = (s: ShedFace, u0: number, u1: number, side: number) => {
+    const n = 3;
+    const tone = shade(CLIMB_WALL, WALL_LIGHT[s.dir] / WALL_LIGHT.posRow);
+    const out: React.JSX.Element[] = [];
+    const holds: React.JSX.Element[] = [];
+    for (let i = 0; i < n; i++) {
+      const a = u0 + ((u1 - u0) * i) / n; const b = u0 + ((u1 - u0) * (i + 1)) / n;
+      const zt = sill + (top - sill) * heads[(i + side) % heads.length];
+      out.push(<polygon key={`p${i}`} points={wq(s, H, a, b, sill, zt)} fill={shade(tone, i % 2 ? 0.88 : 1)} />);
+      for (let k = 0; k < 4; k++) {
+        const seed = i * 4 + k + side * 13;
+        const hu = a + (b - a) * (0.15 + 0.7 * frac(seed * 0.618 + 0.11));
+        const hz = sill + (zt - sill) * (0.12 + 0.8 * frac(seed * 0.382 + 0.29));
+        const p = facePoint(s.o, s.a, H, hu, hz / H);
+        holds.push(<circle key={`h${i}-${k}`} cx={p.x} cy={p.y} r={1.8} fill={HOLD_COLOURS[seed % HOLD_COLOURS.length]} />);
+      }
+    }
+    return <>{out}{holds}</>;
+  };
+  const longIsLeft = L.span >= R.span;
+  const signFace = longIsLeft ? L : R;
+  const d = c.door;
+  const signZ0 = d ? Math.min(d.threshold + d.height + up(1.5), top - up(3.2)) : up(4.5);
+  const alongW = w >= h;
+  const strip = (at: number) => boxFaces(
+    alongW ? col + w * 0.12 : col + w * at, alongW ? row + h * at : row + h * 0.12,
+    alongW ? w * 0.76 : w * 0.09, alongW ? h * 0.09 : h * 0.76, H, 0,
+  ).top;
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+      {shedCourses(f, H, c.cornice)}
+      {[L, R].map((s, i) => (
+        <g key={`cl${i}`}>
+          {windows(s.o, s.a, H, s.span, [clerestorySill(H)], 0, `rc${i}`, 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, s.span, H) : undefined)}
+        </g>
+      ))}
+      <SeeThrough s={L} H={H} u0={1 - gL} u1={1} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + (top - sill) * 0.5]}>
+        {panels(L, 1 - gL * 0.92, 1, 0)}
+      </SeeThrough>
+      <SeeThrough s={R} H={H} u0={0} u1={gR} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + (top - sill) * 0.5]}>
+        {panels(R, 0, gR * 0.92, 1)}
+      </SeeThrough>
+      {/* The corner post where the two glass walls meet. */}
+      <polygon className="iso-mullion" points={wq(L, H, 1 - 0.012 * (5 / L.span), 1, sill, top)} />
+      {shedDoors(c, box, f, H)}
+      {shedEntrance(c, box, H, c.fronts)}
+      <WallSign s={signFace} H={H} uc={0.5 - (longIsLeft ? 0.06 : -0.06)} width={across(15)} z0={signZ0} z1={signZ0 + up(1.6)} />
+      <polygon points={polyPoints(f.top)} fill={pal.roof} />
+      <polygon className="iso-rooflight" points={polyPoints(strip(0.3))} />
+      <polygon className="iso-rooflight" points={polyPoints(strip(0.61))} />
+      <Crest crest={c.crest} col={col} row={row} w={w} h={h} base={H} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
+    </>
+  );
+}
+
+// A treadmill, an exercise bike or a weight rack, as a dark silhouette
+// standing at `p`, in meters on screen.
+function Equipment({ p, kind }: { p: Pt; kind: number }) {
+  const s = up(1.3);
+  const ink = '#262b2e';
+  const at = (x: number, y: number) => ({ x: p.x + x * s, y: p.y - y * s });
+  if (kind === 0) {
+    // Treadmill: a deck, a post and the console.
+    return (
+      <>
+        <polygon points={polyPoints([at(-1.0, 0), at(1.0, 0), at(1.0, 0.3), at(-1.0, 0.2)])} fill={ink} />
+        <polygon points={polyPoints([at(0.8, 0.2), at(1.0, 0.2), at(1.15, 1.35), at(0.95, 1.35)])} fill={ink} />
+        <polygon points={polyPoints([at(0.6, 1.2), at(1.25, 1.25), at(1.25, 1.5), at(0.6, 1.45)])} fill={ink} />
+      </>
+    );
+  }
+  if (kind === 1) {
+    // Bike: a flywheel, a frame and a saddle.
+    const wheel = at(0.45, 0.35);
+    return (
+      <>
+        <circle cx={wheel.x} cy={wheel.y} r={0.35 * s} fill={ink} />
+        <polygon points={polyPoints([at(-0.4, 0), at(0.6, 0), at(0.1, 0.9), at(-0.1, 0.9)])} fill={ink} />
+        <polygon points={polyPoints([at(-0.4, 0.85), at(0.05, 0.85), at(0.05, 1.0), at(-0.4, 1.0)])} fill={ink} />
+        <polygon points={polyPoints([at(0.45, 0.4), at(0.6, 0.4), at(0.75, 1.2), at(0.6, 1.2)])} fill={ink} />
+      </>
+    );
+  }
+  // Rack: two uprights, a bar, plates.
+  const l = at(-0.75, 1.15); const r = at(0.75, 1.15);
+  return (
+    <>
+      <polygon points={polyPoints([at(-0.95, 0), at(-0.8, 0), at(-0.8, 1.9), at(-0.95, 1.9)])} fill={ink} />
+      <polygon points={polyPoints([at(0.8, 0), at(0.95, 0), at(0.95, 1.9), at(0.8, 1.9)])} fill={ink} />
+      <polygon points={polyPoints([at(-1.2, 1.1), at(1.2, 1.1), at(1.2, 1.2), at(-1.2, 1.2)])} fill={ink} />
+      <circle cx={l.x} cy={l.y} r={0.3 * s} fill={ink} />
+      <circle cx={r.x} cy={r.y} r={0.3 * s} fill={ink} />
+    </>
+  );
+}
+
+// The Gym & Fitness Center: a flat roof floating over a row of high
+// clerestory windows under its eaves, and one long glazed wall through
+// which the running track (a red oval) and the machines read (Plan 87C).
+function GymShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal, stone } = c;
+  const f = boxFaces(col, row, w, h, 0, H);
+  const [L, R] = shedFaces(f);
+  const box = { col, row, w, h };
+  const top = H - EAVES_COURSE; const sill = BASE_COURSE;
+  const d = c.door;
+  // The clerestory: separate windows, one per bay, just under the eaves.
+  const clere = (s: ShedFace, key: string) => {
+    const bays = baysAcross(s.span);
+    const half = 0.34 / bays;
+    const z0 = top - up(2.2); const z1 = top - up(0.45);
+    const panes: string[] = [];
+    for (let b = 0; b < bays; b++) {
+      const uc = (b + 0.5) / bays;
+      panes.push(`M${polyPoints(wallQuad(s.o, s.a, H, uc - half, uc + half, z0, z1)).replace(/ /g, 'L')}Z`);
+    }
+    return <path key={key} className="iso-window" fill="rgba(44, 62, 74, 0.82)" d={panes.join('')} />;
+  };
+  // The glazed wall: the longer visible one (the left on a square).
+  const G = L.span >= R.span ? L : R;
+  const gz = top - up(2.9);
+  const gu0 = 0.05; const gu1 = 0.95;
+  const at = (u: number, z: number) => facePoint(G.o, G.a, H, u, z / H);
+  // The track: a red oval band round a maple floor, seen through the glass.
+  const oval = (ru: number, rz: number, uc: number, zc: number) => Array.from({ length: 28 }, (_, i) => {
+    const a = (i / 28) * Math.PI * 2;
+    const cs = Math.cos(a); const sn = Math.sin(a);
+    // A stadium-ish oval: flattened ends.
+    const k = Math.sign(cs) * Math.pow(Math.abs(cs), 0.6);
+    return at(uc + ru * k, zc + rz * sn);
+  });
+  const fz0 = sill; const fz1 = sill + (gz - sill) * 0.78;
+  const zc = sill + (gz - sill) * 0.42;
+  const kit: Array<[number, number]> = [];
+  const doorHalf = d ? doorFraction(d, G.span) / 2 + 0.05 : 0;
+  const slots = Math.max(4, Math.round(G.span * 1.6));
+  for (let i = 0; i < slots; i++) {
+    const u = gu0 + 0.04 + ((gu1 - gu0 - 0.08) * (i + 0.5)) / slots;
+    if (Math.abs(u - 0.5) < doorHalf) continue;
+    kit.push([u, i % 3]);
+  }
+  const slab = across(1.4);
+  const roof = boxFaces(col - slab, row - slab, w + slab * 2, h + slab * 2, H, up(0.7));
+  const trimTone = stone.trim === 'none' ? stone.towerStone : stone.trim;
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+      {shedCourses(f, H, c.cornice)}
+      {clere(L, 'cl')}
+      {clere(R, 'cr')}
+      <SeeThrough s={G} H={H} u0={gu0} u1={gu1} z0={sill} z1={gz} pitch={across(4.5)}>
+        <polygon points={wq(G, H, gu0, gu1, fz0, fz1)} fill={MAPLE} />
+        <polygon points={polyPoints(oval(0.4, (gz - sill) * 0.36, 0.5, zc))} fill={TRACK_LANE} />
+        <polygon points={polyPoints(oval(0.3, (gz - sill) * 0.19, 0.5, zc))} fill={shade(MAPLE, 1.08)} />
+        <polyline points={polyPoints(oval(0.35, (gz - sill) * 0.275, 0.5, zc).concat([oval(0.35, (gz - sill) * 0.275, 0.5, zc)[0]]))} fill="none" stroke="rgba(250, 246, 236, 0.8)" strokeWidth={0.6} />
+        {kit.map(([u, k], i) => <Equipment key={i} p={at(u, sill + up(0.15))} kind={k} />)}
+      </SeeThrough>
+      {/* The deep eaves' shadow over the clerestory. */}
+      {[L, R].map((s, i) => <WallBand key={`es${i}`} origin={s.o} along={s.a} wallHeight={H} from={H - up(1.1)} to={H} className="iso-eaves-shadow" />)}
+      {shedDoors(c, box, f, H)}
+      {shedEntrance(c, box, H, c.fronts)}
+      {sideFaces(roof, shade(trimTone, 0.8), shade(trimTone, 0.66))}
+      {/* A low hipped roof over the eaves slab: a pavilion, not a box. */}
+      <HippedRoof col={col - slab} row={row - slab} w={w + slab * 2} h={h + slab * 2} base={H + up(0.7)} rise={up(2.6)} pal={pal} />
+    </>
+  );
+}
+
+// The Sports & Recreation Complex: a multi-court hall under a sawtooth of
+// north lights, with a covered stand along its long front looking out over
+// the playing fields, its canopy hung from the hall (Plan 87C).
+function CourtsShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal, stone } = c;
+  const alongW = w >= h;
+  // The stand runs along whichever long wall faces the camera.
+  const ld = c.fronts.find((dir) => isRowWall(dir) === alongW) ?? c.fronts[0];
+  const sd = Math.min(across(13), Math.min(w, h) * 0.28);
+  const hb: DepthBox = ld === 'posRow' ? { col, row, w, h: h - sd }
+    : ld === 'negRow' ? { col, row: row + sd, w, h: h - sd }
+      : ld === 'posCol' ? { col, row, w: w - sd, h } : { col: col + sd, row, w: w - sd, h };
+  const f = boxFaces(hb.col, hb.row, hb.w, hb.h, 0, H);
+  const faces = shedFaces(f);
+  const d = c.door;
+  const other = c.fronts.filter((dir) => dir !== ld);
+  // A point `along` the hall's long wall, `out` from it, at height z.
+  const L = wallSpan(hb.w, hb.h, ld);
+  const P = (along: number, out: number, z: number) => {
+    const g = outsideWall(hb.col, hb.row, hb.w, hb.h, ld, along, out);
+    return lift(project(g.col, g.row), z);
+  };
+  const T = (along: number, out: number): TilePt => {
+    const g = outsideWall(hb.col, hb.row, hb.w, hb.h, ld, along, out);
+    return [g.col, g.row];
+  };
+  // Two banks of seats either side of the way in.
+  const gap = Math.min(across(14), L * 0.22);
+  const banks = [[L * 0.03, L / 2 - gap / 2], [L / 2 + gap / 2, L * 0.97]]
+    .map(([a0, a1]) => ({ a0, a1, y: P((a0 + a1) / 2, sd / 2, 0).y }))
+    .sort((a, b) => a.y - b.y);
+  const concrete = '#bdb8ab';
+  // The canopy, cantilevered from the hall and tipped up at its edge.
+  const zw = Math.min(H - up(2.4), up(7.4)); const zf = zw + up(0.6); const dc = sd * 0.56;
+  const fascia = up(0.7);
+  const ca0 = L * 0.01; const ca1 = L * 0.99;
+  const canopyTop = [P(ca0, 0, zw), P(ca1, 0, zw), P(ca1, dc, zf), P(ca0, dc, zf)];
+  const canopyFront = [P(ca0, dc, zf), P(ca1, dc, zf), P(ca1, dc, zf - fascia), P(ca0, dc, zf - fascia)];
+  const rods = [0.12, 0.31, 0.69, 0.88].map((k) => [P(L * k, 0, H - up(0.6)), P(L * k, dc * 0.92, zf)] as const);
+  // Letter marks along the fascia.
+  const letters: string[] = [];
+  const lw = [0.7, 1, 0.8, 1, 0.6, 0.9, 1, 0.7];
+  let u = 0.36;
+  for (const k of lw) {
+    const a = u * L; const b = (u + 0.026 * k) * L;
+    letters.push(`M${polyPoints([P(a, dc, zf - fascia * 0.25), P(b, dc, zf - fascia * 0.25), P(b, dc, zf - fascia * 0.75), P(a, dc, zf - fascia * 0.75)]).replace(/ /g, 'L')}Z`);
+    u += 0.026 * k + 0.012;
+  }
+  const canopySide = (along: number): Pt[] => [P(along, 0, zw), P(along, dc, zf), P(along, dc, zf - fascia), P(along, 0, zw - fascia)];
+  // The canopy's end the camera sees: the one toward the other visible wall.
+  const endAlong = other.length && (other[0] === 'posCol' || other[0] === 'posRow') ? ca1 : ca0;
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={hb.col} row={hb.row} w={hb.w} h={hb.h} height={H} outward={dir} pal={pal} />)}
+      {shedCourses(f, H, c.cornice)}
+      {faces.map((s, i) => (
+        <g key={`cl${i}`}>
+          {windows(s.o, s.a, H, s.span, [clerestorySill(H)], 0, `sc${i}`, 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, s.span, H) : undefined)}
+        </g>
+      ))}
+      {shedDoors(c, hb, f, H)}
+      {shedEntrance(c, hb, H, other)}
+      <polygon points={polyPoints(f.top)} fill={pal.roof} />
+      <SawtoothRoof col={hb.col} row={hb.row} w={hb.w} h={hb.h} base={H} pal={pal} glass="rgba(150, 192, 212, 0.9)" />
+      <Crest crest={c.crest} col={hb.col} row={hb.row} w={hb.w} h={hb.h} base={H} fronts={other} pal={pal} stone={stone} tile={c.plantTint} />
+      {banks.map((bk) => (
+        <g key={bk.a0}>
+          {rakedStandArt({
+            outer: [T(bk.a0, 0.02), T(bk.a1, 0.02)], inner: [T(bk.a0, sd * 0.97), T(bk.a1, sd * 0.97)],
+            bottomH: up(1.0), topH: up(4.6), rakeFill: SEAT_RED, wallFill: concrete, seatStroke: '', rows: 5, aisles: 1,
+          }, false)}
+        </g>
+      ))}
+      {rods.map(([a, b], i) => <line key={`r${i}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgba(52, 56, 60, 0.75)" strokeWidth={0.7} />)}
+      <polygon points={polyPoints(canopySide(endAlong))} fill={shade(concrete, 0.7)} />
+      <polygon points={polyPoints(canopyTop)} fill="#b9bfbe" />
+      <polygon points={polyPoints(canopyFront)} fill={SIGN_PANEL} />
+      <path d={letters.join('')} fill={SHED_SIGN_LETTER} />
+    </>
+  );
+}
+
+// A barrel vault down a box's long axis, sprung from height `base`:
+// `profile` (0..1 across the span) gives its section. Only the facets that
+// face the camera are drawn (the vault is convex), each with its share of
+// `ribs` and of any rooflight strips; the end the camera sees is returned
+// as points for the caller to dress.
+function barrelVault({ col, row, w, h, base, rise, n, profile, fill, ribs = 0, ribTone, lights = [], lightFill }: {
+  col: number; row: number; w: number; h: number; base: number; rise: number; n: number;
+  profile: (c: number) => number; fill: (c: number) => string;
+  ribs?: number; ribTone?: string; lights?: Array<[number, number]>; lightFill?: string;
+}) {
+  const alongW = w >= h;
+  const a0 = 0.004; const a1 = 0.996;
+  const pt = (a: number, c: number) => lift(
+    alongW ? project(col + w * a, row + h * c) : project(col + w * c, row + h * a), base + rise * profile(c),
+  );
+  const area = (pts: Pt[]) => pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p.x * q.y - q.x * p.y; }, 0);
+  const deck = area([project(0, 0), project(1, 0), project(1, 1), project(0, 1)]);
+  const seenSign = Math.sign(deck) * (alongW ? 1 : -1);
+  const facets: React.JSX.Element[] = [];
+  for (let i = 0; i < n; i++) {
+    const c0 = i / n; const c1 = (i + 1) / n;
+    const quad = [pt(a0, c0), pt(a1, c0), pt(a1, c1), pt(a0, c1)];
+    if (Math.sign(area(quad)) !== seenSign) continue;
+    const rib: string[] = [];
+    for (let k = 1; k < ribs; k++) {
+      const p = pt(k / ribs, c0); const q = pt(k / ribs, c1);
+      rib.push(`M${p.x},${p.y}L${q.x},${q.y}`);
+    }
+    const strips = lights.map(([l0, l1]) => [Math.max(l0, c0), Math.min(l1, c1)]).filter(([l0, l1]) => l1 > l0);
+    facets.push(
+      <g key={i}>
+        <polygon points={polyPoints(quad)} fill={fill((c0 + c1) / 2)} />
+        {strips.map(([l0, l1], j) => <polygon key={j} points={polyPoints([pt(0.05, l0), pt(0.95, l0), pt(0.95, l1), pt(0.05, l1)])} fill={lightFill} />)}
+        {rib.length > 0 && <path d={rib.join('')} fill="none" stroke={ribTone} strokeWidth={0.7} />}
+      </g>,
+    );
+  }
+  // The end the camera sees: +col (+row) or the other.
+  const f = boxFaces(col, row, w, h, 0, 0);
+  const highEnd: FaceDir = alongW ? 'posCol' : 'posRow';
+  const endDir = wallOf(f, highEnd).visible ? highEnd : opposite(highEnd);
+  const endAt = endDir === highEnd ? a1 : a0;
+  const at = (c: number, z: number) => lift(alongW ? project(col + w * endAt, row + h * c) : project(col + w * c, row + h * endAt), z);
+  // The end's arch in k pieces, drawn in toward the middle of its
+  // springing line by `shrink` (1 is the vault's own edge).
+  const arch = (k: number, shrink = 1) => {
+    const hub = at(0.5, base);
+    return Array.from({ length: k + 1 }, (_, i) => {
+      const q = at(i / k, base + rise * profile(i / k));
+      return { x: hub.x + (q.x - hub.x) * shrink, y: hub.y + (q.y - hub.y) * shrink };
+    });
+  };
+  return { facets, endDir, arch, at };
+}
+
+// The Field House: low walls under one long, high barrel of ribbed metal
+// with a rooflight down its crown, and a fan of glazing in the end the
+// camera sees. Precedents: Michigan's Oosterbaan Field House, Yale's Coxe
+// Cage. Taller and narrower in section than the arena's shallow vault, and
+// metal rather than its slate (Plan 87C).
+function FieldHouseShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, pal, stone } = c;
+  const Hw = up(5.5);
+  const f = boxFaces(col, row, w, h, 0, Hw);
+  const [L, R] = shedFaces(f);
+  const box = { col, row, w, h };
+  const alongW = w >= h;
+  const rise = up(15);
+  const N = 14;
+  const vault = barrelVault({
+    col, row, w, h, base: Hw, rise, n: N,
+    profile: (cc) => Math.sqrt(Math.max(0, 1 - (2 * cc - 1) ** 2)),
+    fill: (cm) => shade(ZINC, 1.12 - 0.36 * cm),
+    ribs: Math.max(6, Math.round((alongW ? w : h) * 1.1)), ribTone: 'rgba(70, 78, 82, 0.55)',
+    lights: [[0.44, 0.56]], lightFill: 'rgba(196, 222, 232, 0.92)',
+  });
+  const endWall = pal.wall[vault.endDir];
+  const lunette = vault.arch(24);
+  // The fan: glass inset in the lunette, with mullions radiating from a hub.
+  const glass = vault.arch(24, 0.93);
+  const hub = vault.at(0.5, Hw + up(0.4));
+  const hubDisc = Array.from({ length: 9 }, (_, i) => {
+    const a = Math.PI * (i / 8);
+    return vault.at(0.5 - 0.07 * Math.cos(a), Hw + up(0.4) + up(3.0) * Math.sin(a));
+  });
+  const spokes = vault.arch(12, 0.93).slice(1, -1).map((q) => `M${hub.x},${hub.y}L${q.x},${q.y}`);
+  const ring = vault.arch(16, 0.5);
+  const long = (s: ShedFace) => isRowWall(s.dir) === alongW;
+  const d = c.door;
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={Hw} outward={dir} pal={pal} />)}
+      {shedCourses(f, Hw, c.cornice)}
+      {[L, R].filter(long).map((s, i) => (
+        <g key={`w${i}`}>
+          {windows(s.o, s.a, Hw, s.span, [up(1.5)], across(2.2), `fw${i}`, 'rect', stone.glass, d ? doorBay(d, s.span, Hw) : undefined)}
+        </g>
+      ))}
+      {shedDoors(c, box, f, Hw)}
+      {vault.facets}
+      <polygon points={polyPoints([...lunette])} fill={endWall} />
+      <polygon points={polyPoints(glass)} fill="rgba(128, 170, 192, 0.95)" />
+      <path d={spokes.join('')} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
+      <polyline points={polyPoints(ring)} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
+      <polygon points={polyPoints(hubDisc)} fill={shade(endWall, 0.92)} />
+      {shedEntrance(c, box, Hw, c.fronts.filter((dir) => !(isRowWall(dir) === alongW)))}
+    </>
+  );
+}
+
+// The Natatorium: a long, low, pale vault over walls glazed from end to end,
+// through which the pool's lanes read, and the stand behind them grows with
+// each expansion (Plan 87C).
+function NatatoriumShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal } = c;
+  const f = boxFaces(col, row, w, h, 0, H);
+  const [L, R] = shedFaces(f);
+  const box = { col, row, w, h };
+  const alongW = w >= h;
+  const top = H - EAVES_COURSE; const sill = BASE_COURSE;
+  const vault = barrelVault({
+    col, row, w, h, base: H, rise: up(4.2), n: 9,
+    profile: (cc) => 1 - (2 * cc - 1) ** 2,
+    fill: (cm) => shade(POOL_ROOF, 1.04 - 0.22 * cm),
+    lights: [[0.24, 0.33], [0.67, 0.76]], lightFill: 'rgba(150, 196, 216, 0.85)',
+  });
+  const long = (s: ShedFace) => isRowWall(s.dir) === alongW;
+  const G = long(L) ? L : R;
+  const E = G === L ? R : L;
+  const gh = top - sill;
+  // The pool along the long glass: deck, water, lane lines.
+  const poolLong = (s: ShedFace) => {
+    const p0 = sill + gh * 0.05; const p1 = sill + Math.min(gh * 0.34, up(3.6));
+    const lanes: string[] = [];
+    for (let k = 1; k < 8; k++) {
+      const z = p0 + ((p1 - p0) * k) / 8;
+      const a = facePoint(s.o, s.a, H, 0.08, z / H); const b = facePoint(s.o, s.a, H, 0.92, z / H);
+      lanes.push(`M${a.x},${a.y}L${b.x},${b.y}`);
+    }
+    // Seats behind the pool: three rows, three more for each expansion.
+    const rows = 3 + 3 * c.expansions;
+    const rz = up(0.8);
+    const s0 = p1 + up(1.2);
+    const seats: React.JSX.Element[] = [];
+    for (let k = 0; k < rows && s0 + rz * (k + 1) < top - up(0.8); k++) {
+      seats.push(<polygon key={k} points={wq(s, H, 0.1, 0.9, s0 + rz * k, s0 + rz * (k + 0.75))} fill={shade(SEAT_RED, 1 - k * 0.04)} />);
+    }
+    return (
+      <>
+        <polygon points={wq(s, H, 0.02, 0.98, sill, p1 + up(1.0))} fill={POOL_DECK} />
+        <polygon points={wq(s, H, 0.07, 0.93, p0, p1)} fill={POOL_WATER} />
+        <path d={lanes.join('')} fill="none" stroke={LANE_LINE} strokeWidth={0.6} />
+        {seats}
+      </>
+    );
+  };
+  // Through the end glazing the lanes run away from the camera.
+  const poolEnd = (s: ShedFace) => {
+    const p0 = sill + gh * 0.05; const p1 = sill + Math.min(gh * 0.3, up(3.2));
+    const lanes: string[] = [];
+    for (let k = 1; k < 8; k++) {
+      const u = 0.15 + (0.7 * k) / 8;
+      const a = facePoint(s.o, s.a, H, u, p0 / H); const b = facePoint(s.o, s.a, H, u + (u - 0.5) * 0.12, p1 / H);
+      lanes.push(`M${a.x},${a.y}L${b.x},${b.y}`);
+    }
+    return (
+      <>
+        <polygon points={wq(s, H, 0.03, 0.97, sill, p1 + up(0.8))} fill={POOL_DECK} />
+        <polygon points={polyPoints([...wallQuad(s.o, s.a, H, 0.15, 0.85, p0, p0).slice(0, 2), facePoint(s.o, s.a, H, 0.89, p1 / H), facePoint(s.o, s.a, H, 0.11, p1 / H)])} fill={POOL_WATER} />
+        <path d={lanes.join('')} fill="none" stroke={LANE_LINE} strokeWidth={0.6} />
+      </>
+    );
+  };
+  const lunette = vault.arch(16);
+  const lunetteGlass = vault.arch(16, 0.94);
+  const mull: string[] = [];
+  for (let k = 1; k < 8; k++) {
+    const cc = k / 8;
+    const p = vault.at(cc, H); const q = vault.at(cc, H + up(4.2) * (1 - (2 * cc - 1) ** 2) * 0.95);
+    mull.push(`M${p.x},${p.y}L${q.x},${q.y}`);
+  }
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {shedCourses(f, H, c.cornice)}
+      <SeeThrough s={G} H={H} u0={0.02} u1={0.98} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + gh * 0.55]}>
+        {poolLong(G)}
+      </SeeThrough>
+      <SeeThrough s={E} H={H} u0={0.03} u1={0.97} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + gh * 0.55]}>
+        {poolEnd(E)}
+      </SeeThrough>
+      {shedDoors(c, box, f, H)}
+      {vault.facets}
+      <polygon points={polyPoints(lunette)} fill={pal.wall[vault.endDir]} />
+      <polygon points={polyPoints(lunetteGlass)} fill="rgba(120, 164, 186, 0.95)" />
+      <path d={mull.join('')} fill="none" stroke="rgba(244, 246, 246, 0.85)" strokeWidth={0.8} />
+      {shedEntrance(c, box, H, c.fronts)}
+    </>
   );
 }
 
@@ -5487,15 +6104,26 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
 
   if (motif === 'hangar' && !site) {
     // Clear-span sheds: pier-and-panel walls lit by a band near the eaves,
-    // in four silhouettes, the same in every vernacular:
+    // in three silhouettes, the same in every vernacular:
     //   fitness    box, monitor roof, glazed entrance bay, canopy
     //   arena      barrel vault over a glazed concourse
-    //   natatorium glazed long face showing the pool, monopitch roof, flue
     //   studio     blank sound stage with a roller door
-    const kind: 'fitness' | 'arena' | 'natatorium' | 'studio' =
+    // The sports sheds draw as what they are (Plan 87C, sportsShedOf).
+    const sports = sportsShedOf(t);
+    if (sports) {
+      const ctx: ShedCtx = {
+        col, row, w, h, H, pal, stone, door, fronts, crest, plantTint, hood, entrance,
+        cornice: surfaceCornice, expansions: t.expansions ?? 0,
+      };
+      if (sports === 'rec') return <RecCenterShed c={ctx} />;
+      if (sports === 'gym') return <GymShed c={ctx} />;
+      if (sports === 'courts') return <CourtsShed c={ctx} />;
+      if (sports === 'fieldHouse') return <FieldHouseShed c={ctx} />;
+      return <NatatoriumShed c={ctx} />;
+    }
+    const kind: 'fitness' | 'arena' | 'studio' =
       t.facilityType === 'athleticsArena' ? 'arena'
-        : t.facilityType === 'athleticsNatatorium' ? 'natatorium'
-          : t.id === 'LAB-FILM' ? 'studio' : 'fitness';
+        : t.id === 'LAB-FILM' ? 'studio' : 'fitness';
     const alongW = w >= h;
     const SHED_GLASS = 'rgba(52, 72, 84, 0.6)';
     const clere = [clerestorySill(H)];
@@ -5503,7 +6131,6 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
     const left = { o: f.D, a: f.C, span: f.spanLeft };
     const right = { o: f.C, a: f.B, span: f.spanRight };
     const longFace = alongW ? left : right;
-    const shortFace = alongW ? right : left;
 
     const courses = ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
       <g key={`b${i}`}>
@@ -5603,56 +6230,6 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           <polygon points={polyPoints(f.top)} fill={pal.roof} />
           {facets}
           {endFace}
-        </>
-      );
-    }
-
-    if (kind === 'natatorium') {
-      // Glass long face with a pool band, a monopitch roof falling toward
-      // it, and a flue at the back corner.
-      const RISE = up(3.0);
-      // Grid-fixed corners: the high edge is -row (or -col) at any camera.
-      const NW = f.NWt; const NE = f.NEt; const SE = f.SEt; const SW = f.SWt;
-      const roof = alongW
-        ? [lift(NW, RISE), lift(NE, RISE), SE, SW]      // high along the -row edge
-        : [lift(NW, RISE), NE, SE, lift(SW, RISE)];     // high along the -col edge
-      // The triangle above the eaves on each visible short wall.
-      const gableEnd = (dir: FaceDir) => {
-        if (!wallOf(f, dir).visible) return null;
-        const pts = dir === 'posCol' ? [SE, NE, lift(NE, RISE)]
-          : dir === 'negCol' ? [SW, NW, lift(NW, RISE)]
-            : dir === 'posRow' ? [SW, SE, lift(SW, RISE)]
-              : [NE, NW, lift(NW, RISE)];
-        return <polygon key={dir} points={polyPoints(pts)} fill={pal.wall[dir]} />;
-      };
-      const gable = alongW ? ['posCol', 'negCol'] as const : ['posRow', 'negRow'] as const;
-      // The extra strip of the high long wall, when visible.
-      const highWall = alongW ? 'negRow' as const : 'negCol' as const;
-      const highStrip = wallOf(f, highWall).visible
-        ? (
-          <polygon
-            points={polyPoints(alongW ? [NW, NE, lift(NE, RISE), lift(NW, RISE)] : [NW, SW, lift(SW, RISE), lift(NW, RISE)])}
-            fill={pal.wall[highWall]}
-          />
-        )
-        : null;
-      const flue = boxFaces(col + 0.25, row + 0.25, 0.45, 0.45, H + RISE * 0.9, up(4.5));
-      const roofFill = alongW ? pal.negRow : pal.negCol;
-      return (
-        <>
-          <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
-          <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-          {piers}
-          {courses}
-          <CurtainWall origin={longFace.o} along={longFace.a} wallHeight={H} spanTiles={longFace.span} from={BASE_COURSE} floors={[]} id="nl" />
-          <WallBand origin={longFace.o} along={longFace.a} wallHeight={H} from={up(1.1)} to={up(2.4)} className="iso-pool-glimpse" u0={0.06} u1={0.94} />
-          {clerestory(shortFace, 'ns')}
-          {doors}
-          {highStrip}
-          {gable.map(gableEnd)}
-          <polygon points={polyPoints(roof)} fill={roofFill} />
-          {sideFaces(flue, shade(roofTint, 0.8), shade(roofTint, 0.66))}
-          <polygon points={polyPoints(flue.top)} fill={shade(roofTint, 0.5)} />
         </>
       );
     }
