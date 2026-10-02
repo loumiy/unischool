@@ -2220,6 +2220,45 @@ function Ticker({ origin, along, wallHeight, spanTiles, from, to, id }: {
   );
 }
 
+// The office tower's plant screen (Plan 87A): a light frame hung with dark
+// horizontal louvres, open to the sky, the condenser fans showing inside.
+const SCREEN_FRAME = '#d3d6d8';
+const SCREEN_LOUVRE = '#4a5055';
+const SCREEN_WELL = '#2c3034';
+const SCREEN_FAN = '#6b7277';
+function PlantScreen({ col, row, w, h, base }: DepthBox & { base: number }) {
+  const H = up(3.4);
+  const f = boxFaces(col, row, w, h, base, H);
+  const louvres = [0.16, 0.34, 0.52, 0.7];
+  const rim = across(0.5);
+  const fans = [0.27, 0.73].map((k) => (w >= h
+    ? { cc: col + w * k, cr: row + h / 2 }
+    : { cc: col + w / 2, cr: row + h * k }));
+  const r = Math.min(w * 0.2, h * 0.3, Math.max(w, h) * 0.2);
+  return (
+    <>
+      {sideFaces(f, SCREEN_FRAME, shade(SCREEN_FRAME, 0.84))}
+      {faceWallsOf(f).map(([o, a, , s]) => louvres.map((v, i) => (
+        <WallBand key={`${s}${i}`} origin={o} along={a} wallHeight={H} from={H * v} to={H * (v + 0.1)}
+          u0={0.05} u1={0.95} className="iso-cornice" fill={SCREEN_LOUVRE} />
+      )))}
+      {/* Open top: the frame's rim, the well inside it, and the fans'
+          rings and hubs in the well. */}
+      <polygon points={polyPoints(f.top)} fill={shade(SCREEN_FRAME, 1.04)} />
+      <polygon points={polyPoints(boxFaces(col + rim, row + rim, w - rim * 2, h - rim * 2, base + H, 0).top)} fill={SCREEN_WELL} />
+      {fans.map(({ cc, cr }, i) => (
+        <g key={`fan${i}`}>
+          <polygon points={polyPoints(projectedCircle(cc, cr, r, 20).map((q) => lift(q, base + H * 0.86)))} fill={SCREEN_FAN} />
+          <polygon points={polyPoints(projectedCircle(cc, cr, r * 0.32, 12).map((q) => lift(q, base + H * 0.86)))} fill={SCREEN_WELL} />
+        </g>
+      ))}
+    </>
+  );
+}
+function faceWallsOf(f: BoxFaces) {
+  return [[f.D, f.C, f.spanLeft, 'l'] as const, [f.C, f.B, f.spanRight, 'r'] as const];
+}
+
 // The Business School (Plan 87A; buildingSpec's businessSchoolPlan): a
 // podium with the ticker round its fascia, a full-height glazed atrium at
 // the middle of the long front, and an office tower rising from the back.
@@ -2293,7 +2332,7 @@ function BusinessSchool({ t, p, pal, stone, paneShape, paneW, crest, plantTint, 
           </g>
         ))}
         <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
-        <RoofBox col={b.col + b.w * 0.3} row={b.row + b.h * 0.3} w={b.w * 0.4} h={b.h * 0.4} base={Ht} height={up(3.2)} tint={plantTint} />
+        <PlantScreen col={b.col + b.w * 0.22} row={b.row + b.h * 0.24} w={b.w * 0.56} h={b.h * 0.52} base={Ht} />
         <Crest crest={crest} {...b} base={Ht} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
       </g>
     );
