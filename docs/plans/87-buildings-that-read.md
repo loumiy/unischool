@@ -3,7 +3,51 @@
 *Planning document only. Its job is to turn the owner's asset review (October
 2026) into the changes that make each building look like what it is.*
 
-**Status: Proposed.**
+**Status: Landed.** One PR, the nine streams merged into it.
+
+**As implemented:**
+- **Every stream landed as planned**; the departures are recorded here.
+- **A (the Business School):** the hospital split and the weathering
+  volumes (`weatherVolumes.ts`) now ask `isHospital`, so the Business School
+  and the Athletic Performance Complex no longer weather on hospital boxes.
+  The Business School is a podium with a ticker band, a glazed atrium and a
+  ten-storey tower (its drawn storeys rose from 5 to 10). Its roof plant,
+  first a plain box, became a louvred screen with fans. The merge then gave
+  that `PlantScreen` to every flat roof's generic plant, and `RoofBox` went.
+- **C (the sports sheds):** the Athletics Complex is now the *Sports &
+  Recreation Complex*; a save still carrying the old name takes the new one
+  on load (`refreshAuthoredText`).
+- **D (the dining halls):** Harborview Market (11x7) became a market hall,
+  so that the three largest halls do not repeat. The 5x4 hall is two
+  storeys now.
+- **E (the signature halls):** Health and Computer Science had to differ
+  in material as well as feature, because `catalogue.test.ts` compares
+  motif and material.
+- **F (the library):** the library draws in its own file,
+  `libraryMotif.tsx`.
+- **G (towers and civic buildings):** the Campanile rose to 74 m on a
+  narrower footprint and the Bell Tower dropped to 26 m. The Museum stands
+  back from a forecourt inside its plot.
+- **H (towers, glass and the Georgian roofline):** glass whose contrast
+  with its wall falls below a threshold is swapped for pale reflected
+  glass on every building, which also lights up Tudor's ground-floor
+  windows. The Georgian roofline corners became an eaves balustrade with
+  urns, and `EndPavilion` is unused.
+- **I (style slips and labs):** LAB-NEUR is exempted from the invariant-
+  material rule (`VERNACULAR_WALL_LABS`) so that it wears the set's wall.
+- **Checks:**
+  - Every placeable in all nine vernaculars at azimuths 45, 135, 225 and
+    315 (4,032 cells).
+  - Year-50 campuses in five vernaculars, at four views and two pitches, on
+    the canvas map: the canvas drew everything.
+  - Each stream also checked the SVG fallback, both footprint orientations
+    and three pitches.
+  - `docs/assets` regenerated with the fixed sheet.
+- **Left:**
+  - Modern's Founders Hall still wears a plain stair-core block on its
+    roof (Plan 74's apex part, which this plan did not touch).
+  - Cast shadows and label heights still read the main box for the taller
+    parts: the Field House vault, the Engineering wing and the domes.
 
 ---
 

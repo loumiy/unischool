@@ -2,7 +2,7 @@
 
 Every buildable asset in all nine vernaculars (the five founding sets, then the four a run unlocks), drawn by the game itself from the opening camera (azimuth 45°). Vernaculars run down each image and assets across it. Written by `npm run gallery:assets` (unischool/tools/assetGallery.mjs, Plan 75C); run it again after any change to how a building is drawn.
 
-108 assets in 25 images.
+111 assets in 27 images.
 
 ## Academic halls and the school signature halls
 
@@ -12,12 +12,13 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **Elm Hall**: HALL-01 · 7x5
 - **Oak Hall**: HALL-02 · 7x5
 - **Linden Hall**: HALL-03 · 7x5
+- **Maple Hall**: HALL-04 · 7x5
 
 ![Academic halls and the school signature halls](hall-2.jpg)
 
-- **Maple Hall**: HALL-04 · 7x5
 - **Chestnut Hall**: HALL-05 · 7x5
 - **Sycamore Hall**: HALL-06 · 7x5
+- **The Faculty Training Institute**: PROJ-TRAINING · 11x7
 - **Social Sciences & Humanities hall**: a hall given over to one school · 7x5
 
 ## Civic porticos: library, gallery, museum, the professional schools
@@ -36,32 +37,37 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **Arts & Media hall**: a hall given over to one school · 7x5
 - **Business hall**: a hall given over to one school · 7x5
 
-## Pavilions: dining, the student center, the grocery, the chapel, chapter houses
+## Pavilions: dining, the student center, the grocery, chapter houses
 
-![Pavilions: dining, the student center, the grocery, the chapel, chapter houses](pavilion-1.jpg)
+![Pavilions: dining, the student center, the grocery, chapter houses](pavilion-1.jpg)
 
 - **Experimental Economics Lab**: LAB-ECON · 5x3
 - **The Original Commons**: DINING-01 · 3x3
 - **Union Square Eatery**: DININGHALL-02 · 5x3
 - **Commons Cafeteria**: DININGHALL-03 · 5x4
 - **The Grand Table**: DININGHALL-04 · 7x5
+
+![Pavilions: dining, the student center, the grocery, chapter houses](pavilion-2.jpg)
+
 - **Old Well Commons**: DININGHALL-05 · 7x6
-
-![Pavilions: dining, the student center, the grocery, the chapel, chapter houses](pavilion-2.jpg)
-
 - **Waterside Commons**: DININGHALL-06 · 9x6
 - **Harborview Market**: DININGHALL-07 · 11x7
 - **Central Dining Pavilion**: DININGHALL-08 · 11x9
 - **Campus Grocery Store**: GROCERY-01 · 5x4
+
+![Pavilions: dining, the student center, the grocery, chapter houses](pavilion-3.jpg)
+
 - **Student Center**: SCTR-T1 · 5x4
 - **Student Union Expansion**: SCTR-T2 · 7x5
-
-![Pavilions: dining, the student center, the grocery, the chapel, chapter houses](pavilion-3.jpg)
-
 - **Health & Counseling Center**: HLTH-T1 · 3x3
 - **University Clinic**: HLTH-T2 · 5x5
-- **The Chapel**: AMENITY-CHAPEL · 5x3
 - **Alpha Beta Gamma House**: chapter house · 3x3
+
+## The chapel: a nave, a tower and a chancel, in each set
+
+![The chapel: a nave, a tower and a chancel, in each set](chapel.jpg)
+
+- **The Chapel**: AMENITY-CHAPEL · 5x3
 
 ## Residence halls
 
@@ -108,6 +114,7 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 ![Blocks: labs, clinics, the Medical Center](block-2.jpg)
 
 - **The Business School**: PROJ-BUSINESS · 9x8
+- **The Athletic Performance Complex**: PROJ-ATHLETICS-COMPLEX · 13x9
 - **Science hall**: a hall given over to one school · 7x5
 - **Health Science hall**: a hall given over to one school · 7x5
 - **Computer Science hall**: a hall given over to one school · 7x5
@@ -140,7 +147,7 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 ![Clear-span sheds: gyms, arenas, the natatorium, test halls, the studio](hangar-2.jpg)
 
 - **Gym & Fitness Center**: GYM · 5x5
-- **Athletics Complex**: REC-T2 · 7x5
+- **Sports & Recreation Complex**: REC-T2 · 7x5
 - **Arena**: ATH-ARENA · 11x9
 - **Natatorium**: ATH-NATATORIUM · 7x5
 - **Field House**: ATH-FIELDHOUSE · 9x6
@@ -202,13 +209,17 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **Electrical Engineering Labs**: under construction · 5x3
 - **Humanities Research Institute**: under construction · 5x3
 - **Neuroscience Labs**: under construction · 5x3
-- **Founders Hall**: under construction · 7x5
 
 ![One of each form under construction](construction-2.jpg)
 
+- **Founders Hall**: under construction · 7x5
 - **Meadow House**: under construction · 7x3
 - **Overlook Village**: under construction · 11x10
 - **Meridian Tower**: under construction · 7x7
 - **Swimming Pool**: under construction · 7x4
+
+![One of each form under construction](construction-3.jpg)
+
 - **Football Stadium**: under construction · 24x20
+- **The Chapel**: under construction · 5x3
 - **The Bell Tower**: under construction · 3x3
