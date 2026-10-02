@@ -336,7 +336,9 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
   'PROJ-GRADUATE': { storeys: dormStoreys(600), material: 'brickDark' },
   'PROJ-MUSEUM': { storeys: facilityStoreys('artGallery', 0), material: 'limestone' },
   'PROJ-LAW': { storeys: 3, material: 'limestone' },
-  'PROJ-BUSINESS': { storeys: 5, material: 'curtain' },
+  // An office tower over a podium (Plan 87A), as tall as it must be to read
+  // as one over a 9-tile podium.
+  'PROJ-BUSINESS': { storeys: 10, material: 'curtain' },
   // An academic hall a story lower than the halls, in the civic stone
   // rather than their brick.
   'PROJ-TRAINING': { storeys: 3, material: 'limestone' },
@@ -1667,8 +1669,12 @@ export const CANOPY_DEPTH = across(2.6);
 export const CANOPY_SLAB = up(0.45);
 export const CANOPY_POST = across(0.35);
 
-// The hospital: large `block` instances split into a tall ward slab and a
-// lower glazed public wing. Small ones (the 4x3 computing center) stay a box.
+// The hospital: the Medical Center's `block` splits into a tall ward slab
+// and a lower glazed public wing (Plan 87A: only the hospital; the size rule
+// alone drew the Business School as one). A small one would stay a box.
+export function isHospital(t: Buildable): boolean {
+  return t.facilityType === 'healthCenter' && motifOf(t) === 'block';
+}
 
 export const BLOCK_SPLIT_MIN_TILES = 7;
 
@@ -1686,6 +1692,45 @@ export const UNDERCROFT_STOREYS = 1;
 // The red cross on the slab's front.
 export const CROSS_ARM_METRES = 4.2;
 export const CROSS_BAR_METRES = 1.5;
+
+// The Business School (Plan 87A), after Wharton's Huntsman Hall and
+// Stanford's Knight Center: a podium across the footprint, a full-height
+// glazed atrium standing proud at the middle of its long front, a slimmer
+// office tower rising from the back, and a lit ticker running round the
+// podium's fascia. The front is the long +row (or +col) face.
+export const BUSINESS_SCHOOL_ID = 'PROJ-BUSINESS';
+export const BUSINESS_PODIUM_STOREYS = 3;
+export const BUSINESS_ATRIUM_STOREYS = 5;
+// The fascia over the podium's top floor that carries the ticker.
+export const TICKER_FASCIA = up(2.4);
+export interface BusinessSchoolPlan {
+  front: FaceDir;
+  // The ends of the long front, low x then high x.
+  sides: [FaceDir, FaceDir];
+  // The podium behind the atrium (the tower stands on it), and the two
+  // lower wings either side of the atrium, set back from its face.
+  back: ChapelBox; wings: [ChapelBox, ChapelBox]; atrium: ChapelBox; tower: ChapelBox;
+  // Screen units: the podium's walls (fascia included), the atrium's.
+  podiumHeight: number; atriumHeight: number;
+}
+export function businessSchoolPlan(p: ChapelBox): BusinessSchoolPlan {
+  const alongW = p.w >= p.h;
+  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  // x along the front, y from the back toward it.
+  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox => (alongW
+    ? { col: p.col + L * x0, row: p.row + S * y0, w: L * (x1 - x0), h: S * (y1 - y0) }
+    : { col: p.col + S * y0, row: p.row + L * x0, w: S * (y1 - y0), h: L * (x1 - x0) });
+  return {
+    front: alongW ? 'posRow' : 'posCol',
+    sides: alongW ? ['negCol', 'posCol'] : ['negRow', 'posRow'],
+    back: box(0, 1, 0, 0.6),
+    wings: [box(0, 0.34, 0.6, 0.92), box(0.66, 1, 0.6, 0.92)],
+    atrium: box(0.34, 0.66, 0.6, 1),
+    tower: box(0.3, 0.7, 0.12, 0.46),
+    podiumHeight: BUSINESS_PODIUM_STOREYS * STOREY + TICKER_FASCIA,
+    atriumHeight: BUSINESS_ATRIUM_STOREYS * STOREY + TICKER_FASCIA,
+  };
+}
 
 // The Triumphal Gate (landmarks.tsx), its passages cut through (Plan 75B):
 // the body inset from its plot, the great arch through the long faces and
