@@ -2549,6 +2549,467 @@ function villageTreeShadows(col: number, row: number, w: number, h: number): Pt[
   return VILLAGE_TREES.map(([u, v, species, scale]) => treeShadow(col + w * u, row + h * v, species, scale));
 }
 
+// --- The Research Park and the Graduate College (Plan 87B) ---------------
+// Both are drawn as several volumes on one plot, laid out along the
+// footprint's long (l) and short (s) axes so the plan keeps its shape when
+// the footprint is turned, and painted in depthOrder like the village.
+
+// A box on the plot from fractions of its long and short axes.
+function plotBox(col: number, row: number, w: number, h: number) {
+  const alongW = w >= h;
+  const L = Math.max(w, h); const S = Math.min(w, h);
+  return (l0: number, s0: number, l1: number, s1: number): DepthBox => (alongW
+    ? { col: col + L * l0, row: row + S * s0, w: L * (l1 - l0), h: S * (s1 - s0) }
+    : { col: col + S * s0, row: row + L * l0, w: S * (s1 - s0), h: L * (l1 - l0) });
+}
+
+// A volume's cast shadow on the motif's own lawn, kept inside the plot:
+// CampusMap's shadow pass already lies outside it, and a second layer there
+// would read as a darker band.
+function plotShadow(b: DepthBox, height: number, plot: DepthBox, key: string) {
+  const { dcol, drow } = shadowOffset(height);
+  const c0 = Math.max(plot.col, b.col + dcol); const c1 = Math.min(plot.col + plot.w, b.col + b.w + dcol);
+  const r0 = Math.max(plot.row, b.row + drow); const r1 = Math.min(plot.row + plot.h, b.row + b.h + drow);
+  if (c1 <= c0 || r1 <= r0) return null;
+  return <polygon key={key} className="campus-building-shadow" points={polyPoints(boxFaces(c0, r0, c1 - c0, r1 - r0, 0, 0).top)} />;
+}
+
+// The visible long walls of a box (its two faces along the ridge).
+function longWalls(f: BoxFaces, alongW: boolean): FaceDir[] {
+  const dirs: FaceDir[] = alongW ? ['negRow', 'posRow'] : ['negCol', 'posCol'];
+  return dirs.filter((d) => wallOf(f, d).visible);
+}
+
+const LAB_STEEL = '#9aa1a6';
+const LAB_LOUVRE = '#b9bfc2';
+const LAB_RIBBON_GLASS = 'rgba(52, 72, 84, 0.62)';
+const SIGN_FACE = '#3b4650';
+const SIGN_LETTER = 'rgba(244, 240, 228, 0.92)';
+type ParkPart =
+  | DepthBox & { kind: 'lab'; storeys: number; stacks: boolean; screen: boolean; ribbon: boolean }
+  | DepthBox & { kind: 'link'; storeys: number }
+  | DepthBox & { kind: 'tree'; species: 'canopy' | 'ornamental'; scale: number }
+  | DepthBox & { kind: 'planter' }
+  | DepthBox & { kind: 'sign' };
+
+// The Research Park (Plan 87B): four lab pavilions of different heights
+// round a landscaped court, joined by a glazed atrium and links, with rows
+// of fume stacks, a screened roof plant and ribbon windows, and a monument
+// sign at the gate. After Stanford Research Park and Cambridge Science Park.
+function ResearchPark({ col, row, w, h, pal, stone, paneShape, crest, plantTint }: {
+  col: number; row: number; w: number; h: number; pal: Palette; stone: StonePalette;
+  paneShape: WindowShape; crest: CrestPart; plantTint: string;
+}) {
+  const at = plotBox(col, row, w, h);
+  const alongW = w >= h;
+  const plot = { col, row, w, h };
+  const seen = visibleWalls();
+  const fronts: FaceDir[] = [seen.left, seen.right];
+  const lab = (l0: number, s0: number, l1: number, s1: number, storeys: number, extra: Partial<{ stacks: boolean; screen: boolean; ribbon: boolean }>) => (
+    { kind: 'lab' as const, ...at(l0, s0, l1, s1), storeys, stacks: false, screen: false, ribbon: false, ...extra });
+  const link = (l0: number, s0: number, l1: number, s1: number, storeys: number) => ({ kind: 'link' as const, ...at(l0, s0, l1, s1), storeys });
+  const tree = (l: number, s: number, species: 'canopy' | 'ornamental', scale: number) => {
+    const b = at(l, s, l, s);
+    return { kind: 'tree' as const, col: b.col - 0.5, row: b.row - 0.5, w: 1, h: 1, species, scale };
+  };
+  const planter = (l: number, s: number) => {
+    const b = at(l, s, l, s); const r = across(1.6);
+    return { kind: 'planter' as const, col: b.col - r, row: b.row - r, w: r * 2, h: r * 2 };
+  };
+  // The monument sign stands across the gate's line, its faces to the road.
+  const signLen = across(8); const signDepth = across(1.0);
+  const sb = at(0.645, 0.955, 0.645, 0.955);
+  const sign = { kind: 'sign' as const, ...(alongW
+    ? { col: sb.col - signLen / 2, row: sb.row - signDepth / 2, w: signLen, h: signDepth }
+    : { col: sb.col - signDepth / 2, row: sb.row - signLen / 2, w: signDepth, h: signLen }) };
+  const parts: ParkPart[] = [
+    lab(0.03, 0.05, 0.30, 0.47, 4, { stacks: true, ribbon: true }),
+    link(0.30, 0.12, 0.50, 0.38, 2),
+    lab(0.50, 0.04, 0.79, 0.43, 3, { screen: true }),
+    link(0.79, 0.15, 0.84, 0.32, 2),
+    lab(0.84, 0.08, 0.97, 0.90, 2, { ribbon: true }),
+    link(0.11, 0.47, 0.21, 0.61, 1),
+    lab(0.04, 0.61, 0.28, 0.94, 3, {}),
+    tree(0.37, 0.60, 'canopy', 0.95), tree(0.75, 0.58, 'canopy', 0.8),
+    tree(0.38, 0.88, 'canopy', 0.75), tree(0.78, 0.84, 'canopy', 1.0),
+    planter(0.47, 0.47), planter(0.62, 0.47),
+    sign,
+  ];
+  const masses = parts.filter((p): p is Extract<ParkPart, { storeys: number }> => p.kind === 'lab' || p.kind === 'link');
+  const flat = (b: DepthBox, cls: string, key: string) => <polygon key={key} className={cls} points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} />;
+
+  const labNode = (p: Extract<ParkPart, { kind: 'lab' }>, key: string) => {
+    const H = p.storeys * STOREY;
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, H);
+    const lines = Array.from({ length: p.storeys - 1 }, (_, i) => (i + 1) * STOREY);
+    const shape: WindowShape = p.ribbon ? 'ribbon' : paneShape;
+    const glass = p.ribbon ? LAB_RIBBON_GLASS : stone.glass;
+    const face = (o: Pt, a: Pt, span: number, k: string) => (
+      <g key={k}>
+        {windows(o, a, H, span, rankSills(p.storeys), across(2.2), k, shape, glass)}
+        <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
+        <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={stone.trim !== NO_STONE ? stone.trim : undefined} />
+      </g>
+    );
+    // Lab exhaust: a row of tall fan stacks on a plinth down the roof's middle.
+    const stacks = () => {
+      const pl = Math.max(p.w, p.h); const n = Math.max(3, Math.round(pl / across(5.5)));
+      const r = across(0.75); const z0 = H + up(1.2);
+      const posts = Array.from({ length: n }, (_, i) => {
+        const u = (i + 0.5) / n * 0.8 + 0.1;
+        const cc = p.w >= p.h ? p.col + p.w * u : p.col + p.w * 0.5;
+        const cr = p.w >= p.h ? p.row + p.h * 0.5 : p.row + p.h * u;
+        return { col: cc - r, row: cr - r, w: r * 2, h: r * 2, cc, cr };
+      });
+      const bed = p.w >= p.h
+        ? boxFaces(p.col + p.w * 0.08, p.row + p.h * 0.5 - across(1.4), p.w * 0.84, across(2.8), H, up(1.2))
+        : boxFaces(p.col + p.w * 0.5 - across(1.4), p.row + p.h * 0.08, across(2.8), p.h * 0.84, H, up(1.2));
+      return (
+        <>
+          {sideFaces(bed, shade(LAB_STEEL, 0.8), shade(LAB_STEEL, 0.66))}
+          <polygon points={polyPoints(bed.top)} fill={shade(LAB_STEEL, 0.9)} />
+          {depthOrder(posts).map((s, i) => (
+            <g key={`fs${i}`}>
+              <Cylinder cc={s.cc} cr={s.cr} r={r} z0={z0} z1={z0 + up(7.5)} fill={LAB_STEEL} />
+              <Cylinder cc={s.cc} cr={s.cr} r={r * 0.55} z0={z0 + up(7.5)} z1={z0 + up(9.5)} fill={shade(LAB_STEEL, 0.62)} />
+            </g>
+          ))}
+        </>
+      );
+    };
+    // Rooftop plant behind a louvred screen, its fans showing from above.
+    const screen = () => {
+      const sc = p.col + p.w * 0.2; const sr = p.row + p.h * 0.22;
+      const sw = p.w * 0.6; const sh = p.h * 0.56; const rise = up(3.6);
+      const sf = boxFaces(sc, sr, sw, sh, H, rise);
+      const fanR = Math.min(sw, sh) * 0.2;
+      const fans = (sw >= sh ? [0.3, 0.7].map((u) => [sc + sw * u, sr + sh / 2]) : [0.3, 0.7].map((u) => [sc + sw / 2, sr + sh * u]));
+      const louvres = (o: Pt, a: Pt, k: string) => [0.2, 0.4, 0.6, 0.8].map((v) => {
+        const p0 = facePoint(o, a, rise, 0, v); const p1 = facePoint(o, a, rise, 1, v);
+        return <line key={`${k}${v}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(LAB_LOUVRE, 0.62)} strokeWidth={0.9} />;
+      });
+      return (
+        <>
+          <polygon points={polyPoints(sf.top)} fill={shade(LAB_STEEL, 0.42)} />
+          {fans.map(([fc, fr], i) => (
+            <g key={`fan${i}`}>
+              <polygon points={polyPoints(projectedCircle(fc, fr, fanR, 20).map((q) => lift(q, H + rise)))} fill={shade(LAB_STEEL, 0.75)} />
+              <polygon points={polyPoints(projectedCircle(fc, fr, fanR * 0.7, 20).map((q) => lift(q, H + rise)))} fill={shade(LAB_STEEL, 0.3)} />
+              {(() => { const a = lift(project(fc - fanR * 0.7, fr), H + rise); const b = lift(project(fc + fanR * 0.7, fr), H + rise);
+                const c = lift(project(fc, fr - fanR * 0.7), H + rise); const d = lift(project(fc, fr + fanR * 0.7), H + rise);
+                return <><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={shade(LAB_STEEL, 0.8)} strokeWidth={0.8} /><line x1={c.x} y1={c.y} x2={d.x} y2={d.y} stroke={shade(LAB_STEEL, 0.8)} strokeWidth={0.8} /></>; })()}
+            </g>
+          ))}
+          {sideFaces(sf, LAB_LOUVRE, shade(LAB_LOUVRE, 0.8))}
+          {louvres(sf.D, sf.C, 'll')}
+          {louvres(sf.C, sf.B, 'lr')}
+        </>
+      );
+    };
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {floorCourses(f.D, f.C, H, lines, `${key}l`)}
+        {floorCourses(f.C, f.B, H, lines, `${key}r`)}
+        {face(f.D, f.C, f.spanLeft, `${key}fl`)}
+        {face(f.C, f.B, f.spanRight, `${key}fr`)}
+        <polygon points={polyPoints(f.top)} fill={pal.roof} />
+        <Crest crest={crest} col={p.col} row={p.row} w={p.w} h={p.h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
+        {p.stacks && stacks()}
+        {p.screen && screen()}
+      </g>
+    );
+  };
+
+  const linkNode = (p: Extract<ParkPart, { kind: 'link' }>, key: string) => {
+    const H = p.storeys * STOREY + up(1.2);
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, H);
+    const lines = Array.from({ length: p.storeys - 1 }, (_, i) => (i + 1) * STOREY);
+    const roof = boxFaces(p.col, p.row, p.w, p.h, H, 0);
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        <CurtainWall origin={f.D} along={f.C} wallHeight={H} spanTiles={f.spanLeft} from={BASE_COURSE} to={H - EAVES_COURSE} floors={lines} id={`${key}l`} />
+        <CurtainWall origin={f.C} along={f.B} wallHeight={H} spanTiles={f.spanRight} from={BASE_COURSE} to={H - EAVES_COURSE} floors={lines} id={`${key}r`} />
+        {/* A glass roof on the atrium: rooflight panes between steel ribs. */}
+        <polygon points={polyPoints(roof.top)} fill={shade(LAB_STEEL, 0.85)} />
+        <polygon className="iso-curtain-glass" points={polyPoints(boxFaces(p.col + p.w * 0.08, p.row + p.h * 0.08, p.w * 0.84, p.h * 0.84, H, 0).top)} />
+        {[0.3, 0.5, 0.7].map((u) => {
+          const a = p.w >= p.h ? lift(project(p.col + p.w * u, p.row + p.h * 0.08), H) : lift(project(p.col + p.w * 0.08, p.row + p.h * u), H);
+          const b = p.w >= p.h ? lift(project(p.col + p.w * u, p.row + p.h * 0.92), H) : lift(project(p.col + p.w * 0.92, p.row + p.h * u), H);
+          return <line key={`rib${u}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={shade(LAB_STEEL, 1.15)} strokeWidth={1} />;
+        })}
+      </g>
+    );
+  };
+
+  const signNode = (p: DepthBox, key: string) => {
+    const rise = up(2.9);
+    const plinth = boxFaces(p.col - across(0.4), p.row - across(0.4), p.w + across(0.8), p.h + across(0.8), 0, up(0.4));
+    const f = boxFaces(p.col, p.row, p.w, p.h, up(0.4), rise);
+    const cap = boxFaces(p.col - across(0.15), p.row - across(0.15), p.w + across(0.3), p.h + across(0.3), up(0.4) + rise, up(0.35));
+    const stoneTone = stone.trim !== NO_STONE ? stone.trim : '#d8d2c2';
+    // Lettering-like marks on each long face: a logo block and two lines of words.
+    const letters = longWalls(f, p.w >= p.h).map((dir) => {
+      const wl = wallOf(f, dir);
+      const words: Array<[number, number, number]> = [
+        [0.26, 0.48, 0.62], [0.52, 0.62, 0.62], [0.66, 0.86, 0.62],
+        [0.26, 0.42, 0.34], [0.46, 0.70, 0.34],
+      ];
+      return (
+        <g key={`${key}${dir}`}>
+          <polygon points={polyPoints(wallQuad(wl.origin, wl.along, rise, 0.08, 0.2, rise * 0.25, rise * 0.78))} fill="#c7a540" />
+          {words.map(([u0, u1, v], i) => (
+            <polygon key={i} points={polyPoints(wallQuad(wl.origin, wl.along, rise, u0, u1, rise * v, rise * (v + (i < 3 ? 0.17 : 0.1))))} fill={SIGN_LETTER} />
+          ))}
+        </g>
+      );
+    });
+    return (
+      <g key={key}>
+        <polygon className="ground-bed" points={polyPoints(boxFaces(p.col - across(1.2), p.row - across(1.2), p.w + across(2.4), p.h + across(2.4), 0, 0).top)} />
+        {sideFaces(plinth, shade(stoneTone, 0.9), shade(stoneTone, 0.74))}
+        {sideFaces(f, SIGN_FACE, shade(SIGN_FACE, 0.82))}
+        {letters}
+        {sideFaces(cap, shade(stoneTone, 0.95), shade(stoneTone, 0.78))}
+        <polygon points={polyPoints(cap.top)} fill={stoneTone} />
+      </g>
+    );
+  };
+
+  const planterNode = (p: DepthBox, key: string) => {
+    const cc = p.col + p.w / 2; const cr = p.row + p.h / 2; const r = p.w / 2;
+    return (
+      <g key={key}>
+        <Cylinder cc={cc} cr={cr} r={r} z0={0} z1={up(0.9)} fill={stone.trim !== NO_STONE ? shade(stone.trim, 0.85) : '#bdb6a6'} />
+        <polygon points={polyPoints(projectedCircle(cc, cr, r * 0.82, 18).map((q) => lift(q, up(0.9))))} fill="#55863f" />
+        <polygon points={polyPoints(projectedCircle(cc - r * 0.15, cr - r * 0.15, r * 0.5, 14).map((q) => lift(q, up(1.6))))} fill="#6b9a4c" />
+      </g>
+    );
+  };
+
+  return (
+    <>
+      {/* The court: lawn, a paved forecourt at the atrium, and the walk from the gate. */}
+      <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
+      {flat(at(0.30, 0.38, 0.84, 0.52), 'ground-walk-fill', 'plaza')}
+      {flat(at(0.53, 0.52, 0.58, 1), 'ground-walk-fill', 'gate')}
+      {flat(at(0.28, 0.70, 0.84, 0.745), 'ground-walk-fill', 'cross')}
+      {flat(at(0.13, 0.94, 0.19, 1), 'ground-walk-fill', 'dwalk')}
+      {masses.map((m, i) => plotShadow(m, m.storeys * STOREY, plot, `sh${i}`))}
+      {parts.filter((p) => p.kind === 'tree').map((p, i) => (
+        <polygon key={`ts${i}`} className="campus-tree-shadow" points={polyPoints(treeShadow(p.col + 0.5, p.row + 0.5, p.species, p.scale))} />
+      ))}
+      {depthOrder(parts).map((p, i) => {
+        switch (p.kind) {
+          case 'lab': return labNode(p, `lab${i}`);
+          case 'link': return linkNode(p, `lk${i}`);
+          case 'tree': return <TreeAt key={`t${i}`} col={p.col + 0.5} row={p.row + 0.5} species={p.species} scale={p.scale} shadow={false} />;
+          case 'planter': return planterNode(p, `pl${i}`);
+          case 'sign': return signNode(p, `sg${i}`);
+        }
+      })}
+    </>
+  );
+}
+
+// The Graduate College (Plan 87B): four gabled ranges round an open quad,
+// entered through an arch in the front range, with a tall tower at one
+// corner crowned in the vernacular's way: Princeton's Graduate College and
+// its Cleveland Tower in Collegiate Gothic, a cupola in Georgian and
+// Classical, a belfry in Mission, a plain stair tower in Modern.
+function GraduateCollege({ col, row, w, h, H, ridge, vernacular, pal, stone, paneShape, lights }: {
+  col: number; row: number; w: number; h: number; H: number; ridge: number; vernacular: Vernacular;
+  pal: Palette; stone: StonePalette; paneShape: WindowShape; lights: 1 | 2;
+}) {
+  const at = plotBox(col, row, w, h);
+  const alongW = w >= h;
+  const L = Math.max(w, h); const S = Math.min(w, h);
+  const plot = { col, row, w, h };
+  const parts = partsFor(vernacular);
+  const trim = hasTrim(vernacular);
+  const mansard = isMansard(vernacular);
+  const apex = apexPartOf(vernacular);
+  const seen = visibleWalls();
+  const fronts: FaceDir[] = [seen.left, seen.right];
+  // Range depth and tower plan, as fractions of each axis.
+  const d = across(14); const T = across(15.5);
+  const dl = d / L; const ds = d / S; const tl = T / L; const ts = T / S;
+  const courses = Array.from({ length: Math.round(H / STOREY) - 1 }, (_, i) => (i + 1) * STOREY);
+  const sills = rankSills(Math.round(H / STOREY));
+  type Range = DepthBox & { kind: 'range'; ridgeAlongW: boolean; arch: boolean };
+  type Tower = DepthBox & { kind: 'tower' };
+  type Tree = DepthBox & { kind: 'tree' };
+  const range = (l0: number, s0: number, l1: number, s1: number, longRange: boolean, arch = false): Range => (
+    { kind: 'range', ...at(l0, s0, l1, s1), ridgeAlongW: longRange === alongW, arch });
+  const tb = at(0.5, 0.5, 0.5, 0.5);
+  const items: Array<Range | Tower | Tree> = [
+    range(0, 0, 1, ds, true),                          // the back range, full length
+    range(0, 1 - ds, 1 - tl, 1, true, true),            // the front range, with the gate
+    range(0, ds, dl, 1 - ds, false),                    // the two side ranges
+    range(1 - dl, ds, 1, 1 - ts, false),
+    { kind: 'tower', ...at(1 - tl, 1 - ts, 1, 1) },
+    { kind: 'tree', col: tb.col - 0.5, row: tb.row - 0.5, w: 1, h: 1 },
+  ];
+  const court = at(dl, ds, 1 - dl, 1 - ds);
+  const flat = (b: DepthBox, cls: string, key: string) => <polygon key={key} className={cls} points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} />;
+  const walk = across(2.6) / 2;
+
+  const rangeNode = (p: Range, key: string) => {
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, H);
+    const ra = p.ridgeAlongW;
+    const rs = lift(ra ? project(p.col, p.row + p.h / 2) : project(p.col + p.w / 2, p.row), H + ridge);
+    const re = lift(ra ? project(p.col + p.w, p.row + p.h / 2) : project(p.col + p.w / 2, p.row + p.h), H + ridge);
+    // The gate: a tall arch through the middle of the front range, on both its long faces.
+    const gateU = 0.5; const gateHalf = across(2.4) / Math.max(p.w, p.h);
+    const gateTop = Math.min(H * 0.55, STOREY * 1.6);
+    const reserve = p.arch ? { u0: gateU - gateHalf * 1.6, u1: gateU + gateHalf * 1.6, v0: 0, v1: (gateTop + up(1)) / H } : undefined;
+    const face = (o: Pt, a: Pt, span: number, dir: FaceDir, k: string) => {
+      const long = ra ? dir === 'negRow' || dir === 'posRow' : dir === 'negCol' || dir === 'posCol';
+      return (
+        <g key={k}>
+          {parts.timbering && <Timbering origin={o} along={a} wallHeight={H} span={span} from={STOREY} to={H} floors={courses} />}
+          {trim && floorCourses(o, a, H, courses, k)}
+          {trim && <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />}
+          {trim && <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />}
+          {windows(o, a, H, span, sills, across(1.6), `${k}w`, paneShape, stone.glass, long ? reserve : undefined, lights)}
+          {p.arch && long && (
+            <>
+              <polygon className="iso-cornice" points={polyPoints(windowOutline('arched', gateU - gateHalf * 1.25, gateU + gateHalf * 1.25, 0, (gateTop + up(0.9)) / H).map(([u, v]) => facePoint(o, a, H, u, v)))} />
+              <polygon className="iso-undercroft" points={polyPoints(windowOutline(paneShape === 'lancet' ? 'lancet' : 'arched', gateU - gateHalf, gateU + gateHalf, 0, gateTop / H).map(([u, v]) => facePoint(o, a, H, u, v)))} />
+            </>
+          )}
+          {eavesOf(vernacular) > 0 && ridge > 0 && <WallBand origin={o} along={a} wallHeight={H} from={H - up(0.9)} to={H} className="iso-eaves-shadow" />}
+        </g>
+      );
+    };
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {face(f.D, f.C, f.spanLeft, f.dir.CD, `${key}l`)}
+        {face(f.C, f.B, f.spanRight, f.dir.BC, `${key}r`)}
+        {ridge > 0 && mansard ? (
+          <MansardRoof col={p.col} row={p.row} w={p.w} h={p.h} base={H} rise={ridge} pal={pal} stone={stone} />
+        ) : ridge > 0 ? (
+          <>
+            {gableSlopes(f, ra, rs, re, pal)}
+            {gableEnds(f, ra, rs, re, pal)}
+            <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+            {parts.chimneys && [0.25, 0.75].map((u, i) => {
+              const cc = ra ? p.col + p.w * u : p.col + p.w / 2;
+              const cr = ra ? p.row + p.h / 2 : p.row + p.h * u;
+              const plan = across(1.3);
+              return <Chimney key={`ch${i}`} cc={cc} cr={cr} base={H + ridge * (1 - plan / Math.min(p.w, p.h))} top={H + ridge + up(2.0)} pal={pal} stone={stone} />;
+            })}
+          </>
+        ) : (
+          <>
+            <polygon points={polyPoints(f.top)} fill={pal.roof} />
+            {fronts.map((dir) => <CrestCoping key={dir} col={p.col} row={p.row} w={p.w} h={p.h} base={H} outward={dir} fill={trim ? stone.trim : shade(pal.wall.posRow, 1.1)} />)}
+          </>
+        )}
+      </g>
+    );
+  };
+
+  const towerNode = (p: DepthBox, key: string) => {
+    // How far the shaft rises past the ranges before its crown.
+    const crowned = apex === 'cupola' || apex === 'dome' || apex === 'belvedere' || apex === 'pavilionTower' || apex === 'ziggurat';
+    const gothic = apex === 'spire' || apex === 'gatehouse';
+    const TH = H + ridge + (gothic ? STOREY * 5.6 : apex === 'campanile' ? STOREY * 3.4 : apex === 'core' ? STOREY * 3.6 : STOREY * 3.2);
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, TH);
+    const ranks = Math.max(1, Math.floor((TH - STOREY * 0.5) / STOREY));
+    const tsills = rankSills(ranks);
+    const towerShape: WindowShape = gothic ? 'lancet' : paneShape === 'ribbon' ? 'rect' : paneShape;
+    const face = (o: Pt, a: Pt, span: number, k: string) => (
+      <g key={k}>
+        {parts.timbering && <Timbering origin={o} along={a} wallHeight={TH} span={span} from={STOREY} to={H} floors={courses} />}
+        {apex === 'core'
+          ? <CurtainWall origin={o} along={a} wallHeight={TH} spanTiles={span} from={BASE_COURSE} to={TH - EAVES_COURSE * 2} floors={[]} id={k} u0={0.42} u1={0.58} />
+          : windows(o, a, TH, span, tsills.filter((v) => v < TH - STOREY * (gothic ? 2.2 : 1)), across(1.4), k, towerShape, stone.glass)}
+        {trim && <WallBand origin={o} along={a} wallHeight={TH} from={0} to={BASE_COURSE} className="iso-plinth" />}
+        {trim && <WallBand origin={o} along={a} wallHeight={TH} from={H - EAVES_COURSE} to={H} className="iso-course" />}
+        {trim && <WallBand origin={o} along={a} wallHeight={TH} from={TH - CORNICE} to={TH} className="iso-cornice" />}
+        {/* Collegiate Gothic's belfry stage: a pair of tall traceried lancets a face. */}
+        {gothic && [[0.18, 0.46], [0.54, 0.82]].map(([u0, u1]) => (
+          <polygon key={`bl${u0}`} className="iso-undercroft"
+            points={polyPoints(windowOutline('lancet', u0, u1, (TH - STOREY * 2.0) / TH, (TH - CORNICE * 1.4) / TH).map(([u, v]) => facePoint(o, a, TH, u, v)))} />
+        ))}
+        {apex === 'campanile' && [[0.14, 0.46], [0.54, 0.86]].map(([u0, u1]) => (
+          <polygon key={`bf${u0}`} className="iso-undercroft"
+            points={polyPoints(windowOutline('arched', u0, u1, (TH - STOREY * 1.25) / TH, (TH - CORNICE * 1.2) / TH).map(([u, v]) => facePoint(o, a, TH, u, v)))} />
+        ))}
+      </g>
+    );
+    // Gothic: a crenellated parapet between four pinnacled corner turrets.
+    const turrets = () => {
+      const tp = p.w * 0.2; const rise = up(4.5);
+      const boxes = depthOrder([
+        { col: p.col, row: p.row, w: tp, h: tp }, { col: p.col + p.w - tp, row: p.row, w: tp, h: tp },
+        { col: p.col, row: p.row + p.h - tp, w: tp, h: tp }, { col: p.col + p.w - tp, row: p.row + p.h - tp, w: tp, h: tp },
+      ]);
+      const turret = (b: DepthBox, i: number) => {
+        const tf = boxFaces(b.col, b.row, b.w, b.h, TH, rise);
+        return (
+          <g key={`tu${i}`}>
+            <polygon points={polyPoints(tf.left)} fill={pal.wallLeft} />
+            <polygon points={polyPoints(tf.right)} fill={pal.wallRight} />
+            {trim && <WallBand origin={tf.D} along={tf.C} wallHeight={rise} from={rise - CORNICE * 0.8} to={rise} className="iso-cornice" />}
+            {trim && <WallBand origin={tf.C} along={tf.B} wallHeight={rise} from={rise - CORNICE * 0.8} to={rise} className="iso-cornice" />}
+            {pyramid(b.col, b.row, b.w, TH + rise, up(5.5), pal.roof).faces}
+          </g>
+        );
+      };
+      return (
+        <>
+          {turret(boxes[0], 0)}
+          {fronts.map((dir) => <Merlons key={dir} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} outward={dir} pal={pal} block={across(1.4)} gap={across(1.0)} rise={up(1.5)} />)}
+          {boxes.slice(1).map((b, i) => turret(b, i + 1))}
+        </>
+      );
+    };
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {face(f.D, f.C, f.spanLeft, `${key}l`)}
+        {face(f.C, f.B, f.spanRight, `${key}r`)}
+        <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+        {gothic && turrets()}
+        {apex === 'campanile' && pyramid(p.col - across(0.6), p.row - across(0.6), p.w + across(1.2), TH, up(4.2), pal.roof).faces}
+        {apex === 'core' && fronts.map((dir) => <CrestCoping key={dir} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} outward={dir} fill={trim ? stone.trim : shade(pal.wall.posRow, 1.1)} />)}
+        {crowned && (apex === 'cupola' || apex === 'dome') && (
+          <ClockTower stone={stone} apex="cupola" gilded={hasGilt(vernacular)} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />
+        )}
+        {apex === 'belvedere' && <Belvedere stone={stone} pal={pal} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />}
+        {apex === 'pavilionTower' && <PavilionTower stone={stone} pal={pal} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />}
+        {apex === 'ziggurat' && <Ziggurat stone={stone} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />}
+      </g>
+    );
+  };
+
+  return (
+    <>
+      {/* The quad: lawn, a cross of walks meeting at a round bed, and the
+          way in from the gate. */}
+      <polygon className="ground-lawn" points={polyPoints(boxFaces(court.col, court.row, court.w, court.h, 0, 0).top)} />
+      {[0.3, 0.7].map((v) => flat(at(dl, v - 0.03, 1 - dl, v + 0.03), 'ground-mow', `mw${v}`))}
+      {flat(alongW ? { col: tb.col - walk, row: court.row, w: walk * 2, h: court.h } : { col: court.col, row: tb.row - walk, w: court.w, h: walk * 2 }, 'ground-walk-fill', 'wl')}
+      {flat(alongW ? { col: court.col, row: tb.row - walk, w: court.w, h: walk * 2 } : { col: tb.col - walk, row: court.row, w: walk * 2, h: court.h }, 'ground-walk-fill', 'ws')}
+      <polygon className="ground-walk-fill" points={polyPoints(projectedCircle(tb.col, tb.row, across(6.5), 28))} />
+      <polygon className="ground-lawn" points={polyPoints(projectedCircle(tb.col, tb.row, across(4.4), 28))} />
+      {items.filter((it) => it.kind !== 'tree').map((it, i) => plotShadow(it, it.kind === 'tower' ? H * 2 : H, plot, `sh${i}`))}
+      <polygon className="campus-tree-shadow" points={polyPoints(treeShadow(tb.col, tb.row, 'canopy', 0.8))} />
+      {depthOrder(items).map((it, i) => (it.kind === 'range' ? rangeNode(it, `rg${i}`)
+        : it.kind === 'tower' ? towerNode(it, `tw${i}`)
+          : <TreeAt key={`t${i}`} col={it.col + 0.5} row={it.row + 0.5} species="canopy" scale={0.8} shadow={false} />))}
+    </>
+  );
+}
+
 // A chapter house's Greek letters (ΑΒΓ), on a pedimented parapet above the
 // wall: a one-story chapter house has no room under its eaves. Sized off
 // the wall, not the (domestic, narrow) door.
@@ -3537,6 +3998,18 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
 
   if (motif === 'chapel' && !site) {
     return <Chapel t={t} p={p} vernacular={vernacular} pal={pal} stone={stone} wall={shade(material.wall, wallShadeOf(t))} />;
+  }
+
+  // The Research Park and the Graduate College lay out their own plots
+  // (Plan 87B); a site is the plain frame below.
+  if (!site && t.id === 'PROJ-RESEARCH-PARK') {
+    return <ResearchPark col={col} row={row} w={w} h={h} pal={pal} stone={stone} paneShape={paneShape} crest={crest} plantTint={plantTint} />;
+  }
+  if (!site && t.id === 'PROJ-GRADUATE') {
+    return (
+      <GraduateCollege col={col} row={row} w={w} h={h} H={H} ridge={ridge > 0 ? Math.max(ridge, up(3.5)) : 0}
+        vernacular={vernacular} pal={pal} stone={stone} paneShape={paneShape} lights={lights} />
+    );
   }
 
   if (motif === 'village') {
