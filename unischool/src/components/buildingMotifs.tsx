@@ -5,6 +5,7 @@ import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import Landmark from './landmarks';
+import LibraryMass from './libraryMotif';
 import { ColorsContext } from './mapOccasions';
 import {
   labFeatureOf, type LabFeature, type Motif,
@@ -4712,6 +4713,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         vernacular={vernacular} pal={pal} stone={stone} paneShape={paneShape} lights={lights} />
     );
   }
+  // The library draws itself (Plan 87F, libraryMotif.tsx); its site keeps
+  // the common frame below.
+  if (t.facilityType === 'library' && !site) {
+    return <LibraryMass t={t} p={p} material={material} vernacular={vernacular} pal={pal} stone={stone} H={H} extending={inFlight > 0} snow={snow} />;
+  }
 
   if (motif === 'village') {
     // A plot: lawn, walks, and houses and trees in one depth-ordered list.
@@ -6121,3 +6127,11 @@ export function sameMotif(a: Parameters<typeof BuildingMotif>[0], b: Parameters<
 
 // Color lives in buildingSpec.ts's MATERIALS (see materialOf).
 export { materialOf } from './buildingSpec';
+
+// The parts the library draws itself from (Plan 87F, libraryMotif.tsx).
+export {
+  Arcade, BellGable, CurtainWall, Door, EavesBrackets, EntranceSteps, GiltFinial, HippedRoof, LEAD,
+  MansardRoof, Merlons, Balustrade, PavilionTower, Piers, StageOpenings, TowerShaft, WallBand,
+  againstWall, arcadeHeight, backSlopesFirst, gableEnds, gableSlopes, nearRing, opposite, outsideWall, outwardOf,
+  pyramid, ridgeChimneys, sideFaces, wallSpan, windows, Cylinder,
+};
