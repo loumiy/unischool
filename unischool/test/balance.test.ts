@@ -12,7 +12,7 @@
 //   3. Food: the grocery and the towers' shops count for at most 40% of
 //      what the students need to eat, and a demand never asks for a grocery
 //      that would add nothing.
-//   4. Fitness: the Athletics Complex feeds health and sits with the fitness
+//   4. Fitness: the Sports & Recreation Complex feeds health and sits with the fitness
 //      chain under Health in the build menu; the Recreation Center stays
 //      social.
 //
@@ -130,11 +130,12 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   assert(tower.effects!.upkeepPerWeek === TOWER_RETAIL_UPKEEP_PER_WEEK, 'and every tower carries it');
 
   // A save written before reads the new terms: the old per-served upkeep
-  // and a social Athletics Complex are refreshed from the catalog.
+  // and a social Sports & Recreation Complex are refreshed from the catalog.
   const saved = createInitialState('Saved');
   const complex = node(saved, REC_CENTER_TIER2_ID);
   complex.status = 'done';
   complex.effects = { ...complex.effects!, satisfactionAttribute: 'social', upkeepPerWeek: 3_850 };
+  complex.name = 'Athletics Complex';
   const oldHall = node(saved, 'DINING-01');
   oldHall.status = 'done';
   oldHall.floorsAdded = 1;
@@ -142,8 +143,9 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   const read = readSave(JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: saved }));
   assert('state' in read, 'the save reads');
   if ('state' in read) {
-    assert(node(read.state, REC_CENTER_TIER2_ID).effects!.satisfactionAttribute === 'health', 'a saved Athletics Complex feeds health');
+    assert(node(read.state, REC_CENTER_TIER2_ID).effects!.satisfactionAttribute === 'health', 'a saved Sports & Recreation Complex feeds health');
     assert(node(read.state, REC_CENTER_TIER2_ID).effects!.upkeepPerWeek === priceUpkeep(complex.cost), 'and is kept at its price\'s share');
+    assert(node(read.state, REC_CENTER_TIER2_ID).name === 'Sports & Recreation Complex', 'and takes its new name (Plan 87C)');
     assert(node(read.state, 'DINING-01').effects!.upkeepPerWeek === priceUpkeep(oldHall.cost + Math.round(oldHall.cost * EXTENSION_COST_SHARE)), 'a saved hall with a story added is kept at the share of both');
   }
 }
@@ -219,10 +221,10 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   const s = createInitialState('Fitness');
   const complex = node(s, REC_CENTER_TIER2_ID);
   const rec = node(s, 'REC-T1');
-  assert(complex.effects!.satisfactionAttribute === 'health', 'the Athletics Complex feeds health');
+  assert(complex.effects!.satisfactionAttribute === 'health', 'the Sports & Recreation Complex feeds health');
   assert(rec.effects!.satisfactionAttribute === 'social', 'the Recreation Center stays social');
   for (const id of ['GYM', 'POOL', 'TENNIS-COURTS', REC_CENTER_TIER2_ID, 'REC-T1']) node(s, id).status = 'available';
-  assert(['GYM', 'POOL', 'TENNIS-COURTS', REC_CENTER_TIER2_ID].every((id) => buildTabOf(s, id) === 'health'), 'the build menu files the fitness chain, the Athletics Complex with it, under Health');
+  assert(['GYM', 'POOL', 'TENNIS-COURTS', REC_CENTER_TIER2_ID].every((id) => buildTabOf(s, id) === 'health'), 'the build menu files the fitness chain, the Sports & Recreation Complex with it, under Health');
   assert(buildTabOf(s, 'REC-T1') === 'social', 'and the Recreation Center under Social');
   s.students.classes = { freshman: 1_000, sophomore: 1_000, junior: 1_000, senior: 1_000 };
   const health = servedPopulationFor(s, 'health');
