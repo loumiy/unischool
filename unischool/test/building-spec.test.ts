@@ -28,7 +28,7 @@ import {
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
   VERNACULAR_CHOICES, BONUS_VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS, IMPLEMENTED_CREST_PARTS,
-  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, crestOf, signifierOf, labFeatureOf, signatureOf, gothicCivicOf,
+  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, VERNACULAR_WALL_LABS, crestOf, signifierOf, labFeatureOf, signatureOf, gothicCivicOf,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf, CHAPELS, chapelPlan,
   storeysOf, wallHeightOf, wallShadeOf,
@@ -929,7 +929,8 @@ console.log('campus scale and building spec');
   // natatorium and the residential tower) and clinical (the teaching
   // hospital) — and note two of the three ALSO serve varying motifs, so
   // "recolour everything the halls don't use" is not a safe shortcut either.
-  const invariantBuildings = CATALOGUE.filter((t) => !variesByVernacular(motifOf(t)));
+  // Bar the labs that wear the vernacular's wall by design (Plan 87I).
+  const invariantBuildings = CATALOGUE.filter((t) => !variesByVernacular(motifOf(t)) && !VERNACULAR_WALL_LABS.includes(t.id));
   assert(invariantBuildings.length > 0, 'the catalog has invariant buildings to check');
   for (const t of invariantBuildings) {
     const base = materialOf(t, 'georgian');
@@ -938,6 +939,13 @@ console.log('campus scale and building spec');
       assert(here.wall === base.wall && here.roof === base.roof,
         `${t.id} (${motifOf(t)}) is the same material in '${vname}' as in 'georgian' `
         + `(got ${here.wall}/${here.roof}, expected ${base.wall}/${base.roof})`);
+    }
+  }
+  // And the exempt labs do follow the set (Plan 87I): the academic wall.
+  for (const id of VERNACULAR_WALL_LABS) {
+    const t = CATALOGUE.find((x) => x.id === id)!;
+    for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+      assert(materialOf(t, vname).wall === materialsFor(vname).brickRed.wall, `${id} wears '${vname}''s academic wall`);
     }
   }
 }
