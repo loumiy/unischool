@@ -15,6 +15,17 @@ last two sections list what came off and where it went.*
 
 ---
 
+## Awaiting the owner's triage: the second review (Plan 86)
+
+*The review's findings are in
+[`docs/reviews/2026-10-game-review-ii/`](docs/reviews/2026-10-game-review-ii/README.md):
+52 findings and 9 bugs, none a blocker. Its README ranks ten improvements and
+a fix-first list (the migrated Landmark count, the passive wheel listener, a
+tab that stops without saving, four false sentences, two scenarios). Where a
+finding there continues an entry below, the entry stays and the review's
+finding is the newer measurement. This entry comes off when every area is
+answered.*
+
 ## Awaiting the owner: the October 2026 review's area 6
 
 *Areas 1, 2, 3 and 7 of the October review
