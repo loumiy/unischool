@@ -9,6 +9,7 @@ import { ColorsContext } from './mapOccasions';
 import {
   labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
+  BUSINESS_PODIUM_STOREYS, BUSINESS_SCHOOL_ID, businessSchoolPlan, isHospital,
   CROSS_BAR_METRES, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
   CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
   EAVES_COURSE, ENTABLATURE, PIER_PROJECTION, PIER_WIDTH_METRES,
@@ -2186,6 +2187,167 @@ function RedCross({ origin, along, wallHeight, spanTiles, centreU, centreV, scal
   );
 }
 
+// The Business School's ticker (Plan 87A): a dark LED fascia with runs of
+// lit quotes, green, red, amber and white, the tape that runs round a
+// trading floor. One <path> per color, not a node per dash.
+const TICKER_DARK = '#16191d';
+const TICKER_LIGHTS = ['#58e386', '#ff5f4f', '#ffc847', '#eaf3ff'];
+const TICKER_RUN_METRES = 2.4;
+function Ticker({ origin, along, wallHeight, spanTiles, from, to, id }: {
+  origin: Pt; along: Pt; wallHeight: number; spanTiles: number; from: number; to: number; id: string;
+}) {
+  if (wallHeight <= 0 || spanTiles <= 0 || to <= from) return null;
+  const runs = Math.max(3, Math.round((spanTiles * METRES_PER_TILE) / TICKER_RUN_METRES));
+  const d: string[] = TICKER_LIGHTS.map(() => '');
+  const v0 = (from + (to - from) * 0.24) / wallHeight;
+  const v1 = (from + (to - from) * 0.76) / wallHeight;
+  for (let i = 0; i < runs; i++) {
+    // A gap now and then between quotes; the colors and lengths vary.
+    if (i % 6 === 5) continue;
+    const len = 0.45 + ((i * 37) % 5) * 0.08;
+    const u0 = (i + 0.12) / runs; const u1 = (i + 0.12 + len) / runs;
+    const c = (i * 7 + (i >> 2)) % TICKER_LIGHTS.length;
+    d[c] += `M${polyPoints([
+      facePoint(origin, along, wallHeight, u0, v0), facePoint(origin, along, wallHeight, u1, v0),
+      facePoint(origin, along, wallHeight, u1, v1), facePoint(origin, along, wallHeight, u0, v1),
+    ]).replace(/ /g, 'L')}Z`;
+  }
+  return (
+    <>
+      <WallBand origin={origin} along={along} wallHeight={wallHeight} from={from} to={to} className="iso-cornice" fill={TICKER_DARK} />
+      {d.map((path, c) => path && <path key={`${id}${c}`} fill={TICKER_LIGHTS[c]} d={path} />)}
+    </>
+  );
+}
+
+// The Business School (Plan 87A; buildingSpec's businessSchoolPlan): a
+// podium with the ticker round its fascia, a full-height glazed atrium at
+// the middle of the long front, and an office tower rising from the back.
+// Not the hospital (no slab, cross or helipad) and not the Business hall's
+// domed exchange. The walls take the vernacular's windows and crest.
+function BusinessSchool({ t, p, pal, stone, paneShape, paneW, crest, plantTint, cornice, trim, door }: {
+  t: Buildable; p: { col: number; row: number; w: number; h: number };
+  pal: Palette; stone: StonePalette; paneShape: WindowShape; paneW: number;
+  crest: CrestPart; plantTint: string; cornice: string | undefined; trim: boolean;
+  door: DoorDimensions | null;
+}) {
+  const plan = businessSchoolPlan(p);
+  const { front, sides, podiumHeight: Hp, atriumHeight: Ha } = plan;
+  const back = opposite(front);
+  const Ht = wallHeightOf(t);
+  const floorsUnder = (storeys: number) => Array.from({ length: storeys - 1 }, (_, i) => (i + 1) * STOREY);
+  const podiumTop = BUSINESS_PODIUM_STOREYS * STOREY;
+  const fronts = [visibleWalls().left, visibleWalls().right];
+  const faceWalls = (f: BoxFaces) => [[f.D, f.C, f.spanLeft, 'l'] as const, [f.C, f.B, f.spanRight, 'r'] as const];
+
+  // A podium part: windows by floor, the ticker on its fascia, its crest on
+  // the walls that face out (not on a seam with another part).
+  const podium = (b: DepthBox, outside: FaceDir[], key: string) => {
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, Hp);
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faceWalls(f).map(([o, a, span, s]) => (
+          <g key={s}>
+            {trim && floorCourses(o, a, Hp, floorsUnder(BUSINESS_PODIUM_STOREYS), `${key}${s}`)}
+            {trim && <WallBand origin={o} along={a} wallHeight={Hp} from={0} to={BASE_COURSE} className="iso-plinth" />}
+            {windows(o, a, Hp, span, rankSills(BUSINESS_PODIUM_STOREYS), paneW, `${key}${s}`, paneShape, stone.glass)}
+            <Ticker origin={o} along={a} wallHeight={Hp} spanTiles={span} from={podiumTop + up(0.35)} to={Hp - EAVES_COURSE - up(0.15)} id={`${key}${s}t`} />
+            <WallBand origin={o} along={a} wallHeight={Hp} from={Hp - EAVES_COURSE} to={Hp} className="iso-cornice" fill={cornice} />
+          </g>
+        ))}
+        <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+        <Crest crest={crest} {...b} base={Hp} fronts={fronts.filter((d) => outside.includes(d))} pal={pal} stone={stone} tile={plantTint} />
+      </g>
+    );
+  };
+
+  // The tower: the same windows, floor by floor, over the podium; a plant
+  // screen and its crest on top.
+  const tower = (() => {
+    const b = plan.tower;
+    const TH = Ht - Hp;
+    const f = boxFaces(b.col, b.row, b.w, b.h, Hp, TH);
+    const storeys = Math.max(1, Math.round(TH / STOREY));
+    const pier = cornice ?? (stone.trim === 'none' ? shade(pal.wall.posRow, 1.12) : stone.trim);
+    return (
+      <g key="tower">
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faceWalls(f).map(([o, a, span, s]) => (
+          <g key={s}>
+            {trim && floorCourses(o, a, TH, floorsUnder(storeys), `tw${s}`)}
+            {windows(o, a, TH, span, rankSills(storeys), paneW, `tw${s}`, paneShape, stone.glass)}
+            {/* Piers between the bays, full height: the office tower's
+                vertical against the podium's horizontal bands. */}
+            {Array.from({ length: baysAcross(span) + 1 }, (_, i) => {
+              const u = i / baysAcross(span);
+              const half = Math.min(0.02, across(0.45) / span);
+              return (
+                <WallBand key={`tp${i}`} origin={o} along={a} wallHeight={TH} from={0} to={TH}
+                  u0={Math.max(0, u - half)} u1={Math.min(1, u + half)} className="iso-cornice" fill={pier} />
+              );
+            })}
+            <WallBand origin={o} along={a} wallHeight={TH} from={TH - EAVES_COURSE * 1.4} to={TH} className="iso-cornice" fill={cornice} />
+          </g>
+        ))}
+        <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+        <RoofBox col={b.col + b.w * 0.3} row={b.row + b.h * 0.3} w={b.w * 0.4} h={b.h * 0.4} base={Ht} height={up(3.2)} tint={plantTint} />
+        <Crest crest={crest} {...b} base={Ht} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
+      </g>
+    );
+  })();
+
+  // The atrium: glass from the plinth to the eaves, the ticker carried
+  // across it at the podium's fascia, a glazed roof, the door and its
+  // canopy on the front.
+  const atrium = (() => {
+    const b = plan.atrium;
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, Ha);
+    const fw = wallOf(f, front);
+    const mullions = 4;
+    const roofBars = Array.from({ length: mullions - 1 }, (_, i) => {
+      const k = (i + 1) / mullions;
+      const bar = (front === 'posRow' || front === 'negRow')
+        ? boxFaces(b.col + b.w * k - across(0.25), b.row, across(0.5), b.h, Ha, 0)
+        : boxFaces(b.col, b.row + b.h * k - across(0.25), b.w, across(0.5), Ha, 0);
+      return <polygon key={`rb${i}`} className="iso-mullion" points={polyPoints(bar.top)} />;
+    });
+    return (
+      <g key="atrium">
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faceWalls(f).map(([o, a, span, s]) => (
+          <g key={s}>
+            <CurtainWall origin={o} along={a} wallHeight={Ha} spanTiles={span} from={BASE_COURSE} to={Ha - EAVES_COURSE * 1.4} floors={[STOREY * 2]} id={`at${s}`} u0={0.04} u1={0.96} />
+            <Ticker origin={o} along={a} wallHeight={Ha} spanTiles={span} from={podiumTop + up(0.35)} to={Hp - EAVES_COURSE - up(0.15)} id={`at${s}t`} />
+            <WallBand origin={o} along={a} wallHeight={Ha} from={Ha - EAVES_COURSE * 1.4} to={Ha} className="iso-cornice" fill={cornice} />
+          </g>
+        ))}
+        <polygon className="iso-curtain-glass" points={polyPoints(f.top)} />
+        {roofBars}
+        {door && fw.visible && (
+          <>
+            <Door d={door} origin={fw.origin} along={fw.along} wallHeight={Ha} span={wallSpan(b.w, b.h, front)} side={front} />
+            <Canopy stone={stone} d={door} col={b.col} row={b.row} w={b.w} h={b.h} outward={front} wallHeight={Ha} />
+          </>
+        )}
+      </g>
+    );
+  })();
+
+  // Painter's order among the four parts; the tower stands on the back
+  // podium and paints with it.
+  const parts = depthOrder([
+    { ...plan.back, node: <g key="back">{podium(plan.back, [back, ...sides], 'bk')}{tower}</g> },
+    { ...plan.wings[0], node: podium(plan.wings[0], [front, sides[0]], 'w0') },
+    { ...plan.wings[1], node: podium(plan.wings[1], [front, sides[1]], 'w1') },
+    { ...plan.atrium, node: atrium },
+  ]);
+  return <>{parts.map((x) => x.node)}</>;
+}
+
 // The clock tower, Founders Hall only (hasClockTower): a square base with a
 // clock on each visible face, a colonnaded drum, a gilded dome and a finial.
 // The dome is drawn in screen space (like trees.tsx's crowns): a projected
@@ -3933,11 +4095,20 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
     );
   }
 
-  if (motif === 'block' && !site && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES && signifier !== 'track') {
+  if (motif === 'block' && !site && t.id === BUSINESS_SCHOOL_ID) {
+    return (
+      <BusinessSchool
+        t={t} p={p} pal={pal} stone={stone} paneShape={paneShape} paneW={paneW}
+        crest={crest} plantTint={plantTint} cornice={surfaceCornice} trim={trim} door={door}
+      />
+    );
+  }
+
+  if (motif === 'block' && !site && isHospital(t) && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES) {
     // The hospital: a tall ward slab at the back and a lower glazed public
-    // wing in front. Only large `block`s split (BLOCK_SPLIT_MIN_TILES); small
-    // ones read better as one box. The Athletic Performance Complex (Plan
-    // 85G) is one glazed box under its roof track.
+    // wing in front. Only the Medical Center splits (Plan 87A: the size rule
+    // alone drew the Business School as a hospital), and only when large
+    // (BLOCK_SPLIT_MIN_TILES); other `block`s are one box.
     const slabStoreys = storeysOf(t);
     const wingStoreys = Math.max(2, Math.round(slabStoreys * WING_STOREY_FRACTION));
     const slabH = slabStoreys * STOREY;

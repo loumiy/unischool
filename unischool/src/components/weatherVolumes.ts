@@ -1,7 +1,7 @@
 import type { Buildable, Vernacular } from '../state/types';
 import {
   BLOCK_SPLIT_MIN_TILES, SLAB_ROW_FRACTION, TOWER_PODIUM_STOREYS, WING_COL_FRACTION, WING_STOREY_FRACTION,
-  chapelPlan, motifOf, ridgeOf, storeysOf, wallHeightOf,
+  BUSINESS_SCHOOL_ID, businessSchoolPlan, chapelPlan, isHospital, motifOf, ridgeOf, storeysOf, wallHeightOf,
 } from './buildingSpec';
 import { STOREY, up } from './campusScale';
 import { VILLAGE_HOUSES } from './buildingMotifs';
@@ -61,7 +61,18 @@ export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVol
       ];
     }
     case 'block': {
-      if (Math.min(p.w, p.h) < BLOCK_SPLIT_MIN_TILES) break;
+      if (t.id === BUSINESS_SCHOOL_ID) {
+        // The podium's parts, the glazed atrium (nothing to board) and the
+        // tower over the back (buildingMotifs.tsx's BusinessSchool, Plan 87A).
+        const b = businessSchoolPlan(p);
+        return [
+          box(b.back.col, b.back.row, b.back.w, b.back.h, 0, b.podiumHeight),
+          ...b.wings.map((x) => box(x.col, x.row, x.w, x.h, 0, b.podiumHeight)),
+          box(b.atrium.col, b.atrium.row, b.atrium.w, b.atrium.h, 0, b.atriumHeight, { boards: false }),
+          box(b.tower.col, b.tower.row, b.tower.w, b.tower.h, b.podiumHeight, H - b.podiumHeight, { tarp: true }),
+        ];
+      }
+      if (!isHospital(t) || Math.min(p.w, p.h) < BLOCK_SPLIT_MIN_TILES) break;
       // The hospital: the ward slab across the back, the lower public wing
       // in front (buildingMotifs.tsx's split block).
       const storeys = storeysOf(t);

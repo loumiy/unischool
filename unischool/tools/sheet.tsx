@@ -148,7 +148,11 @@ function cell(sample: Sample, v: Vernacular) {
   const grid: string[] = [];
   for (let c = -M; c <= fp.w + M; c++) grid.push(`M${project(c, -M).x},${project(c, -M).y}L${project(c, fp.h + M).x},${project(c, fp.h + M).y}`);
   for (let r = -M; r <= fp.h + M; r++) grid.push(`M${project(-M, r).x},${project(-M, r).y}L${project(fp.w + M, r).x},${project(fp.w + M, r).y}`);
-  const props = grounds ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing)) : [];
+  // The building's id and expansions, as the map passes them (Plan 87A):
+  // the garden's and the statue's own props, a venue's stands.
+  const props = grounds
+    ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0))
+    : [];
   const svg = (
     <svg className="campus-map-svg" width={W} height={H} viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} xmlns="http://www.w3.org/2000/svg">
       <defs><ScaffoldPattern /></defs>
