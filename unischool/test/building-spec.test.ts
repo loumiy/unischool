@@ -34,6 +34,7 @@ import {
   storeysOf, wallHeightOf, wallShadeOf,
   windowRanksOf, windowWidthOf, type DoorFamily,
 } from '../src/components/buildingSpec';
+import { towerFormOf, readableGlass, glassContrast } from '../src/components/buildingSpec';
 import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { SCHOOL_SIGNATURES } from '../src/components/buildingSpec';
 import { initialTech } from '../src/data/techData';
@@ -746,8 +747,9 @@ console.log('campus scale and building spec');
   // never varies; since Plan 74E three of them (block, works, hangar) take
   // the vernacular's SURFACE, and only those three.
   assert(VERNACULAR_INVARIANT_MOTIFS.length === 7, 'seven motifs are vernacular-invariant in their massing');
-  assert(SURFACE_FOLLOWS_MOTIFS.length === 3 && SURFACE_FOLLOWS_MOTIFS.every((m) => !variesByVernacular(m)),
-    'three of them take the vernacular\'s surface');
+  // The residence tower joined them in Plan 87H.
+  assert(SURFACE_FOLLOWS_MOTIFS.length === 4 && SURFACE_FOLLOWS_MOTIFS.every((m) => !variesByVernacular(m)),
+    'four of them take the vernacular\'s surface');
   for (const t of CATALOGUE) {
     const m = motifOf(t);
     if (variesByVernacular(m)) continue;
@@ -792,7 +794,8 @@ console.log('campus scale and building spec');
     assert(parts.entrance[motif as keyof typeof EXPECTED_ENTRANCE] === part,
       `georgian's ${motif} entrance is unchanged (got ${parts.entrance[motif as keyof typeof EXPECTED_ENTRANCE]}, was ${part})`);
   }
-  assert(parts.rooflineEnd === 'pavilion', 'georgian still raises a pavilion at each end of the roofline');
+  // Plan 87H: the corner caps gave way to a balustrade along the eaves.
+  assert(parts.rooflineEnd === 'balustrade', 'georgian finishes its roofline with a balustrade along the eaves');
   assert(parts.apex === 'cupola', 'and still tops its landmark with a cupola');
 
   // THE TABLE COVERS EXACTLY THE FIVE VARYING MOTIFS. One short is a
@@ -851,7 +854,7 @@ console.log('campus scale and building spec');
   // whole point is that the founding choice shows on the science block.
   const dress = Object.values(VERNACULARS).map((spec) => `${spec.parts.surfaceEntrance}|${spec.parts.crest}|${spec.windowShape}`);
   assert(new Set(dress).size === dress.length, `every vernacular dresses a block its own way (${dress.join(', ')})`);
-  assert(rooflineEndPartOf(V) === 'pavilion', 'and the roofline-end lookup agrees with the table');
+  assert(rooflineEndPartOf(V) === 'balustrade', 'and the roofline-end lookup agrees with the table');
 }
 
 // --- 16. Every vernacular keeps the campus's own rules -------------------
@@ -933,6 +936,14 @@ console.log('campus scale and building spec');
   const invariantBuildings = CATALOGUE.filter((t) => !variesByVernacular(motifOf(t)) && !VERNACULAR_WALL_LABS.includes(t.id));
   assert(invariantBuildings.length > 0, 'the catalog has invariant buildings to check');
   for (const t of invariantBuildings) {
+    // The residence tower wears the set's own wall (Plan 87H): a brick or
+    // stone tower, not an office tower's curtain wall, in every set.
+    if (motifOf(t) === 'tower') {
+      for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+        assert(materialOf(t, vname) === materialsFor(vname).brickRed, `${t.id} is built in '${vname}''s own wall`);
+      }
+      continue;
+    }
     const base = materialOf(t, 'georgian');
     for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
       const here = materialOf(t, vname);
@@ -1100,6 +1111,30 @@ console.log('campus scale and building spec');
     assert(new Set(Object.values(CHAPELS).map((c) => c.tower)).size >= 6, 'the towers differ from set to set');
     assert(storeysOf(chapel) === 0 && wallHeightOf(chapel) > 2 * STOREY, 'the nave is one tall room');
   }
+}
+
+// --- The residence towers and dark faces (Plan 87H) ---------------------
+{
+  // The four towers never read as copies: each its own height and crown.
+  const towers = CATALOGUE.filter((t) => motifOf(t) === 'tower');
+  assert(towers.length === 4, 'four residence towers');
+  assert(new Set(towers.map((t) => towerFormOf(t).crown)).size === towers.length, 'each tower has its own crown');
+  assert(new Set(towers.map(storeysOf)).size === towers.length, 'and its own height');
+  for (const t of towers) {
+    for (const v of Object.keys(VERNACULARS) as Vernacular[]) {
+      assert(materialOf(t, v).wall !== materialsFor(v).curtain.wall, `${t.id} is not curtain wall in '${v}'`);
+    }
+  }
+  // Windows read on every wall in every set: the glass a building is drawn
+  // with (readableGlass) differs from its wall's shaded face.
+  for (const v of Object.keys(VERNACULARS) as Vernacular[]) {
+    for (const [name, m] of Object.entries(materialsFor(v))) {
+      const glass = readableGlass(m.wall, stoneFor(v).glass);
+      assert(glassContrast(m.wall, glass) >= 0.08, `'${v}' ${name}: its windows read against the wall (${glassContrast(m.wall, glass).toFixed(2)})`);
+    }
+  }
+  // Georgian's own halls keep their painted sash.
+  assert(readableGlass(materialsFor('georgian').brickRed.wall, stoneFor('georgian').glass) === stoneFor('georgian').glass, 'Georgian keeps its sash glass');
 }
 
 if (failures === 0) {
