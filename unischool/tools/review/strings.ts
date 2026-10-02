@@ -71,7 +71,10 @@ const SCREENS: Array<[RegExp, string]> = [
   [/tabs\/ResearchTab\.tsx$/, 'Research tab'],
   [/tabs\/(StudentsTab|EnrollmentTab|StudentLifeTab|IdentityPanel)\.tsx$/, 'Students tab'],
   [/tabs\/AthleticsTab\.tsx$/, 'Athletics tab'],
-  [/tabs\/(HistoryTab|StandingsPanel|ChroniclePanel|AlumniPanel|PromisesPanel)\.tsx$/, 'History tab'],
+  [/tabs\/(HistoryTab|StandingsPanel|StandingBreakdown|RankingsPanel|ChroniclePanel|AlumniPanel|PromisesPanel)\.tsx$|components\/RankingsTable\.tsx$/, 'History tab'],
+  // Plan 85: the choice, the board's notice and the four programs it opens.
+  [/components\/SpecializationChoice\.tsx$|data\/specializationData\.ts$/, 'Specialization (choice and notice)'],
+  [/data\/(trainingData|researchParkData|athleticsComplexData|downtownData)\.ts$/, 'Specialization programs'],
   [/tabs\/(TreasuryTab|EndowmentPanel|EstatePanel|AdvancementPanel|treasuryStatement)\.tsx?$/, 'Treasury tab'],
   [/data\/courseDescriptions\.ts$/, 'Course descriptions'],
   [/data\/(eventCatalogue|eventVariants)\.ts$|systems\/events\/catalogue/, 'Events (catalogue)'],
@@ -376,6 +379,8 @@ const JARGON = [
   'market rate', 'tenure', 'teaching standard', 'report card', 'grade', 'target', 'drift', 'tremor', 'dividend', 'annual fund',
   'mothball', 'austerity', 'distress', 'confidence', 'warmth', 'resonance', 'bequest', 'restricted', 'capital project',
   'initiative', 'depth', 'landmark program', 'breakthrough', 'petition', 'digest', 'chapter', 'hellenic',
+  // Plans 84 and 85.
+  'pillar', 'specialization', 'potential', 'training pick',
 ];
 
 function csvCell(v: string | number): string {

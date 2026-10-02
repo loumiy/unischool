@@ -27,6 +27,12 @@
 //                                               a fixed pick at the milestone
 //                                               (Plan 85D's hook), for every run
 //
+// The specialization (Plan 85D): at the rank milestone each goal takes the
+// pillar its goal implies (GOAL_SPECIALIZATION below), not the harness's
+// strongest pillar, and builds that pillar's building when it opens.
+// --specialization overrides it for every run ('strongest', 'never' or a
+// pillar).
+//
 // Each run is its own process (the harness binds one random stream per
 // process), four at a time. Runs land in node_modules/.tmp/goals/ as JSON;
 // the report is <dir>/goals.md. Measures, never fails.
@@ -89,6 +95,12 @@ import { buildFor, foundIn, reserveOf } from '../../sim/harness/guided';
 import { brokenRules } from '../../sim/harness/invariants';
 import type { SpecializationRule } from '../../sim/harness/specialization';
 import { ATHLETICS_COMPLEX_ID, complexFlagships } from '../../src/data/athleticsComplexData';
+import { TRAINING_INSTITUTE_ID, instituteStands, isTrained } from '../../src/data/trainingData';
+import { RESEARCH_PARK_ID } from '../../src/data/researchParkData';
+import { PILLARS, pillarValue } from '../../src/systems/prestige/prestigeSystem';
+import { specializationOf } from '../../src/systems/prestige/specialization';
+import { declineUnteachable } from '../../sim/harness/moves';
+import type { Pillar } from '../../src/state/types';
 
 export const GOALS = ['revenue', 'prestige', 'satisfaction', 'assets', 'championships', 'good-then-big', 'big-then-good'] as const;
 export type Goal = (typeof GOALS)[number];
@@ -98,6 +110,22 @@ const DEFAULT_NAMES = ['Blackmoor', 'Saint Aldric'];
 const YEARS = 50;
 // The switch in the two "then" goals.
 const SWITCH_YEAR = 20;
+
+// The pillar each goal chooses at the milestone (Plan 85D), and why: what
+// the goal itself would read off the four cards.
+export const GOAL_SPECIALIZATION: Record<Goal, { pillar: Pillar; why: string }> = {
+  revenue: { pillar: 'research', why: 'The research park lifts every lab\'s output, and the grants that ride on it: the only card that names money coming in.' },
+  prestige: { pillar: 'academics', why: 'The teaching standard caps the target; the faculty training program is the lever October\'s player wanted.' },
+  satisfaction: { pillar: 'studentLife', why: 'The downtown meets the students\' social, dining and housing needs, and the festival lifts their mood.' },
+  assets: { pillar: 'research', why: 'The research park was the catalogue\'s last gate in October; it is the asset the goal had been working toward.' },
+  championships: { pillar: 'athletics', why: 'The athletic performance complex: more flagships, better recruiting, a smaller edge for the powers.' },
+  'good-then-big': { pillar: 'academics', why: 'A college known first for its teaching: the faculty training program.' },
+  'big-then-good': { pillar: 'studentLife', why: 'A big college needs beds and a town: the downtown meets the needs a large body outgrows.' },
+};
+// The building only a pillar's specialization may build (the downtown has none).
+const SPECIALTY_BUILDING: Partial<Record<Pillar, string>> = {
+  academics: TRAINING_INSTITUTE_ID, research: RESEARCH_PARK_ID, athletics: ATHLETICS_COMPLEX_ID,
+};
 
 const ATTRIBUTES: Array<keyof SatisfactionAttributes> = ['academic', 'social', 'basicNeeds', 'health', 'housing'];
 
@@ -143,6 +171,8 @@ export interface Row {
   prizes: number;
   initiatives: number;        // under way
   seats: number;              // administrative seats held
+  pillars: number[];          // academics, research, student life, athletics (Plan 85B)
+  trained: number;            // professors on the roster trained by the institute (Plan 85E)
 }
 
 interface WantRecord { lever: string; why: string; first: [number, number]; weeks: number; years: number[] }
@@ -305,6 +335,8 @@ class Journal {
       prizes: s.research.prizes,
       initiatives: Object.keys(s.research.initiatives).length,
       seats: (s.seats ?? []).length,
+      pillars: PILLARS.map((p) => Math.round(pillarValue(s, p) * 10) / 10),
+      trained: s.faculty.filter(isTrained).length,
     });
   }
 }
@@ -489,7 +521,11 @@ function foundOffers(g: Game, j: Journal, reserve: number, reason: string, limit
           if (where && foundIn(g, where.hallId, [id], reserve)) return;
         }
       });
-      if (!hired) return;
+      if (!hired) {
+        // An offer nobody can teach, declined for another (Plan 78D): one a year.
+        j.because('decline-offer', 'An offered program nobody on the payroll or the market can teach; declined, the draw puts another in its place.', () => { declineUnteachable(g); });
+        return;
+      }
     }
   }
 }
@@ -672,7 +708,14 @@ function revenuePolicy(): Policy {
 }
 
 // ---- Prestige ----
-function prestigePolicy(): Policy {
+// How long a standing that does not move is borne before the player stops
+// admitting selectively and fills the class (`adaptive`): a person who sees
+// prestige flat for this many summers on a small body tries growth.
+const STALL_SUMMERS = 4;
+const STALL_RISE = 2;
+function prestigePolicy(adaptive = true): Policy {
+  const history: number[] = [];
+  let fills = false;
   return {
     promises: ['reputationOver', 'teachingOver', 'selectivityOver', 'rankAtLeast'],
     events: 'default',
@@ -707,7 +750,13 @@ function prestigePolicy(): Policy {
       const ceiling = teachingCeiling(s);
       const target = prestigeBreakdown(s).target;
       if (target >= ceiling.value - 1) {
-        j.want(s, 'train the faculty', `The teaching standard caps the target at ${ceiling.value.toFixed(0)}; the only way up is to hire better teachers and fire weaker ones — no training, sabbatical or mentoring for the ones on the roster.`);
+        // Plan 85E: the training program is the lever, for a college
+        // specialized in academics once the institute stands.
+        if (instituteStands(s)) {
+          j.want(s, 'train more of the faculty', `The teaching standard still caps the target at ${ceiling.value.toFixed(0)} with the institute's picks spent: the rest is hiring and firing.`);
+        } else {
+          j.want(s, 'train the faculty', `The teaching standard caps the target at ${ceiling.value.toFixed(0)}; ${specializationOf(s) ? 'specialized elsewhere, ' : ''}the only way up is to hire better teachers and fire weaker ones — no training for the ones on the roster without the academics specialization's institute.`);
+        }
       }
       foundOffers(g, j, reserve, 'Breadth is the heaviest input (50).');
       siteHallIfNeeded(g, j, reserve);
@@ -730,11 +779,21 @@ function prestigePolicy(): Policy {
         if (sc < 40 && !remedyExists(s, label)) j.want(s, `raise ${label}`, `${label} is ${sc.toFixed(0)} and nothing on the menu serves it.`);
       }
     },
-    summer(g) {
+    summer(g, j) {
       const s = g.s;
       const tuition = priceAt(s, 1.0);
+      history.push(s.self.reputation);
+      // Selectivity that has not moved the standing in STALL_SUMMERS
+      // summers is given up for good (Plan 85's slower prestige made this
+      // the October rule's trap: see 4-strategy.md).
+      const back = history[history.length - 1 - STALL_SUMMERS];
+      if (adaptive && !fills && back !== undefined && s.self.reputation - back < STALL_RISE && playerRank(s) > 20) {
+        fills = true;
+        j.mark(s, 'gave up selectivity');
+        j.want(s, 'a way up for a small college', `Prestige moved ${(s.self.reputation - back).toFixed(1)} in ${STALL_SUMMERS} summers of selective admissions; the standing says why in pillars, but a small college has no pillar it can raise without growing.`);
+      }
       // The top band and a little of the next: quality over size.
-      const rate = Math.min(fillRate(s, tuition), Math.max(0.05, topBandShare(s.self.reputation, tuition) + 0.12));
+      const rate = fills ? fillRate(s, tuition) : Math.min(fillRate(s, tuition), Math.max(0.05, topBandShare(s.self.reputation, tuition) + 0.12));
       return { tuition, admitRate: rate };
     },
   };
@@ -983,7 +1042,8 @@ function championshipsPolicy(): Policy {
 
 // ---- Good then big / big then good ----
 function phasedPolicy(goodFirst: boolean): Policy {
-  const small = prestigePolicy();
+  // Good first stays small whatever the standing does: that is its premise.
+  const small = prestigePolicy(!goodFirst);
   const big: Policy = {
     promises: ['enrolledOver', 'programsOver', 'schoolsOver', 'buildingsOver'],
     events: 'default',
@@ -1116,6 +1176,10 @@ function answerFor(g: Game, j: Journal, policy: Policy, plan: { current: SummerP
     const petitions = policy.petitions ? s.orgs.pendingPetitions.map((p) => p.id) : [];
     return { type: 'RESOLVE_ADMISSIONS', ...plan.current, approvedPetitionIds: petitions };
   }
+  // The specialization is the goal's: null hands it to game.ts's rule (the
+  // player is asked first, so the game's default here would put it off for
+  // good, which is what every goal player did before this line).
+  if (pending.type === 'specialization') return null;
   if (pending.type === 'athletic-director' && policy.events === 'athletics') {
     const payload = pending.payload as { candidates?: Array<{ quality: number }>; mascotSuggestion?: string } | undefined;
     const best = [...(payload?.candidates ?? [])].sort((a, b) => b.quality - a.quality)[0] ?? null;
@@ -1160,22 +1224,49 @@ function goalMarks(s: GameState, j: Journal, goal: Goal): void {
   if (weeklyNet(s) >= 1_000_000) j.mark(s, 'net $1M/wk');
   const left = s.tech.filter((t) => isPlaceableKind(t) && t.status !== 'done' && t.status !== 'developing' && t.facilityType !== 'landmark');
   if (left.length === 0) j.mark(s, 'every asset');
+  // Plan 85: three of the four specialization buildings never open.
+  const closed = new Set(Object.entries(SPECIALTY_BUILDING).filter(([p]) => p !== specializationOf(s)).map(([, id]) => id));
+  if (left.every((t) => closed.has(t.id))) j.mark(s, 'every asset open to it');
   if (milestoneSchools().every((m) => s.milestones[schoolFoundedKey(m.schoolName)])) j.mark(s, 'every school');
   if (goal === 'satisfaction' && ATTRIBUTES.every((a) => s.students.satisfactionBreakdown[a] >= 90)) j.mark(s, 'every need 90');
 }
 
+// Once specialized: the pillar's own building, as soon as it is on the
+// menu (borrowing if it must), and what the choice closed off.
+function specialty(g: Game, j: Journal, goal: Goal): void {
+  const s = g.s;
+  const chosen = specializationOf(s);
+  if (!chosen) return;
+  if (j.rec.specialization === undefined) {
+    j.rec.specialization = chosen;
+    j.rec.specializationYear = s.specializationYear;
+    const why = specializationRule === undefined ? GOAL_SPECIALIZATION[goal].why : 'A fixed pick for the run.';
+    j.rec.reasons[`specialize-${chosen}`] = why;
+  }
+  const id = SPECIALTY_BUILDING[chosen];
+  const building = id ? menu(s).find((t) => t.id === id) : undefined;
+  if (building) j.because(`specialty-${chosen}`, 'The specialization\'s own building, the moment it opens.', () => place(g, building, reserveOf(s, 2), true));
+  if (goal === 'assets' && s.clock.week === 1) {
+    const closed = Object.entries(SPECIALTY_BUILDING).filter(([p]) => p !== chosen).map(([, b]) => s.tech.find((t) => t.id === b)?.name).filter(Boolean);
+    j.want(s, 'build every specialization\'s building', `The choice is for good: ${closed.join(', ')} can never stand on this campus.`);
+  }
+}
+let specializationRule: SpecializationRule | undefined;
+
 export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, specialization?: SpecializationRule): RunRecord {
   const t0 = Date.now();
+  specializationRule = specialization;
   const j = new Journal(goal, seed, name);
   const policy = policyFor(goal);
   const plan: { current: SummerPlan | null } = { current: null };
   const g = foundGame({ seed, name });
   j.attach(g);
   let lastYear = 0;
+  const pick = GOAL_SPECIALIZATION[goal];
   const player: Player = {
     name: goal,
-    // Plan 85D's hook: a fixed pick at the milestone, or the strongest pillar.
-    ...(specialization ? { specialization } : {}),
+    // Plan 85D's hook: the goal's own pillar, or a fixed rule given.
+    specialization: specialization ?? pick.pillar,
     // The championships player runs its own department; specialized in
     // athletics it also fills the complex's flagship slots (Plan 85G).
     ...(goal === 'championships' ? { athletics: false as const } : {}),
@@ -1187,6 +1278,7 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, 
         for (const b of broken) if (!j.rec.broken.includes(b)) j.rec.broken.push(b);
       }
       goalMarks(game.s, j, goal);
+      specialty(game, j, goal);
       policy.act(game, j);
       j.endWeek(game.s);
     },
@@ -1257,15 +1349,30 @@ export function writeReport(runs: RunRecord[], out: string): void {
 
   // The comparison table.
   lines.push('## The seven compared, at year 50', '');
-  lines.push('| Goal | Rank | Prestige | Students | Satisfaction | Net/wk | Endowment | Courses | Schools | Placeables | Teams | Titles | Grade A share | Title (most common) |');
-  lines.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  lines.push('| Goal | Rank | Prestige | Students | Satisfaction | Net/wk | Cash | Endowment | Courses | Schools | Placeables | Teams | Titles | Grade A share | Title (most common) |');
+  lines.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (const goal of goals) {
     const rs = runs.filter((r) => r.goal === goal && !r.error);
     const at = rs.map((r) => rowAt(r, 51) ?? r.years[r.years.length - 1]).filter((x): x is Row => !!x);
     const titles = new Map<string, number>();
     for (const r of rs) if (r.final) titles.set(r.final.title, (titles.get(r.final.title) ?? 0) + 1);
     const title = [...titles.entries()].sort((a, b) => b[1] - a[1])[0];
-    lines.push(`| ${goal} | ${fmt(median(at.map((x) => x.rank)))} | ${fmt(median(at.map((x) => x.prestige)))} | ${fmt(median(at.map((x) => x.enrolled)))} | ${fmt(median(at.map((x) => x.satisfaction)))} | ${fmtMoney(median(at.map((x) => x.net)))} | ${fmtMoney(median(at.map((x) => x.endowment)))} | ${fmt(median(at.map((x) => x.courses)))} | ${fmt(median(at.map((x) => x.schools)))} | ${fmt(median(at.map((x) => x.placeables)))} | ${fmt(median(at.map((x) => x.teams)))} | ${fmt(median(at.map((x) => x.titles)))} | ${fmt(median(at.map((x) => x.gradeA)) * 100)}% | ${title ? `${title[0]} (${title[1]}/${rs.length})` : '—'} |`);
+    lines.push(`| ${goal} | ${fmt(median(at.map((x) => x.rank)))} | ${fmt(median(at.map((x) => x.prestige)))} | ${fmt(median(at.map((x) => x.enrolled)))} | ${fmt(median(at.map((x) => x.satisfaction)))} | ${fmtMoney(median(at.map((x) => x.net)))} | ${fmtMoney(median(at.map((x) => x.cash)))} | ${fmtMoney(median(at.map((x) => x.endowment)))} | ${fmt(median(at.map((x) => x.courses)))} | ${fmt(median(at.map((x) => x.schools)))} | ${fmt(median(at.map((x) => x.placeables)))} | ${fmt(median(at.map((x) => x.teams)))} | ${fmt(median(at.map((x) => x.titles)))} | ${fmt(median(at.map((x) => x.gradeA)) * 100)}% | ${title ? `${title[0]} (${title[1]}/${rs.length})` : '—'} |`);
+  }
+  lines.push('');
+
+  // The specializations (Plan 85D).
+  lines.push('## The specializations', '', 'The pillar each goal chose at the milestone (the top 20) and when; the four pillars\' values at Year 50 (academics / research / student life / athletics, median), and the college\'s place in the research, campus-life and athletic standings.', '');
+  lines.push('| Goal | Chose (runs) | Year (median, range) | Never offered | Pillars Y50 | Research / life / athletic rank Y50 | Trained professors Y50 |');
+  lines.push('|---|---|---|---|---|---|---|');
+  for (const goal of goals) {
+    const rs = runs.filter((r) => r.goal === goal && !r.error);
+    const picks = new Map<string, number>();
+    for (const r of rs) if (r.specialization) picks.set(r.specialization, (picks.get(r.specialization) ?? 0) + 1);
+    const yrs = rs.map((r) => r.specializationYear).filter((y): y is number => y !== undefined);
+    const at = rs.map((r) => rowAt(r, 51) ?? r.years[r.years.length - 1]).filter((x): x is Row => !!x && !!x.pillars);
+    const pill = [0, 1, 2, 3].map((i) => fmt(median(at.map((x) => x.pillars[i])))).join(' / ');
+    lines.push(`| ${goal} | ${[...picks.entries()].map(([p, n]) => `${p} ×${n}`).join(', ') || '—'} | ${yrs.length ? `${median(yrs)} (${Math.min(...yrs)}–${Math.max(...yrs)})` : '—'} | ${rs.length - yrs.length}/${rs.length} | ${pill} | ${fmt(median(at.map((x) => x.researchRank)))} / ${fmt(median(at.map((x) => x.lifeRank)))} / ${fmt(median(at.map((x) => x.athleticRank)))} | ${fmt(median(at.map((x) => x.trained)))} |`);
   }
   lines.push('');
 
@@ -1405,6 +1512,20 @@ export function writeReport(runs: RunRecord[], out: string): void {
     lines.push(`| ${a} | ${goals.map((b) => fmt(Math.sqrt(cs[a].reduce((t, v, i) => t + (v - cs[b][i]) ** 2, 0) / FEATURES.length), 2)).join(' | ')} |`);
   }
   lines.push('');
+  // Plan 85's question: do the pillars differ? The four pillar values at
+  // year 50, each over 150.
+  const pillarsOf = (goal: string) => {
+    const at = runs.filter((r) => r.goal === goal && !r.error).map((r) => r.years[r.years.length - 1]).filter((x): x is Row => !!x && !!x.pillars);
+    return [0, 1, 2, 3].map((i) => median(at.map((x) => x.pillars[i])) / 150);
+  };
+  lines.push('The same, on the four pillars alone (academics, research, student life, athletics, each over 150): the shape of the college\'s standing (Plan 85).', '');
+  lines.push(`| | ${goals.join(' | ')} |`);
+  lines.push(`|---|${goals.map(() => '---').join('|')}|`);
+  const ps = Object.fromEntries(goals.map((gl) => [gl, pillarsOf(gl)]));
+  for (const a of goals) {
+    lines.push(`| ${a} | ${goals.map((b) => fmt(Math.sqrt(ps[a].reduce((t, v, i) => t + (v - ps[b][i]) ** 2, 0) / 4), 2)).join(' | ')} |`);
+  }
+  lines.push('');
   writeFileSync(out, lines.join('\n'));
 }
 
@@ -1450,7 +1571,7 @@ if (argv.includes('--run')) {
     child.on('close', () => resolve());
   });
   const queue = [...todo];
-  await Promise.all(Array.from({ length: Math.min(availableParallelism(), queue.length) }, async () => {
+  await Promise.all(Array.from({ length: Math.min(Number(process.env.GOALS_JOBS) || availableParallelism(), queue.length) }, async () => {
     for (let job = queue.shift(); job; job = queue.shift()) await run(job);
   }));
   const runs = jobs.filter((j) => existsSync(file(j))).map((j) => JSON.parse(readFileSync(file(j), 'utf8')) as RunRecord);
