@@ -314,7 +314,8 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
       return 2;
     case 'diningHall':
       if (serves >= 10_000) return 3;
-      if (serves >= 2_500) return 2;
+      // A terrace hall (Plan 87D) has a floor over its dining room.
+      if (serves >= DINING_TERRACE_MIN_SERVES) return 2;
       return 1;
     case 'studentCenter':
       return serves >= STUDENT_CENTRE_EXPANDED_MIN_SERVES ? 3 : 2;
@@ -350,6 +351,8 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
 export function storeysOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark' || motif === 'chapel') return 0;
+  // A refectory is one tall room (Plan 87D): its height is wallHeightOf's.
+  if (diningBandOf(t) === 'refectory') return 0;
   if (motif === 'tower') return dormStoreys(t.effects?.capacityBonus ?? 0);
   if (t.kind === 'building') {
     return ACADEMIC_HALL_STOREYS + addedFloors(t);
@@ -383,6 +386,8 @@ export function wallHeightOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds') return 0;
   if (motif === 'landmark') return up(LANDMARK_HEIGHT_METRES[t.id] ?? 20);
+  // A refectory is one tall room, a clear span like the chapel's (Plan 87D).
+  if (diningBandOf(t) === 'refectory') return up(refectoryEavesMetres(t));
   const storeys = storeysOf(t);
   if (storeys > 0) return storeys * STOREY;
   // An arena or a natatorium rises a storey with each expansion (Plan 54).
@@ -424,6 +429,7 @@ export function ridgeOf(t: Buildable, v: Vernacular): number {
   if (motif === 'residential') return up(roof.residentialRidgeMetres(storeysOf(t)));
   if (gothicCivicOf(t, v)) return up(GOTHIC_CIVIC_RIDGE_METRES);
   if (motif === 'chapel') return up(CHAPELS[v].ridgeMetres);
+  if (diningBandOf(t) === 'refectory') return up(REFECTORIES[v].ridgeMetres);
   return up(roof.ridgeMetres[motif] ?? 0);
 }
 
@@ -1634,6 +1640,113 @@ export function chapelPlan(p: ChapelBox, v: Vernacular): ChapelPlan {
     chancelRidge: naveRidge * CHAPEL_CHANCEL_SHARE,
     towerHeight: up(spec.towerMetres), capRise: up(spec.capMetres),
     bays,
+  };
+}
+
+// The dining halls (Plan 87D). One low hipped shed scaled up read as a barn
+// at the large sizes, so the chain is drawn in three bands by what it
+// serves (as built, as storeysOf reads it): a café under a striped awning
+// with tables out front; a hall over a dining terrace of tables and
+// parasols; and from the 9x6 up a refectory, one tall room under a steep
+// roof (Christ Church's hall, Harvard's Annenberg) with its kitchen at the
+// service end. The terrace lies along the long wall the camera sees, as the
+// doors do, so the mass stands back from it: the plan turns with the view.
+// Thresholds are campusMap.ts's dining ladder's, kept as literals.
+const DINING_TERRACE_MIN_SERVES = 1_200;
+const DINING_REFECTORY_MIN_SERVES = 7_000;
+export type DiningBand = 'cafe' | 'terrace' | 'refectory';
+export function diningBandOf(t: Buildable): DiningBand | undefined {
+  if (t.kind !== 'facility' || t.facilityType !== 'diningHall') return undefined;
+  const serves = asBuilt(t).effects?.servesPopulation ?? 0;
+  if (serves >= DINING_REFECTORY_MIN_SERVES) return 'refectory';
+  return serves >= DINING_TERRACE_MIN_SERVES ? 'terrace' : 'cafe';
+}
+
+// The refectory by vernacular: its windows ('glazed' is plinth-to-eaves
+// glass), its roof, what stands on the ridge, and its long front.
+export type RefectoryRoof = 'gable' | 'mansard' | 'flat';
+export type RefectoryLantern =
+  | 'louvre'   // a hexagonal open louvre under a spirelet — the medieval hall's smoke vent
+  | 'cupola'   // a white octagonal cupola under a lead dome
+  | 'none';
+export interface RefectorySpec {
+  window: WindowShape | 'glazed';
+  roof: RefectoryRoof;
+  ridgeMetres: number;
+  lantern: RefectoryLantern;
+  buttresses: boolean;
+  // An arcade (Mission's) along the front, or a flat roof's deep oversail
+  // over the terrace (Modern's glass pavilion), in metres.
+  arcade: boolean;
+  oversailMetres: number;
+}
+export const REFECTORIES: Readonly<Record<Vernacular, RefectorySpec>> = {
+  georgian: { window: 'arched', roof: 'gable', ridgeMetres: 8, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  gothic: { window: 'lancet', roof: 'gable', ridgeMetres: 13, lantern: 'louvre', buttresses: true, arcade: false, oversailMetres: 0 },
+  classical: { window: 'arched', roof: 'gable', ridgeMetres: 6, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  mission: { window: 'arched', roof: 'gable', ridgeMetres: 6, lantern: 'none', buttresses: false, arcade: true, oversailMetres: 0 },
+  modern: { window: 'glazed', roof: 'flat', ridgeMetres: 0, lantern: 'none', buttresses: false, arcade: false, oversailMetres: 4.5 },
+  tudor: { window: 'lancet', roof: 'gable', ridgeMetres: 12, lantern: 'louvre', buttresses: true, arcade: false, oversailMetres: 0 },
+  italianate: { window: 'arched', roof: 'gable', ridgeMetres: 5.5, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  secondEmpire: { window: 'arched', roof: 'mansard', ridgeMetres: 7, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  artDeco: { window: 'slot', roof: 'flat', ridgeMetres: 0, lantern: 'none', buttresses: false, arcade: false, oversailMetres: 0 },
+};
+// The hall's eaves at the 9x6; the two largest stand a little taller. The
+// kitchen and the back range as shares of them.
+function refectoryEavesMetres(t: Buildable): number {
+  return (asBuilt(t).effects?.servesPopulation ?? 0) >= 10_000 ? 13.5 : 12;
+}
+export const REFECTORY_KITCHEN_EAVES = 0.72;
+export const REFECTORY_BACK_EAVES = 0.4;
+
+export interface DiningPlan {
+  band: DiningBand;
+  // Whether the long axis runs along the columns.
+  alongW: boolean;
+  // The long wall the terrace lies along, and the end the kitchen takes.
+  front: FaceDir; service: FaceDir;
+  terrace: ChapelBox;
+  // The café's or hall's own mass.
+  hall: ChapelBox;
+  // A refectory's kitchen at the service end and its lower range behind.
+  kitchen?: ChapelBox; back?: ChapelBox;
+}
+
+// The plan, given the walls the camera sees (isoProjection's visibleWalls).
+export function diningPlan(t: Buildable, p: ChapelBox, seen: { left: FaceDir; right: FaceDir }, v: Vernacular): DiningPlan {
+  const band = diningBandOf(t) ?? 'cafe';
+  const alongW = p.w >= p.h;
+  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  const rowWall = (d: FaceDir) => d === 'posRow' || d === 'negRow';
+  const front = [seen.left, seen.right].find((d) => rowWall(d) === alongW) ?? (alongW ? 'posRow' : 'posCol');
+  const service: FaceDir = alongW ? 'posCol' : 'posRow';
+  // x down the long axis, y in from the front.
+  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox => {
+    switch (front) {
+      case 'posRow': return { col: p.col + x0, row: p.row + p.h - y1, w: x1 - x0, h: y1 - y0 };
+      case 'negRow': return { col: p.col + x0, row: p.row + y0, w: x1 - x0, h: y1 - y0 };
+      case 'posCol': return { col: p.col + p.w - y1, row: p.row + x0, w: y1 - y0, h: x1 - x0 };
+      default: return { col: p.col + y0, row: p.row + x0, w: y1 - y0, h: x1 - x0 };
+    }
+  };
+  if (band !== 'refectory') {
+    const T = band === 'cafe' ? 0.8 : Math.min(1.6, Math.max(1.2, S * 0.3));
+    return { band, alongW, front, service, terrace: box(0, L, 0, T), hall: box(0, L, T, S) };
+  }
+  const spec = REFECTORIES[v];
+  // Modern's roof oversails the terrace, so its tables stand further out.
+  const T = Math.min(1.7, Math.max(1.3, S * 0.24)) + across(spec.oversailMetres) * 0.5;
+  const G = Math.min(3.0, Math.max(2.3, S * 0.4));
+  const K = Math.min(2.3, Math.max(1.8, L * 0.2));
+  const B = Math.min(2.2, S - T - G);
+  return {
+    band, alongW, front, service,
+    terrace: box(0, L, 0, T),
+    hall: box(0, L - K, T, T + G),
+    // The kitchen square, as the college kitchens are; the range runs on
+    // behind it.
+    kitchen: box(L - K, L, T + 0.2, T + 0.2 + Math.min(G + B - 0.2, K * 1.1)),
+    back: box(0.35, L - 0.3, T + G, T + G + B),
   };
 }
 
