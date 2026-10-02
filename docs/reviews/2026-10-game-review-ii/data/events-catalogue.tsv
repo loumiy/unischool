@@ -1,0 +1,174 @@
+file or event	id or key	quote (October)	October verdict	verdict on HEAD	why
+parking-study	text	The Faculty Senate has voted 31–2	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+roof-goes	text	A section of roof has come off {building}	vague	true	names: { building: "worst" } (Plan 76D); repairs still spread over the estate (backlog)
+roof-goes	telling 2	The wind took a piece of the roof off {building}	vague	true	names: { building: "worst" } (Plan 76D); repairs still spread over the estate (backlog)
+roof-goes	telling 3	Part of the roof of {building} is now in the car park	vague	true	names: { building: "worst" } (Plan 76D); repairs still spread over the estate (backlog)
+roof-goes	tarpaulin	Tarpaulin and a fundraising appeal	vague	true	names: { building: "worst" } (Plan 76D); repairs still spread over the estate (backlog)
+anonymous-gift	text	on the single condition that it never be spent on administration	vague	vague	"never be spent on administration": no restricted money for this
+anonymous-gift	buildings	Put it into the buildings	false	true	eventCatalogue.ts:63 pays once: backlog -1,200,000, no cash
+star-poached	counter	Counter the offer	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+auditors	defer	Undertake to review it next year	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+storm	text	took ... a run of mature limes along the north walk	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+recession	text	The endowment is worth materially less than it was at breakfast	false	true	eventCatalogue.ts: both answers lose endowment ("cut" -2,500,000 and mood -4), so the crash is not optional
+recession	cut	Cut this year's spending to match	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+boiler-condemned	text	The inspector has condemned the boiler in {building}	vague	true	names the worst-kept building (Plan 76D)
+boiler-condemned	telling 2	The boiler in {building} has failed its inspection	vague	true	names the worst-kept building (Plan 76D)
+boiler-condemned	telling 3	condemned the boiler. The building is cold	vague	true	names the worst-kept building (Plan 76D)
+ivy-structural	text	the ivy on the west face is now doing some of the work	vague	vague	ivy not drawn on a building that is not historic (backlog)
+roof-slates	text	Slates have been coming off {building}	vague	true	names the worst-kept building (Plan 76D)
+roof-slates	telling 2	A slate came off {building} this morning	vague	true	names the worst-kept building (Plan 76D)
+roof-slates	telling 3	The roof of {building} has been shedding slates	vague	true	names the worst-kept building (Plan 76D)
+derelict-notice	text	The town has written about {building} ... 'eyesore'	false	true	names: { building: "derelict" } (Plan 76D): {building} is the derelict one
+derelict-notice	telling 2	The town council has written about the state of {building}	false	true	names: { building: "derelict" } (Plan 76D): {building} is the derelict one
+derelict-notice	telling 3	A letter from the town about {building}: ... 'eyesore'	false	true	names: { building: "derelict" } (Plan 76D): {building} is the derelict one
+asbestos	text	The refurbishment survey of {building} has found asbestos ... Work has stopped	vague	true	names the worst-kept building (Plan 76D)
+bell-tower	text	The bell mechanism has stopped. It stopped once before, in the founder's time	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+elm-disease	fell-replant	Fell and replant with limes	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+desire-path	pave	Pave the line they walk	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+arboretum-gift	text	would like to give it three hundred trees	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+endowment-manager	appoint	Appoint a proper manager	vague	vague	a one-off +2,000,000 for 150,000; the fund's return is fixed, and "a proper manager" (an idiom the scanner flags) changes nothing after
+bequest-conditions	accept	Accept the terms	false	true	effects { buildingFund: 4,000,000 }: the restricted building fund
+draw-questioned	cut	Cut the draw and find the money elsewhere	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+frozen-post	text	The hiring freeze has held for three years. The post that opened when {faculty} took leave	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+frozen-post	telling 2	The post left open when {faculty} went on leave has now been frozen	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+frozen-post	telling 3	Three years into the hiring freeze, the vacancy left by {faculty}'s leave	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+frozen-post	fill	Fill the post	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+tenure-case	deny	Deny, with a year to find something	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+sabbatical-overrun	text	{faculty} has not come back from sabbatical	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+sabbatical-overrun	telling 2	{faculty}'s sabbatical ended in September. {faculty} did not.	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+sabbatical-overrun	telling 3	The year's leave granted to {faculty} is now in its second year	false	vague	{faculty} is said to be on a second year of leave while the game keeps them on the roster and teaching; no leave exists
+sabbatical-overrun	recall	Require a return or a resignation	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+two-body	text	{faculty}, the best appointment {school} has made in years	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+two-body	line	Fund a teaching line for the spouse	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+two-body	courses	Offer teaching by the course	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+two-body	nothing	Say that nothing is possible	vague	vague	nobody leaves on "Say that nothing is possible"
+emeritus-office	text	Four emeritus professors are using offices	false	true	gated yearAtLeast 32, when emeriti are possible
+star-lecture	text	{faculty}'s lectures have started attracting people who are not registered	vague	vague	{faculty} is any professor, not a strong teacher (backlog: wants a chosen faculty member)
+teaching-review	invest	Fund a teaching program and protect the time	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+accreditation-visit	text	The accreditation panel will visit in the spring	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+accreditation-visit	telling 2	The accreditors are coming in April	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+accreditation-visit	telling 3	An accreditation visit is on the calendar for the spring	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+program-thin	invest	Fund it properly and give it three years	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+program-thin	teach-out	Teach out the students in it and close it	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+nothing-to-study	text	{school} has buildings, a seal, a bell and no programs	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+nothing-to-study	emergency	Open something, anything, this year	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+library-acquisition	buy	Buy the collection	vague	vague	the library does not change (backlog: wants a library lever)
+newspaper	fund	Fund it and give the undertaking	false	true	cash -30,000
+mascot	text	The Athletic Director has produced a costume without being asked	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+mascot	adopt	Adopt the heron	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+annual-fund-drive	text	The last one raised four times what it cost	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+annual-fund-drive	telling 2	The last one paid for itself four times over	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+class-complaint	text	concerns a building that is not there any more, a tradition that has lapsed	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+class-complaint	telling 2	about a building that has come down	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+class-complaint	telling 3	before the old hall came down	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+alumni-trustee	grant	Create the seat	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+tuition-letter	aid	Fund more aid and say so publicly	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+guidebook	text	{school} has appeared in a guidebook for the first time	vague	true	cooldown 99: "for the first time" once
+guidebook	advertise	Buy the larger entry next year	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+fire	text	What is lost is the east end: three teaching rooms, the departmental office	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+fire	modern	Replace it with something cheaper and newer	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+fire	close	Close the east end and manage without it	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+scandal	text	the two weeks arrives anyway, later, with the college having chosen its own silence to explain	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+bequest	debt	Clear the debt and steady the ship	false	true	clearing more than is owed returns the rest as cash (Plan 76D), and the line says "repays" only what is owed
+thin-fund	text	The endowment is smaller than it was ten years ago	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+thin-fund	campaign	Run a capital campaign	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+thin-fund	restraint	Stop drawing and let it recover	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+payroll-share	freeze	Hold salaries for a year	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+one-teacher	hire	Hire, whatever it costs	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+one-teacher	cover	Cover it with visiting lecturers	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-boiler	replace	Replace the boiler	vague	vague	recurs after the answer: nothing records the new boiler (BACKLOG "Events that do what they say")
+the-boiler	nurse	Nurse it through the winter	vague	true	winter model fixed (Plan 76D)
+the-ice-walk	text	froze overnight into a single continuous sheet	vague	true	winter model fixed (Plan 76D)
+the-ice-walk	telling 2	The path ... iced over in the night	vague	true	winter model fixed (Plan 76D)
+the-ice-walk	telling 3	The main walk froze solid overnight	vague	true	winter model fixed (Plan 76D)
+the-heating-bill	text	The heating bill for December has arrived	false	true	state/winter.ts: arrives in the Fall Term's last weeks (Plan 76D, G7-3)
+the-heating-bill	telling 2	December's heating bill has come in	false	true	state/winter.ts: arrives in the Fall Term's last weeks (Plan 76D, G7-3)
+the-heating-bill	telling 3	The gas bill for the winter's first cold month	vague	true	state/winter.ts: arrives in the Fall Term's last weeks (Plan 76D, G7-3)
+the-snow-day	text	It snowed eleven inches overnight	vague	true	winter model fixed: can fire (Plan 76D)
+the-snow-day	telling 2	Eleven inches of snow fell overnight	vague	true	winter model fixed: can fire (Plan 76D)
+the-snow-day	telling 3	Snow, a foot of it, on a teaching day	vague	true	winter model fixed: can fire (Plan 76D)
+the-dark-term	text	The spring term has started in the dark	false	true	springWeekAtMost: fires at the Spring Term's start
+the-snow-load	text	The snow on the flat roofs is now deep enough	vague	true	winter model fixed (Plan 76D)
+the-freeze	text	The coldest night in forty years came on the Sunday before term	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-championship-run	text	The {sport} team has won the title, and the campus has not slept since	vague	true	titleRecentAtLeast: fires on a new title
+the-championship-run	telling 2	The {sport} team are champions, and the campus has not gone to bed	vague	true	as the text
+the-championship-run	telling 3	The {sport} team has won the title, and the celebration is into its third day	vague	true	as the text
+the-championship-run	boosters	Let the boosters pay for the scoreboard	false	vague	eventCatalogue.ts:1138 warmth +2 and no money (fixed), but no scoreboard exists: the label names a thing the game never builds
+the-rankings-slip	telling 3	The college has slipped in the guide	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-rankings-slip	promise	Promise a rise within five years	false	true	promise: "a-rise-in-the-guide" (top 20 within five years)
+the-all-nighter	telling 2	The library was full at 4 a.m.	vague	true	needs: ["library"]
+the-grant-windfall	text	funded a center proposal from {faculty} ... where the center will be housed	vague	vague	{faculty} is any professor (backlog)
+the-grant-windfall	telling 2	A foundation has funded {faculty}'s proposal for a center	vague	vague	{faculty} is any professor (backlog)
+the-grant-windfall	telling 3	{faculty} will direct a new center, funded for five years	vague	vague	{faculty} is any professor (backlog)
+the-car-park	second	Lay out a second car park	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-burst-pipe	text	A pipe above the second floor of {building} burst on the Saturday	vague	true	names the worst-kept building; winter fixed (Plan 76D)
+the-burst-pipe	telling 2	A pipe above the second floor of {building} burst on Saturday night	vague	true	names the worst-kept building; winter fixed (Plan 76D)
+the-burst-pipe	telling 3	Water came through the ceiling of {building} all weekend	vague	true	names the worst-kept building; winter fixed (Plan 76D)
+the-master-key	cards	Move the whole campus to key cards	vague	vague	recurs after the answer (backlog)
+the-buckets	text	Rain has been getting into {building}	vague	true	names the worst-kept building (Plan 76D)
+the-buckets	telling 2	There are now nine buckets in the top corridor of {building}	vague	true	names the worst-kept building (Plan 76D)
+the-buckets	telling 3	The top floor of {building} leaks along the gutter line	vague	true	names the worst-kept building (Plan 76D)
+the-lift	text	The lift in {building} has stopped between floors for the fourth time	vague	true	names the worst-kept building; "lift" now an elevator in the telling (Plan 76D)
+the-lift	telling 2	The lift in {building} has stuck between floors again	vague	true	names the worst-kept building; "lift" now an elevator in the telling (Plan 76D)
+the-lift	telling 3	The lift in {building} failed once more	vague	true	names the worst-kept building; "lift" now an elevator in the telling (Plan 76D)
+the-listing	text	would like to list {building} as a building of special interest	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-listing	support	Support the listing	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-writing-requirement	require	Require the writing course	vague	vague	recurs after the answer (backlog)
+the-grade-medians	publish	Print the median beside every grade	vague	vague	recurs after the answer (backlog)
+the-lab-inspection	text	gives the college twenty-eight days	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-lab-inspection	telling 2	The report allows twenty-eight days	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-lab-inspection	telling 3	gives the college four weeks	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-lab-inspection	close	Close the laboratories until it is done	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-last-lecture	text	The longest-serving teacher in {program} retires in June	false	vague	gated yearAtLeast 26 (fixed), but nobody leaves the roster: "retires in June" names a retirement the game does not make
+the-last-lecture	prize	Endow a prize in her name	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-closing-bell	open	Open the library all night in exams	vague	vague	recurs after the answer (backlog)
+the-statue-donor	text	a gift toward the scholarship fund	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-statue-donor	accept	Accept the gift and the statue	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-statue-donor	plaque	Offer a named scholarship instead	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-reunion-gift	text	The {class} has raised a reunion gift	false	true	names: { class: "reunion" }: a class five, ten ... years out
+the-reunion-gift	telling 2	The {class} would like its reunion gift spent on a clock	false	vague	warmth +3 and no money (fixed), but no clock is installed
+the-reunion-gift	telling 3	A reunion gift from the {class}	false	true	names: { class: "reunion" }: a class five, ten ... years out
+the-reunion-gift	clock	Install the clock as given	false	vague	warmth +3 and no money (fixed), but no clock is installed
+the-reunion-gift	redirect	Ask them to fund bursaries instead	false	true	names: { class: "reunion" }: a class five, ten ... years out
+the-honorary-degree	defer	Defer the nomination a year	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-matching-challenge	text	match every alumni gift dollar for dollar up to $1M	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-matching-challenge	announce	Announce the challenge and campaign for it	vague	vague	the match is a fixed scaled sum: "up to about a year of alumni giving" is not read
+the-dormant-account	controller	Hire a controller to find the others	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-pension-valuation	text	it says the gap will grow if nothing is done	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-pension-valuation	spread	Raise contributions over time	false	true	cash -300,000
+the-land-offer	sell	Sell the strip	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-land-offer	lease	Lease it for twenty years	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-trustee-bid	award	Award it to the lowest bid	vague	true	backlog -120,000: the roof work happens
+the-board-secretary	text	is retiring after thirty-one years. The minutes of every meeting since the founding	false	true	yearAtLeast 31, cooldown 99
+the-board-secretary	hire	Appoint a full-time successor	false	true	cash -60,000
+the-term-limits	text	has been on the board for twenty-six years	false	true	yearAtLeast 26
+the-term-limits	adopt	Adopt term limits	vague	vague	recurs after the answer (backlog)
+the-rankings-survey	brochure	Send every president a glossy brochure first	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-booster-club	accept	Accept the gift and the seat	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-flood	defend	Build the flood defenses	vague	vague	no defenses exist afterward; recurs after 20 years (backlog)
+the-flood	upstairs	Move teaching off the ground floors	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-essay-ring	rescind	Rescind the degrees and fail the rest	vague	vague	enrollment -40 scaled with the body, freshmen only (backlog)
+the-grant-cut	current	Replace them for students already enrolled	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-harrowgate-pledge	text	It is in the foundations of a building that already has his name cut into the lintel	false	true	rewritten as the Hartwell pledge: the first half is spent on drawings, no building is claimed to stand
+the-harrowgate-pledge	finish	Finish the building from the endowment	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-harrowgate-pledge	contest	Contest the administrators' claim	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-harrowgate-pledge	mothball	Mothball the unfinished wing	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-prospectus-case	defend	Defend the case	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-kitchen-strike	text	The precedent it sets for every other line of the payroll is not	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-sinkhole	text	A hole thirty-six feet across opened overnight beside {building} ... kept empty	vague	vague	no hole is drawn; repairs spread over the estate (backlog)
+the-sinkhole	fill	Fill this one and watch the others	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-sinkhole	fence	Fence off the marked ground	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-name-on-the-prize	text	The most famous graduate of the {class}, and of the college's publicity for a generation	false	true	names: { class: "veteran" }: a class twenty or more years out (Plan 76D)
+the-merger-proposal	share	Open talks on shared services	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-merger-proposal	merge	Enter merger negotiations	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+what-happened	text	under the headline 'What Happened?'	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+talk-at-the-gate	text	a place that used to be something ... by the spring meeting	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+talk-at-the-gate	teaching	Spend on the teaching	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+founding-faculty-last	text	The last of the founding faculty retires this year	false	vague	gated years 29-31 (fixed), but nobody leaves the roster, and nothing checks that a founding professor is still on it
+founding-faculty-last	chair	Endow a chair in their name	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+second-generation	legacy	Give alumni children a preference	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+heritage-listing	text	which would protect it from demolition and from the college	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+heritage-listing	welcome	Welcome the listing	false	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+who-comes-next	deputy	Appoint a deputy to groom	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
+the-history	archivist	Hire an archivist	false	true	cash -45,000
+old-rival-proposal	degree	Agree the joint degree	vague	changed	The quoted words are no longer in src/: reworded or removed by Plan 76C/D (blurbs and letters: #224; events: #228), each under test/text-true.test.ts or test/event-truth.test.ts
