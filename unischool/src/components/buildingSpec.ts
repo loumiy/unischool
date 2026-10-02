@@ -372,11 +372,13 @@ const CLEAR_SPAN_METRES: Partial<Record<Motif, number>> = {
 
 // How tall the walls stand, in screen units, before any roof.
 // The grand landmarks' full heights, in meters (landmarks.tsx draws them).
+// The Campanile near three times the squat Bell Tower, finial to finial,
+// so the two never read as one tower at two sizes (Plan 87G).
 export const LANDMARK_HEIGHT_METRES: Record<string, number> = {
-  'LANDMARK-CAMPANILE': 52,
+  'LANDMARK-CAMPANILE': 74,
   'LANDMARK-DOME': 34,
   'LANDMARK-GATE': 20,
-  'AMENITY-BELLTOWER': 30,
+  'AMENITY-BELLTOWER': 26,
 };
 
 export function wallHeightOf(t: Buildable): number {
