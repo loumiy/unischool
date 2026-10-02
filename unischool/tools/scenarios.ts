@@ -190,6 +190,9 @@ export const SCENARIOS: Scenario[] = [
     what: 'the faculty training program at work, the year\'s training picks still to spend',
     player: 'Guided',
     year: 45,
+    // The Guided player's own rule ('strongest') no longer lands on
+    // academics since Plan 85I's balance pass; the scenario names it.
+    specialization: 'academics',
     trains: (s) => s.clock.year < 38,
     stopWhen: (s) => s.clock.year >= 38 && s.clock.week >= 6 && instituteStands(s),
   },

@@ -329,7 +329,8 @@ npm run review:probe -- vernacular save.json   # how much of a campus the vernac
 npm run review:probe -- backlog            # the estate's backlog over 50 years at full maintenance
 npm run review:gallery -- node_modules/.tmp/sc/*.json   # every tab, menu and held modal, counted, at two sizes
 npm run review:sweep -- --seeds 1-10 --years 50   # invariants every week, a save round trip every year
-node tools/review/twoTabs.mjs save.json    # the repro for one save open in two tabs
+npm run review:sweep -- --fixtures --years 5      # every committed save fixture, loaded and played on
+node tools/review/twoTabs.mjs save.json    # four ways two tabs meet one save, each with the week it expects
 npm run sheet -- --every                   # every placeable, each school's hall, each venue expansion
 ```
 
@@ -344,10 +345,12 @@ npm run sheet -- --every                   # every placeable, each school's hall
   idiom, jargon and marks against the house style. `strings.md` is the
   summary.
 - **`sweep.ts`** plays harness games over many seeds, players and odd
-  college names (non-Latin, right-to-left, 72 characters), checks the
+  college names (non-Latin, right-to-left, 64 characters), checks the
   invariants every week, and at the start of every year writes the save as
-  the browser does, reads it back through the whole load path and compares
-  field by field.
+  the player's export does, reads it back through the whole load path and
+  compares field by field, then plays four weeks on from both and compares
+  again (which catches what JSON drops). `--fixtures` loads each save in
+  `test/fixtures/` (the launch save and every version's) and plays it on.
 - **`gallery.mjs`** opens each save in a fresh browser at desktop and phone
   size, steps through any modal it holds, opens every tab, the Build menu,
   the main menu, Settings and Founders Hall's panel, and counts the words

@@ -20,7 +20,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { mapMissed, waitForMap } from '../mapReview.mjs';
+import { mapBuildings, mapMissed, waitForMap } from '../mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const VALUE_FLAGS = ['out', 'sizes', 'settings'];
@@ -42,8 +42,9 @@ if (!CHROME) { console.error('no Chromium found; set CHROME_PATH'); process.exit
 mkdirSync(out, { recursive: true });
 
 // The toolbar's tab buttons, by aria-label (TabNav.tsx's TAB_LABELS and the
-// funds chip's "Treasury").
-const TABS = ['Curriculum', 'Faculty', 'Research', 'Students', 'Athletics', 'History', 'Treasury'];
+// funds chip's "Treasury"). The Inbox's label carries its count ("Inbox, 2 to
+// decide"), so each is matched by its start.
+const TABS = ['Inbox', 'Curriculum', 'Faculty', 'Research', 'Students', 'Athletics', 'History', 'Treasury'];
 // A modal is stepped through by the button that moves it on; failing
 // that, its last enabled button (the default answer).
 const ADVANCE = /^(continue|next|begin|done|close|ok|noted|read on|carry on|on to|see |start|→)|→$/i;
@@ -55,7 +56,10 @@ async function count(page) {
   return page.evaluate(() => {
     const visible = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
     const dialogs = [...document.querySelectorAll('[role="dialog"]')].filter(visible);
-    const top = dialogs[dialogs.length - 1] ?? null;
+    // A stop is answered in the inbox's reading pane (Plan 77C): count the
+    // stop itself, as the modal it was, not the inbox's list beside it.
+    const held = [...document.querySelectorAll('.modal-inbox')].filter(visible);
+    const top = held[held.length - 1] ?? dialogs[dialogs.length - 1] ?? null;
     const words = (el) => (el?.innerText ?? '').split(/\s+/).filter((w) => /[A-Za-z0-9$]/.test(w)).length;
     const controls = (el) => [...(el ?? document).querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="tab"], [role="slider"]')]
       .filter((c) => visible(c) && !c.disabled).length;
@@ -65,7 +69,7 @@ async function count(page) {
       if (/(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 4) { scrolls = true; break; }
     }
     const disabled = [...(top ?? document).querySelectorAll('button:disabled')].filter(visible).length;
-    const label = top ? (top.getAttribute('aria-label') ?? top.dataset.interrupt ?? top.className.split(' ')[0]) : 'page';
+    const label = top ? (top.dataset.interrupt ? `Inbox › ${top.dataset.interrupt}` : top.getAttribute('aria-label') ?? top.className.split(' ')[0]) : 'page';
     return { layer: label, words: words(top ?? document.body), pageWords: words(document.body), controls: controls(top), pageControls: controls(null), disabled, scrolls };
   });
 }
@@ -105,13 +109,41 @@ async function pause(page) {
   await page.getByRole('button', { name: 'Paused', exact: true }).click({ timeout: 1500 }).catch(() => {});
 }
 
+// The inbox's first matter or letter, read (Plan 77).
+async function inboxPane(page, ctx) {
+  const row = page.locator('button.inbox-row').first();
+  if (!(await row.count())) return;
+  await row.click().catch(() => {});
+  await capture(page, ctx, 'Inbox reading pane');
+}
+
+// The Faculty tab's other views and one person opened (Plan 84). On a phone
+// the person opens over the tab, and Escape closes it first.
+async function facultyViews(page, ctx) {
+  for (const view of ['Market', 'Departments']) {
+    const b = page.locator('.dept-views button', { hasText: view }).first();
+    if (!(await b.count())) continue;
+    await b.click().catch(() => {});
+    await capture(page, ctx, `Faculty ${view}`);
+  }
+  const back = page.locator('.dept-views button').first();
+  if (await back.count()) await back.click().catch(() => {});
+  const tile = page.locator('.faculty-tile-top').first();
+  if (!(await tile.count())) return;
+  await tile.click({ force: true }).catch(() => {});
+  await capture(page, ctx, 'Faculty person');
+  if (ctx.size === 'phone') await closeTop(page);
+}
+
 async function tour(page, ctx) {
   await pause(page);
   for (const tab of TABS) {
-    const btn = page.locator(`button[aria-label="${tab}"]`).first();
-    if (!(await btn.count()) || !(await btn.isVisible().catch(() => false))) continue;
+    const btn = page.locator(`button[aria-label^="${tab}"]`).first();
+    if (!(await btn.count()) || !(await btn.isVisible().catch(() => false)) || await btn.isDisabled()) continue;
     await btn.click().catch(() => {});
     await capture(page, ctx, `tab ${tab}`);
+    if (tab === 'Inbox') await inboxPane(page, ctx);
+    if (tab === 'Faculty') await facultyViews(page, ctx);
     await closeTop(page);
   }
   const build = page.locator('button:has-text("Build")').last();
@@ -132,9 +164,11 @@ async function tour(page, ctx) {
     await closeTop(page);
     await closeTop(page);
   }
-  const hall = page.locator('[data-building="BLDG-GENSTUDIES"]').first();
-  if (await hall.count()) {
-    await hall.click({ force: true }).catch(() => {});
+  // The map is a canvas (Plan 83): Founders Hall is found through the map's
+  // review probe and clicked where it stands.
+  const hall = (await mapBuildings(page)).find((b) => /Founders Hall/.test(b.name));
+  if (hall) {
+    await page.mouse.click(hall.x, hall.y);
     await capture(page, ctx, 'Founders Hall panel');
     await closeTop(page);
   }

@@ -307,6 +307,17 @@ export const ARRANGEMENTS: Arrangement[] = [
     ],
     paths: [...run(50, 38, 50, 86), ...run(57, 60, 78, 60), ...run(78, 38, 78, 86)],
   },
+  {
+    // Plan 86 (the second review): the specialization buildings of Plan 85.
+    name: 'specialized',
+    what: 'The specialization buildings (Plan 85) in a row fronting one walk: the Faculty Training Institute, the Athletic Performance Complex and the Research Park.',
+    sites: [
+      { id: 'PROJ-TRAINING', at: T(51, 38) },
+      { id: 'PROJ-ATHLETICS-COMPLEX', at: T(49, 52) },
+      { id: 'PROJ-RESEARCH-PARK', at: T(50, 68) },
+    ],
+    paths: [...run(58, 36, 58, 82), ...run(59, 58, 66, 58)],
+  },
 ];
 
 // Where a wall's door opens, for a placement: the tile outside the middle of

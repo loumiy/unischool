@@ -1,0 +1,51 @@
+ok   save-launch.json Guided 43s
+ok   save-launch.json Idle 14s
+ok   save-v78-charter.json Guided 16s
+ok   save-v78-charter.json Idle 5s
+ok   save-v79.json Guided 6s
+ok   save-v79.json Idle 4s
+ok   save-v80.json Guided 12s
+ok   save-v80.json Idle 4s
+ok   save-v81-confidence.json Guided 13s
+ok   save-v81-confidence.json Idle 5s
+ok   save-v81-opening.json Guided 12s
+ok   save-v81-opening.json Idle 5s
+ok   save-v81-quads.json Guided 11s
+ok   save-v81-quads.json Idle 4s
+FAIL save-v81-recruiting.json Guided 5s
+  y21w49 invariant: 157 weeks of Landmark work in Year 21
+  y21w49 invariant: 160 weeks of Landmark work in Year 21
+  y21w51 invariant: 163 weeks of Landmark work in Year 21
+  y21w52 invariant: 166 weeks of Landmark work in Year 21
+  y21w52 invariant: 169 weeks of Landmark work in Year 21
+FAIL save-v81-recruiting.json Idle 2s
+  y21w49 invariant: 157 weeks of Landmark work in Year 21
+  y21w50 invariant: 160 weeks of Landmark work in Year 21
+  y21w51 invariant: 163 weeks of Landmark work in Year 21
+  y21w52 invariant: 166 weeks of Landmark work in Year 21
+  y21w52 invariant: 169 weeks of Landmark work in Year 21
+ok   save-v81.json Guided 14s
+ok   save-v81.json Idle 5s
+ok   save-v82.json Guided 12s
+ok   save-v82.json Idle 5s
+ok   save-v83.json Guided 12s
+ok   save-v83.json Idle 5s
+ok   save-v84.json Guided 11s
+ok   save-v84.json Idle 4s
+ok   save-v85.json Guided 14s
+ok   save-v85.json Idle 6s
+ok   save-v86.json Guided 15s
+ok   save-v86.json Idle 9s
+ok   save-v87.json Guided 15s
+ok   save-v87.json Idle 5s
+ok   save-v88.json Guided 17s
+ok   save-v88.json Idle 7s
+ok   save-v89.json Guided 13s
+ok   save-v89.json Idle 5s
+ok   save-v90.json Guided 15s
+ok   save-v90.json Idle 6s
+ok   save-v91.json Guided 11s
+ok   save-v91.json Idle 5s
+ok   save-v92.json Guided 14s
+ok   save-v92.json Idle 4s
+40 runs, 2 with problems
