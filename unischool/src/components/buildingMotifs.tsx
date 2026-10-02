@@ -458,7 +458,7 @@ const ROOF_PLANT: Partial<Record<Motif, readonly (readonly [number, number, numb
 
 // One thing standing on a flat roof, on the ground (in tiles) it covers.
 export interface RoofItem extends DepthBox {
-  kind: 'stack' | 'plant' | 'flue' | 'observatory' | 'glasshouse';
+  kind: 'stack' | 'plant' | 'flue' | 'observatory' | 'glasshouse' | 'transformers' | 'pylon' | 'distillation' | 'pipeRack';
   key: string;
 }
 
@@ -487,14 +487,251 @@ export function flatRoofItems(motif: Motif, feature: LabFeature | undefined, col
   } else if (feature === 'flues') {
     const sp = across(0.9);
     for (const u of FLUES) fixed.push({ kind: 'flue', key: `flue-${u}`, col: col + w * u, row: row + h * FLUE_ROW, w: sp, h: sp });
+  } else if (feature === 'transformers') {
+    // The transformer yard (Plan 87I), in place of the roof plant.
+    TRANSFORMERS.forEach(([a, c], i) => fixed.push({ kind: 'transformers', key: `transformer-${i}`, ...roofAxisCentred(col, row, w, h, a, c, TRANSFORMER_PLAN[0], TRANSFORMER_PLAN[1]) }));
+    fixed.push({ kind: 'pylon', key: 'pylon', ...roofAxisCentred(col, row, w, h, PYLON_AT[0], PYLON_AT[1], PYLON_PLAN, PYLON_PLAN) });
+  } else if (feature === 'distillation') {
+    // The process plant (Plan 87I), in place of the roof plant.
+    const [a0, a1, c0, c1] = PIPE_RACK;
+    fixed.push({ kind: 'pipeRack', key: 'pipe-rack', ...roofAxisBox(col, row, w, h, a0, a1, c0, c1) });
+    STILLS.forEach(([a, c, r], i) => fixed.push({ kind: 'distillation', key: `still-${i}`, ...roofAxisCentred(col, row, w, h, a, c, across(r) * 2, across(r) * 2) }));
   }
-  const plant: RoofItem[] = (ROOF_PLANT[motif] ?? []).map(([fx, fy, fw, fh], i) => ({
+  const yard = feature === 'transformers' || feature === 'distillation';
+  const plant: RoofItem[] = (yard ? [] : ROOF_PLANT[motif] ?? []).map(([fx, fy, fw, fh], i) => ({
     kind: 'plant', key: `plant-${i}`,
     col: col + w * fx, row: row + h * fy, w: Math.min(w * fw, across(5.5)), h: Math.min(h * fh, across(4.5)),
   }));
   const kept = Math.min(w, h) >= 4 || plant.length === 0 ? plant
     : [plant.find((u) => fixed.every((o) => clearOf(u, o))) ?? plant[0]];
   return depthOrder([...fixed, ...kept]);
+}
+
+// The Electrical Engineering Labs' transformer yard (Plan 87I): two
+// transformers, each a tank with radiator fins down its sides and three
+// porcelain bushings (stacked insulator discs) on its lid; a lattice pylon
+// at the end of the roof brings the line in. And the Chemical Engineering
+// Labs' process plant: a pipe rack along the roof and a cluster of
+// distillation columns, ringed with platforms.
+const TRANSFORMERS = [[0.42, 0.55], [0.66, 0.55]] as const;   // centers, along the long axis and across
+const TRANSFORMER_PLAN = [across(5.6), across(3.8)] as const;
+const TRANSFORMER_RISE = up(3.8);
+const PYLON_AT = [0.13, 0.55] as const;
+const PYLON_PLAN = across(2.8);
+const PYLON_RISE = up(15);
+const STILLS = [[0.3, 0.66, 1.5, 21], [0.5, 0.72, 1.1, 15], [0.68, 0.62, 1.7, 25]] as const;   // a, c, radius m, height m
+const PIPE_RACK = [0.06, 0.94, 0.17, 0.33] as const;   // a0, a1, c0, c1
+const PIPE_RACK_RISE = up(3.6);
+const PORCELAIN = '#8c4a33';
+const TANK_GREEN = '#7f8c84';
+const STILL_STEEL = '#cfd3d6';
+const PLATFORM = '#6f757a';
+
+// A box on the roof laid out along its long axis: `a` along it, `c` across.
+function roofAxisBox(col: number, row: number, w: number, h: number, a0: number, a1: number, c0: number, c1: number): DepthBox {
+  return w >= h
+    ? { col: col + w * a0, row: row + h * c0, w: w * (a1 - a0), h: h * (c1 - c0) }
+    : { col: col + w * c0, row: row + h * a0, w: w * (c1 - c0), h: h * (a1 - a0) };
+}
+// A box of fixed size centered at (a, c) along the long axis.
+function roofAxisCentred(col: number, row: number, w: number, h: number, a: number, c: number, along: number, across_: number): DepthBox {
+  const alongW = w >= h;
+  const cc = alongW ? col + w * a : col + w * c;
+  const cr = alongW ? row + h * c : row + h * a;
+  const bw = alongW ? along : across_; const bh = alongW ? across_ : along;
+  return { col: cc - bw / 2, row: cr - bh / 2, w: bw, h: bh };
+}
+
+// One insulator stack: porcelain discs threaded on a rod, from `p` up.
+function InsulatorStack({ p, rise, discs = 5, rx = 2.1 }: { p: Pt; rise: number; discs?: number; rx?: number }) {
+  const top = lift(p, rise);
+  return (
+    <g className="lab-insulator">
+      <line x1={p.x} y1={p.y} x2={top.x} y2={top.y} stroke="#4b3a33" strokeWidth={0.8} />
+      {Array.from({ length: discs }, (_, i) => {
+        const q = lift(p, rise * ((i + 0.7) / (discs + 0.2)));
+        return <ellipse key={i} cx={q.x} cy={q.y} rx={rx * (1 - i * 0.05)} ry={rx * 0.42} fill={i % 2 === 0 ? PORCELAIN : shade(PORCELAIN, 1.18)} stroke="rgba(40, 24, 18, 0.55)" strokeWidth={0.4} />;
+      })}
+      <circle cx={top.x} cy={top.y} r={0.9} fill="#b9bcbf" />
+    </g>
+  );
+}
+
+// The bushings' tops, for the line to land on.
+function bushingTops(b: DepthBox, base: number, alongW: boolean): Pt[] {
+  return [0.22, 0.5, 0.78].map((f) => {
+    const c = alongW ? b.col + b.w * f : b.col + b.w / 2;
+    const r = alongW ? b.row + b.h / 2 : b.row + b.h * f;
+    return lift(project(c, r), base + TRANSFORMER_RISE + up(3.4));
+  });
+}
+
+function Transformer({ col, row, w, h, base, alongW }: DepthBox & { base: number; alongW: boolean }) {
+  const tank = boxFaces(col, row, w, h, base, TRANSFORMER_RISE);
+  // Radiator fins: close vertical ribs down both visible faces.
+  const fins = (o: Pt, a: Pt, key: string) => {
+    const n = 9;
+    return Array.from({ length: n }, (_, i) => {
+      const u = 0.08 + (0.84 * i) / (n - 1);
+      const p0 = facePoint(o, a, TRANSFORMER_RISE, u, 0.08); const p1 = facePoint(o, a, TRANSFORMER_RISE, u, 0.86);
+      return <line key={`${key}${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#4f5a53" strokeWidth={0.9} />;
+    });
+  };
+  // A conservator: a small drum along the lid's back edge.
+  return (
+    <g className="lab-transformer">
+      {sideFaces(tank, shade(TANK_GREEN, 0.96), shade(TANK_GREEN, 0.8))}
+      {fins(tank.D, tank.C, 'l')}
+      {fins(tank.C, tank.B, 'r')}
+      <polygon points={polyPoints(tank.top)} fill={shade(TANK_GREEN, 1.12)} />
+      {[0.22, 0.5, 0.78].map((f) => {
+        const c = alongW ? col + w * f : col + w / 2;
+        const r = alongW ? row + h / 2 : row + h * f;
+        return <InsulatorStack key={f} p={lift(project(c, r), base + TRANSFORMER_RISE)} rise={up(3.4)} />;
+      })}
+    </g>
+  );
+}
+
+// A lattice pylon: four legs tapering to a waist, cross-braced, with a
+// crossarm hung with insulator strings.
+function Pylon({ col, row, w, h, base, alongW }: DepthBox & { base: number; alongW: boolean }) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const half = w / 2; const waist = half * 0.32;
+  const corner = (r: number, z: number, i: number): Pt => {
+    const dc = (i === 0 || i === 3 ? -1 : 1) * r; const dr = (i < 2 ? -1 : 1) * r;
+    return lift(project(cc + dc, cr + dr), z);
+  };
+  const levels = [0, 0.3, 0.55, 0.78, 1];
+  const rAt = (f: number) => half + (waist - half) * f;
+  const steel = '#5a5f63';
+  const lines: Array<[Pt, Pt]> = [];
+  for (let i = 0; i < 4; i += 1) lines.push([corner(half, base, i), corner(waist, base + PYLON_RISE, i)]);
+  for (let k = 0; k < levels.length - 1; k += 1) {
+    const z0 = base + PYLON_RISE * levels[k]!; const z1 = base + PYLON_RISE * levels[k + 1]!;
+    const r0 = rAt(levels[k]!); const r1 = rAt(levels[k + 1]!);
+    for (let i = 0; i < 4; i += 1) {
+      const j = (i + 1) % 4;
+      lines.push([corner(r0, z0, i), corner(r1, z1, j)], [corner(r0, z0, j), corner(r1, z1, i)]);
+      lines.push([corner(r1, z1, i), corner(r1, z1, j)]);
+    }
+  }
+  // The crossarm runs across the roof's long axis, so the line leaves along it.
+  const armZ = base + PYLON_RISE * 0.86;
+  const arm = (s: number) => lift(project(alongW ? cc : cc + s * half * 1.5, alongW ? cr + s * half * 1.5 : cr), armZ);
+  const ends = [arm(-1), arm(1)];
+  const tip = lift(project(cc, cr), base + PYLON_RISE + up(1.6));
+  return (
+    <g className="lab-pylon">
+      {lines.map(([p, q], i) => <line key={i} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={steel} strokeWidth={i < 4 ? 1.1 : 0.55} />)}
+      <line x1={ends[0]!.x} y1={ends[0]!.y} x2={ends[1]!.x} y2={ends[1]!.y} stroke={steel} strokeWidth={1.2} />
+      <line x1={lift(project(cc, cr), base + PYLON_RISE).x} y1={lift(project(cc, cr), base + PYLON_RISE).y} x2={tip.x} y2={tip.y} stroke={steel} strokeWidth={0.8} />
+      {ends.map((e, i) => <InsulatorStack key={i} p={lift(e, -up(2.2))} rise={up(2.2)} discs={4} rx={1.4} />)}
+    </g>
+  );
+}
+
+// The line from the pylon's crossarm to each transformer's middle bushing,
+// sagging between them. Drawn over the yard, after everything on the roof.
+function pylonLines(items: RoofItem[], base: number, alongW: boolean) {
+  const pylon = items.find((x) => x.kind === 'pylon');
+  if (!pylon) return null;
+  const cc = pylon.col + pylon.w / 2; const cr = pylon.row + pylon.h / 2;
+  const half = pylon.w / 2;
+  const armZ = base + PYLON_RISE * 0.86 - up(2.2);
+  const arm = (s: number) => lift(project(alongW ? cc : cc + s * half * 1.5, alongW ? cr + s * half * 1.5 : cr), armZ);
+  const tops = items.filter((x) => x.kind === 'transformers').map((b) => bushingTops(b, base, alongW)[1]!);
+  return (
+    <g className="lab-lines">
+      {tops.flatMap((q, i) => [-1, 1].map((s) => {
+        const p = arm(s);
+        const mx = (p.x + q.x) / 2; const my = Math.max(p.y, q.y) + 4;
+        return <path key={`${i}${s}`} d={`M${p.x.toFixed(1)},${p.y.toFixed(1)}Q${mx.toFixed(1)},${my.toFixed(1)} ${q.x.toFixed(1)},${q.y.toFixed(1)}`} fill="none" stroke="#2f3336" strokeWidth={0.5} />;
+      }))}
+    </g>
+  );
+}
+
+// A distillation column: a tall steel shell with a domed head, a ladder,
+// and platforms with handrails at three levels.
+function Still({ col, row, w, base, rise }: DepthBox & { base: number; rise: number }) {
+  const r = w / 2;
+  const cc = col + r; const cr = row + r;
+  const ring = (rad: number, z: number) => projectedCircle(cc, cr, rad, 24).map((q) => lift(q, z));
+  const levels = [0.34, 0.62, 0.88];
+  const head = lift(project(cc, cr), base + rise);
+  const rx = (Math.max(...ring(r, 0).map((q) => q.x)) - Math.min(...ring(r, 0).map((q) => q.x))) / 2;
+  const ladder = (() => {
+    const near = nearRing(ring(r * 1.02, base));
+    const p = near[Math.floor(near.length * 0.35)]!;
+    return { p0: p, p1: lift(p, rise * 0.9) };
+  })();
+  return (
+    <g className="lab-still">
+      {/* The platforms' far halves, behind the shell. */}
+      {levels.map((v) => <polygon key={`b${v}`} points={polyPoints(ring(r * 1.8, base + rise * v))} fill={PLATFORM} />)}
+      <Cylinder cc={cc} cr={cr} r={r} z0={base} z1={base + rise} fill={STILL_STEEL} />
+      <path d={`M${(head.x - rx).toFixed(1)},${head.y.toFixed(1)}Q${head.x.toFixed(1)},${(head.y - rx * 0.9).toFixed(1)} ${(head.x + rx).toFixed(1)},${head.y.toFixed(1)}Z`} fill={shade(STILL_STEEL, 1.06)} stroke="rgba(40, 42, 44, 0.35)" strokeWidth={0.5} />
+      <line x1={ladder.p0.x} y1={ladder.p0.y} x2={ladder.p1.x} y2={ladder.p1.y} stroke="#5b6166" strokeWidth={0.7} />
+      {/* Weld seams down the shell. */}
+      {[0.2, 0.48, 0.76].map((v) => (
+        <polyline key={`s${v}`} points={polyPoints(nearRing(ring(r, base + rise * v)))} fill="none" stroke="rgba(70, 76, 80, 0.45)" strokeWidth={0.5} />
+      ))}
+      {/* Their near halves, a grating ring in front of it, and a rail. */}
+      {levels.map((v) => {
+        const z = base + rise * v;
+        return (
+          <g key={`p${v}`}>
+            <polygon points={polyPoints([...nearRing(ring(r * 1.8, z)), ...nearRing(ring(r, z)).reverse()])} fill={shade(PLATFORM, 1.15)} stroke="#4a4f53" strokeWidth={0.5} />
+            <polyline points={polyPoints(nearRing(ring(r * 1.8, z + up(1.1))))} fill="none" stroke={GANTRY_YELLOW} strokeWidth={0.7} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// The pipe rack: steel bents along its length carrying two tiers of pipes,
+// each pipe drawn as a line in its service's color.
+function PipeRack({ col, row, w, h, base, alongW }: DepthBox & { base: number; alongW: boolean }) {
+  const len = alongW ? w : h;
+  const bents = Math.max(3, Math.round((len * METRES_PER_TILE) / 6));
+  const at = (a: number, c: number, z: number) => lift(project(alongW ? col + w * a : col + w * c, alongW ? row + h * c : row + h * a), z);
+  const steel = '#6a5d55';
+  const tiers = [base + PIPE_RACK_RISE * 0.62, base + PIPE_RACK_RISE];
+  const pipes: Array<[number, number, string, number]> = [
+    [0, 0.25, '#b9bec2', 1.7], [0, 0.55, '#a14a35', 1.5], [0, 0.82, '#d4b347', 1.2],
+    [1, 0.3, '#8e979d', 1.9], [1, 0.7, '#e8e6df', 1.6],
+  ];
+  return (
+    <g className="lab-pipe-rack">
+      {/* The bents: two legs and two crossbeams each. */}
+      {Array.from({ length: bents }, (_, i) => {
+        const a = (i + 0.5) / bents;
+        const l0 = at(a, 0.08, base); const l1 = at(a, 0.92, base);
+        const t0 = at(a, 0.08, tiers[1]!); const t1 = at(a, 0.92, tiers[1]!);
+        const m0 = at(a, 0.08, tiers[0]!); const m1 = at(a, 0.92, tiers[0]!);
+        return (
+          <g key={`b${i}`}>
+            <line x1={l0.x} y1={l0.y} x2={t0.x} y2={t0.y} stroke={steel} strokeWidth={1} />
+            <line x1={l1.x} y1={l1.y} x2={t1.x} y2={t1.y} stroke={steel} strokeWidth={1} />
+            <line x1={m0.x} y1={m0.y} x2={m1.x} y2={m1.y} stroke={steel} strokeWidth={0.8} />
+            <line x1={t0.x} y1={t0.y} x2={t1.x} y2={t1.y} stroke={steel} strokeWidth={0.8} />
+          </g>
+        );
+      })}
+      {/* The pipes, the far ones first. */}
+      {pipes.map(([tier, c, color, width], i) => {
+        const p0 = at(0, c, tiers[tier]! + up(0.35)); const p1 = at(1, c, tiers[tier]! + up(0.35));
+        return (
+          <g key={`p${i}`}>
+            <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(color, 0.7)} strokeWidth={width + 0.6} strokeLinecap="round" />
+            <line x1={p0.x} y1={p0.y - 0.3} x2={p1.x} y2={p1.y - 0.3} stroke={color} strokeWidth={width * 0.6} strokeLinecap="round" />
+          </g>
+        );
+      })}
+    </g>
+  );
 }
 
 // One fume flue, standing on the roof at `base`.
@@ -1597,6 +1834,31 @@ function WallSignifier({ kind, f, H, stone }: {
         </g>
       );
     }
+    case 'ticker': {
+      // A ticker board (Plan 87I): a dark band wrapping both fronts over the
+      // ground floor, in a thin metal frame, its quotes running in amber,
+      // green and red dashes.
+      const z0 = Math.min(STOREY * 0.8, H * 0.42); const z1 = z0 + up(1.5);
+      const colors = ['#ffbf3f', '#5fe08a', '#ffbf3f', '#ff6b5b', '#5fe08a', '#ffbf3f'];
+      return (
+        <g className="sig-ticker">
+          {faces.map(({ o, a, span }, i) => {
+            const n = Math.max(6, Math.round((span * METRES_PER_TILE) / 2.6));
+            return (
+              <g key={i}>
+                <polygon points={polyPoints(wallQuad(o, a, H, 0.03, 0.97, z0 - up(0.2), z1 + up(0.2)))} fill="#8d9296" />
+                <polygon points={polyPoints(wallQuad(o, a, H, 0.035, 0.965, z0, z1))} fill="#17191c" />
+                {Array.from({ length: n }, (_, k) => {
+                  const u0 = 0.05 + (0.9 * k) / n; const len = (0.9 / n) * (0.45 + ((k * 7 + i * 3) % 4) * 0.12);
+                  const row = (k + i) % 3 === 0 ? 0.62 : 0.3;
+                  return <polygon key={k} points={polyPoints(wallQuad(o, a, H, u0, u0 + len, z0 + (z1 - z0) * row, z0 + (z1 - z0) * (row + 0.2)))} fill={colors[(k + i * 2) % colors.length]} />;
+                })}
+              </g>
+            );
+          })}
+        </g>
+      );
+    }
     default:
       return null;
   }
@@ -1690,20 +1952,6 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
         </g>
       );
     }
-    case 'column': {
-      // A distillation column: a tall steel cylinder with platforms.
-      const [cc, cr] = [col + w * 0.18, row + h * 0.72];
-      const r = Math.min(across(1.1), short * 0.14);
-      const tall = up(19);
-      return (
-        <g className="sig-column">
-          <Cylinder cc={cc} cr={cr} r={r} z0={base} z1={base + tall} fill="#c9cdd0" />
-          {[0.35, 0.65, 0.92].map((v) => (
-            <polygon key={v} points={polyPoints(nearRing(projectedCircle(cc, cr, r * 1.5, 24).map((q) => lift(q, base + tall * v))))} fill="none" stroke="#5b6166" strokeWidth={1} />
-          ))}
-        </g>
-      );
-    }
     case 'scales': {
       // A pediment over the long front's eaves, and the scales in gilt.
       const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
@@ -1784,6 +2032,9 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
       );
     }
     case 'cupola': {
+      // A flat roof takes a glazed lantern rooflight instead (Plan 87I): a
+      // Georgian cupola on a flat deck was a style slip.
+      if (ridge === 0) return <Rooflight col={col} row={row} w={w} h={h} base={base} stone={stone} />;
       // A glazed cupola astride the ridge (the Faculty Training Institute,
       // Plan 85E): a square drum in the trim stone with a window to each
       // face, a cornice, a lead pyramid and a gilt finial.
@@ -1860,6 +2111,57 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
     default:
       return null;
   }
+}
+
+// The rooflight's glass, toned by the way each plane faces.
+const SLOPE_LIGHT: Record<FaceDir, number> = { negCol: 1.28, negRow: 1.2, posRow: 1.1, posCol: 0.98 };
+// A roof lantern on a flat deck (Plan 87I): a long glazed box on a kerb,
+// mullioned on every visible face, under a shallow hipped glass roof with
+// a ridge, along the roof's long axis.
+function Rooflight({ col, row, w, h, base, stone }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette;
+}) {
+  const alongW = w >= h;
+  const long = Math.min(across(34), Math.max(w, h) * 0.4);
+  const wide = Math.min(across(10), Math.min(w, h) * 0.24);
+  const lw = alongW ? long : wide; const lh = alongW ? wide : long;
+  const lc = col + w / 2 - lw / 2; const lr = row + h / 2 - lh / 2;
+  const kerbH = up(0.8); const glassH = up(2.6); const rise = up(2.4);
+  const kerb = boxFaces(lc, lr, lw, lh, base, kerbH);
+  const glass = boxFaces(lc, lr, lw, lh, base + kerbH, glassH);
+  const z = base + kerbH + glassH;
+  const inset = wide / 2;
+  const ridgeA = lift(alongW ? project(lc + inset, lr + lh / 2) : project(lc + lw / 2, lr + inset), z + rise);
+  const ridgeB = lift(alongW ? project(lc + lw - inset, lr + lh / 2) : project(lc + lw / 2, lr + lh - inset), z + rise);
+  const g = glass;
+  // The hip's four planes, the far ones first.
+  const slopes: Array<[FaceDir, Pt[]]> = alongW
+    ? [['negRow', [g.NWt, g.NEt, ridgeB, ridgeA]], ['posRow', [g.SWt, g.SEt, ridgeB, ridgeA]], ['negCol', [g.NWt, g.SWt, ridgeA]], ['posCol', [g.NEt, g.SEt, ridgeB]]]
+    : [['negCol', [g.NWt, g.SWt, ridgeB, ridgeA]], ['posCol', [g.NEt, g.SEt, ridgeB, ridgeA]], ['negRow', [g.NWt, g.NEt, ridgeA]], ['posRow', [g.SWt, g.SEt, ridgeB]]];
+  const trimTone = stone.trim !== 'none' ? stone.trim : '#e4e6e3';
+  const kerbTone = '#6c757c';
+  const glassTone = '#7d9fb3';
+  const mullions = (o: Pt, a: Pt, span: number, key: string) => {
+    const n = Math.max(3, Math.round((span * METRES_PER_TILE) / 1.8));
+    return Array.from({ length: n - 1 }, (_, i) => {
+      const u = (i + 1) / n;
+      const p0 = facePoint(o, a, glassH, u, 0); const p1 = facePoint(o, a, glassH, u, 1);
+      return <line key={`${key}${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#e9ecec" strokeWidth={0.7} />;
+    });
+  };
+  return (
+    <g className="sig-rooflight">
+      {sideFaces(kerb, shade(kerbTone, 1), shade(kerbTone, 0.84))}
+      {sideFaces(glass, shade(glassTone, 0.92), shade(glassTone, 0.78))}
+      {mullions(glass.D, glass.C, glass.spanLeft, 'l')}
+      {mullions(glass.C, glass.B, glass.spanRight, 'r')}
+      {backSlopesFirst(slopes, (x) => x[0]).map(([dir, pts]) => (
+        <polygon key={dir} points={polyPoints(pts)} fill={shade(glassTone, SLOPE_LIGHT[dir])} stroke="#e9ecec" strokeWidth={0.5} />
+      ))}
+      <line x1={ridgeA.x} y1={ridgeA.y} x2={ridgeB.x} y2={ridgeB.y} stroke="#e9ecec" strokeWidth={0.9} />
+      <polygon points={polyPoints([lift(glass.D, glassH), lift(glass.C, glassH), lift(glass.B, glassH)])} fill="none" stroke={trimTone} strokeWidth={0.9} />
+    </g>
+  );
 }
 
 // The dome: a broad stone dome on a low drum with a small gilt lantern,
@@ -2111,6 +2413,198 @@ function Canopy({ d, col, row, w, h, outward, wallHeight, stone, hood = false, r
       <polygon points={polyPoints(slab.top)} fill={shade(canopyStone, 0.9)} />
       {gable}
     </>
+  );
+}
+
+// The grand way in (Plan 87I): what stands at the exchange's door, and at
+// the Experimental Economics Lab's, by vernacular. A temple front only where
+// the set is classical in its bones; Gothic and Tudor a gabled porch,
+// Mission an arcade, Modern a cantilevered canopy over a glazed lobby, Art
+// Deco a stepped, fluted portal under a sunburst.
+type GrandFront = 'temple' | 'pedimented' | 'porch' | 'arcade' | 'cantilever' | 'decoPortal';
+const EXCHANGE_FRONTS: Record<Vernacular, GrandFront> = {
+  georgian: 'temple', classical: 'temple', italianate: 'temple', secondEmpire: 'temple',
+  gothic: 'porch', tudor: 'porch', mission: 'arcade', modern: 'cantilever', artDeco: 'decoPortal',
+};
+function grandFrontOf(t: Buildable, v: Vernacular): GrandFront | undefined {
+  if (signatureOf(t)?.feature === 'exchange') return EXCHANGE_FRONTS[v];
+  // The economics lab: a small pedimented portico, as a trading floor's
+  // front; Modern's canopy where a portico would be a style slip.
+  if (signifierOf(t) === 'ticker') return v === 'modern' ? 'cantilever' : 'pedimented';
+  return undefined;
+}
+// The entrance part each grand front stands in for, so the door, its
+// steps and the windows' door bay follow the existing rules.
+const GRAND_ENTRANCE: Record<GrandFront, EntrancePart> = {
+  temple: 'portico', pedimented: 'portico', porch: 'porch', arcade: 'arcade', cantilever: 'none', decoPortal: 'none',
+};
+// How far the Art Deco portal stands out from its wall.
+const DECO_PORTAL_DEPTH = across(1.6);
+const LOBBY_GLASS = '#34464f';
+const STEEL = '#3c4246';
+
+// Modern's entrance (Plan 87I): a thin white slab cantilevered well out
+// from the wall over a double-height glazed lobby, carried at its outer
+// corners on two slender steel pilotis. Drawn in two parts: the lobby on
+// the wall before the entrance steps, the slab and its posts after them.
+function CantileverCanopy({ col, row, w, h, outward, wallHeight, part }: {
+  col: number; row: number; w: number; h: number; outward: FaceDir; wallHeight: number; part: 'lobby' | 'slab';
+}) {
+  const span = wallSpan(w, h, outward);
+  const width = Math.min(span * 0.52, across(22));
+  const depth = Math.min(across(4.2), span * 0.3);
+  const top = Math.min(STOREY * 1.45, wallHeight - EAVES_COURSE * 2);
+  const thick = up(0.75);
+  const mid = span / 2;
+  const mass = boxFaces(col, row, w, h, 0, wallHeight);
+  const wall = wallOf(mass, outward);
+  const o = wall.origin; const a = wall.along;
+  // The lobby glazing, a little narrower than the slab, mullioned on a
+  // 1.6 m grid, with a transom at the doors' head.
+  const gw = (width * 0.78) / span;
+  const u0 = 0.5 - gw / 2; const u1 = 0.5 + gw / 2;
+  const mullions = Math.max(3, Math.round((width * 0.78 * METRES_PER_TILE) / 1.6));
+  const transom = Math.min(up(3), top * 0.55);
+  const dw = Math.min(gw * 0.3, across(3) / span);
+  const plate = againstWall(col, row, w, h, outward, mid - width / 2, width, depth);
+  const slab = boxFaces(plate.col, plate.row, plate.w, plate.h, top, thick);
+  const post = (along: number) => {
+    const g = outsideWall(col, row, w, h, outward, along, depth * 0.88);
+    const p = project(g.col, g.row);
+    return { p0: p, p1: lift(p, top) };
+  };
+  const posts = [post(mid - width * 0.42), post(mid + width * 0.42)];
+  const shadowAt = shadowOffset(top);
+  const out = outwardOf(outward);
+  const shadow = shadowAt.dcol * out.col + shadowAt.drow * out.row > 0
+    ? boxFaces(plate.col + shadowAt.dcol, plate.row + shadowAt.drow, plate.w, plate.h, 0, 0).top
+    : null;
+  const white = '#eef0ee';
+  if (part === 'slab') {
+    return (
+      <g className="entrance-cantilever">
+        {shadow && <polygon className="campus-building-shadow" points={polyPoints(shadow)} />}
+        {posts.map(({ p0, p1 }, i) => (
+          <line key={i} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={STEEL} strokeWidth={1.1} />
+        ))}
+        {sideFaces(slab, shade(white, 0.86), shade(white, 0.72))}
+        <polygon points={polyPoints(slab.top)} fill={white} />
+      </g>
+    );
+  }
+  return (
+    <g className="entrance-lobby">
+      <polygon points={polyPoints(wallQuad(o, a, wallHeight, u0, u1, 0, top))} fill={LOBBY_GLASS} />
+      {Array.from({ length: mullions + 1 }, (_, i) => {
+        const u = u0 + ((u1 - u0) * i) / mullions;
+        const p0 = facePoint(o, a, wallHeight, u, 0); const p1 = facePoint(o, a, wallHeight, u, top / wallHeight);
+        return <line key={i} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#c9d3d8" strokeWidth={0.6} />;
+      })}
+      {(() => {
+        const p0 = facePoint(o, a, wallHeight, u0, transom / wallHeight); const p1 = facePoint(o, a, wallHeight, u1, transom / wallHeight);
+        return <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#c9d3d8" strokeWidth={0.6} />;
+      })()}
+      {/* The doors: a lit pair in the middle of the glass. */}
+      <polygon points={polyPoints(wallQuad(o, a, wallHeight, 0.5 - dw, 0.5 + dw, 0, transom * 0.92))} fill="#c7a86a" fillOpacity={0.55} />
+    </g>
+  );
+}
+
+// Art Deco's entrance (Plan 87I): a frontispiece standing out from the
+// wall, stepped down to flanking piers and up above the parapet in two
+// set-backs, fluted from the door to its crown, with a gilt sunburst over a
+// tall door and a chevron band under the top.
+function DecoPortal({ col, row, w, h, outward, wallHeight, stone }: {
+  col: number; row: number; w: number; h: number; outward: FaceDir; wallHeight: number;
+  stone: StonePalette;
+}) {
+  const span = wallSpan(w, h, outward);
+  const mid = span / 2;
+  const cw = Math.min(span * 0.26, across(13));
+  const sw = cw * 0.38;
+  const depth = DECO_PORTAL_DEPTH;
+  const tone = stone.towerStone;
+  const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+  const dark = '#2c2a2b';
+  const block = (along0: number, width: number, d: number, z: number, rise: number) => {
+    const g = againstWall(col, row, w, h, outward, along0, width, d);
+    return boxFaces(g.col, g.row, g.w, g.h, z, rise);
+  };
+  const solid = (f: BoxFaces, k: number, key: string) => (
+    <g key={key}>
+      {sideFaces(f, shade(tone, 0.97 * k), shade(tone, 0.8 * k))}
+      <polygon points={polyPoints(f.top)} fill={shade(tone, 1.04 * k)} />
+    </g>
+  );
+  const centreH = wallHeight + up(1.2);
+  const wingH = wallHeight * 0.78;
+  const step1 = up(2.4); const step2 = up(2.0);
+  const wings = [block(mid - cw / 2 - sw, sw, depth * 0.6, 0, wingH), block(mid + cw / 2, sw, depth * 0.6, 0, wingH)];
+  const centre = block(mid - cw / 2, cw, depth, 0, centreH);
+  const tier1 = block(mid - cw * 0.34, cw * 0.68, depth * 0.8, centreH, step1);
+  const tier2 = block(mid - cw * 0.18, cw * 0.36, depth * 0.6, centreH + step1, step2);
+  const front = wallOf(centre, outward);
+  const o = front.origin; const a = front.along;
+  const P = (u: number, z: number) => facePoint(o, a, centreH, u, z / centreH);
+  // The door, the sunburst's springing line, and the fluting above.
+  const doorTop = Math.min(STOREY * 1.25, centreH * 0.34);
+  const du = 0.17;
+  const sunR = up(2.6);
+  const fanTop = doorTop + sunR;
+  const flutes = 7;
+  const chevronZ = centreH - up(1.4);
+  const sunburst = () => {
+    const rays = 9;
+    const hub = P(0.5, doorTop);
+    const rim = (t: number) => P(0.5 - du * Math.cos(t), doorTop + sunR * Math.sin(t));
+    return (
+      <>
+        <polygon points={polyPoints(Array.from({ length: 13 }, (_, i) => rim((Math.PI * i) / 12)))} fill={shade(gilt, 0.7)} />
+        {Array.from({ length: rays }, (_, i) => {
+          const t0 = (Math.PI * (i + 0.2)) / rays; const t1 = (Math.PI * (i + 0.8)) / rays;
+          return <polygon key={i} points={polyPoints([hub, rim(t0), rim(t1)])} fill={gilt} />;
+        })}
+      </>
+    );
+  };
+  const chevrons = () => {
+    const n = 6;
+    const pts: Pt[] = [];
+    for (let i = 0; i <= n * 2; i += 1) {
+      const u = 0.08 + (0.84 * i) / (n * 2);
+      pts.push(P(u, chevronZ + (i % 2 === 0 ? -up(0.5) : up(0.5))));
+    }
+    return <polyline points={polyPoints(pts)} fill="none" stroke={gilt} strokeWidth={1.3} />;
+  };
+  return (
+    <g className="entrance-deco-portal">
+      {wings.map((f, i) => solid(f, 0.94, `w${i}`))}
+      {wings.map((f, i) => {
+        const wf = wallOf(f, outward);
+        return [0.3, 0.5, 0.7].map((u) => {
+          const p0 = facePoint(wf.origin, wf.along, wingH, u, 0.06); const p1 = facePoint(wf.origin, wf.along, wingH, u, 0.94);
+          return <line key={`f${i}${u}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(tone, 0.62)} strokeWidth={0.7} />;
+        });
+      })}
+      {solid(centre, 1, 'c')}
+      {/* The fluting: vertical reeds from the sunburst to the chevrons. */}
+      {Array.from({ length: flutes }, (_, i) => {
+        const u = 0.2 + (0.6 * (i + 0.5)) / flutes;
+        const p0 = P(u, fanTop + up(0.6)); const p1 = P(u, chevronZ - up(0.9));
+        return <line key={`fl${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(tone, 0.6)} strokeWidth={0.9} />;
+      })}
+      <polygon points={polyPoints([P(0.5 - du, 0), P(0.5 + du, 0), P(0.5 + du, doorTop), P(0.5 - du, doorTop)])} fill={dark} />
+      <line x1={P(0.5, 0).x} y1={P(0.5, 0).y} x2={P(0.5, doorTop).x} y2={P(0.5, doorTop).y} stroke={shade(gilt, 0.8)} strokeWidth={0.6} />
+      {sunburst()}
+      {chevrons()}
+      {solid(tier1, 0.98, 't1')}
+      {solid(tier2, 0.96, 't2')}
+      {(() => {
+        const tf = wallOf(tier1, outward);
+        const p0 = facePoint(tf.origin, tf.along, step1, 0.12, 0.45); const p1 = facePoint(tf.origin, tf.along, step1, 0.88, 0.45);
+        return <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={gilt} strokeWidth={1.1} />;
+      })()}
+    </g>
   );
 }
 
@@ -4100,8 +4594,10 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
   // `trim` false (Brutalism) skips every stone band.
   const trim = hasTrim(vernacular);
   const feature = signatureOf(t)?.feature;
-  // An exchange's temple front stands where the vernacular's entrance would.
-  const entrance: EntrancePart = feature === 'exchange' ? 'portico' : entrancePartOf(t, vernacular);
+  // An exchange's front, and the economics lab's, stand where the
+  // vernacular's entrance would (Plan 87I).
+  const grand = grandFrontOf(t, vernacular);
+  const entrance: EntrancePart = grand ? GRAND_ENTRANCE[grand] : entrancePartOf(t, vernacular);
   const rooflineEnd = rooflineEndPartOf(vernacular);
   const apex = apexPartOf(vernacular);
   const hood = partsFor(vernacular).hood === true;
@@ -4139,6 +4635,10 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
   const { row, col, w, h } = p;
   // Snow on the roofs in the depth of winter (Plan 74I), from the caller.
   const pal = snowOnRoofs(paletteFrom(material, wallShadeOf(t)), snow);
+  // The exchange's arcade under the vernacular's tile, as its deck's edge
+  // (Plan 87I).
+  const tile = roofFor(vernacular).pitchedRoof;
+  const arcadePal = tile ? snowOnRoofs(paletteFrom({ wall: material.wall, roof: tile }, wallShadeOf(t)), snow) : pal;
   // The visible walls, left then right, where entrances and attachments go.
   const seen = visibleWalls();
   const fronts: FaceDir[] = [seen.left, seen.right];
@@ -5239,7 +5739,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
   const porched = entrance === 'archway' || entrance === 'porch' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'archway');
   // Where this door's flight lands: the porch front, the portico's columns,
   // or the wall.
-  const stepStandoff = porched ? PAVILION_DEPTH : entrance === 'portico' ? PORTICO_STANDOFF + PORTICO_COLUMN_PLAN : 0;
+  const stepStandoff = porched ? PAVILION_DEPTH : entrance === 'portico' ? PORTICO_STANDOFF + PORTICO_COLUMN_PLAN
+    : grand === 'decoPortal' ? DECO_PORTAL_DEPTH : 0;
   // Gable when the short side is under 4 tiles, hip otherwise.
   const hipped = gabled && Math.min(w, h) >= 4;
   // The roof's footprint, including eaves oversail.
@@ -5329,7 +5830,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
         return (
-          feature === 'exchange' ? null : (
+          grand ? null : (
             <Portico stone={stone}
               key={`sp${dir}`}
               centreCol={at.col} centreRow={at.row}
@@ -5362,7 +5863,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       )}
       {!site && entrance === 'arcade' && arcadeFits(H) && (
         <>
-          {fronts.map((dir) => <Arcade key={dir} pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward={dir} height={arcadeHeight(H)} />)}
+          {fronts.map((dir) => <Arcade key={dir} pal={grand === 'arcade' ? arcadePal : pal} stone={stone} col={col} row={row} w={w} h={h} outward={dir} height={arcadeHeight(H)} />)}
         </>
       )}
       {!site && (entrance === 'canopy' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'canopy')) && door && (
@@ -5375,6 +5876,9 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           {fronts.map((dir) => <Archway key={dir} pal={pal} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} />)}
         </>
       )}
+      {!site && grand === 'cantilever' && fronts.map((dir) => (
+        <CantileverCanopy key={`cl${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} part="lobby" />
+      ))}
       {!site && entrance === 'porch' && fronts.map((dir) => (
         <Porch key={`po${dir}`} pal={pal} stone={stone} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} />
       ))}
@@ -5393,6 +5897,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         );
       })}
 
+      {/* Modern's cantilevered canopy over a glazed lobby (Plan 87I),
+          after the steps it shelters. */}
+      {!site && grand === 'cantilever' && fronts.map((dir) => (
+        <CantileverCanopy key={`cc${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} part="slab" />
+      ))}
       {gabled && eaves > 0 && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
         <WallBand key={`es${i}`} origin={o} along={a} wallHeight={H} from={H - up(0.9)} to={H} className="iso-eaves-shadow" />
       ))}
@@ -5464,6 +5973,13 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
               return <LabRoofFeature key={item.key} feature={item.kind} col={col} row={row} w={w} h={h} base={H} />;
             }
             if (item.kind === 'flue') return <Flue key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} tint={roofTint} />;
+            if (item.kind === 'transformers') return <Transformer key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} alongW={w >= h} />;
+            if (item.kind === 'pylon') return <Pylon key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} alongW={w >= h} />;
+            if (item.kind === 'pipeRack') return <PipeRack key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} alongW={w >= h} />;
+            if (item.kind === 'distillation') {
+              const rise = up(STILLS[Number(item.key.slice(6))]![3]);
+              return <Still key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} rise={rise} />;
+            }
             if (item.kind === 'stack') {
               const st = boxFaces(item.col, item.row, item.w, item.h, H, up(6));
               return (
@@ -5482,10 +5998,12 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
               />
             );
           })}
+          {/* The line into the transformer yard, over it (Plan 87I). */}
+          {!site && labFeatureOf(t) === 'transformers' && pylonLines(flatRoofItems(motif, labFeatureOf(t), col, row, w, h), H, w >= h)}
         </>
       )}
       {/* The exchange's temple front, after the roof its pediment rises over. */}
-      {!site && feature === 'exchange' && fronts.map((dir) => {
+      {!site && grand === 'temple' && fronts.map((dir) => {
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
         return (
@@ -5495,6 +6013,22 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           />
         );
       })}
+      {/* The economics lab's small pedimented portico, after its roof
+          (Plan 87I), and Art Deco's stepped portal, which rises past the
+          parapet. */}
+      {!site && grand === 'pedimented' && door && fronts.map((dir) => {
+        const span = wallSpan(w, h, dir);
+        const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
+        return (
+          <Portico stone={stone} key={`ep${dir}`}
+            centreCol={at.col} centreRow={at.row} width={Math.min(span * 0.42, across(16))} outward={dir}
+            height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} pediment
+          />
+        );
+      })}
+      {!site && grand === 'decoPortal' && fronts.map((dir) => (
+        <DecoPortal key={`dp${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} stone={stone} />
+      ))}
       {/* A signifier on the roof, after it (Plan 74F). */}
       {!site && signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} />}
       {/* The residence turret, after the roof. */}
@@ -5523,7 +6057,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       )}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}
-      {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && (
+      {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && !grand && (
         <BellGable pal={pal} stone={stone}
           origin={f.D} along={f.C}
           inward={gableInward(col, row, w, h)}

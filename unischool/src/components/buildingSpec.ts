@@ -89,14 +89,23 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
 
 // What a laboratory carries on its roof to say which science it is: an
 // observatory's drum and dome for physics, a glasshouse for biology, a row of
-// fume flues for chemistry.
-export type LabFeature = 'observatory' | 'glasshouse' | 'flues';
+// fume flues for chemistry; a transformer yard for electrical engineering and
+// a pipe rack with distillation columns for chemical engineering (Plan 87I).
+export type LabFeature = 'observatory' | 'glasshouse' | 'flues' | 'transformers' | 'distillation';
 const LAB_FEATURES: Partial<Record<string, LabFeature>> = {
   'LAB-PHYS': 'observatory',
   'LAB-BIOL': 'glasshouse',
   'LAB-CHEM': 'flues',
-  'LAB-CHEN': 'flues',
+  'LAB-CHEN': 'distillation',
+  'LAB-ELEC': 'transformers',
 };
+// Labs whose invariant block wears the vernacular's academic wall, not one
+// shared material (Plan 87I): the Neuroscience Labs were white panel even on
+// a red-brick campus. Exempt from the invariant-materials rule
+// (test/building-spec.test.ts).
+export const VERNACULAR_WALL_LABS: readonly string[] = ['LAB-NEUR'];
+const LAB_WALLS = new Map<Vernacular, Material>();
+
 export function labFeatureOf(t: Buildable): LabFeature | undefined {
   return LAB_FEATURES[t.id];
 }
@@ -112,7 +121,6 @@ export type Signifier =
   | 'gantry'      // Mechanical Engineering: a gantry crane over the shed
   | 'windTunnel'  // Aerospace: a wind-tunnel duct along the roof
   | 'testTower'   // Civil Engineering: a test tower at the corner
-  | 'column'      // Chemical Engineering: a distillation column by the flues
   | 'soundstage'  // Film: a taller stage door and its red lamp
   | 'banners'     // the Museum: banners between its columns
   | 'scales'      // the Law School: a pediment with the scales
@@ -121,12 +129,12 @@ export type Signifier =
   | 'mast'        // Computing: a mast and a dish
   | 'tanks'       // Neuroscience: the scanners' cryogen tanks
   | 'cupola'      // the Faculty Training Institute: a glazed cupola astride the ridge
-  | 'track';      // the Athletic Performance Complex: a running track on the roof
+  | 'track'       // the Athletic Performance Complex: a running track on the roof
+  | 'ticker';     // Experimental Economics: a ticker board along its front (Plan 87I)
 const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-MECH': 'gantry',
   'LAB-AERO': 'windTunnel',
   'LAB-CIVE': 'testTower',
-  'LAB-CHEN': 'column',
   'LAB-FILM': 'soundstage',
   'PROJ-MUSEUM': 'banners',
   'PROJ-LAW': 'scales',
@@ -135,6 +143,7 @@ const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-NEUR': 'tanks',
   'PROJ-TRAINING': 'cupola',
   'PROJ-ATHLETICS-COMPLEX': 'track',
+  'LAB-ECON': 'ticker',
 };
 const SIGNIFIERS_BY_TYPE: Partial<Record<FacilityType, Signifier>> = {
   diningHall: 'kitchen',
@@ -1524,7 +1533,17 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     case 'athleticsNatatorium':
       return MATERIALS.curtain;
     case 'lab':
-      if (t.id === 'LAB-NEUR') return MATERIALS.clinical;
+      // The academic wall under the labs' flat deck, not the halls' pitched
+      // roof; Gothic's gray ashlar is the deck's own gray, so it keeps its slate.
+      if (VERNACULAR_WALL_LABS.includes(t.id)) {
+        // One stable object per vernacular, so BuildingMotif's memo holds.
+        let lab = LAB_WALLS.get(v);
+        if (!lab) {
+          lab = { wall: MATERIALS.brickRed.wall, roof: v === 'gothic' ? MATERIALS.brickRed.roof : MATERIALS.render.roof };
+          LAB_WALLS.set(v, lab);
+        }
+        return lab;
+      }
       return MATERIALS.render;
     case 'gym':
     case 'recCenter':
