@@ -1,0 +1,172 @@
+The report: 10 players, seeds 12345, 4242, 777, 50 years; medians across seeds, change from sim/baseline.json.
+Completionist
+  rank            Y10 57   Y25 36   Y50 7
+  prestige        Y10 49.8   Y25 77.1   Y50 109.4
+  enrolled        Y10 6,240   Y25 21,280   Y50 34,480
+  cash            Y10 $6.5M   Y25 $28.7M   Y50 $106.2M
+  satisfaction    Y10 86.1   Y25 85.4   Y50 90.4
+  courses         Y10 78   Y25 266   Y50 431
+  schools         Y10 2   Y25 7   Y50 7
+  teams           Y10 4   Y25 15   Y50 20
+  academicsRank   Y10 55   Y25 32   Y50 12
+  researchRank    Y10 60   Y25 35   Y50 10
+  studentLifeRank Y10 6   Y25 8   Y50 3
+  athleticsRank   Y10 77   Y25 74   Y50 31
+  in the red      0 weeks; lowest cash $0.2M
+  specialized     student life in Y42 on seed 12345; research in Y44 on seed 4242; academics in Y35 on seed 777
+  first reached   top 20 Y42, Y44, Y35; top 10 Y48, Y47, Y43; first never, best 4; never, best 4; Y47
+  own pillar Y50  student life #1 at 136.5, ahead by 1.4 on seed 12345; research #10 at 124.7, behind by 15.3 on seed 4242; academics #1 at 148.5, ahead by 8.5 on seed 777
+Selective
+  rank            Y10 60   Y25 58   Y50 61
+  prestige        Y10 43.3   Y25 49.4   Y50 51.0
+  enrolled        Y10 979   Y25 2,218   Y50 2,983
+  cash            Y10 $4.2M   Y25 $11.1M   Y50 $632.8M
+  satisfaction    Y10 85.6   Y25 84.8   Y50 81.8
+  courses         Y10 34   Y25 93   Y50 93
+  schools         Y10 0   Y25 1   Y50 1
+  teams           Y10 2   Y25 8   Y50 20
+  academicsRank   Y10 61   Y25 53   Y50 60
+  researchRank    Y10 71   Y25 62   Y50 62
+  studentLifeRank Y10 19   Y25 22   Y50 27
+  athleticsRank   Y10 100   Y25 100   Y50 100
+  in the red      0 weeks; lowest cash $0.8M
+  specialized     none on seed 12345; none on seed 4242; none on seed 777
+  first reached   top 20 never, never, never; top 10 never, never, never; first never, best 55; never, best 55; never, best 55
+  own pillar Y50  student life #27 at 77.7, behind by 60.6 on seed 12345; student life #29 at 77.7, behind by 59.1 on seed 4242; student life #21 at 77.6, behind by 62.4 on seed 777
+Lean
+  rank            Y10 66   Y25 68   Y50 75
+  prestige        Y10 39.7   Y25 42.0   Y50 41.0
+  enrolled        Y10 2,116   Y25 3,514   Y50 3,521
+  cash            Y10 $7.5M   Y25 $19.7M   Y50 $22.7M
+  satisfaction    Y10 79.9   Y25 77.6   Y50 75.7
+  courses         Y10 48   Y25 206   Y50 294
+  schools         Y10 0   Y25 5   Y50 7
+  teams           Y10 2   Y25 14   Y50 20
+  academicsRank   Y10 60   Y25 58   Y50 61
+  researchRank    Y10 71   Y25 76   Y50 75
+  studentLifeRank Y10 17   Y25 20   Y50 28
+  athleticsRank   Y10 100   Y25 100   Y50 100
+  in the red      0 weeks; lowest cash $1.2M
+  specialized     none on seed 12345; none on seed 4242; none on seed 777
+  first reached   top 20 never, never, never; top 10 never, never, never; first never, best 55; never, best 55; never, best 55
+  own pillar Y50  student life #28 at 71.5, behind by 67.8 on seed 12345; student life #29 at 75.7, behind by 62.0 on seed 4242; student life #26 at 72.7, behind by 67.3 on seed 777
+Idle
+  rank            Y10 82   Y25 66   Y50 75
+  prestige        Y10 29.5   Y25 41.6   Y50 37.9
+  enrolled        Y10 0   Y25 0   Y50 0
+  cash            Y10 $16.4M   Y25 $18.3M   Y50 $22.0M
+  satisfaction    Y10 84.0   Y25 84.0   Y50 84.1
+  courses         Y10 0   Y25 0   Y50 0
+  schools         Y10 0   Y25 0   Y50 0
+  teams           Y10 0   Y25 0   Y50 0
+  academicsRank   Y10 78   Y25 73   Y50 78
+  researchRank    Y10 71   Y25 74   Y50 80
+  studentLifeRank Y10 21   Y25 22   Y50 31
+  athleticsRank   Y10 100   Y25 100   Y50 100
+  in the red      0 weeks; lowest cash $2.9M
+  specialized     none on seed 12345; none on seed 4242; none on seed 777
+  first reached   top 20 never, never, never; top 10 never, never, never; first never, best 55; never, best 55; never, best 55
+  own pillar Y50  student life #31 at 69.9, behind by 70.1 on seed 12345; student life #35 at 71.3, behind by 65.6 on seed 4242; student life #29 at 69.5, behind by 68.2 on seed 777
+Guided
+  rank            Y10 57   Y25 31   Y50 1
+  prestige        Y10 49.3   Y25 79.4   Y50 117.5
+  enrolled        Y10 6,960   Y25 22,560   Y50 34,480
+  cash            Y10 $5.1M   Y25 $164.7M   Y50 $644.5M
+  satisfaction    Y10 88.7   Y25 88.0   Y50 87.4
+  courses         Y10 87   Y25 282   Y50 431
+  schools         Y10 5   Y25 7   Y50 7
+  teams           Y10 2   Y25 12   Y50 20
+  academicsRank   Y10 54   Y25 24   Y50 10
+  researchRank    Y10 56   Y25 17   Y50 1
+  studentLifeRank Y10 13   Y25 11   Y50 4
+  athleticsRank   Y10 79   Y25 69   Y50 40
+  in the red      0 weeks; lowest cash $0.1M
+  specialized     research in Y30 on seed 12345; research in Y35 on seed 4242; research in Y33 on seed 777
+  first reached   top 20 Y31, Y35, Y34; top 10 Y41, Y42, Y40; first Y43; Y46; Y46
+  own pillar Y50  research #1 at 149.7, ahead by 9.7 on seed 12345; research #1 at 149.7, ahead by 10.0 on seed 4242; research #1 at 149.9, ahead by 9.9 on seed 777
+Guided, academics
+  rank            Y10 57   Y25 31   Y50 1
+  prestige        Y10 49.3   Y25 79.4   Y50 121.0
+  enrolled        Y10 6,960   Y25 22,560   Y50 34,480
+  cash            Y10 $5.1M   Y25 $164.7M   Y50 $549.4M
+  satisfaction    Y10 88.7   Y25 88.0   Y50 84.4
+  courses         Y10 87   Y25 282   Y50 431
+  schools         Y10 5   Y25 7   Y50 7
+  teams           Y10 2   Y25 12   Y50 20
+  academicsRank   Y10 54   Y25 24   Y50 1
+  researchRank    Y10 56   Y25 17   Y50 8
+  studentLifeRank Y10 13   Y25 11   Y50 4
+  athleticsRank   Y10 79   Y25 69   Y50 38
+  in the red      0 weeks; lowest cash $0.1M
+  specialized     academics in Y30 on seed 12345; academics in Y35 on seed 4242; academics in Y33 on seed 777
+  first reached   top 20 Y31, Y35, Y34; top 10 Y38, Y41, Y39; first Y43; Y45; Y45
+  own pillar Y50  academics #1 at 148.6, ahead by 8.6 on seed 12345; academics #1 at 148.6, ahead by 8.6 on seed 4242; academics #1 at 148.5, ahead by 8.5 on seed 777
+Guided, research
+  rank            Y10 57   Y25 31   Y50 1
+  prestige        Y10 49.3   Y25 79.4   Y50 117.5
+  enrolled        Y10 6,960   Y25 22,560   Y50 34,480
+  cash            Y10 $5.1M   Y25 $164.7M   Y50 $644.5M
+  satisfaction    Y10 88.7   Y25 88.0   Y50 87.4
+  courses         Y10 87   Y25 282   Y50 431
+  schools         Y10 5   Y25 7   Y50 7
+  teams           Y10 2   Y25 12   Y50 20
+  academicsRank   Y10 54   Y25 24   Y50 10
+  researchRank    Y10 56   Y25 17   Y50 1
+  studentLifeRank Y10 13   Y25 11   Y50 4
+  athleticsRank   Y10 79   Y25 69   Y50 40
+  in the red      0 weeks; lowest cash $0.1M
+  specialized     research in Y30 on seed 12345; research in Y35 on seed 4242; research in Y33 on seed 777
+  first reached   top 20 Y31, Y35, Y34; top 10 Y41, Y42, Y40; first Y43; Y46; Y46
+  own pillar Y50  research #1 at 149.7, ahead by 9.7 on seed 12345; research #1 at 149.7, ahead by 10.0 on seed 4242; research #1 at 149.9, ahead by 9.9 on seed 777
+Guided, student life
+  rank            Y10 57   Y25 31   Y50 1
+  prestige        Y10 49.3   Y25 79.4   Y50 118.8
+  enrolled        Y10 6,960   Y25 22,560   Y50 34,480
+  cash            Y10 $5.1M   Y25 $164.7M   Y50 $119.6M
+  satisfaction    Y10 88.7   Y25 88.0   Y50 88.7
+  courses         Y10 87   Y25 282   Y50 431
+  schools         Y10 5   Y25 7   Y50 7
+  teams           Y10 2   Y25 12   Y50 20
+  academicsRank   Y10 54   Y25 24   Y50 10
+  researchRank    Y10 56   Y25 17   Y50 8
+  studentLifeRank Y10 13   Y25 11   Y50 1
+  athleticsRank   Y10 79   Y25 69   Y50 41
+  in the red      0 weeks; lowest cash $0.1M
+  specialized     student life in Y30 on seed 12345; student life in Y35 on seed 4242; student life in Y33 on seed 777
+  first reached   top 20 Y31, Y35, Y34; top 10 Y37, Y41, Y39; first Y43; Y44; Y45
+  own pillar Y50  student life #1 at 143.9, ahead by 3.9 on seed 12345; student life #1 at 147.0, ahead by 7.0 on seed 4242; student life #1 at 145.7, ahead by 5.7 on seed 777
+Guided, athletics
+  rank            Y10 57   Y25 31   Y50 1
+  prestige        Y10 49.3   Y25 79.4   Y50 119.7
+  enrolled        Y10 6,960   Y25 22,560   Y50 34,480
+  cash            Y10 $5.1M   Y25 $164.7M   Y50 $557.2M
+  satisfaction    Y10 88.7   Y25 88.0   Y50 86.3
+  courses         Y10 87   Y25 282   Y50 431
+  schools         Y10 5   Y25 7   Y50 7
+  teams           Y10 2   Y25 12   Y50 20
+  academicsRank   Y10 54   Y25 24   Y50 10
+  researchRank    Y10 56   Y25 17   Y50 8
+  studentLifeRank Y10 13   Y25 11   Y50 4
+  athleticsRank   Y10 79   Y25 69   Y50 1
+  in the red      0 weeks; lowest cash $0.1M
+  specialized     athletics in Y30 on seed 12345; athletics in Y35 on seed 4242; athletics in Y33 on seed 777
+  first reached   top 20 Y31, Y35, Y34; top 10 Y37, Y40, Y40; first Y42; Y45; Y45
+  own pillar Y50  athletics #1 at 144.6, ahead by 12.3 on seed 12345; athletics #1 at 144.2, ahead by 11.9 on seed 4242; athletics #1 at 144.1, ahead by 11.8 on seed 777
+Guided, unspecialized
+  rank            Y10 57   Y25 31   Y50 5
+  prestige        Y10 49.3   Y25 79.4   Y50 111.7
+  enrolled        Y10 6,960   Y25 22,560   Y50 34,480
+  cash            Y10 $5.1M   Y25 $164.7M   Y50 $287.4M
+  satisfaction    Y10 88.7   Y25 88.0   Y50 88.1
+  courses         Y10 87   Y25 282   Y50 431
+  schools         Y10 5   Y25 7   Y50 7
+  teams           Y10 2   Y25 12   Y50 20
+  academicsRank   Y10 54   Y25 24   Y50 9
+  researchRank    Y10 56   Y25 17   Y50 8
+  studentLifeRank Y10 13   Y25 11   Y50 4
+  athleticsRank   Y10 79   Y25 69   Y50 37
+  in the red      0 weeks; lowest cash $0.1M
+  specialized     none on seed 12345; none on seed 4242; none on seed 777
+  first reached   top 20 Y31, Y35, Y34; top 10 Y39, Y41, Y40; first never, best 3; never, best 5; never, best 4
+  own pillar Y50  student life #4 at 112.4, behind by 27.6 on seed 12345; student life #4 at 112.4, behind by 24.8 on seed 4242; student life #4 at 112.2, behind by 27.8 on seed 777
+30 runs in 15.4 min; every run's rows are in node_modules/.tmp/report-runs.json.
