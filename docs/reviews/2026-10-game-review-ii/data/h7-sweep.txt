@@ -1,0 +1,55 @@
+# npm run review:sweep, Plan 86 area 7 (commit 4062bfb). Fifty years each; invariants weekly; export, import and four-week play-on check yearly.
+ok   Completionist seed 1 "O'Brien College" 722s
+ok   Completionist seed 2 "Ælfric & Sons" 909s
+ok   Completionist seed 3 "北京大学" 452s
+ok   Completionist seed 4 "جامعة النور" 202s
+ok   Completionist seed 5 "LongnameLongnameLongname" 169s
+ok   Guided seed 1 "O'Brien College" 935s
+ok   Guided seed 2 "Ælfric & Sons" 436s
+ok   Guided seed 3 "北京大学" 179s
+ok   Guided seed 4 "جامعة النور" 170s
+ok   Guided seed 5 "LongnameLongnameLongname" 90s
+ok   Idle seed 1 "Ælfric & Sons" 37s
+ok   Idle seed 2 "北京大学" 42s
+ok   Idle seed 3 "جامعة النور" 42s
+ok   Idle seed 4 "LongnameLongnameLongname" 44s
+ok   Idle seed 5 "X" 33s
+ok   Idle seed 6 "O'Brien College" 40s
+ok   Idle seed 7 "O'Brien College" 48s
+ok   Idle seed 8 "Ælfric & Sons" 53s
+ok   Idle seed 9 "北京大学" 52s
+ok   Idle seed 10 "جامعة النور" 45s
+ok   Lean seed 1 "O'Brien College" 289s
+ok   Lean seed 2 "Ælfric & Sons" 312s
+ok   Lean seed 3 "北京大学" 213s
+ok   Lean seed 4 "جامعة النور" 174s
+ok   Lean seed 5 "LongnameLongnameLongname" 89s
+ok   Lean seed 6 "X" 136s
+ok   Lean seed 7 "O'Brien College" 112s
+ok   Lean seed 8 "Ælfric & Sons" 73s
+ok   Lean seed 9 "北京大学" 74s
+ok   Lean seed 10 "جامعة النور" 81s
+ok   Natural seed 1 "O'Brien College" 708s
+ok   Natural seed 2 "Ælfric & Sons" 850s
+ok   Natural seed 3 "北京大学" 492s
+ok   Natural seed 4 "جامعة النور" 176s
+ok   Natural seed 5 "LongnameLongnameLongname" 169s
+ok   Selective seed 1 "O'Brien College" 342s
+ok   Selective seed 2 "Ælfric & Sons" 197s
+ok   Selective seed 3 "北京大学" 243s
+ok   Selective seed 4 "جامعة النور" 265s
+ok   Selective seed 5 "LongnameLongnameLongname" 150s
+
+# Thirty years, more odd names (--names, --sep '~')
+ok   Lean seed 11 "Saint Mary's of the Lake" 70s
+ok   Lean seed 12 "🎓 Academy of 🦉" 52s
+ok   Lean seed 13 "Zoë Ñúñez Institute" 51s
+ok   Lean seed 14 "<b>Bold</b> & "Quotes"" 46s
+ok   Lean seed 15 "  Spaced   Out  " 54s
+ok   Lean seed 16 "ä̸̧̛ b̴̰͝ c̷̪̈" 57s
+ok   Idle seed 11 "🎓 Academy of 🦉" 29s
+ok   Idle seed 12 "Zoë Ñúñez Institute" 25s
+ok   Idle seed 13 "<b>Bold</b> & "Quotes"" 16s
+ok   Idle seed 14 "  Spaced   Out  " 18s
+ok   Idle seed 15 "ä̸̧̛ b̴̰͝ c̷̪̈" 16s
+ok   Idle seed 16 "Saint Mary's of the Lake" 19s
