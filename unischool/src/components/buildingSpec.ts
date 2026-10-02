@@ -174,13 +174,21 @@ const STUDENT_CENTRE_EXPANDED_MIN_SERVES = 2_000;
 // motif with (Plan 61: Arts & Media drew as the library, Business as a
 // hospital): a studio's sawtooth north-light roof, and an exchange's
 // pedimented temple front under a dome.
-export type SignatureFeature = 'studio' | 'exchange';
+//
+// The four teaching labs (Plan 87E) were boxes under roof plant, Science
+// and Engineering near twins, in a render or white panel no vernacular
+// changed. Each now says what it teaches, in the campus's own wall (brick
+// in Georgian, stone in Gothic, stucco in Mission): Science's fume-hood
+// stacks and rooftop greenhouse; Engineering's high-bay workshop wing with
+// a sectional door and a crane rail; Health's drop-off canopy, clinic sign
+// and bay windows; Computer Science's glazed atrium and solar arrays.
+export type SignatureFeature = 'studio' | 'exchange' | 'fumeHoods' | 'workshop' | 'clinic' | 'atrium';
 export interface Signature { motif: Motif; material: keyof MaterialSet; feature?: SignatureFeature }
 export const SCHOOL_SIGNATURES: Readonly<Record<string, Signature>> = {
-  'Science': { motif: 'block', material: 'render' },
-  'Engineering': { motif: 'works', material: 'render' },
-  'Health Science': { motif: 'block', material: 'clinical' },
-  'Computer Science': { motif: 'block', material: 'curtain' },
+  'Science': { motif: 'block', material: 'brickRed', feature: 'fumeHoods' },
+  'Engineering': { motif: 'works', material: 'brickBuff', feature: 'workshop' },
+  'Health Science': { motif: 'block', material: 'brickBuff', feature: 'clinic' },
+  'Computer Science': { motif: 'block', material: 'limestone', feature: 'atrium' },
   'Arts & Media': { motif: 'portico', material: 'brickRed', feature: 'studio' },
   'Business': { motif: 'portico', material: 'limestone', feature: 'exchange' },
   'Social Sciences & Humanities': { motif: 'hall', material: 'limestone' },
@@ -1553,10 +1561,22 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
 }
 const PITCHED_ROOFED = new Map<Material, Material>();
 
+// A flat-roofed school lab in the vernacular's wall keeps the lab's deck
+// (Plan 87E): a slate or clay-tile color laid flat reads as a hole. One
+// stable object per wall, so BuildingMotif's memo holds.
+function flatDeckOf(wall: Material, deck: string): Material {
+  if (wall.roof === deck) return wall;
+  let decked = FLAT_DECKED.get(wall);
+  if (!decked) { decked = { ...wall, roof: deck }; FLAT_DECKED.set(wall, decked); }
+  return decked;
+}
+const FLAT_DECKED = new Map<Material, Material>();
+
 function baseMaterialOf(t: Buildable, v: Vernacular): Material {
   const MATERIALS = materialsFor(v);
   if (t.kind === 'building') {
     const signature = signatureOf(t);
+    if (signature && !variesByVernacular(signature.motif)) return flatDeckOf(MATERIALS[signature.material], MATERIALS.render.roof);
     return signature ? MATERIALS[signature.material] : MATERIALS.brickRed;
   }
   if (t.kind === 'dorm') {
