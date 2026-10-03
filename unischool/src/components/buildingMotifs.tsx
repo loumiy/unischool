@@ -39,6 +39,10 @@ import {
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
 import { glassContrast, readableGlass, towerFormOf } from './buildingSpec';
+import {
+  CARILLON_BELFRY_RISE, CARILLON_CAP, CARILLON_CAP_OVERSAIL, CARILLON_CLOCK_RADIUS_METRES, CARILLON_CLOCK_RISE,
+  CARILLON_PIER, CARILLON_PLAN, CARILLON_PROUD, CARILLON_SHAFT_RISE, CARILLON_TIE, CARILLON_TIE_EVERY,
+} from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
 import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
@@ -2829,6 +2833,340 @@ function StairCore({ col, row, w, h, base, stone }: {
       <polygon points={polyPoints(shaft.top)} fill={shade(stone.towerStone, 0.9)} />
       {sideFaces(cap, shade(stone.towerStone, 0.9), shade(stone.towerStone, 0.74))}
       <polygon points={polyPoints(cap.top)} fill={shade(stone.towerStone, 0.86)} />
+    </>
+  );
+}
+
+// The carillon (Plan 87L): Modern's Founders Hall, after the open concrete
+// bell towers of the post-war campus (Saarinen's at MIT, the carillons at
+// Iowa State and Rice). Four slender piers at the hall's (+col, +row)
+// corner stand out of its walls and come down them to the ground, tied
+// across an open shaft above the roof, then a clock stage, an open belfry
+// with its bells hung inside, and a thin oversailing slab. Below the roof
+// the frame is drawn only on the walls the camera sees (`fronts`), and only
+// what stands proud of them, or it would paint over its own hall.
+function Carillon({ col, row, w, h, base, stone, fronts }: {
+  col: number; row: number; w: number; h: number; base: number;
+  stone: StonePalette; fronts: FaceDir[];
+}) {
+  const s = Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3);
+  const pp = Math.min(CARILLON_PIER, s * 0.22);
+  const P = CARILLON_PROUD;
+  const c0 = col + w + P - s; const r0 = row + h + P - s;
+  const concrete = shade(stone.towerStone, 0.84);
+  const lit = concrete; const dark = shade(concrete, 0.8);
+  const box = (b: DepthBox, z: number, rise: number, key: string, top = true) => {
+    const f = boxFaces(b.col, b.row, b.w, b.h, z, rise);
+    return (
+      <g key={key}>
+        {sideFaces(f, lit, dark)}
+        {top && <polygon points={polyPoints(f.top)} fill={shade(concrete, 1.08)} />}
+      </g>
+    );
+  };
+  // The four piers, with the walls each one stands in.
+  const piers: Array<DepthBox & { walls: FaceDir[] }> = [
+    { col: c0, row: r0, w: pp, h: pp, walls: [] },
+    { col: c0 + s - pp, row: r0, w: pp, h: pp, walls: ['posCol'] },
+    { col: c0, row: r0 + s - pp, w: pp, h: pp, walls: ['posRow'] },
+    { col: c0 + s - pp, row: r0 + s - pp, w: pp, h: pp, walls: ['posRow', 'posCol'] },
+  ];
+  const seen = (d: FaceDir) => fronts.includes(d);
+
+  // Below the roof: what of each pier stands proud of a visible wall, and
+  // the glazed stair between them, in the wall's plane.
+  const lower: DepthBox[] = [];
+  for (const p of piers) {
+    const on = p.walls.filter(seen);
+    if (on.length === 2) lower.push(p);
+    else if (on[0] === 'posRow') lower.push({ col: p.col, row: row + h, w: pp, h: P });
+    else if (on[0] === 'posCol') lower.push({ col: col + w, row: p.row, w: P, h: pp });
+  }
+  const at = (c: number, r: number, z: number) => lift(project(c, r), z);
+  const glass = (dir: FaceDir) => {
+    const quad = (z0: number, z1: number) => (dir === 'posRow'
+      ? [at(c0 + pp, row + h, z0), at(col + w, row + h, z0), at(col + w, row + h, z1), at(c0 + pp, row + h, z1)]
+      : [at(col + w, r0 + pp, z0), at(col + w, row + h, z0), at(col + w, row + h, z1), at(col + w, r0 + pp, z1)]);
+    const floors = Math.floor(base / STOREY);
+    return (
+      <g key={`g${dir}`}>
+        <polygon className="iso-curtain-glass" points={polyPoints(quad(PLINTH, base - up(0.4)))} />
+        {Array.from({ length: floors }, (_, i) => (
+          <polygon key={i} className="iso-mullion" points={polyPoints(quad(STOREY * (i + 1) - up(0.25), STOREY * (i + 1)))} />
+        ))}
+      </g>
+    );
+  };
+
+  // Above it: the open shaft, piers and ties.
+  const zc = base + CARILLON_SHAFT_RISE;
+  const zb = zc + CARILLON_CLOCK_RISE;
+  const zt = zb + CARILLON_BELFRY_RISE;
+  const d = pp * 0.7;
+  const ties: DepthBox[] = [
+    { col: c0 + pp, row: r0, w: s - 2 * pp, h: d },
+    { col: c0 + pp, row: r0 + s - d, w: s - 2 * pp, h: d },
+    { col: c0, row: r0 + pp, w: d, h: s - 2 * pp },
+    { col: c0 + s - d, row: r0 + pp, w: d, h: s - 2 * pp },
+  ];
+  const tieLevels = Array.from({ length: Math.floor(CARILLON_SHAFT_RISE / CARILLON_TIE_EVERY - 0.25) }, (_, i) => base + (i + 1) * CARILLON_TIE_EVERY - CARILLON_TIE);
+  const shaft = depthOrder([...piers.map((p) => ({ ...p, tie: false })), ...ties.map((t) => ({ ...t, walls: [], tie: true }))]);
+
+  // The clock stage: the frame's piers stand forward of a panel holding the
+  // clock on each visible face.
+  const stage = boxFaces(c0, r0, s, s, zc, CARILLON_CLOCK_RISE);
+  const R = across(CARILLON_CLOCK_RADIUS_METRES);
+  const clock = (o: Pt, a: Pt, key: string) => {
+    const ru = R / s; const rv = up(CARILLON_CLOCK_RADIUS_METRES) / CARILLON_CLOCK_RISE;
+    const pt = (u: number, v: number) => facePoint(o, a, CARILLON_CLOCK_RISE, u, v);
+    const panel = [pt(pp / s, 0.07), pt(1 - pp / s, 0.07), pt(1 - pp / s, 0.93), pt(pp / s, 0.93)];
+    const ring: Pt[] = [];
+    for (let i = 0; i < 24; i++) {
+      const t = (i / 24) * Math.PI * 2;
+      ring.push(pt(0.5 + Math.cos(t) * ru, 0.5 + Math.sin(t) * rv));
+    }
+    // Baton marks at the quarters, and the hands.
+    const mark = (k: number) => {
+      const t = (k / 4) * Math.PI * 2;
+      const p0 = pt(0.5 + Math.cos(t) * ru * 0.66, 0.5 + Math.sin(t) * rv * 0.66);
+      const p1 = pt(0.5 + Math.cos(t) * ru * 0.9, 0.5 + Math.sin(t) * rv * 0.9);
+      return <line key={`m${k}`} className="iso-clock-hand" x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} />;
+    };
+    const c = pt(0.5, 0.5); const big = pt(0.5 + ru * 0.1, 0.5 + rv * 0.66); const small = pt(0.5 + ru * 0.48, 0.5 - rv * 0.2);
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(panel)} fill={shade(concrete, 0.88)} />
+        <polygon className="iso-clock-face" points={polyPoints(ring)} />
+        {[0, 1, 2, 3].map(mark)}
+        <line className="iso-clock-hand" x1={c.x} y1={c.y} x2={big.x} y2={big.y} />
+        <line className="iso-clock-hand" x1={c.x} y1={c.y} x2={small.x} y2={small.y} />
+      </g>
+    );
+  };
+
+  // The belfry: bells hung in the open frame, one opening a big bell and
+  // the other two smaller, as a carillon's are graded. Drawn on screen
+  // (like ClockTower's dome) in the gaps between the piers as they project,
+  // since the frame's centre is behind its front pier in every view.
+  const B = CARILLON_BELFRY_RISE;
+  const pierX = piers.map((p) => {
+    const f = boxFaces(p.col, p.row, p.w, p.h, zb, B);
+    const xs = [f.A.x, f.B.x, f.C.x, f.D.x];
+    return { lo: Math.min(...xs), hi: Math.max(...xs) };
+  }).sort((p, q) => (p.lo + p.hi) - (q.lo + q.hi));
+  // Just inside the visible faces, for the height on screen.
+  const ib = boxFaces(c0 + pp / 2, r0 + pp / 2, s - pp, s - pp, zb, B);
+  const bells = () => {
+    const bell = (x: number, width: number, crown: number, o: Pt, a: Pt, key: string) => {
+      const yAt = (v: number) => facePoint(o, a, B, 0.5, v).y;
+      const top = yAt(crown); const ht = width * 0.9;
+      const pts: Array<[number, number]> = [
+        [-0.2, 0], [0.2, 0], [0.31, 0.08], [0.35, 0.3], [0.38, 0.62], [0.46, 0.86], [0.54, 1], [-0.54, 1], [-0.46, 0.86], [-0.38, 0.62], [-0.35, 0.3], [-0.31, 0.08],
+      ];
+      return (
+        <g key={key}>
+          <line className="iso-bell-hanger" x1={x} y1={yAt(1)} x2={x} y2={top} />
+          <polygon className="iso-bell" points={pts.map(([px, py]) => `${(x + px * width).toFixed(2)},${(top + py * ht).toFixed(2)}`).join(' ')} />
+        </g>
+      );
+    };
+    const left = { lo: pierX[0].hi, hi: Math.min(pierX[1].lo, pierX[2].lo) };
+    const right = { lo: Math.max(pierX[1].hi, pierX[2].hi), hi: pierX[3].lo };
+    const gl = left.hi - left.lo; const gr = right.hi - right.lo;
+    return (
+      <>
+        {gl > 0 && bell((left.lo + left.hi) / 2, gl * 0.7, 0.66, ib.D, ib.C, 'b0')}
+        {gr > 0 && bell(right.lo + gr * 0.3, gr * 0.42, 0.78, ib.C, ib.B, 'b1')}
+        {gr > 0 && bell(right.lo + gr * 0.74, gr * 0.32, 0.84, ib.C, ib.B, 'b2')}
+      </>
+    );
+  };
+  // Bells after the back piers, before the front ones.
+  const belfry = depthOrder(piers);
+  const ov = CARILLON_CAP_OVERSAIL;
+
+  return (
+    <>
+      {fronts.filter((dir) => dir === 'posRow' || dir === 'posCol').map(glass)}
+      {depthOrder(lower).map((b, i) => box(b, 0, base, `lo${i}`, false))}
+      {shaft.map((b, i) => (b.tie
+        ? <g key={`t${i}`}>{tieLevels.map((z, k) => box(b, z, CARILLON_TIE, `t${i}-${k}`))}</g>
+        : box(b, base, CARILLON_SHAFT_RISE, `s${i}`, false)))}
+      {sideFaces(stage, lit, dark)}
+      {clock(stage.D, stage.C, 'cl')}
+      {clock(stage.C, stage.B, 'cr')}
+      <polygon points={polyPoints(stage.top)} fill={shade(concrete, 1.04)} />
+      {belfry.slice(0, 3).map((b, i) => box(b, zb, B, `b${i}`, false))}
+      {bells()}
+      {box(belfry[3], zb, B, 'b3', false)}
+      {box({ col: c0 - ov, row: r0 - ov, w: s + ov * 2, h: s + ov * 2 }, zt, CARILLON_CAP, 'cap')}
+      {/* A slender steel spire off the slab, as on Saarinen's MIT tower. */}
+      {(() => {
+        const m = at(c0 + s / 2, r0 + s / 2, zt + CARILLON_CAP);
+        return <line className="iso-carillon-mast" x1={m.x} y1={m.y} x2={m.x} y2={lift(m, up(5.5)).y} />;
+      })()}
+    </>
+  );
+}
+
+// How far along the +col and +row walls the carillon's corner reaches, so
+// the pilotis and fins keep clear of it (Plan 87L).
+function carillonReserve(w: number, h: number): number {
+  return Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3) - CARILLON_PROUD + across(0.6);
+}
+
+// Modern's hall on pilotis (Plan 87L): the glazed ground floor behind a row
+// of square columns under the first floor's slab edge, which runs proud of
+// the wall like the oversail of Le Corbusier's and Breuer's lifted blocks.
+// The columns keep clear of the door's canopy and, on Founders Hall, of the
+// carillon's corner (`reserve`, tiles at the +col/+row end of those walls).
+function Pilotis({ col, row, w, h, top, fronts, pal, stone, door, reserve = 0 }: {
+  col: number; row: number; w: number; h: number; top: number; fronts: FaceDir[];
+  pal: Palette; stone: StonePalette; door: DoorDimensions | null; reserve?: number;
+}) {
+  const depth = across(0.75);
+  const plan = across(0.8);
+  const slab = up(0.55);
+  const parts: Array<DepthBox & { k: string; z: number; rise: number; slab: boolean }> = [];
+  for (const dir of fronts) {
+    const span = wallSpan(w, h, dir);
+    const reserved = (dir === 'posRow' || dir === 'posCol') ? reserve : 0;
+    // The slab edge; a row wall's covers the corner it shares with the other
+    // visible wall, so the two meet without a notch.
+    const other = fronts.find((d) => d !== dir);
+    const toEnd = isRowWall(dir) && other === 'posCol' && reserved === 0 ? depth : 0;
+    const toStart = isRowWall(dir) && other === 'negCol' ? depth : 0;
+    const e = againstWall(col, row, w, h, dir, -toStart, span + toStart + toEnd - reserved, depth);
+    parts.push({ ...e, k: `e${dir}`, z: top - slab, rise: slab, slab: true });
+    const n = Math.max(2, Math.round((span * METRES_PER_TILE) / (BAY_METRES * 2)));
+    const clear = door ? Math.max(door.widthTiles * 1.7, across(4)) / 2 + plan : 0;
+    for (let i = 0; i <= n; i++) {
+      const along = Math.min(span - plan, Math.max(0, (i / n) * span - plan / 2));
+      if (door && Math.abs(along + plan / 2 - span / 2) < clear) continue;
+      if (reserved > 0 && along + plan > span - reserved - plan * 0.5) continue;
+      const c = againstWall(col, row, w, h, dir, along, plan, depth * 0.85);
+      parts.push({ ...c, k: `c${dir}${i}`, z: 0, rise: top - slab, slab: false });
+    }
+  }
+  const edge = shade(pal.wall.posRow, 1.06);
+  const pier = shade(stone.towerStone, 0.86);
+  return (
+    <>
+      {depthOrder(parts).map((b) => {
+        const f = boxFaces(b.col, b.row, b.w, b.h, b.z, b.rise);
+        return (
+          <g key={b.k}>
+            {b.slab ? sideFaces(f, edge, shade(edge, 0.84)) : sideFaces(f, pier, shade(pier, 0.78))}
+            {b.slab && <polygon points={polyPoints(f.top)} fill={shade(edge, 0.95)} />}
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// The brise-soleil (Plan 87L), Founders Hall only in Modern: deep concrete
+// fins at every bay of the floors above the pilotis, as on Le Corbusier's
+// and Breuer's teaching blocks, so the ribbons read through a vertical
+// screen. Clear of the carillon's corner (`reserve`).
+function BriseSoleil({ col, row, w, h, from, to, fronts, stone, reserve }: {
+  col: number; row: number; w: number; h: number; from: number; to: number;
+  fronts: FaceDir[]; stone: StonePalette; reserve: number;
+}) {
+  const depth = across(0.95);
+  const thick = across(0.32);
+  const fins: Array<DepthBox & { k: string }> = [];
+  for (const dir of fronts) {
+    const span = wallSpan(w, h, dir);
+    const reserved = (dir === 'posRow' || dir === 'posCol') ? reserve : 0;
+    const bays = baysAcross(span);
+    for (let i = 1; i < bays; i++) {
+      const along = (i / bays) * span - thick / 2;
+      if (along + thick > span - reserved - thick) continue;
+      fins.push({ ...againstWall(col, row, w, h, dir, along, thick, depth), k: `${dir}${i}` });
+    }
+  }
+  const fin = shade(stone.towerStone, 0.98);
+  return (
+    <>
+      {depthOrder(fins).map((b) => {
+        const f = boxFaces(b.col, b.row, b.w, b.h, from, to - from);
+        return (
+          <g key={b.k}>
+            {sideFaces(f, fin, shade(fin, 0.76))}
+            <polygon points={polyPoints(f.top)} fill={shade(fin, 1.04)} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// The roof terrace (Plan 87L), Founders Hall only in Modern: a paved deck
+// under a folded-plate canopy on slender posts, the zigzag roof of the
+// post-war campus (Breuer's, Saarinen's), its folded edge drawn on the side
+// the camera sees. On the hall's -col (or -row) half, clear of the carillon.
+function roofTerracePlan(col: number, row: number, w: number, h: number): DepthBox {
+  const alongCol = w >= h;
+  const L = alongCol ? w : h; const S = alongCol ? h : w;
+  const l0 = L * 0.1; const l = L * 0.48; const s0 = S * 0.24; const s = S * 0.48;
+  return alongCol ? { col: col + l0, row: row + s0, w: l, h: s } : { col: col + s0, row: row + l0, w: s, h: l };
+}
+function FoldedPlateTerrace({ col, row, w, h, base, fronts, stone }: {
+  col: number; row: number; w: number; h: number; base: number;
+  fronts: FaceDir[]; stone: StonePalette;
+}) {
+  const p = roofTerracePlan(col, row, w, h);
+  const alongCol = p.w >= p.h;
+  const L = alongCol ? p.w : p.h;
+  const folds = Math.max(4, Math.round((L * METRES_PER_TILE) / 4.2 / 2) * 2);
+  const POST = up(3.0); const RISE = up(1.5); const THICK = up(0.35);
+  const zv = base + POST; const zr = zv + RISE;
+  const zAt = (k: number) => (k % 2 === 0 ? zv : zr);
+  // A point by (along the folds, across them, height).
+  const at = (a: number, c: number, z: number) => (alongCol
+    ? lift(project(p.col + a, p.row + c), z)
+    : lift(project(p.col + c, p.row + a), z));
+  const S = alongCol ? p.h : p.w;
+  const step = L / folds;
+  const deckPad = across(1.2);
+  const deck = boxFaces(p.col - deckPad, p.row - deckPad, p.w + deckPad * 2, p.h + deckPad * 2, base, 0).top;
+  const slabTone = shade(stone.towerStone, 1.0);
+  // Plates back to front, one strip each.
+  const strips = depthOrder(Array.from({ length: folds }, (_, k) => (alongCol
+    ? { col: p.col + k * step, row: p.row, w: step, h: p.h, k }
+    : { col: p.col, row: p.row + k * step, w: p.w, h: step, k })));
+  // Which way a plate faces: rising along the folds it faces their start.
+  const tone = (k: number) => {
+    const rising = k % 2 === 0;
+    const dir: FaceDir = alongCol ? (rising ? 'negCol' : 'posCol') : (rising ? 'negRow' : 'posRow');
+    // Exaggerated past WALL_LIGHT, or the folds along a row read flat.
+    return shade(slabTone, dir === 'negCol' || dir === 'negRow' ? 1.02 : 0.82);
+  };
+  // The folded edge on the visible side across the folds.
+  const edgeDir: FaceDir | undefined = alongCol
+    ? fronts.find((d) => d === 'posRow' || d === 'negRow')
+    : fronts.find((d) => d === 'posCol' || d === 'negCol');
+  const edgeC = edgeDir === 'posRow' || edgeDir === 'posCol' ? S : 0;
+  const zig = (dz: number) => Array.from({ length: folds + 1 }, (_, k) => at(k * step, edgeC, zAt(k) + dz));
+  // Posts under the valleys at both edges; the back ones paint first.
+  const post = (k: number, c: number) => {
+    const a = at(k * step, c, base); const b = at(k * step, c, zv);
+    return <line key={`p${k}-${c}`} className="iso-terrace-post" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+  };
+  const valleys = Array.from({ length: folds / 2 + 1 }, (_, i) => i * 2);
+  const backC = S - edgeC;
+  return (
+    <>
+      <polygon points={polyPoints(deck)} fill={shade(stone.towerStone, 0.8)} />
+      {valleys.map((k) => post(k, backC))}
+      {strips.map((st) => {
+        const k = st.k;
+        const q = [at(k * step, 0, zAt(k)), at((k + 1) * step, 0, zAt(k + 1)), at((k + 1) * step, S, zAt(k + 1)), at(k * step, S, zAt(k))];
+        return <polygon key={`f${k}`} points={polyPoints(q)} fill={tone(k)} />;
+      })}
+      {valleys.map((k) => post(k, edgeC))}
+      <polygon points={polyPoints([...zig(0), ...zig(-THICK).reverse()])} fill={shade(slabTone, 0.86)} />
     </>
   );
 }
@@ -8156,6 +8494,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       : entrance === 'porch' ? PAVILION_DEPTH : 0;
     const flights = entrance !== 'arcade';
     const hf = boxFaces(col, row, w, h, 0, WH);
+    // Modern's Founders Hall (Plan 87L).
+    const carillon = hasClockTower(t) && apex === 'core';
     const endPlan = Math.min(END_PAVILION_PLAN, Math.min(w, h) * 0.28);
     const towerPlan = Math.min(across(7.5), Math.min(w, h) * 0.26);
     // The roof sets back behind a parapet; with no parapet it springs
@@ -8204,6 +8544,14 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
             <CurtainWall origin={hf.C} along={hf.B} wallHeight={WH} spanTiles={hf.spanRight} from={PLINTH} to={STOREY * 0.9} floors={[]} id="gfr" u0={0.03} u1={0.97} />
             {band(STOREY * 0.9, STOREY * 1.02, 'iso-undercroft', 'gs')}
           </>
+        )}
+        {/* On pilotis, and on Founders Hall behind fins (Plan 87L). */}
+        {glazedCivic && (
+          <Pilotis col={col} row={row} w={w} h={h} top={STOREY * 1.02} fronts={fronts} pal={pal} stone={stone}
+            door={entrance === 'canopy' ? door : null} reserve={carillon ? carillonReserve(w, h) : 0} />
+        )}
+        {glazedCivic && carillon && (
+          <BriseSoleil col={col} row={row} w={w} h={h} from={STOREY * 1.02} to={WH} fronts={fronts} stone={stone} reserve={carillonReserve(w, h)} />
         )}
 
         {deckPiers && fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={WH} outward={dir} pal={pal} />)}
@@ -8300,9 +8648,16 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {hasClockTower(t) && (apex === 'cupola' || apex === 'spire') && (
           <ClockTower stone={stone} apex={apex} gilded={hasGilt(vernacular)} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
-        {hasClockTower(t) && apex === 'core' && (
-          <StairCore stone={stone} col={col} row={row} w={w} h={h} base={WH} />
-        )}
+        {/* Modern: the carillon and a roof terrace (Plan 87L), not the
+            stair core; the terrace first unless it stands in front. */}
+        {carillon && (() => {
+          const terrace = <FoldedPlateTerrace key="ft" col={col} row={row} w={w} h={h} base={WH} fronts={fronts} stone={stone} />;
+          const tower = <Carillon key="ct" stone={stone} col={col} row={row} w={w} h={h} base={WH} fronts={fronts} />;
+          const plan = roofTerracePlan(col, row, w, h);
+          const sz = Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3);
+          const towerPlan = { col: col + w + CARILLON_PROUD - sz, row: row + h + CARILLON_PROUD - sz, w: sz, h: sz, node: tower };
+          return <>{depthOrder([{ ...plan, node: terrace }, towerPlan]).map((b) => b.node)}</>;
+        })()}
 
         {/* Entrances last, painting over their wall. The centre bay belongs
             to the portico entrance; other vernaculars bring their own. */}
