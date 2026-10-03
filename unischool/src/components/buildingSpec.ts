@@ -1946,9 +1946,11 @@ export const BUSINESS_PODIUM_STOREYS = 3;
 export const BUSINESS_ATRIUM_STOREYS = 5;
 // The fascia over the podium's top floor that carries the ticker.
 export const TICKER_FASCIA = up(2.4);
+// The building's own frame, for the plan below (Plan 88).
+import * as facingFrame from './facing';
 export interface BusinessSchoolPlan {
   front: FaceDir;
-  // The ends of the long front, low x then high x.
+  // The ends of the long front, the building's own left then right.
   sides: [FaceDir, FaceDir];
   // The podium behind the atrium (the tower stands on it), and the two
   // lower wings either side of the atrium, set back from its face.
@@ -1956,16 +1958,19 @@ export interface BusinessSchoolPlan {
   // Screen units: the podium's walls (fascia included), the atrium's.
   podiumHeight: number; atriumHeight: number;
 }
-export function businessSchoolPlan(p: ChapelBox): BusinessSchoolPlan {
-  const alongW = p.w >= p.h;
-  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
-  // x along the front, y from the back toward it.
-  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox => (alongW
-    ? { col: p.col + L * x0, row: p.row + S * y0, w: L * (x1 - x0), h: S * (y1 - y0) }
-    : { col: p.col + S * y0, row: p.row + L * x0, w: S * (y1 - y0), h: L * (x1 - x0) });
+// The front is the placement's (its four-way facing, components/facing.ts):
+// the atrium on the side the building faces and the tower over its back, at
+// the same place on the building whichever way the camera looks.
+export function businessSchoolPlan(p: ChapelBox & Pick<facingFrame.Plot, 'facing'>): BusinessSchoolPlan {
+  const own = facingFrame.sidesOf(p.facing);
+  const L = facingFrame.frontWidth(p); const S = facingFrame.frontDepth(p);
+  // x along the front from the building's own left, y from the back toward it.
+  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox =>
+    facingFrame.localBox(p, L * x0, S * (1 - y1), L * x1, S * (1 - y0));
   return {
-    front: alongW ? 'posRow' : 'posCol',
-    sides: alongW ? ['negCol', 'posCol'] : ['negRow', 'posRow'],
+    front: own.front,
+    // The building's own left and right.
+    sides: [own.left, own.right],
     back: box(0, 1, 0, 0.6),
     wings: [box(0, 0.34, 0.6, 0.92), box(0.66, 1, 0.6, 0.92)],
     atrium: box(0.34, 0.66, 0.6, 1),
