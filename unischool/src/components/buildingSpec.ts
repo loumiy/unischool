@@ -469,6 +469,7 @@ export function ridgeOf(t: Buildable, v: Vernacular): number {
   if (gothicCivicOf(t, v)) return up(GOTHIC_CIVIC_RIDGE_METRES);
   if (motif === 'chapel') return up(CHAPELS[v].ridgeMetres);
   if (diningBandOf(t) === 'refectory') return up(REFECTORIES[v].ridgeMetres);
+  if (georgianFoundersHall(t, v)) return up(FOUNDERS_GEORGIAN_RIDGE_METRES);
   return up(roof.ridgeMetres[motif] ?? 0);
 }
 
@@ -694,6 +695,14 @@ const CLOCK_TOWER_ID = 'BLDG-GENSTUDIES';
 
 export function hasClockTower(t: Buildable): boolean {
   return t.kind === 'building' && t.id === CLOCK_TOWER_ID;
+}
+
+// Georgian's Founders Hall (Plan 87M) draws itself after the owner's
+// reference picture (buildingMotifs.tsx's GeorgianFoundersHall), under a
+// steeper slate hip than the other halls so its dormers and stacks read.
+export const FOUNDERS_GEORGIAN_RIDGE_METRES = 7.5;
+export function georgianFoundersHall(t: Buildable, v: Vernacular): boolean {
+  return v === 'georgian' && hasClockTower(t);
 }
 
 // The tower, bottom to top: base, colonnaded drum, dome, finial.

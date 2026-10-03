@@ -419,10 +419,17 @@ console.log('campus scale and building spec');
   // A hall's roof is a shallow HIP now, not the barn gable it was: a ridge
   // deeper than a story and a half is what made the campus's landmarks read
   // as sheds.
-  const hall = byId('BLDG-GENSTUDIES');
+  // Georgian's Founders Hall carries dormers under a steeper slate hip
+  // (Plan 87M), still well short of a barn: under two storeys.
+  const hall = byId('HALL-01');
   if (hall) {
     assert(ridgeOf(hall, FOUNDING_VERNACULAR) < STOREY, 'a hall\'s ridge rises less than one story above its eaves');
     assert(ridgeOf(hall, FOUNDING_VERNACULAR) > 0, 'but it is still a pitched roof');
+  }
+  const founders = byId('BLDG-GENSTUDIES');
+  if (founders) {
+    assert(ridgeOf(founders, 'georgian') < STOREY * 2, 'Georgian Founders Hall\'s dormered hip rises less than two storeys');
+    assert(ridgeOf(founders, 'gothic') === ridgeOf(hall!, 'gothic'), 'and only in Georgian');
   }
 }
 
