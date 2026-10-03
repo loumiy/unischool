@@ -58,7 +58,7 @@ export function entryKey(e: PlacedEntry): string {
   const { t, p } = e;
   const fx = t.effects;
   return [
-    t.id, p.col, p.row, p.w, p.h, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age, e.renovating ? 1 : 0, e.historic ? 1 : 0,
+    t.id, p.col, p.row, p.w, p.h, p.facing ?? 0, t.status, e.developing ? 1 : 0, e.label, e.glyphs ?? '', e.age, e.renovating ? 1 : 0, e.historic ? 1 : 0,
     t.floorsAdded ?? 0, t.renovatingFrom ?? '', fx?.capacityBonus ?? 0, fx?.servesPopulation ?? 0, t.expansions ?? 0,
     (t as Buildable & { signature?: string }).signature ?? '',
   ].join(':');
