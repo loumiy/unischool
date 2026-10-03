@@ -15,6 +15,7 @@ import {
   againstWall, arcadeHeight, backSlopesFirst, gableEnds, gableSlopes, nearRing, opposite, outsideWall, outwardOf, paletteFrom,
   pyramid, ridgeChimneys, sideFaces, snowOnRoofs, wallSpan, windows, type Palette,
 } from './buildingMotifs';
+import { TiedPortico, flatRoofAt, mansardRoofAt, porticoReach, rotundaRoofAt, toneSlopes } from './porticoTie';
 
 // The library (Plan 87F): a campus's centrepiece, so it is drawn as one,
 // not as the flat civic box with rooflights it was in eight sets of nine.
@@ -450,7 +451,23 @@ function CivicLibrary(props: LibraryProps) {
     const span = wallSpan(w, h, dir);
     switch (scheme) {
       case 'rotunda':
-      case 'pavilion':
+      case 'pavilion': {
+        // A temple front to the cornice, its pediment's roof run back into
+        // the rotunda's drum (UVA's) or the mansard (Plan 87O).
+        const width = porticoWidth(span);
+        const short = Math.min(w, h);
+        const roofAt = extending ? flatRoofAt(col, row, w, h, H)
+          : scheme === 'pavilion' ? mansardRoofAt(col - eaves, row - eaves, w + eaves * 2, h + eaves * 2, H, ridge)
+            : rotundaRoofAt(col, row, w, h, H, cc, cr, short * 0.27, up(8.5));
+        return (
+          <g key={`e${dir}`}>
+            <TiedPortico col={col} row={row} w={w} h={h} dir={dir} width={width} depth={porticoDepth} base={podium} top={H} podium
+              columns={vernacular === 'classical' ? 6 : 4} roofAt={roofAt} stone={stone}
+              slopes={scheme === 'pavilion' ? pal : toneSlopes(pal.roof)} tone={stone.towerStone} oculus />
+            {flight(col, row, w, h, dir, porticoReach(porticoDepth), width * 0.86, podium, 6, stone)}
+          </g>
+        );
+      }
       case 'campanile': {
         const width = porticoWidth(span);
         return (
