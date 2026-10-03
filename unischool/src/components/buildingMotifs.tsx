@@ -6907,14 +6907,25 @@ function outFromWall(col: number, row: number, w: number, h: number, dir: FaceDi
   return { col: b.col + o.col * s0, row: b.row + o.row * s0, w: b.w, h: b.h };
 }
 
+// The temple front's width on a wall of `span` (Plan 87G).
+const lawTempleWidth = (span: number) => Math.min(span * 0.52, across(44));
+// Which visible front is the Law School's main one (Plan 87M): the longer
+// wall, so the hierarchy holds at every azimuth and either footprint.
+function lawMainFront(w: number, h: number, fronts: readonly FaceDir[]): FaceDir {
+  return [...fronts].sort((a, b) => wallSpan(w, h, b) - wallSpan(w, h, a))[0]!;
+}
+
 // The temple front on wall `dir`: steps to a podium, columns to the eaves,
 // an entablature, a pitched roof back to the wall and a pediment with the
-// scales of justice in its tympanum.
-function LawTemple({ col, row, w, h, H, dir, stone }: {
-  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette;
+// scales of justice in its tympanum. Only the main (longer) front wears it;
+// the other visible front has a pilastered frontispiece, so the two never
+// read as rival temples (Plan 87M).
+function LawTemple({ col, row, w, h, H, dir, stone, main }: {
+  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette; main: boolean;
 }) {
+  if (!main) return <LawFrontispiece col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} />;
   const span = wallSpan(w, h, dir);
-  const width = Math.min(span * 0.52, across(44));
+  const width = lawTempleWidth(span);
   const n = width >= across(34) ? 8 : 6;
   const along0 = span / 2 - width / 2;
   const depth = across(7.5);
@@ -6949,11 +6960,16 @@ function LawTemple({ col, row, w, h, H, dir, stone }: {
   const rise = up((width * METRES_PER_TILE / 2) * 0.26);
   const o0 = project(0, 0);
   const out = outwardOf(dir);
-  // The pediment's roof runs back over the deck into the attic hall
-  // (LawAttic's plan), as the Supreme Court's does (Plan 87O).
-  const toAttic = depth + (isRowWall(dir) ? h * (1 - 0.42) : w * (1 - 0.38)) / 2;
-  const o1 = project(-out.col * toAttic, -out.row * toAttic);
-  const back = (q: Pt) => ({ x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y });
+  // The pediment's roof runs back a short way past the wall and ends in a
+  // hipped return on the deck, short of the attic hall behind, so the
+  // attic rises clear over it (Plan 87M; it ran on into the attic, 87O).
+  const backBy = (d: number) => {
+    const o1 = project(-out.col * d, -out.row * d);
+    return (q: Pt) => ({ x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y });
+  };
+  const runEave = depth + across(5);
+  const eaveBack = backBy(runEave);
+  const back = backBy(Math.max(depth * 0.5, runEave - width * 0.22));
   const eL = P(0, 0); const eR = P(1, 0); const apex = P(0.5, rise);
   const lit = WALL_LIGHT[dir];
   // The tympanum, set in from the raking cornices.
@@ -6975,13 +6991,89 @@ function LawTemple({ col, row, w, h, H, dir, stone }: {
         </g>
       ))}
       {sideFaces(ent, shade(marble, 0.94), shade(marble, 0.76))}
-      <polygon points={polyPoints([eL, apex, back(apex), back(eL)])} fill={shade(marble, 0.74)} />
-      <polygon points={polyPoints([apex, eR, back(eR), back(apex)])} fill={shade(marble, 0.64)} />
+      <polygon points={polyPoints([eL, apex, back(apex), eaveBack(eL)])} fill={shade(marble, 0.74)} />
+      <polygon points={polyPoints([apex, eR, eaveBack(eR), back(apex)])} fill={shade(marble, 0.64)} />
       <polygon points={polyPoints([eL, eR, apex])} fill={shade(marble, lit)} stroke="rgba(60, 54, 44, 0.5)" strokeWidth={0.8} />
       <polygon points={polyPoints(tym)} fill={shade(marble, lit * 0.84)} />
       <path className="sig-scales" d={seg(sc(0, 0.1), sc(0, 0.74)) + seg(sc(-0.03, 0.1), sc(0.03, 0.1)) + seg(sc(-bw, 0.6), sc(bw, 0.6)) + seg(sc(-bw, 0.6), sc(-bw - 0.04, 0.3)) + seg(sc(-bw, 0.6), sc(-bw + 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw - 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw + 0.04, 0.3))} stroke={gilt} strokeWidth={1.5} strokeLinecap="round" fill="none" />
       <polygon points={polyPoints(pan(-bw))} fill={gilt} />
       <polygon points={polyPoints(pan(bw))} fill={gilt} />
+    </g>
+  );
+}
+
+// The Law School's side front (Plan 87M): a shallow frontispiece centred
+// on the wall, four giant pilasters to an entablature on the cornice line,
+// a low pediment whose roof stops at a hip just behind the parapet, and a
+// pedimented doorway up a short flight; the main front keeps the temple.
+function LawFrontispiece({ col, row, w, h, H, dir, stone }: {
+  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette;
+}) {
+  const span = wallSpan(w, h, dir);
+  const width = Math.min(span * 0.4, across(28));
+  const along0 = span / 2 - width / 2;
+  const proud = across(2.2);
+  const marble = stone.trim !== 'none' ? stone.trim : stone.towerStone;
+  const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+  const ENT = ENTABLATURE * 1.3;
+  const lit = WALL_LIGHT[dir];
+  // The frontispiece's mass, proud of the wall, to the cornice.
+  const mass = outFromWall(col, row, w, h, dir, along0, width, 0, proud);
+  const mf = boxFaces(mass.col, mass.row, mass.w, mass.h, 0, H);
+  const front = wallOf(mf, dir);
+  const Q = (u0: number, u1: number, z0: number, z1: number) => polyPoints(wallQuad(front.origin, front.along, H, u0, u1, z0, z1));
+  // Engaged columns at the ends and either side of the door bay, half
+  // proud of its face.
+  const cr0 = across(0.62);
+  const pilasters = [0.07, 0.33, 0.67, 0.93].map((u) => outsideWall(col, row, w, h, dir, along0 + width * u, proud))
+    .sort((a, b) => project(a.col, a.row).y - project(b.col, b.row).y);
+  // The door and its flight.
+  const doorH = up(5.2); const sill = up(1.2);
+  const treads = 4;
+  const steps = Array.from({ length: treads }, (_, k) => treads - 1 - k).map((i) => {
+    const b = outFromWall(col, row, w, h, dir, along0 + width * 0.3, width * 0.4, 0, proud + across(0.4) + (treads - 1 - i) * TREAD_DEPTH);
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, ((i + 1) * sill) / treads);
+    return (
+      <g key={`s${i}`}>
+        {sideFaces(f, shade(marble, 0.86), shade(marble, 0.7))}
+        <polygon points={polyPoints(f.top)} fill={shade(marble, i === treads - 1 ? 1.0 : 0.95)} stroke="rgba(60, 54, 44, 0.25)" strokeWidth={0.4} />
+      </g>
+    );
+  });
+  const g = crossGable({
+    col, row, w, h, dir, along0: along0 - across(0.4), width: width + across(0.8), reach: proud + across(0.4), top: H,
+    rise: up(((width + across(0.8)) * METRES_PER_TILE / 2) * 0.26), roofAt: flatRoofAt(col, row, w, h, H),
+    slopes: { negCol: shade(marble, 0.8), negRow: shade(marble, 0.74), posRow: shade(marble, 0.66), posCol: shade(marble, 0.6) },
+    maxRun: proud + across(4.5),
+  });
+  const P = (u: number, z: number) => facePoint(g.face.origin, g.face.along, 1, u, z);
+  const tym = [P(0.09, up(0.5)), P(0.91, up(0.5)), P(0.5, g.rise - up(0.75))];
+  // A wreath in the tympanum: a gilt ring.
+  const rU = 0.07;
+  const ring = Array.from({ length: 16 }, (_, i) => {
+    const t = (i / 16) * Math.PI * 2;
+    return P(0.5 + Math.cos(t) * rU, g.rise * 0.36 + Math.sin(t) * up(rU * (width + across(0.8)) * METRES_PER_TILE));
+  });
+  return (
+    <g className="law-frontispiece">
+      {sideFaces(mf, shade(marble, 0.92), shade(marble, 0.76))}
+      {pilasters.map((c, i) => (
+        <g key={`p${i}`}>
+          <Cylinder cc={c.col} cr={c.row} r={cr0} z0={sill} z1={H - ENT - up(0.5)} fill={shade(marble, 0.97)} />
+          {sideFaces(boxFaces(c.col - cr0 * 1.2, c.row - cr0 * 1.2, cr0 * 2.4, cr0 * 2.4, H - ENT - up(0.5), up(0.5)), shade(marble, 0.95), shade(marble, 0.78))}
+        </g>
+      ))}
+      {/* The entablature across the top, and the door with its pediment. */}
+      <polygon points={Q(0, 1, H - ENT, H)} fill={shade(marble, lit * 1.04)} stroke="rgba(60, 54, 44, 0.35)" strokeWidth={0.5} />
+      <polygon points={Q(0.4, 0.6, sill, sill + doorH)} fill="#4a3b2c" stroke={shade(marble, 0.7)} strokeWidth={1} />
+      <polygon points={polyPoints([facePoint(front.origin, front.along, 1, 0.37, sill + doorH + up(0.2)), facePoint(front.origin, front.along, 1, 0.63, sill + doorH + up(0.2)), facePoint(front.origin, front.along, 1, 0.5, sill + doorH + up(1.6))])} fill={shade(marble, lit)} stroke={shade(marble, 0.7)} strokeWidth={0.6} />
+      {/* A tall window over the door, between the pilasters. */}
+      <polygon points={Q(0.43, 0.57, sill + doorH + up(2.6), H - ENT - up(1.2))} fill={stone.glass} />
+      {steps}
+      {g.roof}
+      <polygon points={polyPoints([g.face.origin, g.face.along, g.apex])} fill={shade(marble, lit)} stroke="rgba(60, 54, 44, 0.5)" strokeWidth={0.8} />
+      <polygon points={polyPoints(tym)} fill={shade(marble, lit * 0.86)} />
+      <polygon points={polyPoints(ring)} fill={shade(marble, 0.6)} stroke={gilt} strokeWidth={1.6} />
     </g>
   );
 }
@@ -6993,7 +7085,11 @@ function LawTemple({ col, row, w, h, H, dir, stone }: {
 function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
   col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean;
 }) {
-  const aw = w * (gothic ? 0.56 : 0.38); const ah = h * (gothic ? 0.36 : 0.42);
+  // The classical attic as wide as the temple front before it, over the
+  // building's middle (Plan 87M), its long side to the long front.
+  const long = lawTempleWidth(Math.max(w, h));
+  const aw = gothic ? w * 0.56 : w >= h ? long : w * 0.42;
+  const ah = gothic ? h * 0.36 : w >= h ? h * 0.42 : long;
   const ac = col + (w - aw) / 2; const ar = row + (h - ah) / 2;
   const rise = gothic ? up(5.5) : up(5);
   const f = boxFaces(ac, ar, aw, ah, H, rise);
@@ -9756,7 +9852,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       {/* The Law School's attic hall and temple fronts, after its parapet
           (Plan 87G). */}
       {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} />}
-      {!site && lawTempleFront && fronts.map((dir) => <LawTemple key={`lt${dir}`} col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} />)}
+      {!site && lawTempleFront && fronts.map((dir) => <LawTemple key={`lt${dir}`} col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} main={dir === lawMainFront(w, h, fronts)} />)}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}
       {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && !grand && (

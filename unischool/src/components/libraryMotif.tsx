@@ -327,6 +327,9 @@ function TemplePortico({ col, row, w, h, dir, width, depth, podium, height, colu
 
 // --- The schemes ---------------------------------------------------------
 
+// How far behind the wall a rotunda library's pediment roof runs before
+// its hipped return (Plan 87M).
+const ROTUNDA_PORTICO_RUN = across(5);
 type Scheme = 'rotunda' | 'gothic' | 'modern' | 'mission' | 'tudor' | 'campanile' | 'pavilion' | 'deco';
 const SCHEMES: Record<Vernacular, Scheme> = {
   georgian: 'rotunda', classical: 'rotunda', gothic: 'gothic', modern: 'modern', mission: 'mission',
@@ -453,7 +456,9 @@ function CivicLibrary(props: LibraryProps) {
       case 'rotunda':
       case 'pavilion': {
         // A temple front to the cornice, its pediment's roof run back into
-        // the rotunda's drum (UVA's) or the mansard (Plan 87O).
+        // the mansard (Plan 87O); on the rotunda's flat deck a short
+        // projecting pediment that stops at a hip just behind the parapet,
+        // the drum rising clear behind it (Low Library's, UVA's; Plan 87M).
         const width = porticoWidth(span);
         const short = Math.min(w, h);
         const roofAt = extending ? flatRoofAt(col, row, w, h, H)
@@ -463,7 +468,8 @@ function CivicLibrary(props: LibraryProps) {
           <g key={`e${dir}`}>
             <TiedPortico col={col} row={row} w={w} h={h} dir={dir} width={width} depth={porticoDepth} base={podium} top={H} podium
               columns={vernacular === 'classical' ? 6 : 4} roofAt={roofAt} stone={stone}
-              slopes={scheme === 'pavilion' ? pal : toneSlopes(pal.roof)} tone={stone.towerStone} oculus />
+              slopes={scheme === 'pavilion' ? pal : toneSlopes(pal.roof)} tone={stone.towerStone} oculus
+              maxRun={scheme === 'rotunda' ? ROTUNDA_PORTICO_RUN : undefined} />
             {flight(col, row, w, h, dir, porticoReach(porticoDepth), width * 0.86, podium, 6, stone)}
           </g>
         );

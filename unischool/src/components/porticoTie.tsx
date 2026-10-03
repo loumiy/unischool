@@ -132,10 +132,13 @@ export function porticoReach(depth: number): number {
 // slope, the wall on a gable end), each eave where the roof rises past
 // it, or onto a flat deck as far as the ridge. `capRise` keeps the ridge
 // under the main roof's peak. The slopes go back first, each falling to
-// the eave on its own side of the screen.
-export function crossGable({ col, row, w, h, dir, along0, width, reach, top, rise: wanted, roofAt, slopes, capRise = false }: {
+// the eave on its own side of the screen. `maxRun` (Plan 87M) stops the
+// roof that far back from its face, ending it in a hipped return, so a
+// pediment over a flat deck reads as a short projecting roof, not a slab
+// run back into whatever rises from the deck (a drum, an attic).
+export function crossGable({ col, row, w, h, dir, along0, width, reach, top, rise: wanted, roofAt, slopes, capRise = false, maxRun }: {
   col: number; row: number; w: number; h: number; dir: FaceDir; along0: number; width: number; reach: number;
-  top: number; rise: number; roofAt: RoofAt | null; slopes: Record<FaceDir, string>; capRise?: boolean;
+  top: number; rise: number; roofAt: RoofAt | null; slopes: Record<FaceDir, string>; capRise?: boolean; maxRun?: number;
 }) {
   const out = outwardOf(dir);
   const gb = againstWall(col, row, w, h, dir, along0, width, reach);
@@ -162,8 +165,15 @@ export function crossGable({ col, row, w, h, dir, along0, width, reach, top, ris
     if (u !== 0.5) return Infinity;
     return reach + across(0.3);           // a flat deck: just past the parapet
   };
-  const dRidge = meet(0.5, top + rise);
-  const dEave = Math.min(dRidge, meet(0, top));
+  let dRidge = meet(0.5, top + rise);
+  let dEave = Math.min(dRidge, meet(0, top));
+  // A short return (Plan 87M): the eaves stop at `maxRun` and the ridge
+  // short of them, a steep hip falling back from its end.
+  const hipped = maxRun !== undefined && dEave > maxRun;
+  if (hipped) {
+    dEave = maxRun;
+    dRidge = Math.max(reach * 0.6, maxRun - width * 0.32);
+  }
   const backBy = (q: Pt, d: number) => {
     const o0 = project(0, 0); const o1 = project(-out.col * d, -out.row * d);
     return { x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y };
@@ -173,16 +183,19 @@ export function crossGable({ col, row, w, h, dir, along0, width, reach, top, ris
   const [fl, fr] = face.origin.x < face.along.x ? [face.origin, face.along] : [face.along, face.origin];
   const p0 = project(0, 0); const p1 = isRow(dir) ? project(-1, 0) : project(0, -1);
   const leftDir = p1.x < p0.x ? pSide[0] : pSide[1];
-  const pSlopes = backSlopesFirst<[FaceDir, Pt]>([[leftDir, fl], [leftDir === pSide[0] ? pSide[1] : pSide[0], fr]], (q) => q[0]);
-  const roof = pSlopes.map(([d, e]) => (
-    <polygon key={`ps${d}`} points={polyPoints([e, apex, backBy(apex, dRidge), backBy(e, dEave)])} fill={slopes[d]} />
+  const back = isRow(dir) ? (dir === 'posRow' ? 'negRow' : 'posRow') : (dir === 'posCol' ? 'negCol' : 'posCol');
+  const sides: [FaceDir, Pt[]][] = [[leftDir, [fl, apex, backBy(apex, dRidge), backBy(fl, dEave)]],
+    [leftDir === pSide[0] ? pSide[1] : pSide[0], [fr, apex, backBy(apex, dRidge), backBy(fr, dEave)]]];
+  if (hipped) sides.push([back, [backBy(fl, dEave), backBy(apex, dRidge), backBy(fr, dEave)]]);
+  const roof = backSlopesFirst(sides, (q) => q[0]).map(([d, q]) => (
+    <polygon key={`ps${d}`} points={polyPoints(q)} fill={slopes[d]} />
   ));
   return { face, apex, rise, roof };
 }
 
 export function TiedPortico({
   col, row, w, h, dir, width, depth, base, top, columns, roofAt, slopes, stone, along,
-  entablature = up(1.5), podium = false, steps, shadow = true, oculus = false, tone,
+  entablature = up(1.5), podium = false, steps, shadow = true, oculus = false, tone, maxRun,
 }: {
   // The wall box the portico stands against, and the wall.
   col: number; row: number; w: number; h: number; dir: FaceDir;
@@ -210,6 +223,9 @@ export function TiedPortico({
   oculus?: boolean;
   // The order's stone; the trim, else the tower stone.
   tone?: string;
+  // How far behind the wall the pediment's roof may run before it ends in
+  // a hipped return (Plan 87M); unset, it runs on into `roofAt`.
+  maxRun?: number;
 }) {
   const span = wallSpan(w, h, dir);
   const r = columnRadius(top - entablature - base);
@@ -237,6 +253,7 @@ export function TiedPortico({
   const pitched = up(((pw + ENT_PROUD * 2) * METRES_PER_TILE / 2) * PEDIMENT_PITCH);
   const { face, apex, rise, roof } = crossGable({
     col, row, w, h, dir, along0: along0 - ENT_PROUD, width: pw + ENT_PROUD * 2, reach, top, rise: pitched, roofAt, slopes, capRise: true,
+    maxRun: maxRun === undefined ? undefined : reach + maxRun,
   });
 
   // The tympanum, inset, and an oculus in it.
