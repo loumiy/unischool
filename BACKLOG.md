@@ -100,6 +100,8 @@ a sequence of PRs.*
 - **The price is set blind** (A4-6). The summer's tuition slider shows a
   tier but not how last year's price moved the pool
   (`components/InterruptModal.tsx`). Show last year's response beside it.
+  Plan 87's Admissions Office answers it for a college that opens the
+  office; this entry stays for the rest.
 - **Small leftovers of the Final Report and the worklist** (A4-2, A4-4):
   - the access weakness still reads "never opened its doors very wide"
     (`data/reportData.ts`), which goes to the largest colleges; the
@@ -273,91 +275,14 @@ a sequence of PRs.*
   FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and bridges
   before ACCT110 and MATH130. Each change moves course ids in every save.
 - **Athletics deferrals.** **Founding a team directly** (not through a
-  sport club's petition) is unbuilt. **Disbanding a team** is unbuilt,
+  sport club's petition) is unbuilt; Plan 87's Athletics Development
+  Office builds it for a college that opens the office. **Disbanding a team** is unbuilt,
   and so what happens to a venue whose last team folds is unanswered.
   **Match simulation and a fixture list** stay out by the argument at the
   head of `systems/athletics/season.ts`: three dated occasions and the
   postseason produce a record and a rivalry, and a schedule would produce
   nothing more. **Rowing** wants a lake (see water, above); golf stays
   declined.
-
-### The administration: offices in Founders Hall
-
-*The owner's idea (October 2026), shaped in conversation; the decisions
-marked **owner** are still open.*
-
-**The problem.** Seven schools, seven halls (Founders Hall and the chain of
-six, `curriculum.md`): the last school sorted keeps Founders Hall, so one
-school never gets a hall named for it, and Founders Hall reads "Founders
-Hall" where every other hall reads "the Smith School of Science". Emptying it
-is impossible today, and would be pointless if it were possible, since an
-empty slot does nothing.
-
-**The idea.** A slot in Founders Hall that a program leaves can take an
-**office** instead: one of a set of 12–18 administrative functions, each held
-once, each a standing advantage. Six slots out of the whole set means a run
-holds about a third of them, and which third is part of what makes one run
-differ from another. With all six slots holding offices, Founders Hall is
-the administration building: it takes a name for that ("Founders Hall · The
-Administration", **owner**), and the map draws it differently (a cupola or a
-clock).
-
-**What it needs:**
-
-- **A seventh purchased hall** (Walnut, after Sycamore), or Founders Hall
-  can never be emptied. This reverses Plan 55's cut of the chain to fit the
-  schools exactly, so it is a deliberate choice (**owner**). `foundersIsHome`
-  and the sorting readings (`systems/techtree/schools.ts`) change with it:
-  no school is at home in Founders Hall any more.
-- **Offices are not seats.** Plan 28's seats (`data/seatData.ts`) are people
-  who answer a domain's events for the president; an office is something
-  the institution can *do*. They meet in one place: an office does more when
-  its domain's seat is filled (Alumni Relations with a VP of Advancement,
-  Greek Life with a Dean of Students).
-- **A new action rather than a percentage, where possible.** A flat cut
-  (expenses down 10%) is the office every player opens first, which is no
-  choice at all. The best offices let the player do something they cannot
-  do otherwise, or know something they do not.
-- **A cost that keeps the choice honest.** A price to open, and a staff
-  budget a year that scales with standing as a seat's salary does: the
-  administrative ratchet again. Six offices are a commitment, and a lean run
-  that leaves programs in Founders Hall stays a real line of play.
-- **Closing one to open another**, with a dark term as relocation has
-  (`RELOCATION_WEEKS`), so the set can change over fifty years but not every
-  summer.
-- **When it opens.** The first move out of Founders Hall comes early (the
-  first purchased hall opens at eight courses), so the first office is an
-  early-game decision, not a mid-game one: an office then takes a slot a
-  program could have used. The **owner** may want a later gate.
-
-**A candidate set** (19, to be cut down; ⭐ marks those that add an action or
-a reading rather than a percentage):
-
-| Domain | Office | What it does |
-|---|---|---|
-| Enrolment | Admissions Office ⭐ | A rough look at the pool before the summer price is set (continues *The price is set blind*, above) |
-| | Financial Aid Office | Pulls the price-sensitive cohort without a lower sticker |
-| | Career Services | Pulls the pre-professional cohort; employed alumni give more |
-| | Office of Fellowships | Pulls the grad-school-bound cohort; placement counts toward standing |
-| | Honors College | Pulls the high achievers; raises the top of the band |
-| Academic | Office of Curriculum Development ⭐ | One more seat on the curriculum committee |
-| | Center for Teaching Excellence | Faculty teaching grows faster |
-| | Office of Faculty Recruitment ⭐ | A deeper market, or an approach to a rival's professor (meets *Faculty lifecycle*, above) |
-| | Office of Sponsored Research | More grant income from research |
-| | Technology Transfer Office ⭐ | A breakthrough can be licensed for income |
-| Students | Student Activities Office ⭐ | Charter a club without waiting for one to form |
-| | Athletics Development Office ⭐ | Found a varsity team without a petition (the *Athletics deferrals* entry's direct founding) |
-| | Office of Greek Life | Fewer chapter scandals; the player orders the housing petitions |
-| | Counseling & Wellness | Demands arrive less often and ask less |
-| Money and standing | Investment Office | Better endowment and idle-cash returns |
-| | Alumni Relations | More alumni giving; campaigns go further |
-| | Office of Communications | A scandal costs less standing |
-| | Office of Institutional Research ⭐ | A forecast of the year's prestige grade before the summer |
-| | Campus Planning Office | Buildings go up faster, or building beyond need costs less to keep |
-
-The flattest (Investment, Honors) go first if the set is cut. The name
-"Athletic Director's Office" was the owner's first; the athletic director is
-already a person (Athletics V3), hence *Athletics Development*.
 
 ### Plan 85's leftovers
 
