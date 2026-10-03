@@ -79,6 +79,18 @@
   - The other Georgian halls keep the eaves balustrade. The test that a
     hall's ridge stays under a storey now reads HALL-01.
   - The founding screen's elevation is unchanged.
+- **M, second look (the owner's notes on M):**
+  - The end stacks stand out on the hip ends, clear of the clock tower.
+  - HALL-01..06, and every Georgian hall not drawn as a school's signature,
+    are drawn as Founders Hall without the clock tower, in place of the
+    eaves balustrade. Signature halls and the Faculty Training Institute
+    (limestone, under its cupola) keep their own drawing.
+  - The test on a hall's ridge height is removed.
+  - The founding screen draws the new Founders Hall in Georgian: slate hip,
+    dormers, end stacks, the pediment with its oculus, sashes, columns and
+    the clock tower.
+  - Georgian's red brick is warmer, '#bd6b48', sampled from the reference
+    picture, for every building in it, not only the halls.
 - **Left:**
   - Cast shadows and label heights still read the main box for the taller
     parts: the Field House vault, the Engineering wing and the domes.

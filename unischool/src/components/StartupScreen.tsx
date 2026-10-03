@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
-import { BONUS_VERNACULAR_CHOICES, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
+import { BONUS_VERNACULAR_CHOICES, FOUNDERS_GEORGIAN_COLOURS, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
 import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, UNIVERSITY_CAPTION } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
@@ -82,6 +82,124 @@ function HungBanner({ x, y, colors }: { x: number; y: number; colors: SchoolColo
   );
 }
 
+// --- Georgian: Founders Hall after the owner's reference picture --------
+// (Plan 87M): the slate hip with its dormers and an end stack at each end,
+// the white pediment with its oculus over the name band (the portico's
+// entablature, run the width of the front), and on the ridge the clock
+// tower: a brick stage, the white clock stage, the open lantern, the
+// verdigris dome and a gilt finial. Below the band, two ranks of
+// white-framed sashes and the portico's four columns before the door.
+const GEORGIAN_BAND_Y = 108;
+const GEORGIAN_PEDIMENT_HALF = 80;
+const GEORGIAN_EAVES_Y = GEORGIAN_BAND_Y;
+const GEORGIAN_RIDGE_Y = 84;
+const { slate: SLATE, glass: SASH_GLASS, verdigris: VERDIGRIS } = FOUNDERS_GEORGIAN_COLOURS;
+
+function GeorgianCrown({ wall, trim, gilt, tower }: { wall: string; trim: string; gilt: string | null; tower: string }) {
+  const cx = FACADE_VIEW_WIDTH / 2;
+  const L = FACADE_BAND_LEFT - 4; const R = FACADE_BAND_LEFT + FACADE_BAND_WIDTH + 4;
+  const eaves = GEORGIAN_EAVES_Y; const ridge = GEORGIAN_RIDGE_Y;
+  const hip = (eaves - ridge) * 2.2;     // how far in the hip ends reach
+  const ped = GEORGIAN_PEDIMENT_HALF;
+  const tw = 22;                         // the tower's brick stage
+  const finial = gilt ?? trim;
+  return (
+    <>
+      {/* The clock tower, behind the roof, top down. */}
+      <line stroke={finial} strokeWidth="1.6" x1={cx} y1="-2" x2={cx} y2="9" />
+      <circle fill={finial} cx={cx} cy="5" r="1.8" />
+      <path fill={tint(VERDIGRIS, 0.9)} stroke={tint(VERDIGRIS, 0.65)} strokeWidth="0.6" d={`M ${cx - 10} 22 A 10 13 0 0 1 ${cx + 10} 22 Z`} />
+      <path fill={tint(VERDIGRIS, 1.12)} d={`M ${cx - 6} 21 A 5 10 0 0 1 ${cx} 11 A 6 11 0 0 0 ${cx - 2} 21 Z`} />
+      <rect fill={trim} stroke={tint(trim, 0.8)} strokeWidth="0.5" x={cx - 13} y="22" width="26" height="3" />
+      <rect fill={trim} x={cx - 11} y="25" width="22" height="15" />
+      <path fill={SASH_GLASS} d={`M ${cx - 7} 40 L ${cx - 7} 31 A 7 6 0 0 1 ${cx + 7} 31 L ${cx + 7} 40 Z`} />
+      <path fill="#8a6a32" d={`M ${cx - 2} 30 L ${cx + 2} 30 L ${cx + 3} 34 L ${cx + 4.5} 36 L ${cx - 4.5} 36 L ${cx - 3} 34 Z`} />
+      {[cx - 11, cx + 8].map((x) => <rect key={x} fill={tint(trim, 1.02)} stroke={tint(trim, 0.78)} strokeWidth="0.4" x={x} y="25" width="3" height="15" />)}
+      <rect fill={trim} stroke={tint(trim, 0.8)} strokeWidth="0.5" x={cx - 14} y="40" width="28" height="3" />
+      <rect fill={tower} stroke={tint(tower, 0.82)} strokeWidth="0.5" x={cx - 12} y="43" width="24" height="17" />
+      <circle fill="#f2ede0" stroke="#2d3034" strokeWidth="0.8" cx={cx} cy="51.5" r="6" />
+      <line stroke="#2d3034" strokeWidth="0.9" x1={cx} y1="51.5" x2={cx} y2="47.5" />
+      <line stroke="#2d3034" strokeWidth="0.9" x1={cx} y1="51.5" x2={cx + 3} y2="52.5" />
+      <rect fill={trim} stroke={tint(trim, 0.8)} strokeWidth="0.5" x={cx - 14} y="60" width="28" height="3" />
+      <rect fill={wall} x={cx - tw / 2} y="63" width={tw} height={eaves - 63} />
+
+      {/* The end stacks, out at the ridge's ends. */}
+      {[L + hip + 6, R - hip - 18].map((x) => (
+        <g key={x}>
+          <rect fill={wall} x={x} y={ridge - 20} width="12" height="22" />
+          <rect fill={tint(wall, 0.8)} x={x + 8} y={ridge - 20} width="4" height="22" />
+          <rect fill={trim} x={x - 2} y={ridge - 23} width="16" height="3" />
+        </g>
+      ))}
+
+      {/* The slate hip: its front slope, and the two hip ends. */}
+      <polygon fill={SLATE} points={`${L},${eaves} ${L + hip},${ridge} ${R - hip},${ridge} ${R},${eaves}`} />
+      <polygon fill={tint(SLATE, 1.14)} points={`${L},${eaves} ${L + hip},${ridge} ${L + hip * 1.25},${eaves}`} />
+      <polygon fill={tint(SLATE, 0.84)} points={`${R},${eaves} ${R - hip},${ridge} ${R - hip * 1.25},${eaves}`} />
+      <rect fill={tint(SLATE, 0.8)} x={L + hip} y={ridge - 1} width={R - L - hip * 2} height="1.5" />
+      {/* Pedimented dormers, two each side of the portico. */}
+      {[cx - ped - 54, cx - ped - 24, cx + ped + 24, cx + ped + 54].map((x) => (
+        <g key={x}>
+          <rect fill={trim} x={x - 7} y={eaves - 13} width="14" height="12" />
+          <rect fill={SASH_GLASS} x={x - 4} y={eaves - 10} width="8" height="9" />
+          <polygon fill={trim} stroke={tint(trim, 0.72)} strokeWidth="0.6" points={`${x - 9},${eaves - 13} ${x},${eaves - 19} ${x + 9},${eaves - 13}`} />
+        </g>
+      ))}
+
+      {/* The pediment, its raking moulding and the oculus. */}
+      <polygon fill={trim} stroke={tint(trim, 0.72)} strokeWidth="1" strokeLinejoin="round" points={`${cx - ped},${eaves} ${cx},${ridge - 2} ${cx + ped},${eaves}`} />
+      <polygon fill={tint(trim, 0.94)} points={`${cx - ped + 12},${eaves - 2} ${cx},${ridge + 2.5} ${cx + ped - 12},${eaves - 2}`} />
+      <circle fill={SASH_GLASS} stroke={trim} strokeWidth="1.6" cx={cx} cy={eaves - 9} r="5" />
+    </>
+  );
+}
+
+// One white-framed six-over-six sash, its lintel over it.
+function Sash({ x, y, h, trim }: { x: number; y: number; h: number; trim: string }) {
+  return (
+    <g>
+      <rect fill={trim} x={x - 7.5} y={y - 1.5} width="15" height={h + 3} />
+      <rect fill={tint(trim, 0.92)} x={x - 9} y={y - 5} width="18" height="3.5" />
+      <rect fill={SASH_GLASS} x={x - 5.5} y={y} width="11" height={h} />
+      <path stroke={trim} strokeWidth="0.7" fill="none" d={`M ${x} ${y} V ${y + h} M ${x - 5.5} ${y + h / 3} H ${x + 5.5} M ${x - 5.5} ${y + (h * 2) / 3} H ${x + 5.5}`} />
+    </g>
+  );
+}
+
+function GeorgianFront({ wall, trim, wallTop }: { wall: string; trim: string; wallTop: number }) {
+  const cx = FACADE_VIEW_WIDTH / 2;
+  const ped = GEORGIAN_PEDIMENT_HALF;
+  const ranks = [wallTop + 10, wallTop + 42];
+  const sh = 20;
+  const steps = FACADE_VIEW_HEIGHT - 12;
+  const sides = [54, 82, 110, FACADE_VIEW_WIDTH - 110, FACADE_VIEW_WIDTH - 82, FACADE_VIEW_WIDTH - 54];
+  const columns = [-66, -22, 22, 66].map((d) => cx + d);
+  return (
+    <>
+      {sides.flatMap((x) => ranks.map((y) => <Sash key={`${x}-${y}`} x={x} y={y} h={sh} trim={trim} />))}
+      {/* The portico: the shade behind its columns, sashes and the door. */}
+      <rect fill={tint(wall, 0.72)} x={cx - ped} y={wallTop} width={ped * 2} height={steps - wallTop} />
+      {[cx - 44, cx + 44].flatMap((x) => ranks.map((y) => <Sash key={`p${x}-${y}`} x={x} y={y} h={sh} trim={tint(trim, 0.86)} />))}
+      <Sash x={cx} y={ranks[0]} h={sh} trim={tint(trim, 0.86)} />
+      <rect fill={tint(trim, 0.86)} x={cx - 11} y={ranks[1] - 2} width="22" height={steps - ranks[1] + 2} />
+      <rect fill="#2f3b45" x={cx - 8} y={ranks[1] + 6} width="16" height={steps - ranks[1] - 6} />
+      <path fill={SASH_GLASS} stroke={tint(trim, 0.86)} strokeWidth="1" d={`M ${cx - 8} ${ranks[1] + 6} A 8 6 0 0 1 ${cx + 8} ${ranks[1] + 6} Z`} />
+      {columns.map((x) => (
+        <g key={x}>
+          <rect fill={trim} x={x - 7} y={wallTop} width="14" height="3" />
+          <rect fill={trim} x={x - 5} y={wallTop + 3} width="10" height={steps - wallTop - 3} />
+          <rect fill={tint(trim, 0.82)} x={x + 2} y={wallTop + 3} width="3" height={steps - wallTop - 3} />
+          <rect fill={trim} x={x - 7} y={steps - 3} width="14" height="3" />
+        </g>
+      ))}
+      {/* The steps up to it. */}
+      {[0, 1, 2].map((i) => (
+        <rect key={i} fill={tint(trim, 0.96 - i * 0.04)} x={cx - ped + 4 - i * 6} y={steps + i * 4} width={(ped - 4 + i * 6) * 2} height="4" />
+      ))}
+    </>
+  );
+}
+
 // `suffix`: what the school became (the hall of fame's portraits); a new
 // school is a college.
 export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTITUTION_SUFFIX }: { name: string; vernacular: Vernacular; colors: SchoolColors; suffix?: string }) {
@@ -105,7 +223,10 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
   const iron = '#2d3034';
 
   const cx = FACADE_VIEW_WIDTH / 2;
-  const bandY = 92;          // head of the engraved band
+  // Georgian draws the whole of the new Founders Hall (Plan 87M), its band
+  // lower to leave room for the roof and the clock tower over it.
+  const georgian = vernacular === 'georgian';
+  const bandY = georgian ? GEORGIAN_BAND_Y : 92;          // head of the engraved band
   // Every crown is drawn down to bandY so no sky shows between roof and wall.
   const bandH = 32;
   const wallTop = bandY + bandH;
@@ -421,8 +542,12 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
     >
       {/* A sky, so pale trim and the roofline read against the parchment card. */}
       <rect className="facade-sky" x="0" y="0" width={FACADE_VIEW_WIDTH} height={FACADE_VIEW_HEIGHT} />
-      {landmark()}
-      {crown()}
+      {georgian ? <GeorgianCrown wall={wall} trim={trim} gilt={gilt} tower={tower} /> : (
+        <>
+          {landmark()}
+          {crown()}
+        </>
+      )}
 
       {/* The wall the name is cut into, and the band itself. */}
       <rect fill={wall} x={FACADE_BAND_LEFT} y={bandY} width={FACADE_BAND_WIDTH} height={FACADE_VIEW_HEIGHT - bandY} />
@@ -456,7 +581,7 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
       ))}
 
       {/* One rank of the vernacular's own windows, previewing the opening shape. */}
-      {entrance !== 'recess' && bayXs.map((x, i) => (
+      {georgian ? <GeorgianFront wall={wall} trim={trim} wallTop={wallTop} /> : entrance !== 'recess' && bayXs.map((x, i) => (
         <rect key={i} fill={glass} x={x - 9} y={wallTop + 8} width="18" height="18" />
       ))}
 
@@ -464,7 +589,7 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
       <HungBanner x={FACADE_BAND_LEFT + BANNER_INSET} y={wallTop} colors={colors} />
       <HungBanner x={FACADE_BAND_LEFT + FACADE_BAND_WIDTH - BANNER_INSET - BANNER_WIDTH} y={wallTop} colors={colors} />
 
-      {order()}
+      {!georgian && order()}
     </svg>
   );
 }

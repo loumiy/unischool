@@ -469,7 +469,7 @@ export function ridgeOf(t: Buildable, v: Vernacular): number {
   if (gothicCivicOf(t, v)) return up(GOTHIC_CIVIC_RIDGE_METRES);
   if (motif === 'chapel') return up(CHAPELS[v].ridgeMetres);
   if (diningBandOf(t) === 'refectory') return up(REFECTORIES[v].ridgeMetres);
-  if (georgianFoundersHall(t, v)) return up(FOUNDERS_GEORGIAN_RIDGE_METRES);
+  if (georgianHall(t, v)) return up(FOUNDERS_GEORGIAN_RIDGE_METRES);
   return up(roof.ridgeMetres[motif] ?? 0);
 }
 
@@ -701,8 +701,17 @@ export function hasClockTower(t: Buildable): boolean {
 // reference picture (buildingMotifs.tsx's GeorgianFoundersHall), under a
 // steeper slate hip than the other halls so its dormers and stacks read.
 export const FOUNDERS_GEORGIAN_RIDGE_METRES = 7.5;
+// Its slate, sash glass and dome, shared with the title screen's elevation
+// (StartupScreen.tsx) so the two cannot drift.
+export const FOUNDERS_GEORGIAN_COLOURS = { slate: '#5d6a7c', glass: '#2c3843', verdigris: '#6fa59b' } as const;
 export function georgianFoundersHall(t: Buildable, v: Vernacular): boolean {
   return v === 'georgian' && hasClockTower(t);
+}
+// Its siblings (the owner's second look at Plan 87M): every Georgian
+// academic hall not drawn as a school's signature, HALL-01..06 and the
+// halls bought since, is drawn as Founders Hall without the clock tower.
+export function georgianHall(t: Buildable, v: Vernacular): boolean {
+  return v === 'georgian' && t.kind === 'building' && motifOf(t) === 'hall' && !signatureOf(t);
 }
 
 // The tower, bottom to top: base, colonnaded drum, dome, finial.
@@ -750,7 +759,9 @@ export interface MaterialSet {
 }
 
 const GEORGIAN_MATERIALS = {
-  brickRed: { wall: '#a2564a', roof: SLATE },
+  // A warm orange-red, sampled from the owner's reference picture of
+  // Founders Hall (Plan 87M, second look); it was a cooler '#a2564a'.
+  brickRed: { wall: '#bd6b48', roof: SLATE },
   // Support buildings: refectories, shops, the union.
   brickBuff: { wall: '#bb9468', roof: SLATE },
   // The civic set: library, gallery, the arts center and the law school.

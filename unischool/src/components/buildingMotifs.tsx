@@ -38,7 +38,7 @@ import {
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
-import { glassContrast, georgianFoundersHall, readableGlass, towerFormOf } from './buildingSpec';
+import { FOUNDERS_GEORGIAN_COLOURS, glassContrast, georgianHall, readableGlass, towerFormOf } from './buildingSpec';
 import {
   CARILLON_BELFRY_RISE, CARILLON_CAP, CARILLON_CAP_OVERSAIL, CARILLON_CLOCK_RADIUS_METRES, CARILLON_CLOCK_RISE,
   CARILLON_PIER, CARILLON_PLAN, CARILLON_PROUD, CARILLON_SHAFT_RISE, CARILLON_TIE, CARILLON_TIE_EVERY,
@@ -6062,6 +6062,8 @@ function Ziggurat({ col, row, w, h, base, stone }: {
 }
 
 // --- Georgian Founders Hall (Plan 87M) -----------------------------------
+// Every other Georgian academic hall (buildingSpec's georgianHall) is drawn
+// the same without the clock tower, so the halls read as its siblings.
 // After the owner's reference picture, on the hall's own height and four
 // storeys: red brick under a blue-grey slate hip with a row of pedimented
 // dormers and a brick stack at each end of the ridge; a white cornice;
@@ -6072,9 +6074,9 @@ function Ziggurat({ col, row, w, h, base, stone }: {
 // stage, an open arched lantern, a verdigris dome and a gilt finial
 // (Harvard's University Hall, Dartmouth's Baker, the eighteenth-century
 // college hall). ridgeOf gives it its steeper hip.
-const FH_SLATE = '#5d6a7c';
-const FH_GLASS = '#2c3843';
-const FH_VERDIGRIS = '#6fa59b';
+const FH_SLATE = FOUNDERS_GEORGIAN_COLOURS.slate;
+const FH_GLASS = FOUNDERS_GEORGIAN_COLOURS.glass;
+const FH_VERDIGRIS = FOUNDERS_GEORGIAN_COLOURS.verdigris;
 const FH_BRONZE = '#8a6a32';
 const FH_LANTERN_DARK = '#262c31';
 const FH_EAVES = across(0.45);         // the cornice's oversail
@@ -6101,6 +6103,7 @@ const FH_DORMER_AT = 0.22;             // of the slope's run, eaves to ridge
 const FH_DORMERS_LONG = [0.16, 0.29, 0.71, 0.84];
 const FH_STACK = [across(2.6), across(1.6)] as const;   // along and across the ridge
 const FH_STACK_RISE = up(3.6);
+const FH_STACK_OUT = 0.35;             // of the hip's run, out past the ridge's end
 const FH_TOWER = { brick: across(8.0), clock: across(7.0), lantern: across(6.2) };
 const FH_TOWER_BRICK_RISE = up(4.2);
 const FH_TOWER_CLOCK_RISE = up(5.4);
@@ -6311,9 +6314,10 @@ function FoundersDormer({ b, dir, z0, zAt, roof, trim }: {
   );
 }
 
-function GeorgianFoundersHall({ col, row, w, h, H, ridge, courses, pal, roof, stone, door, wallTone }: {
+function GeorgianFoundersHall({ col, row, w, h, H, ridge, courses, pal, roof, stone, door, wallTone, tower: withTower }: {
   col: number; row: number; w: number; h: number; H: number; ridge: number; courses: number[];
   pal: Palette; roof: Palette; stone: StonePalette; door: DoorDimensions | null; wallTone: string;
+  tower: boolean;
 }) {
   const trim = stone.trim;
   const seen = visibleWalls();
@@ -6333,10 +6337,13 @@ function GeorgianFoundersHall({ col, row, w, h, H, ridge, courses, pal, roof, st
   const alongW = rw >= rh;
   const brick = WALLS(wallTone);
 
-  // Chimneys at the ridge's two ends and the tower at its middle, in depth order.
+  // A chimney out on each hip end, clear of the tower (the owner's second
+  // look: on the ridge's own ends they crowded it), and the tower at the
+  // ridge's middle, in depth order.
+  const stackOut = run * FH_STACK_OUT;
   const ends = alongW
-    ? [[rc + run, rr + rh / 2], [rc + rw - run, rr + rh / 2]]
-    : [[rc + rw / 2, rr + run], [rc + rw / 2, rr + rh - run]];
+    ? [[rc + run - stackOut, rr + rh / 2], [rc + rw - run + stackOut, rr + rh / 2]]
+    : [[rc + rw / 2, rr + run - stackOut], [rc + rw / 2, rr + rh - run + stackOut]];
   const [sa, sx] = alongW ? FH_STACK : [FH_STACK[1], FH_STACK[0]];
   const stacks = ends.map(([c, r], i) => {
     const b = { col: c - sa / 2, row: r - sx / 2, w: sa, h: sx };
@@ -6454,7 +6461,7 @@ function GeorgianFoundersHall({ col, row, w, h, H, ridge, courses, pal, roof, st
       {/* The white cornice, oversailing, and the slate hip on it. */}
       {sideFaces(boxFaces(rc, rr, rw, rh, H - FH_CORNICE, FH_CORNICE), shade(trim, 0.97), shade(trim, 0.8))}
       <HippedRoof col={rc} row={rr} w={rw} h={rh} base={H} rise={ridge} pal={roof} />
-      {depthOrder([...stacks, tower]).map((x) => x.node)}
+      {depthOrder(withTower ? [...stacks, tower] : stacks).map((x) => x.node)}
       {depthOrder(dormers).map((d, i) => (
         <FoundersDormer key={`dm${i}`} b={d} dir={d.dir} z0={d.z0} zAt={zAt} roof={roof} trim={trim} />
       ))}
@@ -8885,12 +8892,13 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     );
   }
 
-  // Georgian's Founders Hall draws itself (Plan 87M).
-  if (motif === 'hall' && !site && inFlight === 0 && georgianFoundersHall(t, vernacular)) {
+  // Georgian's Founders Hall draws itself (Plan 87M), and its sibling
+  // halls the same, without the clock tower.
+  if (motif === 'hall' && !site && inFlight === 0 && georgianHall(t, vernacular)) {
     const roofPal = snowOnRoofs(paletteFrom({ wall: material.wall, roof: FH_SLATE }, wallShadeOf(t)), snow);
     return (
       <GeorgianFoundersHall col={col} row={row} w={w} h={h} H={H} ridge={ridge} courses={courses}
-        pal={pal} roof={roofPal} stone={stone} door={door} wallTone={shade(material.wall, wallShadeOf(t))} />
+        pal={pal} roof={roofPal} stone={stone} door={door} wallTone={shade(material.wall, wallShadeOf(t))} tower={hasClockTower(t)} />
     );
   }
   if (motif === 'hall' && !site) {
