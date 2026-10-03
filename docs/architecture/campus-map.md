@@ -83,12 +83,22 @@ Three consequences, each in its own place:
   on the same lawn however the view turns. Every cast shadow — buildings
   and woodland — is drawn in one pass under every mass, because a shadow
   can now fall *away* from the camera, across a building already painted.
-- **Attachments go on the walls the camera can see.** A pavilion, portico,
-  arcade, canopy or flight of steps takes its wall by grid direction, and a
-  mass draws them on `visibleWalls()`, as its doors always did — so a
-  building presents its entrances from every side, and nothing is drawn
-  against a wall that has turned away. Composite masses (a hospital's slab
-  and wing, a corner tower) order their parts by the camera.
+- **A building has a front, a back and two sides** (four-way
+  orientation). A placement stores its `facing`: which map edge its front
+  faces, set a quarter turn at a time with R as it is placed, square
+  footprints included, and the ghost marks the front. `facing.ts` turns
+  that into walls (`sidesOf`: the front's, back's, left's and right's grid
+  direction) and into the building's own frame (`localToGrid`, `localBox`:
+  across the front and back from it). A mass puts each feature on its side
+  (the entrance, portico or sign on the front, a service door at the back,
+  a wing or tower at its own place in the building's frame) and draws it
+  when the camera sees that wall, so turning the camera walks round the
+  building, and turning the building turns its features with it. Which
+  wall the camera sees (`visibleWalls()`) still decides painting: what is
+  hidden, and back-to-front order. Every wall keeps a door at its middle,
+  the front's the grand one, since walkers enter by any of the four
+  (`walkRoutes.ts`). A save from before facings reads each one off its
+  footprint (turned is a quarter turn).
 
 ## Touch (Plan 70F)
 
@@ -365,7 +375,7 @@ centre is a tile SEAM — so the one square a student would walk through does
 not exist, and a path can only ever reach the corner of two tiles. Open
 ground keeps its even spans, because nothing enters a tennis court or a
 running track through a drawn door. A `Placement` stores the footprint it was
-built with, so this applies to new campuses only; an existing one keeps the
+built with (turned to its facing), so this applies to new campuses only; an existing one keeps the
 halls it has.
 
 Everything is sized against a rough **15m to a tile**, which the football

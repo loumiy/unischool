@@ -91,7 +91,7 @@ function emptyClasses(s: GameState): void {
   if (dorm) {
     // A clear, in-bounds spot, well clear of the centered founding dorm — so
     // the only reason placement is refused is that it is unaffordable.
-    const s1 = reducer(s0, { type: 'PLACE_BUILDABLE', buildableId: dorm.id, row: 45, col: 60, rotated: false });
+    const s1 = reducer(s0, { type: 'PLACE_BUILDABLE', buildableId: dorm.id, row: 45, col: 60, facing: 0 });
     assert(!(dorm.id in s1.placements), 'unaffordable placeable is not sited');
     assert(s1.finance.cash === 50, 'unaffordable placeable does not charge');
     assert(s1.developing[dorm.id] === undefined, 'unaffordable placeable never enters development');

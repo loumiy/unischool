@@ -60,7 +60,7 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
   // A no-op action settles the run: its funds are filled.
   s = reducer(s, { type: 'SAVE_GAME' });
   assert(s.finance.cash === SANDBOX_CASH, 'any action fills the funds');
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, rotated: false });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, facing: 0 });
   const built = s.tech.find((x) => x.id === t.id)!;
   assert(built.status === 'done' && s.developing[t.id] === undefined, `a building placed is finished at once (${built.status})`);
   assert(built.builtYear === s.clock.year, 'and dated this year');
@@ -85,7 +85,7 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
   t.status = 'available';
   s.finance.cash = t.cost + 1_000;
   const spot = firstFreeSpot(s, t, footprintOf(t))!;
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, rotated: false });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, facing: 0 });
   assert(s.tech.find((x) => x.id === t.id)!.status === 'developing', 'a normal run builds over weeks');
   assert(s.finance.cash === 1_000, 'and pays for it');
 }

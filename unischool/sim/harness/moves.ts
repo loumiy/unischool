@@ -147,7 +147,7 @@ export function moveHome(g: Game, { pick = first }: MoveOptions = {}): boolean {
 export function site(g: Game, t: Buildable): boolean {
   const spot = firstFreeSpot(g.s, t, footprintOf(t));
   if (!spot) return false;
-  g.act({ type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, rotated: false });
+  g.act({ type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, facing: 0 });
   return true;
 }
 

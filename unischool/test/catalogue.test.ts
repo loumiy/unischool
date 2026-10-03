@@ -98,7 +98,7 @@ function withHall(slots: (string | null)[]): GameState {
   s.finance.cash = 1e9;
   const gate = s.tech.find((t) => t.id === 'LANDMARK-GATE')!;
   const spot = firstFreeSpot(s, gate, footprintOf(gate))!;
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: gate.id, row: spot.row, col: spot.col, rotated: false });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: gate.id, row: spot.row, col: spot.col, facing: 0 });
   assert(status('LANDMARK-GATE') === 'developing', 'the gate goes up');
   assert(status('LANDMARK-DOME') === 'locked' && status('LANDMARK-CAMPANILE') === 'locked', 'and the other two close');
   s.pendingInterrupt = null;

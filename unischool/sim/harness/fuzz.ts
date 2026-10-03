@@ -86,7 +86,7 @@ function rawGenerators(g: Game): Array<[number, Generator]> {
     [2, (g) => {
       const t = any(g.s.tech.filter((x) => x.status === 'available' && isPlaceableKind(x) && !(x.id in g.s.placements)));
       const spot = t ? firstFreeSpot(g.s, t, footprintOf(t)) : null;
-      return t && spot ? { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, rotated: false } : null;
+      return t && spot ? { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, facing: 0 } : null;
     }],
   ];
 }

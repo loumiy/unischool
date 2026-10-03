@@ -478,10 +478,19 @@ export interface Footprint {
   h: number; // tiles down (rows), >= 1
 }
 
+// Which map edge a building's front faces, in quarter turns: 0 the +row
+// edge (toward the road), then each turn on to the next edge clockwise
+// seen from above (-col, -row, +col). Odd facings lie across: the stored
+// footprint is the base one with w and h swapped (campusMap.ts's
+// orientedFootprint). components/facing.ts turns it into walls.
+export type Facing = 0 | 1 | 2 | 3;
+
 // Top-left anchor tile plus footprint; every covered tile must be in bounds
 // and empty (campusMap.ts's canPlace). The footprint is stored so a retune
-// can never reshape a saved layout into overlaps.
-export interface Placement extends TileCoord, Footprint {}
+// can never reshape a saved layout into overlaps. `facing` absent is 0.
+export interface Placement extends TileCoord, Footprint {
+  facing?: Facing;
+}
 
 // Placed Buildable id -> its placement; absent means not placed. GameState
 // is JSON round-tripped whole, so no Map/Set anywhere in it.

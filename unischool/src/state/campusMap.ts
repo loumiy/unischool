@@ -1,5 +1,5 @@
 import type {
-  Buildable, FacilityType, Footprint, GameState, Placement, Placements, TileCoord,
+  Buildable, Facing, FacilityType, Footprint, GameState, Placement, Placements, TileCoord,
 } from './types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, PLACEABLE_KINDS } from './types';
 import { accessRefusal, hasOpenRing, reachCache, siteRefusal, type SiteState } from './reach';
@@ -162,23 +162,30 @@ export function footprintOf(t: Buildable): Footprint {
   return DEFAULT_FACILITY_FOOTPRINT;
 }
 
-// Rotation swaps a footprint's w and h (CampusMap.tsx's 'R' control). There
-// is no orientation field: the swapped footprint is what PLACE_BUILDABLE
-// stores in `placements`.
-
-// A square footprint looks the same rotated, so offer no control for it.
-export function canRotate(fp: Footprint): boolean {
-  return fp.w !== fp.h;
-}
+// Rotation turns a building a quarter at a time (CampusMap.tsx's 'R'
+// control): the stored `facing` says which edge its front faces, and an odd
+// facing swaps the footprint's w and h. Every footprint turns, square ones
+// too: a building's four sides differ.
 
 export function rotateFootprint(fp: Footprint): Footprint {
   return { w: fp.h, h: fp.w };
 }
 
-// The footprint being sited now: the base footprint, swapped if rotated.
-export function orientedFootprint(t: Buildable, rotated: boolean): Footprint {
+// The next facing, a quarter turn on.
+export function nextFacing(f: Facing): Facing {
+  return ((f + 1) % 4) as Facing;
+}
+
+// A placement's facing (absent is 0).
+export function facingOf(p: { facing?: Facing }): Facing {
+  return p.facing ?? 0;
+}
+
+// The footprint being sited now: the base footprint, swapped at an odd
+// facing.
+export function orientedFootprint(t: Buildable, facing: Facing): Footprint {
   const fp = footprintOf(t);
-  return rotated && canRotate(fp) ? rotateFootprint(fp) : fp;
+  return facing % 2 === 1 ? rotateFootprint(fp) : fp;
 }
 
 // ---------------------------------------------------------------------
@@ -292,8 +299,8 @@ export function firstFreeSpot(s: SiteState, t: Buildable, fp: Footprint): TileCo
 }
 
 // The placement PLACE_BUILDABLE writes, with the already-oriented footprint.
-export function placementFor(row: number, col: number, fp: Footprint): Placement {
-  return { row, col, ...fp };
+export function placementFor(row: number, col: number, fp: Footprint, facing: Facing = 0): Placement {
+  return { row, col, w: fp.w, h: fp.h, facing };
 }
 
 // Pathways: whole-tile paths (see types.ts's Pathways), shared by the

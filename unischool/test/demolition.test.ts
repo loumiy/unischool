@@ -39,7 +39,7 @@ const fresh = () => {
 const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
 const place = (s: GameState, t: Buildable, how: { borrow?: boolean; gift?: boolean; endowment?: boolean } = {}) => {
   const spot = firstFreeSpot(s, t, footprintOf(t))!;
-  return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, rotated: false, ...how });
+  return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, facing: 0, ...how });
 };
 const finish = (s: GameState, id: string) => {
   s.developing[id] = 1;

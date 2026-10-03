@@ -2,18 +2,19 @@ import { financingFor } from '../systems/finance/treasury';
 import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
-import type { BenchFacing, Buildable, GameState, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
+import type { BenchFacing, Buildable, Facing, GameState, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { entryKey, useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  ROAD_FIRST_ROW, awaitsSite, canPlace, canRotate, footprintOf,
+  ROAD_FIRST_ROW, awaitsSite, canPlace, nextFacing,
   isPlaceableKind, orientedFootprint, parsePathTileKey, pathTileKey,
 } from '../state/campusMap';
 import { siteRefusal } from '../state/reach';
 import Walkers from './Walkers';
 import AgeMarks, { type AgeBand } from './ageMarks';
 import { Bench, dressingProps } from './dressing';
+import { facingToCamera, frontWidth, localToGrid } from './facing';
 import { defaultBenchFacing, turnFacing } from '../state/dressing';
 import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
@@ -219,6 +220,7 @@ function drawnFootprint(p: Placement) {
     row: p.row + BUILDING_INSET,
     w: p.w - BUILDING_INSET * 2,
     h: p.h - BUILDING_INSET * 2,
+    facing: p.facing ?? 0,
   };
 }
 
@@ -1137,7 +1139,8 @@ export default function CampusMap({
   // the walkers walk.
   gait: number;
 }) {
-  const [rotated, setRotated] = useState(false);
+  // The picked-up building's facing (R turns it a quarter at a time).
+  const [facing, setFacing] = useState<Facing>(0);
   // The bench tool's facing once R has turned it (Plan 80I); until then a
   // bench faces the path beside the tile it would stand on.
   const [benchTurn, setBenchTurn] = useState<BenchFacing | null>(null);
@@ -1234,9 +1237,9 @@ export default function CampusMap({
   useEffect(() => () => setMapProbe(null), []);
 
   // `selectedId` can change from outside (BuildPopup.tsx), so a fresh pickup
-  // resets rotation here.
+  // resets the facing here: its front toward the player.
   useEffect(() => {
-    setRotated(false);
+    setFacing(facingToCamera());
   }, [selectedId]);
   // Changing path mode closes any open info panel.
   useEffect(() => {
@@ -1248,7 +1251,7 @@ export default function CampusMap({
   // panel.
   function selectBuilding(id: string | null) {
     onSelect(id);
-    setRotated(false);
+    setFacing(facingToCamera());
     setInspectedId(null);
   }
 
@@ -1932,18 +1935,18 @@ export default function CampusMap({
   // A pickable entry can vanish between renders, so re-check the stored id.
   const selected = pickable.find((t) => t.id === selectedId) ?? null;
 
-  const selectedFootprint = selected ? orientedFootprint(selected, rotated) : null;
+  const selectedFootprint = selected ? orientedFootprint(selected, facing) : null;
 
-  // A 'done' item awaiting a site always sites at its base footprint (the
-  // reducer ignores `rotated` for it), so rotation isn't offered.
-  const canRotateSelected = !!selected && selected.status !== 'done' && canRotate(footprintOf(selected));
+  // Every building turns, Founders Hall being sited included: its four sides
+  // differ even where its footprint is square.
+  const canRotateSelected = !!selected;
 
   // The map's keys, minus panning. R rotates the picked-up building. P arms
   // the draw tool or puts it away (setPathTool toggles, so P with erase armed
   // swaps to draw). Live under the build menu, where these tools are reached.
   useHotkeys((e) => {
     const key = e.key.toLowerCase();
-    if (key === 'r' && canRotateSelected) setRotated((r) => !r);
+    if (key === 'r' && canRotateSelected) setFacing(nextFacing);
     // R with the bench tool turns the bench about to be set, a quarter at a time.
     if (key === 'r' && pathTool === 'bench') setBenchTurn(turnFacing(benchFacingAt(hover)));
     if (key === 'p') onSetPathTool('draw');
@@ -1966,18 +1969,18 @@ export default function CampusMap({
 
   // The one placement path, clicked or dropped. canPlace is also checked in
   // the reducer; this copy keeps the selection on an illegal drop. A 'done'
-  // pickup (awaitsSite) is Founders Hall being sited: no rotation, no cost,
-  // mirroring the reducer.
+  // pickup (awaitsSite) is Founders Hall being sited: no cost, mirroring the
+  // reducer.
   const placeById = (id: string, row: number, col: number) => {
     const t = pickable.find((x) => x.id === id);
     if (!t) return;
-    const fp = t.status === 'done' ? footprintOf(t) : orientedFootprint(t, rotated);
+    const fp = orientedFootprint(t, facing);
     if (!canPlace(s, t, row, col, fp)) return;
     // Paid as the tile said (BuildPopup.tsx): building gifts first, then
     // cash, then a loan for the shortfall (finance/treasury.ts).
     const financing = t.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, t, undefined, f));
     if (t.status === 'done' ? !awaitsSite(s, t) : financing === null) return;
-    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, rotated, ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : financing === 'endowment' ? { endowment: true } : {}) });
+    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, facing, ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : financing === 'endowment' ? { endowment: true } : {}) });
     selectBuilding(null);
     setHover(null);
   };
@@ -2315,6 +2318,19 @@ export default function CampusMap({
                     className={`campus-preview ${preview.ok ? 'ok' : 'blocked'}`}
                     points={polyPoints(boxFaces(preview.col, preview.row, preview.w, preview.h, 0, 0).top)}
                   />
+                  {/* The front: its edge drawn heavy, and an arrow out of it. */}
+                  {(() => {
+                    const fw = frontWidth({ ...preview, facing });
+                    const at = (u: number, d: number) => { const g = localToGrid({ ...preview, facing }, u, d); return project(g.col, g.row); };
+                    const a = at(0, 0); const b = at(fw, 0);
+                    const tip = at(fw / 2, -0.9); const l = at(fw / 2 - 0.45, -0.15); const r = at(fw / 2 + 0.45, -0.15);
+                    return (
+                      <g className={`campus-preview-front ${preview.ok ? 'ok' : 'blocked'}`}>
+                        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+                        <polygon points={polyPoints([l, tip, r])} />
+                      </g>
+                    );
+                  })()}
 
                   {/* The rotate control, pinned to the ghost's right corner
                       on screen (boxFaces' B, whichever grid corner that is)
@@ -2326,7 +2342,7 @@ export default function CampusMap({
                         className="campus-rotate-btn"
                         transform={`translate(${at.x.toFixed(1)}, ${at.y.toFixed(1)})`}
                         onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); setRotated((r) => !r); }}
+                        onClick={(e) => { e.stopPropagation(); setFacing(nextFacing); }}
                         onMouseLeave={(e) => {
                           if (e.relatedTarget instanceof Node && svgRef.current?.contains(e.relatedTarget)) return;
                           leaveMap();
@@ -2391,7 +2407,7 @@ export default function CampusMap({
               {selected.name}
               <span className="map-touch-bar-note">{!hover ? 'Tap the ground to set it down' : preview?.refusal ?? (preview?.ok ? 'Drag to move it' : 'Not affordable yet')}</span>
             </span>
-            {canRotateSelected && <button type="button" onClick={() => setRotated((r) => !r)}>Rotate</button>}
+            {canRotateSelected && <button type="button" onClick={() => setFacing(nextFacing)}>Rotate</button>}
             <button type="button" className="primary" disabled={!hover || !preview?.ok} onClick={() => { if (hover) placeById(selected.id, hover.row, hover.col); }}>Place</button>
             <button type="button" onClick={() => selectBuilding(null)}>Cancel</button>
           </div>

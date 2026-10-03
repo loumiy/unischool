@@ -1,7 +1,7 @@
 import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, GameState, InitiativeDepth, Pillar, Placements, ScholarshipLevel, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, Facing, GameState, InitiativeDepth, Pillar, Placements, ScholarshipLevel, SchoolColors, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import { emptyDowntown } from '../data/downtownData';
@@ -76,10 +76,10 @@ export type Action =
   // over-committed until a replacement is hired. The UI warns first.
   | { type: 'FIRE_FACULTY'; facultyId: string }
   // Builds and sites a placeable in one step: same gate and countdown as
-  // START_DEVELOPMENT, and its (rotated) footprint is reserved from week one,
-  // so it may not overlap anything done or under construction. Effects still
-  // apply only on completion.
-  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; rotated: boolean; borrow?: boolean; gift?: boolean; endowment?: boolean }
+  // START_DEVELOPMENT, and its footprint, turned to its facing, is reserved
+  // from week one, so it may not overlap anything done or under
+  // construction. Effects still apply only on completion.
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; facing: Facing; borrow?: boolean; gift?: boolean; endowment?: boolean }
   // Decorative; the only check is that the tile is on the grid.
   | { type: 'ADD_PATH_TILE'; tile: TileCoord }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
