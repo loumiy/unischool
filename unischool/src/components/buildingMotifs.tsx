@@ -51,6 +51,8 @@ import { Crane, Scaffolding } from './siteWorks';
 import { flagCloth } from './wind';
 import { TiedPortico, crossGable, eitherRoof, flatRoofAt, gableRoofAt, hipRoofAt, mansardRoofAt, toneSlopes, vaultRoofAt, type RoofAt } from './porticoTie';
 import { TreeAt, treeShadow } from './trees';
+import { frontDepth, frontWidth, localBox, localToGrid, sidesOf } from './facing';
+import type { Facing } from '../state/types';
 
 // Architectural motifs: what makes a placed Buildable read as a building.
 // Hand-rolled inline SVG, no icon library or external art. Geometry here,
@@ -2098,14 +2100,35 @@ function SchoolRoofItem({ part, col, row, w, h, base, tint }: DepthBox & { part:
   }
 }
 
-// Engineering's footprint: the office block and, at the low end of the long
-// axis, the high-bay workshop wing.
+// Whether the camera sees wall `dir` of any box now.
+function wallSeen(dir: FaceDir): boolean {
+  const s = visibleWalls();
+  return dir === s.left || dir === s.right;
+}
+// Wall `dir` of box `f` as a face to draw on (origin, along, length in
+// tiles), or null when the camera does not see it: a feature anchored to one
+// of the building's own sides is drawn only while that wall shows.
+function seenWall(f: BoxFaces, dir: FaceDir): { o: Pt; a: Pt; span: number; dir: FaceDir } | null {
+  if (dir === f.dir.CD) return { o: f.D, a: f.C, span: f.spanLeft, dir };
+  if (dir === f.dir.BC) return { o: f.C, a: f.B, span: f.spanRight, dir };
+  return null;
+}
+
+// Engineering's footprint: the office block and, at one end of the long
+// axis, the high-bay workshop wing, set out in the building's own frame:
+// at its left end when the front is the long wall, else at its back, so the
+// wing stays at the same end of the building as the camera turns. `end` is
+// the wing's outer end wall (its loading door and crane), `joint` the wall
+// it shares with the office.
 const WORKSHOP_SHARE = 0.4;
 const WORKSHOP_RISE = up(5.6);
-function workshopSplit(col: number, row: number, w: number, h: number): { office: DepthBox; wing: DepthBox; end: FaceDir; joint: FaceDir } {
-  return w >= h
-    ? { wing: { col, row, w: w * WORKSHOP_SHARE, h }, office: { col: col + w * WORKSHOP_SHARE, row, w: w * (1 - WORKSHOP_SHARE), h }, end: 'negCol', joint: 'posCol' }
-    : { wing: { col, row, w, h: h * WORKSHOP_SHARE }, office: { col, row: row + h * WORKSHOP_SHARE, w, h: h * (1 - WORKSHOP_SHARE) }, end: 'negRow', joint: 'posRow' };
+function workshopSplit(col: number, row: number, w: number, h: number, facing?: Facing): { office: DepthBox; wing: DepthBox; end: FaceDir; joint: FaceDir } {
+  const p = { col, row, w, h, facing };
+  const W = frontWidth(p); const D = frontDepth(p);
+  const sides = sidesOf(facing);
+  return W >= D
+    ? { wing: localBox(p, 0, 0, W * WORKSHOP_SHARE, D), office: localBox(p, W * WORKSHOP_SHARE, 0, W, D), end: sides.left, joint: sides.right }
+    : { wing: localBox(p, 0, D * (1 - WORKSHOP_SHARE), W, D), office: localBox(p, 0, 0, W, D * (1 - WORKSHOP_SHARE)), end: sides.back, joint: sides.front };
 }
 
 // A sectional door: a dark frame, steel panels in horizontal slats and a
@@ -2133,9 +2156,12 @@ function SectionalDoor({ o, a, H, span, widthM, heightM }: { o: Pt; a: Pt; H: nu
   );
 }
 
-// The workshop wing: tall plain walls, a clerestory, a sectional door on
-// each wall the camera sees from outside, a crane beam over the first, and
-// rooflights. `crestNode` is the vernacular's crest on its parapet.
+// The workshop wing: tall plain walls, a clerestory, a sectional door in
+// the middle of each outside wall (the big loading door on its end wall),
+// a crane beam over the end wall's door, and rooflights. The crane stays on
+// the end wall: when the camera cannot see that wall it is drawn first, so
+// what shows of it past the wing stands behind it. `crestNode` is the
+// vernacular's crest on its parapet.
 function WorkshopWing({ wing, end, joint, height, pal, stone, trim, crestNode }: {
   wing: DepthBox; end: FaceDir; joint: FaceDir; height: number; pal: Palette; stone: StonePalette; trim: boolean;
   crestNode: React.ReactNode;
@@ -2146,13 +2172,14 @@ function WorkshopWing({ wing, end, joint, height, pal, stone, trim, crestNode }:
   const seen = visibleWalls();
   const faces = ([seen.left, seen.right] as FaceDir[]).map((dir) => ({ dir, ...wallOf(f, dir), span: wallSpan(w, h, dir) }));
   const outside = faces.filter((x) => x.dir !== joint);
-  const craneOn = outside.find((x) => x.dir === end) ?? outside[0];
+  const endSeen = wallSeen(end);
+  const craneOn = { dir: end, span: wallSpan(w, h, end) };
   const doorW = (dir: FaceDir) => (dir === end ? 10 : 8);
   const doorH = (dir: FaceDir) => (dir === end ? 8 : 7);
   const lights = depthOrder([0.3, 0.7].map((t) => (isRowWall(end)
     ? { col: col + w * 0.1, row: row + h * t - across(0.9), w: w * 0.8, h: across(1.8) }
     : { col: col + w * t - across(0.9), row: row + h * 0.1, w: across(1.8), h: h * 0.8 })));
-  const crane = craneOn && (() => {
+  const crane = (() => {
     const { dir, span } = craneOn;
     const reach = across(7);
     const zb = up(doorH(dir) + 1.6);
@@ -2179,6 +2206,7 @@ function WorkshopWing({ wing, end, joint, height, pal, stone, trim, crestNode }:
   })();
   return (
     <g className="school-workshop">
+      {!endSeen && crane}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
       {faces.map(({ dir, origin, along, span }) => (
@@ -2202,7 +2230,7 @@ function WorkshopWing({ wing, end, joint, height, pal, stone, trim, crestNode }:
         const bf = boxFaces(b.col, b.row, b.w, b.h, 0, up(1.1));
         return <g key={`b${dir}${s}`}>{sideFaces(bf, GANTRY_YELLOW, shade(GANTRY_YELLOW, 0.8))}<polygon points={polyPoints(bf.top)} fill="#2e3032" /></g>;
       }))}
-      {crane}
+      {endSeen && crane}
       <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
       {lights.map((b, i) => {
         const lf = boxFaces(b.col, b.row, b.w, b.h, H, up(0.7));
@@ -2222,12 +2250,17 @@ function WorkshopWing({ wing, end, joint, height, pal, stone, trim, crestNode }:
 // Plate glass in a painted bay, dark from outside whatever the sash.
 const BAY_GLASS = '#5f7a86';
 
-// Health's fronts: on the longer wall the camera sees, a drop-off canopy on
-// slim posts over a paved lay-by, a lettered fascia, and a sign with a
-// green cross (the Medical Center's is red); on the other, two bay windows.
-function ClinicFronts({ col, row, w, h, H, dropDir, bayDir, stone }: {
-  col: number; row: number; w: number; h: number; H: number; dropDir: FaceDir; bayDir: FaceDir; stone: StonePalette;
+// Health's fronts: on the building's front, a drop-off canopy on slim
+// posts over a paved lay-by, a lettered fascia, and a sign with a green
+// cross (the Medical Center's is red); on each side, two bay windows; the
+// back is left plain (its own door is the service way in). Each is drawn
+// only while the camera sees its wall.
+function ClinicFronts({ col, row, w, h, H, facing, stone }: {
+  col: number; row: number; w: number; h: number; H: number; facing?: Facing; stone: StonePalette;
 }) {
+  const sides = sidesOf(facing);
+  const dropDir = sides.front;
+  const dropSeen = wallSeen(dropDir);
   const trimTone = stone.trim !== 'none' ? stone.trim : '#e8e6df';
   const span = wallSpan(w, h, dropDir);
   const width = Math.min(span * 0.58, across(22));
@@ -2260,37 +2293,43 @@ function ClinicFronts({ col, row, w, h, H, dropDir, bayDir, stone }: {
       </>
     );
   };
-  // Two oriels, from the first floor to under the eaves.
-  const bspan = wallSpan(w, h, bayDir);
-  const bw = Math.min(across(5.5), bspan * 0.2);
+  // Two oriels on each side, from the first floor to under the eaves.
   const bz0 = STOREY + up(0.3); const bz1 = H - up(1.1);
-  const bays = depthOrder([0.2, 0.8].map((u) => againstWall(col, row, w, h, bayDir, bspan * u - bw / 2, bw, across(1.8))));
+  const bays = depthOrder([sides.left, sides.right].filter(wallSeen).flatMap((bayDir) => {
+    const bspan = wallSpan(w, h, bayDir);
+    const bw = Math.min(across(5.5), bspan * 0.2);
+    return [0.2, 0.8].map((u) => ({ ...againstWall(col, row, w, h, bayDir, bspan * u - bw / 2, bw, across(1.8)), bayDir }));
+  }));
   const floors = Math.max(1, Math.round((bz1 - bz0) / STOREY));
   return (
     <g className="school-clinic">
-      <polygon points={polyPoints(boxFaces(apron.col, apron.row, apron.w, apron.h, 0, 0).top)} fill="#bdb9ae" />
-      {(() => { const e = wallOf(boxFaces(apron.col, apron.row, apron.w, apron.h, 0, 0), dropDir); return <line x1={e.origin.x} y1={e.origin.y} x2={e.along.x} y2={e.along.y} stroke="#f1eee4" strokeWidth={1.4} strokeDasharray="4 3" />; })()}
-      <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, 0.5 - signHalf, 0.5 + signHalf, sz0, sz1))} fill="#2e6f66" stroke={trimTone} strokeWidth={0.8} />
-      <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, crossU - across(1.5) / span, crossU + across(1.5) / span, sz0 + up(0.3), sz1 - up(0.3)))} fill="#f4f6f2" />
-      {cross(crossU, (sz0 + sz1) / 2, 2.2)}
-      {/* Two lines of lettering: words of uneven length. */}
-      {[[0.22, 0.14, 0.3, 0.18], [0.3, 0.2, 0.26]].map((words, line) => {
-        const room = 0.5 + signHalf - crossU - across(2.8) / span;
-        const z0 = line === 0 ? sz0 + up(1.75) : sz0 + up(0.65); const z1 = z0 + up(0.75);
-        let u = crossU + across(2.2) / span;
-        return words.map((share, k) => {
-          const u0 = u; u += room * share + room * 0.04;
-          return <polygon key={`${line}${k}`} points={polyPoints(wallQuad(wall.origin, wall.along, H, u0, u0 + room * share, z0, z1))} fill="#eef2e8" />;
-        });
-      })}
-      {posts.map((p, i) => <g key={`p${i}`}>{sideFaces(p, shade(trimTone, 0.82), shade(trimTone, 0.68))}</g>)}
-      {sideFaces(slab, shade(trimTone, 0.86), shade(trimTone, 0.72))}
-      <polygon points={polyPoints(slab.top)} fill={shade(trimTone, 0.95)} />
-      <polygon points={polyPoints(wallQuad(fascia.origin, fascia.along, fasciaH, 0.04, 0.96, fasciaH * 0.12, fasciaH * 0.88))} fill="#2e6f66" />
-      {Array.from({ length: marks }, (_, k) => {
-        const u0 = 0.18 + (k / marks) * 0.64; const u1 = u0 + (0.64 / marks) * 0.62;
-        return <polygon key={`m${k}`} points={polyPoints(wallQuad(fascia.origin, fascia.along, fasciaH, u0, u1, fasciaH * 0.34, fasciaH * 0.66))} fill="#eef2e8" />;
-      })}
+      {dropSeen && (
+        <g className="clinic-dropoff">
+          <polygon points={polyPoints(boxFaces(apron.col, apron.row, apron.w, apron.h, 0, 0).top)} fill="#bdb9ae" />
+          {(() => { const e = wallOf(boxFaces(apron.col, apron.row, apron.w, apron.h, 0, 0), dropDir); return <line x1={e.origin.x} y1={e.origin.y} x2={e.along.x} y2={e.along.y} stroke="#f1eee4" strokeWidth={1.4} strokeDasharray="4 3" />; })()}
+          <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, 0.5 - signHalf, 0.5 + signHalf, sz0, sz1))} fill="#2e6f66" stroke={trimTone} strokeWidth={0.8} />
+          <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, crossU - across(1.5) / span, crossU + across(1.5) / span, sz0 + up(0.3), sz1 - up(0.3)))} fill="#f4f6f2" />
+          {cross(crossU, (sz0 + sz1) / 2, 2.2)}
+          {/* Two lines of lettering: words of uneven length. */}
+          {[[0.22, 0.14, 0.3, 0.18], [0.3, 0.2, 0.26]].map((words, line) => {
+            const room = 0.5 + signHalf - crossU - across(2.8) / span;
+            const z0 = line === 0 ? sz0 + up(1.75) : sz0 + up(0.65); const z1 = z0 + up(0.75);
+            let u = crossU + across(2.2) / span;
+            return words.map((share, k) => {
+              const u0 = u; u += room * share + room * 0.04;
+              return <polygon key={`${line}${k}`} points={polyPoints(wallQuad(wall.origin, wall.along, H, u0, u0 + room * share, z0, z1))} fill="#eef2e8" />;
+            });
+          })}
+          {posts.map((p, i) => <g key={`p${i}`}>{sideFaces(p, shade(trimTone, 0.82), shade(trimTone, 0.68))}</g>)}
+          {sideFaces(slab, shade(trimTone, 0.86), shade(trimTone, 0.72))}
+          <polygon points={polyPoints(slab.top)} fill={shade(trimTone, 0.95)} />
+          <polygon points={polyPoints(wallQuad(fascia.origin, fascia.along, fasciaH, 0.04, 0.96, fasciaH * 0.12, fasciaH * 0.88))} fill="#2e6f66" />
+          {Array.from({ length: marks }, (_, k) => {
+            const u0 = 0.18 + (k / marks) * 0.64; const u1 = u0 + (0.64 / marks) * 0.62;
+            return <polygon key={`m${k}`} points={polyPoints(wallQuad(fascia.origin, fascia.along, fasciaH, u0, u1, fasciaH * 0.34, fasciaH * 0.66))} fill="#eef2e8" />;
+          })}
+        </g>
+      )}
       {bays.map((b, i) => {
         const bf = boxFaces(b.col, b.row, b.w, b.h, bz0, bz1 - bz0);
         const bh = bz1 - bz0;
@@ -2301,7 +2340,7 @@ function ClinicFronts({ col, row, w, h, H, dropDir, bayDir, stone }: {
             <polygon points={polyPoints(bf.right)} fill={faceTone(bf.dir.BC, shade(trimTone, 0.94), shade(trimTone, 0.78))} />
             {sides.map(({ o, a, dir }) => Array.from({ length: floors }, (_, k) => {
               const z0 = k * STOREY + up(0.6); const z1 = Math.min(bh - up(0.3), z0 + STOREY - up(1.2));
-              const m = dir === bayDir ? 0.1 : 0.16;
+              const m = dir === b.bayDir ? 0.1 : 0.16;
               return <polygon key={`${dir}${k}`} points={polyPoints(wallQuad(o, a, bh, m, 1 - m, z0, z1))} fill={BAY_GLASS} />;
             }))}
             <polygon points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, bz1, up(0.5)).top)} fill={trimTone} />
@@ -2313,36 +2352,36 @@ function ClinicFronts({ col, row, w, h, H, dropDir, bayDir, stone }: {
   );
 }
 
-// Computer Science's entrance on each front it shows: a full-height glazed
-// atrium in the middle of the wall, rising past the parapet as a glass
-// crown, with glass doors at its foot.
-function AtriumFronts({ col, row, w, h, H, fronts, floors }: {
-  col: number; row: number; w: number; h: number; H: number; fronts: FaceDir[]; floors: number[];
+// Computer Science's entrance on the building's front: a full-height
+// glazed atrium in the middle of the wall, rising past the parapet as a
+// glass crown, with glass doors at its foot. The crown stands above the
+// roof, so it shows (after the mass) even when the front has turned away.
+function AtriumFronts({ col, row, w, h, H, facing, floors }: {
+  col: number; row: number; w: number; h: number; H: number; facing?: Facing; floors: number[];
 }) {
   const f = boxFaces(col, row, w, h, 0, H);
   const crownRise = up(3);
+  const dir = sidesOf(facing).front;
+  const span = wallSpan(w, h, dir);
+  const face = seenWall(f, dir);
+  const u0 = 0.36; const u1 = 0.64;
+  const strip = againstWall(col, row, w, h, dir, span * u0, span * (u1 - u0), across(3.6), across(3.6));
+  const cf = boxFaces(strip.col, strip.row, strip.w, strip.h, H, crownRise);
+  const doorHalf = across(2.6) / span;
   return (
     <g className="school-atrium">
-      {fronts.map((dir) => {
-        const span = wallSpan(w, h, dir);
-        const { origin, along } = wallOf(f, dir);
-        const u0 = 0.36; const u1 = 0.64;
-        const strip = againstWall(col, row, w, h, dir, span * u0, span * (u1 - u0), across(3.6), across(3.6));
-        const cf = boxFaces(strip.col, strip.row, strip.w, strip.h, H, crownRise);
-        const doorHalf = across(2.6) / span;
-        return (
-          <g key={dir}>
-            <CurtainWall origin={origin} along={along} wallHeight={H} spanTiles={span} from={0} to={H} floors={floors} id={`at${dir}`} u0={u0} u1={u1} />
-            <polygon points={polyPoints(wallQuad(origin, along, H, 0.5 - doorHalf, 0.5 + doorHalf, 0, up(2.8)))} fill="#2b3a44" />
-            <polygon points={polyPoints(wallQuad(origin, along, H, 0.5 - 0.004, 0.5 + 0.004, 0, up(2.8)))} fill="#c9d6de" />
-            {([cf.dir.CD, cf.dir.BC] as FaceDir[]).map((d) => {
-              const cw = wallOf(cf, d);
-              return <CurtainWall key={d} origin={cw.origin} along={cw.along} wallHeight={crownRise} spanTiles={wallSpan(strip.w, strip.h, d)} from={0} to={crownRise} floors={[]} id={`ac${dir}${d}`} />;
-            })}
-            <polygon points={polyPoints(cf.top)} className="glass-roof" />
-          </g>
-        );
+      {face && (
+        <g className="atrium-front">
+          <CurtainWall origin={face.o} along={face.a} wallHeight={H} spanTiles={span} from={0} to={H} floors={floors} id={`at${dir}`} u0={u0} u1={u1} />
+          <polygon points={polyPoints(wallQuad(face.o, face.a, H, 0.5 - doorHalf, 0.5 + doorHalf, 0, up(2.8)))} fill="#2b3a44" />
+          <polygon points={polyPoints(wallQuad(face.o, face.a, H, 0.5 - 0.004, 0.5 + 0.004, 0, up(2.8)))} fill="#c9d6de" />
+        </g>
+      )}
+      {([cf.dir.CD, cf.dir.BC] as FaceDir[]).map((d) => {
+        const cw = wallOf(cf, d);
+        return <CurtainWall key={d} origin={cw.origin} along={cw.along} wallHeight={crownRise} spanTiles={wallSpan(strip.w, strip.h, d)} from={0} to={crownRise} floors={[]} id={`ac${dir}${d}`} />;
       })}
+      <polygon points={polyPoints(cf.top)} className="glass-roof" />
     </g>
   );
 }
@@ -2361,18 +2400,21 @@ function wallQuad(o: Pt, a: Pt, H: number, u0: number, u1: number, z0: number, z
 }
 
 // What a signifier puts on the walls: drawn over the windows and under any
-// entrance part.
-function WallSignifier({ kind, f, H, stone }: {
-  kind: Signifier; f: BoxFaces; H: number; stone: StonePalette;
+// entrance part. The awning and the clock are on the building's front; a
+// shop's signboards and the ticker turn the corner from the front onto its
+// right side, as on a corner shop. Each only while its wall shows.
+function WallSignifier({ kind, f, H, stone, facing }: {
+  kind: Signifier; f: BoxFaces; H: number; stone: StonePalette; facing?: Facing;
 }) {
-  const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
-  // The longer of the two visible walls: w runs along col.
-  const longFace = faces[(f.spanLeft >= f.spanRight) ? 0 : 1]!;
+  const sides = sidesOf(facing);
+  const front = seenWall(f, sides.front);
+  const faces = [front, seenWall(f, sides.right)].filter((x) => x !== null);
   const halfU = (metres: number, span: number) => metres / 2 / (span * METRES_PER_TILE);
   switch (kind) {
     case 'kitchen': {
-      // A striped terrace awning along the long front's ground floor.
-      const { o, a } = longFace;
+      // A striped terrace awning along the front's ground floor.
+      if (!front) return null;
+      const { o, a } = front;
       const z0 = Math.min(STOREY * 0.62, H * 0.4); const z1 = Math.min(STOREY * 0.92, H * 0.6);
       const n = 9;
       return (
@@ -2386,8 +2428,9 @@ function WallSignifier({ kind, f, H, stone }: {
       );
     }
     case 'clock': {
-      // A clock under the eaves at the middle of the long front.
-      const { o, a, span } = longFace;
+      // A clock under the eaves at the middle of the front.
+      if (!front) return null;
+      const { o, a, span } = front;
       const R = 2.3;
       const ru = halfU(R * 2, span);
       const zc = H - up(R + 1.1);
@@ -2451,14 +2494,24 @@ function WallSignifier({ kind, f, H, stone }: {
 }
 
 // What a signifier puts on or over the roof, after it: `base` is the eaves,
-// `ridge` the rise of a pitched roof above them.
-function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
+// `ridge` the rise of a pitched roof above them. Set out in the building's
+// own frame, so a stack, tower or mast keeps its place on the building as
+// the camera turns; the pediment and banners hang on its front.
+function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal, facing }: {
   kind: Signifier; col: number; row: number; w: number; h: number; base: number; ridge: number;
-  f: BoxFaces; stone: StonePalette; pal: Palette;
+  f: BoxFaces; stone: StonePalette; pal: Palette; facing?: Facing;
 }) {
-  const alongW = w >= h;
-  // A point by fraction along the long axis and across it.
-  const at = (a: number, c: number): [number, number] => (alongW ? [col + w * a, row + h * c] : [col + w * c, row + h * a]);
+  const plot = { col, row, w, h, facing };
+  const W = frontWidth(plot); const D = frontDepth(plot);
+  const alongU = W >= D;
+  // A point by fraction along the long axis and across it: at the opening
+  // facing, along +col (or +row) from the building's left (or back) and
+  // across from its back (or left).
+  const at = (a: number, c: number): [number, number] => {
+    const g = alongU ? localToGrid(plot, W * a, D * (1 - c)) : localToGrid(plot, W * c, D * (1 - a));
+    return [g.col, g.row];
+  };
+  const front = seenWall(f, sidesOf(facing).front);
   const box = (a0: number, a1: number, c0: number, c1: number, z: number, rise: number) => {
     const [x0, y0] = at(a0, c0); const [x1, y1] = at(a1, c1);
     return boxFaces(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0), z, rise);
@@ -2539,9 +2592,9 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
       );
     }
     case 'scales': {
-      // A pediment over the long front's eaves, and the scales in gilt.
-      const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
-      const { o, a } = faces[(f.spanLeft >= f.spanRight) ? 0 : 1]!;
+      // A pediment over the front's eaves, and the scales in gilt.
+      if (!front) return null;
+      const { o, a } = front;
       const P = (u: number, z: number) => facePoint(o, a, base, u, z / base);
       const rise = up(6.5);
       const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
@@ -2562,9 +2615,9 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
     case 'banners':
     case 'exhibition': {
       // Banners hung from the colonnade's entablature between its columns,
-      // painted after it: three a front on the Museum, one broad one on the
-      // Art Gallery.
-      const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
+      // painted after it: three on the Museum's front, one broad one on the
+      // Art Gallery's.
+      const faces = front ? [front] : [];
       const hc = Math.min(COLONNADE_HEIGHT, base - EAVES_COURSE * 2);
       return (
         <g className={`sig-${kind}`}>
@@ -2890,22 +2943,48 @@ function StairCore({ col, row, w, h, base, stone }: {
   );
 }
 
+// The building's front-right corner, where the carillon (Plan 87L) and the
+// Recreation Center's climbing tower stand, so each keeps its place on the
+// building as the camera turns: its two walls, and whether it is at the
+// high-col and high-row end of the grid.
+function frontRightCorner(facing?: Facing): { colWall: FaceDir; rowWall: FaceDir; hiCol: boolean; hiRow: boolean } {
+  const s = sidesOf(facing);
+  const dirs = [s.front, s.right];
+  const hiCol = dirs.includes('posCol'); const hiRow = dirs.includes('posRow');
+  return { colWall: hiCol ? 'posCol' : 'negCol', rowWall: hiRow ? 'posRow' : 'negRow', hiCol, hiRow };
+}
+// The carillon's square on the grid, for depth-sorting it against the roof
+// terrace.
+function carillonPlan(col: number, row: number, w: number, h: number, facing?: Facing): DepthBox {
+  const s = Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3);
+  const { hiCol, hiRow } = frontRightCorner(facing);
+  return { col: hiCol ? col + w + CARILLON_PROUD - s : col - CARILLON_PROUD, row: hiRow ? row + h + CARILLON_PROUD - s : row - CARILLON_PROUD, w: s, h: s };
+}
+// Whether the carillon's corner is at the high-`along` end of wall `dir`
+// (one of its two walls).
+function carillonAtHighEnd(dir: FaceDir, facing?: Facing): boolean {
+  const { hiCol, hiRow } = frontRightCorner(facing);
+  return isRowWall(dir) ? hiCol : hiRow;
+}
+
 // The carillon (Plan 87L): Modern's Founders Hall, after the open concrete
 // bell towers of the post-war campus (Saarinen's at MIT, the carillons at
-// Iowa State and Rice). Four slender piers at the hall's (+col, +row)
+// Iowa State and Rice). Four slender piers at the hall's front-right
 // corner stand out of its walls and come down them to the ground, tied
 // across an open shaft above the roof, then a clock stage, an open belfry
 // with its bells hung inside, and a thin oversailing slab. Below the roof
-// the frame is drawn only on the walls the camera sees (`fronts`), and only
-// what stands proud of them, or it would paint over its own hall.
-function Carillon({ col, row, w, h, base, stone, fronts }: {
+// the frame is drawn only on the walls the camera sees, and only what
+// stands proud of them, or it would paint over its own hall; at a corner
+// turned away only what rises above the roof shows.
+function Carillon({ col, row, w, h, base, stone, facing }: {
   col: number; row: number; w: number; h: number; base: number;
-  stone: StonePalette; fronts: FaceDir[];
+  stone: StonePalette; facing?: Facing;
 }) {
   const s = Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3);
   const pp = Math.min(CARILLON_PIER, s * 0.22);
   const P = CARILLON_PROUD;
-  const c0 = col + w + P - s; const r0 = row + h + P - s;
+  const { colWall, rowWall, hiCol, hiRow } = frontRightCorner(facing);
+  const { col: c0, row: r0 } = carillonPlan(col, row, w, h, facing);
   const concrete = shade(stone.towerStone, 0.84);
   const lit = concrete; const dark = shade(concrete, 0.8);
   const box = (b: DepthBox, z: number, rise: number, key: string, top = true) => {
@@ -2918,28 +2997,29 @@ function Carillon({ col, row, w, h, base, stone, fronts }: {
     );
   };
   // The four piers, with the walls each one stands in.
-  const piers: Array<DepthBox & { walls: FaceDir[] }> = [
-    { col: c0, row: r0, w: pp, h: pp, walls: [] },
-    { col: c0 + s - pp, row: r0, w: pp, h: pp, walls: ['posCol'] },
-    { col: c0, row: r0 + s - pp, w: pp, h: pp, walls: ['posRow'] },
-    { col: c0 + s - pp, row: r0 + s - pp, w: pp, h: pp, walls: ['posRow', 'posCol'] },
-  ];
-  const seen = (d: FaceDir) => fronts.includes(d);
+  const piers: Array<DepthBox & { walls: FaceDir[] }> = [false, true].flatMap((hc) => [false, true].map((hr) => ({
+    col: hc ? c0 + s - pp : c0, row: hr ? r0 + s - pp : r0, w: pp, h: pp,
+    walls: [...(hr === hiRow ? [rowWall] : []), ...(hc === hiCol ? [colWall] : [])],
+  })));
 
   // Below the roof: what of each pier stands proud of a visible wall, and
   // the glazed stair between them, in the wall's plane.
   const lower: DepthBox[] = [];
   for (const p of piers) {
-    const on = p.walls.filter(seen);
+    const on = p.walls.filter(wallSeen);
     if (on.length === 2) lower.push(p);
-    else if (on[0] === 'posRow') lower.push({ col: p.col, row: row + h, w: pp, h: P });
-    else if (on[0] === 'posCol') lower.push({ col: col + w, row: p.row, w: P, h: pp });
+    else if (on[0] === rowWall) lower.push({ col: p.col, row: hiRow ? row + h : row - P, w: pp, h: P });
+    else if (on[0] === colWall) lower.push({ col: hiCol ? col + w : col - P, row: p.row, w: P, h: pp });
   }
   const at = (c: number, r: number, z: number) => lift(project(c, r), z);
   const glass = (dir: FaceDir) => {
-    const quad = (z0: number, z1: number) => (dir === 'posRow'
-      ? [at(c0 + pp, row + h, z0), at(col + w, row + h, z0), at(col + w, row + h, z1), at(c0 + pp, row + h, z1)]
-      : [at(col + w, r0 + pp, z0), at(col + w, row + h, z0), at(col + w, row + h, z1), at(col + w, r0 + pp, z1)]);
+    // From the inner pier to the hall's corner, in the wall's plane.
+    const rw = hiRow ? row + h : row; const cw = hiCol ? col + w : col;
+    const [ca, cb] = hiCol ? [c0 + pp, col + w] : [col, c0 + s - pp];
+    const [ra, rb] = hiRow ? [r0 + pp, row + h] : [row, r0 + s - pp];
+    const quad = (z0: number, z1: number) => (isRowWall(dir)
+      ? [at(ca, rw, z0), at(cb, rw, z0), at(cb, rw, z1), at(ca, rw, z1)]
+      : [at(cw, ra, z0), at(cw, rb, z0), at(cw, rb, z1), at(cw, ra, z1)]);
     const floors = Math.floor(base / STOREY);
     return (
       <g key={`g${dir}`}>
@@ -3040,7 +3120,7 @@ function Carillon({ col, row, w, h, base, stone, fronts }: {
 
   return (
     <>
-      {fronts.filter((dir) => dir === 'posRow' || dir === 'posCol').map(glass)}
+      {[rowWall, colWall].filter(wallSeen).map(glass)}
       {depthOrder(lower).map((b, i) => box(b, 0, base, `lo${i}`, false))}
       {shaft.map((b, i) => (b.tie
         ? <g key={`t${i}`}>{tieLevels.map((z, k) => box(b, z, CARILLON_TIE, `t${i}-${k}`))}</g>
@@ -3062,8 +3142,8 @@ function Carillon({ col, row, w, h, base, stone, fronts }: {
   );
 }
 
-// How far along the +col and +row walls the carillon's corner reaches, so
-// the pilotis and fins keep clear of it (Plan 87L).
+// How far along its two walls the carillon's corner reaches, so the
+// pilotis and fins keep clear of it (Plan 87L).
 function carillonReserve(w: number, h: number): number {
   return Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3) - CARILLON_PROUD + across(0.6);
 }
@@ -3071,32 +3151,40 @@ function carillonReserve(w: number, h: number): number {
 // Modern's hall on pilotis (Plan 87L): the glazed ground floor behind a row
 // of square columns under the first floor's slab edge, which runs proud of
 // the wall like the oversail of Le Corbusier's and Breuer's lifted blocks.
-// The columns keep clear of the door's canopy and, on Founders Hall, of the
-// carillon's corner (`reserve`, tiles at the +col/+row end of those walls).
-function Pilotis({ col, row, w, h, top, fronts, pal, stone, door, reserve = 0 }: {
-  col: number; row: number; w: number; h: number; top: number; fronts: FaceDir[];
+// The hall stands on them all round, so they go on every wall the camera
+// sees. The columns keep clear of the door's canopy and, on Founders Hall,
+// of the carillon's front-right corner (`reserve`, tiles at that end of the
+// front and right walls).
+function Pilotis({ col, row, w, h, top, facing, pal, stone, door, reserve = 0 }: {
+  col: number; row: number; w: number; h: number; top: number; facing?: Facing;
   pal: Palette; stone: StonePalette; door: DoorDimensions | null; reserve?: number;
 }) {
   const depth = across(0.75);
   const plan = across(0.8);
   const slab = up(0.55);
+  const seen = visibleWalls();
+  const fronts: FaceDir[] = [seen.left, seen.right];
+  const corner = frontRightCorner(facing);
   const parts: Array<DepthBox & { k: string; z: number; rise: number; slab: boolean }> = [];
   for (const dir of fronts) {
     const span = wallSpan(w, h, dir);
-    const reserved = (dir === 'posRow' || dir === 'posCol') ? reserve : 0;
+    const reserved = (dir === corner.colWall || dir === corner.rowWall) ? reserve : 0;
+    const hiEnd = reserved > 0 && carillonAtHighEnd(dir, facing);
+    const loEnd = reserved > 0 && !hiEnd;
     // The slab edge; a row wall's covers the corner it shares with the other
     // visible wall, so the two meet without a notch.
     const other = fronts.find((d) => d !== dir);
-    const toEnd = isRowWall(dir) && other === 'posCol' && reserved === 0 ? depth : 0;
-    const toStart = isRowWall(dir) && other === 'negCol' ? depth : 0;
-    const e = againstWall(col, row, w, h, dir, -toStart, span + toStart + toEnd - reserved, depth);
+    const toEnd = isRowWall(dir) && other === 'posCol' && !hiEnd ? depth : 0;
+    const toStart = isRowWall(dir) && other === 'negCol' && !loEnd ? depth : 0;
+    const e = againstWall(col, row, w, h, dir, (loEnd ? reserved : 0) - toStart, span + toStart + toEnd - reserved, depth);
     parts.push({ ...e, k: `e${dir}`, z: top - slab, rise: slab, slab: true });
     const n = Math.max(2, Math.round((span * METRES_PER_TILE) / (BAY_METRES * 2)));
     const clear = door ? Math.max(door.widthTiles * 1.7, across(4)) / 2 + plan : 0;
     for (let i = 0; i <= n; i++) {
       const along = Math.min(span - plan, Math.max(0, (i / n) * span - plan / 2));
       if (door && Math.abs(along + plan / 2 - span / 2) < clear) continue;
-      if (reserved > 0 && along + plan > span - reserved - plan * 0.5) continue;
+      if (hiEnd && along + plan > span - reserved - plan * 0.5) continue;
+      if (loEnd && along < reserved + plan * 0.5) continue;
       const c = againstWall(col, row, w, h, dir, along, plan, depth * 0.85);
       parts.push({ ...c, k: `c${dir}${i}`, z: 0, rise: top - slab, slab: false });
     }
@@ -3121,21 +3209,24 @@ function Pilotis({ col, row, w, h, top, fronts, pal, stone, door, reserve = 0 }:
 // The brise-soleil (Plan 87L), Founders Hall only in Modern: deep concrete
 // fins at every bay of the floors above the pilotis, as on Le Corbusier's
 // and Breuer's teaching blocks, so the ribbons read through a vertical
-// screen. Clear of the carillon's corner (`reserve`).
-function BriseSoleil({ col, row, w, h, from, to, fronts, stone, reserve }: {
+// screen. On the sunny front and right side, either side of the carillon's
+// corner and clear of it (`reserve`); the left side and back keep their
+// plain ribbons.
+function BriseSoleil({ col, row, w, h, from, to, facing, stone, reserve }: {
   col: number; row: number; w: number; h: number; from: number; to: number;
-  fronts: FaceDir[]; stone: StonePalette; reserve: number;
+  facing?: Facing; stone: StonePalette; reserve: number;
 }) {
   const depth = across(0.95);
   const thick = across(0.32);
   const fins: Array<DepthBox & { k: string }> = [];
-  for (const dir of fronts) {
+  const sides = sidesOf(facing);
+  for (const dir of [sides.front, sides.right].filter(wallSeen)) {
     const span = wallSpan(w, h, dir);
-    const reserved = (dir === 'posRow' || dir === 'posCol') ? reserve : 0;
+    const hiEnd = carillonAtHighEnd(dir, facing);
     const bays = baysAcross(span);
     for (let i = 1; i < bays; i++) {
       const along = (i / bays) * span - thick / 2;
-      if (along + thick > span - reserved - thick) continue;
+      if (hiEnd ? along + thick > span - reserve - thick : along < reserve + thick) continue;
       fins.push({ ...againstWall(col, row, w, h, dir, along, thick, depth), k: `${dir}${i}` });
     }
   }
@@ -3158,18 +3249,23 @@ function BriseSoleil({ col, row, w, h, from, to, fronts, stone, reserve }: {
 // The roof terrace (Plan 87L), Founders Hall only in Modern: a paved deck
 // under a folded-plate canopy on slender posts, the zigzag roof of the
 // post-war campus (Breuer's, Saarinen's), its folded edge drawn on the side
-// the camera sees. On the hall's -col (or -row) half, clear of the carillon.
-function roofTerracePlan(col: number, row: number, w: number, h: number): DepthBox {
-  const alongCol = w >= h;
-  const L = alongCol ? w : h; const S = alongCol ? h : w;
-  const l0 = L * 0.1; const l = L * 0.48; const s0 = S * 0.24; const s = S * 0.48;
-  return alongCol ? { col: col + l0, row: row + s0, w: l, h: s } : { col: col + s0, row: row + l0, w: s, h: l };
+// the camera sees. On the hall's left half (its back half when the front is
+// the short wall), clear of the carillon at the front-right corner.
+function roofTerracePlan(col: number, row: number, w: number, h: number, facing?: Facing): DepthBox {
+  const plot = { col, row, w, h, facing };
+  const W = frontWidth(plot); const D = frontDepth(plot);
+  // Along the long axis from the end away from the carillon, as the hall's
+  // -col (or -row) half at the opening facing.
+  return W >= D
+    ? localBox(plot, W * 0.1, D * 0.28, W * 0.58, D * 0.76)
+    : localBox(plot, W * 0.24, D * 0.42, W * 0.72, D * 0.9);
 }
-function FoldedPlateTerrace({ col, row, w, h, base, fronts, stone }: {
+function FoldedPlateTerrace({ col, row, w, h, base, facing, stone }: {
   col: number; row: number; w: number; h: number; base: number;
-  fronts: FaceDir[]; stone: StonePalette;
+  facing?: Facing; stone: StonePalette;
 }) {
-  const p = roofTerracePlan(col, row, w, h);
+  const fronts: FaceDir[] = [visibleWalls().left, visibleWalls().right];
+  const p = roofTerracePlan(col, row, w, h, facing);
   const alongCol = p.w >= p.h;
   const L = alongCol ? p.w : p.h;
   const folds = Math.max(4, Math.round((L * METRES_PER_TILE) / 4.2 / 2) * 2);
@@ -3549,6 +3645,18 @@ interface ShedCtx {
   pal: Palette; stone: StonePalette; door: DoorDimensions | null; fronts: FaceDir[];
   crest: CrestPart; plantTint: string; hood: boolean; entrance: EntrancePart;
   cornice?: string; expansions: number;
+  // The placement's facing: each shed sets its glass, sign, entrance and
+  // service side on the building's own sides from it (shedSides), not from
+  // `fronts`.
+  facing?: Facing;
+}
+// A shed's own sides, and the walls the camera sees: the grand way in (its
+// steps and canopy or portico) is on the front only; every wall keeps its
+// door at the middle.
+function shedSides(c: ShedCtx) {
+  const sides = sidesOf(c.facing);
+  const seen = visibleWalls();
+  return { ...sides, seen: [seen.left, seen.right] as FaceDir[], entry: [sides.front].filter(wallSeen) };
 }
 interface ShedFace { o: Pt; a: Pt; span: number; dir: FaceDir }
 // A box's two visible walls, left then right.
@@ -3611,14 +3719,14 @@ function shedCourses(f: BoxFaces, H: number, cornice?: string) {
     </g>
   ));
 }
-// A door in the middle of each visible wall of box b, with its steps.
+// A door in the middle of each visible wall of box b, and the front's steps.
 function shedDoors(c: ShedCtx, b: DepthBox, f: BoxFaces, H: number) {
   const d = c.door;
   if (!d) return null;
   return (
     <>
       {shedFaces(f).map((s) => <Door key={s.dir} d={d} origin={s.o} along={s.a} wallHeight={H} span={s.span} side={s.dir} />)}
-      {c.fronts.map((dir) => {
+      {shedSides(c).entry.map((dir) => {
         const span = wallSpan(b.w, b.h, dir);
         const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, 0);
         const out = outwardOf(dir);
@@ -3665,11 +3773,11 @@ function WallSign({ s, H, uc, width, z0, z1 }: { s: ShedFace; H: number; uc: num
     u += per * (k + 0.5);
   }
   return (
-    <>
+    <g className="shed-sign">
       <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SIGN_PANEL} stroke="rgba(240, 236, 224, 0.7)" strokeWidth={0.6} />
       <circle cx={disc.x} cy={disc.y} r={Math.max(1.4, hgt * 0.32)} fill={CLIMB_WALL} />
       <path d={marks.join('')} fill={SHED_SIGN_LETTER} />
-    </>
+    </g>
   );
 }
 
@@ -3873,31 +3981,37 @@ function PictoSign({ s, H, u0, u1, z0, z1, picto }: { s: ShedFace; H: number; u0
     ].join('')} fill="#f0b43a" />;
   }
   return (
-    <>
+    <g className="shed-sign">
       <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SIGN_PANEL} stroke="rgba(240, 236, 224, 0.7)" strokeWidth={0.6} />
       {pic}
       <path d={marks.join('')} fill={SHED_SIGN_LETTER} />
-    </>
+    </g>
   );
 }
 
 // The Recreation Center (Plan 87J, after 87C): a glass climbing tower at the
-// corner the camera sees, a storey and a half above the roof, its far walls
+// building's front-right corner, a storey and a half above the roof, its far walls
 // panelled in colour and studded with holds, ropes hanging from the top and
 // a climber on the wall; beside it, on the main roof, a sun deck behind a
 // railing with loungers and umbrellas. Precedents: the climbing towers of
 // campus rec centers (Utah's, Oregon State's Dixon), seen from the street.
+// The front carries the sign and the way in; the left side and the back
+// (the service door) are plain clerestory walls. With the tower's corner
+// turned away, what shows of it is what rises above the roof.
 function RecCenterShed({ c }: { c: ShedCtx }) {
   const { col, row, w, h, H, pal, stone } = c;
   const f = boxFaces(col, row, w, h, 0, H);
   const [L, R] = shedFaces(f);
   const box = { col, row, w, h };
   const d = c.door;
-  // The tower: square, in the near corner, a pier's depth proud of the walls.
+  const sides = shedSides(c);
+  // The tower: square, in the front-right corner, a pier's depth proud of
+  // the walls.
   const T = Math.min(across(15), Math.min(w, h) * 0.4);
   const pr = PIER_PROJECTION;
-  const posC = L.dir === 'posCol' || R.dir === 'posCol';
-  const posR = L.dir === 'posRow' || R.dir === 'posRow';
+  const corner = frontRightCorner(c.facing);
+  const posC = corner.hiCol;
+  const posR = corner.hiRow;
   const tb: DepthBox = { col: posC ? col + w - T : col - pr, row: posR ? row + h - T : row - pr, w: T + pr, h: T + pr };
   const Ht = H + up(6.5);
   const tf = boxFaces(tb.col, tb.row, tb.w, tb.h, 0, Ht);
@@ -3954,7 +4068,7 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
   }
   // The railing round the deck, its two far sides drawn before what is on it.
   const corners: Array<[number, number]> = [[deck.col, deck.row], [deck.col + deck.w, deck.row], [deck.col + deck.w, deck.row + deck.h], [deck.col, deck.row + deck.h]];
-  const sides = corners.map((p, i) => [p, corners[(i + 1) % 4]!] as const)
+  const rails = corners.map((p, i) => [p, corners[(i + 1) % 4]!] as const)
     .map(([a, b]) => ({ a, b, y: project((a[0] + b[0]) / 2, (a[1] + b[1]) / 2).y }))
     .sort((x, y) => x.y - y.y);
   const railing = (a: [number, number], b: [number, number], k: string) => {
@@ -4009,15 +4123,49 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
   const strip = alongW
     ? boxFaces(col + w * 0.12, posR ? row + h * 0.18 : row + h * 0.7, w * 0.6, h * 0.1, H, 0).top
     : boxFaces(posC ? col + w * 0.18 : col + w * 0.7, row + h * 0.12, w * 0.1, h * 0.6, H, 0).top;
-  const longIsLeft = L.span >= R.span;
-  const signFace = longIsLeft ? L : R;
+  // The sign on the front, set off toward its left, away from the tower.
+  const signFace = seenWall(f, sides.front);
   const signZ0 = d ? Math.min(d.threshold + d.height + up(1.5), H - EAVES_COURSE - up(3.2)) : up(4.5);
   const tsill = BASE_COURSE;
+  const sunDeck = (
+    <>
+      {sideFaces(deckTop, '#8f6c45', '#7a5a38')}
+      <polygon points={polyPoints(deckTop.top)} fill="#b68a58" />
+      <path d={planks.join('')} stroke="rgba(80, 56, 32, 0.45)" strokeWidth={0.5} fill="none" />
+      {rails.slice(0, 2).map((sd, i) => railing(sd.a, sd.b, `rb${i}`))}
+      {items.map((it, i) => <g key={`it${i}`}>{it.node}</g>)}
+      {rails.slice(2).map((sd, i) => railing(sd.a, sd.b, `rf${i}`))}
+    </>
+  );
+  // The climbing tower. Its outer walls (on the hall's own) come down to
+  // the ground; a wall inside the hall's corner shows only above its roof.
+  const outer = (s: ShedFace) => s.dir === corner.colWall || s.dir === corner.rowWall;
+  const tower = (
+    <>
+      {[TL, TR].map((s, i) => {
+        const z0 = outer(s) ? 0 : H;
+        const clip = wallQuad(s.o, s.a, Ht, 0.04, 0.96, Math.max(tsill, z0 + up(0.4)), tTop);
+        return (
+          <g key={`tg${i}`}>
+            <polygon points={polyPoints(wallQuad(s.o, s.a, Ht, 0, 1, z0, Ht))} fill={i === 0 ? pal.wallLeft : pal.wallRight} />
+            <polygon points={polyPoints(clip)} fill={SHED_INTERIOR} />
+            <Through clip={clip} shapes={towerScene} />
+            <polygon points={polyPoints(clip)} fill={SHED_SHEEN} />
+            <path className="iso-mullion" d={mullionPath(s, Ht, 0.04, 0.96, Math.max(tsill, z0 + up(0.4)), tTop, across(4.5), [up(5), up(10)].filter((z) => z > z0))} />
+            {outer(s) && <WallBand origin={s.o} along={s.a} wallHeight={Ht} from={0} to={BASE_COURSE} className="iso-plinth" />}
+            <WallBand origin={s.o} along={s.a} wallHeight={Ht} from={Ht - EAVES_COURSE} to={Ht} className="iso-cornice" fill={c.cornice} />
+          </g>
+        );
+      })}
+      <polygon points={polyPoints(tf.top)} fill={pal.roof} />
+      <Crest crest={c.crest} col={tb.col} row={tb.row} w={tb.w} h={tb.h} base={Ht} fronts={sides.seen} pal={pal} stone={stone} tile={c.plantTint} />
+    </>
+  );
   return (
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+      {sides.seen.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
       {shedCourses(f, H, c.cornice)}
       {[L, R].map((s, i) => (
         <g key={`cl${i}`}>
@@ -4025,35 +4173,12 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
         </g>
       ))}
       {shedDoors(c, box, f, H)}
-      <WallSign s={signFace} H={H} uc={0.5 - (longIsLeft ? 0.08 : -0.08)} width={across(15)} z0={signZ0} z1={signZ0 + up(1.6)} />
+      {signFace && <WallSign s={signFace} H={H} uc={0.42} width={across(15)} z0={signZ0} z1={signZ0 + up(1.6)} />}
       <polygon points={polyPoints(f.top)} fill={pal.roof} />
       <polygon className="iso-rooflight" points={polyPoints(strip)} />
-      <Crest crest={c.crest} col={col} row={row} w={w} h={h} base={H} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
-      {/* The sun deck. */}
-      {sideFaces(deckTop, '#8f6c45', '#7a5a38')}
-      <polygon points={polyPoints(deckTop.top)} fill="#b68a58" />
-      <path d={planks.join('')} stroke="rgba(80, 56, 32, 0.45)" strokeWidth={0.5} fill="none" />
-      {sides.slice(0, 2).map((sd, i) => railing(sd.a, sd.b, `rb${i}`))}
-      {items.map((it, i) => <g key={`it${i}`}>{it.node}</g>)}
-      {sides.slice(2).map((sd, i) => railing(sd.a, sd.b, `rf${i}`))}
-      {/* The climbing tower. */}
-      <polygon points={polyPoints(tf.left)} fill={pal.wallLeft} />
-      <polygon points={polyPoints(tf.right)} fill={pal.wallRight} />
-      {[TL, TR].map((s, i) => {
-        const clip = wallQuad(s.o, s.a, Ht, 0.04, 0.96, tsill, tTop);
-        return (
-          <g key={`tg${i}`}>
-            <polygon points={polyPoints(clip)} fill={SHED_INTERIOR} />
-            <Through clip={clip} shapes={towerScene} />
-            <polygon points={polyPoints(clip)} fill={SHED_SHEEN} />
-            <path className="iso-mullion" d={mullionPath(s, Ht, 0.04, 0.96, tsill, tTop, across(4.5), [up(5), up(10)])} />
-          </g>
-        );
-      })}
-      {shedCourses(tf, Ht, c.cornice)}
-      <polygon points={polyPoints(tf.top)} fill={pal.roof} />
-      <Crest crest={c.crest} col={tb.col} row={tb.row} w={tb.w} h={tb.h} base={Ht} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
-      {shedEntrance(c, box, H, c.fronts)}
+      <Crest crest={c.crest} col={col} row={row} w={w} h={h} base={H} fronts={sides.seen} pal={pal} stone={stone} tile={c.plantTint} />
+      {occludes(tb, deck) === 1 ? <>{sunDeck}{tower}</> : <>{tower}{sunDeck}</>}
+      {shedEntrance(c, box, H, sides.entry)}
     </>
   );
 }
@@ -4063,12 +4188,17 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
 // walls the camera sees, rows of treadmills and bikes face out, their
 // screens lit, people on some; downstairs the weight floor, racks and
 // benches, round the lobby at the door. A sign with a dumbbell runs along
-// the floor band. Precedents: the glass fitness floors of campus gyms and
-// city health clubs, cardio rows along the window.
+// the front's floor band, and a board on the roof faces the front.
+// Precedents: the glass fitness floors of campus gyms and city health
+// clubs, cardio rows along the window. Glass on the front and both sides;
+// the back, where the service door is, is a plain wall with a clerestory.
 function GymShed({ c }: { c: ShedCtx }) {
   const { col, row, w, h, H, pal, stone } = c;
   const f = boxFaces(col, row, w, h, 0, H);
-  const faces = shedFaces(f);
+  const sides = shedSides(c);
+  const all = shedFaces(f);
+  const back = all.find((s) => s.dir === sides.back);
+  const faces = all.filter((s) => s.dir !== sides.back);
   const box = { col, row, w, h };
   const sill = BASE_COURSE;
   const zf = up(4.6);
@@ -4150,7 +4280,7 @@ function GymShed({ c }: { c: ShedCtx }) {
   // Lit rooms: pale walls, a pale rubber floor upstairs, timber below.
   const upper = [...roomShp(box, zf, H, '#f4efe2', '#9aa6ae'), ...byDepth(up2)];
   const lower = [...roomShp(box, 0, zf, '#f1ebdc', '#c49a66'), ...byDepth(low)];
-  const signFace = faces[f.spanLeft >= f.spanRight ? 0 : 1];
+  const signFace = seenWall(f, sides.front);
   const slab = across(1.2);
   const roof = boxFaces(col - slab, row - slab, w + slab * 2, h + slab * 2, H, up(0.7));
   const trimTone = stone.trim === 'none' ? stone.towerStone : stone.trim;
@@ -4159,14 +4289,14 @@ function GymShed({ c }: { c: ShedCtx }) {
   const lights = [0.25, 0.5, 0.75].map((k) => (w >= h
     ? boxFaces(col + w * 0.2, row + h * k - across(1), w * 0.6, across(2), rz, 0)
     : boxFaces(col + w * k - across(1), row + h * 0.2, across(2), h * 0.6, rz, 0)).top);
-  // The board stands a few meters in from the sign wall, 60% of its length.
+  // The board stands a few meters in from the front, 60% of its length.
   const bin = across(3.5); const bd = across(0.35);
-  const bspan = wallSpan(w, h, signFace.dir);
-  const bb = againstWall(col, row, w, h, signFace.dir, bspan * 0.2, bspan * 0.6, bd, bin + bd);
+  const bspan = wallSpan(w, h, sides.front);
+  const bb = againstWall(col, row, w, h, sides.front, bspan * 0.2, bspan * 0.6, bd, bin + bd);
   const board = boxFaces(bb.col, bb.row, bb.w, bb.h, rz + up(1.2), up(2.6));
-  const boardFace = shedFaces(board).find((x) => x.dir === signFace.dir)!;
+  const boardFace = shedFaces(board).find((x) => x.dir === sides.front);
   const legs = [0.15, 0.85].flatMap((k) => {
-    const a = isRowWall(signFace.dir) ? { c: bb.col + bb.w * k, r: bb.row + bb.h / 2 } : { c: bb.col + bb.w / 2, r: bb.row + bb.h * k };
+    const a = isRowWall(sides.front) ? { c: bb.col + bb.w * k, r: bb.row + bb.h / 2 } : { c: bb.col + bb.w / 2, r: bb.row + bb.h * k };
     return boxShp(a.c - across(0.15), a.r - across(0.15), across(0.3), across(0.3), rz, up(1.2), '#3d4246');
   });
   return (
@@ -4191,23 +4321,24 @@ function GymShed({ c }: { c: ShedCtx }) {
           </g>
         );
       })}
-      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+      {back && windows(back.o, back.a, H, back.span, [clerestorySill(H)], 0, 'gb', 'ribbon', 'rgba(52, 72, 84, 0.6)', c.door ? doorBay(c.door, back.span, H) : undefined)}
+      {sides.seen.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
       {shedCourses(f, H, c.cornice)}
-      {/* The floor band between the storeys, the sign along it. */}
-      {faces.map((s, i) => <WallBand key={`fb${i}`} origin={s.o} along={s.a} wallHeight={H} from={band0} to={band1} className="iso-cornice" fill={c.cornice} />)}
-      <PictoSign s={signFace} H={H} u0={0.16} u1={0.84} z0={band0 + up(0.05)} z1={band1 - up(0.05)} picto="dumbbell" />
+      {/* The floor band between the storeys, the sign along the front's. */}
+      {all.map((s, i) => <WallBand key={`fb${i}`} origin={s.o} along={s.a} wallHeight={H} from={band0} to={band1} className="iso-cornice" fill={c.cornice} />)}
+      {signFace && <PictoSign s={signFace} H={H} u0={0.16} u1={0.84} z0={band0 + up(0.05)} z1={band1 - up(0.05)} picto="dumbbell" />}
       {shedDoors(c, box, f, H)}
       {sideFaces(roof, shade(trimTone, 0.8), shade(trimTone, 0.66))}
       <polygon points={polyPoints(roof.top)} fill={pal.roof} />
       {lights.map((q, i) => <polygon key={`rl${i}`} className="iso-rooflight" points={polyPoints(q)} />)}
-      <Crest crest={c.crest} col={col - slab} row={row - slab} w={w + slab * 2} h={h + slab * 2} base={H + up(0.7)} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
+      <Crest crest={c.crest} col={col - slab} row={row - slab} w={w + slab * 2} h={h + slab * 2} base={H + up(0.7)} fronts={sides.seen} pal={pal} stone={stone} tile={c.plantTint} />
       {/* After the slab its pediment meets (Plan 87O). */}
-      {shedEntrance(c, box, H, c.fronts, flatRoofAt(col - slab, row - slab, w + slab * 2, h + slab * 2, H + up(0.7)))}
+      {shedEntrance(c, box, H, sides.entry, flatRoofAt(col - slab, row - slab, w + slab * 2, h + slab * 2, H + up(0.7)))}
       {/* The rooftop sign: a board on legs, set back from the edge. */}
       {legs.map((q, i) => <polygon key={`lg${i}`} points={polyPoints(q.pts)} fill={q.fill} />)}
       {sideFaces(board, '#173f4c', '#123540')}
       <polygon points={polyPoints(board.top)} fill="#2a5f70" />
-      <PictoSign s={boardFace} H={up(2.6)} u0={0} u1={1} z0={0} z1={up(2.6)} picto="dumbbell" />
+      {boardFace && <PictoSign s={boardFace} H={up(2.6)} u0={0} u1={1} z0={0} z1={up(2.6)} picto="dumbbell" />}
     </>
   );
 }
@@ -4215,23 +4346,28 @@ function GymShed({ c }: { c: ShedCtx }) {
 // The Sports & Recreation Complex (Plan 87J, after 87C): a long court hall
 // whose wall to the forecourt is all glass under a lettered sign band, the
 // maple court inside, its lines and hoops, plain through it; an outdoor hard
-// court in the forecourt with its own hoops; the way in on the end wall
-// under a sign with a ball; a low gabled roof of standing-seam metal.
-// Precedents: glass-walled university recreation centers' court halls
-// (Michigan's, Minnesota's), an outdoor court out front.
+// court in the forecourt with its own hoops; the way in through the glass;
+// a low gabled roof of standing-seam metal. Precedents: glass-walled
+// university recreation centers' court halls (Michigan's, Minnesota's), an
+// outdoor court out front. The forecourt and the glass are the front; the
+// right side's end wall carries a sign with a ball; the left side and the
+// back (its service door) are plain clerestory walls. Each wall keeps its
+// door at the middle.
 function CourtsShed({ c }: { c: ShedCtx }) {
   const { col, row, w, h, H, pal, stone } = c;
   const alongW = w >= h;
-  // The forecourt runs along whichever long wall faces the camera.
-  const ld = c.fronts.find((dir) => isRowWall(dir) === alongW) ?? c.fronts[0]!;
+  const sides = shedSides(c);
+  // The forecourt runs along the front.
+  const ld = sides.front;
   const sd = Math.min(across(19), Math.min(w, h) * 0.42);
   const hb: DepthBox = ld === 'posRow' ? { col, row, w, h: h - sd }
     : ld === 'negRow' ? { col, row: row + sd, w, h: h - sd }
       : ld === 'posCol' ? { col, row, w: w - sd, h } : { col: col + sd, row, w: w - sd, h };
   const f = boxFaces(hb.col, hb.row, hb.w, hb.h, 0, H);
   const faces = shedFaces(f);
-  const G = faces.find((s) => s.dir === ld)!;
-  const E = faces.find((s) => s.dir !== ld)!;
+  // The glass front, when the camera sees it, and the plain walls it sees.
+  const G = faces.find((s) => s.dir === ld);
+  const plain = faces.filter((s) => s.dir !== ld);
   const d = c.door;
   const L = wallSpan(hb.w, hb.h, ld);
   const sill = BASE_COURSE;
@@ -4255,7 +4391,7 @@ function CourtsShed({ c }: { c: ShedCtx }) {
     ...pins.flatMap((p) => courtShp(p.col, p.row, !alongCol, 0, shade(MAPLE, 1.05), '#2f6fa8', 'rgba(250, 248, 240, 0.95)')),
     ...byDepth([...pins.flatMap((p) => hoopItems(p.col, p.row, !alongCol, 0, 1.2)), ...players]),
   ];
-  const glass = wallQuad(G.o, G.a, H, 0.01, 0.99, sill, band0);
+  const glass = G ? wallQuad(G.o, G.a, H, 0.01, 0.99, sill, band0) : [];
   // Outside: the forecourt's paving and its hard court, with hoops.
   const fore = ld === 'posRow' ? { col, row: row + h - sd, w, h: sd }
     : ld === 'negRow' ? { col, row, w, h: sd }
@@ -4288,31 +4424,35 @@ function CourtsShed({ c }: { c: ShedCtx }) {
     return out.join('');
   };
   const signZ0 = d ? Math.min(d.threshold + d.height + up(1.6), band0 - up(1.6)) : up(5);
+  // The forecourt's hoops stand in front of the hall when the front shows,
+  // behind it when it has turned away.
+  const hoops = outside.map((s, i) => <polygon key={`o${i}`} points={polyPoints(s.pts)} fill={s.fill} />);
   return (
     <>
       {/* The forecourt, then the hall behind it. */}
       <polygon points={polyPoints(apron)} fill="#c9c4b6" />
       <polygon points={polyPoints(surround)} fill="#3f8a5c" />
       <Through clip={surround} shapes={court} />
+      {!G && hoops}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      <polygon points={polyPoints(glass)} fill={SHED_INTERIOR} />
-      <Through clip={glass} shapes={hall} />
-      <polygon points={polyPoints(glass)} fill={SHED_SHEEN} />
-      <path className="iso-mullion" d={mullionPath(G, H, 0.01, 0.99, sill, band0, across(7))} />
-      <Piers stone={stone} col={hb.col} row={hb.row} w={hb.w} h={hb.h} height={H} outward={E.dir} pal={pal} />
+      {G && (
+        <>
+          <polygon points={polyPoints(glass)} fill={SHED_INTERIOR} />
+          <Through clip={glass} shapes={hall} />
+          <polygon points={polyPoints(glass)} fill={SHED_SHEEN} />
+          <path className="iso-mullion" d={mullionPath(G, H, 0.01, 0.99, sill, band0, across(7))} />
+        </>
+      )}
+      {plain.map((E) => <Piers key={`p${E.dir}`} stone={stone} col={hb.col} row={hb.row} w={hb.w} h={hb.h} height={H} outward={E.dir} pal={pal} />)}
       {shedCourses(f, H, c.cornice)}
-      {windows(E.o, E.a, H, E.span, [clerestorySill(H)], 0, 'sc', 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, E.span, H) : undefined)}
+      {plain.map((E) => <g key={`w${E.dir}`}>{windows(E.o, E.a, H, E.span, [clerestorySill(H)], 0, `sc${E.dir}`, 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, E.span, H) : undefined)}</g>)}
       {/* The sign band over the glass: the hall's name and a ball. */}
-      <PictoSign s={G} H={H} u0={0.01} u1={0.99} z0={band0} z1={H - EAVES_COURSE} picto="ball" />
-      {d && <Door d={d} origin={E.o} along={E.a} wallHeight={H} span={E.span} side={E.dir} />}
-      {d && (() => {
-        const span = wallSpan(hb.w, hb.h, E.dir);
-        const at = outsideWall(hb.col, hb.row, hb.w, hb.h, E.dir, span / 2, 0);
-        const out = outwardOf(E.dir);
-        return <EntranceSteps stone={stone} d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} />;
-      })()}
-      <PictoSign s={E} H={H} u0={0.5 - Math.min(0.4, across(8) / E.span)} u1={0.5 + Math.min(0.4, across(8) / E.span)} z0={signZ0} z1={signZ0 + up(1.5)} picto="ball" />
+      {G && <PictoSign s={G} H={H} u0={0.01} u1={0.99} z0={band0} z1={H - EAVES_COURSE} picto="ball" />}
+      {shedDoors(c, hb, f, H)}
+      {plain.filter((E) => E.dir === sides.right).map((E) => (
+        <PictoSign key="es" s={E} H={H} u0={0.5 - Math.min(0.4, across(8) / E.span)} u1={0.5 + Math.min(0.4, across(8) / E.span)} z0={signZ0} z1={signZ0 + up(1.5)} picto="ball" />
+      ))}
       {/* The roof: gable end in the wall, slopes back to front, ribs. */}
       {gableEnds(fr, alongW, rs, re, pal)}
       {backSlopesFirst(slopes, (s) => s[0]).map(([dir, pts, eave]) => (
@@ -4323,8 +4463,8 @@ function CourtsShed({ c }: { c: ShedCtx }) {
       ))}
       <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
       {/* After the roof its pediment runs back into (Plan 87O). */}
-      {shedEntrance(c, hb, H, [E.dir], gableRoofAt(hb.col, hb.row, hb.w, hb.h, H, rise))}
-      {outside.map((s, i) => <polygon key={`o${i}`} points={polyPoints(s.pts)} fill={s.fill} />)}
+      {shedEntrance(c, hb, H, sides.entry, gableRoofAt(hb.col, hb.row, hb.w, hb.h, H, rise))}
+      {G && hoops}
     </>
   );
 }
@@ -4386,11 +4526,13 @@ function barrelVault({ col, row, w, h, base, rise, n, profile, fill, ribs = 0, r
 
 // The Field House: low walls under one long, high barrel of ribbed metal
 // with a rooflight down its crown, and a fan of glazing in the end the
-// camera sees. Precedents: Michigan's Oosterbaan Field House, Yale's Coxe
-// Cage. Taller and narrower in section than the arena's shallow vault, and
-// metal rather than its slate (Plan 87C).
+// camera sees (both ends have one). Precedents: Michigan's Oosterbaan Field
+// House, Yale's Coxe Cage. Taller and narrower in section than the arena's
+// shallow vault, and metal rather than its slate (Plan 87C). The way in is
+// on the front, a plain door in the middle of every other wall.
 function FieldHouseShed({ c }: { c: ShedCtx }) {
   const { col, row, w, h, pal, stone } = c;
+  const sides = shedSides(c);
   const Hw = up(5.5);
   const f = boxFaces(col, row, w, h, 0, Hw);
   const [L, R] = shedFaces(f);
@@ -4422,7 +4564,7 @@ function FieldHouseShed({ c }: { c: ShedCtx }) {
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={Hw} outward={dir} pal={pal} />)}
+      {sides.seen.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={Hw} outward={dir} pal={pal} />)}
       {shedCourses(f, Hw, c.cornice)}
       {[L, R].filter(long).map((s, i) => (
         <g key={`w${i}`}>
@@ -4436,20 +4578,23 @@ function FieldHouseShed({ c }: { c: ShedCtx }) {
       <path d={spokes.join('')} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
       <polyline points={polyPoints(ring)} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
       <polygon points={polyPoints(hubDisc)} fill={shade(endWall, 0.92)} />
-      {shedEntrance(c, box, Hw, c.fronts.filter((dir) => !(isRowWall(dir) === alongW)), vaultRoofAt(col, row, w, h, Hw, rise, (cc) => Math.sqrt(Math.max(0, 1 - (2 * cc - 1) ** 2))))}
+      {shedEntrance(c, box, Hw, sides.entry, vaultRoofAt(col, row, w, h, Hw, rise, (cc) => Math.sqrt(Math.max(0, 1 - (2 * cc - 1) ** 2))))}
     </>
   );
 }
 
 // The Natatorium: a long, low, pale vault over walls glazed from end to end,
 // through which the pool's lanes read, and the stand behind them grows with
-// each expansion (Plan 87C).
+// each expansion (Plan 87C). Glazed on the front and both sides; the back,
+// where the plant and the service door are, is a plain wall with a
+// clerestory. The way in is on the front.
 function NatatoriumShed({ c }: { c: ShedCtx }) {
   const { col, row, w, h, H, pal } = c;
   const f = boxFaces(col, row, w, h, 0, H);
   const [L, R] = shedFaces(f);
   const box = { col, row, w, h };
   const alongW = w >= h;
+  const sides = shedSides(c);
   const top = H - EAVES_COURSE; const sill = BASE_COURSE;
   const vault = barrelVault({
     col, row, w, h, base: H, rise: up(4.2), n: 9,
@@ -4458,8 +4603,6 @@ function NatatoriumShed({ c }: { c: ShedCtx }) {
     lights: [[0.24, 0.33], [0.67, 0.76]], lightFill: 'rgba(150, 196, 216, 0.85)',
   });
   const long = (s: ShedFace) => isRowWall(s.dir) === alongW;
-  const G = long(L) ? L : R;
-  const E = G === L ? R : L;
   const gh = top - sill;
   // The pool along the long glass: deck, water, lane lines.
   const poolLong = (s: ShedFace) => {
@@ -4517,18 +4660,23 @@ function NatatoriumShed({ c }: { c: ShedCtx }) {
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
       {shedCourses(f, H, c.cornice)}
-      <SeeThrough s={G} H={H} u0={0.02} u1={0.98} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + gh * 0.55]}>
-        {poolLong(G)}
-      </SeeThrough>
-      <SeeThrough s={E} H={H} u0={0.03} u1={0.97} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + gh * 0.55]}>
-        {poolEnd(E)}
-      </SeeThrough>
+      {[L, R].map((s) => (s.dir === sides.back
+        ? <g key={s.dir}>{windows(s.o, s.a, H, s.span, [clerestorySill(H)], 0, 'nb', 'ribbon', 'rgba(52, 72, 84, 0.6)', c.door ? doorBay(c.door, s.span, H) : undefined)}</g>
+        : (
+          <SeeThrough key={s.dir} s={s} H={H} u0={long(s) ? 0.02 : 0.03} u1={long(s) ? 0.98 : 0.97} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + gh * 0.55]}>
+            {long(s) ? poolLong(s) : poolEnd(s)}
+          </SeeThrough>
+        )))}
       {shedDoors(c, box, f, H)}
       {vault.facets}
       <polygon points={polyPoints(lunette)} fill={pal.wall[vault.endDir]} />
-      <polygon points={polyPoints(lunetteGlass)} fill="rgba(120, 164, 186, 0.95)" />
-      <path d={mull.join('')} fill="none" stroke="rgba(244, 246, 246, 0.85)" strokeWidth={0.8} />
-      {shedEntrance(c, box, H, c.fronts, vaultRoofAt(col, row, w, h, H, up(4.2), (cc) => 1 - (2 * cc - 1) ** 2))}
+      {vault.endDir !== sides.back && (
+        <>
+          <polygon points={polyPoints(lunetteGlass)} fill="rgba(120, 164, 186, 0.95)" />
+          <path d={mull.join('')} fill="none" stroke="rgba(244, 246, 246, 0.85)" strokeWidth={0.8} />
+        </>
+      )}
+      {shedEntrance(c, box, H, sides.entry, vaultRoofAt(col, row, w, h, H, up(4.2), (cc) => 1 - (2 * cc - 1) ** 2))}
     </>
   );
 }
@@ -8672,8 +8820,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   // Engineering (Plan 87E): the office block, drawn as any lab, and the
   // high-bay workshop wing at its end, nearer one last.
   if (feature === 'workshop' && !site && part !== 'office') {
-    const { office, wing, end, joint } = workshopSplit(col, row, w, h);
-    const officeNode = buildingMassArt({ t, p: office, material, vernacular, developing, glyphs }, snow, 'office');
+    const { office, wing, end, joint } = workshopSplit(col, row, w, h, p.facing);
+    const officeNode = buildingMassArt({ t, p: { ...office, facing: p.facing }, material, vernacular, developing, glyphs }, snow, 'office');
     const wingH = H + WORKSHOP_RISE;
     const wingNode = (
       <WorkshopWing
@@ -9208,7 +9356,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {hasClockTower(t) && apex === 'core' && (
           <StairCore stone={stone} col={col} row={row} w={w} h={h} base={H} />
         )}
-        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={0} f={f} stone={stone} pal={pal} />}
+        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={0} f={f} stone={stone} pal={pal} facing={p.facing} />}
         {entrance === 'recess' && (
           <>
             {fronts.map((dir) => <Recess key={dir} pal={pal} col={col} row={row} w={w} h={h} wallHeight={H * STACK_LOWER_TOP} outward={dir} />)}
@@ -9299,11 +9447,11 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         )}
         {/* On pilotis, and on Founders Hall behind fins (Plan 87L). */}
         {glazedCivic && (
-          <Pilotis col={col} row={row} w={w} h={h} top={STOREY * 1.02} fronts={fronts} pal={pal} stone={stone}
+          <Pilotis col={col} row={row} w={w} h={h} top={STOREY * 1.02} facing={p.facing} pal={pal} stone={stone}
             door={entrance === 'canopy' ? door : null} reserve={carillon ? carillonReserve(w, h) : 0} />
         )}
         {glazedCivic && carillon && (
-          <BriseSoleil col={col} row={row} w={w} h={h} from={STOREY * 1.02} to={WH} fronts={fronts} stone={stone} reserve={carillonReserve(w, h)} />
+          <BriseSoleil col={col} row={row} w={w} h={h} from={STOREY * 1.02} to={WH} facing={p.facing} stone={stone} reserve={carillonReserve(w, h)} />
         )}
 
         {deckPiers && fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={WH} outward={dir} pal={pal} />)}
@@ -9368,7 +9516,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {turrets && towerProudFace && <CornerTower {...turretProps} face={towerProudFace} />}
         {/* A signifier on the ridge (Plan 85E: the Faculty Training
             Institute's cupola), standing in for the bell-gable. */}
-        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={WH} ridge={ridge} f={hf} stone={stone} pal={pal} />}
+        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={WH} ridge={ridge} f={hf} stone={stone} pal={pal} facing={p.facing} />}
         {/* The bell-gable, on every hall but the campanile's. */}
         {bellGable && !hasClockTower(t) && !signifier && (
           <BellGable pal={pal} stone={stone}
@@ -9403,11 +9551,10 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {/* Modern: the carillon and a roof terrace (Plan 87L), not the
             stair core; the terrace first unless it stands in front. */}
         {carillon && (() => {
-          const terrace = <FoldedPlateTerrace key="ft" col={col} row={row} w={w} h={h} base={WH} fronts={fronts} stone={stone} />;
-          const tower = <Carillon key="ct" stone={stone} col={col} row={row} w={w} h={h} base={WH} fronts={fronts} />;
-          const plan = roofTerracePlan(col, row, w, h);
-          const sz = Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3);
-          const towerPlan = { col: col + w + CARILLON_PROUD - sz, row: row + h + CARILLON_PROUD - sz, w: sz, h: sz, node: tower };
+          const terrace = <FoldedPlateTerrace key="ft" col={col} row={row} w={w} h={h} base={WH} facing={p.facing} stone={stone} />;
+          const tower = <Carillon key="ct" stone={stone} col={col} row={row} w={w} h={h} base={WH} facing={p.facing} />;
+          const plan = roofTerracePlan(col, row, w, h, p.facing);
+          const towerPlan = { ...carillonPlan(col, row, w, h, p.facing), node: tower };
           return <>{depthOrder([{ ...plan, node: terrace }, towerPlan]).map((b) => b.node)}</>;
         })()}
 
@@ -9492,7 +9639,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     if (sports) {
       const ctx: ShedCtx = {
         col, row, w, h, H, pal, stone, door, fronts, crest, plantTint, hood, entrance,
-        cornice: surfaceCornice, expansions: t.expansions ?? 0,
+        cornice: surfaceCornice, expansions: t.expansions ?? 0, facing: p.facing,
       };
       if (sports === 'rec') return <RecCenterShed c={ctx} />;
       if (sports === 'gym') return <GymShed c={ctx} />;
@@ -9683,7 +9830,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
             slopes={toneSlopes(pal.roof)} stone={stone} />
         ))}
         <Crest crest={crest} col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
-        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={0} f={f} stone={stone} pal={pal} />}
+        {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={0} f={f} stone={stone} pal={pal} facing={p.facing} />}
       </>
     );
   }
@@ -9782,7 +9929,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         </>
       )}
       {/* A signifier on the walls (Plan 74F). */}
-      {!site && signifier && !bare && <WallSignifier kind={signifier} f={f} H={H} stone={stone} />}
+      {!site && signifier && !bare && <WallSignifier kind={signifier} f={f} H={H} stone={stone} facing={p.facing} />}
       {!site && door && feature !== 'atrium' && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} side={f.dir.CD} shape={doorShape} />}
       {!site && door && feature !== 'atrium' && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} side={f.dir.BC} shape={doorShape} />}
       {/* A smaller cross over the clinic and counselling centre doors. */}
@@ -9986,7 +10133,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         <DecoPortal key={`dp${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} stone={stone} />
       ))}
       {/* A signifier on the roof, after it (Plan 74F). */}
-      {!site && signifier && !lawTempleFront && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} />}
+      {!site && signifier && !lawTempleFront && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} facing={p.facing} />}
       {/* The residence turret, after the roof. */}
       {!site && turretPlan > 0 && cornerInFront && residentialTurret}
       {!site && turretPlan > 0 && towerProudFace && <CornerTower {...residentialTurretProps} face={towerProudFace} />}
@@ -10007,9 +10154,9 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       )}
       {/* A school lab's fronts (Plan 87E), after its crest. */}
       {!site && feature === 'clinic' && (
-        <ClinicFronts col={col} row={row} w={w} h={h} H={H} dropDir={dropDir} bayDir={dropDir === seen.left ? seen.right : seen.left} stone={stone} />
+        <ClinicFronts col={col} row={row} w={w} h={h} H={H} facing={p.facing} stone={stone} />
       )}
-      {!site && feature === 'atrium' && <AtriumFronts col={col} row={row} w={w} h={h} H={H} fronts={fronts} floors={courses} />}
+      {!site && feature === 'atrium' && <AtriumFronts col={col} row={row} w={w} h={h} H={H} facing={p.facing} floors={courses} />}
       {/* The Classical set's balustrade. */}
       {!site && balustrade && !gabled && motif === 'portico' && (
         <>
