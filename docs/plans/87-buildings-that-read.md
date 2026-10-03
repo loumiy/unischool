@@ -43,9 +43,30 @@
   - Each stream also checked the SVG fallback, both footprint orientations
     and three pitches.
   - `docs/assets` regenerated with the fixed sheet.
+- **The owner's second look** (after the PR went up):
+  - **J:** the Recreation Center, the Gym and the Sports & Recreation
+    Complex drawn again, so each reads at the map's own zoom.
+    - The Complex is a court hall with its basketball courts seen through
+      a glass wall, and an outdoor court in front.
+    - The Gym is a two-storey glass box, with cardio machines over a
+      weights floor and a dumbbell sign.
+    - The Rec Center's climbing wall rises as a glazed tower above a roof
+      deck.
+    - The interiors are clipped to their panes in JS (`clipConvex`), so
+      the canvas can draw them.
+  - **K:** the Grand Quad laid out as a formal court.
+    - A perimeter walk, cross walks and a fountain plaza, with hedged lawn
+      panels whose beds and trees stay off every walk.
+    - Walkers now keep to the walks there, since the panels are blocked
+      (the owner's call).
+    - The Campus Quad's trees came off its walks.
+    - The beds and hedges follow the seasons.
+  - **L:** Modern's Founders Hall raises a concrete carillon with a clock
+    and bells in place of the stair-core block.
+    - Brise-soleil fins and a folded-plate roof terrace are its own.
+    - Every Modern hall stands on pilotis.
+    - The founding screen draws the carillon.
 - **Left:**
-  - Modern's Founders Hall still wears a plain stair-core block on its
-    roof (Plan 74's apex part, which this plan did not touch).
   - Cast shadows and label heights still read the main box for the taller
     parts: the Field House vault, the Engineering wing and the domes.
 
