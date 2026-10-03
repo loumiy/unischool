@@ -648,6 +648,21 @@ export const RECESS_OVERHANG = across(1.1);
 export const CORE_PLAN = across(6.0);
 export const CORE_RISE = up(15.0);
 export const CORE_CAP_RISE = up(2.4);
+// The carillon (Plan 87L), what Modern's Founders Hall raises in place of
+// the core: an open concrete frame at the hall's corner, carried down its
+// walls to the ground. Bottom to top above the roof: the open shaft, the
+// clock stage, the open belfry, a thin roof slab.
+export const CARILLON_PLAN = across(7.2);
+export const CARILLON_PIER = across(1.25);
+export const CARILLON_PROUD = across(0.7);   // how far it stands out of the walls
+export const CARILLON_SHAFT_RISE = up(12.0);
+export const CARILLON_TIE = up(0.7);         // the ties across the open shaft
+export const CARILLON_TIE_EVERY = up(4.0);
+export const CARILLON_CLOCK_RISE = up(5.6);
+export const CARILLON_BELFRY_RISE = up(6.4);
+export const CARILLON_CAP = up(0.9);
+export const CARILLON_CAP_OVERSAIL = across(0.7);
+export const CARILLON_CLOCK_RADIUS_METRES = 1.8;
 // The porch (Gothic entrance) is the center bay itself, with a pointed arch
 // and a steep gable. It stands lower than the wall so the main wall's lancets
 // show above it.
@@ -828,7 +843,7 @@ export type ApexPart =
   | 'spire'      // Gothic
   | 'campanile'  // Mission
   | 'dome'       // a broad stone dome on a drum — Classical
-  | 'core'       // a blank stair core — Modern
+  | 'core'       // Modern: drawn as the carillon on Founders Hall (Plan 87L)
   | 'gatehouse'  // a brick gate tower between four capped turrets — Tudor
   | 'belvedere'  // a square lookout, arched on every face, under bracketed eaves — Italianate
   | 'pavilionTower' // a clock stage under a tall mansard and iron cresting — Second Empire

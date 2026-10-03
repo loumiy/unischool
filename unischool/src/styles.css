@@ -1100,6 +1100,12 @@ button.build-tile { font-family: inherit; }
 .iso-finial { stroke-width: 2; vector-effect: non-scaling-stroke; }
 .iso-clock-face { fill: rgba(252, 250, 242, 0.92); stroke: rgba(60, 48, 24, 0.45); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .iso-clock-hand { stroke: rgba(48, 38, 18, 0.85); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+/* The carillon's bells (Plan 87L): bronze, hung on dark rods. */
+.iso-bell { fill: #8a6a3a; stroke: rgba(50, 36, 16, 0.7); stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+.iso-carillon-mast { stroke: rgba(60, 62, 66, 0.9); stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.iso-bell-hanger { stroke: rgba(40, 40, 40, 0.8); stroke-width: 1; vector-effect: non-scaling-stroke; }
+/* Founders Hall's roof terrace in Modern (Plan 87L). */
+.iso-terrace-post { stroke: rgba(70, 72, 74, 0.9); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 .iso-ridge { stroke: rgba(42, 56, 28, 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
 /* The map's buildings for the keyboard and a screen reader (CampusMap.tsx's
