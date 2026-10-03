@@ -38,7 +38,7 @@ import {
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
-import { glassContrast, readableGlass, towerFormOf } from './buildingSpec';
+import { FOUNDERS_GEORGIAN_COLOURS, glassContrast, georgianHall, readableGlass, towerFormOf } from './buildingSpec';
 import {
   CARILLON_BELFRY_RISE, CARILLON_CAP, CARILLON_CAP_OVERSAIL, CARILLON_CLOCK_RADIUS_METRES, CARILLON_CLOCK_RISE,
   CARILLON_PIER, CARILLON_PLAN, CARILLON_PROUD, CARILLON_SHAFT_RISE, CARILLON_TIE, CARILLON_TIE_EVERY,
@@ -48,6 +48,7 @@ import { shade } from './tint';
 import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
 import { Crane, Scaffolding } from './siteWorks';
 import { flagCloth } from './wind';
+import { TiedPortico, crossGable, eitherRoof, flatRoofAt, gableRoofAt, hipRoofAt, mansardRoofAt, toneSlopes, vaultRoofAt, type RoofAt } from './porticoTie';
 import { TreeAt, treeShadow } from './trees';
 
 // Architectural motifs: what makes a placed Buildable read as a building.
@@ -1144,6 +1145,9 @@ function EavesBalustrade({ col, row, w, h, base, stone }: {
   );
 }
 
+// How far a hall's temple front stands out from its centre bay (Plan 87O).
+const HALL_PORTICO_DEPTH = across(3.4);
+
 // The center bay projects from the front past the cornice, capped with a
 // pediment, and carries the door so the entrance reads as the front.
 //
@@ -1153,16 +1157,19 @@ function pavilionWidth(span: number): number {
   return Math.min(span * 0.5, (span / baysAcross(span)) * PAVILION_BAYS);
 }
 
-function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills, paneW, paneShape, glass }: {
+function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills, paneW, paneShape, glass, tied = false }: {
   col: number; row: number; w: number; h: number; wallHeight: number;
   outward: FaceDir;
   pal: Palette;
   door: DoorDimensions | null;
   sills: number[]; paneW: number; paneShape: WindowShape; glass: string;
+  // Under a temple front tied into the roof (Plan 87O): the bay stops at
+  // the cornice, and the portico's pediment and roof stand in for its own.
+  tied?: boolean;
 }) {
   const span = wallSpan(w, h, outward);
   const width = pavilionWidth(span);
-  const top = wallHeight + PAVILION_RISE;
+  const top = wallHeight + (tied ? 0 : PAVILION_RISE);
   const bay = againstWall(col, row, w, h, outward, span / 2 - width / 2, width, PAVILION_DEPTH);
   const f = boxFaces(bay.col, bay.row, bay.w, bay.h, 0, top);
   const faces = attachmentFaces(f, outward, pal);
@@ -1183,9 +1190,9 @@ function CentrePavilion({ col, row, w, h, wallHeight, outward, pal, door, sills,
       <WallBand origin={front.o} along={front.a} wallHeight={top} from={wallHeight - CORNICE} to={wallHeight} className="iso-cornice" />
       {windows(front.o, front.a, top, width, sills, paneW, 'pv', paneShape, glass, door ? doorBay(door, width, top) : undefined)}
       {door && <Door d={door} origin={front.o} along={front.a} wallHeight={top} span={width} side={outward} />}
-      <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+      {!tied && <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />}
       {/* The pediment, on the door's face. */}
-      <polygon className="iso-pediment" points={polyPoints([frontTopL, frontTopR, apex])} />
+      {!tied && <polygon className="iso-pediment" points={polyPoints([frontTopL, frontTopR, apex])} />}
     </>
   );
 }
@@ -1282,10 +1289,15 @@ function Portico({ centreCol, centreRow, width, outward, stone, columns = PORTIC
 // The porch: a projecting gabled entrance bay with a pointed arch between
 // two buttresses (the Gothic entrance where Georgian has a portico). It is
 // part of the wall, so it takes the wall's palette.
-function Porch({ col, row, w, h, wallHeight, outward, pal, stone }: {
+function Porch({ col, row, w, h, wallHeight, outward, pal, stone, roofAt, part }: {
   col: number; row: number; w: number; h: number; wallHeight: number;
   outward: FaceDir;
   pal: Palette; stone: StonePalette;
+  // The main roof: given, the porch's gable roof runs back into it (or to
+  // the wall) instead of stopping at a flat deck (Plan 87O). `part` splits
+  // the body (before the steps) from that roof (after the main roof).
+  roofAt?: RoofAt;
+  part?: 'body' | 'roof';
 }) {
   // Same plan as CentrePavilion so it lines up with the reserved door bay.
   const span = wallSpan(w, h, outward);
@@ -1334,6 +1346,28 @@ function Porch({ col, row, w, h, wallHeight, outward, pal, stone }: {
   const archU0 = 0.5 - PORCH_ARCH_WIDTH / 2;
   const archU1 = 0.5 + PORCH_ARCH_WIDTH / 2;
 
+  if (roofAt && part === 'roof') return porchRoof(col, row, w, h, wallHeight, outward, pal, stone, roofAt);
+  if (roofAt) {
+    // The body, its deck and gable left to the roof.
+    return (
+      <>
+        {buttress(false)}
+        <polygon points={polyPoints(side.poly)} fill={side.fill} />
+        <polygon points={polyPoints([front.o, front.a, frontTopR, frontTopL])} fill={frontFill} />
+        <WallBand origin={front.o} along={front.a} wallHeight={top} from={0} to={PLINTH} className="iso-plinth" />
+        <polygon
+          className="iso-door"
+          points={polyPoints(
+            windowOutline('lancet', archU0, archU1, 0, PORCH_ARCH_HEIGHT)
+              .map(([u, v]) => facePoint(front.o, front.a, top, u, v)),
+          )}
+        />
+        {buttress(true)}
+        {part !== 'body' && porchRoof(col, row, w, h, wallHeight, outward, pal, stone, roofAt)}
+      </>
+    );
+  }
+
   return (
     <>
       {buttress(false)}
@@ -1353,6 +1387,24 @@ function Porch({ col, row, w, h, wallHeight, outward, pal, stone }: {
       <polygon points={polyPoints([frontTopL, frontTopR, apex])} fill={shade(pal.roof, 1.04)} />
       {buttress(true)}
     </>
+  );
+}
+
+// The porch's gable roof run back into the main roof (Plan 87O): its
+// slopes, then the gable end in the wall's stone with a coping.
+function porchRoof(col: number, row: number, w: number, h: number, wallHeight: number, outward: FaceDir, pal: Palette, stone: StonePalette, roofAt: RoofAt) {
+  const span = wallSpan(w, h, outward);
+  const width = pavilionWidth(span);
+  const top = wallHeight * PORCH_HEIGHT_FRACTION;
+  const g = crossGable({
+    col, row, w, h, dir: outward, along0: span / 2 - width / 2, width, reach: PAVILION_DEPTH, top, rise: PORCH_GABLE_RISE, roofAt, slopes: pal,
+  });
+  const fill = pal.wall[outward];
+  return (
+    <g key={`pr${outward}`}>
+      {g.roof}
+      <polygon points={polyPoints([g.face.origin, g.face.along, g.apex])} fill={fill} stroke={shade(stone.trim === NO_STONE ? fill : stone.trim, 0.85)} strokeWidth={1.2} />
+    </g>
   );
 }
 
@@ -3575,15 +3627,21 @@ function shedDoors(c: ShedCtx, b: DepthBox, f: BoxFaces, H: number) {
   );
 }
 // The vernacular's way in on the given walls (as the fitness shed's, Plan 74E).
-function shedEntrance(c: ShedCtx, b: DepthBox, H: number, dirs: FaceDir[]) {
+// A portico's pediment roof runs back into `roofAt` (Plan 87O; a flat
+// deck at H unless the shed says otherwise), so a portico is drawn after
+// the shed's roof.
+function shedEntrance(c: ShedCtx, b: DepthBox, H: number, dirs: FaceDir[], roofAt?: RoofAt) {
   const d = c.door;
   if (!d) return null;
   return dirs.map((dir) => {
     if (c.entrance === 'archway') return <Archway key={dir} pal={c.pal} stone={c.stone} d={d} col={b.col} row={b.row} w={b.w} h={b.h} outward={dir} wallHeight={H} />;
     if (c.entrance === 'portico') {
       const span = wallSpan(b.w, b.h, dir);
-      const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, PORTICO_STANDOFF);
-      return <Portico key={dir} stone={c.stone} centreCol={at.col} centreRow={at.row} width={Math.min(d.widthTiles * 3.2, span * 0.6)} outward={dir} height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} />;
+      return (
+        <TiedPortico key={dir} col={b.col} row={b.row} w={b.w} h={b.h} dir={dir} width={Math.min(d.widthTiles * 3.2, span * 0.6)}
+          depth={across(2.4)} base={0} top={H} columns={4} roofAt={roofAt ?? flatRoofAt(b.col, b.row, b.w, b.h, H)}
+          slopes={toneSlopes(c.pal.roof)} stone={c.stone} />
+      );
     }
     return <Canopy key={dir} stone={c.stone} d={d} col={b.col} row={b.row} w={b.w} h={b.h} outward={dir} wallHeight={H} hood={c.hood} roof={c.plantTint} />;
   });
@@ -4138,11 +4196,12 @@ function GymShed({ c }: { c: ShedCtx }) {
       {faces.map((s, i) => <WallBand key={`fb${i}`} origin={s.o} along={s.a} wallHeight={H} from={band0} to={band1} className="iso-cornice" fill={c.cornice} />)}
       <PictoSign s={signFace} H={H} u0={0.16} u1={0.84} z0={band0 + up(0.05)} z1={band1 - up(0.05)} picto="dumbbell" />
       {shedDoors(c, box, f, H)}
-      {shedEntrance(c, box, H, c.fronts)}
       {sideFaces(roof, shade(trimTone, 0.8), shade(trimTone, 0.66))}
       <polygon points={polyPoints(roof.top)} fill={pal.roof} />
       {lights.map((q, i) => <polygon key={`rl${i}`} className="iso-rooflight" points={polyPoints(q)} />)}
       <Crest crest={c.crest} col={col - slab} row={row - slab} w={w + slab * 2} h={h + slab * 2} base={H + up(0.7)} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
+      {/* After the slab its pediment meets (Plan 87O). */}
+      {shedEntrance(c, box, H, c.fronts, flatRoofAt(col - slab, row - slab, w + slab * 2, h + slab * 2, H + up(0.7)))}
       {/* The rooftop sign: a board on legs, set back from the edge. */}
       {legs.map((q, i) => <polygon key={`lg${i}`} points={polyPoints(q.pts)} fill={q.fill} />)}
       {sideFaces(board, '#173f4c', '#123540')}
@@ -4252,7 +4311,6 @@ function CourtsShed({ c }: { c: ShedCtx }) {
         const out = outwardOf(E.dir);
         return <EntranceSteps stone={stone} d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} />;
       })()}
-      {shedEntrance(c, hb, H, [E.dir])}
       <PictoSign s={E} H={H} u0={0.5 - Math.min(0.4, across(8) / E.span)} u1={0.5 + Math.min(0.4, across(8) / E.span)} z0={signZ0} z1={signZ0 + up(1.5)} picto="ball" />
       {/* The roof: gable end in the wall, slopes back to front, ribs. */}
       {gableEnds(fr, alongW, rs, re, pal)}
@@ -4263,6 +4321,8 @@ function CourtsShed({ c }: { c: ShedCtx }) {
         </g>
       ))}
       <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+      {/* After the roof its pediment runs back into (Plan 87O). */}
+      {shedEntrance(c, hb, H, [E.dir], gableRoofAt(hb.col, hb.row, hb.w, hb.h, H, rise))}
       {outside.map((s, i) => <polygon key={`o${i}`} points={polyPoints(s.pts)} fill={s.fill} />)}
     </>
   );
@@ -4375,7 +4435,7 @@ function FieldHouseShed({ c }: { c: ShedCtx }) {
       <path d={spokes.join('')} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
       <polyline points={polyPoints(ring)} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
       <polygon points={polyPoints(hubDisc)} fill={shade(endWall, 0.92)} />
-      {shedEntrance(c, box, Hw, c.fronts.filter((dir) => !(isRowWall(dir) === alongW)))}
+      {shedEntrance(c, box, Hw, c.fronts.filter((dir) => !(isRowWall(dir) === alongW)), vaultRoofAt(col, row, w, h, Hw, rise, (cc) => Math.sqrt(Math.max(0, 1 - (2 * cc - 1) ** 2))))}
     </>
   );
 }
@@ -4467,7 +4527,7 @@ function NatatoriumShed({ c }: { c: ShedCtx }) {
       <polygon points={polyPoints(lunette)} fill={pal.wall[vault.endDir]} />
       <polygon points={polyPoints(lunetteGlass)} fill="rgba(120, 164, 186, 0.95)" />
       <path d={mull.join('')} fill="none" stroke="rgba(244, 246, 246, 0.85)" strokeWidth={0.8} />
-      {shedEntrance(c, box, H, c.fronts)}
+      {shedEntrance(c, box, H, c.fronts, vaultRoofAt(col, row, w, h, H, up(4.2), (cc) => 1 - (2 * cc - 1) ** 2))}
     </>
   );
 }
@@ -6061,6 +6121,418 @@ function Ziggurat({ col, row, w, h, base, stone }: {
   );
 }
 
+// --- Georgian Founders Hall (Plan 87M) -----------------------------------
+// Every other Georgian academic hall (buildingSpec's georgianHall) is drawn
+// the same without the clock tower, so the halls read as its siblings.
+// After the owner's reference picture, on the hall's own height and four
+// storeys: red brick under a blue-grey slate hip with a row of pedimented
+// dormers and a brick stack at each end of the ridge; a white cornice;
+// white-framed sashes with dark glass; on each wall the camera sees, a
+// white temple portico (four full-height round columns on a podium, a
+// pediment with an oculus, a wide flight of steps), the grander on the
+// longer wall; and on the ridge a clock tower: a brick stage, a white clock
+// stage, an open arched lantern, a verdigris dome and a gilt finial
+// (Harvard's University Hall, Dartmouth's Baker, the eighteenth-century
+// college hall). ridgeOf gives it its steeper hip.
+const FH_SLATE = FOUNDERS_GEORGIAN_COLOURS.slate;
+const FH_GLASS = FOUNDERS_GEORGIAN_COLOURS.glass;
+const FH_VERDIGRIS = FOUNDERS_GEORGIAN_COLOURS.verdigris;
+const FH_BRONZE = '#8a6a32';
+const FH_LANTERN_DARK = '#262c31';
+const FH_EAVES = across(0.45);         // the cornice's oversail
+const FH_CORNICE = up(0.8);
+const FH_BAY_METRES = 4.6;
+const FH_WINDOW = across(1.7);
+const FH_FRAME = across(0.22);         // the white frame round each sash
+const FH_FRAME_UP = up(0.18);
+const FH_LINTEL = up(0.4);
+const FH_SILL = up(0.75);             // low, so the top rank clears the cornice
+const FH_PANE = up(2.3);
+const FH_PORTICO_SHARE = 0.3;          // of the front the portico spans
+const FH_PORTICO_DEPTH = across(5.2);
+const FH_END_PORTICO = 0.8;          // the end portico's width, of the front's
+const FH_COLUMN_R = across(0.75);
+const FH_ENTABLATURE = up(1.6);
+const FH_PEDIMENT_PITCH = 0.25;        // rise over half-span: about 14 degrees
+const FH_OCULUS_METRES = 1.05;
+const FH_DORMER_W = across(3.0);
+const FH_DORMER_D = across(2.4);
+const FH_DORMER_FRONT = up(2.9);
+const FH_DORMER_PEDIMENT = up(1.1);
+const FH_DORMER_AT = 0.22;             // of the slope's run, eaves to ridge
+const FH_DORMERS_LONG = [0.16, 0.29, 0.71, 0.84];
+const FH_STACK = [across(2.6), across(1.6)] as const;   // along and across the ridge
+const FH_STACK_RISE = up(3.6);
+const FH_STACK_OUT = 0.35;             // of the hip's run, out past the ridge's end
+const FH_TOWER = { brick: across(8.0), clock: across(7.0), lantern: across(6.2) };
+const FH_TOWER_BRICK_RISE = up(4.2);
+const FH_TOWER_CLOCK_RISE = up(5.4);
+const FH_TOWER_LANTERN_RISE = up(5.8);
+const FH_TOWER_LEDGE = up(0.7);
+const FH_DOME_RISE = up(5.0);
+const FH_FINIAL_RISE = up(4.0);
+
+// A grid edge of box (c0, r0, w0, h0): the wall facing `dir`, end to end.
+function gridEdge(c0: number, r0: number, w0: number, h0: number, dir: FaceDir): [[number, number], [number, number]] {
+  switch (dir) {
+    case 'posRow': return [[c0, r0 + h0], [c0 + w0, r0 + h0]];
+    case 'negRow': return [[c0, r0], [c0 + w0, r0]];
+    case 'posCol': return [[c0 + w0, r0], [c0 + w0, r0 + h0]];
+    default: return [[c0, r0], [c0, r0 + h0]];
+  }
+}
+
+// The two visible walls of a box standing on a roof, each wall's foot
+// following the roof under it (`zAt`) up to a flat head at `top`, so a
+// stack, a dormer or a tower stage meets the slopes it sits on.
+function seatedFaces(c0: number, r0: number, w0: number, h0: number, top: number, zAt: (c: number, r: number) => number, tone: (dir: FaceDir) => string, key: string) {
+  const seen = visibleWalls();
+  const N = 8;
+  return [seen.left, seen.right].map((dir) => {
+    const [a, b] = gridEdge(c0, r0, w0, h0, dir);
+    const foot = Array.from({ length: N + 1 }, (_, i) => {
+      const c = a[0] + ((b[0] - a[0]) * i) / N; const r = a[1] + ((b[1] - a[1]) * i) / N;
+      return lift(project(c, r), Math.min(zAt(c, r), top));
+    });
+    return <polygon key={`${key}${dir}`} points={polyPoints([...foot, lift(project(b[0], b[1]), top), lift(project(a[0], a[1]), top)])} fill={tone(dir)} />;
+  });
+}
+
+// A slab in the trim (a cornice, a ledge, a cap): two lit faces and a top.
+function trimSlab(c0: number, r0: number, w0: number, h0: number, base: number, rise: number, trim: string, key: string) {
+  return plainBox(boxFaces(c0, r0, w0, h0, base, rise), shade(trim, 0.97), shade(trim, 0.8), shade(trim, 1.02), key);
+}
+
+// The sashes of one wall: an odd number of bays, so the middle one is the
+// door's; each window a white frame, dark glass, glazing bars and a white
+// lintel, every kind one <path> a wall.
+function foundersWindows(origin: Pt, along: Pt, H: number, span: number, doorHeadAt: number | null, trim: string, key: string) {
+  let bays = Math.max(3, Math.round((span * METRES_PER_TILE) / FH_BAY_METRES));
+  if (bays % 2 === 0) bays -= 1;
+  const at = (u: number, z: number) => facePoint(origin, along, H, u, z / H);
+  const quad = (u0: number, u1: number, z0: number, z1: number) =>
+    `M${at(u0, z0).x},${at(u0, z0).y}L${at(u1, z0).x},${at(u1, z0).y}L${at(u1, z1).x},${at(u1, z1).y}L${at(u0, z1).x},${at(u0, z1).y}Z`;
+  const seg = (u0: number, z0: number, u1: number, z1: number) =>
+    `M${at(u0, z0).x},${at(u0, z0).y}L${at(u1, z1).x},${at(u1, z1).y}`;
+  const frames: string[] = []; const glass: string[] = []; const bars: string[] = []; const lintels: string[] = [];
+  const hw = FH_WINDOW / span / 2; const fw = FH_FRAME / span;
+  // One rank a storey, as every hall; the door, taller than a
+  // storey, takes the middle bay of the first two.
+  const sills = Array.from({ length: Math.round(H / STOREY) }, (_, i) => i * STOREY + FH_SILL);
+  const doorHead = doorHeadAt ?? 0;
+  for (let r = 0; r < sills.length; r++) {
+    const z0 = sills[r]; const z1 = z0 + FH_PANE;
+    if (z1 > H - FH_CORNICE) continue;
+    for (let b = 0; b < bays; b++) {
+      if (doorHeadAt !== null && b === (bays - 1) / 2 && z0 < doorHead + FH_LINTEL) continue;
+      const c = (b + 0.5) / bays;
+      frames.push(quad(c - hw - fw, c + hw + fw, z0 - FH_FRAME_UP, z1 + FH_FRAME_UP));
+      lintels.push(quad(c - hw - fw * 1.8, c + hw + fw * 1.8, z1 + FH_FRAME_UP, z1 + FH_FRAME_UP + FH_LINTEL));
+      glass.push(quad(c - hw, c + hw, z0, z1));
+      // Six over six: a mullion and two glazing bars.
+      bars.push(seg(c, z0, c, z1), seg(c - hw, z0 + (z1 - z0) / 3, c + hw, z0 + (z1 - z0) / 3), seg(c - hw, z0 + ((z1 - z0) * 2) / 3, c + hw, z0 + ((z1 - z0) * 2) / 3));
+    }
+  }
+  return (
+    <g key={key}>
+      <path d={frames.join('')} fill={trim} />
+      <path d={lintels.join('')} fill={shade(trim, 0.94)} />
+      <path className="iso-window" d={glass.join('')} fill={FH_GLASS} />
+      <path d={bars.join('')} stroke={shade(trim, 0.92)} strokeWidth={0.5} fill="none" />
+    </g>
+  );
+}
+
+// A dome in screen space over the ring (cc, cr, r) at `z`: the ring's near
+// half, then a half-ellipse over it, with a lit crescent on the sun side.
+function screenDome(cc: number, cr: number, r: number, z: number, rise: number, fill: string) {
+  const ring = projectedCircle(cc, cr, r, 32).map((q) => lift(q, z));
+  const near = nearRing(ring);
+  const centre = lift(project(cc, cr), z);
+  const rx = (Math.max(...ring.map((q) => q.x)) - Math.min(...ring.map((q) => q.x))) / 2;
+  const hs = heightScale();
+  const arc = (scale: number, dx: number) => Array.from({ length: 19 }, (_, i) => {
+    const a = (i / 18) * Math.PI;
+    return { x: centre.x + dx + Math.cos(a) * rx * scale, y: centre.y - Math.sin(a) * rise * hs * scale };
+  });
+  const sunSide = sunScreenDir().x <= 0 ? -1 : 1;
+  return {
+    top: lift(centre, rise),
+    nodes: (
+      <>
+        <polygon points={polyPoints([...near, ...arc(1, 0)])} fill={shade(fill, 0.86)} stroke={shade(fill, 0.6)} strokeWidth={0.5} />
+        <polygon points={polyPoints(arc(0.72, sunSide * rx * 0.14))} fill={shade(fill, 1.08)} />
+      </>
+    ),
+  };
+}
+
+// The clock tower on the ridge, bottom up: the brick stage rising out of
+// the slopes, a white ledge, the clock stage, the open lantern (dark
+// within, a bell, an arch in each face, a column at each corner), its
+// entablature, a drum, the verdigris dome and the gilt finial.
+function FoundersTower({ cc, cr, zAt, ridgeTop, brick, stone }: {
+  cc: number; cr: number; zAt: (c: number, r: number) => number; ridgeTop: number;
+  brick: Record<FaceDir, string>; stone: StonePalette;
+}) {
+  const trim = stone.trim;
+  const sq = (p: number) => ({ c: cc - p / 2, r: cr - p / 2, p });
+  const out: React.JSX.Element[] = [];
+  const b = sq(FH_TOWER.brick);
+  let z = ridgeTop + FH_TOWER_BRICK_RISE;
+  out.push(<g key="brick">{seatedFaces(b.c, b.r, b.p, b.p, z, zAt, (d) => brick[d], 'tb')}</g>);
+  out.push(trimSlab(b.c - across(0.25), b.r - across(0.25), b.p + across(0.5), b.p + across(0.5), z - up(0.2), FH_TOWER_LEDGE, trim, 'tl1'));
+  z += FH_TOWER_LEDGE - up(0.2);
+  // The clock stage, a clock on each face the camera sees.
+  const k = sq(FH_TOWER.clock);
+  const kf = boxFaces(k.c, k.r, k.p, k.p, z, FH_TOWER_CLOCK_RISE);
+  out.push(plainBox(kf, shade(stone.towerStone, 0.98), shade(stone.towerStone, 0.8), stone.towerStone, 'tk'));
+  out.push(
+    <g key="clocks">
+      <WallClock origin={kf.D} along={kf.C} height={FH_TOWER_CLOCK_RISE} span={k.p} cv={0.5} r={across(2.1)} />
+      <WallClock origin={kf.C} along={kf.B} height={FH_TOWER_CLOCK_RISE} span={k.p} cv={0.5} r={across(2.1)} />
+    </g>,
+  );
+  z += FH_TOWER_CLOCK_RISE;
+  out.push(trimSlab(k.c - across(0.25), k.r - across(0.25), k.p + across(0.5), k.p + across(0.5), z, FH_TOWER_LEDGE * 0.8, trim, 'tl2'));
+  z += FH_TOWER_LEDGE * 0.8;
+  // The lantern: the dark inside, a bell hung in it, then the arched front
+  // of each visible face and the columns at its corners.
+  const l = sq(FH_TOWER.lantern);
+  const L = FH_TOWER_LANTERN_RISE;
+  const lf = boxFaces(l.c, l.r, l.p, l.p, z, L);
+  const core = sq(l.p * 0.86);
+  out.push(plainBox(boxFaces(core.c, core.r, core.p, core.p, z, L), FH_LANTERN_DARK, shade(FH_LANTERN_DARK, 0.85), FH_LANTERN_DARK, 'tcore'));
+  // A bell behind each visible opening (the middle is behind a column).
+  const hs = heightScale();
+  const bw = l.p * TILE_W * 0.1;
+  const seenNow = visibleWalls();
+  [seenNow.left, seenNow.right].forEach((d) => {
+    const o = outwardOf(d);
+    const bell = lift(project(cc + o.col * l.p * 0.2, cr + o.row * l.p * 0.2), z + L * 0.6);
+    out.push(
+      <polygon key={`bell${d}`} fill={FH_BRONZE} points={polyPoints([
+        { x: bell.x - bw * 0.45, y: bell.y }, { x: bell.x + bw * 0.45, y: bell.y },
+        { x: bell.x + bw * 0.6, y: bell.y + L * 0.22 * hs }, { x: bell.x + bw, y: bell.y + L * 0.3 * hs },
+        { x: bell.x - bw, y: bell.y + L * 0.3 * hs }, { x: bell.x - bw * 0.6, y: bell.y + L * 0.22 * hs },
+      ])} />,
+    );
+  });
+  const pier = 0.16; const spring = 0.6;
+  const arch = (o: Pt, a: Pt, key: string, fill: string) => {
+    const at = (u: number, v: number) => facePoint(o, a, L, u, v);
+    const rv = ((1 - 2 * pier) / 2) * (l.p / L) * up(METRES_PER_TILE) * 0.9;
+    const crown = Array.from({ length: 11 }, (_, i) => {
+      const t = Math.PI - (i / 10) * Math.PI;
+      return at(0.5 + Math.cos(t) * (0.5 - pier), Math.min(0.9, spring + Math.sin(t) * rv));
+    });
+    return <polygon key={key} fill={fill} points={polyPoints([at(0, 0), at(pier, 0), ...crown, at(1 - pier, 0), at(1, 0), at(1, 1), at(0, 1)])} />;
+  };
+  out.push(arch(lf.D, lf.C, 'al', faceTone(lf.dir.CD, shade(trim, 0.97), shade(trim, 0.8))));
+  out.push(arch(lf.C, lf.B, 'ar', faceTone(lf.dir.BC, shade(trim, 0.97), shade(trim, 0.8))));
+  const cr0 = across(0.38);
+  const corners = depthOrder([[l.c, l.r], [l.c + l.p, l.r], [l.c, l.r + l.p], [l.c + l.p, l.r + l.p]].map(([c, r]) => ({ col: c - cr0, row: r - cr0, w: cr0 * 2, h: cr0 * 2 })));
+  // Only the three corners not hidden behind the lantern.
+  corners.slice(1).forEach((q, i) => out.push(<Cylinder key={`col${i}`} cc={q.col + cr0} cr={q.row + cr0} r={cr0} z0={z} z1={z + L} fill={trim} />));
+  z += L;
+  out.push(trimSlab(l.c - across(0.35), l.r - across(0.35), l.p + across(0.7), l.p + across(0.7), z, FH_TOWER_LEDGE, trim, 'tl3'));
+  z += FH_TOWER_LEDGE;
+  // A low drum, the dome and the finial.
+  const dr = l.p * 0.46;
+  out.push(<Cylinder key="drum" cc={cc} cr={cr} r={dr} z0={z} z1={z + up(1.1)} fill={stone.towerStone} />);
+  z += up(1.1);
+  const dome = screenDome(cc, cr, dr, z, FH_DOME_RISE, FH_VERDIGRIS);
+  out.push(<g key="dome">{dome.nodes}</g>);
+  out.push(<GiltFinial key="fin" at={dome.top} rise={FH_FINIAL_RISE} stone={stone} />);
+  return <>{out}</>;
+}
+
+// A pedimented dormer on the slope that faces `dir`: a white front with a
+// dark sash, slate cheeks, a little gable roof and a white pediment.
+function FoundersDormer({ b, dir, z0, zAt, roof, trim }: {
+  b: DepthBox; dir: FaceDir; z0: number; zAt: (c: number, r: number) => number; roof: Palette; trim: string;
+}) {
+  const top = z0 + FH_DORMER_FRONT;
+  const front = wallOf(boxFaces(b.col, b.row, b.w, b.h, z0, FH_DORMER_FRONT), dir);
+  const at = (u: number, v: number) => facePoint(front.origin, front.along, FH_DORMER_FRONT, u, v);
+  const mid = { x: (front.origin.x + front.along.x) / 2, y: (front.origin.y + front.along.y) / 2 };
+  const apex = lift(mid, FH_DORMER_FRONT + FH_DORMER_PEDIMENT);
+  const eL = lift(front.origin, FH_DORMER_FRONT); const eR = lift(front.along, FH_DORMER_FRONT);
+  const out = outwardOf(dir);
+  const o0 = project(0, 0); const o1 = project(-out.col * FH_DORMER_D, -out.row * FH_DORMER_D);
+  const back = (q: Pt) => ({ x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y });
+  // The cheeks are the two slopes' directions: across the front.
+  const sideDirs: FaceDir[] = isRowWall(dir) ? ['negCol', 'posCol'] : ['negRow', 'posRow'];
+  const slopes = backSlopesFirst<[FaceDir, Pt]>([[sideDirs[0], isRowWall(dir) ? (eL.x < eR.x ? eL : eR) : (eL.x < eR.x ? eL : eR)], [sideDirs[1], eL.x < eR.x ? eR : eL]], (s) => s[0]);
+  return (
+    <>
+      {seatedFaces(b.col, b.row, b.w, b.h, top, zAt, (d) => (d === dir ? shade(trim, WALL_LIGHT[d] * 0.92) : roof[d]), 'dm')}
+      <polygon className="iso-window" fill={FH_GLASS} points={polyPoints([at(0.24, 0.12), at(0.76, 0.12), at(0.76, 0.86), at(0.24, 0.86)])} />
+      {slopes.map(([d, e]) => <polygon key={d} points={polyPoints([e, apex, back(apex), back(e)])} fill={roof[d]} />)}
+      <polygon points={polyPoints([eL, eR, apex])} fill={shade(trim, WALL_LIGHT[dir] * 0.96)} stroke={shade(trim, 0.7)} strokeWidth={0.4} />
+    </>
+  );
+}
+
+function GeorgianFoundersHall({ col, row, w, h, H, ridge, courses, pal, roof, stone, door, wallTone, tower: withTower }: {
+  col: number; row: number; w: number; h: number; H: number; ridge: number; courses: number[];
+  pal: Palette; roof: Palette; stone: StonePalette; door: DoorDimensions | null; wallTone: string;
+  tower: boolean;
+}) {
+  const trim = stone.trim;
+  const seen = visibleWalls();
+  // The grander portico goes on the longer of the two walls the camera
+  // sees, a narrower one on the other (as the Health lab picks its drop-off).
+  const main: FaceDir = wallSpan(w, h, seen.left) >= wallSpan(w, h, seen.right) ? seen.left : seen.right;
+  const end: FaceDir = main === seen.left ? seen.right : seen.left;
+  const hf = boxFaces(col, row, w, h, 0, H);
+  const walls = [
+    { dir: hf.dir.CD, o: hf.D, a: hf.C, span: hf.spanLeft },
+    { dir: hf.dir.BC, o: hf.C, a: hf.B, span: hf.spanRight },
+  ];
+  // The roof over the cornice's oversail, and its height anywhere on it.
+  const rc = col - FH_EAVES; const rr = row - FH_EAVES; const rw = w + FH_EAVES * 2; const rh = h + FH_EAVES * 2;
+  const run = Math.min(rw, rh) / 2;
+  const zAt = (c: number, r: number) => H + ridge * Math.min(1, Math.max(0, Math.min(c - rc, rc + rw - c, r - rr, rr + rh - r)) / run);
+  const alongW = rw >= rh;
+  const brick = WALLS(wallTone);
+
+  // A chimney out on each hip end, clear of the tower (the owner's second
+  // look: on the ridge's own ends they crowded it), and the tower at the
+  // ridge's middle, in depth order.
+  const stackOut = run * FH_STACK_OUT;
+  const ends = alongW
+    ? [[rc + run - stackOut, rr + rh / 2], [rc + rw - run + stackOut, rr + rh / 2]]
+    : [[rc + rw / 2, rr + run - stackOut], [rc + rw / 2, rr + rh - run + stackOut]];
+  const [sa, sx] = alongW ? FH_STACK : [FH_STACK[1], FH_STACK[0]];
+  const stacks = ends.map(([c, r], i) => {
+    const b = { col: c - sa / 2, row: r - sx / 2, w: sa, h: sx };
+    const top = H + ridge + FH_STACK_RISE;
+    return {
+      ...b,
+      node: (
+        <g key={`st${i}`}>
+          {seatedFaces(b.col, b.row, b.w, b.h, top, zAt, (d) => brick[d], 'st')}
+          {trimSlab(b.col - across(0.2), b.row - across(0.2), b.w + across(0.4), b.h + across(0.4), top, up(0.45), trim, 'cap')}
+        </g>
+      ),
+    };
+  });
+  const tp = FH_TOWER.brick;
+  const cc = col + w / 2; const cr = row + h / 2;
+  const tower = {
+    col: cc - tp / 2, row: cr - tp / 2, w: tp, h: tp,
+    node: <FoundersTower key="tower" cc={cc} cr={cr} zAt={zAt} ridgeTop={H + ridge} brick={brick} stone={stone} />,
+  };
+
+  // Dormers on the two slopes facing the camera: four on the long one,
+  // either side of the portico's pediment, one on the hip end.
+  const dormers = [seen.left, seen.right].flatMap((dir) => {
+    const span = wallSpan(rw, rh, dir);
+    const us = isRowWall(dir) === alongW ? FH_DORMERS_LONG : [0.5];
+    const a = run * FH_DORMER_AT;
+    return us.map((u) => ({
+      ...againstWall(rc, rr, rw, rh, dir, span * u - FH_DORMER_W / 2, FH_DORMER_W, FH_DORMER_D, a + FH_DORMER_D),
+      dir, z0: H + ridge * FH_DORMER_AT,
+    }));
+  });
+
+  // A temple portico on each visible wall, the grandest on the main front.
+  const portico = (dir: FaceDir, share: number) => {
+    const span = wallSpan(w, h, dir);
+    const pw = span * share;
+    const along0 = span / 2 - pw / 2;
+    const sill = door ? door.threshold : up(1.4);
+    const podium = againstWall(col, row, w, h, dir, along0, pw, FH_PORTICO_DEPTH);
+    const ent = againstWall(col, row, w, h, dir, along0 - across(0.2), pw + across(0.4), FH_PORTICO_DEPTH + across(0.2));
+    const entF = boxFaces(ent.col, ent.row, ent.w, ent.h, H - FH_ENTABLATURE, FH_ENTABLATURE);
+    const inset = FH_COLUMN_R + across(0.45);
+    const columns = depthOrder(Array.from({ length: 4 }, (_, i) => {
+      const at = outsideWall(col, row, w, h, dir, along0 + inset + ((pw - inset * 2) * i) / 3, FH_PORTICO_DEPTH - inset);
+      return { col: at.col - FH_COLUMN_R, row: at.row - FH_COLUMN_R, w: FH_COLUMN_R * 2, h: FH_COLUMN_R * 2 };
+    }));
+    const face = wallOf(boxFaces(ent.col, ent.row, ent.w, ent.h, H, 0), dir);
+    const pedRise = up(((pw + across(0.4)) * METRES_PER_TILE / 2) * FH_PEDIMENT_PITCH);
+    const fmid = { x: (face.origin.x + face.along.x) / 2, y: (face.origin.y + face.along.y) / 2 };
+    const pedApex = lift(fmid, pedRise);
+    const out = outwardOf(dir);
+    // The portico's roof runs back from its pediment into the slope.
+    const backBy = (q: Pt, d: number) => {
+      const o0 = project(0, 0); const o1 = project(-out.col * d, -out.row * d);
+      return { x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y };
+    };
+    const toWall = FH_PORTICO_DEPTH + across(0.2);
+    const intoRoof = toWall + Math.max(0, (pedRise / ridge) * run - FH_EAVES);
+    // Each slope falls to the eaves point on its own side of the screen.
+    const pSide: FaceDir[] = isRowWall(dir) ? ['negCol', 'posCol'] : ['negRow', 'posRow'];
+    const [fl, fr] = face.origin.x < face.along.x ? [face.origin, face.along] : [face.along, face.origin];
+    const p0 = project(0, 0); const p1 = isRowWall(dir) ? project(-1, 0) : project(0, -1);
+    const leftDir = p1.x < p0.x ? pSide[0] : pSide[1];
+    const pSlopes = backSlopesFirst<[FaceDir, Pt]>([[leftDir, fl], [leftDir === pSide[0] ? pSide[1] : pSide[0], fr]], (q) => q[0]);
+    const rU = across(FH_OCULUS_METRES) / (pw + across(0.4));
+    const pt = (u: number, z: number) => lift({ x: face.origin.x + (face.along.x - face.origin.x) * u, y: face.origin.y + (face.along.y - face.origin.y) * u }, z);
+    const oculus = Array.from({ length: 20 }, (_, i) => {
+      const t = (i / 20) * Math.PI * 2;
+      return pt(0.5 + Math.cos(t) * rU, pedRise * 0.36 + Math.sin(t) * up(FH_OCULUS_METRES));
+    });
+    const steps = outsideWall(col, row, w, h, dir, span / 2, FH_PORTICO_DEPTH);
+    const wall = walls.find((x) => x.dir === dir)!;
+    return (
+      <g key={`po${dir}`}>
+        {/* The shade under the portico, on the wall behind its columns. */}
+        <WallBand origin={wall.o} along={wall.a} wallHeight={H} from={sill} to={H - FH_ENTABLATURE} className="iso-eaves-shadow"
+          u0={along0 / span} u1={(along0 + pw) / span} />
+        {plainBox(boxFaces(podium.col, podium.row, podium.w, podium.h, 0, sill), shade(trim, 0.92), shade(trim, 0.76), shade(trim, 0.98), 'pod')}
+        {columns.map((c, i) => (
+          <Cylinder key={`pc${i}`} cc={c.col + FH_COLUMN_R} cr={c.row + FH_COLUMN_R} r={FH_COLUMN_R} z0={sill} z1={H - FH_ENTABLATURE} fill={shade(trim, 0.97)} />
+        ))}
+        {plainBox(entF, shade(trim, 0.97), shade(trim, 0.8), shade(trim, 1.0), 'ent')}
+        {pSlopes.map(([d, e]) => (
+          <polygon key={`ps${d}`} points={polyPoints([e, pedApex, backBy(pedApex, intoRoof), backBy(e, toWall)])} fill={roof[d]} />
+        ))}
+        <polygon points={polyPoints([face.origin, face.along, pedApex])} fill={shade(trim, WALL_LIGHT[dir])} stroke={shade(trim, 0.72)} strokeWidth={0.5} />
+        <polygon points={polyPoints(oculus)} className="iso-clock-face" />
+        {door && (
+          <EntranceSteps d={{ ...door, widthTiles: Math.max(door.widthTiles, pw * 0.8 - STEP_OVERHANG * 2) }} stone={stone}
+            centreCol={steps.col} centreRow={steps.row} outCol={out.col} outRow={out.row} span={pw / 0.6} />
+        )}
+      </g>
+    );
+  };
+  const mainSpan = wallSpan(w, h, main);
+  const endShare = Math.min(FH_PORTICO_SHARE, (mainSpan * FH_PORTICO_SHARE * FH_END_PORTICO) / wallSpan(w, h, end));
+
+  return (
+    <>
+      {/* The brick walls, plinth, storey course and windows. */}
+      <polygon points={polyPoints(hf.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(hf.right)} fill={pal.wallRight} />
+      {walls.map(({ dir, o, a }) => (
+        <g key={`b${dir}`}>
+          <WallBand origin={o} along={a} wallHeight={H} from={0} to={PLINTH} className="iso-plinth" />
+          {courses.map((z) => (
+            <WallBand key={z} origin={o} along={a} wallHeight={H} from={z - up(0.2)} to={z + up(0.2)} className="iso-cornice" fill={shade(trim, WALL_LIGHT[dir])} />
+          ))}
+        </g>
+      ))}
+      {walls.map(({ dir, o, a, span: s }) => foundersWindows(o, a, H, s, door ? door.threshold + door.height : null, trim, `w${dir}`))}
+      {door && walls.map(({ dir, o, a, span: s }) => <Door key={`d${dir}`} d={door} origin={o} along={a} wallHeight={H} span={s} side={dir} />)}
+
+      {/* The white cornice, oversailing, and the slate hip on it. */}
+      {sideFaces(boxFaces(rc, rr, rw, rh, H - FH_CORNICE, FH_CORNICE), shade(trim, 0.97), shade(trim, 0.8))}
+      <HippedRoof col={rc} row={rr} w={rw} h={rh} base={H} rise={ridge} pal={roof} />
+      {depthOrder(withTower ? [...stacks, tower] : stacks).map((x) => x.node)}
+      {depthOrder(dormers).map((d, i) => (
+        <FoundersDormer key={`dm${i}`} b={d} dir={d.dir} z0={d.z0} zAt={zAt} roof={roof} trim={trim} />
+      ))}
+
+      {/* The porticos last: they stand in front of wall and roof. */}
+      {portico(main, FH_PORTICO_SHARE)}
+      {portico(end, endShare)}
+    </>
+  );
+}
+
 // The chapel (Plan 80I; buildingSpec's CHAPELS and chapelPlan): a tower at
 // the west end, a nave under a steep roof with tall windows down its long
 // walls, and a lower chancel at the east end with a rose in the nave's
@@ -6435,14 +6907,25 @@ function outFromWall(col: number, row: number, w: number, h: number, dir: FaceDi
   return { col: b.col + o.col * s0, row: b.row + o.row * s0, w: b.w, h: b.h };
 }
 
+// The temple front's width on a wall of `span` (Plan 87G).
+const lawTempleWidth = (span: number) => Math.min(span * 0.52, across(44));
+// Which visible front is the Law School's main one (Plan 87M): the longer
+// wall, so the hierarchy holds at every azimuth and either footprint.
+function lawMainFront(w: number, h: number, fronts: readonly FaceDir[]): FaceDir {
+  return [...fronts].sort((a, b) => wallSpan(w, h, b) - wallSpan(w, h, a))[0]!;
+}
+
 // The temple front on wall `dir`: steps to a podium, columns to the eaves,
 // an entablature, a pitched roof back to the wall and a pediment with the
-// scales of justice in its tympanum.
-function LawTemple({ col, row, w, h, H, dir, stone }: {
-  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette;
+// scales of justice in its tympanum. Only the main (longer) front wears it;
+// the other visible front has a pilastered frontispiece, so the two never
+// read as rival temples (Plan 87M).
+function LawTemple({ col, row, w, h, H, dir, stone, main }: {
+  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette; main: boolean;
 }) {
+  if (!main) return <LawFrontispiece col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} />;
   const span = wallSpan(w, h, dir);
-  const width = Math.min(span * 0.52, across(44));
+  const width = lawTempleWidth(span);
   const n = width >= across(34) ? 8 : 6;
   const along0 = span / 2 - width / 2;
   const depth = across(7.5);
@@ -6477,8 +6960,16 @@ function LawTemple({ col, row, w, h, H, dir, stone }: {
   const rise = up((width * METRES_PER_TILE / 2) * 0.26);
   const o0 = project(0, 0);
   const out = outwardOf(dir);
-  const o1 = project(-out.col * depth, -out.row * depth);
-  const back = (q: Pt) => ({ x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y });
+  // The pediment's roof runs back a short way past the wall and ends in a
+  // hipped return on the deck, short of the attic hall behind, so the
+  // attic rises clear over it (Plan 87M; it ran on into the attic, 87O).
+  const backBy = (d: number) => {
+    const o1 = project(-out.col * d, -out.row * d);
+    return (q: Pt) => ({ x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y });
+  };
+  const runEave = depth + across(5);
+  const eaveBack = backBy(runEave);
+  const back = backBy(Math.max(depth * 0.5, runEave - width * 0.22));
   const eL = P(0, 0); const eR = P(1, 0); const apex = P(0.5, rise);
   const lit = WALL_LIGHT[dir];
   // The tympanum, set in from the raking cornices.
@@ -6500,13 +6991,89 @@ function LawTemple({ col, row, w, h, H, dir, stone }: {
         </g>
       ))}
       {sideFaces(ent, shade(marble, 0.94), shade(marble, 0.76))}
-      <polygon points={polyPoints([eL, apex, back(apex), back(eL)])} fill={shade(marble, 0.74)} />
-      <polygon points={polyPoints([apex, eR, back(eR), back(apex)])} fill={shade(marble, 0.64)} />
+      <polygon points={polyPoints([eL, apex, back(apex), eaveBack(eL)])} fill={shade(marble, 0.74)} />
+      <polygon points={polyPoints([apex, eR, eaveBack(eR), back(apex)])} fill={shade(marble, 0.64)} />
       <polygon points={polyPoints([eL, eR, apex])} fill={shade(marble, lit)} stroke="rgba(60, 54, 44, 0.5)" strokeWidth={0.8} />
       <polygon points={polyPoints(tym)} fill={shade(marble, lit * 0.84)} />
       <path className="sig-scales" d={seg(sc(0, 0.1), sc(0, 0.74)) + seg(sc(-0.03, 0.1), sc(0.03, 0.1)) + seg(sc(-bw, 0.6), sc(bw, 0.6)) + seg(sc(-bw, 0.6), sc(-bw - 0.04, 0.3)) + seg(sc(-bw, 0.6), sc(-bw + 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw - 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw + 0.04, 0.3))} stroke={gilt} strokeWidth={1.5} strokeLinecap="round" fill="none" />
       <polygon points={polyPoints(pan(-bw))} fill={gilt} />
       <polygon points={polyPoints(pan(bw))} fill={gilt} />
+    </g>
+  );
+}
+
+// The Law School's side front (Plan 87M): a shallow frontispiece centred
+// on the wall, four giant pilasters to an entablature on the cornice line,
+// a low pediment whose roof stops at a hip just behind the parapet, and a
+// pedimented doorway up a short flight; the main front keeps the temple.
+function LawFrontispiece({ col, row, w, h, H, dir, stone }: {
+  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette;
+}) {
+  const span = wallSpan(w, h, dir);
+  const width = Math.min(span * 0.4, across(28));
+  const along0 = span / 2 - width / 2;
+  const proud = across(2.2);
+  const marble = stone.trim !== 'none' ? stone.trim : stone.towerStone;
+  const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+  const ENT = ENTABLATURE * 1.3;
+  const lit = WALL_LIGHT[dir];
+  // The frontispiece's mass, proud of the wall, to the cornice.
+  const mass = outFromWall(col, row, w, h, dir, along0, width, 0, proud);
+  const mf = boxFaces(mass.col, mass.row, mass.w, mass.h, 0, H);
+  const front = wallOf(mf, dir);
+  const Q = (u0: number, u1: number, z0: number, z1: number) => polyPoints(wallQuad(front.origin, front.along, H, u0, u1, z0, z1));
+  // Engaged columns at the ends and either side of the door bay, half
+  // proud of its face.
+  const cr0 = across(0.62);
+  const pilasters = [0.07, 0.33, 0.67, 0.93].map((u) => outsideWall(col, row, w, h, dir, along0 + width * u, proud))
+    .sort((a, b) => project(a.col, a.row).y - project(b.col, b.row).y);
+  // The door and its flight.
+  const doorH = up(5.2); const sill = up(1.2);
+  const treads = 4;
+  const steps = Array.from({ length: treads }, (_, k) => treads - 1 - k).map((i) => {
+    const b = outFromWall(col, row, w, h, dir, along0 + width * 0.3, width * 0.4, 0, proud + across(0.4) + (treads - 1 - i) * TREAD_DEPTH);
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, ((i + 1) * sill) / treads);
+    return (
+      <g key={`s${i}`}>
+        {sideFaces(f, shade(marble, 0.86), shade(marble, 0.7))}
+        <polygon points={polyPoints(f.top)} fill={shade(marble, i === treads - 1 ? 1.0 : 0.95)} stroke="rgba(60, 54, 44, 0.25)" strokeWidth={0.4} />
+      </g>
+    );
+  });
+  const g = crossGable({
+    col, row, w, h, dir, along0: along0 - across(0.4), width: width + across(0.8), reach: proud + across(0.4), top: H,
+    rise: up(((width + across(0.8)) * METRES_PER_TILE / 2) * 0.26), roofAt: flatRoofAt(col, row, w, h, H),
+    slopes: { negCol: shade(marble, 0.8), negRow: shade(marble, 0.74), posRow: shade(marble, 0.66), posCol: shade(marble, 0.6) },
+    maxRun: proud + across(4.5),
+  });
+  const P = (u: number, z: number) => facePoint(g.face.origin, g.face.along, 1, u, z);
+  const tym = [P(0.09, up(0.5)), P(0.91, up(0.5)), P(0.5, g.rise - up(0.75))];
+  // A wreath in the tympanum: a gilt ring.
+  const rU = 0.07;
+  const ring = Array.from({ length: 16 }, (_, i) => {
+    const t = (i / 16) * Math.PI * 2;
+    return P(0.5 + Math.cos(t) * rU, g.rise * 0.36 + Math.sin(t) * up(rU * (width + across(0.8)) * METRES_PER_TILE));
+  });
+  return (
+    <g className="law-frontispiece">
+      {sideFaces(mf, shade(marble, 0.92), shade(marble, 0.76))}
+      {pilasters.map((c, i) => (
+        <g key={`p${i}`}>
+          <Cylinder cc={c.col} cr={c.row} r={cr0} z0={sill} z1={H - ENT - up(0.5)} fill={shade(marble, 0.97)} />
+          {sideFaces(boxFaces(c.col - cr0 * 1.2, c.row - cr0 * 1.2, cr0 * 2.4, cr0 * 2.4, H - ENT - up(0.5), up(0.5)), shade(marble, 0.95), shade(marble, 0.78))}
+        </g>
+      ))}
+      {/* The entablature across the top, and the door with its pediment. */}
+      <polygon points={Q(0, 1, H - ENT, H)} fill={shade(marble, lit * 1.04)} stroke="rgba(60, 54, 44, 0.35)" strokeWidth={0.5} />
+      <polygon points={Q(0.4, 0.6, sill, sill + doorH)} fill="#4a3b2c" stroke={shade(marble, 0.7)} strokeWidth={1} />
+      <polygon points={polyPoints([facePoint(front.origin, front.along, 1, 0.37, sill + doorH + up(0.2)), facePoint(front.origin, front.along, 1, 0.63, sill + doorH + up(0.2)), facePoint(front.origin, front.along, 1, 0.5, sill + doorH + up(1.6))])} fill={shade(marble, lit)} stroke={shade(marble, 0.7)} strokeWidth={0.6} />
+      {/* A tall window over the door, between the pilasters. */}
+      <polygon points={Q(0.43, 0.57, sill + doorH + up(2.6), H - ENT - up(1.2))} fill={stone.glass} />
+      {steps}
+      {g.roof}
+      <polygon points={polyPoints([g.face.origin, g.face.along, g.apex])} fill={shade(marble, lit)} stroke="rgba(60, 54, 44, 0.5)" strokeWidth={0.8} />
+      <polygon points={polyPoints(tym)} fill={shade(marble, lit * 0.86)} />
+      <polygon points={polyPoints(ring)} fill={shade(marble, 0.6)} stroke={gilt} strokeWidth={1.6} />
     </g>
   );
 }
@@ -6518,7 +7085,11 @@ function LawTemple({ col, row, w, h, H, dir, stone }: {
 function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
   col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean;
 }) {
-  const aw = w * (gothic ? 0.56 : 0.38); const ah = h * (gothic ? 0.36 : 0.42);
+  // The classical attic as wide as the temple front before it, over the
+  // building's middle (Plan 87M), its long side to the long front.
+  const long = lawTempleWidth(Math.max(w, h));
+  const aw = gothic ? w * 0.56 : w >= h ? long : w * 0.42;
+  const ah = gothic ? h * 0.36 : w >= h ? h * 0.42 : long;
   const ac = col + (w - aw) / 2; const ar = row + (h - ah) / 2;
   const rise = gothic ? up(5.5) : up(5);
   const f = boxFaces(ac, ar, aw, ah, H, rise);
@@ -8480,6 +9051,15 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     );
   }
 
+  // Georgian's Founders Hall draws itself (Plan 87M), and its sibling
+  // halls the same, without the clock tower.
+  if (motif === 'hall' && !site && inFlight === 0 && georgianHall(t, vernacular)) {
+    const roofPal = snowOnRoofs(paletteFrom({ wall: material.wall, roof: FH_SLATE }, wallShadeOf(t)), snow);
+    return (
+      <GeorgianFoundersHall col={col} row={row} w={w} h={h} H={H} ridge={ridge} courses={courses}
+        pal={pal} roof={roofPal} stone={stone} door={door} wallTone={shade(material.wall, wallShadeOf(t))} tower={hasClockTower(t)} />
+    );
+  }
   if (motif === 'hall' && !site) {
     // The academic hall, painted in build order: mass, what is applied to
     // it, what stands on it, what stands in front of it. The wall runs to the
@@ -8514,6 +9094,11 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       height: WH + STOREY * 1.9, sills: rankSills(ranks + 2), crenels: crenellations, capRise: up(5.0),
     };
     const turretNode = <CornerTower {...turretProps} />;
+    // The roof a porch or portico runs back into (Plan 87O): the deck
+    // behind the parapet and the hip (or mansard) on it.
+    const ri = col + inset - eaves; const rj = row + inset - eaves; const rwi = w - inset * 2 + eaves * 2; const rhi = h - inset * 2 + eaves * 2;
+    const hallRoofAt = eitherRoof(flatRoofAt(col, row, w, h, WH),
+      ridge > 0 && mansard ? mansardRoofAt(ri, rj, rwi, rhi, WH, ridge) : ridge > 0 ? hipRoofAt(ri, rj, rwi, rhi, WH, ridge) : flatRoofAt(ri, rj, rwi, rhi, WH));
     return (
       <>
         {turrets && !cornerInFront && turretNode}
@@ -8666,21 +9251,22 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
             {fronts.map((dir) => (
               <CentrePavilion key={dir} paneShape={paneShape} glass={stone.glass}
                 col={col} row={row} w={w} h={h} wallHeight={H} outward={dir}
-                pal={pal} door={door} sills={sills} paneW={paneW}
+                pal={pal} door={door} sills={sills} paneW={paneW} tied
               />
             ))}
-            {/* Four columns to the second floor, or (grandPortico) six to
-                the eaves under a pediment. */}
+            {/* A temple front on the centre bay (Plan 87O, after 87M's):
+                four columns, or (grandPortico) six, to the cornice under a
+                pediment whose roof runs back into the hip. */}
             {fronts.map((dir) => {
               const span = wallSpan(w, h, dir);
-              const at = outsideWall(col, row, w, h, dir, span / 2, PAVILION_DEPTH + PORTICO_STANDOFF);
+              const pw = pavilionWidth(span);
+              const bay = againstWall(col, row, w, h, dir, span / 2 - pw / 2, pw, PAVILION_DEPTH);
               return (
-                <Portico key={dir} stone={stone}
-                  centreCol={at.col} centreRow={at.row}
-                  width={pavilionWidth(span) * (grandPortico ? 1.2 : 1)} outward={dir}
-                  columns={grandPortico ? 6 : PORTICO_COLUMNS}
-                  height={grandPortico ? H - ENTABLATURE - up(0.3) : PORTICO_HEIGHT} pediment={grandPortico}
-                />
+                <TiedPortico key={`hp${dir}`} col={bay.col} row={bay.row} w={bay.w} h={bay.h} dir={dir}
+                  width={pw * (grandPortico ? 1.2 : 1)} depth={HALL_PORTICO_DEPTH}
+                  base={door ? door.threshold : 0} top={H} podium steps={door}
+                  columns={grandPortico ? 6 : PORTICO_COLUMNS} roofAt={hallRoofAt}
+                  slopes={ridge > 0 ? pal : toneSlopes(pal.roof)} stone={stone} oculus={grandPortico} />
               );
             })}
           </>
@@ -8696,7 +9282,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           <>
             {fronts.map((dir) => (
               <Porch key={dir} pal={pal} stone={stone}
-                col={col} row={row} w={w} h={h} wallHeight={H} outward={dir}
+                col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} roofAt={hallRoofAt}
               />
             ))}
           </>
@@ -8711,8 +9297,9 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
             {fronts.map((dir) => <Arcade key={dir} pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward={dir} height={arcadeHeight(H)} />)}
           </>
         )}
-        {/* Steps land at the entrance's front (entranceStandoff). */}
-        {door && flights && fronts.map((dir) => {
+        {/* Steps land at the entrance's front (entranceStandoff); the
+            portico brings its own (Plan 87O). */}
+        {door && flights && entrance !== 'portico' && fronts.map((dir) => {
           const span = wallSpan(w, h, dir);
           const at = outsideWall(col, row, w, h, dir, span / 2, entranceStandoff);
           const out = outwardOf(dir);
@@ -8917,15 +9504,17 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           // The vernacular's way in (Plan 74E): an arched porch in Mission,
           // a small portico in Classical, a canopy (hooded in Gothic) else.
           if (entrance === 'archway') return <Archway key={dir} pal={pal} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} />;
-          if (entrance === 'portico') {
-            const span = wallSpan(w, h, dir);
-            const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
-            return <Portico key={dir} stone={stone} centreCol={at.col} centreRow={at.row} width={Math.min(door.widthTiles * 3.2, span * 0.6)} outward={dir} height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} />;
-          }
+          // The portico after the roof (Plan 87O, below).
+          if (entrance === 'portico') return null;
           return <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={plantTint} />;
         })}
         <polygon points={polyPoints(f.top)} fill={pal.roof} />
         {monitor}
+        {door && entrance === 'portico' && fronts.map((dir) => (
+          <TiedPortico key={`tp${dir}`} col={col} row={row} w={w} h={h} dir={dir} width={Math.min(door.widthTiles * 3.2, wallSpan(w, h, dir) * 0.6)}
+            depth={across(2.4)} base={0} top={H} columns={4} roofAt={flatRoofAt(col, row, w, h, H)}
+            slopes={toneSlopes(pal.roof)} stone={stone} />
+        ))}
         <Crest crest={crest} col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
         {signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={0} f={f} stone={stone} pal={pal} />}
       </>
@@ -8956,6 +9545,11 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   // The roof's footprint, including eaves oversail.
   const rc = col - eaves; const rr = row - eaves; const rw = w + eaves * 2; const rh = h + eaves * 2;
   const rf = boxFaces(rc, rr, rw, rh, 0, H);
+  // The roof a portico's or porch's gable runs back into (Plan 87O).
+  const tieRoof = gabled && mansard ? mansardRoofAt(rc, rr, rw, rh, H, ridge)
+    : hipped ? hipRoofAt(rc, rr, rw, rh, H, ridge)
+      : gabled ? gableRoofAt(rc, rr, rw, rh, H, ridge)
+        : flatRoofAt(col, row, w, h, H);
   // Painted after the roof when its corner faces the camera, else before the walls.
   const residentialTurretProps = {
     pal, glass: stone.glass, paneW,
@@ -9038,22 +9632,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           <CurtainWall origin={f.C} along={f.B} wallHeight={H} spanTiles={f.spanRight} from={BASE_COURSE} to={H - EAVES_COURSE * 1.5} floors={courses} id="gcr" u0={0.03} u1={0.97} />
         </>
       )}
-      {/* A small portico over the door, kept under the eaves. */}
-      {!site && entrance === 'portico' && door && entranceFronts.map((dir) => {
-        const span = wallSpan(w, h, dir);
-        const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
-        return (
-          grand ? null : (
-            <Portico stone={stone}
-              key={`sp${dir}`}
-              centreCol={at.col} centreRow={at.row}
-              width={Math.min(door.widthTiles * 3.2, span * 0.6)}
-              outward={dir}
-              height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)}
-            />
-          )
-        );
-      })}
+      {/* The small portico over the door stands after the roof, its
+          pediment's roof run back into it (Plan 87O, below). */}
       {/* The civic colonnade, running the length of the front. */}
       {!site && entrance === 'colonnade' && entranceFronts.map((dir) => {
         const span = wallSpan(w, h, dir);
@@ -9065,7 +9645,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
             width={span * 0.9}
             outward={dir}
             columns={colonnadeColumns(span)}
-            height={Math.min(COLONNADE_HEIGHT, H - EAVES_COURSE * 2)}
+            // Its entablature on the cornice line, not short of it (Plan 87O).
+            height={H - ENTABLATURE}
           />
         );
       })}
@@ -9093,12 +9674,12 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         <CantileverCanopy key={`cl${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} part="lobby" />
       ))}
       {!site && entrance === 'porch' && entranceFronts.map((dir) => (
-        <Porch key={`po${dir}`} pal={pal} stone={stone} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} />
+        <Porch key={`po${dir}`} pal={pal} stone={stone} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} roofAt={tieRoof} part="body" />
       ))}
       {/* Steps after the walls and doors, landing at the entrance's face;
           none behind an arcade (entered at grade) or a colonnade (Plan 61:
           they ran out under the columns). */}
-      {!site && door && !(entrance === 'arcade' && arcadeFits(H)) && entrance !== 'colonnade' && !lawTempleFront && entranceFronts.map((dir) => {
+      {!site && door && !(entrance === 'arcade' && arcadeFits(H)) && entrance !== 'colonnade' && entrance !== 'portico' && !lawTempleFront && entranceFronts.map((dir) => {
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, stepStandoff);
         const out = outwardOf(dir);
@@ -9214,30 +9795,26 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           {!site && labFeatureOf(t) === 'transformers' && pylonLines(flatRoofItems(motif, labFeatureOf(t), col, row, w, h), H, w >= h)}
         </>
       )}
-      {/* The exchange's temple front, after the roof its pediment rises over. */}
-      {!site && grand === 'temple' && fronts.map((dir) => {
+      {/* The porticos, after the roof their pediments' roofs run back into
+          (Plan 87O): the exchange's temple front (Plan 87I), the economics
+          lab's pedimented portico, and the small portico over a door; each
+          a pediment over columns to the eaves, two where the door is narrow. */}
+      {!site && entrance === 'portico' && door && (grand ? fronts : entranceFronts).map((dir) => {
         const span = wallSpan(w, h, dir);
-        const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
+        const width = grand === 'temple' ? span * 0.5 : grand === 'pedimented' ? Math.min(span * 0.42, across(16)) : Math.min(door.widthTiles * 3.2, span * 0.6);
         return (
-          <Portico stone={stone} key={`ex${dir}`}
-            centreCol={at.col} centreRow={at.row} width={span * 0.5} outward={dir}
-            columns={6} pediment temple height={H}
-          />
+          <TiedPortico key={`tp${dir}`} col={col} row={row} w={w} h={h} dir={dir}
+            width={width} depth={grand === 'temple' ? across(3.4) : across(2.6)}
+            base={door.threshold} top={H} podium steps={door}
+            columns={grand === 'temple' ? 6 : 4} roofAt={tieRoof}
+            slopes={gabled ? pal : toneSlopes(pal.roof)} stone={stone} oculus={grand === 'temple'} />
         );
       })}
-      {/* The economics lab's small pedimented portico, after its roof
-          (Plan 87I), and Art Deco's stepped portal, which rises past the
-          parapet. */}
-      {!site && grand === 'pedimented' && door && fronts.map((dir) => {
-        const span = wallSpan(w, h, dir);
-        const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
-        return (
-          <Portico stone={stone} key={`ep${dir}`}
-            centreCol={at.col} centreRow={at.row} width={Math.min(span * 0.42, across(16))} outward={dir}
-            height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} pediment
-          />
-        );
-      })}
+      {/* The porch's gable roof, run back into the roof (Plan 87O). */}
+      {!site && entrance === 'porch' && entranceFronts.map((dir) => (
+        <Porch key={`pr${dir}`} pal={pal} stone={stone} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} roofAt={tieRoof} part="roof" />
+      ))}
+      {/* Art Deco's stepped portal, which rises past the parapet. */}
       {!site && grand === 'decoPortal' && fronts.map((dir) => (
         <DecoPortal key={`dp${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} stone={stone} />
       ))}
@@ -9275,7 +9852,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       {/* The Law School's attic hall and temple fronts, after its parapet
           (Plan 87G). */}
       {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} />}
-      {!site && lawTempleFront && fronts.map((dir) => <LawTemple key={`lt${dir}`} col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} />)}
+      {!site && lawTempleFront && fronts.map((dir) => <LawTemple key={`lt${dir}`} col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} main={dir === lawMainFront(w, h, fronts)} />)}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}
       {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && !grand && (

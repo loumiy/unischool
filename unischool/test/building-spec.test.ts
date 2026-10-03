@@ -415,15 +415,6 @@ console.log('campus scale and building spec');
     }
   }
   assert(true, 'every hall\'s stonework fits the wall it is applied to');
-
-  // A hall's roof is a shallow HIP now, not the barn gable it was: a ridge
-  // deeper than a story and a half is what made the campus's landmarks read
-  // as sheds.
-  const hall = byId('BLDG-GENSTUDIES');
-  if (hall) {
-    assert(ridgeOf(hall, FOUNDING_VERNACULAR) < STOREY, 'a hall\'s ridge rises less than one story above its eaves');
-    assert(ridgeOf(hall, FOUNDING_VERNACULAR) > 0, 'but it is still a pitched roof');
-  }
 }
 
 // --- 12. Materials, not a color chart -----------------------------------
@@ -633,7 +624,8 @@ console.log('campus scale and building spec');
   const SLATE = '#5f6b5f';
   const DECK = '#7c8377';
   const BEFORE = {
-    brickRed: { wall: '#a2564a', roof: SLATE },
+    // Warmed after the owner's reference picture (Plan 87M, second look).
+    brickRed: { wall: '#bd6b48', roof: SLATE },
     brickBuff: { wall: '#bb9468', roof: SLATE },
     limestone: { wall: '#d8cdb4', roof: DECK },
     render: { wall: '#b0a992', roof: DECK },

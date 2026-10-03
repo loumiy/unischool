@@ -66,6 +66,48 @@
     - Brise-soleil fins and a folded-plate roof terrace are its own.
     - Every Modern hall stands on pilotis.
     - The founding screen draws the carillon.
+- **M (after the PR merged):** the Georgian Founders Hall drawn after the
+  owner's reference picture, keeping its proportions and an entrance on
+  every visible face.
+  - A blue-grey slate hip with pedimented dormers, end chimneys and a white
+    cornice; its ridge is raised to 7.5 m, the one shape change.
+  - White-framed sash windows.
+  - A pedimented temple portico with an oculus on each visible wall, the
+    grander one on the longer wall.
+  - A brick and white clock tower under an open lantern with bells, a
+    verdigris dome and a gilt finial.
+  - The other Georgian halls keep the eaves balustrade. The test that a
+    hall's ridge stays under a storey now reads HALL-01.
+  - The founding screen's elevation is unchanged.
+- **M, second look (the owner's notes on M):**
+  - The end stacks stand out on the hip ends, clear of the clock tower.
+  - HALL-01..06, and every Georgian hall not drawn as a school's signature,
+    are drawn as Founders Hall without the clock tower, in place of the
+    eaves balustrade. Signature halls and the Faculty Training Institute
+    (limestone, under its cupola) keep their own drawing.
+  - The test on a hall's ridge height is removed.
+  - The founding screen draws the new Founders Hall in Georgian: slate hip,
+    dormers, end stacks, the pediment with its oculus, sashes, columns and
+    the clock tower.
+  - Georgian's red brick is warmer, '#bd6b48', sampled from the reference
+    picture, for every building in it, not only the halls.
+- **O (with M's second look):** every portico ties into its roof, as
+  Founders Hall's do.
+  - `porticoTie.tsx` holds `crossGable` and `TiedPortico`. A pediment's roof
+    runs back to meet the main roof, whether hip, gable, mansard, flat,
+    rotunda or vault. It applies to:
+    - the halls of Classical, Italianate and Second Empire;
+    - the small door porticos;
+    - the exchange;
+    - LAB-ECON;
+    - the libraries;
+    - the Law School;
+    - the sports sheds;
+    - the Gothic and Tudor porches;
+    - the civic colonnades.
+  - Column spacing has a floor: the small door portico had put four 1.4 m
+    posts across a 1.6–2.2 m door (the "four stacked columns" the owner
+    saw). A narrow door now takes two round columns under a pediment.
 - **Left:**
   - Cast shadows and label heights still read the main box for the taller
     parts: the Field House vault, the Engineering wing and the domes.
