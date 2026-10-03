@@ -7,6 +7,7 @@ import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
 import { TreeAt, treeShadow, type Species } from './trees';
 import { QUAD_WALK, quadCentre } from './quadGeometry';
+import { lampArt } from './dressing';
 
 // Open ground: the Buildables you walk across rather than into (quad, pool
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
@@ -1055,53 +1056,150 @@ type QuadPlanting = [u: number, v: number, species: Species, scale: number];
 const QUAD_TREES: QuadPlanting[] = [
   [0.15, 0.15, 'canopy', 1.0], [0.85, 0.15, 'canopy', 1.0],
   [0.15, 0.85, 'canopy', 1.05], [0.85, 0.85, 'canopy', 1.05],
-  [0.5, 0.12, 'ornamental', 1.0], [0.5, 0.88, 'ornamental', 1.0],
+  // Off the walks, at the lawn panels' inner corners (Plan 87K: they stood
+  // on the north and south walks).
+  [0.32, 0.32, 'ornamental', 0.85], [0.68, 0.32, 'ornamental', 0.85],
+  [0.32, 0.68, 'ornamental', 0.85], [0.68, 0.68, 'ornamental', 0.85],
 ];
 
-// The gardens tier keeps those and fills in between: the corners of the four
-// lawn panels, and a conifer each side to break the line of round crowns.
-const GARDEN_TREES: QuadPlanting[] = [
-  ...QUAD_TREES,
-  [0.08, 0.5, 'conifer', 1.1], [0.92, 0.5, 'conifer', 1.1],
-  [0.26, 0.26, 'ornamental', 0.85], [0.74, 0.26, 'ornamental', 0.85],
-  [0.26, 0.74, 'canopy', 0.8], [0.74, 0.74, 'canopy', 0.8],
-];
+// The Grand Quad's plan (Plan 87K), after a Cambridge court and a Beaux-Arts
+// parterre: a perimeter walk on the outermost ring of tiles, the two cross
+// walks, and a round plaza they all meet at with the fountain in it. Between
+// the walks, four lawn panels, each framed by a low clipped hedge set back
+// from the walks and closed toward the plaza by a curved flower bed; trees
+// stand in the panels, a row along each side broken by the walk's mouth.
+// Nothing stands or lies on a walk, and the walkers' grid (quadGeometry.ts)
+// paves exactly these tiles. Everything is authored as offsets from the
+// centre, mirrored into the four panels, so it turns with the camera.
+const GARDEN_SETBACK = 0.3;   // lawn left between a walk's edge and a hedge
+const GARDEN_HEDGE = 0.2;     // a hedge's thickness, in tiles
+const GARDEN_BED = 0.45;      // the curved bed's width
+type TileBox = { col: number; row: number; w: number; h: number };
+interface GardensPlan {
+  cc: number; cr: number; R: number; P: number;
+  half: number;                 // the cross walks' half-width
+  perimeter: number;            // the perimeter walk's width, from the edge in
+  hedges: TileBox[];
+  beds: TilePt[][];             // the curved beds, as tile polygons
+  blooms: TilePt[][];           // the blooms in each bed
+  trees: Array<[col: number, row: number, species: Species, scale: number]>;
+  lamps: TilePt[];
+  benches: number[];            // the benches' bearings round the plaza
+}
 
-// A bed of flowers: dark earth with blooms from a fixed lattice and a fixed
-// nudge per index, so nothing moves between renders.
-function FlowerBed({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
-  u0: number; v0: number; u1: number; v1: number;
-}) {
-  const cols = 5; const rows = 3;
-  const blooms = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const i = r * cols + c;
-      const u = u0 + ((c + 0.5) / cols) * (u1 - u0) + ((i % 3) - 1) * 0.004;
-      const v = v0 + ((r + 0.5) / rows) * (v1 - v0) + ((i % 2) - 0.5) * 0.004;
-      blooms.push(
-        <polygon
-          key={i}
-          className={`ground-bloom-${i % 4}`}
-          points={polyPoints(projectedCircle(col + w * u, row + h * v, Math.min(w, h) * 0.011, 8))}
-        />,
-      );
+function gardensPlan(col: number, row: number, w: number, h: number): GardensPlan {
+  const short = Math.min(w, h);
+  const { cc, cr, R, ring } = quadCentre(col, row, w, h, 2);
+  const P = ring ? ring[1] : R;
+  const half = (QUAD_WALK * short) / 2;
+  const perimeter = half * 2;
+  // The panels' outer edges: the perimeter walk's inner edge.
+  const ex = w / 2 - perimeter; const ey = h / 2 - perimeter;
+  const m = GARDEN_SETBACK; const t = GARDEN_HEDGE;
+  const off = half + m;
+  const ri = P + m; const ro = ri + GARDEN_BED;
+  const hedges: TileBox[] = []; const beds: TilePt[][] = []; const blooms: TilePt[][] = [];
+  const trees: GardensPlan['trees'] = []; const lamps: TilePt[] = [];
+  // Where a stub along a cross walk meets the bed's outer arc.
+  const stubEnd = Math.sqrt(Math.max(0, ro * ro - (off + t) * (off + t)));
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      // An offset box (x0..x1, y0..y1 in the +,+ panel) into this panel.
+      const box = (x0: number, x1: number, y0: number, y1: number) => {
+        const a = sx > 0 ? x0 : -x1; const b = sy > 0 ? y0 : -y1;
+        hedges.push({ col: cc + a, row: cr + b, w: x1 - x0, h: y1 - y0 });
+      };
+      // The frame: two legs along the perimeter walk (the first takes the
+      // corner), and a stub down each cross walk to the bed.
+      box(off, ex - m, ey - m - t, ey - m);
+      box(ex - m - t, ex - m, off, ey - m - t);
+      if (ey - m - t > stubEnd) box(off, off + t, stubEnd, ey - m - t);
+      if (ex - m - t > stubEnd) box(stubEnd, ex - m - t, off, off + t);
+      // The bed: a quarter ring between the two walks, its ends square to them.
+      const arc = (r: number, n: number) => {
+        const a0 = Math.asin(Math.min(1, off / r)); const a1 = Math.acos(Math.min(1, off / r));
+        return Array.from({ length: n + 1 }, (_, i) => a0 + ((a1 - a0) * i) / n).map((a) => [r * Math.cos(a), r * Math.sin(a)] as const);
+      };
+      const at = (x: number, y: number): TilePt => [cc + sx * x, cr + sy * y];
+      beds.push([...arc(ro, 16), ...arc(ri, 16).reverse()].map(([x, y]) => at(x, y)));
+      // Two rows of blooms along the bed, nudged by index so nothing moves.
+      const bloom: TilePt[] = [];
+      for (const [k, r] of [ri + GARDEN_BED * 0.3, ri + GARDEN_BED * 0.72].entries()) {
+        const pts = arc(r, 11 + k);
+        pts.slice(1, -1).forEach(([x, y]) => bloom.push(at(x, y)));
+      }
+      blooms.push(bloom);
+      // A border inside each leg of the frame, so the hedge holds a band of
+      // flowers along the panel's two outer sides.
+      const b0 = ey - m - t - 0.08; const b1 = b0 - 0.32;
+      const c0 = ex - m - t - 0.08; const c1 = c0 - 0.32;
+      const border = (x0: number, x1: number, y0: number, y1: number) => {
+        beds.push([at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1)]);
+        // Two staggered rows of blooms along its length.
+        const along = Math.abs(x1 - x0) > Math.abs(y1 - y0);
+        const n = Math.max(2, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / 0.26));
+        const row: TilePt[] = [];
+        for (const [j, q] of [0.3, 0.7].entries()) {
+          for (let i = 0; i < n - j; i++) {
+            const k = (i + 0.5 + j * 0.5) / n;
+            row.push(along ? at(x0 + (x1 - x0) * k, y0 + (y1 - y0) * q) : at(x0 + (x1 - x0) * q, y0 + (y1 - y0) * k));
+          }
+        }
+        blooms.push(row);
+      };
+      border(off + t + 0.08, c0, b0, b1);
+      border(c0, c1, off + t + 0.08, b1);
+      // The trees: one in the panel's outer corner, one each side flanking a
+      // walk's mouth, so each side of the court has a row of four.
+      const inset = 1.2;
+      trees.push([...at(ex - inset, ey - inset), 'canopy', 1.05]);
+      trees.push([...at(off + 0.9, ey - inset), 'ornamental', 1.0]);
+      trees.push([...at(ex - inset, off + 0.9), 'ornamental', 1.0]);
+      // A lamp each side of a walk where it leaves the perimeter walk.
+      lamps.push(at(half + 0.15, ey - m / 2), at(ex - m / 2, half + 0.15));
     }
   }
+  // Four benches round the plaza, on the diagonals, facing the fountain.
+  const benches = [0.25, 0.75, 1.25, 1.75].map((k) => k * Math.PI);
+  return { cc, cr, R, P, half, perimeter, hedges, beds, blooms, trees, lamps, benches };
+}
+
+// A bench on the plaza's edge, turned to face the fountain (Plan 87K): the
+// dressing bench's parts (Plan 80I) at any bearing, a slatted seat on iron
+// legs and a back on the side away from the water.
+const PLAZA_BENCH_HALF = 0.22;
+function PlazaBench({ cc, cr, d, a }: { cc: number; cr: number; d: number; a: number }) {
+  const nx = Math.cos(a); const ny = Math.sin(a);   // outward, from the fountain
+  const tx = -ny; const ty = nx;                      // along the bench
+  const bc = cc + nx * d; const br = cr + ny * d;
+  const G = (s: number, n: number) => project(bc + tx * s + nx * n, br + ty * s + ny * n);
+  const P = (s: number, n: number, z: number) => lift(G(s, n), z);
+  const L = PLAZA_BENCH_HALF; const front = -0.07; const back = 0.07;
+  const SEAT = up(0.9); const TOP = up(1.9);
+  const seat = polyPoints([P(-L, front, SEAT), P(L, front, SEAT), P(L, back, SEAT), P(-L, back, SEAT)]);
+  const rest = polyPoints([P(-L, back + 0.02, SEAT + 2), P(L, back + 0.02, SEAT + 2), P(L, back + 0.03, TOP), P(-L, back + 0.03, TOP)]);
+  const legs = [-L + 0.03, L - 0.03].map((s) => {
+    const f0 = G(s, front); const f1 = P(s, front, SEAT); const b0 = G(s, back); const b1 = P(s, back + 0.03, TOP);
+    return `M${f0.x.toFixed(2)},${f0.y.toFixed(2)}L${f1.x.toFixed(2)},${f1.y.toFixed(2)}M${b0.x.toFixed(2)},${b0.y.toFixed(2)}L${b1.x.toFixed(2)},${b1.y.toFixed(2)}`;
+  }).join('');
+  // The back hides the seat when the bench faces away from the camera.
+  const backFar = G(0, back).y < G(0, front).y;
+  const shadow = polyPoints([G(-L, front), G(L, front), G(L, back + 0.06), G(-L, back + 0.06)]);
   return (
-    <>
-      <polygon className="ground-bed" points={uvPoly(col, row, w, h, [[u0, v0], [u1, v0], [u1, v1], [u0, v1]])} />
-      {blooms}
-    </>
+    <g className="campus-bench">
+      <polygon className="campus-bench-shadow" points={shadow} />
+      {backFar && <polygon className="campus-bench-back" points={rest} />}
+      <path className="campus-bench-iron" d={legs} />
+      <polygon className="campus-bench-seat" points={seat} />
+      {!backFar && <polygon className="campus-bench-back" points={rest} />}
+    </g>
   );
 }
 
-// A clipped hedge: a low box with a lit top, so it has mass.
-function Hedge({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
-  u0: number; v0: number; u1: number; v1: number;
-}) {
-  const HEIGHT = 7;
-  const f = boxFaces(col + w * u0, row + h * v0, w * (u1 - u0), h * (v1 - v0), 0, HEIGHT);
+// A low clipped hedge on a tile box (Plan 87K), lower than the old
+// gardens' hedges so it frames a panel rather than walls it.
+function GardenHedge({ b }: { b: TileBox }) {
+  const f = boxFaces(b.col, b.row, b.w, b.h, 0, 5);
   return (
     <>
       <polygon className="ground-hedge" points={polyPoints(f.left)} />
@@ -1109,6 +1207,58 @@ function Hedge({ col, row, w, h, u0, v0, u1, v1 }: GroundProps & {
       <polygon className="ground-hedge-top" points={polyPoints(f.top)} />
     </>
   );
+}
+
+// The Grand Quad's flat half (Plan 87K): its walks, the plaza, the beds.
+function GardensGround({ col, row, w, h }: GroundProps) {
+  const plan = gardensPlan(col, row, w, h);
+  const { cc, cr, P, half, perimeter } = plan;
+  const pts = (q: TilePt[]) => polyPoints(q.map(([c, r]) => project(c, r)));
+  const rect = (c0: number, r0: number, c1: number, r1: number) => pts([[c0, r0], [c1, r0], [c1, r1], [c0, r1]]);
+  const e = col + w; const s = row + h;
+  return (
+    <>
+      {/* The perimeter walk, the cross walks edge to edge, and the plaza. */}
+      <polygon className="ground-walk-fill" points={rect(col, row, e, row + perimeter)} />
+      <polygon className="ground-walk-fill" points={rect(col, s - perimeter, e, s)} />
+      <polygon className="ground-walk-fill" points={rect(col, row, col + perimeter, s)} />
+      <polygon className="ground-walk-fill" points={rect(e - perimeter, row, e, s)} />
+      <polygon className="ground-walk-fill" points={rect(cc - half, row, cc + half, s)} />
+      <polygon className="ground-walk-fill" points={rect(col, cr - half, e, cr + half)} />
+      <polygon className="ground-walk-fill" points={polyPoints(projectedCircle(cc, cr, P, 48))} />
+      {plan.beds.map((bed, i) => (
+        <g key={i}>
+          <polygon className="ground-bed" points={pts(bed)} />
+          {plan.blooms[i]!.map(([c, r], j) => (
+            <polygon key={j} className={`ground-bloom-${(i + j) % 4}`} points={polyPoints(projectedCircle(c, r, 0.13, 8))} />
+          ))}
+        </g>
+      ))}
+    </>
+  );
+}
+
+// The Grand Quad's raised half (Plan 87K), each piece sorted on its own box.
+function gardensProps(col: number, row: number, w: number, h: number): GroundProp[] {
+  const plan = gardensPlan(col, row, w, h);
+  const { cc, cr, R, P } = plan;
+  return [
+    ...plan.hedges.map((b, i) => ({ key: `hedge-${i}`, ...b, node: <GardenHedge b={b} /> })),
+    ...plan.trees.map(([c, r, species, size], i) => ({
+      key: `tree-${i}`,
+      col: c - 0.5, row: r - 0.5, w: 1, h: 1,
+      node: <TreeAt col={c} row={r} species={species} scale={size} shadow={false} />,
+      tree: { col: c, row: r, species, scale: size },
+      shadows: [treeShadow(c, r, species, size)],
+    })),
+    ...plan.lamps.map(([c, r], i) => ({ key: `lamp-${i}`, ...aroundPoint(c, r, 0.1), node: lampArt({ at: project(c, r) }, null) })),
+    ...plan.benches.map((a, i) => {
+      const d = P - 0.4;
+      return { key: `bench-${i}`, ...aroundPoint(cc + Math.cos(a) * d, cr + Math.sin(a) * d, 0.24), node: <PlazaBench cc={cc} cr={cr} d={d} a={a} /> };
+    }),
+    // The same radius Fountain draws its curb at, so the two cannot drift.
+    { key: 'fountain', ...aroundPoint(cc, cr, R), node: <Fountain col={col} row={row} w={w} h={h} /> },
+  ];
 }
 
 // The Grand Quad's fountain: curb, water, a raised basin, and a jet with a
@@ -1679,26 +1829,11 @@ function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
           points={uvPoly(col, row, w, h, [[0, v - 0.05], [1, v - 0.05], [1, v + 0.03], [0, v + 0.03]])}
         />
       ))}
-      <QuadWalks col={col} row={row} w={w} h={h} />
-      {/* The ring walk round the gardens' fountain, joining the four walks
-          (Plan 62): the way the crowd goes round. */}
-      {gardens && (() => {
-        const { cc, cr, ring } = quadCentre(col, row, w, h, tier);
-        if (!ring) return null;
-        const loop = (r: number) => projectedCircle(cc, cr, r, 48).map((q, i) => `${i === 0 ? 'M' : 'L'}${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ') + ' Z';
-        return <path className="ground-walk-fill" fillRule="evenodd" d={`${loop(ring[1])} ${loop(ring[0])}`} />;
-      })()}
-
-      {/* Beds down both sides of each walk. They lie on the ground, so unlike
-          the hedges they stay in this half. */}
-      {gardens && (
-        <>
-          <FlowerBed col={col} row={row} w={w} h={h} u0={0.10} v0={0.38} u1={0.40} v1={0.44} />
-          <FlowerBed col={col} row={row} w={w} h={h} u0={0.60} v0={0.38} u1={0.90} v1={0.44} />
-          <FlowerBed col={col} row={row} w={w} h={h} u0={0.10} v0={0.56} u1={0.40} v1={0.62} />
-          <FlowerBed col={col} row={row} w={w} h={h} u0={0.60} v0={0.56} u1={0.90} v1={0.62} />
-        </>
-      )}
+      {/* The gardens tier is laid out as a court (Plan 87K): its walks,
+          plaza and beds come from gardensPlan, which keeps them apart. */}
+      {gardens
+        ? <GardensGround col={col} row={row} w={w} h={h} />
+        : <QuadWalks col={col} row={row} w={w} h={h} />}
     </>
   );
 }
@@ -1706,47 +1841,26 @@ function Quad({ col, row, w, h, tier }: GroundProps & { tier: number }) {
 // The quad's raised half, one entry per standing object, each depth-sorted
 // individually.
 function quadProps(col: number, row: number, w: number, h: number, tier: number): GroundProp[] {
-  const gardens = tier >= 2;
+  if (tier >= 2) return gardensProps(col, row, w, h);
   // A planting stands in one tile, so it sorts like the woodland around it.
   const at = (u: number, v: number) => ({
     col: col + w * u - 0.5, row: row + h * v - 0.5, w: 1, h: 1,
   });
-
-  const hedges: Array<[number, number, number, number]> = [
-    [0.38, 0.10, 0.44, 0.32], [0.56, 0.10, 0.62, 0.32],
-    [0.38, 0.68, 0.44, 0.90], [0.56, 0.68, 0.62, 0.90],
-  ];
-
   return [
-    ...(gardens
-      ? hedges.map(([u0, v0, u1, v1], i) => ({
-        key: `hedge-${i}`,
-        // A hedge covers the whole bed it is clipped into, near edge to far.
-        col: col + w * u0, row: row + h * v0, w: w * (u1 - u0), h: h * (v1 - v0),
-        node: <Hedge col={col} row={row} w={w} h={h} u0={u0} v0={v0} u1={u1} v1={v1} />,
-      }))
-      : []),
-    ...(gardens ? GARDEN_TREES : QUAD_TREES).map(([u, v, species, size], i) => ({
+    ...QUAD_TREES.map(([u, v, species, size], i) => ({
       key: `tree-${i}`,
       ...at(u, v),
       node: <TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} shadow={false} />,
       tree: { col: col + w * u, row: row + h * v, species, scale: size },
       shadows: [treeShadow(col + w * u, row + h * v, species, size)],
     })),
-    gardens
-      ? {
-        key: 'fountain',
-        // The same radius Fountain draws its curb at, so the two cannot drift.
-        ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.20),
-        node: <Fountain col={col} row={row} w={w} h={h} />,
-      }
-      // Tier 1's center: a roundel with a plinth and column, something for the
-      // walks to lead to (a bare roundel in the walks' stone read as nothing).
-      : {
-        key: 'monument',
-        ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.13),
-        node: <Monument col={col} row={row} w={w} h={h} />,
-      },
+    // Tier 1's center: a roundel with a plinth and column, something for the
+    // walks to lead to (a bare roundel in the walks' stone read as nothing).
+    {
+      key: 'monument',
+      ...aroundPoint(col + w * 0.5, row + h * 0.5, Math.min(w, h) * 0.13),
+      node: <Monument col={col} row={row} w={w} h={h} />,
+    },
   ];
 }
 

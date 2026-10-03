@@ -325,8 +325,9 @@ walker going through a door holds it open, and the building is drawn with
 that door open. A Campus
 Quad's walks are paths to them, its lawn is lawn at a lawn's cost (Plan
 80H: at half of it they cut across the grass), and its centerpiece is not
-walkable (`quadGeometry.ts`): on the Grand Quad they go round the fountain
-on its ring walk. A path drawn tile by tile replans their routes once it has
+walkable (`quadGeometry.ts`): on the Grand Quad they keep to its
+perimeter walk, cross walks and the round plaza they meet at, going round
+the fountain; its hedged lawn panels are kept off (Plan 87K). A path drawn tile by tile replans their routes once it has
 stood still for a moment, not at every tile.
 Desire lines wear the lawn where the busiest routes cross it. The player's
 lamps and benches (`GameState.dressing`), bike racks by the doors of a big

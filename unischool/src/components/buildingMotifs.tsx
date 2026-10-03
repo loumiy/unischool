@@ -5,10 +5,12 @@ import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import Landmark from './landmarks';
+import LibraryMass from './libraryMotif';
 import { ColorsContext } from './mapOccasions';
 import {
   labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
+  BUSINESS_PODIUM_STOREYS, BUSINESS_SCHOOL_ID, businessSchoolPlan, isHospital,
   CROSS_BAR_METRES, CANOPY_POST, CANOPY_SLAB, CLOCK_RADIUS,
   CLOCK_RADIUS_TILES, COLONNADE_BAY_METRES, COLONNADE_HEIGHT, COLONNADE_MAX, CORNICE,
   EAVES_COURSE, ENTABLATURE, PIER_PROJECTION, PIER_WIDTH_METRES,
@@ -23,7 +25,7 @@ import {
   TOWER_FINIAL_RISE, TOWER_PODIUM_STOREYS, TREAD_DEPTH, WINDOW_HEIGHT,
   TOWER_BELFRY_PLAN, TOWER_BELFRY_RISE, TOWER_SPIRE_RISE,
   TOWER_PINNACLE_PLAN, TOWER_PINNACLE_RISE,
-  baysAcross, clerestorySill, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
+  baysAcross, clerestorySill, type SignatureFeature, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
   rankSills, ridgeOf, parapetOf, eavesOf, isMansard, stoneFor, paneShapeOf, windowOutline,
   entrancePartOf, rooflineEndPartOf, signatureOf, apexPartOf, partsFor, type ApexPart, massingOf,
   crestOf, surfaceRoofOf, type CrestPart, signifierOf, type Signifier, gothicCivicOf, roofFor,
@@ -31,9 +33,15 @@ import {
   ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
   hasBalconies, hasTrim, hasGilt, CHAPELS, chapelPlan, NO_STONE, type ChapelBox,
+  diningBandOf, diningPlan, REFECTORIES, REFECTORY_BACK_EAVES, REFECTORY_KITCHEN_EAVES, type DiningPlan, type RefectoryLantern,
   storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
+} from './buildingSpec';
+import { glassContrast, readableGlass, towerFormOf } from './buildingSpec';
+import {
+  CARILLON_BELFRY_RISE, CARILLON_CAP, CARILLON_CAP_OVERSAIL, CARILLON_CLOCK_RADIUS_METRES, CARILLON_CLOCK_RISE,
+  CARILLON_PIER, CARILLON_PLAN, CARILLON_PROUD, CARILLON_SHAFT_RISE, CARILLON_TIE, CARILLON_TIE_EVERY,
 } from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
@@ -287,6 +295,8 @@ function windows(
   reserved?: FaceRect,
   // Two lights per bay (the Gothic grouping); the bay itself is unchanged.
   lights: 1 | 2 = 1,
+  // A taller pane (a dining hall's ground floor, Plan 87D).
+  paneHeight = WINDOW_HEIGHT,
 ) {
   const out: React.JSX.Element[] = [];
   if (wallHeight <= 0 || spanTiles <= 0) return out;
@@ -300,7 +310,7 @@ function windows(
     : Math.min(windowWidthTiles / spanTiles, 1 / bays) / 2;
   for (let r = 0; r < sills.length; r++) {
     const v0 = sills[r] / wallHeight;
-    const v1 = (sills[r] + WINDOW_HEIGHT) / wallHeight;
+    const v1 = (sills[r] + paneHeight) / wallHeight;
     if (v1 > 1) continue;             // no rank above the eaves
     for (let b = 0; b < bays; b++) {
       const centre = (b + 0.5) / bays;
@@ -457,8 +467,10 @@ const ROOF_PLANT: Partial<Record<Motif, readonly (readonly [number, number, numb
 
 // One thing standing on a flat roof, on the ground (in tiles) it covers.
 export interface RoofItem extends DepthBox {
-  kind: 'stack' | 'plant' | 'flue' | 'observatory' | 'glasshouse';
+  kind: 'stack' | 'plant' | 'flue' | 'observatory' | 'glasshouse' | 'transformers' | 'pylon' | 'distillation' | 'pipeRack' | 'school';
   key: string;
+  // A school lab's own roof part (Plan 87E), for kind 'school'.
+  part?: SchoolRoofPart;
 }
 
 const clearOf = (a: DepthBox, b: DepthBox) =>
@@ -470,8 +482,10 @@ const clearOf = (a: DepthBox, b: DepthBox) =>
 // view. Which plant units stand does not depend on the view: on a small
 // roof, the first unit clear of everything else on it (the depth sort chose
 // it, and at three views of four it stood inside the dome or the glasshouse).
-export function flatRoofItems(motif: Motif, feature: LabFeature | undefined, col: number, row: number, w: number, h: number): RoofItem[] {
+export function flatRoofItems(motif: Motif, feature: LabFeature | undefined, col: number, row: number, w: number, h: number, signature?: SignatureFeature): RoofItem[] {
   const fixed: RoofItem[] = [];
+  // A school lab's own roof (Plan 87E) in place of the generic plant.
+  const school = schoolRoofItems(signature, col, row, w, h);
   if (motif === 'works') {
     // The lab exhaust stack at the back corner.
     const sp = across(1.2);
@@ -486,14 +500,252 @@ export function flatRoofItems(motif: Motif, feature: LabFeature | undefined, col
   } else if (feature === 'flues') {
     const sp = across(0.9);
     for (const u of FLUES) fixed.push({ kind: 'flue', key: `flue-${u}`, col: col + w * u, row: row + h * FLUE_ROW, w: sp, h: sp });
+  } else if (feature === 'transformers') {
+    // The transformer yard (Plan 87I), in place of the roof plant.
+    TRANSFORMERS.forEach(([a, c], i) => fixed.push({ kind: 'transformers', key: `transformer-${i}`, ...roofAxisCentred(col, row, w, h, a, c, TRANSFORMER_PLAN[0], TRANSFORMER_PLAN[1]) }));
+    fixed.push({ kind: 'pylon', key: 'pylon', ...roofAxisCentred(col, row, w, h, PYLON_AT[0], PYLON_AT[1], PYLON_PLAN, PYLON_PLAN) });
+  } else if (feature === 'distillation') {
+    // The process plant (Plan 87I), in place of the roof plant.
+    const [a0, a1, c0, c1] = PIPE_RACK;
+    fixed.push({ kind: 'pipeRack', key: 'pipe-rack', ...roofAxisBox(col, row, w, h, a0, a1, c0, c1) });
+    STILLS.forEach(([a, c, r], i) => fixed.push({ kind: 'distillation', key: `still-${i}`, ...roofAxisCentred(col, row, w, h, a, c, across(r) * 2, across(r) * 2) }));
   }
-  const plant: RoofItem[] = (ROOF_PLANT[motif] ?? []).map(([fx, fy, fw, fh], i) => ({
+  fixed.push(...school);
+  const yard = feature === 'transformers' || feature === 'distillation';
+  const plant: RoofItem[] = (yard || school.length > 0 ? [] : ROOF_PLANT[motif] ?? []).map(([fx, fy, fw, fh], i) => ({
     kind: 'plant', key: `plant-${i}`,
     col: col + w * fx, row: row + h * fy, w: Math.min(w * fw, across(5.5)), h: Math.min(h * fh, across(4.5)),
   }));
   const kept = Math.min(w, h) >= 4 || plant.length === 0 ? plant
     : [plant.find((u) => fixed.every((o) => clearOf(u, o))) ?? plant[0]];
   return depthOrder([...fixed, ...kept]);
+}
+
+// The Electrical Engineering Labs' transformer yard (Plan 87I): two
+// transformers, each a tank with radiator fins down its sides and three
+// porcelain bushings (stacked insulator discs) on its lid; a lattice pylon
+// at the end of the roof brings the line in. And the Chemical Engineering
+// Labs' process plant: a pipe rack along the roof and a cluster of
+// distillation columns, ringed with platforms.
+const TRANSFORMERS = [[0.42, 0.55], [0.66, 0.55]] as const;   // centers, along the long axis and across
+const TRANSFORMER_PLAN = [across(5.6), across(3.8)] as const;
+const TRANSFORMER_RISE = up(3.8);
+const PYLON_AT = [0.13, 0.55] as const;
+const PYLON_PLAN = across(2.8);
+const PYLON_RISE = up(15);
+const STILLS = [[0.3, 0.66, 1.5, 21], [0.5, 0.72, 1.1, 15], [0.68, 0.62, 1.7, 25]] as const;   // a, c, radius m, height m
+const PIPE_RACK = [0.06, 0.94, 0.17, 0.33] as const;   // a0, a1, c0, c1
+const PIPE_RACK_RISE = up(3.6);
+const PORCELAIN = '#8c4a33';
+const TANK_GREEN = '#7f8c84';
+const STILL_STEEL = '#cfd3d6';
+const PLATFORM = '#6f757a';
+
+// A box on the roof laid out along its long axis: `a` along it, `c` across.
+function roofAxisBox(col: number, row: number, w: number, h: number, a0: number, a1: number, c0: number, c1: number): DepthBox {
+  return w >= h
+    ? { col: col + w * a0, row: row + h * c0, w: w * (a1 - a0), h: h * (c1 - c0) }
+    : { col: col + w * c0, row: row + h * a0, w: w * (c1 - c0), h: h * (a1 - a0) };
+}
+// A box of fixed size centered at (a, c) along the long axis.
+function roofAxisCentred(col: number, row: number, w: number, h: number, a: number, c: number, along: number, across_: number): DepthBox {
+  const alongW = w >= h;
+  const cc = alongW ? col + w * a : col + w * c;
+  const cr = alongW ? row + h * c : row + h * a;
+  const bw = alongW ? along : across_; const bh = alongW ? across_ : along;
+  return { col: cc - bw / 2, row: cr - bh / 2, w: bw, h: bh };
+}
+
+// One insulator stack: porcelain discs threaded on a rod, from `p` up.
+function InsulatorStack({ p, rise, discs = 5, rx = 2.1 }: { p: Pt; rise: number; discs?: number; rx?: number }) {
+  const top = lift(p, rise);
+  return (
+    <g className="lab-insulator">
+      <line x1={p.x} y1={p.y} x2={top.x} y2={top.y} stroke="#4b3a33" strokeWidth={0.8} />
+      {Array.from({ length: discs }, (_, i) => {
+        const q = lift(p, rise * ((i + 0.7) / (discs + 0.2)));
+        return <ellipse key={i} cx={q.x} cy={q.y} rx={rx * (1 - i * 0.05)} ry={rx * 0.42} fill={i % 2 === 0 ? PORCELAIN : shade(PORCELAIN, 1.18)} stroke="rgba(40, 24, 18, 0.55)" strokeWidth={0.4} />;
+      })}
+      <circle cx={top.x} cy={top.y} r={0.9} fill="#b9bcbf" />
+    </g>
+  );
+}
+
+// The bushings' tops, for the line to land on.
+function bushingTops(b: DepthBox, base: number, alongW: boolean): Pt[] {
+  return [0.22, 0.5, 0.78].map((f) => {
+    const c = alongW ? b.col + b.w * f : b.col + b.w / 2;
+    const r = alongW ? b.row + b.h / 2 : b.row + b.h * f;
+    return lift(project(c, r), base + TRANSFORMER_RISE + up(3.4));
+  });
+}
+
+function Transformer({ col, row, w, h, base, alongW }: DepthBox & { base: number; alongW: boolean }) {
+  const tank = boxFaces(col, row, w, h, base, TRANSFORMER_RISE);
+  // Radiator fins: close vertical ribs down both visible faces.
+  const fins = (o: Pt, a: Pt, key: string) => {
+    const n = 9;
+    return Array.from({ length: n }, (_, i) => {
+      const u = 0.08 + (0.84 * i) / (n - 1);
+      const p0 = facePoint(o, a, TRANSFORMER_RISE, u, 0.08); const p1 = facePoint(o, a, TRANSFORMER_RISE, u, 0.86);
+      return <line key={`${key}${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#4f5a53" strokeWidth={0.9} />;
+    });
+  };
+  // A conservator: a small drum along the lid's back edge.
+  return (
+    <g className="lab-transformer">
+      {sideFaces(tank, shade(TANK_GREEN, 0.96), shade(TANK_GREEN, 0.8))}
+      {fins(tank.D, tank.C, 'l')}
+      {fins(tank.C, tank.B, 'r')}
+      <polygon points={polyPoints(tank.top)} fill={shade(TANK_GREEN, 1.12)} />
+      {[0.22, 0.5, 0.78].map((f) => {
+        const c = alongW ? col + w * f : col + w / 2;
+        const r = alongW ? row + h / 2 : row + h * f;
+        return <InsulatorStack key={f} p={lift(project(c, r), base + TRANSFORMER_RISE)} rise={up(3.4)} />;
+      })}
+    </g>
+  );
+}
+
+// A lattice pylon: four legs tapering to a waist, cross-braced, with a
+// crossarm hung with insulator strings.
+function Pylon({ col, row, w, h, base, alongW }: DepthBox & { base: number; alongW: boolean }) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const half = w / 2; const waist = half * 0.32;
+  const corner = (r: number, z: number, i: number): Pt => {
+    const dc = (i === 0 || i === 3 ? -1 : 1) * r; const dr = (i < 2 ? -1 : 1) * r;
+    return lift(project(cc + dc, cr + dr), z);
+  };
+  const levels = [0, 0.3, 0.55, 0.78, 1];
+  const rAt = (f: number) => half + (waist - half) * f;
+  const steel = '#5a5f63';
+  const lines: Array<[Pt, Pt]> = [];
+  for (let i = 0; i < 4; i += 1) lines.push([corner(half, base, i), corner(waist, base + PYLON_RISE, i)]);
+  for (let k = 0; k < levels.length - 1; k += 1) {
+    const z0 = base + PYLON_RISE * levels[k]!; const z1 = base + PYLON_RISE * levels[k + 1]!;
+    const r0 = rAt(levels[k]!); const r1 = rAt(levels[k + 1]!);
+    for (let i = 0; i < 4; i += 1) {
+      const j = (i + 1) % 4;
+      lines.push([corner(r0, z0, i), corner(r1, z1, j)], [corner(r0, z0, j), corner(r1, z1, i)]);
+      lines.push([corner(r1, z1, i), corner(r1, z1, j)]);
+    }
+  }
+  // The crossarm runs across the roof's long axis, so the line leaves along it.
+  const armZ = base + PYLON_RISE * 0.86;
+  const arm = (s: number) => lift(project(alongW ? cc : cc + s * half * 1.5, alongW ? cr + s * half * 1.5 : cr), armZ);
+  const ends = [arm(-1), arm(1)];
+  const tip = lift(project(cc, cr), base + PYLON_RISE + up(1.6));
+  return (
+    <g className="lab-pylon">
+      {lines.map(([p, q], i) => <line key={i} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={steel} strokeWidth={i < 4 ? 1.1 : 0.55} />)}
+      <line x1={ends[0]!.x} y1={ends[0]!.y} x2={ends[1]!.x} y2={ends[1]!.y} stroke={steel} strokeWidth={1.2} />
+      <line x1={lift(project(cc, cr), base + PYLON_RISE).x} y1={lift(project(cc, cr), base + PYLON_RISE).y} x2={tip.x} y2={tip.y} stroke={steel} strokeWidth={0.8} />
+      {ends.map((e, i) => <InsulatorStack key={i} p={lift(e, -up(2.2))} rise={up(2.2)} discs={4} rx={1.4} />)}
+    </g>
+  );
+}
+
+// The line from the pylon's crossarm to each transformer's middle bushing,
+// sagging between them. Drawn over the yard, after everything on the roof.
+function pylonLines(items: RoofItem[], base: number, alongW: boolean) {
+  const pylon = items.find((x) => x.kind === 'pylon');
+  if (!pylon) return null;
+  const cc = pylon.col + pylon.w / 2; const cr = pylon.row + pylon.h / 2;
+  const half = pylon.w / 2;
+  const armZ = base + PYLON_RISE * 0.86 - up(2.2);
+  const arm = (s: number) => lift(project(alongW ? cc : cc + s * half * 1.5, alongW ? cr + s * half * 1.5 : cr), armZ);
+  const tops = items.filter((x) => x.kind === 'transformers').map((b) => bushingTops(b, base, alongW)[1]!);
+  return (
+    <g className="lab-lines">
+      {tops.flatMap((q, i) => [-1, 1].map((s) => {
+        const p = arm(s);
+        const mx = (p.x + q.x) / 2; const my = Math.max(p.y, q.y) + 4;
+        return <path key={`${i}${s}`} d={`M${p.x.toFixed(1)},${p.y.toFixed(1)}Q${mx.toFixed(1)},${my.toFixed(1)} ${q.x.toFixed(1)},${q.y.toFixed(1)}`} fill="none" stroke="#2f3336" strokeWidth={0.5} />;
+      }))}
+    </g>
+  );
+}
+
+// A distillation column: a tall steel shell with a domed head, a ladder,
+// and platforms with handrails at three levels.
+function Still({ col, row, w, base, rise }: DepthBox & { base: number; rise: number }) {
+  const r = w / 2;
+  const cc = col + r; const cr = row + r;
+  const ring = (rad: number, z: number) => projectedCircle(cc, cr, rad, 24).map((q) => lift(q, z));
+  const levels = [0.34, 0.62, 0.88];
+  const head = lift(project(cc, cr), base + rise);
+  const rx = (Math.max(...ring(r, 0).map((q) => q.x)) - Math.min(...ring(r, 0).map((q) => q.x))) / 2;
+  const ladder = (() => {
+    const near = nearRing(ring(r * 1.02, base));
+    const p = near[Math.floor(near.length * 0.35)]!;
+    return { p0: p, p1: lift(p, rise * 0.9) };
+  })();
+  return (
+    <g className="lab-still">
+      {/* The platforms' far halves, behind the shell. */}
+      {levels.map((v) => <polygon key={`b${v}`} points={polyPoints(ring(r * 1.8, base + rise * v))} fill={PLATFORM} />)}
+      <Cylinder cc={cc} cr={cr} r={r} z0={base} z1={base + rise} fill={STILL_STEEL} />
+      <path d={`M${(head.x - rx).toFixed(1)},${head.y.toFixed(1)}Q${head.x.toFixed(1)},${(head.y - rx * 0.9).toFixed(1)} ${(head.x + rx).toFixed(1)},${head.y.toFixed(1)}Z`} fill={shade(STILL_STEEL, 1.06)} stroke="rgba(40, 42, 44, 0.35)" strokeWidth={0.5} />
+      <line x1={ladder.p0.x} y1={ladder.p0.y} x2={ladder.p1.x} y2={ladder.p1.y} stroke="#5b6166" strokeWidth={0.7} />
+      {/* Weld seams down the shell. */}
+      {[0.2, 0.48, 0.76].map((v) => (
+        <polyline key={`s${v}`} points={polyPoints(nearRing(ring(r, base + rise * v)))} fill="none" stroke="rgba(70, 76, 80, 0.45)" strokeWidth={0.5} />
+      ))}
+      {/* Their near halves, a grating ring in front of it, and a rail. */}
+      {levels.map((v) => {
+        const z = base + rise * v;
+        return (
+          <g key={`p${v}`}>
+            <polygon points={polyPoints([...nearRing(ring(r * 1.8, z)), ...nearRing(ring(r, z)).reverse()])} fill={shade(PLATFORM, 1.15)} stroke="#4a4f53" strokeWidth={0.5} />
+            <polyline points={polyPoints(nearRing(ring(r * 1.8, z + up(1.1))))} fill="none" stroke={GANTRY_YELLOW} strokeWidth={0.7} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// The pipe rack: steel bents along its length carrying two tiers of pipes,
+// each pipe drawn as a line in its service's color.
+function PipeRack({ col, row, w, h, base, alongW }: DepthBox & { base: number; alongW: boolean }) {
+  const len = alongW ? w : h;
+  const bents = Math.max(3, Math.round((len * METRES_PER_TILE) / 6));
+  const at = (a: number, c: number, z: number) => lift(project(alongW ? col + w * a : col + w * c, alongW ? row + h * c : row + h * a), z);
+  const steel = '#6a5d55';
+  const tiers = [base + PIPE_RACK_RISE * 0.62, base + PIPE_RACK_RISE];
+  const pipes: Array<[number, number, string, number]> = [
+    [0, 0.25, '#b9bec2', 1.7], [0, 0.55, '#a14a35', 1.5], [0, 0.82, '#d4b347', 1.2],
+    [1, 0.3, '#8e979d', 1.9], [1, 0.7, '#e8e6df', 1.6],
+  ];
+  return (
+    <g className="lab-pipe-rack">
+      {/* The bents: two legs and two crossbeams each. */}
+      {Array.from({ length: bents }, (_, i) => {
+        const a = (i + 0.5) / bents;
+        const l0 = at(a, 0.08, base); const l1 = at(a, 0.92, base);
+        const t0 = at(a, 0.08, tiers[1]!); const t1 = at(a, 0.92, tiers[1]!);
+        const m0 = at(a, 0.08, tiers[0]!); const m1 = at(a, 0.92, tiers[0]!);
+        return (
+          <g key={`b${i}`}>
+            <line x1={l0.x} y1={l0.y} x2={t0.x} y2={t0.y} stroke={steel} strokeWidth={1} />
+            <line x1={l1.x} y1={l1.y} x2={t1.x} y2={t1.y} stroke={steel} strokeWidth={1} />
+            <line x1={m0.x} y1={m0.y} x2={m1.x} y2={m1.y} stroke={steel} strokeWidth={0.8} />
+            <line x1={t0.x} y1={t0.y} x2={t1.x} y2={t1.y} stroke={steel} strokeWidth={0.8} />
+          </g>
+        );
+      })}
+      {/* The pipes, the far ones first. */}
+      {pipes.map(([tier, c, color, width], i) => {
+        const p0 = at(0, c, tiers[tier]! + up(0.35)); const p1 = at(1, c, tiers[tier]! + up(0.35));
+        return (
+          <g key={`p${i}`}>
+            <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(color, 0.7)} strokeWidth={width + 0.6} strokeLinecap="round" />
+            <line x1={p0.x} y1={p0.y - 0.3} x2={p1.x} y2={p1.y - 0.3} stroke={color} strokeWidth={width * 0.6} strokeLinecap="round" />
+          </g>
+        );
+      })}
+    </g>
+  );
 }
 
 // One fume flue, standing on the roof at `base`.
@@ -699,19 +951,6 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }:
   return <>{out}</>;
 }
 
-// A small box on a roof: plant, a stair head, a lift overrun.
-function RoofBox({ col, row, w, h, base, height, tint }: {
-  col: number; row: number; w: number; h: number; base: number; height: number; tint: string;
-}) {
-  const f = boxFaces(col, row, w, h, base, height);
-  return (
-    <>
-      {sideFaces(f, shade(tint, 0.66), shade(tint, 0.56))}
-      <polygon points={polyPoints(f.top)} fill={shade(tint, 0.8)} />
-    </>
-  );
-}
-
 // The academic hall: the landmark, drawn from a real reference building.
 // Plinth, floor courses, cornice and parapet, a shallow hipped roof, a
 // projecting pedimented center bay, raised end blocks, and on Founders Hall
@@ -826,6 +1065,83 @@ function cornerPavilions(col: number, row: number, w: number, h: number, plan: n
     out.push({ col: atEndCol ? col + w - depth : col, row: atEndRow ? row + h - plan : row + depth, w: depth, h: plan - depth });
   }
   return out;
+}
+
+// A balustrade along the eaves, all four sides, with an urn on a pedestal at
+// each corner (Plan 87H): how a Georgian hall finishes a hipped roof behind
+// its parapet (Harvard's University Hall, the pavilions of Jefferson's
+// Lawn). Plinth, balusters, rail and piers in the trim, painted after the
+// roof: far sides first, then the corners far to near.
+const EAVES_BALUSTRADE_RISE = up(1.1);
+const EAVES_BALUSTRADE_DEPTH = across(0.45);
+const BALUSTER_SPACING = across(0.7);
+const BALUSTRADE_PIER_EVERY = across(13);
+function EavesBalustrade({ col, row, w, h, base, stone }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette;
+}) {
+  const trim = stone.trim === NO_STONE ? stone.towerStone : stone.trim;
+  const R = EAVES_BALUSTRADE_RISE; const D = EAVES_BALUSTRADE_DEPTH;
+  const dirs: FaceDir[] = ['negRow', 'posCol', 'posRow', 'negCol'];
+  const runOf = (dir: FaceDir) => againstWall(col, row, w, h, dir, 0, wallSpan(w, h, dir), D, D);
+  const midY = (b: DepthBox) => project(b.col + b.w / 2, b.row + b.h / 2).y;
+  const side = (dir: FaceDir) => {
+    const b = runOf(dir);
+    const span = wallSpan(w, h, dir);
+    const plinth = boxFaces(b.col, b.row, b.w, b.h, base, R * 0.16);
+    const rail = boxFaces(b.col, b.row, b.w, b.h, base + R * 0.78, R * 0.18);
+    // The balusters, one path on the run's outer face.
+    const face = wallOf(boxFaces(b.col, b.row, b.w, b.h, base + R * 0.16, R * 0.62), dir);
+    const n = Math.max(2, Math.round(span / BALUSTER_SPACING));
+    const bars = Array.from({ length: n }, (_, i) => {
+      const u = (i + 0.5) / n;
+      const a = facePoint(face.origin, face.along, R * 0.62, u, 0); const c = facePoint(face.origin, face.along, R * 0.62, u, 1);
+      return `M${a.x},${a.y}L${c.x},${c.y}`;
+    }).join('');
+    // Piers between the corners, on a wide run.
+    const piers = Math.max(0, Math.round(span / BALUSTRADE_PIER_EVERY) - 1);
+    return (
+      <g key={dir}>
+        {sideFaces(plinth, shade(trim, 0.92), shade(trim, 0.76))}
+        <polygon points={polyPoints(plinth.top)} fill={trim} />
+        <path d={bars} stroke={shade(trim, face.visible ? 0.98 : 0.86)} strokeWidth={1} fill="none" />
+        {sideFaces(rail, shade(trim, 0.95), shade(trim, 0.8))}
+        <polygon points={polyPoints(rail.top)} fill={shade(trim, 1.02)} />
+        {Array.from({ length: piers }, (_, i) => {
+          const at = (span * (i + 1)) / (piers + 1);
+          const pb = againstWall(col, row, w, h, dir, at - D * 0.6, D * 1.2, D * 1.2, D * 1.1);
+          return <g key={i}>{plainBox(boxFaces(pb.col, pb.row, pb.w, pb.h, base, R), shade(trim, 0.95), shade(trim, 0.78), trim, `p${i}`)}</g>;
+        })}
+      </g>
+    );
+  };
+  // An urn on its pedestal at each corner of the roof.
+  const P = D * 1.5;
+  const corners: Array<[number, number]> = [[col, row], [col + w - P, row], [col + w - P, row + h - P], [col, row + h - P]];
+  const urn = ([c, r]: [number, number], i: number) => {
+    const ped = boxFaces(c, r, P, P, base, R * 1.1);
+    const foot = lift(project(c + P / 2, r + P / 2), base + R * 1.1);
+    const at = (z: number) => lift(foot, z).y;
+    const k = foot.y - at(1);                  // screen units per world unit of height
+    // Drawn a little over life size (Plan 87H) so the urns read at the map's zoom.
+    const rx = 2.6;
+    const vase = [
+      [-0.35, 0], [0.35, 0], [0.25, 0.25], [1, 0.75], [0.9, 1.25], [0.45, 1.5], [0.6, 1.62], [-0.6, 1.62], [-0.45, 1.5], [-0.9, 1.25], [-1, 0.75], [-0.25, 0.25],
+    ].map(([x, z]) => ({ x: foot.x + x * rx, y: foot.y - z * up(1.4) * k }));
+    return (
+      <g key={`u${i}`}>
+        {plainBox(ped, shade(trim, 0.95), shade(trim, 0.78), trim, `ped${i}`)}
+        <polygon points={polyPoints(vase)} fill={shade(trim, 0.93)} stroke={shade(trim, 0.7)} strokeWidth={0.4} />
+        <circle cx={foot.x} cy={foot.y - up(2.6) * k} r={1.3} fill={shade(trim, 0.9)} />
+      </g>
+    );
+  };
+  return (
+    <g className="iso-eaves-balustrade">
+      {[...dirs].sort((a, b) => midY(runOf(a)) - midY(runOf(b))).map(side)}
+      {corners.map((p, i) => ({ p, i, y: project(p[0] + P / 2, p[1] + P / 2).y }))
+        .sort((a, b) => a.y - b.y).map(({ p, i }) => urn(p, i))}
+    </g>
+  );
 }
 
 // The center bay projects from the front past the cornice, capped with a
@@ -1523,6 +1839,461 @@ function Cylinder({ cc, cr, r, z0, z1, fill }: { cc: number; cr: number; r: numb
   );
 }
 
+// --- The school labs (Plan 87E) -----------------------------------------
+// Science, Engineering, Health and Computer Science were one box under four
+// roof units. Each now carries what that kind of building carries: Science
+// a row of fume-hood stacks and a rooftop greenhouse (the lab towers of any
+// chemistry building); Engineering a high-bay workshop with a sectional door
+// and a crane beam over it; Health a drop-off canopy, a clinic sign with a
+// green cross and bay windows; Computer Science a glazed atrium rising past
+// the parapet and arrays of solar panels. The walls are the vernacular's.
+
+// Galvanised steel: the fan deck and the louvred plant screens.
+const PLANT_STEEL = '#a9aeb0';
+
+export type SchoolRoofPart = 'fumeRow' | 'greenhouse' | 'plantScreen' | 'solar';
+
+// A box by fractions along the footprint's long side (a) and across it (c).
+function longBox(col: number, row: number, w: number, h: number, a0: number, a1: number, c0: number, c1: number): DepthBox {
+  return w >= h
+    ? { col: col + w * a0, row: row + h * c0, w: w * (a1 - a0), h: h * (c1 - c0) }
+    : { col: col + w * c0, row: row + h * a0, w: w * (c1 - c0), h: h * (a1 - a0) };
+}
+
+// What a school lab stands on its flat roof, in place of the generic plant.
+function schoolRoofItems(sig: SignatureFeature | undefined, col: number, row: number, w: number, h: number): RoofItem[] {
+  const item = (part: SchoolRoofPart, key: string, b: DepthBox): RoofItem => ({ kind: 'school', part, key, ...b });
+  const screen = (a0: number, a1: number, c0: number, c1: number) => {
+    const b = longBox(col, row, w, h, a0, a1, c0, c1);
+    return item('plantScreen', 'screen', { ...b, w: Math.min(b.w, across(9)), h: Math.min(b.h, across(9)) });
+  };
+  switch (sig) {
+    case 'fumeHoods':
+      return [
+        item('fumeRow', 'fume', longBox(col, row, w, h, 0.08, 0.92, 0.07, 0.2)),
+        item('greenhouse', 'greenhouse', longBox(col, row, w, h, 0.08, 0.6, 0.42, 0.86)),
+        screen(0.68, 0.9, 0.46, 0.84),
+      ];
+    case 'workshop': return [screen(0.3, 0.7, 0.3, 0.7)];
+    case 'clinic': return [screen(0.56, 0.84, 0.22, 0.6)];
+    case 'atrium': {
+      // Rows along col, tilted to +row, in two arrays a row with a walkway
+      // between; clear of the atrium crowns at the walls.
+      const pitch = across(6.5);
+      const n = Math.max(1, Math.floor((h * 0.72) / pitch));
+      const depth = Math.min(across(4.2), pitch * 0.68);
+      const out: RoofItem[] = [];
+      for (let i = 0; i < n; i++) {
+        const r0 = row + h * 0.14 + i * pitch + (h * 0.72 - n * pitch) / 2;
+        out.push(item('solar', `solar-${i}a`, { col: col + w * 0.12, row: r0, w: w * 0.36, h: depth }));
+        out.push(item('solar', `solar-${i}b`, { col: col + w * 0.52, row: r0, w: w * 0.36, h: depth }));
+      }
+      return out;
+    }
+    default: return [];
+  }
+}
+
+// One school roof part, standing on the roof at `base`.
+function SchoolRoofItem({ part, col, row, w, h, base, tint }: DepthBox & { part: SchoolRoofPart; base: number; tint: string }) {
+  const alongW = w >= h;
+  switch (part) {
+    case 'fumeRow': {
+      // A fan deck along the back of the roof and a row of tall slim exhaust
+      // stacks on it, each under a rain cap; drawn far to near.
+      const deckRise = up(1.1);
+      const deck = boxFaces(col, row, w, h, base, deckRise);
+      const n = 6;
+      const r = Math.min(across(0.6), Math.min(w, h) * 0.3);
+      const z0 = base + deckRise; const z1 = z0 + up(7.5);
+      const stacks = Array.from({ length: n }, (_, i) => {
+        const a = (i + 0.5) / n;
+        return alongW ? { cc: col + w * a, cr: row + h * 0.5 } : { cc: col + w * 0.5, cr: row + h * a };
+      }).sort((p, q) => project(p.cc, p.cr).y - project(q.cc, q.cr).y);
+      return (
+        <g className="school-fume-hoods">
+          {sideFaces(deck, shade(PLANT_STEEL, 0.82), shade(PLANT_STEEL, 0.68))}
+          <polygon points={polyPoints(deck.top)} fill={shade(PLANT_STEEL, 0.94)} />
+          {stacks.map(({ cc, cr }, i) => (
+            <g key={i}>
+              <Cylinder cc={cc} cr={cr} r={r} z0={z0} z1={z1} fill="#b8bdc1" />
+              <Cylinder cc={cc} cr={cr} r={r * 0.4} z0={z1} z1={z1 + up(0.5)} fill="#6f767b" />
+              <Cylinder cc={cc} cr={cr} r={r * 1.75} z0={z1 + up(0.5)} z1={z1 + up(0.9)} fill="#8b9196" />
+            </g>
+          ))}
+        </g>
+      );
+    }
+    case 'greenhouse': {
+      // A glazed ridge house: a low wall, glass walls and roof on a frame,
+      // benches of plants showing through.
+      const eaves = up(2.4); const ridge = up(4.4); const knee = up(0.7);
+      const f = boxFaces(col, row, w, h, base, eaves);
+      const rA = lift(alongW ? project(col, row + h / 2) : project(col + w / 2, row), base + ridge);
+      const rB = lift(alongW ? project(col + w, row + h / 2) : project(col + w / 2, row + h), base + ridge);
+      const slopes: Array<[FaceDir, Pt[], Pt[]]> = alongW
+        ? [['negRow', [f.NWt, f.NEt], [rA, rB]], ['posRow', [f.SWt, f.SEt], [rA, rB]]]
+        : [['negCol', [f.NWt, f.SWt], [rA, rB]], ['posCol', [f.NEt, f.SEt], [rA, rB]]];
+      const endDir: FaceDir = alongW ? 'posCol' : 'posRow';
+      const end: Pt[] = wallOf(f, endDir).visible
+        ? (alongW ? [f.NEt, f.SEt, rB] : [f.SWt, f.SEt, rB])
+        : (alongW ? [f.NWt, f.SWt, rA] : [f.NWt, f.NEt, rA]);
+      const bays = Math.max(3, Math.round(Math.max(w, h) / across(2.2)));
+      const frame = '#f2f4f2';
+      const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
+      const benches = boxFaces(col + w * 0.06, row + h * 0.1, w * 0.88, h * 0.8, base, up(1.6));
+      return (
+        <g className="school-greenhouse">
+          <polygon points={polyPoints(benches.top)} fill="#4f8a3c" />
+          {faces.map(({ o, a, span }, i) => {
+            const n = Math.max(2, Math.round(span / across(2.2)));
+            return (
+              <g key={i}>
+                <polygon points={polyPoints(wallQuad(o, a, eaves, 0, 1, 0, eaves))} className="glass-pane" />
+                <polygon points={polyPoints(wallQuad(o, a, eaves, 0, 1, 0, knee))} fill={shade(tint, i === 0 ? 0.9 : 0.75)} />
+                {Array.from({ length: n + 1 }, (_, k) => {
+                  const p0 = facePoint(o, a, eaves, k / n, knee / eaves); const p1 = facePoint(o, a, eaves, k / n, 1);
+                  return <line key={k} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={frame} strokeWidth={0.8} />;
+                })}
+              </g>
+            );
+          })}
+          {backSlopesFirst(slopes, (x) => x[0]).map(([dir, [e0, e1], [q0, q1]]) => (
+            <g key={dir}>
+              <polygon points={polyPoints([e0, e1, q1, q0])} fill="rgba(214, 238, 242, 0.5)" stroke="rgba(80, 104, 110, 0.6)" strokeWidth={0.8} />
+              {Array.from({ length: bays - 1 }, (_, k) => {
+                const t = (k + 1) / bays;
+                const lo = { x: e0.x + (e1.x - e0.x) * t, y: e0.y + (e1.y - e0.y) * t };
+                const hi = { x: q0.x + (q1.x - q0.x) * t, y: q0.y + (q1.y - q0.y) * t };
+                return <line key={k} x1={lo.x} y1={lo.y} x2={hi.x} y2={hi.y} stroke={frame} strokeWidth={0.7} />;
+              })}
+            </g>
+          ))}
+          <polygon points={polyPoints(end)} fill="rgba(214, 238, 242, 0.5)" stroke="rgba(80, 104, 110, 0.6)" strokeWidth={0.8} />
+          <line x1={rA.x} y1={rA.y} x2={rB.x} y2={rB.y} stroke={frame} strokeWidth={1.3} />
+        </g>
+      );
+    }
+    case 'plantScreen': {
+      // A louvred screen round the air handlers: slatted walls, a fan in the
+      // open top.
+      const rise = up(2.8);
+      const f = boxFaces(col, row, w, h, base, rise);
+      const faces = [{ o: f.D, a: f.C }, { o: f.C, a: f.B }];
+      const slats = 6;
+      const top = boxFaces(col, row, w, h, base, rise).top;
+      const r = Math.min(w, h) * 0.26;
+      const fan = projectedCircle(col + w / 2, row + h / 2, r, 20).map((q) => lift(q, base + rise));
+      return (
+        <g className="school-plant-screen">
+          {sideFaces(f, shade(PLANT_STEEL, 0.92), shade(PLANT_STEEL, 0.76))}
+          {faces.map(({ o, a }, i) => (
+            <g key={i}>
+              {Array.from({ length: slats }, (_, k) => {
+                const v = (k + 0.6) / slats;
+                const p0 = facePoint(o, a, rise, 0.02, v); const p1 = facePoint(o, a, rise, 0.98, v);
+                return <line key={k} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(PLANT_STEEL, 0.55)} strokeWidth={0.8} />;
+              })}
+            </g>
+          ))}
+          <polygon points={polyPoints(top)} fill={shade(PLANT_STEEL, 0.62)} />
+          <polygon points={polyPoints(fan)} fill="#3d4246" stroke="#8b9196" strokeWidth={0.8} />
+        </g>
+      );
+    }
+    case 'solar': {
+      // An east-west array: two banks of dark blue cells leaning back to
+      // back along a ridge, so one bank faces the camera from any side; the
+      // gray backs of a bank turned away.
+      const zRidge = base + up(1.5); const zLo = base + up(0.45);
+      const mid = row + h / 2;
+      const P3 = (c: number, r: number, z: number) => lift(project(c, r), z);
+      const ground = [project(col, row), project(col + w, row), project(col + w, row + h), project(col, row + h)];
+      const area = (p: Pt[]) => p.reduce((s, a, i) => { const b = p[(i + 1) % p.length]!; return s + a.x * b.y - b.x * a.y; }, 0);
+      const banks: Array<[FaceDir, Pt[]]> = [
+        ['negRow', [P3(col, row, zLo), P3(col + w, row, zLo), P3(col + w, mid, zRidge), P3(col, mid, zRidge)]],
+        ['posRow', [P3(col, mid, zRidge), P3(col + w, mid, zRidge), P3(col + w, row + h, zLo), P3(col, row + h, zLo)]],
+      ];
+      const cells = Math.max(4, Math.round(w / across(1.7)));
+      return (
+        <g className="school-solar">
+          {backSlopesFirst(banks, (b) => b[0]).map(([dir, q]) => {
+            const front = Math.sign(area(q)) === Math.sign(area(ground));
+            const P = (s: number, t: number): Pt => ({
+              x: q[0]!.x + (q[1]!.x - q[0]!.x) * s + (q[3]!.x - q[0]!.x) * t,
+              y: q[0]!.y + (q[1]!.y - q[0]!.y) * s + (q[3]!.y - q[0]!.y) * t,
+            });
+            return (
+              <g key={dir}>
+                <polygon points={polyPoints(q)} fill={front ? '#1f3d70' : '#73797e'} stroke={front ? '#c8d2dc' : '#4f5459'} strokeWidth={0.6} />
+                {front && Array.from({ length: cells - 1 }, (_, k) => {
+                  const a = P((k + 1) / cells, 0); const b = P((k + 1) / cells, 1);
+                  return <line key={k} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#7d9cc8" strokeWidth={0.45} />;
+                })}
+                {front && (() => { const a = P(0, 0.5); const b = P(1, 0.5); return <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#7d9cc8" strokeWidth={0.45} />; })()}
+              </g>
+            );
+          })}
+          {/* The end the camera sees: a frame triangle. */}
+          {(() => {
+            const c = wallOf(boxFaces(col, row, w, h, 0, 0), 'posCol').visible ? col + w : col;
+            return <polygon points={polyPoints([P3(c, row, zLo), P3(c, mid, zRidge), P3(c, row + h, zLo), P3(c, row + h, base), P3(c, row, base)])} fill="#5d6267" />;
+          })()}
+        </g>
+      );
+    }
+  }
+}
+
+// Engineering's footprint: the office block and, at the low end of the long
+// axis, the high-bay workshop wing.
+const WORKSHOP_SHARE = 0.4;
+const WORKSHOP_RISE = up(5.6);
+function workshopSplit(col: number, row: number, w: number, h: number): { office: DepthBox; wing: DepthBox; end: FaceDir; joint: FaceDir } {
+  return w >= h
+    ? { wing: { col, row, w: w * WORKSHOP_SHARE, h }, office: { col: col + w * WORKSHOP_SHARE, row, w: w * (1 - WORKSHOP_SHARE), h }, end: 'negCol', joint: 'posCol' }
+    : { wing: { col, row, w, h: h * WORKSHOP_SHARE }, office: { col, row: row + h * WORKSHOP_SHARE, w, h: h * (1 - WORKSHOP_SHARE) }, end: 'negRow', joint: 'posRow' };
+}
+
+// A sectional door: a dark frame, steel panels in horizontal slats and a
+// row of vision panes, on wall `face` of a wall `H` high and `span` tiles long.
+function SectionalDoor({ o, a, H, span, widthM, heightM }: { o: Pt; a: Pt; H: number; span: number; widthM: number; heightM: number }) {
+  const half = across(widthM) / span / 2;
+  const top = up(heightM);
+  const slat = up(0.62);
+  const n = Math.floor(top / slat);
+  const panes = 4;
+  return (
+    <g className="school-sectional-door">
+      <polygon points={polyPoints(wallQuad(o, a, H, 0.5 - half - 0.015, 0.5 + half + 0.015, 0, top + up(0.5)))} fill="#3a3f43" />
+      <polygon points={polyPoints(wallQuad(o, a, H, 0.5 - half, 0.5 + half, 0, top))} fill="#c4cacd" />
+      {Array.from({ length: n }, (_, k) => {
+        const p0 = facePoint(o, a, H, 0.5 - half, ((k + 1) * slat) / H); const p1 = facePoint(o, a, H, 0.5 + half, ((k + 1) * slat) / H);
+        return <line key={k} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#7b8489" strokeWidth={0.7} />;
+      })}
+      {Array.from({ length: panes }, (_, k) => {
+        const u0 = 0.5 - half + ((k + 0.25) / panes) * half * 2; const u1 = 0.5 - half + ((k + 0.75) / panes) * half * 2;
+        return <polygon key={`p${k}`} points={polyPoints(wallQuad(o, a, H, u0, u1, top * 0.58, top * 0.58 + slat * 0.8))} fill="#33424c" />;
+      })}
+      <polygon points={polyPoints(wallQuad(o, a, H, 0.5 - half - 0.015, 0.5 + half + 0.015, top + up(0.5), top + up(0.8)))} fill={GANTRY_YELLOW} />
+    </g>
+  );
+}
+
+// The workshop wing: tall plain walls, a clerestory, a sectional door on
+// each wall the camera sees from outside, a crane beam over the first, and
+// rooflights. `crestNode` is the vernacular's crest on its parapet.
+function WorkshopWing({ wing, end, joint, height, pal, stone, trim, crestNode }: {
+  wing: DepthBox; end: FaceDir; joint: FaceDir; height: number; pal: Palette; stone: StonePalette; trim: boolean;
+  crestNode: React.ReactNode;
+}) {
+  const { col, row, w, h } = wing;
+  const H = height;
+  const f = boxFaces(col, row, w, h, 0, H);
+  const seen = visibleWalls();
+  const faces = ([seen.left, seen.right] as FaceDir[]).map((dir) => ({ dir, ...wallOf(f, dir), span: wallSpan(w, h, dir) }));
+  const outside = faces.filter((x) => x.dir !== joint);
+  const craneOn = outside.find((x) => x.dir === end) ?? outside[0];
+  const doorW = (dir: FaceDir) => (dir === end ? 10 : 8);
+  const doorH = (dir: FaceDir) => (dir === end ? 8 : 7);
+  const lights = depthOrder([0.3, 0.7].map((t) => (isRowWall(end)
+    ? { col: col + w * 0.1, row: row + h * t - across(0.9), w: w * 0.8, h: across(1.8) }
+    : { col: col + w * t - across(0.9), row: row + h * 0.1, w: across(1.8), h: h * 0.8 })));
+  const crane = craneOn && (() => {
+    const { dir, span } = craneOn;
+    const reach = across(7);
+    const zb = up(doorH(dir) + 1.6);
+    const beam = againstWall(col, row, w, h, dir, span / 2 - across(0.35), across(0.7), reach);
+    const bf = boxFaces(beam.col, beam.row, beam.w, beam.h, zb, up(1));
+    const trolley = againstWall(col, row, w, h, dir, span / 2 - across(0.5), across(1), across(1.2), -across(4.6));
+    const tf = boxFaces(trolley.col, trolley.row, trolley.w, trolley.h, zb - up(1), up(1));
+    const hook = outsideWall(col, row, w, h, dir, span / 2, across(5.2));
+    const h0 = lift(project(hook.col, hook.row), zb - up(0.8)); const h1 = lift(project(hook.col, hook.row), up(3));
+    const s0g = outsideWall(col, row, w, h, dir, span / 2, 0);
+    const s0 = lift(project(s0g.col, s0g.row), zb - up(2.8));
+    const s1g = outsideWall(col, row, w, h, dir, span / 2, across(3));
+    const s1 = lift(project(s1g.col, s1g.row), zb);
+    return (
+      <g className="school-crane">
+        <line x1={s0.x} y1={s0.y} x2={s1.x} y2={s1.y} stroke={shade(GANTRY_YELLOW, 0.8)} strokeWidth={2} />
+        {sideFaces(bf, shade(GANTRY_YELLOW, 0.92), shade(GANTRY_YELLOW, 0.76))}
+        <polygon points={polyPoints(bf.top)} fill={shade(GANTRY_YELLOW, 1.08)} />
+        {sideFaces(tf, '#4a4d50', '#3b3e41')}
+        <line x1={h0.x} y1={h0.y} x2={h1.x} y2={h1.y} stroke="#2e3032" strokeWidth={0.8} />
+        <polygon points={polyPoints([{ x: h1.x - 1.6, y: h1.y }, { x: h1.x + 1.6, y: h1.y }, { x: h1.x, y: h1.y + 2.4 }])} fill="#2e3032" />
+      </g>
+    );
+  })();
+  return (
+    <g className="school-workshop">
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {faces.map(({ dir, origin, along, span }) => (
+        <g key={dir}>
+          {trim && <WallBand origin={origin} along={along} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />}
+          {/* Portal-frame piers between the bays. */}
+          {Array.from({ length: Math.max(1, Math.round(span / across(7.5))) - 1 }, (_, k) => {
+            const u = (k + 1) / Math.max(1, Math.round(span / across(7.5)));
+            return <polygon key={k} points={polyPoints(wallQuad(origin, along, H, u - 0.012, u + 0.012, 0, H))} fill={shade(pal.wall[dir], 0.86)} />;
+          })}
+          <CurtainWall origin={origin} along={along} wallHeight={H} spanTiles={span} from={H - up(3.6)} to={H - up(1.2)} floors={[]} id={`ws${dir}`} u0={0.05} u1={0.95} />
+          {trim && <WallBand origin={origin} along={along} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={stone.trim} />}
+        </g>
+      ))}
+      {outside.map(({ dir, origin, along, span }) => (
+        <SectionalDoor key={`d${dir}`} o={origin} a={along} H={H} span={span} widthM={doorW(dir)} heightM={doorH(dir)} />
+      ))}
+      {/* Yellow bollards guarding each door's jambs. */}
+      {outside.map(({ dir, span }) => [-1, 1].map((s) => {
+        const b = againstWall(col, row, w, h, dir, span / 2 + s * (across(doorW(dir)) / 2 + across(0.5)) - across(0.25), across(0.5), across(0.5), -across(0.7));
+        const bf = boxFaces(b.col, b.row, b.w, b.h, 0, up(1.1));
+        return <g key={`b${dir}${s}`}>{sideFaces(bf, GANTRY_YELLOW, shade(GANTRY_YELLOW, 0.8))}<polygon points={polyPoints(bf.top)} fill="#2e3032" /></g>;
+      }))}
+      {crane}
+      <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+      {lights.map((b, i) => {
+        const lf = boxFaces(b.col, b.row, b.w, b.h, H, up(0.7));
+        return (
+          <g key={i}>
+            <polygon points={polyPoints(lf.left)} className="glass-pane" />
+            <polygon points={polyPoints(lf.right)} className="glass-pane" />
+            <polygon points={polyPoints(lf.top)} className="glass-roof" />
+          </g>
+        );
+      })}
+      {crestNode}
+    </g>
+  );
+}
+
+// Plate glass in a painted bay, dark from outside whatever the sash.
+const BAY_GLASS = '#5f7a86';
+
+// Health's fronts: on the longer wall the camera sees, a drop-off canopy on
+// slim posts over a paved lay-by, a lettered fascia, and a sign with a
+// green cross (the Medical Center's is red); on the other, two bay windows.
+function ClinicFronts({ col, row, w, h, H, dropDir, bayDir, stone }: {
+  col: number; row: number; w: number; h: number; H: number; dropDir: FaceDir; bayDir: FaceDir; stone: StonePalette;
+}) {
+  const trimTone = stone.trim !== 'none' ? stone.trim : '#e8e6df';
+  const span = wallSpan(w, h, dropDir);
+  const width = Math.min(span * 0.58, across(22));
+  const depth = across(5);
+  const top = Math.min(STOREY * 1.05, H - up(2));
+  const along0 = span / 2 - width / 2;
+  const plate = againstWall(col, row, w, h, dropDir, along0, width, depth);
+  const apron = againstWall(col, row, w, h, dropDir, along0 - across(1.5), width + across(3), depth + across(1.2));
+  const fasciaH = up(1.5);
+  const slab = boxFaces(plate.col, plate.row, plate.w, plate.h, top, fasciaH);
+  const fascia = wallOf(slab, dropDir);
+  const post = across(0.4);
+  const posts = [along0 + across(0.3), span / 2 - post / 2, along0 + width - post - across(0.3)].map((a0) => {
+    const b = againstWall(col, row, w, h, dropDir, a0, post, post, -(depth - post - across(0.3)));
+    return boxFaces(b.col, b.row, b.w, b.h, 0, top);
+  });
+  const wall = wallOf(boxFaces(col, row, w, h, 0, H), dropDir);
+  const marks = 9;
+  // The sign above the canopy: a panel, lettering, a green cross on white.
+  const sz0 = top + fasciaH + up(0.9); const sz1 = sz0 + up(3.2);
+  const signHalf = Math.min(0.22, across(15) / span / 2);
+  const crossU = 0.5 - signHalf + across(1.8) / span;
+  const cross = (cu: number, cz: number, armM: number) => {
+    const au = across(armM) / span / 2; const bu = au / 3;
+    const az = up(armM) / 2; const bz = az / 3;
+    return (
+      <>
+        <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, cu - bu, cu + bu, cz - az, cz + az))} fill="#2f9a4f" />
+        <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, cu - au, cu + au, cz - bz, cz + bz))} fill="#2f9a4f" />
+      </>
+    );
+  };
+  // Two oriels, from the first floor to under the eaves.
+  const bspan = wallSpan(w, h, bayDir);
+  const bw = Math.min(across(5.5), bspan * 0.2);
+  const bz0 = STOREY + up(0.3); const bz1 = H - up(1.1);
+  const bays = depthOrder([0.2, 0.8].map((u) => againstWall(col, row, w, h, bayDir, bspan * u - bw / 2, bw, across(1.8))));
+  const floors = Math.max(1, Math.round((bz1 - bz0) / STOREY));
+  return (
+    <g className="school-clinic">
+      <polygon points={polyPoints(boxFaces(apron.col, apron.row, apron.w, apron.h, 0, 0).top)} fill="#bdb9ae" />
+      {(() => { const e = wallOf(boxFaces(apron.col, apron.row, apron.w, apron.h, 0, 0), dropDir); return <line x1={e.origin.x} y1={e.origin.y} x2={e.along.x} y2={e.along.y} stroke="#f1eee4" strokeWidth={1.4} strokeDasharray="4 3" />; })()}
+      <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, 0.5 - signHalf, 0.5 + signHalf, sz0, sz1))} fill="#2e6f66" stroke={trimTone} strokeWidth={0.8} />
+      <polygon points={polyPoints(wallQuad(wall.origin, wall.along, H, crossU - across(1.5) / span, crossU + across(1.5) / span, sz0 + up(0.3), sz1 - up(0.3)))} fill="#f4f6f2" />
+      {cross(crossU, (sz0 + sz1) / 2, 2.2)}
+      {/* Two lines of lettering: words of uneven length. */}
+      {[[0.22, 0.14, 0.3, 0.18], [0.3, 0.2, 0.26]].map((words, line) => {
+        const room = 0.5 + signHalf - crossU - across(2.8) / span;
+        const z0 = line === 0 ? sz0 + up(1.75) : sz0 + up(0.65); const z1 = z0 + up(0.75);
+        let u = crossU + across(2.2) / span;
+        return words.map((share, k) => {
+          const u0 = u; u += room * share + room * 0.04;
+          return <polygon key={`${line}${k}`} points={polyPoints(wallQuad(wall.origin, wall.along, H, u0, u0 + room * share, z0, z1))} fill="#eef2e8" />;
+        });
+      })}
+      {posts.map((p, i) => <g key={`p${i}`}>{sideFaces(p, shade(trimTone, 0.82), shade(trimTone, 0.68))}</g>)}
+      {sideFaces(slab, shade(trimTone, 0.86), shade(trimTone, 0.72))}
+      <polygon points={polyPoints(slab.top)} fill={shade(trimTone, 0.95)} />
+      <polygon points={polyPoints(wallQuad(fascia.origin, fascia.along, fasciaH, 0.04, 0.96, fasciaH * 0.12, fasciaH * 0.88))} fill="#2e6f66" />
+      {Array.from({ length: marks }, (_, k) => {
+        const u0 = 0.18 + (k / marks) * 0.64; const u1 = u0 + (0.64 / marks) * 0.62;
+        return <polygon key={`m${k}`} points={polyPoints(wallQuad(fascia.origin, fascia.along, fasciaH, u0, u1, fasciaH * 0.34, fasciaH * 0.66))} fill="#eef2e8" />;
+      })}
+      {bays.map((b, i) => {
+        const bf = boxFaces(b.col, b.row, b.w, b.h, bz0, bz1 - bz0);
+        const bh = bz1 - bz0;
+        const sides = [{ o: bf.D, a: bf.C, dir: bf.dir.CD }, { o: bf.C, a: bf.B, dir: bf.dir.BC }];
+        return (
+          <g key={`bay${i}`}>
+            <polygon points={polyPoints(bf.left)} fill={faceTone(bf.dir.CD, shade(trimTone, 0.94), shade(trimTone, 0.78))} />
+            <polygon points={polyPoints(bf.right)} fill={faceTone(bf.dir.BC, shade(trimTone, 0.94), shade(trimTone, 0.78))} />
+            {sides.map(({ o, a, dir }) => Array.from({ length: floors }, (_, k) => {
+              const z0 = k * STOREY + up(0.6); const z1 = Math.min(bh - up(0.3), z0 + STOREY - up(1.2));
+              const m = dir === bayDir ? 0.1 : 0.16;
+              return <polygon key={`${dir}${k}`} points={polyPoints(wallQuad(o, a, bh, m, 1 - m, z0, z1))} fill={BAY_GLASS} />;
+            }))}
+            <polygon points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, bz1, up(0.5)).top)} fill={trimTone} />
+            {sideFaces(boxFaces(b.col, b.row, b.w, b.h, bz1, up(0.5)), shade(trimTone, 0.86), shade(trimTone, 0.72))}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// Computer Science's entrance on each front it shows: a full-height glazed
+// atrium in the middle of the wall, rising past the parapet as a glass
+// crown, with glass doors at its foot.
+function AtriumFronts({ col, row, w, h, H, fronts, floors }: {
+  col: number; row: number; w: number; h: number; H: number; fronts: FaceDir[]; floors: number[];
+}) {
+  const f = boxFaces(col, row, w, h, 0, H);
+  const crownRise = up(3);
+  return (
+    <g className="school-atrium">
+      {fronts.map((dir) => {
+        const span = wallSpan(w, h, dir);
+        const { origin, along } = wallOf(f, dir);
+        const u0 = 0.36; const u1 = 0.64;
+        const strip = againstWall(col, row, w, h, dir, span * u0, span * (u1 - u0), across(3.6), across(3.6));
+        const cf = boxFaces(strip.col, strip.row, strip.w, strip.h, H, crownRise);
+        const doorHalf = across(2.6) / span;
+        return (
+          <g key={dir}>
+            <CurtainWall origin={origin} along={along} wallHeight={H} spanTiles={span} from={0} to={H} floors={floors} id={`at${dir}`} u0={u0} u1={u1} />
+            <polygon points={polyPoints(wallQuad(origin, along, H, 0.5 - doorHalf, 0.5 + doorHalf, 0, up(2.8)))} fill="#2b3a44" />
+            <polygon points={polyPoints(wallQuad(origin, along, H, 0.5 - 0.004, 0.5 + 0.004, 0, up(2.8)))} fill="#c9d6de" />
+            {([cf.dir.CD, cf.dir.BC] as FaceDir[]).map((d) => {
+              const cw = wallOf(cf, d);
+              return <CurtainWall key={d} origin={cw.origin} along={cw.along} wallHeight={crownRise} spanTiles={wallSpan(strip.w, strip.h, d)} from={0} to={crownRise} floors={[]} id={`ac${dir}${d}`} />;
+            })}
+            <polygon points={polyPoints(cf.top)} className="glass-roof" />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 const SIGNAL_RED = '#c8392e';
 const GANTRY_YELLOW = '#d9a92f';
 // The Athletic Performance Complex's roof track (Plan 85G): the lanes'
@@ -1593,6 +2364,31 @@ function WallSignifier({ kind, f, H, stone }: {
               <polygon points={polyPoints(wallQuad(o, a, H, 0.3, 0.7, z0 + (z1 - z0) * 0.38, z0 + (z1 - z0) * 0.62))} fill="#efe6c8" />
             </g>
           ))}
+        </g>
+      );
+    }
+    case 'ticker': {
+      // A ticker board (Plan 87I): a dark band wrapping both fronts over the
+      // ground floor, in a thin metal frame, its quotes running in amber,
+      // green and red dashes.
+      const z0 = Math.min(STOREY * 0.8, H * 0.42); const z1 = z0 + up(1.5);
+      const colors = ['#ffbf3f', '#5fe08a', '#ffbf3f', '#ff6b5b', '#5fe08a', '#ffbf3f'];
+      return (
+        <g className="sig-ticker">
+          {faces.map(({ o, a, span }, i) => {
+            const n = Math.max(6, Math.round((span * METRES_PER_TILE) / 2.6));
+            return (
+              <g key={i}>
+                <polygon points={polyPoints(wallQuad(o, a, H, 0.03, 0.97, z0 - up(0.2), z1 + up(0.2)))} fill="#8d9296" />
+                <polygon points={polyPoints(wallQuad(o, a, H, 0.035, 0.965, z0, z1))} fill="#17191c" />
+                {Array.from({ length: n }, (_, k) => {
+                  const u0 = 0.05 + (0.9 * k) / n; const len = (0.9 / n) * (0.45 + ((k * 7 + i * 3) % 4) * 0.12);
+                  const row = (k + i) % 3 === 0 ? 0.62 : 0.3;
+                  return <polygon key={k} points={polyPoints(wallQuad(o, a, H, u0, u0 + len, z0 + (z1 - z0) * row, z0 + (z1 - z0) * (row + 0.2)))} fill={colors[(k + i * 2) % colors.length]} />;
+                })}
+              </g>
+            );
+          })}
         </g>
       );
     }
@@ -1689,20 +2485,6 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
         </g>
       );
     }
-    case 'column': {
-      // A distillation column: a tall steel cylinder with platforms.
-      const [cc, cr] = [col + w * 0.18, row + h * 0.72];
-      const r = Math.min(across(1.1), short * 0.14);
-      const tall = up(19);
-      return (
-        <g className="sig-column">
-          <Cylinder cc={cc} cr={cr} r={r} z0={base} z1={base + tall} fill="#c9cdd0" />
-          {[0.35, 0.65, 0.92].map((v) => (
-            <polygon key={v} points={polyPoints(nearRing(projectedCircle(cc, cr, r * 1.5, 24).map((q) => lift(q, base + tall * v))))} fill="none" stroke="#5b6166" strokeWidth={1} />
-          ))}
-        </g>
-      );
-    }
     case 'scales': {
       // A pediment over the long front's eaves, and the scales in gilt.
       const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
@@ -1783,6 +2565,9 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
       );
     }
     case 'cupola': {
+      // A flat roof takes a glazed lantern rooflight instead (Plan 87I): a
+      // Georgian cupola on a flat deck was a style slip.
+      if (ridge === 0) return <Rooflight col={col} row={row} w={w} h={h} base={base} stone={stone} />;
       // A glazed cupola astride the ridge (the Faculty Training Institute,
       // Plan 85E): a square drum in the trim stone with a window to each
       // face, a cornice, a lead pyramid and a gilt finial.
@@ -1859,6 +2644,57 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal }: {
     default:
       return null;
   }
+}
+
+// The rooflight's glass, toned by the way each plane faces.
+const SLOPE_LIGHT: Record<FaceDir, number> = { negCol: 1.28, negRow: 1.2, posRow: 1.1, posCol: 0.98 };
+// A roof lantern on a flat deck (Plan 87I): a long glazed box on a kerb,
+// mullioned on every visible face, under a shallow hipped glass roof with
+// a ridge, along the roof's long axis.
+function Rooflight({ col, row, w, h, base, stone }: {
+  col: number; row: number; w: number; h: number; base: number; stone: StonePalette;
+}) {
+  const alongW = w >= h;
+  const long = Math.min(across(34), Math.max(w, h) * 0.4);
+  const wide = Math.min(across(10), Math.min(w, h) * 0.24);
+  const lw = alongW ? long : wide; const lh = alongW ? wide : long;
+  const lc = col + w / 2 - lw / 2; const lr = row + h / 2 - lh / 2;
+  const kerbH = up(0.8); const glassH = up(2.6); const rise = up(2.4);
+  const kerb = boxFaces(lc, lr, lw, lh, base, kerbH);
+  const glass = boxFaces(lc, lr, lw, lh, base + kerbH, glassH);
+  const z = base + kerbH + glassH;
+  const inset = wide / 2;
+  const ridgeA = lift(alongW ? project(lc + inset, lr + lh / 2) : project(lc + lw / 2, lr + inset), z + rise);
+  const ridgeB = lift(alongW ? project(lc + lw - inset, lr + lh / 2) : project(lc + lw / 2, lr + lh - inset), z + rise);
+  const g = glass;
+  // The hip's four planes, the far ones first.
+  const slopes: Array<[FaceDir, Pt[]]> = alongW
+    ? [['negRow', [g.NWt, g.NEt, ridgeB, ridgeA]], ['posRow', [g.SWt, g.SEt, ridgeB, ridgeA]], ['negCol', [g.NWt, g.SWt, ridgeA]], ['posCol', [g.NEt, g.SEt, ridgeB]]]
+    : [['negCol', [g.NWt, g.SWt, ridgeB, ridgeA]], ['posCol', [g.NEt, g.SEt, ridgeB, ridgeA]], ['negRow', [g.NWt, g.NEt, ridgeA]], ['posRow', [g.SWt, g.SEt, ridgeB]]];
+  const trimTone = stone.trim !== 'none' ? stone.trim : '#e4e6e3';
+  const kerbTone = '#6c757c';
+  const glassTone = '#7d9fb3';
+  const mullions = (o: Pt, a: Pt, span: number, key: string) => {
+    const n = Math.max(3, Math.round((span * METRES_PER_TILE) / 1.8));
+    return Array.from({ length: n - 1 }, (_, i) => {
+      const u = (i + 1) / n;
+      const p0 = facePoint(o, a, glassH, u, 0); const p1 = facePoint(o, a, glassH, u, 1);
+      return <line key={`${key}${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#e9ecec" strokeWidth={0.7} />;
+    });
+  };
+  return (
+    <g className="sig-rooflight">
+      {sideFaces(kerb, shade(kerbTone, 1), shade(kerbTone, 0.84))}
+      {sideFaces(glass, shade(glassTone, 0.92), shade(glassTone, 0.78))}
+      {mullions(glass.D, glass.C, glass.spanLeft, 'l')}
+      {mullions(glass.C, glass.B, glass.spanRight, 'r')}
+      {backSlopesFirst(slopes, (x) => x[0]).map(([dir, pts]) => (
+        <polygon key={dir} points={polyPoints(pts)} fill={shade(glassTone, SLOPE_LIGHT[dir])} stroke="#e9ecec" strokeWidth={0.5} />
+      ))}
+      <line x1={ridgeA.x} y1={ridgeA.y} x2={ridgeB.x} y2={ridgeB.y} stroke="#e9ecec" strokeWidth={0.9} />
+      <polygon points={polyPoints([lift(glass.D, glassH), lift(glass.C, glassH), lift(glass.B, glassH)])} fill="none" stroke={trimTone} strokeWidth={0.9} />
+    </g>
+  );
 }
 
 // The dome: a broad stone dome on a low drum with a small gilt lantern,
@@ -2001,6 +2837,340 @@ function StairCore({ col, row, w, h, base, stone }: {
   );
 }
 
+// The carillon (Plan 87L): Modern's Founders Hall, after the open concrete
+// bell towers of the post-war campus (Saarinen's at MIT, the carillons at
+// Iowa State and Rice). Four slender piers at the hall's (+col, +row)
+// corner stand out of its walls and come down them to the ground, tied
+// across an open shaft above the roof, then a clock stage, an open belfry
+// with its bells hung inside, and a thin oversailing slab. Below the roof
+// the frame is drawn only on the walls the camera sees (`fronts`), and only
+// what stands proud of them, or it would paint over its own hall.
+function Carillon({ col, row, w, h, base, stone, fronts }: {
+  col: number; row: number; w: number; h: number; base: number;
+  stone: StonePalette; fronts: FaceDir[];
+}) {
+  const s = Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3);
+  const pp = Math.min(CARILLON_PIER, s * 0.22);
+  const P = CARILLON_PROUD;
+  const c0 = col + w + P - s; const r0 = row + h + P - s;
+  const concrete = shade(stone.towerStone, 0.84);
+  const lit = concrete; const dark = shade(concrete, 0.8);
+  const box = (b: DepthBox, z: number, rise: number, key: string, top = true) => {
+    const f = boxFaces(b.col, b.row, b.w, b.h, z, rise);
+    return (
+      <g key={key}>
+        {sideFaces(f, lit, dark)}
+        {top && <polygon points={polyPoints(f.top)} fill={shade(concrete, 1.08)} />}
+      </g>
+    );
+  };
+  // The four piers, with the walls each one stands in.
+  const piers: Array<DepthBox & { walls: FaceDir[] }> = [
+    { col: c0, row: r0, w: pp, h: pp, walls: [] },
+    { col: c0 + s - pp, row: r0, w: pp, h: pp, walls: ['posCol'] },
+    { col: c0, row: r0 + s - pp, w: pp, h: pp, walls: ['posRow'] },
+    { col: c0 + s - pp, row: r0 + s - pp, w: pp, h: pp, walls: ['posRow', 'posCol'] },
+  ];
+  const seen = (d: FaceDir) => fronts.includes(d);
+
+  // Below the roof: what of each pier stands proud of a visible wall, and
+  // the glazed stair between them, in the wall's plane.
+  const lower: DepthBox[] = [];
+  for (const p of piers) {
+    const on = p.walls.filter(seen);
+    if (on.length === 2) lower.push(p);
+    else if (on[0] === 'posRow') lower.push({ col: p.col, row: row + h, w: pp, h: P });
+    else if (on[0] === 'posCol') lower.push({ col: col + w, row: p.row, w: P, h: pp });
+  }
+  const at = (c: number, r: number, z: number) => lift(project(c, r), z);
+  const glass = (dir: FaceDir) => {
+    const quad = (z0: number, z1: number) => (dir === 'posRow'
+      ? [at(c0 + pp, row + h, z0), at(col + w, row + h, z0), at(col + w, row + h, z1), at(c0 + pp, row + h, z1)]
+      : [at(col + w, r0 + pp, z0), at(col + w, row + h, z0), at(col + w, row + h, z1), at(col + w, r0 + pp, z1)]);
+    const floors = Math.floor(base / STOREY);
+    return (
+      <g key={`g${dir}`}>
+        <polygon className="iso-curtain-glass" points={polyPoints(quad(PLINTH, base - up(0.4)))} />
+        {Array.from({ length: floors }, (_, i) => (
+          <polygon key={i} className="iso-mullion" points={polyPoints(quad(STOREY * (i + 1) - up(0.25), STOREY * (i + 1)))} />
+        ))}
+      </g>
+    );
+  };
+
+  // Above it: the open shaft, piers and ties.
+  const zc = base + CARILLON_SHAFT_RISE;
+  const zb = zc + CARILLON_CLOCK_RISE;
+  const zt = zb + CARILLON_BELFRY_RISE;
+  const d = pp * 0.7;
+  const ties: DepthBox[] = [
+    { col: c0 + pp, row: r0, w: s - 2 * pp, h: d },
+    { col: c0 + pp, row: r0 + s - d, w: s - 2 * pp, h: d },
+    { col: c0, row: r0 + pp, w: d, h: s - 2 * pp },
+    { col: c0 + s - d, row: r0 + pp, w: d, h: s - 2 * pp },
+  ];
+  const tieLevels = Array.from({ length: Math.floor(CARILLON_SHAFT_RISE / CARILLON_TIE_EVERY - 0.25) }, (_, i) => base + (i + 1) * CARILLON_TIE_EVERY - CARILLON_TIE);
+  const shaft = depthOrder([...piers.map((p) => ({ ...p, tie: false })), ...ties.map((t) => ({ ...t, walls: [], tie: true }))]);
+
+  // The clock stage: the frame's piers stand forward of a panel holding the
+  // clock on each visible face.
+  const stage = boxFaces(c0, r0, s, s, zc, CARILLON_CLOCK_RISE);
+  const R = across(CARILLON_CLOCK_RADIUS_METRES);
+  const clock = (o: Pt, a: Pt, key: string) => {
+    const ru = R / s; const rv = up(CARILLON_CLOCK_RADIUS_METRES) / CARILLON_CLOCK_RISE;
+    const pt = (u: number, v: number) => facePoint(o, a, CARILLON_CLOCK_RISE, u, v);
+    const panel = [pt(pp / s, 0.07), pt(1 - pp / s, 0.07), pt(1 - pp / s, 0.93), pt(pp / s, 0.93)];
+    const ring: Pt[] = [];
+    for (let i = 0; i < 24; i++) {
+      const t = (i / 24) * Math.PI * 2;
+      ring.push(pt(0.5 + Math.cos(t) * ru, 0.5 + Math.sin(t) * rv));
+    }
+    // Baton marks at the quarters, and the hands.
+    const mark = (k: number) => {
+      const t = (k / 4) * Math.PI * 2;
+      const p0 = pt(0.5 + Math.cos(t) * ru * 0.66, 0.5 + Math.sin(t) * rv * 0.66);
+      const p1 = pt(0.5 + Math.cos(t) * ru * 0.9, 0.5 + Math.sin(t) * rv * 0.9);
+      return <line key={`m${k}`} className="iso-clock-hand" x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} />;
+    };
+    const c = pt(0.5, 0.5); const big = pt(0.5 + ru * 0.1, 0.5 + rv * 0.66); const small = pt(0.5 + ru * 0.48, 0.5 - rv * 0.2);
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(panel)} fill={shade(concrete, 0.88)} />
+        <polygon className="iso-clock-face" points={polyPoints(ring)} />
+        {[0, 1, 2, 3].map(mark)}
+        <line className="iso-clock-hand" x1={c.x} y1={c.y} x2={big.x} y2={big.y} />
+        <line className="iso-clock-hand" x1={c.x} y1={c.y} x2={small.x} y2={small.y} />
+      </g>
+    );
+  };
+
+  // The belfry: bells hung in the open frame, one opening a big bell and
+  // the other two smaller, as a carillon's are graded. Drawn on screen
+  // (like ClockTower's dome) in the gaps between the piers as they project,
+  // since the frame's centre is behind its front pier in every view.
+  const B = CARILLON_BELFRY_RISE;
+  const pierX = piers.map((p) => {
+    const f = boxFaces(p.col, p.row, p.w, p.h, zb, B);
+    const xs = [f.A.x, f.B.x, f.C.x, f.D.x];
+    return { lo: Math.min(...xs), hi: Math.max(...xs) };
+  }).sort((p, q) => (p.lo + p.hi) - (q.lo + q.hi));
+  // Just inside the visible faces, for the height on screen.
+  const ib = boxFaces(c0 + pp / 2, r0 + pp / 2, s - pp, s - pp, zb, B);
+  const bells = () => {
+    const bell = (x: number, width: number, crown: number, o: Pt, a: Pt, key: string) => {
+      const yAt = (v: number) => facePoint(o, a, B, 0.5, v).y;
+      const top = yAt(crown); const ht = width * 0.9;
+      const pts: Array<[number, number]> = [
+        [-0.2, 0], [0.2, 0], [0.31, 0.08], [0.35, 0.3], [0.38, 0.62], [0.46, 0.86], [0.54, 1], [-0.54, 1], [-0.46, 0.86], [-0.38, 0.62], [-0.35, 0.3], [-0.31, 0.08],
+      ];
+      return (
+        <g key={key}>
+          <line className="iso-bell-hanger" x1={x} y1={yAt(1)} x2={x} y2={top} />
+          <polygon className="iso-bell" points={pts.map(([px, py]) => `${(x + px * width).toFixed(2)},${(top + py * ht).toFixed(2)}`).join(' ')} />
+        </g>
+      );
+    };
+    const left = { lo: pierX[0].hi, hi: Math.min(pierX[1].lo, pierX[2].lo) };
+    const right = { lo: Math.max(pierX[1].hi, pierX[2].hi), hi: pierX[3].lo };
+    const gl = left.hi - left.lo; const gr = right.hi - right.lo;
+    return (
+      <>
+        {gl > 0 && bell((left.lo + left.hi) / 2, gl * 0.7, 0.66, ib.D, ib.C, 'b0')}
+        {gr > 0 && bell(right.lo + gr * 0.3, gr * 0.42, 0.78, ib.C, ib.B, 'b1')}
+        {gr > 0 && bell(right.lo + gr * 0.74, gr * 0.32, 0.84, ib.C, ib.B, 'b2')}
+      </>
+    );
+  };
+  // Bells after the back piers, before the front ones.
+  const belfry = depthOrder(piers);
+  const ov = CARILLON_CAP_OVERSAIL;
+
+  return (
+    <>
+      {fronts.filter((dir) => dir === 'posRow' || dir === 'posCol').map(glass)}
+      {depthOrder(lower).map((b, i) => box(b, 0, base, `lo${i}`, false))}
+      {shaft.map((b, i) => (b.tie
+        ? <g key={`t${i}`}>{tieLevels.map((z, k) => box(b, z, CARILLON_TIE, `t${i}-${k}`))}</g>
+        : box(b, base, CARILLON_SHAFT_RISE, `s${i}`, false)))}
+      {sideFaces(stage, lit, dark)}
+      {clock(stage.D, stage.C, 'cl')}
+      {clock(stage.C, stage.B, 'cr')}
+      <polygon points={polyPoints(stage.top)} fill={shade(concrete, 1.04)} />
+      {belfry.slice(0, 3).map((b, i) => box(b, zb, B, `b${i}`, false))}
+      {bells()}
+      {box(belfry[3], zb, B, 'b3', false)}
+      {box({ col: c0 - ov, row: r0 - ov, w: s + ov * 2, h: s + ov * 2 }, zt, CARILLON_CAP, 'cap')}
+      {/* A slender steel spire off the slab, as on Saarinen's MIT tower. */}
+      {(() => {
+        const m = at(c0 + s / 2, r0 + s / 2, zt + CARILLON_CAP);
+        return <line className="iso-carillon-mast" x1={m.x} y1={m.y} x2={m.x} y2={lift(m, up(5.5)).y} />;
+      })()}
+    </>
+  );
+}
+
+// How far along the +col and +row walls the carillon's corner reaches, so
+// the pilotis and fins keep clear of it (Plan 87L).
+function carillonReserve(w: number, h: number): number {
+  return Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3) - CARILLON_PROUD + across(0.6);
+}
+
+// Modern's hall on pilotis (Plan 87L): the glazed ground floor behind a row
+// of square columns under the first floor's slab edge, which runs proud of
+// the wall like the oversail of Le Corbusier's and Breuer's lifted blocks.
+// The columns keep clear of the door's canopy and, on Founders Hall, of the
+// carillon's corner (`reserve`, tiles at the +col/+row end of those walls).
+function Pilotis({ col, row, w, h, top, fronts, pal, stone, door, reserve = 0 }: {
+  col: number; row: number; w: number; h: number; top: number; fronts: FaceDir[];
+  pal: Palette; stone: StonePalette; door: DoorDimensions | null; reserve?: number;
+}) {
+  const depth = across(0.75);
+  const plan = across(0.8);
+  const slab = up(0.55);
+  const parts: Array<DepthBox & { k: string; z: number; rise: number; slab: boolean }> = [];
+  for (const dir of fronts) {
+    const span = wallSpan(w, h, dir);
+    const reserved = (dir === 'posRow' || dir === 'posCol') ? reserve : 0;
+    // The slab edge; a row wall's covers the corner it shares with the other
+    // visible wall, so the two meet without a notch.
+    const other = fronts.find((d) => d !== dir);
+    const toEnd = isRowWall(dir) && other === 'posCol' && reserved === 0 ? depth : 0;
+    const toStart = isRowWall(dir) && other === 'negCol' ? depth : 0;
+    const e = againstWall(col, row, w, h, dir, -toStart, span + toStart + toEnd - reserved, depth);
+    parts.push({ ...e, k: `e${dir}`, z: top - slab, rise: slab, slab: true });
+    const n = Math.max(2, Math.round((span * METRES_PER_TILE) / (BAY_METRES * 2)));
+    const clear = door ? Math.max(door.widthTiles * 1.7, across(4)) / 2 + plan : 0;
+    for (let i = 0; i <= n; i++) {
+      const along = Math.min(span - plan, Math.max(0, (i / n) * span - plan / 2));
+      if (door && Math.abs(along + plan / 2 - span / 2) < clear) continue;
+      if (reserved > 0 && along + plan > span - reserved - plan * 0.5) continue;
+      const c = againstWall(col, row, w, h, dir, along, plan, depth * 0.85);
+      parts.push({ ...c, k: `c${dir}${i}`, z: 0, rise: top - slab, slab: false });
+    }
+  }
+  const edge = shade(pal.wall.posRow, 1.06);
+  const pier = shade(stone.towerStone, 0.86);
+  return (
+    <>
+      {depthOrder(parts).map((b) => {
+        const f = boxFaces(b.col, b.row, b.w, b.h, b.z, b.rise);
+        return (
+          <g key={b.k}>
+            {b.slab ? sideFaces(f, edge, shade(edge, 0.84)) : sideFaces(f, pier, shade(pier, 0.78))}
+            {b.slab && <polygon points={polyPoints(f.top)} fill={shade(edge, 0.95)} />}
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// The brise-soleil (Plan 87L), Founders Hall only in Modern: deep concrete
+// fins at every bay of the floors above the pilotis, as on Le Corbusier's
+// and Breuer's teaching blocks, so the ribbons read through a vertical
+// screen. Clear of the carillon's corner (`reserve`).
+function BriseSoleil({ col, row, w, h, from, to, fronts, stone, reserve }: {
+  col: number; row: number; w: number; h: number; from: number; to: number;
+  fronts: FaceDir[]; stone: StonePalette; reserve: number;
+}) {
+  const depth = across(0.95);
+  const thick = across(0.32);
+  const fins: Array<DepthBox & { k: string }> = [];
+  for (const dir of fronts) {
+    const span = wallSpan(w, h, dir);
+    const reserved = (dir === 'posRow' || dir === 'posCol') ? reserve : 0;
+    const bays = baysAcross(span);
+    for (let i = 1; i < bays; i++) {
+      const along = (i / bays) * span - thick / 2;
+      if (along + thick > span - reserved - thick) continue;
+      fins.push({ ...againstWall(col, row, w, h, dir, along, thick, depth), k: `${dir}${i}` });
+    }
+  }
+  const fin = shade(stone.towerStone, 0.98);
+  return (
+    <>
+      {depthOrder(fins).map((b) => {
+        const f = boxFaces(b.col, b.row, b.w, b.h, from, to - from);
+        return (
+          <g key={b.k}>
+            {sideFaces(f, fin, shade(fin, 0.76))}
+            <polygon points={polyPoints(f.top)} fill={shade(fin, 1.04)} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+// The roof terrace (Plan 87L), Founders Hall only in Modern: a paved deck
+// under a folded-plate canopy on slender posts, the zigzag roof of the
+// post-war campus (Breuer's, Saarinen's), its folded edge drawn on the side
+// the camera sees. On the hall's -col (or -row) half, clear of the carillon.
+function roofTerracePlan(col: number, row: number, w: number, h: number): DepthBox {
+  const alongCol = w >= h;
+  const L = alongCol ? w : h; const S = alongCol ? h : w;
+  const l0 = L * 0.1; const l = L * 0.48; const s0 = S * 0.24; const s = S * 0.48;
+  return alongCol ? { col: col + l0, row: row + s0, w: l, h: s } : { col: col + s0, row: row + l0, w: s, h: l };
+}
+function FoldedPlateTerrace({ col, row, w, h, base, fronts, stone }: {
+  col: number; row: number; w: number; h: number; base: number;
+  fronts: FaceDir[]; stone: StonePalette;
+}) {
+  const p = roofTerracePlan(col, row, w, h);
+  const alongCol = p.w >= p.h;
+  const L = alongCol ? p.w : p.h;
+  const folds = Math.max(4, Math.round((L * METRES_PER_TILE) / 4.2 / 2) * 2);
+  const POST = up(3.0); const RISE = up(1.5); const THICK = up(0.35);
+  const zv = base + POST; const zr = zv + RISE;
+  const zAt = (k: number) => (k % 2 === 0 ? zv : zr);
+  // A point by (along the folds, across them, height).
+  const at = (a: number, c: number, z: number) => (alongCol
+    ? lift(project(p.col + a, p.row + c), z)
+    : lift(project(p.col + c, p.row + a), z));
+  const S = alongCol ? p.h : p.w;
+  const step = L / folds;
+  const deckPad = across(1.2);
+  const deck = boxFaces(p.col - deckPad, p.row - deckPad, p.w + deckPad * 2, p.h + deckPad * 2, base, 0).top;
+  const slabTone = shade(stone.towerStone, 1.0);
+  // Plates back to front, one strip each.
+  const strips = depthOrder(Array.from({ length: folds }, (_, k) => (alongCol
+    ? { col: p.col + k * step, row: p.row, w: step, h: p.h, k }
+    : { col: p.col, row: p.row + k * step, w: p.w, h: step, k })));
+  // Which way a plate faces: rising along the folds it faces their start.
+  const tone = (k: number) => {
+    const rising = k % 2 === 0;
+    const dir: FaceDir = alongCol ? (rising ? 'negCol' : 'posCol') : (rising ? 'negRow' : 'posRow');
+    // Exaggerated past WALL_LIGHT, or the folds along a row read flat.
+    return shade(slabTone, dir === 'negCol' || dir === 'negRow' ? 1.02 : 0.82);
+  };
+  // The folded edge on the visible side across the folds.
+  const edgeDir: FaceDir | undefined = alongCol
+    ? fronts.find((d) => d === 'posRow' || d === 'negRow')
+    : fronts.find((d) => d === 'posCol' || d === 'negCol');
+  const edgeC = edgeDir === 'posRow' || edgeDir === 'posCol' ? S : 0;
+  const zig = (dz: number) => Array.from({ length: folds + 1 }, (_, k) => at(k * step, edgeC, zAt(k) + dz));
+  // Posts under the valleys at both edges; the back ones paint first.
+  const post = (k: number, c: number) => {
+    const a = at(k * step, c, base); const b = at(k * step, c, zv);
+    return <line key={`p${k}-${c}`} className="iso-terrace-post" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+  };
+  const valleys = Array.from({ length: folds / 2 + 1 }, (_, i) => i * 2);
+  const backC = S - edgeC;
+  return (
+    <>
+      <polygon points={polyPoints(deck)} fill={shade(stone.towerStone, 0.8)} />
+      {valleys.map((k) => post(k, backC))}
+      {strips.map((st) => {
+        const k = st.k;
+        const q = [at(k * step, 0, zAt(k)), at((k + 1) * step, 0, zAt(k + 1)), at((k + 1) * step, S, zAt(k + 1)), at(k * step, S, zAt(k))];
+        return <polygon key={`f${k}`} points={polyPoints(q)} fill={tone(k)} />;
+      })}
+      {valleys.map((k) => post(k, edgeC))}
+      <polygon points={polyPoints([...zig(0), ...zig(-THICK).reverse()])} fill={shade(slabTone, 0.86)} />
+    </>
+  );
+}
+
 // Buttress piers along a clear-span wall, at bay centers: shallow boxes so
 // they catch light on one face and read as depth.
 function Piers({ col, row, w, h, height, outward, pal, stone }: {
@@ -2113,6 +3283,1195 @@ function Canopy({ d, col, row, w, h, outward, wallHeight, stone, hood = false, r
   );
 }
 
+// The grand way in (Plan 87I): what stands at the exchange's door, and at
+// the Experimental Economics Lab's, by vernacular. A temple front only where
+// the set is classical in its bones; Gothic and Tudor a gabled porch,
+// Mission an arcade, Modern a cantilevered canopy over a glazed lobby, Art
+// Deco a stepped, fluted portal under a sunburst.
+type GrandFront = 'temple' | 'pedimented' | 'porch' | 'arcade' | 'cantilever' | 'decoPortal';
+const EXCHANGE_FRONTS: Record<Vernacular, GrandFront> = {
+  georgian: 'temple', classical: 'temple', italianate: 'temple', secondEmpire: 'temple',
+  gothic: 'porch', tudor: 'porch', mission: 'arcade', modern: 'cantilever', artDeco: 'decoPortal',
+};
+function grandFrontOf(t: Buildable, v: Vernacular): GrandFront | undefined {
+  if (signatureOf(t)?.feature === 'exchange') return EXCHANGE_FRONTS[v];
+  // The economics lab: a small pedimented portico, as a trading floor's
+  // front; Modern's canopy where a portico would be a style slip.
+  if (signifierOf(t) === 'ticker') return v === 'modern' ? 'cantilever' : 'pedimented';
+  return undefined;
+}
+// The entrance part each grand front stands in for, so the door, its
+// steps and the windows' door bay follow the existing rules.
+const GRAND_ENTRANCE: Record<GrandFront, EntrancePart> = {
+  temple: 'portico', pedimented: 'portico', porch: 'porch', arcade: 'arcade', cantilever: 'none', decoPortal: 'none',
+};
+// How far the Art Deco portal stands out from its wall.
+const DECO_PORTAL_DEPTH = across(1.6);
+const LOBBY_GLASS = '#34464f';
+const STEEL = '#3c4246';
+
+// Modern's entrance (Plan 87I): a thin white slab cantilevered well out
+// from the wall over a double-height glazed lobby, carried at its outer
+// corners on two slender steel pilotis. Drawn in two parts: the lobby on
+// the wall before the entrance steps, the slab and its posts after them.
+function CantileverCanopy({ col, row, w, h, outward, wallHeight, part }: {
+  col: number; row: number; w: number; h: number; outward: FaceDir; wallHeight: number; part: 'lobby' | 'slab';
+}) {
+  const span = wallSpan(w, h, outward);
+  const width = Math.min(span * 0.52, across(22));
+  const depth = Math.min(across(4.2), span * 0.3);
+  const top = Math.min(STOREY * 1.45, wallHeight - EAVES_COURSE * 2);
+  const thick = up(0.75);
+  const mid = span / 2;
+  const mass = boxFaces(col, row, w, h, 0, wallHeight);
+  const wall = wallOf(mass, outward);
+  const o = wall.origin; const a = wall.along;
+  // The lobby glazing, a little narrower than the slab, mullioned on a
+  // 1.6 m grid, with a transom at the doors' head.
+  const gw = (width * 0.78) / span;
+  const u0 = 0.5 - gw / 2; const u1 = 0.5 + gw / 2;
+  const mullions = Math.max(3, Math.round((width * 0.78 * METRES_PER_TILE) / 1.6));
+  const transom = Math.min(up(3), top * 0.55);
+  const dw = Math.min(gw * 0.3, across(3) / span);
+  const plate = againstWall(col, row, w, h, outward, mid - width / 2, width, depth);
+  const slab = boxFaces(plate.col, plate.row, plate.w, plate.h, top, thick);
+  const post = (along: number) => {
+    const g = outsideWall(col, row, w, h, outward, along, depth * 0.88);
+    const p = project(g.col, g.row);
+    return { p0: p, p1: lift(p, top) };
+  };
+  const posts = [post(mid - width * 0.42), post(mid + width * 0.42)];
+  const shadowAt = shadowOffset(top);
+  const out = outwardOf(outward);
+  const shadow = shadowAt.dcol * out.col + shadowAt.drow * out.row > 0
+    ? boxFaces(plate.col + shadowAt.dcol, plate.row + shadowAt.drow, plate.w, plate.h, 0, 0).top
+    : null;
+  const white = '#eef0ee';
+  if (part === 'slab') {
+    return (
+      <g className="entrance-cantilever">
+        {shadow && <polygon className="campus-building-shadow" points={polyPoints(shadow)} />}
+        {posts.map(({ p0, p1 }, i) => (
+          <line key={i} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={STEEL} strokeWidth={1.1} />
+        ))}
+        {sideFaces(slab, shade(white, 0.86), shade(white, 0.72))}
+        <polygon points={polyPoints(slab.top)} fill={white} />
+      </g>
+    );
+  }
+  return (
+    <g className="entrance-lobby">
+      <polygon points={polyPoints(wallQuad(o, a, wallHeight, u0, u1, 0, top))} fill={LOBBY_GLASS} />
+      {Array.from({ length: mullions + 1 }, (_, i) => {
+        const u = u0 + ((u1 - u0) * i) / mullions;
+        const p0 = facePoint(o, a, wallHeight, u, 0); const p1 = facePoint(o, a, wallHeight, u, top / wallHeight);
+        return <line key={i} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#c9d3d8" strokeWidth={0.6} />;
+      })}
+      {(() => {
+        const p0 = facePoint(o, a, wallHeight, u0, transom / wallHeight); const p1 = facePoint(o, a, wallHeight, u1, transom / wallHeight);
+        return <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke="#c9d3d8" strokeWidth={0.6} />;
+      })()}
+      {/* The doors: a lit pair in the middle of the glass. */}
+      <polygon points={polyPoints(wallQuad(o, a, wallHeight, 0.5 - dw, 0.5 + dw, 0, transom * 0.92))} fill="#c7a86a" fillOpacity={0.55} />
+    </g>
+  );
+}
+
+// Art Deco's entrance (Plan 87I): a frontispiece standing out from the
+// wall, stepped down to flanking piers and up above the parapet in two
+// set-backs, fluted from the door to its crown, with a gilt sunburst over a
+// tall door and a chevron band under the top.
+function DecoPortal({ col, row, w, h, outward, wallHeight, stone }: {
+  col: number; row: number; w: number; h: number; outward: FaceDir; wallHeight: number;
+  stone: StonePalette;
+}) {
+  const span = wallSpan(w, h, outward);
+  const mid = span / 2;
+  const cw = Math.min(span * 0.26, across(13));
+  const sw = cw * 0.38;
+  const depth = DECO_PORTAL_DEPTH;
+  const tone = stone.towerStone;
+  const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+  const dark = '#2c2a2b';
+  const block = (along0: number, width: number, d: number, z: number, rise: number) => {
+    const g = againstWall(col, row, w, h, outward, along0, width, d);
+    return boxFaces(g.col, g.row, g.w, g.h, z, rise);
+  };
+  const solid = (f: BoxFaces, k: number, key: string) => (
+    <g key={key}>
+      {sideFaces(f, shade(tone, 0.97 * k), shade(tone, 0.8 * k))}
+      <polygon points={polyPoints(f.top)} fill={shade(tone, 1.04 * k)} />
+    </g>
+  );
+  const centreH = wallHeight + up(1.2);
+  const wingH = wallHeight * 0.78;
+  const step1 = up(2.4); const step2 = up(2.0);
+  const wings = [block(mid - cw / 2 - sw, sw, depth * 0.6, 0, wingH), block(mid + cw / 2, sw, depth * 0.6, 0, wingH)];
+  const centre = block(mid - cw / 2, cw, depth, 0, centreH);
+  const tier1 = block(mid - cw * 0.34, cw * 0.68, depth * 0.8, centreH, step1);
+  const tier2 = block(mid - cw * 0.18, cw * 0.36, depth * 0.6, centreH + step1, step2);
+  const front = wallOf(centre, outward);
+  const o = front.origin; const a = front.along;
+  const P = (u: number, z: number) => facePoint(o, a, centreH, u, z / centreH);
+  // The door, the sunburst's springing line, and the fluting above.
+  const doorTop = Math.min(STOREY * 1.25, centreH * 0.34);
+  const du = 0.17;
+  const sunR = up(2.6);
+  const fanTop = doorTop + sunR;
+  const flutes = 7;
+  const chevronZ = centreH - up(1.4);
+  const sunburst = () => {
+    const rays = 9;
+    const hub = P(0.5, doorTop);
+    const rim = (t: number) => P(0.5 - du * Math.cos(t), doorTop + sunR * Math.sin(t));
+    return (
+      <>
+        <polygon points={polyPoints(Array.from({ length: 13 }, (_, i) => rim((Math.PI * i) / 12)))} fill={shade(gilt, 0.7)} />
+        {Array.from({ length: rays }, (_, i) => {
+          const t0 = (Math.PI * (i + 0.2)) / rays; const t1 = (Math.PI * (i + 0.8)) / rays;
+          return <polygon key={i} points={polyPoints([hub, rim(t0), rim(t1)])} fill={gilt} />;
+        })}
+      </>
+    );
+  };
+  const chevrons = () => {
+    const n = 6;
+    const pts: Pt[] = [];
+    for (let i = 0; i <= n * 2; i += 1) {
+      const u = 0.08 + (0.84 * i) / (n * 2);
+      pts.push(P(u, chevronZ + (i % 2 === 0 ? -up(0.5) : up(0.5))));
+    }
+    return <polyline points={polyPoints(pts)} fill="none" stroke={gilt} strokeWidth={1.3} />;
+  };
+  return (
+    <g className="entrance-deco-portal">
+      {wings.map((f, i) => solid(f, 0.94, `w${i}`))}
+      {wings.map((f, i) => {
+        const wf = wallOf(f, outward);
+        return [0.3, 0.5, 0.7].map((u) => {
+          const p0 = facePoint(wf.origin, wf.along, wingH, u, 0.06); const p1 = facePoint(wf.origin, wf.along, wingH, u, 0.94);
+          return <line key={`f${i}${u}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(tone, 0.62)} strokeWidth={0.7} />;
+        });
+      })}
+      {solid(centre, 1, 'c')}
+      {/* The fluting: vertical reeds from the sunburst to the chevrons. */}
+      {Array.from({ length: flutes }, (_, i) => {
+        const u = 0.2 + (0.6 * (i + 0.5)) / flutes;
+        const p0 = P(u, fanTop + up(0.6)); const p1 = P(u, chevronZ - up(0.9));
+        return <line key={`fl${i}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(tone, 0.6)} strokeWidth={0.9} />;
+      })}
+      <polygon points={polyPoints([P(0.5 - du, 0), P(0.5 + du, 0), P(0.5 + du, doorTop), P(0.5 - du, doorTop)])} fill={dark} />
+      <line x1={P(0.5, 0).x} y1={P(0.5, 0).y} x2={P(0.5, doorTop).x} y2={P(0.5, doorTop).y} stroke={shade(gilt, 0.8)} strokeWidth={0.6} />
+      {sunburst()}
+      {chevrons()}
+      {solid(tier1, 0.98, 't1')}
+      {solid(tier2, 0.96, 't2')}
+      {(() => {
+        const tf = wallOf(tier1, outward);
+        const p0 = facePoint(tf.origin, tf.along, step1, 0.12, 0.45); const p1 = facePoint(tf.origin, tf.along, step1, 0.88, 0.45);
+        return <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={gilt} strokeWidth={1.1} />;
+      })()}
+    </g>
+  );
+}
+
+// --- The sports sheds (Plan 87C) ------------------------------------------
+// The Recreation Center, the Gym, the Sports & Recreation Complex, the Field
+// House and the Natatorium shared one render shed with a roof monitor (the
+// natatorium a flat glass box). Each is drawn here as the kind of building it
+// is. The arena keeps its own vault in the hangar branch.
+type SportsShed = 'rec' | 'gym' | 'courts' | 'fieldHouse' | 'natatorium';
+function sportsShedOf(t: Buildable): SportsShed | undefined {
+  if (t.id === 'REC-T1') return 'rec';
+  if (t.id === 'REC-T2') return 'courts';
+  if (t.facilityType === 'gym') return 'gym';
+  if (t.facilityType === 'fieldHouse') return 'fieldHouse';
+  if (t.facilityType === 'athleticsNatatorium') return 'natatorium';
+  return undefined;
+}
+
+// What every sports shed needs from BuildingMotif.
+interface ShedCtx {
+  col: number; row: number; w: number; h: number; H: number;
+  pal: Palette; stone: StonePalette; door: DoorDimensions | null; fronts: FaceDir[];
+  crest: CrestPart; plantTint: string; hood: boolean; entrance: EntrancePart;
+  cornice?: string; expansions: number;
+}
+interface ShedFace { o: Pt; a: Pt; span: number; dir: FaceDir }
+// A box's two visible walls, left then right.
+function shedFaces(f: BoxFaces): [ShedFace, ShedFace] {
+  return [{ o: f.D, a: f.C, span: f.spanLeft, dir: f.dir.CD }, { o: f.C, a: f.B, span: f.spanRight, dir: f.dir.BC }];
+}
+const SHED_INTERIOR = '#39444a';
+const SHED_SHEEN = 'rgba(214, 232, 242, 0.16)';
+const MAPLE = '#c99a5c';
+const POOL_WATER = '#3d9fc6';
+const POOL_DECK = '#ddd9cc';
+const LANE_LINE = 'rgba(240, 250, 252, 0.9)';
+const CLIMB_WALL = '#e0873a';
+const HOLD_COLOURS = ['#f3d13a', '#3f9c4a', '#8a52b8', '#d63c3c', '#2d6fc0', '#f4f1e8'];
+const SEAT_RED = '#b6473a';
+const SIGN_PANEL = '#1f5566';
+const SHED_SIGN_LETTER = '#f3eee1';
+const ZINC = '#aeb7ba';
+const POOL_ROOF = '#dfe3e1';
+const frac = (x: number) => x - Math.floor(x);
+
+// A quad on a wall, in u and heights.
+const wq = (s: ShedFace, H: number, u0: number, u1: number, z0: number, z1: number) => polyPoints(wallQuad(s.o, s.a, H, u0, u1, z0, z1));
+// Thin mullions across a stretch of glazing, as one path: verticals every
+// `pitch` tiles and transoms at the given heights.
+function mullionPath(s: ShedFace, H: number, u0: number, u1: number, z0: number, z1: number, pitch: number, transoms: number[] = []): string {
+  const n = Math.max(1, Math.round((s.span * (u1 - u0)) / pitch));
+  const m = 0.006 * (4 / Math.max(2, s.span));
+  const out: string[] = [];
+  const quad = (a: number, b: number, c: number, d: number) => `M${polyPoints(wallQuad(s.o, s.a, H, a, b, c, d)).replace(/ /g, 'L')}Z`;
+  for (let i = 0; i <= n; i++) {
+    const u = u0 + ((u1 - u0) * i) / n;
+    out.push(quad(Math.max(u0, u - m), Math.min(u1, u + m), z0, z1));
+  }
+  const tz = up(0.12);
+  for (const z of transoms) out.push(quad(u0, u1, z - tz, z + tz));
+  return out.join('');
+}
+// Glazing that shows what is inside: the room's dark, then `inside` (drawn
+// in the wall's u and heights), then a sheen and the mullions over it.
+function SeeThrough({ s, H, u0, u1, z0, z1, pitch, transoms, children }: {
+  s: ShedFace; H: number; u0: number; u1: number; z0: number; z1: number; pitch: number; transoms?: number[];
+  children?: React.ReactNode;
+}) {
+  return (
+    <>
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SHED_INTERIOR} />
+      {children}
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SHED_SHEEN} />
+      <path className="iso-mullion" d={mullionPath(s, H, u0, u1, z0, z1, pitch, transoms)} />
+    </>
+  );
+}
+// Plinth and eaves course on a box's visible walls.
+function shedCourses(f: BoxFaces, H: number, cornice?: string) {
+  return shedFaces(f).map((s, i) => (
+    <g key={`c${i}`}>
+      <WallBand origin={s.o} along={s.a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
+      <WallBand origin={s.o} along={s.a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={cornice} />
+    </g>
+  ));
+}
+// A door in the middle of each visible wall of box b, with its steps.
+function shedDoors(c: ShedCtx, b: DepthBox, f: BoxFaces, H: number) {
+  const d = c.door;
+  if (!d) return null;
+  return (
+    <>
+      {shedFaces(f).map((s) => <Door key={s.dir} d={d} origin={s.o} along={s.a} wallHeight={H} span={s.span} side={s.dir} />)}
+      {c.fronts.map((dir) => {
+        const span = wallSpan(b.w, b.h, dir);
+        const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, 0);
+        const out = outwardOf(dir);
+        return <EntranceSteps key={dir} stone={c.stone} d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} />;
+      })}
+    </>
+  );
+}
+// The vernacular's way in on the given walls (as the fitness shed's, Plan 74E).
+function shedEntrance(c: ShedCtx, b: DepthBox, H: number, dirs: FaceDir[]) {
+  const d = c.door;
+  if (!d) return null;
+  return dirs.map((dir) => {
+    if (c.entrance === 'archway') return <Archway key={dir} pal={c.pal} stone={c.stone} d={d} col={b.col} row={b.row} w={b.w} h={b.h} outward={dir} wallHeight={H} />;
+    if (c.entrance === 'portico') {
+      const span = wallSpan(b.w, b.h, dir);
+      const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, PORTICO_STANDOFF);
+      return <Portico key={dir} stone={c.stone} centreCol={at.col} centreRow={at.row} width={Math.min(d.widthTiles * 3.2, span * 0.6)} outward={dir} height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} />;
+    }
+    return <Canopy key={dir} stone={c.stone} d={d} col={b.col} row={b.row} w={b.w} h={b.h} outward={dir} wallHeight={H} hood={c.hood} roof={c.plantTint} />;
+  });
+}
+// A signboard on a wall: a panel with a roundel and a line of letter-like
+// marks.
+function WallSign({ s, H, uc, width, z0, z1 }: { s: ShedFace; H: number; uc: number; width: number; z0: number; z1: number }) {
+  const half = Math.min(0.45, width / s.span / 2);
+  const u0 = uc - half; const u1 = uc + half;
+  const hgt = z1 - z0;
+  const disc = facePoint(s.o, s.a, H, u0 + (u1 - u0) * 0.1, (z0 + hgt / 2) / H);
+  const marks: string[] = [];
+  const widths = [0.8, 1, 0.7, 1, 0.9, 0, 0.5, 1, 0.8, 0.9, 1, 0.7];
+  const total = widths.reduce((a, x) => a + x + 0.5, 0);
+  let u = u0 + (u1 - u0) * 0.2;
+  const per = ((u1 - u0) * 0.74) / total;
+  // A word, a space, a word: narrow marks with gaps between.
+  for (const k of widths) {
+    if (k > 0) marks.push(`M${polyPoints(wallQuad(s.o, s.a, H, u, u + per * k, z0 + hgt * 0.28, z0 + hgt * 0.72)).replace(/ /g, 'L')}Z`);
+    u += per * (k + 0.5);
+  }
+  return (
+    <>
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SIGN_PANEL} stroke="rgba(240, 236, 224, 0.7)" strokeWidth={0.6} />
+      <circle cx={disc.x} cy={disc.y} r={Math.max(1.4, hgt * 0.32)} fill={CLIMB_WALL} />
+      <path d={marks.join('')} fill={SHED_SIGN_LETTER} />
+    </>
+  );
+}
+
+// --- Seen through the glass (Plan 87J) -------------------------------------
+// The Recreation Center's climbing tower, the Gym's two glass floors and the
+// Complex's court hall are glazed so the room inside reads: the room is built
+// in the grid (floor, far walls, what stands on the floor) and each of its
+// shapes is cut to the pane it is seen through (clipConvex), so it stays
+// right at any camera and both renderers draw it (no clip-path).
+interface Shp { pts: Pt[]; fill: string }
+const G3 = (c: number, r: number, z: number) => lift(project(c, r), z);
+// A polygon cut to a convex one (Sutherland-Hodgman).
+function clipConvex(subject: Pt[], clip: Pt[]): Pt[] {
+  const area = clip.reduce((s, p, i) => { const q = clip[(i + 1) % clip.length]!; return s + p.x * q.y - q.x * p.y; }, 0);
+  const sgn = area >= 0 ? 1 : -1;
+  let out = subject;
+  for (let i = 0; i < clip.length && out.length > 0; i++) {
+    const a = clip[i]!; const b = clip[(i + 1) % clip.length]!;
+    const side = (p: Pt) => sgn * ((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x));
+    const inp = out;
+    out = [];
+    for (let j = 0; j < inp.length; j++) {
+      const p = inp[j]!; const q = inp[(j + 1) % inp.length]!;
+      const sp = side(p); const sq = side(q);
+      if (sp >= 0) out.push(p);
+      if ((sp >= 0) !== (sq >= 0)) { const k = sp / (sp - sq); out.push({ x: p.x + (q.x - p.x) * k, y: p.y + (q.y - p.y) * k }); }
+    }
+  }
+  return out;
+}
+// The shapes, in order, each cut to `clip`.
+function Through({ clip, shapes }: { clip: Pt[]; shapes: Shp[] }) {
+  return (
+    <>
+      {shapes.map((s, i) => {
+        const p = clipConvex(s.pts, clip);
+        return p.length >= 3 ? <polygon key={i} points={polyPoints(p)} fill={s.fill} /> : null;
+      })}
+    </>
+  );
+}
+// A small box's visible faces, lit as walls are.
+function boxShp(c: number, r: number, w: number, h: number, z0: number, ht: number, tone: string, topTone?: string): Shp[] {
+  const f = boxFaces(c, r, w, h, z0, ht);
+  return [
+    { pts: f.left, fill: shade(tone, WALL_LIGHT[f.dir.CD]) },
+    { pts: f.right, fill: shade(tone, WALL_LIGHT[f.dir.BC]) },
+    { pts: f.top, fill: topTone ?? shade(tone, 1.1) },
+  ];
+}
+// A room's far walls (the inside of the two the camera cannot see) and its
+// floor.
+function roomShp(b: DepthBox, zf: number, zc: number, wall: string, floor: string): Shp[] {
+  const f = boxFaces(b.col, b.row, b.w, b.h, zf, zc - zf);
+  return [
+    ...[f.dir.AB, f.dir.DA].map((dir) => ({ pts: wallOf(f, dir).poly, fill: shade(wall, WALL_LIGHT[opposite(dir)] * 0.92) })),
+    { pts: boxFaces(b.col, b.row, b.w, b.h, zf, 0).top, fill: floor },
+  ];
+}
+// Things standing on a floor, far ones first.
+function byDepth(items: Array<{ c: number; r: number; shapes: Shp[] }>): Shp[] {
+  return [...items].sort((a, b) => project(a.c, a.r).y - project(b.c, b.r).y).flatMap((x) => x.shapes);
+}
+// A painted line on the ground from (c0, r0) to (c1, r1), `wd` tiles wide.
+function lineShp(c0: number, r0: number, c1: number, r1: number, wd: number, z: number, fill: string): Shp {
+  const L = Math.hypot(c1 - c0, r1 - r0) || 1;
+  const nc = (-(r1 - r0) / L) * wd / 2; const nr = ((c1 - c0) / L) * wd / 2;
+  return { pts: [G3(c0 + nc, r0 + nr, z), G3(c1 + nc, r1 + nr, z), G3(c1 - nc, r1 - nr, z), G3(c0 - nc, r0 - nr, z)], fill };
+}
+// A disc on screen, for heads, plates and wheels.
+function discPts(p: Pt, r: number, n = 8): Pt[] {
+  return Array.from({ length: n }, (_, i) => ({ x: p.x + r * Math.cos((i / n) * Math.PI * 2), y: p.y + r * Math.sin((i / n) * Math.PI * 2) }));
+}
+// A box centred on (c, r), `along` meters along a wall facing `dir` and
+// `perp` meters deep through it.
+function axBox(c: number, r: number, along: number, perp: number, dir: FaceDir): DepthBox {
+  const a = across(along); const p = across(perp);
+  return isRowWall(dir) ? { col: c - a / 2, row: r - p / 2, w: a, h: p } : { col: c - p / 2, row: r - a / 2, w: p, h: a };
+}
+// A figure standing at (c, r, z): legs, a shirt, a head.
+function figureShp(c: number, r: number, z: number, shirt: string, skin = '#c98f63', k = 1.2): Shp[] {
+  const p = G3(c, r, z);
+  const s = up(k) * heightScale();
+  const q = (x0: number, x1: number, y0: number, y1: number): Pt[] => [
+    { x: p.x + x0 * s, y: p.y - y0 * s }, { x: p.x + x1 * s, y: p.y - y0 * s }, { x: p.x + x1 * s, y: p.y - y1 * s }, { x: p.x + x0 * s, y: p.y - y1 * s },
+  ];
+  return [
+    { pts: q(-0.2, 0.2, 0, 0.9), fill: '#2b2f3a' },
+    { pts: q(-0.27, 0.27, 0.85, 1.5), fill: shirt },
+    { pts: discPts({ x: p.x, y: p.y - 1.68 * s }, 0.17 * s * 1.3), fill: skin },
+  ];
+}
+const SHIRTS = ['#d9473b', '#2f7fc1', '#f0c02f', '#3c9a5b', '#f4f1e8'];
+const MACHINE = '#262b2f';
+const SCREEN_GLOW = '#86dbe9';
+
+// A basketball court centred on (cc, cr), its length along col if `alongCol`:
+// the surface, its lines (border, half-way, centre circle, the keys and
+// the three-point arcs) at height z.
+function courtShp(cc: number, cr: number, alongCol: boolean, z: number, surface: string, key: string, ink: string): Shp[] {
+  const P = (x: number, y: number): [number, number] => alongCol ? [cc + across(x), cr + across(y)] : [cc + across(y), cr + across(x)];
+  const quad = (x0: number, y0: number, x1: number, y1: number, fill: string): Shp => {
+    const pts = [P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1)].map(([c, r]) => G3(c, r, z));
+    return { pts, fill };
+  };
+  const lw = across(0.32);
+  const seg = (x0: number, y0: number, x1: number, y1: number): Shp => {
+    const [a, b] = P(x0, y0); const [d, e] = P(x1, y1);
+    return lineShp(a, b, d, e, lw, z, ink);
+  };
+  const arc = (xc: number, rad: number, a0: number, a1: number, n: number): Shp[] => Array.from({ length: n }, (_, i) => {
+    const t0 = a0 + ((a1 - a0) * i) / n; const t1 = a0 + ((a1 - a0) * (i + 1)) / n;
+    return seg(xc + rad * Math.cos(t0), rad * Math.sin(t0), xc + rad * Math.cos(t1), rad * Math.sin(t1));
+  });
+  const X = 14; const Y = 7.5;
+  return [
+    quad(-X, -Y, X, Y, surface),
+    quad(-X, -2.45, -X + 5.8, 2.45, key),
+    quad(X - 5.8, -2.45, X, 2.45, key),
+    seg(-X, -Y, X, -Y), seg(-X, Y, X, Y), seg(-X, -Y, -X, Y), seg(X, -Y, X, Y), seg(0, -Y, 0, Y),
+    seg(-X + 5.8, -2.45, -X + 5.8, 2.45), seg(X - 5.8, -2.45, X - 5.8, 2.45),
+    seg(-X, -2.45, -X + 5.8, -2.45), seg(-X, 2.45, -X + 5.8, 2.45), seg(X, -2.45, X - 5.8, -2.45), seg(X, 2.45, X - 5.8, 2.45),
+    ...arc(0, 1.8, 0, Math.PI * 2, 12),
+    ...arc(-X + 1.6, 6.75, -Math.PI / 2, Math.PI / 2, 8),
+    ...arc(X - 1.6, 6.75, Math.PI / 2, Math.PI * 1.5, 8),
+  ];
+}
+// The two hoops of that court: a post behind each baseline, an arm, a white
+// backboard and an orange rim with its net.
+function hoopItems(cc: number, cr: number, alongCol: boolean, z: number, k = 1): Array<{ c: number; r: number; shapes: Shp[] }> {
+  const P = (x: number, y: number): [number, number] => alongCol ? [cc + across(x), cr + across(y)] : [cc + across(y), cr + across(x)];
+  return [-1, 1].map((sgn) => {
+    const [pc, pr] = P(sgn * 15.2, 0);
+    const post = across(0.3);
+    // Drawn a size up (k) so the board reads at the map's zoom.
+    const W3 = (x: number, y: number, zz: number) => { const [c, r] = P(x, y); return G3(c, r, z + up(zz * k)); };
+    const bx = sgn * 12.8;
+    const plane = (x: number, y0: number, y1: number, z0: number, z1: number): Pt[] => [W3(x, y0, z0), W3(x, y1, z0), W3(x, y1, z1), W3(x, y0, z1)];
+    const rimC = P(sgn * 12.35, 0);
+    const rim = projectedCircle(rimC[0], rimC[1], across(0.28 * k), 10).map((q) => lift(q, z + up(3.05 * k)));
+    const xs = rim.map((q) => q.x);
+    const lo = W3(sgn * 12.35, 0, 2.55);
+    const rimY = lift(project(rimC[0], rimC[1]), z + up(3.05 * k)).y;
+    const net: Pt[] = [{ x: Math.min(...xs), y: rimY }, { x: Math.max(...xs), y: rimY }, { x: lo.x + 1, y: lo.y }, { x: lo.x - 1, y: lo.y }];
+    return {
+      c: pc, r: pr,
+      shapes: [
+        ...boxShp(pc - post / 2, pr - post / 2, post, post, z, up(3.5 * k), '#3d4246'),
+        { pts: [W3(sgn * 15.2, -0.08, 3.25), W3(bx, -0.08, 3.25), W3(bx, -0.08, 3.5), W3(sgn * 15.2, -0.08, 3.5)], fill: '#3d4246' },
+        { pts: plane(bx, -0.95 * k, 0.95 * k, 2.85, 4.0), fill: '#30363a' },
+        { pts: plane(bx, -0.85 * k, 0.85 * k, 2.92, 3.93), fill: '#f6f4ee' },
+        { pts: plane(bx, -0.3 * k, 0.3 * k, 3.05, 3.5), fill: '#d8542e' },
+        { pts: net, fill: 'rgba(248, 246, 240, 0.85)' },
+        { pts: rim, fill: '#e2632c' },
+      ],
+    };
+  });
+}
+
+// A signboard with lettering and a pictogram at its start: a ball (a disc
+// with its seams) or a dumbbell (a bar and two plates each end).
+function PictoSign({ s, H, u0, u1, z0, z1, picto }: { s: ShedFace; H: number; u0: number; u1: number; z0: number; z1: number; picto: 'ball' | 'dumbbell' }) {
+  const hgt = z1 - z0;
+  const W = (u: number, z: number) => facePoint(s.o, s.a, H, u, z / H);
+  const uq = (a: number, b: number, c: number, d: number) => `M${polyPoints(wallQuad(s.o, s.a, H, a, b, c, d)).replace(/ /g, 'L')}Z`;
+  // The pictogram's square, in u: its height in meters over the wall's length.
+  const du = (hgt / up(1)) / (s.span * METRES_PER_TILE);
+  const pu = u0 + du * 0.25;
+  const zc = z0 + hgt / 2;
+  const marks: string[] = [];
+  const widths = [0.8, 1, 0.7, 1, 0.9, 0, 0.5, 1, 0.8, 0.9, 1, 0.7, 0.8];
+  const total = widths.reduce((a, x) => a + x + 0.5, 0);
+  const l0 = pu + du * 1.15;
+  const per = ((u1 - l0) - (u1 - u0) * 0.05) / total;
+  let u = l0;
+  for (const k of widths) {
+    if (k > 0) marks.push(uq(u, u + per * k, z0 + hgt * 0.27, z0 + hgt * 0.73));
+    u += per * (k + 0.5);
+  }
+  let pic: React.ReactNode;
+  if (picto === 'ball') {
+    const r = 0.4;
+    const ring = Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * Math.PI * 2; return W(pu + du * (0.45 + r * Math.cos(a)), zc + hgt * r * Math.sin(a)); });
+    const seam = (pts: Array<[number, number]>) => polyPoints(pts.map(([x, y]) => W(pu + du * (0.45 + r * x), zc + hgt * r * y)));
+    const curve = (sgn: number) => Array.from({ length: 7 }, (_, i): [number, number] => { const a = -Math.PI / 2 + (i / 6) * Math.PI; return [sgn * (1 - 0.45 * Math.cos(a)), Math.sin(a)]; });
+    pic = (
+      <>
+        <polygon points={polyPoints(ring)} fill="#e2742f" />
+        <polyline points={seam([[0, -1], [0, 1]])} fill="none" stroke="#2a201a" strokeWidth={0.7} />
+        <polyline points={seam([[-1, 0], [1, 0]])} fill="none" stroke="#2a201a" strokeWidth={0.7} />
+        <polyline points={seam(curve(-1))} fill="none" stroke="#2a201a" strokeWidth={0.7} />
+        <polyline points={seam(curve(1))} fill="none" stroke="#2a201a" strokeWidth={0.7} />
+      </>
+    );
+  } else {
+    const a = pu; const b = pu + du * 0.95;
+    pic = <path d={[
+      uq(a + du * 0.12, b - du * 0.12, zc - hgt * 0.06, zc + hgt * 0.06),
+      uq(a + du * 0.12, a + du * 0.22, zc - hgt * 0.36, zc + hgt * 0.36), uq(a, a + du * 0.1, zc - hgt * 0.25, zc + hgt * 0.25),
+      uq(b - du * 0.22, b - du * 0.12, zc - hgt * 0.36, zc + hgt * 0.36), uq(b - du * 0.1, b, zc - hgt * 0.25, zc + hgt * 0.25),
+    ].join('')} fill="#f0b43a" />;
+  }
+  return (
+    <>
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SIGN_PANEL} stroke="rgba(240, 236, 224, 0.7)" strokeWidth={0.6} />
+      {pic}
+      <path d={marks.join('')} fill={SHED_SIGN_LETTER} />
+    </>
+  );
+}
+
+// The Recreation Center (Plan 87J, after 87C): a glass climbing tower at the
+// corner the camera sees, a storey and a half above the roof, its far walls
+// panelled in colour and studded with holds, ropes hanging from the top and
+// a climber on the wall; beside it, on the main roof, a sun deck behind a
+// railing with loungers and umbrellas. Precedents: the climbing towers of
+// campus rec centers (Utah's, Oregon State's Dixon), seen from the street.
+function RecCenterShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal, stone } = c;
+  const f = boxFaces(col, row, w, h, 0, H);
+  const [L, R] = shedFaces(f);
+  const box = { col, row, w, h };
+  const d = c.door;
+  // The tower: square, in the near corner, a pier's depth proud of the walls.
+  const T = Math.min(across(15), Math.min(w, h) * 0.4);
+  const pr = PIER_PROJECTION;
+  const posC = L.dir === 'posCol' || R.dir === 'posCol';
+  const posR = L.dir === 'posRow' || R.dir === 'posRow';
+  const tb: DepthBox = { col: posC ? col + w - T : col - pr, row: posR ? row + h - T : row - pr, w: T + pr, h: T + pr };
+  const Ht = H + up(6.5);
+  const tf = boxFaces(tb.col, tb.row, tb.w, tb.h, 0, Ht);
+  const [TL, TR] = shedFaces(tf);
+  const tTop = Ht - up(1.4);
+  // The climbing walls: the tower's two far walls, inside.
+  const climb: Shp[] = [];
+  const ropes: Shp[] = [];
+  const panelTones = [CLIMB_WALL, '#2f8f9d', '#d9d2c2', '#e0b13a'];
+  [tf.dir.AB, tf.dir.DA].forEach((dir, wi) => {
+    const wf = wallOf(tf, dir);
+    const tone = (k: number) => shade(panelTones[(k + wi) % panelTones.length]!, WALL_LIGHT[opposite(dir)] * 0.9);
+    const n = 3;
+    for (let i = 0; i < n; i++) {
+      const a = i / n; const b = (i + 1) / n;
+      climb.push({ pts: wallQuad(wf.origin, wf.along, Ht, a, b, 0, tTop), fill: tone(i) });
+      // A volume: a darker wedge bolted to the panel.
+      const vz = tTop * (0.3 + 0.35 * frac((i + wi) * 0.618));
+      climb.push({ pts: [facePoint(wf.origin, wf.along, Ht, a + (b - a) * 0.2, vz / Ht), facePoint(wf.origin, wf.along, Ht, a + (b - a) * 0.75, (vz + up(1.2)) / Ht), facePoint(wf.origin, wf.along, Ht, a + (b - a) * 0.55, (vz + up(2.6)) / Ht)], fill: shade(tone(i), 0.72) });
+      for (let k = 0; k < 9; k++) {
+        const seed = i * 9 + k + wi * 31;
+        const hu = a + (b - a) * (0.12 + 0.76 * frac(seed * 0.618 + 0.13));
+        const hz = up(0.6) + (tTop - up(1.2)) * frac(seed * 0.382 + 0.31);
+        climb.push({ pts: discPts(facePoint(wf.origin, wf.along, Ht, hu, hz / Ht), 1.5, 6), fill: HOLD_COLOURS[seed % HOLD_COLOURS.length]! });
+      }
+    }
+    // Two top ropes hanging just off the wall.
+    [0.3, 0.72].forEach((u, k) => {
+      const p0 = facePoint(wf.origin, wf.along, Ht, u, (tTop - up(0.3)) / Ht);
+      const p1 = facePoint(wf.origin, wf.along, Ht, u + 0.02, up(0.4) / Ht);
+      ropes.push({ pts: [{ x: p0.x - 0.8, y: p0.y }, { x: p0.x + 0.8, y: p0.y }, { x: p1.x + 0.8, y: p1.y }, { x: p1.x - 0.8, y: p1.y }], fill: k ? '#f3e7b0' : '#f4f1e8' });
+    });
+    // A climber on the wall, roped.
+    const cl = facePoint(wf.origin, wf.along, Ht, 0.5 + 0.12 * (wi ? -1 : 1), (tTop * (wi ? 0.55 : 0.38)) / Ht);
+    const s = up(1) * heightScale();
+    climb.push({ pts: [{ x: cl.x - 0.3 * s, y: cl.y }, { x: cl.x + 0.3 * s, y: cl.y }, { x: cl.x + 0.3 * s, y: cl.y - 1.1 * s }, { x: cl.x - 0.3 * s, y: cl.y - 1.1 * s }], fill: SHIRTS[wi]! });
+    climb.push({ pts: discPts({ x: cl.x, y: cl.y - 1.35 * s }, 0.22 * s), fill: '#c98f63' });
+  });
+  const floor = { pts: boxFaces(tb.col, tb.row, tb.w, tb.h, 0, 0).top, fill: '#3e4f63' };
+  const towerScene = [floor, ...climb, ...ropes];
+  // The sun deck on the main roof, beside the tower along the longer wall.
+  const alongW = w >= h;
+  const m = across(2.5);
+  const deck: DepthBox = alongW
+    ? { col: posC ? col + m : col + T + m, row: posR ? row + h / 2 : row + across(1.5), w: w - T - m * 2, h: h / 2 - across(1.5) }
+    : { col: posC ? col + w / 2 : col + across(1.5), row: posR ? row + m : row + T + m, w: w / 2 - across(1.5), h: h - T - m * 2 };
+  const dz = H + up(0.25);
+  const deckTop = boxFaces(deck.col, deck.row, deck.w, deck.h, H, up(0.25));
+  const planks: string[] = [];
+  for (let k = 1; k < 10; k++) {
+    const a = alongW ? G3(deck.col, deck.row + (deck.h * k) / 10, dz) : G3(deck.col + (deck.w * k) / 10, deck.row, dz);
+    const b = alongW ? G3(deck.col + deck.w, deck.row + (deck.h * k) / 10, dz) : G3(deck.col + (deck.w * k) / 10, deck.row + deck.h, dz);
+    planks.push(`M${a.x},${a.y}L${b.x},${b.y}`);
+  }
+  // The railing round the deck, its two far sides drawn before what is on it.
+  const corners: Array<[number, number]> = [[deck.col, deck.row], [deck.col + deck.w, deck.row], [deck.col + deck.w, deck.row + deck.h], [deck.col, deck.row + deck.h]];
+  const sides = corners.map((p, i) => [p, corners[(i + 1) % 4]!] as const)
+    .map(([a, b]) => ({ a, b, y: project((a[0] + b[0]) / 2, (a[1] + b[1]) / 2).y }))
+    .sort((x, y) => x.y - y.y);
+  const railing = (a: [number, number], b: [number, number], k: string) => {
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const n = Math.max(2, Math.round(len / across(1.6)));
+    const top0 = G3(a[0], a[1], dz + up(1.1)); const top1 = G3(b[0], b[1], dz + up(1.1));
+    const mid0 = G3(a[0], a[1], dz + up(0.55)); const mid1 = G3(b[0], b[1], dz + up(0.55));
+    const posts: string[] = [];
+    for (let i = 0; i <= n; i++) {
+      const cc = a[0] + ((b[0] - a[0]) * i) / n; const rr = a[1] + ((b[1] - a[1]) * i) / n;
+      const p = G3(cc, rr, dz); const q = G3(cc, rr, dz + up(1.1));
+      posts.push(`M${p.x},${p.y}L${q.x},${q.y}`);
+    }
+    return (
+      <g key={k}>
+        <path d={posts.join('')} stroke="#4a4f52" strokeWidth={0.6} fill="none" />
+        <line x1={mid0.x} y1={mid0.y} x2={mid1.x} y2={mid1.y} stroke="#4a4f52" strokeWidth={0.5} />
+        <line x1={top0.x} y1={top0.y} x2={top1.x} y2={top1.y} stroke="#d9dcd8" strokeWidth={1.1} />
+      </g>
+    );
+  };
+  // Loungers along the deck's front, umbrellas behind them.
+  const items: Array<{ c: number; r: number; node: React.ReactNode }> = [];
+  const along = alongW ? deck.w : deck.h;
+  const nU = Math.max(2, Math.round(along / across(9)));
+  for (let i = 0; i < nU; i++) {
+    const t = (i + 0.5) / nU;
+    const uc = alongW ? deck.col + deck.w * t : deck.col + deck.w * (posC ? 0.35 : 0.65);
+    const ur = alongW ? deck.row + deck.h * (posR ? 0.35 : 0.65) : deck.row + deck.h * t;
+    items.push({ c: uc, r: ur, node: <Umbrella cc={uc} cr={ur} z={dz} /> });
+    for (const off of [-0.22, 0.22]) {
+      const t2 = t + off / nU;
+      const lc = alongW ? deck.col + deck.w * t2 : deck.col + deck.w * (posC ? 0.75 : 0.25);
+      const lr = alongW ? deck.row + deck.h * (posR ? 0.75 : 0.25) : deck.row + deck.h * t2;
+      const lb = alongW ? { col: lc - across(0.4), row: lr - across(1), w: across(0.8), h: across(2) } : { col: lc - across(1), row: lr - across(0.4), w: across(2), h: across(0.8) };
+      const back = alongW
+        ? { col: lb.col, row: posR ? lb.row : lb.row + lb.h - across(0.55), w: lb.w, h: across(0.55) }
+        : { col: posC ? lb.col : lb.col + lb.w - across(0.55), row: lb.row, w: across(0.55), h: lb.h };
+      items.push({
+        c: lc, r: lr,
+        node: (
+          <>
+            {boxShp(lb.col, lb.row, lb.w, lb.h, dz, up(0.4), '#e9e4d6').map((s, k) => <polygon key={k} points={polyPoints(s.pts)} fill={s.fill} />)}
+            {boxShp(back.col, back.row, back.w, back.h, dz + up(0.4), up(0.45), '#e9e4d6', '#2f7fc1').map((s, k) => <polygon key={`b${k}`} points={polyPoints(s.pts)} fill={s.fill} />)}
+          </>
+        ),
+      });
+    }
+  }
+  items.sort((a, b) => project(a.c, a.r).y - project(b.c, b.r).y);
+  // A rooflight down the half of the roof behind the deck.
+  const strip = alongW
+    ? boxFaces(col + w * 0.12, posR ? row + h * 0.18 : row + h * 0.7, w * 0.6, h * 0.1, H, 0).top
+    : boxFaces(posC ? col + w * 0.18 : col + w * 0.7, row + h * 0.12, w * 0.1, h * 0.6, H, 0).top;
+  const longIsLeft = L.span >= R.span;
+  const signFace = longIsLeft ? L : R;
+  const signZ0 = d ? Math.min(d.threshold + d.height + up(1.5), H - EAVES_COURSE - up(3.2)) : up(4.5);
+  const tsill = BASE_COURSE;
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+      {shedCourses(f, H, c.cornice)}
+      {[L, R].map((s, i) => (
+        <g key={`cl${i}`}>
+          {windows(s.o, s.a, H, s.span, [clerestorySill(H)], 0, `rc${i}`, 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, s.span, H) : undefined)}
+        </g>
+      ))}
+      {shedDoors(c, box, f, H)}
+      <WallSign s={signFace} H={H} uc={0.5 - (longIsLeft ? 0.08 : -0.08)} width={across(15)} z0={signZ0} z1={signZ0 + up(1.6)} />
+      <polygon points={polyPoints(f.top)} fill={pal.roof} />
+      <polygon className="iso-rooflight" points={polyPoints(strip)} />
+      <Crest crest={c.crest} col={col} row={row} w={w} h={h} base={H} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
+      {/* The sun deck. */}
+      {sideFaces(deckTop, '#8f6c45', '#7a5a38')}
+      <polygon points={polyPoints(deckTop.top)} fill="#b68a58" />
+      <path d={planks.join('')} stroke="rgba(80, 56, 32, 0.45)" strokeWidth={0.5} fill="none" />
+      {sides.slice(0, 2).map((sd, i) => railing(sd.a, sd.b, `rb${i}`))}
+      {items.map((it, i) => <g key={`it${i}`}>{it.node}</g>)}
+      {sides.slice(2).map((sd, i) => railing(sd.a, sd.b, `rf${i}`))}
+      {/* The climbing tower. */}
+      <polygon points={polyPoints(tf.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(tf.right)} fill={pal.wallRight} />
+      {[TL, TR].map((s, i) => {
+        const clip = wallQuad(s.o, s.a, Ht, 0.04, 0.96, tsill, tTop);
+        return (
+          <g key={`tg${i}`}>
+            <polygon points={polyPoints(clip)} fill={SHED_INTERIOR} />
+            <Through clip={clip} shapes={towerScene} />
+            <polygon points={polyPoints(clip)} fill={SHED_SHEEN} />
+            <path className="iso-mullion" d={mullionPath(s, Ht, 0.04, 0.96, tsill, tTop, across(4.5), [up(5), up(10)])} />
+          </g>
+        );
+      })}
+      {shedCourses(tf, Ht, c.cornice)}
+      <polygon points={polyPoints(tf.top)} fill={pal.roof} />
+      <Crest crest={c.crest} col={tb.col} row={tb.row} w={tb.w} h={tb.h} base={Ht} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
+      {shedEntrance(c, box, H, c.fronts)}
+    </>
+  );
+}
+
+// The Gym & Fitness Center (Plan 87J, after 87C): a two-storey glass box
+// under a thin flat roof. Upstairs, behind floor-to-ceiling glass on both
+// walls the camera sees, rows of treadmills and bikes face out, their
+// screens lit, people on some; downstairs the weight floor, racks and
+// benches, round the lobby at the door. A sign with a dumbbell runs along
+// the floor band. Precedents: the glass fitness floors of campus gyms and
+// city health clubs, cardio rows along the window.
+function GymShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal, stone } = c;
+  const f = boxFaces(col, row, w, h, 0, H);
+  const faces = shedFaces(f);
+  const box = { col, row, w, h };
+  const sill = BASE_COURSE;
+  const zf = up(4.6);
+  const band0 = zf - up(0.6); const band1 = zf + up(0.6);
+  const top = H - up(0.9);
+  // Upstairs: two rows along each glass wall, short of the corners.
+  const up2: Array<{ c: number; r: number; shapes: Shp[] }> = [];
+  const low: Array<{ c: number; r: number; shapes: Shp[] }> = [];
+  faces.forEach((s, fi) => {
+    const span = s.span;
+    const m = across(6.5);
+    const n = Math.max(3, Math.round((span - 2 * m) / across(2.6)));
+    for (let i = 0; i < n; i++) {
+      const a = m + ((span - 2 * m) * (i + 0.5)) / n;
+      // Row 1, by the glass: treadmills; row 2: bikes.
+      const t1 = outsideWall(col, row, w, h, s.dir, a, -across(2.2));
+      const t2 = outsideWall(col, row, w, h, s.dir, a, -across(5));
+      const out = outwardOf(s.dir);
+      const deckB = axBox(t1.col, t1.row, 0.8, 1.9, s.dir);
+      const cons = axBox(t1.col + out.col * across(0.85), t1.row + out.row * across(0.85), 0.75, 0.22, s.dir);
+      const runner = (i + fi) % 3 === 0;
+      up2.push({
+        c: t1.col, r: t1.row,
+        shapes: [
+          ...boxShp(deckB.col, deckB.row, deckB.w, deckB.h, zf, up(0.3), MACHINE),
+          ...boxShp(cons.col, cons.row, cons.w, cons.h, zf + up(0.3), up(0.85), MACHINE, MACHINE),
+          ...boxShp(cons.col, cons.row, cons.w, cons.h, zf + up(1.15), up(0.3), MACHINE, SCREEN_GLOW),
+          ...(runner ? figureShp(t1.col - out.col * across(0.2), t1.row - out.row * across(0.2), zf + up(0.3), SHIRTS[(i + fi) % SHIRTS.length]!) : []),
+        ],
+      });
+      const base = axBox(t2.col, t2.row, 0.45, 1.2, s.dir);
+      const head = axBox(t2.col + out.col * across(0.45), t2.row + out.row * across(0.45), 0.5, 0.25, s.dir);
+      const seat = axBox(t2.col - out.col * across(0.35), t2.row - out.row * across(0.35), 0.3, 0.3, s.dir);
+      const fly = G3(t2.col + out.col * across(0.3), t2.row + out.row * across(0.3), zf + up(0.35));
+      const rider = (i + fi) % 4 === 1;
+      up2.push({
+        c: t2.col, r: t2.row,
+        shapes: [
+          ...boxShp(base.col, base.row, base.w, base.h, zf, up(0.18), MACHINE),
+          { pts: discPts(fly, up(0.38) * heightScale(), 8), fill: '#3a4045' },
+          ...boxShp(seat.col, seat.row, seat.w, seat.h, zf + up(0.18), up(0.8), MACHINE),
+          ...boxShp(head.col, head.row, head.w, head.h, zf + up(0.18), up(0.95), MACHINE, SCREEN_GLOW),
+          ...(rider ? figureShp(t2.col - out.col * across(0.35), t2.row - out.row * across(0.35), zf + up(0.4), SHIRTS[(i + fi + 2) % SHIRTS.length]!) : []),
+        ],
+      });
+    }
+    // Downstairs: racks and benches, leaving the lobby round the door clear.
+    const nr = Math.max(2, Math.round((span - 2 * m) / across(5)));
+    for (let i = 0; i < nr; i++) {
+      const a = m + ((span - 2 * m) * (i + 0.5)) / nr;
+      if (Math.abs(a - span / 2) < across(5)) continue;
+      const p = outsideWall(col, row, w, h, s.dir, a, -across(3));
+      const out = outwardOf(s.dir);
+      const along = isRowWall(s.dir) ? { col: 1, row: 0 } : { col: 0, row: 1 };
+      const up1 = axBox(p.col - along.col * across(0.9), p.row - along.row * across(0.9), 0.12, 0.12, s.dir);
+      const up2b = axBox(p.col + along.col * across(0.9), p.row + along.row * across(0.9), 0.12, 0.12, s.dir);
+      const bar0 = G3(p.col - along.col * across(1.25), p.row - along.row * across(1.25), up(1.35));
+      const bar1 = G3(p.col + along.col * across(1.25), p.row + along.row * across(1.25), up(1.35));
+      const bench = axBox(p.col + out.col * across(1.0), p.row + out.row * across(1.0), 0.35, 1.3, s.dir);
+      const lifter = i % 2 === 0;
+      low.push({
+        c: p.col, r: p.row,
+        shapes: [
+          ...boxShp(up1.col, up1.row, up1.w, up1.h, 0, up(2.1), MACHINE),
+          ...boxShp(up2b.col, up2b.row, up2b.w, up2b.h, 0, up(2.1), MACHINE),
+          { pts: [{ x: bar0.x, y: bar0.y - 0.5 }, { x: bar1.x, y: bar1.y - 0.5 }, { x: bar1.x, y: bar1.y + 0.5 }, { x: bar0.x, y: bar0.y + 0.5 }], fill: '#8d9498' },
+          { pts: discPts(bar0, up(0.42) * heightScale(), 8), fill: '#1d2124' },
+          { pts: discPts(bar1, up(0.42) * heightScale(), 8), fill: '#1d2124' },
+          ...boxShp(bench.col, bench.row, bench.w, bench.h, 0, up(0.45), '#7a2e2a'),
+          ...(lifter ? figureShp(p.col + out.col * across(0.3), p.row + out.row * across(0.3), 0, SHIRTS[(i + fi + 1) % SHIRTS.length]!) : []),
+        ],
+      });
+    }
+    // The front desk behind the door.
+    const desk = outsideWall(col, row, w, h, s.dir, span / 2, -across(5));
+    const db = axBox(desk.col, desk.row, 4, 0.8, s.dir);
+    low.push({ c: desk.col, r: desk.row, shapes: [...boxShp(db.col, db.row, db.w, db.h, 0, up(1.1), '#a47a4a', '#e6dccb'), ...figureShp(desk.col, desk.row, 0, SHIRTS[1]!).slice(1)] });
+  });
+  // Lit rooms: pale walls, a pale rubber floor upstairs, timber below.
+  const upper = [...roomShp(box, zf, H, '#f4efe2', '#9aa6ae'), ...byDepth(up2)];
+  const lower = [...roomShp(box, 0, zf, '#f1ebdc', '#c49a66'), ...byDepth(low)];
+  const signFace = faces[f.spanLeft >= f.spanRight ? 0 : 1];
+  const slab = across(1.2);
+  const roof = boxFaces(col - slab, row - slab, w + slab * 2, h + slab * 2, H, up(0.7));
+  const trimTone = stone.trim === 'none' ? stone.towerStone : stone.trim;
+  // Three rooflights over the fitness floor.
+  const rz = H + up(0.7);
+  const lights = [0.25, 0.5, 0.75].map((k) => (w >= h
+    ? boxFaces(col + w * 0.2, row + h * k - across(1), w * 0.6, across(2), rz, 0)
+    : boxFaces(col + w * k - across(1), row + h * 0.2, across(2), h * 0.6, rz, 0)).top);
+  // The board stands a few meters in from the sign wall, 60% of its length.
+  const bin = across(3.5); const bd = across(0.35);
+  const bspan = wallSpan(w, h, signFace.dir);
+  const bb = againstWall(col, row, w, h, signFace.dir, bspan * 0.2, bspan * 0.6, bd, bin + bd);
+  const board = boxFaces(bb.col, bb.row, bb.w, bb.h, rz + up(1.2), up(2.6));
+  const boardFace = shedFaces(board).find((x) => x.dir === signFace.dir)!;
+  const legs = [0.15, 0.85].flatMap((k) => {
+    const a = isRowWall(signFace.dir) ? { c: bb.col + bb.w * k, r: bb.row + bb.h / 2 } : { c: bb.col + bb.w / 2, r: bb.row + bb.h * k };
+    return boxShp(a.c - across(0.15), a.r - across(0.15), across(0.3), across(0.3), rz, up(1.2), '#3d4246');
+  });
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {faces.map((s, i) => {
+        const lo = wallQuad(s.o, s.a, H, 0.02, 0.98, sill, band0);
+        const hi = wallQuad(s.o, s.a, H, 0.02, 0.98, band1, top);
+        return (
+          <g key={`g${i}`}>
+            <polygon points={polyPoints(lo)} fill={SHED_INTERIOR} />
+            <polygon points={polyPoints(hi)} fill={SHED_INTERIOR} />
+            <Through clip={lo} shapes={lower} />
+            <Through clip={hi} shapes={upper} />
+            <polygon points={polyPoints(lo)} fill="rgba(255, 240, 200, 0.08)" />
+            <polygon points={polyPoints(hi)} fill="rgba(255, 240, 200, 0.08)" />
+            <polygon points={polyPoints(lo)} fill={SHED_SHEEN} />
+            <polygon points={polyPoints(hi)} fill={SHED_SHEEN} />
+            <path className="iso-mullion" d={mullionPath(s, H, 0.02, 0.98, sill, band0, across(3))} />
+            <path className="iso-mullion" d={mullionPath(s, H, 0.02, 0.98, band1, top, across(3))} />
+          </g>
+        );
+      })}
+      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
+      {shedCourses(f, H, c.cornice)}
+      {/* The floor band between the storeys, the sign along it. */}
+      {faces.map((s, i) => <WallBand key={`fb${i}`} origin={s.o} along={s.a} wallHeight={H} from={band0} to={band1} className="iso-cornice" fill={c.cornice} />)}
+      <PictoSign s={signFace} H={H} u0={0.16} u1={0.84} z0={band0 + up(0.05)} z1={band1 - up(0.05)} picto="dumbbell" />
+      {shedDoors(c, box, f, H)}
+      {shedEntrance(c, box, H, c.fronts)}
+      {sideFaces(roof, shade(trimTone, 0.8), shade(trimTone, 0.66))}
+      <polygon points={polyPoints(roof.top)} fill={pal.roof} />
+      {lights.map((q, i) => <polygon key={`rl${i}`} className="iso-rooflight" points={polyPoints(q)} />)}
+      <Crest crest={c.crest} col={col - slab} row={row - slab} w={w + slab * 2} h={h + slab * 2} base={H + up(0.7)} fronts={c.fronts} pal={pal} stone={stone} tile={c.plantTint} />
+      {/* The rooftop sign: a board on legs, set back from the edge. */}
+      {legs.map((q, i) => <polygon key={`lg${i}`} points={polyPoints(q.pts)} fill={q.fill} />)}
+      {sideFaces(board, '#173f4c', '#123540')}
+      <polygon points={polyPoints(board.top)} fill="#2a5f70" />
+      <PictoSign s={boardFace} H={up(2.6)} u0={0} u1={1} z0={0} z1={up(2.6)} picto="dumbbell" />
+    </>
+  );
+}
+
+// The Sports & Recreation Complex (Plan 87J, after 87C): a long court hall
+// whose wall to the forecourt is all glass under a lettered sign band, the
+// maple court inside, its lines and hoops, plain through it; an outdoor hard
+// court in the forecourt with its own hoops; the way in on the end wall
+// under a sign with a ball; a low gabled roof of standing-seam metal.
+// Precedents: glass-walled university recreation centers' court halls
+// (Michigan's, Minnesota's), an outdoor court out front.
+function CourtsShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal, stone } = c;
+  const alongW = w >= h;
+  // The forecourt runs along whichever long wall faces the camera.
+  const ld = c.fronts.find((dir) => isRowWall(dir) === alongW) ?? c.fronts[0]!;
+  const sd = Math.min(across(19), Math.min(w, h) * 0.42);
+  const hb: DepthBox = ld === 'posRow' ? { col, row, w, h: h - sd }
+    : ld === 'negRow' ? { col, row: row + sd, w, h: h - sd }
+      : ld === 'posCol' ? { col, row, w: w - sd, h } : { col: col + sd, row, w: w - sd, h };
+  const f = boxFaces(hb.col, hb.row, hb.w, hb.h, 0, H);
+  const faces = shedFaces(f);
+  const G = faces.find((s) => s.dir === ld)!;
+  const E = faces.find((s) => s.dir !== ld)!;
+  const d = c.door;
+  const L = wallSpan(hb.w, hb.h, ld);
+  const sill = BASE_COURSE;
+  const band0 = H - up(1.9);
+  const alongCol = isRowWall(ld);
+  // Inside: the hall's maple floor, its court a few meters in from the glass.
+  // Two courts side by side, each running in from the glass, so the near
+  // hoop of each faces the street (only a few meters of the hall show
+  // through a wall at this camera).
+  const inward = outwardOf(opposite(ld));
+  const pins = [-1, 1].map((k) => outsideWall(hb.col, hb.row, hb.w, hb.h, ld, L / 2 + k * Math.min(across(9), L * 0.24), -across(15.3)));
+  const players = pins.flatMap((p, k) => [[-2.5, 6], [3, 9.5], [0.5, 12]].map(([y, dd], i) => {
+    // `dd` meters in from the glass, `y` across the court.
+    const g = { c: p.col - inward.col * across(15.3 - dd) + (alongCol ? 0 : across(y!)), r: p.row - inward.row * across(15.3 - dd) + (alongCol ? across(y!) : 0) };
+    return { c: g.c, r: g.r, shapes: figureShp(g.c, g.r, 0, SHIRTS[(i + k * 2) % SHIRTS.length]!, undefined, 1.3) };
+  }));
+  const hall = [
+    ...roomShp(hb, 0, H, '#e9e3d3', MAPLE),
+    // A dark padded dado round the far walls.
+    ...roomShp(hb, 0, up(2), '#2f4a63', MAPLE).slice(0, 2),
+    ...pins.flatMap((p) => courtShp(p.col, p.row, !alongCol, 0, shade(MAPLE, 1.05), '#2f6fa8', 'rgba(250, 248, 240, 0.95)')),
+    ...byDepth([...pins.flatMap((p) => hoopItems(p.col, p.row, !alongCol, 0, 1.2)), ...players]),
+  ];
+  const glass = wallQuad(G.o, G.a, H, 0.01, 0.99, sill, band0);
+  // Outside: the forecourt's paving and its hard court, with hoops.
+  const fore = ld === 'posRow' ? { col, row: row + h - sd, w, h: sd }
+    : ld === 'negRow' ? { col, row, w, h: sd }
+      : ld === 'posCol' ? { col: col + w - sd, row, w: sd, h } : { col, row, w: sd, h };
+  const oc = outsideWall(hb.col, hb.row, hb.w, hb.h, ld, L / 2, sd / 2);
+  const court = courtShp(oc.col, oc.row, alongCol, up(0.05), '#2f6b8f', '#3f8a5c', 'rgba(250, 250, 245, 0.95)');
+  const apron = boxFaces(fore.col, fore.row, fore.w, fore.h, 0, 0).top;
+  const surround = (() => {
+    const P = (x: number, y: number): [number, number] => alongCol ? [oc.col + across(x), oc.row + across(y)] : [oc.col + across(y), oc.row + across(x)];
+    return [P(-16.5, -8.6), P(16.5, -8.6), P(16.5, 8.6), P(-16.5, 8.6)].map(([cc, rr]) => G3(cc, rr, up(0.03)));
+  })();
+  const outside = byDepth(hoopItems(oc.col, oc.row, alongCol, up(0.05), 1.6));
+  // The roof: a low gable, ridge down the hall, ribbed.
+  const rise = up(2.4);
+  const fr = f;
+  const rs = alongW ? lift(project(hb.col, hb.row + hb.h / 2), H + rise) : lift(project(hb.col + hb.w / 2, hb.row), H + rise);
+  const re = alongW ? lift(project(hb.col + hb.w, hb.row + hb.h / 2), H + rise) : lift(project(hb.col + hb.w / 2, hb.row + hb.h), H + rise);
+  const slopes: Array<[FaceDir, Pt[], [Pt, Pt]]> = alongW
+    ? [['negRow', [fr.NWt, fr.NEt, re, rs], [fr.NWt, fr.NEt]], ['posRow', [fr.SWt, fr.SEt, re, rs], [fr.SWt, fr.SEt]]]
+    : [['negCol', [fr.NWt, fr.SWt, re, rs], [fr.NWt, fr.SWt]], ['posCol', [fr.NEt, fr.SEt, re, rs], [fr.NEt, fr.SEt]]];
+  const ribs = Math.max(8, Math.round((alongW ? hb.w : hb.h) / across(3)));
+  const ribPath = ([e0, e1]: [Pt, Pt]) => {
+    const out: string[] = [];
+    for (let k = 1; k < ribs; k++) {
+      const t = k / ribs;
+      const a = { x: e0.x + (e1.x - e0.x) * t, y: e0.y + (e1.y - e0.y) * t };
+      const b = { x: rs.x + (re.x - rs.x) * t, y: rs.y + (re.y - rs.y) * t };
+      out.push(`M${a.x},${a.y}L${b.x},${b.y}`);
+    }
+    return out.join('');
+  };
+  const signZ0 = d ? Math.min(d.threshold + d.height + up(1.6), band0 - up(1.6)) : up(5);
+  return (
+    <>
+      {/* The forecourt, then the hall behind it. */}
+      <polygon points={polyPoints(apron)} fill="#c9c4b6" />
+      <polygon points={polyPoints(surround)} fill="#3f8a5c" />
+      <Through clip={surround} shapes={court} />
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      <polygon points={polyPoints(glass)} fill={SHED_INTERIOR} />
+      <Through clip={glass} shapes={hall} />
+      <polygon points={polyPoints(glass)} fill={SHED_SHEEN} />
+      <path className="iso-mullion" d={mullionPath(G, H, 0.01, 0.99, sill, band0, across(7))} />
+      <Piers stone={stone} col={hb.col} row={hb.row} w={hb.w} h={hb.h} height={H} outward={E.dir} pal={pal} />
+      {shedCourses(f, H, c.cornice)}
+      {windows(E.o, E.a, H, E.span, [clerestorySill(H)], 0, 'sc', 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, E.span, H) : undefined)}
+      {/* The sign band over the glass: the hall's name and a ball. */}
+      <PictoSign s={G} H={H} u0={0.01} u1={0.99} z0={band0} z1={H - EAVES_COURSE} picto="ball" />
+      {d && <Door d={d} origin={E.o} along={E.a} wallHeight={H} span={E.span} side={E.dir} />}
+      {d && (() => {
+        const span = wallSpan(hb.w, hb.h, E.dir);
+        const at = outsideWall(hb.col, hb.row, hb.w, hb.h, E.dir, span / 2, 0);
+        const out = outwardOf(E.dir);
+        return <EntranceSteps stone={stone} d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} />;
+      })()}
+      {shedEntrance(c, hb, H, [E.dir])}
+      <PictoSign s={E} H={H} u0={0.5 - Math.min(0.4, across(8) / E.span)} u1={0.5 + Math.min(0.4, across(8) / E.span)} z0={signZ0} z1={signZ0 + up(1.5)} picto="ball" />
+      {/* The roof: gable end in the wall, slopes back to front, ribs. */}
+      {gableEnds(fr, alongW, rs, re, pal)}
+      {backSlopesFirst(slopes, (s) => s[0]).map(([dir, pts, eave]) => (
+        <g key={dir}>
+          <polygon points={polyPoints(pts)} fill={pal[dir]} />
+          <path d={ribPath(eave)} stroke="rgba(30, 34, 38, 0.22)" strokeWidth={0.6} fill="none" />
+        </g>
+      ))}
+      <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+      {outside.map((s, i) => <polygon key={`o${i}`} points={polyPoints(s.pts)} fill={s.fill} />)}
+    </>
+  );
+}
+
+// A barrel vault down a box's long axis, sprung from height `base`:
+// `profile` (0..1 across the span) gives its section. Only the facets that
+// face the camera are drawn (the vault is convex), each with its share of
+// `ribs` and of any rooflight strips; the end the camera sees is returned
+// as points for the caller to dress.
+function barrelVault({ col, row, w, h, base, rise, n, profile, fill, ribs = 0, ribTone, lights = [], lightFill }: {
+  col: number; row: number; w: number; h: number; base: number; rise: number; n: number;
+  profile: (c: number) => number; fill: (c: number) => string;
+  ribs?: number; ribTone?: string; lights?: Array<[number, number]>; lightFill?: string;
+}) {
+  const alongW = w >= h;
+  const a0 = 0.004; const a1 = 0.996;
+  const pt = (a: number, c: number) => lift(
+    alongW ? project(col + w * a, row + h * c) : project(col + w * c, row + h * a), base + rise * profile(c),
+  );
+  const area = (pts: Pt[]) => pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p.x * q.y - q.x * p.y; }, 0);
+  const deck = area([project(0, 0), project(1, 0), project(1, 1), project(0, 1)]);
+  const seenSign = Math.sign(deck) * (alongW ? 1 : -1);
+  const facets: React.JSX.Element[] = [];
+  for (let i = 0; i < n; i++) {
+    const c0 = i / n; const c1 = (i + 1) / n;
+    const quad = [pt(a0, c0), pt(a1, c0), pt(a1, c1), pt(a0, c1)];
+    if (Math.sign(area(quad)) !== seenSign) continue;
+    const rib: string[] = [];
+    for (let k = 1; k < ribs; k++) {
+      const p = pt(k / ribs, c0); const q = pt(k / ribs, c1);
+      rib.push(`M${p.x},${p.y}L${q.x},${q.y}`);
+    }
+    const strips = lights.map(([l0, l1]) => [Math.max(l0, c0), Math.min(l1, c1)]).filter(([l0, l1]) => l1 > l0);
+    facets.push(
+      <g key={i}>
+        <polygon points={polyPoints(quad)} fill={fill((c0 + c1) / 2)} />
+        {strips.map(([l0, l1], j) => <polygon key={j} points={polyPoints([pt(0.05, l0), pt(0.95, l0), pt(0.95, l1), pt(0.05, l1)])} fill={lightFill} />)}
+        {rib.length > 0 && <path d={rib.join('')} fill="none" stroke={ribTone} strokeWidth={0.7} />}
+      </g>,
+    );
+  }
+  // The end the camera sees: +col (+row) or the other.
+  const f = boxFaces(col, row, w, h, 0, 0);
+  const highEnd: FaceDir = alongW ? 'posCol' : 'posRow';
+  const endDir = wallOf(f, highEnd).visible ? highEnd : opposite(highEnd);
+  const endAt = endDir === highEnd ? a1 : a0;
+  const at = (c: number, z: number) => lift(alongW ? project(col + w * endAt, row + h * c) : project(col + w * c, row + h * endAt), z);
+  // The end's arch in k pieces, drawn in toward the middle of its
+  // springing line by `shrink` (1 is the vault's own edge).
+  const arch = (k: number, shrink = 1) => {
+    const hub = at(0.5, base);
+    return Array.from({ length: k + 1 }, (_, i) => {
+      const q = at(i / k, base + rise * profile(i / k));
+      return { x: hub.x + (q.x - hub.x) * shrink, y: hub.y + (q.y - hub.y) * shrink };
+    });
+  };
+  return { facets, endDir, arch, at };
+}
+
+// The Field House: low walls under one long, high barrel of ribbed metal
+// with a rooflight down its crown, and a fan of glazing in the end the
+// camera sees. Precedents: Michigan's Oosterbaan Field House, Yale's Coxe
+// Cage. Taller and narrower in section than the arena's shallow vault, and
+// metal rather than its slate (Plan 87C).
+function FieldHouseShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, pal, stone } = c;
+  const Hw = up(5.5);
+  const f = boxFaces(col, row, w, h, 0, Hw);
+  const [L, R] = shedFaces(f);
+  const box = { col, row, w, h };
+  const alongW = w >= h;
+  const rise = up(15);
+  const N = 14;
+  const vault = barrelVault({
+    col, row, w, h, base: Hw, rise, n: N,
+    profile: (cc) => Math.sqrt(Math.max(0, 1 - (2 * cc - 1) ** 2)),
+    fill: (cm) => shade(ZINC, 1.12 - 0.36 * cm),
+    ribs: Math.max(6, Math.round((alongW ? w : h) * 1.1)), ribTone: 'rgba(70, 78, 82, 0.55)',
+    lights: [[0.44, 0.56]], lightFill: 'rgba(196, 222, 232, 0.92)',
+  });
+  const endWall = pal.wall[vault.endDir];
+  const lunette = vault.arch(24);
+  // The fan: glass inset in the lunette, with mullions radiating from a hub.
+  const glass = vault.arch(24, 0.93);
+  const hub = vault.at(0.5, Hw + up(0.4));
+  const hubDisc = Array.from({ length: 9 }, (_, i) => {
+    const a = Math.PI * (i / 8);
+    return vault.at(0.5 - 0.07 * Math.cos(a), Hw + up(0.4) + up(3.0) * Math.sin(a));
+  });
+  const spokes = vault.arch(12, 0.93).slice(1, -1).map((q) => `M${hub.x},${hub.y}L${q.x},${q.y}`);
+  const ring = vault.arch(16, 0.5);
+  const long = (s: ShedFace) => isRowWall(s.dir) === alongW;
+  const d = c.door;
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {c.fronts.map((dir) => <Piers key={dir} stone={stone} col={col} row={row} w={w} h={h} height={Hw} outward={dir} pal={pal} />)}
+      {shedCourses(f, Hw, c.cornice)}
+      {[L, R].filter(long).map((s, i) => (
+        <g key={`w${i}`}>
+          {windows(s.o, s.a, Hw, s.span, [up(1.5)], across(2.2), `fw${i}`, 'rect', stone.glass, d ? doorBay(d, s.span, Hw) : undefined)}
+        </g>
+      ))}
+      {shedDoors(c, box, f, Hw)}
+      {vault.facets}
+      <polygon points={polyPoints([...lunette])} fill={endWall} />
+      <polygon points={polyPoints(glass)} fill="rgba(128, 170, 192, 0.95)" />
+      <path d={spokes.join('')} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
+      <polyline points={polyPoints(ring)} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
+      <polygon points={polyPoints(hubDisc)} fill={shade(endWall, 0.92)} />
+      {shedEntrance(c, box, Hw, c.fronts.filter((dir) => !(isRowWall(dir) === alongW)))}
+    </>
+  );
+}
+
+// The Natatorium: a long, low, pale vault over walls glazed from end to end,
+// through which the pool's lanes read, and the stand behind them grows with
+// each expansion (Plan 87C).
+function NatatoriumShed({ c }: { c: ShedCtx }) {
+  const { col, row, w, h, H, pal } = c;
+  const f = boxFaces(col, row, w, h, 0, H);
+  const [L, R] = shedFaces(f);
+  const box = { col, row, w, h };
+  const alongW = w >= h;
+  const top = H - EAVES_COURSE; const sill = BASE_COURSE;
+  const vault = barrelVault({
+    col, row, w, h, base: H, rise: up(4.2), n: 9,
+    profile: (cc) => 1 - (2 * cc - 1) ** 2,
+    fill: (cm) => shade(POOL_ROOF, 1.04 - 0.22 * cm),
+    lights: [[0.24, 0.33], [0.67, 0.76]], lightFill: 'rgba(150, 196, 216, 0.85)',
+  });
+  const long = (s: ShedFace) => isRowWall(s.dir) === alongW;
+  const G = long(L) ? L : R;
+  const E = G === L ? R : L;
+  const gh = top - sill;
+  // The pool along the long glass: deck, water, lane lines.
+  const poolLong = (s: ShedFace) => {
+    const p0 = sill + gh * 0.05; const p1 = sill + Math.min(gh * 0.34, up(3.6));
+    const lanes: string[] = [];
+    for (let k = 1; k < 8; k++) {
+      const z = p0 + ((p1 - p0) * k) / 8;
+      const a = facePoint(s.o, s.a, H, 0.08, z / H); const b = facePoint(s.o, s.a, H, 0.92, z / H);
+      lanes.push(`M${a.x},${a.y}L${b.x},${b.y}`);
+    }
+    // Seats behind the pool: three rows, three more for each expansion.
+    const rows = 3 + 3 * c.expansions;
+    const rz = up(0.8);
+    const s0 = p1 + up(1.2);
+    const seats: React.JSX.Element[] = [];
+    for (let k = 0; k < rows && s0 + rz * (k + 1) < top - up(0.8); k++) {
+      seats.push(<polygon key={k} points={wq(s, H, 0.1, 0.9, s0 + rz * k, s0 + rz * (k + 0.75))} fill={shade(SEAT_RED, 1 - k * 0.04)} />);
+    }
+    return (
+      <>
+        <polygon points={wq(s, H, 0.02, 0.98, sill, p1 + up(1.0))} fill={POOL_DECK} />
+        <polygon points={wq(s, H, 0.07, 0.93, p0, p1)} fill={POOL_WATER} />
+        <path d={lanes.join('')} fill="none" stroke={LANE_LINE} strokeWidth={0.6} />
+        {seats}
+      </>
+    );
+  };
+  // Through the end glazing the lanes run away from the camera.
+  const poolEnd = (s: ShedFace) => {
+    const p0 = sill + gh * 0.05; const p1 = sill + Math.min(gh * 0.3, up(3.2));
+    const lanes: string[] = [];
+    for (let k = 1; k < 8; k++) {
+      const u = 0.15 + (0.7 * k) / 8;
+      const a = facePoint(s.o, s.a, H, u, p0 / H); const b = facePoint(s.o, s.a, H, u + (u - 0.5) * 0.12, p1 / H);
+      lanes.push(`M${a.x},${a.y}L${b.x},${b.y}`);
+    }
+    return (
+      <>
+        <polygon points={wq(s, H, 0.03, 0.97, sill, p1 + up(0.8))} fill={POOL_DECK} />
+        <polygon points={polyPoints([...wallQuad(s.o, s.a, H, 0.15, 0.85, p0, p0).slice(0, 2), facePoint(s.o, s.a, H, 0.89, p1 / H), facePoint(s.o, s.a, H, 0.11, p1 / H)])} fill={POOL_WATER} />
+        <path d={lanes.join('')} fill="none" stroke={LANE_LINE} strokeWidth={0.6} />
+      </>
+    );
+  };
+  const lunette = vault.arch(16);
+  const lunetteGlass = vault.arch(16, 0.94);
+  const mull: string[] = [];
+  for (let k = 1; k < 8; k++) {
+    const cc = k / 8;
+    const p = vault.at(cc, H); const q = vault.at(cc, H + up(4.2) * (1 - (2 * cc - 1) ** 2) * 0.95);
+    mull.push(`M${p.x},${p.y}L${q.x},${q.y}`);
+  }
+  return (
+    <>
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {shedCourses(f, H, c.cornice)}
+      <SeeThrough s={G} H={H} u0={0.02} u1={0.98} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + gh * 0.55]}>
+        {poolLong(G)}
+      </SeeThrough>
+      <SeeThrough s={E} H={H} u0={0.03} u1={0.97} z0={sill} z1={top} pitch={across(4.5)} transoms={[sill + gh * 0.55]}>
+        {poolEnd(E)}
+      </SeeThrough>
+      {shedDoors(c, box, f, H)}
+      {vault.facets}
+      <polygon points={polyPoints(lunette)} fill={pal.wall[vault.endDir]} />
+      <polygon points={polyPoints(lunetteGlass)} fill="rgba(120, 164, 186, 0.95)" />
+      <path d={mull.join('')} fill="none" stroke="rgba(244, 246, 246, 0.85)" strokeWidth={0.8} />
+      {shedEntrance(c, box, H, c.fronts)}
+    </>
+  );
+}
+
 // A curtain wall: continuous glass divided by mullions (the wall is the
 // glazing), on the same bay grid as punched windows so the two agree.
 function CurtainWall({ origin, along, wallHeight, spanTiles, from, to, floors, id, u0 = 0, u1 = 1 }: {
@@ -2184,6 +4543,206 @@ function RedCross({ origin, along, wallHeight, spanTiles, centreU, centreV, scal
       <polygon className="iso-cross" points={quad(centreU - armU, centreU + armU, centreV - barV, centreV + barV)} />
     </>
   );
+}
+
+// The Business School's ticker (Plan 87A): a dark LED fascia with runs of
+// lit quotes, green, red, amber and white, the tape that runs round a
+// trading floor. One <path> per color, not a node per dash.
+const TICKER_DARK = '#16191d';
+const TICKER_LIGHTS = ['#58e386', '#ff5f4f', '#ffc847', '#eaf3ff'];
+const TICKER_RUN_METRES = 2.4;
+function Ticker({ origin, along, wallHeight, spanTiles, from, to, id }: {
+  origin: Pt; along: Pt; wallHeight: number; spanTiles: number; from: number; to: number; id: string;
+}) {
+  if (wallHeight <= 0 || spanTiles <= 0 || to <= from) return null;
+  const runs = Math.max(3, Math.round((spanTiles * METRES_PER_TILE) / TICKER_RUN_METRES));
+  const d: string[] = TICKER_LIGHTS.map(() => '');
+  const v0 = (from + (to - from) * 0.24) / wallHeight;
+  const v1 = (from + (to - from) * 0.76) / wallHeight;
+  for (let i = 0; i < runs; i++) {
+    // A gap now and then between quotes; the colors and lengths vary.
+    if (i % 6 === 5) continue;
+    const len = 0.45 + ((i * 37) % 5) * 0.08;
+    const u0 = (i + 0.12) / runs; const u1 = (i + 0.12 + len) / runs;
+    const c = (i * 7 + (i >> 2)) % TICKER_LIGHTS.length;
+    d[c] += `M${polyPoints([
+      facePoint(origin, along, wallHeight, u0, v0), facePoint(origin, along, wallHeight, u1, v0),
+      facePoint(origin, along, wallHeight, u1, v1), facePoint(origin, along, wallHeight, u0, v1),
+    ]).replace(/ /g, 'L')}Z`;
+  }
+  return (
+    <>
+      <WallBand origin={origin} along={along} wallHeight={wallHeight} from={from} to={to} className="iso-cornice" fill={TICKER_DARK} />
+      {d.map((path, c) => path && <path key={`${id}${c}`} fill={TICKER_LIGHTS[c]} d={path} />)}
+    </>
+  );
+}
+
+// The office tower's plant screen (Plan 87A): a light frame hung with dark
+// horizontal louvres, open to the sky, the condenser fans showing inside.
+const SCREEN_FRAME = '#d3d6d8';
+const SCREEN_LOUVRE = '#4a5055';
+const SCREEN_WELL = '#2c3034';
+const SCREEN_FAN = '#6b7277';
+function PlantScreen({ col, row, w, h, base }: DepthBox & { base: number }) {
+  const H = up(3.4);
+  const f = boxFaces(col, row, w, h, base, H);
+  const louvres = [0.16, 0.34, 0.52, 0.7];
+  const rim = across(0.5);
+  const fans = [0.27, 0.73].map((k) => (w >= h
+    ? { cc: col + w * k, cr: row + h / 2 }
+    : { cc: col + w / 2, cr: row + h * k }));
+  const r = Math.min(w * 0.2, h * 0.3, Math.max(w, h) * 0.2);
+  return (
+    <>
+      {sideFaces(f, SCREEN_FRAME, shade(SCREEN_FRAME, 0.84))}
+      {faceWallsOf(f).map(([o, a, , s]) => louvres.map((v, i) => (
+        <WallBand key={`${s}${i}`} origin={o} along={a} wallHeight={H} from={H * v} to={H * (v + 0.1)}
+          u0={0.05} u1={0.95} className="iso-cornice" fill={SCREEN_LOUVRE} />
+      )))}
+      {/* Open top: the frame's rim, the well inside it, and the fans'
+          rings and hubs in the well. */}
+      <polygon points={polyPoints(f.top)} fill={shade(SCREEN_FRAME, 1.04)} />
+      <polygon points={polyPoints(boxFaces(col + rim, row + rim, w - rim * 2, h - rim * 2, base + H, 0).top)} fill={SCREEN_WELL} />
+      {fans.map(({ cc, cr }, i) => (
+        <g key={`fan${i}`}>
+          <polygon points={polyPoints(projectedCircle(cc, cr, r, 20).map((q) => lift(q, base + H * 0.86)))} fill={SCREEN_FAN} />
+          <polygon points={polyPoints(projectedCircle(cc, cr, r * 0.32, 12).map((q) => lift(q, base + H * 0.86)))} fill={SCREEN_WELL} />
+        </g>
+      ))}
+    </>
+  );
+}
+function faceWallsOf(f: BoxFaces) {
+  return [[f.D, f.C, f.spanLeft, 'l'] as const, [f.C, f.B, f.spanRight, 'r'] as const];
+}
+
+// The Business School (Plan 87A; buildingSpec's businessSchoolPlan): a
+// podium with the ticker round its fascia, a full-height glazed atrium at
+// the middle of the long front, and an office tower rising from the back.
+// Not the hospital (no slab, cross or helipad) and not the Business hall's
+// domed exchange. The walls take the vernacular's windows and crest.
+function BusinessSchool({ t, p, pal, stone, paneShape, paneW, crest, plantTint, cornice, trim, door }: {
+  t: Buildable; p: { col: number; row: number; w: number; h: number };
+  pal: Palette; stone: StonePalette; paneShape: WindowShape; paneW: number;
+  crest: CrestPart; plantTint: string; cornice: string | undefined; trim: boolean;
+  door: DoorDimensions | null;
+}) {
+  const plan = businessSchoolPlan(p);
+  const { front, sides, podiumHeight: Hp, atriumHeight: Ha } = plan;
+  const back = opposite(front);
+  const Ht = wallHeightOf(t);
+  const floorsUnder = (storeys: number) => Array.from({ length: storeys - 1 }, (_, i) => (i + 1) * STOREY);
+  const podiumTop = BUSINESS_PODIUM_STOREYS * STOREY;
+  const fronts = [visibleWalls().left, visibleWalls().right];
+  const faceWalls = (f: BoxFaces) => [[f.D, f.C, f.spanLeft, 'l'] as const, [f.C, f.B, f.spanRight, 'r'] as const];
+
+  // A podium part: windows by floor, the ticker on its fascia, its crest on
+  // the walls that face out (not on a seam with another part).
+  const podium = (b: DepthBox, outside: FaceDir[], key: string) => {
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, Hp);
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faceWalls(f).map(([o, a, span, s]) => (
+          <g key={s}>
+            {trim && floorCourses(o, a, Hp, floorsUnder(BUSINESS_PODIUM_STOREYS), `${key}${s}`)}
+            {trim && <WallBand origin={o} along={a} wallHeight={Hp} from={0} to={BASE_COURSE} className="iso-plinth" />}
+            {windows(o, a, Hp, span, rankSills(BUSINESS_PODIUM_STOREYS), paneW, `${key}${s}`, paneShape, stone.glass)}
+            <Ticker origin={o} along={a} wallHeight={Hp} spanTiles={span} from={podiumTop + up(0.35)} to={Hp - EAVES_COURSE - up(0.15)} id={`${key}${s}t`} />
+            <WallBand origin={o} along={a} wallHeight={Hp} from={Hp - EAVES_COURSE} to={Hp} className="iso-cornice" fill={cornice} />
+          </g>
+        ))}
+        <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+        <Crest crest={crest} {...b} base={Hp} fronts={fronts.filter((d) => outside.includes(d))} pal={pal} stone={stone} tile={plantTint} />
+      </g>
+    );
+  };
+
+  // The tower: the same windows, floor by floor, over the podium; a plant
+  // screen and its crest on top.
+  const tower = (() => {
+    const b = plan.tower;
+    const TH = Ht - Hp;
+    const f = boxFaces(b.col, b.row, b.w, b.h, Hp, TH);
+    const storeys = Math.max(1, Math.round(TH / STOREY));
+    const pier = cornice ?? (stone.trim === 'none' ? shade(pal.wall.posRow, 1.12) : stone.trim);
+    return (
+      <g key="tower">
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faceWalls(f).map(([o, a, span, s]) => (
+          <g key={s}>
+            {trim && floorCourses(o, a, TH, floorsUnder(storeys), `tw${s}`)}
+            {windows(o, a, TH, span, rankSills(storeys), paneW, `tw${s}`, paneShape, stone.glass)}
+            {/* Piers between the bays, full height: the office tower's
+                vertical against the podium's horizontal bands. */}
+            {Array.from({ length: baysAcross(span) + 1 }, (_, i) => {
+              const u = i / baysAcross(span);
+              const half = Math.min(0.02, across(0.45) / span);
+              return (
+                <WallBand key={`tp${i}`} origin={o} along={a} wallHeight={TH} from={0} to={TH}
+                  u0={Math.max(0, u - half)} u1={Math.min(1, u + half)} className="iso-cornice" fill={pier} />
+              );
+            })}
+            <WallBand origin={o} along={a} wallHeight={TH} from={TH - EAVES_COURSE * 1.4} to={TH} className="iso-cornice" fill={cornice} />
+          </g>
+        ))}
+        <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+        <PlantScreen col={b.col + b.w * 0.22} row={b.row + b.h * 0.24} w={b.w * 0.56} h={b.h * 0.52} base={Ht} />
+        <Crest crest={crest} {...b} base={Ht} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
+      </g>
+    );
+  })();
+
+  // The atrium: glass from the plinth to the eaves, the ticker carried
+  // across it at the podium's fascia, a glazed roof, the door and its
+  // canopy on the front.
+  const atrium = (() => {
+    const b = plan.atrium;
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, Ha);
+    const fw = wallOf(f, front);
+    const mullions = 4;
+    const roofBars = Array.from({ length: mullions - 1 }, (_, i) => {
+      const k = (i + 1) / mullions;
+      const bar = (front === 'posRow' || front === 'negRow')
+        ? boxFaces(b.col + b.w * k - across(0.25), b.row, across(0.5), b.h, Ha, 0)
+        : boxFaces(b.col, b.row + b.h * k - across(0.25), b.w, across(0.5), Ha, 0);
+      return <polygon key={`rb${i}`} className="iso-mullion" points={polyPoints(bar.top)} />;
+    });
+    return (
+      <g key="atrium">
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faceWalls(f).map(([o, a, span, s]) => (
+          <g key={s}>
+            <CurtainWall origin={o} along={a} wallHeight={Ha} spanTiles={span} from={BASE_COURSE} to={Ha - EAVES_COURSE * 1.4} floors={[STOREY * 2]} id={`at${s}`} u0={0.04} u1={0.96} />
+            <Ticker origin={o} along={a} wallHeight={Ha} spanTiles={span} from={podiumTop + up(0.35)} to={Hp - EAVES_COURSE - up(0.15)} id={`at${s}t`} />
+            <WallBand origin={o} along={a} wallHeight={Ha} from={Ha - EAVES_COURSE * 1.4} to={Ha} className="iso-cornice" fill={cornice} />
+          </g>
+        ))}
+        <polygon className="iso-curtain-glass" points={polyPoints(f.top)} />
+        {roofBars}
+        {door && fw.visible && (
+          <>
+            <Door d={door} origin={fw.origin} along={fw.along} wallHeight={Ha} span={wallSpan(b.w, b.h, front)} side={front} />
+            <Canopy stone={stone} d={door} col={b.col} row={b.row} w={b.w} h={b.h} outward={front} wallHeight={Ha} />
+          </>
+        )}
+      </g>
+    );
+  })();
+
+  // Painter's order among the four parts; the tower stands on the back
+  // podium and paints with it.
+  const parts = depthOrder([
+    { ...plan.back, node: <g key="back">{podium(plan.back, [back, ...sides], 'bk')}{tower}</g> },
+    { ...plan.wings[0], node: podium(plan.wings[0], [front, sides[0]], 'w0') },
+    { ...plan.wings[1], node: podium(plan.wings[1], [front, sides[1]], 'w1') },
+    { ...plan.atrium, node: atrium },
+  ]);
+  return <>{parts.map((x) => x.node)}</>;
 }
 
 // The clock tower, Founders Hall only (hasClockTower): a square base with a
@@ -2547,6 +5106,467 @@ const VILLAGE_TREES: Array<[number, number, 'canopy' | 'ornamental' | 'conifer',
 // cover them.)
 function villageTreeShadows(col: number, row: number, w: number, h: number): Pt[][] {
   return VILLAGE_TREES.map(([u, v, species, scale]) => treeShadow(col + w * u, row + h * v, species, scale));
+}
+
+// --- The Research Park and the Graduate College (Plan 87B) ---------------
+// Both are drawn as several volumes on one plot, laid out along the
+// footprint's long (l) and short (s) axes so the plan keeps its shape when
+// the footprint is turned, and painted in depthOrder like the village.
+
+// A box on the plot from fractions of its long and short axes.
+function plotBox(col: number, row: number, w: number, h: number) {
+  const alongW = w >= h;
+  const L = Math.max(w, h); const S = Math.min(w, h);
+  return (l0: number, s0: number, l1: number, s1: number): DepthBox => (alongW
+    ? { col: col + L * l0, row: row + S * s0, w: L * (l1 - l0), h: S * (s1 - s0) }
+    : { col: col + S * s0, row: row + L * l0, w: S * (s1 - s0), h: L * (l1 - l0) });
+}
+
+// A volume's cast shadow on the motif's own lawn, kept inside the plot:
+// CampusMap's shadow pass already lies outside it, and a second layer there
+// would read as a darker band.
+function plotShadow(b: DepthBox, height: number, plot: DepthBox, key: string) {
+  const { dcol, drow } = shadowOffset(height);
+  const c0 = Math.max(plot.col, b.col + dcol); const c1 = Math.min(plot.col + plot.w, b.col + b.w + dcol);
+  const r0 = Math.max(plot.row, b.row + drow); const r1 = Math.min(plot.row + plot.h, b.row + b.h + drow);
+  if (c1 <= c0 || r1 <= r0) return null;
+  return <polygon key={key} className="campus-building-shadow" points={polyPoints(boxFaces(c0, r0, c1 - c0, r1 - r0, 0, 0).top)} />;
+}
+
+// The visible long walls of a box (its two faces along the ridge).
+function longWalls(f: BoxFaces, alongW: boolean): FaceDir[] {
+  const dirs: FaceDir[] = alongW ? ['negRow', 'posRow'] : ['negCol', 'posCol'];
+  return dirs.filter((d) => wallOf(f, d).visible);
+}
+
+const LAB_STEEL = '#9aa1a6';
+const LAB_LOUVRE = '#b9bfc2';
+const LAB_RIBBON_GLASS = 'rgba(52, 72, 84, 0.62)';
+const SIGN_FACE = '#3b4650';
+const SIGN_LETTER = 'rgba(244, 240, 228, 0.92)';
+type ParkPart =
+  | DepthBox & { kind: 'lab'; storeys: number; stacks: boolean; screen: boolean; ribbon: boolean }
+  | DepthBox & { kind: 'link'; storeys: number }
+  | DepthBox & { kind: 'tree'; species: 'canopy' | 'ornamental'; scale: number }
+  | DepthBox & { kind: 'planter' }
+  | DepthBox & { kind: 'sign' };
+
+// The Research Park (Plan 87B): four lab pavilions of different heights
+// round a landscaped court, joined by a glazed atrium and links, with rows
+// of fume stacks, a screened roof plant and ribbon windows, and a monument
+// sign at the gate. After Stanford Research Park and Cambridge Science Park.
+function ResearchPark({ col, row, w, h, pal, stone, paneShape, crest, plantTint }: {
+  col: number; row: number; w: number; h: number; pal: Palette; stone: StonePalette;
+  paneShape: WindowShape; crest: CrestPart; plantTint: string;
+}) {
+  const at = plotBox(col, row, w, h);
+  const alongW = w >= h;
+  const plot = { col, row, w, h };
+  const seen = visibleWalls();
+  const fronts: FaceDir[] = [seen.left, seen.right];
+  const lab = (l0: number, s0: number, l1: number, s1: number, storeys: number, extra: Partial<{ stacks: boolean; screen: boolean; ribbon: boolean }>) => (
+    { kind: 'lab' as const, ...at(l0, s0, l1, s1), storeys, stacks: false, screen: false, ribbon: false, ...extra });
+  const link = (l0: number, s0: number, l1: number, s1: number, storeys: number) => ({ kind: 'link' as const, ...at(l0, s0, l1, s1), storeys });
+  const tree = (l: number, s: number, species: 'canopy' | 'ornamental', scale: number) => {
+    const b = at(l, s, l, s);
+    return { kind: 'tree' as const, col: b.col - 0.5, row: b.row - 0.5, w: 1, h: 1, species, scale };
+  };
+  const planter = (l: number, s: number) => {
+    const b = at(l, s, l, s); const r = across(1.6);
+    return { kind: 'planter' as const, col: b.col - r, row: b.row - r, w: r * 2, h: r * 2 };
+  };
+  // The monument sign stands across the gate's line, its faces to the road.
+  const signLen = across(8); const signDepth = across(1.0);
+  const sb = at(0.645, 0.955, 0.645, 0.955);
+  const sign = { kind: 'sign' as const, ...(alongW
+    ? { col: sb.col - signLen / 2, row: sb.row - signDepth / 2, w: signLen, h: signDepth }
+    : { col: sb.col - signDepth / 2, row: sb.row - signLen / 2, w: signDepth, h: signLen }) };
+  const parts: ParkPart[] = [
+    lab(0.03, 0.05, 0.30, 0.47, 4, { stacks: true, ribbon: true }),
+    link(0.30, 0.12, 0.50, 0.38, 2),
+    lab(0.50, 0.04, 0.79, 0.43, 3, { screen: true }),
+    link(0.79, 0.15, 0.84, 0.32, 2),
+    lab(0.84, 0.08, 0.97, 0.90, 2, { ribbon: true }),
+    link(0.11, 0.47, 0.21, 0.61, 1),
+    lab(0.04, 0.61, 0.28, 0.94, 3, {}),
+    tree(0.37, 0.60, 'canopy', 0.95), tree(0.75, 0.58, 'canopy', 0.8),
+    tree(0.38, 0.88, 'canopy', 0.75), tree(0.78, 0.84, 'canopy', 1.0),
+    planter(0.47, 0.47), planter(0.62, 0.47),
+    sign,
+  ];
+  const masses = parts.filter((p): p is Extract<ParkPart, { storeys: number }> => p.kind === 'lab' || p.kind === 'link');
+  const flat = (b: DepthBox, cls: string, key: string) => <polygon key={key} className={cls} points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} />;
+
+  const labNode = (p: Extract<ParkPart, { kind: 'lab' }>, key: string) => {
+    const H = p.storeys * STOREY;
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, H);
+    const lines = Array.from({ length: p.storeys - 1 }, (_, i) => (i + 1) * STOREY);
+    const shape: WindowShape = p.ribbon ? 'ribbon' : paneShape;
+    const glass = p.ribbon ? LAB_RIBBON_GLASS : stone.glass;
+    const face = (o: Pt, a: Pt, span: number, k: string) => (
+      <g key={k}>
+        {windows(o, a, H, span, rankSills(p.storeys), across(2.2), k, shape, glass)}
+        <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
+        <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={stone.trim !== NO_STONE ? stone.trim : undefined} />
+      </g>
+    );
+    // Lab exhaust: a row of tall fan stacks on a plinth down the roof's middle.
+    const stacks = () => {
+      const pl = Math.max(p.w, p.h); const n = Math.max(3, Math.round(pl / across(5.5)));
+      const r = across(0.75); const z0 = H + up(1.2);
+      const posts = Array.from({ length: n }, (_, i) => {
+        const u = (i + 0.5) / n * 0.8 + 0.1;
+        const cc = p.w >= p.h ? p.col + p.w * u : p.col + p.w * 0.5;
+        const cr = p.w >= p.h ? p.row + p.h * 0.5 : p.row + p.h * u;
+        return { col: cc - r, row: cr - r, w: r * 2, h: r * 2, cc, cr };
+      });
+      const bed = p.w >= p.h
+        ? boxFaces(p.col + p.w * 0.08, p.row + p.h * 0.5 - across(1.4), p.w * 0.84, across(2.8), H, up(1.2))
+        : boxFaces(p.col + p.w * 0.5 - across(1.4), p.row + p.h * 0.08, across(2.8), p.h * 0.84, H, up(1.2));
+      return (
+        <>
+          {sideFaces(bed, shade(LAB_STEEL, 0.8), shade(LAB_STEEL, 0.66))}
+          <polygon points={polyPoints(bed.top)} fill={shade(LAB_STEEL, 0.9)} />
+          {depthOrder(posts).map((s, i) => (
+            <g key={`fs${i}`}>
+              <Cylinder cc={s.cc} cr={s.cr} r={r} z0={z0} z1={z0 + up(7.5)} fill={LAB_STEEL} />
+              <Cylinder cc={s.cc} cr={s.cr} r={r * 0.55} z0={z0 + up(7.5)} z1={z0 + up(9.5)} fill={shade(LAB_STEEL, 0.62)} />
+            </g>
+          ))}
+        </>
+      );
+    };
+    // Rooftop plant behind a louvred screen, its fans showing from above.
+    const screen = () => {
+      const sc = p.col + p.w * 0.2; const sr = p.row + p.h * 0.22;
+      const sw = p.w * 0.6; const sh = p.h * 0.56; const rise = up(3.6);
+      const sf = boxFaces(sc, sr, sw, sh, H, rise);
+      const fanR = Math.min(sw, sh) * 0.2;
+      const fans = (sw >= sh ? [0.3, 0.7].map((u) => [sc + sw * u, sr + sh / 2]) : [0.3, 0.7].map((u) => [sc + sw / 2, sr + sh * u]));
+      const louvres = (o: Pt, a: Pt, k: string) => [0.2, 0.4, 0.6, 0.8].map((v) => {
+        const p0 = facePoint(o, a, rise, 0, v); const p1 = facePoint(o, a, rise, 1, v);
+        return <line key={`${k}${v}`} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} stroke={shade(LAB_LOUVRE, 0.62)} strokeWidth={0.9} />;
+      });
+      return (
+        <>
+          <polygon points={polyPoints(sf.top)} fill={shade(LAB_STEEL, 0.42)} />
+          {fans.map(([fc, fr], i) => (
+            <g key={`fan${i}`}>
+              <polygon points={polyPoints(projectedCircle(fc, fr, fanR, 20).map((q) => lift(q, H + rise)))} fill={shade(LAB_STEEL, 0.75)} />
+              <polygon points={polyPoints(projectedCircle(fc, fr, fanR * 0.7, 20).map((q) => lift(q, H + rise)))} fill={shade(LAB_STEEL, 0.3)} />
+              {(() => { const a = lift(project(fc - fanR * 0.7, fr), H + rise); const b = lift(project(fc + fanR * 0.7, fr), H + rise);
+                const c = lift(project(fc, fr - fanR * 0.7), H + rise); const d = lift(project(fc, fr + fanR * 0.7), H + rise);
+                return <><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={shade(LAB_STEEL, 0.8)} strokeWidth={0.8} /><line x1={c.x} y1={c.y} x2={d.x} y2={d.y} stroke={shade(LAB_STEEL, 0.8)} strokeWidth={0.8} /></>; })()}
+            </g>
+          ))}
+          {sideFaces(sf, LAB_LOUVRE, shade(LAB_LOUVRE, 0.8))}
+          {louvres(sf.D, sf.C, 'll')}
+          {louvres(sf.C, sf.B, 'lr')}
+        </>
+      );
+    };
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {floorCourses(f.D, f.C, H, lines, `${key}l`)}
+        {floorCourses(f.C, f.B, H, lines, `${key}r`)}
+        {face(f.D, f.C, f.spanLeft, `${key}fl`)}
+        {face(f.C, f.B, f.spanRight, `${key}fr`)}
+        <polygon points={polyPoints(f.top)} fill={pal.roof} />
+        <Crest crest={crest} col={p.col} row={p.row} w={p.w} h={p.h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
+        {p.stacks && stacks()}
+        {p.screen && screen()}
+      </g>
+    );
+  };
+
+  const linkNode = (p: Extract<ParkPart, { kind: 'link' }>, key: string) => {
+    const H = p.storeys * STOREY + up(1.2);
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, H);
+    const lines = Array.from({ length: p.storeys - 1 }, (_, i) => (i + 1) * STOREY);
+    const roof = boxFaces(p.col, p.row, p.w, p.h, H, 0);
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        <CurtainWall origin={f.D} along={f.C} wallHeight={H} spanTiles={f.spanLeft} from={BASE_COURSE} to={H - EAVES_COURSE} floors={lines} id={`${key}l`} />
+        <CurtainWall origin={f.C} along={f.B} wallHeight={H} spanTiles={f.spanRight} from={BASE_COURSE} to={H - EAVES_COURSE} floors={lines} id={`${key}r`} />
+        {/* A glass roof on the atrium: rooflight panes between steel ribs. */}
+        <polygon points={polyPoints(roof.top)} fill={shade(LAB_STEEL, 0.85)} />
+        <polygon className="iso-curtain-glass" points={polyPoints(boxFaces(p.col + p.w * 0.08, p.row + p.h * 0.08, p.w * 0.84, p.h * 0.84, H, 0).top)} />
+        {[0.3, 0.5, 0.7].map((u) => {
+          const a = p.w >= p.h ? lift(project(p.col + p.w * u, p.row + p.h * 0.08), H) : lift(project(p.col + p.w * 0.08, p.row + p.h * u), H);
+          const b = p.w >= p.h ? lift(project(p.col + p.w * u, p.row + p.h * 0.92), H) : lift(project(p.col + p.w * 0.92, p.row + p.h * u), H);
+          return <line key={`rib${u}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={shade(LAB_STEEL, 1.15)} strokeWidth={1} />;
+        })}
+      </g>
+    );
+  };
+
+  const signNode = (p: DepthBox, key: string) => {
+    const rise = up(2.9);
+    const plinth = boxFaces(p.col - across(0.4), p.row - across(0.4), p.w + across(0.8), p.h + across(0.8), 0, up(0.4));
+    const f = boxFaces(p.col, p.row, p.w, p.h, up(0.4), rise);
+    const cap = boxFaces(p.col - across(0.15), p.row - across(0.15), p.w + across(0.3), p.h + across(0.3), up(0.4) + rise, up(0.35));
+    const stoneTone = stone.trim !== NO_STONE ? stone.trim : '#d8d2c2';
+    // Lettering-like marks on each long face: a logo block and two lines of words.
+    const letters = longWalls(f, p.w >= p.h).map((dir) => {
+      const wl = wallOf(f, dir);
+      const words: Array<[number, number, number]> = [
+        [0.26, 0.48, 0.62], [0.52, 0.62, 0.62], [0.66, 0.86, 0.62],
+        [0.26, 0.42, 0.34], [0.46, 0.70, 0.34],
+      ];
+      return (
+        <g key={`${key}${dir}`}>
+          <polygon points={polyPoints(wallQuad(wl.origin, wl.along, rise, 0.08, 0.2, rise * 0.25, rise * 0.78))} fill="#c7a540" />
+          {words.map(([u0, u1, v], i) => (
+            <polygon key={i} points={polyPoints(wallQuad(wl.origin, wl.along, rise, u0, u1, rise * v, rise * (v + (i < 3 ? 0.17 : 0.1))))} fill={SIGN_LETTER} />
+          ))}
+        </g>
+      );
+    });
+    return (
+      <g key={key}>
+        <polygon className="ground-bed" points={polyPoints(boxFaces(p.col - across(1.2), p.row - across(1.2), p.w + across(2.4), p.h + across(2.4), 0, 0).top)} />
+        {sideFaces(plinth, shade(stoneTone, 0.9), shade(stoneTone, 0.74))}
+        {sideFaces(f, SIGN_FACE, shade(SIGN_FACE, 0.82))}
+        {letters}
+        {sideFaces(cap, shade(stoneTone, 0.95), shade(stoneTone, 0.78))}
+        <polygon points={polyPoints(cap.top)} fill={stoneTone} />
+      </g>
+    );
+  };
+
+  const planterNode = (p: DepthBox, key: string) => {
+    const cc = p.col + p.w / 2; const cr = p.row + p.h / 2; const r = p.w / 2;
+    return (
+      <g key={key}>
+        <Cylinder cc={cc} cr={cr} r={r} z0={0} z1={up(0.9)} fill={stone.trim !== NO_STONE ? shade(stone.trim, 0.85) : '#bdb6a6'} />
+        <polygon points={polyPoints(projectedCircle(cc, cr, r * 0.82, 18).map((q) => lift(q, up(0.9))))} fill="#55863f" />
+        <polygon points={polyPoints(projectedCircle(cc - r * 0.15, cr - r * 0.15, r * 0.5, 14).map((q) => lift(q, up(1.6))))} fill="#6b9a4c" />
+      </g>
+    );
+  };
+
+  return (
+    <>
+      {/* The court: lawn, a paved forecourt at the atrium, and the walk from the gate. */}
+      <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />
+      {flat(at(0.30, 0.38, 0.84, 0.52), 'ground-walk-fill', 'plaza')}
+      {flat(at(0.53, 0.52, 0.58, 1), 'ground-walk-fill', 'gate')}
+      {flat(at(0.28, 0.70, 0.84, 0.745), 'ground-walk-fill', 'cross')}
+      {flat(at(0.13, 0.94, 0.19, 1), 'ground-walk-fill', 'dwalk')}
+      {masses.map((m, i) => plotShadow(m, m.storeys * STOREY, plot, `sh${i}`))}
+      {parts.filter((p) => p.kind === 'tree').map((p, i) => (
+        <polygon key={`ts${i}`} className="campus-tree-shadow" points={polyPoints(treeShadow(p.col + 0.5, p.row + 0.5, p.species, p.scale))} />
+      ))}
+      {depthOrder(parts).map((p, i) => {
+        switch (p.kind) {
+          case 'lab': return labNode(p, `lab${i}`);
+          case 'link': return linkNode(p, `lk${i}`);
+          case 'tree': return <TreeAt key={`t${i}`} col={p.col + 0.5} row={p.row + 0.5} species={p.species} scale={p.scale} shadow={false} />;
+          case 'planter': return planterNode(p, `pl${i}`);
+          case 'sign': return signNode(p, `sg${i}`);
+        }
+      })}
+    </>
+  );
+}
+
+// The Graduate College (Plan 87B): four gabled ranges round an open quad,
+// entered through an arch in the front range, with a tall tower at one
+// corner crowned in the vernacular's way: Princeton's Graduate College and
+// its Cleveland Tower in Collegiate Gothic, a cupola in Georgian and
+// Classical, a belfry in Mission, a plain stair tower in Modern.
+function GraduateCollege({ col, row, w, h, H, ridge, vernacular, pal, stone, paneShape, lights }: {
+  col: number; row: number; w: number; h: number; H: number; ridge: number; vernacular: Vernacular;
+  pal: Palette; stone: StonePalette; paneShape: WindowShape; lights: 1 | 2;
+}) {
+  const at = plotBox(col, row, w, h);
+  const alongW = w >= h;
+  const L = Math.max(w, h); const S = Math.min(w, h);
+  const plot = { col, row, w, h };
+  const parts = partsFor(vernacular);
+  const trim = hasTrim(vernacular);
+  const mansard = isMansard(vernacular);
+  const apex = apexPartOf(vernacular);
+  const seen = visibleWalls();
+  const fronts: FaceDir[] = [seen.left, seen.right];
+  // Range depth and tower plan, as fractions of each axis.
+  const d = across(14); const T = across(15.5);
+  const dl = d / L; const ds = d / S; const tl = T / L; const ts = T / S;
+  const courses = Array.from({ length: Math.round(H / STOREY) - 1 }, (_, i) => (i + 1) * STOREY);
+  const sills = rankSills(Math.round(H / STOREY));
+  type Range = DepthBox & { kind: 'range'; ridgeAlongW: boolean; arch: boolean };
+  type Tower = DepthBox & { kind: 'tower' };
+  type Tree = DepthBox & { kind: 'tree' };
+  const range = (l0: number, s0: number, l1: number, s1: number, longRange: boolean, arch = false): Range => (
+    { kind: 'range', ...at(l0, s0, l1, s1), ridgeAlongW: longRange === alongW, arch });
+  const tb = at(0.5, 0.5, 0.5, 0.5);
+  const items: Array<Range | Tower | Tree> = [
+    range(0, 0, 1, ds, true),                          // the back range, full length
+    range(0, 1 - ds, 1 - tl, 1, true, true),            // the front range, with the gate
+    range(0, ds, dl, 1 - ds, false),                    // the two side ranges
+    range(1 - dl, ds, 1, 1 - ts, false),
+    { kind: 'tower', ...at(1 - tl, 1 - ts, 1, 1) },
+    { kind: 'tree', col: tb.col - 0.5, row: tb.row - 0.5, w: 1, h: 1 },
+  ];
+  const court = at(dl, ds, 1 - dl, 1 - ds);
+  const flat = (b: DepthBox, cls: string, key: string) => <polygon key={key} className={cls} points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} />;
+  const walk = across(2.6) / 2;
+
+  const rangeNode = (p: Range, key: string) => {
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, H);
+    const ra = p.ridgeAlongW;
+    const rs = lift(ra ? project(p.col, p.row + p.h / 2) : project(p.col + p.w / 2, p.row), H + ridge);
+    const re = lift(ra ? project(p.col + p.w, p.row + p.h / 2) : project(p.col + p.w / 2, p.row + p.h), H + ridge);
+    // The gate: a tall arch through the middle of the front range, on both its long faces.
+    const gateU = 0.5; const gateHalf = across(2.4) / Math.max(p.w, p.h);
+    const gateTop = Math.min(H * 0.55, STOREY * 1.6);
+    const reserve = p.arch ? { u0: gateU - gateHalf * 1.6, u1: gateU + gateHalf * 1.6, v0: 0, v1: (gateTop + up(1)) / H } : undefined;
+    const face = (o: Pt, a: Pt, span: number, dir: FaceDir, k: string) => {
+      const long = ra ? dir === 'negRow' || dir === 'posRow' : dir === 'negCol' || dir === 'posCol';
+      return (
+        <g key={k}>
+          {parts.timbering && <Timbering origin={o} along={a} wallHeight={H} span={span} from={STOREY} to={H} floors={courses} />}
+          {trim && floorCourses(o, a, H, courses, k)}
+          {trim && <WallBand origin={o} along={a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />}
+          {trim && <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />}
+          {windows(o, a, H, span, sills, across(1.6), `${k}w`, paneShape, stone.glass, long ? reserve : undefined, lights)}
+          {p.arch && long && (
+            <>
+              <polygon className="iso-cornice" points={polyPoints(windowOutline('arched', gateU - gateHalf * 1.25, gateU + gateHalf * 1.25, 0, (gateTop + up(0.9)) / H).map(([u, v]) => facePoint(o, a, H, u, v)))} />
+              <polygon className="iso-undercroft" points={polyPoints(windowOutline(paneShape === 'lancet' ? 'lancet' : 'arched', gateU - gateHalf, gateU + gateHalf, 0, gateTop / H).map(([u, v]) => facePoint(o, a, H, u, v)))} />
+            </>
+          )}
+          {eavesOf(vernacular) > 0 && ridge > 0 && <WallBand origin={o} along={a} wallHeight={H} from={H - up(0.9)} to={H} className="iso-eaves-shadow" />}
+        </g>
+      );
+    };
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {face(f.D, f.C, f.spanLeft, f.dir.CD, `${key}l`)}
+        {face(f.C, f.B, f.spanRight, f.dir.BC, `${key}r`)}
+        {ridge > 0 && mansard ? (
+          <MansardRoof col={p.col} row={p.row} w={p.w} h={p.h} base={H} rise={ridge} pal={pal} stone={stone} />
+        ) : ridge > 0 ? (
+          <>
+            {gableSlopes(f, ra, rs, re, pal)}
+            {gableEnds(f, ra, rs, re, pal)}
+            <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+            {parts.chimneys && [0.25, 0.75].map((u, i) => {
+              const cc = ra ? p.col + p.w * u : p.col + p.w / 2;
+              const cr = ra ? p.row + p.h / 2 : p.row + p.h * u;
+              const plan = across(1.3);
+              return <Chimney key={`ch${i}`} cc={cc} cr={cr} base={H + ridge * (1 - plan / Math.min(p.w, p.h))} top={H + ridge + up(2.0)} pal={pal} stone={stone} />;
+            })}
+          </>
+        ) : (
+          <>
+            <polygon points={polyPoints(f.top)} fill={pal.roof} />
+            {fronts.map((dir) => <CrestCoping key={dir} col={p.col} row={p.row} w={p.w} h={p.h} base={H} outward={dir} fill={trim ? stone.trim : shade(pal.wall.posRow, 1.1)} />)}
+          </>
+        )}
+      </g>
+    );
+  };
+
+  const towerNode = (p: DepthBox, key: string) => {
+    // How far the shaft rises past the ranges before its crown.
+    const crowned = apex === 'cupola' || apex === 'dome' || apex === 'belvedere' || apex === 'pavilionTower' || apex === 'ziggurat';
+    const gothic = apex === 'spire' || apex === 'gatehouse';
+    const TH = H + ridge + (gothic ? STOREY * 5.6 : apex === 'campanile' ? STOREY * 3.4 : apex === 'core' ? STOREY * 3.6 : STOREY * 3.2);
+    const f = boxFaces(p.col, p.row, p.w, p.h, 0, TH);
+    const ranks = Math.max(1, Math.floor((TH - STOREY * 0.5) / STOREY));
+    const tsills = rankSills(ranks);
+    const towerShape: WindowShape = gothic ? 'lancet' : paneShape === 'ribbon' ? 'rect' : paneShape;
+    const face = (o: Pt, a: Pt, span: number, k: string) => (
+      <g key={k}>
+        {parts.timbering && <Timbering origin={o} along={a} wallHeight={TH} span={span} from={STOREY} to={H} floors={courses} />}
+        {apex === 'core'
+          ? <CurtainWall origin={o} along={a} wallHeight={TH} spanTiles={span} from={BASE_COURSE} to={TH - EAVES_COURSE * 2} floors={[]} id={k} u0={0.42} u1={0.58} />
+          : windows(o, a, TH, span, tsills.filter((v) => v < TH - STOREY * (gothic ? 2.2 : 1)), across(1.4), k, towerShape, stone.glass)}
+        {trim && <WallBand origin={o} along={a} wallHeight={TH} from={0} to={BASE_COURSE} className="iso-plinth" />}
+        {trim && <WallBand origin={o} along={a} wallHeight={TH} from={H - EAVES_COURSE} to={H} className="iso-course" />}
+        {trim && <WallBand origin={o} along={a} wallHeight={TH} from={TH - CORNICE} to={TH} className="iso-cornice" />}
+        {/* Collegiate Gothic's belfry stage: a pair of tall traceried lancets a face. */}
+        {gothic && [[0.18, 0.46], [0.54, 0.82]].map(([u0, u1]) => (
+          <polygon key={`bl${u0}`} className="iso-undercroft"
+            points={polyPoints(windowOutline('lancet', u0, u1, (TH - STOREY * 2.0) / TH, (TH - CORNICE * 1.4) / TH).map(([u, v]) => facePoint(o, a, TH, u, v)))} />
+        ))}
+        {apex === 'campanile' && [[0.14, 0.46], [0.54, 0.86]].map(([u0, u1]) => (
+          <polygon key={`bf${u0}`} className="iso-undercroft"
+            points={polyPoints(windowOutline('arched', u0, u1, (TH - STOREY * 1.25) / TH, (TH - CORNICE * 1.2) / TH).map(([u, v]) => facePoint(o, a, TH, u, v)))} />
+        ))}
+      </g>
+    );
+    // Gothic: a crenellated parapet between four pinnacled corner turrets.
+    const turrets = () => {
+      const tp = p.w * 0.2; const rise = up(4.5);
+      const boxes = depthOrder([
+        { col: p.col, row: p.row, w: tp, h: tp }, { col: p.col + p.w - tp, row: p.row, w: tp, h: tp },
+        { col: p.col, row: p.row + p.h - tp, w: tp, h: tp }, { col: p.col + p.w - tp, row: p.row + p.h - tp, w: tp, h: tp },
+      ]);
+      const turret = (b: DepthBox, i: number) => {
+        const tf = boxFaces(b.col, b.row, b.w, b.h, TH, rise);
+        return (
+          <g key={`tu${i}`}>
+            <polygon points={polyPoints(tf.left)} fill={pal.wallLeft} />
+            <polygon points={polyPoints(tf.right)} fill={pal.wallRight} />
+            {trim && <WallBand origin={tf.D} along={tf.C} wallHeight={rise} from={rise - CORNICE * 0.8} to={rise} className="iso-cornice" />}
+            {trim && <WallBand origin={tf.C} along={tf.B} wallHeight={rise} from={rise - CORNICE * 0.8} to={rise} className="iso-cornice" />}
+            {pyramid(b.col, b.row, b.w, TH + rise, up(5.5), pal.roof).faces}
+          </g>
+        );
+      };
+      return (
+        <>
+          {turret(boxes[0], 0)}
+          {fronts.map((dir) => <Merlons key={dir} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} outward={dir} pal={pal} block={across(1.4)} gap={across(1.0)} rise={up(1.5)} />)}
+          {boxes.slice(1).map((b, i) => turret(b, i + 1))}
+        </>
+      );
+    };
+    return (
+      <g key={key}>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {face(f.D, f.C, f.spanLeft, `${key}l`)}
+        {face(f.C, f.B, f.spanRight, `${key}r`)}
+        <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />
+        {gothic && turrets()}
+        {apex === 'campanile' && pyramid(p.col - across(0.6), p.row - across(0.6), p.w + across(1.2), TH, up(4.2), pal.roof).faces}
+        {apex === 'core' && fronts.map((dir) => <CrestCoping key={dir} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} outward={dir} fill={trim ? stone.trim : shade(pal.wall.posRow, 1.1)} />)}
+        {crowned && (apex === 'cupola' || apex === 'dome') && (
+          <ClockTower stone={stone} apex="cupola" gilded={hasGilt(vernacular)} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />
+        )}
+        {apex === 'belvedere' && <Belvedere stone={stone} pal={pal} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />}
+        {apex === 'pavilionTower' && <PavilionTower stone={stone} pal={pal} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />}
+        {apex === 'ziggurat' && <Ziggurat stone={stone} col={p.col} row={p.row} w={p.w} h={p.h} base={TH} />}
+      </g>
+    );
+  };
+
+  return (
+    <>
+      {/* The quad: lawn, a cross of walks meeting at a round bed, and the
+          way in from the gate. */}
+      <polygon className="ground-lawn" points={polyPoints(boxFaces(court.col, court.row, court.w, court.h, 0, 0).top)} />
+      {[0.3, 0.7].map((v) => flat(at(dl, v - 0.03, 1 - dl, v + 0.03), 'ground-mow', `mw${v}`))}
+      {flat(alongW ? { col: tb.col - walk, row: court.row, w: walk * 2, h: court.h } : { col: court.col, row: tb.row - walk, w: court.w, h: walk * 2 }, 'ground-walk-fill', 'wl')}
+      {flat(alongW ? { col: court.col, row: tb.row - walk, w: court.w, h: walk * 2 } : { col: tb.col - walk, row: court.row, w: walk * 2, h: court.h }, 'ground-walk-fill', 'ws')}
+      <polygon className="ground-walk-fill" points={polyPoints(projectedCircle(tb.col, tb.row, across(6.5), 28))} />
+      <polygon className="ground-lawn" points={polyPoints(projectedCircle(tb.col, tb.row, across(4.4), 28))} />
+      {items.filter((it) => it.kind !== 'tree').map((it, i) => plotShadow(it, it.kind === 'tower' ? H * 2 : H, plot, `sh${i}`))}
+      <polygon className="campus-tree-shadow" points={polyPoints(treeShadow(tb.col, tb.row, 'canopy', 0.8))} />
+      {depthOrder(items).map((it, i) => (it.kind === 'range' ? rangeNode(it, `rg${i}`)
+        : it.kind === 'tower' ? towerNode(it, `tw${i}`)
+          : <TreeAt key={`t${i}`} col={it.col + 0.5} row={it.row + 0.5} species="canopy" scale={0.8} shadow={false} />))}
+    </>
+  );
 }
 
 // A chapter house's Greek letters (ΑΒΓ), on a pedimented parapet above the
@@ -3384,9 +6404,1349 @@ function Chapel({ t, p, vernacular, pal, stone, wall }: {
   );
 }
 
+// --- The Law School and the University Museum (Plan 87G) -----------------
+// Both are 11x8 limestone porticos; each now says what it is. The Law
+// School wears a temple front on each visible face, after the Supreme
+// Court: a wide flight to a podium, a full-height rank of round columns,
+// and a pediment carrying the scales of justice, round a raised attic hall.
+// Its Gothic set builds Michigan's Law Quad instead: a steep-roofed reading
+// room with a great traceried gable window over a Gothic porch. The Museum
+// is a gallery wing top-lit by glazed barrel vaults (Yale, Kimbell), set
+// back behind a paved forecourt with a sculpture before each visible front.
+
+const LAW_ID = 'PROJ-LAW';
+const MUSEUM_ID = 'PROJ-MUSEUM';
+// Whether the Law School wears its temple front: all but the Gothic set.
+function lawTemple(t: Buildable, v: Vernacular): boolean {
+  return t.id === LAW_ID && v !== 'gothic';
+}
+// The attic's low roof, in weathered copper.
+const LAW_ATTIC_ROOF = '#8fa39a';
+// The Gothic reading room's slate, darker than the flat roofs round it.
+const READING_ROOM_SLATE = '#59616b';
+// The Museum's forecourt: how far the gallery stands back from its plot.
+const MUSEUM_COURT = across(8);
+
+// A box against wall `dir` from `s0` to `s1` tiles out, `along0` to
+// `along0 + width` along it.
+function outFromWall(col: number, row: number, w: number, h: number, dir: FaceDir, along0: number, width: number, s0: number, s1: number): DepthBox {
+  const b = againstWall(col, row, w, h, dir, along0, width, s1 - s0);
+  const o = outwardOf(dir);
+  return { col: b.col + o.col * s0, row: b.row + o.row * s0, w: b.w, h: b.h };
+}
+
+// The temple front on wall `dir`: steps to a podium, columns to the eaves,
+// an entablature, a pitched roof back to the wall and a pediment with the
+// scales of justice in its tympanum.
+function LawTemple({ col, row, w, h, H, dir, stone }: {
+  col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette;
+}) {
+  const span = wallSpan(w, h, dir);
+  const width = Math.min(span * 0.52, across(44));
+  const n = width >= across(34) ? 8 : 6;
+  const along0 = span / 2 - width / 2;
+  const depth = across(7.5);
+  const podiumH = up(2.4);
+  const treads = 6;
+  // In the set's dressed stone, never its brick (Tudor's tower stone).
+  const marble = stone.trim !== 'none' ? stone.trim : stone.towerStone;
+  const gilt = stone.gilt !== 'none' ? stone.gilt : '#c9a227';
+  // The flight and podium: stacked slabs, the highest the podium itself.
+  const steps = Array.from({ length: treads }, (_, k) => treads - 1 - k).map((i) => {
+    const b = outFromWall(col, row, w, h, dir, along0 - across(1.2), width + across(2.4), 0, depth + across(0.5) + (treads - 1 - i) * TREAD_DEPTH);
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, ((i + 1) * podiumH) / treads);
+    return (
+      <g key={`s${i}`}>
+        {sideFaces(f, shade(marble, 0.86), shade(marble, 0.7))}
+        <polygon points={polyPoints(f.top)} fill={shade(marble, i === treads - 1 ? 1.0 : 0.95)} stroke="rgba(60, 54, 44, 0.25)" strokeWidth={0.4} />
+      </g>
+    );
+  });
+  // Round columns along the front, back to front.
+  const r = across(0.72);
+  const gap = (width - across(1.6)) / (n - 1);
+  const shafts = Array.from({ length: n }, (_, i) => outsideWall(col, row, w, h, dir, along0 + across(0.8) + i * gap, depth - across(0.9)))
+    .sort((a, b) => project(a.col, a.row).y - project(b.col, b.row).y);
+  const ENT = ENTABLATURE * 1.3;
+  const entBox = outFromWall(col, row, w, h, dir, along0, width, 0, depth);
+  const ent = boxFaces(entBox.col, entBox.row, entBox.w, entBox.h, H - ENT, ENT);
+  const front = wallOf(ent, dir);
+  // A point on the pediment's plane, u along the front, z above its eaves
+  // (the entablature's top; wallOf gives its foot).
+  const P = (u: number, z: number) => facePoint(front.origin, front.along, 1, u, ENT + z);
+  const rise = up((width * METRES_PER_TILE / 2) * 0.26);
+  const o0 = project(0, 0);
+  const out = outwardOf(dir);
+  const o1 = project(-out.col * depth, -out.row * depth);
+  const back = (q: Pt) => ({ x: q.x + o1.x - o0.x, y: q.y + o1.y - o0.y });
+  const eL = P(0, 0); const eR = P(1, 0); const apex = P(0.5, rise);
+  const lit = WALL_LIGHT[dir];
+  // The tympanum, set in from the raking cornices.
+  const t0 = up(0.55); const rake = (z: number) => 0.5 * (z / rise);
+  const tym = [P(rake(t0) + 0.035, t0), P(1 - rake(t0) - 0.035, t0), P(0.5, rise - up(0.9))];
+  // The scales: a post, a beam, two pans on their cords.
+  const sc = (u: number, k: number) => P(0.5 + u, t0 + (rise - t0) * k);
+  const bw = 0.075;
+  // A shallow bowl: its rim, then its curve below.
+  const pan = (u: number) => [sc(u - 0.042, 0.3), sc(u + 0.042, 0.3), sc(u + 0.03, 0.22), sc(u, 0.18), sc(u - 0.03, 0.22)];
+  const seg = (a: Pt, b: Pt) => `M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`;
+  return (
+    <g className="law-temple">
+      {steps}
+      {shafts.map((c, i) => (
+        <g key={`c${i}`}>
+          <Cylinder cc={c.col} cr={c.row} r={r} z0={podiumH} z1={H - ENT - up(0.6)} fill={shade(marble, 0.96)} />
+          {sideFaces(boxFaces(c.col - r * 1.25, c.row - r * 1.25, r * 2.5, r * 2.5, H - ENT - up(0.6), up(0.6)), shade(marble, 0.94), shade(marble, 0.76))}
+        </g>
+      ))}
+      {sideFaces(ent, shade(marble, 0.94), shade(marble, 0.76))}
+      <polygon points={polyPoints([eL, apex, back(apex), back(eL)])} fill={shade(marble, 0.74)} />
+      <polygon points={polyPoints([apex, eR, back(eR), back(apex)])} fill={shade(marble, 0.64)} />
+      <polygon points={polyPoints([eL, eR, apex])} fill={shade(marble, lit)} stroke="rgba(60, 54, 44, 0.5)" strokeWidth={0.8} />
+      <polygon points={polyPoints(tym)} fill={shade(marble, lit * 0.84)} />
+      <path className="sig-scales" d={seg(sc(0, 0.1), sc(0, 0.74)) + seg(sc(-0.03, 0.1), sc(0.03, 0.1)) + seg(sc(-bw, 0.6), sc(bw, 0.6)) + seg(sc(-bw, 0.6), sc(-bw - 0.04, 0.3)) + seg(sc(-bw, 0.6), sc(-bw + 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw - 0.04, 0.3)) + seg(sc(bw, 0.6), sc(bw + 0.04, 0.3))} stroke={gilt} strokeWidth={1.5} strokeLinecap="round" fill="none" />
+      <polygon points={polyPoints(pan(-bw))} fill={gilt} />
+      <polygon points={polyPoints(pan(bw))} fill={gilt} />
+    </g>
+  );
+}
+
+// The raised attic over the Law School's middle: a clerestoried hall under
+// a low hipped roof (the Supreme Court's), or in the Gothic set a reading
+// room under a steep slate gable, lancets down its side and a great
+// traceried window in its visible end.
+function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
+  col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean;
+}) {
+  const aw = w * (gothic ? 0.56 : 0.38); const ah = h * (gothic ? 0.36 : 0.42);
+  const ac = col + (w - aw) / 2; const ar = row + (h - ah) / 2;
+  const rise = gothic ? up(5.5) : up(5);
+  const f = boxFaces(ac, ar, aw, ah, H, rise);
+  const trimTone = stone.trim !== 'none' ? stone.trim : shade(pal.wall.posRow, 1.1);
+  const faces = [{ o: f.D, a: f.C, span: f.spanLeft }, { o: f.C, a: f.B, span: f.spanRight }];
+  const alongW = aw >= ah;
+  if (!gothic) {
+    return (
+      <g className="law-attic">
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faces.map(({ o, a, span }, i) => {
+          const k = Math.max(3, Math.round(span * 2.2));
+          return (
+            <g key={i}>
+              {Array.from({ length: k }, (_, j) => (
+                <polygon key={j} className="iso-window" points={polyPoints(wallQuad(o, a, rise, (j + 0.3) / k, (j + 0.7) / k, rise * 0.25, rise * 0.68))} fill={stone.glass} />
+              ))}
+              <polygon points={polyPoints(wallQuad(o, a, rise, 0, 1, rise - up(0.8), rise))} fill={trimTone} />
+            </g>
+          );
+        })}
+        <HippedRoof col={ac - across(0.3)} row={ar - across(0.3)} w={aw + across(0.6)} h={ah + across(0.6)} base={H + rise} rise={up(2.4)} pal={{ ...pal, ...SLOPE(LAW_ATTIC_ROOF) }} />
+      </g>
+    );
+  }
+  // The reading room: a steep gable along its long axis.
+  const ridge = up(9);
+  const rs = lift(alongW ? project(ac, ar + ah / 2) : project(ac + aw / 2, ar), H + rise + ridge);
+  const re = lift(alongW ? project(ac + aw, ar + ah / 2) : project(ac + aw / 2, ar + ah), H + rise + ridge);
+  const endDir: FaceDir[] = alongW ? ['negCol', 'posCol'] : ['negRow', 'posRow'];
+  return (
+    <g className="law-attic law-reading-room">
+      <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+      {faces.map(({ o, a, span }, i) => {
+        // Lancets down the long side; the end wall's window is drawn with
+        // its gable.
+        const isEnd = endDir.includes(i === 0 ? f.dir.CD : f.dir.BC);
+        if (isEnd) return null;
+        const k = Math.max(4, Math.round(span * 2));
+        return (
+          <g key={i}>
+            {Array.from({ length: k }, (_, j) => (
+              <polygon key={j} points={polyPoints(windowOutline('lancet', (j + 0.32) / k, (j + 0.68) / k, 0.18, 0.86).map(([u, v]) => facePoint(o, a, rise, u, v)))} fill={stone.glass} />
+            ))}
+          </g>
+        );
+      })}
+      {gableSlopes(f, alongW, rs, re, { ...pal, ...SLOPE(READING_ROOM_SLATE) })}
+      {endDir.map((dir) => {
+        const wall = wallOf(f, dir);
+        if (!wall.visible) return null;
+        const apex = alongW ? (dir === 'negCol' ? rs : re) : (dir === 'negRow' ? rs : re);
+        const tl = lift(wall.origin, rise); const tr = lift(wall.along, rise);
+        // The great window: a pointed arch through the end wall into its
+        // gable, mullioned, in the reading room's glass.
+        const hgt = rise + ridge;
+        const win = windowOutline('lancet', 0.24, 0.76, 0.14, 0.86).map(([u, v]) => facePoint(wall.origin, wall.along, hgt, u, v));
+        const mull = [0.37, 0.5, 0.63].map((u) => `M${facePoint(wall.origin, wall.along, hgt, u, 0.14).x.toFixed(1)},${facePoint(wall.origin, wall.along, hgt, u, 0.14).y.toFixed(1)}L${facePoint(wall.origin, wall.along, hgt, u, 0.7).x.toFixed(1)},${facePoint(wall.origin, wall.along, hgt, u, 0.7).y.toFixed(1)}`).join('');
+        return (
+          <g key={dir}>
+            <polygon points={polyPoints([tl, tr, apex])} fill={pal.wall[dir]} />
+            <polygon points={polyPoints(win)} fill={stone.glass} stroke={trimTone} strokeWidth={1.2} />
+            <path d={mull} stroke={trimTone} strokeWidth={0.9} />
+          </g>
+        );
+      })}
+      <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+    </g>
+  );
+}
+
+// The Museum's gallery roof: glazed barrel vaults side by side along the
+// long axis, ribbed, closed by solid arched ends, each facet drawn only
+// where it faces the camera.
+function GalleryVaults({ col, row, w, h, base, pal }: {
+  col: number; row: number; w: number; h: number; base: number; pal: Palette;
+}) {
+  const alongW = w >= h;
+  const long = alongW ? w : h; const short = alongW ? h : w;
+  const inset = across(5);
+  const count = Math.max(2, Math.round((short - inset * 2) / across(15)));
+  const bay = (short - inset * 2) / count;
+  const R = bay * 0.42;
+  const K = 8; const M = Math.max(4, Math.round(long / across(9)));
+  // World point: x along the long axis, y across it, z up.
+  const W = (x: number, y: number, z: number) => (alongW ? lift(project(col + x, row + y), z) : lift(project(col + y, row + x), z));
+  const area = (q: Pt[]) => q.reduce((a, p, i) => { const n = q[(i + 1) % q.length]!; return a + p.x * n.y - n.x * p.y; }, 0);
+  // Grid-frame winding of the deck seen from above; a face wound the other
+  // way about its own outward normal is seen when its screen area has the
+  // deck's sign. The long axis along row mirrors the frame.
+  const deck = Math.sign(area([lift(project(0, 0), 0), lift(project(1, 0), 0), lift(project(1, 1), 0), lift(project(0, 1), 0)]));
+  const seen = (q: Pt[]) => Math.sign(area(alongW ? q : [...q].reverse())) !== deck;
+  const zUp = (tiles: number) => up(tiles * METRES_PER_TILE);
+  const x0 = inset; const x1 = long - inset;
+  const vaults = depthOrder(Array.from({ length: count }, (_, i) => {
+    const yc = inset + bay * (i + 0.5);
+    return alongW ? { col: col + x0, row: row + yc - R, w: x1 - x0, h: R * 2, yc } : { col: col + yc - R, row: row + x0, w: R * 2, h: x1 - x0, yc };
+  }));
+  return (
+    <g className="gallery-vaults">
+      {vaults.map(({ yc }, vi) => {
+        const prof = (k: number) => {
+          const ph = (k / K) * Math.PI;
+          return [yc - Math.cos(ph) * R, zUp(R) * 0.78 * Math.sin(ph)] as const;
+        };
+        const quads: React.JSX.Element[] = [];
+        for (let k = 0; k < K; k++) {
+          const [ya, za] = prof(k); const [yb, zb] = prof(k + 1);
+          for (let m = 0; m < M; m++) {
+            const xa = x0 + ((x1 - x0) * m) / M; const xb = x0 + ((x1 - x0) * (m + 1)) / M;
+            // Up the curve, then along: wound about the inward normal.
+            const q = [W(xa, ya, base + za), W(xa, yb, base + zb), W(xb, yb, base + zb), W(xb, ya, base + za)];
+            if (!seen(q)) continue;
+            quads.push(<polygon key={`${k}-${m}`} points={polyPoints(q)} fill={shade(NORTH_LIGHT_GLASS, 0.9 + 0.2 * Math.sin(((k + 0.5) / K) * Math.PI))} stroke={pal.roofDeck} strokeWidth={0.5} />);
+          }
+        }
+        const end = (x: number, outwardSign: number) => {
+          const pts = Array.from({ length: K + 1 }, (_, k) => { const [y, z] = prof(k); return W(x, y, base + z); });
+          // Over the crown, the profile winds about -x: the far end's way,
+          // which the seen test (inward winding) wants at the near end.
+          const q = outwardSign > 0 ? pts : [...pts].reverse();
+          const dir: FaceDir = alongW ? (outwardSign > 0 ? 'posCol' : 'negCol') : (outwardSign > 0 ? 'posRow' : 'negRow');
+          return seen(q) ? <polygon key={`e${x}`} points={polyPoints(pts)} fill={pal.wall[dir]} stroke={pal.roofDeck} strokeWidth={0.5} /> : null;
+        };
+        return (
+          <g key={vi}>
+            {end(x0, -1)}
+            {end(x1, 1)}
+            {quads}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// A forecourt sculpture before a Museum front: a red steel cube on its
+// corner before the row-facing front, a bronze figure on a plinth before
+// the column-facing one, so each view shows one of each.
+function ForecourtSculpture({ cc, cr, dir, stone }: { cc: number; cr: number; dir: FaceDir; stone: StonePalette }) {
+  if (dir === 'posRow' || dir === 'negRow') {
+    // A great red steel cube balanced on one corner (Noguchi's Red Cube):
+    // its faces wound about their outward normals, each drawn where it
+    // faces the camera, lit by the way it points.
+    const a = 6;
+    const n0 = [1 / Math.sqrt(2), -1 / Math.sqrt(2), 0];
+    const n1 = [1 / Math.sqrt(6), 1 / Math.sqrt(6), -2 / Math.sqrt(6)];
+    const n2 = [1 / Math.sqrt(3), 1 / Math.sqrt(3), 1 / Math.sqrt(3)];
+    // A cube corner (±1 each way) in metres: the long diagonal stood upright.
+    const world = (v: number[]) => {
+      const x = (v[0]! * n0[0]! + v[1]! * n0[1]! + v[2]! * n0[2]!) * a / 2;
+      const y = (v[0]! * n1[0]! + v[1]! * n1[1]! + v[2]! * n1[2]!) * a / 2;
+      const z = (v[0]! * n2[0]! + v[1]! * n2[1]! + v[2]! * n2[2]!) * a / 2 + (a * Math.sqrt(3)) / 2;
+      return { x, y, z };
+    };
+    const at = (q: { x: number; y: number; z: number }) => lift(project(cc + across(q.x), cr + across(q.y)), up(q.z));
+    const area = (q: Pt[]) => q.reduce((acc, p, i) => { const m = q[(i + 1) % q.length]!; return acc + p.x * m.y - m.x * p.y; }, 0);
+    const deck = Math.sign(area([lift(project(0, 0), 0), lift(project(1, 0), 0), lift(project(1, 1), 0), lift(project(0, 1), 0)]));
+    const faces = [0, 1, 2].flatMap((axis) => [-1, 1].map((sign) => {
+      // The four corners round the face, counterclockwise about its normal.
+      const [i, j] = [(axis + 1) % 3, (axis + 2) % 3];
+      const ring = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([p, q]) => { const v = [0, 0, 0]; v[axis] = sign; v[i] = p!; v[j] = q!; return v; });
+      const corners = (sign > 0 ? ring : [...ring].reverse()).map(world);
+      const normal = world([axis === 0 ? sign : 0, axis === 1 ? sign : 0, axis === 2 ? sign : 0]);
+      return { pts: corners.map(at), lightness: 0.78 + 0.22 * ((normal.z - (a * Math.sqrt(3)) / 2) / (a / 2)) - 0.1 * (normal.x / (a / 2)) };
+    }));
+    return (
+      <g className="museum-sculpture museum-red-cube">
+        <polygon points={polyPoints(projectedCircle(cc, cr, across(2.2), 16))} fill={shade(stone.towerStone, 0.78)} />
+        {faces.filter((f) => Math.sign(area(f.pts)) === deck).map((f, i) => (
+          <polygon key={i} points={polyPoints(f.pts)} fill={shade(SIGNAL_RED, Math.max(0.6, Math.min(1.2, f.lightness)))} stroke="rgba(60, 20, 14, 0.5)" strokeWidth={0.6} />
+        ))}
+      </g>
+    );
+  }
+  const s = across(2.8);
+  const plinthH = up(3.6);
+  const plinth = boxFaces(cc - s / 2, cr - s / 2, s, s, 0, plinthH);
+  const BRONZE_FIGURE = '#4c4232';
+  const foot = lift(project(cc, cr), plinthH);
+  const k = heightScale();
+  const m = up(1.9);
+  return (
+    <g className="museum-sculpture museum-statue">
+      {sideFaces(plinth, shade(stone.towerStone, 0.92), shade(stone.towerStone, 0.74))}
+      <polygon points={polyPoints(plinth.top)} fill={stone.towerStone} />
+      {/* A standing figure, an arm raised: body, head, arm. */}
+      <polygon points={polyPoints([
+        { x: foot.x - m * 0.45, y: foot.y }, { x: foot.x + m * 0.45, y: foot.y },
+        { x: foot.x + m * 0.4, y: foot.y - m * 2.4 * k }, { x: foot.x + m * 0.5, y: foot.y - m * 3.1 * k },
+        { x: foot.x - m * 0.5, y: foot.y - m * 3.1 * k }, { x: foot.x - m * 0.4, y: foot.y - m * 2.4 * k },
+      ])} fill={BRONZE_FIGURE} />
+      <circle cx={foot.x} cy={foot.y - m * 3.55 * k} r={m * 0.42} fill={BRONZE_FIGURE} />
+      <line x1={foot.x + m * 0.45} y1={foot.y - m * 3 * k} x2={foot.x + m * 1.1} y2={foot.y - m * 4.2 * k} stroke={BRONZE_FIGURE} strokeWidth={m * 0.35} strokeLinecap="round" />
+    </g>
+  );
+}
+
+// The Museum (a function the canvas walker calls through): a paved
+// forecourt over its whole plot, the gallery set back on it, and a
+// sculpture before each visible front.
+function MuseumCourt({ t, p, material, vernacular, glyphs }: {
+  t: Buildable; p: { row: number; col: number; w: number; h: number }; material: Material; vernacular: Vernacular; glyphs?: string;
+}) {
+  const { col, row, w, h } = p;
+  const c = MUSEUM_COURT;
+  const inner = { col: col + c, row: row + c, w: w - c * 2, h: h - c * 2 };
+  const stone = stoneFor(vernacular);
+  const pave = stone.trim !== 'none' ? shade(stone.trim, 0.96) : shade(stone.towerStone, 0.94);
+  const court = boxFaces(col, row, w, h, 0, 0).top;
+  const seen = visibleWalls();
+  const joints = [0.25, 0.5, 0.75].flatMap((k) => [
+    [project(col + w * k, row), project(col + w * k, row + h)],
+    [project(col, row + h * k), project(col + w, row + h * k)],
+  ]).map(([a, b]) => `M${a!.x.toFixed(1)},${a!.y.toFixed(1)}L${b!.x.toFixed(1)},${b!.y.toFixed(1)}`).join('');
+  return (
+    <>
+      <polygon className="museum-forecourt" points={polyPoints(court)} fill={pave} />
+      <path d={joints} stroke="rgba(60, 54, 44, 0.18)" strokeWidth={0.6} fill="none" />
+      <BuildingMass t={t} p={inner} material={material} vernacular={vernacular} developing={false} glyphs={glyphs} />
+      {[seen.left, seen.right].map((dir) => {
+        const span = wallSpan(inner.w, inner.h, dir);
+        const at = outsideWall(inner.col, inner.row, inner.w, inner.h, dir, span * 0.2, c * 0.55);
+        return <ForecourtSculpture key={dir} cc={at.col} cr={at.row} dir={dir} stone={stone} />;
+      })}
+    </>
+  );
+}
+
+// --- The dining halls (Plan 87D; buildingSpec's diningPlan) ---------------
+// One low hipped shed, scaled up, read as a barn at the large sizes. Now a
+// café under a striped awning with tables by its door; a hall standing back
+// from a dining terrace of tables under parasols, its ground floor in tall
+// windows; and from the 9x6 up a refectory: one tall room under a steep roof,
+// tall windows down its front and a louvre or a cupola on its ridge (Christ
+// Church's hall, Harvard's Annenberg), the kitchen and its flues at the
+// service end and a lower range behind. Mission's hall keeps its tile behind
+// an arcade; Modern's is a glass pavilion under a deep oversailing roof; Art
+// Deco's tall slots run up to a stepped frontispiece. The terrace takes the
+// long wall the camera sees, as the doors do, so it never lies behind the
+// building, and everything stands inside the footprint.
+
+// A point on the terrace: x down the long axis, y in from its outer edge.
+type TerraceAt = (x: number, y: number) => { col: number; row: number };
+function terraceFrame(plan: DiningPlan): TerraceAt {
+  const b = plan.terrace;
+  switch (plan.front) {
+    case 'posRow': return (x, y) => ({ col: b.col + x, row: b.row + b.h - y });
+    case 'negRow': return (x, y) => ({ col: b.col + x, row: b.row + y });
+    case 'posCol': return (x, y) => ({ col: b.col + b.w - y, row: b.row + x });
+    default: return (x, y) => ({ col: b.col + y, row: b.row + x });
+  }
+}
+
+// Café parasols, two stripes each; Modern's all in one orange and white.
+const PARASOL_STRIPES: ReadonlyArray<readonly [string, string]> = [
+  [SIGNAL_RED, '#f2e8d4'], ['#2f6b4a', '#efe6c8'], ['#2b3f6b', '#f2e8d4'],
+];
+const PARASOL_PLAIN: ReadonlyArray<readonly [string, string]> = [['#e07b3c', '#f4f2ec']];
+const TABLE_TOP = '#ece6d6';
+const CHAIR = '#5b4a3c';
+const PARASOL_RADIUS = across(1.5);
+
+// A table under a parasol: the pole, the table, then the canopy's eight
+// gores back to front, a shade darker on the side away from the sun.
+function Parasol({ cc, cr, stripes }: { cc: number; cr: number; stripes: readonly [string, string] }) {
+  const n = 8;
+  const foot = project(cc, cr);
+  const apex = lift(foot, up(2.8));
+  const rim = projectedCircle(cc, cr, PARASOL_RADIUS, n).map((q) => lift(q, up(2.15)));
+  const sunSide = sunScreenDir().x <= 0 ? -1 : 1;
+  const gores = rim.map((q, i) => {
+    const q2 = rim[(i + 1) % n]!;
+    return { i, pts: [apex, q, q2], y: (q.y + q2.y) / 2, lit: ((q.x + q2.x) / 2 - apex.x) * sunSide >= 0 };
+  }).sort((a, b) => a.y - b.y);
+  return (
+    <>
+      <line x1={foot.x} y1={foot.y} x2={apex.x} y2={apex.y} stroke="#4a4540" strokeWidth={0.9} />
+      <polygon points={polyPoints(projectedCircle(cc, cr, across(0.6), 12).map((q) => lift(q, up(0.75))))} fill={TABLE_TOP} />
+      {gores.map((g) => (
+        <polygon key={g.i} points={polyPoints(g.pts)} fill={shade(stripes[g.i % 2]!, g.lit ? 1 : 0.84)} />
+      ))}
+    </>
+  );
+}
+
+// A bare table with a chair either side along the terrace, far chair first.
+function CafeTable({ cc, cr, alongW }: { cc: number; cr: number; alongW: boolean }) {
+  const s = across(0.55); const off = across(1.0);
+  const chairs = [-1, 1].map((k) => (alongW ? { col: cc + k * off - s / 2, row: cr - s / 2 } : { col: cc - s / 2, row: cr + k * off - s / 2 }))
+    .map((c) => ({ ...c, y: project(c.col + s / 2, c.row + s / 2).y }))
+    .sort((a, b) => a.y - b.y);
+  const top = lift(project(cc, cr), up(0.75));
+  const chair = (c: { col: number; row: number }, i: number) => {
+    const f = boxFaces(c.col, c.row, s, s, 0, up(0.9));
+    return <g key={i}>{sideFaces(f, CHAIR, shade(CHAIR, 0.8))}<polygon points={polyPoints(f.top)} fill={shade(CHAIR, 1.15)} /></g>;
+  };
+  return (
+    <>
+      {chair(chairs[0]!, 0)}
+      <line x1={top.x} y1={top.y} x2={top.x} y2={project(cc, cr).y} stroke="#4a4540" strokeWidth={0.9} />
+      <polygon points={polyPoints(projectedCircle(cc, cr, across(0.6), 12).map((q) => lift(q, up(0.75))))} fill={TABLE_TOP} stroke="rgba(60, 54, 44, 0.35)" strokeWidth={0.5} />
+      {chair(chairs[1]!, 1)}
+    </>
+  );
+}
+
+// A clipped shrub in a planter at the terrace's corners and its way in.
+function Planter({ cc, cr }: { cc: number; cr: number }) {
+  const s = across(1.4);
+  const f = boxFaces(cc - s / 2, cr - s / 2, s, s, 0, up(0.7));
+  const bush = boxFaces(cc - s * 0.42, cr - s * 0.42, s * 0.84, s * 0.84, up(0.7), up(0.8));
+  return (
+    <>
+      {sideFaces(f, '#8b8273', '#6f675b')}
+      <polygon className="ground-hedge-top" points={polyPoints(bush.left)} />
+      <polygon className="ground-hedge-top" points={polyPoints(bush.right)} />
+      <polygon className="ground-hedge-top" points={polyPoints(bush.top)} />
+    </>
+  );
+}
+
+// The terrace's paving: under everything, drawn first.
+function TerracePaving({ plan }: { plan: DiningPlan }) {
+  const b = plan.terrace;
+  return <polygon className="ground-deck" points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} />;
+}
+
+// What stands on the terrace, back to front: parasols in the front row,
+// bare tables nearer the wall, planters at the corners and either side of
+// the way in. `free` is the depth clear of the walls and whatever stands
+// against them; `doorAt` where the way in crosses it.
+function TerraceFurniture({ plan, doorAt, free, cafe, plain }: {
+  plan: DiningPlan; doorAt: number; free: number; cafe: boolean; plain: boolean;
+}) {
+  const at = terraceFrame(plan);
+  const b = plan.terrace;
+  const L = plan.alongW ? b.w : b.h;
+  const stripes = plain ? PARASOL_PLAIN : PARASOL_STRIPES;
+  const clear = 0.62;           // the steps and the way in, either side of the door
+  const xs = (first: number, step: number, max: number) => {
+    const out: number[] = [];
+    for (let k = 0; k < max; k++) {
+      for (const sign of [-1, 1]) {
+        const x = doorAt + sign * (first + k * step);
+        if (x > 0.3 && x < L - 0.3) out.push(x);
+      }
+    }
+    return out;
+  };
+  type Item = DepthBox & { kind: 'parasol' | 'table' | 'planter'; cc: number; cr: number; i: number };
+  const items: Item[] = [];
+  const put = (kind: Item['kind'], x: number, y: number) => {
+    const c = at(x, y);
+    const r = kind === 'parasol' ? PARASOL_RADIUS : across(1.0);
+    items.push({ kind, cc: c.col, cr: c.row, col: c.col - r, row: c.row - r, w: r * 2, h: r * 2, i: items.length });
+  };
+  if (cafe) {
+    for (const x of xs(clear + 0.2, 0.75, L > 4 ? 2 : 1)) put('parasol', x, free * 0.5);
+  } else {
+    for (const x of xs(clear + 0.15, 0.8, 8)) put('parasol', x, 0.42);
+    if (free >= 1.1) for (const x of xs(clear + 0.55, 0.8, 8)) put('table', x, free - 0.3);
+  }
+  for (const x of [0.14, L - 0.14, doorAt - clear + 0.12, doorAt + clear - 0.12]) put('planter', x, 0.13);
+  return (
+    <>
+      {depthOrder(items).map((it) => (
+        it.kind === 'parasol' ? <Parasol key={it.i} cc={it.cc} cr={it.cr} stripes={stripes[it.i % stripes.length]!} />
+          : it.kind === 'table' ? <CafeTable key={it.i} cc={it.cc} cr={it.cr} alongW={plan.alongW} />
+            : <Planter key={it.i} cc={it.cc} cr={it.cr} />
+      ))}
+    </>
+  );
+}
+
+// The café's striped awning, either side of its door: sloping out from
+// under the eaves over the tables, with a scalloped valance.
+function CafeAwning({ plan, d, H }: { plan: DiningPlan; d: DoorDimensions | null; H: number }) {
+  const b = plan.hall;
+  const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
+  const wall = wallOf(f, plan.front);
+  if (!wall.visible) return null;
+  const span = wallSpan(b.w, b.h, plan.front);
+  const out = outwardOf(plan.front);
+  const o0 = project(0, 0); const o1 = project(out.col * across(1.8), out.row * across(1.8));
+  const dx = o1.x - o0.x; const dy = o1.y - o0.y;
+  const z1 = Math.min(up(3.3), H - EAVES_COURSE * 1.2); const z0 = z1 - up(0.95);
+  const inner = (u: number) => facePoint(wall.origin, wall.along, H, u, z1 / H);
+  const outer = (u: number, z: number) => { const q = facePoint(wall.origin, wall.along, H, u, z / H); return { x: q.x + dx, y: q.y + dy }; };
+  const gap = d ? (d.widthTiles * 0.85 + 0.08) / span : 0.1;
+  const runs: Array<[number, number]> = [[0.06, 0.5 - gap], [0.5 + gap, 0.94]];
+  return (
+    <g className="sig-awning">
+      {runs.filter(([u0, u1]) => u1 - u0 > 0.05).map(([u0, u1], r) => {
+        const n = Math.max(3, Math.round(((u1 - u0) * span) / across(1.1)));
+        return (
+          <g key={r}>
+            {Array.from({ length: n }, (_, i) => {
+              const a = u0 + ((u1 - u0) * i) / n; const c = u0 + ((u1 - u0) * (i + 1)) / n;
+              const tone = i % 2 === 0 ? SIGNAL_RED : '#f2e8d4';
+              return (
+                <g key={i}>
+                  <polygon points={polyPoints([inner(a), inner(c), outer(c, z0), outer(a, z0)])} fill={tone} />
+                  <polygon points={polyPoints([outer(a, z0), outer(c, z0), outer((a + c) / 2, z0 - up(0.45))])} fill={shade(tone, 0.82)} />
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// A regular prism's visible sides and its top ring: `n` corners of radius
+// `r` about (cc, cr), from z0 to z1. The faces toward the camera are those
+// whose foot lies nearer than the centre's.
+function prismSides(cc: number, cr: number, r: number, n: number, z0: number, z1: number) {
+  const ring = Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2 + Math.PI / n;
+    return project(cc + Math.cos(a) * r, cr + Math.sin(a) * r);
+  });
+  const centre = project(cc, cr);
+  const sunSide = sunScreenDir().x <= 0 ? -1 : 1;
+  const faces = ring.map((q, i) => {
+    const q2 = ring[(i + 1) % n]!;
+    const mid = { x: (q.x + q2.x) / 2, y: (q.y + q2.y) / 2 };
+    return { i, pts: [lift(q, z0), lift(q2, z0), lift(q2, z1), lift(q, z1)], seen: mid.y > centre.y, lit: (mid.x - centre.x) * sunSide >= 0 };
+  }).filter((fc) => fc.seen);
+  return { faces, top: ring.map((q) => lift(q, z1)), apexAt: (z: number) => lift(centre, z), ring };
+}
+
+// The ridge's lantern: a medieval hall's louvre, open-slatted under a lead
+// spirelet, or a white cupola under a lead dome.
+function HallLantern({ kind, cc, cr, base, stone }: {
+  kind: RefectoryLantern; cc: number; cr: number; base: number; stone: StonePalette;
+}) {
+  if (kind === 'none') return null;
+  if (kind === 'cupola') {
+    const r = across(2.2);
+    const side = r / 0.2;
+    return <Dome col={cc - side / 2} row={cr - side / 2} w={side} h={side} base={base} stone={stone} hemisphere />;
+  }
+  const r = across(2.1); const rise = up(3.6); const cap = up(5.2);
+  const drum = prismSides(cc, cr, r, 6, base, base + rise);
+  const tip = drum.apexAt(base + rise + cap);
+  const capFaces = drum.top.map((q, i) => {
+    const q2 = drum.top[(i + 1) % 6]!;
+    return { i, pts: [q, q2, tip], y: (q.y + q2.y) / 2, lit: ((q.x + q2.x) / 2 - tip.x) * (sunScreenDir().x <= 0 ? -1 : 1) >= 0 };
+  }).sort((a, b) => a.y - b.y);
+  const timber = shade(LEAD, 1.28);
+  return (
+    <>
+      {drum.faces.map((fc) => (
+        <g key={fc.i}>
+          <polygon points={polyPoints(fc.pts)} fill={shade(timber, fc.lit ? 1 : 0.8)} />
+          {/* The louvre's open slats, between corner posts. */}
+          <polygon className="iso-louvre" points={polyPoints([
+            lerpPt(lerpPt(fc.pts[0]!, fc.pts[1]!, 0.16), lerpPt(fc.pts[3]!, fc.pts[2]!, 0.16), 0.14),
+            lerpPt(lerpPt(fc.pts[0]!, fc.pts[1]!, 0.84), lerpPt(fc.pts[3]!, fc.pts[2]!, 0.84), 0.14),
+            lerpPt(lerpPt(fc.pts[0]!, fc.pts[1]!, 0.84), lerpPt(fc.pts[3]!, fc.pts[2]!, 0.84), 0.86),
+            lerpPt(lerpPt(fc.pts[0]!, fc.pts[1]!, 0.16), lerpPt(fc.pts[3]!, fc.pts[2]!, 0.16), 0.86),
+          ])} />
+        </g>
+      ))}
+      {capFaces.map((fc) => <polygon key={`c${fc.i}`} points={polyPoints(fc.pts)} fill={shade(LEAD, fc.lit ? 1.05 : 0.82)} />)}
+      <GiltFinial at={tip} rise={up(2.2)} stone={stone} />
+    </>
+  );
+}
+// Harborview Market, the market hall (Plan 87D), and its glass roof.
+const MARKET_HALL_ID = 'DININGHALL-07';
+const MARKET_GLASS = '#a9c3cf';
+// A terrace hall's ground-floor windows: low sills and tall panes.
+const DINING_TALL_SILL = up(0.45);
+const DINING_TALL_PANE = up(3.0);
+const lerpPt = (a: Pt, b: Pt, u: number): Pt => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u });
+
+// A box grown toward one wall: the oversailing roof's plan.
+function grownToward(b: ChapelBox, dir: FaceDir, by: number): ChapelBox {
+  switch (dir) {
+    case 'posRow': return { ...b, h: b.h + by };
+    case 'negRow': return { ...b, row: b.row - by, h: b.h + by };
+    case 'posCol': return { ...b, w: b.w + by };
+    default: return { ...b, col: b.col - by, w: b.w + by };
+  }
+}
+
+// The refectory: the hall, its kitchen and its back range in depthOrder,
+// with the buttresses and arcade on the hall's front, then the terrace.
+function Refectory({ t, plan, vernacular, pal, stone }: {
+  t: Buildable; plan: DiningPlan; vernacular: Vernacular; pal: Palette; stone: StonePalette;
+}) {
+  // Harborview Market is a market hall (Covent Garden's, Boston's Quincy
+  // Market): stalls under awnings in open arches, a glass roof on iron ribs
+  // and a glazed monitor down its ridge, in every set (a flat one glazed in
+  // strips).
+  const market = t.id === MARKET_HALL_ID;
+  const spec = market && REFECTORIES[vernacular].roof === 'mansard' ? { ...REFECTORIES[vernacular], roof: 'gable' as const } : REFECTORIES[vernacular];
+  const glassPal = paletteFrom({ wall: pal.wall.posRow, roof: MARKET_GLASS });
+  const H = wallHeightOf(t);
+  const ridge = ridgeOf(t, vernacular);
+  const trim = hasTrim(vernacular);
+  const trimStone = trim ? stone.trim : stone.towerStone;
+  const parts = partsFor(vernacular);
+  const door = doorOf(t);
+  const hall = plan.hall; const kitchen = plan.kitchen!; const back = plan.back!;
+  const { alongW } = plan;
+  const KH = H * REFECTORY_KITCHEN_EAVES; const BH = H * REFECTORY_BACK_EAVES;
+  const pitched = spec.roof !== 'flat';
+  const glazed = spec.window === 'glazed';
+  const shape: WindowShape = spec.window === 'glazed' ? 'rect' : spec.window;
+  const doorShape = shape === 'arched' || shape === 'lancet' ? 'arched' : 'rect';
+  const freeEnd = opposite(plan.service);
+  const eaves = eavesOf(vernacular);
+  const oversail = across(spec.oversailMetres);
+  const T = alongW ? plan.terrace.h : plan.terrace.w;
+  const hallLen = alongW ? hall.w : hall.h;
+  const G = alongW ? hall.h : hall.w;
+  const seen = visibleWalls();
+  const isSeen = (dir: FaceDir) => dir === seen.left || dir === seen.right;
+  // The front's bays: odd, so the door has the middle one.
+  const bays = Math.max(5, Math.round((hallLen * METRES_PER_TILE) / 6.4) | 1);
+  const winW = across(shape === 'slot' ? 1.3 : 2.4);
+  const sill = up(3.4); const head = H - up(1.9);
+  // Art Deco's door stands in a stepped frontispiece carried above the parapet.
+  const deco = spec.window === 'slot' && !market;
+  const frontis = deco ? againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, hallLen / 2 - across(6), across(12), across(0.9)) : null;
+
+  const doorway = (b: ChapelBox, dir: FaceDir, height: number) => {
+    if (!door) return null;
+    const f = boxFaces(b.col, b.row, b.w, b.h, 0, height);
+    const wall = wallOf(f, dir);
+    if (!wall.visible) return null;
+    const span = wallSpan(b.w, b.h, dir);
+    const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, 0);
+    const out = outwardOf(dir);
+    return (
+      <>
+        <Door d={door} origin={wall.origin} along={wall.along} wallHeight={height} span={span} side={dir} shape={doorShape} />
+        <EntranceSteps d={door} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} stone={stone} />
+      </>
+    );
+  };
+
+  // The market's front: open arches, the stalls' striped awnings inside
+  // them, a glazed band above.
+  const marketFront = (face: ChapelFace, height: number, n: number) => {
+    const archTop = Math.min(0.62, (height - up(3.5)) / height);
+    const midBay = (n - 1) / 2;
+    const arches: string[] = [];
+    const awnings: React.JSX.Element[] = [];
+    for (let b = 0; b < n; b++) {
+      const u0 = (b + 0.12) / n; const u1 = (b + 0.88) / n;
+      arches.push(`M${polyPoints(windowOutline('arched', u0, u1, BASE_COURSE / height, archTop).map(([u, v]) => facePoint(face.o, face.a, height, u, v))).replace(/ /g, 'L')}Z`);
+      if (b === midBay) continue;
+      const k = 4;
+      for (let i = 0; i < k; i++) {
+        const a = u0 + ((u1 - u0) * (i + 0.5)) / (k + 1); const c = u0 + ((u1 - u0) * (i + 1.5)) / (k + 1);
+        const tone = PARASOL_STRIPES[b % PARASOL_STRIPES.length]![i % 2]!;
+        awnings.push(<polygon key={`aw${b}-${i}`} points={polyPoints(wallQuad(face.o, face.a, height, a, c, up(2.4), up(3.2)))} fill={tone} />);
+      }
+    }
+    return (
+      <>
+        <path className="iso-undercroft" d={arches.join('')} />
+        {awnings}
+        {tallWindows(face, height, Array.from({ length: n }, (_, b) => (b + 0.5) / n), 0.36 / n, archTop + 0.08, (height - up(1.6)) / height, 'rect', 'mk')}
+      </>
+    );
+  };
+  // Iron ribs down the glass roof's slopes at the bays.
+  const marketRibs = (rf: BoxFaces, rs: Pt, re: Pt, height: number) => {
+    const n = bays * 2;
+    const eave = (dir: FaceDir) => wallOf(rf, dir);
+    const d: string[] = [];
+    for (const dir of [plan.front, opposite(plan.front)]) {
+      const e = eave(dir);
+      if (!e.visible && dir !== plan.front) continue;
+      // The eave's ends in grid order, matched to the ridge's.
+      const a0 = lift(e.origin, height); const a1 = lift(e.along, height);
+      const flip = Math.hypot(a0.x - rs.x, a0.y - rs.y) > Math.hypot(a1.x - rs.x, a1.y - rs.y);
+      const [p0, p1] = flip ? [a1, a0] : [a0, a1];
+      for (let i = 1; i < n; i++) {
+        const u = i / n;
+        const q = lerpPt(p0, p1, u); const r = lerpPt(rs, re, u);
+        d.push(`M${q.x.toFixed(1)},${q.y.toFixed(1)}L${r.x.toFixed(1)},${r.y.toFixed(1)}`);
+      }
+    }
+    return <path d={d.join('')} stroke="rgba(52, 60, 66, 0.55)" strokeWidth={0.8} fill="none" />;
+  };
+  // A glazed monitor astride the ridge, down the middle of the hall.
+  const ridgeMonitor = () => {
+    const span = across(3.2);
+    const len = hallLen * 0.7;
+    const b = alongW
+      ? { col: hall.col + (hallLen - len) / 2, row: hall.row + hall.h / 2 - span / 2, w: len, h: span }
+      : { col: hall.col + hall.w / 2 - span / 2, row: hall.row + (hallLen - len) / 2, w: span, h: len };
+    const z0 = H + ridge * (1 - span / G) - up(0.3);
+    const rise = H + ridge - z0 + up(2.2);
+    const mf = boxFaces(b.col, b.row, b.w, b.h, z0, rise);
+    const lid = paletteFrom({ wall: pal.wall.posRow, roof: LEAD });
+    return (
+      <>
+        <polygon points={polyPoints(mf.left)} fill={shade(MARKET_GLASS, 0.9)} />
+        <polygon points={polyPoints(mf.right)} fill={shade(MARKET_GLASS, 0.76)} />
+        <HippedRoof col={b.col - 0.04} row={b.row - 0.04} w={b.w + 0.08} h={b.h + 0.08} base={z0 + rise} rise={up(1.4)} pal={lid} />
+      </>
+    );
+  };
+
+  const hallArt = () => {
+    const f = boxFaces(hall.col, hall.row, hall.w, hall.h, 0, H);
+    const faces = chapelFaces(f);
+    const rc = hall.col - eaves; const rr = hall.row - eaves; const rw = hall.w + eaves * 2; const rh = hall.h + eaves * 2;
+    const rf = boxFaces(rc, rr, rw, rh, 0, H);
+    const rs = lift(alongW ? project(rc, rr + rh / 2) : project(rc + rw / 2, rr), H + ridge);
+    const re = lift(alongW ? project(rc + rw, rr + rh / 2) : project(rc + rw / 2, rr + rh), H + ridge);
+    const mid = alongW ? { cc: hall.col + hall.w / 2, cr: hall.row + hall.h / 2 } : { cc: hall.col + hall.w / 2, cr: hall.row + hall.h / 2 };
+    const half = G / 2;
+    const r0 = across(2.2);
+    return (
+      <>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {trim && faces.map((face) => (
+          <g key={`b${face.dir}`}>
+            <WallBand origin={face.o} along={face.a} wallHeight={H} from={0} to={BASE_COURSE} className="iso-plinth" />
+            <WallBand origin={face.o} along={face.a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" />
+          </g>
+        ))}
+        {parts.piers && faces.map((face) => (
+          <WallBand key={`g${face.dir}`} origin={face.o} along={face.a} wallHeight={H} from={H - EAVES_COURSE * 1.8} to={H - EAVES_COURSE * 0.7} className="iso-cornice" fill={face.dir === seen.left ? stone.gilt : shade(stone.gilt, 0.82)} />
+        ))}
+        {faces.map((face) => {
+          if (face.dir === plan.service) return null;
+          if (glazed) {
+            return <CurtainWall key={`cw${face.dir}`} origin={face.o} along={face.a} wallHeight={H} spanTiles={face.span} from={BASE_COURSE} to={H - up(0.4)} floors={[]} id={`rf${face.dir}`} u0={0.015} u1={0.985} />;
+          }
+          if (face.dir === plan.front && market) return <g key={`m${face.dir}`}>{marketFront(face, H, bays)}</g>;
+          if (face.dir === plan.front) {
+            const doorTop = door ? (door.threshold + door.height + up(1.2)) / H : sill / H;
+            const centres = Array.from({ length: bays }, (_, b) => (b + 0.5) / bays);
+            const midBay = (bays - 1) / 2;
+            return (
+              <g key={`w${face.dir}`}>
+                {tallWindows(face, H, centres.filter((_, b) => b !== midBay), winW / face.span / 2, sill / H, head / H, shape, `fw${face.dir}`)}
+                {!frontis && doorTop < head / H - 0.12 && tallWindows(face, H, [0.5], winW / face.span / 2, doorTop, head / H, shape, `dw${face.dir}`)}
+              </g>
+            );
+          }
+          // The free end: a great window over its door.
+          const doorTop = door ? (door.threshold + door.height + up(1.4)) / H : sill / H;
+          return <g key={`e${face.dir}`}>{tallWindows(face, H, [0.5], Math.min(0.2, across(4.4) / face.span / 2), doorTop, head / H, shape, `ew${face.dir}`)}</g>;
+        })}
+        {!frontis && doorway(hall, plan.front, H)}
+        {doorway(hall, freeEnd, H)}
+        {parts.brackets && pitched && faces.map((face) => (
+          <EavesBrackets key={`k${face.dir}`} origin={face.o} along={face.a} wallHeight={H} span={face.span} top={H} stone={stone} />
+        ))}
+        {eaves > 0 && faces.map((face) => (
+          <WallBand key={`es${face.dir}`} origin={face.o} along={face.a} wallHeight={H} from={H - up(0.9)} to={H} className="iso-eaves-shadow" />
+        ))}
+        {spec.roof === 'gable' && (
+          <>
+            {gableSlopes(rf, alongW, rs, re, market ? glassPal : pal)}
+            {gableEnds(rf, alongW, rs, re, pal)}
+            <line className="iso-ridge" x1={rs.x} y1={rs.y} x2={re.x} y2={re.y} />
+            {market && marketRibs(rf, rs, re, H)}
+          </>
+        )}
+        {market && spec.roof === 'flat' && [0.25, 0.5, 0.75].map((v) => {
+          const sb = alongW
+            ? { col: hall.col + hall.w * 0.06, row: hall.row + hall.h * v - across(2), w: hall.w * 0.88, h: across(4) }
+            : { col: hall.col + hall.w * v - across(2), row: hall.row + hall.h * 0.06, w: across(4), h: hall.h * 0.88 };
+          return <polygon key={`sk${v}`} points={polyPoints(boxFaces(sb.col, sb.row, sb.w, sb.h, H + 1, 0).top)} fill={MARKET_GLASS} />;
+        })}
+        {spec.roof === 'mansard' && <MansardRoof col={hall.col} row={hall.row} w={hall.w} h={hall.h} base={H} rise={ridge} pal={pal} stone={stone} />}
+        {spec.roof === 'flat' && <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />}
+        {/* The lantern astride the ridge, footed where the slopes meet it. */}
+        {spec.roof === 'gable' && market && ridgeMonitor()}
+        {spec.roof === 'gable' && !market && (
+          <HallLantern kind={spec.lantern} cc={mid.cc} cr={mid.cr} base={H + ridge * (1 - r0 / half) - up(0.4)} stone={stone} />
+        )}
+        {spec.roof === 'mansard' && <HallLantern kind={spec.lantern} cc={mid.cc} cr={mid.cr} base={H + ridge + up(1.0)} stone={stone} />}
+      </>
+    );
+  };
+
+  // Modern: the roof slab oversails the terrace on slender steel posts.
+  const slabArt = () => {
+    const s = grownToward(hall, plan.front, oversail);
+    const T0 = up(1.1);
+    const sf = boxFaces(s.col, s.row, s.w, s.h, H, T0);
+    const n = bays + 1;
+    const posts = depthOrder(Array.from({ length: n }, (_, i) => {
+      const along = (i / (n - 1)) * (hallLen - across(0.6));
+      return againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, along, across(0.6), across(0.6), -(oversail - across(0.6)));
+    }));
+    return (
+      <>
+        {posts.map((q, i) => {
+          const pf = boxFaces(q.col, q.row, q.w, q.h, 0, H);
+          return <g key={i}>{sideFaces(pf, '#3c4146', '#2d3135')}</g>;
+        })}
+        {sideFaces(sf, shade(stone.towerStone, 0.96), shade(stone.towerStone, 0.78))}
+        <polygon points={polyPoints(sf.top)} fill={pal.roofDeck} />
+      </>
+    );
+  };
+
+  // Art Deco: two stepped stages over the door, banded in gilt.
+  const frontisArt = () => {
+    if (!frontis) return null;
+    const tiers = [[frontis, H + up(3.2)], [againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, hallLen / 2 - across(3.6), across(7.2), across(0.9)), H + up(6.4)]] as const;
+    const wall = shade(pal.wall.posRow, 1.04);
+    return (
+      <>
+        {tiers.map(([b, top], i) => {
+          const f = boxFaces(b.col, b.row, b.w, b.h, i === 0 ? 0 : H, i === 0 ? top : top - H);
+          const height = i === 0 ? top : top - H;
+          const face = wallOf(f, plan.front);
+          const span = wallSpan(b.w, b.h, plan.front);
+          return (
+            <g key={i}>
+              {sideFaces(f, wall, shade(wall, 0.8))}
+              <polygon points={polyPoints(f.top)} fill={shade(wall, 0.92)} />
+              <WallBand origin={face.origin} along={face.along} wallHeight={height} from={height - up(0.9)} to={height - up(0.3)} className="iso-cornice" fill={stone.gilt === NO_STONE ? undefined : stone.gilt} />
+              {i === 0 && (
+                <>
+                  {tallWindows({ dir: plan.front, o: face.origin, a: face.along, span }, height, [0.5], across(1.6) / span, (door ? door.threshold + door.height + up(1.0) : sill) / height, (H - up(1.2)) / height, 'slot', 'fx')}
+                  {door && <Door d={door} origin={face.origin} along={face.along} wallHeight={height} span={span} side={plan.front} />}
+                  {door && (() => {
+                    const at = outsideWall(b.col, b.row, b.w, b.h, plan.front, span / 2, 0);
+                    const out = outwardOf(plan.front);
+                    return <EntranceSteps d={door} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} stone={stone} />;
+                  })()}
+                </>
+              )}
+            </g>
+          );
+        })}
+      </>
+    );
+  };
+
+  // The kitchen: a lower block with its tall flues, and a service door.
+  const kitchenArt = () => {
+    const f = boxFaces(kitchen.col, kitchen.row, kitchen.w, kitchen.h, 0, KH);
+    const faces = chapelFaces(f);
+    const kAlongW = kitchen.w >= kitchen.h;
+    const rise = pitched ? Math.min(ridge * 0.55, up(7)) : 0;
+    const along = (u: number) => (kAlongW
+      ? { cc: kitchen.col + kitchen.w * u, cr: kitchen.row + kitchen.h / 2 }
+      : { cc: kitchen.col + kitchen.w / 2, cr: kitchen.row + kitchen.h * u });
+    // Four stacks round a pitched kitchen's hips (the Abbot's Kitchen at
+    // Glastonbury, Christ Church's), each footed on its slope; three flues
+    // in a row on a flat one.
+    const inset = Math.min(kitchen.w, kitchen.h) / 2;
+    const stacks = pitched
+      ? [[0.27, 0.27], [0.73, 0.27], [0.27, 0.73], [0.73, 0.73]].map(([u, v]) => {
+        const du = Math.min(u, 1 - u) * kitchen.w; const dv = Math.min(v, 1 - v) * kitchen.h;
+        return { cc: kitchen.col + kitchen.w * u, cr: kitchen.row + kitchen.h * v, foot: KH + rise * Math.min(1, du / inset, dv / inset) };
+      })
+      : [0.3, 0.5, 0.7].map((u) => ({ ...along(u), foot: KH }));
+    const service = doorDimensions('service');
+    return (
+      <>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {trim && faces.map((face) => (
+          <g key={`b${face.dir}`}>
+            <WallBand origin={face.o} along={face.a} wallHeight={KH} from={0} to={BASE_COURSE} className="iso-plinth" />
+            <WallBand origin={face.o} along={face.a} wallHeight={KH} from={KH - EAVES_COURSE} to={KH} className="iso-cornice" />
+          </g>
+        ))}
+        {faces.map((face) => (
+          <g key={`w${face.dir}`}>
+            {windows(face.o, face.a, KH, face.span, [KH - up(1.6) - WINDOW_HEIGHT], windowWidthOf(t), `kw${face.dir}`, glazed ? 'ribbon' : shape, stone.glass)}
+            {face.dir === plan.service && <Door d={service} origin={face.o} along={face.a} wallHeight={KH} span={face.span} side={face.dir} />}
+          </g>
+        ))}
+        {pitched
+          ? <HippedRoof col={kitchen.col} row={kitchen.row} w={kitchen.w} h={kitchen.h} base={KH} rise={rise} pal={pal} />
+          : <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />}
+        {depthOrder(stacks.map((s, i) => ({ col: s.cc - 0.08, row: s.cr - 0.08, w: 0.16, h: 0.16, i, ...s }))).map((s) => (pitched ? (
+          // Tall brick stacks off the kitchen's ridge: the college kitchen's mark.
+          (() => {
+            const plan0 = across(1.6);
+            const top = KH + rise + up(4.5);
+            const sf = boxFaces(s.cc - plan0 / 2, s.cr - plan0 / 2, plan0, plan0, s.foot - up(0.8), top - s.foot + up(0.8));
+            const cap = boxFaces(s.cc - plan0 / 2 - 0.03, s.cr - plan0 / 2 - 0.03, plan0 + 0.06, plan0 + 0.06, top, up(0.4));
+            return (
+              <g key={`st${s.i}`} className="sig-kitchen">
+                <polygon points={polyPoints(sf.left)} fill={pal.wallLeft} />
+                <polygon points={polyPoints(sf.right)} fill={pal.wallRight} />
+                {sideFaces(cap, shade(trimStone, 0.78), shade(trimStone, 0.66))}
+                <polygon points={polyPoints(cap.top)} fill="#3d4043" />
+              </g>
+            );
+          })()
+        ) : (
+          <g key={`st${s.i}`} className="sig-kitchen">
+            <Cylinder cc={s.cc} cr={s.cr} r={across(0.7)} z0={KH} z1={KH + up(7)} fill="#8d9296" />
+          </g>
+        )))}
+      </>
+    );
+  };
+
+  const backArt = () => {
+    if (back.w <= 0 || back.h <= 0) return null;
+    const f = boxFaces(back.col, back.row, back.w, back.h, 0, BH);
+    const faces = chapelFaces(f);
+    return (
+      <>
+        <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
+        <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
+        {faces.map((face) => windows(face.o, face.a, BH, face.span, rankSills(1), windowWidthOf(t), `bw${face.dir}`, glazed ? 'ribbon' : shape === 'slot' ? 'rect' : shape, stone.glass))}
+        {pitched
+          ? <HippedRoof col={back.col} row={back.row} w={back.w} h={back.h} base={BH} rise={up(2.6)} pal={pal} />
+          : <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />}
+      </>
+    );
+  };
+
+  // Buttresses at the front's bay lines, stepping back once (as the chapel's).
+  type Part = DepthBox & { part: 'hall' | 'kitchen' | 'back' | 'arcade' | 'buttress' | 'slab' | 'frontis'; lower?: DepthBox; upper?: DepthBox };
+  const items: Part[] = [
+    { ...hall, part: 'hall' }, { ...kitchen, part: 'kitchen' },
+  ];
+  if (back.w > 0 && back.h > 0) items.push({ ...back, part: 'back' });
+  if (spec.buttresses && isSeen(plan.front)) {
+    const depth = across(0.85); const shrink = depth * 0.42;
+    for (let i = 1; i < bays; i++) {
+      if (i === (bays - 1) / 2 || i === (bays + 1) / 2) continue;
+      const along = (i / bays) * hallLen - BUTTRESS_PLAN / 2;
+      const lower = againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, along, BUTTRESS_PLAN, depth);
+      const upper = againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, along, BUTTRESS_PLAN, depth - shrink);
+      items.push({ ...lower, part: 'buttress', lower, upper });
+    }
+  }
+  if (spec.arcade && isSeen(plan.front)) items.push({ ...againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, 0, hallLen, ARCADE_DEPTH), part: 'arcade' });
+  if (oversail > 0) items.push({ ...againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, 0, hallLen, oversail), part: 'slab' });
+  if (frontis) items.push({ ...frontis, part: 'frontis' });
+
+  // What stands against the front takes this much of the terrace.
+  const taken = spec.arcade ? ARCADE_DEPTH : oversail > 0 ? oversail + across(1.5) : spec.buttresses ? across(0.85) : frontis ? across(0.9) : 0;
+  return (
+    <>
+      <TerracePaving plan={plan} />
+      {depthOrder(items).map((it, i) => {
+        switch (it.part) {
+          case 'hall': return <g key="hall">{hallArt()}</g>;
+          case 'kitchen': return <g key="kitchen">{kitchenArt()}</g>;
+          case 'back': return <g key="back">{backArt()}</g>;
+          case 'slab': return <g key="slab">{slabArt()}</g>;
+          case 'frontis': return <g key="frontis">{frontisArt()}</g>;
+          case 'arcade': return <Arcade key="arcade" col={hall.col} row={hall.row} w={hall.w} h={hall.h} outward={plan.front} pal={pal} stone={stone} height={arcadeHeight(H)} />;
+          default: {
+            const lo = boxFaces(it.lower!.col, it.lower!.row, it.lower!.w, it.lower!.h, 0, H * BUTTRESS_SETOFF_FRACTION);
+            const hi = boxFaces(it.upper!.col, it.upper!.row, it.upper!.w, it.upper!.h, H * BUTTRESS_SETOFF_FRACTION, H * (0.88 - BUTTRESS_SETOFF_FRACTION));
+            return (
+              <g key={`bt${i}`}>
+                <polygon points={polyPoints(lo.left)} fill={pal.wall[lo.dir.CD]} />
+                <polygon points={polyPoints(lo.right)} fill={pal.wall[lo.dir.BC]} />
+                <polygon points={polyPoints(lo.top)} fill={shade(trimStone, 0.88)} />
+                <polygon points={polyPoints(hi.left)} fill={pal.wall[hi.dir.CD]} />
+                <polygon points={polyPoints(hi.right)} fill={pal.wall[hi.dir.BC]} />
+                <polygon points={polyPoints(hi.top)} fill={shade(trimStone, 0.94)} />
+              </g>
+            );
+          }
+        }
+      })}
+      <TerraceFurniture plan={plan} doorAt={hallLen / 2} free={T - taken} cafe={false} plain={vernacular === 'modern'} />
+    </>
+  );
+}
+
+// The dining hall, by band: the café's and the terrace hall's own mass is
+// the pavilion drawn on the plan's hall box (`bare`), the refectory its own.
+function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Element {
+  const { t, p, material, vernacular } = props;
+  const plan = diningPlan(t, p, visibleWalls(), vernacular);
+  const stone = stoneFor(vernacular);
+  if (plan.band === 'refectory') {
+    const roof = REFECTORIES[vernacular].roof === 'flat' ? material.roof : roofFor(vernacular).pitchedRoof ?? material.roof;
+    const pal = snowOnRoofs(paletteFrom({ wall: material.wall, roof }), snow);
+    return <Refectory t={t} plan={plan} vernacular={vernacular} pal={pal} stone={stone} />;
+  }
+  const L = plan.alongW ? plan.terrace.w : plan.terrace.h;
+  const T = plan.alongW ? plan.terrace.h : plan.terrace.w;
+  const cafe = plan.band === 'cafe';
+  // Mission's arcade runs along the front of a hall tall enough for one.
+  const arcaded = entrancePartOf(t, vernacular) === 'arcade' && arcadeFits(wallHeightOf(t));
+  return (
+    <>
+      <TerracePaving plan={plan} />
+      {buildingMassArt({ ...props, p: plan.hall, bare: true }, snow)}
+      {cafe && <CafeAwning plan={plan} d={doorOf(t)} H={wallHeightOf(t)} />}
+      <TerraceFurniture plan={plan} doorAt={L / 2} free={arcaded ? T - ARCADE_DEPTH - 0.08 : T} cafe={cafe} plain={vernacular === 'modern'} />
+    </>
+  );
+}
+
 // Wraps BuildingMass. A building being extended (a library renovation,
 // RENOVATE_LIBRARY) is drawn at its standing height, windows and all, with
 // scaffolding on its roof rather than as a ground-level site.
+// --- The residence towers (Plan 87H) ----------------------------------
+// A residence tower is not an office tower: a shaft of punched windows in
+// the campus's own wall (brick, stone, stucco or panel), stacked balconies
+// down its two row faces, a podium of shops under an entrance canopy, and
+// a lit common room at the top whose crown is the tower's own
+// (buildingSpec's towerFormOf): Meridian a pitched roof and cupola, Beacon
+// a stepped crown and a beacon mast, Horizon a roof terrace with a glazed
+// lounge, planters and umbrellas, Aurora a glass lantern under a glass
+// spire. Precedents: the brick and stone residence towers of the 1960s
+// campus (Penn's Harnwell, Harvard's Peabody Terrace), lounges and roof
+// terraces on top of the newer ones.
+const TOWER_INSET = 0.17;                    // the shaft, set back from the podium's edge
+const TOWER_DECK = '#7c8377';                // the lead deck every flat roof shares
+const LOUNGE_GLOW = '#f2d08c';               // a common room's lit glazing
+const TERRACE_DECK = '#a7845c';              // timber decking
+const PLANTER_GREEN = '#5d8a4a';
+const UMBRELLA_CLOTH = ['#e9e1cf', '#b9533f'];
+const TOWER_WINDOW = across(1.7);
+const TOWER_DARK_GLASS = 'rgba(64, 78, 92, 0.6)';
+const LIT_FACE = 1.14;                       // light.ts's brightest wall
+const BALCONY_W = across(4.2);
+const BALCONY_D = across(1.5);
+const BALCONY_SLAB = up(0.35);
+const BALCONY_RAIL = up(1.05);
+
+// A storey of lit glazing across a wall, `from` to `to`, with mullions on
+// the bay grid: the common room's glass, glowing.
+function LitGlazing({ origin, along, wallHeight, span, from, to, mullion, id }: {
+  origin: Pt; along: Pt; wallHeight: number; span: number; from: number; to: number; mullion: string; id: string;
+}) {
+  if (wallHeight <= 0) return null;
+  const v0 = from / wallHeight; const v1 = to / wallHeight;
+  const bays = Math.max(2, baysAcross(span));
+  const q = (u: number, v: number) => facePoint(origin, along, wallHeight, u, v);
+  const bars = Array.from({ length: bays - 1 }, (_, i) => {
+    const u = (i + 1) / bays; const a = q(u, v0); const b = q(u, v1);
+    return `M${a.x},${a.y}L${b.x},${b.y}`;
+  }).join('');
+  return (
+    <g key={id}>
+      <polygon points={polyPoints([q(0.02, v0), q(0.98, v0), q(0.98, v1), q(0.02, v1)])} fill={LOUNGE_GLOW} />
+      <path d={bars} stroke={mullion} strokeWidth={0.8} fill="none" />
+    </g>
+  );
+}
+
+function hexLuminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+}
+
+// A box in two wall tones with a deck on top.
+function plainBox(f: BoxFaces, lit: string, dark: string, top: string, key: string) {
+  return (
+    <g key={key}>
+      {sideFaces(f, lit, dark)}
+      <polygon points={polyPoints(f.top)} fill={top} />
+    </g>
+  );
+}
+
+// A garden umbrella over a café table: a striped cone on a pole.
+function Umbrella({ cc, cr, z }: { cc: number; cr: number; z: number }) {
+  const r = across(2.1);
+  const rim = projectedCircle(cc, cr, r, 12).map((q) => lift(q, z + up(2.1)));
+  const apex = lift(project(cc, cr), z + up(2.8));
+  const foot = lift(project(cc, cr), z);
+  const table = projectedCircle(cc, cr, across(0.7), 10).map((q) => lift(q, z + up(0.75)));
+  // Fan triangles far to near (the rim's lower screen edge is the near one).
+  const tris = rim.map((p, i) => ({ i, a: p, b: rim[(i + 1) % rim.length] }))
+    .sort((x, y) => (x.a.y + x.b.y) - (y.a.y + y.b.y));
+  return (
+    <g className="tower-umbrella">
+      <polygon points={polyPoints(table)} fill="#e6e1d4" stroke="rgba(40,40,40,0.35)" strokeWidth={0.4} />
+      <line x1={foot.x} y1={foot.y} x2={apex.x} y2={apex.y} stroke="#4a4540" strokeWidth={0.8} />
+      {tris.map(({ i, a, b }) => (
+        <polygon key={i} points={polyPoints([a, b, apex])} fill={shade(UMBRELLA_CLOTH[i % 2], (a.y + b.y) / 2 > apex.y ? 1 : 0.85)} />
+      ))}
+    </g>
+  );
+}
+
+// A mast: a thin line up from `at`, and a lamp at its head.
+function Mast({ at, z, rise, lamp }: { at: Pt; z: number; rise: number; lamp?: string }) {
+  const a = lift(at, z); const b = lift(at, z + rise);
+  return (
+    <g className="tower-mast">
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#5b5f63" strokeWidth={1.1} />
+      {lamp && <circle cx={b.x} cy={b.y} r={3.2} fill={lamp} opacity={0.35} />}
+      {lamp && <circle cx={b.x} cy={b.y} r={1.4} fill={lamp} />}
+    </g>
+  );
+}
+
+function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, crest, vernacular, material }: {
+  t: Buildable; col: number; row: number; w: number; h: number; H: number;
+  pal: Palette; deck: string; stone: StonePalette; paneShape: WindowShape; crest: CrestPart;
+  vernacular: Vernacular; material: Material;
+}) {
+  const { crown, shaftStoreys } = towerFormOf(t);
+  const trimmed = stone.trim !== NO_STONE;
+  const trimStone = trimmed ? stone.trim : stone.towerStone;
+  const seen = visibleWalls();
+  const fronts: FaceDir[] = [seen.left, seen.right];
+  // Punched openings: a ribbon is an office's, so Modern gets plain ones.
+  const pane: WindowShape = paneShape === 'ribbon' ? 'rect' : paneShape;
+  // A pale sash vanishes on the sunlit face of a pale wall (Mission's
+  // stucco, Classical's limestone); the shaft's windows are then a darker
+  // glass, so the punched grid reads from every side.
+  const glass = glassContrast(material.wall, stone.glass, LIT_FACE) < 0.12 ? TOWER_DARK_GLASS : stone.glass;
+
+  // The podium: shops behind tall glass, in the set's tower stone (a dark
+  // base under a pale wall in Modern, where there is no trim).
+  const PODIUM_H = TOWER_PODIUM_STOREYS * STOREY;
+  const podiumStone = trimmed ? stone.towerStone : shade(material.wall, 0.72);
+  const podiumDoor = doorDimensions('shopfront');
+  const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
+
+  // The shaft, every residential floor above the podium.
+  const sc = col + w * TOWER_INSET; const sr = row + h * TOWER_INSET;
+  const sw = w * (1 - TOWER_INSET * 2); const sh = h * (1 - TOWER_INSET * 2);
+  const shaftH = H - PODIUM_H;
+  const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, shaftH);
+  const shaftSills = rankSills(shaftStoreys);
+  const courses = Array.from({ length: shaftStoreys - 1 }, (_, i) => (i + 1) * STOREY);
+
+  // Balconies stacked up the two row faces (grid-fixed, so the tower has a
+  // balconied front and plain ends), two stacks a face, every floor but the
+  // first; slab, then rail, bottom up so a higher one overlaps a lower.
+  // Stone balconies where the trim shows on the wall; wrought iron where
+  // it would not (a cream trim on Mission's cream stucco); tinted glass in
+  // Modern, which has no trim.
+  const ironRails = trimmed && Math.abs(hexLuminance(stone.trim) - hexLuminance(material.wall)) < 0.15;
+  const railFill = ironRails ? '#34363a' : trimmed ? shade(stone.trim, 0.97) : 'rgba(62, 82, 94, 0.82)';
+  const railShade = ironRails ? '#26282b' : trimmed ? shade(stone.trim, 0.8) : 'rgba(48, 64, 74, 0.82)';
+  const balconies = fronts.filter(isRowWall).flatMap((dir) => {
+    const span = wallSpan(sw, sh, dir);
+    return [0.27, 0.73].flatMap((u) => Array.from({ length: shaftStoreys - 1 }, (_, i) => {
+      const z = PODIUM_H + (i + 1) * STOREY;
+      const b = againstWall(sc, sr, sw, sh, dir, span * u - BALCONY_W / 2, BALCONY_W, BALCONY_D);
+      const slab = boxFaces(b.col, b.row, b.w, b.h, z, BALCONY_SLAB);
+      const rail = boxFaces(b.col, b.row, b.w, b.h, z + BALCONY_SLAB, BALCONY_RAIL);
+      return { z, key: `b${dir}${u}${i}`, slab, rail };
+    }));
+  }).sort((a, b) => a.z - b.z);
+
+  // --- the crown ---
+  const top = H;
+  const centre = project(sc + sw / 2, sr + sh / 2);
+  const roofs = roofFor(vernacular);
+  const flatSet = Object.keys(roofs.ridgeMetres).length === 0;
+  const crownNode = (() => {
+    switch (crown) {
+      case 'pitched': {
+        // The common room under a pitched roof: a lit storey, a cornice, a
+        // hip (a mansard in Second Empire) and a cupola. A flat-roofed set
+        // gets a thin roof oversailing the lit storey instead.
+        const lounge = boxFaces(sc, sr, sw, sh, top, STOREY);
+        const eave = flatSet ? across(1.4) : across(0.9) + eavesOf(vernacular);
+        const base = top + STOREY;
+        const rise = up(Math.max(6, (roofs.ridgeMetres.pavilion ?? 3) * 2));
+        const cup = across(5);
+        // Seated where the hip's slope meets the cupola's walls.
+        const cupBase = base + up(0.5) + rise * (1 - cup / 2 / (Math.min(sw, sh) / 2 + eave));
+        const cupBox = boxFaces(sc + sw / 2 - cup / 2, sr + sh / 2 - cup / 2, cup, cup, cupBase, up(3.2));
+        const cap = pyramid(sc + sw / 2 - cup * 0.6, sr + sh / 2 - cup * 0.6, cup * 1.2, cupBase + up(3.2), up(3.4), pal.roof);
+        return (
+          <>
+            <polygon points={polyPoints(lounge.left)} fill={pal.wallLeft} />
+            <polygon points={polyPoints(lounge.right)} fill={pal.wallRight} />
+            <LitGlazing id="gl" origin={lounge.D} along={lounge.C} wallHeight={STOREY} span={lounge.spanLeft} from={STOREY * 0.12} to={STOREY * 0.86} mullion={trimStone} />
+            <LitGlazing id="gr" origin={lounge.C} along={lounge.B} wallHeight={STOREY} span={lounge.spanRight} from={STOREY * 0.12} to={STOREY * 0.86} mullion={trimStone} />
+            {flatSet ? (
+              plainBox(boxFaces(sc - eave, sr - eave, sw + eave * 2, sh + eave * 2, base, up(0.7)), shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'fly')
+            ) : isMansard(vernacular) ? (
+              <MansardRoof col={sc - eave} row={sr - eave} w={sw + eave * 2} h={sh + eave * 2} base={base} rise={up(4.4)} pal={pal} stone={stone} />
+            ) : (
+              <>
+                {plainBox(boxFaces(sc - eave, sr - eave, sw + eave * 2, sh + eave * 2, base, up(0.5)), shade(trimStone, 0.9), shade(trimStone, 0.74), pal.roof, 'eave')}
+                <HippedRoof col={sc - eave} row={sr - eave} w={sw + eave * 2} h={sh + eave * 2} base={base + up(0.5)} rise={rise} pal={pal} />
+                {/* The cupola: a lit lantern on the hip, under its own cap. */}
+                {sideFaces(cupBox, shade(trimStone, 0.97), shade(trimStone, 0.8))}
+                <LitGlazing id="cl" origin={cupBox.D} along={cupBox.C} wallHeight={up(3.2)} span={cupBox.spanLeft} from={up(0.5)} to={up(2.7)} mullion={trimStone} />
+                <LitGlazing id="cr" origin={cupBox.C} along={cupBox.B} wallHeight={up(3.2)} span={cupBox.spanRight} from={up(0.5)} to={up(2.7)} mullion={trimStone} />
+                {cap.faces}
+                <Mast at={centre} z={cupBase + up(6.6)} rise={up(2.4)} />
+              </>
+            )}
+          </>
+        );
+      }
+      case 'stepped': {
+        // Two lit set-backs in the trim stone, then a beacon on a mast.
+        const tiers = [0.45, 0.95].map((inset, i) => boxFaces(sc + inset, sr + inset, sw - inset * 2, sh - inset * 2, top + i * STOREY * 1.25, STOREY * 1.25));
+        return (
+          <>
+            {tiers.map((f, i) => (
+              <g key={i}>
+                {sideFaces(f, shade(trimStone, 0.95), shade(trimStone, 0.78))}
+                <LitGlazing id={`sl${i}`} origin={f.D} along={f.C} wallHeight={STOREY * 1.25} span={f.spanLeft} from={STOREY * 0.18} to={STOREY * 0.95} mullion={shade(trimStone, 0.8)} />
+                <LitGlazing id={`sr${i}`} origin={f.C} along={f.B} wallHeight={STOREY * 1.25} span={f.spanRight} from={STOREY * 0.18} to={STOREY * 0.95} mullion={shade(trimStone, 0.8)} />
+                <polygon points={polyPoints(f.top)} fill={deck} />
+              </g>
+            ))}
+            <Mast at={centre} z={top + STOREY * 2.5} rise={up(16)} lamp="#ff6b4a" />
+          </>
+        );
+      }
+      case 'terrace': {
+        // A glazed lounge on the -col half and a roof terrace beside it:
+        // timber deck, planters, café tables under umbrellas, and a glass
+        // rail round the edge (the far edges first, the near ones last).
+        const g = across(1.1);
+        const items: Array<DepthBox & { node: React.JSX.Element }> = [];
+        const lw = sw * 0.42;
+        const lounge = boxFaces(sc + g, sr + g, lw, sh - g * 2, top, STOREY * 1.1);
+        items.push({ col: sc + g, row: sr + g, w: lw, h: sh - g * 2, node: (
+          <>
+            {sideFaces(lounge, shade(trimStone, 0.93), shade(trimStone, 0.76))}
+            <LitGlazing id="tl" origin={lounge.D} along={lounge.C} wallHeight={STOREY * 1.1} span={lounge.spanLeft} from={STOREY * 0.08} to={STOREY * 0.96} mullion={shade(trimStone, 0.85)} />
+            <LitGlazing id="tr" origin={lounge.C} along={lounge.B} wallHeight={STOREY * 1.1} span={lounge.spanRight} from={STOREY * 0.08} to={STOREY * 0.96} mullion={shade(trimStone, 0.85)} />
+            {plainBox(boxFaces(sc + g * 0.7, sr + g * 0.7, lw + g * 0.6, sh - g * 1.4, top + STOREY * 1.1, up(0.5)), shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'lr')}
+          </>
+        ) });
+        const tc = sc + g + lw + across(1.5);           // the terrace's near edge to the lounge
+        const tw = sc + sw - g - tc;
+        const plant = (c: number, r: number, pw: number, ph: number, k: string) => {
+          const f = boxFaces(c, r, pw, ph, top, up(0.9));
+          items.push({ col: c, row: r, w: pw, h: ph, node: plainBox(f, '#8a7a66', '#6f6252', PLANTER_GREEN, k) });
+        };
+        plant(sc + sw - g - across(1.4), sr + g, across(1.4), sh - g * 2, 'pe');
+        plant(tc, sr + g, tw - across(1.6), across(1.3), 'pn');
+        plant(tc, sr + sh - g - across(1.3), tw - across(1.6), across(1.3), 'ps');
+        [[0.3, 0.32], [0.62, 0.55], [0.3, 0.75]].forEach(([u, v]) => {
+          const cc = tc + tw * u; const cr = sr + sh * v;
+          items.push({ col: cc - across(1.6), row: cr - across(1.6), w: across(3.2), h: across(3.2), node: <Umbrella cc={cc} cr={cr} z={top} /> });
+        });
+        const RT = across(0.25);
+        const rail = (dir: FaceDir) => {
+          const b = againstWall(sc, sr, sw, sh, dir, 0, wallSpan(sw, sh, dir), RT, RT);
+          const f = boxFaces(b.col, b.row, b.w, b.h, top, up(1.1));
+          return <g key={`r${dir}`}>{sideFaces(f, 'rgba(214, 230, 238, 0.55)', 'rgba(190, 210, 220, 0.55)')}<polygon points={polyPoints(f.top)} fill={shade(trimStone, 0.85)} /></g>;
+        };
+        const all: FaceDir[] = ['negRow', 'posCol', 'posRow', 'negCol'];
+        return (
+          <>
+            <polygon points={polyPoints(boxFaces(tc - across(0.6), sr + across(0.2), sc + sw - tc + across(0.4), sh - across(0.4), top, 0).top)} fill={TERRACE_DECK} />
+            {all.filter((d) => !fronts.includes(d)).map(rail)}
+            {depthOrder(items).map((it, i) => <g key={i}>{it.node}</g>)}
+            {fronts.map(rail)}
+          </>
+        );
+      }
+      case 'lantern': {
+        // A two-storey glass lantern, a lit glazed crown on it and a
+        // slender spire: the tallest tower's glass crown.
+        const i = across(1.6);
+        const LH = STOREY * 2;
+        const lan = boxFaces(sc + i, sr + i, sw - i * 2, sh - i * 2, top, LH);
+        const slab = boxFaces(sc + i * 0.6, sr + i * 0.6, sw - i * 1.2, sh - i * 1.2, top + LH, up(0.6));
+        const plan = (sw - i * 2) * 0.82;
+        const crownGlass = pyramid(sc + sw / 2 - plan / 2, sr + sh / 2 - plan / 2, plan, top + LH + up(0.6), up(9), '#a9c6d6');
+        return (
+          <>
+            {sideFaces(lan, shade(trimStone, 0.95), shade(trimStone, 0.78))}
+            <LitGlazing id="al" origin={lan.D} along={lan.C} wallHeight={LH} span={lan.spanLeft} from={STOREY * 0.12} to={LH * 0.97} mullion={shade(trimStone, 0.9)} />
+            <LitGlazing id="ar" origin={lan.C} along={lan.B} wallHeight={LH} span={lan.spanRight} from={STOREY * 0.12} to={LH * 0.97} mullion={shade(trimStone, 0.9)} />
+            {floorCourses(lan.D, lan.C, LH, [STOREY], 'alc')}
+            {floorCourses(lan.C, lan.B, LH, [STOREY], 'arc')}
+            {plainBox(slab, shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'as')}
+            {crownGlass.faces}
+            <Mast at={centre} z={top + LH + up(9.6)} rise={up(12)} lamp="#fff3c4" />
+          </>
+        );
+      }
+    }
+  })();
+
+  return (
+    <>
+      {/* Podium: shopfronts round the street level, a cornice and a deck. */}
+      {sideFaces(pod, shade(podiumStone, 0.92), shade(podiumStone, 0.76))}
+      {windows(pod.D, pod.C, PODIUM_H, pod.spanLeft, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', pane, stone.glass, doorBay(podiumDoor, pod.spanLeft, PODIUM_H))}
+      {windows(pod.C, pod.B, PODIUM_H, pod.spanRight, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', pane, stone.glass, doorBay(podiumDoor, pod.spanRight, PODIUM_H))}
+      <WallBand origin={pod.D} along={pod.C} wallHeight={PODIUM_H} from={PODIUM_H - CORNICE} to={PODIUM_H} className="iso-cornice" fill={shade(trimStone, 0.95)} />
+      <WallBand origin={pod.C} along={pod.B} wallHeight={PODIUM_H} from={PODIUM_H - CORNICE} to={PODIUM_H} className="iso-cornice" fill={shade(trimStone, 0.8)} />
+      <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} side={pod.dir.CD} shape={pane === 'arched' ? 'arched' : 'rect'} />
+      <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} side={pod.dir.BC} shape={pane === 'arched' ? 'arched' : 'rect'} />
+      <polygon points={polyPoints(pod.top)} fill={deck} />
+      {fronts.map((dir) => (
+        <Canopy key={`c${dir}`} d={podiumDoor} col={col} row={row} w={w} h={h} outward={dir} wallHeight={PODIUM_H} stone={stone} />
+      ))}
+
+      {/* The shaft: punched windows floor by floor, in the set's wall. */}
+      <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
+      {trimmed && floorCourses(shaft.D, shaft.C, shaftH, courses.filter((_, i) => i % 3 === 2), 'tlc')}
+      {trimmed && floorCourses(shaft.C, shaft.B, shaftH, courses.filter((_, i) => i % 3 === 2), 'trc')}
+      {windows(shaft.D, shaft.C, shaftH, shaft.spanLeft, shaftSills, TOWER_WINDOW, 'tl', pane, glass)}
+      {windows(shaft.C, shaft.B, shaftH, shaft.spanRight, shaftSills, TOWER_WINDOW, 'tr', pane, glass)}
+      <WallBand origin={shaft.D} along={shaft.C} wallHeight={shaftH} from={shaftH - CORNICE} to={shaftH} className="iso-cornice" fill={shade(trimStone, 0.95)} />
+      <WallBand origin={shaft.C} along={shaft.B} wallHeight={shaftH} from={shaftH - CORNICE} to={shaftH} className="iso-cornice" fill={shade(trimStone, 0.8)} />
+      <polygon points={polyPoints(shaft.top)} fill={deck} />
+      {balconies.map(({ key, slab, rail }) => (
+        <g key={key}>
+          {sideFaces(slab, shade(trimStone, 0.86), shade(trimStone, 0.7))}
+          <polygon points={polyPoints(slab.top)} fill={shade(trimStone, 0.8)} />
+          {sideFaces(rail, railFill, railShade)}
+        </g>
+      ))}
+      {/* The podium's parapet in the set's crest, in front of the shaft. */}
+      <Crest crest={crest} col={col} row={row} w={w} h={h} base={PODIUM_H} fronts={fronts} pal={pal} stone={stone} tile={surfaceRoofOf(vernacular)} />
+      {crownNode}
+    </>
+  );
+}
+
 function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
@@ -3401,7 +7761,9 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   camera?: Camera;
 }) {
   // The grand landmarks draw themselves, stage by stage (landmarks.tsx).
-  if (motifOf(t) === 'landmark') return <Landmark t={t} p={p} developing={developing} />;
+  if (motifOf(t) === 'landmark') return <Landmark t={t} p={p} developing={developing} vernacular={vernacular} />;
+  // The Museum stands back behind its forecourt (Plan 87G).
+  if (t.id === MUSEUM_ID && !developing) return <MuseumCourt t={t} p={p} material={material} vernacular={vernacular} glyphs={glyphs} />;
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
   if (!extending) return <BuildingMass t={t} p={p} material={material} vernacular={vernacular} developing={developing} glyphs={glyphs} />;
 
@@ -3417,6 +7779,21 @@ function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   );
 }
 
+// A vernacular's stone with its glass swapped for one that reads on this
+// wall (buildingSpec's readableGlass, Plan 87H): the dark glass of Modern
+// and Art Deco vanished on their dark residential brick. One stable object
+// per stone and wall, so the memo still holds.
+const STONE_ON_WALL = new Map<StonePalette, Map<string, StonePalette>>();
+function stoneOnWall(stone: StonePalette, wall: string): StonePalette {
+  const glass = readableGlass(wall, stone.glass);
+  if (glass === stone.glass) return stone;
+  let byWall = STONE_ON_WALL.get(stone);
+  if (!byWall) { byWall = new Map(); STONE_ON_WALL.set(stone, byWall); }
+  let out = byWall.get(wall);
+  if (!out) { out = { ...stone, glass }; byWall.set(wall, out); }
+  return out;
+}
+
 export type BuildingMassProps = {
   t: Buildable;
   p: { row: number; col: number; w: number; h: number };
@@ -3424,22 +7801,34 @@ export type BuildingMassProps = {
   vernacular: Vernacular;
   developing: boolean;
   glyphs?: string;
+  // A dining hall's own mass, drawn on its plan's hall box (Plan 87D).
+  bare?: boolean;
 };
 export function BuildingMass(props: BuildingMassProps) {
   return buildingMassArt(props, useContext(SnowContext));
 }
 // The mass given the snow on the roofs: what the canvas map draws.
-export function buildingMassArt({ t, p, material, vernacular, developing, glyphs }: BuildingMassProps, snow: number): React.JSX.Element {
-  // Stable references off buildingSpec's VERNACULARS table.
-  const stone: StonePalette = stoneFor(vernacular);
-  const paneShape = paneShapeOf(t, vernacular);
+export function buildingMassArt(props: BuildingMassProps, snow: number, part?: 'office'): React.JSX.Element {
+  const { t, p, material, vernacular, developing, glyphs, bare } = props;
+  // Stable references off buildingSpec's VERNACULARS table, the glass made
+  // to read against this building's wall (Plan 87H).
+  const stone: StonePalette = stoneOnWall(stoneFor(vernacular), shade(material.wall, wallShadeOf(t)));
+  // The Science lab's windows run as lab ribbons where the vernacular's are
+  // plain rectangles (Plan 87E); arched and lancet sets keep theirs.
+  const paneShape = signatureOf(t)?.feature === 'fumeHoods' && paneShapeOf(t, vernacular) === 'rect' ? 'ribbon' : paneShapeOf(t, vernacular);
   // The vernacular's parts (buildingSpec's VernacularParts): branches below
   // ask what goes in each slot, so a new vernacular is a table row.
   // `trim` false (Brutalism) skips every stone band.
   const trim = hasTrim(vernacular);
   const feature = signatureOf(t)?.feature;
-  // An exchange's temple front stands where the vernacular's entrance would.
-  const entrance: EntrancePart = feature === 'exchange' ? 'portico' : entrancePartOf(t, vernacular);
+  // An exchange's front, and the economics lab's, stand where the
+  // vernacular's entrance would (Plan 87I). The Law School's temple front
+  // stands in for it; its Gothic set has a porch (Plan 87G).
+  const grand = grandFrontOf(t, vernacular);
+  const lawTempleFront = lawTemple(t, vernacular);
+  const entrance: EntrancePart = grand ? GRAND_ENTRANCE[grand]
+    : t.id === LAW_ID ? (lawTempleFront ? 'none' : 'porch')
+      : entrancePartOf(t, vernacular);
   const rooflineEnd = rooflineEndPartOf(vernacular);
   const apex = apexPartOf(vernacular);
   const hood = partsFor(vernacular).hood === true;
@@ -3477,6 +7866,10 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
   const { row, col, w, h } = p;
   // Snow on the roofs in the depth of winter (Plan 74I), from the caller.
   const pal = snowOnRoofs(paletteFrom(material, wallShadeOf(t)), snow);
+  // The exchange's arcade under the vernacular's tile, as its deck's edge
+  // (Plan 87I).
+  const tile = roofFor(vernacular).pitchedRoof;
+  const arcadePal = tile ? snowOnRoofs(paletteFrom({ wall: material.wall, roof: tile }, wallShadeOf(t)), snow) : pal;
   // The visible walls, left then right, where entrances and attachments go.
   const seen = visibleWalls();
   const fronts: FaceDir[] = [seen.left, seen.right];
@@ -3535,8 +7928,47 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
   // A recess is the entrance itself: no door leaf or steps.
   const door = entrance === 'recess' ? null : doorOf(t);
 
+  // The dining halls (Plan 87D): a café, a hall over a terrace, a refectory.
+  if (t.facilityType === 'diningHall' && !site && !bare) return diningHallArt(props, snow);
+
+  // Engineering (Plan 87E): the office block, drawn as any lab, and the
+  // high-bay workshop wing at its end, nearer one last.
+  if (feature === 'workshop' && !site && part !== 'office') {
+    const { office, wing, end, joint } = workshopSplit(col, row, w, h);
+    const officeNode = buildingMassArt({ t, p: office, material, vernacular, developing, glyphs }, snow, 'office');
+    const wingH = H + WORKSHOP_RISE;
+    const wingNode = (
+      <WorkshopWing
+        wing={wing} end={end} joint={joint} height={wingH} pal={pal} stone={stone} trim={trim}
+        crestNode={<Crest crest={crest} {...wing} base={wingH} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />}
+      />
+    );
+    return occludes(wing, office) === 1 ? <>{officeNode}{wingNode}</> : <>{wingNode}{officeNode}</>;
+  }
+  // The fronts a school lab's own entrance takes (Plan 87E): Health's
+  // drop-off on its longer visible wall, Computer Science's atria on both.
+  const dropDir: FaceDir = wallSpan(w, h, seen.left) >= wallSpan(w, h, seen.right) ? seen.left : seen.right;
+  const entranceFronts = feature === 'atrium' ? [] : feature === 'clinic' ? fronts.filter((d) => d !== dropDir) : fronts;
+
   if (motif === 'chapel' && !site) {
     return <Chapel t={t} p={p} vernacular={vernacular} pal={pal} stone={stone} wall={shade(material.wall, wallShadeOf(t))} />;
+  }
+
+  // The Research Park and the Graduate College lay out their own plots
+  // (Plan 87B); a site is the plain frame below.
+  if (!site && t.id === 'PROJ-RESEARCH-PARK') {
+    return <ResearchPark col={col} row={row} w={w} h={h} pal={pal} stone={stone} paneShape={paneShape} crest={crest} plantTint={plantTint} />;
+  }
+  if (!site && t.id === 'PROJ-GRADUATE') {
+    return (
+      <GraduateCollege col={col} row={row} w={w} h={h} H={H} ridge={ridge > 0 ? Math.max(ridge, up(3.5)) : 0}
+        vernacular={vernacular} pal={pal} stone={stone} paneShape={paneShape} lights={lights} />
+    );
+  }
+  // The library draws itself (Plan 87F, libraryMotif.tsx); its site keeps
+  // the common frame below.
+  if (t.facilityType === 'library' && !site) {
+    return <LibraryMass t={t} p={p} material={material} vernacular={vernacular} pal={pal} stone={stone} H={H} extending={inFlight > 0} snow={snow} />;
   }
 
   if (motif === 'village') {
@@ -3600,14 +8032,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
 
   if (motif === 'tower') {
     // A retail podium over the whole footprint (campusData.ts's
-    // TOWER_RETAIL_SERVES), with an inset shaft carried up from it.
-    const PODIUM_H = TOWER_PODIUM_STOREYS * STOREY;
-    // The shopfront door, measured against the podium's height, not the shaft's.
-    const podiumDoor = doorDimensions('shopfront');
-    const inset = 0.17;
-    const sc = col + w * inset; const sr = row + h * inset;
-    const sw = w * (1 - inset * 2); const sh = h * (1 - inset * 2);
-
+    // TOWER_RETAIL_SERVES), with an inset shaft carried up from it
+    // (ResidenceTower).
     if (site) {
       return (
         <>
@@ -3620,34 +8046,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       );
     }
 
-    const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
-    const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, H - PODIUM_H);
-    // The shaft carries every story the tower has except the podium's.
-    const shaftRanks = Math.max(1, storeysOf(t) - TOWER_PODIUM_STOREYS);
-    const shaftSills = rankSills(shaftRanks);
-    const shaftW = windowWidthOf(t);
+    // A residence tower in the set's own wall, under its own crown (Plan 87H).
+    const deck = snowOnRoofs(paletteFrom({ wall: material.wall, roof: TOWER_DECK }), snow).roofDeck;
     return (
-      <>
-        {/* Podium: one tall rank of shopfront. */}
-        {sideFaces(pod, shade(tint, 0.88), shade(tint, 0.70))}
-        {windows(pod.D, pod.C, PODIUM_H, pod.spanLeft, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', paneShape, stone.glass, doorBay(podiumDoor, pod.spanLeft, PODIUM_H))}
-        {windows(pod.C, pod.B, PODIUM_H, pod.spanRight, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', paneShape, stone.glass, doorBay(podiumDoor, pod.spanRight, PODIUM_H))}
-        <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} side={pod.dir.CD} />
-        <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} side={pod.dir.BC} />
-        <polygon points={polyPoints(pod.top)} fill={pal.roofDeck} />
-
-        {/* The shaft, ranked floor by floor. */}
-        <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
-        <polygon points={polyPoints(shaft.right)} fill={pal.wallRight} />
-        {windows(shaft.D, shaft.C, H - PODIUM_H, shaft.spanLeft, shaftSills, shaftW, 'tl', paneShape, stone.glass)}
-        {windows(shaft.C, shaft.B, H - PODIUM_H, shaft.spanRight, shaftSills, shaftW, 'tr', paneShape, stone.glass)}
-        <polygon points={polyPoints(shaft.top)} fill={pal.roof} />
-        {/* Lift overrun and plant on the roof. */}
-        <RoofBox
-          col={sc + sw * 0.24} row={sr + sh * 0.24} w={sw * 0.5} h={sh * 0.5}
-          base={H} height={16} tint={tint}
-        />
-      </>
+      <ResidenceTower t={t} col={col} row={row} w={w} h={h} H={H} pal={pal} deck={deck} stone={stone}
+        paneShape={paneShape} crest={crest} vernacular={vernacular} material={material} />
     );
   }
 
@@ -3933,11 +8336,20 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
     );
   }
 
-  if (motif === 'block' && !site && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES && signifier !== 'track') {
+  if (motif === 'block' && !site && t.id === BUSINESS_SCHOOL_ID) {
+    return (
+      <BusinessSchool
+        t={t} p={p} pal={pal} stone={stone} paneShape={paneShape} paneW={paneW}
+        crest={crest} plantTint={plantTint} cornice={surfaceCornice} trim={trim} door={door}
+      />
+    );
+  }
+
+  if (motif === 'block' && !site && isHospital(t) && Math.min(w, h) >= BLOCK_SPLIT_MIN_TILES) {
     // The hospital: a tall ward slab at the back and a lower glazed public
-    // wing in front. Only large `block`s split (BLOCK_SPLIT_MIN_TILES); small
-    // ones read better as one box. The Athletic Performance Complex (Plan
-    // 85G) is one glazed box under its roof track.
+    // wing in front. Only the Medical Center splits (Plan 87A: the size rule
+    // alone drew the Business School as a hospital), and only when large
+    // (BLOCK_SPLIT_MIN_TILES); other `block`s are one box.
     const slabStoreys = storeysOf(t);
     const wingStoreys = Math.max(2, Math.round(slabStoreys * WING_STOREY_FRACTION));
     const slabH = slabStoreys * STOREY;
@@ -3986,9 +8398,9 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         <polygon points={polyPoints(sf.top)} fill={pal.roofDeck} />
         {[[0.08, 0.16, 0.26, 0.34], [0.40, 0.12, 0.22, 0.30], [0.70, 0.20, 0.24, 0.36]]
           .map(([fx, fy, fw, fh], i) => (
-            <RoofBox
+            <PlantScreen
               key={i} col={slab.col + slab.w * fx} row={slab.row + slab.h * fy}
-              w={slab.w * fw} h={slab.h * fh} base={slabH} height={15} tint={plantTint}
+              w={slab.w * fw} h={slab.h * fh} base={slabH}
             />
           ))}
         {(() => {
@@ -4082,6 +8494,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       : entrance === 'porch' ? PAVILION_DEPTH : 0;
     const flights = entrance !== 'arcade';
     const hf = boxFaces(col, row, w, h, 0, WH);
+    // Modern's Founders Hall (Plan 87L).
+    const carillon = hasClockTower(t) && apex === 'core';
     const endPlan = Math.min(END_PAVILION_PLAN, Math.min(w, h) * 0.28);
     const towerPlan = Math.min(across(7.5), Math.min(w, h) * 0.26);
     // The roof sets back behind a parapet; with no parapet it springs
@@ -4130,6 +8544,14 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
             <CurtainWall origin={hf.C} along={hf.B} wallHeight={WH} spanTiles={hf.spanRight} from={PLINTH} to={STOREY * 0.9} floors={[]} id="gfr" u0={0.03} u1={0.97} />
             {band(STOREY * 0.9, STOREY * 1.02, 'iso-undercroft', 'gs')}
           </>
+        )}
+        {/* On pilotis, and on Founders Hall behind fins (Plan 87L). */}
+        {glazedCivic && (
+          <Pilotis col={col} row={row} w={w} h={h} top={STOREY * 1.02} fronts={fronts} pal={pal} stone={stone}
+            door={entrance === 'canopy' ? door : null} reserve={carillon ? carillonReserve(w, h) : 0} />
+        )}
+        {glazedCivic && carillon && (
+          <BriseSoleil col={col} row={row} w={w} h={h} from={STOREY * 1.02} to={WH} fronts={fronts} stone={stone} reserve={carillonReserve(w, h)} />
         )}
 
         {deckPiers && fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={WH} outward={dir} pal={pal} />)}
@@ -4182,6 +8604,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         )}
         {chimneys && ridgeChimneys({ col: col + inset, row: row + inset, w: w - inset * 2, h: h - inset * 2, base: WH, rise: ridge, at: [], ends: true, pal, stone })}
         {dormers && <Dormers col={col + inset} row={row + inset} w={w - inset * 2} h={h - inset * 2} base={WH} rise={ridge} pal={pal} stone={stone} glass={stone.glass} />}
+        {/* The eaves balustrade (Plan 87H), after the roof so it stands on its edge. */}
+        {rooflineEnd === 'balustrade' && <EavesBalustrade col={col} row={row} w={w} h={h} base={WH} stone={stone} />}
         {/* Raised roofline ends, after the roof so they close it. */}
         {rooflineEnd === 'pavilion' && depthOrder(cornerPavilions(col, row, w, h, endPlan, Math.min(END_PAVILION_DEPTH, endPlan / 2))).map((b, i) => (
           <EndPavilion stone={stone} key={`e${i}`} col={b.col} row={b.row} w={b.w} h={b.h} base={WH} pal={pal} />
@@ -4224,9 +8648,16 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         {hasClockTower(t) && (apex === 'cupola' || apex === 'spire') && (
           <ClockTower stone={stone} apex={apex} gilded={hasGilt(vernacular)} col={col} row={row} w={w} h={h} base={WH + ridge * 0.4} />
         )}
-        {hasClockTower(t) && apex === 'core' && (
-          <StairCore stone={stone} col={col} row={row} w={w} h={h} base={WH} />
-        )}
+        {/* Modern: the carillon and a roof terrace (Plan 87L), not the
+            stair core; the terrace first unless it stands in front. */}
+        {carillon && (() => {
+          const terrace = <FoldedPlateTerrace key="ft" col={col} row={row} w={w} h={h} base={WH} fronts={fronts} stone={stone} />;
+          const tower = <Carillon key="ct" stone={stone} col={col} row={row} w={w} h={h} base={WH} fronts={fronts} />;
+          const plan = roofTerracePlan(col, row, w, h);
+          const sz = Math.min(CARILLON_PLAN, Math.min(w, h) * 0.3);
+          const towerPlan = { col: col + w + CARILLON_PROUD - sz, row: row + h + CARILLON_PROUD - sz, w: sz, h: sz, node: tower };
+          return <>{depthOrder([{ ...plan, node: terrace }, towerPlan]).map((b) => b.node)}</>;
+        })()}
 
         {/* Entrances last, painting over their wall. The centre bay belongs
             to the portico entrance; other vernaculars bring their own. */}
@@ -4298,15 +8729,26 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
 
   if (motif === 'hangar' && !site) {
     // Clear-span sheds: pier-and-panel walls lit by a band near the eaves,
-    // in four silhouettes, the same in every vernacular:
+    // in three silhouettes, the same in every vernacular:
     //   fitness    box, monitor roof, glazed entrance bay, canopy
     //   arena      barrel vault over a glazed concourse
-    //   natatorium glazed long face showing the pool, monopitch roof, flue
     //   studio     blank sound stage with a roller door
-    const kind: 'fitness' | 'arena' | 'natatorium' | 'studio' =
+    // The sports sheds draw as what they are (Plan 87C, sportsShedOf).
+    const sports = sportsShedOf(t);
+    if (sports) {
+      const ctx: ShedCtx = {
+        col, row, w, h, H, pal, stone, door, fronts, crest, plantTint, hood, entrance,
+        cornice: surfaceCornice, expansions: t.expansions ?? 0,
+      };
+      if (sports === 'rec') return <RecCenterShed c={ctx} />;
+      if (sports === 'gym') return <GymShed c={ctx} />;
+      if (sports === 'courts') return <CourtsShed c={ctx} />;
+      if (sports === 'fieldHouse') return <FieldHouseShed c={ctx} />;
+      return <NatatoriumShed c={ctx} />;
+    }
+    const kind: 'fitness' | 'arena' | 'studio' =
       t.facilityType === 'athleticsArena' ? 'arena'
-        : t.facilityType === 'athleticsNatatorium' ? 'natatorium'
-          : t.id === 'LAB-FILM' ? 'studio' : 'fitness';
+        : t.id === 'LAB-FILM' ? 'studio' : 'fitness';
     const alongW = w >= h;
     const SHED_GLASS = 'rgba(52, 72, 84, 0.6)';
     const clere = [clerestorySill(H)];
@@ -4314,7 +8756,6 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
     const left = { o: f.D, a: f.C, span: f.spanLeft };
     const right = { o: f.C, a: f.B, span: f.spanRight };
     const longFace = alongW ? left : right;
-    const shortFace = alongW ? right : left;
 
     const courses = ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
       <g key={`b${i}`}>
@@ -4418,56 +8859,6 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       );
     }
 
-    if (kind === 'natatorium') {
-      // Glass long face with a pool band, a monopitch roof falling toward
-      // it, and a flue at the back corner.
-      const RISE = up(3.0);
-      // Grid-fixed corners: the high edge is -row (or -col) at any camera.
-      const NW = f.NWt; const NE = f.NEt; const SE = f.SEt; const SW = f.SWt;
-      const roof = alongW
-        ? [lift(NW, RISE), lift(NE, RISE), SE, SW]      // high along the -row edge
-        : [lift(NW, RISE), NE, SE, lift(SW, RISE)];     // high along the -col edge
-      // The triangle above the eaves on each visible short wall.
-      const gableEnd = (dir: FaceDir) => {
-        if (!wallOf(f, dir).visible) return null;
-        const pts = dir === 'posCol' ? [SE, NE, lift(NE, RISE)]
-          : dir === 'negCol' ? [SW, NW, lift(NW, RISE)]
-            : dir === 'posRow' ? [SW, SE, lift(SW, RISE)]
-              : [NE, NW, lift(NW, RISE)];
-        return <polygon key={dir} points={polyPoints(pts)} fill={pal.wall[dir]} />;
-      };
-      const gable = alongW ? ['posCol', 'negCol'] as const : ['posRow', 'negRow'] as const;
-      // The extra strip of the high long wall, when visible.
-      const highWall = alongW ? 'negRow' as const : 'negCol' as const;
-      const highStrip = wallOf(f, highWall).visible
-        ? (
-          <polygon
-            points={polyPoints(alongW ? [NW, NE, lift(NE, RISE), lift(NW, RISE)] : [NW, SW, lift(SW, RISE), lift(NW, RISE)])}
-            fill={pal.wall[highWall]}
-          />
-        )
-        : null;
-      const flue = boxFaces(col + 0.25, row + 0.25, 0.45, 0.45, H + RISE * 0.9, up(4.5));
-      const roofFill = alongW ? pal.negRow : pal.negCol;
-      return (
-        <>
-          <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
-          <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-          {piers}
-          {courses}
-          <CurtainWall origin={longFace.o} along={longFace.a} wallHeight={H} spanTiles={longFace.span} from={BASE_COURSE} floors={[]} id="nl" />
-          <WallBand origin={longFace.o} along={longFace.a} wallHeight={H} from={up(1.1)} to={up(2.4)} className="iso-pool-glimpse" u0={0.06} u1={0.94} />
-          {clerestory(shortFace, 'ns')}
-          {doors}
-          {highStrip}
-          {gable.map(gableEnd)}
-          <polygon points={polyPoints(roof)} fill={roofFill} />
-          {sideFaces(flue, shade(roofTint, 0.8), shade(roofTint, 0.66))}
-          <polygon points={polyPoints(flue.top)} fill={shade(roofTint, 0.5)} />
-        </>
-      );
-    }
-
     if (kind === 'studio') {
       // The great stage door, taller than a shed's roller (Plan 74F).
       const STAGE_DOOR = 0.74;
@@ -4543,6 +8934,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
 
   const gabled = ridge > 0;
   const alongW = w >= h;
+  // A terrace hall's tall ground-floor windows (Plan 87D).
+  const tallGround = bare === true && diningBandOf(t) === 'terrace' && ranks > 0;
   // A residence hall's stair turret: smaller, plain-capped, only on long walls.
   // Collegiate Gothic's library carries a crenellated tower at its corner
   // (Plan 74G), taller than a residence's turret.
@@ -4556,7 +8949,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
   const porched = entrance === 'archway' || entrance === 'porch' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'archway');
   // Where this door's flight lands: the porch front, the portico's columns,
   // or the wall.
-  const stepStandoff = porched ? PAVILION_DEPTH : entrance === 'portico' ? PORTICO_STANDOFF + PORTICO_COLUMN_PLAN : 0;
+  const stepStandoff = porched ? PAVILION_DEPTH : entrance === 'portico' ? PORTICO_STANDOFF + PORTICO_COLUMN_PLAN
+    : grand === 'decoPortal' ? DECO_PORTAL_DEPTH : 0;
   // Gable when the short side is under 4 tiles, hip otherwise.
   const hipped = gabled && Math.min(w, h) >= 4;
   // The roof's footprint, including eaves oversail.
@@ -4595,9 +8989,12 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           <WallBand origin={o} along={a} wallHeight={H} from={H - EAVES_COURSE} to={H} className="iso-cornice" fill={surfaceCornice} />
         </g>
       ))}
-      {/* Each wall's bays come from its own length, so windows match. */}
-      {!site && windows(f.D, f.C, H, f.spanLeft, sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, f.spanLeft, H) : undefined, lights)}
-      {!site && windows(f.C, f.B, H, f.spanRight, sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, f.spanRight, H) : undefined, lights)}
+      {/* Each wall's bays come from its own length, so windows match. A
+          terrace hall's ground floor is tall windows onto it (Plan 87D). */}
+      {!site && windows(f.D, f.C, H, f.spanLeft, tallGround ? sills.slice(1) : sills, paneW, 'l', paneShape, stone.glass, door ? doorBay(door, f.spanLeft, H) : undefined, lights)}
+      {!site && windows(f.C, f.B, H, f.spanRight, tallGround ? sills.slice(1) : sills, paneW, 'r', paneShape, stone.glass, door ? doorBay(door, f.spanRight, H) : undefined, lights)}
+      {!site && tallGround && windows(f.D, f.C, H, f.spanLeft, [DINING_TALL_SILL], paneW, 'lt', paneShape, stone.glass, door ? doorBay(door, f.spanLeft, H) : undefined, lights, DINING_TALL_PANE)}
+      {!site && tallGround && windows(f.C, f.B, H, f.spanRight, [DINING_TALL_SILL], paneW, 'rt', paneShape, stone.glass, door ? doorBay(door, f.spanRight, H) : undefined, lights, DINING_TALL_PANE)}
       {/* Art Deco: its piers on every building it restyles. */}
       {!site && deckPiers && (
         <>
@@ -4624,9 +9021,9 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         </>
       )}
       {/* A signifier on the walls (Plan 74F). */}
-      {!site && signifier && <WallSignifier kind={signifier} f={f} H={H} stone={stone} />}
-      {!site && door && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} side={f.dir.CD} shape={doorShape} />}
-      {!site && door && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} side={f.dir.BC} shape={doorShape} />}
+      {!site && signifier && !bare && <WallSignifier kind={signifier} f={f} H={H} stone={stone} />}
+      {!site && door && feature !== 'atrium' && <Door d={door} origin={f.D} along={f.C} wallHeight={H} span={f.spanLeft} side={f.dir.CD} shape={doorShape} />}
+      {!site && door && feature !== 'atrium' && <Door d={door} origin={f.C} along={f.B} wallHeight={H} span={f.spanRight} side={f.dir.BC} shape={doorShape} />}
       {/* A smaller cross over the clinic and counselling centre doors. */}
       {!site && t.facilityType === 'healthCenter' && door && (
         <>
@@ -4642,11 +9039,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         </>
       )}
       {/* A small portico over the door, kept under the eaves. */}
-      {!site && entrance === 'portico' && door && fronts.map((dir) => {
+      {!site && entrance === 'portico' && door && entranceFronts.map((dir) => {
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
         return (
-          feature === 'exchange' ? null : (
+          grand ? null : (
             <Portico stone={stone}
               key={`sp${dir}`}
               centreCol={at.col} centreRow={at.row}
@@ -4658,7 +9055,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         );
       })}
       {/* The civic colonnade, running the length of the front. */}
-      {!site && entrance === 'colonnade' && fronts.map((dir) => {
+      {!site && entrance === 'colonnade' && entranceFronts.map((dir) => {
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
         return (
@@ -4674,31 +9071,34 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       })}
       {!site && entrance === 'recess' && (
         <>
-          {fronts.map((dir) => <Recess key={dir} pal={pal} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} />)}
+          {entranceFronts.map((dir) => <Recess key={dir} pal={pal} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} />)}
         </>
       )}
       {!site && entrance === 'arcade' && arcadeFits(H) && (
         <>
-          {fronts.map((dir) => <Arcade key={dir} pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward={dir} height={arcadeHeight(H)} />)}
+          {entranceFronts.map((dir) => <Arcade key={dir} pal={grand === 'arcade' ? arcadePal : pal} stone={stone} col={col} row={row} w={w} h={h} outward={dir} height={arcadeHeight(H)} />)}
         </>
       )}
       {!site && (entrance === 'canopy' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'canopy')) && door && (
         <>
-          {fronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={surface ? plantTint : material.roof} />)}
+          {entranceFronts.map((dir) => <Canopy key={dir} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} hood={hood} roof={surface ? plantTint : material.roof} />)}
         </>
       )}
       {!site && (entrance === 'archway' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'archway')) && door && (
         <>
-          {fronts.map((dir) => <Archway key={dir} pal={pal} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} />)}
+          {entranceFronts.map((dir) => <Archway key={dir} pal={pal} stone={stone} d={door} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} />)}
         </>
       )}
-      {!site && entrance === 'porch' && fronts.map((dir) => (
+      {!site && grand === 'cantilever' && fronts.map((dir) => (
+        <CantileverCanopy key={`cl${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} part="lobby" />
+      ))}
+      {!site && entrance === 'porch' && entranceFronts.map((dir) => (
         <Porch key={`po${dir}`} pal={pal} stone={stone} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} />
       ))}
       {/* Steps after the walls and doors, landing at the entrance's face;
           none behind an arcade (entered at grade) or a colonnade (Plan 61:
           they ran out under the columns). */}
-      {!site && door && !(entrance === 'arcade' && arcadeFits(H)) && entrance !== 'colonnade' && fronts.map((dir) => {
+      {!site && door && !(entrance === 'arcade' && arcadeFits(H)) && entrance !== 'colonnade' && !lawTempleFront && entranceFronts.map((dir) => {
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, stepStandoff);
         const out = outwardOf(dir);
@@ -4710,6 +9110,11 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
         );
       })}
 
+      {/* Modern's cantilevered canopy over a glazed lobby (Plan 87I),
+          after the steps it shelters. */}
+      {!site && grand === 'cantilever' && fronts.map((dir) => (
+        <CantileverCanopy key={`cc${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} part="slab" />
+      ))}
       {gabled && eaves > 0 && ([[f.D, f.C] as const, [f.C, f.B] as const]).map(([o, a], i) => (
         <WallBand key={`es${i}`} origin={o} along={a} wallHeight={H} from={H - up(0.9)} to={H} className="iso-eaves-shadow" />
       ))}
@@ -4751,7 +9156,8 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           {!site && feature === 'studio' && <SawtoothRoof col={col} row={row} w={w} h={h} base={H} pal={pal} glass={NORTH_LIGHT_GLASS} />}
           {!site && feature === 'exchange' && <Dome col={col} row={row} w={w} h={h} base={H} stone={stone} hemisphere />}
 
-          {!site && motif === 'portico' && !feature && [0.3, 0.5, 0.7].map((v) => (
+          {!site && t.id === MUSEUM_ID && <GalleryVaults col={col} row={row} w={w} h={h} base={H} pal={pal} />}
+          {!site && motif === 'portico' && !feature && t.id !== MUSEUM_ID && t.id !== LAW_ID && [0.3, 0.5, 0.7].map((v) => (
             // Rooflights on top-lit civic buildings, capped at a real size.
             [0.3, 0.55].map((u) => (
               <polygon
@@ -4776,11 +9182,21 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
             );
           })()}
           {/* Roof plant, but not where a roof track runs (Plan 85G). */}
-          {!site && signifier !== 'track' && flatRoofItems(motif, labFeatureOf(t), col, row, w, h).map((item) => {
+          {!site && signifier !== 'track' && flatRoofItems(motif, labFeatureOf(t), col, row, w, h, feature).map((item) => {
+            if (item.kind === 'school' && item.part) {
+              return <SchoolRoofItem key={item.key} part={item.part} col={item.col} row={item.row} w={item.w} h={item.h} base={H} tint={plantTint} />;
+            }
             if (item.kind === 'observatory' || item.kind === 'glasshouse') {
               return <LabRoofFeature key={item.key} feature={item.kind} col={col} row={row} w={w} h={h} base={H} />;
             }
             if (item.kind === 'flue') return <Flue key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} tint={roofTint} />;
+            if (item.kind === 'transformers') return <Transformer key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} alongW={w >= h} />;
+            if (item.kind === 'pylon') return <Pylon key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} alongW={w >= h} />;
+            if (item.kind === 'pipeRack') return <PipeRack key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} alongW={w >= h} />;
+            if (item.kind === 'distillation') {
+              const rise = up(STILLS[Number(item.key.slice(6))]![3]);
+              return <Still key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} rise={rise} />;
+            }
             if (item.kind === 'stack') {
               const st = boxFaces(item.col, item.row, item.w, item.h, H, up(6));
               return (
@@ -4790,19 +9206,16 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
                 </g>
               );
             }
-            return (
-              <RoofBox
-                key={item.key}
-                col={item.col} row={item.row} w={item.w} h={item.h}
-                base={H} height={motif === 'works' ? 12 : motif === 'block' ? 15 : 9}
-                tint={plantTint}
-              />
-            );
+            // Roof plant reads as plant: a louvred screen with its fans
+            // showing, not a bare box (Plan 87).
+            return <PlantScreen key={item.key} col={item.col} row={item.row} w={item.w} h={item.h} base={H} />;
           })}
+          {/* The line into the transformer yard, over it (Plan 87I). */}
+          {!site && labFeatureOf(t) === 'transformers' && pylonLines(flatRoofItems(motif, labFeatureOf(t), col, row, w, h), H, w >= h)}
         </>
       )}
       {/* The exchange's temple front, after the roof its pediment rises over. */}
-      {!site && feature === 'exchange' && fronts.map((dir) => {
+      {!site && grand === 'temple' && fronts.map((dir) => {
         const span = wallSpan(w, h, dir);
         const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
         return (
@@ -4812,8 +9225,24 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
           />
         );
       })}
+      {/* The economics lab's small pedimented portico, after its roof
+          (Plan 87I), and Art Deco's stepped portal, which rises past the
+          parapet. */}
+      {!site && grand === 'pedimented' && door && fronts.map((dir) => {
+        const span = wallSpan(w, h, dir);
+        const at = outsideWall(col, row, w, h, dir, span / 2, PORTICO_STANDOFF);
+        return (
+          <Portico stone={stone} key={`ep${dir}`}
+            centreCol={at.col} centreRow={at.row} width={Math.min(span * 0.42, across(16))} outward={dir}
+            height={Math.min(PORTICO_HEIGHT, H - EAVES_COURSE * 2)} pediment
+          />
+        );
+      })}
+      {!site && grand === 'decoPortal' && fronts.map((dir) => (
+        <DecoPortal key={`dp${dir}`} col={col} row={row} w={w} h={h} outward={dir} wallHeight={H} stone={stone} />
+      ))}
       {/* A signifier on the roof, after it (Plan 74F). */}
-      {!site && signifier && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} />}
+      {!site && signifier && !lawTempleFront && <RoofSignifier kind={signifier} col={col} row={row} w={w} h={h} base={H} ridge={ridge} f={f} stone={stone} pal={pal} />}
       {/* The residence turret, after the roof. */}
       {!site && turretPlan > 0 && cornerInFront && residentialTurret}
       {!site && turretPlan > 0 && towerProudFace && <CornerTower {...residentialTurretProps} face={towerProudFace} />}
@@ -4832,15 +9261,24 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       {!site && !gabled && surface && (
         <Crest crest={crest} col={col} row={row} w={w} h={h} base={H} fronts={fronts} pal={pal} stone={stone} tile={plantTint} />
       )}
+      {/* A school lab's fronts (Plan 87E), after its crest. */}
+      {!site && feature === 'clinic' && (
+        <ClinicFronts col={col} row={row} w={w} h={h} H={H} dropDir={dropDir} bayDir={dropDir === seen.left ? seen.right : seen.left} stone={stone} />
+      )}
+      {!site && feature === 'atrium' && <AtriumFronts col={col} row={row} w={w} h={h} H={H} fronts={fronts} floors={courses} />}
       {/* The Classical set's balustrade. */}
       {!site && balustrade && !gabled && motif === 'portico' && (
         <>
           {fronts.map((dir) => <Balustrade key={dir} pal={pal} stone={stone} col={col} row={row} w={w} h={h} base={H} outward={dir} />)}
         </>
       )}
+      {/* The Law School's attic hall and temple fronts, after its parapet
+          (Plan 87G). */}
+      {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} />}
+      {!site && lawTempleFront && fronts.map((dir) => <LawTemple key={`lt${dir}`} col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} />)}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}
-      {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && (
+      {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && !grand && (
         <BellGable pal={pal} stone={stone}
           origin={f.D} along={f.C}
           inward={gableInward(col, row, w, h)}
@@ -4849,7 +9287,7 @@ export function buildingMassArt({ t, p, material, vernacular, developing, glyphs
       )}
       {/* The roof parts that read (Plan 25): a dining hall's kitchen flues,
           a tall residence's balconies, a civic building's flag. */}
-      {!site && t.facilityType === 'diningHall' && [0.22, 0.34].map((u) => {
+      {!site && t.facilityType === 'diningHall' && !bare && [0.22, 0.34].map((u) => {
         const sp = across(0.8);
         const st = boxFaces(col + w * u, row + h * 0.1, sp, sp, H, up(3.5));
         return (
@@ -4904,3 +9342,11 @@ export function sameMotif(a: Parameters<typeof BuildingMotif>[0], b: Parameters<
 
 // Color lives in buildingSpec.ts's MATERIALS (see materialOf).
 export { materialOf } from './buildingSpec';
+
+// The parts the library draws itself from (Plan 87F, libraryMotif.tsx).
+export {
+  Arcade, BellGable, CurtainWall, Door, EavesBrackets, EntranceSteps, GiltFinial, HippedRoof, LEAD,
+  MansardRoof, Merlons, Balustrade, PavilionTower, Piers, StageOpenings, TowerShaft, WallBand,
+  againstWall, arcadeHeight, backSlopesFirst, gableEnds, gableSlopes, nearRing, opposite, outsideWall, outwardOf,
+  pyramid, ridgeChimneys, sideFaces, wallSpan, windows, Cylinder,
+};

@@ -309,8 +309,23 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
         </>
       );
     }
-    // Modern: a blind stair core.
-    return <rect fill={tint(wall, 1.02)} x={x - 2} y="16" width={w + 4} height="56" />;
+    // Modern: the carillon (Plan 87L), an open concrete frame with a clock
+    // stage, its bells in the open belfry, a thin slab and a steel spire.
+    const frame = tint(tower, 0.72);
+    return (
+      <>
+        <rect fill={frame} x={x - 2} y="8" width="7" height="72" />
+        <rect fill={frame} x={x + w - 5} y="8" width="7" height="72" />
+        {[50, 64].map((y) => <rect key={y} fill={frame} x={x + 5} y={y} width={w - 10} height="3" />)}
+        <rect fill={tint(tower, 0.8)} x={x + 5} y="27" width={w - 10} height="18" />
+        <circle fill="#f2ede0" stroke={tint(tower, 0.6)} strokeWidth="0.8" cx={cx} cy="36" r="6" />
+        <line stroke={iron} strokeWidth="1" x1={cx} y1="36" x2={cx} y2="31.5" />
+        <line stroke={iron} strokeWidth="1" x1={cx} y1="36" x2={cx + 3.5} y2="37" />
+        <path fill="#8a6a3a" d={`M ${cx - 3} 13 L ${cx + 3} 13 L ${cx + 4} 20 L ${cx + 6} 24 L ${cx - 6} 24 L ${cx - 4} 20 Z`} />
+        <rect fill={tint(tower, 0.8)} x={x - 6} y="4" width={w + 12} height="4" />
+        <line stroke={iron} strokeWidth="1.2" x1={cx} y1="4" x2={cx} y2="-10" />
+      </>
+    );
   };
 
   // --- THE ORDER: what stands along the ground story. -------------------

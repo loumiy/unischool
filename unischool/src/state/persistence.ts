@@ -22,7 +22,7 @@ import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
-import { initialFacilities } from '../data/facilitiesData';
+import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
@@ -1152,12 +1152,16 @@ function refreshAuthoredText(state: GameState): void {
     // run opens the Graduate College from Year 15 like a new one (Plan 58).
     if (authored.project) t.project = authored.project;
     if (t.kind === 'course') t.name = authored.name;
+    // The fitness chain's capstone was the Athletics Complex, too like the
+    // Athletic Performance Complex (Plan 87C): a saved one under its old
+    // catalog name takes the new; a donor's name is kept.
+    if (t.id === REC_CENTER_TIER2_ID && t.name === 'Athletics Complex') t.name = authored.name;
     // A course's weeks are the catalog's until it starts (techData.ts's
     // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
     // was started with, so its progress still reads against them.
     if (t.kind === 'course' && (t.status === 'locked' || t.status === 'available')) t.duration = authored.duration;
     // What a building feeds and what it costs to keep are the catalog's
-    // (Plan 80F: the Athletics Complex feeds health; a facility's upkeep is
+    // (Plan 80F: the Sports & Recreation Complex feeds health; a facility's upkeep is
     // a share of its price, its floors and expansions with it; the towers'
     // shops are kept at the grocery's price). No state shape changes, so no
     // save version: a loaded run reads the new terms as a new one does.

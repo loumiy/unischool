@@ -89,14 +89,23 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
 
 // What a laboratory carries on its roof to say which science it is: an
 // observatory's drum and dome for physics, a glasshouse for biology, a row of
-// fume flues for chemistry.
-export type LabFeature = 'observatory' | 'glasshouse' | 'flues';
+// fume flues for chemistry; a transformer yard for electrical engineering and
+// a pipe rack with distillation columns for chemical engineering (Plan 87I).
+export type LabFeature = 'observatory' | 'glasshouse' | 'flues' | 'transformers' | 'distillation';
 const LAB_FEATURES: Partial<Record<string, LabFeature>> = {
   'LAB-PHYS': 'observatory',
   'LAB-BIOL': 'glasshouse',
   'LAB-CHEM': 'flues',
-  'LAB-CHEN': 'flues',
+  'LAB-CHEN': 'distillation',
+  'LAB-ELEC': 'transformers',
 };
+// Labs whose invariant block wears the vernacular's academic wall, not one
+// shared material (Plan 87I): the Neuroscience Labs were white panel even on
+// a red-brick campus. Exempt from the invariant-materials rule
+// (test/building-spec.test.ts).
+export const VERNACULAR_WALL_LABS: readonly string[] = ['LAB-NEUR'];
+const LAB_WALLS = new Map<Vernacular, Material>();
+
 export function labFeatureOf(t: Buildable): LabFeature | undefined {
   return LAB_FEATURES[t.id];
 }
@@ -112,7 +121,6 @@ export type Signifier =
   | 'gantry'      // Mechanical Engineering: a gantry crane over the shed
   | 'windTunnel'  // Aerospace: a wind-tunnel duct along the roof
   | 'testTower'   // Civil Engineering: a test tower at the corner
-  | 'column'      // Chemical Engineering: a distillation column by the flues
   | 'soundstage'  // Film: a taller stage door and its red lamp
   | 'banners'     // the Museum: banners between its columns
   | 'scales'      // the Law School: a pediment with the scales
@@ -121,12 +129,12 @@ export type Signifier =
   | 'mast'        // Computing: a mast and a dish
   | 'tanks'       // Neuroscience: the scanners' cryogen tanks
   | 'cupola'      // the Faculty Training Institute: a glazed cupola astride the ridge
-  | 'track';      // the Athletic Performance Complex: a running track on the roof
+  | 'track'       // the Athletic Performance Complex: a running track on the roof
+  | 'ticker';     // Experimental Economics: a ticker board along its front (Plan 87I)
 const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-MECH': 'gantry',
   'LAB-AERO': 'windTunnel',
   'LAB-CIVE': 'testTower',
-  'LAB-CHEN': 'column',
   'LAB-FILM': 'soundstage',
   'PROJ-MUSEUM': 'banners',
   'PROJ-LAW': 'scales',
@@ -135,6 +143,7 @@ const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-NEUR': 'tanks',
   'PROJ-TRAINING': 'cupola',
   'PROJ-ATHLETICS-COMPLEX': 'track',
+  'LAB-ECON': 'ticker',
 };
 const SIGNIFIERS_BY_TYPE: Partial<Record<FacilityType, Signifier>> = {
   diningHall: 'kitchen',
@@ -165,13 +174,21 @@ const STUDENT_CENTRE_EXPANDED_MIN_SERVES = 2_000;
 // motif with (Plan 61: Arts & Media drew as the library, Business as a
 // hospital): a studio's sawtooth north-light roof, and an exchange's
 // pedimented temple front under a dome.
-export type SignatureFeature = 'studio' | 'exchange';
+//
+// The four teaching labs (Plan 87E) were boxes under roof plant, Science
+// and Engineering near twins, in a render or white panel no vernacular
+// changed. Each now says what it teaches, in the campus's own wall (brick
+// in Georgian, stone in Gothic, stucco in Mission): Science's fume-hood
+// stacks and rooftop greenhouse; Engineering's high-bay workshop wing with
+// a sectional door and a crane rail; Health's drop-off canopy, clinic sign
+// and bay windows; Computer Science's glazed atrium and solar arrays.
+export type SignatureFeature = 'studio' | 'exchange' | 'fumeHoods' | 'workshop' | 'clinic' | 'atrium';
 export interface Signature { motif: Motif; material: keyof MaterialSet; feature?: SignatureFeature }
 export const SCHOOL_SIGNATURES: Readonly<Record<string, Signature>> = {
-  'Science': { motif: 'block', material: 'render' },
-  'Engineering': { motif: 'works', material: 'render' },
-  'Health Science': { motif: 'block', material: 'clinical' },
-  'Computer Science': { motif: 'block', material: 'curtain' },
+  'Science': { motif: 'block', material: 'brickRed', feature: 'fumeHoods' },
+  'Engineering': { motif: 'works', material: 'brickBuff', feature: 'workshop' },
+  'Health Science': { motif: 'block', material: 'brickBuff', feature: 'clinic' },
+  'Computer Science': { motif: 'block', material: 'limestone', feature: 'atrium' },
   'Arts & Media': { motif: 'portico', material: 'brickRed', feature: 'studio' },
   'Business': { motif: 'portico', material: 'limestone', feature: 'exchange' },
   'Social Sciences & Humanities': { motif: 'hall', material: 'limestone' },
@@ -273,6 +290,24 @@ const ACADEMIC_HALL_STOREYS = 4;
 export const TOWER_PODIUM_STOREYS = 2;
 const TOWER_SHAFT_STOREYS = 12;
 
+// The four residence towers (Plan 87H): one height and one crown each, so
+// they never read as copies. The crown is the lit common room on the top
+// floor: a pitched roof with a cupola, a stepped crown with a beacon, a
+// roof terrace beside a glazed lounge, or a glass lantern. Keyed by id,
+// like RESIDENCE_FORMS; drawing only (beds, costs and footprints are the
+// rungs' own).
+export type TowerCrown = 'pitched' | 'stepped' | 'terrace' | 'lantern';
+export interface TowerForm { shaftStoreys: number; crown: TowerCrown }
+const TOWER_FORMS: Readonly<Record<string, TowerForm>> = {
+  'DORM-12': { shaftStoreys: 10, crown: 'pitched' },   // Meridian
+  'DORM-13': { shaftStoreys: 12, crown: 'stepped' },   // Beacon: "lit at the top"
+  'DORM-14': { shaftStoreys: 14, crown: 'terrace' },   // Horizon: "a roof terrace"
+  'DORM-15': { shaftStoreys: 17, crown: 'lantern' },   // Aurora: "the tallest ... under a glass crown"
+};
+export function towerFormOf(t: Buildable): TowerForm {
+  return TOWER_FORMS[t.id] ?? { shaftStoreys: TOWER_SHAFT_STOREYS, crown: 'pitched' };
+}
+
 function dormStoreys(beds: number): number {
   if (beds >= DORM_TOWER_MIN_BEDS) return TOWER_PODIUM_STOREYS + TOWER_SHAFT_STOREYS;
   // A village is a plot of small houses, so its story count is one house's.
@@ -314,7 +349,8 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
       return 2;
     case 'diningHall':
       if (serves >= 10_000) return 3;
-      if (serves >= 2_500) return 2;
+      // A terrace hall (Plan 87D) has a floor over its dining room.
+      if (serves >= DINING_TERRACE_MIN_SERVES) return 2;
       return 1;
     case 'studentCenter':
       return serves >= STUDENT_CENTRE_EXPANDED_MIN_SERVES ? 3 : 2;
@@ -336,7 +372,9 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
   'PROJ-GRADUATE': { storeys: dormStoreys(600), material: 'brickDark' },
   'PROJ-MUSEUM': { storeys: facilityStoreys('artGallery', 0), material: 'limestone' },
   'PROJ-LAW': { storeys: 3, material: 'limestone' },
-  'PROJ-BUSINESS': { storeys: 5, material: 'curtain' },
+  // An office tower over a podium (Plan 87A), as tall as it must be to read
+  // as one over a 9-tile podium.
+  'PROJ-BUSINESS': { storeys: 10, material: 'curtain' },
   // An academic hall a story lower than the halls, in the civic stone
   // rather than their brick.
   'PROJ-TRAINING': { storeys: 3, material: 'limestone' },
@@ -350,7 +388,9 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
 export function storeysOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark' || motif === 'chapel') return 0;
-  if (motif === 'tower') return dormStoreys(t.effects?.capacityBonus ?? 0);
+  // A refectory is one tall room (Plan 87D): its height is wallHeightOf's.
+  if (diningBandOf(t) === 'refectory') return 0;
+  if (motif === 'tower') return TOWER_PODIUM_STOREYS + towerFormOf(t).shaftStoreys;
   if (t.kind === 'building') {
     return ACADEMIC_HALL_STOREYS + addedFloors(t);
   }
@@ -372,17 +412,21 @@ const CLEAR_SPAN_METRES: Partial<Record<Motif, number>> = {
 
 // How tall the walls stand, in screen units, before any roof.
 // The grand landmarks' full heights, in meters (landmarks.tsx draws them).
+// The Campanile near three times the squat Bell Tower, finial to finial,
+// so the two never read as one tower at two sizes (Plan 87G).
 export const LANDMARK_HEIGHT_METRES: Record<string, number> = {
-  'LANDMARK-CAMPANILE': 52,
+  'LANDMARK-CAMPANILE': 74,
   'LANDMARK-DOME': 34,
   'LANDMARK-GATE': 20,
-  'AMENITY-BELLTOWER': 30,
+  'AMENITY-BELLTOWER': 26,
 };
 
 export function wallHeightOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds') return 0;
   if (motif === 'landmark') return up(LANDMARK_HEIGHT_METRES[t.id] ?? 20);
+  // A refectory is one tall room, a clear span like the chapel's (Plan 87D).
+  if (diningBandOf(t) === 'refectory') return up(refectoryEavesMetres(t));
   const storeys = storeysOf(t);
   if (storeys > 0) return storeys * STOREY;
   // An arena or a natatorium rises a storey with each expansion (Plan 54).
@@ -424,6 +468,7 @@ export function ridgeOf(t: Buildable, v: Vernacular): number {
   if (motif === 'residential') return up(roof.residentialRidgeMetres(storeysOf(t)));
   if (gothicCivicOf(t, v)) return up(GOTHIC_CIVIC_RIDGE_METRES);
   if (motif === 'chapel') return up(CHAPELS[v].ridgeMetres);
+  if (diningBandOf(t) === 'refectory') return up(REFECTORIES[v].ridgeMetres);
   return up(roof.ridgeMetres[motif] ?? 0);
 }
 
@@ -603,6 +648,21 @@ export const RECESS_OVERHANG = across(1.1);
 export const CORE_PLAN = across(6.0);
 export const CORE_RISE = up(15.0);
 export const CORE_CAP_RISE = up(2.4);
+// The carillon (Plan 87L), what Modern's Founders Hall raises in place of
+// the core: an open concrete frame at the hall's corner, carried down its
+// walls to the ground. Bottom to top above the roof: the open shaft, the
+// clock stage, the open belfry, a thin roof slab.
+export const CARILLON_PLAN = across(7.2);
+export const CARILLON_PIER = across(1.25);
+export const CARILLON_PROUD = across(0.7);   // how far it stands out of the walls
+export const CARILLON_SHAFT_RISE = up(12.0);
+export const CARILLON_TIE = up(0.7);         // the ties across the open shaft
+export const CARILLON_TIE_EVERY = up(4.0);
+export const CARILLON_CLOCK_RISE = up(5.6);
+export const CARILLON_BELFRY_RISE = up(6.4);
+export const CARILLON_CAP = up(0.9);
+export const CARILLON_CAP_OVERSAIL = across(0.7);
+export const CARILLON_CLOCK_RADIUS_METRES = 1.8;
 // The porch (Gothic entrance) is the center bay itself, with a pointed arch
 // and a steep gable. It stands lower than the wall so the main wall's lancets
 // show above it.
@@ -763,7 +823,11 @@ export type EntrancePart =
   | 'none';
 
 // What closes the ends of a pitched roofline.
-export type RooflineEndPart = 'pavilion' | 'none';
+// 'balustrade' (Plan 87H): a white balustrade along the eaves with an urn
+// at each corner, the Georgian way of finishing a hipped roof behind a
+// parapet; Plan 61's L-shaped corner caps ('pavilion') read as floating
+// brackets.
+export type RooflineEndPart = 'pavilion' | 'balustrade' | 'none';
 
 // What finishes the parapet of a flat-roofed block, lab or shed (Plan 74E).
 export type CrestPart =
@@ -779,7 +843,7 @@ export type ApexPart =
   | 'spire'      // Gothic
   | 'campanile'  // Mission
   | 'dome'       // a broad stone dome on a drum — Classical
-  | 'core'       // a blank stair core — Modern
+  | 'core'       // Modern: drawn as the carillon on Founders Hall (Plan 87L)
   | 'gatehouse'  // a brick gate tower between four capped turrets — Tudor
   | 'belvedere'  // a square lookout, arched on every face, under bracketed eaves — Italianate
   | 'pavilionTower' // a clock stage under a tall mansard and iron cresting — Second Empire
@@ -857,7 +921,7 @@ const GEORGIAN: VernacularSpec = {
       residential: 'canopy',
       village: 'none',
     },
-    rooflineEnd: 'pavilion',
+    rooflineEnd: 'balustrade',
     apex: 'cupola',
     surfaceEntrance: 'canopy',
     crest: 'coping',
@@ -1287,7 +1351,7 @@ export const VERNACULAR_INVARIANT_MOTIFS = [
   'hangar',   // clear-span sheds are engineering, not architecture
   'works',    // the dullest wall on the map, by design
   'block',    // a teaching hospital is a modern hospital
-  'tower',    // a late-game apartment tower postdates the founding campus
+  'tower',    // a shaft on a podium in every era; its wall follows the set (Plan 87H)
   'landmark', // bespoke in limestone, whatever the campus around it
 ] as const satisfies readonly Motif[];
 
@@ -1302,7 +1366,8 @@ export function variesByVernacular(m: Motif): boolean {
 // these motifs are most of a campus, so without this about half of it
 // looked the same whatever was chosen at the founding (review A1-1). Their
 // walls stay invariant materials; see materialOf.
-export const SURFACE_FOLLOWS_MOTIFS = ['block', 'works', 'hangar'] as const satisfies readonly Motif[];
+// The residence tower too (Plan 87H), which also takes the set's wall.
+export const SURFACE_FOLLOWS_MOTIFS = ['block', 'works', 'hangar', 'tower'] as const satisfies readonly Motif[];
 
 export function surfaceFollowsVernacular(m: Motif): boolean {
   return variesByVernacular(m) || (SURFACE_FOLLOWS_MOTIFS as readonly Motif[]).includes(m);
@@ -1387,7 +1452,7 @@ export function apexPartOf(v: Vernacular): ApexPart {
 // The parts that have geometry behind them. test/building-spec.test.ts
 // asserts every part a vernacular names is listed here.
 export const IMPLEMENTED_ENTRANCE_PARTS: EntrancePart[] = ['portico', 'colonnade', 'canopy', 'porch', 'recess', 'arcade', 'archway', 'none'];
-export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'none'];
+export const IMPLEMENTED_ROOFLINE_END_PARTS: RooflineEndPart[] = ['pavilion', 'balustrade', 'none'];
 export const IMPLEMENTED_APEX_PARTS: ApexPart[] = ['cupola', 'spire', 'core', 'campanile', 'dome', 'gatehouse', 'belvedere', 'pavilionTower', 'ziggurat', 'none'];
 export const IMPLEMENTED_CREST_PARTS: CrestPart[] = ['coping', 'merlons', 'balustrade', 'tile', 'none'];
 
@@ -1459,6 +1524,34 @@ export function windowOutline(
   }
 }
 
+// Glass that reads against its wall (Plan 87H). A set's glazing is tuned
+// for its halls; on its dark residential wall Modern's and Art Deco's dark
+// glass (and Tudor's and Italianate's) came out the wall's own tone, and a
+// long face read as a windowless slab. Where the pane, laid over the
+// wall's shaded face, would differ from it by less than GLASS_MIN_CONTRAST
+// in luminance, it takes a pale glass that reflects the sky instead.
+const GLASS_MIN_CONTRAST = 0.08;
+export const REFLECTED_GLASS = 'rgba(208, 222, 230, 0.62)';
+const WALL_SHADED_FACE = 0.8;
+function rgbaOf(c: string): [number, number, number, number] | null {
+  const m = c.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+  if (m) return [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]];
+  if (/^#[0-9a-f]{6}$/i.test(c)) return [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)).concat(1) as [number, number, number, number];
+  return null;
+}
+const luminanceOf = (r: number, g: number, b: number) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+// `light` is the face's tone off the wall: its shaded side by default.
+export function glassContrast(wall: string, glass: string, light = WALL_SHADED_FACE): number {
+  const w = rgbaOf(wall); const g = rgbaOf(glass);
+  if (!w || !g) return 1;
+  const face = w.slice(0, 3).map((x) => Math.min(255, x * light));
+  const pane = face.map((x, i) => g[i] * g[3] + x * (1 - g[3]));
+  return Math.abs(luminanceOf(pane[0], pane[1], pane[2]) - luminanceOf(face[0], face[1], face[2]));
+}
+export function readableGlass(wall: string, glass: string): string {
+  return glassContrast(wall, glass) < GLASS_MIN_CONTRAST ? REFLECTED_GLASS : glass;
+}
+
 export function materialsFor(v: Vernacular): MaterialSet {
   return VERNACULARS[v].materials;
 }
@@ -1483,15 +1576,30 @@ export function materialOf(t: Buildable, v: Vernacular): Material {
 }
 const PITCHED_ROOFED = new Map<Material, Material>();
 
+// A flat-roofed school lab in the vernacular's wall keeps the lab's deck
+// (Plan 87E): a slate or clay-tile color laid flat reads as a hole. One
+// stable object per wall, so BuildingMotif's memo holds.
+function flatDeckOf(wall: Material, deck: string): Material {
+  if (wall.roof === deck) return wall;
+  let decked = FLAT_DECKED.get(wall);
+  if (!decked) { decked = { ...wall, roof: deck }; FLAT_DECKED.set(wall, decked); }
+  return decked;
+}
+const FLAT_DECKED = new Map<Material, Material>();
+
 function baseMaterialOf(t: Buildable, v: Vernacular): Material {
   const MATERIALS = materialsFor(v);
   if (t.kind === 'building') {
     const signature = signatureOf(t);
+    if (signature && !variesByVernacular(signature.motif)) return flatDeckOf(MATERIALS[signature.material], MATERIALS.render.roof);
     return signature ? MATERIALS[signature.material] : MATERIALS.brickRed;
   }
   if (t.kind === 'dorm') {
     const motif = motifOf(t);
-    if (motif === 'tower') return MATERIALS.curtain;
+    // A residence tower in the vernacular's own wall (Plan 87H): brick in
+    // Georgian and Tudor, stone in Gothic and Classical, stucco in Mission,
+    // panel in Modern; not the curtain wall of an office tower.
+    if (motif === 'tower') return MATERIALS.brickRed;
     return motif === 'village' ? MATERIALS.brickDark : MATERIALS[residenceStyleOf(t).material];
   }
   // A chapter house is housing, in the residence halls' wall.
@@ -1522,7 +1630,17 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     case 'athleticsNatatorium':
       return MATERIALS.curtain;
     case 'lab':
-      if (t.id === 'LAB-NEUR') return MATERIALS.clinical;
+      // The academic wall under the labs' flat deck, not the halls' pitched
+      // roof; Gothic's gray ashlar is the deck's own gray, so it keeps its slate.
+      if (VERNACULAR_WALL_LABS.includes(t.id)) {
+        // One stable object per vernacular, so BuildingMotif's memo holds.
+        let lab = LAB_WALLS.get(v);
+        if (!lab) {
+          lab = { wall: MATERIALS.brickRed.wall, roof: v === 'gothic' ? MATERIALS.brickRed.roof : MATERIALS.render.roof };
+          LAB_WALLS.set(v, lab);
+        }
+        return lab;
+      }
       return MATERIALS.render;
     case 'gym':
     case 'recCenter':
@@ -1637,6 +1755,113 @@ export function chapelPlan(p: ChapelBox, v: Vernacular): ChapelPlan {
   };
 }
 
+// The dining halls (Plan 87D). One low hipped shed scaled up read as a barn
+// at the large sizes, so the chain is drawn in three bands by what it
+// serves (as built, as storeysOf reads it): a café under a striped awning
+// with tables out front; a hall over a dining terrace of tables and
+// parasols; and from the 9x6 up a refectory, one tall room under a steep
+// roof (Christ Church's hall, Harvard's Annenberg) with its kitchen at the
+// service end. The terrace lies along the long wall the camera sees, as the
+// doors do, so the mass stands back from it: the plan turns with the view.
+// Thresholds are campusMap.ts's dining ladder's, kept as literals.
+const DINING_TERRACE_MIN_SERVES = 1_200;
+const DINING_REFECTORY_MIN_SERVES = 7_000;
+export type DiningBand = 'cafe' | 'terrace' | 'refectory';
+export function diningBandOf(t: Buildable): DiningBand | undefined {
+  if (t.kind !== 'facility' || t.facilityType !== 'diningHall') return undefined;
+  const serves = asBuilt(t).effects?.servesPopulation ?? 0;
+  if (serves >= DINING_REFECTORY_MIN_SERVES) return 'refectory';
+  return serves >= DINING_TERRACE_MIN_SERVES ? 'terrace' : 'cafe';
+}
+
+// The refectory by vernacular: its windows ('glazed' is plinth-to-eaves
+// glass), its roof, what stands on the ridge, and its long front.
+export type RefectoryRoof = 'gable' | 'mansard' | 'flat';
+export type RefectoryLantern =
+  | 'louvre'   // a hexagonal open louvre under a spirelet — the medieval hall's smoke vent
+  | 'cupola'   // a white octagonal cupola under a lead dome
+  | 'none';
+export interface RefectorySpec {
+  window: WindowShape | 'glazed';
+  roof: RefectoryRoof;
+  ridgeMetres: number;
+  lantern: RefectoryLantern;
+  buttresses: boolean;
+  // An arcade (Mission's) along the front, or a flat roof's deep oversail
+  // over the terrace (Modern's glass pavilion), in metres.
+  arcade: boolean;
+  oversailMetres: number;
+}
+export const REFECTORIES: Readonly<Record<Vernacular, RefectorySpec>> = {
+  georgian: { window: 'arched', roof: 'gable', ridgeMetres: 8, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  gothic: { window: 'lancet', roof: 'gable', ridgeMetres: 13, lantern: 'louvre', buttresses: true, arcade: false, oversailMetres: 0 },
+  classical: { window: 'arched', roof: 'gable', ridgeMetres: 6, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  mission: { window: 'arched', roof: 'gable', ridgeMetres: 6, lantern: 'none', buttresses: false, arcade: true, oversailMetres: 0 },
+  modern: { window: 'glazed', roof: 'flat', ridgeMetres: 0, lantern: 'none', buttresses: false, arcade: false, oversailMetres: 4.5 },
+  tudor: { window: 'lancet', roof: 'gable', ridgeMetres: 12, lantern: 'louvre', buttresses: true, arcade: false, oversailMetres: 0 },
+  italianate: { window: 'arched', roof: 'gable', ridgeMetres: 5.5, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  secondEmpire: { window: 'arched', roof: 'mansard', ridgeMetres: 7, lantern: 'cupola', buttresses: false, arcade: false, oversailMetres: 0 },
+  artDeco: { window: 'slot', roof: 'flat', ridgeMetres: 0, lantern: 'none', buttresses: false, arcade: false, oversailMetres: 0 },
+};
+// The hall's eaves at the 9x6; the two largest stand a little taller. The
+// kitchen and the back range as shares of them.
+function refectoryEavesMetres(t: Buildable): number {
+  return (asBuilt(t).effects?.servesPopulation ?? 0) >= 10_000 ? 13.5 : 12;
+}
+export const REFECTORY_KITCHEN_EAVES = 0.72;
+export const REFECTORY_BACK_EAVES = 0.4;
+
+export interface DiningPlan {
+  band: DiningBand;
+  // Whether the long axis runs along the columns.
+  alongW: boolean;
+  // The long wall the terrace lies along, and the end the kitchen takes.
+  front: FaceDir; service: FaceDir;
+  terrace: ChapelBox;
+  // The café's or hall's own mass.
+  hall: ChapelBox;
+  // A refectory's kitchen at the service end and its lower range behind.
+  kitchen?: ChapelBox; back?: ChapelBox;
+}
+
+// The plan, given the walls the camera sees (isoProjection's visibleWalls).
+export function diningPlan(t: Buildable, p: ChapelBox, seen: { left: FaceDir; right: FaceDir }, v: Vernacular): DiningPlan {
+  const band = diningBandOf(t) ?? 'cafe';
+  const alongW = p.w >= p.h;
+  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  const rowWall = (d: FaceDir) => d === 'posRow' || d === 'negRow';
+  const front = [seen.left, seen.right].find((d) => rowWall(d) === alongW) ?? (alongW ? 'posRow' : 'posCol');
+  const service: FaceDir = alongW ? 'posCol' : 'posRow';
+  // x down the long axis, y in from the front.
+  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox => {
+    switch (front) {
+      case 'posRow': return { col: p.col + x0, row: p.row + p.h - y1, w: x1 - x0, h: y1 - y0 };
+      case 'negRow': return { col: p.col + x0, row: p.row + y0, w: x1 - x0, h: y1 - y0 };
+      case 'posCol': return { col: p.col + p.w - y1, row: p.row + x0, w: y1 - y0, h: x1 - x0 };
+      default: return { col: p.col + y0, row: p.row + x0, w: y1 - y0, h: x1 - x0 };
+    }
+  };
+  if (band !== 'refectory') {
+    const T = band === 'cafe' ? 0.8 : Math.min(1.6, Math.max(1.2, S * 0.3));
+    return { band, alongW, front, service, terrace: box(0, L, 0, T), hall: box(0, L, T, S) };
+  }
+  const spec = REFECTORIES[v];
+  // Modern's roof oversails the terrace, so its tables stand further out.
+  const T = Math.min(1.7, Math.max(1.3, S * 0.24)) + across(spec.oversailMetres) * 0.5;
+  const G = Math.min(3.0, Math.max(2.3, S * 0.4));
+  const K = Math.min(2.3, Math.max(1.8, L * 0.2));
+  const B = Math.min(2.2, S - T - G);
+  return {
+    band, alongW, front, service,
+    terrace: box(0, L, 0, T),
+    hall: box(0, L - K, T, T + G),
+    // The kitchen square, as the college kitchens are; the range runs on
+    // behind it.
+    kitchen: box(L - K, L, T + 0.2, T + 0.2 + Math.min(G + B - 0.2, K * 1.1)),
+    back: box(0.35, L - 0.3, T + G, T + G + B),
+  };
+}
+
 // Neighboring residence halls differ by a few percent of brightness, hashed off the id.
 const DORM_SHADE_STEPS = [0.94, 1.0, 1.06, 1.11];
 
@@ -1667,8 +1892,12 @@ export const CANOPY_DEPTH = across(2.6);
 export const CANOPY_SLAB = up(0.45);
 export const CANOPY_POST = across(0.35);
 
-// The hospital: large `block` instances split into a tall ward slab and a
-// lower glazed public wing. Small ones (the 4x3 computing center) stay a box.
+// The hospital: the Medical Center's `block` splits into a tall ward slab
+// and a lower glazed public wing (Plan 87A: only the hospital; the size rule
+// alone drew the Business School as one). A small one would stay a box.
+export function isHospital(t: Buildable): boolean {
+  return t.facilityType === 'healthCenter' && motifOf(t) === 'block';
+}
 
 export const BLOCK_SPLIT_MIN_TILES = 7;
 
@@ -1686,6 +1915,45 @@ export const UNDERCROFT_STOREYS = 1;
 // The red cross on the slab's front.
 export const CROSS_ARM_METRES = 4.2;
 export const CROSS_BAR_METRES = 1.5;
+
+// The Business School (Plan 87A), after Wharton's Huntsman Hall and
+// Stanford's Knight Center: a podium across the footprint, a full-height
+// glazed atrium standing proud at the middle of its long front, a slimmer
+// office tower rising from the back, and a lit ticker running round the
+// podium's fascia. The front is the long +row (or +col) face.
+export const BUSINESS_SCHOOL_ID = 'PROJ-BUSINESS';
+export const BUSINESS_PODIUM_STOREYS = 3;
+export const BUSINESS_ATRIUM_STOREYS = 5;
+// The fascia over the podium's top floor that carries the ticker.
+export const TICKER_FASCIA = up(2.4);
+export interface BusinessSchoolPlan {
+  front: FaceDir;
+  // The ends of the long front, low x then high x.
+  sides: [FaceDir, FaceDir];
+  // The podium behind the atrium (the tower stands on it), and the two
+  // lower wings either side of the atrium, set back from its face.
+  back: ChapelBox; wings: [ChapelBox, ChapelBox]; atrium: ChapelBox; tower: ChapelBox;
+  // Screen units: the podium's walls (fascia included), the atrium's.
+  podiumHeight: number; atriumHeight: number;
+}
+export function businessSchoolPlan(p: ChapelBox): BusinessSchoolPlan {
+  const alongW = p.w >= p.h;
+  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  // x along the front, y from the back toward it.
+  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox => (alongW
+    ? { col: p.col + L * x0, row: p.row + S * y0, w: L * (x1 - x0), h: S * (y1 - y0) }
+    : { col: p.col + S * y0, row: p.row + L * x0, w: S * (y1 - y0), h: L * (x1 - x0) });
+  return {
+    front: alongW ? 'posRow' : 'posCol',
+    sides: alongW ? ['negCol', 'posCol'] : ['negRow', 'posRow'],
+    back: box(0, 1, 0, 0.6),
+    wings: [box(0, 0.34, 0.6, 0.92), box(0.66, 1, 0.6, 0.92)],
+    atrium: box(0.34, 0.66, 0.6, 1),
+    tower: box(0.3, 0.7, 0.12, 0.46),
+    podiumHeight: BUSINESS_PODIUM_STOREYS * STOREY + TICKER_FASCIA,
+    atriumHeight: BUSINESS_ATRIUM_STOREYS * STOREY + TICKER_FASCIA,
+  };
+}
 
 // The Triumphal Gate (landmarks.tsx), its passages cut through (Plan 75B):
 // the body inset from its plot, the great arch through the long faces and

@@ -41,7 +41,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | Founding | First commencement | the first summer closes | In History (open from the first week with Prestige and the guide, Plans 78C and 80C), the record of the years; in Students (open from the first week, Plan 78B), the guidebook, the clubs and the funnel |
 | Founding | A curriculum | eight courses developed | academic halls |
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |
-| Growing | A regional name | prestige 55 | Athletics Complex, Student Union Expansion, Grand Quad & Gardens |
+| Growing | A regional name | prestige 55 | Sports & Recreation Complex, Student Union Expansion, Grand Quad & Gardens |
 | Established | A small city | 6,000 students | University Clinic |
 | Established | A research reputation | prestige 70 | The Bell Tower |
 | Established | A market of its own | 8,000 students | Campus Grocery Store |

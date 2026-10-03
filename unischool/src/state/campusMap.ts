@@ -87,7 +87,7 @@ const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
     { min: 2_000, fp: { w: 7, h: 5 } },    // the Student Union Expansion
     { min: 0, fp: { w: 5, h: 4 } },
   ],
-  // Covers both the Recreation Center and the Athletics Complex capstone.
+  // Covers both the Recreation Center and the Sports & Recreation Complex capstone.
   recCenter: [
     { min: 2_000, fp: { w: 7, h: 5 } },
     { min: 0, fp: { w: 5, h: 4 } },
