@@ -6542,6 +6542,17 @@ function GeorgianFoundersHall({ col, row, w, h, H, ridge, courses, pal, roof, st
 // front of the nave or behind it as it should. A door stands on each of the
 // four walls walkRoutes.ts walks to: the tower's west face, the middle bay
 // of each long wall and the chancel's east face.
+//
+// The plan is the building's own (four-way facing): on a wide plot the
+// tower stands at its left end and the chancel at its right, and the front
+// long wall wears a gabled porch over its door, the parish church's south
+// porch, while the back keeps a plain door; on a deep plot the tower stands
+// on the front, its door the main one.
+// The building's own sides (four-way facing) for the chapel, the Law School,
+// the Museum, the dining halls and the residence towers below.
+import { frontDepth, frontWidth, localBox, localToGrid, sideSeen, sidesOf } from './facing';
+import type { Facing } from '../state/types';
+
 const CHAPEL_GLASS = 'rgba(46, 58, 78, 0.78)';   // leaded, and dark from outside
 const CHAPEL_WINDOW = across(1.7);
 const CHAPEL_SILL = up(2.6);
@@ -6563,6 +6574,43 @@ function tallWindows(face: ChapelFace, H: number, centres: number[], halfU: numb
   return d ? <path key={key} className="iso-window" fill={CHAPEL_GLASS} d={d} /> : null;
 }
 
+// The chapel's porch on its front long wall: a steep little gable standing
+// out from the nave's middle bay, its ridge running back into the nave
+// wall, the door in its face up a step.
+function ChapelPorch({ nave, dir, width, depth, eave, rise, pal, wallTone, stone, door, shape }: {
+  nave: ChapelBox; dir: FaceDir; width: number; depth: number; eave: number; rise: number;
+  pal: Palette; wallTone: string; stone: StonePalette; door: DoorDimensions; shape: 'rect' | 'arched';
+}) {
+  const { col, row, w, h } = nave;
+  const span = wallSpan(w, h, dir);
+  const lo = span / 2 - width / 2; const hi = span / 2 + width / 2; const mid = span / 2;
+  const b = againstWall(col, row, w, h, dir, lo, width, depth);
+  const f = boxFaces(b.col, b.row, b.w, b.h, 0, eave);
+  const front = wallOf(f, dir);
+  const sideDir: FaceDir = front.poly === f.left ? f.dir.BC : f.dir.CD;
+  const side = wallOf(f, sideDir);
+  const at = (a: number, o: number, z: number) => { const g = outsideWall(col, row, w, h, dir, a, o); return lift(project(g.col, g.row), z); };
+  const ridgeOut = at(mid, depth + across(0.15), eave + rise); const ridgeIn = at(mid, 0, eave + rise);
+  const halves: Array<[FaceDir, Pt[]]> = isRowWall(dir)
+    ? [['negCol', [at(lo - across(0.15), depth + across(0.15), eave), at(lo - across(0.15), 0, eave), ridgeIn, ridgeOut]], ['posCol', [at(hi + across(0.15), depth + across(0.15), eave), at(hi + across(0.15), 0, eave), ridgeIn, ridgeOut]]]
+    : [['negRow', [at(lo - across(0.15), depth + across(0.15), eave), at(lo - across(0.15), 0, eave), ridgeIn, ridgeOut]], ['posRow', [at(hi + across(0.15), depth + across(0.15), eave), at(hi + across(0.15), 0, eave), ridgeIn, ridgeOut]]];
+  const gable = [lift(front.origin, eave), lift(front.along, eave), ridgeOut];
+  const o = outwardOf(dir);
+  const step = outsideWall(col, row, w, h, dir, mid, depth);
+  return (
+    <g className="chapel-porch">
+      <polygon points={polyPoints(side.poly)} fill={shade(wallTone, WALL_LIGHT[sideDir])} />
+      <polygon points={polyPoints(front.poly)} fill={shade(wallTone, WALL_LIGHT[dir])} />
+      <Door d={door} origin={front.origin} along={front.along} wallHeight={eave} span={width} side={dir} shape={shape} />
+      {backSlopesFirst(halves, (x) => x[0]).map(([d, pts]) => <polygon key={d} points={polyPoints(pts)} fill={pal[d]} />)}
+      <polygon points={polyPoints(gable)} fill={shade(wallTone, WALL_LIGHT[dir])} />
+      <polyline points={polyPoints([gable[0]!, ridgeOut, gable[1]!])} stroke={shade(wallTone, 0.7)} strokeWidth={1} fill="none" />
+      <GiltFinial at={ridgeOut} rise={up(1.2)} stone={stone} />
+      <EntranceSteps d={door} centreCol={step.col} centreRow={step.row} outCol={o.col} outRow={o.row} span={width} stone={stone} />
+    </g>
+  );
+}
+
 function Chapel({ t, p, vernacular, pal, stone, wall }: {
   t: Buildable; p: Plot;
   vernacular: Vernacular; pal: Palette; stone: StonePalette; wall: string;
@@ -6576,6 +6624,10 @@ function Chapel({ t, p, vernacular, pal, stone, wall }: {
   const doorShape = shape === 'arched' || shape === 'lancet' ? 'arched' : 'rect';
   const { alongW } = plan;
   const isSide = (dir: FaceDir) => dir === plan.sides[0] || dir === plan.sides[1];
+  // The front's porch (a wide plot's), drawn when its wall is in view; it
+  // carries the front door, so the nave's own is not drawn under it.
+  const seenNow = visibleWalls();
+  const porchDir = plan.porch !== undefined && door && (plan.porch === seenNow.left || plan.porch === seenNow.right) ? plan.porch : undefined;
 
   // Walls, courses and the doors' steps of one gabled volume, `details` on
   // its faces, then its roof and whatever stands in its gable.
@@ -6626,7 +6678,7 @@ function Chapel({ t, p, vernacular, pal, stone, wall }: {
       return (
         <>
           {tallWindows(face, H, centres, CHAPEL_WINDOW / face.span / 2, v0, v1, shape, `nw${face.dir}`)}
-          {doorway(plan.nave, face, H)}
+          {face.dir !== porchDir && doorway(plan.nave, face, H)}
         </>
       );
     }, (face) => {
@@ -6848,16 +6900,33 @@ function Chapel({ t, p, vernacular, pal, stone, wall }: {
     }
   }
   const H = plan.naveHeight;
+  // The porch's plan: the nave's middle bay, out over the margin the nave
+  // leaves on the plot.
+  const porchItems: Array<DepthBox & { part: 'porch' }> = [];
+  let porchNode: React.ReactNode = null;
+  if (porchDir && door) {
+    const nb = plan.nave;
+    const span = wallSpan(nb.w, nb.h, porchDir);
+    const width = Math.min(across(5.2), (span / plan.bays) * 0.95);
+    const margin = isRowWall(porchDir) ? (porchDir === 'posRow' ? p.row + p.h - (nb.row + nb.h) : nb.row - p.row) : (porchDir === 'posCol' ? p.col + p.w - (nb.col + nb.w) : nb.col - p.col);
+    const depth = Math.max(across(1.6), Math.min(across(3.4), margin * 0.85));
+    const eave = Math.min(H * 0.62, door.threshold + door.height + up(1.3));
+    const rise = up((width * METRES_PER_TILE / 2) * 1.0);
+    porchItems.push({ ...againstWall(nb.col, nb.row, nb.w, nb.h, porchDir, span / 2 - width / 2, width, depth), part: 'porch' });
+    porchNode = <ChapelPorch nave={nb} dir={porchDir} width={width} depth={depth} eave={eave} rise={rise} pal={pal} wallTone={wall} stone={stone} door={door} shape={doorShape} />;
+  }
   const items = depthOrder([
     { ...plan.tower, part: 'tower' as const },
     { ...plan.nave, part: 'nave' as const },
     { ...plan.chancel, part: 'chancel' as const },
     ...buttresses,
+    ...porchItems,
   ]);
   return (
     <>
       {items.map((it, i) => {
         if (it.part === 'tower') return <g key="tower">{tower()}</g>;
+        if (it.part === 'porch') return <g key="porch">{porchNode}</g>;
         if (it.part === 'nave') return <g key="nave">{nave()}</g>;
         if (it.part === 'chancel') return <g key="chancel">{chancel()}</g>;
         const lo = boxFaces(it.lower.col, it.lower.row, it.lower.w, it.lower.h, 0, H * BUTTRESS_SETOFF_FRACTION);
@@ -6910,16 +6979,27 @@ function outFromWall(col: number, row: number, w: number, h: number, dir: FaceDi
 
 // The temple front's width on a wall of `span` (Plan 87G).
 const lawTempleWidth = (span: number) => Math.min(span * 0.52, across(44));
-// Which visible front is the Law School's main one (Plan 87M): the longer
-// wall, so the hierarchy holds at every azimuth and either footprint.
-function lawMainFront(w: number, h: number, fronts: readonly FaceDir[]): FaceDir {
-  return [...fronts].sort((a, b) => wallSpan(w, h, b) - wallSpan(w, h, a))[0]!;
+// The Law School's fronts (Plan 87M; four-way facing): the temple front on
+// the building's own front, the pilastered frontispiece on its back, each
+// drawn while its wall is in view; the sides keep the mass's plain doors.
+// So the hierarchy stays on the building as the camera turns, and a view
+// from behind shows the lesser front.
+function LawFronts({ col, row, w, h, H, facing, stone }: {
+  col: number; row: number; w: number; h: number; H: number; facing?: Facing; stone: StonePalette;
+}) {
+  const { front, back } = sidesOf(facing);
+  return (
+    <>
+      {sideSeen(facing, 'back') && <LawFrontispiece col={col} row={row} w={w} h={h} H={H} dir={back} stone={stone} />}
+      {sideSeen(facing, 'front') && <LawTemple col={col} row={row} w={w} h={h} H={H} dir={front} stone={stone} main />}
+    </>
+  );
 }
 
 // The temple front on wall `dir`: steps to a podium, columns to the eaves,
 // an entablature, a pitched roof back to the wall and a pediment with the
-// scales of justice in its tympanum. Only the main (longer) front wears it;
-// the other visible front has a pilastered frontispiece, so the two never
+// scales of justice in its tympanum. Only the main front (the building's
+// own) wears it; the back has a pilastered frontispiece, so the two never
 // read as rival temples (Plan 87M).
 function LawTemple({ col, row, w, h, H, dir, stone, main }: {
   col: number; row: number; w: number; h: number; H: number; dir: FaceDir; stone: StonePalette; main: boolean;
@@ -7229,11 +7309,10 @@ function GalleryVaults({ col, row, w, h, base, pal }: {
   );
 }
 
-// A forecourt sculpture before a Museum front: a red steel cube on its
-// corner before the row-facing front, a bronze figure on a plinth before
-// the column-facing one, so each view shows one of each.
-function ForecourtSculpture({ cc, cr, dir, stone }: { cc: number; cr: number; dir: FaceDir; stone: StonePalette }) {
-  if (dir === 'posRow' || dir === 'negRow') {
+// A forecourt sculpture before the Museum's front: a red steel cube on its
+// corner to one side of the way in, a bronze figure on a plinth to the other.
+function ForecourtSculpture({ cc, cr, kind, stone }: { cc: number; cr: number; kind: 'cube' | 'figure'; stone: StonePalette }) {
+  if (kind === 'cube') {
     // A great red steel cube balanced on one corner (Noguchi's Red Cube):
     // its faces wound about their outward normals, each drawn where it
     // faces the camera, lit by the way it points.
@@ -7292,18 +7371,25 @@ function ForecourtSculpture({ cc, cr, dir, stone }: { cc: number; cr: number; di
 }
 
 // The Museum (a function the canvas walker calls through): a paved
-// forecourt over its whole plot, the gallery set back on it, and a
-// sculpture before each visible front.
+// forecourt over its whole plot, the gallery set back on it, deepest at the
+// building's own front (four-way facing), where two sculptures flank the
+// walk to its door. With the front turned away the forecourt lies behind
+// the gallery, which hides its pieces.
 function MuseumCourt({ t, p, material, vernacular, glyphs }: {
   t: Buildable; p: Plot; material: Material; vernacular: Vernacular; glyphs?: string;
 }) {
   const { col, row, w, h } = p;
   const c = MUSEUM_COURT;
-  const inner = { col: col + c, row: row + c, w: w - c * 2, h: h - c * 2 };
+  const fw = frontWidth(p); const fd = frontDepth(p);
+  const inner: Plot = { ...localBox(p, c * 0.7, c * 1.9, fw - c * 0.7, fd - c * 0.5), facing: p.facing };
   const stone = stoneFor(vernacular);
   const pave = stone.trim !== 'none' ? shade(stone.trim, 0.96) : shade(stone.towerStone, 0.94);
   const court = boxFaces(col, row, w, h, 0, 0).top;
-  const seen = visibleWalls();
+  const sculptures = depthOrder((['cube', 'figure'] as const).map((kind, i) => {
+    const at = localToGrid(p, fw * (i === 0 ? 0.24 : 0.76), c * 0.95);
+    return { col: at.col - 0.3, row: at.row - 0.3, w: 0.6, h: 0.6, cc: at.col, cr: at.row, kind };
+  })).map((s0) => <ForecourtSculpture key={s0.kind} cc={s0.cc} cr={s0.cr} kind={s0.kind} stone={stone} />);
+  const frontSeen = sideSeen(p.facing, 'front');
   const joints = [0.25, 0.5, 0.75].flatMap((k) => [
     [project(col + w * k, row), project(col + w * k, row + h)],
     [project(col, row + h * k), project(col + w, row + h * k)],
@@ -7312,12 +7398,11 @@ function MuseumCourt({ t, p, material, vernacular, glyphs }: {
     <>
       <polygon className="museum-forecourt" points={polyPoints(court)} fill={pave} />
       <path d={joints} stroke="rgba(60, 54, 44, 0.18)" strokeWidth={0.6} fill="none" />
+      {/* The way in: a darker paved walk from the front edge to the door. */}
+      {(() => { const b = localBox(p, fw / 2 - across(3), 0, fw / 2 + across(3), c * 1.9); return <polygon className="museum-walk" points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} fill={shade(pave, 0.86)} />; })()}
+      {!frontSeen && sculptures}
       <BuildingMass t={t} p={inner} material={material} vernacular={vernacular} developing={false} glyphs={glyphs} />
-      {[seen.left, seen.right].map((dir) => {
-        const span = wallSpan(inner.w, inner.h, dir);
-        const at = outsideWall(inner.col, inner.row, inner.w, inner.h, dir, span * 0.2, c * 0.55);
-        return <ForecourtSculpture key={dir} cc={at.col} cr={at.row} dir={dir} stone={stone} />;
-      })}
+      {frontSeen && sculptures}
     </>
   );
 }
@@ -7331,20 +7416,19 @@ function MuseumCourt({ t, p, material, vernacular, glyphs }: {
 // Church's hall, Harvard's Annenberg), the kitchen and its flues at the
 // service end and a lower range behind. Mission's hall keeps its tile behind
 // an arcade; Modern's is a glass pavilion under a deep oversailing roof; Art
-// Deco's tall slots run up to a stepped frontispiece. The terrace takes the
-// long wall the camera sees, as the doors do, so it never lies behind the
-// building, and everything stands inside the footprint.
+// Deco's tall slots run up to a stepped frontispiece. The plan is the
+// building's own (four-way facing): the terrace on its front, the kitchen
+// at its right-hand end, the service range and its yard (a service door,
+// the bins) along its back; turned away, the terrace lies behind the hall.
+// Everything stands inside the footprint.
 
 // A point on the terrace: x down the long axis, y in from its outer edge.
 type TerraceAt = (x: number, y: number) => { col: number; row: number };
+const FRONT_RING: readonly FaceDir[] = ['posRow', 'negCol', 'negRow', 'posCol'];
 function terraceFrame(plan: DiningPlan): TerraceAt {
-  const b = plan.terrace;
-  switch (plan.front) {
-    case 'posRow': return (x, y) => ({ col: b.col + x, row: b.row + b.h - y });
-    case 'negRow': return (x, y) => ({ col: b.col + x, row: b.row + y });
-    case 'posCol': return (x, y) => ({ col: b.col + b.w - y, row: b.row + x });
-    default: return (x, y) => ({ col: b.col + y, row: b.row + x });
-  }
+  // The terrace in the building's frame: x from its left, y in from its edge.
+  const at = { ...plan.terrace, facing: FRONT_RING.indexOf(plan.front) as Facing };
+  return (x, y) => localToGrid(at, x, y);
 }
 
 // Café parasols, two stripes each; Modern's all in one orange and white.
@@ -7903,15 +7987,34 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
     );
   };
 
+  // The service range along the back: its door into the kitchen yard at
+  // the back wall's middle, where walkers come in, and the yard's bins.
+  const backDir = opposite(plan.front);
+  const serviceDoor = doorDimensions('service');
   const backArt = () => {
     if (back.w <= 0 || back.h <= 0) return null;
     const f = boxFaces(back.col, back.row, back.w, back.h, 0, BH);
     const faces = chapelFaces(f);
+    const span = wallSpan(back.w, back.h, backDir);
+    const bins = faces.some((face) => face.dir === backDir)
+      ? depthOrder([0.5 - across(3.4) / span, 0.5 + across(2.6) / span].map((u, i) => {
+        const b = againstWall(back.col, back.row, back.w, back.h, backDir, span * u - across(0.6), across(1.2), across(1.0), -across(0.3));
+        return { ...b, i };
+      }))
+      : [];
     return (
       <>
         <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
         <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-        {faces.map((face) => windows(face.o, face.a, BH, face.span, rankSills(1), windowWidthOf(t), `bw${face.dir}`, glazed ? 'ribbon' : shape === 'slot' ? 'rect' : shape, stone.glass))}
+        {faces.map((face) => windows(face.o, face.a, BH, face.span, rankSills(1), windowWidthOf(t), `bw${face.dir}`, glazed ? 'ribbon' : shape === 'slot' ? 'rect' : shape, stone.glass,
+          face.dir === backDir ? doorBay(serviceDoor, face.span, BH) : undefined))}
+        {faces.filter((face) => face.dir === backDir).map((face) => (
+          <Door key="sd" d={serviceDoor} origin={face.o} along={face.a} wallHeight={BH} span={face.span} side={face.dir} />
+        ))}
+        {bins.map((b) => {
+          const bf = boxFaces(b.col, b.row, b.w, b.h, 0, up(1.3));
+          return <g key={`bin${b.i}`} className="sig-bins">{sideFaces(bf, '#3f5a46', '#2f4536')}<polygon points={polyPoints(bf.top)} fill="#4c6a54" /></g>;
+        })}
         {pitched
           ? <HippedRoof col={back.col} row={back.row} w={back.w} h={back.h} base={BH} rise={up(2.6)} pal={pal} />
           : <polygon points={polyPoints(f.top)} fill={pal.roofDeck} />}
@@ -7941,9 +8044,13 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
 
   // What stands against the front takes this much of the terrace.
   const taken = spec.arcade ? ARCADE_DEPTH : oversail > 0 ? oversail + across(1.5) : spec.buttresses ? across(0.85) : frontis ? across(0.9) : 0;
+  // The terrace before the front; with the front turned away it lies
+  // behind the hall, so its tables are drawn first.
+  const furniture = <TerraceFurniture plan={plan} doorAt={hallLen / 2} free={T - taken} cafe={false} plain={vernacular === 'modern'} />;
   return (
     <>
       <TerracePaving plan={plan} />
+      {!isSeen(plan.front) && furniture}
       {depthOrder(items).map((it, i) => {
         switch (it.part) {
           case 'hall': return <g key="hall">{hallArt()}</g>;
@@ -7968,7 +8075,7 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
           }
         }
       })}
-      <TerraceFurniture plan={plan} doorAt={hallLen / 2} free={T - taken} cafe={false} plain={vernacular === 'modern'} />
+      {isSeen(plan.front) && furniture}
     </>
   );
 }
@@ -7977,7 +8084,7 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
 // the pavilion drawn on the plan's hall box (`bare`), the refectory its own.
 function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Element {
   const { t, p, material, vernacular } = props;
-  const plan = diningPlan(t, p, visibleWalls(), vernacular);
+  const plan = diningPlan(t, p, vernacular);
   const stone = stoneFor(vernacular);
   if (plan.band === 'refectory') {
     const roof = REFECTORIES[vernacular].roof === 'flat' ? material.roof : roofFor(vernacular).pitchedRoof ?? material.roof;
@@ -7989,12 +8096,17 @@ function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Elemen
   const cafe = plan.band === 'cafe';
   // Mission's arcade runs along the front of a hall tall enough for one.
   const arcaded = entrancePartOf(t, vernacular) === 'arcade' && arcadeFits(wallHeightOf(t));
+  // The terrace's tables paint after the hall when the front is in view,
+  // before it (behind) when it is turned away.
+  const frontSeen = sideSeen(p.facing, 'front');
+  const furniture = <TerraceFurniture plan={plan} doorAt={L / 2} free={arcaded ? T - ARCADE_DEPTH - 0.08 : T} cafe={cafe} plain={vernacular === 'modern'} />;
   return (
     <>
       <TerracePaving plan={plan} />
-      {buildingMassArt({ ...props, p: plan.hall, bare: true }, snow)}
+      {!frontSeen && furniture}
+      {buildingMassArt({ ...props, p: { ...plan.hall, facing: p.facing }, bare: true }, snow)}
       {cafe && <CafeAwning plan={plan} d={doorOf(t)} H={wallHeightOf(t)} />}
-      <TerraceFurniture plan={plan} doorAt={L / 2} free={arcaded ? T - ARCADE_DEPTH - 0.08 : T} cafe={cafe} plain={vernacular === 'modern'} />
+      {frontSeen && furniture}
     </>
   );
 }
@@ -8096,16 +8208,22 @@ function Mast({ at, z, rise, lamp }: { at: Pt; z: number; rise: number; lamp?: s
   );
 }
 
-function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, crest, vernacular, material }: {
+// Its sides are its own (four-way facing): the entrance canopy over the
+// front door, shop doors on the sides, a service door at the back; the
+// balconies down the front and back, the crown symmetric but for the roof
+// terrace's lounge, which keeps to the building's left.
+function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, crest, vernacular, material, facing }: {
   t: Buildable; col: number; row: number; w: number; h: number; H: number;
   pal: Palette; deck: string; stone: StonePalette; paneShape: WindowShape; crest: CrestPart;
-  vernacular: Vernacular; material: Material;
+  vernacular: Vernacular; material: Material; facing?: Facing;
 }) {
   const { crown, shaftStoreys } = towerFormOf(t);
   const trimmed = stone.trim !== NO_STONE;
   const trimStone = trimmed ? stone.trim : stone.towerStone;
   const seen = visibleWalls();
+  // The visible walls, for what is painted on whichever walls are in view.
   const fronts: FaceDir[] = [seen.left, seen.right];
+  const sides = sidesOf(facing);
   // Punched openings: a ribbon is an office's, so Modern gets plain ones.
   const pane: WindowShape = paneShape === 'ribbon' ? 'rect' : paneShape;
   // A pale sash vanishes on the sunlit face of a pale wall (Mission's
@@ -8118,6 +8236,9 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
   const PODIUM_H = TOWER_PODIUM_STOREYS * STOREY;
   const podiumStone = trimmed ? stone.towerStone : shade(material.wall, 0.72);
   const podiumDoor = doorDimensions('shopfront');
+  // The residents' service door (deliveries, bins) at the back.
+  const serviceDoor = doorDimensions('service');
+  const doorOn = (dir: FaceDir) => (dir === sides.back ? serviceDoor : podiumDoor);
   const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
 
   // The shaft, every residential floor above the podium.
@@ -8128,8 +8249,8 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
   const shaftSills = rankSills(shaftStoreys);
   const courses = Array.from({ length: shaftStoreys - 1 }, (_, i) => (i + 1) * STOREY);
 
-  // Balconies stacked up the two row faces (grid-fixed, so the tower has a
-  // balconied front and plain ends), two stacks a face, every floor but the
+  // Balconies stacked up the front and back (the building's own, so the
+  // tower has balconied fronts and plain ends), two stacks a face, every floor but the
   // first; slab, then rail, bottom up so a higher one overlaps a lower.
   // Stone balconies where the trim shows on the wall; wrought iron where
   // it would not (a cream trim on Mission's cream stucco); tinted glass in
@@ -8137,7 +8258,7 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
   const ironRails = trimmed && Math.abs(hexLuminance(stone.trim) - hexLuminance(material.wall)) < 0.15;
   const railFill = ironRails ? '#34363a' : trimmed ? shade(stone.trim, 0.97) : 'rgba(62, 82, 94, 0.82)';
   const railShade = ironRails ? '#26282b' : trimmed ? shade(stone.trim, 0.8) : 'rgba(48, 64, 74, 0.82)';
-  const balconies = fronts.filter(isRowWall).flatMap((dir) => {
+  const balconies = fronts.filter((dir) => dir === sides.front || dir === sides.back).flatMap((dir) => {
     const span = wallSpan(sw, sh, dir);
     return [0.27, 0.73].flatMap((u) => Array.from({ length: shaftStoreys - 1 }, (_, i) => {
       const z = PODIUM_H + (i + 1) * STOREY;
@@ -8216,29 +8337,36 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
         // rail round the edge (the far edges first, the near ones last).
         const g = across(1.1);
         const items: Array<DepthBox & { node: React.JSX.Element }> = [];
-        const lw = sw * 0.42;
-        const lounge = boxFaces(sc + g, sr + g, lw, sh - g * 2, top, STOREY * 1.1);
-        items.push({ col: sc + g, row: sr + g, w: lw, h: sh - g * 2, node: (
+        // Set out in the shaft's own frame: u across its front from its
+        // left, d from its front back.
+        const sp = { col: sc, row: sr, w: sw, h: sh, facing };
+        const SW = frontWidth(sp); const SD = frontDepth(sp);
+        const lw = SW * 0.42;
+        const lb = localBox(sp, g, g, g + lw, SD - g);
+        const lounge = boxFaces(lb.col, lb.row, lb.w, lb.h, top, STOREY * 1.1);
+        items.push({ ...lb, node: (
           <>
             {sideFaces(lounge, shade(trimStone, 0.93), shade(trimStone, 0.76))}
             <LitGlazing id="tl" origin={lounge.D} along={lounge.C} wallHeight={STOREY * 1.1} span={lounge.spanLeft} from={STOREY * 0.08} to={STOREY * 0.96} mullion={shade(trimStone, 0.85)} />
             <LitGlazing id="tr" origin={lounge.C} along={lounge.B} wallHeight={STOREY * 1.1} span={lounge.spanRight} from={STOREY * 0.08} to={STOREY * 0.96} mullion={shade(trimStone, 0.85)} />
-            {plainBox(boxFaces(sc + g * 0.7, sr + g * 0.7, lw + g * 0.6, sh - g * 1.4, top + STOREY * 1.1, up(0.5)), shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'lr')}
+            {(() => { const lr = localBox(sp, g * 0.7, g * 0.7, g * 1.3 + lw, SD - g * 0.7); return plainBox(boxFaces(lr.col, lr.row, lr.w, lr.h, top + STOREY * 1.1, up(0.5)), shade(trimStone, 0.9), shade(trimStone, 0.74), deck, 'lr'); })()}
           </>
         ) });
-        const tc = sc + g + lw + across(1.5);           // the terrace's near edge to the lounge
-        const tw = sc + sw - g - tc;
-        const plant = (c: number, r: number, pw: number, ph: number, k: string) => {
-          const f = boxFaces(c, r, pw, ph, top, up(0.9));
-          items.push({ col: c, row: r, w: pw, h: ph, node: plainBox(f, '#8a7a66', '#6f6252', PLANTER_GREEN, k) });
+        const tc = g + lw + across(1.5);           // the terrace's near edge to the lounge
+        const tw = SW - g - tc;
+        const plant = (u0: number, d0: number, u1: number, d1: number, k: string) => {
+          const b = localBox(sp, u0, d0, u1, d1);
+          const f = boxFaces(b.col, b.row, b.w, b.h, top, up(0.9));
+          items.push({ ...b, node: plainBox(f, '#8a7a66', '#6f6252', PLANTER_GREEN, k) });
         };
-        plant(sc + sw - g - across(1.4), sr + g, across(1.4), sh - g * 2, 'pe');
-        plant(tc, sr + g, tw - across(1.6), across(1.3), 'pn');
-        plant(tc, sr + sh - g - across(1.3), tw - across(1.6), across(1.3), 'ps');
+        plant(SW - g - across(1.4), g, SW - g, SD - g, 'pe');
+        plant(tc, SD - g - across(1.3), tc + tw - across(1.6), SD - g, 'pn');
+        plant(tc, g, tc + tw - across(1.6), g + across(1.3), 'ps');
         [[0.3, 0.32], [0.62, 0.55], [0.3, 0.75]].forEach(([u, v]) => {
-          const cc = tc + tw * u; const cr = sr + sh * v;
+          const { col: cc, row: cr } = localToGrid(sp, tc + tw * u!, SD * (1 - v!));
           items.push({ col: cc - across(1.6), row: cr - across(1.6), w: across(3.2), h: across(3.2), node: <Umbrella cc={cc} cr={cr} z={top} /> });
         });
+        const deckBox = localBox(sp, tc - across(0.6), across(0.2), SW - across(0.2), SD - across(0.2));
         const RT = across(0.25);
         const rail = (dir: FaceDir) => {
           const b = againstWall(sc, sr, sw, sh, dir, 0, wallSpan(sw, sh, dir), RT, RT);
@@ -8248,7 +8376,7 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
         const all: FaceDir[] = ['negRow', 'posCol', 'posRow', 'negCol'];
         return (
           <>
-            <polygon points={polyPoints(boxFaces(tc - across(0.6), sr + across(0.2), sc + sw - tc + across(0.4), sh - across(0.4), top, 0).top)} fill={TERRACE_DECK} />
+            <polygon points={polyPoints(boxFaces(deckBox.col, deckBox.row, deckBox.w, deckBox.h, top, 0).top)} fill={TERRACE_DECK} />
             {all.filter((d) => !fronts.includes(d)).map(rail)}
             {depthOrder(items).map((it, i) => <g key={i}>{it.node}</g>)}
             {fronts.map(rail)}
@@ -8284,16 +8412,17 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
     <>
       {/* Podium: shopfronts round the street level, a cornice and a deck. */}
       {sideFaces(pod, shade(podiumStone, 0.92), shade(podiumStone, 0.76))}
-      {windows(pod.D, pod.C, PODIUM_H, pod.spanLeft, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', pane, stone.glass, doorBay(podiumDoor, pod.spanLeft, PODIUM_H))}
-      {windows(pod.C, pod.B, PODIUM_H, pod.spanRight, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', pane, stone.glass, doorBay(podiumDoor, pod.spanRight, PODIUM_H))}
+      {windows(pod.D, pod.C, PODIUM_H, pod.spanLeft, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pl', pane, stone.glass, doorBay(doorOn(pod.dir.CD), pod.spanLeft, PODIUM_H))}
+      {windows(pod.C, pod.B, PODIUM_H, pod.spanRight, [SHOPFRONT_SILL], SHOPFRONT_WIDTH, 'pr', pane, stone.glass, doorBay(doorOn(pod.dir.BC), pod.spanRight, PODIUM_H))}
       <WallBand origin={pod.D} along={pod.C} wallHeight={PODIUM_H} from={PODIUM_H - CORNICE} to={PODIUM_H} className="iso-cornice" fill={shade(trimStone, 0.95)} />
       <WallBand origin={pod.C} along={pod.B} wallHeight={PODIUM_H} from={PODIUM_H - CORNICE} to={PODIUM_H} className="iso-cornice" fill={shade(trimStone, 0.8)} />
-      <Door d={podiumDoor} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} side={pod.dir.CD} shape={pane === 'arched' ? 'arched' : 'rect'} />
-      <Door d={podiumDoor} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} side={pod.dir.BC} shape={pane === 'arched' ? 'arched' : 'rect'} />
+      <Door d={doorOn(pod.dir.CD)} origin={pod.D} along={pod.C} wallHeight={PODIUM_H} span={pod.spanLeft} side={pod.dir.CD} shape={pane === 'arched' && pod.dir.CD !== sides.back ? 'arched' : 'rect'} />
+      <Door d={doorOn(pod.dir.BC)} origin={pod.C} along={pod.B} wallHeight={PODIUM_H} span={pod.spanRight} side={pod.dir.BC} shape={pane === 'arched' && pod.dir.BC !== sides.back ? 'arched' : 'rect'} />
       <polygon points={polyPoints(pod.top)} fill={deck} />
-      {fronts.map((dir) => (
-        <Canopy key={`c${dir}`} d={podiumDoor} col={col} row={row} w={w} h={h} outward={dir} wallHeight={PODIUM_H} stone={stone} />
-      ))}
+      {/* The entrance canopy, over the front door only. */}
+      {fronts.includes(sides.front) && (
+        <Canopy d={podiumDoor} col={col} row={row} w={w} h={h} outward={sides.front} wallHeight={PODIUM_H} stone={stone} />
+      )}
 
       {/* The shaft: punched windows floor by floor, in the set's wall. */}
       <polygon points={polyPoints(shaft.left)} fill={pal.wallLeft} />
@@ -8621,7 +8750,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     // A residence tower in the set's own wall, under its own crown (Plan 87H).
     const deck = snowOnRoofs(paletteFrom({ wall: material.wall, roof: TOWER_DECK }), snow).roofDeck;
     return (
-      <ResidenceTower t={t} col={col} row={row} w={w} h={h} H={H} pal={pal} deck={deck} stone={stone}
+      <ResidenceTower t={t} col={col} row={row} w={w} h={h} H={H} pal={pal} deck={deck} stone={stone} facing={p.facing}
         paneShape={paneShape} crest={crest} vernacular={vernacular} material={material} />
     );
   }
@@ -9853,7 +9982,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       {/* The Law School's attic hall and temple fronts, after its parapet
           (Plan 87G). */}
       {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} />}
-      {!site && lawTempleFront && fronts.map((dir) => <LawTemple key={`lt${dir}`} col={col} row={row} w={w} h={h} H={H} dir={dir} stone={stone} main={dir === lawMainFront(w, h, fronts)} />)}
+      {!site && lawTempleFront && <LawFronts col={col} row={row} w={w} h={h} H={H} facing={p.facing} stone={stone} />}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}
       {!site && bellGable && motif === 'pavilion' && gabled && door && !glyphs && !grand && (

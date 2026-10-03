@@ -1,6 +1,7 @@
 import type { Buildable, FacilityType, Vernacular } from '../state/types';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import type { FaceDir } from './isoProjection';
+import { frontDepth, frontWidth, localBox, sidesOf, type Plot } from './facing';
 import { initialTech } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
@@ -1729,6 +1730,9 @@ export interface ChapelPlan {
   alongW: boolean;
   // The tower's end and the chancel's, by grid direction, and the long sides.
   west: FaceDir; east: FaceDir; sides: [FaceDir, FaceDir];
+  // The long side that wears the porch, the main way in, when the tower
+  // stands at an end of the front rather than on it.
+  porch?: FaceDir;
   tower: ChapelBox; nave: ChapelBox; chancel: ChapelBox;
   // Screen units: the nave's and the chancel's eaves and ridges, the tower's shaft.
   naveHeight: number; naveRidge: number;
@@ -1743,26 +1747,31 @@ const CHAPEL_CHANCEL_SHARE = 0.62;    // of the nave's width
 const CHAPEL_CHANCEL_EAVES = 0.78;    // of the nave's eaves
 const CHAPEL_BAY_METRES = 4.6;
 
-export function chapelPlan(p: ChapelBox, v: Vernacular): ChapelPlan {
+export function chapelPlan(p: Plot, v: Vernacular): ChapelPlan {
   const spec = CHAPELS[v];
-  const alongW = p.w >= p.h;
-  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
+  // Laid out in the building's own frame (facing.ts): on a wide plot the
+  // nave runs across the front, the tower at the building's left end and
+  // the chancel at its right, a porch on the front's middle bay; on a deep
+  // one it runs front to back, the tower on the front over the main door.
+  const sides = sidesOf(p.facing);
+  const fw = frontWidth(p); const fd = frontDepth(p);
+  const longU = fw >= fd;
+  const L = longU ? fw : fd; const S = longU ? fd : fw;
   const T = Math.min(across(CHAPEL_TOWER_METRES), S * 0.42);
   const N = S * CHAPEL_NAVE_SHARE; const Cw = N * CHAPEL_CHANCEL_SHARE;
   // x down the long axis from the tower's end, y across it.
   const box = (x0: number, x1: number, width: number): ChapelBox => {
     const y0 = (S - width) / 2;
-    return alongW
-      ? { col: p.col + x0, row: p.row + y0, w: x1 - x0, h: width }
-      : { col: p.col + y0, row: p.row + x0, w: width, h: x1 - x0 };
+    return longU ? localBox(p, x0, y0, x1, y0 + width) : localBox(p, y0, x0, y0 + width, x1);
   };
   const naveHeight = up(CLEAR_SPAN_METRES.chapel ?? 0);
   const naveRidge = up(spec.ridgeMetres);
   const bays = Math.max(3, Math.round(((L - 2 * T) * METRES_PER_TILE) / CHAPEL_BAY_METRES) | 1);
   return {
-    alongW,
-    west: alongW ? 'negCol' : 'negRow', east: alongW ? 'posCol' : 'posRow',
-    sides: alongW ? ['negRow', 'posRow'] : ['negCol', 'posCol'],
+    alongW: longU === ((p.facing ?? 0) % 2 === 0),
+    west: longU ? sides.left : sides.front, east: longU ? sides.right : sides.back,
+    sides: longU ? [sides.back, sides.front] : [sides.left, sides.right],
+    porch: longU ? sides.front : undefined,
     tower: box(0, T, T),
     nave: box(T, L - T, N),
     chancel: box(L - T, L, Cw),
@@ -1781,8 +1790,9 @@ export function chapelPlan(p: ChapelBox, v: Vernacular): ChapelPlan {
 // with tables out front; a hall over a dining terrace of tables and
 // parasols; and from the 9x6 up a refectory, one tall room under a steep
 // roof (Christ Church's hall, Harvard's Annenberg) with its kitchen at the
-// service end. The terrace lies along the long wall the camera sees, as the
-// doors do, so the mass stands back from it: the plan turns with the view.
+// service end. The terrace lies along the building's front, the kitchen at
+// its right-hand end and the service range behind, so the plan turns with
+// the building (its facing), never with the view.
 // Thresholds are campusMap.ts's dining ladder's, kept as literals.
 const DINING_TERRACE_MIN_SERVES = 1_200;
 const DINING_REFECTORY_MIN_SERVES = 7_000;
@@ -1845,22 +1855,17 @@ export interface DiningPlan {
 }
 
 // The plan, given the walls the camera sees (isoProjection's visibleWalls).
-export function diningPlan(t: Buildable, p: ChapelBox, seen: { left: FaceDir; right: FaceDir }, v: Vernacular): DiningPlan {
+export function diningPlan(t: Buildable, p: Plot, v: Vernacular): DiningPlan {
   const band = diningBandOf(t) ?? 'cafe';
-  const alongW = p.w >= p.h;
-  const L = alongW ? p.w : p.h; const S = alongW ? p.h : p.w;
-  const rowWall = (d: FaceDir) => d === 'posRow' || d === 'negRow';
-  const front = [seen.left, seen.right].find((d) => rowWall(d) === alongW) ?? (alongW ? 'posRow' : 'posCol');
-  const service: FaceDir = alongW ? 'posCol' : 'posRow';
-  // x down the long axis, y in from the front.
-  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox => {
-    switch (front) {
-      case 'posRow': return { col: p.col + x0, row: p.row + p.h - y1, w: x1 - x0, h: y1 - y0 };
-      case 'negRow': return { col: p.col + x0, row: p.row + y0, w: x1 - x0, h: y1 - y0 };
-      case 'posCol': return { col: p.col + p.w - y1, row: p.row + x0, w: y1 - y0, h: x1 - x0 };
-      default: return { col: p.col + y0, row: p.row + x0, w: y1 - y0, h: x1 - x0 };
-    }
-  };
+  // In the building's own frame (facing.ts): the terrace on its front, the
+  // kitchen at its right-hand end, the service range along its back.
+  const sides = sidesOf(p.facing);
+  const front = sides.front;
+  const alongW = front === 'posRow' || front === 'negRow';
+  const L = frontWidth(p); const S = frontDepth(p);
+  const service: FaceDir = sides.right;
+  // x down the long axis from the building's left, y in from the front.
+  const box = (x0: number, x1: number, y0: number, y1: number): ChapelBox => localBox(p, x0, y0, x1, y1);
   if (band !== 'refectory') {
     const T = band === 'cafe' ? 0.8 : Math.min(1.6, Math.max(1.2, S * 0.3));
     return { band, alongW, front, service, terrace: box(0, L, 0, T), hall: box(0, L, T, S) };

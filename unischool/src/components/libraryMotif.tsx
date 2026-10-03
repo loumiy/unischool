@@ -1,4 +1,5 @@
-import type { Buildable, Vernacular } from '../state/types';
+import type { Buildable, Facing, Vernacular } from '../state/types';
+import { sideSeen, sidesOf } from './facing';
 import { boxFaces, facePoint, lift, polyPoints, project, projectedCircle, visibleWalls, wallOf, type BoxFaces, type FaceDir, type Pt } from './isoProjection';
 import { depthOrder, type DepthBox } from './depthSort';
 import { SUN_FROM, WALL_LIGHT } from './light';
@@ -35,13 +36,21 @@ import { TiedPortico, flatRoofAt, mansardRoofAt, porticoReach, rotundaRoofAt, to
 //   Second Empire        a mansard with a central pavilion and a portico
 //   Art Deco             a stepped, fluted central tower and a tall portal
 //
+// The library is symmetric about its own axis, front to back, and its
+// crown (rotunda, tower, belfry) stands on that axis over the middle; the
+// grand entrance (portico, arcade, portal, porch) and its wide flight are
+// on the building's own front (four-way facing), the back and sides each
+// a plain door at the wall's middle up a short flight. An entrance on a
+// front turned away is drawn before the mass, so what rises past the roof
+// (a pediment, a portal) shows over it and the rest is hidden.
+//
 // The storeys a renovation adds go in under the reading room, so the look
 // holds from three storeys to six. While a floor goes up (an extension) the
 // crown is off and the scaffold stands on the flat roof (BuildingMotif).
 
 export interface LibraryProps {
   t: Buildable;
-  p: { row: number; col: number; w: number; h: number };
+  p: { row: number; col: number; w: number; h: number; facing?: Facing };
   material: Material;
   vernacular: Vernacular;
   // The mass's palette (snow laid on its roofs) and stone.
@@ -54,7 +63,7 @@ export interface LibraryProps {
 }
 
 // The way in: a pair of tall doors up a flight (the formal portal's size, a
-// little wider), on every wall the camera sees.
+// little wider), on every wall.
 const LIBRARY_DOOR: DoorDimensions = {
   family: 'formal', widthTiles: across(3.6), height: up(4.4), threshold: up(1.5), treads: 6,
 };
@@ -366,7 +375,10 @@ function CivicLibrary(props: LibraryProps) {
   const f = boxFaces(col, row, w, h, 0, H);
   const faces = facesOf(f);
   const seen = visibleWalls();
+  // The visible walls, for what is painted on whichever are in view.
   const fronts: FaceDir[] = [seen.left, seen.right];
+  const sides = sidesOf(p.facing);
+  const frontSeen = sideSeen(p.facing, 'front');
   const alongW = w >= h;
   const cc = col + w / 2; const cr = row + h / 2;
 
@@ -512,19 +524,45 @@ function CivicLibrary(props: LibraryProps) {
     }
   };
 
-  // Mission's espadana over the middle of each front, after the roof.
-  const bellGables = scheme === 'mission' && !extending && fronts.map((dir, i) => {
-    const face = faces.find((fc) => fc.dir === dir)!;
-    const strip = againstWall(col, row, w, h, dir, 0, face.span, across(0.6), across(0.6));
+  // A plain door's flight on the back or a side: the door's width, its
+  // threshold's treads (Mission's doors are at grade, so none).
+  const minorEntrance = (dir: FaceDir) => (door.threshold > 0
+    ? <g key={`m${dir}`}>{flight(col, row, w, h, dir, 0, door.widthTiles * 1.5, door.threshold, Math.max(3, Math.round(door.threshold / up(0.25))), stone)}</g>
+    : null);
+  // What stands on each visible wall: the grand entrance on the front;
+  // Mission's arcade runs the back as well, Tudor's cross-gables and oriels
+  // are the hall's own on every wall; elsewhere a plain door's flight.
+  const wallEntrance = (dir: FaceDir) => {
+    if (dir === sides.front) return entrance(dir);
+    if (scheme === 'tudor') return entrance(dir);
+    if (scheme === 'mission' && dir === sides.back) return entrance(dir);
+    return minorEntrance(dir);
+  };
+  // An entrance on a front turned away, painted before the mass so only
+  // what rises past the roof shows.
+  const hiddenFront = !frontSeen && !extending && scheme !== 'mission' && scheme !== 'tudor' ? entrance(sides.front) : null;
+
+  // Mission's espadana over the middle of the front, after the roof; drawn
+  // while the front is in view (its return on the side away from the other
+  // visible wall).
+  // Turned away, it is drawn before the mass, so its head shows over the
+  // roof from behind.
+  const bellGables = scheme === 'mission' && !extending && (() => {
+    const dir = sides.front;
+    const wall = wallOf(f, dir);
+    const span = wallSpan(w, h, dir);
+    const strip = againstWall(col, row, w, h, dir, 0, span, across(0.6), across(0.6));
     const back = wallOf(boxFaces(strip.col, strip.row, strip.w, strip.h, 0, 0), opposite(dir));
     return (
-      <BellGable key={`bg${dir}`} pal={pal} stone={stone} origin={face.o} along={face.a} inward={{ origin: back.origin, along: back.along }}
-        wallHeight={H} span={face.span} centreU={0.5} sideAt={i === 0 ? 'u1' : 'u0'} scale={1.6} />
+      <BellGable key={`bg${dir}`} pal={pal} stone={stone} origin={wall.origin} along={wall.along} inward={{ origin: back.origin, along: back.along }}
+        wallHeight={H} span={span} centreU={0.5} sideAt={dir === seen.left ? 'u1' : 'u0'} scale={1.6} />
     );
-  });
+  })();
 
   return (
     <>
+      {hiddenFront}
+      {!frontSeen && bellGables}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
       {scheme === 'deco' && fronts.map((dir) => <Piers key={`dp${dir}`} stone={stone} col={col} row={row} w={w} h={h} height={H} outward={dir} pal={pal} />)}
@@ -556,8 +594,8 @@ function CivicLibrary(props: LibraryProps) {
         ? <Balustrade key={`ba${dir}`} col={col} row={row} w={w} h={h} base={H} outward={dir} pal={pal} stone={stone} />
         : <Merlons key={`pa${dir}`} col={col} row={row} w={w} h={h} base={H} outward={dir} pal={pal} block={wallSpan(w, h, dir)} gap={0} rise={up(scheme === 'deco' ? 1.2 : 0.85)} depth={across(0.35)} fill={trim ? stone.trim : undefined} />
       ))}
-      {fronts.map(entrance)}
-      {bellGables}
+      {fronts.map(wallEntrance)}
+      {frontSeen && bellGables}
     </>
   );
 }
@@ -764,6 +802,9 @@ function GothicLibrary(props: LibraryProps) {
   const aisleA = box(0, L, 0, aisle);
   const aisleB = box(0, L, S - aisle, aisle);
   const sideDirs: [FaceDir, FaceDir] = alongW ? ['negRow', 'posRow'] : ['negCol', 'posCol'];
+  // The porch on the aisle that is the building's front; an aisle on its
+  // back or a side has a plain door up a step.
+  const porchDir = sidesOf(p.facing).front;
   const seen = visibleWalls();
   const visible = (d: FaceDir) => d === seen.left || d === seen.right;
   const door: DoorDimensions = { ...LIBRARY_DOOR, widthTiles: across(3.0), height: up(3.6), threshold: up(0.9), treads: 4 };
@@ -877,7 +918,19 @@ function GothicLibrary(props: LibraryProps) {
           );
         })}
         <polygon points={polyPoints(roof)} fill={pal[outer]} />
-        {visible(outer) && <GothicPorch col={col} row={row} w={w} h={h} dir={outer} width={porchW} depth={across(2.4)} aisle={aisle} eave={Ha + leanRise} rise={up(5.2)} pal={pal} stone={stone} door={door} />}
+        {visible(outer) && outer !== porchDir && (() => {
+          const face = facesOf(f).find((fc) => fc.dir === outer);
+          if (!face) return null;
+          const d: DoorDimensions = { ...door, height: Math.min(door.height, Ha - door.threshold - up(0.7)) };
+          const at = outsideWall(b.col, b.row, b.w, b.h, outer, face.span / 2, 0); const o = outwardOf(outer);
+          return (
+            <>
+              {doorway(face, Ha, d, 'arched')}
+              <EntranceSteps d={d} centreCol={at.col} centreRow={at.row} outCol={o.col} outRow={o.row} span={face.span} stone={stone} />
+            </>
+          );
+        })()}
+        {visible(outer) && outer === porchDir && <GothicPorch col={col} row={row} w={w} h={h} dir={outer} width={porchW} depth={across(2.4)} aisle={aisle} eave={Ha + leanRise} rise={up(5.2)} pal={pal} stone={stone} door={door} />}
       </>
     );
   };
@@ -1094,8 +1147,10 @@ function ModernLibrary(props: LibraryProps) {
           </>
         );
       })()}
-      {/* A wide stair up to the terrace on each front. */}
-      {[seen.left, seen.right].map((dir) => flight(col, row, w, h, dir, 0, Math.min(across(16), wallSpan(w, h, dir) * 0.45), terrace, 5, stone))}
+      {/* A wide stair up to the terrace on the front, a narrow one to each
+          other door. */}
+      {[seen.left, seen.right].map((dir) => flight(col, row, w, h, dir, 0,
+        dir === sidesOf(p.facing).front ? Math.min(across(16), wallSpan(w, h, dir) * 0.45) : door.widthTiles * 1.6, terrace, 5, stone))}
     </>
   );
 }
