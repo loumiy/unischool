@@ -1229,7 +1229,9 @@ button.build-tile { font-family: inherit; }
 .ground-bronze-light { fill: #7b8c68; }
 
 /* Flower beds: four bloom colors cycled by index. */
-.ground-bed { fill: #7a6248; }
+.ground-bed { fill: var(--bed, #7a6248); }
+/* Gone from the beds in winter (seasons.ts, Plan 87K). */
+.ground-bloom-0, .ground-bloom-1, .ground-bloom-2, .ground-bloom-3 { opacity: var(--bloom-opacity, 1); }
 .ground-bloom-0 { fill: #d9566a; }
 .ground-bloom-1 { fill: #e8b33f; }
 .ground-bloom-2 { fill: #e9e3ee; }
@@ -1288,7 +1290,7 @@ button.build-tile { font-family: inherit; }
 .jg-shrub-magenta-top { fill: #d5679a; }
 .jg-shrub-green { fill: #3f6b34; }
 .jg-shrub-green-top { fill: #58884a; }
-.ground-hedge-top { fill: #55863f; }
+.ground-hedge-top { fill: var(--hedge-top, #55863f); }
 
 /* ---------- Labels ---------- */
 /* Labels are drawn after every building so they are never occluded. */

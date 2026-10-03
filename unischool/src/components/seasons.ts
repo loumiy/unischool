@@ -77,6 +77,8 @@ const WOOD = '#4b7238';
 const WOOD_TURNED = '#9a7a33';
 const WOOD_BARE = '#6e6454';
 const HAZE = '#cad6d3';
+const HEDGE_TOP = '#55863f';
+const BED = '#7a6248';
 const WINTER_HAZE = '#dce2e6';
 
 // What the map's stylesheet reads, as CSS variables on the map.
@@ -113,6 +115,11 @@ export function seasonStyle(week: number): CSSProperties {
     '--field-rough': ground(ROUGH),
     '--wood': mixColor(mixColor(mixColor(mixColor(WOOD, WOOD_TURNED, s.turn), WOOD_BARE, s.bare), BUD, s.bud * 0.5), SNOW, s.snow * 0.45),
     '--haze': mixColor(HAZE, WINTER_HAZE, s.snow),
+    // The gardens' planting (Plan 87K): clipped evergreen hedges that take
+    // the snow on top, beds that lie under it, blooms gone from bare to bud.
+    '--hedge-top': mixColor(HEDGE_TOP, SNOW, s.snow * 0.75),
+    '--bed': mixColor(BED, SNOW, s.snow * 0.8),
+    '--bloom-opacity': String(Number((1 - Math.max(s.bare, s.snow)).toFixed(3))),
   } as CSSProperties;
 }
 
