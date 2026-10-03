@@ -110,8 +110,8 @@ vernacular (`scenario --vernacular`) and any colours.
 | `tudor-year-1.unischool.json` | Tudor College, save v86: 73 placed buildings (the Grand Quad and the second quad on one axis with the gate between them, the halls, labs, dorms and dining, the capital projects, the venues and the amenities), 1,630 path tiles, 78 lamps and benches, 599 trees |
 
 What such a plan carries, all of it in `state`: `placements` (building id →
-top-left `row`/`col` and the footprint `w`/`h` as placed, so a swapped `w`/`h`
-is a rotation), `pathways` and `dressing` (`"row,col"` keys) and `trees`.
+top-left `row`/`col`, the footprint `w`/`h` as placed and the `facing`, 0 to
+3, whose odd values swap `w`/`h`), `pathways` and `dressing` (`"row,col"` keys) and `trees`.
 Nothing else in the file is read.
 
 **Not built yet.** `layout.ts`'s plan is hardcoded (its `PLAN` anchors and
@@ -187,8 +187,10 @@ npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html /tmp/gothic --c
 building named by its cell id, which is the form the 2026 map-assets review
 (`docs/reviews/2026-09-map-assets-visual-review.md`) was done in: 41 cells per
 vernacular, each looked at, each defect tied back to the code that draws it.
-Cells include the states worth checking as well as the buildings — a rotated
-footprint, a site, a chapter house wearing its letters.
+Cells include the states worth checking as well as the buildings — a turned
+footprint, a site, a chapter house wearing its letters. `--facing N` turns
+every building N quarters, so the four azimuths at facing 0 show each
+building's four sides, and a facing shows that they turn with it.
 
 ### Fifty years in thirty seconds
 

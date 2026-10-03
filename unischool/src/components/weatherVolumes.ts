@@ -1,12 +1,12 @@
-import type { Buildable, Vernacular } from '../state/types';
+import type { Buildable, Facing, Vernacular } from '../state/types';
 import {
   BLOCK_SPLIT_MIN_TILES, SLAB_ROW_FRACTION, TOWER_PODIUM_STOREYS, WING_COL_FRACTION, WING_STOREY_FRACTION,
   BUSINESS_SCHOOL_ID, REFECTORY_BACK_EAVES, REFECTORY_KITCHEN_EAVES, businessSchoolPlan, chapelPlan, diningPlan, isHospital, motifOf, ridgeOf, storeysOf, wallHeightOf,
 } from './buildingSpec';
-import { visibleWalls } from './isoProjection';
 import { STOREY, up } from './campusScale';
-import { VILLAGE_HOUSES } from './buildingMotifs';
+import { VILLAGE_HOUSES, villageLotBox } from './buildingMotifs';
 import { landmarkVolumes } from './landmarks';
+import { frontDepth, frontWidth, localBox } from './facing';
 
 // The boxes a building's walls actually stand in, for its weathering
 // (ageMarks.tsx, Plan 75A). Streaks, lost slates, boarded windows and the
@@ -27,7 +27,7 @@ export interface WeatherVolume {
   boards: boolean; tarp: boolean;
 }
 
-type Plot = { col: number; row: number; w: number; h: number };
+type Plot = { col: number; row: number; w: number; h: number; facing?: Facing };
 
 export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVolume[] {
   const H = wallHeightOf(t);
@@ -38,7 +38,7 @@ export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVol
   // A dining hall stands back from its terrace, a refectory's kitchen and
   // back range lower than its hall (Plan 87D).
   if (t.facilityType === 'diningHall') {
-    const d = diningPlan(t, p, visibleWalls(), v);
+    const d = diningPlan(t, p, v);
     const { hall, kitchen, back } = d;
     const out = [box(hall.col, hall.row, hall.w, hall.h, 0, H, { ridge: ridgeOf(t, v), tarp: true })];
     if (kitchen) out.push(box(kitchen.col, kitchen.row, kitchen.w, kitchen.h, 0, H * REFECTORY_KITCHEN_EAVES));
@@ -52,10 +52,10 @@ export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVol
       return landmarkVolumes(t, p).map((b) => ({ ...b, ridge: 0, boards: false, tarp: false }));
     case 'village':
       // Each house its own walls; the tarpaulin on two of them.
-      return VILLAGE_HOUSES.map((lot, i) => box(
-        p.col + p.w * lot.u, p.row + p.h * lot.v, p.w * lot.uw, p.h * lot.vh, 0, Math.min(H, lot.s * STOREY),
-        { ridge: up(3), tarp: i === 1 || i === 8 },
-      ));
+      return VILLAGE_HOUSES.map((lot, i) => {
+        const b = villageLotBox(p, lot);
+        return box(b.col, b.row, b.w, b.h, 0, Math.min(H, lot.s * STOREY), { ridge: up(3), tarp: i === 1 || i === 8 });
+      });
     case 'bowl': {
       // Open stands until the bowl closes (buildingMotifs.tsx's stadium
       // stages): only then is there an outer wall to weather.
@@ -88,9 +88,13 @@ export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVol
       // in front (buildingMotifs.tsx's split block).
       const storeys = storeysOf(t);
       const wing = Math.max(2, Math.round(storeys * WING_STOREY_FRACTION));
+      // In the building's own frame, as it is drawn (Plan 88).
+      const fw = frontWidth(p); const fd = frontDepth(p);
+      const slab = localBox(p, 0, fd * (1 - SLAB_ROW_FRACTION), fw, fd);
+      const front = localBox(p, 0, 0, fw * WING_COL_FRACTION, fd * (1 - SLAB_ROW_FRACTION));
       return [
-        box(p.col, p.row, p.w, p.h * SLAB_ROW_FRACTION, 0, storeys * STOREY, { tarp: true }),
-        box(p.col, p.row + p.h * SLAB_ROW_FRACTION, p.w * WING_COL_FRACTION, p.h * (1 - SLAB_ROW_FRACTION), 0, wing * STOREY),
+        box(slab.col, slab.row, slab.w, slab.h, 0, storeys * STOREY, { tarp: true }),
+        box(front.col, front.row, front.w, front.h, 0, wing * STOREY),
       ];
     }
     case 'chapel': {
