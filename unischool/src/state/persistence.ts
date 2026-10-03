@@ -8,12 +8,12 @@ import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
-import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { isSweepStep } from '../systems/finance/sweep';
 import {
-  ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, isLand, isPlaceableKind, parsePathTileKey,
+  ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
@@ -609,8 +609,20 @@ export function clearSave(): void {
 //   - out of bounds: nudged back inside the current grid if the footprint
 //     fits at all, otherwise dropped.
 //   - overlaps: two placements covering the same tile.
+// A facing that is missing (saves from before buildings turned four ways)
+// or does not fit the stored footprint is read off it: across the base
+// footprint is a quarter turn, else none, which is how it looked before.
 // A dropped placement costs nothing mechanically (tickTech doesn't read
 // s.placements).
+function facingFor(node: Buildable, fp: { w: number; h: number }, raw: unknown): Facing {
+  const base = footprintOf(node);
+  const across = base.w !== base.h && fp.w === base.h && fp.h === base.w;
+  if (raw === 0 || raw === 1 || raw === 2 || raw === 3) {
+    if (base.w === base.h || (raw % 2 === 1) === across) return raw;
+  }
+  return across ? 1 : 0;
+}
+
 function sanitizePlacements(state: GameState): void {
   if (typeof state.placements !== 'object' || state.placements === null) {
     state.placements = {};
@@ -641,7 +653,7 @@ function sanitizePlacements(state: GameState): void {
       ({ row, col } = spot);
     }
 
-    clean[id] = { row, col, ...fp };
+    clean[id] = { row, col, ...fp, facing: facingFor(node, fp, p.facing) };
   }
   state.placements = clean;
 }

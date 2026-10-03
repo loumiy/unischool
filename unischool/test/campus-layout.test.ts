@@ -53,7 +53,7 @@ const quiet = (): GameState => {
   const dorm = s.tech.find((t) => t.id === 'DORM-01')!;
   const spot = firstFreeSpot(s, dorm, footprintOf(dorm))!;
   const before = key(s);
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'DORM-01', row: spot.row, col: spot.col, rotated: false });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'DORM-01', row: spot.row, col: spot.col, facing: 0 });
   assert(key(s) !== before, 'placing a building moves the key');
   assert(campusLayout(s).byId.get('DORM-01')?.developing === true, 'and it stands as a site');
   const siteKey = key(s);

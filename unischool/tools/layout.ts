@@ -43,7 +43,7 @@
 // Not part of the game: nothing in src/ imports it.
 // ---------------------------------------------------------------------
 import { readFileSync, writeFileSync } from 'node:fs';
-import type { Buildable, GameState, Placement, Placements, TileCoord } from '../src/state/types';
+import type { Buildable, Facing, GameState, Placement, Placements, TileCoord } from '../src/state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../src/state/types';
 import {
   footprintIsClear, footprintOf, orientedFootprint, pathTileKey, placementFor, placementTiles,
@@ -52,11 +52,12 @@ import { seedTrees } from '../src/data/treeData';
 import { bindScriptStream } from '../src/engine/random';
 import { doorFamilyOf } from '../src/components/buildingSpec';
 
-interface Site { id: string; row: number; col: number; rotated?: boolean }
+interface Site { id: string; row: number; col: number; facing?: Facing }
 
 // ---------------------------------------------------------------------
-// THE PLAN. Anchors are top-left tiles; `rotated` swaps the footprint's
-// w and h exactly as the map's R key does. Screen-up is the (-row, -col)
+// THE PLAN. Anchors are top-left tiles; `facing` turns a building as the
+// map's R key does (its front on +row, -col, -row, +col for 0 to 3), and an
+// odd facing swaps the footprint's w and h. Screen-up is the (-row, -col)
 // diagonal; the camera sees a building's south (row + h) and east (col + w)
 // faces, so the halls that should be seen fronting a green stand to its
 // north and west. Nothing with a door is rotated onto an even side: a door
@@ -70,8 +71,8 @@ const PLAN: Site[] = [
   { id: 'BLDG-GENSTUDIES', row: 50, col: 60 },             // Founders Hall, at the head of the quad
   { id: 'HALL-01', row: 50, col: 51 },
   { id: 'HALL-02', row: 50, col: 70 },
-  { id: 'HALL-03', row: 56, col: 50, rotated: true },      // west side, fronting the quad
-  { id: 'HALL-04', row: 64, col: 50, rotated: true },
+  { id: 'HALL-03', row: 56, col: 50, facing: 1 },      // west side, fronting the quad
+  { id: 'HALL-04', row: 64, col: 50, facing: 1 },
   { id: 'LIB-T1', row: 71, col: 59 },                      // the library closes the south side
   { id: 'HALL-05', row: 72, col: 47 },                     // on the west walk
   { id: 'HALL-06', row: 72, col: 70 },
@@ -141,9 +142,9 @@ const PLAN: Site[] = [
   { id: 'GROCERY-01', row: 45, col: 82 },
   { id: 'DININGHALL-07', row: 45, col: 88 },               // the market hall, 11x7
   { id: 'QUAD-T1', row: 60, col: 88 },
-  { id: 'DORM-06', row: 59, col: 82, rotated: true },
+  { id: 'DORM-06', row: 59, col: 82, facing: 1 },
   { id: 'DORM-08', row: 54, col: 88 },
-  { id: 'DORM-07', row: 54, col: 105, rotated: true },
+  { id: 'DORM-07', row: 54, col: 105, facing: 1 },
   { id: 'DININGHALL-05', row: 62, col: 98 },
   { id: 'DORM-09', row: 70, col: 88 },
   { id: 'DORM-10', row: 70, col: 100 },
@@ -291,17 +292,17 @@ const wasPlaced = new Set(Object.keys(s.placements));
 const placements: Placements = {};
 const problems: string[] = [];
 
-function site(id: string, row: number, col: number, rotated: boolean): void {
+function site(id: string, row: number, col: number, facing: Facing): void {
   const node = byId.get(id);
   if (!node) { problems.push(`${id}: not in this save's catalog`); return; }
-  const fp = orientedFootprint(node, rotated);
+  const fp = orientedFootprint(node, facing);
   if (!footprintIsClear(placements, row, col, fp)) {
     const hit = Object.entries(placements).find(([, p]) =>
       placementTiles(placementFor(row, col, fp)).some((t) => covers(p, t)));
     problems.push(`${id} at ${row},${col} (${fp.w}x${fp.h}) ${hit ? `overlaps ${hit[0]}` : 'is off the grid'}`);
     return;
   }
-  placements[id] = placementFor(row, col, fp);
+  placements[id] = placementFor(row, col, fp, facing);
 }
 function covers(p: Placement, t: TileCoord): boolean {
   return t.row >= p.row && t.row < p.row + p.h && t.col >= p.col && t.col < p.col + p.w;
@@ -309,7 +310,7 @@ function covers(p: Placement, t: TileCoord): boolean {
 
 for (const site_ of PLAN) {
   if (!wasPlaced.has(site_.id)) continue; // not built in this run; nothing to site
-  site(site_.id, site_.row, site_.col, site_.rotated ?? false);
+  site(site_.id, site_.row, site_.col, site_.facing ?? 0);
 }
 // Anything the run built that the plan never named: chapter houses take
 // Greek Row's slots in order, and anything else goes to the overflow block.

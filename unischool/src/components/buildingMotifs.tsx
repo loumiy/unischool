@@ -1,6 +1,7 @@
 import { memo, useContext } from 'react';
 import type { Buildable, SchoolColors, Vernacular } from '../state/types';
 import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
+import type { Plot } from './facing';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
@@ -4683,7 +4684,7 @@ function faceWallsOf(f: BoxFaces) {
 // Not the hospital (no slab, cross or helipad) and not the Business hall's
 // domed exchange. The walls take the vernacular's windows and crest.
 function BusinessSchool({ t, p, pal, stone, paneShape, paneW, crest, plantTint, cornice, trim, door }: {
-  t: Buildable; p: { col: number; row: number; w: number; h: number };
+  t: Buildable; p: Plot;
   pal: Palette; stone: StonePalette; paneShape: WindowShape; paneW: number;
   crest: CrestPart; plantTint: string; cornice: string | undefined; trim: boolean;
   door: DoorDimensions | null;
@@ -6563,7 +6564,7 @@ function tallWindows(face: ChapelFace, H: number, centres: number[], halfU: numb
 }
 
 function Chapel({ t, p, vernacular, pal, stone, wall }: {
-  t: Buildable; p: { row: number; col: number; w: number; h: number };
+  t: Buildable; p: Plot;
   vernacular: Vernacular; pal: Palette; stone: StonePalette; wall: string;
 }) {
   const spec = CHAPELS[vernacular];
@@ -7294,7 +7295,7 @@ function ForecourtSculpture({ cc, cr, dir, stone }: { cc: number; cr: number; di
 // forecourt over its whole plot, the gallery set back on it, and a
 // sculpture before each visible front.
 function MuseumCourt({ t, p, material, vernacular, glyphs }: {
-  t: Buildable; p: { row: number; col: number; w: number; h: number }; material: Material; vernacular: Vernacular; glyphs?: string;
+  t: Buildable; p: Plot; material: Material; vernacular: Vernacular; glyphs?: string;
 }) {
   const { col, row, w, h } = p;
   const c = MUSEUM_COURT;
@@ -8320,7 +8321,7 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
 
 function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
   t: Buildable;
-  p: { row: number; col: number; w: number; h: number };
+  p: Plot;
   material: Material;
   // Passed as the vernacular itself; every lookup happens at point of use.
   vernacular: Vernacular;
@@ -8367,7 +8368,7 @@ function stoneOnWall(stone: StonePalette, wall: string): StonePalette {
 
 export type BuildingMassProps = {
   t: Buildable;
-  p: { row: number; col: number; w: number; h: number };
+  p: Plot;
   material: Material;
   vernacular: Vernacular;
   developing: boolean;

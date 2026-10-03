@@ -100,7 +100,7 @@ const fresh = () => {
   s.finance.endowment = 10_000_000;
   s.finance.cash = hall.cost - 500_000;
   const spot = firstFreeSpot(s, hall, footprintOf(hall))!;
-  const place = (borrow: boolean) => reducer(s, { type: 'PLACE_BUILDABLE', buildableId: hall.id, row: spot.row, col: spot.col, rotated: false, borrow });
+  const place = (borrow: boolean) => reducer(s, { type: 'PLACE_BUILDABLE', buildableId: hall.id, row: spot.row, col: spot.col, facing: 0, borrow });
   assert(place(false).tech.find((t) => t.id === hall.id)!.status === 'available', 'a building the cash cannot cover does not start on cash');
   assert(loanFor(s, hall.cost) === 500_000, 'the loan is the shortfall');
   s = place(true);
@@ -132,7 +132,7 @@ const fresh = () => {
   s.finance.cash = 10;
   s.advancement = { running: null, closed: [], restrictedBuilding: hall.cost + 1 };
   const spot = firstFreeSpot(s, hall, footprintOf(hall))!;
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: hall.id, row: spot.row, col: spot.col, rotated: false, gift: true });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: hall.id, row: spot.row, col: spot.col, facing: 0, gift: true });
   assert(s.tech.find((t) => t.id === hall.id)!.status === 'developing', 'a building the gifts cover starts from them');
   assert(s.finance.cash === 10 && s.advancement!.restrictedBuilding === 1, 'the cash untouched, the gifts spent');
   const course = s.tech.find((t) => t.kind === 'course' && t.status === 'available');

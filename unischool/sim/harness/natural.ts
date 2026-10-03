@@ -142,7 +142,7 @@ function place(g: Game, t: Buildable): boolean {
   else {
     const spot = firstFreeSpot(s, t, footprintOf(t));
     if (!spot) return false;
-    g.act({ type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, rotated: false, gift: true });
+    g.act({ type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, facing: 0, gift: true });
   }
   return t.id in g.s.placements;
 }

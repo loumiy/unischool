@@ -358,7 +358,7 @@ function place(g: Game, t: Buildable, reserve: number, borrow = false): boolean 
   const s = g.s;
   const spot = firstFreeSpot(s, t, footprintOf(t));
   if (!spot) return false;
-  const base = { type: 'PLACE_BUILDABLE' as const, buildableId: t.id, row: spot.row, col: spot.col, rotated: false };
+  const base = { type: 'PLACE_BUILDABLE' as const, buildableId: t.id, row: spot.row, col: spot.col, facing: 0 as const };
   if (giftFunds(s) >= t.cost) {
     g.act({ ...base, gift: true });
   } else if (affords(s, t.cost, reserve)) {

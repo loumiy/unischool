@@ -2,7 +2,7 @@ import type { Financing } from '../systems/finance/treasury';
 import type { GameState } from './types';
 import type { Action } from './actions';
 import { fellTrees } from '../data/treeData';
-import { awaitsSite, canPlace, footprintOf, orientedFootprint, placementFor } from './campusMap';
+import { awaitsSite, canPlace, orientedFootprint, placementFor } from './campusMap';
 import { settleOpening } from './opening';
 import { canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
 
@@ -16,15 +16,16 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
   // and canPlace; it is charged, started and sited in the same transaction,
   // so its tiles are reserved from week one. A 'done' node is Founders Hall
   // in a guided founding (awaitsSite): free, it only records where it stands.
-  // The stored footprint is already oriented; there is no orientation field.
+  // The stored footprint is already oriented, and the facing kept with it.
   const node = s.tech.find((t) => t.id === action.buildableId);
   if (node) {
-    // A 'done' node is sited unrotated; nothing offers rotation for it.
-    const fp = node.status === 'done' ? footprintOf(node) : orientedFootprint(node, action.rotated);
+    // An action recorded before buildings turned four ways has no facing.
+    const facing = action.facing ?? 0;
+    const fp = orientedFootprint(node, facing);
     if (canPlace(s, node, action.row, action.col, fp)) {
       // Siting fells every tree under the footprint, permanently. Paths do
       // not: paving only hides a tree at render time.
-      const placement = placementFor(action.row, action.col, fp);
+      const placement = placementFor(action.row, action.col, fp, facing);
       if (node.status === 'done') {
         if (awaitsSite(s, node)) {
           s.placements[node.id] = placement;
