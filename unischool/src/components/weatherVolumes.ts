@@ -1,9 +1,8 @@
-import type { Buildable, Vernacular } from '../state/types';
+import type { Buildable, Facing, Vernacular } from '../state/types';
 import {
   BLOCK_SPLIT_MIN_TILES, SLAB_ROW_FRACTION, TOWER_PODIUM_STOREYS, WING_COL_FRACTION, WING_STOREY_FRACTION,
   BUSINESS_SCHOOL_ID, REFECTORY_BACK_EAVES, REFECTORY_KITCHEN_EAVES, businessSchoolPlan, chapelPlan, diningPlan, isHospital, motifOf, ridgeOf, storeysOf, wallHeightOf,
 } from './buildingSpec';
-import { visibleWalls } from './isoProjection';
 import { STOREY, up } from './campusScale';
 import { VILLAGE_HOUSES } from './buildingMotifs';
 import { landmarkVolumes } from './landmarks';
@@ -27,7 +26,7 @@ export interface WeatherVolume {
   boards: boolean; tarp: boolean;
 }
 
-type Plot = { col: number; row: number; w: number; h: number };
+type Plot = { col: number; row: number; w: number; h: number; facing?: Facing };
 
 export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVolume[] {
   const H = wallHeightOf(t);
@@ -38,7 +37,7 @@ export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVol
   // A dining hall stands back from its terrace, a refectory's kitchen and
   // back range lower than its hall (Plan 87D).
   if (t.facilityType === 'diningHall') {
-    const d = diningPlan(t, p, visibleWalls(), v);
+    const d = diningPlan(t, p, v);
     const { hall, kitchen, back } = d;
     const out = [box(hall.col, hall.row, hall.w, hall.h, 0, H, { ridge: ridgeOf(t, v), tarp: true })];
     if (kitchen) out.push(box(kitchen.col, kitchen.row, kitchen.w, kitchen.h, 0, H * REFECTORY_KITCHEN_EAVES));
