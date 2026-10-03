@@ -66,6 +66,19 @@
     - Brise-soleil fins and a folded-plate roof terrace are its own.
     - Every Modern hall stands on pilotis.
     - The founding screen draws the carillon.
+- **M (after the PR merged):** the Georgian Founders Hall drawn after the
+  owner's reference picture, keeping its proportions and an entrance on
+  every visible face.
+  - A blue-grey slate hip with pedimented dormers, end chimneys and a white
+    cornice; its ridge is raised to 7.5 m, the one shape change.
+  - White-framed sash windows.
+  - A pedimented temple portico with an oculus on each visible wall, the
+    grander one on the longer wall.
+  - A brick and white clock tower under an open lantern with bells, a
+    verdigris dome and a gilt finial.
+  - The other Georgian halls keep the eaves balustrade. The test that a
+    hall's ridge stays under a storey now reads HALL-01.
+  - The founding screen's elevation is unchanged.
 - **Left:**
   - Cast shadows and label heights still read the main box for the taller
     parts: the Field House vault, the Engineering wing and the domes.
