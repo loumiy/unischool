@@ -91,6 +91,23 @@
     the clock tower.
   - Georgian's red brick is warmer, '#bd6b48', sampled from the reference
     picture, for every building in it, not only the halls.
+- **O (with M's second look):** every portico ties into its roof, as
+  Founders Hall's do.
+  - `porticoTie.tsx` holds `crossGable` and `TiedPortico`. A pediment's roof
+    runs back to meet the main roof, whether hip, gable, mansard, flat,
+    rotunda or vault. It applies to:
+    - the halls of Classical, Italianate and Second Empire;
+    - the small door porticos;
+    - the exchange;
+    - LAB-ECON;
+    - the libraries;
+    - the Law School;
+    - the sports sheds;
+    - the Gothic and Tudor porches;
+    - the civic colonnades.
+  - Column spacing has a floor: the small door portico had put four 1.4 m
+    posts across a 1.6–2.2 m door (the "four stacked columns" the owner
+    saw). A narrow door now takes two round columns under a pediment.
 - **Left:**
   - Cast shadows and label heights still read the main box for the taller
     parts: the Field House vault, the Engineering wing and the domes.
