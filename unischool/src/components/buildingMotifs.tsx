@@ -51,6 +51,7 @@ import { Crane, Scaffolding } from './siteWorks';
 import { flagCloth } from './wind';
 import { TiedPortico, crossGable, eitherRoof, flatRoofAt, gableRoofAt, hipRoofAt, mansardRoofAt, toneSlopes, vaultRoofAt, type RoofAt } from './porticoTie';
 import { TreeAt, treeShadow } from './trees';
+import * as ownFrame from './facing';
 
 // Architectural motifs: what makes a placed Buildable read as a building.
 // Hand-rolled inline SVG, no icon library or external art. Geometry here,
@@ -4928,9 +4929,8 @@ function faceWallsOf(f: BoxFaces) {
 // --- A building's own sides (Plan 88: four-way facing) --------------------
 // The buildings below put their entrances, towers and wings on their own
 // front, back and sides (components/facing.ts), not on the walls the camera
-// happens to see, so each keeps its elevations as the camera turns. A
-// namespace import: other parts of this file import from facing.ts too.
-import * as ownFrame from './facing';
+// happens to see, so each keeps its elevations as the camera turns
+// (`ownFrame` is facing.ts, imported above).
 
 // How far along a face (o to a, its ground line) the grid point `at` lies.
 function uOnFace(o: Pt, a: Pt, at: { col: number; row: number }): number {
@@ -10538,8 +10538,7 @@ export function sameMotif(a: Parameters<typeof BuildingMotif>[0], b: Parameters<
     && a.developing === b.developing
     && a.glyphs === b.glyphs
     && a.p.col === b.p.col && a.p.row === b.p.row
-    && a.p.w === b.p.w && a.p.h === b.p.h
-    && (a.p.facing ?? 0) === (b.p.facing ?? 0);
+    && a.p.w === b.p.w && a.p.h === b.p.h && a.p.facing === b.p.facing;
 }
 
 // Color lives in buildingSpec.ts's MATERIALS (see materialOf).
