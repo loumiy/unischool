@@ -8,6 +8,7 @@
 //   npm run sheet -- --only 'hangar|bowl|grounds'   # a regex on the labels
 //   npm run sheet -- --azimuth 225 --pitch 30       # from another camera
 //   npm run sheet -- --every --azimuth 135          # every placeable, not one per form (Plan 73)
+//   npm run sheet -- --facing 2                     # every building turned to face -row
 //   npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html out/ --cells
 //
 // `--scale` is screen pixels per world unit (default 1.4). Each cell is a
@@ -25,8 +26,8 @@ import { castShadow } from '../src/components/light';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { initialFacilities, nextVenueExpansion, venueExpansionsMax } from '../src/data/facilitiesData';
-import { footprintOf, isPlaceableKind } from '../src/state/campusMap';
-import type { Buildable, Vernacular } from '../src/state/types';
+import { isPlaceableKind, orientedFootprint } from '../src/state/campusMap';
+import type { Buildable, Facing, Vernacular } from '../src/state/types';
 
 // --- arguments -------------------------------------------------------
 const args = process.argv.slice(2);
@@ -45,6 +46,9 @@ const SCALE = Number(flag('scale', '1.4'));
 const ONLY = flag('only', '') ? new RegExp(flag('only', '')) : null;
 const OUT = flag('out', 'node_modules/.tmp/sheets');
 // Camera in degrees; the map opens at 45 and 30. `--azimuth 225` views from behind.
+// `--facing 2` turns every building that many quarters (its front on -row);
+// a sample's own facing (the turned ones) goes on from it.
+const FACING = (Number(flag('facing', '0')) % 4) as Facing;
 setCamera({ azimuth: (Number(flag('azimuth', '45')) * Math.PI) / 180, pitch: (Number(flag('pitch', '30')) * Math.PI) / 180 });
 // CampusMap's own inset (see BUILDING_INSET there), so a cell shows the
 // building at the size the map draws it inside its footprint.
@@ -60,7 +64,7 @@ const byId = (id: string) => CATALOGUE.find((t) => t.id === id);
 const byType = (ft: string, pick: (t: Buildable) => boolean = () => true) =>
   CATALOGUE.filter((t) => t.facilityType === ft && pick(t));
 
-interface Sample { label: string; t: Buildable; developing?: boolean; rotated?: boolean; glyphs?: string; suffix?: string }
+interface Sample { label: string; t: Buildable; developing?: boolean; facing?: Facing; glyphs?: string; suffix?: string }
 
 // One of everything, by motif, plus the states worth looking at: a
 // rotated footprint, a site, a chapter house wearing letters.
@@ -83,7 +87,7 @@ function samples(): Sample[] {
   return [
     ...maybe('hall: Founders Hall (clock tower)', founders),
     ...maybe('hall: academic hall', other),
-    ...maybe('hall: rotated', other, { rotated: true }),
+    ...maybe('hall: rotated', other, { facing: 1 }),
     ...maybe('hall: under construction', other, { developing: true }),
     ...maybe('residential: founding hall 350', dorm(350)),
     ...maybe('residential: 500 beds', dorm(500)),
@@ -104,7 +108,7 @@ function samples(): Sample[] {
     ...maybe('pavilion: chapter house', chapter, { glyphs: 'ΑΒΓ' }),
     ...maybe('pavilion: LAB-ECON', byId('LAB-ECON')),
     ...maybe('chapel: the chapel', byId('AMENITY-CHAPEL')),
-    ...maybe('chapel: rotated', byId('AMENITY-CHAPEL'), { rotated: true }),
+    ...maybe('chapel: rotated', byId('AMENITY-CHAPEL'), { facing: 1 }),
     ...maybe('block: hospital', health[2]),
     ...maybe('block: LAB-COMP', byId('LAB-COMP')),
     ...maybe('works: lab', byType('lab', (t) => !['LAB-HIST', 'LAB-FILM', 'LAB-COMP', 'LAB-ECON'].includes(t.id))[0]),
@@ -119,7 +123,7 @@ function samples(): Sample[] {
     ...maybe('grounds: tennis courts', byType('tennisCourts')[0]),
     ...maybe('grounds: pool', byType('pool')[0]),
     ...maybe('grounds: multi-sport field', byType('athleticsField')[0]),
-    ...maybe('grounds: field rotated', byType('athleticsField')[0], { rotated: true }),
+    ...maybe('grounds: field rotated', byType('athleticsField')[0], { facing: 1 }),
     ...maybe('grounds: diamond', byType('athleticsDiamond')[0]),
     ...maybe('grounds: site under construction', byType('tennisCourts')[0], { developing: true }),
     ...maybe('bowl: football stadium', byType('footballStadium')[0]),
@@ -132,9 +136,9 @@ function samples(): Sample[] {
 // the map's own depth order.
 function cell(sample: Sample, v: Vernacular) {
   const { t } = sample;
-  const fp0 = footprintOf(t);
-  const fp = sample.rotated ? { w: fp0.h, h: fp0.w } : fp0;
-  const d = { col: INSET, row: INSET, w: fp.w - INSET * 2, h: fp.h - INSET * 2 };
+  const facing = (((sample.facing ?? 0) + FACING) % 4) as Facing;
+  const fp = orientedFootprint(t, facing);
+  const d = { col: INSET, row: INSET, w: fp.w - INSET * 2, h: fp.h - INSET * 2, facing };
   const M = 2;
   const plate = boxFaces(-M, -M, fp.w + 2 * M, fp.h + 2 * M, 0, 0).top;
   const xs = plate.map((q) => q.x); const ys = plate.map((q) => q.y);
@@ -165,7 +169,7 @@ function cell(sample: Sample, v: Vernacular) {
       {props.map((pr) => <g key={pr.key}>{pr.node}</g>)}
     </svg>
   );
-  const id = `${v}-${t.id}${sample.suffix ?? ''}${sample.rotated ? '-rot' : ''}${sample.developing ? '-dev' : ''}`;
+  const id = `${v}-${t.id}${sample.suffix ?? ''}${facing !== 0 ? `-f${facing}` : ''}${sample.developing ? '-dev' : ''}`;
   return `<div class="cell" id="${id}"><div class="cap">${sample.label} · ${t.name} · ${fp.w}x${fp.h} · ${v}</div>${renderToStaticMarkup(svg)}</div>`;
 }
 

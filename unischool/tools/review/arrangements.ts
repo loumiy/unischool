@@ -30,7 +30,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BenchFacing, Buildable, Dressing, DressingKind, GameState, Placements, TileCoord, Vernacular } from '../../src/state/types';
+import type { BenchFacing, Buildable, Dressing, DressingKind, Facing, GameState, Placements, TileCoord, Vernacular } from '../../src/state/types';
 import { benchItem, defaultBenchFacing } from '../../src/state/dressing';
 import { footprintIsClear, isLand, orientedFootprint, pathTileKey, placementFor, placementTiles } from '../../src/state/campusMap';
 
@@ -40,7 +40,7 @@ type Wall = 'south' | 'east' | 'north' | 'west';
 
 export interface Site {
   id: string;
-  rotated?: boolean;
+  facing?: Facing;
   // Top-left tile, or the tile a named wall's door opens onto.
   at?: TileCoord;
   door?: { wall: Wall; tile: TileCoord };
@@ -182,8 +182,8 @@ export const ARRANGEMENTS: Arrangement[] = [
     sites: [
       { id: 'QUAD-T1', at: T(59, 59) },
       { id: 'HALL-01', door: { wall: 'south', tile: T(57, 63) } },
-      { id: 'HALL-02', rotated: true, door: { wall: 'east', tile: T(63, 57) } },
-      { id: 'HALL-03', rotated: true, at: T(60, 70) },
+      { id: 'HALL-02', facing: 1, door: { wall: 'east', tile: T(63, 57) } },
+      { id: 'HALL-03', facing: 1, at: T(60, 70) },
       { id: 'LIB-T1', at: T(70, 58) },
     ],
     paths: [...ring(57, 57, 69, 69), ...run(68, 45, 68, 56), ...run(69, 70, 78, 70)],
@@ -286,7 +286,7 @@ export const ARRANGEMENTS: Arrangement[] = [
   {
     name: 'chapel-turned',
     what: 'The chapel turned to run down the column (Plan 80I), its tower to the north, with a walk round it.',
-    sites: [{ id: 'AMENITY-CHAPEL', at: T(59, 62), rotated: true }],
+    sites: [{ id: 'AMENITY-CHAPEL', at: T(59, 62), facing: 1 }],
     paths: [...ring(58, 61, 64, 65), ...run(65, 63, 70, 63)],
   },
   {
@@ -301,8 +301,8 @@ export const ARRANGEMENTS: Arrangement[] = [
       { id: 'DORM-10', at: T(63, 47) },
       { id: 'QUAD-T2', at: T(58, 67) },
       { id: 'HALL-01', at: T(53, 70) },
-      { id: 'HALL-02', rotated: true, at: T(62, 62) },
-      { id: 'HALL-03', rotated: true, at: T(62, 80) },
+      { id: 'HALL-02', facing: 1, at: T(62, 62) },
+      { id: 'HALL-03', facing: 1, at: T(62, 80) },
       { id: 'LIB-T1', at: T(71, 70) },
     ],
     paths: [...run(50, 38, 50, 86), ...run(57, 60, 78, 60), ...run(78, 38, 78, 86)],
@@ -335,7 +335,7 @@ export function doorTile(p: { row: number; col: number; w: number; h: number }, 
 }
 
 function anchorFor(t: Buildable, site: Site): TileCoord {
-  const fp = orientedFootprint(t, site.rotated ?? false);
+  const fp = orientedFootprint(t, site.facing ?? 0);
   if (site.at) return site.at;
   if (!site.door) throw new Error(`${site.id}: neither at nor door`);
   const { wall, tile } = site.door;
@@ -352,13 +352,13 @@ export function applyArrangement(base: GameState, a: Arrangement, vernacular: Ve
   for (const site of a.sites) {
     const t = byId.get(site.id);
     if (!t) { problems.push(`${site.id}: not in the base save`); continue; }
-    const fp = orientedFootprint(t, site.rotated ?? false);
+    const fp = orientedFootprint(t, site.facing ?? 0);
     const at = anchorFor(t, site);
     if (!footprintIsClear(placements, at.row, at.col, fp) || !isLand(at.row, at.col) || !isLand(at.row + fp.h - 1, at.col + fp.w - 1)) {
       problems.push(`${site.id} at ${at.row},${at.col} (${fp.w}x${fp.h}) overlaps or is off the land`);
       continue;
     }
-    placements[site.id] = placementFor(at.row, at.col, fp);
+    placements[site.id] = placementFor(at.row, at.col, fp, site.facing ?? 0);
     t.status = 'done';
     delete s.developing[t.id];
   }

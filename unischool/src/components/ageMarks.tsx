@@ -1,4 +1,4 @@
-import type { Buildable, Vernacular } from '../state/types';
+import type { Buildable, Facing, Vernacular } from '../state/types';
 import { up } from './campusScale';
 import { depthOrder } from './depthSort';
 import { boxFaces, type Pt } from './isoProjection';
@@ -65,7 +65,7 @@ function Ivy({ t, f, salt = 0 }: { t: Buildable; f: ReturnType<typeof boxFaces>;
 }
 
 export default function AgeMarks({ t, p, band, vernacular, historic = false }: {
-  t: Buildable; p: { col: number; row: number; w: number; h: number }; band: AgeBand; vernacular: Vernacular;
+  t: Buildable; p: { col: number; row: number; w: number; h: number; facing?: Facing }; band: AgeBand; vernacular: Vernacular;
   historic?: boolean;
 }) {
   if (band === 0 && !historic) return null;

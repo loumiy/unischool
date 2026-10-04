@@ -1,5 +1,6 @@
 import { useContext } from 'react';
-import type { Buildable, GameState, Vernacular } from '../state/types';
+import type { Buildable, Facing, GameState, Vernacular } from '../state/types';
+import { sidesOf } from './facing';
 import { boxFaces, facePoint, heightScale, lift, polyPoints, project, projectedCircle, type BoxFaces, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { shade } from './tint';
@@ -380,6 +381,10 @@ function Campanile({ t, p, share, building }: { t: Buildable; p: Plot; share: nu
               <polygon key={z} fill={OPENING} points={polyPoints(archOnFace(a, b, shH, span, 0.5, 0.05, sv(z), sv(z + up(3.2))))} />
             ))}
             {clock && clockFace(a, b, shH, span, 0.5, sv(clockZ), 0.27, `c${i}`)}
+            {/* The way in, on the building's own front: a round-headed door. */}
+            {dir === sidesOf(p.facing).front && shaftH >= PL + up(5) && (
+              <polygon className="landmark-door" fill={shade(OPENING, 1.25)} stroke={LINE} strokeWidth={0.5} points={polyPoints(archOnFace(a, b, shH, span, 0.5, 0.11, 0, sv(PL + up(4.4))))} />
+            )}
           </g>
         );
       })}
@@ -493,8 +498,10 @@ function BellTower({ t, p, share, building }: { t: Buildable; p: Plot; share: nu
                 </g>
               );
             })}
-            {/* A round-headed door-height window low down, the clock high. */}
-            {standing >= H * 0.4 && <polygon fill={OPENING} points={polyPoints(archOnFace(a, b, sH, span, 0.5, 0.1, sv(PL + up(1.0)), sv(PL + up(5.8))))} />}
+            {/* A round-headed door-height window low down, the clock high;
+                on the building's own front the opening is its door, down
+                to the plinth. */}
+            {standing >= H * 0.4 && <polygon fill={OPENING} points={polyPoints(archOnFace(a, b, sH, span, 0.5, 0.1, dir === sidesOf(p.facing).front ? 0 : sv(PL + up(1.0)), sv(PL + up(5.8))))} />}
             {standing >= stageTop && !building && clockFace(a, b, sH, span, 0.5, sv(H * 0.42), 0.2, `c${i}`)}
           </g>
         );
@@ -972,7 +979,7 @@ function wallHeightOfAttic(f: BoxFaces): number {
   return (f.D.y - f.Dt.y) / Math.max(0.0001, heightScale());
 }
 
-interface Plot { col: number; row: number; w: number; h: number }
+interface Plot { col: number; row: number; w: number; h: number; facing?: Facing }
 
 // The boxes a finished landmark stands in, for its weathering (ageMarks.tsx,
 // Plan 75A): the campanile's shaft (its belfry is open), the bell tower's

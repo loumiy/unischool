@@ -190,7 +190,7 @@ const foundWalk = (name: string, guided = true) => reducer(createPreStartState()
 const siteHall = (s: GameState) => {
   const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   const spot = centredPlacement(footprintOf(hall));
-  return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, rotated: false });
+  return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
 };
 {
   // Headless: the hall pre-placed, the walk behind it; nothing to teach.

@@ -409,7 +409,7 @@ const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pair
   assert(isLocked(offered.entryCourseId), 'a tick re-resolves nothing for an unhoused program');
 
   // Build the hall, and found the first offer into it.
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'HALL-01', row: 40, col: 90, rotated: false });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: 'HALL-01', row: 40, col: 90, facing: 0 });
   s = advanceUntil(s, (st) => isDoneIn(st, 'HALL-01'), 260);
   assert(isDoneIn(s, 'HALL-01'), 'the hall stands');
   const program = programById(s.programOffers[0])!;
@@ -629,7 +629,7 @@ function assertHallsInvariants(s: GameState, label: string): void {
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `three programs are still on offer (got ${s.programOffers.length})`);
   assertHallsInvariants(s, 'eight courses');
   assert(s.tech.find((t) => t.id === halls[1].id)?.status === 'locked', 'the second hall stays locked behind the first');
-  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: first, row: 40, col: 90, rotated: false });
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: first, row: 40, col: 90, facing: 0 });
   assert(s.tech.find((t) => t.id === first)?.status === 'developing', 'the first hall is under construction');
   assert(s.halls[first] === undefined, 'a hall under construction has no slots yet');
   assertHallsInvariants(s, 'hall under construction');

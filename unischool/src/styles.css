@@ -957,6 +957,12 @@ button.build-tile { font-family: inherit; }
 .campus-preview { pointer-events: none; fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .campus-preview.ok { stroke: var(--gold); fill: rgba(201, 162, 39, 0.22); }
 .campus-preview.blocked { stroke: #b4544a; fill: rgba(180, 84, 74, 0.18); stroke-dasharray: 4 3; }
+.campus-preview-front { pointer-events: none; }
+.campus-preview-front line { stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.campus-preview-front.ok line { stroke: var(--gold); }
+.campus-preview-front.ok polygon { fill: var(--gold); }
+.campus-preview-front.blocked line { stroke: #b4544a; }
+.campus-preview-front.blocked polygon { fill: #b4544a; }
 /* Why a site is refused (reach.ts's siteRefusal), beside the pointer. */
 .campus-map-why { position: absolute; transform: translate(16px, 14px); pointer-events: none; padding: var(--space-4) var(--space-8);
   color: var(--danger-ink); border-color: var(--bad-on-light); white-space: nowrap; }
