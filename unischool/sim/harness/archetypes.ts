@@ -31,7 +31,7 @@ import { playerRank } from '../../src/systems/rivals/rivalsSystem';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import type { Game, Player } from './game';
-import { buildDorm, buildable, developCourse, foundable, foundOffer, hireForBlocked, moveHome, site, siteNextHall, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding } from './moves';
+import { buildDorm, buildable, developCourse, foundable, foundOffer, hireForBlocked, moveHome, openOffices, site, siteNextHall, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, useOffices } from './moves';
 import { buildFor, carry, createGuidedPlayer, foundIn, reserveOf } from './guided';
 import { createNaturalPlayer } from './natural';
 
@@ -107,6 +107,14 @@ interface Policy {
 // of a large budget outgrew every price).
 const COMPLETIONIST_RESERVE_WEEKS = 2;
 
+// Each archetype's offices, in the order it opens them (Plan 89G): no one
+// office first for every player.
+const OFFICE_PREFERENCE = {
+  Completionist: ['curriculum', 'sponsored-research', 'admissions', 'alumni-relations', 'career-services', 'facilities-management'],
+  Selective: ['admissions', 'financial-aid', 'sponsored-research', 'faculty-recruitment', 'counseling', 'institutional-research'],
+  Lean: ['facilities-management', 'counseling', 'alumni-relations', 'financial-aid', 'career-services', 'student-activities'],
+} as const;
+
 const COMPLETIONIST: Policy = {
   act(g) {
     const reserve = reserveOf(g.s, COMPLETIONIST_RESERVE_WEEKS);
@@ -114,6 +122,8 @@ const COMPLETIONIST: Policy = {
     moveHome(g);
     // An overcrowded campus is fixed first, and saved for (Plan 71).
     if (relieveCrowding(g, buildFor) === 'short') return;
+    openOffices(g, OFFICE_PREFERENCE.Completionist, { reserve });
+    useOffices(g, { reserve });
     foundOffer(g, { reserve });
     foundGraduate(g, reserve);
     hireForBlocked(g, { reserve });
@@ -150,6 +160,7 @@ const SELECTIVE: Policy = {
     const reserve = reserveOf(g.s, 12);
     restaffIfDark(g);
     moveHome(g);
+    openOffices(g, OFFICE_PREFERENCE.Selective, { reserve });
     const standing = programsStanding(g.s);
     if (standing.length < SELECTIVE_PROGRAMS) {
       const mine = new Set(standing.map((id) => programById(id)?.school));
@@ -180,6 +191,8 @@ const LEAN: Policy = {
     if (score < 40) buildFor(g, worst, reserve);
     buildDorm(g, 0.98, { reserve });
     if (weeklyNet(g.s) <= 0) return;
+    openOffices(g, OFFICE_PREFERENCE.Lean, { reserve });
+    useOffices(g, { reserve });
     hireForBlocked(g, { reserve, pick: (items) => items[0] });
     foundOffer(g, { reserve, pick: (items) => items[0] });
     developCourse(g, { reserve, pick: (items) => cheapest(items as never) as never });

@@ -25,6 +25,8 @@ import type { Game, Player } from './game';
 import {
   buildDorm, buildForShortfall, buildable, developCourse, foundOffer, hireForBlocked, moveHome, randomPick, site, siteNextHall,
 } from './moves';
+import { slotFree } from '../../src/systems/administration/offices';
+import { OFFICES } from '../../src/data/officeData';
 
 const BUDGET_TIERS: AthleticsBudgetTier[] = ['low', 'medium', 'high'];
 const ROLES = ['head', 'assistant', 'trainer'] as const;
@@ -40,12 +42,18 @@ function rawGenerators(g: Game): Array<[number, Generator]> {
     // Move any program to any free slot anywhere, legal or not.
     [3, (g) => {
       const housed = Object.values(g.s.halls).flatMap((slots) => slots.filter((x) => x.programId !== null).map((x) => x.programId!));
-      const free = Object.entries(g.s.halls).flatMap(([hallId, slots]) => slots.map((x, slot) => (x.programId === null ? { hallId, slot } : null)).filter((x) => x !== null));
+      const free = Object.entries(g.s.halls).flatMap(([hallId, slots]) => slots.map((x, slot) => (slotFree(x) ? { hallId, slot } : null)).filter((x) => x !== null));
       const programId = any(housed);
       const to = any(free);
       return programId && to ? { type: 'RELOCATE_PROGRAM', programId, ...to } : null;
     }],
     [1, (g) => { const f = any(g.s.faculty); return f ? { type: 'FIRE_FACULTY', facultyId: f.id } : null; }],
+    // The offices (Plan 89G): any office into any slot of Founders Hall,
+    // legal or not; any office closed; a charter; a sport club sent varsity.
+    [1, () => { const o = any(OFFICES); return o ? { type: 'OPEN_OFFICE', officeId: o.id, slot: n(7) } : null; }],
+    [1, () => { const o = any(OFFICES); return o ? { type: 'CLOSE_OFFICE', officeId: o.id } : null; }],
+    [1, () => ({ type: 'CHARTER_CLUB' })],
+    [1, (g) => { const c = any(g.s.orgs.clubs); return c ? { type: 'FOUND_TEAM', clubId: c.id } : null; }],
     // A training pick for anyone (Plan 85E): refused without the institute,
     // for an A, twice in a year or with the picks spent.
     [1, (g) => { const f = any(g.s.faculty); return f ? { type: 'TRAIN_FACULTY', facultyId: f.id } : null; }],
