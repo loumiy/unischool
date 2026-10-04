@@ -323,12 +323,44 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
   return serves > 0 ? `serves ${count(serves)}` : undefined;
 }
 
-// The corner chip: a tier for upgradeable buildings, a chain position for a
-// sequential chain, nothing for one-of-a-kind types.
+// The stamp's chain position for a sequential chain; nothing for
+// one-of-a-kind types, and nothing for a tiered building, whose level is
+// LevelPips (Plan 89).
 function rowMarker(t: Buildable, group: TypeGroup, index: number): string | undefined {
-  if (t.tier !== undefined) return `Level ${t.tier}`;
+  if (t.tier !== undefined) return undefined;
   if (group.repeatable && group.sequential !== false) return `#${index + 1}`;
   return undefined;
+}
+
+// The tile's head (Plan 89): a strip of plan paper with the building's
+// drawing on it, and the stamp ("#3", "BUILT", "×7 BUILT") in its corner.
+function TilePlan({ Icon, stamp }: { Icon: () => React.JSX.Element; stamp?: string }) {
+  return (
+    <span className="build-tile-plan">
+      <span className="build-tile-icon"><Icon /></span>
+      {stamp && <span className="build-tile-stamp">{stamp}</span>}
+    </span>
+  );
+}
+
+// The highest tier its facility type reaches in the data, so a level reads
+// out of the chain's length (the health chain's three, the library's one).
+function maxTierOf(s: GameState, t: Buildable): number {
+  return s.tech.reduce((max, other) => (other.facilityType === t.facilityType && other.tier !== undefined
+    ? Math.max(max, other.tier) : max), t.tier ?? 0);
+}
+
+// A tiered building's level as pips (Plan 89): filled up to the level, out of
+// the chain's top tier.
+function LevelPips({ s, t }: { s: GameState; t: Buildable }) {
+  const tier = t.tier;
+  if (tier === undefined) return null;
+  const of = maxTierOf(s, t);
+  return (
+    <span className="build-tile-level" role="img" aria-label={`Level ${tier} of ${of}`} title={`Level ${tier} of ${of}`}>
+      {Array.from({ length: of }, (_, i) => <i key={i} className={i < tier ? 'on' : undefined} />)}
+    </span>
+  );
 }
 
 // One building as a tile: a button for anything the player can act on (arm a
@@ -364,9 +396,9 @@ function BuildTile({
             : `Expands the ${t.name} in place — no new building. Adds ${count(rung.seatsGain)} seats in the stands, and their prestige, at once, and ${count(rung.servesGain)} of social capacity when the ${rung.weeks} weeks of work are done; the teams keep playing while the work is under way.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
-          {marker && <span className="kind-tag">{marker}</span>}
-          <span className="build-tile-icon"><Icon /></span>
+          <TilePlan Icon={Icon} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
           <span className="build-tile-name">{t.name}</span>
+          <LevelPips s={s} t={t} />
           {detail && <span className="build-tile-sub">{detail}</span>}
           <span className="build-tile-foot">expand · {moneyShort(rung.cost)} · {weeksShort(rung.weeks)}</span>
         </button>
@@ -374,10 +406,10 @@ function BuildTile({
     }
     return (
       <div className="build-tile done" title={detail ? `${t.name} · ${detail}` : t.name}>
-        {marker && <span className="kind-tag">{marker}</span>}
-        <span className="build-tile-icon"><Icon /></span>
+        <TilePlan Icon={Icon} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
         <span className="build-tile-name">{t.name}</span>
-        <span className="build-tile-foot">✓ built{detail ? ` · ${detail}` : ''}</span>
+        <LevelPips s={s} t={t} />
+        {detail && <span className="build-tile-sub">{detail}</span>}
       </div>
     );
   }
@@ -407,9 +439,9 @@ function BuildTile({
         }}
         onClick={() => onArmPlacement(armed ? null : t.id)}
       >
-        {marker && <span className="kind-tag">{marker}</span>}
-        <span className="build-tile-icon"><Icon /></span>
+        <TilePlan Icon={Icon} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
+        <LevelPips s={s} t={t} />
         {detail && <span className="build-tile-sub">{detail}</span>}
         <span className="build-tile-foot">{armed ? 'placing…' : 'site · no charge'}</span>
       </button>
@@ -421,9 +453,9 @@ function BuildTile({
     const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
     return (
       <div className="build-tile developing" title={`${t.name} · ${t.duration - weeksLeft} of ${t.duration} weeks built`}>
-        {marker && <span className="kind-tag">{marker}</span>}
-        <span className="build-tile-icon"><Icon /></span>
+        <TilePlan Icon={Icon} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
+        <LevelPips s={s} t={t} />
         <span className="build-tile-progress">
           <ProgressBar
             fraction={elapsed}
@@ -473,9 +505,9 @@ function BuildTile({
       }}
       onClick={() => onArmPlacement(armed ? null : t.id)}
     >
-      {marker && <span className="kind-tag">{marker}</span>}
-      <span className="build-tile-icon"><Icon /></span>
+      <TilePlan Icon={Icon} stamp={marker} />
       <span className="build-tile-name">{t.name}</span>
+      <LevelPips s={s} t={t} />
       {detail && <span className="build-tile-sub">{detail}</span>}
       <span className="build-tile-foot">
         {armed
@@ -509,10 +541,9 @@ function BuiltSummaryTile({ group, built, open, onToggle }: {
       aria-label={open ? `Hide the ${group.label.toLowerCase()} already built` : `List the ${group.label.toLowerCase()} already built`}
       title={detail ? `${built.length} built · ${detail}` : `${built.length} built`}
     >
-      <span className="kind-tag">×{built.length}</span>
-      <span className="build-tile-icon"><Icon /></span>
+      <TilePlan Icon={Icon} stamp={`×${built.length} BUILT`} />
       <span className="build-tile-name">{group.label}</span>
-      <span className="build-tile-sub">{detail ? `built · ${detail}` : 'built'}</span>
+      {detail && <span className="build-tile-sub">{detail}</span>}
       <span className="build-tile-foot">{open ? 'Hide' : 'Show'} <DisclosureIcon open={open} /></span>
     </button>
   );
@@ -568,7 +599,7 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), SPECIALIZATION_MILESTONE_RANK);
   return (
     <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
-      <span className="build-tile-icon"><Icon /></span>
+      <TilePlan Icon={Icon} />
       <span className="build-tile-name">{t.name}</span>
       <span className="build-tile-sub">{CLOSED_BUILD_WORDS.sub(pillar)}</span>
       <span className="build-tile-foot">{CLOSED_BUILD_WORDS.foot}</span>
@@ -622,7 +653,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('draw')}
         title="Draw a pathway by filling in tiles — P on the map does the same, and the right mouse button erases while either tool is armed"
       >
-        <span className="build-tile-icon"><DrawPathIcon /></span>
+        <TilePlan Icon={DrawPathIcon} />
         <span className="build-tile-name">Draw path</span>
         <span className="build-tile-foot">fills in tiles · P</span>
       </button>
@@ -633,7 +664,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('erase')}
         title="Erase a drawn pathway — with either tool armed the right mouse button erases too, so this is for a long clearing pass rather than a correction"
       >
-        <span className="build-tile-icon"><EraseIcon /></span>
+        <TilePlan Icon={EraseIcon} />
         <span className="build-tile-name">Erase path</span>
         <span className="build-tile-foot">remove a path</span>
       </button>
@@ -646,7 +677,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('plant')}
         title="Plant trees by filling in tiles — the right mouse button fells while either tree tool is armed. Nothing is planted under a building or a path."
       >
-        <span className="build-tile-icon"><TreeIcon /></span>
+        <TilePlan Icon={TreeIcon} />
         <span className="build-tile-name">Plant trees</span>
         <span className="build-tile-foot">fills in tiles</span>
       </button>
@@ -658,7 +689,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('fell')}
         title="Fell trees — with either tree tool armed the right mouse button fells too, so this is for clearing woodland rather than a correction"
       >
-        <span className="build-tile-icon"><EraseIcon /></span>
+        <TilePlan Icon={EraseIcon} />
         <span className="build-tile-name">Fell trees</span>
         <span className="build-tile-foot">clear woodland</span>
       </button>
@@ -670,7 +701,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('lamp')}
         title="Stand a lamp on or beside a path, one a click — the right mouse button lifts one. Free, like a path."
       >
-        <span className="build-tile-icon"><DrawPathIcon /></span>
+        <TilePlan Icon={DrawPathIcon} />
         <span className="build-tile-name">Lamps</span>
         <span className="build-tile-foot">beside a path</span>
       </button>
@@ -681,7 +712,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('bench')}
         title="Set a bench on or beside a path, one a click: it faces the path, and R turns it before it is set. The right mouse button lifts one. Free, like a path."
       >
-        <span className="build-tile-icon"><DrawPathIcon /></span>
+        <TilePlan Icon={DrawPathIcon} />
         <span className="build-tile-name">Benches</span>
         <span className="build-tile-foot">beside a path</span>
       </button>
@@ -756,7 +787,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. A red exclamation mark on a category means something new to build there, a building the college has not yet looked at; it clears once the category is opened. Each tile shows what is built, what is under construction and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one 'Built ×N' tile — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life whether or not the college has built it any beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though beds widen the applicant pool up to 2,500 of them. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
+      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. A red exclamation mark on a category means something new to build there, a building the college has not yet looked at; it clears once the category is opened. Each tile shows what is built, what is under construction and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one tile stamped '×N built' — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life whether or not the college has built it any beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though beds widen the applicant pool up to 2,500 of them. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so you can see where a building will land before you commit it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">
