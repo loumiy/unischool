@@ -4,7 +4,55 @@
 rounds of styling mockups (October 2026) into changes to the screens they
 were drawn on.*
 
-**Status: Proposed.** One PR, seven streams merged into it.
+**Status: Landed.** One PR, the seven streams merged into it.
+
+**As implemented:**
+- **A:** one `GradeMark` (a letter in one of three hand-drawn rings at one of
+  five tilts, picked from the letter) replaced the grade chip everywhere it
+  was drawn: Curriculum, Faculty, Building info, the Hall of Fame and the
+  Final Report. The coloured letter inside an instructor's name chip stays a
+  letter: a ring there would make the chip taller.
+- **B:** the meters fill to the raw score, with potential as a paler run
+  beyond it. The foot is two lines, not one: tiles are about 200px wide and
+  can carry More, Train and Dismiss at once. `FacultyPortrait` gained a
+  square shape for the mount.
+- **C:** the college records no founding year, and every game starts at
+  Year 1, so the patch reads "Est. Year 1". The dock's terms are the two
+  26-week halves of the year (`TERM_LENGTH`, `weekOfTerm` in `format.ts`);
+  the calendar's large figure stays the week of the year, as the old line
+  said, and the bar under the days is the week within the term. The seven
+  cells name their order only: the sim moves in whole weeks.
+- **D:** the dial's ticks are an SVG mask over the existing arc; a full dial
+  goes to the secondary colour, not brass, so it follows the school's pick.
+  The data has no praise or warning field, so a reputation whose own effect
+  costs the college (Party School, Commuter, Pressure Cooker) takes the
+  cream sticker. Stickers are 82px, not 58: "Research Powerhouse" broke
+  mid-word any smaller. The large quote mark is set in the sans: the display
+  face's mark read as two blocks at that size.
+- **E:** the running projects, which were tall panels above the cards, now
+  sit under their own lab's row, so the roster is one list. A running lab
+  keeps its "Wind up"; the mock's "View" had nothing to open. The tally has a
+  cell per lab that stands, not a fixed thirteen.
+- **F:** the "13–5" on a program card is the all-time series with that
+  sport's rival, not a game, so the scoreboard's second cell is the *rival
+  series* and reads Lead, Trail or Level rather than W or L. "Hire" scrolls
+  to the market and moves focus there. The switch is opt-in (a `switch`
+  class and `segmentedSwitch.ts`): Athletics' subsidy and scholarships, the
+  Faculty views and every Settings row take it; the Inbox filters, build
+  categories and tree chips keep their pills. The athletic director keeps
+  his block: one person, appointed by the board, with no market to open.
+- **G:** every tile state stays apart: available, placing, developing
+  (dashed, in the primary), built (stamped), the built-×N summary, and
+  disabled (flat, the drawing faint). Level pips run to the highest tier the
+  data has, so the library shows one of one. The cohort count was coloured
+  by the cohort's pull (drawn above or below its usual share); that meaning
+  moved to an arrow on the card's header, since the count is now ink and
+  the colour is the change against last year. The cohort colour map moved
+  to `cohortColors.ts`, shared with Enrollment.
+- **Checks:** `npm run check` (148 of 148 suites) and `npm run phone` on a
+  late-game save ("Nothing runs past the edge"), on the merged branch.
+- **Not done:** the README's screenshots (`docs/images/`) still show the
+  screens before this plan.
 
 The owner kept the Varsity register of Plan 18 (the school's colours,
 cream and outline ink, hard offsets) and asked for tweaks that make it more
