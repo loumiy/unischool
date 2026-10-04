@@ -67,8 +67,9 @@ export function hallDisplayName(s: GameState, t: Buildable): string {
 
 // ---------------------------------------------------------------------
 // Sorting (Plan 55). Programs begin in Founders Hall and move out, school
-// by school, into halls of their own, until every school has one and
-// the last school sorted keeps Founders Hall (Plan 59). These readings tell the player how far along
+// by school, into halls of their own, until every school has one; since
+// Plan 89C there is a purchased hall for each of the seven, and Founders
+// Hall is left to the administration. These readings tell the player how far along
 // that is: the letters (eventData.ts), the next-step line (nextStep.ts),
 // the hall's label and panel, and the program tile's suggested move.
 // ---------------------------------------------------------------------
@@ -81,12 +82,14 @@ export interface Claim {
 }
 
 // The school a hall is being sorted into: every program in it, settled or
-// arriving, belongs to that school. Null when it is empty or mixed, and for
-// Founders Hall until every purchased hall is sited (foundersIsHome). A
-// full claim with nothing in transit is a dedication (dedicatedSchool
-// above).
+// arriving, belongs to that school. Null when it is empty or mixed, and
+// always for Founders Hall: since Plan 89C there is a purchased hall for
+// every school, so Founders Hall is nobody's home and every program in it
+// is away from home. A full claim with nothing in transit is a dedication
+// (dedicatedSchool above), and a school dedicated in Founders Hall is
+// still founded; it is simply never the line of play.
 export function claimedSchool(s: GameState, hallId: string): Claim | null {
-  if (hallId === FOUNDERS_HALL_ID && !foundersIsHome(s)) return null;
+  if (hallId === FOUNDERS_HALL_ID) return null;
   const hall = s.tech.find((t) => t.id === hallId);
   const slots = s.halls[hallId];
   if (!hall || !isAcademicHall(hall) || !slots) return null;
@@ -111,15 +114,6 @@ export function claimCutBy(s: GameState, hallId: string, programId: string): Cla
   const claim = claimedSchool(s, hallId);
   const program = programById(programId);
   return claim && program && program.school !== claim.school ? claim : null;
-}
-
-// Founders Hall is the starting room, no school's, until every purchased
-// hall is sited (Plan 59): six halls for seven schools, so the school still
-// in it then is at home there, and nothing asks it to move.
-export function foundersIsHome(s: GameState): boolean {
-  return s.tech
-    .filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID)
-    .every((t) => t.status === 'developing' || t.status === 'done');
 }
 
 // Every claimed hall, with its claim.
