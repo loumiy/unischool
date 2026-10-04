@@ -17,6 +17,7 @@ import { satisfactionFigure } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
 import { PARK_WORDS, parkStands } from '../../data/researchParkData';
 import { specializationOf } from '../prestige/specialization';
+import { slotFree } from '../administration/offices';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the earliest undone letter ask (the letters' order must
@@ -127,7 +128,7 @@ function seating(s: GameState): NextStep | null {
 // programs whatever the draw (Plan 78D), so its room is never a wait on
 // the offer.
 function freeSlot(s: GameState): NextStep | null {
-  const hasRoom = (hallId: string) => s.halls[hallId]?.some((slot) => slot.programId === null) ?? false;
+  const hasRoom = (hallId: string) => s.halls[hallId]?.some(slotFree) ?? false;
   const nameOf = (hallId: string) => {
     const hall = s.tech.find((t) => t.id === hallId);
     return hall ? hallDisplayName(s, hall) : hallId;

@@ -30,6 +30,7 @@ import { initiativeDepth } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
 import { CloseIcon } from './icons';
+import { slotFree } from '../systems/administration/offices';
 
 // A popover for a placed building (see CampusMap.tsx's inspectBuilding). For
 // every kind but one it is a pure projection of the Buildable and the
@@ -307,7 +308,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
     .map(([hallId, slots]) => ({
       hallId,
       hall: s.tech.find((t) => t.id === hallId),
-      free: slots.map((slot, i) => (slot.programId === null ? i : -1)).filter((i) => i >= 0),
+      free: slots.map((slot, i) => (slotFree(slot) ? i : -1)).filter((i) => i >= 0),
     }))
     .filter((d) => d.hall && d.free.length > 0 && canRelocateProgram(s, { programId: program.id, hallId: d.hallId, slot: d.free[0] }));
   if (inTransit > 0) {
@@ -414,7 +415,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   const canFound = founding !== null && canFoundProgram(s, founding);
   // The opening walkthrough's steps done in this panel (state/opening.ts).
   const walking = s.events.opening.stage === 'appoint' || s.events.opening.stage === 'found';
-  const free = slots.filter((slot) => slot.programId === null).length;
+  const free = slots.filter(slotFree).length;
   const school = dedicatedSchool(s, t.id);
   // On its way to a school (Plan 55): every program in it is one school's.
   const claim = school ? null : claimedSchool(s, t.id);
@@ -526,7 +527,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
           // first free program slot of Founders Hall until it is opened (see
           // state/opening.ts and styles.css's .opening-target).
           const ringed = walking && t.id === FOUNDERS_HALL_ID && openSlot === null
-            && slots.findIndex((slot) => slot.programId === null) === i;
+            && slots.findIndex(slotFree) === i;
           return (
             <button
               key={i}
