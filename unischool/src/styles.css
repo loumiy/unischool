@@ -1478,17 +1478,32 @@ button.build-tile { font-family: inherit; }
 
 /* Program rows grouped by school (--school-hue from data/schoolPalette.ts).
    Cells compress to fit; sideways scroll is only a narrow fallback. */
-.school-group { margin-bottom: 20px; }
-.school-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
-  padding: 8px 14px; border-radius: var(--radius-lg); background: var(--school-hue, var(--school-primary)); color: var(--school-on-primary); }
+/* Each school is a binder divider (Plan 89G): a cream row with a square
+   top-right, the school's color in a tab at its left holding its mark, and
+   its programs filed under it on a 6px edge of the same color. */
+.school-group { margin-bottom: var(--space-16); }
+.school-group-head { position: relative; z-index: 1; display: flex; align-items: stretch; overflow: hidden;
+  background: var(--cream-hi); color: var(--ink); border: 2px solid var(--outline); border-radius: 0 var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-1); }
+.school-group.collapsed .school-group-head { border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+.school-group-tab { flex: none; display: grid; place-items: center; min-width: 40px; padding: 0 var(--space-8);
+  background: var(--school-hue, var(--school-primary)); color: var(--school-on-primary); border-right: 2px solid var(--outline); }
+.school-group-head-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-8) var(--space-12); flex-wrap: wrap;
+  padding: var(--space-6) var(--space-12) var(--space-6) var(--space-8); }
 .school-group-head h3 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); letter-spacing: -0.01em; color: inherit; }
-.school-group-mark { color: inherit; font-size: var(--text-2xl); line-height: 1; }
+.school-group-mark { color: inherit; font-size: var(--text-xl); line-height: 1; }
 /* No italic: the display face has none, and a slanted one is faked. */
-.school-group-unnamed { font-weight: 600; color: inherit; opacity: 0.8; }
-.program-rows { display: flex; flex-direction: column; gap: 8px; overflow-x: auto; }
-.program-row { border: 2px solid var(--outline); border-left: 6px solid var(--school-hue, var(--outline));
-  border-radius: var(--radius-lg); background: var(--cream-hi); padding: 8px 10px 10px; min-width: 480px; }
-.program-row.graduate { border-style: dashed; border-left-style: solid; }
+.school-group-unnamed { font-weight: 600; color: var(--ink-muted); }
+.school-group-tally { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-8); }
+.school-group-meter { width: 50px; height: 8px; border: 1.5px solid var(--outline); border-radius: var(--radius-xs); overflow: hidden; background: var(--cream-lo); }
+.school-group-meter > span { display: block; height: 100%; background: var(--school-hue, var(--school-primary)); }
+.program-rows { display: flex; flex-direction: column; overflow-x: auto; }
+/* Filed flush under the divider: a hairline between programs, the outline
+   closing the last. */
+.program-row { border: solid var(--outline); border-width: 0 2px 1px 6px; border-left-color: var(--school-hue, var(--outline));
+  border-bottom-color: var(--parchment-line); background: var(--cream-hi); padding: 8px 10px 10px; min-width: 480px; }
+.program-row:last-child { border-bottom: 2px solid var(--outline); border-radius: 0 0 var(--radius-lg) 0; }
+.program-row.graduate { border-right-style: dashed; }
 .program-row-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
 .program-row-head h4 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
 .program-row-hall { font-size: var(--text-2xs); font-weight: 700; color: var(--ink-muted); }
@@ -1498,7 +1513,7 @@ button.build-tile { font-family: inherit; }
 .program-row.collapsed { padding-bottom: 6px; }
 /* An unstaffed program is dark (Plan 59). */
 .program-row-dark { font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; color: var(--danger-ink); text-transform: uppercase; letter-spacing: 0.04em; }
-.school-restaff { margin-left: auto; padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
+.school-restaff { padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 .dean-plan h3 { margin: 12px 0 4px; font-size: var(--text-sm); }
 .dean-plan ul { margin: 0; padding-left: 18px; font-size: var(--text-xs); }
 /* Nine cells with the tier rules as their own tracks (1 | 4 | 4), so a rule
@@ -1517,7 +1532,7 @@ button.build-tile { font-family: inherit; }
 :is(.school-group, .hall-slot) .course-cell.done .instructor-chip { background: var(--cream-hi); }
 .school-group .course-cell.placeholder { border-color: color-mix(in srgb, var(--school-hue, var(--parchment-line)) 35%, var(--parchment-line)); }
 .lane-count { margin-left: auto; font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.school-group-head .lane-count { font-size: var(--text-sm); color: inherit; }
+.school-group-head .lane-count { margin-left: 0; font-size: var(--text-sm); color: var(--ink); }
 
 /* Faculty chip: draggable; a valid drop cell lifts while a chip is dragged. */
 .instructor-chip { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; max-width: 100%;
@@ -1687,26 +1702,34 @@ button.build-tile { font-family: inherit; }
 
 /* ---------- Course grades (data/courseQuality.ts) ----------
    The letter carries the meaning; the low-saturation tint is only a cue. */
-.grade-chip { display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--display); font-weight: 800; line-height: 1; border-radius: var(--radius-pill);
-  border: 1.5px solid currentColor; flex: none; }
-.grade-chip.sm { min-width: 17px; height: 17px; font-size: var(--text-xs); padding: 0 3px; }
-.grade-chip.lg { min-width: 34px; height: 34px; font-size: var(--text-lg); padding: 0 6px; }
-/* "grade B" beside a count (Plan 78F): the word is quieter than the letter. */
-.grade-chip.worded { gap: 3px; padding: 0 6px; }
-.grade-chip-word { font-family: var(--sans); font-weight: 600; font-size: var(--text-2xs); }
+/* The letter circled in pen (Plan 89D; components/GradeMark.tsx): a
+   hand-drawn ring in the grade's ink, tilted by the letter's own seed. Sized
+   in em, so it follows the text scale. */
+.grade-mark { --mark-ink: var(--grade-a); position: relative; display: inline-grid; place-items: center; flex: none;
+  width: 1.75em; height: 1.75em; font-family: var(--display); font-weight: 800; line-height: 1; color: var(--mark-ink);
+  vertical-align: middle; transform: rotate(var(--mark-tilt, -4deg)); }
+.grade-mark.sm { font-size: var(--text-base); }
+.grade-mark.lg { font-size: var(--text-2xl); }
+.grade-mark svg { position: absolute; inset: -0.12em; width: calc(100% + 0.24em); height: calc(100% + 0.24em); overflow: visible; }
+.grade-mark path { fill: var(--mark-fill, none); stroke: var(--mark-ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.grade-mark-letter { position: relative; }
+.mark-a { --mark-ink: var(--grade-a); }
+.mark-b { --mark-ink: var(--grade-b); }
+.mark-c { --mark-ink: var(--grade-c); }
+.mark-d { --mark-ink: var(--grade-d); }
+.mark-f { --mark-ink: var(--grade-f); }
 .grade-a { color: var(--grade-a); background: var(--grade-a-bg); }
 .grade-b { color: var(--grade-b); background: var(--grade-b-bg); }
 .grade-c { color: var(--grade-c); background: var(--grade-c-bg); }
 .grade-d { color: var(--grade-d); background: var(--grade-d-bg); }
 .grade-f { color: var(--grade-f); background: var(--grade-f-bg); }
 
-/* The tick only draws when there is no grade chip. */
-.course-cell .grade-chip { position: absolute; top: 4px; right: 5px; }
-/* A done cell is dark, so the chip carries its own light ground. */
-.course-cell.done .grade-chip { box-shadow: 0 0 0 2px var(--cream-hi); }
+/* The tick only draws when there is no grade mark. */
+.course-cell .grade-mark { position: absolute; top: 3px; right: 4px; font-size: var(--text-xs); }
+/* A done cell is dark, so the ring carries its own light ground. */
+.course-cell.done .grade-mark { --mark-fill: var(--cream-hi); }
 
-.panel-head-figure .grade-chip { margin-left: 2px; }
+.panel-head-figure .grade-mark { margin-left: 2px; }
 
 .course-drawer-grade { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; }
 .course-drawer-grade-body { min-width: 0; }
@@ -2124,7 +2147,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .next-up-item.listings .next-up-door { border-left-color: var(--ok-on-light); }
 .next-up-item.listings .next-up-door.soon { border-left-color: var(--bad-on-light); }
 .next-up-item.searches .next-up-door { border-left-color: var(--warn-on-light); }
-.next-up-door .grade-chip { margin: 0 2px; }
+.next-up-door .grade-mark { margin: 0 2px; }
 
 /* ---------- Capacity meter ----------
    Drawn to a scale shared across the board (facultyCapacity.ts's `scale`):
@@ -2826,7 +2849,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .final-report-axes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
 .final-report-axes li { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center;
   padding: var(--inset-card); background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
-.final-report-axes .grade-chip { grid-row: 1 / span 2; }
+.final-report-axes .grade-mark { grid-row: 1 / span 2; }
 .final-report-axis-label { font-family: var(--display); font-weight: 800; color: var(--ink); }
 .final-report-axis-line { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
 .final-report-addendum { margin-top: 14px; padding-top: 10px; border-top: 2px dashed var(--parchment-line); }
