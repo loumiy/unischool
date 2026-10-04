@@ -79,8 +79,11 @@ beat, which disagree on purpose about how much the player is allowed to know:
    "price" part** (Plan 80C): the line reads their product, since both are
    what the price did, and who it turned away shows in the class mix. The
    decomposition is exact: the ratios compose to the pool's own ratio before
-   rounding. Each cohort card
-   shows last summer's count small beneath this year's.
+   rounding. Each cohort card (Plan 89T)
+   is headed in its cohort's color and shows this year's count with its
+   change on last summer's beside it, and two bars, this year and last, on
+   one scale shared by all eight cards; an arrow on the header says whether
+   the cohort is drawn above or below its usual share.
 
    **The year's lift** (Plan 79C). A grand landmark finished during the year
    draws 1,500 applicants once, and each milestone with an applicant bonus

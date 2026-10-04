@@ -141,8 +141,9 @@
 
   /* Fonts (self-hosted, main.tsx). Three faces: the display face for titles,
      figures, chips and buttons; the sans for prose; and the mono for the
-     dock's funds counter alone, so its digits hold their columns as it
-     ticks. */
+     dock's funds counter, so its digits hold their columns as it ticks, and
+     for figures read as a posted record: a card's salary, a scoreboard, a
+     stamp, a tally (Plan 89). */
   --display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
   --sans: 'Archivo', system-ui, sans-serif;
   --mono: 'Azeret Mono Variable', 'Azeret Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;

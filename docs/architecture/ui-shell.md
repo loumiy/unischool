@@ -129,8 +129,13 @@ opens History › the guide (the guide's table, the top fifty and, below them,
 the college's own row with its neighbors; Plan 80C), satisfaction opens
 Students › the satisfaction breakdown, each a button named with its figure
 ("Prestige 51.5 — open History, Prestige"). The map is `data/statChips.ts`'s
-`chipDoor`; enrolled is a figure only. The right zone stacks the clock over
-five round gears (pause, play, 2×, 4×, 8×), with the **committee chip**
+`chipDoor`; enrolled is a figure only. The right zone puts the clock beside two rows (Plan 89S): the clock is a desk
+calendar's page, the term (Fall or Spring, the two 26-week halves of the year)
+on its header in the school's second color and the week of the year large,
+its full date ("Year 23 · Fall term · Week 2") as its label. Beside it the
+first row is the year, the week's seven cells lettered M to S, and a bar of
+the term's 26 weeks; the second is five round gears (pause, play, 2×, 4×,
+8×), with the **committee chip**
 beside the gears (Plan 80E): "Committee 3 of 4", the courses the curriculum
 committee is writing of the most it can write at once, drawn as the stat
 chips are, and on a phone as the curriculum glyph beside "3/4". It is
@@ -148,7 +153,10 @@ popup is open, and the tabs scroll beside Build (Plan 76I). The school's
 name is not in the band: it hangs as a **pennant**
 in the map's top-left corner in the school's colours (`Pennant.tsx`), one
 name in one face, withheld while a tab is open because the tab's own title
-takes that corner. It renames nothing (Plan 80D): the college's one rename
+takes that corner. It is an embroidered patch (Plan 89H): an oval of felt in
+the primary, a satin border in the secondary with a stitched line inside it,
+and "★ Est. Year 1 ★" over the name — every college is founded in Year 1,
+and the game keeps no other date for it. It renames nothing (Plan 80D): the college's one rename
 is a field in the charter's letter, in the inbox's reading pane
 (`InboxTab.tsx`'s `CharterAnswer`).
 
@@ -177,8 +185,11 @@ geometry.
   bad (`--bad-on-*`), warning (`--warn-on-*`), and the danger set
   (`--danger-ink`, `--danger-bg`, `--danger-line`) for armed confirmations.
   The course grades have their own ink and ground (`--grade-a…f`,
-  `--grade-*-bg`), and the Enrollment cohort bar its eight pigments
-  (`--cohort-1…8`). The color-vision-safe setting (Plan 34) moves the good
+  `--grade-*-bg`); a grade is drawn as `GradeMark` (Plan 89D), its letter
+  in a ring drawn in pen in the grade's ink, one of three rings at one of
+  five tilts, picked from the letter so a B always looks the same. The
+  Enrollment cohort bar and the summer's admissions cards share eight
+  pigments (`--cohort-1…8`, mapped in `cohortColors.ts`). The color-vision-safe setting (Plan 34) moves the good
   and bad signals to blue and orange, and the grades with them.
 - **Illustration, not chrome.** The hall of fame's frames are wood and brass
   (`--frame-*`), and the map's drawings keep their own literal colors; the
@@ -186,8 +197,11 @@ geometry.
 - **Three faces.** `--display` (Bricolage Grotesque at 800) for titles,
   figures, chips and buttons; `--sans` (Archivo, loaded 400–700) for prose
   and detail lines; and `--mono` (Azeret Mono) for the dock's funds counter
-  and its weekly net alone, so the digits hold their columns as it ticks.
-  Every other figure is the display face with tabular numerals. All three
+  and its weekly net, so the digits hold their columns as it ticks — and,
+  since Plan 89, for figures read as a printed or posted record: a faculty
+  card's salary and slots, an athletics program's scoreboard, a build
+  tile's stamp, a cohort's change on last year, the research park's tally
+  count. Every other figure is the display face with tabular numerals. All three
   are self-hosted through `@fontsource` imports in `main.tsx`. The display
   face has no italic, so it is never slanted; a difference is marked by
   weight, color or opacity.
@@ -226,8 +240,9 @@ be checked against:
    drawer, never two on the same card.
 2. **State is a chip, never a colored card.** Over, short, listed, done,
    champion, full, deficit: a filled pill with a word in it, on a card that
-   stays cream. The card's own color is only ever the school's (a group
-   header on the Curriculum tab, a committed scholar's left rule) — a red
+   stays cream. The card's own color is only ever the school's (a
+   school's divider tab and left edge on the Curriculum tab, a faculty
+   card's band, a committed scholar's left rule) — a red
    card would say the whole thing is wrong when one word is. A warning in
    prose is the warning note: red words beside a red rule on the card's own
    ground.
@@ -251,10 +266,14 @@ primary fill, and a classed button in it (a skip, a decline) keeps its own
 role, so no rule needs `!important`. Choice cards (a decision's choices, the
 athletic director's candidates, an instructor, a research offer) are cards
 with the same outline and offset, the label in the display face and the
-detail in the sans. A **segmented choice** (`.segmented`) is a row of cream
-pills with the picked one in the secondary fill: the Faculty views, the
-build categories, the athletics subsidy, the settings, the tree species, a
-seat's policy. An arrow (→) sits on a button only when it changes screen
+detail in the sans. A **segmented choice** (`.segmented`) comes in two forms.
+A fixed set of a few levels is a **switch** (`.segmented.switch`, Plan 89Q):
+one sunken track with a thumb in the secondary fill that slides under the
+picked option (`segmentedSwitch.ts` places it) — the Faculty views, the
+athletics subsidy and a flagship's scholarships, and every row of the
+settings. A choice with many options, icons or counts stays a row of cream
+pills with the picked one in the secondary fill: the build categories, the
+inbox filters, the tree species, a seat's policy. An arrow (→) sits on a button only when it changes screen
 ("Open in Curriculum →").
 
 **Asking before a loss** is `ConfirmButton` (Plan 47), everywhere: the first
