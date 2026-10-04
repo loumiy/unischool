@@ -76,10 +76,11 @@ export const FOUNDERS_HALL_REPUTATION_BONUS = 1.5;
 // visible. The first is cheap but waits on FIRST_HALL_COURSE_GATE developed
 // courses; each rung after costs ACADEMIC_HALL_COST_RATIO times more.
 //
-// Six rungs for seven schools of six majors (Plan 59; seven from Plan 55):
-// the intended line of play founds programs in Founders Hall, then moves
-// them out, school by school, into halls of their own, and the last school
-// sorted keeps Founders Hall as its own. Graduate programs are housed in
+// Seven rungs for seven schools of six majors (Plan 87C; six from Plan 59,
+// seven from Plan 55): the intended line of play founds programs in
+// Founders Hall, then moves them out, school by school, into halls of their
+// own, and Founders Hall's slots are left to the administration's offices
+// (Plan 87). Graduate programs are housed in
 // capital projects (projectData.ts), so no school needs a second hall. The
 // numbers are provisional, fitted by feel.
 export const ACADEMIC_HALL_SLOTS = 6;
@@ -97,7 +98,7 @@ const ACADEMIC_HALL_UPKEEP_PER_WEEK = 3_000;
 // layout is the player's.
 const ACADEMIC_HALL_NAMES = [
   'Elm Hall', 'Oak Hall', 'Linden Hall', 'Maple Hall',
-  'Chestnut Hall', 'Sycamore Hall',
+  'Chestnut Hall', 'Sycamore Hall', 'Walnut Hall',
 ];
 export const ACADEMIC_HALL_COUNT = ACADEMIC_HALL_NAMES.length;
 export const ACADEMIC_HALL_ID_PREFIX = 'HALL-';

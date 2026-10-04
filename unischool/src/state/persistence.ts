@@ -21,7 +21,7 @@ import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } fr
 import { fellTrees } from '../data/treeData';
 import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
-import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
+import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
@@ -64,7 +64,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 93; // Plan 85H: the downtown and the festival
+export const SAVE_VERSION = 94; // Plan 87C: Walnut Hall
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -285,6 +285,18 @@ function downtownStarts(state: GameState): void {
   state.downtown = emptyDowntown();
 }
 
+// 93 -> 94, Plan 87C: Walnut Hall, the seventh purchased hall, joins the
+// catalog (a save keeps the catalog it was founded with, so it is added,
+// locked, after Sycamore Hall: it opens once Sycamore Hall is built or
+// going up, as a new run's does). A hall already carrying its id (a sited
+// Cedar Hall a version-77 save kept, Plan 59) stays as it is.
+function walnutHall(state: GameState): void {
+  const id = academicHallId(ACADEMIC_HALL_COUNT - 1);
+  if (!Array.isArray(state.tech) || state.tech.some((t) => t.id === id)) return;
+  const walnut = initialTech().find((t) => t.id === id);
+  if (walnut) state.tech.push(walnut);
+}
+
 // The downtown (Plan 85H), on every load: growth 0 to 1, goodwill 0 to 100,
 // and the festivals a year each, no later than the save's year, of a scale
 // the game knows or none, oldest first; anything else is dropped or put
@@ -391,6 +403,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   90: researchParkGate,
   91: athleticsComplex,
   92: downtownStarts,
+  93: walnutHall,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a

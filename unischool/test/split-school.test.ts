@@ -52,7 +52,9 @@ const HOMELESS = others[others.length - 1];
 
 // Every hall standing and in use: Science four in Elm Hall and `second` in
 // Oak Hall, one program of each other school but HOMELESS in the other
-// five (Founders Hall among them), and a HOMELESS program on offer.
+// five, Founders Hall full of their second programs (nobody's home since
+// Plan 87C, so it must be full for no room to be left), and a HOMELESS
+// program on offer.
 function trapped(second = 2, first = 4): GameState {
   const s = createInitialState('Split');
   const halls = s.tech.filter((t) => isAcademicHall(t));
@@ -64,7 +66,8 @@ function trapped(second = 2, first = 4): GameState {
   const [elm, oak, ...rest] = halls.filter((t) => t.id !== FOUNDERS_HALL_ID).map((t) => t.id);
   science.slice(0, first).forEach((id, i) => { s.halls[elm][i] = { programId: id }; });
   science.slice(first, first + second).forEach((id, i) => { s.halls[oak][i] = { programId: id }; });
-  [...rest, FOUNDERS_HALL_ID].forEach((hallId, i) => { s.halls[hallId][0] = { programId: majors(others[i])[0] }; });
+  rest.forEach((hallId, i) => { s.halls[hallId][0] = { programId: majors(others[i])[0] }; });
+  s.halls[FOUNDERS_HALL_ID] = s.halls[FOUNDERS_HALL_ID].map((_, i) => ({ programId: majors(others[i % rest.length])[1 + Math.floor(i / rest.length)] }));
   s.programOffers = [majors(HOMELESS)[0]];
   s.clock.year = 12;
   return s;
