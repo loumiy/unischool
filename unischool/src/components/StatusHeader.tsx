@@ -17,7 +17,7 @@ import { FigureBox } from './Figure';
 import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
-import { count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney } from '../format';
+import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason, weekOfTerm } from '../format';
 import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
 import type { TabSection } from '../data/ladderData';
 import type { TabId } from './TabNav';
@@ -223,12 +223,28 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress, onO
   }, [lockedNote]);
   useSpeedHotkeys(speed, setSpeed, showPlaytestControls, lockOf, setLockedNote, keysLive);
 
-  // Two rows, clock above gears (styles.css's .toolbar-right).
+  // Two rows, clock above gears, with the calendar page beside both
+  // (styles.css's .toolbar-right). The page carries the whole date for a
+  // screen reader; the year, days and term bar beside it are drawn only.
+  const date = gameDate(s.clock.year, s.clock.week);
+  const termWeek = weekOfTerm(s.clock.week);
   return (
     <>
-      <div className="toolbar-school">
-        <span className="toolbar-clock">{gameDate(s.clock.year, s.clock.week)}</span>
-        <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
+      <div className="toolbar-calendar" role="img" aria-label={date} title={date}>
+        <span className="toolbar-calendar-term">{termSeason(s.clock.week)}</span>
+        <span className="toolbar-calendar-week">{s.clock.week}</span>
+        <span className="toolbar-calendar-word">Week</span>
+      </div>
+      <div className="toolbar-school" aria-hidden="true">
+        <span className="toolbar-clock">Year {s.clock.year}</span>
+        <div className="toolbar-days">
+          <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
+          <div className="term-bar" title={`Week ${termWeek} of ${TERM_LENGTH} this term`}>
+            {Array.from({ length: TERM_LENGTH }, (_, i) => (
+              <span key={i} className={i + 1 < termWeek ? 'done' : i + 1 === termWeek ? 'now' : undefined} />
+            ))}
+          </div>
+        </div>
       </div>
       <div className="toolbar-speed">
         <CommitteeChip s={s} onOpenSection={onOpenSection} />

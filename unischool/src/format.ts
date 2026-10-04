@@ -130,9 +130,18 @@ export function fraction(n: number, of: number): string {
   return `${count(n)}/${count(of)}`;
 }
 
-// The half of the college year a week falls in.
+// The half of the college year a week falls in: Fall is weeks 1-26, Spring
+// 27-52. The dock's calendar page heads with the season alone (Plan 89).
+export const TERM_LENGTH = WEEKS_PER_YEAR / 2;
+export function termSeason(week: number): 'Fall' | 'Spring' {
+  return week <= TERM_LENGTH ? 'Fall' : 'Spring';
+}
 export function termName(week: number): string {
-  return week <= WEEKS_PER_YEAR / 2 ? 'Fall term' : 'Spring term';
+  return `${termSeason(week)} term`;
+}
+// A week of the year counted within its term, 1..TERM_LENGTH.
+export function weekOfTerm(week: number): number {
+  return week <= TERM_LENGTH ? week : week - TERM_LENGTH;
 }
 
 // The game date, one form wherever a moment is dated: the dock, the title
