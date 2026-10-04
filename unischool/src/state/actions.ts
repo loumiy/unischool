@@ -68,6 +68,11 @@ export type Action =
   // leaves its slot dark for OFFICE_CLOSING_WEEKS.
   | { type: 'OPEN_OFFICE'; officeId: string; slot: number }
   | { type: 'CLOSE_OFFICE'; officeId: string }
+  // The Student Activities Office charters a club at once (Plan 89E); the
+  // Athletics Development Office founds a varsity team from a sport club,
+  // its venue standing, without a petition.
+  | { type: 'CHARTER_CLUB' }
+  | { type: 'FOUND_TEAM'; clubId: string }
   | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
   // Paid up front. Each participant loses RESEARCH_COMMITMENT_SLOTS; courses
   // that no longer fit are shed lowest tier first, handed to colleagues with

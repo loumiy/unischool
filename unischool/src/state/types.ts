@@ -1207,6 +1207,9 @@ export interface HallOffice {
   // Weeks left while the office closes: dark, costing and doing nothing,
   // still counted against the allowance and still held. Absent while open.
   closingWeeks?: number;
+  // The absolute week the office last acted (Plan 89E: a club chartered),
+  // for its interval. Absent until it has.
+  lastActionWeek?: number;
 }
 
 // Who teaches what: course id -> faculty id, chosen when development starts

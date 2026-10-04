@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import type { Action } from '../state/actions';
+import { officeOpen } from '../systems/administration/offices';
+import { charterRefusal, foundTeamCost, foundTeamRefusal } from '../systems/administration/officeActions';
 import type { BuildableStatus, GameState, GreekChapter, SatisfactionAttributes, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
@@ -28,7 +31,7 @@ const ATTRIBUTE_ORDER: Array<keyof SatisfactionAttributes> = ['academic', 'socia
 // difference. Membership is display only; no system reads it.
 // ---------------------------------------------------------------------
 
-function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?: string; note?: string }) {
+function OrgRow({ org, s, tag, note, action }: { org: StudentOrgBase; s: GameState; tag?: string; note?: string; action?: ReactNode }) {
   return (
     <li className="org-row">
       <span className="org-name">
@@ -39,6 +42,7 @@ function OrgRow({ org, s, tag, note }: { org: StudentOrgBase; s: GameState; tag?
         founded in Year {org.foundedYear} · {count(orgMembership(org, s))} members · {moneyShort(org.upkeepPerWeek)}/wk
         {note && <> · {note}</>}
       </span>
+      {action}
     </li>
   );
 }
@@ -344,7 +348,7 @@ function DowntownPanel({ s }: { s: GameState }) {
 
 // `clubs` is false before the first commencement (Plan 78B): the
 // organizations' panels wait for it, and one note says so.
-export default function StudentLifeTab({ s, clubs: clubsOpen = true }: { s: GameState; clubs?: boolean }) {
+export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s: GameState; act?: (a: Action) => void; clubs?: boolean }) {
   const clubs: StudentClub[] = s.orgs.clubs;
   const chapters: GreekChapter[] = s.orgs.chapters;
   const pending = s.orgs.pendingPetitions;
@@ -415,12 +419,32 @@ export default function StudentLifeTab({ s, clubs: clubsOpen = true }: { s: Game
                 {interestClubs(s).length}/{clubCapacity(s)} · sport {sportClubs(s).length}/{sportClubCapacity(s)}
               </span>
             </div>
+            {/* The Student Activities Office (Plan 89E): a club at once. */}
+            {officeOpen(s, 'student-activities') && (
+              <p className="office-action">
+                <button type="button" className="btn-quiet" disabled={charterRefusal(s) !== null}
+                  title={charterRefusal(s) ?? 'The Student Activities Office charters a club now, without waiting for one to petition'}
+                  onClick={() => act?.({ type: 'CHARTER_CLUB' })}>
+                  Charter a club
+                </button>
+                {charterRefusal(s) && <span className="outcome-note"> {charterRefusal(s)}</span>}
+              </p>
+            )}
             {clubs.length === 0 ? (
               <p className="empty-note">No recognized clubs.</p>
             ) : (
               <ul className="org-list">
                 {clubs.map((c) => (
-                  <OrgRow key={c.id} org={c} s={s} tag={c.sport ? 'sport' : undefined} note={c.sport ? varsityNote(c, s) : undefined} />
+                  <OrgRow key={c.id} org={c} s={s} tag={c.sport ? 'sport' : undefined} note={c.sport ? varsityNote(c, s) : undefined}
+                    action={c.sport && officeOpen(s, 'athletics-development') ? (
+                      // The Athletics Development Office (Plan 89E): varsity
+                      // without the petition, once the venue stands.
+                      <button type="button" className="btn-quiet" disabled={foundTeamRefusal(s, c.id) !== null}
+                        title={foundTeamRefusal(s, c.id) ?? `Found ${c.name} as a varsity team now, for ${money(foundTeamCost(s))}`}
+                        onClick={() => act?.({ type: 'FOUND_TEAM', clubId: c.id })}>
+                        Go varsity · {moneyShort(foundTeamCost(s))}
+                      </button>
+                    ) : undefined} />
                 ))}
               </ul>
             )}

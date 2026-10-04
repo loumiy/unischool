@@ -31,8 +31,9 @@ export function leaveFaculty(s: GameState, f: Faculty): Buildable[] {
 
 import {
   generateCandidate, marketStandingOf, grownStat, facultySalary, rollCandidateField, candidateArrivalsThisWeek,
-  SLOT_GROWTH_INTERVAL_WEEKS, MAX_FACULTY_SLOTS, CANDIDATE_LISTING_WEEKS,
+  SLOT_GROWTH_INTERVAL_WEEKS, MAX_FACULTY_SLOTS,
 } from '../../data/facultyData';
+import { candidateListingWeeks, candidatePoolTarget } from '../administration/effects';
 
 // One week of tenure for a rostered faculty member: teaching and research
 // grow toward their potentials and salary is recomputed (facultyData.ts's
@@ -66,9 +67,9 @@ function tickCandidatePool(s: GameState): void {
   for (const c of s.candidates) c.weeksListed += 1;
   // Who the market sends follows the college's standing (Plan 84B).
   const standing = marketStandingOf(s);
-  s.candidates = s.candidates.filter((c) => c.weeksListed < CANDIDATE_LISTING_WEEKS);
+  s.candidates = s.candidates.filter((c) => c.weeksListed < candidateListingWeeks(s));
 
-  const arrivals = candidateArrivalsThisWeek(s.candidates.length);
+  const arrivals = candidateArrivalsThisWeek(s.candidates.length, candidatePoolTarget(s));
   // Read once for the week, before any arrival: the fields short THIS week.
   const short = arrivals > 0 ? neededFacultyFields(s) : null;
   for (let i = 0; i < arrivals; i += 1) {

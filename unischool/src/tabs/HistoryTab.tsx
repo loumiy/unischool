@@ -10,6 +10,7 @@ import { SECTION_HEADINGS } from '../data/statChips';
 import { HistoryChart } from '../components/HistoryChart';
 import { MultiChart } from '../components/MultiChart';
 import { count, fraction, moneyShort, pct, prestigeFigure, satisfactionFigure } from '../format';
+import { rankForecast } from '../systems/administration/forecast';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
@@ -35,6 +36,7 @@ const TABLE_VISIBLE_ROWS = 12;
 // row.
 function PrestigePanel({ s }: { s: GameState }) {
   const breakdown = prestigeBreakdown(s);
+  const forecast = rankForecast(s);
   return (
     <section className="panel" {...sectionAnchor('history.prestige')}>
       <div className="panel-head">
@@ -48,6 +50,12 @@ function PrestigePanel({ s }: { s: GameState }) {
         />
       </div>
       <p className="stat specialization-status">{collegeSpecialization(s)}</p>
+      {forecast && (
+        <p className="stat rank-forecast">
+          The Office of Institutional Research: graded today, the summer would leave the college at {prestigeFigure(forecast.prestige)},
+          {' '}#{forecast.rank} in the guide{forecast.rank === forecast.now ? ', where it stands now' : ` (#${forecast.now} now)`}.
+        </p>
+      )}
       <Standing breakdown={breakdown} titled={false} />
     </section>
   );

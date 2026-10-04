@@ -27,6 +27,7 @@ import { inTitleYear, sportById } from '../../data/studentLifeData';
 import { grantCharter } from './charter';
 import { FESTIVAL_EVENT, districtGrowth } from '../../data/downtownData';
 import { changeGoodwill, holdFestival } from '../studentlife/downtown';
+import { eventDamageFactor } from '../administration/effects';
 
 // THE CATALOGUE (Plan 32, from v2's events.ts): v2's events, read against
 // this game's state. An inline event waits in the panel and, if nobody
@@ -317,9 +318,12 @@ export function fill(text: string, vars: Record<string, string>): string {
 }
 
 // ---- Effects ----
-function spreadBacklog(s: GameState, amount: number): void {
+function spreadBacklog(s: GameState, raw: number): void {
   const open = standing(s);
   if (open.length === 0) return;
+  // Facilities Management (Plan 89E) makes an event's damage smaller; a
+  // repair (a negative amount) is left as it is.
+  const amount = raw > 0 ? raw * eventDamageFactor(s) : raw;
   const weigh = (t: (typeof open)[number]) => (amount < 0 ? (t.backlog ?? 0) : t.cost);
   const carried = open.reduce((t, b) => t + weigh(b), 0);
   for (const b of open) {

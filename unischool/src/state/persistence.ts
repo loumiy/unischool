@@ -1115,6 +1115,7 @@ function cleanOffice(raw: unknown, hallId: string, seen: Set<string>): HallSlot 
   seen.add(office.id);
   const kept: HallOffice = { id: office.id, openedYear: Number.isInteger(office.openedYear) ? office.openedYear as number : 1 };
   if (Number.isInteger(office.closingWeeks) && (office.closingWeeks as number) > 0) kept.closingWeeks = office.closingWeeks;
+  if (Number.isInteger(office.lastActionWeek)) kept.lastActionWeek = office.lastActionWeek;
   return { programId: null, office: kept };
 }
 

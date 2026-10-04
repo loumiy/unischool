@@ -2,6 +2,7 @@ import type { Buildable, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus } from '../../state/types';
 import { isPlaceableKind } from '../../state/campusMap';
 import { LIBRARY_FLOOR_MAX, LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion, PRICE_UPKEEP_TYPES, priceUpkeep } from '../../data/facilitiesData';
+import { paydownFactor } from '../administration/effects';
 
 // The estate (Plan 26, ported from v2's estate.ts): what the buildings cost
 // to keep, and what skimping does to them. Every finished building has an
@@ -180,6 +181,8 @@ export function finishEstateWorks(s: GameState): void {
 // draws from the random stream.
 export function tickEstate(s: GameState): void {
   const unpaid = 1 - maintenanceFunding(s);
+  // Facilities Management (Plan 89E) pays a backlog down faster.
+  const paydown = BACKLOG_PAYDOWN_RATE * paydownFactor(s);
   for (const t of s.tech) {
     // In-place work keeps a building standing, and its estate running.
     if (!isPlaceableKind(t) || !standsOnCampus(t)) continue;
@@ -202,7 +205,7 @@ export function tickEstate(s: GameState): void {
     const backlog = t.backlog ?? 0;
     const next = unpaid > 0
       ? backlog * (1 + BACKLOG_GROWTH_RATE / WEEKS_PER_YEAR) + upkeep * unpaid
-      : backlog * (1 - BACKLOG_PAYDOWN_RATE / WEEKS_PER_YEAR);
+      : backlog * (1 - paydown / WEEKS_PER_YEAR);
     if (next >= BACKLOG_CLEARED_BELOW || (unpaid > 0 && next > 0)) t.backlog = Math.round(next);
     else delete t.backlog;
   }

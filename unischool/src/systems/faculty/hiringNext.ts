@@ -1,6 +1,6 @@
 import type { Buildable, Faculty, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
-import { CANDIDATE_LISTING_WEEKS } from '../../data/facultyData';
+import { candidateListingWeeks } from '../administration/effects';
 import { programById } from '../../data/techData';
 import type { Grade } from '../../data/courseQuality';
 import { facultyPay, financeBreakdown } from '../finance/financeSystem';
@@ -41,7 +41,7 @@ function listingFor(s: GameState, candidate: Faculty, waiting: Buildable[]): Lis
   return {
     candidate,
     field: candidate.field,
-    weeksLeft: Math.max(0, CANDIDATE_LISTING_WEEKS - candidate.weeksListed),
+    weeksLeft: Math.max(0, candidateListingWeeks(s) - candidate.weeksListed),
     course,
     grade: course ? projectedQuality(s, course, candidate).grade : null,
     pay: facultyPay(s, candidate.salary),

@@ -32,6 +32,7 @@ import { researchTopic } from '../data/researchTopics';
 import { programOfCourse } from '../data/techData';
 import { declineOffer, isInTransit } from '../systems/techtree/programOffers';
 import { closeOffice, openOffice } from '../systems/administration/offices';
+import { charterClub, foundTeam } from '../systems/administration/officeActions';
 import { restaff } from '../systems/faculty/restaffing';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
@@ -253,6 +254,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'CLOSE_OFFICE':
       return closeOffice(s, action.officeId) ? s : state;
+
+    case 'CHARTER_CLUB':
+      return charterClub(s) ? s : state;
+
+    case 'FOUND_TEAM':
+      return foundTeam(s, action.clubId) ? s : state;
 
     case 'HIRE_FACULTY':
       hireFaculty(s, action);
