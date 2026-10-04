@@ -9,6 +9,7 @@ import { absoluteWeek } from '../../data/eventData';
 import { heldSeat } from '../delegation/seats';
 import { inTitleYear } from '../../data/studentLifeData';
 import { money } from '../../format';
+import { campaignFactor } from '../administration/effects';
 
 // ADVANCEMENT (Plan 30, from v2's campaigns.ts). A campaign is the ledger's
 // payoff: a multi-year ask whose weekly take is each class's answer, by
@@ -71,7 +72,9 @@ export function tickCampaigns(s: GameState): void {
   if (!adv || !running) return;
   const def = campaignById(running.campaignId);
   if (!def) { adv.running = null; return; }
-  const week = yearlyResponse(s, def) / WEEKS_PER_YEAR;
+  // Alumni Relations (Plan 89E) carries a campaign further than its target
+  // was set to expect: the lift is on what comes in, not on the target.
+  const week = (yearlyResponse(s, def) * campaignFactor(s)) / WEEKS_PER_YEAR;
   running.raised += week;
   if (def.kind === 'endowment') s.finance.endowment += week;
   else adv.restrictedBuilding += week;

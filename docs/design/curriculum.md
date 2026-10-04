@@ -205,7 +205,9 @@ one (`CLOSE_OFFICE`) leaves the slot dark for twelve weeks, still held and
 still counted against the allowance, then free. The college may hold one
 office for each of six ladder milestones it has reached (`officeAllowance`,
 [progression.md](progression.md)). What each office
-does, and the half again it does with its seat filled, is in Plan 89.
+does (`systems/administration/effects.ts`, `officeActions.ts`), and the half
+again it does with its seat filled, is tabled in Plan 89's PR 89E; the
+Office of Curriculum Development's seat is the committee's (below).
 
 ### The milestones
 

@@ -505,7 +505,7 @@ export default function App() {
               )}
               {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
               {overlay.tab === 'students' && (
-                <StudentsTab s={s} target={overlay.target} onTargetConsumed={clearTarget} />
+                <StudentsTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
               )}
               {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
               {overlay.tab === 'history' && (

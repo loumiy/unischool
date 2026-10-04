@@ -16,7 +16,8 @@ import { tierOf, type CourseTier } from '../../data/courseQuality';
 import { ladderAllows } from '../ladder/ladderSystem';
 import { COMPLETION_LINES, fillLine, pickLine } from '../../data/logWords';
 import { TRAINING_SLOTS, trainingSlotsOff } from '../../data/trainingData';
-import { slotFree, tickOffices } from '../administration/offices';
+import { officeStrength, slotFree, tickOffices } from '../administration/offices';
+import { CURRICULUM_OFFICE_SEATS } from '../../data/officeData';
 
 // Milestone bonuses reward aggregate conditions (docs/design/curriculum.md).
 // They grant no reputation directly (prestigeSystem.ts reads s.milestones);
@@ -250,8 +251,12 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // show the seats.
 export const COURSE_DEVELOPMENT_SLOTS = 4;
 export const COMMITTEE_PRESTIGE_STEPS: readonly number[] = [70, 80, 90, 100];
+// The Office of Curriculum Development (Plan 89E) adds a seat while open.
+export function committeeOfficeSeats(s: GameState): number {
+  return officeStrength(s, 'curriculum') > 0 ? CURRICULUM_OFFICE_SEATS : 0;
+}
 export function committeeSeats(s: GameState): number {
-  return COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.filter((p) => s.self.reputation >= p).length;
+  return COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.filter((p) => s.self.reputation >= p).length + committeeOfficeSeats(s);
 }
 // The prestige at which the next seat opens, or null at eight.
 export function nextCommitteeSeatAt(s: GameState): number | null {

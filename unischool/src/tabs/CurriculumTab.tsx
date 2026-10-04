@@ -13,7 +13,7 @@ import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
-  canStartDevelopment, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, committeeOfficeSeats, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -1149,7 +1149,10 @@ function CommitteeBox({ s, lookup, onOpenFaculty }: {
 function CommitteePanel({ s }: { s: GameState }) {
   const seats = committeeSeats(s);
   const writing = coursesInDevelopment(s);
-  const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length;
+  // The Office of Curriculum Development's seat (Plan 89E) sits beside the
+  // prestige seats, so the locked ones still read their own prestige.
+  const officeSeats = committeeOfficeSeats(s);
+  const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length + officeSeats;
   const next = nextCommitteeSeatAt(s);
   return (
     <section className="committee" aria-label="Curriculum committee" {...sectionAnchor('curriculum.committee')}>
@@ -1158,13 +1161,13 @@ function CommitteePanel({ s }: { s: GameState }) {
         <span className="committee-count">writing {writing.length} of {seats}</span>
         <HelpHint
           align="end"
-          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} courses at once, graduate courses among them, and takes up the next when one is done. Each course takes its own number of weeks, so they finish at different times. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}.`}
+          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} courses at once, graduate courses among them, and takes up the next when one is done. Each course takes its own number of weeks, so they finish at different times. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}${officeSeats > 0 ? ', one of them the Office of Curriculum Development\'s' : ''}.`}
         />
       </header>
       <ol className="committee-seats">
         {Array.from({ length: maxSeats }, (_, i) => {
           if (i >= seats) {
-            const at = COMMITTEE_PRESTIGE_STEPS[i - COURSE_DEVELOPMENT_SLOTS];
+            const at = COMMITTEE_PRESTIGE_STEPS[i - COURSE_DEVELOPMENT_SLOTS - officeSeats];
             return (
               <li key={i} className="committee-seat locked" title={`Opens at prestige ${at}`}>
                 <span className="committee-seat-left">at prestige</span>

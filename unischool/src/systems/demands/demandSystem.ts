@@ -2,7 +2,7 @@ import type { Buildable, GameState, LogTopic, SatisfactionAttributes, StudentDem
 import { totalEnrolled } from '../../state/types';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS } from '../../data/eventData';
 import {
-  DEMAND_COOLDOWN_WEEKS, DEMAND_DEADLINE_WEEKS, DEMAND_FAILED_SATISFACTION_PENALTY,
+  DEMAND_FAILED_SATISFACTION_PENALTY,
   DEMAND_FIRST_YEAR, DEMAND_MET_SATISFACTION_REWARD, DEMAND_SATISFACTION_THRESHOLD,
   demandCopy,
 } from '../../data/demandData';
@@ -15,6 +15,7 @@ import type { DemandSubject } from '../../data/demandData';
 import { projectAdmissions } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
 import { newId } from '../../engine/random';
+import { demandCooldownWeeks, demandDeadlineWeeks } from '../administration/effects';
 
 // ---------------------------------------------------------------------
 // Student demands (see docs/design/student-life.md). Content and tuning are
@@ -296,7 +297,7 @@ function queueDemand(s: GameState): void {
   if (s.students.satisfaction >= DEMAND_SATISFACTION_THRESHOLD) return;
 
   const week = absoluteWeek(s);
-  if (s.events.lastDemandWeek > 0 && week - s.events.lastDemandWeek < DEMAND_COOLDOWN_WEEKS) return;
+  if (s.events.lastDemandWeek > 0 && week - s.events.lastDemandWeek < demandCooldownWeeks(s)) return;
 
   const demand = rollShortfallDemand(s);
   if (demand) s.events.pendingDemand = demand;
@@ -328,14 +329,14 @@ function announceDemand(s: GameState): void {
 export function raiseDemand(s: GameState, demand: StudentDemand): void {
   const week = absoluteWeek(s);
   demand.raisedWeek = week;
-  demand.deadlineWeek = week + DEMAND_DEADLINE_WEEKS;
+  demand.deadlineWeek = week + demandDeadlineWeeks(s);
   s.events.activeDemand = demand;
   s.events.pendingDemand = null;
   s.events.lastDecisionWeek = week;
   // A note over the map, not a modal (Plan 29): the clock runs on, and the
   // Students tab keeps the demand in view until it is met or lapses.
   s.events.demandUnread = true;
-  log(s, `The student body has raised a formal demand: ${demandCopy(demand).ask(demand.askName)}, within ${DEMAND_DEADLINE_WEEKS} weeks.`, 'bad', 'demand-raised');
+  log(s, `The student body has raised a formal demand: ${demandCopy(demand).ask(demand.askName)}, within ${demandDeadlineWeeks(s)} weeks.`, 'bad', 'demand-raised');
 }
 
 export function tickDemands(s: GameState): void {

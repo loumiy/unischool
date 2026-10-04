@@ -4,7 +4,8 @@ import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { quirkById } from '../data/quirkData';
-import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
+import { facultyQualityTier } from '../data/facultyData';
+import { candidateListingWeeks } from '../systems/administration/effects';
 import type { Grade } from '../data/courseQuality';
 import { effectiveCourseSlots } from '../systems/techtree/techSystem';
 import { careerWeeks } from '../systems/faculty/facultySystem';
@@ -111,7 +112,7 @@ export default function FacultyTile(
     if (open && !phone) tileRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   }, [open, phone]);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
-  const listingLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
+  const listingLeft = Math.max(0, candidateListingWeeks(s) - f.weeksListed);
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
   const held = isCandidate ? 0 : (load ?? taught.length);
   const firstWaiting = waiting?.open[0];

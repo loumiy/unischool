@@ -1,6 +1,7 @@
 import { tagTeeth } from '../identity/teeth';
 import type { AlumniClass, GameState } from '../../state/types';
 import { className, firstClassYear } from './ledger';
+import { givingFactor } from '../administration/effects';
 
 // THE ANNUAL FUND AND REUNIONS (Plan 30, from v2's alumni.ts). Each class
 // gives every year: by its size, its warmth (0 at nothing, 1 at a neutral
@@ -42,7 +43,8 @@ export function givingOf(a: AlumniClass, year: number): number {
 // Country Club.
 export function annualGiving(s: GameState): number {
   const base = (s.alumni ?? []).reduce((t, a) => t + givingOf(a, s.clock.year), 0);
-  return Math.round(base * (1 + tagTeeth(s, 'giving')));
+  // Alumni Relations (Plan 89E) lifts the year's giving.
+  return Math.round(base * (1 + tagTeeth(s, 'giving')) * givingFactor(s));
 }
 
 // ---- Reunions ----

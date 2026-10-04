@@ -2,7 +2,8 @@ import AdministrationPanel from './AdministrationPanel';
 import { useEffect, useMemo, useState } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
-import { facultyQualityTier, marketCenters, marketStandingOf, CANDIDATE_LISTING_WEEKS, FACULTY_FIELD_GROUPS } from '../data/facultyData';
+import { facultyQualityTier, marketCenters, marketStandingOf, FACULTY_FIELD_GROUPS } from '../data/facultyData';
+import { candidateListingWeeks } from '../systems/administration/effects';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
 import { hasFreeSlot, unstaffedCourses } from '../systems/techtree/techSystem';
@@ -291,7 +292,7 @@ function DepartmentRow(
                 <span>On the market</span>
                 <span className="outcome-note">
                   {listed.length > 0
-                    ? `${listed.length} listed · a listing withdraws after ${CANDIDATE_LISTING_WEEKS} weeks`
+                    ? `${listed.length} listed · a listing withdraws after ${candidateListingWeeks(s)} weeks`
                     : 'nobody listed this week'}
                 </span>
               </div>
@@ -729,7 +730,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
             {!market && <TrainingBar s={s} />}
             {market && (
               <p className="faculty-market-note">
-                {s.candidates.length} listed · a listing withdraws after {CANDIDATE_LISTING_WEEKS} weeks, and the market turns over every week.
+                {s.candidates.length} listed · a listing withdraws after {candidateListingWeeks(s)} weeks, and the market turns over every week.
               </p>
             )}
             {shownPeople.length > 0 ? (

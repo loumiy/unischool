@@ -11,6 +11,8 @@ import { money, weeksProse } from '../../format';
 import { random } from '../../engine/random';
 import { recordProject } from '../faculty/career';
 import { recordLandmarkWork } from '../../data/researchParkData';
+import { officeStrength } from '../administration/offices';
+import { SPONSORED_GRANT_CHANCE_LIFT, SPONSORED_GRANT_SIZE_LIFT } from '../../data/officeData';
 
 // The research tick (docs/design/research.md). Each running initiative, one
 // per research facility, in order:
@@ -57,10 +59,12 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
   s.research.publications += 1;
   log(s, `A new ${vocab.publication} out of ${where}.`, 'info', 'publication', initiative.labId);
 
-  // A grant rides on the paper, scaled by team strength.
-  if (random() < GRANT_PER_PUBLICATION_CHANCE) {
+  // A grant rides on the paper, scaled by team strength; the Office of
+  // Sponsored Research (Plan 89E) wins them more often, and larger.
+  const sponsored = officeStrength(s, 'sponsored-research');
+  if (random() < GRANT_PER_PUBLICATION_CHANCE * (1 + SPONSORED_GRANT_CHANCE_LIFT * sponsored)) {
     const amount = rollGrantAmount(s, initiative.depth);
-    const scaled = Math.round(amount * (0.7 + teamStrength(participants)));
+    const scaled = Math.round(amount * (0.7 + teamStrength(participants)) * (1 + SPONSORED_GRANT_SIZE_LIFT * sponsored));
     s.finance.cash += scaled;
     s.research.grants += 1;
     s.research.grantIncome += scaled;

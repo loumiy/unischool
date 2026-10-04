@@ -5,7 +5,7 @@ is to turn the owner's idea of administrative offices in Founders Hall into
 PRs: a seventh purchased hall so Founders Hall can be emptied, twelve
 offices to put in it, and six milestones that open them one at a time.*
 
-**Status: In progress: A–D.**
+**Status: In progress: A–E.**
 
 ---
 
@@ -337,6 +337,50 @@ No office does anything yet; 89E gives them effects.
 - The Institutional Research forecast on the History tab's Prestige card.
 - Tests for each: present with the office, absent without, larger with
   the seat.
+
+**As implemented:**
+
+Every lever is neutral with its office closed and draws nothing on the
+random stream, so a college without offices plays exactly as before. The
+readings are `systems/administration/effects.ts` (and `forecast.ts`), the
+two actions `officeActions.ts`; the sizes are `officeData.ts`'s, first
+guesses for 89G.
+
+| Office | What it does (×k: 1 open, 1.5 with its seat) |
+|---|---|
+| Admissions Office | a range for the pool at the slider's price, ±15% / k, shown before the price locks |
+| Career Services | the pre-professional pull ×(1 + 0.15k) |
+| Financial Aid Office | the price-sensitive cohort reads the price ×(1 − 0.2k); the sticker, and every other reading of it, unchanged |
+| Office of Curriculum Development | one committee seat, whole (the seat bonus adds none) |
+| Office of Sponsored Research | grant chance ×(1 + 0.5k), size ×(1 + 0.25k) |
+| Office of Faculty Recruitment | the market holds 30 + 10k candidates, each listed 12 + 6k weeks |
+| Student Activities Office | `CHARTER_CLUB`: a club rolled and recognized at once, every 26 / k weeks |
+| Athletics Development Office | `FOUND_TEAM`: a sport club with its venue standing goes varsity, no tenure, no petition, for 2.5 / k weeks of operating cost |
+| Counseling & Wellness | the gap between demands ×(1 + 0.5k), and the weeks to meet one ×(1 + 0.5k) |
+| Facilities Management | the backlog paydown ×(1 + k): twice as fast; an event's damage ×(1 − 0.3k) |
+| Alumni Relations | the annual fund ×(1 + 0.15k); a running campaign's take ×(1 + 0.2k) |
+| Office of Institutional Research | the rank the summer's grade would buy, from the spring (all year with the Provost) |
+
+Three departures:
+
+- **Counseling & Wellness gives longer rather than asking for less.** A
+  demand asks for a building, a program or beds, which do not come in
+  parts: a smaller target meets nothing sooner. It gives half as long
+  again to meet one instead.
+- **Institutional Research forecasts the rank, not the grade.** The
+  History tab already says what the year is grading toward ("51.5 → 53.2…
+  if nothing changes"), so a forecast of the grade would show the player
+  nothing new. What no screen shows is the rank that grade buys against the
+  field, so that is what the office reads (rivals as they stand). Its seat
+  bonus is the fall term too.
+- **Alumni Relations lifts what a campaign brings in, not its target.** A
+  campaign's target is set from the yearly response at launch, so lifting
+  the response there would lift the target with it.
+
+The Committee panel counts the office's seat beside the prestige seats, so
+the locked seats still read their own prestige. The two actions have plain
+buttons here (the Clubs panel's *Charter a club*; *Go varsity* on a sport
+club's row, on the Students tab, where sport clubs live); 89F styles them.
 
 ## PR 89F — Presentation
 

@@ -45,6 +45,7 @@ import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
 import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
 import { promisesOf } from '../systems/promises/promises';
+import { admissionsRange } from '../systems/administration/effects';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -249,6 +250,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // Why the pool moved: each factor's share of the change against last
   // summer. Null at the first summer.
   const change = poolChange(outcome, s.students.lastFunnel);
+  const poolRange = admissionsRange(s, outcome.applicants);
 
   return (
     <>
@@ -272,6 +274,15 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
       </label>
       {floor > 0 && (
         <p className="admissions-prompt">The board holds tuition where it is: it may rise, not fall.</p>
+      )}
+
+      {/* The Admissions Office (Plan 89E): a range for the pool at this
+          price before it is set, around the same projection the reveal
+          shows. The price is no longer set quite blind. */}
+      {!tuitionLocked && poolRange && (
+        <p className="admissions-prompt admissions-range">
+          The Admissions Office expects {count(poolRange.low)}–{count(poolRange.high)} applicants at this price.
+        </p>
       )}
 
       {!tuitionLocked && (
