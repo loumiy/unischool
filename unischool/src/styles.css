@@ -274,6 +274,25 @@ button, input, select, textarea { font-size: inherit; }
 .segmented > button:hover:not(:disabled) { background: var(--cream-lo); color: var(--ink); }
 .segmented > button:is(.active, .on, .is-on, [aria-pressed="true"]) {
   background: var(--school-secondary); color: var(--school-on-secondary); }
+/* A short set of levels as a sliding switch (Plan 89): one sunken track of
+   equal columns, the buttons bare labels over a gold thumb that slides to the
+   picked one. segmentedSwitch.ts sets --seg-count and --seg-index; a choice
+   that would wrap, or has more than four options, keeps the pills above. */
+.segmented.switch { position: relative; isolation: isolate; display: inline-grid; grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr); gap: 0; max-width: 100%; padding: var(--space-2);
+  border: 2px solid var(--outline); border-radius: var(--radius-pill); background: var(--cream-lo);
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--outline) 12%, transparent); }
+.segmented.switch::before { content: ''; position: absolute; z-index: -1; top: var(--space-2); bottom: var(--space-2); left: var(--space-2);
+  width: calc((100% - 2 * var(--space-2)) / var(--seg-count, 3));
+  border: 2px solid var(--outline); border-radius: var(--radius-pill); background: var(--school-secondary); box-shadow: var(--shadow-1);
+  transform: translateX(calc(var(--seg-index, 0) * 100%)); opacity: clamp(0, calc(var(--seg-index, 0) + 1), 1);
+  transition: transform 0.18s ease; } /* still under the reduced-motion rule at the top */
+.segmented.switch > button { border-color: transparent; background: transparent; box-shadow: none; color: var(--ink-muted);
+  text-align: center; }
+.segmented.switch > button:hover:not(:disabled) { background: transparent; color: var(--ink); }
+.segmented.switch > button:is(.active, .on, .is-on, [aria-pressed="true"]) { background: transparent; color: var(--school-on-secondary); }
+/* The global gold ring would vanish on the gold thumb. */
+.segmented.switch > button:focus-visible { outline: 2px solid var(--school-primary); outline-offset: 0; border-radius: var(--radius-pill); }
 
 /* The close control: a round ✕ for a panel, popup, drawer or toast. A
    full-bleed tab has the "Close ✕" pill instead (.tab-overlay-close). */
@@ -2554,37 +2573,74 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* Program cards: auto-fill with a min track, no breakpoint per team count. */
 .team-card-list { list-style: none; margin: 0; padding: 0; display: grid;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
-.team-card { flex: 1; min-width: 0; padding: var(--inset-card); background: var(--cream-hi); border: 2px solid var(--outline);
+.team-card { position: relative; flex: 1; min-width: 0; padding: var(--inset-card); background: var(--cream-hi); border: 2px solid var(--outline);
   border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 5px; }
 .team-card-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .team-card-name { font-family: var(--display); font-weight: 800; font-size: var(--text-base); letter-spacing: -0.01em;
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.team-card-standing { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; font-size: var(--text-2xs); }
-.team-card-standing .sport-standing-place { justify-content: flex-start; cursor: help; }
+/* A flagship's gold corner, in place of its tag (Plan 89). */
+.team-card-corner { position: absolute; top: 0; right: 0; width: 40px; height: 40px; background: var(--school-secondary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%); border-top-right-radius: calc(var(--radius-md) - 2px);
+  color: var(--school-on-secondary); font-size: var(--text-md); line-height: 1; cursor: default; }
+.team-card-corner > [aria-hidden] { position: absolute; top: var(--space-4); right: var(--space-4); }
+.team-card.is-flagship .team-card-head { padding-right: var(--space-24); }
+/* Rank and standing on a small navy scoreboard (Plan 89): the rank in the
+   school's gold mono digits, the rival series and the season beside it. */
+.team-card-standing.scoreboard { display: grid; grid-template-columns: auto minmax(0, 1fr);
+  background: var(--outline); color: var(--cream); border-radius: var(--radius-sm); overflow: hidden;
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--outline) 85%, white); }
+.scoreboard-cell { display: grid; align-content: center; gap: 3px; min-width: 0; padding: var(--space-6) var(--space-12); }
+.scoreboard-cell + .scoreboard-cell { border-left: 1.5px solid color-mix(in srgb, var(--outline) 70%, white); }
+.scoreboard-rank { cursor: help; }
+.scoreboard-label, .scoreboard-status { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); line-height: 1;
+  text-transform: uppercase; letter-spacing: 0.12em; color: color-mix(in srgb, var(--cream) 68%, var(--outline)); }
+.scoreboard-digits { font-family: var(--mono); font-weight: 700; font-size: var(--text-2xl); line-height: 1; letter-spacing: -0.02em;
+  color: var(--school-secondary); text-shadow: 0 0 6px color-mix(in srgb, var(--school-secondary) 40%, transparent); }
+.scoreboard-digits small { font-size: var(--text-xs); color: color-mix(in srgb, var(--cream) 68%, var(--outline)); text-shadow: none; }
+.scoreboard-game { font-family: var(--display); font-weight: 700; font-size: var(--text-sm); line-height: 1.2; }
+.scoreboard-score { font-family: var(--mono); font-weight: 700; margin-right: var(--space-4); }
+/* The good and bad signals, lifted for the navy ground, so the color-vision set moves them. */
+.scoreboard-score.up { color: color-mix(in srgb, var(--ok-on-light) 45%, white); }
+.scoreboard-score.down { color: var(--bad-on-dark); }
+.scoreboard-status { letter-spacing: 0.05em; line-height: 1.3; }
+.scoreboard-status > span:not([aria-hidden]) { white-space: nowrap; }
+.scoreboard-status .season-finish { letter-spacing: inherit; color: inherit; }
+.scoreboard-status .season-finish.missed { color: var(--bad-on-dark); }
+.scoreboard-status .season-finish:is(.final, .semifinal) { color: var(--school-secondary); }
+.scoreboard-status .season-finish.champion { color: var(--school-on-secondary); letter-spacing: 0.06em; }
 .team-card-rival { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .team-card-meta { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: var(--text-2xs); color: var(--ink-muted); }
 .team-card-meta strong { color: var(--ink); }
 /* A flagship's scholarship budget (Plan 80G), under the card's figures. */
 .team-card-scholarships { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding-top: 3px;
   border-top: 1px dashed var(--parchment-line); font-size: var(--text-2xs); }
-.team-card-staff { display: flex; flex-direction: column; }
-.coach-row { display: flex; align-items: center; gap: 7px; font-size: var(--text-sm); min-height: 30px;
-  padding: 3px 0; border-top: 1px dashed var(--parchment-line); }
-/* A vacancy should stand out, not fade: it is why the market exists. */
-.coach-row.vacant { color: var(--school-primary); }
-.coach-vacant { font-style: italic; font-size: var(--text-xs); }
-.coach-role { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  font-size: var(--text-2xs); color: var(--school-primary); min-width: 50px; }
-.coach-who { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
-.coach-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.coach-stats { font-size: var(--text-2xs); color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The staff as three seats side by side (Plan 89): a filled seat outlined,
+   an open one dashed with a blank face and a link to the market. */
+.team-card-staff { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); padding-top: var(--space-6);
+  border-top: 1px dashed var(--parchment-line); }
+.staff-seat { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: var(--space-6) var(--space-4);
+  background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-md); text-align: center;
+  font-size: var(--text-2xs); line-height: 1.2; color: var(--ink-muted); }
+.staff-seat-role { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); line-height: 1; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--school-primary); }
+.staff-seat-name { max-width: 100%; font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--ink);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.staff-seat-line { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.staff-seat.open { background: transparent; border-style: dashed; border-color: var(--parchment-line); }
+.staff-seat.open .staff-seat-name { font-weight: 700; color: var(--ink-muted); }
+.staff-seat-face { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 2px dashed var(--parchment-line); }
+.staff-seat-hire { padding: 0; border: 0; background: none; font-family: var(--display); font-weight: 800; font-size: var(--text-xs);
+  color: var(--school-primary); text-decoration: underline; text-underline-offset: 2px; }
+.staff-seat-hire:hover { color: var(--ink); }
 /* Releasing a coach reads like dismissing a professor (.faculty-card-foot). */
 .coach-release { display: inline-flex; align-items: center; gap: var(--space-4); padding: var(--space-2) var(--space-6); font-size: var(--text-2xs); white-space: nowrap; }
 .coach-release svg { width: 12px; height: 12px; display: block; }
-/* Armed, the release takes its own line under the coach. */
-.coach-row { flex-wrap: wrap; }
-.coach-row .confirm-button.is-armed { flex: 1 0 100%; }
-.coach-row .confirm-button.is-armed > button { white-space: normal; text-align: left; }
+/* Armed, the release's words wrap inside the seat. */
+.staff-seat .confirm-button { align-items: center; margin-top: var(--space-2); }
+.staff-seat .confirm-button.is-armed > button { white-space: normal; }
+/* Visually hidden, for a screen reader: a flagship's name for its corner, a seat's full line. */
+.team-card .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0; }
 
 /* ---------- Athletic director's offer (InterruptModal.tsx) ---------- */
 .ad-candidates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
@@ -2630,11 +2686,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .panel .department-standings dd { margin: 0; text-align: left; font-family: var(--display); font-weight: 800; font-size: var(--text-base);
   color: var(--ink-muted); }
 .department-standings dd strong { color: var(--ink); font-size: var(--text-xl); }
-
-/* A sport's rank on its program card. */
-.sport-standing-place { display: flex; align-items: baseline; gap: 5px; font-family: var(--display); font-weight: 800; }
-.sport-standing-place strong { font-size: var(--text-lg); }
-.sport-standing-of { font-size: var(--text-2xs); color: var(--ink-muted); }
 
 /* ---------- Last season and championships ---------- */
 .season-finish { text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); }
