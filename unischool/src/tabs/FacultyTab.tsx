@@ -24,6 +24,7 @@ import { TRAINING_INSTITUTE_ID, TRAINING_WORDS, instituteStands, trainedCount } 
 import { picksLeft, trainingPicks, whyNotTrain } from '../systems/faculty/training';
 import { specializationOf } from '../systems/prestige/specialization';
 import { money, moneyShort, pct, surnameOf, weeksShort } from '../format';
+import { switchStyle } from '../components/segmentedSwitch';
 
 // The Faculty tab (Plan 84D): the faculty as a grid of tiles (FacultyTile.tsx)
 // to sort and filter, the market as the same tiles, and the department board.
@@ -700,7 +701,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
       <section className="panel faculty-people">
         <div className="panel-head">
           <span className="panel-head-title"><h3>{VIEWS.find((v) => v.id === view)!.title}</h3></span>
-          <span className="dept-views segmented">
+          <span className="dept-views segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
             {VIEWS.map((v) => (
               <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
                 {v.label}
