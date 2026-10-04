@@ -25,6 +25,7 @@ import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
+import GradeMark from '../components/GradeMark';
 import { sectionAnchor } from '../components/sectionTarget';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { CloseIcon, StatusIcon } from '../components/icons';
@@ -256,25 +257,19 @@ function courseSchools(): Map<string, { key: string; school: string }> {
   return map;
 }
 
-// The grade chip, for a course's own grade and for aggregates alike. The
-// letter always shows; the tint is only a cue (color-blind players, small sizes).
-// Beside a count ("3/9", "8/378 developed") the chip carries its word,
-// "grade B" (`word`), so the letter does not read as part of the count
-// (Plan 78F). A course cell's chip sits in a grid with a key and stays bare.
-export function GradeChip({ grade, title, size = 'sm', word = false }: { grade: Grade; title?: string; size?: 'sm' | 'lg'; word?: boolean }) {
-  return (
-    <span className={`grade-chip grade-${grade.toLowerCase()} ${size}${word ? ' worded' : ''}`} title={title}>
-      {word && <span className="grade-chip-word">grade</span>}
-      {grade}
-    </span>
-  );
+// A grade, for a course's own grade and for aggregates alike: the letter
+// circled in pen (Plan 89D; components/GradeMark.tsx). The letter always
+// shows; the ink is only a cue (color-blind players, small sizes). Kept
+// under its old name so every caller follows.
+export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
+  return <GradeMark grade={grade} title={title} size={size} />;
 }
 
 // An aggregate grade across a set of courses, or nothing when none are graded.
 function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
   const avg = averageCourseQuality(s, ids, loads);
   if (avg === null) return null;
-  return <GradeChip word grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
+  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
 }
 
 // One course cell: code over title, filled when done, with a progress bar
@@ -925,7 +920,7 @@ function ProgramRowView(
         {rowMark && <span className="program-row-mark" aria-hidden="true">{rowMark.motif}</span>}
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
-        {avg !== null && <GradeChip word grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
+        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
         {hall && <span className="program-row-hall" title="The hall it is taught in">{hallDisplayName(s, hall)}</span>}
         {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no places, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
         {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} compact />}
@@ -983,31 +978,40 @@ function SchoolGroupView(
   const mixed = group.mark.hue === undefined;
   return (
     <section
-      className={`school-group${group.founded ? ' founded' : ' unfounded'}`}
+      className={`school-group${group.founded ? ' founded' : ' unfounded'}${collapsed ? ' collapsed' : ''}`}
       data-school={group.key}
       style={group.mark.hue ? { ['--school-hue' as string]: group.mark.hue } : undefined}
     >
+      {/* A binder divider (Plan 89G): the school's color in a tab at the
+          left holding its mark, and its completion as a small meter. */}
       <header className="school-group-head">
-        <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the school' : 'Hide the school'} onClick={toggle}>
-          {collapsed ? '▸' : '▾'}
-        </button>
-        {group.mark.motif && <span className="school-group-mark" aria-hidden="true">{group.mark.motif}</span>}
-        <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
-        {avg !== null && <GradeChip word grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
-        <span className="lane-count">{fraction(done.done, done.total)}</span>
-        {unstaffedHere > 0 && (
-          <button
-            type="button"
-            className="school-restaff"
-            disabled={plan.length === 0}
-            title={plan.length === 0
-              ? 'Nobody on the payroll or the market can take these courses this week.'
-              : `Staff ${plan.length} of ${unstaffedHere} unstaffed course${unstaffedHere === 1 ? '' : 's'}${hires.length > 0 ? `, appointing ${hires.length} from the market at ${money(hires.reduce((n, x) => n + x.hire!.salary, 0))}/yr` : ''}`}
-            onClick={() => act({ type: 'RESTAFF', school: GRADUATE_SECTIONS.includes(group.key) ? null : group.key, courseIds: ids })}
-          >
-            Staff from the market · {unstaffedHere}
+        <span className="school-group-tab" aria-hidden="true">{group.mark.motif && <span className="school-group-mark">{group.mark.motif}</span>}</span>
+        <div className="school-group-head-body">
+          <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the school' : 'Hide the school'} onClick={toggle}>
+            {collapsed ? '▸' : '▾'}
           </button>
-        )}
+          <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
+          <span className="school-group-tally">
+            {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
+            <span className="school-group-meter" aria-hidden="true">
+              <span style={{ width: `${done.total > 0 ? Math.round((done.done / done.total) * 100) : 0}%` }} />
+            </span>
+            <span className="lane-count">{fraction(done.done, done.total)}</span>
+          </span>
+          {unstaffedHere > 0 && (
+            <button
+              type="button"
+              className="school-restaff"
+              disabled={plan.length === 0}
+              title={plan.length === 0
+                ? 'Nobody on the payroll or the market can take these courses this week.'
+                : `Staff ${plan.length} of ${unstaffedHere} unstaffed course${unstaffedHere === 1 ? '' : 's'}${hires.length > 0 ? `, appointing ${hires.length} from the market at ${money(hires.reduce((n, x) => n + x.hire!.salary, 0))}/yr` : ''}`}
+              onClick={() => act({ type: 'RESTAFF', school: GRADUATE_SECTIONS.includes(group.key) ? null : group.key, courseIds: ids })}
+            >
+              Staff from the market · {unstaffedHere}
+            </button>
+          )}
+        </div>
       </header>
       {!collapsed && (
         <div className="program-rows">
