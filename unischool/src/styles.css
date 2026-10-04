@@ -1831,8 +1831,12 @@ button.build-tile { font-family: inherit; }
 .satisfaction-card-head { display: flex; align-items: center; gap: 10px; }
 .satisfaction-card-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .satisfaction-card-label { font-family: var(--display); font-weight: 800; font-size: var(--text-md); }
-.satisfaction-card-weight { color: var(--ink-muted); font-size: var(--text-2xs);
-  text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+/* The weight as a multiplier tag, and a full score's note (Plan 89 I). */
+.satisfaction-card-weight { align-self: flex-start; margin-top: var(--space-2); padding: var(--space-2) 5px;
+  border-radius: 3px; background: var(--cream-lo); color: var(--outline);
+  font-family: var(--mono); font-size: var(--text-2xs); font-weight: 700; line-height: 1; white-space: nowrap; }
+.satisfaction-card-full { color: var(--ok-on-light); font-family: var(--display); font-weight: 800;
+  font-size: var(--text-2xs); line-height: 1.2; letter-spacing: 0.12em; text-transform: uppercase; }
 .satisfaction-card-coverage { font-size: var(--text-xs); font-weight: 600; color: var(--ink-muted); }
 .satisfaction-card-toggle { background: none; border: none; padding: 0; text-align: left;
   color: var(--school-primary); font-size: var(--text-xs); font-weight: 700; text-decoration: underline;
@@ -1841,10 +1845,11 @@ button.build-tile { font-family: inherit; }
   font-size: var(--text-sm); }
 
 /* The dial: both circles stroked, the fill dashed to the score's fraction
-   (SatisfactionDial). Round caps so a low score still reads as a mark. */
+   (SatisfactionDial). Butt caps: the gauge ticks (Plan 89 I) cut the ends
+   square, so a round cap would only spill into a gap. */
 .satisfaction-dial { flex: none; }
 .satisfaction-dial-track { fill: none; stroke: var(--cream-lo); }
-.satisfaction-dial-fill { fill: none; stroke-linecap: round; transition: stroke-dasharray 320ms ease; }
+.satisfaction-dial-fill { fill: none; stroke-linecap: butt; transition: stroke-dasharray 320ms ease; }
 .satisfaction-dial-value { font-family: var(--display); font-size: 17px; font-weight: 800; fill: var(--ink); }
 .satisfaction-dial.ok .satisfaction-dial-fill { stroke: var(--ok-on-light); }
 .satisfaction-dial.warn .satisfaction-dial-fill { stroke: var(--warn-on-light); }
@@ -1852,6 +1857,12 @@ button.build-tile { font-family: inherit; }
 /* Dormant (below its population gate): not scoring, rather than zero. */
 .satisfaction-dial.dormant .satisfaction-dial-fill { stroke: none; }
 .satisfaction-dial.dormant .satisfaction-dial-value { fill: var(--ink-muted); }
+/* Gauge ticks are a mask in the SVG; inside them a thin ring, which at
+   full marks becomes a gold centre and the arc goes gold (Plan 89 I). */
+.satisfaction-dial-centre { fill: none; stroke: var(--parchment-line); stroke-width: 1.5; }
+.satisfaction-dial.full .satisfaction-dial-fill { stroke: var(--school-secondary); }
+.satisfaction-dial.full .satisfaction-dial-centre { fill: var(--school-secondary); stroke: var(--outline); stroke-width: 2; }
+.satisfaction-dial.full .satisfaction-dial-value { font-size: 15px; fill: var(--outline); }
 
 @media (prefers-reduced-motion: reduce) {
   .satisfaction-dial-fill { transition: none; }
@@ -3252,7 +3263,38 @@ body:has(.building-info-panel) .pennant { display: none; }
 .standings-card-leader { margin: 2px 0 6px; font-size: var(--text-2xs); color: var(--ink-muted); min-height: 1.3em; }
 
 /* What the guidebooks say (tabs/IdentityPanel.tsx). */
-.identity-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.identity-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: var(--space-12); }
+/* A reputation as a round sticker beside its quote (Plan 89 N). The tilt
+   is static and varies by entry; a warning gets a cream sticker. */
+.identity-entry { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-4) var(--space-12); align-items: start; }
+.identity-sticker { --tilt: -8deg; grid-row: span 2; position: relative; display: grid; place-items: center;
+  width: calc(82px * var(--text-scale)); height: calc(82px * var(--text-scale)); padding: var(--space-4);
+  border: 2px solid var(--outline); border-radius: 50%; box-shadow: var(--shadow-1);
+  background: var(--school-secondary); color: var(--outline); transform: rotate(var(--tilt));
+  /* 9px: a sticker's lettering, under the scale's smallest step so "Research
+     Powerhouse" fits; still times the text scale, as the sticker is. */
+  font-family: var(--display); font-weight: 800; font-size: calc(9px * var(--text-scale)); line-height: 1.05;
+  letter-spacing: 0; text-transform: uppercase; text-align: center; }
+.identity-sticker::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; border: 1px dashed var(--outline); }
+.identity-sticker > span { position: relative; width: min-content; } /* a word a line */
+.identity-sticker.warning { background: var(--cream-hi); }
+.identity-entry:nth-child(3n + 2) .identity-sticker { --tilt: 6deg; }
+.identity-entry:nth-child(3n) .identity-sticker { --tilt: -3deg; }
+.identity-quote { align-self: end; color: var(--school-primary); font-style: italic; font-weight: 600;
+  font-size: var(--text-lg); line-height: 1.3; quotes: '\201C' '\201D'; }
+.identity-quote::before { margin-right: var(--space-4); vertical-align: -0.42em; line-height: 0;
+  font-family: var(--display); font-style: normal; font-weight: 800; font-size: var(--text-5xl);
+  color: var(--school-secondary); -webkit-text-stroke: 1px var(--school-primary); }
+.identity-quote::after { content: none; }
+.identity-why { margin: 0; color: var(--ink-muted); font-size: var(--text-sm); line-height: 1.4; }
+/* On the way: the label, a pip a year, then the count (Plan 89 N). */
+.identity-coming { list-style: none; margin: var(--space-12) 0 0; padding: 0; display: grid; gap: var(--space-6); }
+.identity-coming li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6);
+  color: var(--outline); font-size: var(--text-xs); font-weight: 700; }
+.identity-pips { display: flex; gap: 3px; }
+.identity-pips i { width: 14px; height: 6px; border: 1.5px solid var(--outline); border-radius: 3px; }
+.identity-pips i.on { background: var(--school-primary); }
+.identity-years { color: var(--ink-muted); font-weight: 600; }
 
 /* ---------- Every number explains itself (Plan 34, Figure.tsx) ---------- */
 /* In a panel's two-column grid the pair sits in the grid as if unwrapped. */
