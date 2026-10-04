@@ -210,6 +210,14 @@ npm run timelapse -- --name Blackmoor --colors navy-gold --out node_modules/.tmp
 npm run timelapse:shoot -- node_modules/.tmp/timelapse --fps=8 --png
 ```
 
+`docs/images/timelapse.webm` is the 720p cut of that run, one step further
+out so the year-50 campus fits the smaller frame:
+
+```sh
+npm run timelapse:shoot -- node_modules/.tmp/timelapse --fps=8 --size=1280,720 --zoom=-2 --pan=60,35
+cp node_modules/.tmp/timelapse/timelapse.webm docs/images/timelapse.webm
+```
+
 The frames share one plan: the run's final campus goes through `layout.ts`,
 and each frame stands the buildings the run had by then, finished or still
 a site, at their final places. That is what keeps a hall from jumping

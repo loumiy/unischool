@@ -82,6 +82,8 @@ mkdirSync(shots, { recursive: true });
 const HIDE = `
   .pennant, .main-menu, .campus-map-zoom-controls, .log-ticker, .toolbar,
   .toast, .tooltip, [role="tooltip"] { display: none !important; }
+  /* The map keeps the room the dock and ticker took: give it back. */
+  :root { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
   .timelapse-caption {
     position: fixed; left: 48px; bottom: 40px; z-index: 50;
     font: 600 44px/1 'Bricolage Grotesque Variable', system-ui, sans-serif;
