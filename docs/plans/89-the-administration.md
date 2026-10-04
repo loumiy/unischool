@@ -5,7 +5,7 @@ is to turn the owner's idea of administrative offices in Founders Hall into
 PRs: a seventh purchased hall so Founders Hall can be emptied, twelve
 offices to put in it, and six milestones that open them one at a time.*
 
-**Status: In progress: A and B.**
+**Status: In progress: A–C.**
 
 ---
 
@@ -281,6 +281,25 @@ No office does anything yet; 89E gives them effects.
 - `docs/design/curriculum.md` updated: seven purchased halls, and why.
 - Sim: the purchased-hall count and the year the seventh school is
   established, before and after.
+
+**As implemented:**
+
+- **A save version, 93 → 94** (`walnutHall`): a save keeps the catalog it
+  was founded with, so Walnut Hall joins it, locked, after Sycamore Hall.
+  Its id is `HALL-07`, the id Plan 59 retired with Cedar Hall; a version-77
+  save that kept a sited Cedar Hall keeps it, and the step adds nothing.
+  The version-93 fixture is the year-8 scenario written by main at 93.
+- **No layout change.** Halls are sited by the player (and by the harness
+  anywhere free); `components/campusLayout.ts` holds no hall sites. Only
+  `tools/layout.ts`'s screenshot plan names halls, and a building it does
+  not name goes to its overflow block.
+- **Sim** (`npm run sim`, three seeds, fifty years): the Guided player and
+  its four specialized runs, Lean and Idle are unchanged. The two players
+  that buy whatever is offered move: **Completionist** ends at #1 (from
+  #7), prestige 117.4 (+8.0) and $152.0M (+$45.8M) at year 50, but 2.0
+  lower at year 25; **Selective** ends with $25.9M less (of $607M), about
+  Walnut Hall's price. Seven schools are founded by the same years. No
+  baseline saved: PR 89G re-measures with the offices in play.
 
 ## PR 89D — The six milestones
 

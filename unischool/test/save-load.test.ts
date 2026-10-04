@@ -65,6 +65,8 @@ function testRetiredCarry(): void {
   const quad = cur.tech.find((t) => t.id === 'QUAD-T1')!;
   for (const sited of [false, true]) {
     const old = JSON.parse(JSON.stringify(cur)) as GameState;
+    // A version-77 catalog: its HALL-07 was Cedar Hall, not Walnut Hall.
+    old.tech = old.tech.filter((t) => t.id !== 'HALL-07');
     old.tech.push({ ...sycamore, id: 'HALL-07', name: 'Cedar Hall', status: sited ? 'done' : 'locked', prereqs: ['HALL-06'] });
     old.tech.push({ ...quad, id: 'QUAD-S2', name: 'Second Quad', status: sited ? 'done' : 'locked', prereqs: ['QUAD-T1'] });
     if (sited) {
@@ -77,7 +79,11 @@ function testRetiredCarry(): void {
     assert(back !== null, `a version-77 save loads (${sited ? 'sited' : 'unsited'})`);
     if (!back) continue;
     const has = (id: string) => back.tech.some((t) => t.id === id);
-    assert(has('HALL-07') === sited && has('QUAD-S2') === sited, sited ? 'a sited Cedar Hall and Second Quad stay' : 'an unsited Cedar Hall and Second Quad leave the save');
+    // HALL-07 is Walnut Hall again from version 94 (Plan 89C): an unsited
+    // Cedar Hall leaves, and Walnut Hall joins in its place.
+    const cedar = back.tech.find((t) => t.id === 'HALL-07')?.name === 'Cedar Hall';
+    assert(cedar === sited && has('QUAD-S2') === sited, sited ? 'a sited Cedar Hall and Second Quad stay' : 'an unsited Cedar Hall and Second Quad leave the save');
+    if (!sited) assert(back.tech.find((t) => t.id === 'HALL-07')?.name === 'Walnut Hall', 'and Walnut Hall joins in its place');
   }
 }
 
