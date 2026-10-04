@@ -143,7 +143,9 @@ function darken(hex: string, amount: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
-export default function FacultyPortrait({ f, size = 24 }: { f: Portrayed; size?: number }) {
+// Round by default; 'square' fills the whole square, for the mounted frame
+// of the Faculty tab's staff ID card (Plan 90).
+export default function FacultyPortrait({ f, size = 24, shape = 'round' }: { f: Portrayed; size?: number; shape?: 'round' | 'square' }) {
   const skin = skinTone(f);
   const hair = hairColor(f);
   const bg = BACKGROUND_TINTS[bucket(f.id, 'bg', BACKGROUND_TINTS.length)];
@@ -158,13 +160,13 @@ export default function FacultyPortrait({ f, size = 24 }: { f: Portrayed; size?:
   const clipId = `portrait-clip-${f.id}`;
 
   return (
-    <svg className="faculty-portrait" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+    <svg className={shape === 'square' ? 'faculty-portrait square' : 'faculty-portrait'} viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
       <defs>
         <clipPath id={clipId}>
-          <circle cx="12" cy="12" r="12" />
+          {shape === 'square' ? <rect width="24" height="24" /> : <circle cx="12" cy="12" r="12" />}
         </clipPath>
       </defs>
-      <circle cx="12" cy="12" r="12" fill={bg} />
+      {shape === 'square' ? <rect width="24" height="24" fill={bg} /> : <circle cx="12" cy="12" r="12" fill={bg} />}
       <g clipPath={`url(#${clipId})`}>
         {style.back && <path d={style.back} fill={hair} />}
         {/* Shoulders: wider than the frame, cropped by the clip path. */}

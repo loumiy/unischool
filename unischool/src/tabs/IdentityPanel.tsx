@@ -1,10 +1,20 @@
 import type { GameState } from '../state/types';
 import HelpHint from '../components/HelpHint';
-import { tagById, TAG_EARN_AT, TAG_YEARS } from '../data/tagData';
+import { tagById, TAG_EARN_AT, TAG_YEARS, type TagDef } from '../data/tagData';
 import { perceptionOf, tagIndicators } from '../systems/identity/tags';
 
 // What the guidebooks say (Plan 31, V2 #30): the identity tags the college
-// holds, what each does, and the ones it is on the way to earning.
+// holds, what each does, and the ones it is on the way to earning. Each
+// reputation is a round sticker beside its quote, and the years toward one
+// are pips (Plan 90 N).
+
+// A reputation whose own effect costs the college (more attrition, a
+// higher cost a student, lower satisfaction) is a warning, not praise, and
+// gets a cream sticker rather than a gold one.
+function isWarning(t: TagDef): boolean {
+  const { lever, amount } = t.teeth;
+  return lever === 'attrition' || lever === 'studentCost' ? amount > 0 : amount < 0;
+}
 
 export default function IdentityPanel({ s }: { s: GameState }) {
   const p = perceptionOf(s);
@@ -25,18 +35,27 @@ export default function IdentityPanel({ s }: { s: GameState }) {
           {p.tags.map((id) => {
             const t = tagById(id)!;
             return (
-              <li key={id}>
-                <strong>{t.name}</strong> <em>"{t.blurb}"</em>
-                <div className="stat">{t.why} {t.teeth.line}</div>
+              <li key={id} className="identity-entry">
+                <strong className={`identity-sticker${isWarning(t) ? ' warning' : ''}`}><span>{t.name}</span></strong>
+                <q className="identity-quote">{t.blurb}</q>
+                <p className="identity-why">{t.why} {t.teeth.line}</p>
               </li>
             );
           })}
         </ul>
       )}
       {coming.length > 0 && (
-        <p className="empty-note">
-          On the way: {coming.map(([id, n]) => `${tagById(id)!.name} (${n} of ${TAG_YEARS} years${ind[id] < TAG_EARN_AT ? ', slipping' : ''})`).join(', ')}.
-        </p>
+        <ul className="identity-coming">
+          {coming.map(([id, n]) => (
+            <li key={id}>
+              <span>On the way: {tagById(id)!.name}</span>
+              <span className="identity-pips" aria-hidden="true">
+                {Array.from({ length: TAG_YEARS }, (_, i) => <i key={i} className={i < n ? 'on' : undefined} />)}
+              </span>
+              <span className="identity-years">{n} of {TAG_YEARS} years{ind[id] < TAG_EARN_AT ? ', slipping' : ''}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );

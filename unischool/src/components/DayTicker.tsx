@@ -4,6 +4,10 @@ import type { Speed } from '../engine/useGame';
 
 const DAY_TICKER_POLL_MS = 150;
 const DAYS_PER_WEEK = 7;
+// The seven cells are a week's days, Monday first, lettered over the cells
+// (Plan 90). The sim keeps no weekday of its own, so the letters only name
+// the cells' order.
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
 
 // Purely cosmetic: the sim only advances whole weeks, so this paces seven
 // squares across the current week to make the clock read as continuous.
@@ -34,7 +38,10 @@ export default function DayTicker({ s, speed, weekProgress }: {
 
   return (
     <div className="day-ticker" aria-hidden="true" title="Days elapsed this week">
-      {Array.from({ length: DAYS_PER_WEEK }, (_, i) => (
+      {DAY_LETTERS.map((letter, i) => (
+        <span key={`l${i}`} className="day-ticker-letter">{letter}</span>
+      ))}
+      {DAY_LETTERS.map((_, i) => (
         <span key={i} className={`day-ticker-cell ${i < litDays ? 'lit' : ''}`} />
       ))}
     </div>

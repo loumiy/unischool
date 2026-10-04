@@ -23,6 +23,7 @@ import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/seaso
 import type { ScholarshipLevel, SeasonResult } from '../state/types';
 import { count, decimal, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
+import { switchStyle } from '../components/segmentedSwitch';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -51,35 +52,50 @@ function ceilingLabel(c: Coach): string {
 // which is only offered through the 'varsity-petition' decision event.
 
 type Role = 'head' | 'assistant' | 'trainer';
-const ROLE_SHORT: Record<Role, string> = { head: 'Head', assistant: 'Asst', trainer: 'Trainer' };
+const ROLE_SEAT: Record<Role, string> = { head: 'Head coach', assistant: 'Assistant', trainer: 'Trainer' };
 const ROLE_ORDER: readonly Role[] = ['head', 'assistant', 'trainer'];
 
 function coachInSlot(team: VarsityTeam, role: Role): Coach | null {
   return role === 'head' ? team.headCoach : role === 'assistant' ? team.assistantCoach : team.trainer;
 }
 
-// One staff chair on a program card: the coach filling it (face, name,
-// quality, ceiling, age and salary on one short line, a Release button), or
-// the vacancy. Hiring happens in TheMarket below.
-function StaffRow({ act, team, role }: { act: (a: Action) => void; team: VarsityTeam; role: Role }) {
+// The market's panel, where an open seat's "Hire" goes.
+const MARKET_ID = 'athletics-market';
+function goToMarket() {
+  const market = document.getElementById(MARKET_ID);
+  if (!market) return;
+  market.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  market.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+}
+
+// One staff chair on a program card, as a seat (Plan 90): the coach filling
+// it (face, name, quality and salary; the ceiling and age in its tooltip, a
+// Release button), or an open seat with a dashed blank face and a link to
+// the market below, where hiring happens.
+function StaffSeat({ act, team, role }: { act: (a: Action) => void; team: VarsityTeam; role: Role }) {
   const coach = coachInSlot(team, role);
 
   if (!coach) {
     return (
-      <div className="coach-row vacant">
-        <span className="coach-role">{ROLE_SHORT[role]}</span>
-        <span className="coach-vacant">vacant — see the market</span>
+      <div className="staff-seat open">
+        <span className="staff-seat-role">{ROLE_SEAT[role]}</span>
+        <span className="staff-seat-face" aria-hidden="true" />
+        <span className="staff-seat-name">Open</span>
+        <button type="button" className="staff-seat-hire" aria-label={`Hire a ${CHAIR_LABEL[role]}: see the market`} onClick={goToMarket}>
+          Hire <span aria-hidden="true">→</span>
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="coach-row">
-      <span className="coach-role">{ROLE_SHORT[role]}</span>
-      <FacultyPortrait f={coachPortrait(coach)} size={22} />
-      <span className="coach-who">
-        <span className="coach-name">{coach.name}</span>
-        <span className="coach-stats">q {coach.quality} · {ceilingLabel(coach)} · age {coachProfile(coach).age} · {moneyShort(coach.salary)}/yr</span>
+    <div className="staff-seat" title={`${coach.name}: quality ${coach.quality} · ${ceilingLabel(coach)} · age ${coachProfile(coach).age} · ${moneyShort(coach.salary)}/yr`}>
+      <span className="staff-seat-role">{ROLE_SEAT[role]}</span>
+      <FacultyPortrait f={coachPortrait(coach)} size={34} />
+      <span className="staff-seat-name">{coach.name}</span>
+      <span className="staff-seat-line">
+        q {coach.quality} · {moneyShort(coach.salary)}/yr
+        <span className="visually-hidden"> · {ceilingLabel(coach)} · age {coachProfile(coach).age}</span>
       </span>
       <ConfirmButton
         className="coach-release"
@@ -146,9 +162,9 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const shown = showAll ? [...wanted, ...rest] : wanted;
 
   return (
-    <section className="panel">
+    <section className="panel" id={MARKET_ID}>
       <div className="panel-head">
-        <h2>On the market</h2>
+        <h2 tabIndex={-1}>On the market</h2>
         <HelpHint
           text="One pool for the whole department, not a separate list per post. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a post open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open post always has somebody listed, but the good ones are rare. A card shows a coach's potential as a range, not a number: a prospect is cheap and low now with a potential you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
         />
@@ -270,7 +286,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           the priority list has drawn on it. The tier is the subsidy in dollars. */}
       <div className="athletics-budget">
         <span className="athletics-budget-label">Subsidy</span>
-        <div className="athletics-budget-tiers segmented">
+        <div className="athletics-budget-tiers segmented switch" style={switchStyle(ATHLETICS_BUDGET_ORDER.length, ATHLETICS_BUDGET_ORDER.indexOf(s.orgs.athleticsBudget))}>
           {ATHLETICS_BUDGET_ORDER.map((tier) => (
             <button
               key={tier}
@@ -336,9 +352,11 @@ function ComplexSection({ s }: { s: GameState }) {
   );
 }
 
-// A sport's standing, on its program card: the rank (the colleges just above
-// and below in its tooltip), last season, this season's record and the
-// rivalry. Teams still waiting on a venue are not ranked: they cannot compete.
+// A sport's standing, on its program card, as a small navy scoreboard (Plan
+// 89): the rank (the colleges just above and below in its tooltip) in one
+// cell; the all-time series against the sport's rival, last season and this
+// season's record in the other. Teams still waiting on a venue are not
+// ranked: they cannot compete.
 function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
   const list = sportRankedList(s, team.sport);
   const place = sportRank(s, team.sport);
@@ -353,19 +371,33 @@ function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
     above ? `↑ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
     below ? `↓ ${below.name} ${below.mascot}` : '',
   ].filter(Boolean).join('\n');
+  // The series is kept the college's wins first, so who leads it is known.
+  const lead = rivalry ? Math.sign(rivalry.wins - rivalry.losses) : 0;
   return (
-    <div className="team-card-standing">
-      <span className="sport-standing-place" title={neighbours}>
-        <strong>#{place}</strong>
-        <span className="sport-standing-of">of {list.length}</span>
-      </span>
-      {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
-      {record ? <span className="stat">{record.wins}–{record.losses}</span> : <span className="stat">season not open</span>}
-      {rival && (
-        <span className="stat team-card-rival" title={`${trophyFor(s, team.sport)} — the all-time series against ${rival.name}`}>
-          vs {rival.name}{rivalry ? ` ${rivalry.wins}–${rivalry.losses}` : ''}
+    <div className="team-card-standing scoreboard">
+      <div className="scoreboard-cell scoreboard-rank" title={neighbours}>
+        <span className="scoreboard-label">Rank</span>
+        <span className="scoreboard-digits">
+          {place}<small aria-hidden="true">/{list.length}</small><span className="visually-hidden"> of {list.length}</span>
         </span>
-      )}
+      </div>
+      <div className="scoreboard-cell">
+        {rival && (
+          <>
+            <span className="scoreboard-label">Rival series</span>
+            <span className="scoreboard-game team-card-rival" title={`${trophyFor(s, team.sport)} — the all-time series against ${rival.name}`}>
+              {rivalry
+                ? <><span className={`scoreboard-score ${lead > 0 ? 'up' : lead < 0 ? 'down' : 'level'}`}>{lead > 0 ? 'Lead' : lead < 0 ? 'Trail' : 'Level'} {rivalry.wins}–{rivalry.losses}</span> {rival.name}</>
+                : <>vs {rival.name}</>}
+            </span>
+          </>
+        )}
+        <span className="scoreboard-status">
+          {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
+          <span aria-hidden="true"> · </span>
+          {record ? <span>{record.wins}–{record.losses} this season</span> : <span>season not open</span>}
+        </span>
+      </div>
     </div>
   );
 }
@@ -414,7 +446,7 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
       {flagship && (
         <div className="team-card-scholarships">
           <span className="athletics-budget-label">Scholarships</span>
-          <div className="segmented">
+          <div className="segmented switch" style={switchStyle(SCHOLARSHIP_ORDER.length, SCHOLARSHIP_ORDER.indexOf(team.scholarships))}>
             {SCHOLARSHIP_ORDER.map((level) => (
               <button
                 key={level}
@@ -461,14 +493,25 @@ function TeamCard({ s, act, team, funding, rank }: {
   const gate = annualGateFor(s, team);
   const banned = team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear;
 
+  // A flagship wears a gold corner in place of its tag (Plan 90).
+  const flagship = team.status === 'active' && funding?.band === 'flagship';
+
   return (
-    <div className="team-card">
+    <div className={`team-card${flagship ? ' is-flagship' : ''}`}>
+      {flagship && (
+        <span className="team-card-corner" title="Flagship">
+          <span aria-hidden="true">★</span>
+          <span className="visually-hidden">Flagship</span>
+        </span>
+      )}
       <div className="team-card-head">
         {rank !== undefined && <span className="priority-rank" title="Drag to reorder">{rank}</span>}
         <span className="team-card-name">{team.name.replace(/ Team$/, '')}</span>
-        <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
-          {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
-        </span>
+        {!flagship && (
+          <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
+            {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
+          </span>
+        )}
       </div>
       {banned && <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>}
       {team.status === 'active' && <SportLine s={s} team={team} />}
@@ -491,11 +534,9 @@ function TeamCard({ s, act, team, funding, rank }: {
         )}
       </div>
       {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
-      {/* Three empty chairs are one line, not three. */}
-      <div className="team-card-staff">
-        {ROLE_ORDER.every((role) => !coachInSlot(team, role))
-          ? <div className="coach-row vacant"><span className="coach-vacant">no staff yet — head coach, assistant and trainer on the market</span></div>
-          : ROLE_ORDER.map((role) => <StaffRow key={role} act={act} team={team} role={role} />)}
+      {/* Three seats side by side, an open one dashed (Plan 90). */}
+      <div className="team-card-staff" role="group" aria-label="Staff">
+        {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
       </div>
     </div>
   );

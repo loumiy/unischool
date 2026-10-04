@@ -5,6 +5,7 @@ import { REPORT_WORDS } from '../data/reportData';
 import { STANDINGS } from '../systems/rivals/rivalsSystem';
 import { MultiChart } from './MultiChart';
 import HelpHint from './HelpHint';
+import GradeMark from './GradeMark';
 import { count } from '../format';
 
 // The Final Report (Plan 33, state/finalReport.ts), as the fiftieth summer
@@ -28,7 +29,7 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
     <div className="final-report">
       <h3 className="final-report-title">{report.title}</h3>
       <div className="final-report-mark">
-        <span className={`grade-chip lg grade-${report.mark.toLowerCase()}`}>{report.mark}</span>
+        <GradeMark grade={report.mark} size="lg" />
         <span>{REPORT_WORDS.mark} · {report.markScore.toFixed(0)}</span>
         <HelpHint align="start" text={REPORT_WORDS.markHint} />
       </div>
@@ -38,7 +39,7 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
       <ul className="final-report-axes">
         {report.axes.map((a) => (
           <li key={a.axis}>
-            <span className={`grade-chip lg grade-${a.grade.toLowerCase()}`}>{a.grade}</span>
+            <GradeMark grade={a.grade} size="lg" />
             <span className="final-report-axis-label">{a.label}</span>
             <span className="final-report-axis-line">{fill(REPORT_WORDS.axisLine, { mean: a.mean.toFixed(0), first: a.first.toFixed(0), last: a.last.toFixed(0) })}</span>
           </li>

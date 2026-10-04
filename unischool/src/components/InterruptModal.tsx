@@ -1,5 +1,5 @@
 import { servedPopulationFor } from '../systems/satisfaction/satisfactionSystem';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { Action } from '../state/actions';
 import type {
   Coach, GameState, InitiativeReport, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
@@ -19,6 +19,7 @@ import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
+import { COHORT_COLOR } from './cohortColors';
 import { projectConsequences } from '../systems/admissions/consequences';
 import { admitRateOpening, poolChange, takesColon } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, pillarValue, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
@@ -164,34 +165,54 @@ function SIZE_FOR_LENGTH(length: number): string {
   return '';
 }
 
-// One cohort's card: the audience's name small, the head count big. The
-// driver (what pulls this audience) waits on hover, as both a styled tooltip
-// and a native `title` for keyboard and touch. The count's tone says whether
-// the audience is above or below neutral.
-function CohortCard({ label, driverLabel, pull, applicants, lastYear, revealMs, note }: {
-  label: string; driverLabel: string; pull: number; applicants: number;
+// One cohort's card (Plan 90): the audience's name on a strip of its own
+// colour, the head count big with the change from last summer beside it, and
+// two bars, now and last year, on `scale`, which all eight cards share so
+// they compare with each other too. The driver (what pulls this audience)
+// waits on hover, as both a styled tooltip and a native `title` for keyboard
+// and touch. The arrow on the strip says whether the audience is drawn above
+// or below neutral (the pull), which the count's colour used to say.
+function CohortCard({ label, color, driverLabel, pull, applicants, lastYear, scale, revealMs, note }: {
+  label: string; color: string; driverLabel: string; pull: number; applicants: number;
   // The cause named, where a cohort has one (e.g. a title); shown in the
   // tooltip.
   note?: string;
   // Last summer's count (students.lastFunnel), so the card reads as a
   // change. Null at the first summer.
   lastYear: number | null;
+  // The largest count on any card, this year or last; at least 1.
+  scale: number;
   revealMs: number;
 }) {
-  const toneClass = pull > 1 ? 'cohort-up' : pull < 1 ? 'cohort-down' : 'cohort-flat';
+  const pullWord = pull > 1 ? 'drawn above its usual share' : pull < 1 ? 'drawn below its usual share' : undefined;
   // The figure shrinks, not the card. Sized by the final value's length, not
   // the displayed one, so the reveal's count-up does not resize the text.
   const sizeClass = SIZE_FOR_LENGTH(count(applicants).length);
+  const delta = lastYear === null ? null : applicants - lastYear;
+  const width = (n: number) => `${Math.min(100, (n / scale) * 100)}%`;
   return (
-    <div className="cohort-card" title={note ? `${driverLabel}. ${note}` : driverLabel}>
-      <span className="cohort-card-label">{label}</span>
-      <span className={`cohort-card-count ${toneClass} ${sizeClass}`}>
-        <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
+    <div className="cohort-card"
+      style={{ '--cohort': color } as CSSProperties}
+      title={note ? `${driverLabel}. ${note}` : driverLabel}>
+      <span className="cohort-card-label">
+        <span>{label}</span>
+        {pullWord && <span className="cohort-card-pull" role="img" aria-label={pullWord}>{pull > 1 ? '▲' : '▼'}</span>}
       </span>
-      {lastYear !== null && (
-        <span className="cohort-card-last" title="Last summer">{count(lastYear)} last year</span>
-      )}
-      <span className="cohort-card-tip" role="tooltip">{driverLabel}{note && <><br />{note}</>}</span>
+      <span className="cohort-card-figures">
+        <span className={`cohort-card-count ${sizeClass}`}>
+          <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
+        </span>
+        {delta !== null && (
+          <span className={`cohort-card-delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}`} title={`Against ${count(lastYear ?? 0)} last summer`}>
+            {delta === 0 ? '±0' : signed(delta)}
+          </span>
+        )}
+      </span>
+      <span className="cohort-card-bars" aria-hidden="true">
+        <span className="cohort-card-bar"><span>now</span><i style={{ width: width(applicants) }} /></span>
+        {lastYear !== null && <span className="cohort-card-bar last"><span>last yr</span><i style={{ width: width(lastYear) }} /></span>}
+      </span>
+      <span className="cohort-card-tip" role="tooltip">{driverLabel}{pullWord && <><br />{pullWord}</>}{note && <><br />{note}</>}</span>
     </div>
   );
 }
@@ -247,6 +268,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   const tolerance = priceTolerance(prestige);
   const priceTierNow = priceTier(tuition, tolerance);
   const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
+  // The cards' bars share one scale, the largest count this summer or last
+  // (Plan 90); at least 1, so an empty pool divides by nothing.
+  const lastCohorts = s.students.lastFunnel?.cohorts;
+  const cohortScale = Math.max(1, ...cohorts.map((c) => Math.max(c.applicants, lastCohorts?.[c.id] ?? 0)));
   // Why the pool moved: each factor's share of the change against last
   // summer. Null at the first summer.
   const change = poolChange(outcome, s.students.lastFunnel);
@@ -341,8 +366,9 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             <div className="cohort-cards">
               {cohorts.map((c) => (
                 <CohortCard
-                  key={c.id} label={c.label} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} note={c.note}
-                  lastYear={s.students.lastFunnel ? s.students.lastFunnel.cohorts[c.id] ?? 0 : null}
+                  key={c.id} label={c.label} color={COHORT_COLOR[c.id]} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} note={c.note}
+                  lastYear={lastCohorts ? lastCohorts[c.id] ?? 0 : null}
+                  scale={cohortScale}
                   revealMs={REVEAL_MS}
                 />
               ))}

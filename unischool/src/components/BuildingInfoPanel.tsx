@@ -245,7 +245,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
               ? <span className="program-tile-transit" title="A course has no instructor: the program is dark until it is restaffed">dark</span>
               : <span className="program-tile-progress">{fraction(progress.done, progress.total)}</span>}
           {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
-          {avg !== null && <GradeChip word grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
+          {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
         </span>
       </button>
       {open && (

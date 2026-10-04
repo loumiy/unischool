@@ -14,7 +14,7 @@ import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 import { rankBy } from '../systems/rivals/rivalsSystem';
 import { decimal, money, moneyShort, multiplier, pct, weeksProse, weeksShort } from '../format';
-import { CloseIcon, RemoveIcon, StatusIcon } from '../components/icons';
+import { CloseIcon, RemoveIcon } from '../components/icons';
 import { projectOpens } from '../data/projectData';
 import { labsTowardPark, projectOpen } from '../systems/estate/projects';
 import { standsOnCampus } from '../state/types';
@@ -26,8 +26,9 @@ import { SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSyste
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
 // `teaching` lives, so Research being where `research` lives makes the two
-// faculty stats mean different things. One panel per facility, running or
-// vacant; a vacant lab is idle capital the player should see.
+// faculty stats mean different things. One roster of every facility, a row
+// each with a lamp lit while a project runs (Plan 90); a vacant lab is idle
+// capital the player should see.
 // =====================================================================
 
 
@@ -59,8 +60,16 @@ function ScholarRow(
   );
 }
 
+// A roster row's lamp: lit while a project runs, unlit when vacant (Plan 90).
+// The status line under the name says the same in words.
+function Lamp({ on }: { on: boolean }) {
+  return <span className={`facility-lamp${on ? ' on' : ''}`} aria-hidden="true" />;
+}
+
 // A facility with work in it: what, by whom, how far along, and how many
 // breakthroughs it has banked (which decides whether it can win an award).
+// Its roster row says the project and the weeks; the team and the odds sit
+// under it.
 function RunningPanel(
   { s, act, lab, initiative }:
   { s: GameState; act: (a: Action) => void; lab: Buildable; initiative: Initiative },
@@ -76,15 +85,12 @@ function RunningPanel(
   return (
     <section className="facility-panel running" data-lab={lab.id}>
       <header className="facility-head">
-        <span className="facility-name">
-          {lab.name}
-          <span className="facility-depth">{depth.name} · {weeksShort(initiative.weeksTotal)}</span>
-          {/* Said once, about the project, with the multiplier. */}
-          {fields.size > 1 && (
-            <span className="facility-cross" title={`${fields.size} disciplines on the team`}>
-              interdisciplinary {multiplier(interdisciplinaryBonus(team))}
-            </span>
-          )}
+        <Lamp on />
+        <span className="facility-title">
+          <span className="facility-name">{lab.name}</span>
+          <span className="facility-status busy">
+            {topic?.name ?? 'Unknown project'} · {Math.round(elapsed)} of {Math.round(initiative.weeksTotal)} weeks
+          </span>
         </span>
         <ConfirmButton
           className="facility-cancel btn-danger"
@@ -94,7 +100,15 @@ function RunningPanel(
         />
       </header>
 
-      <h3 className="facility-topic">{topic?.name ?? 'Unknown project'}</h3>
+      <div className="facility-tags">
+        <span className="facility-depth">{depth.name} · {weeksShort(initiative.weeksTotal)}</span>
+        {/* Said once, about the project, with the multiplier. */}
+        {fields.size > 1 && (
+          <span className="facility-cross" title={`${fields.size} disciplines on the team`}>
+            interdisciplinary {multiplier(interdisciplinaryBonus(team))}
+          </span>
+        )}
+      </div>
 
       <div className="facility-team">
         {team.length === 0
@@ -107,7 +121,6 @@ function RunningPanel(
           <span className="facility-fill" style={{ width: pct(fraction) }} />
         </span>
         <span className="facility-progress-meta">
-          <span>{weeksShort(elapsed)} of {weeksShort(initiative.weeksTotal)}</span>
           <span>
             <b>{initiative.breakthroughs}</b> {initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'} banked
             {initiative.publications > 0 && ` · ${initiative.publications} published`}
@@ -164,12 +177,13 @@ function VacantPanel(
       onKeyDown={(e) => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); setPicked(null); setTeam([]); } }}
     >
       <header className="facility-head">
-        <span className="facility-name">
-          {lab.name}
-          <span className="facility-depth vacant-tag">Vacant</span>
+        <Lamp on={false} />
+        <span className="facility-title">
+          <span className="facility-name">{lab.name}</span>
+          <span className="facility-status">{open ? 'Vacant: choose a project' : 'Vacant'}</span>
         </span>
         {!open ? (
-          <button type="button" className="facility-start" onClick={() => setOpen(true)}>Start research</button>
+          <button type="button" className="facility-start btn-primary" onClick={() => setOpen(true)}>Start research</button>
         ) : (
           // Folds the options back up without starting anything (Plan 60).
           <button
@@ -346,16 +360,21 @@ function ResearchParkProgress({ s }: { s: GameState }) {
             {projectOpens(park.project)}
             {projectOpen(s, park) && ' It is open: build it from the capital projects in the build menu.'}
           </p>
-          <p className="research-park-count">Labs that have finished a project: <b>{finished} of {labs.length}</b></p>
-          <ul className="research-park-labs">
-            {labs.map(({ lab, finished: done }) => (
-              <li key={lab.id} className={done ? 'finished' : 'waiting'}>
-                <StatusIcon status={done ? 'done' : 'pending'} />
-                <span>{lab.name}</span>
-                <span className="research-park-lab-state">{done ? 'finished one' : 'not yet'}</span>
-              </li>
-            ))}
-          </ul>
+          {/* A tally, a cell per lab (Plan 90); each cell names its lab. */}
+          <div className="park-tally">
+            <p className="park-tally-head">
+              <span>Labs that have finished a project</span>
+              <span className="park-tally-count">{finished}/{labs.length}</span>
+            </p>
+            <div className="park-tally-cells" style={{ gridTemplateColumns: `repeat(${labs.length}, minmax(0, 1fr))` }}>
+              {labs.map(({ lab, finished: done }) => {
+                const words = `${lab.name}: ${done ? 'has finished a project' : 'not yet'}`;
+                return (
+                  <span key={lab.id} role="img" className={`park-tally-cell${done ? ' finished' : ''}`} title={words} aria-label={words} />
+                );
+              })}
+            </div>
+          </div>
           <p className="research-park-note">A new lab raises the count: it has to finish a project too.</p>
         </>
       )}
@@ -420,28 +439,20 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
           </p>
         ) : (
           <>
-            {/* Split by state: running panels are tall, vacant ones short,
-                and what the university is working on is news while what it
-                isn't is a worklist. */}
-            {underway.length > 0 && (
-              <div className="facility-list running-list">
-                {underway.map(({ lab, initiative }) => (
-                  <RunningPanel key={lab.id} s={s} act={act} lab={lab} initiative={initiative} />
-                ))}
-              </div>
-            )}
-            {vacant.length > 0 && (
-              <>
-                <h3 className="facility-group-head">
-                  {underway.length > 0 ? 'Standing idle' : 'Ready for work'}
-                </h3>
-                <div className="facility-list vacant-list">
-                  {vacant.map(({ lab }) => (
-                    <VacantPanel key={lab.id} s={s} act={act} lab={lab} startRequested={startLab === lab.id} />
-                  ))}
-                </div>
-              </>
-            )}
+            {/* One roster (Plan 90): what the university is working on
+                first, as news with its team under it, then what it isn't,
+                as a worklist. */}
+            <h3 className="facility-group-head">
+              {underway.length === 0 ? 'Ready for work' : 'The facilities'}
+            </h3>
+            <div className="facility-roster">
+              {underway.map(({ lab, initiative }) => (
+                <RunningPanel key={lab.id} s={s} act={act} lab={lab} initiative={initiative} />
+              ))}
+              {vacant.map(({ lab }) => (
+                <VacantPanel key={lab.id} s={s} act={act} lab={lab} startRequested={startLab === lab.id} />
+              ))}
+            </div>
             <ResearchParkProgress s={s} />
           </>
         )}

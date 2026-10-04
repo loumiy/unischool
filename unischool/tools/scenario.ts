@@ -27,7 +27,7 @@ import { PLAYERS, playerNamed } from '../sim/harness/archetypes';
 import { SAVE_VERSION } from '../src/state/persistence';
 import { SCHOOL_COLOR_PAIRS, schoolColorsOf } from '../src/data/schoolColors';
 import { nextVenueExpansion, venueExpansionsMax } from '../src/data/facilitiesData';
-import { totalEnrolled } from '../src/state/types';
+import { institutionName, totalEnrolled } from '../src/state/types';
 import type { GameState, Vernacular } from '../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
@@ -139,7 +139,16 @@ if (wantedModal && pending !== wantedModal) {
 // read as they came: a Year-20 save would otherwise open on Year 1's.
 state.ladder.unread = [];
 if (flags.name) {
+  const was = institutionName(state.self);
   state.self.name = flags.name;
+  // A run past the fiftieth summer has written its Final Report under the
+  // old name (state/finalReport.ts): rename the college there too.
+  const report = state.ending?.report;
+  if (report) {
+    const now = institutionName(state.self);
+    report.college = now;
+    report.title = report.title.split(was).join(now);
+  }
   // The charter's answers name the college (systems/events/charter.ts).
   const charter = state.catalogue?.pending.find((p) => p.instanceId === CHARTER_INSTANCE);
   if (charter) charter.vars = charterVars(state);

@@ -6,6 +6,7 @@ import { SchoolFacade } from './StartupScreen';
 import { useHotkeys } from './hotkeys';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { CloseIcon } from './icons';
+import GradeMark from './GradeMark';
 import { calendarDate } from '../format';
 
 // THE HALL OF FAME (Plan 33, Plan 34; state/hall.ts): finished runs as
@@ -20,7 +21,7 @@ export function HallFrame({ entry, open, onClick }: { entry: HallEntry; open?: b
       <span className="hall-plaque">
         <span className="hall-plaque-name">{entry.college}</span>
         <span className="hall-plaque-meta" title={`Finished ${calendarDate(entry.finishedAt)}`}>
-          <span className={`grade-chip sm grade-${entry.mark.toLowerCase()}`}>{entry.mark}</span>
+          <GradeMark grade={entry.mark} />
           {/* Game years only: a real calendar year beside them read as a
               date in the college's history. */}
           Years 1–{entry.year}
@@ -59,7 +60,7 @@ export default function HallOfFame({ onClose, onNewCollege, running }: { onClose
             <p className="hall-reading-title">{shown.title}</p>
             <p className="hall-reading-grades">
               {shown.grades.map((g) => (
-                <span key={g.label}><span className={`grade-chip sm grade-${g.grade.toLowerCase()}`}>{g.grade}</span> {g.label}</span>
+                <span key={g.label}><GradeMark grade={g.grade} /> {g.label}</span>
               ))}
             </p>
             <ReportCardActions entry={shown} />
