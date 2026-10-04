@@ -2,6 +2,7 @@
 // draw rate, defaulting to the old fixed 4%, and cash moved into the
 // endowment by hand, in round sums, never more than the cash on hand.
 
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { financeBreakdown, tickFinance } from '../src/systems/finance/financeSystem';
@@ -178,6 +179,8 @@ const fresh = () => {
       for (const t of s.tech) if (t.facilityType === team.venueCategory) t.status = 'done';
     }
     s.seats = [{ seatId: 'provost', school: null, holder: 'A. Provost', internal: false, policy: 'balanced', salary: 250_000, appointedYear: s.clock.year }];
+    // An office in Founders Hall (Plan 89): its first slot, whatever held it.
+    s.halls[FOUNDERS_HALL_ID][0] = { programId: null, office: { id: 'admissions', openedYear: s.clock.year } };
     (s.finance.loans ??= []).push({ buildingId: 'test', balance: 1_000_000, payment: loanPayment(1_000_000), weeksLeft: LOAN_YEARS * WEEKS_PER_YEAR });
     states.push(['save-launch.json, with every line in play', s]);
   }

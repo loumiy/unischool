@@ -3,6 +3,7 @@ import { isAcademicHall, programById, programs } from '../../data/techData';
 import { claimedSchool, closestSchool, schoolFoundedKey, type SchoolProgress } from '../techtree/schools';
 import { isHoused, isInTransit, offeredIn, slotOf } from '../techtree/programOffers';
 import type { StepIntent } from './intent';
+import { slotFree } from '../administration/offices';
 
 // Establishing a school (Plan 80D), the line the letters and the next-step
 // line give once a second academic hall stands: "Establish a school: six
@@ -38,7 +39,7 @@ export function establishText(p: SchoolProgress | null, second = false): string 
   return `Establish ${second ? 'another' : 'a'} school: six programs of ${p.school} in one hall (${p.housed} of 6)`;
 }
 
-const freeSlot = (s: GameState, hallId: string) => s.halls[hallId]?.findIndex((slot) => slot.programId === null) ?? -1;
+const freeSlot = (s: GameState, hallId: string) => s.halls[hallId]?.findIndex(slotFree) ?? -1;
 
 // The way toward six in the hall, for the guided player; 'wait' when there
 // is none this week.

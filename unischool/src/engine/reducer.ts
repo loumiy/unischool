@@ -31,6 +31,7 @@ import { endInitiative } from '../systems/research/researchSystem';
 import { researchTopic } from '../data/researchTopics';
 import { programOfCourse } from '../data/techData';
 import { declineOffer, isInTransit } from '../systems/techtree/programOffers';
+import { closeOffice, openOffice } from '../systems/administration/offices';
 import { restaff } from '../systems/faculty/restaffing';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { tickAdmissions } from '../systems/admissions/admissionsSystem';
@@ -244,6 +245,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       relocateProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot });
       return s;
     }
+
+    // Plan 89: the gates and the mutations live in offices.ts, so the hall
+    // panel asks the same refusal before offering the button.
+    case 'OPEN_OFFICE':
+      return openOffice(s, action.officeId, action.slot) ? s : state;
+
+    case 'CLOSE_OFFICE':
+      return closeOffice(s, action.officeId) ? s : state;
 
     case 'HIRE_FACULTY':
       hireFaculty(s, action);

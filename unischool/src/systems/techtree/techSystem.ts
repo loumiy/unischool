@@ -16,6 +16,7 @@ import { tierOf, type CourseTier } from '../../data/courseQuality';
 import { ladderAllows } from '../ladder/ladderSystem';
 import { COMPLETION_LINES, fillLine, pickLine } from '../../data/logWords';
 import { TRAINING_SLOTS, trainingSlotsOff } from '../../data/trainingData';
+import { slotFree, tickOffices } from '../administration/offices';
 
 // Milestone bonuses reward aggregate conditions (docs/design/curriculum.md).
 // They grant no reputation directly (prestigeSystem.ts reads s.milestones);
@@ -452,7 +453,7 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
     if (!offeredIn(s, f.hallId, f.programId) || !hall || !isAcademicHall(hall)) return false;
   }
   const slots = s.halls[f.hallId];
-  if (!slots || f.slot < 0 || f.slot >= slots.length || slots[f.slot].programId !== null) return false;
+  if (!slots || f.slot < 0 || f.slot >= slots.length || !slotFree(slots[f.slot])) return false;
   const entry = s.tech.find((t) => t.id === program.entryCourseId);
   if (!entry || entry.status !== 'locked') return false;
   if (!entry.prereqs.every((id) => isDone(s, id))) return false;
@@ -524,7 +525,7 @@ export function canRelocateProgram(s: GameState, r: Relocation): boolean {
   const slots = s.halls[r.hallId];
   if (!slots || r.slot < 0 || r.slot >= slots.length) return false;
   if (from.hallId === r.hallId && from.slot === r.slot) return false;
-  if (slots[r.slot].programId !== null) return false;
+  if (!slotFree(slots[r.slot])) return false;
   if (s.tech.find((t) => t.id === r.hallId)?.status !== 'done') return false;
   return true;
 }
@@ -689,6 +690,7 @@ export function tickTech(s: GameState): void {
   // Arrivals first, so a twelve-week move costs twelve weeks, not thirteen.
   const arrived = Object.values(s.halls).some((slots) => slots.some((slot) => slot.transitWeeks !== undefined && slot.transitWeeks <= 1));
   tickTransit(s);
+  tickOffices(s);
 
   // A course of a dark program holds its countdown: in transit, or with a
   // course unstaffed (darkness.ts, Plan 59).
