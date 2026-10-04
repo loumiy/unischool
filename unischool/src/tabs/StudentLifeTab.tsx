@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { BuildableStatus, GameState, GreekChapter, SatisfactionAttributes, StudentClub, StudentOrgBase } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
@@ -106,6 +106,10 @@ function StudentLifeEffect({ s }: { s: GameState }) {
 // ---------------------------------------------------------------------
 const DIAL_SIZE = 64;
 const DIAL_STROKE = 7;
+// The ring is cut into gauge ticks (Plan 89 I): an SVG mask of dashes over
+// both circles, so the fill keeps its own dasharray and its transition.
+const DIAL_TICKS = 20;
+const DIAL_TICK_GAP = 2.4;
 
 function dialBand(score: number): 'ok' | 'warn' | 'bad' {
   if (score >= 70) return 'ok';
@@ -113,34 +117,53 @@ function dialBand(score: number): 'ok' | 'warn' | 'bad' {
   return 'bad';
 }
 
+// Full marks: the score as shown is 100 (Plan 89 I).
+function dialFull(score: number, dormant: boolean): boolean {
+  return !dormant && satisfactionShown(score) >= 100;
+}
+
 function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean }) {
+  const maskId = useId();
+  const c = DIAL_SIZE / 2;
   const r = (DIAL_SIZE - DIAL_STROKE) / 2;
   const circumference = 2 * Math.PI * r;
+  const tick = circumference / DIAL_TICKS - DIAL_TICK_GAP;
   const filled = Math.max(0, Math.min(1, score / 100));
+  const full = dialFull(score, dormant);
   const band = dormant ? 'dormant' : dialBand(score);
+  // Start at twelve o'clock rather than three.
+  const turn = `rotate(-90 ${c} ${c})`;
 
   return (
     <svg
-      className={`satisfaction-dial ${band}`}
+      className={`satisfaction-dial ${band}${full ? ' full' : ''}`}
       width={DIAL_SIZE}
       height={DIAL_SIZE}
       viewBox={`0 0 ${DIAL_SIZE} ${DIAL_SIZE}`}
       aria-hidden="true"
     >
-      <circle
-        className="satisfaction-dial-track"
-        cx={DIAL_SIZE / 2} cy={DIAL_SIZE / 2} r={r}
-        strokeWidth={DIAL_STROKE}
-      />
-      <circle
-        className="satisfaction-dial-fill"
-        cx={DIAL_SIZE / 2} cy={DIAL_SIZE / 2} r={r}
-        strokeWidth={DIAL_STROKE}
-        strokeDasharray={`${(circumference * filled).toFixed(2)} ${circumference.toFixed(2)}`}
-        // Start the fill at twelve o'clock rather than three.
-        transform={`rotate(-90 ${DIAL_SIZE / 2} ${DIAL_SIZE / 2})`}
-      />
-      <text className="satisfaction-dial-value" x={DIAL_SIZE / 2} y={DIAL_SIZE / 2} textAnchor="middle" dominantBaseline="central">
+      <mask id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={DIAL_SIZE} height={DIAL_SIZE}>
+        {/* A gap centred on twelve o'clock, so the fill starts on a tick. */}
+        <circle
+          cx={c} cy={c} r={r} fill="none" stroke="#fff" strokeWidth={DIAL_STROKE + 2}
+          strokeDasharray={`${tick.toFixed(3)} ${DIAL_TICK_GAP}`}
+          strokeDashoffset={-(DIAL_TICK_GAP / 2)}
+          transform={turn}
+        />
+      </mask>
+      <g mask={`url(#${maskId})`}>
+        <circle className="satisfaction-dial-track" cx={c} cy={c} r={r} strokeWidth={DIAL_STROKE} />
+        <circle
+          className="satisfaction-dial-fill"
+          cx={c} cy={c} r={r}
+          strokeWidth={DIAL_STROKE}
+          strokeDasharray={`${(circumference * filled).toFixed(2)} ${circumference.toFixed(2)}`}
+          transform={turn}
+        />
+      </g>
+      {/* A thin ring inside the gauge; at full marks, a gold centre. */}
+      <circle className="satisfaction-dial-centre" cx={c} cy={c} r={r - DIAL_STROKE / 2 - (full ? 2.5 : 4)} />
+      <text className="satisfaction-dial-value" x={c} y={c} textAnchor="middle" dominantBaseline="central">
         {dormant ? '–' : satisfactionFigure(score)}
       </text>
     </svg>
@@ -164,8 +187,11 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
         <SatisfactionDial score={detail.score} dormant={detail.dormant} />
         <div className="satisfaction-card-text">
           <span className="satisfaction-card-label">{label}</span>
-          {/* Two words, so it never wraps in a narrow card. */}
-          <span className="satisfaction-card-weight">{ATTRIBUTE_WEIGHTS[attribute]}% weight</span>
+          {dialFull(detail.score, detail.dormant) && <span className="satisfaction-card-full">Full marks</span>}
+          {/* The need's share of the headline, as a multiplier tag (Plan 89 I). */}
+          <span className="satisfaction-card-weight" title={`${ATTRIBUTE_WEIGHTS[attribute]}% of the satisfaction target`}>
+            ×{(ATTRIBUTE_WEIGHTS[attribute] / 100).toFixed(2)}
+          </span>
           <span className="satisfaction-card-coverage">
             {detail.dormant
               ? 'Not yet a need'
@@ -232,7 +258,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>{SECTION_HEADINGS['students.breakdown']}</h2>
         <HelpHint
-          text="The five needs the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the percentage under each name is how much of the headline number that need is worth. Expand one to see exactly what is behind its score: every building serving that need, how many it serves and any other named contributor."
+          text="The five needs the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the multiplier under each name is how much of the headline number that need is worth (×0.20 is a fifth of it). Expand one to see exactly what is behind its score: every building serving that need, how many it serves and any other named contributor."
         />
       </div>
       <ul className="satisfaction-cards">
