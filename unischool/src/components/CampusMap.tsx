@@ -51,6 +51,7 @@ import { MapCanvas, type CanvasEntry, type CanvasScene } from './mapCanvas';
 import type { Crowd, CrowdSink } from './Walkers';
 import { occasion, registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
+import { slotFree } from '../systems/administration/offices';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
 const DUST_MS = 900;
@@ -490,7 +491,7 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
 }) {
   const { size, centre } = labelLayout(t.name, t, p, vernacular);
   const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
-  const free = slots.filter((slot) => slot.programId === null).length;
+  const free = slots.filter(slotFree).length;
   const flag = free > 0 && offerWaiting;
   const total = slots.length + (flag ? 1 : 0);
   const x0 = centre.x - ((total - 1) * HALL_PIP_GAP) / 2;

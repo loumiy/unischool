@@ -3,12 +3,13 @@ import { campaignById } from '../data/campaignData';
 import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
+import { officeDef } from '../data/officeData';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
-import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { isSweepStep } from '../systems/finance/sweep';
@@ -1053,6 +1054,7 @@ function sanitizeHalls(state: GameState): void {
   const source = (typeof state.halls === 'object' && state.halls !== null) ? state.halls : {};
   const programIds = new Set<string>([...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
   const housed = new Set<string>();
+  const offices = new Set<string>();
 
   const clean: GameState['halls'] = {};
   for (const [hallId, raw] of Object.entries(source)) {
@@ -1070,12 +1072,25 @@ function sanitizeHalls(state: GameState): void {
         const weeks = entry?.transitWeeks;
         slots.push(Number.isInteger(weeks) && (weeks as number) > 0 ? { programId, transitWeeks: weeks as number } : { programId });
       } else {
-        slots.push({ programId: null });
+        slots.push(cleanOffice(entry?.office, hallId, offices));
       }
     }
     clean[hallId] = slots;
   }
   state.halls = clean;
+}
+
+// An office (Plan 87) survives a load only in Founders Hall, in a slot no
+// program holds, naming a known office the hall does not hold twice, and
+// with its closing term (if any) a whole number of weeks.
+function cleanOffice(raw: unknown, hallId: string, seen: Set<string>): HallSlot {
+  const office = raw as Partial<HallOffice> | undefined;
+  if (hallId !== FOUNDERS_HALL_ID || !office || typeof office.id !== 'string') return { programId: null };
+  if (!officeDef(office.id) || seen.has(office.id)) return { programId: null };
+  seen.add(office.id);
+  const kept: HallOffice = { id: office.id, openedYear: Number.isInteger(office.openedYear) ? office.openedYear as number : 1 };
+  if (Number.isInteger(office.closingWeeks) && (office.closingWeeks as number) > 0) kept.closingWeeks = office.closingWeeks;
+  return { programId: null, office: kept };
 }
 
 // Offer hygiene, after sanitizeHalls (it reads the cleaned halls). Drops

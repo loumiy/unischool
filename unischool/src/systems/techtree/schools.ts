@@ -1,5 +1,6 @@
 import type { Buildable, GameState } from '../../state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../../data/techData';
+import { slotFree } from '../administration/offices';
 
 // Schools are founded, not unlocked. A hall is dedicated when every slot is
 // housed and every program in it belongs to one school (a graduate program
@@ -209,7 +210,7 @@ export function emptyHall(s: GameState): string | undefined {
     if (hallId === FOUNDERS_HALL_ID) return false;
     const hall = s.tech.find((t) => t.id === hallId);
     return !!hall && isAcademicHall(hall) && hall.status === 'done'
-      && s.halls[hallId].every((slot) => slot.programId === null);
+      && s.halls[hallId].every(slotFree);
   });
 }
 
@@ -226,7 +227,7 @@ export function suggestedMove(s: GameState, programId: string): { hallId: string
   if (target === undefined) return null;
   const hall = s.tech.find((t) => t.id === target);
   if (hall?.status !== 'done') return null;
-  const slot = s.halls[target].findIndex((x) => x.programId === null);
+  const slot = s.halls[target].findIndex(slotFree);
   return slot >= 0 ? { hallId: target, slot } : null;
 }
 
@@ -255,7 +256,7 @@ export function closestSchool(s: GameState): SchoolProgress | null {
     const hall = s.tech.find((t) => t.id === hallId);
     if (!hall || !isAcademicHall(hall) || hall.status !== 'done') continue;
     const slots = s.halls[hallId];
-    const free = slots.filter((slot) => slot.programId === null).length;
+    const free = slots.filter(slotFree).length;
     const counts = new Map<string, number>();
     for (const slot of slots) {
       const program = slot.programId ? programById(slot.programId) : undefined;

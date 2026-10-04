@@ -1186,6 +1186,18 @@ export interface HallSlot {
   // nothing, its courses cannot start or advance, and it does not count
   // toward dedication. Ticked down by techSystem.ts; absent means settled.
   transitWeeks?: number;
+  // An office of the administration (Plan 87), only ever in Founders Hall,
+  // and only in a slot with no program (programId null). A slot is free
+  // when it holds neither (systems/administration/offices.ts's slotFree).
+  office?: HallOffice;
+}
+
+export interface HallOffice {
+  id: string;               // data/officeData.ts
+  openedYear: number;
+  // Weeks left while the office closes: dark, costing and doing nothing,
+  // still counted against the allowance and still held. Absent while open.
+  closingWeeks?: number;
 }
 
 // Who teaches what: course id -> faculty id, chosen when development starts

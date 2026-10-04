@@ -5,7 +5,7 @@ is to turn the owner's idea of administrative offices in Founders Hall into
 PRs: a seventh purchased hall so Founders Hall can be emptied, twelve
 offices to put in it, and six milestones that open them one at a time.*
 
-**Status: Proposed.**
+**Status: In progress: A and B.**
 
 ---
 
@@ -244,6 +244,32 @@ B before D and E; C stands alone and can land first. F after E.
   allowance; a closed slot dark for its term; the budget charged weekly.
 
 No office does anything yet; 87E gives them effects.
+
+**As implemented:**
+
+- **No save bump.** An office is an optional field on a slot
+  (`HallSlot.office`, an object rather than the plan's `officeId`: the id,
+  the year it opened and, while it closes, the weeks left), and an additive
+  optional field needs no version (`persistence.ts`). The loader keeps an
+  office only in Founders Hall, in a slot with no program, naming one of the
+  twelve, once.
+- **The running cost is a share of the operating cost**, not a salary
+  scaled by `marketRateMultiplier`: each open office draws
+  `OFFICE_BUDGET_SHARE` (0.6%) of last week's operating cost. A seat's fixed
+  salary is a sum the late budget stops noticing (the budget grows a
+  hundredfold over a run), and §2.5 asked that six offices stay a real
+  cost. The price to open is in weeks of operating cost too (two to five,
+  by office). PR 87G tunes both.
+- **A closing office is still held and still counts against the
+  allowance**, and costs nothing. Otherwise a college with a spare slot
+  could close one office and open another at once, and the dark term would
+  cost nothing.
+- **The Treasury line lands here**, not in 87F, as *Offices*, beside the
+  seats' *Administration*: the cost exists from this PR, so the statement
+  says so.
+- `slotFree` replaced every "is this slot empty" reading that finds room
+  for a program: founding, relocation, the hall panel's counts, the map's
+  hall marks, sorting and the next-step line.
 
 ## PR 87C — The seventh hall
 

@@ -2,6 +2,7 @@ import { tagTeeth } from '../identity/teeth';
 import { tickSweep } from './sweep';
 import { annualGiving } from '../alumni/giving';
 import { seatPayroll } from '../delegation/seats';
+import { officeBudget } from '../administration/offices';
 import { upkeepShare } from '../estate/estate';
 import { beyondNeedUpkeep } from '../estate/beyondNeed';
 import { debtService, drawRate, serviceLoans } from './treasury';
@@ -169,6 +170,7 @@ export interface FinanceBreakdown {
   athleticScholarships: number; // the flagships' scholarship budgets (Plan 80G), paid by the college in full, not from the department's fund
   debtService: number;         // the buildings' loan payments (finance/treasury.ts)
   administration: number;      // the seats' salaries at market rate (delegation/seats.ts): the administrative ratchet
+  offices: number;             // the offices' staff in Founders Hall (Plan 87, administration/offices.ts), each a share of the operating cost
   totalExpenses: number;
   net: number;                 // totalIncome - totalExpenses
 }
@@ -293,11 +295,12 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
   const studentLifeUpkeep = studentOrgUpkeep(s);
   const debt = debtService(s);
   const administration = seatPayroll(s);
+  const offices = officeBudget(s);
 
   // Five income lines; there is no state appropriation.
   const totalIncome = tuitionRevenue + prestigeRevenue + endowmentPayout + athleticsSurplus + annualFund;
   const totalExpenses = weeklySalaries + seatUpkeep + instructionCost + servicesCost + scaleCost + academicUpkeep +
-    facilityUpkeep + beyondNeed + studentLifeUpkeep + athleticsSubsidy + athleticScholarships + debt + administration;
+    facilityUpkeep + beyondNeed + studentLifeUpkeep + athleticsSubsidy + athleticScholarships + debt + administration + offices;
 
   return {
     tuitionRevenue,
@@ -320,6 +323,7 @@ export function financeBreakdown(s: GameState): FinanceBreakdown {
     athleticScholarships,
     debtService: debt,
     administration,
+    offices,
     totalExpenses,
     net: totalIncome - totalExpenses,
   };

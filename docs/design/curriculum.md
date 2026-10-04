@@ -188,6 +188,22 @@ Sociology into Elm Hall".) The suggested move stays on the program tile,
 and the harness's players read it. The opening letters teach it
 (docs/architecture/interrupts.md).
 
+### Offices in Founders Hall (Plan 87)
+
+A slot of Founders Hall that no program holds can take an **office** of the
+administration instead (`data/officeData.ts`, `systems/administration/
+offices.ts`): one of twelve, each held at most once, counting toward no
+school and teaching nothing. A slot is **free** only when it holds neither a
+program nor an office (`slotFree`), and every gate that finds room for a
+program (founding, relocation, the next-step line) reads it, so an office's
+slot never takes a program. An office opens for a price in weeks of
+operating cost and draws a share of the week's operating cost while open,
+the Treasury's *Offices* line (beside *Administration*, the seats). Closing
+one (`CLOSE_OFFICE`) leaves the slot dark for twelve weeks, still held and
+still counted against the allowance, then free. The college may hold six
+(`officeAllowance`; Plan 87D ties the six to milestones). What each office
+does, and the half again it does with its seat filled, is in Plan 87.
+
 ### The milestones
 
 The climb inside a program is what it was:

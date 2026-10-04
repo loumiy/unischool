@@ -63,6 +63,11 @@ export type Action =
   | { type: 'DECLINE_OFFER'; programId: string }
   // Free, but the program goes dark for RELOCATION_WEEKS.
   | { type: 'RELOCATE_PROGRAM'; programId: string; hallId: string; slot: number }
+  // An office of the administration into a free slot of Founders Hall, for
+  // its price (Plan 87, systems/administration/offices.ts); closing one
+  // leaves its slot dark for OFFICE_CLOSING_WEEKS.
+  | { type: 'OPEN_OFFICE'; officeId: string; slot: number }
+  | { type: 'CLOSE_OFFICE'; officeId: string }
   | { type: 'REASSIGN_COURSE_FACULTY'; courseId: string; facultyId: string }
   // Paid up front. Each participant loses RESEARCH_COMMITMENT_SLOTS; courses
   // that no longer fit are shed lowest tier first, handed to colleagues with
