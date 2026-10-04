@@ -5,7 +5,7 @@ is to turn the owner's idea of administrative offices in Founders Hall into
 PRs: a seventh purchased hall so Founders Hall can be emptied, twelve
 offices to put in it, and six milestones that open them one at a time.*
 
-**Status: In progress: A–F.**
+**Status: In progress: A–G open.**
 
 ---
 
@@ -442,6 +442,59 @@ club's row, on the Students tab, where sport clubs live); 89F styles them.
   targets), the cost of six offices against the late margin, and the
   standing a full administration buys against a lean run. No single
   office should be in every archetype's first two.
+
+**As implemented:**
+
+- **A bug the harness found, fixed in the game.** The first run with
+  offices left the Guided player at four schools (from seven), rank #11.
+  The next-step line's *Establish a school* named the school with the most
+  programs in one hall, and with five Science programs in Founders Hall
+  beside an office that was Science, in a hall that could never hold six:
+  the line waited for good while Science's own hall stood nearly empty.
+  `schools.ts`'s `closestSchool` now skips a hall holding an office, so
+  those programs count toward their school's own hall and are moved there.
+  A player following the line would have met the same wait.
+- **The harness's own free-slot readings** (`moves.ts`, `guided.ts`, the
+  goal players, the fuzz player) read `slotFree`, as the game's do; the
+  Natural player otherwise tried to found into an office's slot forever.
+- **Each player opens offices in a fixed order of its kind**, while the
+  allowance has room, Founders Hall a free slot and the price clears its
+  reserve; with the office held, it charters a club when it may and sends
+  a sport club with a venue varsity. No office is first for every player:
+  | Player | Order |
+  |---|---|
+  | Guided | curriculum, career services, sponsored research, alumni relations, admissions, student activities |
+  | Natural | student activities, athletics development, career services, counseling, alumni relations, curriculum |
+  | Completionist | curriculum, sponsored research, admissions, alumni relations, career services, facilities management |
+  | Selective | admissions, financial aid, sponsored research, faculty recruitment, counseling, institutional research |
+  | Lean | facilities management, counseling, alumni relations, financial aid, career services, student activities |
+- **The fuzz player** sends any office into any slot, closes any office,
+  charters and sends any club varsity, legal or not.
+- **The report** prints each player's office milestones by year and the
+  offices held at year 50.
+- No player moves its last school "into Walnut Hall" on purpose: once
+  Founders Hall is nobody's home (89C), the sorting moves take every school
+  out as its hall stands.
+
+**Measured** (`npm run sim`, three seeds, fifty years; baseline saved):
+
+| Milestone | Guided | Completionist | Selective | Lean | §3 target |
+|---|---|---|---|---|---|
+| Room to spare | Y3 | Y7–8 | Y11–12 | Y8–10 | Y3–6 |
+| Four schools | Y7–10 | Y10–12 | never | Y14–32 | Y9–12 |
+| Prestige 70 | Y20–21 | Y21–22 | never | never | Y17–21 |
+| A school distinguished | Y18–19 | Y19–21 | Y19–20 | never | Y19–27 |
+| Top 25 | Y29–32 | Y30–38 | never | never | Y27–31 |
+| Every school distinguished | Y31–34 | Y30–32 | never | never | Y30–34 |
+
+- **Guided** ends #1 with seven schools, as before, its specializations
+  unchanged; its schools come later early (three at Y10, from five: the
+  office it opens at Y5 takes a slot of Founders Hall), and it holds
+  $47.0M at Y25 against $164.7M, while prestige at Y25 and Y50 is within a
+  point. **Completionist** ends #3 (from #7), prestige 113.8 (+4.4).
+  **Selective** and **Lean** reach two rungs and hold one or two offices: a
+  small college earns a small administration. **Lean** ends at six schools
+  (from seven) on its median seed.
 
 ## What this plan does not do
 

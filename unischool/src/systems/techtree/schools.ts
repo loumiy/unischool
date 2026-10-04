@@ -250,6 +250,10 @@ export function closestSchool(s: GameState): SchoolProgress | null {
     const hall = s.tech.find((t) => t.id === hallId);
     if (!hall || !isAcademicHall(hall) || hall.status !== 'done') continue;
     const slots = s.halls[hallId];
+    // A hall with an office in it (Founders Hall, Plan 89) can never hold
+    // six programs, so no school is established there: its programs count
+    // toward their schools' other halls, and move out to them.
+    if (slots.some((slot) => slot.office !== undefined)) continue;
     const free = slots.filter(slotFree).length;
     const counts = new Map<string, number>();
     for (const slot of slots) {

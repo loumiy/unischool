@@ -101,6 +101,7 @@ import { PILLARS, pillarValue } from '../../src/systems/prestige/prestigeSystem'
 import { specializationOf } from '../../src/systems/prestige/specialization';
 import { declineUnteachable } from '../../sim/harness/moves';
 import type { Pillar } from '../../src/state/types';
+import { slotFree } from '../../src/systems/administration/offices';
 
 export const GOALS = ['revenue', 'prestige', 'satisfaction', 'assets', 'championships', 'good-then-big', 'big-then-good'] as const;
 export type Goal = (typeof GOALS)[number];
@@ -397,7 +398,7 @@ function consolidate(g: Game, j: Journal): void {
     j.want(s, 'merge a split school', 'A school sits in two halls while another school has no hall; nothing on screen offers to merge them, and the offers wait until one is freed.');
     for (const from of spare) {
       for (const programId of g.s.halls[from].map((x) => x.programId).filter((x): x is string => x !== null)) {
-        const slot = g.s.halls[keep].findIndex((x) => x.programId === null);
+        const slot = g.s.halls[keep].findIndex(slotFree);
         const move = { programId, hallId: keep, slot };
         if (slot >= 0 && canRelocateProgram(g.s, move)) {
           j.because('merge-school', 'Merging a school split over two halls frees one for a school with nowhere to go.', () => g.act({ type: 'RELOCATE_PROGRAM', ...move }));

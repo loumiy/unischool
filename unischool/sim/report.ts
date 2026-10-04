@@ -42,6 +42,8 @@ import { PILLARS, PILLAR_LABELS, endowmentScore, pillarValue, specializationOf }
 import { specializationTerm } from '../src/data/specializationData';
 import type { GameState, Pillar } from '../src/state/types';
 import { totalEnrolled } from '../src/state/types';
+import { OFFICE_MILESTONES } from '../src/data/ladderData';
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
 
 const argv = process.argv.slice(2);
 const arg = (flag: string) => {
@@ -120,6 +122,10 @@ export interface RunRecord {
   pillars: PillarYear[];
   pick: Pillar | null;
   pickYear: number | null;
+  // The office milestones' years (Plan 89G), by id, and the offices held
+  // at the end, each with the year it opened.
+  officeMilestones?: Record<string, number>;
+  offices?: Array<{ id: string; year: number }>;
   seconds: number;
 }
 
@@ -192,6 +198,8 @@ function playRun(name: string, seed: number): RunRecord {
   return {
     player: name, seed, record: player.record, pillars,
     pick: specializationOf(g.s), pickYear: g.s.specializationYear ?? null,
+    officeMilestones: Object.fromEntries(OFFICE_MILESTONES.filter((m) => g.s.ladder.reached[m.id] !== undefined).map((m) => [m.id, g.s.ladder.reached[m.id]])),
+    offices: (g.s.halls[FOUNDERS_HALL_ID] ?? []).flatMap((slot) => (slot.office ? [{ id: slot.office.id, year: slot.office.openedYear }] : [])),
     seconds: (Date.now() - t0) / 1000,
   };
 }
@@ -301,6 +309,9 @@ async function main(): Promise<void> {
     console.log(`  ${'specialized'.padEnd(15)} ${perSeed((r) => (r.pick ? `${PILLAR_LABELS[r.pick].toLowerCase()} in Y${r.pickYear}` : 'none'))}`);
     console.log(`  ${'first reached'.padEnd(15)} top 20 ${mine.map((r) => reached(r, 20)).join(', ')}; top 10 ${mine.map((r) => reached(r, 10)).join(', ')}; first ${mine.map((r) => reached(r, 1)).join('; ')}`);
     console.log(`  ${'own pillar Y50'.padEnd(15)} ${perSeed(ownPillar)}`);
+    // The office milestones' years, and the offices held at the end (Plan 89G).
+    console.log(`  ${'office rungs'.padEnd(15)} ${perSeed((r) => OFFICE_MILESTONES.map((m) => (r.officeMilestones?.[m.id] !== undefined ? `Y${r.officeMilestones[m.id]}` : '—')).join(' '))}`);
+    console.log(`  ${'offices Y50'.padEnd(15)} ${perSeed((r) => (r.offices?.length ? r.offices.map((o) => `${o.id} Y${o.year}`).join(', ') : 'none'))}`);
   }
   console.log(`\n${runs.length} runs in ${((Date.now() - t0) / 60000).toFixed(1)} min; every run's rows are in ${RUNS_OUT}.`);
 

@@ -198,7 +198,10 @@ offices.ts`): one of twelve, each held at most once, counting toward no
 school and teaching nothing. A slot is **free** only when it holds neither a
 program nor an office (`slotFree`), and every gate that finds room for a
 program (founding, relocation, the next-step line) reads it, so an office's
-slot never takes a program. An office opens for a price in weeks of
+slot never takes a program. A hall holding an office can never hold six
+programs, so it establishes no school: the next-step line's *Establish a
+school* passes over it (`closestSchool`), and its programs are moved to
+their schools' own halls. An office opens for a price in weeks of
 operating cost and draws a share of the week's operating cost while open,
 the Treasury's *Offices* line (beside *Administration*, the seats). Closing
 one (`CLOSE_OFFICE`) leaves the slot dark for twelve weeks, still held and
