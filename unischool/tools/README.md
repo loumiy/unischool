@@ -135,7 +135,9 @@ of its programs are opened, since a finished school folds away), and
 are the seven tabs on the same year-50 run as the campus, each from that
 run written again with its own `--colors` (a seeded run replays exactly), and `summer-admissions.png` is the summer scenario's admissions
 beat, once the price is set and the pool it drew is on screen — in a taller
-viewport, since the card is taller than the modal's scroll box:
+viewport, since the card is taller than the modal's scroll box. The
+presses do nothing but wait: the reveal counts its figures up for some
+seconds, and a shot taken at once catches them mid-count:
 
 ```sh
 for t in faculty research students athletics history treasury; do
@@ -145,8 +147,10 @@ npm run shot -- node_modules/.tmp/out.json docs/images/tab-curriculum.png --tab=
   --press=".collapse-toggle" --press=".collapse-toggle >> nth=1" --press=".collapse-toggle >> nth=2" --scale=2
 npm run scenario -- summer --name Blackmoor --colors royal-gold node_modules/.tmp/summer.json
 npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png \
-  --size=1600,1700 --click="Continue →" \
-  --click="Set tuition for the year →" --element=.modal --scale=2
+  --size=1600,1700 --click="Continue" --click="Set tuition for the year" \
+  --press=".cohort-breakdown h3" --press=".cohort-breakdown h3" \
+  --press=".cohort-breakdown h3" --press=".cohort-breakdown h3" \
+  --element=.modal --scale=2
 ```
 
 ### Phones and tablets

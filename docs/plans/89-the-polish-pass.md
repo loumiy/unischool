@@ -51,8 +51,12 @@ were drawn on.*
   to `cohortColors.ts`, shared with Enrollment.
 - **Checks:** `npm run check` (148 of 148 suites) and `npm run phone` on a
   late-game save ("Nothing runs past the edge"), on the merged branch.
-- **Not done:** the README's screenshots (`docs/images/`) still show the
-  screens before this plan.
+- **After the merge:** the switch's thumb is a pseudo-element, which the
+  stylesheet's `* { box-sizing: border-box }` does not reach, so its border
+  pushed it out of the track at the last option; it is border-box now. The
+  README's pictures (`docs/images/`, last taken in September) were
+  taken again with `tools/README.md`'s recipes, and `scenario.ts --name`
+  now renames the college in a Final Report the run has already written.
 
 The owner kept the Varsity register of Plan 18 (the school's colours,
 cream and outline ink, hard offsets) and asked for tweaks that make it more
