@@ -1,7 +1,7 @@
 import type { GameState, HallSlot } from '../../state/types';
 import { FOUNDERS_HALL_ID } from '../../data/techData';
 import {
-  MAX_OFFICES, OFFICE_BUDGET_SHARE, OFFICE_CLOSING_WEEKS, OFFICE_SEAT_BONUS, officeDef,
+  MAX_OFFICES, OFFICE_BUDGET_SHARE, OFFICE_CLOSING_WEEKS, OFFICE_SEAT_BONUS, officeDef, officeName,
 } from '../../data/officeData';
 import { MIN_OPEX_SCALE, weeksOfOpEx } from '../../data/moneyScale';
 import { OFFICE_MILESTONES, type Milestone } from '../../data/ladderData';
@@ -99,7 +99,7 @@ export function openOfficeRefusal(s: GameState, officeId: string, slot: number):
   const slots = foundersSlots(s);
   if (slot < 0 || slot >= slots.length) return 'No such slot in Founders Hall.';
   if (!slotFree(slots[slot])) return 'That slot is taken.';
-  if (officeHeld(s, officeId)) return `The college has ${def.title} already.`;
+  if (officeHeld(s, officeId)) return `The college has ${officeName(officeId)} already.`;
   if (heldOffices(s).length >= officeAllowance(s)) {
     return officeAllowance(s) === 0
       ? 'The college may not hold an office yet.'
@@ -111,13 +111,12 @@ export function openOfficeRefusal(s: GameState, officeId: string, slot: number):
 
 export function openOffice(s: GameState, officeId: string, slot: number): boolean {
   if (openOfficeRefusal(s, officeId, slot) !== null) return false;
-  const def = officeDef(officeId)!;
   const price = officePrice(s, officeId);
   s.finance.cash -= price;
   foundersSlots(s)[slot] = { programId: null, office: { id: officeId, openedYear: s.clock.year } };
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: 'good',
-    message: `The ${def.title} opens in Founders Hall.`,
+    message: `${capitalized(officeName(officeId))} opens in Founders Hall.`,
   });
   return true;
 }
@@ -135,10 +134,12 @@ export function closeOffice(s: GameState, officeId: string): boolean {
   slot.office!.closingWeeks = OFFICE_CLOSING_WEEKS;
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: 'info',
-    message: `The ${officeDef(officeId)?.title ?? officeId} is closing: its slot in Founders Hall is dark for ${OFFICE_CLOSING_WEEKS} weeks.`,
+    message: `${capitalized(officeName(officeId))} is closing: its slot in Founders Hall is dark for ${OFFICE_CLOSING_WEEKS} weeks.`,
   });
   return true;
 }
+
+const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 // One week of every closing office; a closed office leaves its slot free.
 export function tickOffices(s: GameState): void {
@@ -148,11 +149,11 @@ export function tickOffices(s: GameState): void {
     const closing = slot.office?.closingWeeks;
     if (closing === undefined) return;
     if (closing <= 1) {
-      const title = officeDef(slot.office!.id)?.title ?? slot.office!.id;
+      const name = capitalized(officeName(slot.office!.id));
       slots[i] = { programId: null };
       s.log.unshift({
         year: s.clock.year, week: s.clock.week, kind: 'info',
-        message: `The ${title} has closed; its slot in Founders Hall is free.`,
+        message: `${name} has closed; its slot in Founders Hall is free.`,
       });
     } else {
       slot.office!.closingWeeks = closing - 1;

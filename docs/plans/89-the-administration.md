@@ -5,7 +5,7 @@ is to turn the owner's idea of administrative offices in Founders Hall into
 PRs: a seventh purchased hall so Founders Hall can be emptied, twelve
 offices to put in it, and six milestones that open them one at a time.*
 
-**Status: In progress: A–E.**
+**Status: In progress: A–F.**
 
 ---
 
@@ -408,6 +408,30 @@ club's row, on the Students tab, where sport clubs live); 89F styles them.
   "Founders Hall".
 - **The Final Report** names the offices held at year fifty in the run's
   record.
+
+**As implemented:**
+
+- **The panel is the mockup's** (`components/FoundersOffices.tsx`, wired
+  into `BuildingInfoPanel.tsx`'s hall view): office tiles in the college's
+  colours, opened like a program tile with *Close office*, a closing office
+  dashed with its weeks; the empty slot's *Programs · N | Offices · N*
+  switch (offices alone when no program is on offer); the offices by
+  domain, a held one dimmed, a picked one with its confirm; the row of six.
+  An opened office says what it is doing this year where that is more than
+  its blurb (the Admissions Office's range at last year's pool, the
+  committee's seats, the market's depth, the charter's wait, the forecast).
+- **No change to Founders Hall's drawing.** It already carries the clock
+  tower in every vernacular (`buildingSpec.ts`'s `CLOCK_TOWER_ID`), and
+  main's Plan 87L gives Modern's a carillon; a second crown for six offices
+  would compete with them. Instead the map's hall pips show an office's
+  slot in the college's primary, so Founders Hall's row of six reads as
+  the administration at a glance.
+- **The Final Report** has *The administration*: the offices Founders Hall
+  held at the report, or that it held none (`FinalReport.offices`,
+  optional, so an earlier report says nothing).
+- The Treasury's *Offices* line landed in 89B; the office names take their
+  article where they need one (`officeName`: "the Admissions Office", but
+  "Career Services").
 
 ## PR 89G — The harness and the balance pass
 

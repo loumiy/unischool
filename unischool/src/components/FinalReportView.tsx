@@ -14,6 +14,11 @@ import { count } from '../format';
 
 const fill = (t: string, vars: Record<string, string | number>) => t.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 
+// "a, b and c".
+function listWords(items: string[]): string {
+  return items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
 export default function FinalReportView({ s, report }: { s: GameState; report: FinalReport }) {
   // As the report stood when written: play past the fiftieth summer grows
   // neither the figures nor the chart.
@@ -51,6 +56,17 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
 
       <h4>{REPORT_WORDS.finances}</h4>
       <p>{report.finances.join(' ')}</p>
+
+      {report.offices && (
+        <>
+          <h4>{REPORT_WORDS.administration}</h4>
+          <p>
+            {report.offices.length === 0
+              ? REPORT_WORDS.administrationNone
+              : fill(REPORT_WORDS.administrationLine, { offices: listWords(report.offices) })}
+          </p>
+        </>
+      )}
 
       <h4>{REPORT_WORDS.chronicle}</h4>
       <p>{report.eras.join(' · ')}</p>

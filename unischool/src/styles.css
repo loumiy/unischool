@@ -836,6 +836,33 @@ button.build-tile { font-family: inherit; }
 .program-tile-transit { color: var(--warn-on-light); font-weight: 700; }
 /* A program away from its school's hall with somewhere to go (Plan 55). */
 .program-tile-move { color: var(--school-hue, var(--ink)); font-weight: 800; }
+/* Founders Hall's offices (Plan 89F): an office wears the college's own
+   colours, its primary as the edge and a wash of its secondary, where a
+   program wears its school's hue. */
+.hall-slot.housed.office { border-color: var(--school-primary); background: color-mix(in srgb, var(--school-secondary) 22%, var(--cream-hi)); }
+.hall-slot.housed.office.open { grid-column: 1 / -1; }
+.hall-slot.housed.office.open .program-tile { flex-direction: row; justify-content: flex-start; gap: 8px; text-align: left; padding: 6px 8px; }
+.hall-slot.housed.office.closing { opacity: 0.62; border-style: dashed; background: var(--cream-lo); }
+.hall-slot.housed.office.closing .program-tile { cursor: default; }
+.office-motif { color: var(--school-primary); }
+.office-chip { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; background: var(--school-primary); color: var(--school-on-primary); border-radius: 999px; padding: 1px 6px; }
+.office-seat { font-size: var(--text-2xs); font-weight: 700; color: var(--ink-muted); }
+.office-seat.on { color: var(--green); }
+.office-allowance { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 0 6px; font-size: var(--text-xs); font-weight: 700; color: var(--ink-muted); }
+.office-allowance i { width: 14px; height: 14px; border-radius: 3px; border: 2px solid var(--school-primary); display: inline-block; }
+.office-allowance i.held { background: var(--school-primary); }
+.office-allowance i.free { background: var(--school-secondary); }
+.office-allowance i.locked { border-style: dashed; border-color: var(--ink-muted); opacity: 0.6; }
+.offer-switch { margin: 0 0 8px; }
+.hall-offer.follows-switch { border-top: 0; padding-top: 0; margin-top: 0; }
+.office-group { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); font-weight: 700; margin: 10px 0 4px; }
+.hall-offer-tile.office-tile { --school-hue: var(--school-primary); border-color: var(--school-primary); }
+.hall-offer-tile.office-tile .hall-offer-code { color: var(--school-primary); }
+.hall-offer-tile.office-tile:disabled { opacity: 0.5; cursor: default; border-style: dashed; }
+.office-confirm { flex: 1 0 100%; background: color-mix(in srgb, var(--school-secondary) 25%, var(--cream-hi)); border: 2px solid var(--outline); border-radius: var(--radius-sm); padding: 8px 10px; }
+.office-confirm .building-info-line { margin-bottom: 6px; }
+.office-close { margin-top: 6px; }
+.office-action { margin: 0 0 8px; }
 .relocate-suggested { margin-top: 6px; }
 .course-cell.transit { opacity: 0.55; }
 .cell-stamp.transit { color: var(--warn-on-light); }
