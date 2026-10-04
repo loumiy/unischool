@@ -20,15 +20,17 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
-import { FOUNDERS_HALL_ID, academicHallId, majorPrefixes } from '../src/data/techData';
+import { FOUNDERS_HALL_ID, academicHallId, majorPrefixes, milestoneSchools } from '../src/data/techData';
 import { MAX_OFFICES, OFFICE_BUDGET_SHARE, OFFICE_CLOSING_WEEKS, OFFICES, OFFICE_SEAT_BONUS } from '../src/data/officeData';
 import {
-  heldOffices, officeBudget, officeOpen, officePrice, officeStrength, openOfficeRefusal, slotFree, tickOffices,
+  heldOffices, nextOfficeMilestone, officeAllowance, officeBudget, officeOpen, officePrice, officeStrength, openOfficeRefusal, slotFree, tickOffices,
 } from '../src/systems/administration/offices';
 import { canRelocateProgram } from '../src/systems/techtree/techSystem';
 import { financeBreakdown } from '../src/systems/finance/financeSystem';
 import { readSave, SAVE_VERSION } from '../src/state/persistence';
 import type { GameState } from '../src/state/types';
+import { milestoneById, OFFICE_MILESTONES, OFFICE_RANK } from '../src/data/ladderData';
+import { tickLadder } from '../src/systems/ladder/ladderSystem';
 
 bindScriptStream(12345);
 const store = new Map<string, string>();
@@ -50,10 +52,13 @@ function assert(cond: boolean, msg: string): void {
 
 console.log('office tests');
 
+// A college with all six office milestones reached (87D's allowance), so
+// the gates below are the office's own.
 function college(name = 'Offices'): GameState {
   const s = createInitialState(name);
   s.finance.cash = 500_000_000;
   s.finance.weeklyOpEx = 400_000;
+  for (const m of OFFICE_MILESTONES) s.ladder.reached[m.id] = 1;
   return s;
 }
 
@@ -167,6 +172,54 @@ const founders = (s: GameState) => s.halls[FOUNDERS_HALL_ID];
   assert(kept.find((o) => o.id === 'admissions')?.closingWeeks === OFFICE_CLOSING_WEEKS, 'a closing office keeps its term');
   assert(kept.filter((o) => o.id === 'facilities-management').length === 1, 'a repeated office is dropped');
   assert(loaded !== null && slotFree(loaded.halls[FOUNDERS_HALL_ID][4]), 'and an unknown one leaves its slot free');
+}
+
+// ---- 7. The six milestones (87D) ----
+{
+  assert(OFFICE_MILESTONES.length === MAX_OFFICES, `six milestones open offices (${OFFICE_MILESTONES.map((m) => m.id).join(', ')})`);
+  const s = createInitialState('Milestones');
+  s.finance.cash = 500_000_000;
+  assert(officeAllowance(s) === 0, 'a new college may hold no office');
+  assert(openOfficeRefusal(s, 'admissions', 0) === 'The college may not hold an office yet.', 'and is told so');
+  assert(nextOfficeMilestone(s)?.id === 'room-to-spare', 'the first office waits on Room to spare');
+
+  const reached = (id: string) => milestoneById(id)!.reached(s);
+  // 1. Room to spare: a program in a hall of its own, a slot free in
+  // Founders Hall.
+  const elm = academicHallId(0);
+  s.tech.find((x) => x.id === elm)!.status = 'done';
+  s.halls[elm] = Array.from({ length: 6 }, () => ({ programId: null }));
+  s.halls[FOUNDERS_HALL_ID] = s.halls[FOUNDERS_HALL_ID].map((_, i) => ({ programId: majorPrefixes()[i] }));
+  assert(!reached('room-to-spare'), 'not while Founders Hall is full and no program has a hall of its own');
+  s.halls[elm][0] = { programId: majorPrefixes()[0] };
+  s.halls[FOUNDERS_HALL_ID][0] = { programId: null };
+  assert(reached('room-to-spare'), 'reached when a program moves out and leaves its slot');
+  tickLadder(s);
+  assert(officeAllowance(s) === 1, 'and the college may hold one office');
+  assert(s.ladder.unread.includes('room-to-spare'), 'its letter arrives');
+
+  // 2. Four schools.
+  for (const k of ['Science', 'Engineering', 'Business']) s.milestones[`school-founded:${k}`] = true;
+  assert(!reached('four-schools'), 'three schools are not four');
+  s.milestones['school-founded:Arts & Media'] = true;
+  assert(reached('four-schools'), 'four are');
+  // 3. Prestige 70.
+  s.self.reputation = 70;
+  assert(reached('research'), 'prestige 70 reaches A name scholars know');
+  // 4. A school distinguished.
+  s.milestones['school-distinguished:Science'] = true;
+  assert(reached('distinguished'), 'a school distinguished');
+  // 5. The top 25, at a summer.
+  assert(!reached('top-25'), 'no summer in the top 25 yet');
+  s.history.push({ ...s.history[0], year: 30, rank: OFFICE_RANK + 1 } as GameState['history'][number]);
+  assert(!reached('top-25'), `#${OFFICE_RANK + 1} is not the top 25`);
+  s.history.push({ ...s.history[0], year: 31, rank: OFFICE_RANK } as GameState['history'][number]);
+  assert(reached('top-25'), `#${OFFICE_RANK} is`);
+  // 6. Every school distinguished.
+  for (const m of milestoneSchools()) s.milestones[`school-distinguished:${m.schoolName}`] = true;
+  assert(reached('every-school-distinguished'), 'every school distinguished');
+  tickLadder(s);
+  assert(officeAllowance(s) === MAX_OFFICES && nextOfficeMilestone(s) === null, 'all six reached: six offices');
 }
 
 console.log(`  ${checks - failures}/${checks} checks passed`);

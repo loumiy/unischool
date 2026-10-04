@@ -1,7 +1,7 @@
 import type { GameState } from '../state/types';
 import { coursesDone, totalEnrolled } from '../state/types';
 import type { TabId } from '../components/TabNav';
-import { FIRST_HALL_COURSE_GATE } from './techData';
+import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, milestoneSchools } from './techData';
 import {
   GROCERY_POPULATION_GATE,
   HEALTH_CENTER_TIER1_POPULATION_GATE,
@@ -72,9 +72,20 @@ export interface Milestone {
   // What the arriving letter says, and one line per thing opened.
   letter: string;
   opens: readonly string[];
+  // Opens one more office of the administration (Plan 87): the college may
+  // hold as many offices as it has reached of these six.
+  office?: true;
 }
 
 const enrolled = (s: GameState) => totalEnrolled(s.students);
+const keysWith = (s: GameState, prefix: string) => Object.keys(s.milestones).filter((k) => k.startsWith(prefix) && s.milestones[k]).length;
+const SCHOOL_COUNT = milestoneSchools().length;
+
+// The office milestones (Plan 87 §3): six, spread from about the third year
+// to about the thirty-fourth, each opening one more office.
+const OFFICE_SCHOOLS = 4;
+export const OFFICE_RANK = 25;
+const OFFICE_LINE = 'An office of the administration: one more slot of Founders Hall may hold one';
 const housedPrograms = (s: GameState) => Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
 const hasMilestone = (s: GameState, prefix: string) => Object.keys(s.milestones).some((k) => k.startsWith(prefix));
 
@@ -150,6 +161,19 @@ export const MILESTONES: readonly Milestone[] = [
     opens: ['Academic halls: six program slots each, and the way a school is founded'],
   },
   {
+    id: 'room-to-spare',
+    tier: 'Growing',
+    name: 'Room to spare',
+    condition: 'a program in a hall of its own, and a slot free in Founders Hall',
+    reached: (s) => (s.halls[FOUNDERS_HALL_ID] ?? []).some((slot) => slot.programId === null)
+      && Object.entries(s.halls).some(([hallId, slots]) => hallId !== FOUNDERS_HALL_ID && slots.some((slot) => slot.programId !== null)),
+    buildables: [],
+    tabs: [],
+    letter: 'A program has a hall of its own, and Founders Hall has room it no longer needs for teaching. A slot a program leaves there can hold an office of the administration instead: admissions, research grants, career services and the like, each a standing advantage, each at a price and a running cost. More offices open as the college grows.',
+    opens: [`${OFFICE_LINE} (the first of six)`],
+    office: true,
+  },
+  {
     id: 'town',
     tier: 'Growing',
     name: "A town's worth",
@@ -209,6 +233,19 @@ export const MILESTONES: readonly Milestone[] = [
     opens: ['Athletics: the clubs, the teams and their venues'],
   },
   {
+    id: 'four-schools',
+    tier: 'Growing',
+    name: 'Four schools',
+    condition: `${OFFICE_SCHOOLS} schools founded`,
+    reached: (s) => keysWith(s, 'school-founded:') >= OFFICE_SCHOOLS,
+    progress: (s) => ({ value: keysWith(s, 'school-founded:'), target: OFFICE_SCHOOLS, unit: 'schools' }),
+    buildables: [],
+    tabs: [],
+    letter: 'Four schools under one name: the college is more than its founders can run from one desk.',
+    opens: [OFFICE_LINE],
+    office: true,
+  },
+  {
     id: 'city',
     tier: 'Established',
     name: 'A small city',
@@ -228,7 +265,8 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: ['AMENITY-BELLTOWER'],
     tabs: [],
     letter: 'Scholars elsewhere know the college\'s name now. A bell tower would say the college means to be here a long time.',
-    opens: ['The Bell Tower: the hours across the campus'],
+    opens: ['The Bell Tower: the hours across the campus', OFFICE_LINE],
+    office: true,
   },
   {
     id: 'market',
@@ -252,7 +290,8 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: [],
     tabs: [],
     letter: 'A school with every course taught is a school that can train its successors. Graduate programs open once their host building stands.',
-    opens: ['Graduate programs, school by school'],
+    opens: ['Graduate programs, school by school', OFFICE_LINE],
+    office: true,
   },
   {
     id: 'national',
@@ -276,7 +315,35 @@ export const MILESTONES: readonly Milestone[] = [
     letter: 'The town is the university now, and big enough to keep a teaching hospital busy: a medical center with the college\'s name over the door.',
     opens: [`The Medical Center: a teaching hospital, from Year ${MEDICAL_CENTER_PROJECT.fromYear}, that lifts academics and research`],
   },
+  {
+    id: 'top-25',
+    tier: 'National',
+    name: 'In the top 25',
+    condition: `ranked ${OFFICE_RANK}th or better at a summer`,
+    reached: (s) => s.history.some((h) => h.rank <= OFFICE_RANK),
+    buildables: [],
+    tabs: [],
+    letter: `The guide has the college at #${OFFICE_RANK} or better: one of the country's top ${OFFICE_RANK}, and run like one.`,
+    opens: [OFFICE_LINE],
+    office: true,
+  },
+  {
+    id: 'every-school-distinguished',
+    tier: 'National',
+    name: 'Every school distinguished',
+    condition: `all ${SCHOOL_COUNT} schools distinguished`,
+    reached: (s) => keysWith(s, 'school-distinguished:') >= SCHOOL_COUNT,
+    progress: (s) => ({ value: keysWith(s, 'school-distinguished:'), target: SCHOOL_COUNT, unit: 'schools distinguished' }),
+    buildables: [],
+    tabs: [],
+    letter: 'Every school teaches every course it has. The college is complete, and its administration may be too.',
+    opens: [`${OFFICE_LINE} (the sixth and last)`],
+    office: true,
+  },
 ];
+
+// The milestones that each open an office (Plan 87 §3).
+export const OFFICE_MILESTONES: readonly Milestone[] = MILESTONES.filter((m) => m.office);
 
 export const LADDER_TIERS: readonly LadderTier[] = ['Founding', 'Growing', 'Established', 'National'];
 

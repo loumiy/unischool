@@ -293,6 +293,21 @@ No office does anything yet; 87E gives them effects.
   hold an office"); no next-step line pushes an office.
 - `docs/design/progression.md`'s ladder table gains the six.
 
+**As implemented:**
+
+- **Room to spare is read off the halls, not the move**: reached when a
+  program teaches in a purchased hall while a slot of Founders Hall holds
+  no program. The first move out of Founders Hall reaches it, as the owner
+  asked; so does founding straight into a purchased hall while Founders
+  Hall has room. A reading needs nothing stored, so a saved college that
+  moved out long ago reaches it the week it loads, with no save version.
+- The prestige-70 rung is the ladder's *A name scholars know* (§3 called
+  it by the design doc's older name, *A research reputation*).
+- No opening-coach change: the first milestone's letter is the teaching
+  moment, and nothing in the next-step line pushes an office.
+- `officeAllowance` counts the six reached (`OFFICE_MILESTONES`), and
+  `nextOfficeMilestone` names the next for 87F's allowance row.
+
 ## PR 87E — The twelve effects
 
 - Each office's effect at its hook (§2.3), with its seat bonus (§2.4).

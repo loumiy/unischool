@@ -40,19 +40,30 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | Founding | A fourth program | a fourth program founded | Student Center, Recreation Center |
 | Founding | First commencement | the first summer closes | In History (open from the first week with Prestige and the guide, Plans 78C and 80C), the record of the years; in Students (open from the first week, Plan 78B), the guidebook, the clubs and the funnel |
 | Founding | A curriculum | eight courses developed | academic halls |
+| Growing | Room to spare | a program in a hall of its own, and a slot free in Founders Hall | an office (the first of six) |
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |
 | Growing | A regional name | prestige 55 | Athletics Complex, Student Union Expansion, Grand Quad & Gardens |
+| Growing | Four schools | four schools founded | an office |
 | Established | A small city | 6,000 students | University Clinic |
-| Established | A research reputation | prestige 70 | The Bell Tower |
+| Established | A research reputation | prestige 70 | The Bell Tower; an office |
 | Established | A market of its own | 8,000 students | Campus Grocery Store |
 | National | A university town | 20,000 students | Medical Center |
+| National | In the top 25 | ranked 25th or better at a summer | an office |
+| National | Every school distinguished | all seven schools distinguished | an office (the sixth) |
 
 **Four side milestones** show on the ladder but drive gates of their own:
 
 - a school founded opens its laboratories;
 - a laboratory finished opens Research;
 - a sport club opens Athletics, and its venues open team by team;
-- a school distinguished opens its graduate programs.
+- a school distinguished opens its graduate programs, and an office.
+
+**Six milestones open an office each** (Plan 87D, `office` in
+`ladderData.ts`): Room to spare, Four schools, prestige 70, a school
+distinguished, the top 25 and every school distinguished. The college may
+hold as many offices of the administration as it has reached of the six
+(`officeAllowance`), from about the third year to about the thirty-fourth;
+see [curriculum.md](curriculum.md), *Offices in Founders Hall*.
 
 ## The colours
 

@@ -202,8 +202,9 @@ slot never takes a program. An office opens for a price in weeks of
 operating cost and draws a share of the week's operating cost while open,
 the Treasury's *Offices* line (beside *Administration*, the seats). Closing
 one (`CLOSE_OFFICE`) leaves the slot dark for twelve weeks, still held and
-still counted against the allowance, then free. The college may hold six
-(`officeAllowance`; Plan 87D ties the six to milestones). What each office
+still counted against the allowance, then free. The college may hold one
+office for each of six ladder milestones it has reached (`officeAllowance`,
+[progression.md](progression.md)). What each office
 does, and the half again it does with its seat filled, is in Plan 87.
 
 ### The milestones
