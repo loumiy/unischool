@@ -280,10 +280,24 @@ No office does anything yet; 87E gives them effects.
 
 ## PR 87F — Presentation
 
-- **Founders Hall's panel** shows offices beside programs: an office tile
-  with its title, domain colour, what it does and its seat, and *Close
-  office*; an empty slot offers the offices not held, while an allowance is
-  free, beside the program offers.
+- **Founders Hall's panel** (the owner approved a mockup, October 2026):
+  - **Offices wear the college's own colours**: a program tile takes its
+    school's hue, an office tile the college's primary as its edge and a
+    wash of its secondary, with an *office* chip and, while its seat is
+    filled, "+50%".
+  - **An office opens like a program tile**: its domain, its seat (filled
+    or not), its cost a year and the year it opened; what it is doing this
+    year ("11,200–12,600 applicants at last year's price"); a door to where
+    it matters; and *Close office · slot dark 12w*.
+  - **A closing office** is dashed and dimmed, "closing · 7w".
+  - **An empty slot offers both**, behind a two-way switch over the offer
+    list, *Programs · 3 | Offices · 11*. The offices are grouped by domain,
+    each card with its seat ("Provost seated · +50%" or "Dean of Students ·
+    not seated"), what it does, and its price and cost a year; an office
+    held is shown dimmed, "Held · slot 1". Picking one asks to confirm,
+    with the price, the cost a year and the dark term on closing.
+  - **The allowance row**: six squares, held, free and locked, and the next
+    milestone with its progress ("next at prestige 70 (61)").
 - **The Treasury** shows *Administration*, office by office.
 - **The map**: a Founders Hall holding six offices gains a cupola or clock
   in its vernacular (`components/buildingSpec.ts`); the label stays
