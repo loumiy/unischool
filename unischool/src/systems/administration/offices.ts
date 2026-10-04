@@ -4,6 +4,7 @@ import {
   MAX_OFFICES, OFFICE_BUDGET_SHARE, OFFICE_CLOSING_WEEKS, OFFICE_SEAT_BONUS, officeDef,
 } from '../../data/officeData';
 import { MIN_OPEX_SCALE, weeksOfOpEx } from '../../data/moneyScale';
+import { OFFICE_MILESTONES, type Milestone } from '../../data/ladderData';
 
 // ---------------------------------------------------------------------
 // THE ADMINISTRATION'S OFFICES (Plan 89). An office takes one slot of
@@ -44,10 +45,17 @@ export function officeOpen(s: GameState, officeId: string): boolean {
   return heldOffices(s).some((o) => o.id === officeId && o.closingWeeks === undefined);
 }
 
-// How many offices the college may hold. Until PR 89D's milestones land,
-// every one of them.
-export function officeAllowance(_s: GameState): number {
-  return MAX_OFFICES;
+// How many offices the college may hold: one for each of the six
+// milestones that open them (ladderData.ts's OFFICE_MILESTONES) the college
+// has reached.
+export function officeAllowance(s: GameState): number {
+  return Math.min(MAX_OFFICES, OFFICE_MILESTONES.filter((m) => s.ladder.reached[m.id] !== undefined).length);
+}
+
+// The next office milestone not yet reached, for the hall panel's
+// allowance row; null once all six are.
+export function nextOfficeMilestone(s: GameState): Milestone | null {
+  return OFFICE_MILESTONES.find((m) => s.ladder.reached[m.id] === undefined) ?? null;
 }
 
 // The seat an office names is filled (seatData.ts; read off s.seats rather
