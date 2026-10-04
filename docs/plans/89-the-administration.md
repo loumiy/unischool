@@ -90,7 +90,7 @@ rule stands); it is simply never the line of play.
 **Founders Hall keeps its name**, whoever is in it: a dedicated Founders
 Hall is "Founders Hall · School of …" as today, and a Founders Hall of
 offices is "Founders Hall". The map may draw a Founders Hall holding six
-offices differently (§PR 87F), but its label does not change.
+offices differently (§PR 89F), but its label does not change.
 
 ### 2.3 The twelve offices
 
@@ -147,8 +147,8 @@ without its seat.
 payroll's standing multiplier as a seat's salary is (`marketRateMultiplier`),
 shown as its own line, *Administration*, in the Treasury's expenses. Six
 offices are a real cost, so a lean run that leaves programs in Founders Hall
-stays a line of play. Prices are set in PR 87B against `moneyScale.ts` and
-measured in PR 87G.
+stays a line of play. Prices are set in PR 89B against `moneyScale.ts` and
+measured in PR 89G.
 
 ### 2.6 Closing an office
 
@@ -204,7 +204,7 @@ Natural, Guided and Completionist players, or read off the Guided
 - **A slot never waits on the allowance at first.** The move that frees
   Founders Hall's first slot is the move that reaches milestone 1.
 
-PR 87G measures the six against these targets and moves a threshold
+PR 89G measures the six against these targets and moves a threshold
 (the fourth school, the top 25) if one lands outside its band.
 
 ## 4. The PRs
@@ -221,31 +221,31 @@ PR 87G measures the six against these targets and moves a threshold
 
 B before D and E; C stands alone and can land first. F after E.
 
-## PR 87A — This plan; the backlog
+## PR 89A — This plan; the backlog
 
 - This file, and its row in `docs/plans/README.md`.
 - The backlog's *The administration: offices in Founders Hall* entry comes
   off (moved here). *The price is set blind* and the *Athletics deferrals*
-  entry's direct founding of a team gain a line pointing here, since 87E
+  entry's direct founding of a team gain a line pointing here, since 89E
   answers both for a college that opens the office; both stay in the
   backlog for a college that does not.
 
-## PR 87B — Offices in Founders Hall
+## PR 89B — Offices in Founders Hall
 
 - `data/officeData.ts`: the twelve offices (id, title, domain, blurb, the
   seat it names, opening price, staff budget a year).
 - `HallSlot.officeId`; `OPEN_OFFICE` (an empty Founders Hall slot, an
   office not held, an office allowance free, the price) and `CLOSE_OFFICE`
   (the slot goes dark `RELOCATION_WEEKS`, then empty).
-- The allowance reads the milestones (§3), stubbed to six until 87D lands.
+- The allowance reads the milestones (§3), stubbed to six until 89D lands.
 - The staff budget as an expense line, `Administration`.
 - A save migration: no slot holds an office. `SAVE_VERSION` + 1.
 - Tests: one of each office at most; only Founders Hall; never past the
   allowance; a closed slot dark for its term; the budget charged weekly.
 
-No office does anything yet; 87E gives them effects.
+No office does anything yet; 89E gives them effects.
 
-## PR 87C — The seventh hall
+## PR 89C — The seventh hall
 
 - **Walnut Hall** at the end of the chain, at the chain's price ratio, on
   the campus layout's next academic site (`components/campusLayout.ts`).
@@ -256,7 +256,7 @@ No office does anything yet; 87E gives them effects.
 - Sim: the purchased-hall count and the year the seventh school is
   established, before and after.
 
-## PR 87D — The six milestones
+## PR 89D — The six milestones
 
 - Milestones 1, 2, 5 and 6 of §3 added to the ladder; 3 and 4 (which
   exist) gain an office each. Every one's letter names the office it opens
@@ -267,7 +267,7 @@ No office does anything yet; 87E gives them effects.
   hold an office"); no next-step line pushes an office.
 - `docs/design/progression.md`'s ladder table gains the six.
 
-## PR 87E — The twelve effects
+## PR 89E — The twelve effects
 
 - Each office's effect at its hook (§2.3), with its seat bonus (§2.4).
 - The four new actions: the Admissions Office's pool range at the summer
@@ -278,7 +278,7 @@ No office does anything yet; 87E gives them effects.
 - Tests for each: present with the office, absent without, larger with
   the seat.
 
-## PR 87F — Presentation
+## PR 89F — Presentation
 
 - **Founders Hall's panel** (the owner approved a mockup, October 2026):
   - **Offices wear the college's own colours**: a program tile takes its
@@ -305,7 +305,7 @@ No office does anything yet; 87E gives them effects.
 - **The Final Report** names the offices held at year fifty in the run's
   record.
 
-## PR 87G — The harness and the balance pass
+## PR 89G — The harness and the balance pass
 
 - Each archetype (`sim/harness/archetypes.ts`) opens offices by a fixed
   preference of its kind, and moves its last school out of Founders Hall
