@@ -148,3 +148,12 @@ export const FACILITIES_DAMAGE_CUT = 0.3;
 // Alumni Relations: the annual fund, and a campaign's yearly response.
 export const ALUMNI_GIVING_LIFT = 0.15;
 export const ALUMNI_CAMPAIGN_LIFT = 0.2;
+
+// An office's name in a sentence: "the Admissions Office", but "Career
+// Services" and the other plain names, which take no article.
+const NO_ARTICLE = new Set(['career-services', 'counseling', 'facilities-management', 'alumni-relations']);
+export function officeName(id: string): string {
+  const def = officeDef(id);
+  if (!def) return id;
+  return NO_ARTICLE.has(id) ? def.title : `the ${def.title}`;
+}

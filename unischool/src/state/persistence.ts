@@ -964,6 +964,9 @@ function sanitizeEnding(state: GameState): void {
   const ok = typeof raw === 'object' && raw !== null && typeof r === 'object' && r !== null
     && typeof r.title === 'string' && typeof r.mark === 'string' && Array.isArray(r.axes) && Number.isInteger(r.year);
   if (!ok) { delete state.ending; return; }
+  // The offices it names (Plan 89F): a list of titles, or nothing.
+  const offices = (r as { offices?: unknown }).offices;
+  if (offices !== undefined && !(Array.isArray(offices) && offices.every((o) => typeof o === 'string'))) delete state.ending!.report.offices;
   state.ending!.addenda = Array.isArray(e.addenda)
     ? e.addenda.filter((a): a is { from: number; to: number; lines: string[] } => typeof a === 'object' && a !== null
       && Number.isInteger(a.from) && Number.isInteger(a.to) && Array.isArray(a.lines) && a.lines.every((l: unknown) => typeof l === 'string'))
