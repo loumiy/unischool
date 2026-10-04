@@ -30,6 +30,9 @@ import { initiativeDepth } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
 import { CloseIcon } from './icons';
+import { heldOffices, officeAllowance, slotFree } from '../systems/administration/offices';
+import { AllowanceRow, OfficeOffers, OfficeTile } from './FoundersOffices';
+import { OFFICES } from '../data/officeData';
 
 // A popover for a placed building (see CampusMap.tsx's inspectBuilding). For
 // every kind but one it is a pure projection of the Buildable and the
@@ -307,7 +310,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
     .map(([hallId, slots]) => ({
       hallId,
       hall: s.tech.find((t) => t.id === hallId),
-      free: slots.map((slot, i) => (slot.programId === null ? i : -1)).filter((i) => i >= 0),
+      free: slots.map((slot, i) => (slotFree(slot) ? i : -1)).filter((i) => i >= 0),
     }))
     .filter((d) => d.hall && d.free.length > 0 && canRelocateProgram(s, { programId: program.id, hallId: d.hallId, slot: d.free[0] }));
   if (inTransit > 0) {
@@ -376,7 +379,13 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   const [pickedFaculty, setPickedFaculty] = useState<string | null>(null);
   // Which housed program's tile is expanded; one at a time.
   const [openTile, setOpenTile] = useState<string | null>(focusProgramId ?? null);
-  useEffect(() => { setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null); setOpenTile(focusProgramId ?? null); }, [t.id, focusProgramId]);
+  // Founders Hall's empty slot offers programs or offices (Plan 89F).
+  const [offerMode, setOfferMode] = useState<'programs' | 'offices'>('programs');
+  const [pickedOffice, setPickedOffice] = useState<string | null>(null);
+  useEffect(() => {
+    setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null); setOpenTile(focusProgramId ?? null);
+    setOfferMode('programs'); setPickedOffice(null);
+  }, [t.id, focusProgramId]);
 
   if (!slots) {
     // Under construction, or an entry the loader dropped: the slots exist
@@ -401,6 +410,12 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     ? hostOffers(s, t.id)
     : s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined).filter((p) => p.school !== ownSchool);
   const offers = [...own, ...drawn];
+  // Founders Hall's offices (Plan 89): on offer while the college may hold
+  // another; the row of six from the first milestone on.
+  const founders = t.id === FOUNDERS_HALL_ID;
+  const officeRoom = founders && officeAllowance(s) > heldOffices(s).length;
+  const officesOffered = officeRoom ? OFFICES.length - heldOffices(s).length : 0;
+  const showOffices = officesOffered > 0 && (offerMode === 'offices' || offers.length === 0);
   const waiting = host
     ? hostedPrograms(t.id).filter((id) => !isHoused(s, id) && !offers.some((p) => p.id === id)).map((id) => graduateProgram(id)).filter((p) => p !== undefined)
     : [];
@@ -414,7 +429,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   const canFound = founding !== null && canFoundProgram(s, founding);
   // The opening walkthrough's steps done in this panel (state/opening.ts).
   const walking = s.events.opening.stage === 'appoint' || s.events.opening.stage === 'found';
-  const free = slots.filter((slot) => slot.programId === null).length;
+  const free = slots.filter(slotFree).length;
   const school = dedicatedSchool(s, t.id);
   // On its way to a school (Plan 55): every program in it is one school's.
   const claim = school ? null : claimedSchool(s, t.id);
@@ -490,20 +505,33 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
           {schoolMark(claim.school).motif} {claim.school} · {claim.housed} of {claim.slots} — six found the School of {claim.school}.
         </p>
       )}
-      {t.id === FOUNDERS_HALL_ID && (
+      {founders && (
         <p className="building-info-line">
-          Where programs begin. Six programs of one school in any hall, this one included, found that school; a program moving out of it is closed for {FOUNDERS_MOVE_WEEKS} weeks on the way.
+          {officeAllowance(s) > 0
+            ? `Where programs begin, and where the administration sits. A program moving out of it is closed for ${FOUNDERS_MOVE_WEEKS} weeks on the way; a slot it leaves can hold an office.`
+            : `Where programs begin. Six programs of one school in any hall, this one included, found that school; a program moving out of it is closed for ${FOUNDERS_MOVE_WEEKS} weeks on the way.`}
         </p>
       )}
       <p className="building-info-line">
         {free === 0
-          ? 'Every program slot is taken.'
-          : `${free} of ${slots.length} program slot${slots.length === 1 ? '' : 's'} free${offers.length > 0
-            ? ` — ${offers.length} program${offers.length === 1 ? '' : 's'} on offer.`
+          ? 'Every slot is taken.'
+          : `${free} of ${slots.length} ${founders ? 'slot' : 'program slot'}${free === 1 && slots.length === 1 ? '' : 's'} free${offers.length > 0 || officesOffered > 0
+            ? ` — ${[
+              offers.length > 0 ? `${offers.length} program${offers.length === 1 ? '' : 's'}` : '',
+              officesOffered > 0 ? `${officesOffered} office${officesOffered === 1 ? '' : 's'}` : '',
+            ].filter(Boolean).join(' and ')} on offer.`
             : '.'}`}
       </p>
+      {founders && officeAllowance(s) > 0 && <AllowanceRow s={s} />}
       <div className="hall-slots">
         {slots.map((slot, i) => {
+          if (slot.office) {
+            const key = `office:${slot.office.id}`;
+            return (
+              <OfficeTile key={i} slot={slot} s={s} act={act} open={openTile === key}
+                onToggle={() => { setOpenTile(openTile === key ? null : key); setOpenSlot(null); }} />
+            );
+          }
           if (slot.programId !== null) {
             const program = programById(slot.programId);
             if (!program) {
@@ -526,16 +554,18 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
           // first free program slot of Founders Hall until it is opened (see
           // state/opening.ts and styles.css's .opening-target).
           const ringed = walking && t.id === FOUNDERS_HALL_ID && openSlot === null
-            && slots.findIndex((slot) => slot.programId === null) === i;
+            && slots.findIndex(slotFree) === i;
           return (
             <button
               key={i}
               type="button"
               className={`hall-slot empty${open ? ' open' : ''}${ringed ? ' opening-target' : ''}`}
-              onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); }}
+              onClick={() => { setOpenSlot(open ? null : i); setPickedProgram(null); setPickedFaculty(null); setOpenTile(null); setPickedOffice(null); }}
               aria-pressed={open}
-              disabled={offers.length === 0}
-              title={offers.length === 0 ? (host ? 'No program for this hall is on offer yet.' : 'Nothing is on offer to found here.') : 'Found a program here'}
+              disabled={offers.length === 0 && officesOffered === 0}
+              title={offers.length === 0 && officesOffered === 0
+                ? (host ? 'No program for this hall is on offer yet.' : 'Nothing is on offer to found here.')
+                : officesOffered > 0 ? 'Found a program or open an office here' : 'Found a program here'}
             >
               +
             </button>
@@ -549,8 +579,23 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         </p>
       ))}
 
-      {openSlot !== null && offers.length > 0 && (
+      {openSlot !== null && officesOffered > 0 && (
         <div className="hall-offer">
+          {offers.length > 0 && (
+            <div className="segmented offer-switch">
+              <button type="button" aria-pressed={!showOffices} onClick={() => { setOfferMode('programs'); setPickedOffice(null); }}>Programs · {offers.length}</button>
+              <button type="button" aria-pressed={showOffices} onClick={() => { setOfferMode('offices'); setPickedProgram(null); setPickedFaculty(null); }}>Offices · {officesOffered}</button>
+            </div>
+          )}
+          {showOffices && (
+            <OfficeOffers s={s} act={act} slot={openSlot} picked={pickedOffice} onPick={setPickedOffice}
+              onOpened={() => { setOpenSlot(null); setPickedOffice(null); }} />
+          )}
+        </div>
+      )}
+
+      {openSlot !== null && offers.length > 0 && !showOffices && (
+        <div className={`hall-offer${officesOffered > 0 ? ' follows-switch' : ''}`}>
           {committeeFull && (
             <p className="building-info-line building-info-construction hall-offer-committee">
               The curriculum committee is writing {committeeSeats(s)} courses already, its most: a program can be founded once one of them is done.

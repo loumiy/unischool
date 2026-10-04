@@ -100,6 +100,8 @@ a sequence of PRs.*
 - **The price is set blind** (A4-6). The summer's tuition slider shows a
   tier but not how last year's price moved the pool
   (`components/InterruptModal.tsx`). Show last year's response beside it.
+  Plan 89's Admissions Office answers it for a college that opens the
+  office; this entry stays for the rest.
 - **Small leftovers of the Final Report and the worklist** (A4-2, A4-4):
   - the access weakness still reads "never opened its doors very wide"
     (`data/reportData.ts`), which goes to the largest colleges; the
@@ -273,7 +275,8 @@ a sequence of PRs.*
   FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and bridges
   before ACCT110 and MATH130. Each change moves course ids in every save.
 - **Athletics deferrals.** **Founding a team directly** (not through a
-  sport club's petition) is unbuilt. **Disbanding a team** is unbuilt,
+  sport club's petition) is unbuilt; Plan 89's Athletics Development
+  Office builds it for a college that opens the office. **Disbanding a team** is unbuilt,
   and so what happens to a venue whose last team folds is unanswered.
   **Match simulation and a fixture list** stay out by the argument at the
   head of `systems/athletics/season.ts`: three dated occasions and the

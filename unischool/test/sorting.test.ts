@@ -73,20 +73,24 @@ function letter(id: string) {
   return OPENING_LETTERS.find((l) => l.id === id)!;
 }
 
-// --- the chain: six purchased halls, and Founders Hall for the last school --
+// --- the chain: seven purchased halls, one for every school (Plan 89C) --
 {
   const s = createInitialState('Chain');
   const purchased = s.tech.filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID);
-  assert(purchased.length === 6 && ACADEMIC_HALL_COUNT === 6, `six purchased halls (${purchased.length})`);
-  assert(purchased.length + 1 === milestoneSchools().length, 'one fewer than the schools: the last school sorted keeps Founders Hall');
-  assert(purchased.map((t) => t.name).join(',') === 'Elm Hall,Oak Hall,Linden Hall,Maple Hall,Chestnut Hall,Sycamore Hall', 'Elm through Sycamore');
+  assert(purchased.length === 7 && ACADEMIC_HALL_COUNT === 7, `seven purchased halls (${purchased.length})`);
+  assert(purchased.length === milestoneSchools().length, 'one for every school: Founders Hall is left to the administration');
+  assert(purchased.map((t) => t.name).join(',') === 'Elm Hall,Oak Hall,Linden Hall,Maple Hall,Chestnut Hall,Sycamore Hall,Walnut Hall', 'Elm through Walnut');
+  const [sycamore, walnut] = purchased.slice(5);
+  assert(walnut.prereqs.join() === sycamore.id && Math.abs(walnut.cost / sycamore.cost - 1.45) < 0.01, `Walnut Hall follows Sycamore Hall at the chain's ratio ($${walnut.cost})`);
 
-  // Founders Hall is the starting room until every purchased hall is sited;
-  // then the school left in it is at home there (Plan 59).
+  // Founders Hall is nobody's home, even with every purchased hall sited:
+  // a school in it is away from home (Plan 89C; until then, at home there
+  // once every hall was sited, Plan 59).
   for (let i = 0; i < 6; i += 1) s.halls[FOUNDERS_HALL_ID][i] = { programId: ['CIVE', 'INDE', 'ELEC', 'CHEN', 'MECH', 'AERO'][i] };
-  assert(claimedSchool(s, FOUNDERS_HALL_ID) === null && nextSchoolToMove(s) === 'Engineering', 'six Engineering programs in Founders Hall are still away from home while a hall is left to site');
+  assert(claimedSchool(s, FOUNDERS_HALL_ID) === null && nextSchoolToMove(s) === 'Engineering', 'six Engineering programs in Founders Hall are away from home');
   for (const t of purchased) t.status = 'done';
-  assert(claimedSchool(s, FOUNDERS_HALL_ID)?.school === 'Engineering' && nextSchoolToMove(s) === null, 'with every hall sited, Engineering is at home in Founders Hall');
+  assert(claimedSchool(s, FOUNDERS_HALL_ID) === null && nextSchoolToMove(s) === 'Engineering', 'and still are with every hall sited');
+  assert(dedicatedSchool(s, FOUNDERS_HALL_ID) === 'Engineering', 'though the six still found Engineering in Founders Hall');
   assert(hallDisplayName(s, s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!) === 'Founders Hall', 'and Founders Hall keeps its name');
 }
 

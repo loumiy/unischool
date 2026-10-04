@@ -6,7 +6,7 @@ import { perceptionOf, tagIndicators } from '../systems/identity/tags';
 // What the guidebooks say (Plan 31, V2 #30): the identity tags the college
 // holds, what each does, and the ones it is on the way to earning. Each
 // reputation is a round sticker beside its quote, and the years toward one
-// are pips (Plan 89 N).
+// are pips (Plan 90 N).
 
 // A reputation whose own effect costs the college (more attrition, a
 // higher cost a student, lower satisfaction) is a warning, not praise, and

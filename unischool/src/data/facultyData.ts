@@ -889,6 +889,6 @@ export function initialCandidatePool(): Faculty[] {
 
 // How many new listings to add this week: enough to close the gap to
 // target, capped so a big hiring week refills gradually.
-export function candidateArrivalsThisWeek(poolSize: number): number {
-  return Math.max(0, Math.min(CANDIDATE_POOL_TARGET - poolSize, CANDIDATE_ARRIVALS_PER_WEEK_MAX));
+export function candidateArrivalsThisWeek(poolSize: number, target = CANDIDATE_POOL_TARGET): number {
+  return Math.max(0, Math.min(target - poolSize, CANDIDATE_ARRIVALS_PER_WEEK_MAX));
 }

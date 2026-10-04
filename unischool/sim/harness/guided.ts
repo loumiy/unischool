@@ -45,7 +45,8 @@ import { servedPopulationFor } from '../../src/systems/satisfaction/satisfaction
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { canPostSearch, searchCost } from '../../src/systems/faculty/facultySearch';
-import { buildDorm, buildable, declineUnteachable, offersFor, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder } from './moves';
+import { buildDorm, buildable, declineUnteachable, offersFor, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder, openOffices, useOffices } from './moves';
+import { slotFree } from '../../src/systems/administration/offices';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
 // What the line asks for needs only ASK_RESERVE_WEEKS: a player told to
@@ -93,6 +94,9 @@ export interface GuidedRecord {
   years: GuidedYear[];
 }
 
+// The offices the guided player opens, in order (Plan 89G).
+const GUIDED_OFFICES = ['curriculum', 'career-services', 'sponsored-research', 'alumni-relations', 'admissions', 'student-activities'] as const;
+
 export function reserveOf(s: GameState, weeks = RESERVE_WEEKS): number {
   return weeks * financeBreakdown(s).totalExpenses;
 }
@@ -124,7 +128,7 @@ export function foundIn(g: Game, hallId: string, programIds: string[], reserve: 
   for (const programId of programIds) {
     const program = programById(programId);
     const entry = program ? g.s.tech.find((t) => t.id === program.entryCourseId) : undefined;
-    const slot = g.s.halls[hallId]?.findIndex((x) => x.programId === null) ?? -1;
+    const slot = g.s.halls[hallId]?.findIndex(slotFree) ?? -1;
     if (!program || !entry || slot < 0 || !affords(g.s, entry.cost, reserve)) continue;
     let teacher = eligibleInstructors(g.s, entry)[0];
     if (!teacher && hireFor(g, entry.requiresFaculty, reserve)) teacher = eligibleInstructors(g.s, entry)[0];
@@ -342,7 +346,12 @@ export function createGuidedPlayer(): Player & { record: GuidedRecord } {
       const scores = g.s.students.satisfactionBreakdown;
       const worst = (Object.keys(scores) as Array<keyof SatisfactionAttributes>).sort((a, b) => scores[a] - scores[b])[0];
       if (scores[worst] < EMERGENCY) buildFor(g, worst, reserve);
-      if (!saving) background(g, reserveOf(g.s));
+      if (!saving) {
+        // The offices (Plan 89G): the guided player's own order.
+        openOffices(g, GUIDED_OFFICES, { reserve });
+        useOffices(g, { reserve });
+        background(g, reserveOf(g.s));
+      }
       observe(g.s);
     },
     answer(g): Action | null {

@@ -5,6 +5,8 @@ import type { CohortCounts, CohortId, GameState } from '../../state/types';
 import { weeklyResearchPoints } from '../../data/researchData';
 import { graduateCourseIds, graduatePrograms } from '../../data/techData';
 import { departmentPot, sportById, sportEconomics, teamQuality } from '../../data/studentLifeData';
+import { officeStrength } from '../administration/offices';
+import { CAREER_SERVICES_PULL, FINANCIAL_AID_DISCOUNT } from '../../data/officeData';
 import { count } from '../../format';
 
 // Student cohorts: an additive lens on admissionsSystem.ts's applicant
@@ -90,6 +92,10 @@ export interface CohortSignals {
   // The year's one-summer lift in applicants (students.applicantLift, Plan
   // 79C), added to the pool after everything else. Absent reads none.
   applicantLift?: number;
+  // The enrolment offices of Plan 89, at their strength (offices.ts's
+  // officeStrength). Absent reads closed.
+  careerServices?: number;
+  financialAid?: number;
 }
 
 // Athletic results reach the pool as research output does: a title is worth
@@ -135,6 +141,8 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     tagPool: tagPoolFactor(s),
     crowding: crowdingScore(s),
     applicantLift: s.students.applicantLift,
+    careerServices: officeStrength(s, 'career-services'),
+    financialAid: officeStrength(s, 'financial-aid'),
     tagQuality: tagQualityShift(s),
     distinguishedDepth: milestoneCountWithPrefix(s, 'program-distinguished:') + 2 * milestoneCountWithPrefix(s, 'grad-program-complete:'),
     professionalPrograms: establishedPrefixCount(s, PRE_PROFESSIONAL_PREFIXES),
@@ -231,8 +239,11 @@ function athleticsSignal(signals: CohortSignals, withResults: boolean): number {
 // the deal-conscious share, separate from the funnel's overall price discount.
 const PRICE_SENSITIVE_STRENGTH = 0.35;
 
-function priceSensitivePull(tolerance: number, tuition: number): number {
-  const ratio = tolerance > 0 ? Math.max(tuition, 0) / tolerance : 0;
+// A Financial Aid Office (Plan 89E) has this cohort read the price as
+// lower, without a lower sticker.
+function priceSensitivePull(tolerance: number, tuition: number, aid = 0): number {
+  const net = Math.max(tuition, 0) * (1 - FINANCIAL_AID_DISCOUNT * aid);
+  const ratio = tolerance > 0 ? net / tolerance : 0;
   return 1 + PRICE_SENSITIVE_STRENGTH * Math.max(-1, Math.min(1, 1 - ratio));
 }
 
@@ -241,12 +252,14 @@ function priceSensitivePull(tolerance: number, tuition: number): number {
 function pullFor(id: CohortId, signals: CohortSignals, tolerance: number, tuition: number): number {
   switch (id) {
     case 'highAchievers': return boundedPull(HIGH_ACHIEVER_STRENGTH, HIGH_ACHIEVER_DECAY, signals.distinguishedDepth);
-    case 'preProfessional': return boundedPull(PRE_PROFESSIONAL_STRENGTH, PRE_PROFESSIONAL_DECAY, signals.professionalPrograms);
+    // Career Services (Plan 89E) adds to the pull.
+    case 'preProfessional': return boundedPull(PRE_PROFESSIONAL_STRENGTH, PRE_PROFESSIONAL_DECAY, signals.professionalPrograms)
+      * (1 + CAREER_SERVICES_PULL * (signals.careerServices ?? 0));
     // Capacity and output: a breakthrough is worth a lab here.
     case 'researchOriented': return boundedPull(RESEARCH_STRENGTH, RESEARCH_DECAY, signals.researchRate / 10 + signals.labCount + signals.researchOutput);
     case 'social': return boundedPull(SOCIAL_STRENGTH, SOCIAL_DECAY, signals.socialOrgCount);
     case 'artsFocused': return boundedPull(ARTS_STRENGTH, ARTS_DECAY, signals.artsPrograms * 1.5 + signals.artsFacilities * 2);
-    case 'priceSensitive': return priceSensitivePull(tolerance, tuition);
+    case 'priceSensitive': return priceSensitivePull(tolerance, tuition, signals.financialAid ?? 0);
     case 'athletes': return boundedPull(ATHLETICS_STRENGTH, ATHLETICS_DECAY, athleticsSignal(signals, true));
     // Must stay flat: this cohort responds through its share
     // (gradBoundShare), and reading gradCourseDepth here too would count it

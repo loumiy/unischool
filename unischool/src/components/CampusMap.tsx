@@ -2,7 +2,7 @@ import { financingFor } from '../systems/finance/treasury';
 import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
-import type { BenchFacing, Buildable, Facing, GameState, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
+import type { BenchFacing, Buildable, Facing, GameState, HallSlot, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { entryKey, useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -52,6 +52,7 @@ import { MapCanvas, type CanvasEntry, type CanvasScene } from './mapCanvas';
 import type { Crowd, CrowdSink } from './Walkers';
 import { occasion, registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
+import { slotFree } from '../systems/administration/offices';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
 const DUST_MS = 900;
@@ -487,16 +488,18 @@ function programBlocked(s: GameState, programId: string): boolean {
 }
 
 function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }: {
-  t: Buildable; p: Placement; slots: ReadonlyArray<{ programId: string | null }>;
+  t: Buildable; p: Placement; slots: ReadonlyArray<HallSlot>;
   offerWaiting: boolean; blocked: ReadonlyArray<boolean>; vernacular: Vernacular; onInspect: () => void;
 }) {
   const { size, centre } = labelLayout(t.name, t, p, vernacular);
   const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
-  const free = slots.filter((slot) => slot.programId === null).length;
+  const free = slots.filter(slotFree).length;
   const flag = free > 0 && offerWaiting;
   const total = slots.length + (flag ? 1 : 0);
   const x0 = centre.x - ((total - 1) * HALL_PIP_GAP) / 2;
+  // An office's pip wears the college's own colour (Plan 89F).
   const hues = slots.map((slot) => {
+    if (slot.office) return 'var(--school-primary)';
     const program = slot.programId ? programById(slot.programId) : undefined;
     return program ? schoolMark(program.school).hue : null;
   });

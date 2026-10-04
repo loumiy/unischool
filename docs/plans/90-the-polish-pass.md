@@ -1,4 +1,4 @@
-# Plan 89 — The polish pass
+# Plan 90 — The polish pass
 
 *Planning document only. Its job is to turn the owner's picks from three
 rounds of styling mockups (October 2026) into changes to the screens they

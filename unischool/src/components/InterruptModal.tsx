@@ -46,6 +46,7 @@ import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
 import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
 import { promisesOf } from '../systems/promises/promises';
+import { admissionsRange } from '../systems/administration/effects';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -164,7 +165,7 @@ function SIZE_FOR_LENGTH(length: number): string {
   return '';
 }
 
-// One cohort's card (Plan 89): the audience's name on a strip of its own
+// One cohort's card (Plan 90): the audience's name on a strip of its own
 // colour, the head count big with the change from last summer beside it, and
 // two bars, now and last year, on `scale`, which all eight cards share so
 // they compare with each other too. The driver (what pulls this audience)
@@ -268,12 +269,13 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   const priceTierNow = priceTier(tuition, tolerance);
   const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
   // The cards' bars share one scale, the largest count this summer or last
-  // (Plan 89); at least 1, so an empty pool divides by nothing.
+  // (Plan 90); at least 1, so an empty pool divides by nothing.
   const lastCohorts = s.students.lastFunnel?.cohorts;
   const cohortScale = Math.max(1, ...cohorts.map((c) => Math.max(c.applicants, lastCohorts?.[c.id] ?? 0)));
   // Why the pool moved: each factor's share of the change against last
   // summer. Null at the first summer.
   const change = poolChange(outcome, s.students.lastFunnel);
+  const poolRange = admissionsRange(s, outcome.applicants);
 
   return (
     <>
@@ -297,6 +299,15 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
       </label>
       {floor > 0 && (
         <p className="admissions-prompt">The board holds tuition where it is: it may rise, not fall.</p>
+      )}
+
+      {/* The Admissions Office (Plan 89E): a range for the pool at this
+          price before it is set, around the same projection the reveal
+          shows. The price is no longer set quite blind. */}
+      {!tuitionLocked && poolRange && (
+        <p className="admissions-prompt admissions-range">
+          The Admissions Office expects {count(poolRange.low)}–{count(poolRange.high)} applicants at this price.
+        </p>
       )}
 
       {!tuitionLocked && (

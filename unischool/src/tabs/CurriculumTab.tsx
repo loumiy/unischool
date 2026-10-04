@@ -13,7 +13,7 @@ import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
-  canStartDevelopment, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, committeeOfficeSeats, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -258,7 +258,7 @@ function courseSchools(): Map<string, { key: string; school: string }> {
 }
 
 // A grade, for a course's own grade and for aggregates alike: the letter
-// circled in pen (Plan 89D; components/GradeMark.tsx). The letter always
+// circled in pen (Plan 90D; components/GradeMark.tsx). The letter always
 // shows; the ink is only a cue (color-blind players, small sizes). Kept
 // under its old name so every caller follows.
 export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
@@ -982,7 +982,7 @@ function SchoolGroupView(
       data-school={group.key}
       style={group.mark.hue ? { ['--school-hue' as string]: group.mark.hue } : undefined}
     >
-      {/* A binder divider (Plan 89G): the school's color in a tab at the
+      {/* A binder divider (Plan 90G): the school's color in a tab at the
           left holding its mark, and its completion as a small meter. */}
       <header className="school-group-head">
         <span className="school-group-tab" aria-hidden="true">{group.mark.motif && <span className="school-group-mark">{group.mark.motif}</span>}</span>
@@ -1153,7 +1153,10 @@ function CommitteeBox({ s, lookup, onOpenFaculty }: {
 function CommitteePanel({ s }: { s: GameState }) {
   const seats = committeeSeats(s);
   const writing = coursesInDevelopment(s);
-  const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length;
+  // The Office of Curriculum Development's seat (Plan 89E) sits beside the
+  // prestige seats, so the locked ones still read their own prestige.
+  const officeSeats = committeeOfficeSeats(s);
+  const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length + officeSeats;
   const next = nextCommitteeSeatAt(s);
   return (
     <section className="committee" aria-label="Curriculum committee" {...sectionAnchor('curriculum.committee')}>
@@ -1162,13 +1165,13 @@ function CommitteePanel({ s }: { s: GameState }) {
         <span className="committee-count">writing {writing.length} of {seats}</span>
         <HelpHint
           align="end"
-          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} courses at once, graduate courses among them, and takes up the next when one is done. Each course takes its own number of weeks, so they finish at different times. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}.`}
+          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} courses at once, graduate courses among them, and takes up the next when one is done. Each course takes its own number of weeks, so they finish at different times. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}${officeSeats > 0 ? ', one of them the Office of Curriculum Development\'s' : ''}.`}
         />
       </header>
       <ol className="committee-seats">
         {Array.from({ length: maxSeats }, (_, i) => {
           if (i >= seats) {
-            const at = COMMITTEE_PRESTIGE_STEPS[i - COURSE_DEVELOPMENT_SLOTS];
+            const at = COMMITTEE_PRESTIGE_STEPS[i - COURSE_DEVELOPMENT_SLOTS - officeSeats];
             return (
               <li key={i} className="committee-seat locked" title={`Opens at prestige ${at}`}>
                 <span className="committee-seat-left">at prestige</span>

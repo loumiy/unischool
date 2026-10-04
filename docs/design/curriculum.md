@@ -19,12 +19,14 @@ opened teaching three programs). Three moves (Plan 14) give it its shape:
    exactly six majors, so **one hall is exactly one school**, and that is a
    rule a player learns in one sentence and plans a decade around. Seven
    halls in all: **Founders Hall**, which stands at founding, and a strictly
-   sequential chain of six like housing (Elm, Oak, Linden, Maple, Chestnut
-   and Sycamore). Seven schools, seven halls: the last school sorted keeps
-   Founders Hall as its own (Plan 59). (Until Plan 55 the chain ran to
-   thirteen, a second hall for each school's graduate programs; since Plan
-   51 those are housed in capital projects, so the owner shortened it to
-   seven, then to six once Founders Hall could be a school's.)
+   sequential chain of seven like housing (Elm, Oak, Linden, Maple,
+   Chestnut, Sycamore and Walnut). Seven schools, seven purchased halls:
+   since Plan 89C every school can have a hall of its own, and Founders
+   Hall's slots are left to the administration's offices (below). (Until
+   Plan 55 the chain ran to thirteen, a second hall for each school's
+   graduate programs; since Plan 51 those are housed in capital projects,
+   so the owner shortened it to seven, then to six once Founders Hall could
+   be a school's (Plan 59), and back to seven with Plan 89C.)
    Founders Hall is an ordinary hall
    in every mechanical respect (Plan 19): six slots, every one of them free
    at founding (Plan 80D). **Founders Hall is where programs begin** (Plan
@@ -36,11 +38,11 @@ opened teaching three programs). Three moves (Plan 14) give it its shape:
    courses developed and taught by a founding roster of five; from Plan 55
    the line of play moved each school out into a hall of its own, and the
    first letter after the first purchased hall stood asked for the move.)
-   For the purposes of a purchased hall's own offers it is the starting
-   room, claimed by no school, until every purchased hall is sited; then
-   the school left in it is at home there (`schools.ts`'s
-   `foundersIsHome`). Six of one school in it found that school all the
-   same, and it keeps the name Founders Hall. A graduate program's host (the Law School, the Medical
+   It is the starting room, claimed by no school, so every program in it
+   is away from home (Plan 89C; from Plan 59 until then, the school left in
+   it once every purchased hall was sited was at home there). Six of one
+   school in it found that school all the same, and it keeps the name
+   Founders Hall. A graduate program's host (the Law School, the Medical
    Center) has slots too but is never dedicated: it founds no school and
    keeps its own name and look (Plan 59). (Until Plan 52 the founding programs were English, History
    and Philosophy, and three more Social Sciences & Humanities programs
@@ -187,6 +189,28 @@ waiting on the draw. (From Plan 55 it named the move itself, "Move
 Sociology into Elm Hall".) The suggested move stays on the program tile,
 and the harness's players read it. The opening letters teach it
 (docs/architecture/interrupts.md).
+
+### Offices in Founders Hall (Plan 89)
+
+A slot of Founders Hall that no program holds can take an **office** of the
+administration instead (`data/officeData.ts`, `systems/administration/
+offices.ts`): one of twelve, each held at most once, counting toward no
+school and teaching nothing. A slot is **free** only when it holds neither a
+program nor an office (`slotFree`), and every gate that finds room for a
+program (founding, relocation, the next-step line) reads it, so an office's
+slot never takes a program. A hall holding an office can never hold six
+programs, so it establishes no school: the next-step line's *Establish a
+school* passes over it (`closestSchool`), and its programs are moved to
+their schools' own halls. An office opens for a price in weeks of
+operating cost and draws a share of the week's operating cost while open,
+the Treasury's *Offices* line (beside *Administration*, the seats). Closing
+one (`CLOSE_OFFICE`) leaves the slot dark for twelve weeks, still held and
+still counted against the allowance, then free. The college may hold one
+office for each of six ladder milestones it has reached (`officeAllowance`,
+[progression.md](progression.md)). What each office
+does (`systems/administration/effects.ts`, `officeActions.ts`), and the half
+again it does with its seat filled, is tabled in Plan 89's PR 89E; the
+Office of Curriculum Development's seat is the committee's (below).
 
 ### The milestones
 

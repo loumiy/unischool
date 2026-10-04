@@ -1,3 +1,4 @@
+import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import StudentLifeTab from './StudentLifeTab';
 import EnrollmentTab from './EnrollmentTab';
@@ -15,15 +16,15 @@ import { count } from '../format';
 // first commencement (ladderData.ts's sections).
 // `target`: a section to land on (the satisfaction chip opens the
 // breakdown, Plan 78C).
-export default function StudentsTab({ s, target, onTargetConsumed }: {
-  s: GameState; target?: string; onTargetConsumed?: () => void;
+export default function StudentsTab({ s, act, target, onTargetConsumed }: {
+  s: GameState; act?: (a: Action) => void; target?: string; onTargetConsumed?: () => void;
 }) {
   const classes = s.alumni ?? [];
   useSectionTarget(target, onTargetConsumed);
   return (
     <div className="students-tab">
       {sectionAvailable(s, 'students.guidebook') && <div className="tab-content"><IdentityPanel s={s} /></div>}
-      <StudentLifeTab s={s} clubs={sectionAvailable(s, 'students.clubs')} />
+      <StudentLifeTab s={s} act={act} clubs={sectionAvailable(s, 'students.clubs')} />
       <EnrollmentTab s={s} funnel={sectionAvailable(s, 'students.funnel')} />
       {classes.length >= 2 && (
         <div className="tab-content">

@@ -144,7 +144,7 @@ function darken(hex: string, amount: number): string {
 }
 
 // Round by default; 'square' fills the whole square, for the mounted frame
-// of the Faculty tab's staff ID card (Plan 89).
+// of the Faculty tab's staff ID card (Plan 90).
 export default function FacultyPortrait({ f, size = 24, shape = 'round' }: { f: Portrayed; size?: number; shape?: 'round' | 'square' }) {
   const skin = skinTone(f);
   const hair = hairColor(f);

@@ -1,4 +1,4 @@
-// A letter grade circled in pen (Plan 89D): a hand-drawn ring in the
+// A letter grade circled in pen (Plan 90D): a hand-drawn ring in the
 // grade's ink (--grade-a … --grade-f, which follow the color-vision-safe
 // set), a little off the square, with the letter inside. The ring and its
 // tilt are seeded from the letter, so a B always looks like every other B.

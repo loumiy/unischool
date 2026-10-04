@@ -5,7 +5,7 @@ import type { Speed } from '../engine/useGame';
 const DAY_TICKER_POLL_MS = 150;
 const DAYS_PER_WEEK = 7;
 // The seven cells are a week's days, Monday first, lettered over the cells
-// (Plan 89). The sim keeps no weekday of its own, so the letters only name
+// (Plan 90). The sim keeps no weekday of its own, so the letters only name
 // the cells' order.
 const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
 

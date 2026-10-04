@@ -5,7 +5,7 @@ import { institutionName, type GameState } from '../state/types';
 const FOUNDED_YEAR = 1;
 
 // The pennant: the school's name on an embroidered patch in its colors
-// (Plan 89), the founding year stitched over it, in the map's top-left
+// (Plan 90), the founding year stitched over it, in the map's top-left
 // corner. One size; a long name wraps rather than shrinks, to two lines and
 // an ellipsis, with the whole name in the title (Plan 76I).
 // App.tsx hides it while a tab is open (tabs put their own title in that

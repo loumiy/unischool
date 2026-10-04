@@ -29,6 +29,8 @@ import { declineRefusal, schoolOffers } from '../../src/systems/techtree/program
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
 import { bedsWithDowntown } from '../../src/systems/satisfaction/satisfactionSystem';
 import type { Game } from './game';
+import { heldOffices, officeAllowance, officeHeld, officePrice, openOfficeRefusal, slotFree } from '../../src/systems/administration/offices';
+import { charterRefusal, foundTeamCost, foundTeamRefusal } from '../../src/systems/administration/officeActions';
 
 export type Pick = <T>(items: readonly T[]) => T | undefined;
 export const first: Pick = (items) => items[0];
@@ -46,7 +48,7 @@ function affords(s: GameState, cost: number, reserve = 0): boolean {
 }
 
 function freeSlotIn(s: GameState, hallId: string): number {
-  return s.halls[hallId]?.findIndex((slot) => slot.programId === null) ?? -1;
+  return s.halls[hallId]?.findIndex(slotFree) ?? -1;
 }
 
 // Where a new major belongs (Plan 55's line of play): its school's hall if
@@ -310,4 +312,30 @@ export function relieveCrowding(
   const underway = g.s.tech.some((t) => t.status === 'developing' && (t.kind === 'dorm' ? worst.attribute === 'housing' : t.effects?.satisfactionAttribute === worst.attribute));
   if (underway) return 'fine';
   return buildFor(g, worst.attribute, reserve) ? 'built' : 'short';
+}
+
+// ---------------------------------------------------------------------
+// The administration's offices (Plan 89G): each player opens the first
+// office of its own preference the game lets it, into a free slot of
+// Founders Hall, while the college may hold another and can pay for it
+// above its reserve. Once held, the two offices that act are used: a club
+// chartered whenever it may be, and a sport club whose venue stands taken
+// varsity at once.
+// ---------------------------------------------------------------------
+export function openOffices(g: Game, preference: readonly string[], { reserve = 0 }: MoveOptions = {}): boolean {
+  const s = g.s;
+  if (officeAllowance(s) <= heldOffices(s).length) return false;
+  const slot = (s.halls[FOUNDERS_HALL_ID] ?? []).findIndex(slotFree);
+  if (slot < 0) return false;
+  const choice = preference.find((id) => openOfficeRefusal(s, id, slot) === null && affords(s, officePrice(s, id), reserve));
+  if (!choice) return false;
+  g.act({ type: 'OPEN_OFFICE', officeId: choice, slot });
+  return true;
+}
+
+export function useOffices(g: Game, { reserve = 0 }: MoveOptions = {}): void {
+  if (charterRefusal(g.s) === null) g.act({ type: 'CHARTER_CLUB' });
+  if (!officeHeld(g.s, 'athletics-development')) return;
+  const club = g.s.orgs.clubs.find((c) => c.sport !== null && foundTeamRefusal(g.s, c.id) === null);
+  if (club && affords(g.s, foundTeamCost(g.s), reserve)) g.act({ type: 'FOUND_TEAM', clubId: club.id });
 }

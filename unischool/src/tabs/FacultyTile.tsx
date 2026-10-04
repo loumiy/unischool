@@ -4,7 +4,8 @@ import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { quirkById } from '../data/quirkData';
-import { facultyQualityTier, CANDIDATE_LISTING_WEEKS } from '../data/facultyData';
+import { facultyQualityTier } from '../data/facultyData';
+import { candidateListingWeeks } from '../systems/administration/effects';
 import type { Grade } from '../data/courseQuality';
 import { effectiveCourseSlots } from '../systems/techtree/techSystem';
 import { careerWeeks } from '../systems/faculty/facultySystem';
@@ -28,7 +29,7 @@ import { gradeFor } from '../data/courseQuality';
 // the department board all draw the same tile, so a candidate and a
 // professor are compared like for like.
 //
-// The face, a staff ID card (Plan 89): a band with the field and the
+// The face, a staff ID card (Plan 90): a band with the field and the
 // courses waiting in it, a portrait that reads, the name and rank,
 // teaching and research as meters with their letters on the course-grade
 // bands and where each is heading, and badges for a quirk, prizes and a
@@ -59,7 +60,7 @@ export function waitingCount(w: FieldWaiting | undefined): number {
   return w ? w.unstaffed + w.open.length : 0;
 }
 
-// A stat as a short meter (Plan 89): the score the letter is read from,
+// A stat as a short meter (Plan 90): the score the letter is read from,
 // 0 to 100, filled in its grade's colour, the potential still to come as a
 // paler run beyond it, and the letter beside it with the letter the
 // potential reaches when that is higher: the hint of where this person is
@@ -123,7 +124,7 @@ export default function FacultyTile(
     if (open && !phone) tileRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   }, [open, phone]);
   const taught = isCandidate ? [] : coursesTaughtBy(s, f);
-  const listingLeft = Math.max(0, CANDIDATE_LISTING_WEEKS - f.weeksListed);
+  const listingLeft = Math.max(0, candidateListingWeeks(s) - f.weeksListed);
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
   const held = isCandidate ? 0 : (load ?? taught.length);
   const firstWaiting = waiting?.open[0];
@@ -151,7 +152,7 @@ export default function FacultyTile(
   const timesTrained = f.career?.training?.length ?? (f.training ? 1 : 0);
 
   const toggle = () => setOpen((v) => !v);
-  // The staff ID card (Plan 89): a band in the school's colour with the
+  // The staff ID card (Plan 90): a band in the school's colour with the
   // field and the courses waiting in it, the portrait mounted upright, the
   // rank stamped, the stats as meters, and the pay, load and actions in a
   // strip at the foot.

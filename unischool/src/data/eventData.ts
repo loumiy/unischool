@@ -390,8 +390,8 @@ const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
 // conference dues): never the building, and never the coaching staff, who
 // are hired separately and draw their own salaries (studentLifeData.ts's
 // coachSalaryFor).
-const VARSITY_ESTABLISH_COST_WEEKS = 2.5;
-const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of its coaching staff — travel, equipment, officiating
+export const VARSITY_ESTABLISH_COST_WEEKS = 2.5;
+export const VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX = 0.003;        // the program's own running cost, on top of its coaching staff — travel, equipment, officiating
 const VARSITY_DECLINE_SATISFACTION_HIT = 2;             // same weight as a chapter's housing refusal — the club stays exactly as it was, just told no
 
 // The week of the year a club's varsity petition fires (eventSystem.ts's

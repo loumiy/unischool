@@ -3,12 +3,13 @@ import { campaignById } from '../data/campaignData';
 import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
+import { officeDef } from '../data/officeData';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
-import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, FacilityType, GameState, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { isSweepStep } from '../systems/finance/sweep';
@@ -20,7 +21,7 @@ import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } fr
 import { fellTrees } from '../data/treeData';
 import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
-import { FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
+import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
@@ -63,7 +64,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 93; // Plan 85H: the downtown and the festival
+export const SAVE_VERSION = 94; // Plan 89C: Walnut Hall
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -284,6 +285,18 @@ function downtownStarts(state: GameState): void {
   state.downtown = emptyDowntown();
 }
 
+// 93 -> 94, Plan 89C: Walnut Hall, the seventh purchased hall, joins the
+// catalog (a save keeps the catalog it was founded with, so it is added,
+// locked, after Sycamore Hall: it opens once Sycamore Hall is built or
+// going up, as a new run's does). A hall already carrying its id (a sited
+// Cedar Hall a version-77 save kept, Plan 59) stays as it is.
+function walnutHall(state: GameState): void {
+  const id = academicHallId(ACADEMIC_HALL_COUNT - 1);
+  if (!Array.isArray(state.tech) || state.tech.some((t) => t.id === id)) return;
+  const walnut = initialTech().find((t) => t.id === id);
+  if (walnut) state.tech.push(walnut);
+}
+
 // The downtown (Plan 85H), on every load: growth 0 to 1, goodwill 0 to 100,
 // and the festivals a year each, no later than the save's year, of a scale
 // the game knows or none, oldest first; anything else is dropped or put
@@ -390,6 +403,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   90: researchParkGate,
   91: athleticsComplex,
   92: downtownStarts,
+  93: walnutHall,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -950,6 +964,9 @@ function sanitizeEnding(state: GameState): void {
   const ok = typeof raw === 'object' && raw !== null && typeof r === 'object' && r !== null
     && typeof r.title === 'string' && typeof r.mark === 'string' && Array.isArray(r.axes) && Number.isInteger(r.year);
   if (!ok) { delete state.ending; return; }
+  // The offices it names (Plan 89F): a list of titles, or nothing.
+  const offices = (r as { offices?: unknown }).offices;
+  if (offices !== undefined && !(Array.isArray(offices) && offices.every((o) => typeof o === 'string'))) delete state.ending!.report.offices;
   state.ending!.addenda = Array.isArray(e.addenda)
     ? e.addenda.filter((a): a is { from: number; to: number; lines: string[] } => typeof a === 'object' && a !== null
       && Number.isInteger(a.from) && Number.isInteger(a.to) && Array.isArray(a.lines) && a.lines.every((l: unknown) => typeof l === 'string'))
@@ -1065,6 +1082,7 @@ function sanitizeHalls(state: GameState): void {
   const source = (typeof state.halls === 'object' && state.halls !== null) ? state.halls : {};
   const programIds = new Set<string>([...majorPrefixes(), ...graduatePrograms().map((p) => p.id)]);
   const housed = new Set<string>();
+  const offices = new Set<string>();
 
   const clean: GameState['halls'] = {};
   for (const [hallId, raw] of Object.entries(source)) {
@@ -1082,12 +1100,26 @@ function sanitizeHalls(state: GameState): void {
         const weeks = entry?.transitWeeks;
         slots.push(Number.isInteger(weeks) && (weeks as number) > 0 ? { programId, transitWeeks: weeks as number } : { programId });
       } else {
-        slots.push({ programId: null });
+        slots.push(cleanOffice(entry?.office, hallId, offices));
       }
     }
     clean[hallId] = slots;
   }
   state.halls = clean;
+}
+
+// An office (Plan 89) survives a load only in Founders Hall, in a slot no
+// program holds, naming a known office the hall does not hold twice, and
+// with its closing term (if any) a whole number of weeks.
+function cleanOffice(raw: unknown, hallId: string, seen: Set<string>): HallSlot {
+  const office = raw as Partial<HallOffice> | undefined;
+  if (hallId !== FOUNDERS_HALL_ID || !office || typeof office.id !== 'string') return { programId: null };
+  if (!officeDef(office.id) || seen.has(office.id)) return { programId: null };
+  seen.add(office.id);
+  const kept: HallOffice = { id: office.id, openedYear: Number.isInteger(office.openedYear) ? office.openedYear as number : 1 };
+  if (Number.isInteger(office.closingWeeks) && (office.closingWeeks as number) > 0) kept.closingWeeks = office.closingWeeks;
+  if (Number.isInteger(office.lastActionWeek)) kept.lastActionWeek = office.lastActionWeek;
+  return { programId: null, office: kept };
 }
 
 // Offer hygiene, after sanitizeHalls (it reads the cleaned halls). Drops

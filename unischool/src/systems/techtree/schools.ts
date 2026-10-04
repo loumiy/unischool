@@ -1,5 +1,6 @@
 import type { Buildable, GameState } from '../../state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../../data/techData';
+import { slotFree } from '../administration/offices';
 
 // Schools are founded, not unlocked. A hall is dedicated when every slot is
 // housed and every program in it belongs to one school (a graduate program
@@ -66,8 +67,9 @@ export function hallDisplayName(s: GameState, t: Buildable): string {
 
 // ---------------------------------------------------------------------
 // Sorting (Plan 55). Programs begin in Founders Hall and move out, school
-// by school, into halls of their own, until every school has one and
-// the last school sorted keeps Founders Hall (Plan 59). These readings tell the player how far along
+// by school, into halls of their own, until every school has one; since
+// Plan 89C there is a purchased hall for each of the seven, and Founders
+// Hall is left to the administration. These readings tell the player how far along
 // that is: the letters (eventData.ts), the next-step line (nextStep.ts),
 // the hall's label and panel, and the program tile's suggested move.
 // ---------------------------------------------------------------------
@@ -80,12 +82,14 @@ export interface Claim {
 }
 
 // The school a hall is being sorted into: every program in it, settled or
-// arriving, belongs to that school. Null when it is empty or mixed, and for
-// Founders Hall until every purchased hall is sited (foundersIsHome). A
-// full claim with nothing in transit is a dedication (dedicatedSchool
-// above).
+// arriving, belongs to that school. Null when it is empty or mixed, and
+// always for Founders Hall: since Plan 89C there is a purchased hall for
+// every school, so Founders Hall is nobody's home and every program in it
+// is away from home. A full claim with nothing in transit is a dedication
+// (dedicatedSchool above), and a school dedicated in Founders Hall is
+// still founded; it is simply never the line of play.
 export function claimedSchool(s: GameState, hallId: string): Claim | null {
-  if (hallId === FOUNDERS_HALL_ID && !foundersIsHome(s)) return null;
+  if (hallId === FOUNDERS_HALL_ID) return null;
   const hall = s.tech.find((t) => t.id === hallId);
   const slots = s.halls[hallId];
   if (!hall || !isAcademicHall(hall) || !slots) return null;
@@ -110,15 +114,6 @@ export function claimCutBy(s: GameState, hallId: string, programId: string): Cla
   const claim = claimedSchool(s, hallId);
   const program = programById(programId);
   return claim && program && program.school !== claim.school ? claim : null;
-}
-
-// Founders Hall is the starting room, no school's, until every purchased
-// hall is sited (Plan 59): six halls for seven schools, so the school still
-// in it then is at home there, and nothing asks it to move.
-export function foundersIsHome(s: GameState): boolean {
-  return s.tech
-    .filter((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID)
-    .every((t) => t.status === 'developing' || t.status === 'done');
 }
 
 // Every claimed hall, with its claim.
@@ -209,7 +204,7 @@ export function emptyHall(s: GameState): string | undefined {
     if (hallId === FOUNDERS_HALL_ID) return false;
     const hall = s.tech.find((t) => t.id === hallId);
     return !!hall && isAcademicHall(hall) && hall.status === 'done'
-      && s.halls[hallId].every((slot) => slot.programId === null);
+      && s.halls[hallId].every(slotFree);
   });
 }
 
@@ -226,7 +221,7 @@ export function suggestedMove(s: GameState, programId: string): { hallId: string
   if (target === undefined) return null;
   const hall = s.tech.find((t) => t.id === target);
   if (hall?.status !== 'done') return null;
-  const slot = s.halls[target].findIndex((x) => x.programId === null);
+  const slot = s.halls[target].findIndex(slotFree);
   return slot >= 0 ? { hallId: target, slot } : null;
 }
 
@@ -255,7 +250,11 @@ export function closestSchool(s: GameState): SchoolProgress | null {
     const hall = s.tech.find((t) => t.id === hallId);
     if (!hall || !isAcademicHall(hall) || hall.status !== 'done') continue;
     const slots = s.halls[hallId];
-    const free = slots.filter((slot) => slot.programId === null).length;
+    // A hall with an office in it (Founders Hall, Plan 89) can never hold
+    // six programs, so no school is established there: its programs count
+    // toward their schools' other halls, and move out to them.
+    if (slots.some((slot) => slot.office !== undefined)) continue;
+    const free = slots.filter(slotFree).length;
     const counts = new Map<string, number>();
     for (const slot of slots) {
       const program = slot.programId ? programById(slot.programId) : undefined;

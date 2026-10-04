@@ -325,14 +325,14 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
 
 // The stamp's chain position for a sequential chain; nothing for
 // one-of-a-kind types, and nothing for a tiered building, whose level is
-// LevelPips (Plan 89).
+// LevelPips (Plan 90).
 function rowMarker(t: Buildable, group: TypeGroup, index: number): string | undefined {
   if (t.tier !== undefined) return undefined;
   if (group.repeatable && group.sequential !== false) return `#${index + 1}`;
   return undefined;
 }
 
-// The tile's head (Plan 89): a strip of plan paper with the building's
+// The tile's head (Plan 90): a strip of plan paper with the building's
 // drawing on it, and the stamp ("#3", "BUILT", "×7 BUILT") in its corner.
 function TilePlan({ Icon, stamp }: { Icon: () => React.JSX.Element; stamp?: string }) {
   return (
@@ -350,7 +350,7 @@ function maxTierOf(s: GameState, t: Buildable): number {
     ? Math.max(max, other.tier) : max), t.tier ?? 0);
 }
 
-// A tiered building's level as pips (Plan 89): filled up to the level, out of
+// A tiered building's level as pips (Plan 90): filled up to the level, out of
 // the chain's top tier.
 function LevelPips({ s, t }: { s: GameState; t: Buildable }) {
   const tier = t.tier;

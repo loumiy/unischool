@@ -21,6 +21,7 @@ import { debtOutstanding, drawRate } from '../systems/finance/treasury';
 import { EXPENSE_LINES, INCOME_LINES, shownLines, type StatementLineSpec } from './treasuryStatement';
 import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_NAMES, RUNG_RECEIVERSHIP, distressOf } from '../systems/finance/distress';
 import { beyondNeedNote } from '../systems/estate/beyondNeed';
+import { officesNote } from '../systems/administration/offices';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
 // same breakdown the tick charges, so the two cannot drift. Figures are per
@@ -84,6 +85,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
     athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate — the department's cost to the college`,
     athleticScholarships: `the scholarship budgets of ${scholarshipTeams} flagship${scholarshipTeams === 1 ? '' : 's'}, set on the Athletics tab: what their recruiting costs`,
     administration: `${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of the payroll`,
+    offices: officesNote(s),
     debtService: `${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`,
   };
 

@@ -131,7 +131,7 @@ export function fraction(n: number, of: number): string {
 }
 
 // The half of the college year a week falls in: Fall is weeks 1-26, Spring
-// 27-52. The dock's calendar page heads with the season alone (Plan 89).
+// 27-52. The dock's calendar page heads with the season alone (Plan 90).
 export const TERM_LENGTH = WEEKS_PER_YEAR / 2;
 export function termSeason(week: number): 'Fall' | 'Spring' {
   return week <= TERM_LENGTH ? 'Fall' : 'Spring';

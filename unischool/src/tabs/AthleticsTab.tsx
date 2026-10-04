@@ -68,7 +68,7 @@ function goToMarket() {
   market.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
 }
 
-// One staff chair on a program card, as a seat (Plan 89): the coach filling
+// One staff chair on a program card, as a seat (Plan 90): the coach filling
 // it (face, name, quality and salary; the ceiling and age in its tooltip, a
 // Release button), or an open seat with a dashed blank face and a link to
 // the market below, where hiring happens.
@@ -493,7 +493,7 @@ function TeamCard({ s, act, team, funding, rank }: {
   const gate = annualGateFor(s, team);
   const banned = team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear;
 
-  // A flagship wears a gold corner in place of its tag (Plan 89).
+  // A flagship wears a gold corner in place of its tag (Plan 90).
   const flagship = team.status === 'active' && funding?.band === 'flagship';
 
   return (
@@ -534,7 +534,7 @@ function TeamCard({ s, act, team, funding, rank }: {
         )}
       </div>
       {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
-      {/* Three seats side by side, an open one dashed (Plan 89). */}
+      {/* Three seats side by side, an open one dashed (Plan 90). */}
       <div className="team-card-staff" role="group" aria-label="Staff">
         {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
       </div>

@@ -27,7 +27,7 @@ import { SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSyste
 // Research, as a screen. Its own tab because Curriculum is where
 // `teaching` lives, so Research being where `research` lives makes the two
 // faculty stats mean different things. One roster of every facility, a row
-// each with a lamp lit while a project runs (Plan 89); a vacant lab is idle
+// each with a lamp lit while a project runs (Plan 90); a vacant lab is idle
 // capital the player should see.
 // =====================================================================
 
@@ -60,7 +60,7 @@ function ScholarRow(
   );
 }
 
-// A roster row's lamp: lit while a project runs, unlit when vacant (Plan 89).
+// A roster row's lamp: lit while a project runs, unlit when vacant (Plan 90).
 // The status line under the name says the same in words.
 function Lamp({ on }: { on: boolean }) {
   return <span className={`facility-lamp${on ? ' on' : ''}`} aria-hidden="true" />;
@@ -360,7 +360,7 @@ function ResearchParkProgress({ s }: { s: GameState }) {
             {projectOpens(park.project)}
             {projectOpen(s, park) && ' It is open: build it from the capital projects in the build menu.'}
           </p>
-          {/* A tally, a cell per lab (Plan 89); each cell names its lab. */}
+          {/* A tally, a cell per lab (Plan 90); each cell names its lab. */}
           <div className="park-tally">
             <p className="park-tally-head">
               <span>Labs that have finished a project</span>
@@ -439,7 +439,7 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
           </p>
         ) : (
           <>
-            {/* One roster (Plan 89): what the university is working on
+            {/* One roster (Plan 90): what the university is working on
                 first, as news with its team under it, then what it isn't,
                 as a worklist. */}
             <h3 className="facility-group-head">

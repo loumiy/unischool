@@ -65,7 +65,7 @@ import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { TUITION_SLIDER_MAX } from '../../src/data/foundingData';
 import type { Game, Player } from './game';
-import { foundable, hiringOrder, homeFor, moveHome, site, tendTeaching, TEND_EVERY_WEEKS } from './moves';
+import { foundable, hiringOrder, homeFor, moveHome, site, tendTeaching, TEND_EVERY_WEEKS, openOffices, useOffices } from './moves';
 import { foundIn } from './guided';
 
 // Rule 3 waits for this many academic halls, Founders Hall included: seven
@@ -358,6 +358,9 @@ function buildTheRest(g: Game): void {
 // ---- Admissions ----
 
 // The highest price on the slider short of the red tier.
+// The offices a natural player opens, in order (Plan 89G).
+const NATURAL_OFFICES = ['student-activities', 'athletics-development', 'career-services', 'counseling', 'alumni-relations', 'curriculum'] as const;
+
 export function naturalTuition(s: GameState): number {
   const tolerance = priceTolerance(s.self.reputation);
   let price = Math.min(TUITION_SLIDER_MAX, Math.floor((tolerance * 1.6) / TUITION_STEP) * TUITION_STEP);
@@ -430,6 +433,9 @@ export function createNaturalPlayer(): Player & { record: NaturalRecord } {
         record.sortedFrom ??= g.s.clock.year;
         for (let i = 0; i < MAX_PER_RULE && moveHome(g); i += 1);
       }
+      // The offices (Plan 89G): a natural player's taste runs to campus life.
+      openOffices(g, NATURAL_OFFICES, {});
+      useOffices(g, {});
       foundEveryOffer(g);
       nextHallIfFull(g);
       buildForCourses(g, record);

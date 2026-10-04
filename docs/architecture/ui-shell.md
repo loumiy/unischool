@@ -129,7 +129,7 @@ opens History › the guide (the guide's table, the top fifty and, below them,
 the college's own row with its neighbors; Plan 80C), satisfaction opens
 Students › the satisfaction breakdown, each a button named with its figure
 ("Prestige 51.5 — open History, Prestige"). The map is `data/statChips.ts`'s
-`chipDoor`; enrolled is a figure only. The right zone puts the clock beside two rows (Plan 89S): the clock is a desk
+`chipDoor`; enrolled is a figure only. The right zone puts the clock beside two rows (Plan 90S): the clock is a desk
 calendar's page, the term (Fall or Spring, the two 26-week halves of the year)
 on its header in the school's second color and the week of the year large,
 its full date ("Year 23 · Fall term · Week 2") as its label. Beside it the
@@ -153,7 +153,7 @@ popup is open, and the tabs scroll beside Build (Plan 76I). The school's
 name is not in the band: it hangs as a **pennant**
 in the map's top-left corner in the school's colours (`Pennant.tsx`), one
 name in one face, withheld while a tab is open because the tab's own title
-takes that corner. It is an embroidered patch (Plan 89H): an oval of felt in
+takes that corner. It is an embroidered patch (Plan 90H): an oval of felt in
 the primary, a satin border in the secondary with a stitched line inside it,
 and "★ Est. Year 1 ★" over the name — every college is founded in Year 1,
 and the game keeps no other date for it. It renames nothing (Plan 80D): the college's one rename
@@ -185,7 +185,7 @@ geometry.
   bad (`--bad-on-*`), warning (`--warn-on-*`), and the danger set
   (`--danger-ink`, `--danger-bg`, `--danger-line`) for armed confirmations.
   The course grades have their own ink and ground (`--grade-a…f`,
-  `--grade-*-bg`); a grade is drawn as `GradeMark` (Plan 89D), its letter
+  `--grade-*-bg`); a grade is drawn as `GradeMark` (Plan 90D), its letter
   in a ring drawn in pen in the grade's ink, one of three rings at one of
   five tilts, picked from the letter so a B always looks the same. The
   Enrollment cohort bar and the summer's admissions cards share eight
@@ -198,7 +198,7 @@ geometry.
   figures, chips and buttons; `--sans` (Archivo, loaded 400–700) for prose
   and detail lines; and `--mono` (Azeret Mono) for the dock's funds counter
   and its weekly net, so the digits hold their columns as it ticks — and,
-  since Plan 89, for figures read as a printed or posted record: a faculty
+  since Plan 90, for figures read as a printed or posted record: a faculty
   card's salary and slots, an athletics program's scoreboard, a build
   tile's stamp, a cohort's change on last year, the research park's tally
   count. Every other figure is the display face with tabular numerals. All three

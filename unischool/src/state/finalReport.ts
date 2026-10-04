@@ -1,3 +1,5 @@
+import { heldOffices } from '../systems/administration/offices';
+import { officeDef } from '../data/officeData';
 import { specializationOf } from '../systems/prestige/specialization';
 import { SPECIALIZATION_CARDS } from '../data/specializationData';
 import type { GameState } from './types';
@@ -70,6 +72,9 @@ export interface FinalReport {
   // The founder's figures as they stood at the report. Optional: a report
   // written before they were kept falls back to the live figures.
   figures?: FounderFigures;
+  // The offices Founders Hall held at the report (Plan 89F), by title.
+  // Optional: a report written before them says nothing of them.
+  offices?: string[];
 }
 
 // The report's six (data/reportData.ts), read off rivalsSystem.ts's axes.
@@ -175,6 +180,7 @@ export function finalReport(s: GameState): FinalReport {
     eras: chronicleOf(s).eras.map((e) => `${e.name} (${e.from}–${e.to})`),
     rank,
     figures: founderFigures(s),
+    offices: heldOffices(s).filter((o) => o.closingWeeks === undefined).map((o) => officeDef(o.id)?.title ?? o.id),
     total,
   };
 }
