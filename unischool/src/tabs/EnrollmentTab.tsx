@@ -1,7 +1,8 @@
-import type { CohortCounts, CohortId, GameState } from '../state/types';
+import type { CohortCounts, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { COHORTS, baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { count, pct, satisfactionFigure } from '../format';
+import { COHORT_COLOR } from '../components/cohortColors';
 
 // ---------------------------------------------------------------------
 // Enrollment (a section of the Students tab, Plan 29): who attends, and what the funnel is doing. Each
@@ -19,18 +20,6 @@ const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]
   ['junior', 'Juniors'],
   ['senior', 'Seniors'],
 ];
-
-// The eight cohorts' colors are tokens in styles.css (--cohort-1…8).
-const COHORT_COLOR: Record<CohortId, string> = {
-  highAchievers: 'var(--cohort-1)',
-  preProfessional: 'var(--cohort-2)',
-  researchOriented: 'var(--cohort-3)',
-  social: 'var(--cohort-4)',
-  artsFocused: 'var(--cohort-5)',
-  priceSensitive: 'var(--cohort-6)',
-  athletes: 'var(--cohort-7)',
-  gradBound: 'var(--cohort-8)',
-};
 
 // A class whose mix is exactly the base shares: no cohort pull from anything
 // built. Both the founding classes and a class admitted with nothing built
