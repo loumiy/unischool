@@ -40,7 +40,7 @@ were drawn on.*
   class and `segmentedSwitch.ts`): Athletics' subsidy and scholarships, the
   Faculty views and every Settings row take it; the Inbox filters, build
   categories and tree chips keep their pills. The athletic director keeps
-  his block: one person, appointed by the board, with no market to open.
+  its own block: one person, appointed by the board, with no market to open.
 - **G:** every tile state stays apart: available, placing, developing
   (dashed, in the primary), built (stamped), the built-×N summary, and
   disabled (flat, the drawing faint). Level pips run to the highest tier the
