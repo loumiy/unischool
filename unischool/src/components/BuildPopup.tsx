@@ -3,11 +3,12 @@ import { CLOSED_BUILD_WORDS } from '../data/specializationData';
 import { SPECIALIZATION_MILESTONE_RANK, specializationOf } from '../systems/prestige/prestigeSystem';
 import { useEffect, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
-import type { Buildable, FacilityType, GameState } from '../state/types';
+import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
 import { NEED_WORD } from '../data/needWords';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
-import { awaitsSite } from '../state/campusMap';
+import { awaitsSite, isPlaceableKind } from '../state/campusMap';
+import BuildThumb from './BuildThumb';
 import { foundersHallUnsited } from '../state/opening';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
@@ -343,10 +344,17 @@ function rowMarker(t: Buildable, group: TypeGroup, index: number): string | unde
 
 // The tile's head (Plan 90): a strip of plan paper with the building's
 // drawing on it, and the stamp ("#3", "BUILT", "×7 BUILT") in its corner.
-function TilePlan({ Icon, stamp }: { Icon: () => React.JSX.Element; stamp?: string }) {
+// A building is drawn as the map draws it (Plan 94, BuildThumb.tsx); a tool
+// (paths, trees, lamps, benches) keeps its glyph.
+function TilePlan({ Icon, stamp, t, vernacular }: {
+  Icon: () => React.JSX.Element; stamp?: string;
+  t?: Buildable; vernacular?: Vernacular;
+}) {
   return (
     <span className="build-tile-plan">
-      <span className="build-tile-icon"><Icon /></span>
+      {t && vernacular && isPlaceableKind(t)
+        ? <BuildThumb t={t} vernacular={vernacular} />
+        : <span className="build-tile-icon"><Icon /></span>}
       {stamp && <span className="build-tile-stamp">{stamp}</span>}
     </span>
   );
@@ -405,7 +413,7 @@ function BuildTile({
             : `Expands the ${t.name} in place — no new building. Adds ${count(rung.seatsGain)} seats in the stands, and their prestige, at once, and ${count(rung.servesGain)} of social capacity when the ${rung.weeks} weeks of work are done; the teams keep playing while the work is under way.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
-          <TilePlan Icon={Icon} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+          <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
           <span className="build-tile-name">{t.name}</span>
           <LevelPips s={s} t={t} />
           {detail && <span className="build-tile-sub">{detail}</span>}
@@ -415,7 +423,7 @@ function BuildTile({
     }
     return (
       <div className="build-tile done" title={detail ? `${t.name} · ${detail}` : t.name}>
-        <TilePlan Icon={Icon} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+        <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
         {detail && <span className="build-tile-sub">{detail}</span>}
@@ -448,7 +456,7 @@ function BuildTile({
         }}
         onClick={() => onArmPlacement(armed ? null : t.id)}
       >
-        <TilePlan Icon={Icon} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
         {detail && <span className="build-tile-sub">{detail}</span>}
@@ -462,7 +470,7 @@ function BuildTile({
     const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
     return (
       <div className="build-tile developing" title={`${t.name} · ${t.duration - weeksLeft} of ${t.duration} weeks built`}>
-        <TilePlan Icon={Icon} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
         <span className="build-tile-progress">
@@ -514,7 +522,7 @@ function BuildTile({
       }}
       onClick={() => onArmPlacement(armed ? null : t.id)}
     >
-      <TilePlan Icon={Icon} stamp={marker} />
+      <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
       <span className="build-tile-name">{t.name}</span>
       <LevelPips s={s} t={t} />
       {detail && <span className="build-tile-sub">{detail}</span>}
@@ -536,8 +544,8 @@ function BuildTile({
 
 // The collapsed stand-in for a repeatable group's finished instances: count
 // and total, expanding the built tiles inline (open state lives in the parent).
-function BuiltSummaryTile({ group, built, open, onToggle }: {
-  group: TypeGroup; built: Buildable[]; open: boolean; onToggle: () => void;
+function BuiltSummaryTile({ group, built, open, onToggle, vernacular }: {
+  group: TypeGroup; built: Buildable[]; open: boolean; onToggle: () => void; vernacular: Vernacular;
 }) {
   const detail = builtGroupDetail(group.key, built);
   const Icon = iconForBuildable(built[0]);
@@ -550,7 +558,7 @@ function BuiltSummaryTile({ group, built, open, onToggle }: {
       aria-label={open ? `Hide the ${group.label.toLowerCase()} already built` : `List the ${group.label.toLowerCase()} already built`}
       title={detail ? `${built.length} built · ${detail}` : `${built.length} built`}
     >
-      <TilePlan Icon={Icon} stamp={`×${built.length} BUILT`} />
+      <TilePlan Icon={Icon} t={built[0]} vernacular={vernacular} stamp={`×${built.length} BUILT`} />
       <span className="build-tile-name">{group.label}</span>
       {detail && <span className="build-tile-sub">{detail}</span>}
       <span className="build-tile-foot">{open ? 'Hide' : 'Show'} <DisclosureIcon open={open} /></span>
@@ -583,7 +591,7 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
       {collapseBuilt
         ? (
           <>
-            <BuiltSummaryTile group={group} built={built.map(({ t }) => t)} open={open} onToggle={() => setOpen((v) => !v)} />
+            <BuiltSummaryTile group={group} built={built.map(({ t }) => t)} open={open} onToggle={() => setOpen((v) => !v)} vernacular={s.self.vernacular} />
             {open && built.map(({ t, marker }) => (
               <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
             ))}
@@ -608,7 +616,7 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), SPECIALIZATION_MILESTONE_RANK);
   return (
     <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
-      <TilePlan Icon={Icon} />
+      <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} />
       <span className="build-tile-name">{t.name}</span>
       <span className="build-tile-sub">{CLOSED_BUILD_WORDS.sub(pillar)}</span>
       <span className="build-tile-foot">{CLOSED_BUILD_WORDS.foot}</span>
