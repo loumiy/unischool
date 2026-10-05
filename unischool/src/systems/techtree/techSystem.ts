@@ -247,8 +247,8 @@ export function neededFacultyFields(s: GameState): Set<string> {
 // many courses can be in development at once, since writing a curriculum
 // takes the college's attention. Four seats, and one more at each of
 // COMMITTEE_PRESTIGE_STEPS, up to eight. Graduate courses take a seat like
-// any other (Plan 80E). The Curriculum tab and the dock's committee chip
-// show the seats.
+// any other (Plan 80E). The Curriculum tab and the lamps on the dock's
+// Curriculum button show the seats.
 export const COURSE_DEVELOPMENT_SLOTS = 4;
 export const COMMITTEE_PRESTIGE_STEPS: readonly number[] = [70, 80, 90, 100];
 // The Office of Curriculum Development (Plan 89E) adds a seat while open.
@@ -270,15 +270,34 @@ export function courseSlotsFree(s: GameState): number {
   return Math.max(0, committeeSeats(s) - coursesInDevelopment(s).length);
 }
 
-// The dock's committee chip (Plan 80E): courses being written of the most at
-// once, and whether a free place could be used now, which flags the chip. A
-// place with nothing that can start (no cash, no professor, or nothing left
-// to write) is not flagged, so the flag always means there is something to do.
+// The committee at a glance (Plan 80E; the dock's lamps since Plan 91):
+// courses being written of the most at once, and whether a free place could
+// be used now, which lights the free lamps. A place with nothing that can
+// start (no cash, no professor, or nothing left to write) is not lit, so the
+// light always means there is something to do.
 export function committeeStatus(s: GameState): { writing: number; seats: number; ready: boolean } {
   const writing = coursesInDevelopment(s).length;
   const seats = committeeSeats(s);
   const ready = writing < seats && s.tech.some((t) => t.kind === 'course' && t.status === 'available' && canStartDevelopment(s, t));
   return { writing, seats, ready };
+}
+
+// One lamp per seat the committee has, in the Curriculum panel's order: the
+// courses being written first, each with its weeks left and how far along it
+// is, then the free seats. Seats not yet earned have no lamp.
+export interface CommitteeLamp {
+  course: Buildable | null;
+  weeksLeft: number;
+  // 0 at the start, 1 when done.
+  progress: number;
+}
+export function committeeLamps(s: GameState): CommitteeLamp[] {
+  const lamps: CommitteeLamp[] = coursesInDevelopment(s).map((t) => {
+    const weeksLeft = s.developing[t.id] ?? t.duration;
+    return { course: t, weeksLeft, progress: t.duration > 0 ? Math.min(1, Math.max(0, 1 - weeksLeft / t.duration)) : 1 };
+  });
+  for (let i = lamps.length; i < committeeSeats(s); i++) lamps.push({ course: null, weeksLeft: 0, progress: 0 });
+  return lamps;
 }
 
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): boolean {

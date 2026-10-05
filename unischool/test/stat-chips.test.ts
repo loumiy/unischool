@@ -1,10 +1,9 @@
 // ---------------------------------------------------------------------
 // The dock's stat chips lead to their explanations (Plan 78C,
 // src/data/statChips.ts): prestige opens History › Prestige and rank the
-// guide's table (Plan 80C), satisfaction opens Students › the breakdown, the
-// committee (Plan 80E) opens the Curriculum's committee, and each lands from
-// the first week. The committee chip's counts and flag are
-// test/committee.test.ts's. The rank chip's sentence says prestige's summer step as
+// guide's table (Plan 80C), satisfaction opens Students › the breakdown, and
+// each lands from the first week. The committee, a chip until Plan 91, is
+// lamps on the Curriculum button: test/committee.test.ts's. The rank chip's sentence says prestige's summer step as
 // prestigeSystem.ts sets it.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
@@ -47,9 +46,8 @@ console.log('stat chip tests');
     enrolled: null,
     prestige: { tab: 'history', section: 'history.prestige' },
     satisfaction: { tab: 'students', section: 'students.breakdown' },
-    committee: { tab: 'curriculum', section: 'curriculum.committee' },
   } as const;
-  assert(STAT_CHIPS.join() === 'rank,enrolled,prestige,satisfaction,committee', 'the dock shows the five chips in order');
+  assert(STAT_CHIPS.join() === 'rank,enrolled,prestige,satisfaction', 'the dock shows the four chips in order');
   for (const chip of STAT_CHIPS) {
     const door = chipDoor(chip, '1');
     const want = expected[chip];
@@ -63,7 +61,6 @@ console.log('stat chip tests');
   assert(chipDoor('prestige', '51.5')?.name === 'Prestige 51.5 — open History, Prestige', `the button is named with its figure (${chipDoor('prestige', '51.5')?.name})`);
   assert(chipDoor('rank', '#55')?.name === 'Rank #55 — open History, The guide', 'rank too');
   assert(chipDoor('satisfaction', '70')?.name === 'Satisfaction 70 — open Students, Satisfaction breakdown', 'and satisfaction');
-  assert(chipDoor('committee', '3 of 4')?.name === 'Committee 3 of 4 — open Curriculum, Committee', `and the committee (${chipDoor('committee', '3 of 4')?.name})`);
   for (const chip of STAT_CHIPS) {
     assert(/^[A-Z][a-z]+$/.test(STAT_CHIP_WORDS[chip]), `${chip}'s word is one word (${STAT_CHIP_WORDS[chip]})`);
   }

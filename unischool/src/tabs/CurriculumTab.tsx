@@ -1149,7 +1149,8 @@ function CommitteeBox({ s, lookup, onOpenFaculty }: {
 // course it can write at once, undergraduate or graduate (Plan 80E), four to
 // start and one more at each prestige step, up to eight. A filled seat shows
 // its course, how far along it is and its weeks; an open one reads "Free"; a
-// locked one says what opens it. The dock's committee chip lands here.
+// locked one says what opens it. The dock's lamps under the Curriculum tab
+// draw the same seats (Plan 91, CommitteeLamps.tsx).
 function CommitteePanel({ s }: { s: GameState }) {
   const seats = committeeSeats(s);
   const writing = coursesInDevelopment(s);

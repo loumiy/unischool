@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useId } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { GameState } from '../state/types';
 import { foundersHallUnsited } from '../state/opening';
@@ -8,6 +8,9 @@ import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
 import type { InboxBadge } from '../systems/inbox/inbox';
+import { committeeStatus } from '../systems/techtree/techSystem';
+import { FIGURE_HINTS } from '../data/figureHints';
+import CommitteeLamps from './CommitteeLamps';
 import {
   FacultyIcon, CurriculumIcon,
   StudentsIcon, HistoryIcon, AthleticsIcon, BuildIcon,
@@ -82,6 +85,9 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // Lit while any build category holds an unseen tile, open or not: the
   // build menu's "!", "something new to build here" (BuildPopup.tsx).
   const buildNew = visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]);
+  // The committee's seats, lit under the Curriculum button's word (Plan 91).
+  const committee = committeeStatus(s);
+  const committeeHint = useId();
 
   return (
     <div className="toolbar" ref={ref}>
@@ -124,6 +130,9 @@ const Toolbar = forwardRef<HTMLDivElement, {
             const inboxLabel = id !== 'inbox' ? TAB_LABELS[id]
               : inbox.count > 0 ? `Inbox, ${inbox.count} to decide`
                 : inbox.unreadLetters > 0 ? `Inbox, ${inbox.unreadLetters} unread` : 'Inbox';
+            // Curriculum's lamps are drawn only: their sentence describes the
+            // button, whose name stays the tab's.
+            const hint = id === 'curriculum' ? FIGURE_HINTS.committee(committee.writing, committee.seats, committee.ready) : null;
             return (
               <button
                 key={id}
@@ -131,13 +140,16 @@ const Toolbar = forwardRef<HTMLDivElement, {
                 className={`toolbar-icon-btn ${isActive ? 'active' : ''}`}
                 aria-expanded={isActive}
                 aria-label={inboxLabel}
-                title={inboxLabel}
+                aria-describedby={hint ? committeeHint : undefined}
+                title={hint ? `${inboxLabel}. ${hint}` : inboxLabel}
                 disabled={held && id !== 'inbox'}
                 onClick={() => onChangeTab(isActive ? null : id)}
               >
                 <Icon />
                 {/* The word under the glyph, at every width: several icons look alike. */}
                 <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
+                {hint && <CommitteeLamps s={s} ready={committee.ready} />}
+                {hint && <span id={committeeHint} hidden>{hint}</span>}
                 {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
                 {id === 'inbox' && (inbox.count > 0
                   ? <span className={`inbox-badge${inbox.urgent ? ' urgent' : ''}`} aria-hidden="true">{inbox.count}</span>
@@ -163,10 +175,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </nav>
 
       <div className="toolbar-right">
-        <SchoolAndClock
-          s={s} speed={speed} setSpeed={setSpeed} keysLive={speedKeysLive} weekProgress={weekProgress}
-          onOpenSection={(tab, section) => onChangeTab(tab, section)}
-        />
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} keysLive={speedKeysLive} weekProgress={weekProgress} />
       </div>
 
       {buildOpen && (
