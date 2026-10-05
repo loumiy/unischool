@@ -110,12 +110,12 @@ opened teaching three programs). Three moves (Plan 14) give it its shape:
    free at different times rather than a tier's all at once. A save takes the
    catalog's weeks for a course not yet started when it loads; one under way
    keeps the weeks it was started with. The course drawer shows a course's
-   weeks. **The dock's committee chip** (Plan 80E) reads "Committee 3 of 4",
-   courses being written of the most at once, flagged (the alert badge) while
-   there is room and some course could start now (`committeeStatus`: a free
-   seat with nothing startable, for want of cash or a professor or because
-   nothing is left, is not flagged, so the flag always means something to
-   do), and opens this panel (the `curriculum.committee` section).
+   weeks. **The committee lamps** under the dock's Curriculum tab (Plan 91,
+   replacing Plan 80E's "Committee 3 of 4" chip) show one square per seat:
+   lit and filling while a course is written, breathing while a seat is free
+   and some course could start now (`committeeStatus`: a free seat with
+   nothing startable, for want of cash or a professor or because nothing is
+   left, stays dark, so the light always means something to do).
 3. **A school is founded, not unlocked.** Nothing is called "the School of
    Engineering" until six Engineering programs sit in one hall. A hall whose
    six slots hold one school's programs is **dedicated**; the first

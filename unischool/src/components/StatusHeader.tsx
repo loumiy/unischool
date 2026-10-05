@@ -3,12 +3,11 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import {
-  RankIcon, StudentsIcon, PrestigeIcon, SatisfactionIcon, CurriculumIcon,
+  RankIcon, StudentsIcon, PrestigeIcon, SatisfactionIcon,
   PauseIcon, PlayIcon, DoubleSpeedIcon, QuadSpeedIcon, OctoSpeedIcon,
 } from './icons';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { playerRank } from '../systems/rivals/rivalsSystem';
-import { committeeStatus } from '../systems/techtree/techSystem';
 import { isSandbox } from '../systems/sandbox/sandbox';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
@@ -170,41 +169,13 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
   );
 }
 
-// The committee chip (Plan 80E): courses being written of the most at once,
-// flagged while there is room and a course that could start
-// (techSystem.ts's committeeStatus), and a door to the Curriculum's
-// committee. It sits on the gears' row, where the band has room: beside the
-// other chips it widened the band past one row at 1440 and past a phone's
-// width. On a phone its figure folds to "3/4" beside the glyph.
-function CommitteeChip({ s, onOpenSection }: { s: GameState; onOpenSection: (tab: TabId, section: TabSection) => void }) {
-  const { writing, seats, ready } = committeeStatus(s);
-  const d = chipDoor('committee', `${writing} of ${seats}`);
-  return (
-    <FigureBox
-      className={`toolbar-stat committee-chip ${ready ? 'flagged' : ''}`}
-      above
-      hint={FIGURE_HINTS.committee(writing, seats, ready)}
-      door={d ? { name: d.name, onOpen: () => onOpenSection(d.tab, d.section) } : undefined}
-    >
-      <CurriculumIcon />
-      <span className="stat-label">{STAT_CHIP_WORDS.committee}</span>
-      <span className="stat-value">
-        {writing}<span className="stat-of"> of </span><span className="stat-slash">/</span>{seats}
-      </span>
-      {ready && <span className="alert-badge" aria-hidden="true">!</span>}
-    </FigureBox>
-  );
-}
-
-// Right: the clock, and the speed controls with the committee chip.
-export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress, onOpenSection }: {
+// Right: the clock, and the speed controls.
+export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
   s: GameState; speed: Speed; setSpeed: (speed: Speed) => void;
   // False while a front screen covers the game (App.tsx).
   keysLive: boolean;
   // The live fraction of the week, for DayTicker.tsx.
   weekProgress: () => number;
-  // The committee chip's door, as FundsAndStats's.
-  onOpenSection: (tab: TabId, section: TabSection) => void;
 }) {
   // The sandbox speed's gate (playtest.ts); a sandbox run has it too.
   const showPlaytestControls = playtestEnabled() || isSandbox(s);
@@ -247,7 +218,6 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress, onO
         </div>
       </div>
       <div className="toolbar-speed">
-        <CommitteeChip s={s} onOpenSection={onOpenSection} />
         <div className="speeds">
           {visibleSpeeds.map((sp) => {
             const Icon = SPEED_ICONS[sp];

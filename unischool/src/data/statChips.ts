@@ -3,24 +3,23 @@
 // with a door is a button, and its door is a section of a tab
 // (ladderData.ts's TabSection) that no milestone holds back, so the click
 // lands from the first week. The funds figure is the dock's other door, to
-// the Treasury, and stays where it is. The committee chip (Plan 80E) counts
-// the courses the curriculum committee is writing of the most it can.
+// the Treasury, and stays where it is. The committee, a chip from Plan 80E,
+// is lamps on the Curriculum button since Plan 91 (CommitteeLamps.tsx); its
+// panel's heading stays here with the others.
 
 import { TAB_LABELS, type TabId } from '../components/TabNav';
 import { tabOfSection, type TabSection } from './ladderData';
 
-export type StatChip = 'rank' | 'enrolled' | 'prestige' | 'satisfaction' | 'committee';
+export type StatChip = 'rank' | 'enrolled' | 'prestige' | 'satisfaction';
 
-// In the dock's order: the four figures in the left zone, then the
-// committee on the gears' row (StatusHeader.tsx's CommitteeChip).
-export const STAT_CHIPS: readonly StatChip[] = ['rank', 'enrolled', 'prestige', 'satisfaction', 'committee'];
+// In the dock's order, in its left zone.
+export const STAT_CHIPS: readonly StatChip[] = ['rank', 'enrolled', 'prestige', 'satisfaction'];
 
 export const STAT_CHIP_WORDS: Record<StatChip, string> = {
   rank: 'Rank',
   enrolled: 'Enrolled',
   prestige: 'Prestige',
   satisfaction: 'Satisfaction',
-  committee: 'Committee',
 };
 
 // The heading of each section a chip opens: the panel's own title, and the
@@ -35,13 +34,11 @@ type ChipSection = keyof typeof SECTION_HEADINGS;
 
 // Prestige opens its own breakdown and nothing else; rank opens the guide's
 // table it is a place in (Plan 80C); satisfaction opens the five needs it is
-// made of; the committee opens its own panel at the head of the Curriculum.
-// Enrolled has no door yet.
+// made of. Enrolled has no door yet.
 const STAT_CHIP_SECTIONS: Partial<Record<StatChip, ChipSection>> = {
   rank: 'history.rankings',
   prestige: 'history.prestige',
   satisfaction: 'students.breakdown',
-  committee: 'curriculum.committee',
 };
 
 export interface ChipDoor {

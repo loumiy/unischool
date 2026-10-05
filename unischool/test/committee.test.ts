@@ -8,8 +8,10 @@
 //      start while the committee is full, and counts once it starts; nor
 //      can a graduate program be founded, since its entry course would not
 //      start.
-//   3. The dock's committee chip: the courses being written of the most at
-//      once, flagged only while there is room and a course that could start.
+//   3. The dock's committee lamps (Plan 91): the courses being written of
+//      the most at once, one lamp per seat earned, each writing lamp as far
+//      along as its course, and the free ones lit only while there is room
+//      and a course that could start.
 //   4. A loaded save takes the catalog's weeks for a course not yet started;
 //      a course under way keeps the weeks it was started with.
 //
@@ -21,7 +23,7 @@ import type { GameState } from '../src/state/types';
 import { COURSE_LENGTH_SPREAD, courseWeeks, graduateGateMet, graduatePrograms, initialTech, schoolCurriculumIds } from '../src/data/techData';
 import { GRADUATE_HOSTS } from '../src/data/projectData';
 import {
-  canFoundProgram, canStartDevelopment, committeeSeats, committeeStatus, coursesInDevelopment, courseSlotsFree, eligibleInstructors, foundProgram,
+  canFoundProgram, canStartDevelopment, committeeLamps, committeeSeats, committeeStatus, coursesInDevelopment, courseSlotsFree, eligibleInstructors, foundProgram,
   startDevelopment,
 } from '../src/systems/techtree/techSystem';
 import { clearSave, loadGame, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
@@ -143,25 +145,37 @@ const available = (s: GameState, graduate: boolean) =>
   assert(entry.status === 'developing' && courseSlotsFree(s) === 0, 'and its entry course starts, taking the room');
 }
 
-// ---- 3. the dock's committee chip ----
+// ---- 3. the dock's committee lamps ----
 {
   const s = rich();
   const seats = committeeSeats(s);
   let status = committeeStatus(s);
-  assert(status.writing === coursesInDevelopment(s).length && status.seats === seats, `the chip counts what the committee is writing of its most (${status.writing} of ${status.seats})`);
-  assert(status.ready, 'room and a course that could start: flagged');
+  assert(status.writing === coursesInDevelopment(s).length && status.seats === seats, `the lamps count what the committee is writing of its most (${status.writing} of ${status.seats})`);
+  assert(status.ready, 'room and a course that could start: the free lamps lit');
 
   const toStart = available(s, false).slice(0, seats - status.writing);
   for (const t of toStart) startDevelopment(s, t);
   status = committeeStatus(s);
   assert(status.writing === seats && !status.ready, `full: ${status.writing} of ${status.seats}, not flagged`);
 
+  // One lamp a seat, writing ones first in the Curriculum panel's order, each
+  // as far along as its course.
+  let lamps = committeeLamps(s);
+  assert(lamps.length === seats, `a lamp for each seat (${lamps.length} of ${seats})`);
+  assert(lamps.every((l, i) => l.course?.id === coursesInDevelopment(s)[i].id), 'full: every lamp writing, in the panel\'s order');
+  assert(lamps.every((l) => l.progress === 0 && l.weeksLeft === l.course!.duration), 'just started: none along yet, all their weeks left');
+  const along = lamps[0].course!;
+  s.developing[along.id] = along.duration / 4;
+  assert(Math.abs(committeeLamps(s)[0].progress - 0.75) < 1e-9, `three quarters of the weeks gone: three quarters along (${committeeLamps(s)[0].progress})`);
+
   // A course is done: room again, flagged while something could start.
   const done = coursesInDevelopment(s)[0];
   done.status = 'done';
   delete s.developing[done.id];
   status = committeeStatus(s);
-  assert(status.writing === seats - 1 && status.ready, 'a course done frees room, and the chip is flagged');
+  assert(status.writing === seats - 1 && status.ready, 'a course done frees room, and the free lamp is lit');
+  lamps = committeeLamps(s);
+  assert(lamps.length === seats && lamps[seats - 1].course === null && lamps.filter((l) => l.course).length === seats - 1, 'its lamp is free, last in the row');
 
   // Room, but nothing can start (no cash): not flagged.
   s.finance.cash = 0;
@@ -170,7 +184,8 @@ const available = (s: GameState, graduate: boolean) =>
 
   // More seats with prestige, counted.
   s.self.reputation = 100;
-  assert(committeeStatus(s).seats === 8, 'the chip counts the seats prestige adds');
+  assert(committeeStatus(s).seats === 8, 'the lamps count the seats prestige adds');
+  assert(committeeLamps(s).length === 8, 'and each has its lamp');
 }
 
 // ---- 4. a loaded save and its weeks ----
