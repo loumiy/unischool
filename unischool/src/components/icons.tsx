@@ -1,17 +1,23 @@
-// Hand-rolled inline SVG icons (no icon library, like CampusMap.tsx's plain
-// SVG). Convention: a 24x24 viewBox, stroke=currentColor so each icon takes
-// its button's text color (including the `.active` state), and simple
-// primitives rather than hand-fit curves. Sizing lives in styles.css
-// (.toolbar-icon-btn svg), so callers pass no width/height.
+// Inline SVG icons, no icon library at runtime. Some are drawn here; the
+// owner picked others, icon by icon, from Lucide (Plan 93), copied in as
+// their shapes so callers are unchanged (Lucide's licence beside this file,
+// LUCIDE_LICENSE.txt). Convention for both: a 24x24 viewBox,
+// stroke=currentColor so each icon takes its button's text color (including
+// the `.active` state), round caps, and the 1.6 line (Lucide's own is 2).
+// Sizing lives in styles.css (.toolbar-icon-btn svg), so callers pass no
+// width/height.
 const STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
-// Home: back to the campus map. A house, not an arrow: the map is a place.
+// Lucide's "school" (Plan 93; see LUCIDE_LICENSE.txt).
 export function HomeIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M3.5 11 12 4l8.5 7" />
-      <path d="M5.8 9.6V19h12.4V9.6" />
-      <path d="M10 19v-5h4v5" />
+      <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+      <path d="M18 4.933V21" />
+      <path d="m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6" />
+      <path d="m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11" />
+      <path d="M6 4.933V21" />
+      <circle cx="12" cy="9" r="2" />
     </svg>
   );
 }
@@ -27,86 +33,76 @@ export function FacultyIcon() {
   );
 }
 
-// Curriculum: a mortarboard and tassel, the degree itself.
+// Lucide's "book-open" (Plan 93; see LUCIDE_LICENSE.txt).
 export function CurriculumIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M12 4 3 8.5 12 13l9-4.5L12 4Z" />
-      <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
-      <path d="M21 8.5V14" />
+      <path d="M12 5v16" />
+      <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" />
     </svg>
   );
 }
 
-// Research: a microscope, the glyph everyone reads as research. Drawn as an
-// instrument: eyepiece and canted tube, the limb curving to the base, and
-// the stage the tube looks down at.
+// Lucide's "atom" (Plan 93; see LUCIDE_LICENSE.txt).
 export function ResearchIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M13.3 3.5 15.7 4.9" />
-      <path d="M14.5 4.2 10.5 10.5" />
-      <path d="M9.6 9.9 11.4 11.1" />
-      <path d="M13.2 6.2c4 2.4 4.4 9.8 0.8 13.4" />
-      <path d="M7.2 12.4h9.2" />
-      <path d="M6 19.6h12" />
+      <circle cx="12" cy="12" r="1" />
+      <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z" />
+      <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
     </svg>
   );
 }
 
-// A heart mirrored exactly around x=12, from two matched cubic curves, so
-// it stays symmetric at small sizes.
+// Lucide's "heart" (Plan 93; see LUCIDE_LICENSE.txt).
 export function StudentLifeIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M12 20 C12 20 3 14.3 3 8.3 C3 5.3 5.4 3.7 8 3.7 C9.8 3.7 11.3 4.8 12 6.4 C12.7 4.8 14.2 3.7 16 3.7 C18.6 3.7 21 5.3 21 8.3 C21 14.3 12 20 12 20 Z" />
+      <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
     </svg>
   );
 }
 
+// Lucide's "history" (Plan 93; see LUCIDE_LICENSE.txt).
 export function HistoryIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <circle cx="12" cy="13" r="8" />
-      <polyline points="12 9 12 13 15 15" />
-      <polyline points="4 4 4 8 8 8" />
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l4 2" />
     </svg>
   );
 }
 
-// An envelope: the inbox (Plan 77).
+// Lucide's "inbox" (Plan 93; see LUCIDE_LICENSE.txt).
 export function InboxIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <rect x="3" y="5.5" width="18" height="13" rx="2" />
-      <polyline points="3.5 7 12 13 20.5 7" />
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
     </svg>
   );
 }
 
-// A basketball: a circle with a cross and two bowed seams reads as a ball
-// even at 20px, where a paneled soccer ball collapses.
+// Lucide's "volleyball" (Plan 93; see LUCIDE_LICENSE.txt).
 export function AthleticsIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 3v18" />
-      <path d="M3 12h18" />
-      <path d="M5.3 5.3c3.2 3 3.2 10.4 0 13.4" />
-      <path d="M18.7 5.3c-3.2 3-3.2 10.4 0 13.4" />
+      <path d="M11 7a16 16 20 0 1 10.98 4.362" />
+      <path d="M12 12a13 13 0 0 1-8.66 5" />
+      <path d="M16.83 13.634a16 16 0 0 1-9.267 7.328" />
+      <path d="M20.66 17A13 13 0 0 0 12 12a13 13 0 0 1 0-10" />
+      <path d="M8.17 15.366a16 16 0 0 1-1.713-11.69" />
+      <circle cx="12" cy="12" r="10" />
     </svg>
   );
 }
 
-// A hammer and a wrench crossed (Plan 92; a bulldozer before it): the
-// hammer's head top left, the wrench's open jaw top right.
+// Lucide's "wrench" (Plan 93; see LUCIDE_LICENSE.txt).
 export function BuildIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M9.9 3.6 12.4 6.1 6.1 12.4 3.6 9.9Z" />
-      <line x1="9.3" y1="9.3" x2="19.8" y2="19.8" />
-      <path d="M17.7 4.2A3.5 3.5 0 1 0 19.8 6.3L18.2 7.9 16.1 5.8Z" />
-      <line x1="14" y1="10" x2="4.2" y2="19.8" />
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />
     </svg>
   );
 }
@@ -131,11 +127,12 @@ export function DrawPathIcon() {
   );
 }
 
+// Lucide's "eraser" (Plan 93; see LUCIDE_LICENSE.txt).
 export function EraseIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <rect x="5" y="10" width="14" height="8" rx="1.5" transform="rotate(-20 12 14)" />
-      <line x1="7" y1="19.5" x2="20" y2="19.5" />
+      <path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21" />
+      <path d="m5.082 11.09 8.828 8.828" />
     </svg>
   );
 }
@@ -144,61 +141,70 @@ export function EraseIcon() {
 // Same convention as the toolbar icons. One per build-popup category
 // (BuildPopup.tsx's SECTION_ICON), so a category is recognisable by glyph.
 
+// Lucide's "bed-double" (Plan 93; see LUCIDE_LICENSE.txt).
 export function HousingIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M4 11 12 4l8 7" />
-      <path d="M6 10v9h12v-9" />
-      <rect x="10.5" y="13.5" width="3" height="5.5" />
+      <path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8" />
+      <path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
+      <path d="M12 4v6" />
+      <path d="M2 18h20" />
     </svg>
   );
 }
 
+// Lucide's "utensils-crossed" (Plan 93; see LUCIDE_LICENSE.txt).
 export function DiningIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M4 12a8 8 0 0 0 16 0Z" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <path d="M9 4c0 1.6-1 1.6-1 3.2" />
-      <path d="M13 4c0 1.6-1 1.6-1 3.2" />
+      <path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8" />
+      <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7" />
+      <path d="m2.1 21.8 6.4-6.3" />
+      <path d="m19 5-7 7" />
     </svg>
   );
 }
 
+// Lucide's "library-big" (Plan 93; see LUCIDE_LICENSE.txt).
 export function LibraryIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M12 6c-2-1.3-4.5-1.5-7-1v12c2.5-.5 5-.3 7 1 2-1.3 4.5-1.5 7-1V5c-2.5-.5-5-.3-7 1Z" />
-      <line x1="12" y1="6" x2="12" y2="19" />
+      <rect width="8" height="18" x="3" y="3" rx="1" />
+      <path d="M7 3v18" />
+      <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z" />
     </svg>
   );
 }
 
+// Lucide's "flask-conical" (Plan 93; see LUCIDE_LICENSE.txt).
 export function LabIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M9 3h6" />
-      <path d="M10 3v6l-4.6 7.4A2 2 0 0 0 7.1 20h9.8a2 2 0 0 0 1.7-3.6L14 9V3" />
-      <line x1="7.5" y1="14" x2="16.5" y2="14" />
+      <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" />
+      <path d="M6.453 15h11.094" />
+      <path d="M8.5 2h7" />
     </svg>
   );
 }
 
+// Lucide's "heart-pulse" (Plan 93; see LUCIDE_LICENSE.txt).
 export function HealthIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <rect x="4" y="4" width="16" height="16" rx="3" />
-      <line x1="12" y1="8" x2="12" y2="16" />
-      <line x1="8" y1="12" x2="16" y2="12" />
+      <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
+      <path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27" />
     </svg>
   );
 }
 
+// Lucide's "land-plot" (Plan 93; see LUCIDE_LICENSE.txt).
 export function QuadIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <circle cx="12" cy="9" r="6" />
-      <line x1="12" y1="15" x2="12" y2="21" />
+      <path d="m12 8 6-3-6-3v10" />
+      <path d="m8 11.99-5.5 3.14a1 1 0 0 0 0 1.74l8.5 4.86a2 2 0 0 0 2 0l8.5-4.86a1 1 0 0 0 0-1.74L16 12" />
+      <path d="m6.49 12.85 11.02 6.3" />
+      <path d="M17.51 12.85 6.5 19.15" />
     </svg>
   );
 }
@@ -222,13 +228,15 @@ export function FitnessIcon() {
   );
 }
 
+// Lucide's "palette" (Plan 93; see LUCIDE_LICENSE.txt).
 export function ArtsIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M12 3a9 8 0 1 0 0 16c1 0 1.5-.7 1.5-1.5S13 16.3 13 15.6c0-.8.6-1.3 1.4-1.3H16a4 4 0 0 0 4-4C20 6 16.4 3 12 3Z" />
-      <circle cx="8" cy="9" r="1" stroke="none" fill="currentColor" />
-      <circle cx="12" cy="7" r="1" stroke="none" fill="currentColor" />
-      <circle cx="16" cy="9" r="1" stroke="none" fill="currentColor" />
+      <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" />
+      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
     </svg>
   );
 }
@@ -256,14 +264,6 @@ export function MenuIcon() {
   );
 }
 
-export function ToolsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2 2.3-2.3Z" />
-    </svg>
-  );
-}
-
 // ---------------------------------------------------------------------
 // The dock's figures and gears. The four headline stats wear a glyph (the
 // word survives as title and visually-hidden text, see StatusHeader.tsx),
@@ -271,12 +271,12 @@ export function ToolsIcon() {
 // nothing is finer than a 1.6 stroke can carry.
 // ---------------------------------------------------------------------
 
-// Rank: a rosette — a medal's disc with two ribbon tails.
+// Lucide's "award" (Plan 93; see LUCIDE_LICENSE.txt).
 export function RankIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <circle cx="12" cy="9" r="5.5" />
-      <path d="M8.8 13.6 7 21l5-2.6L17 21l-1.8-7.4" />
+      <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+      <circle cx="12" cy="8" r="6" />
     </svg>
   );
 }
@@ -296,23 +296,23 @@ export function StudentsIcon() {
   );
 }
 
-// Prestige: a star.
+// Lucide's "star" (Plan 93; see LUCIDE_LICENSE.txt).
 export function PrestigeIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8Z" />
+      <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
     </svg>
   );
 }
 
-// Satisfaction: a smiling face. It deliberately does not change with the
-// figure; the number beside it is the reading.
+// Lucide's "smile" (Plan 93; see LUCIDE_LICENSE.txt).
 export function SatisfactionIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M8.5 14.2c.9 1.3 2.1 2 3.5 2s2.6-.7 3.5-2" />
-      <path d="M9.2 9.6h.01M14.8 9.6h.01" strokeWidth="2.2" />
+      <path d="M15 10V9" />
+      <path d="M16.472 15a6 6 0 01-8.943 0" />
+      <path d="M9 10V9" />
+      <circle cx="12" cy="12" r="10" />
     </svg>
   );
 }
@@ -395,48 +395,51 @@ export function DisclosureIcon({ open }: { open: boolean }) {
   );
 }
 
-// The map's tools, folded: three sliders.
+// Lucide's "layers" (Plan 93; see LUCIDE_LICENSE.txt).
 export function MapToolsIcon() {
   return (
-    <svg viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="7" cy="5" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
-      <circle cx="13" cy="10" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
-      <circle cx="8" cy="15" r="2.2" fill="var(--cream)" stroke="currentColor" strokeWidth="2" />
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" />
+      <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
+      <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
     </svg>
   );
 }
 
 
-// Release: someone leaves by the door (a coach let go).
+// Lucide's "log-out" (Plan 93; see LUCIDE_LICENSE.txt).
 export function ReleaseIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
-      <path d="M10 4H5v16h5" />
-      <path d="M14 8l4 4-4 4M18 12H9" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     </svg>
   );
 }
 
-// Remove: a minus in a ring (a scholar taken off a proposed team).
+// Lucide's "trash-2" (Plan 93; see LUCIDE_LICENSE.txt).
 export function RemoveIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M8 12h8" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     </svg>
   );
 }
 
-// The camera's quarter turn: an arc round the ground, not the building's ⟳
-// (R, and the ghost's handle), so the two turns never share a glyph.
+// The camera's quarter turn, mirrored for the left. The owner's pick, though
+// it is close to the ⟳ that turns a building (R, the ghost's handle).
+// Lucide's "rotate-cw" (Plan 93; see LUCIDE_LICENSE.txt).
 export function TurnViewIcon({ direction }: { direction: 'left' | 'right' }) {
   return (
     <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true"
       style={direction === 'left' ? { transform: 'scaleX(-1)' } : undefined}>
-      <ellipse cx="12" cy="15" rx="8" ry="3.5" />
-      <path d="M6.5 9.5A7 7 0 0 1 18 8" />
-      <path d="M18 4v4h-4" />
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
     </svg>
   );
 }
@@ -446,7 +449,7 @@ export type Status = 'done' | 'pending' | 'failed';
 export function StatusIcon({ status }: { status: Status }) {
   return (
     <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2.4} aria-hidden="true">
-      {status === 'done' && <path d="M5 12.5l4.5 4.5L19 7" />}
+      {status === 'done' && <path d="M20 6 9 17l-5-5" />}
       {status === 'pending' && <circle cx="12" cy="12" r="7" />}
       {status === 'failed' && <><circle cx="12" cy="12" r="8" /><path d="M9 9l6 6M15 9l-6 6" /></>}
     </svg>

@@ -322,9 +322,12 @@ card with the outline, at the note's height, in the sans at `--text-sm`.
 ### Icons
 
 `components/icons.tsx` holds every recurring glyph as a 24-unit line icon in
-`currentColor`, sized by CSS: the dock and the build menu's icons, and the
+`currentColor` at a 1.6 line, sized by CSS. Some are drawn by hand; 24 are
+Lucide's, picked one by one by the owner (Plan 93) and copied in as shapes,
+with Lucide's licence beside them (`LUCIDE_LICENSE.txt`), so there is no
+icon package at runtime. They cover the dock and the build menu's icons, and the
 controls — close, disclosure (a chevron), rename, release, remove, the
-camera's turn (an arc round the ground, apart from the building's ⟳), the
+camera's turn (Lucide's rotate arrow, close to the building's ⟳), the
 map tools, and one set of status marks (done, pending, failed) for the
 ladder, the promises and a course's prerequisites. The Students tab and the
 dock's enrolled figure share the three-head icon.
@@ -441,8 +444,8 @@ and tennis courts sit under **Health** with the health chain, where their
 capacity goes (Plan 80B). The menu opens on Grounds (`BuildPopup.tsx`'s `initialBuildTab`,
 Plan 92), except while Founders Hall waits for its ground in a guided
 founding: then it opens on the tab holding the hall, where the walkthrough
-points. The Build button's glyph is a hammer and a wrench crossed (Plan 92;
-a bulldozer before it).
+points. The Build button's glyph is Lucide's wrench (Plan 93; a crossed
+hammer and wrench in Plan 92, a bulldozer before it).
 
 What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab
