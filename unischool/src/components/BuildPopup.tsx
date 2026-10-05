@@ -8,6 +8,7 @@ import { NEED_WORD } from '../data/needWords';
 import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { awaitsSite } from '../state/campusMap';
+import { foundersHallUnsited } from '../state/opening';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
@@ -238,6 +239,13 @@ function buildSections(s: GameState): BuildSection[] {
     { id: TOOLS_SECTION_ID, label: 'Grounds', kind: 'tools', groups: groups.filter((g) => GROUNDS_GROUP_KEYS.has(g.key)) },
     ...built,
   ];
+}
+
+// The tab the menu opens on (Plan 92): Grounds, the first, except while
+// Founders Hall waits for its ground; then the tab that holds it, where the
+// walkthrough points (test/build-tab.test.ts).
+export function initialBuildTab(s: GameState): string {
+  return (foundersHallUnsited(s) ? buildTabOf(s, FOUNDERS_HALL_ID) : undefined) ?? TOOLS_SECTION_ID;
 }
 
 // The tab a Buildable is listed under, by section id (test/balance.test.ts).
@@ -739,13 +747,9 @@ export default function BuildPopup({
   onClose: () => void;
 }) {
   const sections = buildSections(s);
-  // Default to the first building tab, not tools. Sections are recomputed
-  // every render; if the active tab has vanished (built out), fall back to
-  // the first.
-  const [activeId, setActiveId] = useState<string>(() => {
-    const firstBuild = buildSections(s).find((sec) => sec.kind === 'build');
-    return firstBuild?.id ?? TOOLS_SECTION_ID;
-  });
+  // Sections are recomputed every render; if the active tab has vanished
+  // (built out), fall back to the first.
+  const [activeId, setActiveId] = useState<string>(() => initialBuildTab(s));
   const active = sections.find((sec) => sec.id === activeId) ?? sections[0];
   // The downtown's beds (Plan 85H), beside the campus's.
   const offCampusBeds = offCampusPlaces(s, 'housing');

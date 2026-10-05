@@ -438,7 +438,11 @@ carries the same mark while any category does. The menu's help says so
 and monuments; "Campus tools" until Plan 80B, its id kept); the rest are
 categories (`facilitiesData.ts`'s `FACILITY_CATEGORY_OF`), and the gym, pool
 and tennis courts sit under **Health** with the health chain, where their
-capacity goes (Plan 80B).
+capacity goes (Plan 80B). The menu opens on Grounds (`BuildPopup.tsx`'s `initialBuildTab`,
+Plan 92), except while Founders Hall waits for its ground in a guided
+founding: then it opens on the tab holding the hall, where the walkthrough
+points. The Build button's glyph is a hammer and a wrench crossed (Plan 92;
+a bulldozer before it).
 
 What each key MEANS stays with the component that owns the thing it does —
 speed on `StatusHeader.tsx`, pan/draw/rotate on `CampusMap.tsx`, the tab
