@@ -10,18 +10,20 @@ glyph. A side-by-side study, then a picker with every icon's drawn version
 and two to four Lucide candidates, let the owner choose each one.
 
 **As implemented:**
-- 25 icons are now Lucide's, at the game's 1.6 line: Campus (school),
+- 24 icons are now Lucide's, at the game's 1.6 line: Campus (school),
   Curriculum (book-open), Research (atom), Athletics (volleyball), History
   (history), Inbox (inbox), Build (wrench), Rank (award), Prestige (star),
   Satisfaction (smile), Student life (heart), Housing (bed-double),
   Dining (utensils-crossed), Library (library-big), Lab (flask-conical),
   Health (heart-pulse), Arts (palette), Quad (land-plot), Erase path
-  (eraser), the build menu's Grounds tab (settings), Map tools (layers),
+  (eraser), Map tools (layers),
   Turn view (rotate-cw), Remove (trash-2), Release (log-out), and the done
   mark (check).
 - 15 stay drawn: Faculty, Students, Academic, the five speed gears (Lucide
   has no 4× or 8×), Fitness, Trees, Draw path, Close, Disclosure, Menu and
-  the activity log.
+  the activity log. The build menu's Grounds tab now wears the drawn
+  tree of the Plant trees tool; its own icon (a wrench, then Lucide's
+  settings gear, picked from a mislabelled row) is gone.
 - The shapes are copied into `icons.tsx` under the same component names, so
   no caller changed and no package was added. Lucide's licence (ISC, with
   MIT for its Feather-derived icons) sits beside the file.

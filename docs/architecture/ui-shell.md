@@ -322,7 +322,7 @@ card with the outline, at the note's height, in the sans at `--text-sm`.
 ### Icons
 
 `components/icons.tsx` holds every recurring glyph as a 24-unit line icon in
-`currentColor` at a 1.6 line, sized by CSS. Some are drawn by hand; 25 are
+`currentColor` at a 1.6 line, sized by CSS. Some are drawn by hand; 24 are
 Lucide's, picked one by one by the owner (Plan 93) and copied in as shapes,
 with Lucide's licence beside them (`LUCIDE_LICENSE.txt`), so there is no
 icon package at runtime. They cover the dock and the build menu's icons, and the

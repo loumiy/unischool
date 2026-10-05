@@ -21,7 +21,7 @@ import type { Species } from '../data/treeData';
 import {
   DrawPathIcon, EraseIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
-  AthleticsIcon, StudentLifeIcon, ToolsIcon, DisclosureIcon,
+  AthleticsIcon, StudentLifeIcon, DisclosureIcon,
 } from './icons';
 import { count, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
 import { LOAN_RATE, LOAN_YEARS, financingFor, giftFunds, loanFor } from '../systems/finance/treasury';
@@ -256,7 +256,8 @@ export function buildTabOf(s: GameState, id: string): string | undefined {
 // One icon per tab, keyed by section id. Missing entries fall back to the
 // generic build glyph.
 const SECTION_ICON: Record<string, () => React.JSX.Element> = {
-  [TOOLS_SECTION_ID]: ToolsIcon,
+  // The grounds wear the Plant trees tool's tree (Plan 93).
+  [TOOLS_SECTION_ID]: TreeIcon,
   housing: HousingIcon,
   library: LibraryIcon,
   studentCenter: StudentLifeIcon,
