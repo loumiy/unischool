@@ -98,16 +98,15 @@ export function AthleticsIcon() {
   );
 }
 
-// A bulldozer in side profile: its boxy silhouette holds up at small sizes
-// where a crane reads as a flag on a pole.
+// A hammer and a wrench crossed (Plan 92; a bulldozer before it): the
+// hammer's head top left, the wrench's open jaw top right.
 export function BuildIcon() {
   return (
     <svg viewBox="0 0 24 24" {...STROKE}>
-      <rect x="2" y="15.5" width="15" height="3.5" rx="1.5" />
-      <rect x="6" y="10" width="12" height="6" rx="1" />
-      <rect x="9.5" y="5.5" width="6" height="5" rx="1" />
-      <path d="M2 15.5V11h2.5v3.5" />
-      <line x1="4.5" y1="12.2" x2="6" y2="12.2" />
+      <path d="M9.9 3.6 12.4 6.1 6.1 12.4 3.6 9.9Z" />
+      <line x1="9.3" y1="9.3" x2="19.8" y2="19.8" />
+      <path d="M17.7 4.2A3.5 3.5 0 1 0 19.8 6.3L18.2 7.9 16.1 5.8Z" />
+      <line x1="14" y1="10" x2="4.2" y2="19.8" />
     </svg>
   );
 }
