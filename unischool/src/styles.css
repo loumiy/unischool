@@ -3756,3 +3756,8 @@ body:has(.building-info-panel) .pennant { display: none; }
 .specialization-status { margin: 0 0 var(--space-8); }
 @media (max-width: 1100px) { .spec-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .spec-cards { grid-template-columns: minmax(0, 1fr); } }
+
+/* SCRATCH MOCKUP: building thumbnails on the plan paper. */
+.build-tile-plan { height: 92px; align-items: center; box-sizing: border-box; }
+.build-tile-plan.has-thumb { padding: 6px 8px 4px; }
+.build-thumb { width: 100%; height: 100%; display: block; overflow: visible; }

@@ -1,7 +1,15 @@
 import { closedBySpecialization, endowmentHalf } from '../systems/estate/projects';
 import { CLOSED_BUILD_WORDS } from '../data/specializationData';
 import { SPECIALIZATION_MILESTONE_RANK, specializationOf } from '../systems/prestige/prestigeSystem';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import BuildingMotif, { drawnHeightOf, materialOf } from './buildingMotifs';
+import { groundProps } from './groundMarkings';
+import { motifOf } from './buildingSpec';
+import { polyPoints } from './isoProjection';
+import { depthOrder } from './depthSort';
+import { castShadow } from './light';
+import { isPlaceableKind, orientedFootprint } from '../state/campusMap';
+import type { Vernacular } from '../state/types';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState } from '../state/types';
 import { NEED_WORD } from '../data/needWords';
@@ -342,7 +350,44 @@ function rowMarker(t: Buildable, group: TypeGroup, index: number): string | unde
 
 // The tile's head (Plan 90): a strip of plan paper with the building's
 // drawing on it, and the stamp ("#3", "BUILT", "×7 BUILT") in its corner.
-function TilePlan({ Icon, stamp }: { Icon: () => React.JSX.Element; stamp?: string }) {
+// SCRATCH MOCKUP: the building itself, drawn as the map draws it.
+let thumbVernacular: Vernacular = 'georgian';
+function BuildThumb({ t }: { t: Buildable }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [box, setBox] = useState('0 0 100 100');
+  const fp = orientedFootprint(t, 0);
+  const I = 0.06;
+  const d = { col: I, row: I, w: fp.w - I * 2, h: fp.h - I * 2, facing: 0 as const };
+  const grounds = motifOf(t) === 'grounds';
+  const lift = drawnHeightOf(t, false, thumbVernacular);
+  const props = grounds ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, false, t.id, t.expansions ?? 0)) : [];
+  useLayoutEffect(() => {
+    const g = ref.current?.querySelector('g.thumb');
+    if (!(g instanceof SVGGraphicsElement)) return;
+    const b = g.getBBox();
+    const pad = Math.max(b.width, b.height) * 0.06;
+    setBox(`${b.x - pad} ${b.y - pad} ${b.width + pad * 2} ${b.height + pad * 2}`);
+  }, [t.id]);
+  return (
+    <svg ref={ref} className="campus-map-svg build-thumb" viewBox={box} preserveAspectRatio="xMidYMax meet">
+      <g className="thumb">
+        {!grounds && lift > 0 && <polygon className="campus-building-shadow" points={polyPoints(castShadow(d.col, d.row, d.w, d.h, lift))} />}
+        <BuildingMotif t={t} p={d} material={materialOf(t, thumbVernacular)} vernacular={thumbVernacular} developing={false} />
+        {props.map((pr) => <g key={pr.key}>{pr.node}</g>)}
+      </g>
+    </svg>
+  );
+}
+
+function TilePlan({ Icon, stamp, t }: { Icon: () => React.JSX.Element; stamp?: string; t?: Buildable }) {
+  if (t && isPlaceableKind(t)) {
+    return (
+      <span className="build-tile-plan has-thumb">
+        <BuildThumb t={t} />
+        {stamp && <span className="build-tile-stamp">{stamp}</span>}
+      </span>
+    );
+  }
   return (
     <span className="build-tile-plan">
       <span className="build-tile-icon"><Icon /></span>
@@ -404,7 +449,7 @@ function BuildTile({
             : `Expands the ${t.name} in place — no new building. Adds ${count(rung.seatsGain)} seats in the stands, and their prestige, at once, and ${count(rung.servesGain)} of social capacity when the ${rung.weeks} weeks of work are done; the teams keep playing while the work is under way.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
-          <TilePlan Icon={Icon} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+          <TilePlan Icon={Icon} t={t} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
           <span className="build-tile-name">{t.name}</span>
           <LevelPips s={s} t={t} />
           {detail && <span className="build-tile-sub">{detail}</span>}
@@ -414,7 +459,7 @@ function BuildTile({
     }
     return (
       <div className="build-tile done" title={detail ? `${t.name} · ${detail}` : t.name}>
-        <TilePlan Icon={Icon} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+        <TilePlan Icon={Icon} t={t} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
         {detail && <span className="build-tile-sub">{detail}</span>}
@@ -447,7 +492,7 @@ function BuildTile({
         }}
         onClick={() => onArmPlacement(armed ? null : t.id)}
       >
-        <TilePlan Icon={Icon} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
         {detail && <span className="build-tile-sub">{detail}</span>}
@@ -461,7 +506,7 @@ function BuildTile({
     const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
     return (
       <div className="build-tile developing" title={`${t.name} · ${t.duration - weeksLeft} of ${t.duration} weeks built`}>
-        <TilePlan Icon={Icon} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
         <span className="build-tile-progress">
@@ -513,7 +558,7 @@ function BuildTile({
       }}
       onClick={() => onArmPlacement(armed ? null : t.id)}
     >
-      <TilePlan Icon={Icon} stamp={marker} />
+      <TilePlan Icon={Icon} t={t} stamp={marker} />
       <span className="build-tile-name">{t.name}</span>
       <LevelPips s={s} t={t} />
       {detail && <span className="build-tile-sub">{detail}</span>}
@@ -549,7 +594,7 @@ function BuiltSummaryTile({ group, built, open, onToggle }: {
       aria-label={open ? `Hide the ${group.label.toLowerCase()} already built` : `List the ${group.label.toLowerCase()} already built`}
       title={detail ? `${built.length} built · ${detail}` : `${built.length} built`}
     >
-      <TilePlan Icon={Icon} stamp={`×${built.length} BUILT`} />
+      <TilePlan Icon={Icon} t={built[0]} stamp={`×${built.length} BUILT`} />
       <span className="build-tile-name">{group.label}</span>
       {detail && <span className="build-tile-sub">{detail}</span>}
       <span className="build-tile-foot">{open ? 'Hide' : 'Show'} <DisclosureIcon open={open} /></span>
@@ -607,7 +652,7 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), SPECIALIZATION_MILESTONE_RANK);
   return (
     <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
-      <TilePlan Icon={Icon} />
+      <TilePlan Icon={Icon} t={t} />
       <span className="build-tile-name">{t.name}</span>
       <span className="build-tile-sub">{CLOSED_BUILD_WORDS.sub(pillar)}</span>
       <span className="build-tile-foot">{CLOSED_BUILD_WORDS.foot}</span>
@@ -747,6 +792,7 @@ export default function BuildPopup({
   onClose: () => void;
 }) {
   const sections = buildSections(s);
+  thumbVernacular = s.self.vernacular;
   // Sections are recomputed every render; if the active tab has vanished
   // (built out), fall back to the first.
   const [activeId, setActiveId] = useState<string>(() => initialBuildTab(s));
