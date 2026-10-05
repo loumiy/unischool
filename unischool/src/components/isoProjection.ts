@@ -133,7 +133,9 @@ function frameFor(c: Camera): Frame {
 // The current camera, module-wide rather than threaded through the ~200
 // `project` call sites. CampusMap sets it at the top of each render (a
 // synchronous subtree, so one commit sees one camera) and passes the camera
-// to memoised children as a prop so they redraw. Nothing else may set it.
+// to memoised children as a prop so they redraw. Nothing else may set it,
+// save BuildThumb.tsx, which swaps in the default camera and puts the map's
+// back inside one synchronous drawing, so the map never sees the swap.
 let frame: Frame = frameFor(DEFAULT_CAMERA);
 
 // Returns the normalized camera applied, for the caller to store.

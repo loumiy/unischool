@@ -444,7 +444,13 @@ and tennis courts sit under **Health** with the health chain, where their
 capacity goes (Plan 80B). The menu opens on Grounds (`BuildPopup.tsx`'s `initialBuildTab`,
 Plan 92), except while Founders Hall waits for its ground in a guided
 founding: then it opens on the tab holding the hall, where the walkthrough
-points. The Build button's glyph is Lucide's wrench (Plan 93; a crossed
+points. Each building's tile shows the building itself (Plan 94,
+`BuildThumb.tsx`): drawn by the map's own `BuildingMotif` in the college's
+vernacular, as a building site while it goes up, always from the default
+camera so it does not turn with the map, and kept as markup once drawn, so
+a session draws each building once. A drawing is fitted to its tile but
+never smaller than a fixed box, so a statue stays small beside a hall. The
+tools (paths, trees, lamps, benches) keep their glyphs. The Build button's glyph is Lucide's wrench (Plan 93; a crossed
 hammer and wrench in Plan 92, a bulldozer before it).
 
 What each key MEANS stays with the component that owns the thing it does —
