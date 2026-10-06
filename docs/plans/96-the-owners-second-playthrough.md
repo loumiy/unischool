@@ -564,6 +564,50 @@ above C.
   - the migration fixture;
   - the slow suites.
 
+**As implemented:**
+
+- **The start.** `startFractionFor(id)` is `0.4 + 0.6 × u^1.6`, with `u`
+  from `hashUnit("faculty-start:<id>")`. `Faculty.startFraction` holds it,
+  and `grownStat(potential, tenure, startFraction)` grows from it, training
+  included.
+- **The early market.** `potentialAround(center, u, wide)`. `marketWidth`
+  is 1 at founding standing and 0 by prestige 100. At width 1 the
+  standouts are 25% of draws (3% at width 0), starting 9 above the center
+  (20 at width 0) and running to 40 above. A potential still takes one draw
+  of the stream.
+- **The year-1 market**, 10,000 candidates at prestige 42, in teaching. It
+  meets the targets, and `test/market-standing.test.ts` holds it to them.
+  Research potential A is 11.5%.
+
+  | | Before | Target | Now |
+  |---|---|---|---|
+  | Potential A | ~2% | ~10% | 10.2% |
+  | Potential B | ~12% | ~20% | 21.1% |
+  | Current A | 0% | ~1% | 0.9% |
+  | Current B | 0% | ~5% | 4.5% |
+  | Current C | ~2% | ~20% | 20.1% |
+  | Current D or F | ~98% | ~74% | 74.5% |
+
+- **The founding three** take `startFraction` 0.55, so their stats are as
+  they were.
+- **Save version 100.** `legacyStarts` gives everyone on a roster or the
+  market 0.55. The version-99 fixture is a Guided year-4 run.
+- **The opening report, re-run**, at seed 12345. Better early teaching
+  lifts the opening a little:
+  - prestige is +0.5 to +1 by year 3;
+  - satisfaction is +1 to +4;
+  - the pool is +3% to +8%;
+  - the year-4 crowding cliff is unchanged, and is I's.
+- **The baseline**, re-recorded (`npm run sim`, then `--from-runs
+  --save`). Medians across seeds, change from the Plan 95 baseline:
+  - Completionist: prestige Y10 49.9 (+3.1), Y25 78.8 (+2.9). Rank Y25 32
+    (−6). Satisfaction Y25 +3.1.
+  - Guided: prestige Y10 48.4 (+0.7), Y25 78.2 (+1.0), Y50 119.7 (+1.0).
+    Still first at Y50. Satisfaction Y25 91.3 (+7.3). Cash Y25 $76M
+    (−$27M): better faculty are paid more.
+  - Selective, Lean and Idle move by under a point of prestige.
+  - No run goes into the red.
+
 ## PR 96I — The opening, tuned
 
 Decision 4. The owner reads B's tables as H re-ran them and picks levers.
