@@ -2689,6 +2689,53 @@ still happens, so the random stream reads the same.
 - **Checks:** a test per kind (ties to the id, as now); a test that the
   random stream is unchanged by the naming.
 
+**As implemented.** `namedFaculty` (`catalogue.ts`) has the two new kinds,
+both read and tied to the id: `'tenure-track'` is the shortest-serving
+professor with `TENURE_CASE_MIN_YEARS` (4) to `TENURE_CASE_MAX_YEARS` (10)
+years at the college, and `'recent'` the shortest-serving with at least a
+year. `star-poached` names `'researcher'`, `tenure-case` `'tenure-track'`
+and `two-body` `'recent'`. `eligible()` now also asks that an event's
+professor kind finds someone, so a kind that finds nobody takes the event
+out of that week's pool; it is read, so the pool's one draw is still the
+only one. `rollVars` still draws `{faculty}` first. `event-truth` checks
+each kind against a roster built for it (ties to the id), that each event
+cannot fire with nobody to name, that naming and the eligibility check
+leave the stream as it was, and, in place of Plan 79D's test that no
+leaving event names by kind, that every event that lets its professor go
+does. `BACKLOG.md`'s entry is gone.
+- **Deviation:** the tenure window has an upper end (ten years). The
+  shortest-serving with at least four years can still be a professor of
+  twenty-five at a college that has hired nobody since; with the upper end
+  the tenure case never names them, as the section says, and the event
+  waits instead.
+- **Balance** (re-baselined on PR 95R's baseline; 30 runs, three seeds).
+  Prestige moves little: Guided Y25 78.7 (−0.7), Y50 117.6 (−2.2); its
+  specialized variants Y50 −0.2 to −2.2; Completionist Y50 −0.2, Selective
+  −1.1, Lean +0.7; Idle does not move. Every Guided run is still first at
+  Y50 and never in the red. The faculty's means (Guided, the mean of the
+  three seeds, measured with the harness; "before" is this branch with the
+  three events' `names` taken off, which reproduces the old baseline's
+  prestige and cash):
+
+  | | Before | After |
+  |---|---|---|
+  | Research, Y25 | 53.1 | 53.9 |
+  | Teaching, Y25 | 67.7 | 70.0 |
+  | Research, Y50 | 66.3 | 63.9 |
+  | Teaching, Y50 | 84.6 | 84.1 |
+
+  **What moves most is the late money.** Guided's Y50 cash falls from
+  $6.4B to $0.3B (median), its endowment from about $3B to under $0.1B,
+  and its Y50 research rank from 1 to 8. On the old baseline all three
+  seeds' research grants snowballed after year 34 (seed 4242: $12.8B of
+  grants by Y50, against $1.5B now), and the money swept into the
+  endowment from year 42. Now no seed's does. Taking the names off one
+  event at a time (seeds 4242 and 12345) places it mostly in the tenure
+  case and the two-body problem rather than the offer, but which run takes
+  off is a threshold, not a slope. The second review's area 7 had already
+  called the year-50 surplus a question of balance for area 4. The
+  research variant still takes off ($6.8B, +$0.4B).
+
 ### What area 7 does not do
 
 - H7-7's rule: a name beginning "University of" still takes the suffix.

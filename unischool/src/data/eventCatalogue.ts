@@ -72,6 +72,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     weight: 3,
     cooldownYears: 4,
     when: { facultyOver: 2 },
+    names: { faculty: 'researcher' },
     text: '{faculty} has an offer from a college with a larger endowment and a worse library. They have brought you the letter, which is either a courtesy or an opening bid.',
     timeoutWeeks: 3,
     choices: [
@@ -474,6 +475,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     weight: 4,
     cooldownYears: 4,
     when: { facultyOver: 3 },
+    names: { faculty: 'tenure-track' },
     text: 'A tenure case has reached the President\'s desk. The department is for it, the school\'s committee is against it, and the external letter praises {faculty}\'s work at length before declining to recommend anything at all.',
     timeoutWeeks: 4,
     choices: [
@@ -504,6 +506,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     weight: 3,
     cooldownYears: 6,
     when: { facultyOver: 2, programsOver: 1 },
+    names: { faculty: 'recent' },
     text: '{faculty}, whom {school} would like to keep, has a spouse who is also an academic, in a field the college does not teach, and has asked, mildly, whether anything might be possible. Nobody has mentioned anywhere else, which is itself a kind of mention.',
     timeoutWeeks: 3,
     choices: [

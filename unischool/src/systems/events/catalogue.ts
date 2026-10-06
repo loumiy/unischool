@@ -199,8 +199,13 @@ const NEEDS: Record<NeedKey, (s: GameState) => boolean> = {
   'residence-hall': (s) => standing(s).some((t) => t.kind === 'dorm'),
 };
 
+// An event that names a professor by kind fires only when someone answers
+// to it (Plan 95AD): a tenure case with nobody in the tenure window waits,
+// rather than naming whoever is drawn. Read, not drawn, so the pool's draw
+// is the only one made.
 export function eligible(s: GameState, e: CatalogueEvent): boolean {
-  return conditionsMet(s, e) && (e.needs ?? []).every((n) => NEEDS[n](s));
+  return conditionsMet(s, e) && (e.needs ?? []).every((n) => NEEDS[n](s))
+    && (e.names?.faculty === undefined || namedFaculty(s, e.names.faculty) !== undefined);
 }
 
 // ---- Variables ----
@@ -245,17 +250,26 @@ const REUNION_YEARS = 5;
 const VETERAN_YEARS = 20;
 
 // The professor an event means (Plan 79D): the strongest researcher for a
-// grant, the strongest teacher for a crowded lecture, or the
-// longest-serving. Read, not drawn, as the building is; ties go to the id.
+// grant or an offer, the strongest teacher for a crowded lecture, or the
+// longest-serving. And (Plan 95AD) the one up for tenure, the
+// shortest-serving in the tenure window, or the latest hire with a year
+// here. Read, not drawn, as the building is; ties go to the id.
 function namedFaculty(s: GameState, which: NonNullable<CatalogueEvent['names']>['faculty']): Faculty | undefined {
-  const best = (score: (f: Faculty) => number) => s.faculty.slice().sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id))[0];
+  const best = (score: (f: Faculty) => number, among: readonly Faculty[] = s.faculty) => among.slice().sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id))[0];
+  const years = (f: Faculty) => f.tenureWeeks / WEEKS_PER_YEAR;
   switch (which) {
     case 'researcher': return best((f) => f.research);
     case 'teacher': return best((f) => f.teaching);
     case 'longest': return best((f) => f.tenureWeeks);
+    case 'tenure-track': return best((f) => -f.tenureWeeks, s.faculty.filter((f) => years(f) >= TENURE_CASE_MIN_YEARS && years(f) < TENURE_CASE_MAX_YEARS));
+    case 'recent': return best((f) => -f.tenureWeeks, s.faculty.filter((f) => years(f) >= 1));
     default: return undefined;
   }
 }
+// The tenure window (Plan 95AD): a case comes a few years in, and never to
+// a professor of twenty-five years.
+export const TENURE_CASE_MIN_YEARS = 4;
+export const TENURE_CASE_MAX_YEARS = 10;
 
 export function rollVars(s: GameState, e?: CatalogueEvent): Record<string, string> {
   const rival = collegeRival(s) ?? pick(s.rivals);

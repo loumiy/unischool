@@ -7,7 +7,8 @@
 //     catalog ticks (no winter that only week 52 reaches, no v2 mood scale,
 //     no program count below the three every college founds with).
 //   - The winter is the turn of the terms (the review's G7-3).
-//   - The building and the class an event names are the ones it means.
+//   - The building, the class and the professor an event names are the
+//     ones it means.
 //   - The new effects do what they render as.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
@@ -16,7 +17,7 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream, random } from '../src/engine/random';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
-import { applyEffects, eventById, rollVars } from '../src/systems/events/catalogue';
+import { applyEffects, eligible, eventById, rollVars, TENURE_CASE_MAX_YEARS, TENURE_CASE_MIN_YEARS } from '../src/systems/events/catalogue';
 import { resolveCatalogueEvent } from '../src/systems/events/catalogueEngine';
 import { springTermWeek, winterDepth } from '../src/state/winter';
 import { promisesOf } from '../src/systems/promises/promises';
@@ -148,10 +149,54 @@ function college(): GameState {
   const before = s.faculty.length;
   applyEffects(s, { departs: 1 }, vars);
   assert(s.faculty.length === before - 1 && !s.faculty.some((f) => f.id === researcher.id), 'departs lets the named professor go, and nobody else');
-  // No event whose answer lets the professor go names them by kind: that
-  // would change who leaves, and so the run (Plan 79D).
-  const named = EVENT_CATALOGUE.filter((e) => e.names?.faculty && e.choices.some((c) => (c.effects.departs ?? 0) > 0));
-  assert(named.length === 0, `an event that lets its professor go leaves them drawn (${named.map((e) => e.id).join(', ')})`);
+  // Every event that lets its professor go names them by kind (Plan 95AD):
+  // the offer the strongest researcher, the tenure case the one up for it.
+  const drawnLeaving = EVENT_CATALOGUE.filter((e) => !e.names?.faculty && /\{faculty\}/.test(e.text) && e.choices.some((c) => (c.effects.departs ?? 0) > 0));
+  assert(drawnLeaving.length === 0, `an event that lets its professor go names them by kind (${drawnLeaving.map((e) => e.id).join(', ')})`);
+}
+
+// ---- The offer, the tenure case and the two-body problem (Plan 95AD, H7-9) ----
+{
+  const s = college();
+  const base = structuredClone(s.faculty[0]);
+  const prof = (id: string, years: number, research = 40) => ({ ...structuredClone(base), id, name: `Professor ${id}`, tenureWeeks: years * WEEKS_PER_YEAR, research });
+  s.faculty = [prof('a-veteran', 25, 95), prof('b-six', 6), prof('c-five', 5), prof('d-five', 5), prof('e-new', 0), prof('f-two', 2), prof('g-two', 2), prof('h-star', 12, 80)];
+  const offer = rollVars(s, eventById('star-poached')!);
+  assert(offer.facultyId === 'a-veteran', `the offer goes to the strongest researcher (${offer.faculty})`);
+  const tenure = rollVars(s, eventById('tenure-case')!);
+  assert(tenure.facultyId === 'c-five', `the tenure case is the shortest-serving in the window, ties to the id (${tenure.faculty})`);
+  const twoBody = rollVars(s, eventById('two-body')!);
+  assert(twoBody.facultyId === 'f-two', `the two-body problem is the latest hire with a year here, ties to the id (${twoBody.faculty})`);
+  assert(TENURE_CASE_MIN_YEARS <= 5 && TENURE_CASE_MAX_YEARS < 25, 'the tenure window is a few years in');
+  // A kind that finds nobody keeps the event from firing (its other
+  // conditions set aside: the test college houses no programs).
+  const canFire = (st: GameState, id: string) => eligible(st, { ...eventById(id)!, when: {} });
+  for (const id of ['tenure-case', 'two-body', 'star-poached']) assert(canFire(s, id), `${id} can fire with someone to name`);
+  const veterans = structuredClone(s);
+  veterans.faculty = veterans.faculty.map((f) => ({ ...f, tenureWeeks: 25 * WEEKS_PER_YEAR }));
+  assert(!canFire(veterans, 'tenure-case'), 'no tenure case at a college with nobody in the window');
+  assert(canFire(veterans, 'two-body'), 'a veteran faculty still has a hire with a year here');
+  const fresh = structuredClone(s);
+  fresh.faculty = fresh.faculty.map((f) => ({ ...f, tenureWeeks: 20 }));
+  assert(!canFire(fresh, 'two-body') && !canFire(fresh, 'tenure-case'), 'no two-body problem or tenure case in a faculty\'s first year');
+  // The draw is made either way: the stream reads the same.
+  for (const id of ['star-poached', 'tenure-case', 'two-body']) {
+    const e = eventById(id)!;
+    bindScriptStream(9595);
+    const withName = rollVars(s, e);
+    const after = random();
+    bindScriptStream(9595);
+    const without = rollVars(s, { ...e, names: undefined });
+    const afterWithout = random();
+    const rest = (v: Record<string, string>) => JSON.stringify({ ...v, faculty: '', facultyId: '' });
+    assert(rest(withName) === rest(without) && after === afterWithout, `${id}: naming the professor draws as not naming does`);
+    bindScriptStream(9595);
+    eligible(s, e);
+    const afterEligible = random();
+    bindScriptStream(9595);
+    assert(afterEligible === random(), `${id}: asking whether it can fire draws nothing`);
+  }
+  bindScriptStream(7676);
 }
 
 // ---- The new effects ----
