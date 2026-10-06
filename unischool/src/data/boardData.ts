@@ -3,13 +3,16 @@
 // letter in the inbox (components/InboxTab.tsx, Plan 77) that never stops
 // the clock.
 
-import { SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
+import { SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR } from '../systems/prestige/prestigeSystem';
 import { SPECIALIZATION_NOTICE_ID, specializationNotice } from './specializationData';
 import { pillarShareRule } from './prestigeWords';
 
 export interface BoardLetter {
   title: string;
   text: string;
+  // Who signs it, when not the board: the alumni's letter on a program cut
+  // (Plan 95V, systems/athletics/cut.ts).
+  from?: string;
 }
 
 export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
@@ -50,7 +53,7 @@ export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
   },
   // The milestone's notice (Plan 85D, systems/prestige/milestone.ts): the
   // college has come within reach of the specialization's milestone.
-  [SPECIALIZATION_NOTICE_ID]: specializationNotice(SPECIALIZATION_MILESTONE_RANK, pillarShareRule()),
+  [SPECIALIZATION_NOTICE_ID]: specializationNotice(SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, pillarShareRule()),
   recovered: {
     title: 'On a sound footing',
     text: 'The college is paying its way again, with reserves to cover a term. The board notes it with relief, and would like it kept that way.',

@@ -5,13 +5,13 @@ import type { CatalogueEvent } from '../data/eventCatalogueTypes';
 import { CHARTER_INSTANCE } from '../systems/events/charter';
 import { NAME_LIMIT_NOTE } from '../data/foundingData';
 import type { Action } from '../state/actions';
-import { answered, boardAsks, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
+import { isCutLetter } from '../systems/athletics/cut';
+import { answered, boardAsks, boardLetterFor, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
 import { foundingNotes } from '../systems/inbox/foundingNote';
 import { dueLabel, toDecideCount } from '../systems/inbox/unseen';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { milestoneById, tabOfSection } from '../data/ladderData';
-import { BOARD_LETTERS } from '../data/boardData';
 import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
@@ -383,11 +383,11 @@ function ReadingPane({ s, act, item, onOpenTab }: {
 
   if (item.kind === 'board') {
     const id = item.ref!;
-    const letter = BOARD_LETTERS[id];
+    const letter = boardLetterFor(s, id);
     if (!letter) return null;
     return (
       <article className="inbox-letter">
-        <ReadHead tier={item.tier} from={item.from} subject={letter.title} meta={`From the board to the President · ${gameDateOfWeek(item.week)}`} />
+        <ReadHead tier={item.tier} from={item.from} subject={letter.title} meta={`${letter.from ?? 'From the board'} to the President · ${gameDateOfWeek(item.week)}`} />
         <div className="inbox-read-main">
           <div className="inbox-body"><p className="inbox-para">{letter.text}</p></div>
           <div className="modal-actions inbox-actions">
@@ -403,7 +403,9 @@ function ReadingPane({ s, act, item, onOpenTab }: {
                 {/* The milestone's notice (Plan 85D) is about the standings, not the money. */}
                 {id === SPECIALIZATION_NOTICE_ID
                   ? <button type="button" className="btn-quiet" onClick={() => onOpenTab('history')}>Open History</button>
-                  : <button type="button" className="btn-quiet" onClick={() => onOpenTab('treasury')}>Open Treasury</button>}
+                  : isCutLetter(id)
+                    ? <button type="button" className="btn-quiet" onClick={() => onOpenTab('athletics')}>Open Athletics</button>
+                    : <button type="button" className="btn-quiet" onClick={() => onOpenTab('treasury')}>Open Treasury</button>}
               </>
             )}
           </div>

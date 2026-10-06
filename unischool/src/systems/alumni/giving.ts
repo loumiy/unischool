@@ -38,13 +38,33 @@ export function givingOf(a: AlumniClass, year: number): number {
   return Math.round(a.size * GIVING_PER_ALUM * warmth * means * maturityOf(Math.max(0, year - a.classYear)));
 }
 
+// A program cut (Plan 95V, systems/athletics/cut.ts): the alumni give
+// CUT_GIVING_DIP less the year it goes, easing back to nothing over
+// CUT_GIVING_YEARS. Cuts add, to at most CUT_GIVING_DIP_MAX. No cut, no
+// change: the factor is exactly 1.
+export const CUT_GIVING_DIP = 0.06;
+export const CUT_GIVING_YEARS = 5;
+export const CUT_GIVING_DIP_MAX = 0.2;
+
+export function cutGivingDip(s: GameState, year = s.clock.year): number {
+  let dip = 0;
+  for (const c of s.orgs.cutPrograms ?? []) {
+    const age = year - c.year;
+    if (age < 0 || age >= CUT_GIVING_YEARS) continue;
+    dip += CUT_GIVING_DIP * (1 - age / CUT_GIVING_YEARS);
+  }
+  return Math.min(CUT_GIVING_DIP_MAX, dip);
+}
+
 // The year's giving, every class together.
 // An identity tag's teeth (Plan 31) lift or cut it: Research Powerhouse,
 // Country Club.
 export function annualGiving(s: GameState): number {
   const base = (s.alumni ?? []).reduce((t, a) => t + givingOf(a, s.clock.year), 0);
-  // Alumni Relations (Plan 89E) lifts the year's giving.
-  return Math.round(base * (1 + tagTeeth(s, 'giving')) * givingFactor(s));
+  // Alumni Relations (Plan 89E) lifts the year's giving; a program cut
+  // dips it for a few years.
+  const dip = cutGivingDip(s);
+  return Math.round(base * (1 + tagTeeth(s, 'giving')) * givingFactor(s) * (dip > 0 ? 1 - dip : 1));
 }
 
 // ---- Reunions ----

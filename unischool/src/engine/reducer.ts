@@ -1,11 +1,12 @@
 import { answerPromises, tickPromises } from '../systems/promises/promises';
+import { cutTeam } from '../systems/athletics/cut';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
 import { DEV_BUILD } from './devBuild';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
 import { CHARTER_INSTANCE, charterVars } from '../systems/events/charter';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
-import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
+import { appointSeat, setSeatPolicy, tickStaffing } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, dropBoardLetters, shiftBoardLetter, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
@@ -72,6 +73,10 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickLadder,
   tickTech,
   tickFaculty,
+  // After the faculty's week (growth, departures): a Provost or Dean on
+  // Staff for the A moves instructors onto the courses below A (Plan 95S),
+  // before anything this week reads the grades.
+  tickStaffing,
   // Before tickFinance: output uses this week's grown stats, and a grant
   // lands in the same week's balance.
   tickResearch,
@@ -503,6 +508,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       team[slot] = null;
       return s;
     }
+
+    // A program cut for good (Plan 95V, systems/athletics/cut.ts): refused
+    // for a flagship in season, checked there, not trusted from the UI.
+    case 'CUT_TEAM':
+      cutTeam(s, action.teamId);
+      return s;
 
     // A gated tab's gate has opened (see TabNav.tsx's TAB_GATES). Idempotent
     // via the seen bucket, because App.tsx dispatches it from an effect that

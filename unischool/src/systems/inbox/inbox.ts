@@ -3,11 +3,12 @@ import { SUMMER_BEATS, WEEKS_PER_YEAR } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
 import { absoluteWeek, findDecisionEvent, findOpeningLetter, type MilestonePayload } from '../../data/eventData';
 import { MILESTONES, CHARTER_ID } from '../../data/ladderData';
-import { BOARD_LETTERS } from '../../data/boardData';
+import { BOARD_LETTERS, type BoardLetter } from '../../data/boardData';
 import { demandCopy } from '../../data/demandData';
 import { eventById, eventText, fill } from '../events/catalogue';
 import { catalogueOf, firstSentence } from '../events/catalogueEngine';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER } from '../finance/sweep';
+import { cutLetter } from '../athletics/cut';
 import { schoolFoundedKey } from '../techtree/schools';
 import { foundingNotes } from './foundingNote';
 
@@ -167,6 +168,12 @@ export function letterOpensBuild(s: GameState, id: string): boolean {
   return letter !== undefined && !letter.done(s) && letter.ask(s).go === 'build';
 }
 
+// A board letter by its id: the board's own, or the alumni's on a program
+// cut (Plan 95V), which names the sport.
+export function boardLetterFor(s: GameState, id: string): BoardLetter | undefined {
+  return BOARD_LETTERS[id] ?? cutLetter(s, id);
+}
+
 // A letter's ask the board wants answered, not only read (sweep.ts).
 export function boardAsks(id: string): boolean {
   return id === IDLE_CASH_LETTER || id === IDLE_CASH_AGAIN_LETTER;
@@ -228,11 +235,11 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
   // shown, as the note over the map did. It is dated the week it came
   // (Plan 95K, the second review's H7-5), not this week.
   const boardId = s.finance.distress?.letters[0];
-  const board = boardId ? BOARD_LETTERS[boardId] : undefined;
+  const board = boardId ? boardLetterFor(s, boardId) : undefined;
   if (boardId && board) {
     const item: InboxItem = {
       id: `board:${boardId}`, kind: 'board', tier: boardAsks(boardId) ? 'decide' : 'letter', ref: boardId,
-      from: 'From the board', subject: board.title, preview: board.text,
+      from: board.from ?? 'From the board', subject: board.title, preview: board.text,
       week: s.finance.distress?.letterWeeks[0] ?? now, unread: true,
     };
     (item.tier === 'decide' ? decide : letters).push(item);

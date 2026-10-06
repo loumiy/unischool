@@ -75,8 +75,8 @@ import { deriveCohortSignals } from '../../src/systems/admissions/cohorts';
 import { projectConsequences } from '../../src/systems/admissions/consequences';
 import { CROWDING_GRACE, crowdingScore, teachingCeiling, prestigeBreakdown } from '../../src/systems/prestige/prestigeSystem';
 import { athleticRank, playerRank, rankBy } from '../../src/systems/rivals/rivalsSystem';
-import { canAppoint, heldSeat, seatCandidates } from '../../src/systems/delegation/seats';
-import { seatDef } from '../../src/data/seatData';
+import { canAppoint, heldSeat, seatCandidates, staffingSeats } from '../../src/systems/delegation/seats';
+import { STAFFING_POLICY, seatDef } from '../../src/data/seatData';
 import { marketRateMultiplier } from '../../src/data/facultyData';
 import { openCampaigns } from '../../src/systems/alumni/campaigns';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
@@ -95,6 +95,7 @@ import { buildFor, foundIn, reserveOf } from '../../sim/harness/guided';
 import { brokenRules } from '../../sim/harness/invariants';
 import type { SpecializationRule } from '../../sim/harness/specialization';
 import { ATHLETICS_COMPLEX_ID, complexFlagships } from '../../src/data/athleticsComplexData';
+import { cutRefusal } from '../../src/systems/athletics/cut';
 import { TRAINING_INSTITUTE_ID, instituteStands, isTrained } from '../../src/data/trainingData';
 import { RESEARCH_PARK_ID } from '../../src/data/researchParkData';
 import { PILLARS, pillarValue } from '../../src/systems/prestige/prestigeSystem';
@@ -203,9 +204,17 @@ export interface RunRecord {
   // The championships player's flagships (Plan 80G's target): the year each
   // was chosen and put on full scholarships, and its first final four.
   flagships?: Array<{ sport: string; chosen: number; finalFour?: number }>;
+  // The championships player's programs cut (Plan 95V), by sport and year.
+  cuts?: Array<{ sport: string; year: number }>;
   // The specialization chosen at the milestone (Plan 85D), and when.
   specialization?: string;
   specializationYear?: number;
+  // The summer the choice was first offered (Plan 95R).
+  specializationOffered?: number;
+  // Instructor swaps a year (Plan 95S): the player's own
+  // (REASSIGN_COURSE_FACULTY), and the Provost's on Staff for the A.
+  playerSwaps?: Record<string, number>;
+  seatSwaps?: Record<string, number>;
   broken: string[];
   seconds: number;
   error?: string;
@@ -235,7 +244,18 @@ class Journal {
     const inner = g.act;
     g.act = (a: Action) => {
       const year = yearKey(g.s.clock.year);
-      if (a.type === 'TICK') { inner.call(g, a); return; }
+      if (a.type === 'TICK') {
+        // A course whose instructor changed during the week, from one
+        // professor to another, under a staffing seat, was moved by the seat
+        // (Plan 95S; a departure's colleague cover is counted with it).
+        if (staffingSeats(g.s).length === 0) { inner.call(g, a); return; }
+        const before = { ...g.s.courseFaculty };
+        inner.call(g, a);
+        const after = g.s.courseFaculty;
+        const moved = Object.keys(before).filter((id) => after[id] !== undefined && after[id] !== before[id]).length;
+        if (moved > 0) (this.rec.seatSwaps ??= {})[year] = (this.rec.seatSwaps?.[year] ?? 0) + moved;
+        return;
+      }
       if (g.s.pendingInterrupt) {
         // A modal seen, once: the summer's four beats are one summer.
         const type = g.s.pendingInterrupt.type;
@@ -247,6 +267,7 @@ class Journal {
         }
         this.weekAnswers += 1;
       } else {
+        if (a.type === 'REASSIGN_COURSE_FACULTY') (this.rec.playerSwaps ??= {})[year] = (this.rec.playerSwaps?.[year] ?? 0) + 1;
         const key = this.why?.key ?? a.type;
         if (this.why && !this.rec.reasons[key]) this.rec.reasons[key] = this.why.reason;
         const bucket = (this.rec.decisions[year] ??= {});
@@ -468,7 +489,14 @@ function staffTeams(g: Game, j: Journal, reserve: number, upgrade: boolean): voi
 // Advancement is what campaigns need.
 function appoint(g: Game, j: Journal, seatId: 'provost' | 'advancement' | 'facilities' | 'dean-of-students', reason: string): void {
   const s = g.s;
-  if (heldSeat(s, seatId, null) || !canAppoint(s, seatId, null)) return;
+  // A Provost held is put on Staff for the A (Plan 95S): it answers the
+  // routine as the default does, and makes the teaching swaps tendTeaching
+  // then leaves to it.
+  const held = heldSeat(s, seatId, null);
+  if (seatId === 'provost' && held && held.policy !== STAFFING_POLICY) {
+    j.because('provost-staffing', 'The Provost puts the best free instructor on each course below A, so the player need not.', () => g.act({ type: 'SET_SEAT_POLICY', seatId, school: null, policy: STAFFING_POLICY }));
+  }
+  if (held || !canAppoint(s, seatId, null)) return;
   const def = seatDef(seatId);
   if (!def || weeklyNet(s) <= (2 * def.outsideSalary * marketRateMultiplier(s.self.reputation)) / 52) return;
   const inside = seatCandidates(s, seatId, null)[0];
@@ -1009,9 +1037,15 @@ function championshipsPolicy(): Policy {
         if (staffed && s.orgs.athleticsBudget === 'high' && !isFlagship(s, weakest) && teamQuality(weakest, s) < 70) {
           j.want(s, 'recruit athletes', `Every chair is filled and the budget is at its top; ${weakest.name} still scores ${teamQuality(weakest, s).toFixed(0)}, and only a flagship can recruit.`);
         }
+        // Cutting the program (Plan 95V): the rule that wanted it, now acted
+        // on. A flagship is not cut in season; the weakest rarely is one.
         const missed = missedSeasons.get(weakest.sport) ?? 0;
-        if (missed >= 5) {
-          j.want(s, 'disband a program', `${weakest.name} has missed the postseason ${missed} times; a program cannot be disbanded.`);
+        if (missed >= 5 && cutRefusal(s, weakest.id) === null) {
+          const sport = weakest.sport;
+          if (j.because('cut-program', 'A program that has missed the postseason five times is cut: its money goes to the rest.', () => g.act({ type: 'CUT_TEAM', teamId: weakest.id }))) {
+            (j.rec.cuts ??= []).push({ sport, year: s.clock.year });
+            missedSeasons.delete(sport);
+          }
         }
       }
       // Money to pay for it: the academic core, Completionist-style.
@@ -1293,6 +1327,7 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, 
   } catch (e) {
     j.rec.error = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
   }
+  j.rec.specializationOffered = g.s.specializationOffered;
   if (g.s.specialization !== 'none') {
     j.rec.specialization = g.s.specialization;
     j.rec.specializationYear = g.s.specializationYear;
@@ -1363,17 +1398,18 @@ export function writeReport(runs: RunRecord[], out: string): void {
   lines.push('');
 
   // The specializations (Plan 85D).
-  lines.push('## The specializations', '', 'The pillar each goal chose at the milestone (the top 20) and when; the four pillars\' values at Year 50 (academics / research / student life / athletics, median), and the college\'s place in the research, campus-life and athletic standings.', '');
-  lines.push('| Goal | Chose (runs) | Year (median, range) | Never offered | Pillars Y50 | Research / life / athletic rank Y50 | Trained professors Y50 |');
-  lines.push('|---|---|---|---|---|---|---|');
+  lines.push('## The specializations', '', 'The summer each goal was offered the choice (the top 30, or from Year 20 a pillar\'s top 10: Plan 95R), the pillar it chose and when; the four pillars\' values at Year 50 (academics / research / student life / athletics, median), and the college\'s place in the research, campus-life and athletic standings.', '');
+  lines.push('| Goal | Offered (median, range) | Chose (runs) | Year (median, range) | Never offered | Pillars Y50 | Research / life / athletic rank Y50 | Trained professors Y50 |');
+  lines.push('|---|---|---|---|---|---|---|---|');
   for (const goal of goals) {
     const rs = runs.filter((r) => r.goal === goal && !r.error);
+    const offers = rs.map((r) => r.specializationOffered).filter((y): y is number => y !== undefined);
     const picks = new Map<string, number>();
     for (const r of rs) if (r.specialization) picks.set(r.specialization, (picks.get(r.specialization) ?? 0) + 1);
     const yrs = rs.map((r) => r.specializationYear).filter((y): y is number => y !== undefined);
     const at = rs.map((r) => rowAt(r, 51) ?? r.years[r.years.length - 1]).filter((x): x is Row => !!x && !!x.pillars);
     const pill = [0, 1, 2, 3].map((i) => fmt(median(at.map((x) => x.pillars[i])))).join(' / ');
-    lines.push(`| ${goal} | ${[...picks.entries()].map(([p, n]) => `${p} ×${n}`).join(', ') || '—'} | ${yrs.length ? `${median(yrs)} (${Math.min(...yrs)}–${Math.max(...yrs)})` : '—'} | ${rs.length - yrs.length}/${rs.length} | ${pill} | ${fmt(median(at.map((x) => x.researchRank)))} / ${fmt(median(at.map((x) => x.lifeRank)))} / ${fmt(median(at.map((x) => x.athleticRank)))} | ${fmt(median(at.map((x) => x.trained)))} |`);
+    lines.push(`| ${goal} | ${offers.length ? `${median(offers)} (${Math.min(...offers)}–${Math.max(...offers)})` : '—'} | ${[...picks.entries()].map(([p, n]) => `${p} ×${n}`).join(', ') || '—'} | ${yrs.length ? `${median(yrs)} (${Math.min(...yrs)}–${Math.max(...yrs)})` : '—'} | ${rs.length - offers.length}/${rs.length} | ${pill} | ${fmt(median(at.map((x) => x.researchRank)))} / ${fmt(median(at.map((x) => x.lifeRank)))} / ${fmt(median(at.map((x) => x.athleticRank)))} | ${fmt(median(at.map((x) => x.trained)))} |`);
   }
   lines.push('');
 
@@ -1431,6 +1467,15 @@ export function writeReport(runs: RunRecord[], out: string): void {
     lines.push('', `Median: ${Number.isFinite(mid) ? `${mid} years` : 'never'} (${spans.filter(Number.isFinite).length}/${spans.length} runs reached a final four).`, '');
   }
 
+  // Programs cut (Plan 95V): the players whose rule cuts one, and when.
+  const withCuts = runs.filter((r) => !r.error && r.goal === 'championships');
+  if (withCuts.length > 0) {
+    lines.push('## Programs cut', '', 'The championships player cuts a program that has missed the postseason five times (Plan 95V).', '');
+    lines.push('| Run | Programs cut |', '|---|---|');
+    for (const r of withCuts) lines.push(`| ${r.goal} ${r.seed} ${r.name} | ${(r.cuts ?? []).map((c) => `${c.sport} Y${c.year}`).join('; ') || 'none'} |`);
+    lines.push('', `${withCuts.filter((r) => (r.cuts?.length ?? 0) > 0).length} of ${withCuts.length} runs cut a program.`, '');
+  }
+
   // Per goal: decisions, tedium, wants.
   for (const goal of goals) {
     const rs = runs.filter((r) => r.goal === goal && !r.error);
@@ -1458,6 +1503,9 @@ export function writeReport(runs: RunRecord[], out: string): void {
       lines.push(`| ${k} | ${fmt(n)} | ${fmt(peak)} | ${why} |`);
     }
     lines.push('');
+    // Instructor swaps (Plan 95S): the player's own, and the Provost's.
+    const swaps = (by: Record<string, number> | undefined) => Object.values(by ?? {}).reduce((t, n) => t + n, 0);
+    lines.push(`**Instructor swaps over the run** (median): the player's own ${fmt(median(rs.map((r) => swaps(r.playerSwaps))))}, the Provost's on Staff for the A ${fmt(median(rs.map((r) => swaps(r.seatSwaps))))}.`, '');
     // Tedium.
     const idle = (r: RunRecord, from: number, to: number) => Object.entries(r.idleWeeks).filter(([y]) => +y >= from && +y <= to).reduce((t, [, n]) => t + n, 0);
     const answers = (r: RunRecord, from: number, to: number) => Object.entries(r.answerOnlyWeeks).filter(([y]) => +y >= from && +y <= to).reduce((t, [, n]) => t + n, 0);

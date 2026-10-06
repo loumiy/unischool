@@ -1733,6 +1733,114 @@ Selective and Lean never reach prestige 70 or the top 25.
   - a save mid-run where the college already stands in a pillar's top 10
     is offered at its next summer, not at once.
 
+**As implemented.**
+- **The rule.** Two routes to the offer (`prestigeSystem.ts`):
+  - `SPECIALIZATION_MILESTONE_RANK` is 30 (was 20): the overall route.
+  - From Year 20 (`SPECIALIZATION_PILLAR_YEAR`), the top 10 of any one
+    pillar's standing (`SPECIALIZATION_PILLAR_RANK`): the pillar route.
+
+  `tickSpecialization` reads the overall rank and the best of the four
+  pillar ranks (`milestone.ts`'s `bestPillarStanding`: the standings' own
+  `rankBy`). The notice comes 4 places ahead on either route. On the
+  pillar route it comes no sooner than Year 18
+  (`SPECIALIZATION_NOTICE_YEARS = 2`). The offer's log line names the
+  route: "#30 in the guide", or "#10 in research in the standings" when
+  only the pillar brought it. All four choices stay open whichever route
+  brought the offer.
+- **Why Year 20 (the deviation from the PR section).** The plain top 10
+  was too early. A young college stands about #10–13 in student life
+  within its first decade, so the goal players were offered the choice at
+  Y9–21 and the Completionist at Y6–10. The top 5 lost the championships
+  player its offer and still offered assets at Y11. With Year 20 as the
+  pillar route's start, every goal but satisfaction gets the offer in
+  Y20–43. Of the coordinator's two options (Year 20, or from the overall
+  top 50) the year is the simpler for a player to read. It also keeps
+  revenue's offer: that player stands about #55 overall all run, so the
+  top 50 would have lost it.
+- **Words.** `prestigeWords.ts` gains `specializationOfferWhen` and
+  `specializationOfferRule`: "The board offers the choice of a
+  specialization at the first summer the college stands in the guide's top
+  30 or, from Year 20, in the top 10 of any one pillar's standing."
+  - The status line (History, the standings), the closed-building line in
+    the build menu, and the Research Park and complex lines all use it.
+    After the merge with 95H, History › Prestige's help no longer states
+    the rule (95H moved it to its own line); the status line under it does.
+  - The notice is now titled "Within reach of a specialization" and names
+    both routes.
+  - The choice's intro names the route: the guide's rank if the college
+    is in the top 30, else its pillar ("#6 in athletics, in the top 10 of
+    a pillar's standing").
+  - `test/pillar-rule.test.ts` now fails if any file but `prestigeWords.ts`
+    types the offer's rank into a string.
+- **Tests** (`specialization-choice.test.ts`):
+  - first in research in Year 17: no notice and no offer; in Year 19: the
+    notice and no offer;
+  - the notice and the offer through the pillar alone, with the college at
+    #60 overall; one place short in the pillar gives the notice and no
+    offer;
+  - a save written mid-year in research's top 10 gets the notice at once,
+    no offer until that year's summer, then the choice at its close, and
+    may choose athletics.
+- **The goal players** (`review:goals`, seeds 12345, 4242 and 777, name
+  Blackmoor; the goal report gains an *Offered* column):
+
+  | Goal | Offered: review → plain top 10 → **Year 20** | Takes | Titles a run | Y50 rank |
+  |---|---|---|---|---|
+  | revenue | never → Y19 → **Y20** (20–21) | research ×3 | 0 | 55 |
+  | prestige | Y41 → Y19 → **Y20** (20–20) | academics ×3 | 0 | 2 |
+  | satisfaction | never → never → **never** | — | 0 | 60 |
+  | assets | Y39 → Y9 → **Y20** (20–20) | research ×3 | 1 | 2 |
+  | championships | never → Y12 → **Y20** (20–30) | athletics ×3 | **57** (review: 0, ten in all) | 42 |
+  | good-then-big | Y47 → Y41 → **Y41** (30–43) | academics ×3 | 0 | 10 |
+  | big-then-good | Y43 → Y14 → **Y20** (20–23) | student life ×3 | 1 | 1 |
+
+  The top 5 alone (measured, then dropped) gave revenue Y20, prestige Y20,
+  assets Y11, big-then-good Y28, good-then-big Y43, and **never** for
+  championships or satisfaction. Satisfaction is still never offered: its
+  student life stands about #26 and it is about #55 overall. Each goal
+  takes its offer in the year it comes.
+- **The sim moved.** Re-baselined; three seeds, medians; change from
+  main's baseline (95N) in brackets:
+
+  | Player | Y10 prestige | Y25 rank / prestige | Y50 rank / prestige | Offered and chosen | Top 20 |
+  |---|---|---|---|---|---|
+  | Guided | 47.4 | 31 / 79.4 (+0.2) | 1 / 119.8 (+1.0) | research Y25, Y26, Y20 (was Y30–32) | Y30, Y32, Y30 |
+  | Guided, academics | 47.4 | 31 / 79.5 (+0.3) | 1 / 120.3 (−1.0) | Y25, Y26, Y20 | Y29, Y32, Y31 |
+  | Guided, research | 47.4 | 31 / 79.4 (+0.2) | 1 / 119.8 (+1.0) | Y25, Y26, Y20 | Y30, Y32, Y30 |
+  | Guided, student life | 47.4 | 31 / 79.5 (+0.2) | 1 / 117.9 (−0.9) | Y25, Y26, Y20 | Y31, Y32, Y29 |
+  | Guided, athletics | 47.4 | 31 / 79.5 (+0.2) | 1 / 120.8 (+0.8) | Y25, Y26, Y20 | Y30, Y32, Y30 |
+  | Guided, unspecialized | 47.4 | 31 / 79.4 (+0.1) | 3 (+1) / 111.6 (+0.5) | offered with Guided | Y30, Y33, Y30 |
+  | Completionist | 47.1 | 35 (−4) / 76.4 (+2.5) | 3 (−3) / 112.3 (+3.8) | student life Y20 ×3 (was Y40–43) | Y31, Y37, Y33 (was Y40–43) |
+  | Selective, Lean, Idle | unchanged | unchanged | unchanged | never | never |
+
+  No player collapses. Guided is first on every seed from Y41–43. The
+  Completionist reaches first on one seed (Y48). Its one week in the red is
+  as before; no other run goes into the red.
+- **Plan 85I's targets** (Plan 85D's table, as 85I restated it):
+  - Each specialist is first by Year 50 on every seed: met.
+  - Its pillar is first by 5 or more for academics (8.2–8.6), research
+    (9.8–9.9) and athletics (12.6–13.0): met. Student life misses on all
+    three seeds (+4.7, #3 at −2.9, +0.3; before: 3.9, 7.0, 5.7).
+  - Unspecialized play is in the top 10 and never first (3rd; best 2, 5,
+    3): met.
+  - The milestone falls in the owner's 25–40 for Guided on two seeds of
+    three (Y25, Y26), and at Y20 on 777.
+- **The rivals** are untouched: each is dealt its pillar off its id
+  (`rivalData.ts`): 35 academics, 23 research, 19 student life and 22
+  athletics of 99. "35-odd per pillar" holds only for academics, as it did
+  before this PR.
+- **Deviations:**
+  - The pillar route starts in Year 20 (see "Why Year 20" above).
+  - The notice on the pillar route waits until Year 18, so the board does
+    not write a decade ahead.
+  - The goal players ran on three seeds and one name, not ten seeds (the
+    brief allowed three); each run takes 5–15 minutes on a shared machine.
+  - Most goals are offered at exactly Y20, the low edge of the plan's
+    Y25–35 window.
+  - Satisfaction still never gets an offer.
+  - Championships wins about 57 titles a run with athletics from Y20. That
+    is far above the review's one; 95U and 95V should read against it.
+
 ### PR 95S — Teaching: the line that opens *Below A*, and the Provost's policy (B4-5)
 
 - **The link.** History › Prestige's teaching line ("11% of courses graded
@@ -1761,6 +1869,61 @@ Selective and Lean never reach prestige 70 or the top 25.
   - seat-policy tests: the full-letter rule, never past the course slots,
     and one swap per course a week;
   - the link opens the filter.
+
+**As implemented.**
+- **The policy.** *Staff for the A* (`STAFFING_POLICY`) is a fourth policy
+  on the Provost's and the Deans' seats. `seats.ts`'s `staffForTheA` runs
+  each week as `tickStaffing`, right after `tickFaculty`.
+  - It takes the courses below A weakest first, and moves each to the best
+    free instructor in its field. Free means teaching under their slots.
+  - It moves a course only for a full letter or more (`lettersBetter` in
+    `courseQuality.ts`), at most once a week, and never hires or dismisses.
+  - A course in a program between halls keeps its instructor.
+  - It logs one line per seat per week ("Provost X moved Dr. Y onto
+    ECON 210 (C to B)…"), naming three moves and counting the rest.
+  - With no Provost, each Dean on the policy staffs its own school. A
+    Provost on any policy stands the Deans down.
+- **The link.** The teaching standard's line in History › Prestige, and in
+  the guide's standings, ends "Show the N courses below A". It opens the
+  Curriculum with Below A on. The count is `belowACount`, the filter's own
+  count. The Curriculum's link targets now go through `targetFilters`.
+- **The harness.** `tendTeaching` leaves step 1 (the swap) to a seat that
+  covers the course; it still hires and dismisses. The goal players put a
+  Provost they hold on the policy. Their runs now record the player's own
+  swaps (`playerSwaps`) and the seat's (`seatSwaps`). The seat's count also
+  takes in a departure's colleague cover.
+- **Measured** (`npm run review:goals`, five goals, seeds 12345, 4242 and
+  777, one name). `tend-teaching` actions a run, origin/main → this PR, with
+  the Provost's swaps after:
+
+  | Goal, seed | Before | After | Provost's swaps | Prestige Y50, before → after |
+  |---|---:|---:|---:|---|
+  | Prestige, 12345 | 767 | 158 | 603 | 101.4 → 101.0 |
+  | Prestige, 4242 | 803 | 142 | 635 | 103.3 → 105.5 |
+  | Prestige, 777 | — | 166 | 681 | — → 100.6 |
+  | Every asset, 12345 | 801 | 170 | 726 | 111.4 → 109.8 |
+
+  The goal players appoint a Provost in year 1, so after this PR they make
+  no instructor swaps of their own (`playerSwaps` 0). What is left of
+  `tend-teaching` is hires and dismissals. The review's 495–839 falls to
+  about 140–170. The other runs (championships, good-then-big and
+  big-then-good, and the remaining seeds) were still running when this was
+  written. They land in the scratch reports and go in a follow-up.
+- **Balance.** No player in `npm run sim` holds a Provost: Guided, Natural
+  and the archetypes never appoint a seat. The new system does nothing
+  without a seat on the policy and uses no randomness, so the sim is not
+  expected to move. The coordinator agreed, and there is no re-baseline.
+  The full sim was not run.
+- **Deviations.**
+  - The policy is a fourth radio choice, not a separate switch. It answers
+    the routine as the default (*Keep the students on side*) does, and
+    staffs as well. The seat's `policy` string carries it, so the save shape
+    does not change: no migration, no version bump.
+  - The log line names the seat's holder ("Provost X moved…"), as
+    `delegate`'s lines do, and is one line a week, not one per swap.
+  - The Guided player holds no Provost, so only the goal players take the
+    policy. Giving Guided a Provost would move balance through the salary,
+    which is not this PR's subject.
 
 ### PR 95T — News that does not stop the clock (B4-6)
 
@@ -1976,6 +2139,64 @@ the venue.
 - **Checks:** reducer tests for the cut and its costs; the venue returns
   to recreation; a flagship cannot be cut in season.
 
+**As implemented.** `systems/athletics/cut.ts`, the `CUT_TEAM` action, and
+*Cut the program* at the foot of the opened card (`AthleticsTab.tsx`), armed
+as "Confirm — {sport} ends; its alumni will give less".
+- **The cut** removes the team outright: from `teams`, the priority list,
+  its season and its rivalry. Titles, last season and the complex's deep
+  runs stay as record.
+- **In season** runs from the opener (week 8) to the postseason (week 47).
+  A flagship is refused there, and the button says why; moved below the
+  line (the existing reorder, with its head coach's risk), or after the
+  postseason, it may go, and the next program moves up.
+- **The costs.** The alumni give 6% less the year of a cut, easing back
+  to nothing over five years; cuts add, to at most 20%
+  (`giving.ts`'s `cutGivingDip`; with no cut the factor is exactly 1, and
+  the Alumni panel says the dip while it lasts). A program cut in season
+  pays its staff, and a flagship's scholarships, to the season's end at
+  once; out of season nothing is owed. The alumni's letter goes through
+  `postBoardLetter` as `program-cut:{sport}`, read by
+  `inbox.ts`'s `boardLetterFor`, signed "From the alumni", naming the rival
+  and the trophy the rivalry ends with, with an *Open Athletics* button.
+- **The venue** stays and serves its social places, team or none (it
+  always did: a venue's capacity never read its team). The sport is free
+  for a club again, so the usual petition or the Athletics Development
+  Office can bring it back. A venue not yet started hides again, as one
+  does before its first team.
+- **The save:** `orgs.cutPrograms` (sport and year). `SAVE_VERSION` 97,
+  with `MIGRATIONS[96]` (`noCutsYet`), the fixture `save-v96.json` (the
+  year-29 college of `save-v94.json`, twenty programs fielded), and a
+  sanitizer on load; a letter about a sport the game does not know is
+  dropped.
+- **The harness.** The championships player now acts on the rule that
+  wanted it (week 40, its weakest program, five postseasons missed, not a
+  flagship in season). Over three seeds, six runs: **2 of 6 cut a
+  program** (Women's Basketball in year 33, Men's Lacrosse in year 34).
+  No other goal player and no `sim/` player cuts.
+- **Balance:** `npm run sim` reads the same as `sim/baseline.json` (no
+  change in any figure): no `sim/` player cuts, and with no cut the
+  giving factor is exactly 1.
+- **Checks:** `test/cut-team.test.ts` (the cut and its costs, the dip
+  easing, the letter, the flagship refused in season and allowed below the
+  line or after the postseason, the venue standing with the same social
+  places, the club free to form again, the save round trip and a malformed
+  record dropped); `save-migrations` loads the new fixture with none cut.
+- Screenshots: `docs/reviews/2026-10-review-ii-fixes/95v-*.jpg`.
+
+Deviations:
+- **No per-sport giving to stop.** The game has no athletics share of
+  giving by sport: the annual fund is by class (`givingOf`). The sport's
+  own money that does stop is its gate. The dip on the whole fund stands
+  for both halves of the spec's cost.
+- **Pay to the season's end is settled at once**, not by keeping the team
+  until then, so the program leaves the state outright and nothing waits
+  on a later week.
+- **A record of cuts, so a migration.** The dip needs the year of the cut,
+  so the save keeps `cutPrograms` (the spec's "otherwise, add a cutYear").
+- **Three seeds, not five.** The review's 6 of 10 wanted a cut over five
+  seeds; three seeds here (the brief's allowance) give 2 of 6 runs that
+  cut. The rule is the one that raised the want, unchanged.
+
 ### PR 95W — Money measured, and the scorecard re-based (B4-10, B4-11)
 
 - **Measure.** With Plan 89's offices in play, record cash, endowment and net
@@ -2157,6 +2378,37 @@ Drafts for the owner to edit. Nothing is published.
   - the five screenshots the review's §4 lists, as captions with the
     picture each wants, from `docs/images`.
 - **Checks:** none in code. The owner reads both drafts.
+
+**As implemented.** Docs only: no code, no sim.
+- `docs/store/ai-disclosure.md`: the facts it rests on, Steam's
+  pre-generated and live-generated answers, itch.io's part by part, a short
+  form, and what to keep out of any copy. The game makes no runtime AI or
+  network calls: `unischool/src` holds no `fetch`, `XMLHttpRequest`,
+  `WebSocket` or `sendBeacon`, and its runtime dependencies are React and
+  three font packages. The live-generated answer says so.
+- `README.md` gains one section, *How UniSchool is made*, after
+  *Development*, with the short form and a link to the full text. No other
+  section is touched, for 95Y.
+- `docs/store/steam-page.md`: a short description (220 of Steam's 300
+  characters), the long one, twelve features with *Sandbox mode* and *Play
+  on after the Final Report* among them, and the five screenshots as
+  captions. The specialization's offer reads "once the college stands high
+  enough, overall or in one pillar", since R's rule is still being tuned.
+
+Deviations:
+- **The review's suggested Steam text says the text was "edited by the
+  developer".** The draft leaves that out until the human edit (the owner's,
+  in the backlog) is done, and marks where it goes back in. Likewise the
+  line naming a human artist waits for the commissions.
+- **Only one of the five screenshots is in `docs/images` as it should be**
+  (the Faculty grid). The campus was taken in week 2, before the trees
+  turn; the admissions card is cropped to portrait; the specialization
+  choice and the Final Report have no picture there. The table says which
+  to retake and points at the 85D shots of the frames wanted. All need
+  retaking at 16:9 for Steam in any case: `docs/images` is 16:10.
+- **itch.io's graphics answer is left to the owner**, with *yes, with the
+  note* recommended: no image generator, but the drawing code was written
+  with the assistant.
 
 ### What area 6 does not do
 
