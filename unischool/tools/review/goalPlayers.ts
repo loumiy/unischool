@@ -1546,7 +1546,7 @@ export function writeReport(runs: RunRecord[], out: string): void {
   lines.push('## Do the goals make different colleges?', '');
   const FEATURES: Array<[string, (x: Row) => number, number]> = [
     ['students', (x) => x.enrolled, 30000], ['prestige', (x) => x.prestige, 150], ['satisfaction', (x) => x.satisfaction, 100],
-    ['courses', (x) => x.courses + x.gradCourses, 431], ['teams', (x) => x.teams, 20], ['placeables', (x) => x.placeables, 120],
+    ['courses', (x) => x.courses + x.gradCourses, 473], ['teams', (x) => x.teams, 20], ['placeables', (x) => x.placeables, 120],
     ['price ratio', (x) => x.priceRatio, 1.6], ['research', (x) => Math.log10(1 + x.publications), 4],
   ];
   const centroid = (goal: string) => {

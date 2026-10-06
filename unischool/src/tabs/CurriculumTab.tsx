@@ -44,7 +44,7 @@ import {
 //     programOffers.ts and BuildingInfoPanel.tsx); this tab shows only
 //     programs that have a home.
 //   - A school forms a section once one of its programs is housed, drawn one
-//     row per program (nine cells in tier order, unrevealed ones empty),
+//     row per program (ten cells in tier order, unrevealed ones empty),
 //     under the school's color and mark, and its name once founded.
 //   - A major whose tier-2 quartet is complete (`program-established:<prefix>`)
 //     becomes its own sub-group and reveals its tier-3s.
@@ -107,7 +107,7 @@ function buildSections(s: GameState, revealedGrad: Set<string>): DiscoverySectio
         subgroups.push({
           key: major.prefix,
           label: major.name,
-          courseIds: [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids],
+          courseIds: [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids, major.capstoneId],
         });
       } else {
         sharedIds.push(major.tier1Id, ...major.tier2Ids);
@@ -145,7 +145,7 @@ function buildSections(s: GameState, revealedGrad: Set<string>): DiscoverySectio
       subgroups,
       // Graduate programs count toward the ring only once revealed, so the
       // ring never hints at programs the player cannot know about yet.
-      schoolCourseIds: [...school.majors.flatMap((m) => [m.tier1Id, ...m.tier2Ids, ...m.tier3Ids]), ...gradIds],
+      schoolCourseIds: [...school.majors.flatMap((m) => [m.tier1Id, ...m.tier2Ids, ...m.tier3Ids, m.capstoneId]), ...gradIds],
     });
   }
 
@@ -170,8 +170,8 @@ export function visibleCourseIds(s: GameState): string[] {
 }
 
 // Schools and program rows: a regrouping of the same revealed set, never a
-// second set of reveal rules. The fixed 1/4/4 tier shape is carried by
-// position (three bands per row) rather than by drawn prereq edges; only
+// second set of reveal rules. The fixed 1/4/4/1 tier shape is carried by
+// position (four bands per row) rather than by drawn prereq edges; only
 // cross-major bridges are called out, on demand.
 export interface ProgramRow {
   program: ProgramInfo;
@@ -248,7 +248,7 @@ function courseSchools(): Map<string, { key: string; school: string }> {
   for (const school of discoverySchools()) {
     const entry = { key: school.name, school: school.name };
     for (const major of school.majors) {
-      for (const id of [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]) map.set(id, entry);
+      for (const id of [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids, major.capstoneId]) map.set(id, entry);
     }
   }
   for (const grad of graduatePrograms()) {
@@ -844,7 +844,8 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
   const projected = projectedQuality(s, next, best, loads);
   const canStart = canStartDevelopment(s, next, best.id);
 
-  // The batch: other ready courses in the same band, up to the teacher's free slots.
+  // The batch: other ready courses in the same band, up to the teacher's free
+  // slots. The capstone is a band of one, never batched.
   const bands = tierBands(program);
   const band = bands ? [bands.tier2, bands.tier3].find((ids) => ids.includes(next.id)) : undefined;
   const ready = (band ?? []).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
@@ -934,8 +935,8 @@ function ProgramRowView(
         {program.courseIds.map((id, i) => {
           const t = lookup.get(id);
           // The rules between tier bands are their own grid tracks, so all
-          // nine cells stay the same width.
-          const rule = !graduate && (i === 1 || i === 5) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
+          // ten cells stay the same width.
+          const rule = !graduate && (i === 1 || i === 5 || i === 9) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
           const cell = !t || !row.revealed.has(id)
             ? <span key={id} className="course-cell placeholder" aria-hidden="true" />
             : <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} dnd={dnd} />;
@@ -1339,7 +1340,7 @@ export default function CurriculumTab(
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" loads={loads} />
             <HelpHint
               align="end"
-              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's grade, its courses done of nine and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both grades preview while it is held.`}
+              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's grade, its courses done of ten and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both grades preview while it is held.`}
             />
           </span>
         </div>

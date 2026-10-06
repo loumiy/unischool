@@ -1300,6 +1300,96 @@ Where it departs from the text above, and why:
     assignment.
   - `npm run review:strings` is clean over the new sentences.
 
+**As implemented.** L's table, in code. The sim and the re-baseline wait
+their turn: balance PRs run one at a time.
+
+- **The fourth tier.** `NUMS` gains 310 and `TIERS` 4: 28 weeks, $3.0M,
+  $2,400 a week, tier penalty 6, requiring the four tier-3 courses alone.
+  `MilestoneMajor` and `DiscoveryMajor` carry a `capstoneId`; distinguished
+  needs the quartet and the capstone; `TIER_RANK` puts the capstone between
+  tier 3 and graduate. 420 undergraduate courses, 53 graduate, 473 in all.
+- **The catalog.** Forty-two capstones with L's titles and sentences (PR J's
+  101s kept). Every swap, move, removal and new course of L's section 3,
+  the two new bridges (FINA210 to ACCT110, COMP120 to MATH130), the moved
+  bridges (ACCT140, POLS220), the JD's clinic last at 570, MED550 ↔ MED600.
+  Player text calls tier 3 "advanced" and the 310 "the capstone"
+  (BuildPopup, the hall panel, the milestone letters, the gallery, the lab
+  line, the course drawer's tier factor).
+- **The migration, 97 → 98** (`catalogShape`, `COURSE_ID_MAP_95M` in
+  `persistence.ts`), applied in one pass from a copy. Every course is
+  rebuilt from `initialTech()` by its new id, prereqs included; a moved
+  course carries its status, price and weeks (under way or taught), weeks
+  left, teacher, career spans and seen flag; an available course whose new
+  prereqs are unmet goes back to locked; a removed course is dropped
+  everywhere, its teacher freed and its spans gone; a log line naming one
+  loses its subject. New courses arrive locked, each after the catalog
+  course before it, so a migrated save's `tech` keeps the new run's order.
+  `programProgress` reads an awarded milestone as reached (L's rule 7).
+- **The fixture** `save-v97.json` is a Guided run to Year 31 written at
+  version 97 on main (after 95V's 96 → 97): Strategic Management, Clinical
+  Practicum II and the swapped Finance and Accounting courses all taught. `save-migrations`
+  loads every fixture and finds no course id the catalog does not hold, and
+  every catalog course; the year-30 save moves each course with its
+  teacher, frees the removed courses' teachers, drops their spans, keeps a
+  building's weeks, and played a year on has no orphaned assignment.
+- **The Curriculum.** A program row is ten cells with a third rule before
+  the capstone (the grid's tracks, `tierBands`); on a phone the capstone
+  takes a row of its own. Screenshots:
+  [Business](../reviews/2026-10-review-ii-fixes/95m-curriculum-business-ten-courses.jpg),
+  [Sociology and Political Science](../reviews/2026-10-review-ii-fixes/95m-curriculum-sociology-politics.jpg),
+  [a phone](../reviews/2026-10-review-ii-fixes/95m-curriculum-phone-management.jpg).
+- **Checks.** `check` and `slow` pass; `review:strings` is clean. Tests
+  gained: the capstone's prereqs and no bridge touching one
+  (`curriculum-graph`), the capstone's unlock (`invariants`), its tier
+  factor (`course-quality`), its weeks (`committee`).
+
+Where it departs from the text above and from L's table, and why:
+
+- **LAWS530 is "American Constitutional Law"**, not "Constitutional Law".
+  L wrote that no test requires unique titles; `curriculum-graph`'s check 6
+  does (Plan 20 renamed Cybersecurity's Risk Management for it), and POLS210
+  is already "Constitutional Law".
+- **Rule 3 (back to locked) applies to every available course**, not only
+  the moved ones: COMP120 and Financial Modeling gained a bridge, and an
+  available course behind an unmet prereq is the same state either way.
+- **`split-school` waits three years for the second school, not two.** The
+  replayed version-79 save reaches it in Year 6 from Year 3, a year later,
+  with no stall; the new catalog reshuffles the run's random stream and
+  money. The bound moves with the balance.
+- **One thing for the owner:** the catalogue's growth prices a capstone
+  at a full catalogue near $9.6M (a Year-31 Guided run), above a
+  professional course's flat $9M, and that run had 32 capstones available
+  and only 3 taught.
+
+**The re-baseline** (after 95AD's baseline, merged on main at `5b4a3587`;
+medians of three seeds, before → after). Nobody collapses: Guided is first
+at Year 50 in every variant, and no player spends a week in the red.
+
+| Player | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Courses Y25 / Y50 | Schools Y10 / Y25 | Cash Y50 |
+|---|---|---|---|---|---|
+| Guided | 58 / 35 / 1 → 57 / 34 / 1 | 47.2 / 78.7 / 117.6 → 47.8 / 77.2 / 118.7 | 298 / 431 → 276 / 473 | 4 / 7 → 5 / 7 | $292M → $1,202M |
+| Completionist | 56 / 35 / 1 → 57 / 38 / 2 | 47.3 / 75.9 / 112.2 → 46.8 / 75.9 / 112.9 | 259 / 431 → 261 / 473 | 1 / 7 → 2 / 7 | $174M → $120M |
+| Selective | 62 / 59 / 63 → 61 / 61 / 63 | 42.6 / 49.3 / 51.1 → 42.6 / 48.5 / 51.5 | 100 / 102 → 99 / 100 | 0 / 2 → 0 / 1 | $482M → $586M |
+| Lean | 71 / 70 / 76 → 70 / 67 / 71 | 36.5 / 41.6 / 42.9 → 37.8 / 41.5 / 42.6 | 166 / 286 → 182 / 271 | 0 / 3 → 1 / 4 | $24.5M → $25.1M |
+
+- **As L expected:** the endpoint holds, the catalogue is 42 courses
+  longer (Y50 473), and a quarter-way college teaches fewer courses
+  (Guided Y25 276, from 298) as the capstones take committee seats and
+  money. Enrollment at a full catalogue rises 3,360 (the capstones'
+  seats). Guided's Year-25 research rank improves from 29th to 7th and its
+  academics rank slips from 26th to 47th: the order courses are taught in
+  moved. Year-50 cash is the noisiest figure (Guided up $909M, Guided
+  with research down $4.8B, Completionist down $53M).
+- **The goal players** (`npm run review:goals`, seven goals, seeds 12345,
+  4242 and 777, main against this branch): every school founded in the
+  same year within one (prestige 16 → 16, assets 15 → 16, big-then-good
+  18 → 17); Year-50 rank 4 → 4 (prestige), 3 → 3 (assets), 42 → 41
+  (championships), 13 → 14 (good-then-big), 1 → 1 (big-then-good, whose
+  first place now comes in two runs of three, Year 51, from three in
+  Year 50); prestige at Year 50 within three points everywhere. Neither
+  the sim nor the goal report reads the year of the first distinguished
+  program or graduate program, so those are not measured here.
+
 ### What area 2 does not do
 
 - No new screens. Every change moves, folds or rewords what is there.

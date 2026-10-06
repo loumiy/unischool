@@ -88,7 +88,7 @@ function slotsCommitted(s: GameState, f: Faculty): number {
 // and by training (systems/faculty/training.ts). Each keeps as many as the
 // reduced load allows and sheds the lowest tier first; ties break on course
 // id for determinism.
-const TIER_RANK: Record<string, number> = { '1': 1, '2': 2, '3': 3, graduate: 4 };
+const TIER_RANK: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, graduate: 5 };
 function tierRank(tier: CourseTier): number {
   return TIER_RANK[String(tier)] ?? 0;
 }
@@ -672,7 +672,9 @@ function checkMilestones(s: GameState): void {
         );
       }
 
-      const tier3Done = major.tier3Ids.every((id) => isDone(s, id));
+      // Every course complete: the advanced quartet and the capstone (Plan
+      // 95M), which requires the quartet.
+      const tier3Done = major.tier3Ids.every((id) => isDone(s, id)) && isDone(s, major.capstoneId);
       if (tier3Done) {
         awardMilestone(
           s,

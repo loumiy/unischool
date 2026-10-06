@@ -1,7 +1,7 @@
 # Curriculum
 
-The 427-course catalogue: how it unlocks, how it is presented, and the
-facilities that gate its capstones. Graduate work sits on top of it and has
+The 473-course catalogue: how it unlocks, how it is presented, and the
+facilities that gate its advanced courses. Graduate work sits on top of it and has
 [its own document](graduate-programs.md).
 
 ## Halls, slots and the offer (how the curriculum gets its shape)
@@ -224,10 +224,13 @@ The climb inside a program is what it was:
 - **Tier 2** (four courses) requires the entry course. Completing all four
   **establishes the program** — an applicant-pool bonus, and the tier-3
   catalogue opens.
-- **Tier 3** (four capstones) requires the tier-2 quartet, and for the
-  lab-gated majors the major's lab, which in turn waits on the **school
-  being founded** (`Buildable.schoolGate`). Completing them **distinguishes
-  the program**.
+- **Tier 3** (four advanced courses) requires the tier-2 quartet, and for
+  the lab-gated majors the major's lab, which in turn waits on the **school
+  being founded** (`Buildable.schoolGate`).
+- **Tier 4** (the capstone, the 310; Plan 95M) requires the four tier-3
+  courses alone, and inherits their lab, gallery and clinic gates through
+  them: 28 weeks, $3.0M, $2,400 a week. Completing it (and with it every
+  course) **distinguishes the program**.
 - **A school is founded** by dedicating a hall to it (above), and
   **distinguished** once every one of its programs is distinguished.
 - **A graduate program** is offered once its gate opens, founded into a slot
@@ -237,7 +240,8 @@ The climb inside a program is what it was:
 is institutional: a university **founds** a program and a school,
 **establishes** and then **distinguishes** a program — it does not "complete"
 or "master" a major. Students are the ones who complete degrees; the player
-builds the programs they graduate from. The tier labels stay **T1 / T2 / T3**.
+builds the programs they graduate from. The tier labels stay **T1 / T2 / T3**,
+and the fourth is **the capstone**.
 
 Milestones are dedicated logic in `techSystem.ts` — a first-class part of the
 model, not an afterthought — and none of them grants reputation directly:
@@ -289,9 +293,9 @@ free teacher took the whole quartet four times over. Tedium comes from
 undifferentiated interactions, not from many.)
 
 It is **one row per program**, which is the view the progression actually has.
-A row is nine cells in tier order — the entry course, the tier-2 quartet, the
-tier-3 quartet — with a rule between the bands standing in for sixteen prereq
-lines; a course the tab has not revealed is drawn as an **empty cell** rather
+A row is ten cells in tier order — the entry course, the tier-2 quartet, the
+tier-3 quartet, the capstone — with a rule between the bands standing in for
+twenty prereq lines; a course the tab has not revealed is drawn as an **empty cell** rather
 than omitted, so every row is the same width and position carries tier. Rows
 compress to fit rather than scrolling; horizontal scroll is a narrow-viewport
 fallback only.
@@ -331,7 +335,7 @@ unassigned behind the player's back (`SWAP_COURSE_FACULTY`).
 
 **The course drawer** survives unchanged: a course opens into who teaches it,
 what grade that earns, who else is eligible and what it leads to. **What a
-description is** (Plan 20): every one of the 378 undergraduate courses has
+description is** (Plan 20): every one of the 420 undergraduate courses has
 one authored sentence (`data/courseDescriptions.ts`), in one register — what
 the course covers, in a clause, naming the material rather than the tier —
 and a test holds two rules: one sentence, present tense, no course code, no
@@ -398,13 +402,13 @@ mechanism the labs and the arts facilities use — but keyed by COURSE id
 rather than by major prefix (`techData.ts`'s `CLINICAL_PRACTICUM_GATE`),
 because a clinic gates the courses that are actually clinical:
 
-- **Nursing's four capstones** need the University Clinic. This retired the
+- **Nursing's four advanced courses** need the University Clinic. This retired the
   **Nursing Lab**: a lab here means a *bench science*, and nursing is not
-  one — its capstones are clinical practica, which happen where patients
+  one — its advanced courses are clinical work, which happens where patients
   are. Health Science stays a research school on Neuroscience's lab, which
   is a bench science and keeps its own.
 - **Pharmacy's Clinical Pharmacy Practicum** — and only that one of its
-  capstones — needs the Clinic too.
+  advanced courses — needs the Clinic too.
 - **The MD's Advanced Clinical Practicum** needs the **Hospital**. A
   clerkship is inpatient work, so the chain reads: found the school ->
   build its hospital -> finish the degree.
@@ -418,16 +422,17 @@ the hospital gates is the last course of the program.
 
 Arts & Media's version of "every school gets a meaningful tier-3 payoff" —
 the same curated cross-kind gate `LAB_GATED_MAJOR_PREFIXES` gives the lab
-sciences (a Buildable gates a major's capstone coursework):
+sciences (a Buildable gates a major's advanced coursework):
 
 - **Art Gallery** (`ART_GALLERY_ID`) unlocks once **Studio Art's** tier-2
   quartet (`SART110`–`SART140`) is done, then gates Studio Art's tier-3
-  capstones — the rotating-exhibit gallery is where those capstones exhibit.
+  courses — the rotating-exhibit gallery is where they, and the Senior
+  Exhibition after them, show.
   Unlock and gate sit a tier apart, so it can never be circular. It also
   feeds `social` satisfaction (`servesPopulation` 500), the existing
   mechanism.
 - **The Arts Center** (a capital project, Plan 51) is the school's whole
   payoff: it opens once **every** Arts & Media course is taught, lifts campus
   life, and houses the MFA (see [graduate-programs.md](graduate-programs.md)).
-  It replaced the Performing Arts Center, which gated Music's capstones; Music
-  and Graphic Design's capstones now take the plain tier-2 prereq.
+  It replaced the Performing Arts Center, which gated Music's tier-3 courses;
+  Music and Graphic Design's now take the plain tier-2 prereq.

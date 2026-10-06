@@ -9,9 +9,11 @@ import { money } from '../../format';
 // Where a program stands and what it is one course away from, shared by the
 // map's hall panel and the Curriculum tab so the two can never disagree.
 // A major is Established when its tier-2 quartet is done and Distinguished
-// when its four capstones are (docs/design/curriculum.md); the core and
-// graduate programs are simply complete. Counts come from course status, not
-// s.milestones, because the question is "how many more".
+// when its advanced quartet and its capstone are (docs/design/curriculum.md,
+// Plan 95M); the core and graduate programs are simply complete. Counts come
+// from course status, because the question is "how many more"; a milestone
+// already awarded reads as reached, since milestones are never revoked and a
+// save from before Plan 95M may hold one its courses no longer meet.
 
 export type ProgramMilestone = 'established' | 'distinguished' | 'complete';
 
@@ -32,14 +34,15 @@ export interface ProgramProgress {
   inTransit: boolean;
 }
 
-// A major's nine course ids by position: entry, tier-2 quartet, tier-3
-// quartet (techData.ts's ProgramInfo.courseIds order).
-export function tierBands(program: ProgramInfo): { entry: string[]; tier2: string[]; tier3: string[] } | null {
-  if (program.kind !== 'major' || program.courseIds.length !== 9) return null;
+// A major's ten course ids by position: entry, tier-2 quartet, tier-3
+// quartet, capstone (techData.ts's ProgramInfo.courseIds order).
+export function tierBands(program: ProgramInfo): { entry: string[]; tier2: string[]; tier3: string[]; capstone: string[] } | null {
+  if (program.kind !== 'major' || program.courseIds.length !== 10) return null;
   return {
     entry: program.courseIds.slice(0, 1),
     tier2: program.courseIds.slice(1, 5),
     tier3: program.courseIds.slice(5, 9),
+    capstone: program.courseIds.slice(9, 10),
   };
 }
 
@@ -57,13 +60,14 @@ export function programProgress(s: GameState, program: ProgramInfo, lookup?: Map
   const bands = tierBands(program);
   if (bands) {
     const notDone = (ids: string[]) => ids.filter((id) => find(id)?.status !== 'done').length;
-    const toEstablished = notDone(bands.entry) + notDone(bands.tier2);
+    const awarded = (key: string) => s.milestones?.[`${key}:${program.id}`] === true;
+    const toEstablished = awarded('program-established') ? 0 : notDone(bands.entry) + notDone(bands.tier2);
     if (toEstablished > 0) {
       milestone = 'established';
       toMilestone = toEstablished;
     } else {
       milestone = 'distinguished';
-      toMilestone = notDone(bands.tier3);
+      toMilestone = awarded('program-distinguished') ? 0 : notDone(bands.tier3) + notDone(bands.capstone);
     }
   }
 

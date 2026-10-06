@@ -460,6 +460,18 @@ const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pair
     assert(capstone.status === 'locked', 'a T3 course stays locked behind its lab or facility gate');
   }
   assert(s.milestones[`program-established:${program.id}`] === true, 'the program-established milestone is awarded');
+
+  // The capstone (Plan 95M): locked until the tier-3 quartet is done, then
+  // open. The quartet is finished by hand, as the bridges were above.
+  const capId = program.courseIds[9];
+  const t3Ids = program.courseIds.slice(5, 9);
+  assert(isLocked(capId), 'the capstone stays locked while the T3 quartet is unfinished');
+  for (const id of t3Ids) {
+    s.tech.find((t) => t.id === id)!.status = 'done';
+    delete s.developing[id];
+  }
+  s = reducer(s, { type: 'TICK' });
+  assert(isAvail(capId), 'the capstone opens once the T3 quartet is done');
 }
 
 // =====================================================================

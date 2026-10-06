@@ -44,7 +44,8 @@ Two boundaries hold absolutely, and are the reason the feature is this shape:
    the names.
 
 **The graduate "course" is a plain `course` Buildable.** It adds no
-`BuildableKind`, no tier-above-tier-3, and no `graduate` flag — only one
+`BuildableKind`, no tier of its own above the undergraduate capstone (the 310,
+Plan 95M, which sits between tier 3 and the graduate courses), and no `graduate` flag — only one
 optional field, `graduateProgram`, naming which program a course belongs to.
 That was the shape that touched least: as a `course` it is academic upkeep, it
 counts toward the instruction cost of the catalogue, it occupies a faculty
@@ -54,7 +55,7 @@ editing every one of those just to put graduate courses back where they already
 were.
 
 **Ten programs, fifty-three courses**, each a handful rather than a second
-nine-course major (Medicine and Law are the two larger ones). Since Plan 51
+ten-course major (Medicine and Law are the two larger ones). Since Plan 51
 every one is earned the same way: **finish the school's undergraduate
 curriculum, build the program's capital project, found the program there.**
 
