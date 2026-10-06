@@ -15,16 +15,12 @@ last two sections list what came off and where it went.*
 
 ---
 
-## Awaiting the owner's triage: the second review (Plan 86)
+## The second review (Plan 86): answered
 
-*The review's findings are in
-[`docs/reviews/2026-10-game-review-ii/`](docs/reviews/2026-10-game-review-ii/README.md):
-52 findings and 9 bugs, none a blocker. Its README ranks ten improvements and
-a fix-first list (the migrated Landmark count, the passive wheel listener, a
-tab that stops without saving, four false sentences, two scenarios). Where a
-finding there continues an entry below, the entry stays and the review's
-finding is the newer measurement. This entry comes off when every area is
-answered.*
+*Every area of [`docs/reviews/2026-10-game-review-ii/`](docs/reviews/2026-10-game-review-ii/README.md)
+is answered, and the work is sequenced in [Plan 95](docs/plans/95-second-review-worked-through.md).
+What the owner left out of Plan 95 and kept for later is below, under
+each entry it continues.*
 
 ## Awaiting the owner: the October 2026 review's area 6
 
@@ -50,9 +46,20 @@ made shipping depend on three things. Where each stands:
   page.
 
 And the owner's decisions: a free web demo of the first decade, a Steam
-page, Next Fest (February or June 2027), and a price ($14.99 was
-recommended). Whether the owner's playtest (70L) or the demo comes first
-is part of the same decision.
+page, and a price ($14.99 was recommended). Whether the owner's playtest
+(70L) or the demo comes first is part of the same decision.
+
+- **The timeline is decided** (the second review's B6-4, Plan 95): Next
+  Fest June 2027 (registration closes 25 April 2027). The Steam page goes
+  live by January 2027, so wishlists build before the fest, with the demo
+  live in February–March and launch in late summer.
+- **The owner's own tasks** (B6-3):
+  - a human edit of the most-read text: the founding letters, the summer,
+    the specialization letter and the Final Report;
+  - a devlog started from the plans' quotes;
+  - the capsule art and the logo, commissioned.
+- **The playtest (70L)** measures a first run's real length, and whether
+  players reach year 30 (B6-5).
 
 ## On hold from Plan 70: analytics (K) and launch (L)
 
@@ -135,14 +142,17 @@ a sequence of PRs.*
   - the run's own vernacular, colours and name are kept; the plan's
     `self`, finances and everything else in its `state` are ignored, which
     is what lets one plan be shot in every vernacular.
-- **Walks that draw straight** (A1-7, partly done). Diagonal runs whose
+- **Walks that draw straight** (A1-7, and the second review's B1-4, partly done). Diagonal runs whose
   tiles touch only at corners already draw as one straight band (Plan 24F,
   `components/pathways.tsx`). A run of edge-joined tiles (a slow freehand
   drag, and the walks the tools lay) still draws as steps, and a curve is
   only rounded corners. Either draw such a run as a polyline through its
   tiles' centres, or have the path tool lay corner-joined diagonals. About
   one PR.
-- **Doors that meet the campus** (A1-8). At the review's commit the door
+- **Doors that meet the campus** (A1-8, and the second review's B1-5). The
+  second review counted 814 doors onto lawn on 187 buildings over three
+  year-51 campuses
+  ([`b1-doors-grown.md`](docs/reviews/2026-10-game-review-ii/data/b1-doors-grown.md)). At the review's commit the door
   checker (`npm run review:doors`) counted, over 63 saves and four views:
   1,555 doors onto lawn (the game never joins a door to a walk), 296 on
   the seam between two tiles (every even-length wall), 118 into another
