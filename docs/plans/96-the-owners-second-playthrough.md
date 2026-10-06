@@ -163,8 +163,9 @@ This PR prints the first five years. It changes nothing in the game.
      - At the owner's $25k it leaves about 160, with price 0.29 and shock
        0.73.
      - At the natural line's $32k it leaves 77.
-     - The owner's own 34 was a weaker year 1 than any harness player's;
-       the harness players build a residence first.
+     - The owner's own 34 was a weaker year 1 than any harness player's
+       at the same price: lower crowding coverage or satisfaction, which
+       the harness can't tell apart without the owner's save.
   2. **Money is flat for two years whatever the price.** Net per week is
      $62k–81k in years 1 and 2 for every player. Courses on offer go from
      about 8 to about 10 in year 2, then climb from year 3 ($100k–150k a
