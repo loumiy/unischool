@@ -140,6 +140,44 @@ This PR prints the first five years. It changes nothing in the game.
   - `npm run sim` is unchanged;
   - the report's year-10 and later rows match `2026-10-pacing-rebased.md`.
 
+**As implemented:**
+
+- **A report of its own, not rows in the scorecard.** `sim/opening.ts`
+  plays five years, not fifty: `npm run natural -- --opening` takes about
+  20 s, where the scorecard takes about 45 minutes. It does not touch the
+  scorecard, so the scorecard's year-10-and-later rows are trivially the
+  same. The report is
+  [`docs/reviews/2026-10-pacing-opening.md`](../reviews/2026-10-pacing-opening.md).
+  - Beds are shown as the pool's capacity factor (0.35 at none, 1.0 at
+    2,500 beds), not as a count.
+  - Sticker shock and price are shown separately.
+- **The owner's prices.** The price has to be overridden twice: once on
+  the Admissions beat's decision, and once on `RESOLVE_ADMISSIONS`, which
+  commits it.
+- **What it shows** (medians across the three seeds):
+  1. **Year 1 is set by beds and crowding, not price.**
+     - Every player's first pool runs at beds 0.44 and crowding about
+       0.42. Those two alone take the pool to about a fifth.
+     - At a fair price ($20k, at tolerance) that leaves about 260
+       applicants.
+     - At the owner's $25k it leaves about 160, with price 0.29 and shock
+       0.73.
+     - At the natural line's $32k it leaves 77.
+     - The owner's own 34 was a weaker year 1 than any harness player's;
+       the harness players build a residence first.
+  2. **Money is flat for two years whatever the price.** Net per week is
+     $62k–81k in years 1 and 2 for every player. Courses on offer go from
+     about 8 to about 10 in year 2, then climb from year 3 ($100k–150k a
+     week).
+  3. **A crowding cliff in year 4 for a fair-priced college.**
+     - Guided and the Completionist fill year 4 from pools of 1,000–1,150.
+     - Crowding then halves their prestige target, from about 43 to 21–25.
+     - The year 5 pool falls by half to three quarters (crowding 0.22).
+     - The owner's run shows the same in year 2: $20k drew about 780 and
+       sent the target to 36.
+- **For PR I:** the levers that answer these are crowding and capacity in
+  the first years, not price alone.
+
 ## PR 96C — Fixes
 
 The review's §1, except 1.8 (D and E) and 1.10 (F). Each is small, and each
