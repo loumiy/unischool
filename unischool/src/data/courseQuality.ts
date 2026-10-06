@@ -9,8 +9,10 @@ import { discoverySchools, graduateCourseIds, graduatePrograms } from './techDat
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 
 // Kept separate from facultyData.ts's QUALITY_TIER_THRESHOLDS so the two
-// scales can be tuned apart. A new hire starts at 55% of potential, so no
-// fresh appointment opens above C; early grades read tenure, not choice.
+// scales can be tuned apart. A new hire starts at their own fraction of
+// their potential (facultyData.ts's startFractionFor, Plan 96H: 0.4 to 1,
+// mostly low), so most fresh appointments open at C or below and a rare
+// one at A; early grades still read tenure more than choice.
 // These bands are tuned so about one fresh hire in seven opens at F, and so
 // a matured instructor (teaching ~71) visibly drops a grade under a full
 // load on a tier-3 course. Preserve through any retune: D on a new

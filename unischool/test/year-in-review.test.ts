@@ -65,7 +65,7 @@ console.log('year in review tests');
   for (const field of ['Mathematics', 'Economics']) {
     s.faculty.push({
       id: `test-${field}`, name: `Dr. Test ${field}`, field,
-      teaching: 80, research: 60, teachingPotential: 90, researchPotential: 70,
+      teaching: 80, research: 60, teachingPotential: 90, researchPotential: 70, startFraction: 0.55,
       tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: 0, courseSlots: 10,
       nationality: 'United States', flag: '🇺🇸', bio: 'A test fixture, not a character.', gender: 'male', heritage: 'Anglo/Western European',
     });

@@ -27,10 +27,10 @@ function assert(cond: boolean, msg: string): void {
   }
 }
 
-// The two people the invariant is about. A brand-new hire's teaching is
-// capped at 55% of their potential (facultyData.ts's grownStat), so 55 is
-// the best a fresh appointment can be; a matured instructor around 71 is
-// the "veteran" the module's own comment picks.
+// The two people the invariant is about. A typical brand-new hire teaches
+// around 55 (before Plan 96H every one arrived at 55% of their potential;
+// now most still arrive near it); a matured instructor around 71 is the
+// "veteran" the module's own comment picks.
 const NEW_HIRE = 55;
 const VETERAN = 71;
 

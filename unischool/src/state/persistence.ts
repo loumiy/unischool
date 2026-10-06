@@ -26,7 +26,7 @@ import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../da
 import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
-import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
+import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS, LEGACY_START_FRACTION } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
 import { LANDMARKS_COUNTED, LANDMARKS_COUNTED_MAX, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../data/researchParkData';
@@ -67,7 +67,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 99; // Plan 95X: what money bought for the specialization
+export const SAVE_VERSION = 100; // Plan 96H: each professor's own start
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -349,6 +349,16 @@ function nothingBoughtYet(state: GameState): void {
   state.bought = emptyBought();
 }
 
+// 99 -> 100, Plan 96H: a professor's current stats grow from their own
+// start (Faculty.startFraction). Everyone on a roster or the market before
+// it arrived at 0.55 of their potential, and keeps it, so nobody's stats
+// move on load.
+function legacyStarts(state: GameState): void {
+  for (const f of [...(state.faculty ?? []), ...(state.candidates ?? [])]) {
+    if (typeof f.startFraction !== 'number') f.startFraction = LEGACY_START_FRACTION;
+  }
+}
+
 // What money bought (Plan 95X), on every load: the training classes and the
 // autumn festivals a whole year each, once, no later than the save's; the
 // wing and the phase a year, or absent. Anything else is dropped, which only
@@ -604,6 +614,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   96: noCutsYet,
   97: catalogShape,
   98: nothingBoughtYet,
+  99: legacyStarts,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a

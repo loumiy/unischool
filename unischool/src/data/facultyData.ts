@@ -4,6 +4,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import { initialTech } from './techData';
 import { random, newId } from '../engine/random';
 import { FOUNDING_MARKET } from './foundingData';
+import { hashUnit } from './rivalData';
 
 // ---------------------------------------------------------------------
 // Name generation. Each pool has a cultural origin; the first-name pool is
@@ -607,31 +608,62 @@ export function marketCenters(standing: MarketStanding): { teaching: number; res
   };
 }
 
+// How wide the early market's top runs (Plan 96H, the owner's second
+// playthrough: "the early crop of teaching candidates feels too bad"). At
+// founding standing the standouts are a larger share and start nearer the
+// center, so a new college sees an A-tier potential in about one listing in
+// ten and a B in one in five (test/market-standing.test.ts holds the
+// year-1 market to that); by MARKET_WIDE_UNTIL prestige the top is the few
+// far standouts it was before.
+const MARKET_WIDE_STANDOUT_SHARE = 0.25;   // the standouts' share at founding (MARKET_STANDOUT_SHARE at the top)
+const MARKET_WIDE_STANDOUT_FROM = 9;      // ... starting this far above the center (MARKET_SPREAD at the top)
+const MARKET_WIDE_UNTIL = 100;            // prestige by which the market is as narrow as it gets
+
+// 1 at founding standing, falling to 0 by MARKET_WIDE_UNTIL prestige.
+export function marketWidth(standing: MarketStanding): number {
+  return 1 - clamp01((standing.prestige - MARKET_PRESTIGE_FOUNDING) / (MARKET_WIDE_UNTIL - MARKET_PRESTIGE_FOUNDING));
+}
+
 // One draw of the stream (u in [0, 1)) made a potential around `center`:
 // the inverse of the market's distribution, so a potential still takes one
 // draw, as the flat roll it replaced did, and the stream is not moved.
 // Most of the range is a triangular spread of MARKET_SPREAD either side;
-// the top MARKET_STANDOUT_SHARE is the standouts, above it.
-export function potentialAround(center: number, u: number): number {
-  const body = 1 - MARKET_STANDOUT_SHARE;
+// the top share is the standouts, spread evenly above it to
+// MARKET_SPREAD + MARKET_STANDOUT_REACH. `wide` (marketWidth) makes that
+// share larger and starts it lower, early in a run.
+export function potentialAround(center: number, u: number, wide = 0): number {
+  const share = MARKET_STANDOUT_SHARE + (MARKET_WIDE_STANDOUT_SHARE - MARKET_STANDOUT_SHARE) * wide;
+  const from = MARKET_SPREAD + (MARKET_WIDE_STANDOUT_FROM - MARKET_SPREAD) * wide;
+  const top = MARKET_SPREAD + MARKET_STANDOUT_REACH;
+  const body = 1 - share;
   let offset: number;
   if (u < body) {
     const v = u / body;
     offset = v < 0.5 ? MARKET_SPREAD * (Math.sqrt(2 * v) - 1) : MARKET_SPREAD * (1 - Math.sqrt(2 * (1 - v)));
   } else {
-    offset = MARKET_SPREAD + MARKET_STANDOUT_REACH * ((u - body) / MARKET_STANDOUT_SHARE);
+    offset = from + (top - from) * ((u - body) / share);
   }
   return Math.round(center + offset);
 }
 
-const FACULTY_STARTING_POTENTIAL_FRACTION = 0.55; // a fresh hire arrives at this fraction of their eventual ceiling
+// How far along their potential a hire arrives (Plan 96H): a fraction of
+// it, their own, drawn from a hash of the id (as the quirk is), so the
+// run's random stream does not move. Between START_MIN and 1, weighted low
+// by START_CURVE: most arrive well short of what they will become, and a
+// few arrive at it. Before Plan 96H everyone arrived at 0.55 (and every
+// professor on a roster then keeps it: persistence.ts's migration).
+export const LEGACY_START_FRACTION = 0.55;
+const START_MIN = 0.4;
+const START_CURVE = 1.6;
+export function startFractionFor(id: string): number {
+  return START_MIN + (1 - START_MIN) * hashUnit(`faculty-start:${id}`) ** START_CURVE;
+}
 const FACULTY_GROWTH_PLATEAU_YEARS = 6;            // tenure (years) to close FACULTY_GROWTH_PLATEAU_FRACTION of the start->potential gap
 const FACULTY_GROWTH_PLATEAU_FRACTION = 0.95;
 // Plan 84B kept this curve with the market that follows standing: a hire
-// starts at a little over half their potential, and a good early one grows
-// good within about five years (a standout of 80 reaches Full, 70, in under
-// three; a 75 in about four). A faster curve would also move the founding
-// market's professors, whose stats come from the same curve (below).
+// grows from where they start toward their potential, closing 95% of the
+// gap in six years. A faster curve would also move the founding market's
+// professors, whose stats come from the same curve (below).
 const FACULTY_GROWTH_RATE_PER_WEEK =
   1 - (1 - FACULTY_GROWTH_PLATEAU_FRACTION) ** (1 / (FACULTY_GROWTH_PLATEAU_YEARS * WEEKS_PER_YEAR));
 
@@ -644,8 +676,8 @@ const FACULTY_GROWTH_RATE_PER_WEEK =
 // can't carry.
 export const FOUNDING_TENURE_WEEKS = 78;
 
-export function grownStat(potential: number, tenureWeeks: number): number {
-  const start = potential * FACULTY_STARTING_POTENTIAL_FRACTION;
+export function grownStat(potential: number, tenureWeeks: number, startFraction = LEGACY_START_FRACTION): number {
+  const start = potential * startFraction;
   const grownFraction = 1 - (1 - FACULTY_GROWTH_RATE_PER_WEEK) ** tenureWeeks;
   return Math.round(start + (potential - start) * grownFraction);
 }
@@ -816,8 +848,9 @@ export function rollCandidateField(): string {
 export function generateCandidate(field: string, existingNames: Iterable<string> = [], standing: MarketStanding = FOUNDING_STANDING): Faculty {
   const used = new Set(existingNames);
   const center = marketCenters(standing);
-  const rolledTeaching = potentialAround(center.teaching, random());
-  const rolledResearch = potentialAround(center.research, random());
+  const wide = marketWidth(standing);
+  const rolledTeaching = potentialAround(center.teaching, random(), wide);
+  const rolledResearch = potentialAround(center.research, random(), wide);
   const gender = rollGender();
   const { name, origin } = rollFullName(used, gender);
   const { nationality, flag } = rollNationality(origin);
@@ -827,8 +860,9 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
   const quirk = quirkForId(id);
   const teachingPotential = clampPotential(rolledTeaching + (quirk?.effects.teaching ?? 0));
   const researchPotential = clampPotential(rolledResearch + (quirk?.effects.research ?? 0));
-  const teaching = grownStat(teachingPotential, 0);
-  const research = grownStat(researchPotential, 0);
+  const startFraction = startFractionFor(id);
+  const teaching = grownStat(teachingPotential, 0, startFraction);
+  const research = grownStat(researchPotential, 0, startFraction);
   return {
     id,
     name,
@@ -837,6 +871,7 @@ export function generateCandidate(field: string, existingNames: Iterable<string>
     research,
     teachingPotential,
     researchPotential,
+    startFraction,
     tenureWeeks: 0,
     weeksListed: 0,
     salary: Math.round(facultySalary(teaching, research, 0) * (quirk?.effects.salary ?? 1)),
@@ -865,6 +900,9 @@ export function foundingCandidates(): Faculty[] {
     return {
       id: p.id, name: p.name, field: p.field, teaching, research,
       teachingPotential: p.teachingPotential, researchPotential: p.researchPotential,
+      // The founding three keep the start everyone had before Plan 96H, so
+      // the opening's professors are as they were.
+      startFraction: LEGACY_START_FRACTION,
       tenureWeeks: FOUNDING_TENURE_WEEKS, weeksListed: 0, acclaim: 0,
       salary: facultySalary(teaching, research, FOUNDING_TENURE_WEEKS, 0), courseSlots: p.courseSlots,
       nationality: p.nationality, flag: p.flag, gender: p.gender, heritage: p.heritage, bio: p.bio,
