@@ -218,3 +218,18 @@ first.
   owner's human edit of the most-read text (the backlog's B6-3).
 - **The first three years.** A slow start feels like real work, but may
   lose new players. Which of 4.1's levers to pull, if any.
+
+## 7. The owner's decisions on §6
+
+- **"Est. Year 1"**: drop it. There is no calendar and no start year
+  (`Pennant.tsx`'s line goes).
+- **The curriculum**: course names in place of codes on the development
+  buttons (§2). Everything else stays as it is for now.
+- **Text**: no formal text-cutting pass. The plan that answers this review
+  makes the cuts in §3, then extrapolates from them: the same kind of text
+  elsewhere (explainers beside a figure, footnotes that restate the panel,
+  subtitles that narrate how a number is made) is cut too. The owner keeps
+  noting text to cut in future reviews.
+- **The first three years**: measure before tuning. The pacing report
+  prints years 1–5 (applicants, net per week, prestige, courses on offer),
+  and the levers in §4.1 are chosen from what it shows.
