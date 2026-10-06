@@ -4,7 +4,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
-import { composeTitle, finalReport, gradeAxes } from '../src/state/finalReport';
+import { composeTitle, finalReport, gradeAxes, satisfactionLeads, titleTag } from '../src/state/finalReport';
 import { reportGrade } from '../src/data/reportData';
 import { STANDINGS } from '../src/systems/rivals/rivalsSystem';
 import type { GameState, YearSnapshot } from '../src/state/types';
@@ -62,6 +62,67 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
   assert(tagged.includes('an athletics school') && !tagged.includes('never fielded a team'), `never the weakness the tag itself claims ("${tagged}")`);
   const good = run(120, 130);
   assert(composeTitle(good, gradeAxes(good)).endsWith('with no glaring weakness'), 'a college with no weak standing is a good one');
+}
+
+// ---- The path, read (Plan 95U, the second review's B4-7) ----
+{
+  // Access names what it measures, not the college's size.
+  const closed = run(100, 120, { access: [10, 20] });
+  const title = composeTitle(closed, gradeAxes(closed));
+  assert(title.endsWith('that stayed hard to get into') && !title.includes('opened its doors'), `a weak access standing is a college hard to get into ("${title}")`);
+}
+{
+  // Satisfaction that leads the field for most of the arc lifts the
+  // experience axis; a year or two of it, or a merely good one, does not.
+  const withSatisfaction = (s: GameState, at: (i: number) => number) => {
+    s.history.forEach((h, i) => { h.satisfactionAverage = at(i); });
+    return s;
+  };
+  const experience = (s: GameState) => gradeAxes(s).find((a) => a.axis === 'experience')!;
+  const plain = experience(run(60, 60));
+  const happy = run(60, 60);
+  const happiest = withSatisfaction(happy, () => 90);
+  assert(satisfactionLeads(happiest), 'satisfaction at 90 every year leads the field');
+  const led = experience(happiest);
+  assert(led.score > plain.score + 10, `the experience axis reads it (${led.score} against ${plain.score})`);
+  assert(gradeAxes(happiest).filter((a) => a.axis !== 'experience').every((a, i) => a.score === gradeAxes(run(60, 60)).filter((b) => b.axis !== 'experience')[i].score), 'and no other axis');
+  const brief = withSatisfaction(run(60, 60), (i) => (i < 20 ? 90 : 70));
+  assert(!satisfactionLeads(brief) && experience(brief).score === plain.score, 'twenty years of it of fifty is not most of the arc');
+  const good = withSatisfaction(run(60, 60), () => 80);
+  assert(!satisfactionLeads(good) && experience(good).score === plain.score, 'good satisfaction is not leading satisfaction');
+}
+{
+  // An earned tag names the college before one its standing implies.
+  const s = run(100, 120, { athleticStrength: [10, 20] });
+  s.identity = { tags: ['party-school', 'jock-school'], earning: {}, shedding: {} };
+  assert(composeTitle(s, gradeAxes(s)).includes('a party school'), 'with no record behind either, the guidebooks\' first tag');
+  s.orgs.titles = [{ sport: 'Football', year: 30 }];
+  const champions = composeTitle(s, gradeAxes(s));
+  assert(champions.includes('an athletics school') && !champions.includes('party'), `a title earns the athletics tag before the party one ("${champions}")`);
+  s.identity = { tags: ['party-school'], earning: {}, shedding: {} };
+  assert(composeTitle(s, gradeAxes(s)).includes('an athletics school'), 'even before the guidebooks catch up');
+  s.orgs.titles = [];
+  s.history.forEach((h, i) => { h.standings = { athleticStrength: i === 40 ? 8 : 40 }; });
+  assert(titleTag(s, gradeAxes(s)) === 'jock-school', 'a year in the athletics top ten earns it too');
+  s.history.forEach((h) => { h.standings = { athleticStrength: 40 }; });
+  s.orgs.lastSeason = { Football: { year: 49, sport: 'Football', seed: 3, finish: 'semifinal', beaten: [], lostTo: 'X', champion: 'X', championMascot: 'X' } };
+  assert(titleTag(s, gradeAxes(s)) === 'jock-school', 'and so does a final four');
+  s.orgs.lastSeason = {};
+
+  const r = run(100, 120);
+  r.identity = { tags: ['country-club'], earning: {}, shedding: {} };
+  assert(titleTag(r, gradeAxes(r)) === 'country-club', 'an implied tag stands when nothing is earned');
+  r.research.prizes = 2;
+  assert(titleTag(r, gradeAxes(r)) === 'research-powerhouse', 'research prizes earn the research tag before a country club');
+  r.research.prizes = 0;
+  r.history.forEach((h) => { h.standings = { academics: 4 }; });
+  assert(titleTag(r, gradeAxes(r)) === 'teaching-college', 'the academics top ten earns the teaching tag');
+  r.history.forEach((h) => { h.standings = { financial: 2 }; });
+  assert(titleTag(r, gradeAxes(r)) === 'old-money', 'and financial strength\'s, the old-money one');
+  const strong = run(100, 120, { researchStanding: [130, 140] });
+  strong.history.forEach((h) => { h.standings = { academics: 4, researchStanding: 3 }; });
+  strong.identity = { tags: [], earning: {}, shedding: {} };
+  assert(titleTag(strong, gradeAxes(strong)) === 'research-powerhouse', 'of two earned tags the guidebooks missed, the one on the stronger standing');
 }
 
 // ---- The whole report ----

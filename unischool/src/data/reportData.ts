@@ -70,12 +70,27 @@ export const WEAKNESSES: Readonly<Record<ReportAxis, string>> = {
   research: 'never wrote a paper anyone read',
   experience: 'never gave its students much of a campus life',
   athletics: 'never fielded a team anyone feared',
-  access: 'never opened its doors very wide',
+  // Access is half the admit rate and half the price, not the college's
+  // size: the phrase names what it measures (Plan 95U, the second review's
+  // B4-7).
+  access: 'stayed hard to get into',
   finance: 'never built an endowment to match its size',
 };
 
 // A weakest standing scoring under this is named in the title.
 export const WEAKNESS_BELOW = 45;
+
+// Satisfaction that leads the field (Plan 95U, the second review's B4-7):
+// a year's average satisfaction at this or over it, in more than half the
+// arc's years, and the experience axis reads satisfaction at this share
+// beside the campus-life standing. The guide ranks no rival on
+// satisfaction, so the field is a bar, not a rank.
+export const SATISFACTION_LEADS_AT = 85;
+export const SATISFACTION_LEAD_SHARE = 0.5;
+
+// A pillar's place that earns its tag (Plan 95U): in the top this many in
+// any year of the arc.
+export const EARNED_PILLAR_TOP = 10;
 
 export const REPORT_SHAPES = {
   strength: '{college}: {phrase}, with no glaring weakness',
