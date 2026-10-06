@@ -3,6 +3,7 @@ import HelpHint from '../components/HelpHint';
 import { HistoryChart } from '../components/HistoryChart';
 import { PILLAR_AXES, STANDINGS, rankedListBy, specializations } from '../systems/rivals/rivalsSystem';
 import { SPECIALIZED_TAG, ledBy } from '../data/specializationData';
+import { PILLAR_RULE_HOME, pillarWeightsWords } from '../data/prestigeWords';
 import { collegeSpecialization } from '../systems/prestige/milestone';
 import { specializationOf } from '../systems/prestige/specialization';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
@@ -29,7 +30,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text="Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, for the college and every rival alike. Each rival specializes in one pillar, which runs higher and steadier than its others; each of the college's pillars holds a share only its own specialization fills, so without one none reaches the top, and the college's specialization, once chosen, opens its own. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige." />
+          <HelpHint text={`Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, the same for the college and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others; how a specialization lifts the college's own is in ${PILLAR_RULE_HOME}. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige.`} />
         </span>
         <span className="stat">of {field}</span>
       </div>
@@ -72,7 +73,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
         })}
       </div>
       <p className="standing-note standing-readings-note">
-        The four pillars, each on the prestige scale. Prestige is their blend: academics 35%, research 25%, student life 25%, athletics 15%.
+        The four pillars, each on the prestige scale. Prestige is their blend: {pillarWeightsWords()}.
       </p>
       <div className="standings">
         {PILLARS.map((p) => <Standing key={p} breakdown={pillarBreakdown(s, p)} />)}

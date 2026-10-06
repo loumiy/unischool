@@ -147,10 +147,10 @@ export function runsSummary(s: GameState): string {
 export const COMPLEX_WORDS = {
   // The athletics pillar's specialization term, as its row reads.
   termNoComplex: (year: string, goingUp: boolean) => (goingUp
-    ? `The college is specialized in athletics${year}, but the Athletic Performance Complex is still going up, so this stays empty. Once it stands, each deep run its programs make fills the term (${SCORING}): ${COMPLEX_POINTS_FOR_FULL} points in the last ${COMPLEX_WINDOW_YEARS} years fill it.`
-    : `The college is specialized in athletics${year}, but no Athletic Performance Complex stands, so this stays empty. Build one from the capital projects; then each deep run its programs make fills the term (${SCORING}): ${COMPLEX_POINTS_FOR_FULL} points in the last ${COMPLEX_WINDOW_YEARS} years fill it.`),
+    ? `The college is specialized in athletics${year}, but the Athletic Performance Complex is still going up, so this stays empty. Once it stands, each deep run its programs make fills the share (${SCORING}): ${COMPLEX_POINTS_FOR_FULL} points in the last ${COMPLEX_WINDOW_YEARS} years fill it.`
+    : `The college is specialized in athletics${year}, but no Athletic Performance Complex stands, so this stays empty. Build one from the capital projects; then each deep run its programs make fills the share (${SCORING}): ${COMPLEX_POINTS_FOR_FULL} points in the last ${COMPLEX_WINDOW_YEARS} years fill it.`),
   termReading: (year: string, s: GameState, full: boolean) =>
-    `The college is specialized in athletics${year}: training at the Athletic Performance Complex, its programs have made ${runsSummary(s)} in the last ${COMPLEX_WINDOW_YEARS} years, ${points(complexPoints(s))} points (${SCORING}). ${full ? `The term is full from ${COMPLEX_POINTS_FOR_FULL}.` : `It fills as that rises, full at ${COMPLEX_POINTS_FOR_FULL}.`}`,
+    `The college is specialized in athletics${year}: training at the Athletic Performance Complex, its programs have made ${runsSummary(s)} in the last ${COMPLEX_WINDOW_YEARS} years, ${points(complexPoints(s))} points (${SCORING}). ${full ? `The share is full from ${COMPLEX_POINTS_FOR_FULL}.` : `It fills as that rises, full at ${COMPLEX_POINTS_FOR_FULL}.`}`,
 
   // The choice's card (specializationData.ts's SPECIALIZATION_CARDS).
   fills: `filling as its programs make deep runs once the Athletic Performance Complex stands, full at ${COMPLEX_POINTS_FOR_FULL} points in the last ${COMPLEX_WINDOW_YEARS} years (${SCORING})`,

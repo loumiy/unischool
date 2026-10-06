@@ -3,6 +3,7 @@ import ConfirmButton from './ConfirmButton';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { PILLAR_LABELS, SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
 import { specializationOptions } from '../systems/prestige/milestone';
+import { pillarShareRule } from '../data/prestigeWords';
 import { CHOICE_WORDS, SPECIALIZATION_CARDS, choiceParkNote, opensLine } from '../data/specializationData';
 
 // ---------------------------------------------------------------------
@@ -21,7 +22,7 @@ export default function SpecializationChoice({ s, onResolve }: { s: GameState; o
   return (
     <>
       <h2>{W.title}</h2>
-      <p>{W.intro(playerRank(s), SPECIALIZATION_MILESTONE_RANK)}</p>
+      <p>{W.intro(playerRank(s), SPECIALIZATION_MILESTONE_RANK, pillarShareRule())}</p>
       <div className="spec-cards">
         {specializationOptions(s).map((o) => {
           const card = SPECIALIZATION_CARDS[o.pillar];
