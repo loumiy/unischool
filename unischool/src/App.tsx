@@ -33,7 +33,7 @@ import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
 import OpeningCoach from './components/OpeningCoach';
 import type { OpeningStage } from './state/types';
-import FacultyTab, { MARKET_TARGET } from './tabs/FacultyTab';
+import FacultyTab, { FACULTY_VIEW_START, MARKET_TARGET, type FacultyViewMemory } from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
@@ -129,6 +129,9 @@ export default function App() {
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => (s.started ? readOpened(s.self.name) : new Set()));
   useEffect(() => { if (s.started) keepOpened(s.self.name, opened); }, [opened]);
   const markOpened = (id: string) => setOpened((cur) => (cur.has(id) ? cur : new Set([...cur, id])));
+  // The Faculty tab's view, sort and filters last used, for the session
+  // (Plan 95G): held here, so they outlive the tab, and not in the save.
+  const [facultyMemory, setFacultyMemory] = useState<FacultyViewMemory>(FACULTY_VIEW_START);
   // What the last snapshot held, for telling what arrived (see below).
   const unseen = useRef<{ run: GameState; memory: UnseenMemory } | null>(null);
   // A stop (an interrupt) is answered in the inbox (Plan 77): while one is
@@ -193,6 +196,7 @@ export default function App() {
     setFoundingRead(new Set());
     setOpened(new Set());
     forgetOpened();
+    setFacultyMemory(FACULTY_VIEW_START);
     unseen.current = null;
     reportedGates.current = null;
     actedStage.current = null;
@@ -492,6 +496,8 @@ export default function App() {
                   target={overlay.target}
                   onTargetConsumed={clearTarget}
                   onOpenCurriculum={(target) => openTab('curriculum', target)}
+                  memory={facultyMemory}
+                  onRemember={setFacultyMemory}
                 />
               )}
               {overlay.tab === 'curriculum' && (

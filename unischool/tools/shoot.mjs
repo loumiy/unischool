@@ -17,6 +17,9 @@
 //        --size=W,H (viewport, default 1600,1000), --scale=N (device pixels per
 //        CSS pixel: 2 for a print-sharp PNG at the same framing)
 //
+// --settings=<json> sets the player's settings first ('{"textScale":1.3}'
+// is the largest text).
+//
 // Not only the map: --tab=<id> opens one of the full-screen views over it
 // (a TabNav id: curriculum, faculty, research, students, athletics,
 // history, inbox, treasury) through the toolbar's own button, so what
@@ -90,6 +93,10 @@ const page = await browser.newPage({
 // origin to write the save into, the second is the one that reads it.
 await page.goto(URL, { waitUntil: 'domcontentloaded' });
 await page.evaluate((s) => localStorage.setItem('unischool.save', s), save);
+// --settings=<json>: the player's settings (settings.ts: textScale 1–1.3,
+// vision, motion), for a shot at the largest text (Plan 95G).
+const settings = flag('settings', null);
+if (settings) await page.evaluate((v) => localStorage.setItem('unischool.settings.v1', v), settings);
 await page.goto(URL, { waitUntil: 'networkidle' });
 // A loaded save opens on the title screen: continue into it.
 const cont = page.locator('.title-primary');

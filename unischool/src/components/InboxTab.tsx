@@ -51,12 +51,9 @@ const TIER_HEADING: Record<InboxTier, string> = {
   bulletin: 'Bulletins',
 };
 
-// Year and week of an absolute week, as the log stamps them.
-function stamp(abs: number): string {
-  const year = Math.floor((abs - 1) / WEEKS_PER_YEAR) + 1;
-  const week = ((abs - 1) % WEEKS_PER_YEAR) + 1;
-  return `Y${year}W${week}`;
-}
+// A row's date is the game's one date, as the reading pane gives it: the
+// log alone keeps the compact "Y9W2" (Plan 95J, the second review's 2c D5).
+const stamp = gameDateOfWeek;
 const weeks = weeksProse;
 
 // An answered event's log line, "<title> — <who>: <choice>." (catalogueEngine.ts),
@@ -177,7 +174,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
                     <button key={`${l.year}-${l.week}-${i}`} type="button" className={`inbox-row answered${answer === l ? ' selected' : ''}`} onClick={() => pick(`answer:${i}`)}>
                       <span className="inbox-dot" />
                       <span className="inbox-from">Answered</span>
-                      <span className="inbox-when">Y{l.year}W{l.week}</span>
+                      <span className="inbox-when">{gameDate(l.year, l.week)}</span>
                       <span className="inbox-subject">{a.subject}</span>
                       <span className={`inbox-preview${a.lapsed ? ' lapsed' : ''}`}>{a.how}</span>
                     </button>
@@ -223,7 +220,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
                     ? <span className="inbox-due">Clock stopped</span>
                     : i.weeksLeft !== undefined
                     ? <span className="inbox-due">{dueLabel(i.weeksLeft, weeksShort)}</span>
-                      : <span className="inbox-when">{i.kind === 'milestone' ? `Y${Math.floor((i.week - 1) / WEEKS_PER_YEAR) + 1}` : stamp(i.week)}</span>}
+                      : <span className="inbox-when">{i.kind === 'milestone' ? `Year ${Math.floor((i.week - 1) / WEEKS_PER_YEAR) + 1}` : stamp(i.week)}</span>}
                   <span className="inbox-subject">{i.subject}</span>
                   {i.kind === 'demand' && s.events.activeDemand
                     ? <span className="inbox-meter"><i style={{ width: `${Math.round(demandProgress(s, s.events.activeDemand).fraction * 100)}%` }} /></span>
@@ -461,7 +458,7 @@ function AnswerView({ l }: { l: LogEntry }) {
         <p className="inbox-meta">{gameDate(l.year, l.week)}</p>
       </header>
       <p className={`inbox-para${a.lapsed ? ' lapsed' : ''}`}>{a.how}</p>
-      {a.lapsed && <p className="inbox-para inbox-note">Nobody answered in time, so it took its default.</p>}
+      {a.lapsed && <p className="inbox-para inbox-note">It was left unanswered, so it settled the way it does when nobody answers.</p>}
     </article>
   );
 }

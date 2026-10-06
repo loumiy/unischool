@@ -52,7 +52,7 @@ export const MAX_OFFICES = 6;
 export const OFFICES: readonly OfficeDef[] = [
   {
     id: 'admissions', title: 'Admissions Office', domain: 'enrolment', seatId: 'provost', priceWeeks: 4,
-    blurb: 'Shows a range for the applicant pool before you set the summer price.',
+    blurb: 'Shows a range for the applicant pool before the summer\'s price is set.',
   },
   {
     id: 'career-services', title: 'Career Services', domain: 'enrolment', seatId: 'provost', priceWeeks: 3,

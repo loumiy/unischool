@@ -508,7 +508,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         mood: 1,
         label: 'Charter the council',
         describe: () =>
-          `Chapters form as the college grows, one for every ${countOf(STUDENTS_PER_CHAPTER)} students enrolled, each petitioning for recognition at the summer's student review like any other society. A chapter is worth up to ${CHAPTER_SOCIAL_BONUS} points of social life against a club's fraction of that, carries a real recurring cost, and will eventually bring you its own problems.`,
+          `Chapters form as the college grows, one for every ${countOf(STUDENTS_PER_CHAPTER)} students enrolled, each petitioning for recognition at the summer's student review like any other society. A chapter is worth up to ${CHAPTER_SOCIAL_BONUS} points of social life against a club's fraction of that, carries a real recurring cost, and will eventually bring the college its own problems.`,
         cost: () => 0,
         apply: (s) => {
           s.orgs.hellenicCouncilApproved = true;
@@ -520,7 +520,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'decline',
         label: 'Decline — no Greek life here',
         describe: () =>
-          'Nothing changes, permanently. No fraternity or sorority will ever form at the college, and you will not be asked again. Clubs are unaffected.',
+          'Nothing changes, permanently. No fraternity or sorority will ever form at the college, and the question will not be put again. Clubs are unaffected.',
         cost: () => 0,
         apply: (s) => {
           s.orgs.hellenicCouncilOffered = true;

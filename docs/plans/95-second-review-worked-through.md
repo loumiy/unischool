@@ -555,6 +555,70 @@ the sim was not run (the one file under `systems/` touched,
   training and dismissal drive the person page. Screenshots at desktop
   and phone.
 
+**As implemented.**
+
+- **The face.** `FacultyTile.tsx` draws the face twice over: in the grid
+  without Train and Dismiss, and opened (in place on a wide screen, in the
+  sheet on a phone) with them, from a new `FacultyActions`. Both keep
+  their ask-first, Train's outcome as its tooltip, its refusal ("this
+  year", "no picks") and no Train for an A. A candidate's Appoint stays on
+  the face. The ID card is unchanged.
+- **The summary** is `FacultyFigures`: "738 course slots · 431 on
+  offer · the whole catalog covered" at year 40; where courses wait and
+  the catalog outruns the faculty it reads "· 12 open · 61 short of the
+  catalog". Each figure's old sentence is its tooltip. The market's
+  standing is one sentence: "A typical candidate's potential
+  now: about 66 for teaching, 69 for research." The two paragraphs' rest
+  is in the tab's help (`FACULTY_HELP`), which also says that More opens
+  Train and Dismiss.
+- **The view, sort and filters** are held in `App.tsx`
+  (`FacultyViewMemory`), cleared by New Game. They were already kept for
+  the session in module state, which also outlived New Game.
+- **Phone.** At the largest text the first screen now reaches the
+  figure row and the first faces at year 40 and at the training college.
+  The figures alone were not enough, so on a phone (≤520px) the filter bar
+  folds behind "Sort and filter · 85", the "On the faculty" heading goes
+  (the view switch names the view), and the training bar's note moves
+  behind a '?'. Desktop is unchanged by these.
+- **Counts**, desktop, the gallery's top layer, before → after:
+
+  | Save | Grid | Person open |
+  |---|---|---|
+  | y8 (year 9) | 1,107 w / 135 c → 973 / 102 | 1,301 / 136 → 1,168 / 104 |
+  | summer30 (year 30) | 1,946 / 282 → 1,771 / 208 | 2,147 / 283 → 1,973 / 210 |
+  | y40 (year 41) | 2,027 / 313 → 1,867 / 228 | 2,319 / 314 → 2,160 / 230 |
+  | training (year 38) | 2,317 / 353 → 2,129 / 240 | 2,514 / 354 → 2,327 / 242 |
+
+  The year-40 grid loses 85 Dismiss buttons; the training college's, 91
+  Dismiss and 22 Train. The market and the departments lose the
+  summary's 75–100 words.
+- **Tests:** `test/faculty-tile.test.ts` renders every face of the launch
+  college (no Train, no Dismiss, More kept), the person page's actions
+  (Train, Dismiss, the refusal with the picks spent, no Train for an A or
+  without the institute), a candidate's Appoint, and the figure row.
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/95g-*.jpg`:
+  desktop before and after at the training college, a person opened with
+  Train and Dismiss, and the phone at the largest text before and after
+  at year 40, at the training college, and a person's sheet.
+- **Balance:** UI only; no sim run.
+
+Deviations:
+
+- **The measure** is `npm run review:gallery` (`--sizes desktop
+  --no-shots`), not `review:sweep`: the sweep is the bug sweep and
+  counts nothing. The saves are the review's (`year-8-balanced`,
+  Completionist's year-30 summer, `year-40-done`) plus `training`.
+- **The figure row** says "on offer", not "taught": the slots are taken
+  by every course offered, staffed or not, so "taught" would be a new
+  false claim (B2-2). It keeps "open" when courses wait to be developed.
+- **The phone needed more than the figure row** (above): the filter fold,
+  the heading and the training note. `tools/shoot.mjs` gained
+  `--settings=<json>` to shoot at the largest text.
+- **Train's school-coloured outline** (B2-5's fifth role) is kept, on the
+  person page only, as the plan says; it is no longer on the grid.
+- The "before" desktop screenshot is at 1600×1000, the "after" at
+  1440×900.
+
 ### PR 95H — History in three views (B2-1, with B2-3 and B2-4)
 
 - **Three views** on the sliding switch (`segmentedSwitch.ts`), as Faculty
@@ -683,6 +747,56 @@ the sim was not run (the one file under `systems/` touched,
 - **The 101s.** The 16 entry sentences flagged in `2a` take its proposed
   sentences (`courseDescriptions.ts`), so none restates its title.
 - **Checks:** `npm run review:strings` clean, and its new rules tested.
+
+**As implemented.** Text only; no logic moved, so the sim was not run.
+
+- **The words.** The tile's load reads "9/10 course slots" (one string in
+  `FacultyTile.tsx`); the suggested move's tooltip "program slot 2". The
+  armed labels: "Confirm — the other three shares stay empty for good" and
+  "Confirm — {course} loses its teacher for a term". The Answered pane:
+  "It was left unanswered, so it settled the way it does when nobody
+  answers." The downtown's two lines say "Spring term".
+- **Rankings.** The standings' help keeps "Seven rankings" and adds that
+  the Final Report grades the six beside prestige. The report's head reads
+  "Six of the seven standings, graded over the arc", with a note under it:
+  prestige is the blend of four of the six and counts once, as the guide's
+  last word. Its chart draws all seven (it always did: `STANDINGS` holds
+  prestige), so its title is now "The seven standings, year by year".
+  Plan 47's glossary and `progression.md` say seven.
+- **Dates.** The inbox's list rows, the Answered rows included (a second
+  hand-built "Y31W50" the review did not name), use `gameDateOfWeek` /
+  `gameDate`; a milestone row reads "Year 8". The long form fits the list
+  pane at 1600 px and on a 390 px phone
+  (`docs/reviews/2026-10-review-ii-fixes/95j-inbox-dates*.jpg`,
+  `95j-faculty-course-slots.jpg`).
+- **Second person.** 19 help hints, notes, tooltips and two decision
+  answers say "the college" or "the President" (the scanner's "you" count
+  40 → 21). What is left is letters to the President, the events, the
+  crash screen and the credits, which the rule allows.
+- **The checks.** `tools/review/glossaryChecks.ts` holds four rules (bare
+  "slots", a numbered "slot", "default", "Spring/Fall Term");
+  `strings.ts` reports them in a section of their own and prints the count
+  ("none found"). `test/glossary-checks.test.ts` catches the review's
+  strings as written and passes the glossary's words.
+- **The 101s.** All 16 took `2a`'s sentence.
+
+Deviations:
+- **"Distinguished".** The glossary has no second word for a program's
+  stage, and the stage's "distinguished" runs through the milestones, the
+  toasts, the curriculum and PR M's plan. So the stage keeps its word, and
+  the one place it meets the rank, the person page's Recognition, says
+  what it means: "Taught in Political Science, a program complete since
+  Year 12". The glossary's Stage entry records this.
+- **Training's armed label** does not name the course's new teacher: the
+  label takes the course alone so the call site in `FacultyTile.tsx`
+  (which PR G moves) is untouched, and the warning beneath it already
+  names the taker or says nobody can take it.
+- **NUTR101** reads "…line by line: the calories and protein first, then
+  the vitamins…": `2a`'s "from … to …" put Health Science at 13 of the
+  test's 12.
+- `FacultyTab.tsx`'s summary line ("fewer if you keep them") was
+  rewritten here, then PR G's merge took the paragraph out; G's figure
+  row stands.
 
 ### PR 95K — The inbox and the phone (B2-7)
 
@@ -1128,6 +1242,68 @@ Selective and Lean never reach prestige 70 or the top 25.
   before and after. Satisfaction should no longer be F ×10. Championships
   should no longer be "a party school". Big-then-good should not "never
   open its doors". `report.test` covers each rule.
+
+**As implemented.** All three, in `data/reportData.ts` and
+`state/finalReport.ts`:
+- **Access**: `WEAKNESSES.access` reads "stayed hard to get into".
+- **Experience**: `satisfactionLeads(s)` holds when the year's average
+  satisfaction (the history rows' `satisfactionAverage`) is at
+  `SATISFACTION_LEADS_AT = 85` or over in more than half the arc's rows;
+  `gradeAxes` then reads the experience axis as half the campus-life
+  standing and half that year's satisfaction (`SATISFACTION_LEAD_SHARE =
+  0.5`). No other axis moves.
+- **The title's tag**: `titleTag(s, grades)` picks the guidebooks' first
+  tag that is *earned* (`EARNED_TAGS`), else an earned tag the guidebooks
+  have not caught up with (the one on the highest-graded standing), else
+  the guidebooks' first tag as before. The tests: `jock-school` — a title,
+  a final four (the last season's, or the Complex's record), or athletics
+  in the top 10 in any year of the arc (the history's `standings` ranks)
+  or now; `research-powerhouse` — a research prize, or research in the top
+  10; `teaching-college` — academics in the top 10; `old-money` —
+  financial strength in the top 10. Party school, country club, commuter,
+  pressure cooker, bargain and artsy have no test: they are only ever
+  implied. A specialization still names the college before any tag.
+- `test/final-report.test.ts` covers each rule (16 new checks).
+
+**Balance.** No sim run. The report is a read-out: `finalReport` is called
+only by `resolveAdmissions` at the fiftieth summer, which stores it on
+`s.ending` and writes one log line; nothing in `src/systems` or `sim/`
+reads `s.ending.report`, its grades or its title back (`sim/natural.ts`
+only prints it), and the new code draws no random numbers.
+
+**Measured.** The goal players, **three seeds each** (12345, 4242, 777;
+one name, Blackmoor), not ten: the machine was shared with several other
+agents' runs. One play-through per run; the year-50 state the report was
+written from was saved, and the new report read off the same state, so
+before and after differ only by the report. Marks (score), before → after:
+
+| Goal | Marks before | Marks after | Experience axis (score) | Title before → after |
+|---|---|---|---|---|
+| revenue | D, D, D (47, 43, 43) | unchanged | 35 D, not led | "a research powerhouse that never fielded a team…" ×3, unchanged |
+| prestige | C ×3 (58, 59, 59) | C ×3 (58, 60, 59) | 62–64 → 62–73 (led in 1 of 3) | "known first for its teaching…" ×3, unchanged |
+| satisfaction | **F ×3** (30, 31, 30) | **F ×3** (31, 32, 32) | 51–54 C → 66–67 **B** (led in 3 of 3: 38–42 of 49 years at 85+) | "a campus life to envy…" ×2, "a teaching college…" ×1, unchanged |
+| assets | B ×3 (63, 65, 65) | B ×3 (63, 65, 65) | 75–77 (led in 1 of 3) | "…what its laboratories find…" ×3, unchanged |
+| championships | D ×3 (45, 46, 46) | D ×3 (46, 47, 47) | 60–61 → 72–73 B (led 3 of 3) | **"a party school…" ×3 → "an athletics school that never built an endowment to match its size" ×3** |
+| good-then-big | C ×3 (56, 59, 57) | C ×3 (57, 59, 58) | 61–66 → 70–73 B (led 3 of 3) | "an athletics school…" ×2, "known first for its teaching…" ×1, unchanged |
+| big-then-good | B ×3 (62, 67, 67) | unchanged | 66–77, not led (16–22 of 49 years) | **"…that never opened its doors very wide" ×3 → "…that stayed hard to get into" ×3** |
+
+**Deviations.**
+- *Satisfaction "leads the field" is a bar, not a rank.* The rivals carry
+  no satisfaction (`rivalsSystem.ts`), and the history's `standings` rank
+  only the six standings, where the satisfaction goal's campus life is
+  about 23rd. The closest reading: the year's average satisfaction at 85 or
+  over for most of the arc. It is not unique to the satisfaction goal (the
+  championships and good-then-big players keep 85+ for 30–37 years too),
+  but the satisfaction goal leads it most (38–42 of 49) and the revenue
+  player (62) never does.
+- *The satisfaction goal is still F ×3* (31–32, against 34 for a D). Its
+  experience axis now earns a B, which lifts the mark about 1.7 points;
+  the rest is athletics at 10 (no teams), financial strength at 11–24 and
+  a rank near 60, which a heavier satisfaction share cannot reach (even all
+  satisfaction would leave the mark at about 34). That is B4-4's small
+  college, which the owner left hard on purpose; moving the mark further
+  would mean re-weighting the mark itself, outside this PR.
+- Three seeds per goal, not ten (above).
 
 ### PR 95V — Cutting a varsity team (B4-8)
 
