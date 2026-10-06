@@ -1387,6 +1387,61 @@ The owner's answer: open near the first years' grade, with no words added.
   - The guided player's reading order is unchanged in the sim. Crowding
     is a line, not an intent, so no new intent is added.
 
+**As implemented.**
+
+- **At the decision.** `consequences.ts`'s `projectConsequences` gains
+  `crowding` (points) and `crowdingWorst` (the need and its coverage). It
+  reads the projected body with the year's crowding average started
+  afresh, as `resolveAdmissions.ts` starts it, through
+  `prestigeSystem.ts`'s new `crowdingPoints` (the penalty × `crowdingScore`)
+  and `crowdingCoverages`. `InterruptModal.tsx` shows "Crowding −14.5 of
+  prestige's grade (dining 36%)" under the tightest need, only while it is
+  above zero, so nothing shows while every coverage is 85% or better. It
+  moves with the admit rate, as the others do.
+- **On NEXT** (`nextStep.ts`): a new reading, `crowding(s, rest)`, placed
+  after `nearlyEstablished` and before the shortfall. When a crowded need
+  (beds, dining, health) is under `CROWDING_GRACE` it reads "Dining serves
+  36% — crowding is costing prestige; a dining hall would raise it" and
+  opens the build menu. When something that serves the need is going up,
+  it uses O's `comingFor`: "…; Union Square Eatery opens in 9 weeks", `go`
+  the building's site. It then gives way, under O's rule, to a step the
+  player can act on.
+- **A line, not an intent.** The crowding line carries the intent of the
+  reading it stands before (the shortfall, the idle lab or the waiting
+  letter), so the guided player does what it did without the line. It
+  already relieves crowding first by its own rule
+  (`moves.ts`'s `relieveCrowding`).
+- **Tests:** `crowding-cost.test.ts`. The review's Year 2, built directly:
+  the founding halls (350 beds, dining for 350), a catalog that seats the
+  class, 379 staying on, and the admit rate that makes 603. The projection
+  reads 982 students and −14.5 (dining 36%), as the review measured, and
+  equals the grade's crowding term after `RESOLVE_ADMISSIONS`. A smaller
+  class costs less, and a roomy body costs nothing. NEXT is tested at 84%
+  (crowding speaks) and at 86% (it doesn't), with a building going up, and
+  giving way to an idle lab. `opening.test.ts`'s year-2 reading now stands
+  the founding halls: its bare campus was crowded.
+- **Screenshot:**
+  [`95p-admissions-crowding.jpg`](../reviews/2026-10-review-ii-fixes/95p-admissions-crowding.jpg)
+  (the summer scenario with its continuing classes raised, so the body
+  overruns health).
+- **Balance:** `npm run sim` (merged with O) reads the same as
+  `sim/baseline.json`: no figure moved. `check` and `test:slow` pass.
+
+**Deviations.**
+
+- **Year one is unchanged.** Its line stays letter, seating, shortfall.
+  A new college has no beds, so between letters the crowding line would
+  ask for a residence hall before the week-9 letter does, and Plan 78B's
+  rule is that the letters' order is not contradicted.
+- **Instruction is not named.** The grade's crowding also reads class
+  seats, but the students short of places already have their reading
+  (`seating`), earlier on the line. NEXT names the worst of beds, dining
+  and health. The decision's figure names whatever the grade reads,
+  instruction included.
+- **The need's words:** "Housing", "Dining", "Health care" serve n%.
+- **No NEXT screenshot.** On the harness's saves an earlier reading
+  always spoke. The words are pinned by the test.
+
 ### PR 95Q — Labs, unfounded schools and the build tiles, said plainly (B3-7, B3-8, B3-10)
 
 - **The lab** (B3-7).

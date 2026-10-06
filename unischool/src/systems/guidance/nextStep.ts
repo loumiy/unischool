@@ -14,11 +14,12 @@ import { eventById, eventText, fill } from '../events/catalogue';
 import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
-import { satisfactionFigure, weeksProse } from '../../format';
+import { pct, satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
 import { PARK_WORDS, parkStands } from '../../data/researchParkData';
 import { specializationOf } from '../prestige/specialization';
 import { slotFree } from '../administration/offices';
+import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the earliest undone letter ask (the letters' order must
@@ -27,8 +28,8 @@ import { slotFree } from '../administration/offices';
 // order: a dark program the market can staff (Plan 60: it seats nobody, so
 // it outranks a letter), the students short of places (Plan 80D), the
 // board's ask about idle cash (Plan 70D), a school to establish, free hall
-// slot, program one course from established, attribute shortfall, idle
-// lab. Recomputed every render; nothing is stored.
+// slot, program one course from established, crowding (Plan 95P), attribute
+// shortfall, idle lab. Recomputed every render; nothing is stored.
 
 export interface NextStep {
   text: string;
@@ -260,6 +261,31 @@ function shortfall(s: GameState): NextStep | null {
   return { text: `${need}: ${ATTRIBUTE_BUILD[worst.key]}`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
 }
 
+// Crowding (Plan 95P, the second review's B3-5): a need the class overruns,
+// under the grace prestige's grade allows, costs prestige directly, so it
+// speaks before the shortfall, which starts only at a score under 50. It
+// is a line, not an intent: the guided player keeps the intent of the
+// reading it stands before (`rest`), and relieves crowding by its own rule
+// (sim/harness/moves.ts's relieveCrowding). When something that serves the
+// need is going up (comingFor), the line names it and opens its site, and
+// gives way to a step the player can act on (Plan 95O's rules).
+const CROWDED_LABEL: Partial<Record<keyof SatisfactionAttributes, string>> = {
+  housing: 'Housing', basicNeeds: 'Dining', health: 'Health care',
+};
+function crowding(s: GameState, rest: NextStep | null): NextStep | null {
+  const worst = crowdingCoverages(s).find((c) => c.attribute !== undefined && c.coverage < CROWDING_GRACE);
+  if (!worst?.attribute) return rest;
+  const need = `${CROWDED_LABEL[worst.attribute] ?? ATTRIBUTE_LABEL[worst.attribute]} serves ${pct(worst.coverage)} — crowding is costing prestige`;
+  const intent = rest?.intent ? { intent: rest.intent } : {};
+  const coming = comingFor(s, worst.attribute);
+  if (coming) {
+    if (rest?.intent && rest.intent.kind !== 'wait') return rest;
+    const name = coming.story ? `${coming.building.name}'s new story` : coming.building.name;
+    return { text: `${need}; ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, ...intent };
+  }
+  return { text: `${need}; ${ATTRIBUTE_BUILD[worst.attribute]}`, go: 'build', ...intent };
+}
+
 // A program gone dark with an unstaffed course (Plan 59), when the payroll
 // or the market can staff it. It seats nobody and grades as zeros until
 // then; one click in the Curriculum puts it back (Plan 60: the guided player
@@ -331,5 +357,5 @@ export function nextStep(s: GameState): NextStep | null {
   // lab to set working speaks first (Plan 95O).
   const short = shortfall(s);
   const waiting = short?.intent?.kind === 'wait';
-  return seating(s) ?? idleCash(s) ?? establishSchool(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? (waiting ? null : short) ?? idleLab(s) ?? short ?? letter;
+  return seating(s) ?? idleCash(s) ?? establishSchool(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? crowding(s, (waiting ? null : short) ?? idleLab(s) ?? short ?? letter);
 }
