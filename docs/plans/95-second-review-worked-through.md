@@ -617,6 +617,55 @@ every save. This PR writes the change as a table and changes no code.
 - The table lands in `docs/reviews/2026-10-review-ii-fixes/catalog-shape.md`
   for the owner's answer. M follows that answer.
 
+**As implemented:** [`catalog-shape.md`](../reviews/2026-10-review-ii-fixes/catalog-shape.md)
+is M's whole specification. No code changed.
+
+- **The fourth tier** is 310: 28 weeks, $3.0M, $2,400 a week, tier
+  penalty 6, requiring the four tier-3 courses and inheriting their gates.
+  Established is unchanged (tier 2); distinguished now needs the capstone;
+  the graduate gate takes the capstones in through `NUMS`. The doc lists
+  every file and line that assumes nine courses or three tiers, and the
+  player text that calls tier 3 "capstones", which becomes "advanced".
+- **Forty-two capstones**, one a major, with titles and sentences. Forty are
+  new.
+- **Every item of `2a`'s table**, before and after. The JD swaps
+  Comparative & International Law for Professional Responsibility and puts
+  the clinic last (570). MED550 ↔ MED600. ACCT140 ↔ ACCT240, FINA130 ↔
+  FINA210. New bridges: Financial Modeling to ACCT110, COMP120 to MATH130.
+  Sociology gains Social Statistics (Urban Sociology goes); Political
+  Science, Research Methods (Political Campaigns goes); Anthropology, the
+  history of its theory (Museum & Heritage Studies goes); Philosophy, Early
+  Modern Philosophy (Aesthetics goes); History, Modern East Asia
+  (Historical Archaeology goes). Nursing gains medical-surgical, maternal
+  and newborn, and psychiatric nursing (Critical Care and Gerontological
+  Nursing go).
+- **The id map**: 11 ids move, 8 courses go, 50 are new. The catalog is
+  420 undergraduate and 53 graduate courses, 473 in all.
+- **Where ids live in a save**: `tech` (with its saved prereqs), `developing`,
+  `courseFaculty`, the career spans, `seen.courseIds` and the log's
+  `subject`. The programs, milestones, history, Final Report, inbox,
+  research and events hold none.
+
+Where it departs from the text above, and why:
+
+- **Strategic Management becomes Management's capstone (MGMT310)**, not a
+  swap with 230. It is the usual last course of a US business degree, and
+  the October review's swap predates a fourth tier. Organizational
+  Behavior, a standard requirement the major lacked, takes 140.
+- **Nursing's Clinical Practicum II becomes its capstone (NURS310).** The
+  three new courses take the slots of Critical Care, Gerontological Nursing
+  and the practicum, but the practicum moves rather than goes. Two courses
+  are removed, not three.
+- **MED600 is retitled "Transition to Clerkships".** At 600 it still comes
+  before the clerkship year, so "Residency Preparation" stayed wrong; the
+  title follows `2a`'s sentence, which stops at the wards.
+- **The migration's rules go a step past "carries its state".** A moved
+  course that is merely available goes back to locked when its new
+  prereqs are unmet; a developing or done one stays. A removed course's
+  career spans are dropped, because new courses reuse the freed ids.
+  Prereqs are rebuilt from the catalog, since `refreshAuthoredText` leaves
+  them as saved.
+
 ### PR 95M — The course catalog's shape: the data and the migration (B2-6)
 
 - `techData.ts` and `courseDescriptions.ts` follow L's answered table.
