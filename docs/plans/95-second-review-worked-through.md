@@ -1356,11 +1356,39 @@ Where it departs from the text above and from L's table, and why:
   replayed version-79 save reaches it in Year 6 from Year 3, a year later,
   with no stall; the new catalog reshuffles the run's random stream and
   money. The bound moves with the balance.
-- **Not yet done here:** `npm run sim` and the re-baseline, by the
-  coordinator's order. One thing for the owner: the catalogue's growth
-  prices a capstone at a full catalogue near $9.6M (a Year-31 Guided run),
-  above a professional course's flat $9M, and that run had 32 capstones
-  available and only 3 taught.
+- **One thing for the owner:** the catalogue's growth prices a capstone
+  at a full catalogue near $9.6M (a Year-31 Guided run), above a
+  professional course's flat $9M, and that run had 32 capstones available
+  and only 3 taught.
+
+**The re-baseline** (after 95AD's baseline, merged on main at `5b4a3587`;
+medians of three seeds, before → after). Nobody collapses: Guided is first
+at Year 50 in every variant, and no player spends a week in the red.
+
+| Player | Rank Y10 / Y25 / Y50 | Prestige Y10 / Y25 / Y50 | Courses Y25 / Y50 | Schools Y10 / Y25 | Cash Y50 |
+|---|---|---|---|---|---|
+| Guided | 58 / 35 / 1 → 57 / 34 / 1 | 47.2 / 78.7 / 117.6 → 47.8 / 77.2 / 118.7 | 298 / 431 → 276 / 473 | 4 / 7 → 5 / 7 | $292M → $1,202M |
+| Completionist | 56 / 35 / 1 → 57 / 38 / 2 | 47.3 / 75.9 / 112.2 → 46.8 / 75.9 / 112.9 | 259 / 431 → 261 / 473 | 1 / 7 → 2 / 7 | $174M → $120M |
+| Selective | 62 / 59 / 63 → 61 / 61 / 63 | 42.6 / 49.3 / 51.1 → 42.6 / 48.5 / 51.5 | 100 / 102 → 99 / 100 | 0 / 2 → 0 / 1 | $482M → $586M |
+| Lean | 71 / 70 / 76 → 70 / 67 / 71 | 36.5 / 41.6 / 42.9 → 37.8 / 41.5 / 42.6 | 166 / 286 → 182 / 271 | 0 / 3 → 1 / 4 | $24.5M → $25.1M |
+
+- **As L expected:** the endpoint holds, the catalogue is 42 courses
+  longer (Y50 473), and a quarter-way college teaches fewer courses
+  (Guided Y25 276, from 298) as the capstones take committee seats and
+  money. Enrollment at a full catalogue rises 3,360 (the capstones'
+  seats). Guided's Year-25 research rank improves from 29th to 7th and its
+  academics rank slips from 26th to 47th: the order courses are taught in
+  moved. Year-50 cash is the noisiest figure (Guided up $909M, Guided
+  with research down $4.8B, Completionist down $53M).
+- **The goal players** (`npm run review:goals`, seven goals, seeds 12345,
+  4242 and 777, main against this branch): every school founded in the
+  same year within one (prestige 16 → 16, assets 15 → 16, big-then-good
+  18 → 17); Year-50 rank 4 → 4 (prestige), 3 → 3 (assets), 42 → 41
+  (championships), 13 → 14 (good-then-big), 1 → 1 (big-then-good, whose
+  first place now comes in two runs of three, Year 51, from three in
+  Year 50); prestige at Year 50 within three points everywhere. Neither
+  the sim nor the goal report reads the year of the first distinguished
+  program or graduate program, so those are not measured here.
 
 ### What area 2 does not do
 
