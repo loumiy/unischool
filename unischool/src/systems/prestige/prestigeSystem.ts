@@ -6,7 +6,7 @@ import type { GameState, Pillar, ReportCard, SatisfactionAttributes } from '../.
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
-import { GRADE_POINTS, gradeFor, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
+import { GRADE_POINTS, meanGradeLetter, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
 import { athleticProgramStrength, departmentPot, sportEconomics, studentLifeSocialRaw, teamQuality, STUDENT_LIFE_PRESTIGE_FULL } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
@@ -462,13 +462,18 @@ export function teachingCeilingAt(share: number): number {
   return TEACHING_CEILING_FLOOR + (PRESTIGE_MAX - TEACHING_CEILING_FLOOR) * clamp(share, 0, 1);
 }
 export function teachingCeiling(s: GameState): NonNullable<StandingBreakdown['ceiling']> {
-  const value = teachingCeilingAt(teachingStandardShare(s));
-  const scores = campusCourseScores(s);
-  const aShare = scores.length > 0 ? scores.filter((x) => gradeFor(x) === 'A').length / scores.length : 0;
+  const points = teachingStandardShare(s);
+  const value = teachingCeilingAt(points);
+  // Named by its own measure, the mean grade points (Plan 95H, the second
+  // review's B2-3), not the share of A's it once named.
+  const letter = meanGradeLetter(points);
+  const average = campusCourseScores(s).length === 0
+    ? 'no course is graded yet'
+    : `courses average ${/^[AF]/.test(letter) ? 'an' : 'a'} ${letter}`;
   return {
     value,
     label: 'The teaching standard',
-    detail: `${pct(aShare)} of courses graded A: standing can reach ${value.toFixed(0)}. A campus of B's reaches ${teachingCeilingAt(GRADE_POINTS.B).toFixed(0)}; only A's everywhere reach ${PRESTIGE_MAX}.`,
+    detail: `${average}: standing can reach ${value.toFixed(0)}. A campus of B's reaches ${teachingCeilingAt(GRADE_POINTS.B).toFixed(0)}; only A's everywhere reach ${PRESTIGE_MAX}.`,
   };
 }
 
