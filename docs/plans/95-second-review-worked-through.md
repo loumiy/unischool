@@ -102,16 +102,16 @@ Area 4's order:
   college spends on.
 - T, U and V can go side by side with any of them.
 
+Area 6's order: Y and Z are documents and pictures, and can land any time.
+Y's README words name the pillars and the specialization as R leaves them,
+so if R lands first Y says "the top 30 or a pillar's top 10".
+
 Area 7's order:
 - AA, AB and AC are small and independent, and can land any time.
 - AC changes the harness's college name, which every scenario save and
   screenshot carries. Land it before the PRs that take screenshots from
   scenarios, so none of them reads "Test University University".
 - AD moves balance, and runs on its own, as the other re-baselines do.
-
-Area 6's order: Y and Z are documents and pictures, and can land any time.
-Y's README words name the pillars and the specialization as R leaves them,
-so if R lands first Y says "the top 30 or a pillar's top 10".
 
 ---
 
