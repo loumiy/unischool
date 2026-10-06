@@ -23,7 +23,7 @@ import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
 import { collegeSpecialization } from '../systems/prestige/milestone';
 import { Standing, StandingFigure } from './StandingBreakdown';
 import RankingsPanel from './RankingsPanel';
-import { pillarShareRule, pillarWeightsWords } from '../data/prestigeWords';
+import { pillarShareRule, pillarWeightsWords, specializationOfferRule } from '../data/prestigeWords';
 
 // Institutional History: the one screen that shows the decades. It reads
 // s.history (state/history.ts) and live readings, and stores nothing of its
@@ -47,7 +47,7 @@ function PrestigePanel({ s }: { s: GameState }) {
         </div>
         <HelpHint
           align="end"
-          text={`Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, ${pillarWeightsWords()}, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings. ${pillarShareRule()} The college's specialization, once chosen, opens its own.`}
+          text={`Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, ${pillarWeightsWords()}, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings. ${pillarShareRule()} The college's specialization, once chosen, opens its own. ${specializationOfferRule()}`}
         />
       </div>
       <p className="stat specialization-status">{collegeSpecialization(s)}</p>

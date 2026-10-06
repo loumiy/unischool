@@ -137,7 +137,7 @@ export const PARK_WORDS = {
     `Landmark work in the last ${LANDMARK_WINDOW_YEARS} years: ${years(done)} years of the ${LANDMARK_YEARS_FOR_FULL} that fill research's specialization share${full ? ', which is full' : ''} (a year for each program, each year it runs; ${runningNow(running)}, and no more than ${LANDMARKS_COUNTED} at once count). Every lab's output is ${pct(PARK_RESEARCH_BOOST)} higher while the park stands.`,
   idle: (chosen: string) => `The Research Park stands and its labs may take on Landmark Programs, but the college is specialized in ${chosen}: the park fills no share of research and adds nothing to the labs' output.`,
   idleUnchosen: `The Research Park stands and its labs may take on Landmark Programs. Only once the college specializes in research does its Landmark work fill research's specialization share, and the labs' output rise ${pct(PARK_RESEARCH_BOOST)}.`,
-  gatedUnchosen: (milestone: number) => `The Research Park is the research specialization's own building, and the Landmark Program comes with it. The board offers the choice of a specialization at the first summer the college stands in the guide's top ${milestone}.`,
+  gatedUnchosen: (offer: string) => `The Research Park is the research specialization's own building, and the Landmark Program comes with it. ${offer}`,
   gatedElsewhere: (chosen: string) => `The Research Park is the research specialization's own building, and the college is specialized in ${chosen}, so it cannot be built here, and Landmark Programs stay closed.`,
   landmarkClosed: 'Landmark Programs, four scholars across disciplines over five years, are commissioned once the Research Park stands, which only a college specialized in research may build.',
 

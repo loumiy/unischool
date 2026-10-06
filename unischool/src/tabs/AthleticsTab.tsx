@@ -5,7 +5,7 @@ import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { PILLAR_WORDS, teamLimitHelp, teamSlowed } from '../data/specializationData';
 import { ATHLETICS_COMPLEX_ID, COMPLEX_WORDS, complexReading, complexRecruiting, complexStands } from '../data/athleticsComplexData';
-import { SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
+import { specializationOfferRule } from '../data/prestigeWords';
 import { specializationOf } from '../systems/prestige/specialization';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
@@ -347,7 +347,7 @@ function ComplexSection({ s }: { s: GameState }) {
     ? complexStands(s)
       ? COMPLEX_WORDS.works(s, complexReading(s) >= 1, flagships, pot.cap, pot.baseCap, RECRUITING_FULL_LIFT)
       : complex.status === 'developing' ? COMPLEX_WORDS.goingUp : COMPLEX_WORDS.build
-    : chosen ? COMPLEX_WORDS.gatedElsewhere(PILLAR_WORDS[chosen]) : COMPLEX_WORDS.gatedUnchosen(SPECIALIZATION_MILESTONE_RANK);
+    : chosen ? COMPLEX_WORDS.gatedElsewhere(PILLAR_WORDS[chosen]) : COMPLEX_WORDS.gatedUnchosen(specializationOfferRule());
   return (
     <section className="athletics-complex" aria-label={COMPLEX_WORDS.head}>
       <h3 className="facility-group-head">{COMPLEX_WORDS.head}</h3>

@@ -1,6 +1,6 @@
 import type { Pillar } from '../state/types';
 import { decimal, pct } from '../format';
-import { PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, SPECIALIZATION_TERM_WEIGHTS } from '../systems/prestige/prestigeSystem';
+import { PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_TERM_WEIGHTS } from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
 // The pillar rule, said once (Plan 95E, the second review's B2-4): prestige
@@ -46,4 +46,17 @@ export function pillarShareRule(): string {
 // The whole rule, two sentences: the blend, then the shares.
 export function pillarRule(): string {
   return `Prestige is the blend of four pillars, ${pillarWeightsWords()}, the same for every college. ${pillarShareRule()}`;
+}
+
+// When the board offers the choice (Plan 95R, the second review's B4-2):
+// the two routes, from prestigeSystem.ts's constants, as one clause:
+// "the first summer the college stands in the guide's top N or in the top M
+// of any one pillar's standing".
+export function specializationOfferWhen(): string {
+  return `the first summer the college stands in the guide's top ${SPECIALIZATION_MILESTONE_RANK} or in the top ${SPECIALIZATION_PILLAR_RANK} of any one pillar's standing`;
+}
+
+// The same, a sentence.
+export function specializationOfferRule(): string {
+  return `The board offers the choice of a specialization at ${specializationOfferWhen()}.`;
 }

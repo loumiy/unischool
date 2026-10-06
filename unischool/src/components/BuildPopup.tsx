@@ -1,6 +1,7 @@
 import { closedBySpecialization, endowmentHalf } from '../systems/estate/projects';
 import { CLOSED_BUILD_WORDS } from '../data/specializationData';
-import { SPECIALIZATION_MILESTONE_RANK, specializationOf } from '../systems/prestige/prestigeSystem';
+import { specializationOf } from '../systems/prestige/prestigeSystem';
+import { specializationOfferRule } from '../data/prestigeWords';
 import { useEffect, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
@@ -613,7 +614,7 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
 function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   const Icon = iconForBuildable(t);
   const pillar = t.project!.specialization!;
-  const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), SPECIALIZATION_MILESTONE_RANK);
+  const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), specializationOfferRule());
   return (
     <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
       <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} />
