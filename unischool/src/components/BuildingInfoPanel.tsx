@@ -1,4 +1,5 @@
 import { constructionFrozen } from '../systems/finance/distress';
+import LevelPips, { buildingLevel } from './LevelPips';
 import ConfirmButton from './ConfirmButton';
 import { RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, extensionWeeks, renovationCost } from '../systems/estate/estate';
 import { canPayForWorks } from '../systems/finance/treasury';
@@ -694,6 +695,14 @@ function BuildingHallInfo({ t, s, act, onOpenCurriculum, focusProgramId }: {
   return <p className="building-info-line">{t.description}</p>;
 }
 
+// A building's level, where it has one to raise (Plan 96D: on its panel,
+// beside the button that raises it, not on the build menu's tiles).
+function LevelLine({ s, t }: { s: GameState; t: Buildable }) {
+  const level = buildingLevel(s, t);
+  if (!level) return null;
+  return <p className="building-info-line building-info-level">{level.label} <LevelPips level={level} /></p>;
+}
+
 // A finished building's condition and, when it has a backlog, the offer to
 // renovate it (systems/estate).
 function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action) => void }) {
@@ -795,6 +804,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
         <h3>{hallDisplayName(s, t)}</h3>
         <button type="button" className="close-btn" onClick={onClose} aria-label="Close"><CloseIcon /></button>
       </div>
+      {t.status === 'done' && <LevelLine s={s} t={t} />}
       {t.status === 'done' && act && <EstateLine t={t} s={s} act={act} />}
       {t.status === 'developing' && weeksLeft !== undefined && (
         <p className="building-info-line building-info-construction">

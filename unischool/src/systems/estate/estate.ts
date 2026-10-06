@@ -85,10 +85,19 @@ const EXTENSION_GAIN = 0.25;
 
 const isLibrary = (t: Buildable) => t.id === LIBRARY_TIER1_ID;
 
+// A building that takes another story: a residence with beds, a dining
+// hall, the library.
+export function isExtendable(t: Buildable): boolean {
+  return (t.kind === 'dorm' && (t.effects?.capacityBonus ?? 0) > 0) || t.facilityType === 'diningHall' || isLibrary(t);
+}
+
+// The stories it can add in all.
+export function extensionMax(t: Buildable): number {
+  return isLibrary(t) ? LIBRARY_FLOOR_MAX : EXTENSION_MAX_STOREYS;
+}
+
 export function canExtend(t: Buildable): boolean {
-  const kind = (t.kind === 'dorm' && (t.effects?.capacityBonus ?? 0) > 0) || t.facilityType === 'diningHall' || isLibrary(t);
-  const max = isLibrary(t) ? LIBRARY_FLOOR_MAX : EXTENSION_MAX_STOREYS;
-  return kind && t.status === 'done' && (t.floorsAdded ?? 0) < max
+  return isExtendable(t) && t.status === 'done' && (t.floorsAdded ?? 0) < extensionMax(t)
     && (t.extensionWeeks ?? 0) === 0 && (t.renovationWeeks ?? 0) === 0;
 }
 

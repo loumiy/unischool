@@ -28,15 +28,12 @@ export const CAREER_WORDS = {
   yearsHere: (years: number) => (years < 1 ? 'In their first year here.' : `${years} ${years === 1 ? 'year' : 'years'} here.`),
   retires: (years: number) => (years <= 1 ? 'Retires within the year.' : `Retires in about ${years} years.`),
 
-  // The person, each part explained.
+  // The person: each fact as itself, no explainer beside it (Plan 96D).
   bioLabel: 'Background',
-  bioNote: 'Their field and what they work on.',
   nationalityLabel: 'Nationality',
-  nationalityNote: 'Where they come from. It changes nothing in their work.',
   quirkLabel: 'Quirk',
-  noQuirk: 'None: nothing about them moves the numbers.',
+  noQuirk: 'None',
   payLabel: 'Pay',
-  payNote: (listed: string) => `(${listed} at a prestige-50 market)`,
   slotsLabel: 'Course slots',
   outputLabel: 'Scholarly output',
   output: (perWeek: string, paper: number) => `${perWeek} a week, of the ${paper} a paper takes`,
@@ -77,7 +74,6 @@ export const CAREER_WORDS = {
   // The chart.
   chartLegend: { teaching: 'Teaching', research: 'Research' },
   chartTooShort: 'The chart begins once they have finished a year here.',
-  chartNote: 'A mark at the end of each year, and today. The bands are the course grades: A from 78, B from 62.',
 
   // A candidate has no history here, and says so.
   candidate: (name: string, college: string) => `${name} has not worked at ${college}. There is no history here yet: the record starts the week they are appointed.`,
@@ -87,8 +83,8 @@ export const CAREER_WORDS = {
   close: 'Close',
 };
 
-// A quirk's effects in words (data/quirkData.ts): what it does to the
-// numbers, so a quirk is explained rather than only named.
+// A quirk's effects as numbers (data/quirkData.ts), the numbers only
+// (Plan 96D): "teaching potential +4, morale −2".
 export function quirkEffectWords(effects: QuirkEffects): string[] {
   const out: string[] = [];
   const points = (n: number) => `${n > 0 ? '+' : '−'}${Math.abs(n)}`;
@@ -96,15 +92,13 @@ export function quirkEffectWords(effects: QuirkEffects): string[] {
   if (effects.research) out.push(`research potential ${points(effects.research)}`);
   if (effects.salary && effects.salary !== 1) {
     const pct = Math.round(Math.abs(effects.salary - 1) * 100);
-    out.push(`paid ${pct}% ${effects.salary > 1 ? 'more' : 'less'}`);
+    out.push(`pay ${effects.salary > 1 ? '+' : '−'}${pct}%`);
   }
-  if (effects.morale) out.push(effects.morale > 0 ? 'the students take to them' : 'the students find them hard going');
+  if (effects.morale) out.push(`morale ${points(effects.morale)}`);
   return out;
 }
 
 export function quirkExplained(effects: QuirkEffects): string {
   const words = quirkEffectWords(effects);
-  if (words.length === 0) return 'It changes nothing in the numbers.';
-  const list = words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
-  return `In the numbers: ${list}.`;
+  return words.join(', ');
 }

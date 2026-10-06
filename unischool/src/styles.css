@@ -821,17 +821,10 @@ button.build-tile { font-family: inherit; }
   padding-top: 4px; }
 .build-tile-note { font-size: var(--text-2xs); color: var(--bad-on-light); font-style: italic; line-height: 1.15; }
 .build-tile-progress { width: 100%; margin-top: auto; padding-top: 6px; }
-/* A tiered building's level (Plan 90): pips filled up to it, out of the
-   chain's top tier. */
-.build-tile-level { display: flex; gap: 3px; justify-content: center; }
-.build-tile-level i { width: 10px; height: 6px; border-radius: 2px; border: 1.5px solid var(--outline); background: var(--cream-hi); }
-.build-tile-level i.on { background: var(--school-secondary); }
 
 .build-tile.available:hover:not(:disabled) { background: var(--school-secondary); color: var(--school-on-secondary); box-shadow: var(--shadow-2); }
 .build-tile.available:hover:not(:disabled) .build-tile-foot,
 .build-tile.available:hover:not(:disabled) .build-tile-sub { color: var(--school-on-secondary); }
-/* On a gold tile the filled pips go to ink, so the level still reads. */
-.build-tile.available:hover:not(:disabled) .build-tile-level i.on, .build-tile.placing .build-tile-level i.on { background: var(--outline); }
 /* Can't be built (short of cash, frozen, closed): flat, the drawing faint on
    its paper. */
 .build-tile.available:disabled { color: var(--ink-muted); cursor: not-allowed; box-shadow: none;
@@ -841,7 +834,6 @@ button.build-tile { font-family: inherit; }
 .build-tile.available:disabled .build-thumb { opacity: 0.45; filter: grayscale(0.6); }
 .build-tile.available:disabled .build-tile-sub, .build-tile.available:disabled .build-tile-foot { color: var(--ink-muted); }
 .build-tile.available:disabled .build-tile-stamp { color: var(--ink-muted); border-color: var(--parchment-line); }
-.build-tile.available:disabled .build-tile-level i { border-color: var(--parchment-line); }
 .build-tile.placing { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--outline); box-shadow: var(--shadow-2); }
 .build-tile.placing .build-tile-foot, .build-tile.placing .build-tile-sub { color: var(--school-on-secondary); }
 /* Going up: the drawing in the school colour on a dashed sheet. */
@@ -879,6 +871,11 @@ button.build-tile { font-family: inherit; }
   border-bottom: 2px solid var(--outline); padding-bottom: var(--space-8); margin-bottom: var(--space-8); }
 .building-info-head h3 { margin: 0; }
 .building-info-line { margin: 0 0 6px; font-size: var(--text-sm); line-height: 1.4; color: var(--ink); }
+/* A building's level as pips (Plan 96D, LevelPips.tsx). */
+.building-info-level { display: flex; align-items: center; gap: var(--space-8); }
+.level-pips { display: inline-flex; gap: 3px; }
+.level-pips i { width: 10px; height: 6px; border-radius: 2px; border: 1.5px solid var(--outline); background: var(--cream-hi); }
+.level-pips i.on { background: var(--school-secondary); }
 .building-info-jump { display: block; width: 100%; margin-top: var(--space-8); padding: var(--space-6) var(--space-12); font-size: var(--text-xs); }
 
 /* ---------- Hall view (BuildingInfoPanel.tsx's HallSlots) ---------- */
@@ -1636,6 +1633,9 @@ button.build-tile { font-family: inherit; }
 .row-action { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 6px; font-size: var(--text-xs); }
 .row-action-develop { display: inline-flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 .row-action-develop .cell-code { opacity: 1; }
+/* A long title is cut on a narrow screen; the button's tooltip has it whole. */
+.row-action-title { font-weight: 800; min-width: 0; max-width: 22em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 600px) { .row-action-title { max-width: 11em; } }
 .row-action-cost { font-weight: 700; color: var(--ink-muted); }
 .row-action-secondary { padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 .row-action-note { color: var(--ink); font-weight: 600; }
@@ -2310,7 +2310,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .career-key::before { content: ''; display: inline-block; width: 16px; height: 0; margin-right: 5px; vertical-align: middle; border-top: 2px solid var(--school-primary); }
 .career-key.research::before { border-top: 2px dashed var(--ink); }
 .career-chart-years { color: var(--ink-muted); margin-left: auto; }
-.career-chart-note { margin: 4px 0 0; font-size: var(--text-2xs); color: var(--ink-muted); }
 
 /* A phone: the person over the whole screen, above the tab. */
 .faculty-sheet { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--cream); }
@@ -3510,9 +3509,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
   border: 5px solid var(--school-secondary); box-shadow: 0 0 0 2px var(--outline), 4px 4px 0 2px var(--outline); }
 .pennant-body::before { content: ''; position: absolute; inset: var(--space-4); border-radius: inherit; pointer-events: none;
   border: 1.5px dashed color-mix(in srgb, var(--school-secondary) 70%, transparent); }
-.pennant-est { display: flex; align-items: center; gap: var(--space-6); font-family: var(--display); font-weight: 800; font-size: calc(9px * var(--text-scale));
-  line-height: 1; letter-spacing: 0.22em; text-transform: uppercase; color: var(--school-secondary); }
-.pennant-est > span { font-size: calc(8px * var(--text-scale)); letter-spacing: 0; }
 /* Two lines at most (Plan 76I): a long name ran to four and covered the
    menu. The whole name is in the title, and so hoverable. */
 .pennant-name { font-family: var(--display); font-weight: 800; font-size: var(--text-2xl); line-height: 1.08; letter-spacing: -0.01em; overflow-wrap: anywhere;

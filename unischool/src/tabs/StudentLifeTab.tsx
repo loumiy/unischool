@@ -418,28 +418,6 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
           <StudentLifeEffect s={s} />
         )}
 
-        {clubsOpen && pending.length > 0 && (
-          <section className="panel panel-span-2">
-            <h2>Awaiting recognition</h2>
-            <p className="empty-note">
-              The President answers them together at the summer's Students step; none waits on a decision now.
-            </p>
-            <ul className="org-list">
-              {pending.map((p) => (
-                <li key={p.id} className="org-row">
-                  <span className="org-name">
-                    {p.name}
-                    <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
-                  </span>
-                  <span className="org-meta">
-                    {p.foundingMembers} founding members · {moneyShort(p.upkeepPerWeek)}/wk if recognized
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         {/* The rosters are hidden while there are no organisations; the
             note above says so once. */}
         {clubsOpen && !emptyOrgs && (
@@ -513,6 +491,27 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
             )}
           </section>
           </>
+        )}
+
+        {/* A half-panel after the clubs and chapters, so their pair keeps its
+            row (Plan 96D). */}
+        {clubsOpen && pending.length > 0 && (
+          <section className="panel">
+            <h2>Awaiting recognition</h2>
+            <ul className="org-list">
+              {pending.map((p) => (
+                <li key={p.id} className="org-row">
+                  <span className="org-name">
+                    {p.name}
+                    <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
+                  </span>
+                  <span className="org-meta">
+                    {p.foundingMembers} founding members · {moneyShort(p.upkeepPerWeek)}/wk if recognized
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
       </div>

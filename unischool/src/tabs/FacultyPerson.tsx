@@ -100,7 +100,6 @@ function GrowthChart({ marks }: { marks: YearMark[] }) {
         <span className="career-key research">{W.chartLegend.research}</span>
         <span className="career-chart-years">{W.courseSpan(first, last[0])}</span>
       </figcaption>
-      <p className="career-chart-note">{W.chartNote}</p>
     </figure>
   );
 }
@@ -135,17 +134,17 @@ export default function FacultyPerson(
         <h5>{W.headings.person}</h5>
         <dl className="faculty-person-facts">
           <dt>{W.bioLabel}</dt>
-          <dd>{f.bio} <span className="faculty-person-note">{W.bioNote}</span></dd>
+          <dd>{f.bio}</dd>
           <dt>{W.nationalityLabel}</dt>
-          <dd>{f.nationality}. <span className="faculty-person-note">{W.nationalityNote}</span></dd>
+          <dd>{f.nationality}</dd>
           <dt>{W.quirkLabel}</dt>
           <dd>
             {quirk
-              ? <><strong>{quirk.name}.</strong> {quirk.line} <span className="faculty-person-note">{quirkExplained(quirk.effects)}</span></>
+              ? <><strong>{quirk.name}.</strong> {quirk.line}{quirkExplained(quirk.effects) && <> <span className="faculty-person-note">{quirkExplained(quirk.effects)}</span></>}</>
               : W.noQuirk}
           </dd>
           <dt>{W.payLabel}</dt>
-          <dd>{money(facultyPay(s, f.salary))}/yr <span className="faculty-person-note">{W.payNote(money(f.salary))}</span></dd>
+          <dd>{money(facultyPay(s, f.salary))}/yr</dd>
           <dt>{W.slotsLabel}</dt>
           <dd>{f.courseSlots}</dd>
           {!isCandidate && (

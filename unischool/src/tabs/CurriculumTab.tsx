@@ -870,7 +870,9 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
             : courseSlotsFree(s) === 0 ? `The committee is writing its most (${committeeSeats(s)}); the next starts when a course is done` : 'Cannot start this course right now'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: next.id, facultyId: best.id })}
       >
-        Develop <span className="cell-code">{code}</span> with {surnameOf(best.name)}
+        {/* The course by its title, not its code (Plan 96D); the code and the
+            full name stay in the tooltip and the course cell. */}
+        Develop <span className="row-action-title">{titleFromName ?? code}</span> with {surnameOf(best.name)}
         <GradeChip grade={projected.grade} title={`${next.name} would be graded ${projected.grade} with ${best.name}`} />
       </button>
       <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>

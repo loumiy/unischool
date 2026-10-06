@@ -278,6 +278,38 @@ The review's §2 and the owner's decisions 1 and 2.
   it. The pennant is checked at its longest name.
 - **Checks:** the screenshots; `npm run phone`.
 
+**As implemented:**
+
+- **Awaiting recognition** is a half-panel after Greek chapters, not
+  before Clubs. Before Clubs it would have broken the Clubs and Greek
+  chapters pair over two rows; after it, the pair keeps its row and the
+  half-panel ends the grid. Its sentence ("The President answers them
+  together…") is gone too, which E planned.
+- **The person**
+  ([shot](../reviews/2026-10-playthrough-fixes/96d-person.jpg)):
+  - `bioNote`, `nationalityNote` and `payNote` are gone from
+    `careerWords.ts`;
+  - "No quirk" reads "None";
+  - `quirkExplained` returns the numbers alone ("teaching potential +4,
+    morale −2", "research potential +12, pay +10%"), or nothing.
+- **Courses by name.** `RowAction`'s Develop button
+  ([shot](../reviews/2026-10-playthrough-fixes/96d-develop-by-name.jpg))
+  reads the title, cut with an ellipsis past 22em (11em under 600px), and
+  the tooltip keeps the code. The drawer's button and the batch button
+  never carried a code. The Faculty tab's *Worth taking* tooltips list the
+  courses a hire opens by title (`hiringNext.ts`'s `unblocks`). The
+  committee's lamps and seats keep their codes: they are not buttons, and
+  decision 2 leaves the rest of the curriculum alone.
+- **Levels.** `components/LevelPips.tsx`'s `buildingLevel`:
+  - a residence, dining hall or library reads "Story N of M", from
+    `floorsAdded` and `estate.ts`'s new `isExtendable` and `extensionMax`;
+  - a step in a chain of two or more reads "Level N of M";
+  - the line sits at the top of a finished building's panel, over *Add a
+    story* ([shot](../reviews/2026-10-playthrough-fixes/96d-dorm-level.jpg));
+  - the build menu's tiles lose their pips, and their CSS goes with them.
+- **The pennant** ([shot](../reviews/2026-10-playthrough-fixes/96d-pennant.jpg))
+  is the name alone. `.pennant-est` is removed.
+
 ## PR 96E — Words
 
 The review's §3, §1.8 and §4.4, then the same rule applied further (2).
