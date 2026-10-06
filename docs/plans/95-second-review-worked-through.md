@@ -133,6 +133,13 @@ all thirty PRs in one order. It is built on four constraints:
   - I then T: the summer Review's grouped lists;
   - E then F then H: History › Prestige and the pillar rule;
   - H then S: the teaching line S links from.
+- **How the run is worked** (the owner's answers before it began):
+  - each PR is merged once `check` and `slow` pass;
+  - balance PRs re-baseline and report their numbers in the PR, stopping
+    only if a goal player collapses;
+  - a stage's side-by-side PRs are worked by parallel agents, each in its
+    own worktree;
+  - L's structure question is answered: a fourth tier.
 - **The owner's answers are slow, so ask early.** L (the catalog table)
   and W (the money measure, which decides X) go out first. M and X wait on
   them while everything else lands.
@@ -586,7 +593,9 @@ every save. This PR writes the change as a table and changes no code.
   - **renumber the tiers** to 101 / 200s / 300s (with the 340 as the
     capstone): nine courses, every undergraduate id moves, balance
     unchanged.
-  The table recommends one. The owner chooses.
+  **The owner's answer (before work began): a fourth tier.** Each major
+  gains a 300 capstone requiring all of tier 3, ten courses a major. So M
+  moves balance.
 - **Each item** from `2a`'s table, with its course ids before and after,
   title, sentence and prereqs:
   - JD: Professional Responsibility added or swapped in; LAWS540's clinic
@@ -620,10 +629,10 @@ every save. This PR writes the change as a table and changes no code.
     professor's course is orphaned.
   `SAVE_VERSION` steps up, and the fixtures in `test/fixtures/` gain one
   from before the change.
-- **Balance.** If L chose a fourth tier, `npm run sim` moves. The PR
-  re-baselines `sim/baseline.json`, and shows the goal players' years to
-  the first program and to the end against the baseline, for the owner.
-  If not, the sim must read the same.
+- **Balance.** The owner chose a fourth tier, so `npm run sim` moves. The
+  PR re-baselines `sim/baseline.json`, and shows the goal players' years
+  to the first program and to the end against the baseline, for the
+  owner.
 - **Checks:**
   - `save-migrations.test.ts` loads every fixture and finds no course id
     that the catalog does not hold.
