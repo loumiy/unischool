@@ -302,6 +302,73 @@ fields in the ring already do.
   - The canvas reads CSS variables the way the SVG does. Confirm the new
     tokens reach `mapCanvas.ts`'s style lookup.
 
+**As implemented.** Presentation only: nothing under `systems`, `state`,
+`data` or `sim` changed, so the sim was not run.
+
+- **Tokens.** `seasonStyle` sets, beside the old ones:
+  - `--turf` and `--turf-deep` (`.ground-turf`, `.ground-endzone`): the
+    pitch, the diamond's outfield, the gridiron and the stadium's field.
+    They dry toward straw with the lawn and take 0.42 of the snow (the
+    lawn's 0.85, halved). At week 26 the turf is `#b3be9c` against the
+    lawn's `#e2e7df`: a kept pitch, pale, still read as a pitch, the lines
+    white on it.
+  - `--court` (`.ground-court`): the same snow, no straw (it is paint).
+    `.ground-court-play` stays.
+  - `--water` (`.ground-water`, the pool): the summer blue to a grey-green
+    cover `#7d8b88` as the snow lies. The lanes (now `.ground-pool-lane`;
+    the running track keeps `.ground-lane`) and the deep end go under the
+    cover by `--under-ice-opacity`.
+  - `--pond` on a new `.ground-pond` for the Japanese garden: it freezes
+    to `#c4d3da`, the koi under the ice (`--under-ice-opacity`), the
+    lilies gone with the beds' blooms (`--bloom-opacity`).
+  - `--sakura` and `--sakura-top` (`.jg-sakura`): the ornamental leaf
+    (green, rust, bare twigs, bud) mixed to the blossom's pinks by `bud`,
+    so the cherries are pink only while the trees bud (pure blossom at
+    weeks 38–40, none outside 34–44); their petals on the ground show by
+    `--petal-opacity` (the same `bud`).
+  - `--garden-grass` and `--moss`: the garden's ground under the snow as
+    the lawn is.
+- **The sweep.** Every literal fill in the ground rules and
+  `groundMarkings.tsx` is a token now or carries a comment saying why it
+  stays: the track, the infield's skin, the paving and the courts' play
+  surface (kept clear, or not living), the fountains' water (a quad's
+  centrepiece; a drained basin reads as broken), the hedges' sides and
+  the green azalea (evergreen; their tops already take `--hedge-top`'s
+  snow), the batter's eye (a painted wall). The garden's pink and magenta
+  azaleas take `--azalea*` tokens: in flower but for the fall and winter,
+  green leaves then, the tops under snow. The quads' panels were already
+  `.ground-lawn`.
+- **The canvas.** `canvasPaint.ts`'s `StyleResolver` probes each class
+  inside the map's host, where `seasonStyle`'s variables are set, and
+  `mapCanvas.ts` resets every rule when the season changes, so the new
+  tokens reach the canvas with no change to either file. The roof track's
+  literal infield fill became a class for that reason.
+- **Tests.** `test/seasons.test.ts` checks each new token's summer value
+  at `SUMMER_GREEN_WEEK` and week 2, and its behaviour at weeks 12, 26
+  and 40, and that no week without `bud` shows blossom (236 checks).
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/`: the
+  Completionist's year-51 campus (laid out) at weeks 12, 26 and 40 on the
+  canvas and the SVG (`95b-week{12,26,40}-{canvas,svg}.jpg`), the grounds
+  at the three weeks (`95b-grounds-weeks-12-26-40.jpg`) and the garden
+  close up, canvas and SVG side by side (`95b-garden-weeks-12-26-40.jpg`).
+
+**Deviations.**
+
+- **The roof track's infield takes the lawn's full snow** (`--turf-roof`
+  via the lawn's curve), not the pitches' half. At half cover it was the
+  greenest thing on a white campus at week 26: a roof is not swept.
+- **The cherries with seasons off are green, not pink.** The spec's
+  "the canopy's green in summer" and "every token reads its summer value
+  at `SUMMER_GREEN_WEEK`" together mean the seasons-off garden loses its
+  blossom (and its petals). The azaleas keep their flowers in summer, so
+  the garden keeps some pink.
+- **The cherries wear the ornamental leaf in every season**, the
+  ornamental green in summer rather than the canopy's, so one species
+  reads as one tree whichever crown the garden drew.
+- **The azaleas, the lilies, the koi and the petals** were not named in
+  the spec; they were pink, green or orange in midwinter, so the sweep
+  took them.
+
 ### PR 95C — The downtown in daylight, and a look at it (B1-7)
 
 The student-life district (Plan 85H) is "lit" through a festival's weeks
