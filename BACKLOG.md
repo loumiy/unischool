@@ -30,7 +30,8 @@ ten bugs whose cause is known, UI and text changes the owner has decided,
 balance (the first three years, the faculty's 55% start), performance late
 in a run. The owner answered its four questions (its §7): drop "Est. Year
 1", course names in place of codes, no formal text pass, and print years
-1–5 in the pacing report before tuning the opening. Not yet a plan.*
+1–5 in the pacing report before tuning the opening. Sequenced in
+[Plan 96](docs/plans/96-the-owners-second-playthrough.md).*
 
 - **Targets against actuals** (the owner, kept here at their request).
   Satisfaction shows *target* beside *today*, and prestige shows
