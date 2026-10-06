@@ -198,6 +198,9 @@ export type Action =
   | { type: 'HIRE_COACH'; candidateId: string; teamId: string; role: 'head' | 'assistant' | 'trainer' }
   // The coach is discarded, not returned to the pool.
   | { type: 'FIRE_COACH'; teamId: string; role: 'head' | 'assistant' | 'trainer' }
+  // Cuts a varsity program for good (Plan 95V, systems/athletics/cut.ts).
+  // Refused for a flagship in season.
+  | { type: 'CUT_TEAM'; teamId: string }
   // Clears alert badges (types.ts's SeenState); only the badged view sends it.
   | { type: 'MARK_SEEN'; kind: 'course' | 'buildable'; ids: string[] }
   // A gated tab has opened (TabNav.tsx's TAB_GATES). App.tsx passes
@@ -285,6 +288,7 @@ export function createPreStartState(): GameState {
       titles: [],
       pendingTitles: [],
       complexRuns: [],
+      cutPrograms: [],
       season: {},
       rivalries: {},
       athleticDirectorAskedWeek: 0,
@@ -447,6 +451,7 @@ function foundState(
       titles: [],
       pendingTitles: [],
       complexRuns: [],
+      cutPrograms: [],
       season: {},
       rivalries: {},
       athleticDirectorAskedWeek: 0,

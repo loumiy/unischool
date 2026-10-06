@@ -95,6 +95,7 @@ import { buildFor, foundIn, reserveOf } from '../../sim/harness/guided';
 import { brokenRules } from '../../sim/harness/invariants';
 import type { SpecializationRule } from '../../sim/harness/specialization';
 import { ATHLETICS_COMPLEX_ID, complexFlagships } from '../../src/data/athleticsComplexData';
+import { cutRefusal } from '../../src/systems/athletics/cut';
 import { TRAINING_INSTITUTE_ID, instituteStands, isTrained } from '../../src/data/trainingData';
 import { RESEARCH_PARK_ID } from '../../src/data/researchParkData';
 import { PILLARS, pillarValue } from '../../src/systems/prestige/prestigeSystem';
@@ -203,6 +204,8 @@ export interface RunRecord {
   // The championships player's flagships (Plan 80G's target): the year each
   // was chosen and put on full scholarships, and its first final four.
   flagships?: Array<{ sport: string; chosen: number; finalFour?: number }>;
+  // The championships player's programs cut (Plan 95V), by sport and year.
+  cuts?: Array<{ sport: string; year: number }>;
   // The specialization chosen at the milestone (Plan 85D), and when.
   specialization?: string;
   specializationYear?: number;
@@ -1032,9 +1035,15 @@ function championshipsPolicy(): Policy {
         if (staffed && s.orgs.athleticsBudget === 'high' && !isFlagship(s, weakest) && teamQuality(weakest, s) < 70) {
           j.want(s, 'recruit athletes', `Every chair is filled and the budget is at its top; ${weakest.name} still scores ${teamQuality(weakest, s).toFixed(0)}, and only a flagship can recruit.`);
         }
+        // Cutting the program (Plan 95V): the rule that wanted it, now acted
+        // on. A flagship is not cut in season; the weakest rarely is one.
         const missed = missedSeasons.get(weakest.sport) ?? 0;
-        if (missed >= 5) {
-          j.want(s, 'disband a program', `${weakest.name} has missed the postseason ${missed} times; a program cannot be disbanded.`);
+        if (missed >= 5 && cutRefusal(s, weakest.id) === null) {
+          const sport = weakest.sport;
+          if (j.because('cut-program', 'A program that has missed the postseason five times is cut: its money goes to the rest.', () => g.act({ type: 'CUT_TEAM', teamId: weakest.id }))) {
+            (j.rec.cuts ??= []).push({ sport, year: s.clock.year });
+            missedSeasons.delete(sport);
+          }
         }
       }
       // Money to pay for it: the academic core, Completionist-style.
@@ -1452,6 +1461,15 @@ export function writeReport(runs: RunRecord[], out: string): void {
     const sorted = [...spans].sort((a, b) => a - b);
     const mid = sorted[Math.floor((sorted.length - 1) / 2)];
     lines.push('', `Median: ${Number.isFinite(mid) ? `${mid} years` : 'never'} (${spans.filter(Number.isFinite).length}/${spans.length} runs reached a final four).`, '');
+  }
+
+  // Programs cut (Plan 95V): the players whose rule cuts one, and when.
+  const withCuts = runs.filter((r) => !r.error && r.goal === 'championships');
+  if (withCuts.length > 0) {
+    lines.push('## Programs cut', '', 'The championships player cuts a program that has missed the postseason five times (Plan 95V).', '');
+    lines.push('| Run | Programs cut |', '|---|---|');
+    for (const r of withCuts) lines.push(`| ${r.goal} ${r.seed} ${r.name} | ${(r.cuts ?? []).map((c) => `${c.sport} Y${c.year}`).join('; ') || 'none'} |`);
+    lines.push('', `${withCuts.filter((r) => (r.cuts?.length ?? 0) > 0).length} of ${withCuts.length} runs cut a program.`, '');
   }
 
   // Per goal: decisions, tedium, wants.

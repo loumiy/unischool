@@ -286,8 +286,11 @@ a sequence of PRs.*
   before ACCT110 and MATH130. Each change moves course ids in every save.
 - **Athletics deferrals.** **Founding a team directly** (not through a
   sport club's petition) is unbuilt; Plan 89's Athletics Development
-  Office builds it for a college that opens the office. **Disbanding a team** is unbuilt,
-  and so what happens to a venue whose last team folds is unanswered.
+  Office builds it for a college that opens the office. **Disbanding a
+  team** is built (Plan 95V): *Cut the program* on a program's card, never
+  for a flagship in season; the alumni give less for five years and write
+  to say so, and the rivalry ends. The venue stays and returns to
+  recreation, and the sport's club may form again.
   **Match simulation and a fixture list** stay out by the argument at the
   head of `systems/athletics/season.ts`: three dated occasions and the
   postseason produce a record and a rivalry, and a schedule would produce

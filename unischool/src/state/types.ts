@@ -982,6 +982,13 @@ export interface SeasonRecord {
   results: OccasionResult[];
 }
 
+// A varsity program the college cut (Plan 95V): the team is gone from
+// `teams`, and this is all that is kept of it.
+export interface CutProgram {
+  sport: string;
+  year: number;
+}
+
 // The all-time record against a sport's designated rival.
 // `streak` is signed: positive is the player's run of consecutive wins,
 // negative the rival's.
@@ -1037,6 +1044,9 @@ export interface StudentOrgState {
   // yearly; `rivalries` is the all-time record against each sport's rival.
   season: Record<string, SeasonRecord>;
   rivalries: Record<string, RivalryRecord>;
+  // The programs the college has cut (Plan 95V, systems/athletics/cut.ts):
+  // the sport and the year, for the alumni's dip in giving (alumni/giving.ts).
+  cutPrograms: CutProgram[];
   // Absolute week the AD offer last fired; 0 = never. The offer recurs
   // after a decline, and is stamped at fire time, not on decline: any path
   // that clears the interrupt without declining would otherwise re-fire it

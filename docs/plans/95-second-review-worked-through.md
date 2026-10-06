@@ -1976,6 +1976,64 @@ the venue.
 - **Checks:** reducer tests for the cut and its costs; the venue returns
   to recreation; a flagship cannot be cut in season.
 
+**As implemented.** `systems/athletics/cut.ts`, the `CUT_TEAM` action, and
+*Cut the program* at the foot of the opened card (`AthleticsTab.tsx`), armed
+as "Confirm — {sport} ends; its alumni will give less".
+- **The cut** removes the team outright: from `teams`, the priority list,
+  its season and its rivalry. Titles, last season and the complex's deep
+  runs stay as record.
+- **In season** runs from the opener (week 8) to the postseason (week 47).
+  A flagship is refused there, and the button says why; moved below the
+  line (the existing reorder, with its head coach's risk), or after the
+  postseason, it may go, and the next program moves up.
+- **The costs.** The alumni give 6% less the year of a cut, easing back
+  to nothing over five years; cuts add, to at most 20%
+  (`giving.ts`'s `cutGivingDip`; with no cut the factor is exactly 1, and
+  the Alumni panel says the dip while it lasts). A program cut in season
+  pays its staff, and a flagship's scholarships, to the season's end at
+  once; out of season nothing is owed. The alumni's letter goes through
+  `postBoardLetter` as `program-cut:{sport}`, read by
+  `inbox.ts`'s `boardLetterFor`, signed "From the alumni", naming the rival
+  and the trophy the rivalry ends with, with an *Open Athletics* button.
+- **The venue** stays and serves its social places, team or none (it
+  always did: a venue's capacity never read its team). The sport is free
+  for a club again, so the usual petition or the Athletics Development
+  Office can bring it back. A venue not yet started hides again, as one
+  does before its first team.
+- **The save:** `orgs.cutPrograms` (sport and year). `SAVE_VERSION` 97,
+  with `MIGRATIONS[96]` (`noCutsYet`), the fixture `save-v96.json` (the
+  year-29 college of `save-v94.json`, twenty programs fielded), and a
+  sanitizer on load; a letter about a sport the game does not know is
+  dropped.
+- **The harness.** The championships player now acts on the rule that
+  wanted it (week 40, its weakest program, five postseasons missed, not a
+  flagship in season). Over three seeds, six runs: **2 of 6 cut a
+  program** (Women's Basketball in year 33, Men's Lacrosse in year 34).
+  No other goal player and no `sim/` player cuts.
+- **Balance:** `npm run sim` reads the same as `sim/baseline.json` (no
+  change in any figure): no `sim/` player cuts, and with no cut the
+  giving factor is exactly 1.
+- **Checks:** `test/cut-team.test.ts` (the cut and its costs, the dip
+  easing, the letter, the flagship refused in season and allowed below the
+  line or after the postseason, the venue standing with the same social
+  places, the club free to form again, the save round trip and a malformed
+  record dropped); `save-migrations` loads the new fixture with none cut.
+- Screenshots: `docs/reviews/2026-10-review-ii-fixes/95v-*.jpg`.
+
+Deviations:
+- **No per-sport giving to stop.** The game has no athletics share of
+  giving by sport: the annual fund is by class (`givingOf`). The sport's
+  own money that does stop is its gate. The dip on the whole fund stands
+  for both halves of the spec's cost.
+- **Pay to the season's end is settled at once**, not by keeping the team
+  until then, so the program leaves the state outright and nothing waits
+  on a later week.
+- **A record of cuts, so a migration.** The dip needs the year of the cut,
+  so the save keeps `cutPrograms` (the spec's "otherwise, add a cutYear").
+- **Three seeds, not five.** The review's 6 of 10 wanted a cut over five
+  seeds; three seeds here (the brief's allowance) give 2 of 6 runs that
+  cut. The rule is the one that raised the want, unchanged.
+
 ### PR 95W — Money measured, and the scorecard re-based (B4-10, B4-11)
 
 - **Measure.** With Plan 89's offices in play, record cash, endowment and net

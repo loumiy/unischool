@@ -2,8 +2,8 @@ import type { GameState } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import type { Action } from '../state/actions';
 import { firstClassYear, memoryLine } from '../systems/alumni/ledger';
-import { annualGiving, canReunite, givingOf, reunionCost, warmthOf } from '../systems/alumni/giving';
-import { count, moneyShort } from '../format';
+import { annualGiving, canReunite, cutGivingDip, givingOf, reunionCost, warmthOf } from '../systems/alumni/giving';
+import { count, moneyShort, pct } from '../format';
 
 // The alumni ledger (Plan 30): every class the college has graduated, the
 // line its four years earned and the warmth that line set, newest first.
@@ -14,6 +14,8 @@ export default function AlumniPanel({ s, act }: { s: GameState; act: (a: Action)
   const classes = [...(s.alumni ?? [])].reverse();
   if (classes.length === 0) return null;
   const graduates = classes.reduce((t, a) => t + a.size, 0);
+  // A program cut (Plan 95V) dips the year's giving.
+  const dip = cutGivingDip(s);
   return (
     <section className="panel alumni-panel">
       <div className="panel-head">
@@ -21,7 +23,7 @@ export default function AlumniPanel({ s, act }: { s: GameState; act: (a: Action)
           <h2>The alumni</h2>
           <HelpHint text="Each class is stamped at commencement with what its four years held: how happy it was, how well taught, whether it lived through a building boom, a new school, or a freeze. That sets its warmth, and warmth is what the college is given back. A reunion, every fifth year after they leave, nudges one class a little; campaigns, events and promises move every class's." />
         </span>
-        <span className="stat">{count(graduates)} graduates in {classes.length} {classes.length === 1 ? 'class' : 'classes'} · {moneyShort(annualGiving(s))} a year</span>
+        <span className="stat">{count(graduates)} graduates in {classes.length} {classes.length === 1 ? 'class' : 'classes'} · {moneyShort(annualGiving(s))} a year{dip > 0 && <>, {pct(dip)} less since a program was cut</>}</span>
       </div>
       <ul className="alumni-list">
         {classes.slice(0, SHOWN).map((a) => (

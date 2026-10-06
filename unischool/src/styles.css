@@ -2889,6 +2889,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border-top: 1px dashed var(--parchment-line); font-size: var(--text-2xs); }
 /* The staff as three seats side by side (Plan 90): a filled seat outlined,
    an open one dashed with a blank face and a link to the market. */
+/* Cutting the program (Plan 95V), at the card's foot. */
+.team-card-cut { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding-top: var(--space-6);
+  border-top: 1px dashed var(--parchment-line); font-size: var(--text-2xs); }
 .team-card-staff { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); padding-top: var(--space-6);
   border-top: 1px dashed var(--parchment-line); }
 .staff-seat { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: var(--space-6) var(--space-4);
