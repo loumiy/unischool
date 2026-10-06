@@ -1313,6 +1313,58 @@ The owner's answer: open near the first years' grade, with no words added.
   - The guided player's run reads the same in `npm run sim`. If it does
     not, find out why before landing.
 
+**As implemented.**
+
+- **The building going up.** `nextStep.ts`'s `comingFor` finds what is
+  going up for a need: a building under construction (`s.developing`),
+  or a story being added to a standing one (`extensionWeeks`), the first
+  to open if several. A building serves housing by its beds, and any
+  other need by the need it is built for; a residence hall's shop does
+  not count as dining. `shortfall` then reads "Housing is at 12 —
+  Meadow House opens in 9 weeks" (or "…'s new story opens in …"), `go`
+  is `'hall'` with the building's id (the map pans to it and opens its
+  panel, which shows the construction), and the intent is `wait`. When
+  it opens, the line reads the need afresh.
+- **The guided player** reads that `wait` and builds nothing for the
+  line. After year one a waiting shortfall gives way to an idle lab and
+  is shown only when nothing else speaks, as a waiting letter already
+  does.
+- **The step toward a school.** `establishText` keeps the goal and adds
+  the step from `establishIntent`: "Establish Science (2 of 6): move
+  Mathematics into Elm Hall", "…: found Physics in Founders Hall",
+  "…: post a search in Physics" (nobody on the payroll or the market can
+  teach the entry course), "…: the search in Physics has 4 weeks to run",
+  "…: move English to Elm Hall to make room" (another school's program
+  out of a full hall), and, while waiting, "…: Anthropology arrives in 4
+  weeks", "…: no Science program is on offer" or "…: Elm Hall is full,
+  and no other hall has room". The second school reads "Establish
+  another school, Business (3 of 6): …". A move's `go` opens the
+  program's tile in the hall it moves from.
+- **Tests:** `first-year.test.ts` (a need with nothing going up, two
+  residence halls going up and the first to open named, a building that
+  serves another need, the line after both open); `sorting.test.ts`
+  (each step, the move's tile, the count 2 → 3 → 4 through two moves and
+  on arrival); the existing wordings in `sorting` and `split-school`
+  updated.
+- **Balance:** `npm run sim` reads the same as `sim/baseline.json`; no
+  figure moved.
+
+**Deviations.**
+
+- **The count in transit needed no code.** A move takes its new slot the
+  week it leaves (`techSystem.ts`'s `relocateProgram`), and
+  `closestSchool` already counts a program in transit in that hall. The
+  fall the review saw came from the school being split between Founders
+  Hall and Elm Hall while the line counted Founders Hall. Since Plan 89G
+  a hall with an office is passed over, and the line's moves are always
+  into the hall it counts, so its count only rises. The test pins it.
+- **"Post a search in Marketing"**, not "for": the Curriculum's button
+  and the log say "a search in {field}" (B2's consistency).
+- **A move out of a full hall** to make room says so ("to make room"):
+  "move English into Elm Hall" toward Science read as the wrong school.
+- **`go` reuses `'hall'`** for any building's panel, rather than a new
+  target: the map's inspect already opens any placed building.
+
 ### PR 95P — Crowding, at the admissions decision and on NEXT (B3-5)
 
 - **At the decision** (`InterruptModal.tsx`, beside the projections of
