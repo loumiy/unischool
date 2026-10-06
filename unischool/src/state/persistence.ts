@@ -241,20 +241,27 @@ function researchParkGate(state: GameState): void {
   if (park && park.status === 'available' && state.specialization !== 'research') park.status = 'locked';
   const research = state.research;
   if (!research) return;
-  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  // Weeks from 0; the clock's week is the one about to be played, so the
+  // weeks played run up to the one before it (Plan 95AA).
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week - 1;
   const from = state.clock.year - LANDMARK_WINDOW_YEARS + 1;
-  const byYear = new Map<number, number>();
+  // Counted per absolute week first, each week capped, and only then summed
+  // by year (Plan 95AA, the second review's H7-1): a cap on the year alone
+  // let eight programs fill two weeks with sixteen.
+  const byWeek = new Map<number, number>();
   const span = (end: number, weeks: number) => {
-    for (let w = Math.max(0, end - weeks); w < end; w += 1) {
-      const year = Math.floor(w / WEEKS_PER_YEAR) + 1;
-      if (year >= from && year <= state.clock.year) byYear.set(year, (byYear.get(year) ?? 0) + 1);
-    }
+    for (let w = Math.max(0, end - weeks); w < end; w += 1) byWeek.set(w, (byWeek.get(w) ?? 0) + 1);
   };
   for (const i of Object.values(research.initiatives ?? {})) {
     if (i.depth === 'landmark') span(now, Math.max(0, i.weeksTotal - i.weeksRemaining));
   }
   for (const done of research.completedInitiatives ?? []) {
     if (done.depth === 'landmark' && !done.cancelled) span((done.year - 1) * WEEKS_PER_YEAR + WEEKS_PER_YEAR / 2, 5 * WEEKS_PER_YEAR);
+  }
+  const byYear = new Map<number, number>();
+  for (const [w, count] of byWeek) {
+    const year = Math.floor(w / WEEKS_PER_YEAR) + 1;
+    if (year >= from && year <= state.clock.year) byYear.set(year, (byYear.get(year) ?? 0) + Math.min(count, LANDMARKS_COUNTED));
   }
   research.landmarkWork = [...byYear.entries()].sort((a, b) => a[0] - b[0])
     .map(([year, weeks]) => ({ year, weeks: Math.min(weeks, LANDMARKS_COUNTED * WEEKS_PER_YEAR) }));
@@ -449,6 +456,7 @@ function writeSave(state: GameState): boolean {
     const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
     knownSavedAt = payload.savedAt;
+    knownWeek = weekOf(state);
     // A save is also when a run's unlocks are banked (unlocks.ts).
     recordUnlocks(state);
     return true;
@@ -474,6 +482,9 @@ const RESUME_KEY = 'unischool.resume';
 // The savedAt of the save this tab last loaded or wrote; null when it has
 // seen none. Module state is per tab, which is the point.
 let knownSavedAt: number | null = null;
+// The week of the game in that save (weeks from the founding), so a tab
+// can tell whether its game has played on since (Plan 95AA).
+let knownWeek: number | null = null;
 let tabId: string | null = null;
 
 // This tab's id, made on first use (not at import, so no test's stubbed
@@ -512,6 +523,19 @@ function storedSavedAt(): number | null {
 export function saveIsNewer(): boolean {
   const stored = storedSavedAt();
   return stored !== null && (knownSavedAt === null || stored > knownSavedAt);
+}
+
+const weekOf = (state: GameState): number => (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+
+// A tab losing the claim keeps its weeks (Plan 95AA, the second review's
+// H7-3): when its game has played on past the save it last loaded or
+// wrote, and no tab has saved since, it writes it before it stops. The tab
+// that took the claim then meets this newer save at its next write and
+// stops, under the guard, and its "Open it here" opens this game. True
+// when it wrote.
+export function saveBeforeLosing(state: GameState): boolean {
+  if (knownWeek === null || saveIsNewer() || weekOf(state) <= knownWeek) return false;
+  return writeSave(state);
 }
 
 // Takes the claim for this tab. Refused (false) when the stored save is
@@ -608,6 +632,7 @@ export function discardSetAsideSave(): void {
 
 export function clearSave(): void {
   knownSavedAt = null;
+  knownWeek = null;
   try {
     localStorage.removeItem(SAVE_KEY);
   } catch {
@@ -1268,11 +1293,13 @@ export function loadGame(): GameState | null {
   // What this tab has seen, even of a save it cannot read: the next save
   // may write over that one (it is set aside), but not over a newer one.
   knownSavedAt = storedSavedAt();
+  knownWeek = null;
   const read = readSave(raw);
   if ('refused' in read) {
     if (read.refused === 'too-old' || read.refused === 'too-new') setAside(raw);
     return null;
   }
+  knownWeek = weekOf(read.state);
   return read.state;
 }
 

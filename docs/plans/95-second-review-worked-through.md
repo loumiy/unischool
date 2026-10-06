@@ -1571,6 +1571,45 @@ scenario, which the review itself fixed (H7-8a).
   - a test that an opened matter in its final week does not pause after a
     reload.
 
+**As implemented.**
+
+- **H7-1.** `researchParkGate` counts each absolute week first, caps the
+  week at `LANDMARKS_COUNTED`, then sums by year under the yearly cap. The
+  recruiting fixture (eight Landmark Programs, Year 21, week 2) now reads
+  back Year 21 at 3 weeks, not 16, and holds every rule after a year of
+  the guided player (it ended Year 21 at 159 with the per-week cap alone).
+  `test/save-migrations.test.ts`'s `testLandmarkWeeks` checks both, and
+  that the fixture runs more than three. Saves already migrated keep their
+  overcount: it leaves the ten-year window, and the invariant is not run
+  against old years. No `SAVE_VERSION` bump.
+- **H7-3.** `persistence.ts` keeps the week of the save a tab last loaded
+  or wrote; `saveBeforeLosing` writes the tab's game when it is further on
+  and no tab has saved since (the guard stands). `useGame.ts`'s `storage`
+  handler calls it, then `lose()`. `test/two-tabs.test.ts` covers it.
+  `twoTabs.mjs` case 4, on `save-v93.json`: A played Year 9, week 2 → 7
+  unsaved, B continued at week 2; the save then read week 7, B showed the
+  banner once it went to write, and a fresh tab continued at week 7. All
+  four cases pass.
+- **H7-4.** `unseen.ts` gains `readOpened`, `keepOpened` and
+  `forgetOpened` over `sessionStorage` (each in try/catch); `App.tsx`
+  reads the set on load, keeps it on each change, and forgets it on a new
+  game. `test/unseen.test.ts`: a matter opened before a reload does not
+  pause in its final week; read back empty, it does.
+- **Checks:** `check` and `test:slow` pass. No sim run: nothing a new run
+  reads changed (the migration runs only on a version-90 save, and the
+  rest is the browser's shell).
+- **Deviations.**
+  - The migration's `now` was a week late too: the clock's week is the one
+    about to be played, so the weeks a program has run end at the week
+    before it. With the per-week cap alone the fixture still broke the
+    invariant (159 of 156); with both it holds.
+  - The game has no run id. The opened set is kept under the college's
+    name, as `App.tsx` already tells runs apart for the unseen memory, and
+    forgotten on a new game.
+  - `twoTabs.mjs` read the date off the page's text, which the toolbar no
+    longer draws in one piece (it is the calendar's label); it now reads
+    the label, and case 4 expects A's week.
+
 ### PR 95AB — The map and the money (H7-2, H7-6, H7-8c)
 
 - **The wheel** (H7-2). The map's wheel handler is attached natively in an
