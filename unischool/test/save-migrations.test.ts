@@ -185,11 +185,25 @@ function testBoardLetterWeeks(): void {
   assert(d?.letters.join() === 'enter-2,enter-3' && d.letterWeeks.join() === `${now},${now}`, `a malformed week reads as the save's (${d?.letters.join()} at ${d?.letterWeeks.join()})`);
 }
 
+// ---- 96 -> 97 (Plan 95V): the programs cut ----
+// The version-96 fixture fields twenty programs and has cut none. It loads
+// with an empty record, every program still fielded, and plays a year on.
+function testNoCutsYet(): void {
+  const raw = fixture('save-v96.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  assert(parsed.version === 96 && !('cutPrograms' in parsed.state.orgs), 'the version-96 fixture has no record of cuts');
+  const state = loads(raw, 'the version-96 fixture');
+  if (!state) return;
+  assert(Array.isArray(state.orgs.cutPrograms) && state.orgs.cutPrograms.length === 0, 'it loads with none cut');
+  assert(state.orgs.teams.length === parsed.state.orgs.teams.length, `and every program still fielded (${state.orgs.teams.length})`);
+}
+
 testLaunchFixture();
 testChain();
 testLandmarkWeeks();
 testMilestoneWeeks();
 testBoardLetterWeeks();
+testNoCutsYet();
 testRoundTrip();
 testRefusals();
 

@@ -10,6 +10,9 @@ import { pillarShareRule } from './prestigeWords';
 export interface BoardLetter {
   title: string;
   text: string;
+  // Who signs it, when not the board: the alumni's letter on a program cut
+  // (Plan 95V, systems/athletics/cut.ts).
+  from?: string;
 }
 
 export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
