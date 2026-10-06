@@ -1,4 +1,4 @@
-import type { GameState, InitiativeReport, LogEntry, SummerPayload } from '../../state/types';
+import type { GameState, InitiativeReport, LogEntry, NewsLetter, SummerPayload } from '../../state/types';
 import { SUMMER_BEATS, WEEKS_PER_YEAR } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
 import { absoluteWeek, findDecisionEvent, findOpeningLetter, type MilestonePayload } from '../../data/eventData';
@@ -25,7 +25,9 @@ import { foundingNotes } from './foundingNote';
 //               events, a student demand, a board letter with an ask. Only
 //               this tier puts a number on the toolbar's button.
 //   letter    — read once, kept for the record: milestones, the board's
-//               distress letters, the founding notes.
+//               distress letters, the founding notes, and the news that
+//               used to stop the clock (a celebration, a research report:
+//               Plan 95T).
 //   bulletin  — the week's small news the toasts carry, filed for a term.
 //
 // Derived, not stored: every item is read off state the game already keeps
@@ -36,7 +38,7 @@ import { foundingNotes } from './foundingNote';
 
 export type InboxTier = 'hold' | 'decide' | 'letter' | 'bulletin';
 
-export type InboxKind = 'interrupt' | 'event' | 'demand' | 'board' | 'milestone' | 'founding' | 'bulletin';
+export type InboxKind = 'interrupt' | 'event' | 'demand' | 'board' | 'milestone' | 'news' | 'founding' | 'bulletin';
 
 export interface InboxItem {
   id: string;
@@ -54,7 +56,8 @@ export interface InboxItem {
   weeksLeft?: number;
   urgent?: boolean;
   // What it points at: an interrupt's type, an inline event's instance, a
-  // milestone's id, a board letter's id, a log line's subject.
+  // milestone's id, a news letter's id, a board letter's id, a log line's
+  // subject.
   ref?: string;
   // A bulletin's tone, as the toast had it.
   tone?: LogEntry['kind'];
@@ -92,14 +95,9 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
     }
     case 'rankings-entry': return ['The guide', 'The college enters the guide'];
     case 'annual-report': return ['The guide', `The guide for Year ${year}`];
-    case 'milestone': {
-      const entries = (payload as MilestonePayload | undefined)?.entries ?? [];
-      return ['A celebration', entries.length === 1 ? entries[0].headline : `${entries.length} things to celebrate`];
-    }
-    case 'research-complete': {
-      const r = (payload as { report?: InitiativeReport } | undefined)?.report;
-      return ['Research', r ? `${r.topicName} has reported` : 'A research project has reported'];
-    }
+    case 'milestone':
+    case 'research-complete':
+      return newsWords(type, payload);
     case 'championship': return ['Athletics', 'The postseason'];
     case 'first-sport-club': return ['Athletics', 'The first sport club'];
     case 'athletic-director': return ['Athletics', 'An Athletic Director'];
@@ -121,6 +119,28 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
     }
     default: return ['The President', 'A matter set aside'];
   }
+}
+
+// A celebration's or a report's sender and subject, as a stop (a save
+// from before Plan 95T) or as the letter it is now.
+function newsWords(type: 'milestone' | 'research-complete', payload: unknown): [string, string] {
+  if (type === 'milestone') {
+    const entries = (payload as MilestonePayload | undefined)?.entries ?? [];
+    return ['A celebration', entries.length === 1 ? entries[0].headline : `${entries.length} things to celebrate`];
+  }
+  const r = (payload as { report?: InitiativeReport } | undefined)?.report;
+  return ['Research', r ? `${r.topicName} has reported` : 'A research project has reported'];
+}
+
+// The letter's first line: a celebration's one detail, or the headlines of
+// several; a report's prize, or what it published.
+function newsPreview(n: NewsLetter): string {
+  if (n.type === 'milestone') {
+    const entries = n.payload.entries;
+    return entries.length === 1 ? entries[0].detail : entries.map((e) => e.headline).join('; ');
+  }
+  const r = n.payload.report;
+  return r.award ? `${r.award.facultyName} wins ${r.award.prizeName}.` : `${r.labName}: ${r.publications} published, ${r.breakthroughs} ${r.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'}.`;
 }
 
 // A bulletin stays filed for a term (StatusHeader.tsx's two terms a year).
@@ -229,6 +249,17 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
       id: `milestone:${m.id}`, kind: 'milestone', tier: 'letter', ref: m.id,
       from: `A milestone · ${m.tier}`, subject: m.name, preview: m.letter,
       week, unread: unread.has(m.id),
+    });
+  }
+
+  // The celebrations and the research reports (Plan 95T): news, filed as
+  // letters the week they land, unread until opened.
+  for (const n of s.events.news ?? []) {
+    if (now - n.week >= LETTER_WEEKS) continue;
+    const [from, subject] = newsWords(n.type, n.payload);
+    letters.push({
+      id: `news:${n.id}`, kind: 'news', tier: 'letter', ref: n.id, from, subject, preview: newsPreview(n),
+      week: n.week, unread: n.unread,
     });
   }
 

@@ -20,9 +20,10 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { endInitiative, tickResearch } from '../src/systems/research/researchSystem';
 import { tickEvents } from '../src/systems/events/eventSystem';
+import { inboxItems } from '../src/systems/inbox/inbox';
 import { labFields } from '../src/data/techData';
 import { RESEARCH_TOPICS } from '../src/data/researchTopics';
-import type { Faculty, GameState, InitiativeReport } from '../src/state/types';
+import type { Faculty, GameState } from '../src/state/types';
 import { bindScriptStream, overrideDraws } from '../src/engine/random';
 
 // Read through a call so TypeScript does not narrow the interrupt to what
@@ -155,7 +156,8 @@ console.log('research completion tests');
   );
 }
 
-// --- the quiet week raises it, once, and one at a time ----------------
+// --- the quiet week files it as a letter, once, and one at a time -----
+// (Plan 95T, the second review's B4-6: news, not a stop.)
 {
   const { s, labId } = aboutToFinish();
   tickResearch(s);
@@ -166,31 +168,45 @@ console.log('research completion tests');
   assert(s.research.pendingCompletions.length === 2, 'two projects ended in the same week');
 
   s.pendingInterrupt = null;
+  s.events.news = [];
   tickEvents(s);
-  assert(interruptType(s) === 'research-complete', 'the next quiet week reports one of them');
-  const raised = (s.pendingInterrupt!.payload as { report: InitiativeReport }).report;
-  assert(raised.labId === labId, 'the one that has been waiting longest');
-  assert(s.research.pendingCompletions.length === 1, 'and the other stays queued rather than sharing the modal');
+  assert(interruptType(s) === undefined, 'a report does not stop the clock');
+  assert(s.events.news.length === 1 && s.events.news[0].type === 'research-complete', 'the next quiet week files one of them as a letter');
+  const filed = s.events.news[0];
+  const raised = filed.type === 'research-complete' ? filed.payload.report : null;
+  assert(raised?.labId === labId, 'the one that has been waiting longest');
+  assert(filed.unread, 'unread until opened');
+  assert(s.research.pendingCompletions.length === 1, 'and the other stays queued rather than sharing the letter');
 
-  const after = reducer(s, { type: 'RESOLVE_RESEARCH_REPORT' });
-  assert(after.pendingInterrupt === null, 'reading it clears the interrupt');
+  const letter = inboxItems(s).find((i) => i.kind === 'news');
+  assert(letter?.tier === 'letter' && letter.unread, 'the inbox holds it as an unread letter');
+  const read = reducer(s, { type: 'READ_NEWS', id: filed.id });
+  assert(!read.events.news![0].unread, 'opening it reads it');
+  assert(read.clock.week === s.clock.week && read.clock.year === s.clock.year, 'and holds no week');
 
-  after.pendingInterrupt = null;
-  tickEvents(after);
-  assert(interruptType(after) === 'research-complete', 'the next quiet week reports the second');
-  assert(after.research.pendingCompletions.length === 0, 'and the queue is empty');
+  tickEvents(read);
+  assert(read.events.news!.length === 2 && read.events.news![1].type === 'research-complete', 'the next quiet week files the second');
+  assert(read.research.pendingCompletions.length === 0, 'and the queue is empty');
 }
 
-// --- nothing is raised when nothing has concluded ---------------------
+// --- nothing is filed when nothing has concluded ----------------------
 {
   const { s } = aboutToFinish();
   s.pendingInterrupt = null;
   s.research.pendingCompletions = [];
+  s.events.news = [];
   tickEvents(s);
-  assert(
-    interruptType(s) !== 'research-complete',
-    'an empty queue never raises a report',
-  );
+  assert(!s.events.news.some((n) => n.type === 'research-complete') && interruptType(s) !== 'research-complete', 'an empty queue never files a report');
+}
+
+// --- a save with a report standing as a stop shows it once ------------
+{
+  const { s } = aboutToFinish();
+  tickResearch(s);
+  const report = s.research.pendingCompletions.shift()!;
+  s.pendingInterrupt = { type: 'research-complete', payload: { report } };
+  const after = reducer(s, { type: 'RESOLVE_RESEARCH_REPORT' });
+  assert(after.pendingInterrupt === null, 'the old stop still answers');
 }
 
 if (failures === 0) {

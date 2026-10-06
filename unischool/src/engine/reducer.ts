@@ -759,6 +759,13 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       s.ladder.unread = s.ladder.unread.filter((id) => id !== action.id);
       return s;
 
+    case 'READ_NEWS': {
+      const letter = s.events.news?.find((n) => n.id === action.id);
+      if (!letter || !letter.unread) return state;
+      letter.unread = false;
+      return s;
+    }
+
     case 'RESOLVE_LETTER': {
       // Answers only its own modal: a repeat can never answer the next one.
       if (s.pendingInterrupt?.type !== 'letter') return state;

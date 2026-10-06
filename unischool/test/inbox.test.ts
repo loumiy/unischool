@@ -50,6 +50,28 @@ function fresh(): GameState {
   assert(inboxPointer(s) === null, 'and nothing for NEXT to point at');
 }
 
+// A milestone celebration is news, not a stop (Plan 95T): the week it
+// lands it is a letter, the clock runs on, and a year later it has gone.
+{
+  const s = fresh();
+  const key = 'school-founded:Business';
+  s.events.pendingMilestones = [key];
+  const was = { ...s.clock };
+  const after = reducer(s, { type: 'TICK' });
+  assert(after.pendingInterrupt?.type !== 'milestone', 'a celebration does not stop the clock');
+  const letter = after.events.news!.find((n) => n.type === 'milestone');
+  assert(letter?.type === 'milestone' && letter.payload.keys.includes(key), 'it is filed as a letter');
+  const item = inboxItems(after).find((i) => i.kind === 'news');
+  assert(item?.tier === 'letter' && item.from === 'A celebration' && item.subject === 'This is the School of Business', `the inbox names it (${item?.from}: ${item?.subject})`);
+  assert(after.pendingInterrupt !== null || after.clock.week !== was.week, 'and the week turns unless something else stopped it');
+  const arrived = arrivalsIn(s, after).find((t) => t.open === item?.id);
+  assert(arrived?.tone === 'letter' && !arrived.held, 'its slip arrives as a letter\'s does');
+  const read = reducer(after, { type: 'READ_NEWS', id: letter!.id });
+  assert(inboxItems(read).find((i) => i.kind === 'news')?.unread === false, 'opened, it is read');
+  read.clock.year += 1;
+  assert(!inboxItems(read).some((i) => i.kind === 'news'), 'a year on it has left the inbox');
+}
+
 // An inline event: to decide, counted, red in its last week.
 {
   const s = fresh();

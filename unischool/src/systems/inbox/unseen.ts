@@ -2,13 +2,16 @@ import type { InboxItem } from './inbox';
 
 // ---------------------------------------------------------------------
 // NO DECISION PASSES UNSEEN (Plan 78E): when the shell pauses the clock for
-// the inbox. Two rules, both a UI clock action (the same as the player
-// pressing pause), neither a change to the simulation:
+// the inbox. Three rules, each a UI clock action (the same as the player
+// pressing pause), none a change to the simulation:
 //
 //   arrival     — with Settings' "Pause when a matter arrives" on (the
 //                 default), a new matter to decide pauses the clock.
 //   final week  — whatever the setting, a matter that reaches its final
 //                 week without having been opened pauses it, once.
+//   news        — with Settings' "Pause for news" on (off by default), a
+//                 new celebration or research report pauses it (Plan 95T:
+//                 the news that once stopped the clock is a letter).
 //
 // Neither acts while a stop or the walkthrough holds the clock: the stop's
 // inbox already lists the matter, and a final week reached under a hold is
@@ -19,7 +22,7 @@ import type { InboxItem } from './inbox';
 // ---------------------------------------------------------------------
 
 export interface UnseenMemory {
-  // The matters in the last snapshot, to tell what arrived.
+  // The matters and the news in the last snapshot, to tell what arrived.
   known: ReadonlySet<string>;
   // The matters whose final week has paused the clock.
   warned: ReadonlySet<string>;
@@ -28,12 +31,13 @@ export interface UnseenMemory {
 export interface UnseenInput {
   items: readonly InboxItem[];
   pauseOnArrival: boolean;
+  pauseForNews: boolean;
   // A stop or the walkthrough holds the clock.
   held: boolean;
   opened: ReadonlySet<string>;
 }
 
-export type UnseenReason = 'arrival' | 'final-week';
+export type UnseenReason = 'arrival' | 'final-week' | 'news';
 
 export interface UnseenOutcome {
   pause: boolean;
@@ -56,7 +60,8 @@ export function matterOpened(i: InboxItem, opened: ReadonlySet<string>): boolean
 // what the college already holds then has not arrived.
 export function unseenPause(before: UnseenMemory | null, input: UnseenInput): UnseenOutcome {
   const matters = input.items.filter((i) => i.tier === 'decide');
-  const known = new Set(matters.map((i) => i.id));
+  const news = input.items.filter((i) => i.kind === 'news');
+  const known = new Set([...matters, ...news].map((i) => i.id));
   // Kept only for the matters still waiting, so the memory never grows.
   const warned = new Set([...(before?.warned ?? [])].filter((id) => known.has(id)));
   const memory = { known, warned };
@@ -64,6 +69,7 @@ export function unseenPause(before: UnseenMemory | null, input: UnseenInput): Un
 
   let reason: UnseenReason | null = null;
   if (before && input.pauseOnArrival && matters.some((i) => i.unread && !before.known.has(i.id))) reason = 'arrival';
+  else if (before && input.pauseForNews && news.some((i) => i.unread && !before.known.has(i.id))) reason = 'news';
   for (const i of matters) {
     if (!inFinalWeek(i) || warned.has(i.id) || matterOpened(i, input.opened)) continue;
     // One pause covers every matter it catches, the arrival's included.

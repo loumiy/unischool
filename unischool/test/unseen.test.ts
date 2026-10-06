@@ -44,8 +44,8 @@ function fresh(): GameState {
   return s;
 }
 const none: ReadonlySet<string> = new Set();
-function step(before: UnseenMemory | null, s: GameState, opts: { on?: boolean; held?: boolean; opened?: ReadonlySet<string> } = {}) {
-  return unseenPause(before, { items: inboxItems(s), pauseOnArrival: opts.on ?? true, held: opts.held ?? false, opened: opts.opened ?? none });
+function step(before: UnseenMemory | null, s: GameState, opts: { on?: boolean; news?: boolean; held?: boolean; opened?: ReadonlySet<string> } = {}) {
+  return unseenPause(before, { items: inboxItems(s), pauseOnArrival: opts.on ?? true, pauseForNews: opts.news ?? false, held: opts.held ?? false, opened: opts.opened ?? none });
 }
 // The week turning, with the matter's clock running.
 function tick(s: GameState): void {
@@ -59,6 +59,46 @@ function tick(s: GameState): void {
   assert(normaliseSettings({ textScale: 1.15, vision: 'safe', motion: 'reduce' }).pauseOnArrival === true, 'a browser without the key reads it as on');
   assert(normaliseSettings({ pauseOnArrival: false }).pauseOnArrival === false, 'turned off, it stays off');
   assert(normaliseSettings(null).pauseOnArrival === true, 'no settings at all: on');
+}
+
+// Pause for news (Plan 95T): off by default, and off for a browser that
+// kept its settings before the key existed.
+{
+  assert(DEFAULT_SETTINGS.pauseForNews === false, 'pause for news is off by default');
+  assert(normaliseSettings({ pauseOnArrival: true }).pauseForNews === false, 'a browser without the key reads it as off');
+  assert(normaliseSettings({ pauseForNews: true }).pauseForNews === true, 'turned on, it stays on');
+  assert(normaliseSettings({ pauseForNews: 'yes' }).pauseForNews === false, 'anything but true reads as off');
+}
+
+// A celebration or a research report is a letter: it pauses the clock
+// only with "Pause for news" on, whatever "Pause on arrival" says, and only
+// as it arrives.
+{
+  const s = fresh();
+  const quiet = step(null, s);
+  const week = weekOf(s);
+  s.events.news!.push({
+    id: `milestone:${week}:program-established:ECON`, week, unread: true, type: 'milestone',
+    payload: { keys: ['program-established:ECON'], entries: [{ key: 'program-established:ECON', headline: 'Economics is now an established program', detail: 'Every upper-level course is finished.', unlocks: [] }] },
+  });
+  const item = inboxItems(s).find((i) => i.kind === 'news');
+  assert(item?.tier === 'letter' && item.unread && item.subject === 'Economics is now an established program', 'a celebration is an unread letter');
+  assert(inboxBadge(inboxItems(s)).count === 0 && inboxBadge(inboxItems(s)).unreadLetters === 1, 'counted as a letter, not as something to answer');
+  assert(!step(quiet.memory, s).pause, 'with the setting off (the default) the news does not pause the clock');
+  const news = step(quiet.memory, s, { news: true });
+  assert(news.pause && news.reason === 'news', 'with it on, the news pauses the clock');
+  assert(step(quiet.memory, s, { news: true, on: false }).pause, 'whatever "Pause on arrival" says');
+  assert(!step(news.memory, s, { news: true }).pause, 'the same letter a week later is not news');
+  assert(!step(quiet.memory, s, { news: true, held: true }).pause, 'nor under a stop');
+  assert(!step(null, s, { news: true }).pause, 'nor on a load');
+  const read = reducer(s, { type: 'READ_NEWS', id: s.events.news![0].id });
+  assert(!read.events.news![0].unread, 'opening it reads it');
+  // The ladder's milestone letters are not news: they never paused it.
+  const ladder = fresh();
+  const before = step(null, ladder);
+  ladder.ladder.reached['campus-life'] = ladder.clock.year;
+  ladder.ladder.unread.push('campus-life');
+  assert(!step(before.memory, ladder, { news: true, on: false }).pause, 'a ladder milestone\'s letter does not pause it');
 }
 
 // A matter arriving pauses the clock with the setting on, not with it off.

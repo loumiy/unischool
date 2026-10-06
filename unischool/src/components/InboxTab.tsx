@@ -17,7 +17,8 @@ import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { SWEEP_DEFAULT_WEEKS } from '../systems/finance/sweep';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
-import { InterruptContent } from './InterruptModal';
+import { InterruptContent, MilestoneCelebrationView, ResearchReportView } from './InterruptModal';
+import { modalWidth } from './modalLayout';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 import { count, gameDate, gameDateOfWeek, satisfactionFigure, weeksProse, weeksShort } from '../format';
 
@@ -115,14 +116,18 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   const answerIndex = filter === 'answered' ? Math.max(0, Number(selectedId?.replace('answer:', '') ?? 0)) : -1;
   const answer = answers[Math.min(answerIndex, answers.length - 1)];
 
-  // Opening a letter reads it (Plan 77): the milestone and the demand in the
-  // save, a founding note for the session. The board's letters are put away
+  // Opening a letter reads it (Plan 77): the milestone, the news (Plan 95T)
+  // and the demand in the save, a founding note for the session. The board's letters are put away
   // by their own buttons, since that also takes them out of the queue.
   const selectedKey = selected?.id ?? null;
   useEffect(() => {
     if (selected) onSeen(selected.id);
+    // Held once shown: else reading the newest unread letter would hand the
+    // pane to the next, and read them all in a cascade (Plan 95T).
+    if (selected && filter !== 'answered' && selectedId !== selected.id) setSelectedId(selected.id);
     if (!selected || !selected.unread) return;
     if (selected.kind === 'milestone' && selected.ref) act({ type: 'READ_MILESTONE', id: selected.ref });
+    else if (selected.kind === 'news' && selected.ref) act({ type: 'READ_NEWS', id: selected.ref });
     else if (selected.kind === 'demand') act({ type: 'READ_DEMAND' });
     else if (selected.kind === 'founding') onRead(selected.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -430,6 +435,23 @@ function ReadingPane({ s, act, item, onOpenTab }: {
               {tab && <button type="button" className={m.buildables.length > 0 ? 'btn-quiet' : undefined} onClick={() => onOpenTab(tab)}>Open {TAB_LABELS[tab]}</button>}
             </div>
           )}
+        </div>
+      </article>
+    );
+  }
+
+  // A celebration or a research report (Plan 95T): the card its stop
+  // showed, without the Continue the clock waited for.
+  if (item.kind === 'news') {
+    const n = s.events.news?.find((x) => x.id === item.ref);
+    if (!n) return null;
+    return (
+      <article className="inbox-hold">
+        <p className="inbox-hold-note"><span className="inbox-tag letter">Letter</span> {item.from} · {gameDateOfWeek(n.week)}</p>
+        <div className={`modal modal-inbox modal-${modalWidth(n)}`} data-interrupt={n.type}>
+          {n.type === 'milestone'
+            ? <MilestoneCelebrationView s={s} payload={n.payload} />
+            : <ResearchReportView s={s} report={n.payload.report} />}
         </div>
       </article>
     );

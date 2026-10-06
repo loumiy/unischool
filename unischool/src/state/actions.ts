@@ -148,6 +148,9 @@ export type Action =
   | { type: 'RESOLVE_LETTER'; skipAll: boolean }
   // Puts down a milestone's note (data/ladderData.ts). Never holds the clock.
   | { type: 'READ_MILESTONE'; id: string }
+  // Puts down a celebration's or a report's letter (Plan 95T). Never holds
+  // the clock.
+  | { type: 'READ_NEWS'; id: string }
   | { type: 'RESOLVE_MILESTONE' }
   | { type: 'RESOLVE_RESEARCH_REPORT' }
   // A demand is answered only by building what it asks for before the
@@ -268,6 +271,7 @@ export function createPreStartState(): GameState {
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
       opening: { read: [], skipped: false, stage: 'play' },
       passedResponses: [],
+      news: [],
     },
     orgs: {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
@@ -420,6 +424,7 @@ function foundState(
         ? { read: [OPENING_LETTERS[0].id], skipped: false, stage: 'welcome' }
         : { read: [], skipped: false, stage: 'play' },
       passedResponses: [],
+      news: [],
     },
     orgs: {
       clubs: [], chapters: [], teams: [],

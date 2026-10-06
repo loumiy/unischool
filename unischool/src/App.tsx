@@ -335,7 +335,8 @@ export default function App() {
 
   // No decision passes unseen (Plan 78E, systems/inbox/unseen.ts): a new
   // matter pauses the clock while the setting is on, and a matter's final
-  // week, unopened, pauses it once whatever the setting. The same as the
+  // week, unopened, pauses it once whatever the setting. The news pauses it
+  // only while "Pause for news" is on (Plan 95T). The same as the
   // player pressing pause; a stop or the walkthrough already holds the
   // clock, and neither rule acts under them. The memory starts over with a
   // run (a load or a new game is not an arrival).
@@ -348,6 +349,7 @@ export default function App() {
     const out = unseenPause(sameRun ? last.memory : null, {
       items: inbox,
       pauseOnArrival: getSettings().pauseOnArrival,
+      pauseForNews: getSettings().pauseForNews,
       held: s.pendingInterrupt !== null || openingHoldsClock(s),
       opened: openedRef.current,
     });

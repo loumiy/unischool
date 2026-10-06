@@ -86,10 +86,9 @@ console.log('school founding tests');
   s = finishSomething(s);
   assert(isSchoolFounded(s, 'Business'), 'the pass founds the School of Business');
   // Queued for celebration — and the event system may already have fired
-  // it this same tick, in which case it is the pending interrupt instead.
+  // it this same tick, in which case it is a letter instead (Plan 95T).
   const celebrated = s.events.pendingMilestones.includes(schoolFoundedKey('Business'))
-    || (s.pendingInterrupt?.type === 'milestone'
-      && JSON.stringify(s.pendingInterrupt.payload).includes(schoolFoundedKey('Business')));
+    || (s.events.news ?? []).some((n) => n.type === 'milestone' && n.payload.keys.includes(schoolFoundedKey('Business')));
   assert(celebrated, 'and queues the celebration');
   assert(isCelebratedMilestone(schoolFoundedKey('Business')), 'school-founded is a celebrated kind');
   const entry = describeMilestone(s, schoolFoundedKey('Business'));

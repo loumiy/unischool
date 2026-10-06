@@ -250,9 +250,20 @@ function standing(s: GameState): ReviewSection {
   return { key: 'standing', title: 'Standing', lines, empty: '' };
 }
 
+// A matter the clock answered: its log line (catalogueEngine.ts's
+// resolveCatalogueEvent), "<title> — Nobody answered in time: <answer>.",
+// split into the matter and the answer it took.
+const UNANSWERED = ' — Nobody answered in time: ';
+function unanswered(e: LogEntry): { title: string; answer: string } {
+  const [title, answer] = e.message.split(UNANSWERED);
+  return { title, answer: (answer ?? '').replace(/\.$/, '') };
+}
+
 // The year's events (Plan 33): the board's letters answered, and the
-// catalog's inline events by who answered them (the journal's records).
-function events(s: GameState): ReviewSection {
+// catalog's inline events by who answered them (the journal's records),
+// then the matters left unanswered by name (Plan 95T, the second review's
+// B4-6), with the answer each took.
+function events(s: GameState, entries: LogEntry[]): ReviewSection {
   const lines: ReviewLine[] = [];
   for (const l of s.catalogue?.letters ?? []) {
     if (l.year !== s.clock.year) continue;
@@ -269,6 +280,9 @@ function events(s: GameState): ReviewSection {
     ].filter((x) => x !== '');
     lines.push({ text: `${plural(row.player + row.seat + row.timeout, 'matter')} came up: ${parts.join(', ')}` });
   }
+  const lapsed = byTopic(entries, 'event').filter((e) => e.message.includes(UNANSWERED)).map(unanswered);
+  lines.push(...reviewGroup(lapsed, (n) => `${count(n)} matters left unanswered`,
+    (m) => `${m.title} (${m.answer})`, (m) => `Left unanswered: ${m.title} (${m.answer})`));
   return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year: nothing reached the President\'s desk.' };
 }
 
@@ -302,7 +316,7 @@ export function buildYearInReview(s: GameState): YearInReview {
       students(s, entries),
       moneySection(s, entries),
       standing(s),
-      events(s),
+      events(s, entries),
       graduatingClass(s),
     ],
     truncated: s.log.length >= LOG_CAP && oldest !== undefined && oldest.year === s.clock.year,
