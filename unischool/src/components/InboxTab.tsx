@@ -5,19 +5,20 @@ import type { CatalogueEvent } from '../data/eventCatalogueTypes';
 import { CHARTER_INSTANCE } from '../systems/events/charter';
 import { NAME_LIMIT_NOTE } from '../data/foundingData';
 import type { Action } from '../state/actions';
-import { answered, boardAsks, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
+import { isCutLetter } from '../systems/athletics/cut';
+import { answered, boardAsks, boardLetterFor, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
 import { foundingNotes } from '../systems/inbox/foundingNote';
 import { dueLabel, toDecideCount } from '../systems/inbox/unseen';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { milestoneById, tabOfSection } from '../data/ladderData';
-import { BOARD_LETTERS } from '../data/boardData';
 import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
 import { DEMAND_DEADLINE_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { SWEEP_DEFAULT_WEEKS } from '../systems/finance/sweep';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
-import { InterruptContent } from './InterruptModal';
+import { InterruptContent, MilestoneCelebrationView, ResearchReportView } from './InterruptModal';
+import { modalWidth } from './modalLayout';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 import { count, gameDate, gameDateOfWeek, satisfactionFigure, weeksProse, weeksShort } from '../format';
 
@@ -115,14 +116,18 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   const answerIndex = filter === 'answered' ? Math.max(0, Number(selectedId?.replace('answer:', '') ?? 0)) : -1;
   const answer = answers[Math.min(answerIndex, answers.length - 1)];
 
-  // Opening a letter reads it (Plan 77): the milestone and the demand in the
-  // save, a founding note for the session. The board's letters are put away
+  // Opening a letter reads it (Plan 77): the milestone, the news (Plan 95T)
+  // and the demand in the save, a founding note for the session. The board's letters are put away
   // by their own buttons, since that also takes them out of the queue.
   const selectedKey = selected?.id ?? null;
   useEffect(() => {
     if (selected) onSeen(selected.id);
+    // Held once shown: else reading the newest unread letter would hand the
+    // pane to the next, and read them all in a cascade (Plan 95T).
+    if (selected && filter !== 'answered' && selectedId !== selected.id) setSelectedId(selected.id);
     if (!selected || !selected.unread) return;
     if (selected.kind === 'milestone' && selected.ref) act({ type: 'READ_MILESTONE', id: selected.ref });
+    else if (selected.kind === 'news' && selected.ref) act({ type: 'READ_NEWS', id: selected.ref });
     else if (selected.kind === 'demand') act({ type: 'READ_DEMAND' });
     else if (selected.kind === 'founding') onRead(selected.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -378,11 +383,11 @@ function ReadingPane({ s, act, item, onOpenTab }: {
 
   if (item.kind === 'board') {
     const id = item.ref!;
-    const letter = BOARD_LETTERS[id];
+    const letter = boardLetterFor(s, id);
     if (!letter) return null;
     return (
       <article className="inbox-letter">
-        <ReadHead tier={item.tier} from={item.from} subject={letter.title} meta={`From the board to the President · ${gameDateOfWeek(item.week)}`} />
+        <ReadHead tier={item.tier} from={item.from} subject={letter.title} meta={`${letter.from ?? 'From the board'} to the President · ${gameDateOfWeek(item.week)}`} />
         <div className="inbox-read-main">
           <div className="inbox-body"><p className="inbox-para">{letter.text}</p></div>
           <div className="modal-actions inbox-actions">
@@ -398,7 +403,9 @@ function ReadingPane({ s, act, item, onOpenTab }: {
                 {/* The milestone's notice (Plan 85D) is about the standings, not the money. */}
                 {id === SPECIALIZATION_NOTICE_ID
                   ? <button type="button" className="btn-quiet" onClick={() => onOpenTab('history')}>Open History</button>
-                  : <button type="button" className="btn-quiet" onClick={() => onOpenTab('treasury')}>Open Treasury</button>}
+                  : isCutLetter(id)
+                    ? <button type="button" className="btn-quiet" onClick={() => onOpenTab('athletics')}>Open Athletics</button>
+                    : <button type="button" className="btn-quiet" onClick={() => onOpenTab('treasury')}>Open Treasury</button>}
               </>
             )}
           </div>
@@ -430,6 +437,23 @@ function ReadingPane({ s, act, item, onOpenTab }: {
               {tab && <button type="button" className={m.buildables.length > 0 ? 'btn-quiet' : undefined} onClick={() => onOpenTab(tab)}>Open {TAB_LABELS[tab]}</button>}
             </div>
           )}
+        </div>
+      </article>
+    );
+  }
+
+  // A celebration or a research report (Plan 95T): the card its stop
+  // showed, without the Continue the clock waited for.
+  if (item.kind === 'news') {
+    const n = s.events.news?.find((x) => x.id === item.ref);
+    if (!n) return null;
+    return (
+      <article className="inbox-hold">
+        <p className="inbox-hold-note"><span className="inbox-tag letter">Letter</span> {item.from} · {gameDateOfWeek(n.week)}</p>
+        <div className={`modal modal-inbox modal-${modalWidth(n)}`} data-interrupt={n.type}>
+          {n.type === 'milestone'
+            ? <MilestoneCelebrationView s={s} payload={n.payload} />
+            : <ResearchReportView s={s} report={n.payload.report} />}
         </div>
       </article>
     );

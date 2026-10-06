@@ -34,7 +34,9 @@ import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
 import { count, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
-import { NO_FILTERS, cellState, filtersActive, matchesFilters, type Filters, type StatusFilter } from './curriculumFilter';
+import {
+  NO_FILTERS, cellState, filtersActive, matchesFilters, targetFilters, type Filters, type StatusFilter,
+} from './curriculumFilter';
 
 // Progressive discovery: what the tab shows is derived from existing
 // unlock/milestone state, with no gating of its own.
@@ -1271,14 +1273,14 @@ export default function CurriculumTab(
   }, []);
   useEffect(() => {
     if (!target) return;
+    // A department, No instructor, or Below A (History › Prestige's
+    // teaching line, Plan 95S): the tab opens filtered.
+    const filtered = targetFilters(target);
     if (target.startsWith('program:')) {
       goToProgram(target.slice('program:'.length));
-    } else if (target.startsWith('field:')) {
+    } else if (filtered) {
       setSelectedId(null);
-      setFilters({ ...NO_FILTERS, field: target.slice('field:'.length) });
-    } else if (target === 'unstaffed') {
-      setSelectedId(null);
-      setFilters({ ...NO_FILTERS, status: 'unstaffed' });
+      setFilters(filtered);
     } else if (target === 'curriculum.committee') {
       // The dock's committee chip (Plan 80E): the panel shows unfiltered.
       // 'nearest', since where the head is pinned it is already in view.

@@ -6,7 +6,7 @@ import { instructionCoverage } from '../techtree/instructionCapacity';
 import { baseShareCohortCounts } from './cohorts';
 import { financeBreakdown } from '../finance/financeSystem';
 import { attributeCoverage, satisfactionTarget } from '../satisfaction/satisfactionSystem';
-import { gradeYear } from '../prestige/prestigeSystem';
+import { crowdingCoverages, crowdingPoints, gradeYear } from '../prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
 // What committing the summer admissions decision would do, to money and to
@@ -46,6 +46,12 @@ export interface AdmissionsConsequence {
   // Who won't return this summer, and the two shortfalls most to blame.
   notReturning: number;
   attritionReasons: string[];
+
+  // What crowding would take from prestige's grade once the class enrols,
+  // in points, and the worst-covered need it reads (Plan 95P, the second
+  // review's B3-5). Zero while every coverage is CROWDING_GRACE or better.
+  crowding: number;
+  crowdingWorst: { label: string; coverage: number };
 }
 
 const COVERAGE_LABELS: Array<[string, (s: GameState) => number]> = [
@@ -139,5 +145,15 @@ export function projectConsequences(
     ...tightest(s, projected),
     notReturning: advanced.notReturning,
     attritionReasons: attritionReasons(s),
+    ...crowding(projected),
   };
+}
+
+// Crowding as the grade reads it the week the class enrols: the summer
+// starts the year's average afresh (resolveAdmissions.ts), so the term is
+// this body's shortfall against the buildings standing.
+function crowding(projected: GameState): Pick<AdmissionsConsequence, 'crowding' | 'crowdingWorst'> {
+  const enrolled: GameState = { ...projected, students: { ...projected.students, crowdingYearSum: 0, crowdingYearWeeks: 0 } };
+  const worst = crowdingCoverages(enrolled)[0];
+  return { crowding: crowdingPoints(enrolled), crowdingWorst: { label: worst.label, coverage: worst.coverage } };
 }

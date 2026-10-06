@@ -312,6 +312,9 @@ function announceDemand(s: GameState): void {
   if (s.pendingInterrupt) return; // another interrupt owns this week — wait, don't drop
 
   const week = absoluteWeek(s);
+  // A celebration or a report filed this week owns it too, as its stop did
+  // before Plan 95T (eventSystem.ts's fileNews), so a demand waits as it did.
+  if (s.events.news?.some((n) => n.week === week)) return;
   if (s.events.lastDecisionWeek > 0 && week - s.events.lastDecisionWeek < DECISION_EVENT_COOLDOWN_WEEKS) return;
 
   // Fixed while queued: nothing to announce, but the cooldown still starts.

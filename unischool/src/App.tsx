@@ -38,7 +38,7 @@ import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
 import StudentsTab from './tabs/StudentsTab';
-import HistoryTab from './tabs/HistoryTab';
+import HistoryTab, { HISTORY_VIEW_START, type HistoryView } from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import { freshSeed } from './engine/random';
 import './styles.css';
@@ -132,6 +132,8 @@ export default function App() {
   // The Faculty tab's view, sort and filters last used, for the session
   // (Plan 95G): held here, so they outlive the tab, and not in the save.
   const [facultyMemory, setFacultyMemory] = useState<FacultyViewMemory>(FACULTY_VIEW_START);
+  // History's view last used, the same way (Plan 95H).
+  const [historyView, setHistoryView] = useState<HistoryView>(HISTORY_VIEW_START);
   // What the last snapshot held, for telling what arrived (see below).
   const unseen = useRef<{ run: GameState; memory: UnseenMemory } | null>(null);
   // A stop (an interrupt) is answered in the inbox (Plan 77): while one is
@@ -197,6 +199,7 @@ export default function App() {
     setOpened(new Set());
     forgetOpened();
     setFacultyMemory(FACULTY_VIEW_START);
+    setHistoryView(HISTORY_VIEW_START);
     unseen.current = null;
     reportedGates.current = null;
     actedStage.current = null;
@@ -338,7 +341,8 @@ export default function App() {
 
   // No decision passes unseen (Plan 78E, systems/inbox/unseen.ts): a new
   // matter pauses the clock while the setting is on, and a matter's final
-  // week, unopened, pauses it once whatever the setting. The same as the
+  // week, unopened, pauses it once whatever the setting. The news pauses it
+  // only while "Pause for news" is on (Plan 95T). The same as the
   // player pressing pause; a stop or the walkthrough already holds the
   // clock, and neither rule acts under them. The memory starts over with a
   // run (a load or a new game is not an arrival).
@@ -351,6 +355,7 @@ export default function App() {
     const out = unseenPause(sameRun ? last.memory : null, {
       items: inbox,
       pauseOnArrival: getSettings().pauseOnArrival,
+      pauseForNews: getSettings().pauseForNews,
       held: s.pendingInterrupt !== null || openingHoldsClock(s),
       opened: openedRef.current,
     });
@@ -518,7 +523,10 @@ export default function App() {
               )}
               {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
               {overlay.tab === 'history' && (
-                <HistoryTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
+                <HistoryTab
+                  s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} view={historyView} onView={setHistoryView}
+                  onOpenCurriculum={(target) => openTab('curriculum', target)}
+                />
               )}
               {overlay.tab === 'inbox' && (
                 <InboxTab

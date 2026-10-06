@@ -6,7 +6,7 @@ import type { Grade } from '../data/courseQuality';
 import { programById, programOfCourse } from '../data/techData';
 import { canStartDevelopment, isUnstaffed } from '../systems/techtree/techSystem';
 import { tierBands } from '../systems/techtree/programProgress';
-import { instructorQuality, type FacultyLoads } from '../systems/faculty/facultyAssignment';
+import { facultyLoads, instructorQuality, type FacultyLoads } from '../systems/faculty/facultyAssignment';
 
 export type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
 
@@ -82,4 +82,24 @@ export function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: Fa
     if (!GRADES_IN[f.grade].has(q.grade)) return false;
   }
   return true;
+}
+
+// The Curriculum's target that opens it with Below A on (Plan 95S, the
+// second review's B4-5): History › Prestige's teaching line links to it.
+export const BELOW_A_TARGET = 'belowA';
+export const BELOW_A_FILTERS: Filters = { ...NO_FILTERS, grade: 'belowA' };
+
+// The filters a link's target opens the tab with, or null for a target
+// that scrolls to a place instead (a program, a school, the committee).
+export function targetFilters(target: string): Filters | null {
+  if (target.startsWith('field:')) return { ...NO_FILTERS, field: target.slice('field:'.length) };
+  if (target === 'unstaffed') return { ...NO_FILTERS, status: 'unstaffed' };
+  if (target === BELOW_A_TARGET) return BELOW_A_FILTERS;
+  return null;
+}
+
+// How many courses Below A lists, so the link's count is the list's.
+export function belowACount(s: GameState): number {
+  const loads = facultyLoads(s);
+  return s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS, loads)).length;
 }

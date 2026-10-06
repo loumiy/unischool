@@ -155,8 +155,10 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
     }
     const said = [...toastsFor(before, s, fresh, onMapScreen), ...(inboxOpenRef.current ? [] : arrivalsIn(before, s))];
     if (said.length === 0) return;
-    const hold = getSettings().pauseOnArrival;
-    const made = said.map((t) => ({ ...t, id: next.current++, held: t.held || (hold && t.tone === 'matter') }));
+    const { pauseOnArrival, pauseForNews } = getSettings();
+    // A slip whose arrival paused the clock waits with it (Plans 78E, 95T).
+    const waits = (t: Said) => (pauseOnArrival && t.tone === 'matter') || (pauseForNews && t.open?.startsWith('news:') === true);
+    const made = said.map((t) => ({ ...t, id: next.current++, held: t.held || waits(t) }));
     setToasts((cur) => stacked(cur, made));
     for (const t of made) {
       if (t.held) continue;

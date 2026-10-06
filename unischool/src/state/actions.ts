@@ -148,6 +148,9 @@ export type Action =
   | { type: 'RESOLVE_LETTER'; skipAll: boolean }
   // Puts down a milestone's note (data/ladderData.ts). Never holds the clock.
   | { type: 'READ_MILESTONE'; id: string }
+  // Puts down a celebration's or a report's letter (Plan 95T). Never holds
+  // the clock.
+  | { type: 'READ_NEWS'; id: string }
   | { type: 'RESOLVE_MILESTONE' }
   | { type: 'RESOLVE_RESEARCH_REPORT' }
   // A demand is answered only by building what it asks for before the
@@ -195,6 +198,9 @@ export type Action =
   | { type: 'HIRE_COACH'; candidateId: string; teamId: string; role: 'head' | 'assistant' | 'trainer' }
   // The coach is discarded, not returned to the pool.
   | { type: 'FIRE_COACH'; teamId: string; role: 'head' | 'assistant' | 'trainer' }
+  // Cuts a varsity program for good (Plan 95V, systems/athletics/cut.ts).
+  // Refused for a flagship in season.
+  | { type: 'CUT_TEAM'; teamId: string }
   // Clears alert badges (types.ts's SeenState); only the badged view sends it.
   | { type: 'MARK_SEEN'; kind: 'course' | 'buildable'; ids: string[] }
   // A gated tab has opened (TabNav.tsx's TAB_GATES). App.tsx passes
@@ -268,6 +274,7 @@ export function createPreStartState(): GameState {
       pendingDemand: null, activeDemand: null, lastDemandWeek: 0,
       opening: { read: [], skipped: false, stage: 'play' },
       passedResponses: [],
+      news: [],
     },
     orgs: {
       clubs: [], chapters: [], teams: [], coachCandidates: [], pendingPetitions: [],
@@ -281,6 +288,7 @@ export function createPreStartState(): GameState {
       titles: [],
       pendingTitles: [],
       complexRuns: [],
+      cutPrograms: [],
       season: {},
       rivalries: {},
       athleticDirectorAskedWeek: 0,
@@ -425,6 +433,7 @@ function foundState(
         ? { read: [OPENING_LETTERS[0].id], skipped: false, stage: 'welcome' }
         : { read: [], skipped: false, stage: 'play' },
       passedResponses: [],
+      news: [],
     },
     orgs: {
       clubs: [], chapters: [], teams: [],
@@ -442,6 +451,7 @@ function foundState(
       titles: [],
       pendingTitles: [],
       complexRuns: [],
+      cutPrograms: [],
       season: {},
       rivalries: {},
       athleticDirectorAskedWeek: 0,

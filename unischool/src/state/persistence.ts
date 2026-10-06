@@ -14,6 +14,7 @@ import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
 import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
+import { isCutLetter } from '../systems/athletics/cut';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
@@ -65,7 +66,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 95; // Plan 95K: a board letter's week
+export const SAVE_VERSION = 97; // Plan 95V: the programs cut
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -327,6 +328,31 @@ function boardLetterWeeks(state: GameState): void {
   });
 }
 
+// 95 -> 96, Plan 95T: a milestone celebration and a research report are
+// letters, kept in the events' news. A save from before has filed none; one
+// with either standing as a stop shows it once, as it did, and the next is a
+// letter.
+function noNewsYet(state: GameState): void {
+  state.events.news = [];
+}
+
+// 96 -> 97, Plan 95V (the second review's B4-8): a varsity program can be
+// cut, and the college keeps the sport and the year. No save has cut one.
+function noCutsYet(state: GameState): void {
+  if (state.orgs) state.orgs.cutPrograms = [];
+}
+
+// The programs cut (Plan 95V), on every load: a sport the game knows and a
+// year no later than the save's; anything else is dropped, which only ends
+// a dip in giving early.
+function sanitizeCutPrograms(state: GameState): void {
+  const raw = state.orgs.cutPrograms as unknown;
+  state.orgs.cutPrograms = (Array.isArray(raw) ? raw : []).filter((c): c is { sport: string; year: number } => (
+    typeof c === 'object' && c !== null && typeof c.sport === 'string' && KNOWN_SPORT_IDS.has(c.sport)
+      && Number.isInteger(c.year) && c.year >= 1 && c.year <= state.clock.year
+  )).map((c) => ({ sport: c.sport, year: c.year }));
+}
+
 // The downtown (Plan 85H), on every load: growth 0 to 1, goodwill 0 to 100,
 // and the festivals a year each, no later than the save's year, of a scale
 // the game knows or none, oldest first; anything else is dropped or put
@@ -435,6 +461,8 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   92: downtownStarts,
   93: walnutHall,
   94: boardLetterWeeks,
+  95: noNewsYet,
+  96: noCutsYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -802,7 +830,7 @@ function sanitizeDistress(state: GameState): void {
   const queue = kept.letters.map((id, i) => {
     const w = weeks[i];
     return [id, Number.isInteger(w) && (w as number) >= 1 && (w as number) <= now ? (w as number) : now] as const;
-  }).filter(([id]) => id in BOARD_LETTERS);
+  }).filter(([id]) => id in BOARD_LETTERS || isCutLetter(id));
   kept.letters = queue.map(([id]) => id);
   kept.letterWeeks = queue.map(([, w]) => w);
 }
@@ -1397,6 +1425,7 @@ function sanitize(state: GameState): void {
   sanitizeTraining(state);
   sanitizeLandmarkWork(state);
   sanitizeComplexRuns(state);
+  sanitizeCutPrograms(state);
   sanitizeDowntown(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;

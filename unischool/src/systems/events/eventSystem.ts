@@ -1,7 +1,7 @@
 import { restaffPlan } from '../faculty/restaffing';
 import { raiseCharter, raiseFestival, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
-import type { GameState } from '../../state/types';
+import type { GameState, NewsLetter } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayload } from '../../data/eventData';
 import {
@@ -22,7 +22,7 @@ import { random } from '../../engine/random';
 // the next quiet week; a decision event that misses a week never happened.
 
 // Exported for reducer.ts's DEBUG_FORCE_MILESTONE, which clears the
-// frequency floor first.
+// frequency floor first. Filed as a letter (fileNews, below).
 export function fireMilestoneCelebration(s: GameState): boolean {
   if (s.events.pendingMilestones.length === 0) return false;
 
@@ -44,20 +44,32 @@ export function fireMilestoneCelebration(s: GameState): boolean {
   if (entries.length === 0) return false;
 
   const payload: MilestonePayload = { keys: entries.map((e) => e.key), entries };
-  s.pendingInterrupt = { type: 'milestone', payload };
+  fileNews(s, { id: `milestone:${week}:${entries[0].key}`, week, unread: true, type: 'milestone', payload });
   return true;
 }
 
 // The research completion report (researchSystem.ts). Its effects have
-// already been applied, so a delayed modal delays nothing. One report per
-// modal (each is about one project); no frequency floor, since projects
+// already been applied, so a delayed report delays nothing. One report per
+// letter (each is about one project); no frequency floor, since projects
 // are naturally spaced.
 function fireResearchReport(s: GameState): boolean {
   const report = s.research.pendingCompletions.shift();
   if (!report) return false;
 
-  s.pendingInterrupt = { type: 'research-complete', payload: { report } };
+  const week = absoluteWeek(s);
+  fileNews(s, { id: `research:${week}:${report.labId}`, week, unread: true, type: 'research-complete', payload: { report } });
   return true;
+}
+
+// The celebration and the report are news, not questions (Plan 95T, the
+// second review's B4-6): each is filed as a letter (inbox.ts) and the clock
+// runs on. Each still takes the week it lands, as its stop did: the
+// systems after it stand down (tickEvents returns, and a demand waits,
+// demandSystem.ts's announceDemand), so the weeks after it read the same
+// and the run's random stream does not move. Letters older than the inbox
+// keeps go.
+function fileNews(s: GameState, letter: NewsLetter): void {
+  s.events.news = [...(s.events.news ?? []).filter((n) => letter.week - n.week < WEEKS_PER_YEAR), letter];
 }
 
 // The one-time, cosmetic College -> University charter, granted once a lab

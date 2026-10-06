@@ -20,8 +20,10 @@ import FacultyPortrait from '../components/FacultyPortrait';
 import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/rivals/rivalsSystem';
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
+import { cutRefusal, cutSettlement, programName } from '../systems/athletics/cut';
+import { CUT_GIVING_YEARS } from '../systems/alumni/giving';
 import type { ScholarshipLevel, SeasonResult } from '../state/types';
-import { count, decimal, money, moneyShort, pct, weeksShort } from '../format';
+import { count, countWord, decimal, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
 import { switchStyle } from '../components/segmentedSwitch';
 import { useCollapse } from '../components/useCollapse';
@@ -528,6 +530,28 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
   );
 }
 
+// Cutting the program (Plan 95V, systems/athletics/cut.ts), at the foot of
+// the opened card. A flagship in season is refused, and the button says why.
+function CutProgram({ s, act, team }: { s: GameState; act: (a: Action) => void; team: VarsityTeam }) {
+  const refusal = cutRefusal(s, team.id);
+  const settlement = cutSettlement(s, team);
+  const name = programName(team);
+  return (
+    <div className="team-card-cut">
+      <ConfirmButton
+        className="btn-quiet"
+        disabled={refusal !== null}
+        title={refusal ?? `End ${name} for good. The venue stays, for recreation, and the club may form again; the alumni give less for ${countWord(CUT_GIVING_YEARS)} years.`}
+        label="Cut the program"
+        armedLabel={`Confirm — ${name} ends; its alumni will give less`}
+        warning={settlement > 0 ? `Its staff are paid to the season's end: ${money(settlement)}.` : undefined}
+        onConfirm={() => act({ type: 'CUT_TEAM', teamId: team.id })}
+      />
+      {refusal && <span className="stat">{refusal}</span>}
+    </div>
+  );
+}
+
 // A program as a card in the list: the name and band, how it stands in its
 // sport, what it costs and draws, its recruiting and its three chairs.
 // Every program starts folded to its one line (Plan 95I, as Plan 76B
@@ -603,6 +627,7 @@ function TeamCard({ s, act, team, funding, rank }: {
         <div className="team-card-staff" role="group" aria-label="Staff">
           {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
         </div>
+        <CutProgram s={s} act={act} team={team} />
       </>}
     </div>
   );

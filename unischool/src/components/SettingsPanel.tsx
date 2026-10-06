@@ -4,8 +4,9 @@ import { CloseIcon } from './icons';
 import { switchStyle } from './segmentedSwitch';
 
 // Settings (Plan 34, from v2's): text size, color vision and motion, the
-// pause when a matter arrives (Plan 78E), the seasons on the map (Plan
-// 74I), and the sound (App.tsx passes SoundControls in).
+// pause when a matter arrives (Plan 78E) and for the news (Plan 95T), the
+// seasons on the map (Plan 74I), and the sound (App.tsx passes
+// SoundControls in).
 
 const SCALE_LABELS: Record<number, string> = { 1: 'Standard', 1.15: 'Larger', 1.3: 'Largest' };
 
@@ -52,6 +53,14 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             <button type="button" className={s.pauseOnArrival ? undefined : 'active'} aria-pressed={!s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: false })}>Off</button>
           </span>
           <p className="settings-note">The clock stops for each new matter to decide. Either way, a matter not yet opened stops it once in its final week.</p>
+        </fieldset>
+        <fieldset className="settings-row">
+          <legend>Pause for news</legend>
+          <span className="segmented switch" style={switchStyle(2, s.pauseForNews ? 0 : 1)}>
+            <button type="button" className={s.pauseForNews ? 'active' : undefined} aria-pressed={s.pauseForNews} onClick={() => setSettings({ pauseForNews: true })}>On</button>
+            <button type="button" className={s.pauseForNews ? undefined : 'active'} aria-pressed={!s.pauseForNews} onClick={() => setSettings({ pauseForNews: false })}>Off</button>
+          </span>
+          <p className="settings-note">The clock stops for each celebration and research report. Off, they wait in the inbox as letters.</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Seasons</legend>

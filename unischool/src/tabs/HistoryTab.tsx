@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import StandingsPanel from './StandingsPanel';
 import type { Action } from '../state/actions';
 import AlumniPanel from './AlumniPanel';
@@ -6,6 +7,7 @@ import { MIN_SERIES_POINTS } from '../components/Sparkline';
 import HelpHint from '../components/HelpHint';
 import { sectionAvailable } from '../components/TabNav';
 import { sectionAnchor, useSectionTarget } from '../components/sectionTarget';
+import { switchStyle } from '../components/segmentedSwitch';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { HistoryChart } from '../components/HistoryChart';
 import { MultiChart } from '../components/MultiChart';
@@ -21,9 +23,10 @@ import { hallEntryFor } from '../state/hall';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
 import { collegeSpecialization } from '../systems/prestige/milestone';
-import { Standing, StandingFigure } from './StandingBreakdown';
+import { Standing, StandingFigure, type BelowALink } from './StandingBreakdown';
+import { BELOW_A_TARGET, belowACount } from './curriculumFilter';
 import RankingsPanel from './RankingsPanel';
-import { pillarShareRule, pillarWeightsWords, specializationOfferRule } from '../data/prestigeWords';
+import { pillarRule } from '../data/prestigeWords';
 
 // Institutional History: the one screen that shows the decades. It reads
 // s.history (state/history.ts) and live readings, and stores nothing of its
@@ -32,10 +35,30 @@ import { pillarShareRule, pillarWeightsWords, specializationOfferRule } from '..
 // Rows of the year-by-year table shown before it scrolls.
 const TABLE_VISIBLE_ROWS = 12;
 
+// The three views (Plan 95H, the second review's B2-1), on the sliding
+// switch as the Faculty tab's are: Prestige, what moves it and how it has
+// gone; the record of the years; and the guide with its standings. One page
+// held all three, the wordiest screen in the game.
+export type HistoryView = 'prestige' | 'record' | 'guide';
+export const HISTORY_VIEW_START: HistoryView = 'prestige';
+const VIEWS: { id: HistoryView; label: string }[] = [
+  { id: 'prestige', label: SECTION_HEADINGS['history.prestige'] },
+  { id: 'record', label: 'The record' },
+  { id: 'guide', label: SECTION_HEADINGS['history.rankings'] },
+];
+// A section a link lands on (the Prestige and Rank chips, Plans 78C and
+// 80C) opens the view that holds it.
+const VIEW_OF_SECTION: Record<string, HistoryView> = {
+  'history.prestige': 'prestige',
+  'history.record': 'record',
+  'history.rankings': 'guide',
+};
+
 // Prestige (Plans 80C, 85B): the Prestige chip's page, its breakdown and
 // nothing else: the four pillars' blend, each pillar's make-up under its
-// row.
-function PrestigePanel({ s }: { s: GameState }) {
+// row. Its head says the pillar rule, the one place it is said in full
+// (Plan 95E's PILLAR_RULE_HOME; Plan 95H).
+function PrestigePanel({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   const breakdown = prestigeBreakdown(s);
   const forecast = rankForecast(s);
   return (
@@ -47,9 +70,10 @@ function PrestigePanel({ s }: { s: GameState }) {
         </div>
         <HelpHint
           align="end"
-          text={`Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, ${pillarWeightsWords()}, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings. ${pillarShareRule()} The college's specialization, once chosen, opens its own. ${specializationOfferRule()}`}
+          text="Prestige is the college's overall standing, the number the guide ranks: the four pillars' blend, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. Each pillar's row reads its standing and what that standing is worth in points of prestige. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings, in the guide's view. The college's specialization, once chosen, opens its own share."
         />
       </div>
+      <p className="stat pillar-rule">{pillarRule()}</p>
       <p className="stat specialization-status">{collegeSpecialization(s)}</p>
       {forecast && (
         <p className="stat rank-forecast">
@@ -57,7 +81,37 @@ function PrestigePanel({ s }: { s: GameState }) {
           {' '}#{forecast.rank} in the guide{forecast.rank === forecast.now ? ', where it stands now' : ` (#${forecast.now} now)`}.
         </p>
       )}
-      <Standing breakdown={breakdown} titled={false} />
+      <Standing breakdown={breakdown} titled={false} belowA={belowA} />
+    </section>
+  );
+}
+
+// Prestige and the place it buys, by year: the two charts that belong with
+// the breakdown (Plan 95H).
+function PrestigeCharts({ s }: { s: GameState }) {
+  const history = s.history;
+  const years = history.map((h) => h.year);
+  return (
+    <section className="panel">
+      <h2>By year</h2>
+      <div className="history-charts">
+        <HistoryChart
+          label="Prestige"
+          span={SEMICENTENNIAL_YEAR}
+          years={years}
+          values={history.map((h) => h.prestige)}
+          format={prestigeFigure}
+          note="Slow to move: graded each summer and stepped toward the grade, with a little drift toward it between summers."
+        />
+        <MultiChart
+          title="Place in the guide, by year"
+          invert
+          yMin={1}
+          yMax={s.rivals.length + 1}
+          series={[{ name: 'Rank', points: history.map((h) => ({ x: h.year, y: h.rank })), format: (v) => `#${Math.round(v)}` }]}
+          note={`Of ${s.rivals.length + 1} colleges, by prestige; #1 is the top.`}
+        />
+      </div>
     </section>
   );
 }
@@ -71,7 +125,7 @@ function FinalReportPanel({ s }: { s: GameState }) {
   const report = written ?? (s.clock.year < REPORT_DRAFT_FROM ? null : finalReport(s));
   const left = SEMICENTENNIAL_YEAR - s.clock.year;
   return (
-    <section className="panel">
+    <section className="panel" {...sectionAnchor('history.record')}>
       <div className="panel-head">
         <div className="panel-head-title">
           <h2>{REPORT_WORDS.title}</h2>
@@ -146,44 +200,39 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
   );
 }
 
-// `target`: a section to land on (the Prestige chip opens Prestige, the
-// Rank chip the guide; Plans 78C and 80C).
-export default function HistoryTab({ s, act, target, onTargetConsumed }: {
-  s: GameState; act: (a: Action) => void; target?: string; onTargetConsumed?: () => void;
-}) {
-  const history = s.history;
-  const totalCourses = s.tech.filter((t) => t.kind === 'course').length;
-  useSectionTarget(target, onTargetConsumed);
+// Prestige's view: the breakdown, then its charts once two years are filed.
+function PrestigeView({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
+  return (
+    <>
+      <PrestigePanel s={s} belowA={belowA} />
+      {sectionAvailable(s, 'history.record') && s.history.length >= MIN_SERIES_POINTS && <PrestigeCharts s={s} />}
+    </>
+  );
+}
 
-  // Open from the first week for Prestige and the guide (Plans 78C and
-  // 80C); the record of the years waits for the first commencement
-  // (ladderData.ts's sections).
+// The record's view: the Final Report's draft, the promises, the chronicle,
+// the year-by-year charts, the alumni and the table.
+function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
+  const history = s.history;
+  // The record of the years waits for the first commencement (ladderData.ts's
+  // sections).
   if (!sectionAvailable(s, 'history.record')) {
     return (
-      <div className="tab-content">
-        <PrestigePanel s={s} />
-        <RankingsPanel s={s} />
-        <section className="panel">
-          <h2>The record</h2>
-          <p className="empty-note">
-            The record of the years starts at the first commencement: the chronicle, the promises and the year-by-year charts are kept here from then on.
-          </p>
-        </section>
-      </div>
+      <section className="panel" {...sectionAnchor('history.record')}>
+        <h2>The record</h2>
+        <p className="empty-note">
+          The record of the years starts at the first commencement: the chronicle, the promises and the year-by-year charts are kept here from then on.
+        </p>
+      </section>
     );
   }
 
   if (history.length < MIN_SERIES_POINTS) {
     return (
-      <div className="tab-content">
-        {/* Prestige and the guide need no history, so a first-year school
-            still sees them. */}
-        <PrestigePanel s={s} />
-        <RankingsPanel s={s} />
+      <>
         <FinalReportPanel s={s} />
         <PromisesPanel s={s} />
         <ChroniclePanel s={s} />
-        <StandingsPanel s={s} />
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-title">
@@ -198,17 +247,16 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
               : `One year on the books (Year ${history[0].year}). The charts open up once a second year is filed.`}
           </p>
         </section>
-      </div>
+      </>
     );
   }
 
+  const totalCourses = s.tech.filter((t) => t.kind === 'course').length;
   const years = history.map((h) => h.year);
   const latest = history[history.length - 1];
   const first = history[0];
-
   return (
-    <div className="tab-content">
-      <PrestigePanel s={s} />
+    <>
       <FinalReportPanel s={s} />
       <PromisesPanel s={s} />
       <ChroniclePanel s={s} />
@@ -218,7 +266,7 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
             <h2>Institutional history</h2>
             <span className="panel-count">{yearOfFifty(s)}</span>
           </div>
-          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the Final Report is written." />
+          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the Final Report is written; prestige's and the guide's are in the Prestige view." />
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
@@ -228,22 +276,6 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
         </p>
 
         <div className="history-charts">
-          <HistoryChart
-            label="Prestige"
-            span={SEMICENTENNIAL_YEAR}
-            years={years}
-            values={history.map((h) => h.prestige)}
-            format={prestigeFigure}
-            note={`Slow to move: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade is the blend of four pillars, ${pillarWeightsWords()}, with the endowment added and neglect and crowding taken off.`}
-          />
-          <MultiChart
-            title="Place in the guide, by year"
-            invert
-            yMin={1}
-            yMax={s.rivals.length + 1}
-            series={[{ name: 'Rank', points: history.map((h) => ({ x: h.year, y: h.rank })), format: (v) => `#${Math.round(v)}` }]}
-            note={`Of ${s.rivals.length + 1} colleges, by prestige; #1 is the top.`}
-          />
           <HistoryChart
             label="Enrolled"
             span={SEMICENTENNIAL_YEAR}
@@ -271,16 +303,65 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
         </div>
       </section>
 
-      <RankingsPanel s={s} />
-
-      <StandingsPanel s={s} />
-
       <AlumniPanel s={s} act={act} />
 
       <section className="panel">
         <h2>Year by year</h2>
         <HistoryTable rows={history} />
       </section>
+    </>
+  );
+}
+
+// The guide's view: the ranking Rank shows, then the standings, once the
+// record opens.
+function GuideView({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
+  return (
+    <>
+      <RankingsPanel s={s} />
+      {sectionAvailable(s, 'history.record') && <StandingsPanel s={s} belowA={belowA} />}
+    </>
+  );
+}
+
+// `target`: a section to land on (the Prestige chip opens Prestige, the
+// Rank chip the guide; Plans 78C and 80C). `view` and `onView`: the view
+// last used, held by the parent (App.tsx) for the session, as the Faculty
+// tab's is (Plan 95G); without them, the tab holds its own.
+// `onOpenCurriculum`: the teaching standard's line opens the Curriculum with
+// Below A on (Plan 95S, the second review's B4-5).
+export default function HistoryTab({ s, act, target, onTargetConsumed, view: held, onView, onOpenCurriculum }: {
+  s: GameState; act: (a: Action) => void; target?: string; onTargetConsumed?: () => void;
+  view?: HistoryView; onView?: (view: HistoryView) => void; onOpenCurriculum?: (target: string) => void;
+}) {
+  const [own, setOwn] = useState<HistoryView>(HISTORY_VIEW_START);
+  const setView = onView ?? setOwn;
+  // A target names its view before the first paint, so the scroll finds it.
+  const landing = target === undefined ? undefined : VIEW_OF_SECTION[target];
+  const view = landing ?? held ?? own;
+  useEffect(() => {
+    if (landing) setView(landing);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+  useSectionTarget(target, onTargetConsumed);
+  const belowA: BelowALink | undefined = onOpenCurriculum && view !== 'record'
+    ? { count: belowACount(s), onOpen: () => onOpenCurriculum(BELOW_A_TARGET) }
+    : undefined;
+
+  return (
+    <div className="tab-content">
+      <div className="history-views">
+        <span className="segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
+          {VIEWS.map((v) => (
+            <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
+              {v.label}
+            </button>
+          ))}
+        </span>
+      </div>
+      {view === 'prestige' && <PrestigeView s={s} belowA={belowA} />}
+      {view === 'record' && <RecordView s={s} act={act} />}
+      {view === 'guide' && <GuideView s={s} belowA={belowA} />}
     </div>
   );
 }

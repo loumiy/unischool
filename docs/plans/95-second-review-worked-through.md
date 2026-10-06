@@ -890,6 +890,73 @@ Deviations:
   and 3,296), per view. Every chart still has a home, and a test lists
   them. Screenshots of each view.
 
+**As implemented.** Words and layout; nothing the simulation reads
+changed. Two files under `src/` outside the tabs moved: the teaching
+standard's sentence (`prestigeSystem.ts`'s `teachingCeiling`) and a new
+words function beside the grade points (`courseQuality.ts`). `npm run sim` was run all the same and reads as
+the baseline.
+
+- **Three views** on the sliding switch, at the head of the tab
+  (`HistoryTab.tsx`'s `HistoryView`):
+  - **Prestige**: the breakdown (the four pillars, the endowment, the two
+    penalties, the teaching standard, the readings), then "By year", the
+    Prestige and "Place in the guide" charts;
+  - **The record**: the Final Report's draft, the promises, the
+    chronicle, "Institutional history" (Enrolled, Operating funds and
+    Catalog), the alumni and the year-by-year table;
+  - **The guide**: the guide's table and the standings.
+  It opens on Prestige. The view is held in `App.tsx` beside Faculty's
+  (`historyView`) and cleared by New Game. A link's section opens its
+  view before the first paint (the Prestige chip Prestige, the Rank chip
+  the guide; `history.record` now has an anchor too).
+- **Prestige's head** says `pillarRule()` once, as a line under the
+  heading; the help hint no longer carries the weights or the share rule,
+  and the Prestige chart's note, now on the same view, drops the weights.
+- **One scale per pillar row** (`StandingBreakdown.tsx`): "Academics
+  113.0 of 150 → 28.4 of 41.3 points of prestige". The line under it is
+  "It counts for 35% of prestige.", then the specialization's sentence,
+  then "Last summer graded it 28.3." only when last summer's grade differs
+  from today's. On the other rows (the endowment, the penalties) last
+  summer's "+a → " shows only when it differs: the arrow goes when the two
+  agree. On a phone the figure wraps under the label, to the right.
+- **The teaching standard**: "courses average a B+: standing can reach
+  139. A campus of B's reaches 128; only A's everywhere reach 150."
+  (`meanGradeLetter`: the mean grade points to the nearest third-step
+  letter, B, B+, A−, A, as a transcript reads them; "no course is graded
+  yet" with none).
+- **Measured** (`npm run review:gallery --sizes desktop`, whole page; the
+  gallery now steps History's views as it does Faculty's):
+
+  | Save | One page (before) | Prestige | The record | The guide |
+  |---|---|---|---|---|
+  | `year-8-balanced` (year 9) | 2,117 w / 9 c | 393 / 5 | 693 / 9 | 1,081 / 6 |
+  | `year-40-done` (year 41) | 3,320 / 11 | 391 / 5 | 1,926 / 11 | 1,057 / 6 |
+
+  The review's 2,054 and 3,296 are these saves' 2,117 and 3,320 on
+  `main` before this PR. The phone's counts are the same.
+- **Tests** (`test/history-views.test.ts`): each view draws exactly the
+  charts its list names, thirteen in all, as the one page drew; the tab
+  opens on Prestige, a held view is drawn, a section opens its view; the
+  rule is said once, in Prestige's head; each pillar row reads its
+  standing then its points of prestige; the teaching standard names the
+  mean grade, and `meanGradeLetter` reads whole grades and thirds.
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/95h-*.jpg`:
+  Prestige at year 8 (the whole view, with its charts) and year 40, the
+  record and the guide at year 40, and Prestige on a phone at year 40.
+- **Deviations.**
+  - **The standings** (the seven rankings and their rank charts) are in
+    the guide's view, not the record's "other charts": they are rankings,
+    and the guide's help already sends the reader to them.
+  - **The one-scale row's arrow** joins the pillar's two scales, as the
+    spec's example reads; the arrow the review asked to drop (last
+    summer's grade → today's) is gone from the pillar rows, its figure
+    said in the line under the row when it differs, and kept on the other
+    rows only when it differs.
+  - **The teaching standard's letter** is the nearest third-step, so the
+    review's 127 reads "a B" (mean 0.63 points, nearest B at 0.65), not
+    the example's "B−" (0.55).
+  - **The measure** is `review:gallery`, not `review:sweep`, as in 95G.
+
 ### PR 95I — Athletics folded, and the summer Review capped (B2-1)
 
 - **Athletics.** Each program folds to one line: its scoreboard (Plan
@@ -1437,6 +1504,61 @@ The owner's answer: open near the first years' grade, with no words added.
   - The guided player's reading order is unchanged in the sim. Crowding
     is a line, not an intent, so no new intent is added.
 
+**As implemented.**
+
+- **At the decision.** `consequences.ts`'s `projectConsequences` gains
+  `crowding` (points) and `crowdingWorst` (the need and its coverage). It
+  reads the projected body with the year's crowding average started
+  afresh, as `resolveAdmissions.ts` starts it, through
+  `prestigeSystem.ts`'s new `crowdingPoints` (the penalty × `crowdingScore`)
+  and `crowdingCoverages`. `InterruptModal.tsx` shows "Crowding −14.5 of
+  prestige's grade (dining 36%)" under the tightest need, only while it is
+  above zero, so nothing shows while every coverage is 85% or better. It
+  moves with the admit rate, as the others do.
+- **On NEXT** (`nextStep.ts`): a new reading, `crowding(s, rest)`, placed
+  after `nearlyEstablished` and before the shortfall. When a crowded need
+  (beds, dining, health) is under `CROWDING_GRACE` it reads "Dining serves
+  36% — crowding is costing prestige; a dining hall would raise it" and
+  opens the build menu. When something that serves the need is going up,
+  it uses O's `comingFor`: "…; Union Square Eatery opens in 9 weeks", `go`
+  the building's site. It then gives way, under O's rule, to a step the
+  player can act on.
+- **A line, not an intent.** The crowding line carries the intent of the
+  reading it stands before (the shortfall, the idle lab or the waiting
+  letter), so the guided player does what it did without the line. It
+  already relieves crowding first by its own rule
+  (`moves.ts`'s `relieveCrowding`).
+- **Tests:** `crowding-cost.test.ts`. The review's Year 2, built directly:
+  the founding halls (350 beds, dining for 350), a catalog that seats the
+  class, 379 staying on, and the admit rate that makes 603. The projection
+  reads 982 students and −14.5 (dining 36%), as the review measured, and
+  equals the grade's crowding term after `RESOLVE_ADMISSIONS`. A smaller
+  class costs less, and a roomy body costs nothing. NEXT is tested at 84%
+  (crowding speaks) and at 86% (it doesn't), with a building going up, and
+  giving way to an idle lab. `opening.test.ts`'s year-2 reading now stands
+  the founding halls: its bare campus was crowded.
+- **Screenshot:**
+  [`95p-admissions-crowding.jpg`](../reviews/2026-10-review-ii-fixes/95p-admissions-crowding.jpg)
+  (the summer scenario with its continuing classes raised, so the body
+  overruns health).
+- **Balance:** `npm run sim` (merged with O) reads the same as
+  `sim/baseline.json`: no figure moved. `check` and `test:slow` pass.
+
+**Deviations.**
+
+- **Year one is unchanged.** Its line stays letter, seating, shortfall.
+  A new college has no beds, so between letters the crowding line would
+  ask for a residence hall before the week-9 letter does, and Plan 78B's
+  rule is that the letters' order is not contradicted.
+- **Instruction is not named.** The grade's crowding also reads class
+  seats, but the students short of places already have their reading
+  (`seating`), earlier on the line. NEXT names the worst of beds, dining
+  and health. The decision's figure names whatever the grade reads,
+  instruction included.
+- **The need's words:** "Housing", "Dining", "Health care" serve n%.
+- **No NEXT screenshot.** On the harness's saves an earlier reading
+  always spoke. The words are pinned by the test.
+
 ### PR 95Q — Labs, unfounded schools and the build tiles, said plainly (B3-7, B3-8, B3-10)
 
 - **The lab** (B3-7).
@@ -1728,6 +1850,61 @@ Selective and Lean never reach prestige 70 or the top 25.
     and one swap per course a week;
   - the link opens the filter.
 
+**As implemented.**
+- **The policy.** *Staff for the A* (`STAFFING_POLICY`) is a fourth policy
+  on the Provost's and the Deans' seats. `seats.ts`'s `staffForTheA` runs
+  each week as `tickStaffing`, right after `tickFaculty`.
+  - It takes the courses below A weakest first, and moves each to the best
+    free instructor in its field. Free means teaching under their slots.
+  - It moves a course only for a full letter or more (`lettersBetter` in
+    `courseQuality.ts`), at most once a week, and never hires or dismisses.
+  - A course in a program between halls keeps its instructor.
+  - It logs one line per seat per week ("Provost X moved Dr. Y onto
+    ECON 210 (C to B)…"), naming three moves and counting the rest.
+  - With no Provost, each Dean on the policy staffs its own school. A
+    Provost on any policy stands the Deans down.
+- **The link.** The teaching standard's line in History › Prestige, and in
+  the guide's standings, ends "Show the N courses below A". It opens the
+  Curriculum with Below A on. The count is `belowACount`, the filter's own
+  count. The Curriculum's link targets now go through `targetFilters`.
+- **The harness.** `tendTeaching` leaves step 1 (the swap) to a seat that
+  covers the course; it still hires and dismisses. The goal players put a
+  Provost they hold on the policy. Their runs now record the player's own
+  swaps (`playerSwaps`) and the seat's (`seatSwaps`). The seat's count also
+  takes in a departure's colleague cover.
+- **Measured** (`npm run review:goals`, five goals, seeds 12345, 4242 and
+  777, one name). `tend-teaching` actions a run, origin/main → this PR, with
+  the Provost's swaps after:
+
+  | Goal, seed | Before | After | Provost's swaps | Prestige Y50, before → after |
+  |---|---:|---:|---:|---|
+  | Prestige, 12345 | 767 | 158 | 603 | 101.4 → 101.0 |
+  | Prestige, 4242 | 803 | 142 | 635 | 103.3 → 105.5 |
+  | Prestige, 777 | — | 166 | 681 | — → 100.6 |
+  | Every asset, 12345 | 801 | 170 | 726 | 111.4 → 109.8 |
+
+  The goal players appoint a Provost in year 1, so after this PR they make
+  no instructor swaps of their own (`playerSwaps` 0). What is left of
+  `tend-teaching` is hires and dismissals. The review's 495–839 falls to
+  about 140–170. The other runs (championships, good-then-big and
+  big-then-good, and the remaining seeds) were still running when this was
+  written. They land in the scratch reports and go in a follow-up.
+- **Balance.** No player in `npm run sim` holds a Provost: Guided, Natural
+  and the archetypes never appoint a seat. The new system does nothing
+  without a seat on the policy and uses no randomness, so the sim is not
+  expected to move. The coordinator agreed, and there is no re-baseline.
+  The full sim was not run.
+- **Deviations.**
+  - The policy is a fourth radio choice, not a separate switch. It answers
+    the routine as the default (*Keep the students on side*) does, and
+    staffs as well. The seat's `policy` string carries it, so the save shape
+    does not change: no migration, no version bump.
+  - The log line names the seat's holder ("Provost X moved…"), as
+    `delegate`'s lines do, and is one line a week, not one per swap.
+  - The Guided player holds no Provost, so only the goal players take the
+    policy. Giving Guided a Provost would move balance through the salary,
+    which is not this PR's subject.
+
 ### PR 95T — News that does not stop the clock (B4-6)
 
 - **Milestones and research reports become letters.** `eventSystem.ts`
@@ -1756,6 +1933,80 @@ Selective and Lean never reach prestige 70 or the top 25.
     of them milestone notes, up to 83 research reports.
   - Idle weeks are unchanged. This removes stops, not weeks.
   - Tests for the setting.
+
+**As implemented.**
+
+- **The letters.** `eventSystem.ts` files the celebration and the report
+  as a `NewsLetter` in `s.events.news` (oldest first, kept a year) instead
+  of raising the stop; `inbox.ts` lists each as a `news` item in the
+  letter tier ("A celebration" or "Research", its headline, a first line),
+  unread until opened (`READ_NEWS`). The reading pane shows the card the
+  stop showed (`MilestoneCelebrationView`, `ResearchReportView`, now
+  exported), under a Letter tag and its date, without Continue. The slip
+  is a letter's. The specialization, the summer, the opening letters and
+  every `decide` matter are unchanged.
+- **The week stays claimed.** A filed letter returns `true` as the stop
+  did, so the cadence below it in `tickEvents` stands down that week. The
+  demand runs after the events and read only `pendingInterrupt`, so
+  `announceDemand` also waits on a letter filed that week. Without it one
+  goal run (revenue, seed 777) moved from year 43: a demand arrived a
+  week early. With it, a full-state hash of that run is identical every
+  week for 50 years between the old stop and the new letter.
+- **Pause for news** (`settings.ts`, off by default and for a browser
+  without the key) sits under *Pause when a matter arrives*.
+  `unseen.ts` pauses the clock for a new `news` item while it is on
+  (reason `'news'`), whatever the other setting says, and never under a
+  stop or on a load; the slip then waits with the clock.
+- **The Review** (`yearInReview.ts`'s `events()`): the year's matters the
+  clock answered, from their log lines, as one `reviewGroup` — "3 matters
+  left unanswered" over "Title (the answer it took)", or one line in full.
+- **Saves.** A save holding a celebration or a report as a stop shows it
+  once, as before (the stop's handlers and `defaultAnswers` stay), then
+  the new rule holds. The news needs a place in the save: version 96 (after 95K's 95),
+  `noNewsYet` (fixture `save-v95.json`, the year-8 scenario with 95K's field added).
+- **Measured** with `npm run review:goals` (seven goals, seeds 12345, 4242
+  and 777, Blackmoor, 50 years), stops a run before → after, medians:
+
+  | Goal | Stops | celebrations | research reports | Idle weeks | Answer-only weeks |
+  |---|---|---|---|---|---|
+  | prestige | 299 → 126 | 89 → 0 | 82 → 0 | 1,466 → 1,507 | 108 → 74 |
+  | big-then-good | 277 → 134 | 93 → 0 | 45 → 0 | 1,403 → 1,454 | 117 → 70 |
+  | assets | 262 → 142 | 92 → 0 | 27 → 0 | 1,315 → 1,340 | 88 → 62 |
+  | good-then-big | 234 → 123 | 87 → 0 | 19 → 0 | 1,578 → 1,617 | 104 → 67 |
+  | championships | 206 → 133 | 72 → 0 | 0 → 0 | 1,722 → 1,749 | 107 → 80 |
+  | satisfaction | 156 → 108 | 47 → 0 | 0 → 0 | 2,091 → 2,129 | 122 → 85 |
+  | revenue | 153 → 79 | 11 → 0 | 61 → 0 | 2,150 → 2,159 | 74 → 60 |
+
+  Every run: 127–308 stops before, 77–151 after. Every goal player's
+  decisions are identical, week for week, before and after.
+- **The sim** reads the same as `sim/baseline.json` (no change in any
+  row).
+- **Tests:** `unseen.test.ts` (the setting's default and normalising, the
+  news pausing only with it on, not twice, not under a stop or on a
+  load, a ladder milestone not news), `inbox.test.ts` (a celebration
+  filed by a `TICK` as a letter, its slip, read, gone after a year),
+  `research-completion.test.ts` (reports filed one a week, read, an old
+  stop still answers), `demand-note.test.ts` (a demand waits out the
+  letter's week), `year-in-review.test.ts` (the unanswered, one and two).
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/`:
+  `95t-research-letter.jpg`, `95t-celebration-letter.jpg` (the inbox at
+  the Completionist's year 12, the clock running) and
+  `95t-pause-for-news.jpg`.
+- **Deviations.**
+  - *Idle weeks are not unchanged by the review's measure* (a week with
+    nothing done and nothing asked): a week that only answered a
+    celebration now asks nothing, so 9–51 more weeks a run read idle. The
+    weeks the players act in are unchanged (their decisions are
+    identical); only the stop is gone, as the spec meant.
+  - *Stored, not derived.* The celebration had no letter of its own (the
+    ladder's milestone letters are a different set), and a report is
+    not kept anywhere after it fires, so the letters are kept in the save
+    (`s.events.news`), with a save version.
+  - *Reading a letter no longer reads the next.* The pane fell back to the
+    newest unread letter whenever nothing was picked, so opening the
+    inbox read every unread letter in a cascade. The pane now holds
+    whatever it showed. This was there before for the ladder's letters;
+    the news made it plain.
 
 ### PR 95U — The Final Report reads the path (B4-7)
 
@@ -1867,6 +2118,64 @@ the venue.
   athletics state outright. Otherwise, add a `cutYear` and a migration.
 - **Checks:** reducer tests for the cut and its costs; the venue returns
   to recreation; a flagship cannot be cut in season.
+
+**As implemented.** `systems/athletics/cut.ts`, the `CUT_TEAM` action, and
+*Cut the program* at the foot of the opened card (`AthleticsTab.tsx`), armed
+as "Confirm — {sport} ends; its alumni will give less".
+- **The cut** removes the team outright: from `teams`, the priority list,
+  its season and its rivalry. Titles, last season and the complex's deep
+  runs stay as record.
+- **In season** runs from the opener (week 8) to the postseason (week 47).
+  A flagship is refused there, and the button says why; moved below the
+  line (the existing reorder, with its head coach's risk), or after the
+  postseason, it may go, and the next program moves up.
+- **The costs.** The alumni give 6% less the year of a cut, easing back
+  to nothing over five years; cuts add, to at most 20%
+  (`giving.ts`'s `cutGivingDip`; with no cut the factor is exactly 1, and
+  the Alumni panel says the dip while it lasts). A program cut in season
+  pays its staff, and a flagship's scholarships, to the season's end at
+  once; out of season nothing is owed. The alumni's letter goes through
+  `postBoardLetter` as `program-cut:{sport}`, read by
+  `inbox.ts`'s `boardLetterFor`, signed "From the alumni", naming the rival
+  and the trophy the rivalry ends with, with an *Open Athletics* button.
+- **The venue** stays and serves its social places, team or none (it
+  always did: a venue's capacity never read its team). The sport is free
+  for a club again, so the usual petition or the Athletics Development
+  Office can bring it back. A venue not yet started hides again, as one
+  does before its first team.
+- **The save:** `orgs.cutPrograms` (sport and year). `SAVE_VERSION` 97,
+  with `MIGRATIONS[96]` (`noCutsYet`), the fixture `save-v96.json` (the
+  year-29 college of `save-v94.json`, twenty programs fielded), and a
+  sanitizer on load; a letter about a sport the game does not know is
+  dropped.
+- **The harness.** The championships player now acts on the rule that
+  wanted it (week 40, its weakest program, five postseasons missed, not a
+  flagship in season). Over three seeds, six runs: **2 of 6 cut a
+  program** (Women's Basketball in year 33, Men's Lacrosse in year 34).
+  No other goal player and no `sim/` player cuts.
+- **Balance:** `npm run sim` reads the same as `sim/baseline.json` (no
+  change in any figure): no `sim/` player cuts, and with no cut the
+  giving factor is exactly 1.
+- **Checks:** `test/cut-team.test.ts` (the cut and its costs, the dip
+  easing, the letter, the flagship refused in season and allowed below the
+  line or after the postseason, the venue standing with the same social
+  places, the club free to form again, the save round trip and a malformed
+  record dropped); `save-migrations` loads the new fixture with none cut.
+- Screenshots: `docs/reviews/2026-10-review-ii-fixes/95v-*.jpg`.
+
+Deviations:
+- **No per-sport giving to stop.** The game has no athletics share of
+  giving by sport: the annual fund is by class (`givingOf`). The sport's
+  own money that does stop is its gate. The dip on the whole fund stands
+  for both halves of the spec's cost.
+- **Pay to the season's end is settled at once**, not by keeping the team
+  until then, so the program leaves the state outright and nothing waits
+  on a later week.
+- **A record of cuts, so a migration.** The dip needs the year of the cut,
+  so the save keeps `cutPrograms` (the spec's "otherwise, add a cutYear").
+- **Three seeds, not five.** The review's 6 of 10 wanted a cut over five
+  seeds; three seeds here (the brief's allowance) give 2 of 6 runs that
+  cut. The rule is the one that raised the want, unchanged.
 
 ### PR 95W — Money measured, and the scorecard re-based (B4-10, B4-11)
 

@@ -440,9 +440,16 @@ naming offer's draw and the endowment campaign's match, the naming offer aims
 at venues too, and the state capital match can be put toward a revealed venue
 (PR E). The **academic** number is still never touched directly by athletics.
 
-Disbanding a team is not built in this pass either; when it is, what
-happens to a now-teamless venue is a call worth making explicitly rather
-than silently.
+**Cutting a team** (Plan 95V, `systems/athletics/cut.ts`): the team leaves
+the athletics state outright, with its place on the list, its season and its
+rivalry. A flagship is never cut in season; it is moved below the line
+first, or cut after the postseason. A program cut in season pays its staff
+(and a flagship's scholarships) to the season's end at once. The alumni give
+6% less that year, easing back over five years (`alumni/giving.ts`'s
+`cutGivingDip`), and write to say so. The venue is the explicit call: it
+stays, and returns to recreation. It serves its social places as it always
+did, team or none, and the sport's club may form again, through the usual
+petition or the Athletics Development Office.
 
 **Standings** are an independent ranking axis
 (`rivalsSystem.ts`'s `athleticRank`, read against `Rival.athleticStrength` —

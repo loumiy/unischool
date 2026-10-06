@@ -644,7 +644,20 @@ export interface EventState {
   // The year the Deans last brought their restaffing recommendations
   // (eventSystem.ts's fireDeanRecommendations, Plan 59). Absent: never.
   deanYear?: number;
+  // The news filed as letters (Plan 95T, the second review's B4-6): a
+  // milestone celebration or a research report, which no longer stops the
+  // clock. Oldest first; kept a year, as the inbox keeps a letter. Absent
+  // in a state from before it (a fixture read raw): none filed.
+  news?: NewsLetter[];
 }
+
+// A celebration or a report as the inbox keeps it (EventState.news). It
+// carries what its stop carried, so the reading pane shows the same card.
+// Celebration entries are eventData.ts's MilestoneEntry.
+export type NewsLetter = { id: string; week: number; unread: boolean } & (
+  | { type: 'milestone'; payload: { keys: string[]; entries: { key: string; headline: string; detail: string; unlocks: string[] }[] } }
+  | { type: 'research-complete'; payload: { report: InitiativeReport } }
+);
 
 // See state/opening.ts, which owns the order and the meaning.
 export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'play';
@@ -969,6 +982,13 @@ export interface SeasonRecord {
   results: OccasionResult[];
 }
 
+// A varsity program the college cut (Plan 95V): the team is gone from
+// `teams`, and this is all that is kept of it.
+export interface CutProgram {
+  sport: string;
+  year: number;
+}
+
 // The all-time record against a sport's designated rival.
 // `streak` is signed: positive is the player's run of consecutive wins,
 // negative the rival's.
@@ -1024,6 +1044,9 @@ export interface StudentOrgState {
   // yearly; `rivalries` is the all-time record against each sport's rival.
   season: Record<string, SeasonRecord>;
   rivalries: Record<string, RivalryRecord>;
+  // The programs the college has cut (Plan 95V, systems/athletics/cut.ts):
+  // the sport and the year, for the alumni's dip in giving (alumni/giving.ts).
+  cutPrograms: CutProgram[];
   // Absolute week the AD offer last fired; 0 = never. The offer recurs
   // after a decline, and is stamped at fire time, not on decline: any path
   // that clears the interrupt without declining would otherwise re-fire it

@@ -17,33 +17,47 @@ import { SPECIALIZED_TAG } from '../data/specializationData';
 
 // A penalty row (crowding) is drawn in the penalty color as a subtraction.
 // `grade`, when present, is what the input was worth at last summer's report
-// card (prestigeSystem.ts's gradeYear), shown beside its worth now.
-function StandingRow({ input, max, grade }: { input: StandingInput; max: number; grade?: number }) {
+// card (prestigeSystem.ts's gradeYear), shown beside its worth now, and
+// only when the two differ (Plan 95H).
+function StandingRow({ input, max, grade, belowA }: { input: StandingInput; max: number; grade?: number; belowA?: BelowALink }) {
   const reach = input.weight * input.score;
   const worth = Math.abs(input.contribution);
   const sign = input.penalty ? '−' : '+';
   const widthOf = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  const moved = grade !== undefined && Math.abs(grade).toFixed(1) !== worth.toFixed(1);
+  const pillar = input.pillar;
   return (
     <li className={`standing-row${input.penalty ? ' standing-penalty' : ''}`}>
       <div className="standing-row-head">
         <span className="standing-row-label">
           {input.label}
           {/* The college's specialization (Plan 85D): its limit is lifted. */}
-          {input.pillar?.specialized && <span className="standing-row-specialized">{SPECIALIZED_TAG}</span>}
+          {pillar?.specialized && <span className="standing-row-specialized">{SPECIALIZED_TAG}</span>}
         </span>
-        <span className="standing-row-figure">
-          {grade !== undefined && (
-            <span className="standing-row-grade" title="Graded last summer">{sign}{Math.abs(grade).toFixed(1)} → </span>
-          )}
-          {sign}{worth.toFixed(1)}<span className="standing-row-of"> of {weightFigure(input.weight)}</span>
-        </span>
+        {pillar ? (
+          // A pillar on one row, on one scale read two ways (Plan 95H, the
+          // second review's B2-3 and B3-2): its standing, and what that
+          // standing is worth in points of prestige.
+          <span className="standing-row-figure">
+            {pillar.target.toFixed(1)}<span className="standing-row-of"> of {pillar.max}</span>
+            <span className="standing-arrow"> → </span>
+            {worth.toFixed(1)}<span className="standing-row-of"> of {weightFigure(input.weight)} points of prestige</span>
+          </span>
+        ) : (
+          <span className="standing-row-figure">
+            {moved && (
+              <span className="standing-row-grade" title="Graded last summer">{sign}{Math.abs(grade!).toFixed(1)} → </span>
+            )}
+            {sign}{worth.toFixed(1)}<span className="standing-row-of"> of {weightFigure(input.weight)}</span>
+          </span>
+        )}
       </div>
       <div className="standing-bar" aria-hidden="true">
         <div className="standing-bar-reach" style={{ width: widthOf(reach) }} />
         <div className="standing-bar-fill" style={{ width: widthOf(worth) }} />
       </div>
       <p className="standing-detail">
-        {input.detail}
+        {pillar ? pillarDetail(pillar, moved ? Math.abs(grade!) : undefined) : input.detail}
         {input.multiplier && (
           <>
             {' '}
@@ -54,15 +68,26 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
         )}
       </p>
       {/* A pillar of prestige (Plan 85B): what it is made of. */}
-      {input.pillar && (
+      {pillar && (
         <details className="standing-pillar">
           <summary>What {input.label.toLowerCase()} is made of</summary>
           {/* The row's line already says the pillar is specialized: said once. */}
-          <Standing breakdown={input.pillar} titled={false} rowSaid />
+          <Standing breakdown={pillar} titled={false} rowSaid belowA={belowA} />
         </details>
       )}
     </li>
   );
+}
+
+// A pillar's line under its row (Plan 95H): its weight in prestige, since
+// the row's figure carries both scales; the specialization's sentence; and
+// last summer's grade, when it differs from today's worth.
+function pillarDetail(pillar: StandingBreakdown, grade: number | undefined): string {
+  return [
+    `It counts for ${pct(pillar.share ?? 0)} of prestige.`,
+    pillar.specialized,
+    grade === undefined ? undefined : `Last summer graded it ${grade.toFixed(1)}.`,
+  ].filter(Boolean).join(' ');
 }
 
 // A weight as its row prints it: a pillar's terms are scaled onto the
@@ -127,7 +152,12 @@ function summerNote(breakdown: StandingBreakdown, gap: number): string {
 // `rowSaid`: the specialization's sentence is
 // already on the row this breakdown opens under (a pillar in History ›
 // Prestige), so it is left off.
-export function Standing({ breakdown, titled = true, rowSaid = false }: { breakdown: StandingBreakdown; titled?: boolean; rowSaid?: boolean }) {
+// `belowA`: the teaching standard's link to the Curriculum's Below A (Plan
+// 95S), shown on whichever breakdown carries the teaching ceiling.
+export interface BelowALink { count: number; onOpen: () => void }
+export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: {
+  breakdown: StandingBreakdown; titled?: boolean; rowSaid?: boolean; belowA?: BelowALink;
+}) {
   // All bars share one scale, the largest weight in this standing, so terms
   // are comparable at a glance.
   const max = Math.max(...breakdown.inputs.map((i) => i.weight));
@@ -161,11 +191,19 @@ export function Standing({ breakdown, titled = true, rowSaid = false }: { breakd
         <p className={`standing-note standing-ceiling${breakdown.held ? ' binding' : ''}`}>
           <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}
           {breakdown.held && !rowSaid && ` ${breakdown.ceiling.held ?? 'It is holding the target down now.'}`}
+          {belowA && belowA.count > 0 && (
+            <>
+              {' '}
+              <button type="button" className="standing-link" onClick={belowA.onOpen}>
+                {belowA.count === 1 ? 'Show the course below A' : `Show the ${belowA.count} courses below A`}
+              </button>
+            </>
+          )}
         </p>
       )}
       <ul className="standing-rows">
         {breakdown.inputs.map((input) => (
-          <StandingRow key={input.key} input={input} max={max} grade={breakdown.summer?.reportCard?.grades[input.key]} />
+          <StandingRow key={input.key} input={input} max={max} grade={breakdown.summer?.reportCard?.grades[input.key]} belowA={belowA} />
         ))}
       </ul>
       {breakdown.readings.length > 0 && (

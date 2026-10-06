@@ -113,8 +113,8 @@ Everything that needs to stop time rides on this one mechanism:
   hall pre-placed, and nothing taught.
   The copy is `src/data/openingData.ts` and the card is
   `src/components/OpeningCoach.tsx`.
-- **Milestone celebrations** — a stop-the-clock moment for the handful of
-  genuinely special accomplishments (a program established, a program
+- **Milestone celebrations** — a letter (since Plan 95T; a stop before it)
+  for the handful of genuinely special accomplishments (a program established, a program
   distinguished, a school distinguished), showing what was unlocked and what it
   did to the prestige target. Deliberately *not* fired by routine course completions: which
   milestone kinds qualify, and how close together two celebrations may land,
@@ -122,7 +122,10 @@ Everything that needs to stop time rides on this one mechanism:
   one-line dial. Milestones are queued (`s.events.pendingMilestones`) rather
   than fired on the spot, so a milestone landing on the admissions or report
   week is delayed to the next quiet week instead of being dropped, and a burst
-  of simultaneous completions folds into a single modal.
+  of simultaneous completions folds into a single letter. The letter
+  (`s.events.news`) still takes the week it lands, as the stop did, so the
+  weeks after it and the run's random stream read the same.
+  Settings' **Pause for news** (off by default) pauses the clock for it.
 - **Decision-interrupt events** — since Plan 32, only the questions that
   belong to a system: naming rights, Greek life, the athletic director's
   asks and the rival's passing (below). Authored as data
@@ -138,10 +141,10 @@ Everything that needs to stop time rides on this one mechanism:
   each other. The catalogue's inline events never stop the clock: they
   wait in the inbox (`InboxTab.tsx`, Plan 77) and take their default when
   their weeks run out, or a seat answers them by policy.
-- **A research prize** — the one research output momentous enough to stop the
-  clock, awarded when an initiative concludes (see
-  [research.md](../design/research.md)).
-  Publications, grants and breakthroughs never do.
+- **A research report** — a project's conclusion, with its prize when it
+  won one (see [research.md](../design/research.md)). A letter since Plan
+  95T, filed and taking its week as the celebration does. Publications,
+  grants and breakthroughs never raise one.
 - **A championship** — the one athletics output momentous enough to stop the
   clock (see [student-life.md](../design/student-life.md)'s "The postseason").
   The bracket itself resolves silently inside the weekly tick; only a title
@@ -227,10 +230,10 @@ Everything addressed to the president that does not stop the clock waits in
 the **inbox** (Plan 77, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
 full-screen tab in three tiers: **to decide** (the catalogue's inline events,
 the university charter among them, a student demand, a board letter with an
-ask), **letters** (milestones, the
+ask), **letters** (milestones, the celebrations and research reports, the
 board's distress letters, the founding notes) and **bulletins** (the toasts'
-news, kept for a term). It is read off state the game already keeps, never
-stored. Only the first tier counts on the toolbar's button, red while one is
+news, kept for a term). It is read off state the game already keeps; only
+the celebrations and reports are kept for it (`s.events.news`, a year). Only the first tier counts on the toolbar's button, red while one is
 in its last week; an arrival is also a toast with an Open button, for eight
 seconds. In year one a founding note or a milestone's arrival stays until it
 is opened or dismissed (Plan 78B), since the first year's guidance is in
@@ -246,7 +249,9 @@ unopened pauses the clock once. Both are the pause button pressed for the
 player, in `App.tsx`: the reducer, the save and every replay are
 unchanged, and neither acts while an interrupt or the walkthrough holds the
 clock. With the setting off, Plan 35's ease to 1× on arrival
-(`useGame.ts`) stays.
+(`useGame.ts`) stays. **Pause for news** (Plan 95T, off by default) does
+the same for a new celebration or research report, whose slip then waits
+with the clock.
 
 ## Widths
 

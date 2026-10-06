@@ -440,6 +440,15 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 hint={FIGURE_HINTS.tightestNeed}
                 value={<CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} />}
               />
+              {/* What the body costs prestige (Plan 95P, the second review's
+                  B3-5): nothing while every need is 85% covered or better. */}
+              {consequence.crowding > 0 && (
+                <Figure
+                  label="Crowding"
+                  hint={FIGURE_HINTS.projectedCrowding}
+                  value={<span className="crowding-cost">{signed(-consequence.crowding, 1)} of prestige's grade ({consequence.crowdingWorst.label} {pct(consequence.crowdingWorst.coverage)})</span>}
+                />
+              )}
               {consequence.totalEnrolled > SCALE_FREE_BELOW && (() => {
                 // The break (Plan 36): what the next thousand would pay at this
                 // price against what they would cost at this size.
@@ -777,11 +786,13 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
 // It grants and asks nothing. The prestige figures are computed live with
 // prestigeSystem.ts's own functions (the target now vs. without these
 // milestones), so the contribution shown is a real reading of the model.
+// Since Plan 95T a letter (InboxTab.tsx), with no Continue; a save with one
+// standing as a stop shows it once, with it.
 // ---------------------------------------------------------------------
-function MilestoneCelebrationView({ s, payload, onDismiss }: {
+export function MilestoneCelebrationView({ s, payload, onDismiss }: {
   s: GameState;
   payload: MilestonePayload;
-  onDismiss: () => void;
+  onDismiss?: () => void;
 }) {
   const target = computePrestigeTarget(s);
   const withoutThese = prestigeTargetWithout(s, payload.keys);
@@ -839,9 +850,11 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
         </div>
       </dl>
 
-      <div className="modal-actions">
-        <button onClick={onDismiss}>Continue</button>
-      </div>
+      {onDismiss && (
+        <div className="modal-actions">
+          <button onClick={onDismiss}>Continue</button>
+        </div>
+      )}
     </>
   );
 }
@@ -851,12 +864,12 @@ function MilestoneCelebrationView({ s, payload, onDismiss }: {
 // completion is the event; an award is one of its results. It grants and asks
 // nothing: everything shown has already landed. It reads the payload, not
 // live state, so it stays true if a professor has since left or the facility
-// been renamed.
+// been renamed. A letter since Plan 95T, as the celebration is.
 // ---------------------------------------------------------------------
-function ResearchReportView({ s, report, onDismiss }: {
+export function ResearchReportView({ s, report, onDismiss }: {
   s: GameState;
   report: InitiativeReport;
-  onDismiss: () => void;
+  onDismiss?: () => void;
 }) {
   const depth = initiativeDepth(report.depth);
 
@@ -906,9 +919,11 @@ function ResearchReportView({ s, report, onDismiss }: {
         )}
       </dl>
 
-      <div className="modal-actions">
-        <button onClick={onDismiss}>Continue</button>
-      </div>
+      {onDismiss && (
+        <div className="modal-actions">
+          <button onClick={onDismiss}>Continue</button>
+        </div>
+      )}
     </>
   );
 }
