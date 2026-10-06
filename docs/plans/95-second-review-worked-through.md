@@ -438,6 +438,78 @@ it in every vernacular. This PR measures first.
 - If art changed: rerun `npm run gallery:assets`, and take screenshots of
   each changed form in Georgian, Gothic, Classical and Mission.
 
+**As implemented.** Art only: `materialOf` feeds the drawing and nothing
+under `systems`, `state`, `data` or `sim` reads it, so the sim was not run.
+
+- **Measured.** The three campuses were made as the review made them:
+  `npm run scenario -- --player <P> --year 50 --seed 12345 --clear-modal`
+  (Completionist with `--build-all`), which writes year 51 week 2. All
+  three found in Georgian. `review:probe -- vernacular` now ends each
+  campus with a line per set (Modern and Art Deco left out) giving the
+  buildings and footprint area in the render wall, and which ones. The
+  share is the same in all seven sets, because the render forms were the
+  same in each:
+
+  | Campus (year 51) | Buildings | Render wall, before | Area, before | After |
+  |---|---:|---:|---:|---:|
+  | Completionist, every asset stood | 77 | 21 (27%) | 31% | 0 |
+  | Natural, seed 12345 | 68 | 20 (29%) | 37% | 0 |
+  | Guided, seed 12345 | 62 | 21 (34%) | 36% | 0 |
+
+  Beside the review's figures, massing and walls following the
+  vernacular: 56% / 49% of area (Completionist), 59% / 50% (Natural), 50%
+  / 45% (Guided); the review had 55% / 49%, 58% / 50%, 51% / 46%. Plan 87
+  did not change the render forms, so on `main` a third of the campus was
+  still render.
+
+  The render forms (`-- catalogue`: 21 of 81 placeables, in all five
+  founding sets): the works labs (Biology, Chemistry, Physics, Electrical,
+  Chemical Engineering) and the Research Park; the test halls and studio
+  (Mechanical, Civil, Aerospace, Film); Computing; the Humanities Research
+  Institute and Experimental Economics (a portico and a pavilion, in
+  render because they are labs); the Recreation Center, the gym, the
+  Sports & Recreation Complex, the Arena and the Field House; the two
+  apartment rungs (DORM-05, DORM-07); and the Football Stadium. The
+  stadium alone is 14–17% of the area.
+- **Decided: over 10% on every campus, so the walls changed.**
+  `renderOutOfPlace` (`buildingSpec.ts`) turns render into the set's
+  academic wall (`brickRed`) under the labs' flat deck everywhere but
+  Modern and Art Deco (`RENDER_VERNACULARS`): brick in Georgian and Tudor,
+  ashlar in Gothic (keeping its slate, as 87I's labs did), limestone in
+  Classical and Second Empire, stucco in Mission, ochre in Italianate. It
+  is 87I's rule made general: the Neuroscience Labs' wall
+  (`vernacularWallOf`, one stable object per set) is now the one every
+  render form takes, and `VERNACULAR_WALL_LABS` keeps only the Labs' own
+  exception (the wall in Modern too). Massing unchanged. After it,
+  `-- catalogue` lists no render wall in Georgian, Gothic, Classical or
+  Mission, and Modern keeps its 21.
+- **The stadium.** Its stands were tinted by the wall, so the change
+  would have made the seating brick. The stands' walls take the set's
+  wall and the seating, concourse and fascia stay concrete (the render
+  color), Franklin Field's way; in Modern and Art Deco it draws exactly as
+  before.
+- **Tests.** `building-spec.test.ts`'s invariant-materials rule now reads
+  against Modern: an invariant building in render there wears the set's
+  academic wall elsewhere, the rest stay as they were, and nothing but
+  open ground wears render outside Modern and Art Deco. Every roof still
+  reads against its wall (Mission's stucco, Gothic's ashlar and the bonus
+  sets included). `catalogue.test.ts` passes unchanged.
+- **Pictures.** `npm run gallery:assets` rerun (`docs/assets/`; it also
+  picks up Walnut Hall, missing since an earlier plan). Each changed form
+  in Georgian, Gothic, Classical and Mission (rows), from `npm run sheet`:
+  `docs/reviews/2026-10-review-ii-fixes/95d-works-labs.jpg`,
+  `95d-test-halls-and-institutes.jpg`, `95d-sport-and-apartments.jpg` and
+  `95d-stadium.jpg` (the full bowl).
+- **Deviations.**
+  - The apartment blocks, the gyms and the stadium changed as well as the
+    labs. The PR said "the forms that remain"; those are what remained,
+    and without them the stadium alone kept every campus over 10%.
+  - The stadium keeps concrete seating, so only its walls follow the set.
+  - Open ground keeps render for its props: it is left out of the measure,
+    and its props are not walls.
+  - The note gives year 51 week 2, the year `scenario --year 50` writes,
+    as the review's year-51 campuses were.
+
 ### What area 1 does not do
 
 - B1-4 (diagonal walks) and B1-5 (doors) stay in the backlog.
