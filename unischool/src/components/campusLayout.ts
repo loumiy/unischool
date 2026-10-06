@@ -82,8 +82,10 @@ export function campusLayout(s: GameState): CampusLayout {
   const glyphs: Record<string, string> = {};
   for (const c of s.orgs.chapters) glyphs[chapterHouseId(c.id)] = c.glyphs;
   const placed: PlacedEntry[] = [];
+  // One pass over the catalogue, not one per placement (Plan 96G).
+  const tech = new Map(s.tech.map((x) => [x.id, x]));
   for (const [id, p] of Object.entries(s.placements)) {
-    const node = s.tech.find((x) => x.id === id);
+    const node = tech.get(id);
     if (!node) continue;
     // A hall dedicated to one school is drawn as its signature building; the
     // map's copy carries the school, the state's never does.

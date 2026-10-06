@@ -217,6 +217,12 @@ a sequence of PRs.*
   - **Why.** After Plan 83 most of a change's main-thread cost at Play is
     the game's own update, not the map: when a building finishes, 68 of
     the 76 ms, the canvas taking 8.
+  - **Measured again (Plan 96G).** A headless TICK at year 45 is 47 ms,
+    of which the state's clone is 5 ms. Under a tab, after 96G stopped the
+    map there, a week costs about 160 ms of main thread in a production
+    build, most of it React rendering the shell and the open tab, which a
+    worker would not move. Rendering less per week (memoised tabs, a
+    shell that re-renders only what changed) is the larger win.
   - **What it takes.** The tick posts each week's state back. The
     snapshot must cross the thread boundary, either by structured clone
     or as the changed records. Actions go the other way, with the one

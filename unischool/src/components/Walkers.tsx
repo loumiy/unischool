@@ -273,7 +273,7 @@ function along(route: Waypoint[], lengths: number[], u: number): Waypoint {
   return { col: a.col + (b.col - a.col) * t, row: a.row + (b.row - a.row) * t };
 }
 
-export default function Walkers({ layout, students, gait, camera, turning, sink }: {
+export default function Walkers({ layout, students, gait, camera, turning, sink, resting = false }: {
   layout: CampusLayout;
   students: number;
   // The clock's pace as a multiple of Play; 0 while paused.
@@ -283,7 +283,14 @@ export default function Walkers({ layout, students, gait, camera, turning, sink 
   turning: boolean;
   // The canvas map, which draws the crowd; none on the SVG map.
   sink?: CrowdSink;
+  // A tab covers the map (Plan 96G): no frames until it shows again.
+  resting?: boolean;
 }) {
+  const restingRef = useRef(resting);
+  restingRef.current = resting;
+  // Restarts the frame loop once the map shows again; set by the loop.
+  const wakeRef = useRef<(() => void) | null>(null);
+  useEffect(() => { if (!resting) wakeRef.current?.(); }, [resting]);
   const layerRef = useRef<SVGGElement>(null);
   const walkersRef = useRef<Walker[]>([]);
   // The layout the routes are planned on. A building or a tree moves them
@@ -512,6 +519,8 @@ export default function Walkers({ layout, students, gait, camera, turning, sink 
       for (const w of walkers) draw(w, true);
     };
     const step = (now: number) => {
+      // Under a tab the loop stops; wakeRef starts it again.
+      if (restingRef.current) { frame = 0; return; }
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       table.grow(1);
@@ -567,7 +576,13 @@ export default function Walkers({ layout, students, gait, camera, turning, sink 
       frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
+    wakeRef.current = () => {
+      if (frame !== 0) return;
+      last = performance.now();
+      frame = requestAnimationFrame(step);
+    };
     return () => {
+      wakeRef.current = null;
       cancelAnimationFrame(frame);
       placeRef.current = null;
       setDoors(new Set(), true);

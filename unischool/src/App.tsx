@@ -443,6 +443,7 @@ export default function App() {
           // panel when the menu opens.
           onInspectedChange={(id) => { setInspectedId(id); if (id !== null) closeBuild(); }}
           buildOpen={buildOpen}
+          resting={overlay !== null}
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
         <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />

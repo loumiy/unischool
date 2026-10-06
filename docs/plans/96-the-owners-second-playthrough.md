@@ -460,6 +460,55 @@ the backlog.
   - `npm run sim` unchanged;
   - a test that the walker loop stops while hidden.
 
+**As implemented:**
+
+- **The profiler.** `tools/profile.mjs`:
+  - continues past the title screen (it had sat on it);
+  - skips a speed the save has not opened (4× waits on a Provost);
+  - reports long-task milliseconds beside their count;
+  - takes `--tab=<label>` to measure under a tab.
+- **The map rests under a tab.**
+  - `CampusMap` takes `resting` (`App`: `overlay !== null`). While resting
+    it draws the last state it showed (`shownRef`), so every memo keyed on
+    the state holds and the canvas scene is not rebuilt.
+  - `Walkers` stops its `requestAnimationFrame` loop and restarts it when
+    the tab closes.
+  - A hidden page needs nothing: the browser already stops
+    `requestAnimationFrame` there.
+- **The layout.** `campusLayout` looks buildings up in a map, not one
+  `s.tech.find` per placement. Its result was already reference-stable by
+  its key, so it is not keyed more narrowly: its labels and weathering read
+  more of the state than the placements.
+- **Measured.** Completionist saves at years 30 and 45 (`npm run scenario
+  -- --player Completionist --year 45 --clear-modal`), 10 s per speed,
+  headless Chromium at 1440×900. This is long-task milliseconds, the time
+  the main thread was blocked.
+  - **The dev server overstates the cost.** A CPU profile there spends
+    about 800 ms in React's development-only render logging
+    (`logComponentRender`). So the table is of production builds
+    (`vite build`, `vite preview`), before G and after.
+
+  | Year 45 | Before G | After G |
+  |---|---|---|
+  | Map showing, Play | 220 | 272 |
+  | Map showing, 2× | 1,056 | 999 |
+  | Under the Students tab, Play | 348 | 282 |
+  | Under the Students tab, 2× | 1,686 | 669 |
+
+  - A week under a tab now costs less than a week with the map showing.
+  - With the map showing the cost is unchanged, as planned. On the dev
+    server the same change takes the Students tab at 2× from 5,445 ms to
+    3,537 ms.
+- **The reducer's clone is not the cost.** A headless TICK at year 45 is
+  47 ms, the `structuredClone` 5 ms of it (year 14: 25 ms and 3.6 ms).
+  - The rest of a week's main-thread time is React rendering the shell
+    and, under a tab, the tab itself. In production that is about 160 ms a
+    week under Students at 2×.
+  - So *the sim on a worker thread* would move the 47 ms, not the
+    rendering. The backlog entry gets these numbers.
+- **No test of the resting loop.** The test runner has no DOM, so the
+  profile is the check.
+
 ## PR 96H — Faculty: current and potential rolled apart
 
 Decision 5. Today every rolled candidate's current stats are

@@ -1127,7 +1127,7 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
 });
 
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
+  s: live, resting = false, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
   onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait,
 }: {
   s: GameState;
@@ -1165,7 +1165,16 @@ export default function CampusMap({
   // The clock's pace as a multiple of Play, 0 while it is stopped: how fast
   // the walkers walk.
   gait: number;
+  // A tab covers the map (Plan 96G): it draws the college as it last showed
+  // it and the walkers stop, so a week under a tab costs the map nothing.
+  // It catches up the moment the tab closes.
+  resting?: boolean;
 }) {
+  // The state the map draws: today's, or while resting the last it showed.
+  // Every memo keyed on the state then holds under a tab.
+  const shownRef = useRef(live);
+  if (!resting) shownRef.current = live;
+  const s = shownRef.current;
   // The picked-up building's facing (R turns it a quarter at a time).
   const [facing, setFacing] = useState<Facing>(0);
   // The bench tool's facing once R has turned it (Plan 80I); until then a
@@ -2372,7 +2381,7 @@ export default function CampusMap({
             </BannerContext.Provider>
             </CrowdContext.Provider>
             </>)}
-            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} />
+            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <FullMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
