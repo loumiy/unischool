@@ -1824,6 +1824,61 @@ Selective and Lean never reach prestige 70 or the top 25.
     and one swap per course a week;
   - the link opens the filter.
 
+**As implemented.**
+- **The policy.** *Staff for the A* (`STAFFING_POLICY`) is a fourth policy
+  on the Provost's and the Deans' seats. `seats.ts`'s `staffForTheA` runs
+  each week as `tickStaffing`, right after `tickFaculty`.
+  - It takes the courses below A weakest first, and moves each to the best
+    free instructor in its field. Free means teaching under their slots.
+  - It moves a course only for a full letter or more (`lettersBetter` in
+    `courseQuality.ts`), at most once a week, and never hires or dismisses.
+  - A course in a program between halls keeps its instructor.
+  - It logs one line per seat per week ("Provost X moved Dr. Y onto
+    ECON 210 (C to B)…"), naming three moves and counting the rest.
+  - With no Provost, each Dean on the policy staffs its own school. A
+    Provost on any policy stands the Deans down.
+- **The link.** The teaching standard's line in History › Prestige, and in
+  the guide's standings, ends "Show the N courses below A". It opens the
+  Curriculum with Below A on. The count is `belowACount`, the filter's own
+  count. The Curriculum's link targets now go through `targetFilters`.
+- **The harness.** `tendTeaching` leaves step 1 (the swap) to a seat that
+  covers the course; it still hires and dismisses. The goal players put a
+  Provost they hold on the policy. Their runs now record the player's own
+  swaps (`playerSwaps`) and the seat's (`seatSwaps`). The seat's count also
+  takes in a departure's colleague cover.
+- **Measured** (`npm run review:goals`, five goals, seeds 12345, 4242 and
+  777, one name). `tend-teaching` actions a run, origin/main → this PR, with
+  the Provost's swaps after:
+
+  | Goal, seed | Before | After | Provost's swaps | Prestige Y50, before → after |
+  |---|---:|---:|---:|---|
+  | Prestige, 12345 | 767 | 158 | 603 | 101.4 → 101.0 |
+  | Prestige, 4242 | 803 | 142 | 635 | 103.3 → 105.5 |
+  | Prestige, 777 | — | 166 | 681 | — → 100.6 |
+  | Every asset, 12345 | 801 | 170 | 726 | 111.4 → 109.8 |
+
+  The goal players appoint a Provost in year 1, so after this PR they make
+  no instructor swaps of their own (`playerSwaps` 0). What is left of
+  `tend-teaching` is hires and dismissals. The review's 495–839 falls to
+  about 140–170. The other runs (championships, good-then-big and
+  big-then-good, and the remaining seeds) were still running when this was
+  written. They land in the scratch reports and go in a follow-up.
+- **Balance.** No player in `npm run sim` holds a Provost: Guided, Natural
+  and the archetypes never appoint a seat. The new system does nothing
+  without a seat on the policy and uses no randomness, so the sim is not
+  expected to move. The coordinator agreed, and there is no re-baseline.
+  The full sim was not run.
+- **Deviations.**
+  - The policy is a fourth radio choice, not a separate switch. It answers
+    the routine as the default (*Keep the students on side*) does, and
+    staffs as well. The seat's `policy` string carries it, so the save shape
+    does not change: no migration, no version bump.
+  - The log line names the seat's holder ("Provost X moved…"), as
+    `delegate`'s lines do, and is one line a week, not one per swap.
+  - The Guided player holds no Provost, so only the goal players take the
+    policy. Giving Guided a Provost would move balance through the salary,
+    which is not this PR's subject.
+
 ### PR 95T — News that does not stop the clock (B4-6)
 
 - **Milestones and research reports become letters.** `eventSystem.ts`

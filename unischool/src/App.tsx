@@ -523,7 +523,10 @@ export default function App() {
               )}
               {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
               {overlay.tab === 'history' && (
-                <HistoryTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} view={historyView} onView={setHistoryView} />
+                <HistoryTab
+                  s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} view={historyView} onView={setHistoryView}
+                  onOpenCurriculum={(target) => openTab('curriculum', target)}
+                />
               )}
               {overlay.tab === 'inbox' && (
                 <InboxTab

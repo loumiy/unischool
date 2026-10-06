@@ -19,7 +19,16 @@ export interface PolicyDef {
   id: string;
   rule: PolicyRule;
   label: string;
+  // The academic seats' teaching policy (Plan 95S, the second review's
+  // B4-5): besides answering the routine by its rule, the seat staffs the
+  // courses below A each week (systems/delegation/seats.ts's tickStaffing).
+  staffs?: true;
+  // Said in place of the rule's note when the policy does more than its rule.
+  note?: string;
 }
+
+// The teaching policy's id, the same on the Provost's seat and a Dean's.
+export const STAFFING_POLICY = 'staff-for-a';
 
 export interface SeatDef {
   id: string;
@@ -42,9 +51,13 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'economical', rule: 'thrifty', label: 'Hold the line on spending' },
       { id: 'invest', rule: 'thorough', label: 'Spend on the academic side' },
       { id: 'collegial', rule: 'popular', label: 'Keep the students on side' },
+      {
+        id: STAFFING_POLICY, rule: 'popular', label: 'Staff for the A', staffs: true,
+        note: 'Each week, puts the best free instructor in its field on each course below A, when they would teach it a full letter better. Never hires or dismisses. Answers the routine as Keep the students on side does.',
+      },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments, the faculty\'s routine. Usually the first seat a college fills, and the one that opens game speed 4×.',
+    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments, the faculty\'s routine, and, on Staff for the A, who teaches the courses below A. Usually the first seat a college fills, and the one that opens game speed 4×.',
   },
   {
     id: 'dean', title: 'Dean', domain: 'academic', perSchool: true,
@@ -53,6 +66,10 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'economical', rule: 'thrifty', label: 'Run the school lean' },
       { id: 'invest', rule: 'thorough', label: 'Back the school\'s requests' },
       { id: 'collegial', rule: 'popular', label: 'Keep the students happy' },
+      {
+        id: STAFFING_POLICY, rule: 'popular', label: 'Staff for the A', staffs: true,
+        note: 'With no Provost, each week puts the best free instructor in its field on each of the school\'s courses below A, when they would teach it a full letter better. Never hires or dismisses. Answers the routine as Keep the students happy does.',
+      },
     ],
     defaultPolicy: 'collegial',
     blurb: 'One for each school the college has founded. Takes the academic routine when there is no Provost; with a Provost, three of them open game speed 8×.',

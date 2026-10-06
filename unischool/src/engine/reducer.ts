@@ -6,7 +6,7 @@ import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueE
 import { CHARTER_INSTANCE, charterVars } from '../systems/events/charter';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
-import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
+import { appointSeat, setSeatPolicy, tickStaffing } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, dropBoardLetters, shiftBoardLetter, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
@@ -73,6 +73,10 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickLadder,
   tickTech,
   tickFaculty,
+  // After the faculty's week (growth, departures): a Provost or Dean on
+  // Staff for the A moves instructors onto the courses below A (Plan 95S),
+  // before anything this week reads the grades.
+  tickStaffing,
   // Before tickFinance: output uses this week's grown stats, and a grant
   // lands in the same week's balance.
   tickResearch,
