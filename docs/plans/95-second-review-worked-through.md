@@ -2388,6 +2388,26 @@ still happens, so the random stream reads the same.
 - **Checks:** a test per kind (ties to the id, as now); a test that the
   random stream is unchanged by the naming.
 
+**As implemented.** `namedFaculty` (`catalogue.ts`) has the two new kinds,
+both read and tied to the id: `'tenure-track'` is the shortest-serving
+professor with `TENURE_CASE_MIN_YEARS` (4) to `TENURE_CASE_MAX_YEARS` (10)
+years at the college, and `'recent'` the shortest-serving with at least a
+year. `star-poached` names `'researcher'`, `tenure-case` `'tenure-track'`
+and `two-body` `'recent'`. `eligible()` now also asks that an event's
+professor kind finds someone, so a kind that finds nobody takes the event
+out of that week's pool; it is read, so the pool's one draw is still the
+only one. `rollVars` still draws `{faculty}` first. `event-truth` checks
+each kind against a roster built for it (ties to the id), that each event
+cannot fire with nobody to name, that naming and the eligibility check
+leave the stream as it was, and, in place of Plan 79D's test that no
+leaving event names by kind, that every event that lets its professor go
+does. `BACKLOG.md`'s entry is gone.
+- **Deviation:** the tenure window has an upper end (ten years). The
+  shortest-serving with at least four years can still be a professor of
+  twenty-five at a college that has hired nobody since; with the upper end
+  the tenure case never names them, as the section says, and the event
+  waits instead.
+
 ### What area 7 does not do
 
 - H7-7's rule: a name beginning "University of" still takes the suffix.
