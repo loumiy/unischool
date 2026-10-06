@@ -4,8 +4,8 @@
 [second game review](../reviews/2026-10-game-review-ii/README.md)
 ([Plan 86](86-second-game-review.md)) into PRs, one area at a time.*
 
-**Status: Proposed.** Areas 1 and 2 answered. Areas 3–7 are added below as
-the owner answers them.
+**Status: Proposed.** Areas 1–3 answered. Areas 4–7 are added below as the
+owner answers them.
 
 ---
 
@@ -20,9 +20,10 @@ already fixed is closed here, with the plan that fixed it. It gets no PR.
 
 - One branch per PR (`plan-95x-subject`), merged once `check` and `slow`
   pass.
-- **Balance never moves, except in M.** `npm run sim` reads the same as
-  `sim/baseline.json` after every other PR. M reshapes the course catalog,
-  and its PR re-baselines with the owner's sign-off.
+- **Balance never moves, except in M and N.** `npm run sim` reads the same
+  as `sim/baseline.json` after every other PR. M reshapes the course
+  catalog, and N lowers the opening prestige. Each re-baselines with the
+  owner's sign-off.
 - A visual PR carries screenshots in `docs/reviews/2026-10-review-ii-fixes/`:
   - in more than one vernacular;
   - from more than one camera where the change turns with the camera;
@@ -49,6 +50,10 @@ already fixed is closed here, with the plan that fixed it. It gets no PR.
 | K | The inbox and the phone | B2-7 | no |
 | L | The course catalog's shape: the table, for the owner | B2-6 (the shape) | no |
 | M | The course catalog's shape: the data and the migration | B2-6 (the shape) | **yes** |
+| N | The college opens at the prestige it can earn | B3-1 | **yes** |
+| O | NEXT: the building going up, and the step toward a school | B3-3, B3-4 | no |
+| P | Crowding, at the admissions decision and on NEXT | B3-5 | no |
+| Q | Labs, unfounded schools and the build tiles, said plainly | B3-7, B3-8, B3-10 | no |
 
 B, C and D touch different files (`seasons.ts` and the grounds;
 `downtownData.ts`, `Surroundings.tsx` and the camera; `buildingSpec.ts`), so
@@ -61,6 +66,14 @@ Area 2's order:
 - H lands after E and F, because History › Prestige's head is where E's
   rule goes and where F's one-scale row is drawn.
 - L is a document. M waits on the owner's answer to it, and lands last.
+
+Area 3's order:
+- N lands on its own, between other PRs' sim runs, so its re-baseline is
+  the only move in it.
+- O and P both add NEXT readings (`nextStep.ts`). Land O first; P adds its
+  reading to the order O leaves.
+- Q can go side by side with any of them.
+- F (area 2) also takes B3-6's line.
 
 ---
 
@@ -287,6 +300,10 @@ the before and after counts in their **As implemented** note.
   computed by the same function the guide ranks with, on a copy of the
   state with that share full. Present the rank against today's rivals.
 - **The intro** shrinks to two sentences. The rule itself is E's function.
+- **The college's strongest pillar, first** (B3-6). One line above the
+  cards: "The college's strongest pillar is student life (#4). 35 rivals
+  specialize in academics, 19 in student life." It is read from the
+  standings and the rivals' specializations.
 - On a phone the four cards stay stacked, and each fits in about one
   screen.
 - **Checks:**
@@ -463,3 +480,159 @@ every save. This PR writes the change as a table and changes no code.
 
 - No new screens. Every change moves, folds or rewords what is there.
 - Plan 90's styling stays: the ID cards, the scoreboards and the switches.
+
+---
+
+## Area 3 — Intuitive gameplay
+
+### The owner's answer
+
+Since the review, Plan 89 changed one line each in `nextStep.ts`,
+`establish.ts` and `seating.ts` (a slot taken by an office is not free).
+Nothing else in guidance or prestige moved. Plan 91's committee lamps now
+signal an idle committee under the Curriculum tab.
+
+| Finding | What | On `main` | Answer |
+|---|---|---|---|
+| B3-1 | The first summers mark every college down, and nothing says why | Open: the college opens at `startingReputation + FOUNDERS_HALL_REPUTATION_BONUS` (51.5) and grades about 29 | **N**: open at about 42. No words added |
+| B3-2 | Prestige's panel can't answer "how do I raise it?" | Open | **H**'s one scale is enough. No more |
+| B3-3 | NEXT asks for a building that is already going up | Open: `shortfall()` reads only the satisfaction breakdown | **O**: name the building |
+| B3-4 | "Establish a school" names the goal, not the step | Open: `establishText` names only the count. A program in transit counts in neither hall | **O** |
+| B3-5 | Admissions hides what a big class costs in prestige | Open | **P**: the projection and a NEXT reading |
+| B3-6 | The specialization says when, not why | Mostly covered by F | **F** gains the strongest-pillar line |
+| B3-7 | The first lab doesn't say it starts research | Open (`BuildPopup.tsx:307`) | **Q** |
+| B3-8 | The Curriculum won't name a school the letters name | Open (`CurriculumTab.tsx:993`) | **Q** |
+| B3-9 | Nothing points at an idle committee | The lamps (Plan 91) breathe while a free seat could take a course | Close: the lamps are enough |
+| B3-10 | Smaller doubts | Open, all six | **Q**: all but the search price's tooltip |
+
+### PR 95N — The college opens at the prestige it can earn (B3-1)
+
+A college opens at 51.5, and the first summer grades it 29. So prestige
+falls for three or four summers, and the rank stands still for a decade.
+The owner's answer: open near the first years' grade, with no words added.
+
+- **The opening.** `foundingReputation` (`actions.ts`) opens at about 42.
+  Set the exact figure from the harness: the mean of the Natural and
+  Guided players' Year 2 grade over three seeds, rounded to a half. The
+  aim is a first summer that holds or rises slightly. Change
+  `startingReputation` in `FOUNDING_PRESET`, or the hall's bonus, whichever
+  keeps their comments true.
+- **What reads the opening.** The same figure seeds the admit rate, and the
+  faculty market's standing reads reputation (`marketStandingOf`). The
+  rank chip reads it too, and so do the rivals' place against the college.
+  For each, decide and record whether it should follow the lower opening:
+  - the admit rate keeps its opening value, so the first class does not
+    shrink: seed it from the old figure, named
+    `FOUNDING_ADMIT_REPUTATION`;
+  - the market and the rank follow the new figure, since they read
+    standing.
+- **No words.** The first summer's Review and History keep their lines.
+- **Balance.** `npm run sim` moves. The PR:
+  - re-baselines `sim/baseline.json`;
+  - shows, for the owner, the goal players' prestige at Years 2–10, the
+    year they reach the top 20, and their year-50 rank, against the old
+    baseline;
+  - updates `docs/reviews/2026-10-game-review-ii/data/b3-opening-prestige.md`'s
+    table as an after.
+  A save in progress keeps its prestige. No migration.
+- **Text that names the opening:** the stat chip's accessible-name comment
+  (`statChips.ts:47`), the design docs, and any tutorial or letter that
+  states 51.5. Grep for it.
+
+### PR 95O — NEXT: the building going up, and the step toward a school (B3-3, B3-4)
+
+- **The building going up** (`nextStep.ts`'s `shortfall`).
+  - When the worst need has a building under construction that serves it,
+    the line names that building and when it opens: "Housing is at 12 —
+    Meadow House opens in 9 weeks".
+  - If two serve it, name the one that opens first.
+  - It does not send the player to the build menu (`go` is the building's
+    site on the map).
+  - When the building opens, the line reads the need afresh.
+  - The guided player's `build-for` intent skips a need with a building
+    under construction. The harness must not build twice either.
+- **The step toward a school** (`establish.ts`).
+  - `establishText` keeps the goal and adds the step from `establishIntent`:
+    - "Establish Social Sciences & Humanities (3 of 6): move Anthropology
+      into Elm Hall";
+    - "…: found History in Elm Hall";
+    - "…: post a search for Marketing";
+    - while the intent is `wait`, the line says what it waits on: "…:
+      Anthropology arrives in 4 weeks".
+  - A program in transit counts toward the hall it is moving to, so the
+    count never falls mid-move. `SchoolProgress`'s `housed` reads it, and
+    `programProgress.ts`'s `inTransit` is the source.
+  - When the step is a move, `go` opens the program's tile in the hall it
+    is moving from, not the target hall.
+- **Checks:**
+  - nextStep tests for a need with a hall under construction, and for one
+    with none.
+  - establish tests for each kind of step, and a count that holds through
+    a move.
+  - The guided player's run reads the same in `npm run sim`. If it does
+    not, find out why before landing.
+
+### PR 95P — Crowding, at the admissions decision and on NEXT (B3-5)
+
+- **At the decision** (`InterruptModal.tsx`, beside the projections of
+  weekly net, satisfaction and the tightest need).
+  - A line for crowding: "Crowding: −14.5 of prestige's grade (dining
+    36%)". It is computed by `crowdingScore` on the consequence projection's
+    enrolled body, with the coverages the projection already has.
+  - It shows nothing while every coverage is 85% or better.
+  - It moves with the admit rate as the other projections do.
+- **On NEXT.** A reading for crowding when any need's coverage is under 85%:
+  "Dining serves 36% — crowding is costing prestige; a dining hall would
+  raise it". It sits before `shortfall`, since crowding costs prestige
+  directly. When a building under construction will serve the need, it
+  names the building (O's rule).
+- **Checks:**
+  - A test that the projection's crowding equals the grade's crowding
+    term after the class enrols, on the review's Year 2 case (a class of
+    603 for 350 beds).
+  - A nextStep test for coverage at 84% and at 86%.
+  - The guided player's reading order is unchanged in the sim. Crowding
+    is a line, not an intent, so no new intent is added.
+
+### PR 95Q — Labs, unfounded schools and the build tiles, said plainly (B3-7, B3-8, B3-10)
+
+- **The lab** (B3-7).
+  - Its build tile leads with research: "starts research · a lab's work
+    lifts research, 25% of prestige". "Required for capstone courses" goes
+    second (`BuildPopup.tsx:307`). The 25% is read from `PILLAR_WEIGHTS`.
+  - History's empty research row: "a school's founding opens its lab".
+- **The unfounded school** (B3-8). The Curriculum's section is headed with
+  the school's name: "Business · 3 programs, not yet founded"
+  (`CurriculumTab.tsx:993`). The founding letter's "a color with no name"
+  stays. The school still has no colour until it is founded.
+- **The smaller doubts** (B3-10):
+  - **Cancel.** The placing button reads "Cancel" and the hint "Esc
+    cancels" (`buildWords.ts`'s `putDown` and `holdingKeys`, and the
+    comment in `BuildPopup.tsx:778`).
+  - **The Library's cost.** Its build tile says what it serves and when it
+    costs more: "serves 1,200 · past 120% of need it costs six times as
+    much to keep". Every figure is read from the upkeep rule, never typed.
+    "Study space" in the excess line reads "academic space", as the need is
+    named.
+  - **A greyed tile says why on its face.** The reason ("$2.1M short";
+    "residences can't be borrowed for: only academic and capital projects
+    can") is set on the tile as Elm Hall's loan line is, not only in its
+    `title`.
+  - **The charter.** "With research under way" becomes "With its first
+    laboratory open" in `charter.ts:31-32` and `eventCatalogue.ts:2559`.
+    The charter fires when a lab opens, before any project is commissioned.
+  - **The satisfaction target** (the target and today's figure) moves from
+    the clubs' panel to the head of the needs breakdown on the Student
+    Life tab (`StudentLifeTab.tsx:89`).
+- **Checks:**
+  - `npm run review:strings` is clean.
+  - Tests that pin these strings are updated.
+  - Screenshots of the lab, Library and greyed tiles.
+
+### What area 3 does not do
+
+- B3-1's words: the fall is fixed at its source, so nothing explains it.
+- B3-2 beyond H: no "most room" line in the Review, and no "Opens later"
+  fold.
+- B3-9: no NEXT reading for the committee. The lamps are the signal.
+- B3-10's search price: its tooltip stays as it is.
