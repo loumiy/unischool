@@ -1243,6 +1243,68 @@ Selective and Lean never reach prestige 70 or the top 25.
   should no longer be "a party school". Big-then-good should not "never
   open its doors". `report.test` covers each rule.
 
+**As implemented.** All three, in `data/reportData.ts` and
+`state/finalReport.ts`:
+- **Access**: `WEAKNESSES.access` reads "stayed hard to get into".
+- **Experience**: `satisfactionLeads(s)` holds when the year's average
+  satisfaction (the history rows' `satisfactionAverage`) is at
+  `SATISFACTION_LEADS_AT = 85` or over in more than half the arc's rows;
+  `gradeAxes` then reads the experience axis as half the campus-life
+  standing and half that year's satisfaction (`SATISFACTION_LEAD_SHARE =
+  0.5`). No other axis moves.
+- **The title's tag**: `titleTag(s, grades)` picks the guidebooks' first
+  tag that is *earned* (`EARNED_TAGS`), else an earned tag the guidebooks
+  have not caught up with (the one on the highest-graded standing), else
+  the guidebooks' first tag as before. The tests: `jock-school` — a title,
+  a final four (the last season's, or the Complex's record), or athletics
+  in the top 10 in any year of the arc (the history's `standings` ranks)
+  or now; `research-powerhouse` — a research prize, or research in the top
+  10; `teaching-college` — academics in the top 10; `old-money` —
+  financial strength in the top 10. Party school, country club, commuter,
+  pressure cooker, bargain and artsy have no test: they are only ever
+  implied. A specialization still names the college before any tag.
+- `test/final-report.test.ts` covers each rule (16 new checks).
+
+**Balance.** No sim run. The report is a read-out: `finalReport` is called
+only by `resolveAdmissions` at the fiftieth summer, which stores it on
+`s.ending` and writes one log line; nothing in `src/systems` or `sim/`
+reads `s.ending.report`, its grades or its title back (`sim/natural.ts`
+only prints it), and the new code draws no random numbers.
+
+**Measured.** The goal players, **three seeds each** (12345, 4242, 777;
+one name, Blackmoor), not ten: the machine was shared with several other
+agents' runs. One play-through per run; the year-50 state the report was
+written from was saved, and the new report read off the same state, so
+before and after differ only by the report. Marks (score), before → after:
+
+| Goal | Marks before | Marks after | Experience axis (score) | Title before → after |
+|---|---|---|---|---|
+| revenue | D, D, D (47, 43, 43) | unchanged | 35 D, not led | "a research powerhouse that never fielded a team…" ×3, unchanged |
+| prestige | C ×3 (58, 59, 59) | C ×3 (58, 60, 59) | 62–64 → 62–73 (led in 1 of 3) | "known first for its teaching…" ×3, unchanged |
+| satisfaction | **F ×3** (30, 31, 30) | **F ×3** (31, 32, 32) | 51–54 C → 66–67 **B** (led in 3 of 3: 38–42 of 49 years at 85+) | "a campus life to envy…" ×2, "a teaching college…" ×1, unchanged |
+| assets | B ×3 (63, 65, 65) | B ×3 (63, 65, 65) | 75–77 (led in 1 of 3) | "…what its laboratories find…" ×3, unchanged |
+| championships | D ×3 (45, 46, 46) | D ×3 (46, 47, 47) | 60–61 → 72–73 B (led 3 of 3) | **"a party school…" ×3 → "an athletics school that never built an endowment to match its size" ×3** |
+| good-then-big | C ×3 (56, 59, 57) | C ×3 (57, 59, 58) | 61–66 → 70–73 B (led 3 of 3) | "an athletics school…" ×2, "known first for its teaching…" ×1, unchanged |
+| big-then-good | B ×3 (62, 67, 67) | unchanged | 66–77, not led (16–22 of 49 years) | **"…that never opened its doors very wide" ×3 → "…that stayed hard to get into" ×3** |
+
+**Deviations.**
+- *Satisfaction "leads the field" is a bar, not a rank.* The rivals carry
+  no satisfaction (`rivalsSystem.ts`), and the history's `standings` rank
+  only the six standings, where the satisfaction goal's campus life is
+  about 23rd. The closest reading: the year's average satisfaction at 85 or
+  over for most of the arc. It is not unique to the satisfaction goal (the
+  championships and good-then-big players keep 85+ for 30–37 years too),
+  but the satisfaction goal leads it most (38–42 of 49) and the revenue
+  player (62) never does.
+- *The satisfaction goal is still F ×3* (31–32, against 34 for a D). Its
+  experience axis now earns a B, which lifts the mark about 1.7 points;
+  the rest is athletics at 10 (no teams), financial strength at 11–24 and
+  a rank near 60, which a heavier satisfaction share cannot reach (even all
+  satisfaction would leave the mark at about 34). That is B4-4's small
+  college, which the owner left hard on purpose; moving the mark further
+  would mean re-weighting the mark itself, outside this PR.
+- Three seeds per goal, not ten (above).
+
 ### PR 95V — Cutting a varsity team (B4-8)
 
 The backlog's *Disbanding a team*: unbuilt, and with a question open about
