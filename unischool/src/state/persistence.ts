@@ -12,7 +12,8 @@ import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
-import { isSweepStep } from '../systems/finance/sweep';
+import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
+import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
@@ -64,7 +65,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 94; // Plan 89C: Walnut Hall
+export const SAVE_VERSION = 95; // Plan 95K: a board letter's week
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -304,6 +305,28 @@ function walnutHall(state: GameState): void {
   if (walnut) state.tech.push(walnut);
 }
 
+// 94 -> 95, Plan 95K (the second review's B2-7 and H7-5): each board letter
+// keeps the week it came beside it in the queue. A letter a save already
+// holds takes its matter's own week where the save knows it, the first week
+// of the year: the specialization notice the year it was given, the
+// idle-cash letters the year the board last wrote of idle cash. The ladder's
+// letters, whose week no save kept, take the save's week, as they read
+// before.
+function boardLetterWeeks(state: GameState): void {
+  const d = state.finance.distress;
+  if (!d || !Array.isArray(d.letters)) return;
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const yearOf = (id: unknown): number | undefined => (
+    id === SPECIALIZATION_NOTICE_ID ? state.specializationNotice
+      : id === IDLE_CASH_LETTER || id === IDLE_CASH_AGAIN_LETTER ? state.finance.idleLetterYear
+        : undefined
+  );
+  d.letterWeeks = d.letters.map((id) => {
+    const year = yearOf(id);
+    return Number.isInteger(year) && (year as number) >= 1 ? Math.min(now, ((year as number) - 1) * WEEKS_PER_YEAR + 1) : now;
+  });
+}
+
 // The downtown (Plan 85H), on every load: growth 0 to 1, goodwill 0 to 100,
 // and the festivals a year each, no later than the save's year, of a scale
 // the game knows or none, oldest first; anything else is dropped or put
@@ -411,6 +434,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   91: athleticsComplex,
   92: downtownStarts,
   93: walnutHall,
+  94: boardLetterWeeks,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -769,8 +793,18 @@ function sanitizeDistress(state: GameState): void {
   })();
   if (!ok) { delete state.finance.distress; return; }
   // A letter the game no longer has would sit first in the queue unshown
-  // and hold every later letter behind it.
-  state.finance.distress!.letters = state.finance.distress!.letters.filter((id) => id in BOARD_LETTERS);
+  // and hold every later letter behind it. Each keeps its week (Plan 95K),
+  // a whole week since founding and none after the save's; a week missing
+  // or malformed reads as the save's.
+  const kept = state.finance.distress!;
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const weeks: unknown[] = Array.isArray(kept.letterWeeks) ? kept.letterWeeks : [];
+  const queue = kept.letters.map((id, i) => {
+    const w = weeks[i];
+    return [id, Number.isInteger(w) && (w as number) >= 1 && (w as number) <= now ? (w as number) : now] as const;
+  }).filter(([id]) => id in BOARD_LETTERS);
+  kept.letters = queue.map(([id]) => id);
+  kept.letterWeeks = queue.map(([, w]) => w);
 }
 
 // The milestones' years (Plan 80C): optional, a year to each key; anything

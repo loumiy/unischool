@@ -155,10 +155,41 @@ function testLandmarkWeeks(): void {
   assert(broken.length === 0, `and holds every rule a year on${broken.length ? `: ${broken.join('; ')}` : ''}`);
 }
 
+// ---- 94 -> 95 (Plan 95K): a board letter keeps the week it came ----
+// The version-94 fixture is the specialization-notice scenario (year 29),
+// the notice queued. It loads dated to week 1 of the year it was given, and
+// moved on to year 33 still reads year 29; a ladder letter, whose week no
+// save kept, reads the save's week, and a week that is not a week does too.
+function testBoardLetterWeeks(): void {
+  const raw = fixture('save-v94.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  const notice = parsed.state.specializationNotice ?? 0;
+  assert(parsed.version === 94 && parsed.state.finance.distress?.letters[0] === 'specialization-notice' && notice > 0,
+    'the version-94 fixture has the specialization notice queued, with no week');
+  const given = (notice - 1) * WEEKS_PER_YEAR + 1;
+  const state = loads(raw, 'the version-94 fixture');
+  assert(state?.finance.distress?.letterWeeks[0] === given, `the notice loads dated to week 1 of year ${notice} (${state?.finance.distress?.letterWeeks[0]})`);
+  const later = JSON.parse(raw) as { version: number; state: GameState };
+  later.state.clock.year = notice + 4;
+  later.state.finance.distress!.letters.push('enter-2');
+  const read = readSave(JSON.stringify(later));
+  if ('refused' in read) return assert(false, 'the fixture moved on loads');
+  const now = (later.state.clock.year - 1) * WEEKS_PER_YEAR + later.state.clock.week;
+  const weeks = read.state.finance.distress?.letterWeeks ?? [];
+  assert(weeks[0] === given && weeks[1] === now, `four years on, the notice still reads year ${notice} and a ladder letter the save's week (${weeks.join(', ')})`);
+  // At this version, a malformed week reads as the save's and a stray one
+  // goes with its letter.
+  const bad = { ...read.state, finance: { ...read.state.finance, distress: { ...read.state.finance.distress!, letters: ['enter-2', 'no-such-letter', 'enter-3'], letterWeeks: [-3, 10, 'x'] } } };
+  const back = readSave(JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: bad }));
+  const d = 'refused' in back ? undefined : back.state.finance.distress;
+  assert(d?.letters.join() === 'enter-2,enter-3' && d.letterWeeks.join() === `${now},${now}`, `a malformed week reads as the save's (${d?.letters.join()} at ${d?.letterWeeks.join()})`);
+}
+
 testLaunchFixture();
 testChain();
 testLandmarkWeeks();
 testMilestoneWeeks();
+testBoardLetterWeeks();
 testRoundTrip();
 testRefusals();
 

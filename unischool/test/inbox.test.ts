@@ -13,6 +13,7 @@ import { arrivalsIn } from '../src/components/Toasts';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { CHARTER_ID, MILESTONES } from '../src/data/ladderData';
 import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
+import { foundingDistress, postBoardLetter } from '../src/systems/finance/distress';
 
 bindScriptStream(7601);
 
@@ -149,7 +150,7 @@ function fresh(): GameState {
 // The board: a distress letter is a letter, the idle-cash ask is to decide.
 {
   let s = fresh();
-  s.finance.distress = { ...s.finance.distress!, letters: ['enter-2'] };
+  s.finance.distress = { ...foundingDistress(), letters: ['enter-2'] };
   const b = inboxItems(s).find((i) => i.kind === 'board')!;
   assert(b.tier === 'letter' && b.unread, 'the board\'s letter is a letter');
   const p = inboxPointer(s);
@@ -158,6 +159,23 @@ function fresh(): GameState {
   assert(!inboxItems(s).some((i) => i.kind === 'board'), 'noted, it leaves the queue');
   s.finance.distress!.letters = ['idle-cash'];
   assert(inboxItems(s).find((i) => i.kind === 'board')?.tier === 'decide', 'the idle-cash letter asks for an answer');
+}
+
+// The board's letter keeps the week it came (Plan 95K, the second review's
+// H7-5): one from week 5 still reads week 5 at week 30, and "Noted" puts
+// its week away with it, so the next reads its own.
+{
+  let s = fresh();
+  s.clock.week = 5;
+  postBoardLetter(s, 'enter-2');
+  const came = weekOf(s);
+  s.clock.week = 12;
+  postBoardLetter(s, 'enter-3');
+  s.clock.week = 30;
+  const board = () => inboxItems(s).find((i) => i.kind === 'board');
+  assert(board()?.week === came, `a letter from week 5 reads week 5 at week 30 (${board()?.week} of ${came})`);
+  s = reducer(s, { type: 'READ_BOARD_LETTER' });
+  assert(board()?.ref === 'enter-3' && board()?.week === came + 7, 'noted, the next letter reads its own week');
 }
 
 // Bulletins: the toasts' news for a term, never counted.

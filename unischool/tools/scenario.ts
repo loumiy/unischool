@@ -32,6 +32,7 @@ import type { GameState, Vernacular } from '../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 import { CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
+import { clearBoardLetters } from '../src/systems/finance/distress';
 
 // `--k v` and `--k=v` both work; other arguments are positional.
 const VALUE_FLAGS = ['player', 'strategy', 'year', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
@@ -167,7 +168,7 @@ if (flags['clear-modal']) {
   state.events.pendingDemand = null;
   state.events.activeDemand = null;
   // And the board's letters, which float over the map the same way.
-  if (state.finance.distress) state.finance.distress.letters = [];
+  if (state.finance.distress) clearBoardLetters(state.finance.distress);
 }
 
 // Not cosmetic: --build-all stands every placeable Buildable the run did not

@@ -33,6 +33,7 @@ import { join } from 'node:path';
 import type { BenchFacing, Buildable, Dressing, DressingKind, Facing, GameState, Placements, TileCoord, Vernacular } from '../../src/state/types';
 import { benchItem, defaultBenchFacing } from '../../src/state/dressing';
 import { footprintIsClear, isLand, orientedFootprint, pathTileKey, placementFor, placementTiles } from '../../src/state/campusMap';
+import { clearBoardLetters } from '../../src/systems/finance/distress';
 
 export const VERNACULARS: readonly Vernacular[] = ['georgian', 'gothic', 'classical', 'mission', 'modern'];
 
@@ -392,7 +393,7 @@ export function applyArrangement(base: GameState, a: Arrangement, vernacular: Ve
   s.pendingInterrupt = null;
   s.events.pendingDemand = null;
   s.events.activeDemand = null;
-  if (s.finance.distress) s.finance.distress.letters = [];
+  if (s.finance.distress) clearBoardLetters(s.finance.distress);
   s.ladder.unread = [];
   // No inline event card over the picture.
   if (s.catalogue) s.catalogue.pending = [];

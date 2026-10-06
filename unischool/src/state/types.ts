@@ -18,6 +18,7 @@ export interface Distress {
   deficitRun: number;          // consecutive deficit terms
   receivershipTermsLeft: number;
   letters: string[];           // board letters not yet read, oldest first
+  letterWeeks: number[];       // the week each came, absolute, beside it (Plan 95K)
   scars: number[];             // the years receivership began
   // The college's own maintenance and draw, held while the board sets them.
   ownMaintenance?: number;
