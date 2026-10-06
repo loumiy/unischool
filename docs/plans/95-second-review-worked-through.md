@@ -1048,6 +1048,75 @@ the venue.
   of operating cost, or above $1B, X goes ahead. Otherwise X is closed here
   with the numbers.
 
+**As implemented.**
+- **The measure.** Cash / endowment / net a week, as each year closes.
+  Natural is `npm run natural`, seed 12345, and its net is the year's
+  average. Guided is the median of `npm run sim`'s three seeds. The goals
+  are the medians of `npm run review:goals -- --seeds 12345,4242,777
+  --names Blackmoor`. For Guided and the goals, net is the week's figure as
+  the next year opens.
+
+  | Player | Y30 | Y40 | Y50 | The review, Y50 |
+  |---|---|---|---|---|
+  | Natural | $2.56B / $1.67B / $9.8M | **$10.07B** / $2.77B / $15.5M | $21.39B / $3.40B / $17.4M | $20.9B / — / $17.9M |
+  | Guided | $61M / $26M / $3.1M | $103M / $33M / $2.6M | $558M / $1.34B / $3.4M | $645M |
+  | Prestige goal | $257M / $1.31B / $4.2M | $1.35B / $2.77B / $6.0M | $5.47B / $3.22B / $6.0M | $5.7B / $3.2B / $6.0M |
+  | Championships goal | $597M / $22M / $3.2M | $2.39B / $39M / $3.5M | $4.48B / $64M / $4.1M | $4.5B / $64M / $4.0M |
+  | Revenue goal | $1.36B / $384M / $2.4M | $2.63B / $384M / $2.4M | $3.96B / $383M / $2.4M | $4.0B / $384M / $2.7M |
+  | Every asset goal | $40M / $41M / $3.0M | $112M / $55M / $3.2M | $924M / $67M / $2.2M | $1.7B / $79M / $2.1M |
+  | Big-then-good goal | $23M / $206M / $1.2M | $281M / $452M / $3.1M | $879M / $2.79B / $4.8M | $1.2B / $2.8B / $4.8M |
+  | Good-then-big goal | $31M / $37M / $2.2M | $54M / $47M / $3.2M | $94M / $55M / $3.0M | under $100M |
+  | Satisfaction goal | $2.1M / $5.4M / $0.1M | $3.3M / $7.0M / $0.2M | $7.3M / $17M / $0.3M | — |
+
+  Plan 89's offices did not change the picture. The Natural run reads
+  within 4% of the review. Guided spends its money, and the three goals
+  that grow pile up billions by year 40.
+- **Deviation: three seeds and one name per goal, not ten runs.** The goal
+  players ran 3 seeds × 1 name, 21 runs, because this shared 4-core machine
+  took 70 minutes for those. Each median sits within a few percent of the
+  review's ten-run medians, except two goals' cash at year 50: every asset
+  ($924M against $1.7B) and big-then-good ($879M against $1.2B). Their
+  late cash spreads widely from run to run.
+- **The call for X: X goes ahead.** Natural's Y40 cash is $10.07B. That is
+  ten times $1B. Against operating cost it reads 9.0 years ($21.6M a week),
+  just under ten, so the relative test alone would not have called it. The
+  dollar test does. Measured on seeds 4242 and 777 instead, Natural's Y40
+  cash is $9.14B and $7.26B.
+- **The scorecard** (`sim/pacing.ts`). The prestige and rank targets were
+  re-based on Plan 85's scale. The new bands are read from the pacing card's
+  runs and the baseline's (`node_modules/.tmp/report-runs.json`), as wide as
+  the bands they replace. The old values stay in the comments.
+  - `COAST.prestigeY50`: ≥ 149.5 became ≥ 116 (Natural reads 117.3–118.5,
+    first place, against the field's top of 118–121).
+  - `CHECKPOINTS` prestige: 72–82, 96–106, 120–130 and ≥ 145 became 48–58,
+    71–81, 87–97 and ≥ 105. Rank: 25–40, 8–15, 2–5 and first became 50–60,
+    28–38, 15–25 and ≤ 5.
+  - `WHEN`, by price (high, then fair):
+    - prestige's half: Y22–26 and Y24–30;
+    - prestige's 90%: Y38–42 and Y40–46;
+    - the top 25: Y24–30 and Y26–32;
+    - the top 10: Y33–39 and Y37–45;
+    - first: Y38–46 and Y43–49.
+- **The new row: "Money: natural Y40 cash", ≤ $1B**, counted
+  (`NATURAL_CASH_Y40`). $1B is about a year of the late college's
+  operating cost (some $20M a week at year 40). A year in reserve is
+  prudence; beyond it the money has nothing to buy. The watched "decades of
+  opex" row stays beside it and passes at 0.8. The new row fails at $9.1B
+  (median), as it should until X lands.
+- **The count.** `npm run natural -- --pacing` met 62 of 114 before. The
+  review counted 63, before later baseline moves. It meets 85 of 115 after,
+  in [`2026-10-pacing-rebased.md`](../reviews/2026-10-pacing-rebased.md).
+  The older scorecards in `docs/reviews/` are untouched. Every prestige and
+  rank row now passes, except "Prestige: growth in years 1–10" (10%
+  against 15–35%). That row is set by the opening prestige, which PR N
+  moves, so it is left for N to read. The other 29 misses are October's
+  catalogue, enrollment and net timing, outside this PR.
+- **Tooling only.** `npm run natural -- --pacing` also writes every run's
+  years to `node_modules/.tmp/pacing-runs.json`. The sim's guided rows now
+  carry the endowment (`ArchetypeYear.endowment`), so `report-runs.json`
+  has it. No test pins the scorecard's targets or its row count.
+  `npm run sim` reads the same as `sim/baseline.json` (no change).
+
 ### PR 95X — A late use for money (B4-10, only if W calls for it)
 
 The owner's pick: specialization shares bought faster with money.

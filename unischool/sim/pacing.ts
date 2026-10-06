@@ -143,23 +143,30 @@ const MEASURE_NAME: Record<Measure, string> = { enrolled: 'Enrollment', prestige
 // When each measure reaches half, and 90%, of its growth, and when the rank
 // first reaches the top 25, the top 10 and first place. The high-price line
 // is Plan 66's; a player priced at "fair" may fill a little sooner.
+//
+// Prestige's and the rank's years re-based on Plan 85's scale (Plan 95W,
+// the second review's B4-11): Plan 85 moved the top of the field to about
+// 118–121 and slowed the climb to it, so these are read from the current
+// runs, the pacing card's own and the baseline's (\`npm run sim\`), not from
+// October's. They were Y18–22 and Y36–40 for prestige's half and 90%, and
+// Y12–16, Y20–25 and Y33–40 (Y34–40 at the high price) for the ranks.
 const WHEN: Record<'high' | 'fair', { measures: Record<Measure, { half: Band; ninety: Band }>; rank: Array<{ top: number; band: Band }> }> = {
   // Enrollment's and the net's halves reset by Plan 72J (see CHECKPOINTS).
   high: {
     measures: {
       enrolled: { half: { min: 24, max: 28 }, ninety: { min: 36, max: 40 } },
-      prestige: { half: { min: 18, max: 22 }, ninety: { min: 36, max: 40 } },
+      prestige: { half: { min: 22, max: 26 }, ninety: { min: 38, max: 42 } },
       netPerWeek: { half: { min: 29, max: 33 }, ninety: { min: 37, max: 41 } },
     },
-    rank: [{ top: 25, band: { min: 12, max: 16 } }, { top: 10, band: { min: 20, max: 25 } }, { top: 1, band: { min: 34, max: 40 } }],
+    rank: [{ top: 25, band: { min: 24, max: 30 } }, { top: 10, band: { min: 33, max: 39 } }, { top: 1, band: { min: 38, max: 46 } }],
   },
   fair: {
     measures: {
       enrolled: { half: { min: 16, max: 22 }, ninety: { min: 32, max: 40 } },
-      prestige: { half: { min: 18, max: 22 }, ninety: { min: 36, max: 40 } },
+      prestige: { half: { min: 24, max: 30 }, ninety: { min: 40, max: 46 } },
       netPerWeek: { half: { min: 18, max: 26 }, ninety: { min: 34, max: 42 } },
     },
-    rank: [{ top: 25, band: { min: 12, max: 16 } }, { top: 10, band: { min: 20, max: 25 } }, { top: 1, band: { min: 33, max: 40 } }],
+    rank: [{ top: 25, band: { min: 26, max: 32 } }, { top: 10, band: { min: 37, max: 45 } }, { top: 1, band: { min: 43, max: 49 } }],
   },
 };
 const PRICE: Record<PacingPlayer, 'high' | 'fair'> = { Natural: 'high', Guided: 'fair', Completionist: 'fair' };
@@ -170,16 +177,23 @@ const PRICE: Record<PacingPlayer, 'high' | 'fair'> = { Natural: 'high', Guided: 
 // college that charges well over the going rate fills slowly, and that is
 // the price of charging it, so its enrollment and net targets for those
 // years are what the line produces (medians across the seeds after Plan
-// 72H and I, bands as wide as Plan 66's). Prestige and rank there were
-// already met and are unchanged. Plan 66's were 17–29%, 43–55% and 70–81%
-// of year-50 enrollment and 10–20%, 35–50% and 65–80% of year-50 net.
+// 72H and I, bands as wide as Plan 66's). Plan 66's were 17–29%, 43–55% and
+// 70–81% of year-50 enrollment and 10–20%, 35–50% and 65–80% of year-50 net.
+//
+// Prestige and rank re-based on Plan 85's scale (Plan 95W, the second
+// review's B4-11): the top of the field now sits at about 118–121, not 150,
+// so the bands are what the line produces on that scale (medians across the
+// seeds, bands as wide as Plan 66's). They were 72–82, 96–106, 120–130 and
+// at least 145 for prestige; 25–40, 8–15, 2–5 and first for rank; and at
+// least 149.5 at year 50.
 export const CHECKPOINTS: Array<{ year: number; enrolledShare: Band; prestige: Band; rank: Band; netShare: Band }> = [
-  { year: 10, enrolledShare: { min: 0.03, max: 0.1 }, prestige: { min: 72, max: 82 }, rank: { min: 25, max: 40 }, netShare: { min: 0.01, max: 0.07 } },
-  { year: 20, enrolledShare: { min: 0.18, max: 0.3 }, prestige: { min: 96, max: 106 }, rank: { min: 8, max: 15 }, netShare: { min: 0.08, max: 0.2 } },
-  { year: 30, enrolledShare: { min: 0.58, max: 0.72 }, prestige: { min: 120, max: 130 }, rank: { min: 2, max: 5 }, netShare: { min: 0.42, max: 0.58 } },
-  { year: 40, enrolledShare: { min: 0.94 }, prestige: { min: 145 }, rank: { max: 1 }, netShare: { min: 0.9 } },
+  { year: 10, enrolledShare: { min: 0.03, max: 0.1 }, prestige: { min: 48, max: 58 }, rank: { min: 50, max: 60 }, netShare: { min: 0.01, max: 0.07 } },
+  { year: 20, enrolledShare: { min: 0.18, max: 0.3 }, prestige: { min: 71, max: 81 }, rank: { min: 28, max: 38 }, netShare: { min: 0.08, max: 0.2 } },
+  { year: 30, enrolledShare: { min: 0.58, max: 0.72 }, prestige: { min: 87, max: 97 }, rank: { min: 15, max: 25 }, netShare: { min: 0.42, max: 0.58 } },
+  { year: 40, enrolledShare: { min: 0.94 }, prestige: { min: 105 }, rank: { max: 5 }, netShare: { min: 0.9 } },
 ];
-export const COAST = { enrolledOverY40: { max: 0.05 }, netOverY40: { max: 0.1 }, prestigeY50: { min: 149.5 }, rankY50: { max: 1 } };
+// Year 50's prestige: first place, a little under the field's top (Plan 95W).
+export const COAST = { enrolledOverY40: { max: 0.05 }, netOverY40: { max: 0.1 }, prestigeY50: { min: 116 }, rankY50: { max: 1 } };
 export const STEADY = {
   enrolledYearGain: { max: 0.08 },
   prestigeYearGain: { max: 6 },
@@ -232,6 +246,13 @@ export const BUFFER = { enrolledShare: { min: 0.85 }, prestigeShare: { min: 0.85
 export const PRICE_MATTERS = { fairEnrolledOverNatural: { min: 1.1 }, naturalNetOverFair: { min: 1.25 } };
 export const WELFARE = { yearsBelow50AfterY5: { max: 0 } };
 export const MONEY = { cashY40InDecadesOfOpex: { max: 1 }, grantsOverFunding: { min: 1.7, max: 2.3 }, financialY50: { min: 60 } };
+// The natural line's cash at year 40, in dollars (Plan 95W, the second
+// review's B4-10): no more than $1B, about a year of the late college's
+// operating cost (some $20M a week at year 40). A reserve of a year is
+// prudence; past it the money has nothing left to buy. The relative row
+// above passes at eight or nine years of opex, as opex grows with the college,
+// so this one is counted.
+export const NATURAL_CASH_Y40 = { max: 1e9 };
 // Teaching (Plan 71, the owner's rule): building everything with no regard
 // to who teaches reaches the top 25 and no further; the top ten and above
 // take hand-picked faculty. Read off the guided player with TEACHING.care
@@ -262,6 +283,7 @@ const pct = (n: number) => (Number.isFinite(n) ? `${Math.round(n * 100)}%` : '�
 const yr = (n: number) => (Number.isFinite(n) ? `Y${n}` : 'never');
 const num = (n: number) => (Number.isFinite(n) ? `${Math.round(n)}` : '—');
 const dec = (n: number) => (Number.isFinite(n) ? n.toFixed(1) : '—');
+const usd = (n: number) => (!Number.isFinite(n) ? '—' : Math.abs(n) >= 1e9 ? `$${(n / 1e9).toFixed(1)}B` : `$${Math.round(n / 1e6)}M`);
 const times = (n: number) => (Number.isFinite(n) ? `${n.toFixed(2)}×` : '—');
 const bandText = (b: Band, f: (n: number) => string) => (
   b.min !== undefined && b.max !== undefined ? (b.min === b.max ? f(b.min) : `${f(b.min)}–${f(b.max)}`)
@@ -371,6 +393,7 @@ export function scorecard(runs: Record<PacingPlayer, PaceYear[][]>, blind: PaceY
     nat.map((run) => (y50(run)?.grantIncome ?? NaN) / (y50(run)?.funding ?? NaN)));
   add('Guardrails', 'Money (watched): natural Y40 cash, in decades of opex', MONEY.cashY40InDecadesOfOpex, dec,
     nat.map((run) => (at(run, 40)?.cash ?? NaN) / ((at(run, 40)?.opexPerWeek ?? NaN) * 520)), true);
+  add('Guardrails', 'Money: natural Y40 cash', NATURAL_CASH_Y40, usd, nat.map((run) => at(run, 40)?.cash ?? NaN));
   for (const player of PACING_PLAYERS) {
     add('Guardrails', `Financial strength (watched): ${player} Y50, of 100`, MONEY.financialY50, num, runs[player].map((run) => y50(run)?.financial ?? NaN), true);
   }
