@@ -1819,8 +1819,8 @@ Selective and Lean never reach prestige 70 or the top 25.
   left unanswered" over "Title (the answer it took)", or one line in full.
 - **Saves.** A save holding a celebration or a report as a stop shows it
   once, as before (the stop's handlers and `defaultAnswers` stay), then
-  the new rule holds. The news needs a place in the save: version 95,
-  `noNewsYet` (fixture `save-v94.json`, the year-8 scenario).
+  the new rule holds. The news needs a place in the save: version 96 (after 95K's 95),
+  `noNewsYet` (fixture `save-v95.json`, the year-8 scenario with 95K's field added).
 - **Measured** with `npm run review:goals` (seven goals, seeds 12345, 4242
   and 777, Blackmoor, 50 years), stops a run before → after, medians:
 
