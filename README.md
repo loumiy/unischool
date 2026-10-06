@@ -214,6 +214,18 @@ prestige, jumps years and forces events. See
 
 See [BACKLOG.md](BACKLOG.md) for planned work.
 
+## How UniSchool is made
+
+One developer designs and directs it; an AI coding assistant (Claude Code)
+writes the code and the text from the developer's briefs, plan by plan, and
+the developer chooses between the designs and plays the game between plans.
+The campus and the faculty portraits are drawn by that code, and the music
+is synthesized by it. No image, sound or voice comes from a generator, and
+the game generates nothing while you play: it makes no network calls. The
+capsule art and the logo will be commissioned from an artist. The full
+disclosure, as worded for Steam and itch.io, is
+[`docs/store/ai-disclosure.md`](docs/store/ai-disclosure.md).
+
 ## Documentation
 
 | Where | What |
