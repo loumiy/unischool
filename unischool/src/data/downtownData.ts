@@ -50,7 +50,8 @@ export const DISTRICT_STEPS = 6;
 // Term's fourth), with this many weeks to answer before the default.
 export const FESTIVAL_WEEK = 30;
 export const FESTIVAL_ANSWER_WEEKS = 6;
-// The district is lit for this many weeks from the festival (the map).
+// The district is dressed for the festival for this many weeks from it
+// (the map; districtFestive).
 export const FESTIVAL_LIT_WEEKS = 3;
 
 export const FESTIVAL_SCALES: readonly FestivalScale[] = ['weekend', 'fair', 'concert', 'gala'];
@@ -124,16 +125,25 @@ export function districtStep(s: GameState): number {
   return g <= 0 ? 0 : Math.min(DISTRICT_STEPS, Math.ceil(g * DISTRICT_STEPS - 1e-9));
 }
 
-// Whether the map lights the district: from the week of a festival held for
-// FESTIVAL_LIT_WEEKS, and through the winter weeks, when the evenings come
-// early (`snow`, the map's season, at WINTER_LIT_SNOW or deeper). The map
-// has no night of its own.
+// How the map dresses the district (Plan 85H; split in two by Plan 95C, the
+// second review's B1-7). The map has no night, so the district has no light
+// of its own: no glowing bulbs, no pools of light on the street.
+// - The festival's weeks: from the week of a festival held, for
+//   FESTIVAL_LIT_WEEKS, the district is dressed for it, with bunting on its
+//   strings and a crowd on its pavements as large as the festival. The
+//   festival's scale, or null.
+// - The snow weeks (`snow`, the map's season, at WINTER_LIT_SNOW or
+//   deeper): the shop windows and signs are warm, a lit interior on a grey
+//   day.
 export const WINTER_LIT_SNOW = 0.5;
-export function districtLit(s: GameState, snow: number): boolean {
-  if (districtStep(s) === 0) return false;
+export function districtFestive(s: GameState): FestivalScale | null {
+  if (districtStep(s) === 0) return null;
   const f = festivalHeld(s, s.clock.year);
-  const festive = f !== undefined && f.scale !== 'none' && f.week !== undefined && s.clock.week >= f.week && s.clock.week < f.week + FESTIVAL_LIT_WEEKS;
-  return festive || snow >= WINTER_LIT_SNOW;
+  if (f === undefined || f.scale === 'none' || f.week === undefined) return null;
+  return s.clock.week >= f.week && s.clock.week < f.week + FESTIVAL_LIT_WEEKS ? f.scale : null;
+}
+export function districtWinterLit(s: GameState, snow: number): boolean {
+  return districtStep(s) > 0 && snow >= WINTER_LIT_SNOW;
 }
 
 export function goodwillOf(s: GameState): number {

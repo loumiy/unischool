@@ -34,8 +34,9 @@ import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle } from './seasons';
 import { RingBack, RingFront } from './Surroundings';
-import { districtLit, districtStep } from '../data/downtownData';
-import { clampView, ringZoomFloor } from './ringLand';
+import { FESTIVAL_SCALES, districtFestive, districtStep, districtWinterLit } from '../data/downtownData';
+import { clampView, districtCentre, ringZoomFloor } from './ringLand';
+import { districtLookDue, districtSeen, type DistrictSeen } from './districtLook';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
 import { castShadow } from './light';
@@ -116,6 +117,9 @@ function frontEdgeStrip(p: Placement, u0: number, u1: number): Pt[] {
 // feels the same at every zoom.
 const LABEL_FULL_PX = 30;    // within this of the footprint, fully lit
 const LABEL_FADE_PX = 130;   // and gone by this
+
+// How long the one look at the downtown takes (Plan 95C).
+const DISTRICT_LOOK_MS = 900;
 
 // How long a finished building's completion ring stays on screen. Long
 // enough to notice at a glance, short enough that a run of completions in a
@@ -845,9 +849,10 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
   scene: readonly SceneEntry[]; groundGeo: ReturnType<typeof groundGeometry>;
   name: string; developing: GameState['developing']; turning: boolean; snow: number;
   crowds: ReadonlySet<string>; banners: GameState['self']['colors'] | null;
-  // The downtown's step and whether it is lit (Plan 85H): 0 and false at a
+  // The downtown's step (Plan 85H), whether its windows are warm and how
+  // large a festival it is dressed for (Plan 95C): 0, false and 0 at a
   // college not specialized in student life.
-  district?: number; lit?: boolean;
+  district?: number; winterLit?: boolean; festive?: number;
   // The season's tokens, as a key, and the map's own classes.
   season: string; groundClass: string;
   // The layout the scene before was drawn from, if any: when only the
@@ -888,8 +893,8 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
     values: { colors: layout.colors, snow: a.snow, banner: a.banners, collegeName: a.name, developing: a.developing, crowds: a.crowds },
     soft: `${a.season}|${a.snow}`,
     ring: {
-      node: <RingBack name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} lit={a.lit ?? false} />,
-      sig: `${cam}|${a.name}|${layout.vernacular}|${a.district ?? 0}${a.lit ? 'lit' : ''}`,
+      node: <RingBack name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} winterLit={a.winterLit ?? false} festive={a.festive ?? 0} colors={layout.colors} />,
+      sig: `${cam}|${a.name}|${layout.vernacular}|${a.district ?? 0}|${a.winterLit ? 'lit' : ''}|${a.festive ?? 0}|${colors}`,
     },
     ground: {
       node: (
@@ -901,8 +906,8 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
       sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}${a.crowds.has(id) ? 'c' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
     },
     front: {
-      node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} lit={a.lit ?? false} />,
-      sig: `${cam}|${a.name}|${layout.vernacular}|${a.district ?? 0}${a.lit ? 'lit' : ''}`,
+      node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} winterLit={a.winterLit ?? false} festive={a.festive ?? 0} colors={layout.colors} />,
+      sig: `${cam}|${a.name}|${layout.vernacular}|${a.district ?? 0}|${a.winterLit ? 'lit' : ''}|${a.festive ?? 0}|${colors}`,
     },
     entries,
     inspected: a.inspectedId,
@@ -2120,16 +2125,59 @@ export default function CampusMap({
   const week = seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK;
   const season = useMemo(() => seasonStyle(week), [week]);
   const snow = useMemo(() => seasonOf(week).snow, [week]);
-  // The downtown (Plan 85H): its step, and whether it is lit (a festival's
-  // weeks, and the winter's). Both change a few times a year at most.
+  // The downtown (Plan 85H): its step; whether its windows are warm (the
+  // snow weeks) and how large a festival it is dressed for (0 for none, 1
+  // to 4 the scales; Plan 95C). Each changes a few times a year at most.
   const district = districtStep(s);
-  const lit = districtLit(s, snow);
+  const winterLit = districtWinterLit(s, snow);
+  const festiveScale = districtFestive(s);
+  const festive = festiveScale ? FESTIVAL_SCALES.indexOf(festiveScale) + 1 : 0;
   // The land around the campus that stands in front of it, drawn by the
   // scene over the campus; an element kept while nothing it draws changes.
   const ringFront = useMemo(
-    () => <RingFront name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} district={district} lit={lit} />,
-    [s.self.name, layout.vernacular, camera, turning, snow, district, lit],
+    () => <RingFront name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} district={district} winterLit={winterLit} festive={festive} colors={layout.colors} />,
+    [s.self.name, layout.vernacular, camera, turning, snow, district, winterLit, festive, layout.colors],
   );
+  // One look at the downtown (Plan 95C, the second review's B1-7): when the
+  // player chooses the student-life specialization, and when the district
+  // first grows a step, the view eases to it once, as focusBuilding brings a
+  // building into view (districtLook.ts; never on a load). Not while placing
+  // a building or drawing a path, nor mid-turn; under reduced motion the
+  // view jumps. Kept at the zoom it is at; the pan limits reach the
+  // district (clampView's CENTRE_REACH is wider than the town is long), so
+  // nothing is widened for it. A pan or zoom by the player stops the ease.
+  const districtSeenRef = useRef<DistrictSeen | null>(null);
+  const districtEaseRef = useRef(0);
+  useEffect(() => {
+    const next = districtSeen(s);
+    const due = districtLookDue(districtSeenRef.current, next);
+    districtSeenRef.current = next;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!due || !rect || selectedRef.current || pathToolRef.current || turnRef.current) return;
+    const g = districtCentre(s.self.name, next.step);
+    const c = project(g.col, g.row);
+    const from = { ...viewRef.current };
+    const to = { x: rect.width / 2 - c.x * from.zoom, y: rect.height / 2 - c.y * from.zoom, zoom: from.zoom };
+    cancelAnimationFrame(districtEaseRef.current);
+    if (reducedMotion()) {
+      applyView(to);
+      return;
+    }
+    const start = performance.now();
+    let last = viewRef.current;
+    const frame = (now: number) => {
+      // Someone else moved the view: the player has it.
+      if (viewRef.current !== last) return;
+      const t = Math.min(1, (now - start) / DISTRICT_LOOK_MS);
+      const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+      applyView({ x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e, zoom: from.zoom });
+      last = viewRef.current;
+      if (t < 1) districtEaseRef.current = requestAnimationFrame(frame);
+    };
+    districtEaseRef.current = requestAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.self.name, s.clock.year, s.clock.week, s.specialization, district]);
+  useEffect(() => () => cancelAnimationFrame(districtEaseRef.current), []);
   // The path tool's ghost: the tile the next click would pave or lift.
   // Needs no `ok`, since a path tile can never be refused.
   const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
@@ -2150,14 +2198,14 @@ export default function CampusMap({
   const canvasScene = useMemo(() => {
     if (!canvasOn()) return null;
     const scene = canvasSceneOf({
-      layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners, district, lit,
+      layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners, district, winterLit, festive,
       inspectedId: highlightId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, prevLayout: prevLayoutRef.current,
     });
     prevLayoutRef.current = layout;
     return scene;
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, lit, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
+  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
   // The compositor, once its canvas is mounted.
   useLayoutEffect(() => {
     const canvas = sceneCanvasRef.current;
@@ -2240,7 +2288,7 @@ export default function CampusMap({
         ) : (
           <svg className="campus-map-ring" width="100%" height="100%" aria-hidden="true">
             <g ref={ringWorldRef}>
-              <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} district={district} lit={lit} />
+              <RingBack name={s.self.name} vernacular={layout.vernacular} camera={camera} turning={turning} snow={snow} district={district} winterLit={winterLit} festive={festive} colors={layout.colors} />
             </g>
           </svg>
         )}
