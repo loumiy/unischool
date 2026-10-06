@@ -4,8 +4,8 @@
 [second game review](../reviews/2026-10-game-review-ii/README.md)
 ([Plan 86](86-second-game-review.md)) into PRs, one area at a time.*
 
-**Status: Proposed.** Areas 1–4 answered. Areas 6 and 7 are added below as
-the owner answers them.
+**Status: Proposed.** Areas 1–4 and 6 answered. Area 7 is added below when
+the owner answers it.
 
 ---
 
@@ -66,6 +66,8 @@ already fixed is closed here, with the plan that fixed it. It gets no PR.
 | V | Cutting a varsity team | B4-8 | no |
 | W | Money measured, and the scorecard re-based | B4-10, B4-11 | no |
 | X | A late use for money (only if W calls for it) | B4-10 | **yes** |
+| Y | The shop window: the share image and the README's words | B6-1, B6-5 | no |
+| Z | The AI disclosure and the store page, drafted | B6-3, B6-5 | no |
 
 B, C and D touch different files (`seasons.ts` and the grounds;
 `downtownData.ts`, `Surroundings.tsx` and the camera; `buildingSpec.ts`), so
@@ -95,6 +97,10 @@ Area 4's order:
   college spends on.
 - T, U and V can go side by side with any of them.
 
+Area 6's order: Y and Z are documents and pictures, and can land any time.
+Y's README words name the pillars and the specialization as R leaves them,
+so if R lands first Y says "the top 30 or a pillar's top 10".
+
 ---
 
 ## Area 1 — Aesthetics
@@ -122,6 +128,19 @@ Area 4's order:
   - The door entry adds the review's count on three year-51 campuses: 814
     doors onto lawn on 187 buildings
     (`docs/reviews/2026-10-game-review-ii/data/b1-doors-grown.md`).
+  - The launch section (area 6):
+    - **The timeline is decided (B6-4):** Next Fest June 2027
+      (registration closes 25 April 2027). The Steam page goes live by
+      January 2027, so wishlists build before the fest, with the demo
+      live in February–March and launch in late summer. This replaces
+      "Next Fest (February or June 2027)".
+    - **The owner's own tasks (B6-3):**
+      - a human edit of the most-read text: the founding letters, the
+        summer, the specialization letter and the Final Report;
+      - a devlog started from the plans' quotes;
+      - the capsule art and the logo, commissioned.
+    - **The playtest (70L)** measures a first run's real length, and
+      whether players reach year 30 (B6-5).
 
 ### PR 95B — Seasons reach the open ground (B1-2)
 
@@ -884,3 +903,73 @@ The owner's pick: specialization shares bought faster with money.
 - B4-4: small stays hard. No change to the 6,000, and no selective bonus.
 - B4-8: no target enrolment, and no decline that leaves a gap.
 - B4-9: no price line for players without the Admissions Office.
+
+---
+
+## Area 6 — Marketability
+
+### The owner's answer
+
+Since the review, every picture in `docs/images` was taken again after
+Plan 89 (`24dc748`), and so was the time-lapse (`85bc1d3`). The share image
+was not.
+
+| Finding | What | On `main` | Answer |
+|---|---|---|---|
+| B6-1 | The shop window shows the September game | Partly fixed: the README's pictures and the time-lapse are new. The README's words still describe the old Faculty tab, with no pillars or specialization. `public/og-image.jpg` is from 28 September. The title screen is a white card | **Y**: the share image and the README's words. The title screen stays as it is |
+| B6-2 | Only two of four specialists top their own pillar, and the choice comes late | The ranking half was fixed before the review read the code: `rivalsSystem.ts`'s `selfValue` ranks research and student life on their pillar values (Plan 85I, `c9ce59e`). The timing is R's | Close |
+| B6-3 | AI disclosure is nowhere a buyer looks | Open: only the Credits line | **Z** drafts it. The human edit, the devlog and the commissions go to the backlog as the owner's (**A**) |
+| B6-4 | February's Next Fest is no longer realistic | A decision | June 2027, recorded in the backlog (**A**) |
+| B6-5 | A first run ends near the refund line, and the sandbox and the Epilogue go unsaid | Open: one README clause | **Y** and **Z** say it. The playtest measures the first run (**A**) |
+| B6-6 | Three of the October memo's facts need correcting | The review itself holds the corrected figures. No other doc repeats the old ones | Close |
+
+### PR 95Y — The shop window: the share image and the README's words (B6-1, B6-5)
+
+- **The share image** (`public/og-image.jpg`), taken again on the production
+  build with the canvas map:
+  - a year-30-or-later campus in its ring of land, with the hills and the
+    haze;
+  - in the fall (weeks 10–14), when the seasons are at their best;
+  - at the size the meta tags declare.
+  The tools README gains its recipe beside the other pictures', so the
+  next retake is one command.
+- **The README's words:**
+  - the Faculty caption describes the grid of people Plan 84 made, not
+    "payroll, the market, and each department's roster" (`README.md:115-116`);
+  - a paragraph on the four pillars and the specialization, in the README's
+    own register: "excellent at all four, the very best at one". It reads
+    the routes from R if R has landed;
+  - the features name **Sandbox mode** (from the title screen: unlimited
+    funds, instant building) and **playing on after the Final Report**,
+    in place of the one clause at `README.md:15`;
+  - every other caption is checked against its retaken picture.
+- **Checks:** the share image at the declared size; the README's links and
+  images resolve.
+
+### PR 95Z — The AI disclosure and the store page, drafted (B6-3, B6-5)
+
+Drafts for the owner to edit. Nothing is published.
+
+- **The disclosure** (`docs/store/ai-disclosure.md`), worded for Steam's
+  form and for itch.io. It follows the review's §7: what was generated
+  (code, text, the campus art drawn in code), what the owner directed and
+  chose (every plan, every pick between mockups, every review answered),
+  and what is commissioned (the capsule art and the logo, once they are).
+  It is plain and specific. Vague wording is what the market punishes.
+- **The README** carries a short form of it under its own heading, and
+  links to the full text.
+- **The store page** (`docs/store/steam-page.md`), drafted:
+  - the short description and the long one;
+  - the feature list, with *Sandbox mode* and *Play on after the Final
+    Report* named (B6-5), and the pillars and the specialization;
+  - the five screenshots the review's §4 lists, as captions with the
+    picture each wants, from `docs/images`.
+- **Checks:** none in code. The owner reads both drafts.
+
+### What area 6 does not do
+
+- B6-1's title screen: it stays a card with no campus behind it.
+- B6-2's signposting: no founding letter about the pillars.
+- B6-5's pause-on-arrival default stays on. T's *Pause for news* is a
+  separate setting, off.
+- Nothing is published: no Steam page, no itch.io page, no devlog.
