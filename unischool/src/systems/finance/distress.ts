@@ -39,9 +39,11 @@ export const RECEIVERSHIP_TERMS = 9;
 export const BOARD_POLICY_DRAW = 0.05;
 export const BOARD_POLICY_MAINTENANCE = 0.5;
 
-// Above this draw the board thinks the college is eating its seed corn (the
-// Endowment panel says so). The board's confidence, which this once also
-// docked, was removed by Plan 80C: nothing but six events' gates read it.
+// Above this draw the Endowment panel says what a high draw costs: the
+// fund grows slower, and so does next year's draw (Plan 95E, the second
+// review's B2-2). Nothing else reads it: the board's confidence, which this
+// once docked, was removed by Plan 80C (nothing but six events' gates
+// read it).
 export const DRAW_RATE_PRUDENT = 0.05;
 
 export function foundingDistress(): Distress {

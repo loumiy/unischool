@@ -236,7 +236,7 @@ const TOWN = EVENT_CATALOGUE.filter(isTownEvent);
   assert(/no spring festival has been held/.test(row().detail), `and the row says so ("${row().detail}")`);
   for (let k = 1; k <= FESTIVAL_POINTS_FOR_FULL; k++) s.downtown.festivals.unshift({ year: s.clock.year - k, scale: 'concert' });
   assert(near(festivalPoints(s), FESTIVAL_POINTS_FOR_FULL) && near(downtownReading(s), 1), `ten festivals with a headline act, grown, goodwill at ${GOODWILL_FOR_FULL}: full (${downtownReading(s)})`);
-  assert(/10 festivals in the last 10 years/.test(row().detail) && /term is full/.test(row().detail), `the row reads the program ("${row().detail}")`);
+  assert(/10 festivals in the last 10 years/.test(row().detail) && /share is full/.test(row().detail), `the row reads the program ("${row().detail}")`);
   s.downtown.growth = 0.5;
   assert(near(downtownReading(s), 0.75), 'half grown, three quarters');
   s.downtown.growth = 1;

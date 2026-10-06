@@ -143,7 +143,7 @@ function earned(specialization: GameState['specialization']): GameState {
   s.research.landmarkWork = [{ year: y - LANDMARK_WINDOW_YEARS, weeks: 3 * WEEKS_PER_YEAR }, { year: y - LANDMARK_WINDOW_YEARS + 1, weeks: WEEKS_PER_YEAR }];
   assert(Math.abs(landmarkYears(s) - 1) < 1e-9, 'a year older than the window counts for nothing');
   s.research.landmarkWork = Array.from({ length: LANDMARK_WINDOW_YEARS }, (_, i) => ({ year: y - i, weeks: 2 * WEEKS_PER_YEAR })).reverse();
-  assert(term(s).score === 1 && /The term is full/.test(term(s).detail), `two running without a break for ten years fill it ("${term(s).detail}")`);
+  assert(term(s).score === 1 && /The share is full/.test(term(s).detail), `two running without a break for ten years fill it ("${term(s).detail}")`);
   // Nothing without the park, and the row says why.
   park(s).status = 'locked';
   assert(parkReading(s) === 0 && term(s).score === 0 && /no Research Park stands/.test(term(s).detail), `without the park it is empty ("${term(s).detail}")`);

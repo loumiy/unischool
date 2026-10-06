@@ -1,6 +1,7 @@
 import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { useCallback, useEffect, useState } from 'react';
+import { useCollapse } from '../components/useCollapse';
 import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
@@ -943,16 +944,9 @@ function ProgramRowView(
   );
 }
 
-// Collapsing (Plan 60): a school starts open while incomplete and folded
-// once complete, and a program always starts folded to its one line (Plan
-// 76B); a click overrides that, and the override is remembered for the
-// session (module state, so it survives a tab switch).
-const collapseOverrides = new Map<string, boolean>();
-function useCollapse(key: string, completeByDefault: boolean): [boolean, () => void] {
-  const [, bump] = useState(0);
-  const collapsed = collapseOverrides.get(key) ?? completeByDefault;
-  return [collapsed, () => { collapseOverrides.set(key, !collapsed); bump((n) => n + 1); }];
-}
+// Collapsing (Plan 60, components/useCollapse.ts): a school starts open
+// while incomplete and folded once complete, and a program always starts
+// folded to its one line (Plan 76B).
 
 // A school's group: heading (name once founded, color and mark before; see
 // data/schoolPalette.ts), grade and rows.
@@ -1340,7 +1334,7 @@ export default function CurriculumTab(
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" loads={loads} />
             <HelpHint
               align="end"
-              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's grade, its courses done of nine and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both grades preview while you hold.`}
+              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's grade, its courses done of nine and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both grades preview while it is held.`}
             />
           </span>
         </div>

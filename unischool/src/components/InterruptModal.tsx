@@ -5,7 +5,8 @@ import type {
   Coach, GameState, InitiativeReport, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
 } from '../state/types';
 import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
-import { buildYearInReview } from '../state/yearInReview';
+import { REVIEW_LIST_CAP, buildYearInReview } from '../state/yearInReview';
+import type { ReviewLine } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
 import { hallEntryFor, hangInHall } from '../state/hall';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
@@ -495,6 +496,31 @@ function SummerSteps({ beat, final }: { beat: SummerBeat; final?: boolean }) {
   );
 }
 
+// One line of the review. A group (Plan 95I) is its head over its first
+// REVIEW_LIST_CAP members, and "and N more" opens the rest in place.
+function ReviewLineView({ line }: { line: ReviewLine }) {
+  const [open, setOpen] = useState(false);
+  const items = line.items ?? [];
+  const shown = open ? items : items.slice(0, REVIEW_LIST_CAP);
+  const more = items.length - shown.length;
+  return (
+    <li className={line.tone ?? ''}>
+      {line.text}
+      {line.detail && <span className="review-detail">{line.detail}</span>}
+      {items.length > 0 && (
+        <ul className="review-items">
+          {shown.map((item, i) => <li key={i}>{item}</li>)}
+          {more > 0 && (
+            <li>
+              <button type="button" className="review-more" onClick={() => setOpen(true)}>and {count(more)} more</button>
+            </li>
+          )}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 // Beat one: the year just lived, in facts (state/yearInReview.ts).
 // Read-and-continue.
 function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: string[]) => void }) {
@@ -518,12 +544,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
               <p className="review-empty">{section.empty}</p>
             ) : (
               <ul>
-                {section.lines.map((line, i) => (
-                  <li key={i} className={line.tone ?? ''}>
-                    {line.text}
-                    {line.detail && <span className="review-detail">{line.detail}</span>}
-                  </li>
-                ))}
+                {section.lines.map((line, i) => <ReviewLineView key={i} line={line} />)}
               </ul>
             )}
           </section>

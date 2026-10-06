@@ -17,7 +17,9 @@ export function reportGrade(score: number): string {
   return REPORT_GRADES.find((g) => score >= g.at)?.letter ?? 'F';
 }
 
-// The six standings as the report names them (rivalsSystem.ts's STANDINGS).
+// The six standings the report grades, as it names them: rivalsSystem.ts's
+// seven less prestige, the blend of four of them, which the report reads
+// once, as the guide's last word (Plan 95J, the second review's 2c D10).
 export type ReportAxis = 'academics' | 'research' | 'experience' | 'athletics' | 'access' | 'finance';
 
 export const TAG_PHRASES: Readonly<Record<string, string>> = {
@@ -70,12 +72,27 @@ export const WEAKNESSES: Readonly<Record<ReportAxis, string>> = {
   research: 'never wrote a paper anyone read',
   experience: 'never gave its students much of a campus life',
   athletics: 'never fielded a team anyone feared',
-  access: 'never opened its doors very wide',
+  // Access is half the admit rate and half the price, not the college's
+  // size: the phrase names what it measures (Plan 95U, the second review's
+  // B4-7).
+  access: 'stayed hard to get into',
   finance: 'never built an endowment to match its size',
 };
 
 // A weakest standing scoring under this is named in the title.
 export const WEAKNESS_BELOW = 45;
+
+// Satisfaction that leads the field (Plan 95U, the second review's B4-7):
+// a year's average satisfaction at this or over it, in more than half the
+// arc's years, and the experience axis reads satisfaction at this share
+// beside the campus-life standing. The guide ranks no rival on
+// satisfaction, so the field is a bar, not a rank.
+export const SATISFACTION_LEADS_AT = 85;
+export const SATISFACTION_LEAD_SHARE = 0.5;
+
+// A pillar's place that earns its tag (Plan 95U): in the top this many in
+// any year of the arc.
+export const EARNED_PILLAR_TOP = 10;
 
 export const REPORT_SHAPES = {
   strength: '{college}: {phrase}, with no glaring weakness',
@@ -101,7 +118,8 @@ export const REPORT_WORDS = {
   eyebrow: 'Year 50 · the fiftieth year closes',
   mark: 'Final grade',
   markHint: 'The whole arc, not the last snapshot: where each standing stood across fifty years, how far it came from the first decade to the last, where the guide put the college at the end, and how many promises it kept.',
-  axes: 'The six standings, graded over the arc',
+  axes: 'Six of the seven standings, graded over the arc',
+  axesNote: 'Prestige, the seventh, is the blend of four of these six; it counts once, as the guide\'s last word above.',
   axisLine: 'Averaged {mean} over fifty years; {first} in the first decade, {last} in the last.',
   promises: 'The promises',
   promisesLine: '{kept} kept, {missed} missed, {declined} declined.',
@@ -112,7 +130,7 @@ export const REPORT_WORDS = {
   administrationLine: 'Founders Hall held {offices}.',
   chronicle: 'The eras',
   rank: 'The guide\'s last word: {rank} of {total}.',
-  chart: 'The six standings, year by year',
+  chart: 'The seven standings, year by year',
   draft: 'The Final Report is written at the fiftieth summer. Until then, the arc so far.',
   notYet: 'The Final Report is written at the fiftieth summer, and drafted from the tenth: the first decade is too early to judge.',
   epilogue: 'The fifty years are over; the college is not. This summer goes on to set Year 51\'s tuition and admit its class; then the clock runs on, and every ten years the chronicle gets an addendum. Nothing new opens.',

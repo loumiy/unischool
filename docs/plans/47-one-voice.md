@@ -131,8 +131,10 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
   staying on are counted: "Room for", "held to the room", "where the class
   fills the room".
 - **The guide.** The published ranking: "#12 in the guide", "the guide's
-  academic ranking". Its six lists are *the standings* ("six rankings, one
-  field"). *The guidebooks* are kept for reputations (the identity tags)
+  academic ranking". Its seven lists are *the standings* ("seven rankings,
+  one field"): prestige, the four pillars, access and financial strength.
+  The Final Report grades six of them and reads prestige, the blend of four
+  of the six, once, as the guide's last word (Plan 95J). *The guidebooks* are kept for reputations (the identity tags)
   alone. "The rankings" as a publication, "the table" and "the academic
   table" are gone.
 - **The board's scale.** The distress ladder: sound, tight, deficit, a
@@ -140,8 +142,11 @@ no cheer. The menu, Settings, the crash screen and the credits may speak of
   and back up it. The milestones are *milestones*; no player-facing text
   calls either system a ladder.
 - **Stage.** A program's standing in the hall panel (its milestones:
-  established, distinguished). *Standing* is the six ranked standings, and
-  the Treasury's *standing sweep* is a standing order.
+  established, distinguished). *Standing* is the seven ranked standings,
+  and the Treasury's *standing sweep* is a standing order. *Distinguished*
+  is also a professor's top rank; on a professor's page, where the two
+  would meet, the program's stage is said as what it is, "a program
+  complete since Year 12" (Plan 95J).
 - **The board.** The body; "a trustee" is one of its members. "The
   trustees" as the body is gone.
 - **The Final Report.** A document's name, capitalized everywhere,

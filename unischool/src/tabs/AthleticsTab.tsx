@@ -24,6 +24,7 @@ import type { ScholarshipLevel, SeasonResult } from '../state/types';
 import { count, decimal, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
 import { switchStyle } from '../components/segmentedSwitch';
+import { useCollapse } from '../components/useCollapse';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -55,6 +56,9 @@ type Role = 'head' | 'assistant' | 'trainer';
 const ROLE_SEAT: Record<Role, string> = { head: 'Head coach', assistant: 'Assistant', trainer: 'Trainer' };
 const ROLE_ORDER: readonly Role[] = ['head', 'assistant', 'trainer'];
 
+// A chair with its article: "a head coach", "an assistant coach".
+const aChair = (role: Role): string => `${role === 'assistant' ? 'an' : 'a'} ${CHAIR_LABEL[role]}`;
+
 function coachInSlot(team: VarsityTeam, role: Role): Coach | null {
   return role === 'head' ? team.headCoach : role === 'assistant' ? team.assistantCoach : team.trainer;
 }
@@ -81,7 +85,7 @@ function StaffSeat({ act, team, role }: { act: (a: Action) => void; team: Varsit
         <span className="staff-seat-role">{ROLE_SEAT[role]}</span>
         <span className="staff-seat-face" aria-hidden="true" />
         <span className="staff-seat-name">Open</span>
-        <button type="button" className="staff-seat-hire" aria-label={`Hire a ${CHAIR_LABEL[role]}: see the market`} onClick={goToMarket}>
+        <button type="button" className="staff-seat-hire" aria-label={`Hire ${aChair(role)}: see the market`} onClick={goToMarket}>
           Hire <span aria-hidden="true">→</span>
         </button>
       </div>
@@ -166,7 +170,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2 tabIndex={-1}>On the market</h2>
         <HelpHint
-          text="One pool for the whole department, not a separate list per post. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a post open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open post always has somebody listed, but the good ones are rare. A card shows a coach's potential as a range, not a number: a prospect is cheap and low now with a potential you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
+          text="One pool for the whole department, not a separate list per post. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport the college fields with a post open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open post always has somebody listed, but the good ones are rare. A card shows a coach's potential as a range, not a number: a prospect is cheap and low now with a potential nobody can quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not the college hires."
         />
       </div>
 
@@ -176,7 +180,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <>
           {wanted.length === 0 && !showAll && (
             <p className="empty-note">
-              Nobody on the market coaches a sport you field with a post open.
+              Nobody on the market coaches a sport the college fields with a post open.
               {rest.length > 0 && ' There are others listed — see below.'}
             </p>
           )}
@@ -193,7 +197,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                     {weeksShort(Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed))} left
                   </span>
                 </div>
-                <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a potential you cannot quite see'}>
+                <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a potential nobody can quite see'}>
                   quality {c.quality} · {ceilingLabel(c)} · age {coachProfile(c).age} · {moneyShort(c.salary)}/yr
                 </span>
                 <span className="coach-candidate-hire">
@@ -219,7 +223,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
           </ul>
           {rest.length > 0 && (
             <button type="button" className="panel-action coach-market-toggle" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
-              {showAll ? 'Show only who you need' : `Show the rest of the market (${rest.length})`}
+              {showAll ? 'Show only who the open posts need' : `Show the rest of the market (${rest.length})`}
             </button>
           )}
         </>
@@ -352,6 +356,16 @@ function ComplexSection({ s }: { s: GameState }) {
   );
 }
 
+// The colleges either side of a rank, for its tooltip.
+function neighboursOf(list: ReturnType<typeof sportRankedList>, place: number): string {
+  const above = list[place - 2];
+  const below = list[place];
+  return [
+    above ? `↑ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
+    below ? `↓ ${below.name} ${below.mascot}` : '',
+  ].filter(Boolean).join('\n');
+}
+
 // A sport's standing, on its program card, as a small navy scoreboard (Plan
 // 89): the rank (the colleges just above and below in its tooltip) in one
 // cell; the all-time series against the sport's rival, last season and this
@@ -362,15 +376,10 @@ function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
   const place = sportRank(s, team.sport);
   if (place === null) return null;
   const last = s.orgs.lastSeason[team.sport];
-  const above = list[place - 2];
-  const below = list[place];
   const record = seasonRecordFor(s, team.sport);
   const rival = rivalFor(s, team.sport);
   const rivalry = s.orgs.rivalries[team.sport];
-  const neighbours = [
-    above ? `↑ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
-    below ? `↓ ${below.name} ${below.mascot}` : '',
-  ].filter(Boolean).join('\n');
+  const neighbours = neighboursOf(list, place);
   // The series is kept the college's wins first, so who leads it is known.
   const lead = rivalry ? Math.sign(rivalry.wins - rivalry.losses) : 0;
   return (
@@ -400,6 +409,46 @@ function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
       </div>
     </div>
   );
+}
+
+// The scoreboard as the folded line carries it (Plan 95I): the rank and
+// last season's result, in the same navy and gold.
+function SportScore({ s, team }: { s: GameState; team: VarsityTeam }) {
+  const list = sportRankedList(s, team.sport);
+  const place = sportRank(s, team.sport);
+  if (place === null) return null;
+  const last = s.orgs.lastSeason[team.sport];
+  return (
+    <span className="team-card-standing scoreboard compact">
+      <span className="scoreboard-digits" title={neighboursOf(list, place)}>
+        {place}<small aria-hidden="true">/{list.length}</small><span className="visually-hidden"> of {list.length}</span>
+      </span>
+      <span className="scoreboard-status">
+        {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
+      </span>
+    </span>
+  );
+}
+
+// A program's next action, for its folded line (Plan 95I): the open chair
+// to fill, the head coach's first; otherwise what holds it back (a venue
+// to wait on, a postseason ban); otherwise nothing.
+function NextAction({ s, team }: { s: GameState; team: VarsityTeam }) {
+  if (team.status !== 'active') {
+    return <span className="team-card-next">waiting on {venueForCategory(s, team.venueCategory)?.name ?? 'a venue'}</span>;
+  }
+  const open = ROLE_ORDER.find((role) => !coachInSlot(team, role));
+  if (open) {
+    return (
+      <button type="button" className="staff-seat-hire team-card-next" onClick={goToMarket}>
+        Hire {aChair(open)} <span aria-hidden="true">→</span>
+      </button>
+    );
+  }
+  if (team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear) {
+    return <span className="team-card-next">postseason ban through {team.postseasonBanThroughYear}</span>;
+  }
+  return null;
 }
 
 // The trophy case: every title as an object with a year and sport, newest first.
@@ -479,8 +528,11 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
   );
 }
 
-// A program as a card in the grid: the name and band, how it stands in its
+// A program as a card in the list: the name and band, how it stands in its
 // sport, what it costs and draws, its recruiting and its three chairs.
+// Every program starts folded to its one line (Plan 95I, as Plan 76B
+// folded the Curriculum's): the scoreboard, its quality, its band and its
+// next action. It opens in place for the rest.
 function TeamCard({ s, act, team, funding, rank }: {
   s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding; rank?: number;
 }) {
@@ -495,9 +547,11 @@ function TeamCard({ s, act, team, funding, rank }: {
 
   // A flagship wears a gold corner in place of its tag (Plan 90).
   const flagship = team.status === 'active' && funding?.band === 'flagship';
+  const [collapsed, toggle] = useCollapse(`team:${team.id}`, true);
+  const name = team.name.replace(/ Team$/, '');
 
   return (
-    <div className={`team-card${flagship ? ' is-flagship' : ''}`}>
+    <div className={`team-card${flagship ? ' is-flagship' : ''}${collapsed ? ' collapsed' : ''}`}>
       {flagship && (
         <span className="team-card-corner" title="Flagship">
           <span aria-hidden="true">★</span>
@@ -505,39 +559,51 @@ function TeamCard({ s, act, team, funding, rank }: {
         </span>
       )}
       <div className="team-card-head">
+        <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={`${collapsed ? 'Show' : 'Hide'} ${name}`} onClick={toggle}>
+          {collapsed ? '▸' : '▾'}
+        </button>
         {rank !== undefined && <span className="priority-rank" title="Drag to reorder">{rank}</span>}
-        <span className="team-card-name">{team.name.replace(/ Team$/, '')}</span>
+        <span className="team-card-name">{name}</span>
         {!flagship && (
           <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
             {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
           </span>
         )}
-      </div>
-      {banned && <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>}
-      {team.status === 'active' && <SportLine s={s} team={team} />}
-      <div className="team-card-meta">
-        <span>quality <strong>{quality}</strong>
-          {/* The slowdown above the knee (Plan 85D's review), said where the number is. */}
-          {team.status === 'active' && teamQualityEarned(team, s) > quality && (
-            <span className="team-held" title={teamSlowed(TEAM_QUALITY_KNEE, teamQualityEarned(team, s), quality, specializationOf(s))}> slowed</span>
-          )}
-        </span>
-        <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
-        <span>{moneyShort(weeklyCost)}/wk</span>
-        {funding && (
-          <span title={`Takes ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
-            takes {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${pct(funding.funded)})` : ''}
+        {collapsed && (
+          <span className="team-card-line">
+            {team.status === 'active' && <SportScore s={s} team={team} />}
+            <span className="team-card-quality">quality <strong>{quality}</strong></span>
+            <NextAction s={s} team={team} />
           </span>
         )}
-        {team.status === 'active' && attendance > 0 && (
-          <span title={`${money(gate)}/yr at the gate`}>{count(attendance)} a game · {moneyShort(gate)}/yr gate</span>
-        )}
       </div>
-      {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
-      {/* Three seats side by side, an open one dashed (Plan 90). */}
-      <div className="team-card-staff" role="group" aria-label="Staff">
-        {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
-      </div>
+      {!collapsed && <>
+        {banned && <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>}
+        {team.status === 'active' && <SportLine s={s} team={team} />}
+        <div className="team-card-meta">
+          <span>quality <strong>{quality}</strong>
+            {/* The slowdown above the knee (Plan 85D's review), said where the number is. */}
+            {team.status === 'active' && teamQualityEarned(team, s) > quality && (
+              <span className="team-held" title={teamSlowed(TEAM_QUALITY_KNEE, teamQualityEarned(team, s), quality, specializationOf(s))}> slowed</span>
+            )}
+          </span>
+          <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
+          <span>{moneyShort(weeklyCost)}/wk</span>
+          {funding && (
+            <span title={`Takes ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
+              takes {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${pct(funding.funded)})` : ''}
+            </span>
+          )}
+          {team.status === 'active' && attendance > 0 && (
+            <span title={`${money(gate)}/yr at the gate`}>{count(attendance)} a game · {moneyShort(gate)}/yr gate</span>
+          )}
+        </div>
+        {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
+        {/* Three seats side by side, an open one dashed (Plan 90). */}
+        <div className="team-card-staff" role="group" aria-label="Staff">
+          {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
+        </div>
+      </>}
     </div>
   );
 }
@@ -569,7 +635,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
-        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships ${pot.cap > pot.baseCap ? `the ${s.orgs.athleticsBudget} subsidy and the Athletic Performance Complex allow` : `the ${s.orgs.athleticsBudget} subsidy allows`} — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(TEAM_QUALITY_KNEE, specializationOf(s))} Hover the rank for the colleges either side.`} />
+        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships ${pot.cap > pot.baseCap ? `the ${s.orgs.athleticsBudget} subsidy and the Athletic Performance Complex allow` : `the ${s.orgs.athleticsBudget} subsidy allows`} — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and the college's is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(TEAM_QUALITY_KNEE, specializationOf(s))} Hover the rank for the colleges either side.`} />
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">

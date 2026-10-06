@@ -9,9 +9,10 @@ import GradeMark from './GradeMark';
 import { count } from '../format';
 
 // The Final Report (Plan 33, state/finalReport.ts), as the fiftieth summer
-// shows it and the History tab keeps it: the title and the mark, the six
-// standings graded over the arc, the promises, the money, the eras, the
-// guide's last word, the founder's figures, and the six standings charted.
+// shows it and the History tab keeps it: the title and the mark, the
+// guide's last word, six of the seven standings graded over the arc (all
+// but prestige, which the last word reads), the promises, the money, the
+// eras, the founder's figures, and all seven charted.
 
 const fill = (t: string, vars: Record<string, string | number>) => t.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 
@@ -36,6 +37,7 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
       <p className="final-report-last-word">{fill(REPORT_WORDS.rank, { rank: report.rank, total: report.total })}</p>
 
       <h4>{REPORT_WORDS.axes}</h4>
+      <p className="final-report-axes-note">{REPORT_WORDS.axesNote}</p>
       <ul className="final-report-axes">
         {report.axes.map((a) => (
           <li key={a.axis}>

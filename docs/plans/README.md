@@ -154,7 +154,7 @@ to <what this plan is for>.*
 | `Landed` | All of it shipped. |
 | `Superseded by Plan NN` | Abandoned or absorbed. Say which plan took over. |
 
-## Two rules that make these worth keeping
+## Three rules that make these worth keeping
 
 **Record deviations in the PR that deviated.** A plan is written before the work
 and is therefore wrong in places. When the implementation departs from it, the
@@ -162,6 +162,10 @@ departure goes in an **`**As implemented:**`** note attached to the PR it
 belongs to — not into a changelog at the bottom, and not by quietly editing the
 plan to match what was built. Plan 04 has eight of these, and they are the most
 useful thing in it: they are the record of what the planning got wrong.
+
+**A plan that changes a rule rewrites the rule's words.** It greps `src/` for
+the words that state the old rule, and its **As implemented** note lists what
+it rewrote (Plan 95E, after four help texts outlived the rules under them).
 
 **Do not edit a landed plan to keep it current.** Its value is that it says what
 was believed at the time. If the world has moved, that belongs in the design

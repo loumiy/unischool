@@ -41,7 +41,7 @@ export function officeStatusLine(s: GameState, officeId: string): string | null 
     case 'admissions': {
       const pool = s.students.lastFunnel?.applicants;
       const range = pool ? admissionsRange(s, pool) : null;
-      return range ? `At last year's pool, a range of ${count(range.low)}–${count(range.high)}; the summer shows it at the price you set.` : 'The summer shows its range at the price you set.';
+      return range ? `At last year's pool, a range of ${count(range.low)}–${count(range.high)}; the summer shows it at the price the college sets.` : 'The summer shows its range at the price the college sets.';
     }
     case 'curriculum': return `The committee writes ${committeeSeats(s)} courses at once, one of them this office's.`;
     case 'faculty-recruitment': return `The market holds up to ${candidatePoolTarget(s)}, each listed ${candidateListingWeeks(s)} weeks.`;
