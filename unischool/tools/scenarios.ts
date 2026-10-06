@@ -156,11 +156,12 @@ export const SCENARIOS: Scenario[] = [
 
   // --- The modals: a state that only exists for one week. ---
   {
+    // A letter since Plan 95T: the week the first celebration is filed.
     name: 'first-milestone',
-    what: 'the first milestone celebration, unanswered',
+    what: 'the first milestone celebration, unread in the inbox',
     player: 'Guided',
     year: 10,
-    stopWhen: atModal('milestone'),
+    stopWhen: (s) => (s.events.news ?? []).some((n) => n.type === 'milestone'),
   },
   {
     // The board's notice (Plan 85D): the week the college first stands
@@ -311,11 +312,12 @@ export const SCENARIOS: Scenario[] = [
   {
     // Reached in year 12. At the October review it never came by year 30:
     // Plan 74B's backlog paydown moved the Completionist's run onto a lab.
+    // A letter since Plan 95T, as the celebration is.
     name: 'research-report',
-    what: 'an initiative concluding — the run\'s most frequent interrupt',
+    what: 'an initiative concluding — its report unread in the inbox',
     player: 'Completionist',
     year: 30,
-    stopWhen: atModal('research-complete'),
+    stopWhen: (s) => (s.events.news ?? []).some((n) => n.type === 'research-complete'),
   },
   {
     name: 'decision-event',

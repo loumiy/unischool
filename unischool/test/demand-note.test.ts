@@ -35,6 +35,27 @@ console.log('demand note tests');
   assert(s.events.demandUnread === undefined && s.events.activeDemand !== null, 'noted, it stays active until met or lapsed');
 }
 
+// A celebration filed as a letter takes its week, as its stop did (Plan
+// 95T): a demand waiting for a quiet week waits past it, then arrives.
+{
+  let s: GameState = createInitialState('Demands');
+  s.pendingInterrupt = null;
+  s.students.classes = { freshman: 3000, sophomore: 2000, junior: 2000, senior: 2000 };
+  s = reducer(s, { type: 'DEBUG_FORCE_DEMAND', subject: 'basicNeeds' });
+  s.events.pendingDemand = s.events.activeDemand;
+  s.events.activeDemand = null;
+  s.events.demandUnread = undefined;
+  s.events.lastDecisionWeek = 0;
+  // Past the opening, whose letters would claim the quiet weeks.
+  s.events.opening.skipped = true;
+  s.events.pendingMilestones = ['school-founded:Business'];
+  s = reducer(s, { type: 'TICK' });
+  assert(s.pendingInterrupt === null && (s.events.news ?? []).length === 1, 'the celebration is filed and the clock runs on');
+  assert(s.events.activeDemand === null && s.events.pendingDemand !== null, 'the demand waits out the celebration\'s week');
+  s = reducer(s, { type: 'TICK' });
+  assert(s.events.activeDemand !== null, 'and arrives the week after');
+}
+
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);

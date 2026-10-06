@@ -65,7 +65,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 95; // Plan 95K: a board letter's week
+export const SAVE_VERSION = 96; // Plan 95T: the news filed as letters
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -327,6 +327,14 @@ function boardLetterWeeks(state: GameState): void {
   });
 }
 
+// 95 -> 96, Plan 95T: a milestone celebration and a research report are
+// letters, kept in the events' news. A save from before has filed none; one
+// with either standing as a stop shows it once, as it did, and the next is a
+// letter.
+function noNewsYet(state: GameState): void {
+  state.events.news = [];
+}
+
 // The downtown (Plan 85H), on every load: growth 0 to 1, goodwill 0 to 100,
 // and the festivals a year each, no later than the save's year, of a scale
 // the game knows or none, oldest first; anything else is dropped or put
@@ -435,6 +443,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   92: downtownStarts,
   93: walnutHall,
   94: boardLetterWeeks,
+  95: noNewsYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a

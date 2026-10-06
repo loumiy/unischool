@@ -206,6 +206,24 @@ console.log('year in review tests');
   assert(seniors.length === 2 && seniors[0].startsWith(classLine) && seniors[1].startsWith('120 seniors leave'), `how it will remember its years, and how warmly (${seniors.join(' | ')})`);
 }
 
+// --- the matters left unanswered, by name (Plan 95T) ---------------------
+{
+  const s = toSummer(teachingCollege('Lapsed'));
+  const year = s.clock.year;
+  const events = () => buildYearInReview(s).sections.find((x) => x.key === 'events')!.lines;
+  const lapse = (title: string, answer: string, y = year) =>
+    s.log.unshift({ year: y, week: 20, kind: 'info', topic: 'event', message: `${title} — Nobody answered in time: ${answer}.` });
+  lapse('The chess club asks for a room', 'Say no');
+  s.log.unshift({ year, week: 21, kind: 'info', topic: 'event', message: 'A donor calls — Answered: Take the call.' });
+  const one = events().find((l) => l.text.startsWith('Left unanswered'));
+  assert(one?.text === 'Left unanswered: The chess club asks for a room (Say no)', `one matter left unanswered reads in full (${one?.text})`);
+  lapse('The roof leaks', 'Patch it');
+  lapse('An old matter', 'Wait', year - 1);
+  const group = events().find((l) => l.text === '2 matters left unanswered');
+  assert(!!group, `two are a group, and last year's is not among them (${events().map((l) => l.text).join(' | ')})`);
+  assert(group?.items?.join(' | ') === 'The chess club asks for a room (Say no) | The roof leaks (Patch it)', `each with the answer it took, oldest first (${group?.items?.join(' | ')})`);
+}
+
 // --- like lines group, and every list is capped (Plan 95I) ---------------
 {
   const s = toSummer(teachingCollege('Groups'));

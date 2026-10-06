@@ -644,7 +644,20 @@ export interface EventState {
   // The year the Deans last brought their restaffing recommendations
   // (eventSystem.ts's fireDeanRecommendations, Plan 59). Absent: never.
   deanYear?: number;
+  // The news filed as letters (Plan 95T, the second review's B4-6): a
+  // milestone celebration or a research report, which no longer stops the
+  // clock. Oldest first; kept a year, as the inbox keeps a letter. Absent
+  // in a state from before it (a fixture read raw): none filed.
+  news?: NewsLetter[];
 }
+
+// A celebration or a report as the inbox keeps it (EventState.news). It
+// carries what its stop carried, so the reading pane shows the same card.
+// Celebration entries are eventData.ts's MilestoneEntry.
+export type NewsLetter = { id: string; week: number; unread: boolean } & (
+  | { type: 'milestone'; payload: { keys: string[]; entries: { key: string; headline: string; detail: string; unlocks: string[] }[] } }
+  | { type: 'research-complete'; payload: { report: InitiativeReport } }
+);
 
 // See state/opening.ts, which owns the order and the meaning.
 export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'play';
