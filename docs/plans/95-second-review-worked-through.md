@@ -302,6 +302,73 @@ fields in the ring already do.
   - The canvas reads CSS variables the way the SVG does. Confirm the new
     tokens reach `mapCanvas.ts`'s style lookup.
 
+**As implemented.** Presentation only: nothing under `systems`, `state`,
+`data` or `sim` changed, so the sim was not run.
+
+- **Tokens.** `seasonStyle` sets, beside the old ones:
+  - `--turf` and `--turf-deep` (`.ground-turf`, `.ground-endzone`): the
+    pitch, the diamond's outfield, the gridiron and the stadium's field.
+    They dry toward straw with the lawn and take 0.42 of the snow (the
+    lawn's 0.85, halved). At week 26 the turf is `#b3be9c` against the
+    lawn's `#e2e7df`: a kept pitch, pale, still read as a pitch, the lines
+    white on it.
+  - `--court` (`.ground-court`): the same snow, no straw (it is paint).
+    `.ground-court-play` stays.
+  - `--water` (`.ground-water`, the pool): the summer blue to a grey-green
+    cover `#7d8b88` as the snow lies. The lanes (now `.ground-pool-lane`;
+    the running track keeps `.ground-lane`) and the deep end go under the
+    cover by `--under-ice-opacity`.
+  - `--pond` on a new `.ground-pond` for the Japanese garden: it freezes
+    to `#c4d3da`, the koi under the ice (`--under-ice-opacity`), the
+    lilies gone with the beds' blooms (`--bloom-opacity`).
+  - `--sakura` and `--sakura-top` (`.jg-sakura`): the ornamental leaf
+    (green, rust, bare twigs, bud) mixed to the blossom's pinks by `bud`,
+    so the cherries are pink only while the trees bud (pure blossom at
+    weeks 38–40, none outside 34–44); their petals on the ground show by
+    `--petal-opacity` (the same `bud`).
+  - `--garden-grass` and `--moss`: the garden's ground under the snow as
+    the lawn is.
+- **The sweep.** Every literal fill in the ground rules and
+  `groundMarkings.tsx` is a token now or carries a comment saying why it
+  stays: the track, the infield's skin, the paving and the courts' play
+  surface (kept clear, or not living), the fountains' water (a quad's
+  centrepiece; a drained basin reads as broken), the hedges' sides and
+  the green azalea (evergreen; their tops already take `--hedge-top`'s
+  snow), the batter's eye (a painted wall). The garden's pink and magenta
+  azaleas take `--azalea*` tokens: in flower but for the fall and winter,
+  green leaves then, the tops under snow. The quads' panels were already
+  `.ground-lawn`.
+- **The canvas.** `canvasPaint.ts`'s `StyleResolver` probes each class
+  inside the map's host, where `seasonStyle`'s variables are set, and
+  `mapCanvas.ts` resets every rule when the season changes, so the new
+  tokens reach the canvas with no change to either file. The roof track's
+  literal infield fill became a class for that reason.
+- **Tests.** `test/seasons.test.ts` checks each new token's summer value
+  at `SUMMER_GREEN_WEEK` and week 2, and its behaviour at weeks 12, 26
+  and 40, and that no week without `bud` shows blossom (236 checks).
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/`: the
+  Completionist's year-51 campus (laid out) at weeks 12, 26 and 40 on the
+  canvas and the SVG (`95b-week{12,26,40}-{canvas,svg}.jpg`), the grounds
+  at the three weeks (`95b-grounds-weeks-12-26-40.jpg`) and the garden
+  close up, canvas and SVG side by side (`95b-garden-weeks-12-26-40.jpg`).
+
+**Deviations.**
+
+- **The roof track's infield takes the lawn's full snow** (`--turf-roof`
+  via the lawn's curve), not the pitches' half. At half cover it was the
+  greenest thing on a white campus at week 26: a roof is not swept.
+- **The cherries with seasons off are green, not pink.** The spec's
+  "the canopy's green in summer" and "every token reads its summer value
+  at `SUMMER_GREEN_WEEK`" together mean the seasons-off garden loses its
+  blossom (and its petals). The azaleas keep their flowers in summer, so
+  the garden keeps some pink.
+- **The cherries wear the ornamental leaf in every season**, the
+  ornamental green in summer rather than the canopy's, so one species
+  reads as one tree whichever crown the garden drew.
+- **The azaleas, the lilies, the koi and the petals** were not named in
+  the spec; they were pink, green or orange in midwinter, so the sweep
+  took them.
+
 ### PR 95C — The downtown in daylight, and a look at it (B1-7)
 
 The student-life district (Plan 85H) is "lit" through a festival's weeks
@@ -535,6 +602,69 @@ the sim was not run (the one file under `systems/` touched,
     `prestigeSystem` run on the filled copy.
   - The choice's word count before and after (the review's 681).
   - Screenshots at desktop and at 390×844 at the largest text.
+
+**As implemented.** Words and a read-only projection; no rule the
+simulation reads changed. `npm run sim` was run all the same (a hook was
+added beside the share's reading in `specializationData.ts`) and reads as
+the baseline.
+
+- **The figure.** Each card heads with "Up to 9.8 points of prestige"
+  (7.0, 8.5, 5.1), from `prestigeWords.ts`'s `specializationShareWorth`.
+  The pillar points moved into the card's detail ("28 of the pillar's 150
+  points", `opensLine`). The board's notice drops its four "which opens 28
+  points of it": `pillarShareRule()` in the same letter already gives each
+  share in points of prestige, so the list names the four and no figure
+  (`specializationNotice(milestone, rule)` lost its `weights` argument).
+- **Three lines a card**, new fields on `SPECIALIZATION_CARDS`: `what`
+  ("The Research Park, home of the Landmark Programs."), `adds` ("While the
+  park stands, every lab's output is 15% higher.") and `fillsShort` ("The
+  share fills with the festivals, full at 10 points of them in 10
+  years."), each built from the mechanic's constants. Behind More (the
+  faculty card's disclosure button): the long fill rule in pillar points,
+  athletics' lift, the mechanics, a standing park's note (85F), the
+  college's place in the pillar and its rivals.
+- **The comparison line**, `milestone.ts`'s `shareFullProjection`: "Full
+  today: prestige 94.7 → 104.5, #19 → #5." The target is
+  `computePrestigeTarget` on a copy with that share read full
+  (`specializationData.ts`'s `withShareFull`, which marks a copy in a
+  `WeakMap` that `specializationTerm` reads); prestige moves by what that
+  adds to today's target, so the teaching standard's limit holds as it
+  would; the rank is `playerRank` on a copy at that prestige, against
+  today's rivals.
+- **The strongest pillar, first** (`strongestStanding`): "The college's
+  strongest pillar is student life (#7). Of the rivals, 35 specialize in
+  academics, 23 in research, 19 in student life and 22 in athletics."
+- **The intro**: two sentences, the second `pillarShareRule()`.
+- **Measured** (`npm run review:gallery`, the `specialization` scenario,
+  Year 36): the choice's top layer **709 → 378 words**, 5 → 9 controls
+  (the four More buttons); 709 is this save's count of the review's 681.
+  At 390×844 and the largest text each card is 406–472 px tall, half a
+  screen. Screenshots: `docs/reviews/2026-10-review-ii-fixes/95f-choice-*.jpg`.
+- **Tests** (`test/specialization-choice.test.ts`): each "up to" figure is
+  the pillar's weight times the share's points, and the card prints it;
+  the comparison's prestige is `computePrestigeTarget` on the filled copy
+  (and equals the share's worth unless the teaching standard holds it);
+  the rank is `playerRank`'s; the state itself is untouched; the strongest
+  pillar is the best-ranked; the intro is two sentences.
+- **Deviations.**
+  - "A copy of the state with that share full" is a shallow copy marked
+    full, not a `structuredClone` with the mechanic's records set: a full
+    share is a different record per pillar (trained professors, Landmark
+    years, festivals with the downtown grown and goodwill high, deep
+    runs), and writing those would move other terms too (the downtown's
+    growth meets students' needs, a deep run is a title). The mark moves
+    the share alone, and nothing writes to the copy.
+  - The comparison's "before" is today's prestige (the stock the guide
+    ranks), and "after" adds the full share's lift to it, rather than
+    printing the target itself, which differs from today's prestige by
+    the year's drift.
+  - The strongest pillar is the best *rank* in the standings (the higher
+    value on a tie), as the review's example reads ("student life (#4)");
+    the harness's rule (`strongestOf`, by value) is unchanged.
+  - The line lists the rivals in all four pillars, not the two the
+    example names.
+  - "Still to come" is gone from the card: since Plan 85H every mechanic
+    is ready, so it never showed.
 
 ### PR 95G — Faculty, lighter (B2-1)
 
@@ -1537,6 +1667,45 @@ scenario, which the review itself fixed (H7-8a).
   - a two-tabs test that the first tab's weeks are kept;
   - a test that an opened matter in its final week does not pause after a
     reload.
+
+**As implemented.**
+
+- **H7-1.** `researchParkGate` counts each absolute week first, caps the
+  week at `LANDMARKS_COUNTED`, then sums by year under the yearly cap. The
+  recruiting fixture (eight Landmark Programs, Year 21, week 2) now reads
+  back Year 21 at 3 weeks, not 16, and holds every rule after a year of
+  the guided player (it ended Year 21 at 159 with the per-week cap alone).
+  `test/save-migrations.test.ts`'s `testLandmarkWeeks` checks both, and
+  that the fixture runs more than three. Saves already migrated keep their
+  overcount: it leaves the ten-year window, and the invariant is not run
+  against old years. No `SAVE_VERSION` bump.
+- **H7-3.** `persistence.ts` keeps the week of the save a tab last loaded
+  or wrote; `saveBeforeLosing` writes the tab's game when it is further on
+  and no tab has saved since (the guard stands). `useGame.ts`'s `storage`
+  handler calls it, then `lose()`. `test/two-tabs.test.ts` covers it.
+  `twoTabs.mjs` case 4, on `save-v93.json`: A played Year 9, week 2 → 7
+  unsaved, B continued at week 2; the save then read week 7, B showed the
+  banner once it went to write, and a fresh tab continued at week 7. All
+  four cases pass.
+- **H7-4.** `unseen.ts` gains `readOpened`, `keepOpened` and
+  `forgetOpened` over `sessionStorage` (each in try/catch); `App.tsx`
+  reads the set on load, keeps it on each change, and forgets it on a new
+  game. `test/unseen.test.ts`: a matter opened before a reload does not
+  pause in its final week; read back empty, it does.
+- **Checks:** `check` and `test:slow` pass. No sim run: nothing a new run
+  reads changed (the migration runs only on a version-90 save, and the
+  rest is the browser's shell).
+- **Deviations.**
+  - The migration's `now` was a week late too: the clock's week is the one
+    about to be played, so the weeks a program has run end at the week
+    before it. With the per-week cap alone the fixture still broke the
+    invariant (159 of 156); with both it holds.
+  - The game has no run id. The opened set is kept under the college's
+    name, as `App.tsx` already tells runs apart for the unseen memory, and
+    forgotten on a new game.
+  - `twoTabs.mjs` read the date off the page's text, which the toolbar no
+    longer draws in one piece (it is the calendar's label); it now reads
+    the label, and case 4 expects A's week.
 
 ### PR 95AB — The map and the money (H7-2, H7-6, H7-8c)
 
