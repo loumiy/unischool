@@ -23,7 +23,8 @@ import { hallEntryFor } from '../state/hall';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
 import { collegeSpecialization } from '../systems/prestige/milestone';
-import { Standing, StandingFigure } from './StandingBreakdown';
+import { Standing, StandingFigure, type BelowALink } from './StandingBreakdown';
+import { BELOW_A_TARGET, belowACount } from './curriculumFilter';
 import RankingsPanel from './RankingsPanel';
 import { pillarRule } from '../data/prestigeWords';
 
@@ -57,7 +58,7 @@ const VIEW_OF_SECTION: Record<string, HistoryView> = {
 // nothing else: the four pillars' blend, each pillar's make-up under its
 // row. Its head says the pillar rule, the one place it is said in full
 // (Plan 95E's PILLAR_RULE_HOME; Plan 95H).
-function PrestigePanel({ s }: { s: GameState }) {
+function PrestigePanel({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   const breakdown = prestigeBreakdown(s);
   const forecast = rankForecast(s);
   return (
@@ -80,7 +81,7 @@ function PrestigePanel({ s }: { s: GameState }) {
           {' '}#{forecast.rank} in the guide{forecast.rank === forecast.now ? ', where it stands now' : ` (#${forecast.now} now)`}.
         </p>
       )}
-      <Standing breakdown={breakdown} titled={false} />
+      <Standing breakdown={breakdown} titled={false} belowA={belowA} />
     </section>
   );
 }
@@ -200,10 +201,10 @@ function HistoryTable({ rows }: { rows: YearSnapshot[] }) {
 }
 
 // Prestige's view: the breakdown, then its charts once two years are filed.
-function PrestigeView({ s }: { s: GameState }) {
+function PrestigeView({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   return (
     <>
-      <PrestigePanel s={s} />
+      <PrestigePanel s={s} belowA={belowA} />
       {sectionAvailable(s, 'history.record') && s.history.length >= MIN_SERIES_POINTS && <PrestigeCharts s={s} />}
     </>
   );
@@ -314,11 +315,11 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
 
 // The guide's view: the ranking Rank shows, then the standings, once the
 // record opens.
-function GuideView({ s }: { s: GameState }) {
+function GuideView({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   return (
     <>
       <RankingsPanel s={s} />
-      {sectionAvailable(s, 'history.record') && <StandingsPanel s={s} />}
+      {sectionAvailable(s, 'history.record') && <StandingsPanel s={s} belowA={belowA} />}
     </>
   );
 }
@@ -327,9 +328,11 @@ function GuideView({ s }: { s: GameState }) {
 // Rank chip the guide; Plans 78C and 80C). `view` and `onView`: the view
 // last used, held by the parent (App.tsx) for the session, as the Faculty
 // tab's is (Plan 95G); without them, the tab holds its own.
-export default function HistoryTab({ s, act, target, onTargetConsumed, view: held, onView }: {
+// `onOpenCurriculum`: the teaching standard's line opens the Curriculum with
+// Below A on (Plan 95S, the second review's B4-5).
+export default function HistoryTab({ s, act, target, onTargetConsumed, view: held, onView, onOpenCurriculum }: {
   s: GameState; act: (a: Action) => void; target?: string; onTargetConsumed?: () => void;
-  view?: HistoryView; onView?: (view: HistoryView) => void;
+  view?: HistoryView; onView?: (view: HistoryView) => void; onOpenCurriculum?: (target: string) => void;
 }) {
   const [own, setOwn] = useState<HistoryView>(HISTORY_VIEW_START);
   const setView = onView ?? setOwn;
@@ -341,6 +344,9 @@ export default function HistoryTab({ s, act, target, onTargetConsumed, view: hel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
   useSectionTarget(target, onTargetConsumed);
+  const belowA: BelowALink | undefined = onOpenCurriculum && view !== 'record'
+    ? { count: belowACount(s), onOpen: () => onOpenCurriculum(BELOW_A_TARGET) }
+    : undefined;
 
   return (
     <div className="tab-content">
@@ -353,9 +359,9 @@ export default function HistoryTab({ s, act, target, onTargetConsumed, view: hel
           ))}
         </span>
       </div>
-      {view === 'prestige' && <PrestigeView s={s} />}
+      {view === 'prestige' && <PrestigeView s={s} belowA={belowA} />}
       {view === 'record' && <RecordView s={s} act={act} />}
-      {view === 'guide' && <GuideView s={s} />}
+      {view === 'guide' && <GuideView s={s} belowA={belowA} />}
     </div>
   );
 }

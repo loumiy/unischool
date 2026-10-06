@@ -1563,6 +1563,9 @@ button.build-tile { font-family: inherit; }
 .next-up-item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 /* The teaching standard's cap on academic standing (Plan 71). */
 .standing-ceiling.binding { color: var(--bad-on-light); }
+/* Its link to the Curriculum's Below A (Plan 95S). */
+.standing-link { padding: 0; background: none; border: 0; color: var(--school-primary); font: inherit; font-weight: 600;
+  text-decoration: underline dotted; cursor: pointer; }
 /* The curriculum committee (Plan 71) takes the box's right side. */
 .next-up.with-committee { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 380px); gap: 12px 18px; align-items: start; }
 .next-up-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }

@@ -19,7 +19,7 @@ import { SPECIALIZED_TAG } from '../data/specializationData';
 // `grade`, when present, is what the input was worth at last summer's report
 // card (prestigeSystem.ts's gradeYear), shown beside its worth now, and
 // only when the two differ (Plan 95H).
-function StandingRow({ input, max, grade }: { input: StandingInput; max: number; grade?: number }) {
+function StandingRow({ input, max, grade, belowA }: { input: StandingInput; max: number; grade?: number; belowA?: BelowALink }) {
   const reach = input.weight * input.score;
   const worth = Math.abs(input.contribution);
   const sign = input.penalty ? '−' : '+';
@@ -72,7 +72,7 @@ function StandingRow({ input, max, grade }: { input: StandingInput; max: number;
         <details className="standing-pillar">
           <summary>What {input.label.toLowerCase()} is made of</summary>
           {/* The row's line already says the pillar is specialized: said once. */}
-          <Standing breakdown={pillar} titled={false} rowSaid />
+          <Standing breakdown={pillar} titled={false} rowSaid belowA={belowA} />
         </details>
       )}
     </li>
@@ -152,7 +152,12 @@ function summerNote(breakdown: StandingBreakdown, gap: number): string {
 // `rowSaid`: the specialization's sentence is
 // already on the row this breakdown opens under (a pillar in History ›
 // Prestige), so it is left off.
-export function Standing({ breakdown, titled = true, rowSaid = false }: { breakdown: StandingBreakdown; titled?: boolean; rowSaid?: boolean }) {
+// `belowA`: the teaching standard's link to the Curriculum's Below A (Plan
+// 95S), shown on whichever breakdown carries the teaching ceiling.
+export interface BelowALink { count: number; onOpen: () => void }
+export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: {
+  breakdown: StandingBreakdown; titled?: boolean; rowSaid?: boolean; belowA?: BelowALink;
+}) {
   // All bars share one scale, the largest weight in this standing, so terms
   // are comparable at a glance.
   const max = Math.max(...breakdown.inputs.map((i) => i.weight));
@@ -186,11 +191,19 @@ export function Standing({ breakdown, titled = true, rowSaid = false }: { breakd
         <p className={`standing-note standing-ceiling${breakdown.held ? ' binding' : ''}`}>
           <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}
           {breakdown.held && !rowSaid && ` ${breakdown.ceiling.held ?? 'It is holding the target down now.'}`}
+          {belowA && belowA.count > 0 && (
+            <>
+              {' '}
+              <button type="button" className="standing-link" onClick={belowA.onOpen}>
+                {belowA.count === 1 ? 'Show the course below A' : `Show the ${belowA.count} courses below A`}
+              </button>
+            </>
+          )}
         </p>
       )}
       <ul className="standing-rows">
         {breakdown.inputs.map((input) => (
-          <StandingRow key={input.key} input={input} max={max} grade={breakdown.summer?.reportCard?.grades[input.key]} />
+          <StandingRow key={input.key} input={input} max={max} grade={breakdown.summer?.reportCard?.grades[input.key]} belowA={belowA} />
         ))}
       </ul>
       {breakdown.readings.length > 0 && (

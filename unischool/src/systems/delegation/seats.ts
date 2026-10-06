@@ -1,10 +1,14 @@
-import type { Faculty, GameState, Seat } from '../../state/types';
+import type { Buildable, Faculty, GameState, Seat } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
 import {
   DEANS_FOR_FASTEST, ESCALATION_WEEKS_OF_OPEX, SEATS, SEAT_SENIOR_YEARS, seatDef,
   type EventDomain, type PolicyRule, type SeatDef,
 } from '../../data/seatData';
-import { milestoneSchools, programs } from '../../data/techData';
+import { milestoneSchools, programById, programOfCourse, programs } from '../../data/techData';
+import { lettersBetter, type CourseQuality, type Grade } from '../../data/courseQuality';
+import { facultyLoads, instructorQuality, projectedQuality } from '../faculty/facultyAssignment';
+import { effectiveCourseSlots } from '../techtree/techSystem';
+import { isInTransit } from '../techtree/programOffers';
 import { marketRateMultiplier, rollCoachName } from '../../data/facultyData';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { isSchoolFounded } from '../techtree/schools';
@@ -203,4 +207,96 @@ export function delegate(s: GameState, event: DecisionEvent, ctx: DecisionEventC
   const def = seatDef(answer.seat.seatId)!;
   s.log.unshift({ ...entry, message: `${seatTitle(def, answer.seat.school)} ${answer.seat.holder} handled "${event.title}": ${entry.message}` });
   return true;
+}
+
+// ---- What it buys: the teaching (Plan 95S, the second review's B4-5) ----
+
+// The seats that staff the courses now: the Provost when it holds the
+// teaching policy; with no Provost, each Dean that holds it, for its own
+// school (as the Deans take the academic routine when there is no Provost).
+export function staffingSeats(s: GameState): Seat[] {
+  const staffs = (x: Seat) => seatDef(x.seatId)?.policies.find((p) => p.id === x.policy)?.staffs === true;
+  const provost = heldSeat(s, 'provost', null);
+  if (provost) return staffs(provost) ? [provost] : [];
+  return seatsOf(s).filter((x) => x.seatId === 'dean' && staffs(x));
+}
+
+// The school a course is taught in: its program's (a graduate program's
+// home school).
+function schoolOfCourse(courseId: string): string | undefined {
+  const programId = programOfCourse(courseId);
+  return programId !== undefined ? programById(programId)?.school : undefined;
+}
+
+// Whether a seat staffs this course. The harness's players leave such a
+// course to the seat rather than swap its instructor themselves.
+export function staffingCovers(s: GameState, t: Buildable): boolean {
+  if (!t.requiresFaculty) return false;
+  return staffingSeats(s).some((seat) => seat.school === null || schoolOfCourse(t.id) === seat.school);
+}
+
+export interface StaffingMove { courseId: string; facultyId: string; from: Grade; to: Grade }
+
+// Staff for the A: for each course below A in the seat's scope, weakest
+// first, the best free instructor in its field (teaching under their course
+// slots) takes it over when they would teach it a full letter or more
+// better, so the seat does not churn. At most one move a course a week; it
+// never hires and never dismisses. A course in a program between halls
+// keeps its instructor, as REASSIGN_COURSE_FACULTY refuses it.
+export function staffForTheA(s: GameState, school: string | null): StaffingMove[] {
+  const loads = new Map(facultyLoads(s));
+  const weak = s.tech
+    .filter((t) => t.requiresFaculty && (school === null || schoolOfCourse(t.id) === school))
+    .filter((t) => {
+      const programId = programOfCourse(t.id);
+      return programId === undefined || !isInTransit(s, programId);
+    })
+    .map((t) => ({ t, q: instructorQuality(s, t, loads) }))
+    .filter((x): x is { t: Buildable; q: CourseQuality } => x.q !== null && x.q.grade !== 'A')
+    .sort((a, b) => a.q.score - b.q.score);
+  const moves: StaffingMove[] = [];
+  for (const { t } of weak) {
+    // Read again: an earlier move this week may have lightened its teacher.
+    const now = instructorQuality(s, t, loads);
+    const current = s.courseFaculty[t.id];
+    if (!now || now.grade === 'A' || !current) continue;
+    let best: { f: Faculty; q: CourseQuality } | null = null;
+    for (const f of s.faculty) {
+      if (f.field !== t.requiresFaculty || f.id === current) continue;
+      if ((loads.get(f.id) ?? 0) >= effectiveCourseSlots(s, f)) continue;
+      const q = projectedQuality(s, t, f, loads);
+      if (!best || q.score > best.q.score) best = { f, q };
+    }
+    if (!best || lettersBetter(now.grade, best.q.grade) < 1) continue;
+    s.courseFaculty[t.id] = best.f.id;
+    loads.set(current, (loads.get(current) ?? 1) - 1);
+    loads.set(best.f.id, (loads.get(best.f.id) ?? 0) + 1);
+    moves.push({ courseId: t.id, facultyId: best.f.id, from: now.grade, to: best.q.grade });
+  }
+  return moves;
+}
+
+// How many moves a week's line names before it counts the rest.
+const STAFFING_NAMED = 3;
+
+// The week's staffing, after the faculty's week (reducer.ts's SYSTEMS):
+// each staffing seat's moves, logged as one line.
+export function tickStaffing(s: GameState): void {
+  for (const seat of staffingSeats(s)) {
+    const moves = staffForTheA(s, seat.school);
+    if (moves.length === 0) continue;
+    const named = moves.slice(0, STAFFING_NAMED).map((m) => {
+      const who = s.faculty.find((f) => f.id === m.facultyId)?.name ?? 'a professor';
+      const code = s.tech.find((t) => t.id === m.courseId)?.name.split(' · ')[0] ?? m.courseId;
+      return `${who} onto ${code} (${m.from} to ${m.to})`;
+    });
+    const rest = moves.length - named.length;
+    const list = rest > 0
+      ? `${named.join(', ')}, and ${rest} more onto ${rest === 1 ? 'a course' : 'courses'} below A`
+      : named.length > 1 ? `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}` : named[0];
+    s.log.unshift({
+      year: s.clock.year, week: s.clock.week, kind: 'info',
+      message: `${seatTitle(seatDef(seat.seatId)!, seat.school)} ${seat.holder} moved ${list}.`,
+    });
+  }
 }

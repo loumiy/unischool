@@ -75,8 +75,8 @@ import { deriveCohortSignals } from '../../src/systems/admissions/cohorts';
 import { projectConsequences } from '../../src/systems/admissions/consequences';
 import { CROWDING_GRACE, crowdingScore, teachingCeiling, prestigeBreakdown } from '../../src/systems/prestige/prestigeSystem';
 import { athleticRank, playerRank, rankBy } from '../../src/systems/rivals/rivalsSystem';
-import { canAppoint, heldSeat, seatCandidates } from '../../src/systems/delegation/seats';
-import { seatDef } from '../../src/data/seatData';
+import { canAppoint, heldSeat, seatCandidates, staffingSeats } from '../../src/systems/delegation/seats';
+import { STAFFING_POLICY, seatDef } from '../../src/data/seatData';
 import { marketRateMultiplier } from '../../src/data/facultyData';
 import { openCampaigns } from '../../src/systems/alumni/campaigns';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
@@ -209,6 +209,10 @@ export interface RunRecord {
   // The specialization chosen at the milestone (Plan 85D), and when.
   specialization?: string;
   specializationYear?: number;
+  // Instructor swaps a year (Plan 95S): the player's own
+  // (REASSIGN_COURSE_FACULTY), and the Provost's on Staff for the A.
+  playerSwaps?: Record<string, number>;
+  seatSwaps?: Record<string, number>;
   broken: string[];
   seconds: number;
   error?: string;
@@ -238,7 +242,18 @@ class Journal {
     const inner = g.act;
     g.act = (a: Action) => {
       const year = yearKey(g.s.clock.year);
-      if (a.type === 'TICK') { inner.call(g, a); return; }
+      if (a.type === 'TICK') {
+        // A course whose instructor changed during the week, from one
+        // professor to another, under a staffing seat, was moved by the seat
+        // (Plan 95S; a departure's colleague cover is counted with it).
+        if (staffingSeats(g.s).length === 0) { inner.call(g, a); return; }
+        const before = { ...g.s.courseFaculty };
+        inner.call(g, a);
+        const after = g.s.courseFaculty;
+        const moved = Object.keys(before).filter((id) => after[id] !== undefined && after[id] !== before[id]).length;
+        if (moved > 0) (this.rec.seatSwaps ??= {})[year] = (this.rec.seatSwaps?.[year] ?? 0) + moved;
+        return;
+      }
       if (g.s.pendingInterrupt) {
         // A modal seen, once: the summer's four beats are one summer.
         const type = g.s.pendingInterrupt.type;
@@ -250,6 +265,7 @@ class Journal {
         }
         this.weekAnswers += 1;
       } else {
+        if (a.type === 'REASSIGN_COURSE_FACULTY') (this.rec.playerSwaps ??= {})[year] = (this.rec.playerSwaps?.[year] ?? 0) + 1;
         const key = this.why?.key ?? a.type;
         if (this.why && !this.rec.reasons[key]) this.rec.reasons[key] = this.why.reason;
         const bucket = (this.rec.decisions[year] ??= {});
@@ -471,7 +487,14 @@ function staffTeams(g: Game, j: Journal, reserve: number, upgrade: boolean): voi
 // Advancement is what campaigns need.
 function appoint(g: Game, j: Journal, seatId: 'provost' | 'advancement' | 'facilities' | 'dean-of-students', reason: string): void {
   const s = g.s;
-  if (heldSeat(s, seatId, null) || !canAppoint(s, seatId, null)) return;
+  // A Provost held is put on Staff for the A (Plan 95S): it answers the
+  // routine as the default does, and makes the teaching swaps tendTeaching
+  // then leaves to it.
+  const held = heldSeat(s, seatId, null);
+  if (seatId === 'provost' && held && held.policy !== STAFFING_POLICY) {
+    j.because('provost-staffing', 'The Provost puts the best free instructor on each course below A, so the player need not.', () => g.act({ type: 'SET_SEAT_POLICY', seatId, school: null, policy: STAFFING_POLICY }));
+  }
+  if (held || !canAppoint(s, seatId, null)) return;
   const def = seatDef(seatId);
   if (!def || weeklyNet(s) <= (2 * def.outsideSalary * marketRateMultiplier(s.self.reputation)) / 52) return;
   const inside = seatCandidates(s, seatId, null)[0];
@@ -1476,6 +1499,9 @@ export function writeReport(runs: RunRecord[], out: string): void {
       lines.push(`| ${k} | ${fmt(n)} | ${fmt(peak)} | ${why} |`);
     }
     lines.push('');
+    // Instructor swaps (Plan 95S): the player's own, and the Provost's.
+    const swaps = (by: Record<string, number> | undefined) => Object.values(by ?? {}).reduce((t, n) => t + n, 0);
+    lines.push(`**Instructor swaps over the run** (median): the player's own ${fmt(median(rs.map((r) => swaps(r.playerSwaps))))}, the Provost's on Staff for the A ${fmt(median(rs.map((r) => swaps(r.seatSwaps))))}.`, '');
     // Tedium.
     const idle = (r: RunRecord, from: number, to: number) => Object.entries(r.idleWeeks).filter(([y]) => +y >= from && +y <= to).reduce((t, [, n]) => t + n, 0);
     const answers = (r: RunRecord, from: number, to: number) => Object.entries(r.answerOnlyWeeks).filter(([y]) => +y >= from && +y <= to).reduce((t, [, n]) => t + n, 0);
