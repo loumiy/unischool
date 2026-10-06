@@ -2335,6 +2335,9 @@ The owner's pick: specialization shares bought faster with money.
   the Research Park under the labs, the downtown in the Students tab, the
   complex under the athletics department. A purchase spent for the year or
   for good says so in place of its button; one refused is off and says why.
+  The price shows short (`moneyShort`). Pictures:
+  `docs/reviews/2026-10-review-ii-fixes/95x-downtown.jpg` (and `-phone`),
+  `95x-complex.jpg`.
 - **The save.** `nothingBoughtYet`; `sanitizeBought` on every load (whole
   years, once each, none later than the save's). Written before 95M merged,
   it stands as 97 → 98 on the branch; it becomes 98 → 99 behind 95M's

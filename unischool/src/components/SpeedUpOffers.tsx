@@ -4,7 +4,7 @@ import { SPEED_UP_WORDS } from '../data/speedUpData';
 import { picksFor } from '../data/trainingData';
 import { landmarksCounted } from '../data/researchParkData';
 import { speedUpDone, speedUpPrice, speedUpRefusal, speedUpsFor } from '../systems/prestige/speedUps';
-import { money } from '../format';
+import { moneyShort } from '../format';
 import ConfirmButton from './ConfirmButton';
 
 // What money buys to fill the specialization's share sooner (Plan 95X, the
@@ -22,7 +22,7 @@ export default function SpeedUpOffers({ s, act }: { s: GameState; act?: (a: Acti
     <div className="speed-ups" aria-label={W.head}>
       <p className="speed-ups-head">{W.head}</p>
       {kinds.map((kind) => {
-        const price = money(speedUpPrice(s, kind));
+        const price = moneyShort(speedUpPrice(s, kind));
         const refusal = speedUpRefusal(s, kind);
         const done = speedUpDone(s, kind);
         return (
