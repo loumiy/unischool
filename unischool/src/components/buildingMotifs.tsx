@@ -2489,9 +2489,9 @@ function AtriumFronts({ col, row, w, h, H, facing, floors }: {
 const SIGNAL_RED = '#c8392e';
 const GANTRY_YELLOW = '#d9a92f';
 // The Athletic Performance Complex's roof track (Plan 85G): the lanes'
-// rubber and the infield's turf.
+// rubber; the infield's turf follows the year (styles.css's
+// .ground-turf-roof, Plan 95B).
 const TRACK_RED = '#b0533c';
-const TRACK_INFIELD = '#5d8a4a';
 const BANNER_COLORS = ['#9e2b2b', '#c29a2c', '#2b3f6b'];
 
 // A quad on a wall face, in its own u and in heights.
@@ -2831,7 +2831,7 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal, facin
         <g className="sig-track">
           <polygon points={oval(outer)} fill={TRACK_RED} />
           <polygon points={oval(outer - lanes / 2)} fill="none" stroke="#f1ece4" strokeWidth={1.1} />
-          <polygon points={oval(outer - lanes)} fill={TRACK_INFIELD} />
+          <polygon points={oval(outer - lanes)} className="ground-turf-roof" />
         </g>
       );
     }

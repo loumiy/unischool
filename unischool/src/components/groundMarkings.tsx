@@ -627,6 +627,7 @@ function diamondProps(col: number, row: number, w: number, h: number, stage: num
       ...aroundPoint(c[0], c[1], 1.1),
       node: (
         <>
+          {/* The batter's eye is a painted wall: it keeps its green all year. */}
           <polygon fill="#2f472f" points={polyPoints([...eye, ...[...eye].reverse().map((q) => lift(q, EYE_H))])} />
           <Post at={p0} to={boardBase} className="ground-post" />
           <Post at={p1} to={boardBase} className="ground-post" />
@@ -1368,7 +1369,7 @@ function JapaneseGarden({ col, row, w, h }: GroundProps) {
         <polygon key={`step${i}`} className="ground-step-stone" points={disc(u, v, 0.028)} />
       ))}
       <polygon className="ground-pond-edge" points={polyPoints(pondOutline(col, row, w, h, 0.02))} />
-      <polygon className="ground-water" points={polyPoints(pondOutline(col, row, w, h))} />
+      <polygon className="ground-pond" points={polyPoints(pondOutline(col, row, w, h))} />
       {[[0.54, 0.5, 0], [0.68, 0.68, 1], [0.62, 0.38, 2]].map(([u, v, i]) => (
         <polygon key={`koi${i}`} className={i === 1 ? 'ground-koi-white' : 'ground-koi'}
           points={polyPoints(projectedCircle(col + w * u, row + h * v, k * 0.016, 10).map((p, j) => (j % 2 ? p : { x: p.x + 1.2, y: p.y })))} />
@@ -1636,7 +1637,8 @@ function japaneseGardenProps(col: number, row: number, w: number, h: number): Gr
     ...JG_TREES.map(([u, v, species, size], i) => ({
       key: `tree-${i}`,
       ...at(u, v),
-      // The broadleaves are cherries in blossom (styles.css's jg-sakura).
+      // The broadleaves are cherries, in blossom in the spring (styles.css's
+      // jg-sakura).
       node: <g className="jg-sakura"><TreeAt col={col + w * u} row={row + h * v} species={species} scale={size} shadow={false} /></g>,
       tree: { col: col + w * u, row: row + h * v, species, scale: size },
       shadows: [treeShadow(col + w * u, row + h * v, species, size)],
@@ -1882,7 +1884,7 @@ function PoolDeck({ col, row, w, h }: GroundProps) {
       <polygon className="ground-water-deep" points={uvPoly(col, row, w, h, rect(u0 + (u1 - u0) * 0.58, u1, v0, v1))} />
       {Array.from({ length: POOL_LANES - 1 }, (_, i) => {
         const v = v0 + ((i + 1) / POOL_LANES) * (v1 - v0);
-        return <line key={i} className="ground-lane" {...uvLine(col, row, w, h, u0, v, u1, v)} />;
+        return <line key={i} className="ground-pool-lane" {...uvLine(col, row, w, h, u0, v, u1, v)} />;
       })}
       {/* Starting blocks on the deck at the shallow end, one per lane. */}
       {Array.from({ length: POOL_LANES }, (_, i) => {
