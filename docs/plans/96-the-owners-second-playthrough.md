@@ -5,7 +5,7 @@ is to turn the owner's notes from a full run after Plan 95, read against the
 code in [`docs/reviews/2026-10-owners-playthrough-ii.md`](../reviews/2026-10-owners-playthrough-ii.md),
 and the owner's answers to its questions, into PRs.*
 
-**Status: Proposed.**
+**Status: Landed.** B to I on one branch (`claude/bold-thompson-48x80t`), each with an **As implemented** note below.
 
 ---
 
@@ -619,15 +619,75 @@ The candidates from the review's §4.1:
   founding class, or a founding class that comes whatever the price;
 - a cheaper first tier of courses, or an early fifth committee seat.
 
-This section is written in full once the owner has chosen. Its rule is set
-now: whatever it changes is measured by B's report, years 1–5, before and
-after, and the scorecard's later targets still pass.
+Its rule: whatever it changes is measured by B's report, years 1–5,
+before and after, and the scorecard's later targets still pass.
+
+**As implemented:**
+
+- **The levers were chosen from B's and H's numbers.** The owner asked for
+  the plan to be worked through continuously, so they were not put to them
+  first. These are the levers:
+  1. **Health phases in** (`facilitiesData.ts`'s `healthPhaseIn`). The
+     year-4 cliff was health:
+     - a Health Center can be built only once enrolment passes 1,500;
+     - but the class that crossed 1,500 counted health as 0% covered;
+     - crowding then took the whole 25 points off the prestige target, and
+       satisfaction lost the health need at once.
+
+     Now health's shortfall counts in proportion over the 1,000 students
+     past the gate, in crowding (`crowdingCoverages`) and in satisfaction
+     alike.
+  2. **A founding grace** (`cohorts.ts`'s `crowdingForPool`). Year 1's
+     crowding no longer shrinks the first summer's pool. The college opened
+     with a class and no beds, and B found that alone cut year 1's pool to
+     two fifths. The summer's resolution reads crowding for the pool
+     through the same function. The first attempt changed only the
+     projection's signals, and the opening report showed the pool
+     unchanged.
+  3. **The tolerance on the slider**: "Families expect about $19,900"
+     under the tier
+     ([shot](../reviews/2026-10-playthrough-fixes/96i-tuition-tolerance.jpg)).
+     The backlog's *The price is set blind* is answered for every college,
+     not only one with an Admissions Office.
+
+  The other two candidates, a cheaper first tier of courses and an early
+  fifth seat, were left alone: with the pool larger, year 2's net per week
+  roughly doubles, which is what made courses slow.
+- **The opening, after I**
+  ([report](../reviews/2026-10-pacing-opening-96i.md), against B's), at
+  seed 12345:
+
+  | | Before (B) | After I |
+  |---|---|---|
+  | Natural, year-1 pool | 77 | 180 |
+  | Natural, year-2 net/wk | $63k | $105k |
+  | Guided, year-1 pool | 251 | 629 |
+  | Guided, year-2 net/wk | $77k | $94k |
+  | Owner's prices, year-1 pool | 163 | 383 |
+  | Owner's prices, year-2 net/wk | $80k | $147k |
+  | Guided, year-4 prestige target | 23.6 | 41.2 |
+  | Completionist, year-4 prestige target | 22.0 | 32.8 |
+
+  The year-4 drop is softer, not gone: a college that doubles in a summer
+  still outgrows its dining and beds, which is crowding doing its job.
+- **The late game.** On the standard seeds the report put Guided's year-50
+  prestige at 113.0 (−6.7), third and not first. Each lever alone moved it
+  as much, so it was checked on five other seeds (1–5), with I off and on:
+  - **year-50 prestige:** 113.6 off, 114.4 on;
+  - **top 10:** in years 38–43 off, 37–42 on;
+  - **first:** reached on two seeds either way.
+
+  So the late loss is the standard seeds' luck, not I. The run over the
+  standard seeds is re-recorded as the baseline all the same, since that
+  is what `npm run sim` diffs against.
 
 ---
 
 ## 4. The backlog
 
 - The *Awaiting the owner: the second playthrough* entry points here.
+- *The price is set blind* comes off: I shows the families' tolerance on
+  every college's slider.
 - *Targets against actuals* stays there, undecided (decision 6).
 - If G finds the reducer's clone is still most of a late tick, its numbers
   go into *The sim on a worker thread*.

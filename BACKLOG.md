@@ -30,8 +30,8 @@ ten bugs whose cause is known, UI and text changes the owner has decided,
 balance (the first three years, the faculty's 55% start), performance late
 in a run. The owner answered its four questions (its §7): drop "Est. Year
 1", course names in place of codes, no formal text pass, and print years
-1–5 in the pacing report before tuning the opening. Sequenced in
-[Plan 96](docs/plans/96-the-owners-second-playthrough.md).*
+1–5 in the pacing report before tuning the opening. Sequenced and landed
+in [Plan 96](docs/plans/96-the-owners-second-playthrough.md).*
 
 - **Targets against actuals** (the owner, kept here at their request).
   Satisfaction shows *target* beside *today*, and prestige shows
@@ -121,11 +121,6 @@ a sequence of PRs.*
 - **Size levers** (A4-5). Declining an offer (78D) and recruiting (80G)
   exist; a target enrolment, or *stay small on purpose*, in the summer's
   admissions beat does not.
-- **The price is set blind** (A4-6). The summer's tuition slider shows a
-  tier but not how last year's price moved the pool
-  (`components/InterruptModal.tsx`). Show last year's response beside it.
-  Plan 89's Admissions Office answers it for a college that opens the
-  office; this entry stays for the rest.
 - **Small leftovers of the Final Report and the worklist** (A4-2, A4-4):
   - the access weakness still reads "never opened its doors very wide"
     (`data/reportData.ts`), which goes to the largest colleges; the
