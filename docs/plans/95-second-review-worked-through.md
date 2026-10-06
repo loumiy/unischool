@@ -4,8 +4,8 @@
 [second game review](../reviews/2026-10-game-review-ii/README.md)
 ([Plan 86](86-second-game-review.md)) into PRs, one area at a time.*
 
-**Status: Proposed.** Areas 1–3 answered. Areas 4–7 are added below as the
-owner answers them.
+**Status: Proposed.** Areas 1–4 answered. Areas 6 and 7 are added below as
+the owner answers them.
 
 ---
 
@@ -20,10 +20,15 @@ already fixed is closed here, with the plan that fixed it. It gets no PR.
 
 - One branch per PR (`plan-95x-subject`), merged once `check` and `slow`
   pass.
-- **Balance never moves, except in M and N.** `npm run sim` reads the same
-  as `sim/baseline.json` after every other PR. M reshapes the course
-  catalog, and N lowers the opening prestige. Each re-baselines with the
-  owner's sign-off.
+- **Balance never moves, except in M, N, R, S and X.** `npm run sim` reads
+  the same as `sim/baseline.json` after every other PR. Of those five:
+  - M reshapes the course catalog;
+  - N lowers the opening prestige;
+  - R offers the specialization sooner;
+  - S gives the Provost a teaching policy, which the harness players use;
+  - X adds a late use for money, if W's measure calls for one.
+  Each re-baselines with the owner's sign-off, and runs on its own between
+  the others' sim runs, so each baseline moves for one reason.
 - A visual PR carries screenshots in `docs/reviews/2026-10-review-ii-fixes/`:
   - in more than one vernacular;
   - from more than one camera where the change turns with the camera;
@@ -54,6 +59,13 @@ already fixed is closed here, with the plan that fixed it. It gets no PR.
 | O | NEXT: the building going up, and the step toward a school | B3-3, B3-4 | no |
 | P | Crowding, at the admissions decision and on NEXT | B3-5 | no |
 | Q | Labs, unfounded schools and the build tiles, said plainly | B3-7, B3-8, B3-10 | no |
+| R | The specialization, offered sooner and by a pillar | B4-1, B4-2, B4-3 | **yes** |
+| S | Teaching: the line that opens *Below A*, and the Provost's policy | B4-5 | **yes** |
+| T | News that does not stop the clock | B4-6 | no |
+| U | The Final Report reads the path | B4-7 | no |
+| V | Cutting a varsity team | B4-8 | no |
+| W | Money measured, and the scorecard re-based | B4-10, B4-11 | no |
+| X | A late use for money (only if W calls for it) | B4-10 | **yes** |
 
 B, C and D touch different files (`seasons.ts` and the grounds;
 `downtownData.ts`, `Surroundings.tsx` and the camera; `buildingSpec.ts`), so
@@ -74,6 +86,14 @@ Area 3's order:
   reading to the order O leaves.
 - Q can go side by side with any of them.
 - F (area 2) also takes B3-6's line.
+
+Area 4's order:
+- W lands first. Its re-based scorecard is what R, S and X are read
+  against.
+- R before S. The choice's timing moves every later pillar reading.
+- X waits for W's numbers, and on R and S, since both change what a late
+  college spends on.
+- T, U and V can go side by side with any of them.
 
 ---
 
@@ -638,3 +658,229 @@ The owner's answer: open near the first years' grade, with no words added.
   fold.
 - B3-9: no NEXT reading for the committee. The lamps are the signal.
 - B3-10's search price: its tooltip stays as it is.
+
+---
+
+## Area 4 — Strategy
+
+### The owner's answer
+
+Plan 89 (the administration) landed after the review. Three of its offices
+touch this area:
+- the **Athletics Development Office** founds a varsity team without a
+  club's petition;
+- the **Admissions Office** shows a range for the pool before the price is
+  set;
+- every office has a **staff budget**: Guided's cash at Y25 fell from
+  $164.7M to $47.0M.
+
+Plan 89's own measure also shows small colleges earn little of it:
+Selective and Lean never reach prestige 70 or the top 25.
+
+| Finding | What | On `main` | Answer |
+|---|---|---|---|
+| B4-1 | The ambitious paths still build one college | Open | Only through **R** (an earlier choice). The specialization shaping the build is not planned |
+| B4-2 | The specialization is out of reach for the strategies that differ | Open: `SPECIALIZATION_MILESTONE_RANK = 20`, overall rank only (`milestone.ts`) | **R**: a pillar's top 10, or the overall bar |
+| B4-3 | The choice comes at years 39–47 | Open | **R**: the overall bar moves to the top 30 |
+| B4-4 | Small is a trap | Open: `ADMISSIONS_SCALE_FOR_FULL_CREDIT = 6_000` | Leave it: small stays hard on purpose |
+| B4-5 | The teaching cap is gone, and instructor swaps doubled | Open | **S**: the link and a Provost policy |
+| B4-6 | Most weeks ask nothing, and the stops grew | Open: a milestone and a research report each set `pendingInterrupt` (`eventSystem.ts:47, 59`) | **T** |
+| B4-7 | The Final Report misreads the strategies that differ | Open (`reportData.ts:26, 73`) | **U**: all three |
+| B4-8 | Athletics and size have too few levers | Founding a team directly: done (Plan 89's office) | **V**: cutting a team. No target enrolment, no decline that leaves a gap |
+| B4-9 | The price is set blind | Fixed by Plan 89's Admissions Office | Close. Seeing the pool is the office's advantage |
+| B4-10 | Money stops mattering | Unmeasured since Plan 89 | **W** measures; **X** adds a late use if the measure calls for one |
+| B4-11 | The pacing scorecard measures October's prestige | Open: `prestigeY50: { min: 149.5 }` (`sim/pacing.ts:182`) | **W** |
+
+### PR 95R — The specialization, offered sooner and by a pillar (B4-1, B4-2, B4-3)
+
+- **Two routes to the offer** (`milestone.ts`'s `tickSpecialization`). The
+  offer comes at a summer when either holds:
+  - the college stands in the overall top 30 (`SPECIALIZATION_MILESTONE_RANK`
+    from 20 to 30);
+  - the college stands in the top 10 of any one pillar
+    (`SPECIALIZATION_PILLAR_RANK = 10`), read from the standings, as the
+    choice's cards already read it.
+  The notice comes `SPECIALIZATION_NOTICE_PLACES` ahead on either route,
+  overall or in the pillar.
+- **The choice stays open to all four.** A college that came in through
+  athletics may still choose academics. The cards already show its
+  standing in each pillar (F's strongest-pillar line now has a reason).
+- **Words.** Every string that says "the first summer the college stands in
+  the guide's top 20" is rewritten to name both routes: History, the
+  notice, the status line, the guide's help. E's single rule sentence holds
+  the routes.
+- **Balance.** `npm run sim` moves. The PR:
+  - re-baselines;
+  - shows, for the owner, from the goal players (`npm run review:goals`,
+    ten seeds):
+    - the year each goal is offered the choice (the review: never for
+      revenue, satisfaction and championships; Y39–47 for the rest);
+    - which it takes;
+    - championships' titles a run (the review: one).
+  The aim is a choice around Y25–35 for the goals that reach it, and an
+  offer for each of the three that never had one.
+- **The rivals.** Rivals specialize by their own rule. Check that a field in
+  which the college can specialize earlier still has 35-odd rivals per
+  pillar, and that the targets of Plan 85D's table still read.
+- **Checks:**
+  - milestone tests for each route, and for the notice on each;
+  - a save mid-run where the college already stands in a pillar's top 10
+    is offered at its next summer, not at once.
+
+### PR 95S — Teaching: the line that opens *Below A*, and the Provost's policy (B4-5)
+
+- **The link.** History › Prestige's teaching line ("11% of courses graded
+  A: standing can reach …"; H gives it its own measure) gains "Show the 71
+  courses below A". It opens the Curriculum with Plan 80B's *Below A*
+  filter on.
+- **The Provost's teaching policy** (`seatData.ts`, the `provost` seat's
+  policies).
+  - A new policy, *Staff for the A*: each week, for each course below A,
+    the Provost puts on the best free instructor in its field when that
+    instructor would teach it better.
+  - "Free" means teaching under their course slots.
+  - It makes a swap only when the course would gain a full letter or
+    more, so the seat does not churn.
+  - It uses the seat system's routine and its log line ("The Provost moved
+    Dr. X onto ECON 210"). It never hires and never dismisses.
+  - The Dean of a school takes the policy for that school when there is no
+    Provost, as Deans take the academic routine now.
+- **The harness.** The goal players and the Guided player that hold a
+  Provost take the policy, and stop their own `tend-teaching` swaps for
+  courses it covers. The review counts swaps a run: 495–839. Measure the
+  player's own swaps after and report both.
+- **Balance.** If the harness's teaching grades move, `npm run sim` moves:
+  re-baseline, and show prestige at Y25 and Y50 against the baseline.
+- **Checks:**
+  - seat-policy tests: the full-letter rule, never past the course slots,
+    and one swap per course a week;
+  - the link opens the filter.
+
+### PR 95T — News that does not stop the clock (B4-6)
+
+- **Milestones and research reports become letters.** `eventSystem.ts`
+  stops raising `pendingInterrupt` for `milestone` (`:47`) and
+  `research-complete` (`:59`).
+  - Each arrives as an inbox letter (`tier: 'letter'`), with its toast as
+    letters have now.
+  - A milestone's effects apply the week it is reached, as now; only the
+    stop goes.
+  - The research report's pane is the letter's reading pane.
+  - The specialization's choice, the summer and every `decide` matter keep
+    stopping.
+- **For the player who wants the stop.** A setting, *Pause for news*, off
+  by default, beside *Pause on arrival*. `unseen.ts` reads it for `letter`
+  items of these two kinds.
+- **The year's defaults in the summer Review.** A matter left unanswered
+  takes its default (`InboxTab.tsx`'s "left unanswered" after J). The
+  summer Review lists them, grouped as I groups the rest ("3 matters left
+  unanswered: …").
+- **The opening's letters** (the founding years) are unchanged.
+- **A save** with a milestone or report pending as an interrupt shows it
+  once as now, then the new rule holds. No migration, unless the pending
+  interrupt's type is read elsewhere.
+- **Checks:**
+  - The harness's stops a run, before and after. The review: 129–298; 87–93
+    of them milestone notes, up to 83 research reports.
+  - Idle weeks are unchanged. This removes stops, not weeks.
+  - Tests for the setting.
+
+### PR 95U — The Final Report reads the path (B4-7)
+
+- **Access** (`reportData.ts:73`): "never opened its doors very wide" becomes
+  "stayed hard to get into". The access axis is half admit rate and half
+  price. The phrase now names what it measures, not the size of the
+  college.
+- **Experience** weighs satisfaction more for a college whose satisfaction
+  leads the field. When the college's satisfaction ranks first among the
+  rivals for most of the arc (read from the standings' history), the axis
+  takes satisfaction at a higher share. The satisfaction goal, graded F in
+  every run, should earn its axis.
+- **The title's tag** (`reportData.ts:24-33`) prefers a tag the college
+  *earned* over one its standing implies. A college with final fours or
+  titles, or an athletics pillar in the top 10, is "an athletics school"
+  (`jock-school`) before "a party school". Each tag gets an earned test
+  (titles, a pillar's rank, research awards), and an earned tag wins over
+  an implied one.
+- **Checks:** the goal players' report titles and grades, ten seeds each,
+  before and after. Satisfaction should no longer be F ×10. Championships
+  should no longer be "a party school". Big-then-good should not "never
+  open its doors". `report.test` covers each rule.
+
+### PR 95V — Cutting a varsity team (B4-8)
+
+The backlog's *Disbanding a team*: unbuilt, and with a question open about
+the venue.
+
+- **The action.** On a varsity program's card (Athletics), *Cut the
+  program*, behind the armed label "Confirm — {sport} ends; its alumni
+  will give less". It never cuts a flagship mid-season. A flagship is
+  unflagged first.
+- **The cost.**
+  - The program's alumni give less: the athletics share of giving for that
+    sport stops, and alumni giving as a whole dips for a few years
+    (`giving.ts`).
+  - A letter from the alumni says so, and the rivalry ends.
+  - Its scholarships and coach's pay stop at the end of the season.
+- **The venue** stays. It returns to recreation: the sport's club may
+  form again, through the usual petition or the Athletics Development
+  Office, and the venue serves its recreation need as it would without a
+  team.
+- **The harness.** The goal players that wanted to cut a program (6 of 10)
+  may cut one by their rule. Report how many do. Balance must not move
+  for the players that never cut (the Guided player and `npm run sim`).
+- **A save** needs no migration if a cut program is removed from the
+  athletics state outright. Otherwise, add a `cutYear` and a migration.
+- **Checks:** reducer tests for the cut and its costs; the venue returns
+  to recreation; a flagship cannot be cut in season.
+
+### PR 95W — Money measured, and the scorecard re-based (B4-10, B4-11)
+
+- **Measure.** With Plan 89's offices in play, record cash, endowment and net
+  a week at Y30, Y40 and Y50 for:
+  - Natural (`npm run natural`, seed 12345);
+  - Guided (`npm run sim`, median);
+  - the seven goal players.
+  Set them beside the review's table (Natural $20.9B, the goals $1.2–5.7B).
+- **The scorecard** (`sim/pacing.ts`):
+  - prestige and rank targets re-based on Plan 85's scale: the top of the
+    field at about 118–121 (`prestigeY50`, first place, the top 25), and
+    the years read from the current baseline's best runs;
+  - a new absolute row: **natural Y40 cash** under a bound in dollars,
+    named in the PR, with its reason. The relative "decades of opex" row
+    stays beside it.
+  - The scorecards in `docs/reviews/` are history and are not rewritten.
+    The PR writes a new one, `2026-10-pacing-rebased.md`.
+- **The call for X.** If Natural's Y40 cash is still above about ten years
+  of operating cost, or above $1B, X goes ahead. Otherwise X is closed here
+  with the numbers.
+
+### PR 95X — A late use for money (B4-10, only if W calls for it)
+
+The owner's pick: specialization shares bought faster with money.
+
+- **What money buys.** Each specialization gets one purchase, open once its
+  share is opened, priced to matter at a late college's net a week:
+  - **academics:** a second training class at the institute, so more
+    faculty are trained a year;
+  - **research:** a second park wing, so its labs reach full sooner;
+  - **student life:** a headline festival every year, not only when the
+    roll allows, and the downtown's growth step bought;
+  - **athletics:** the complex's second phase, so the athletics share's
+    deep reading fills faster.
+  Each speeds a share's fill. None raises its ceiling, so money buys time,
+  not standing the college could not reach.
+- **Repeatable** where the share allows: a festival a year, a training
+  class a year. The cost scales with `moneyScale.ts`, so it stays a real
+  choice at $1B as it was at $100M.
+- **Balance.** `npm run sim` moves. Re-baseline. Show Natural's Y40 and Y50
+  cash after, against W's numbers, and the year each goal's share fills.
+- **Checks:** a test per purchase; the share's fill rate before and after.
+
+### What area 4 does not do
+
+- B4-1's deeper half: no specialization changes what the college builds,
+  and none lets it skip a school.
+- B4-4: small stays hard. No change to the 6,000, and no selective bonus.
+- B4-8: no target enrolment, and no decline that leaves a gap.
+- B4-9: no price line for players without the Admissions Office.
