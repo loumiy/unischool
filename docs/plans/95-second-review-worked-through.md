@@ -113,6 +113,110 @@ Area 7's order:
   scenarios, so none of them reads "Test University University".
 - AD moves balance, and runs on its own, as the other re-baselines do.
 
+## The order to work in
+
+The per-area notes above say what must come before what. This section puts
+all thirty PRs in one order. It is built on four constraints:
+
+- **One sim move at a time.** M, N, R, S, X and AD each re-baseline
+  `sim/baseline.json`. Run them one after another, never side by side, so
+  each baseline moves for one reason. Every other PR checks against
+  whatever baseline is current, so a branch opened before a re-baseline
+  merges `main` before its sim check.
+- **One save version at a time.** K, M and possibly V each bump
+  `SAVE_VERSION` with a migration. Two open at once fight over the number
+  and the fixtures, so land them in the order K, V, M.
+- **Shared files go in sequence.** These pairs edit the same code:
+  - AB then C: `CampusMap.tsx`'s wheel, then its camera;
+  - O then P: `nextStep.ts`;
+  - J then T: the inbox's "left unanswered";
+  - I then T: the summer Review's grouped lists;
+  - E then F then H: History › Prestige and the pillar rule;
+  - H then S: the teaching line S links from.
+- **The owner's answers are slow, so ask early.** L (the catalog table)
+  and W (the money measure, which decides X) go out first. M and X wait on
+  them while everything else lands.
+
+### Stage 0 — Ground (one at a time, quick)
+
+1. **A**, the plan and the backlog notes.
+2. **AC**: the harness's college becomes "Test". Every later scenario
+   screenshot and save then reads right. The sim must not move.
+3. **W**: money measured and the scorecard re-based. Every balance PR is
+   read against this card, and its numbers decide X.
+4. **L**: the catalog table goes to the owner. It is a document, and the
+   answer can take as long as the stages below.
+
+### Stage 1 — Independent fixes (side by side)
+
+Nothing here depends on anything but Stage 0, and no two touch the same
+files:
+
+- **E**: true notes, and the pillar rule in one place;
+- **J**: the glossary and the 101s;
+- **O**: NEXT names the building and the step;
+- **G**: Faculty, lighter;
+- **I**: Athletics folded, the Review capped;
+- **U**: the Final Report;
+- **AA**: Landmark weeks, two tabs, opened matters;
+- **AB**: the wheel, the short form, the scaffold;
+- **B**: seasons on the open ground;
+- **D**: the render wall, measured.
+
+**The balance chain starts here, alongside:** **N** (the opening prestige).
+It touches only `actions.ts` and the founding preset, so it does not
+collide with the fixes above. Each fix merges `main` after N's
+re-baseline.
+
+### Stage 2 — What Stage 1 unblocks (side by side)
+
+- **F**, after E: the specialization choice in prestige points.
+- **P**, after O: crowding at the decision and on NEXT.
+- **T**, after J and I: news that does not stop the clock.
+- **C**, after AB: the downtown in daylight, and the camera's one look.
+- **Q**: the lab, the unfounded school and the build tiles.
+- **K**: the inbox and the phone. **The first save migration.**
+
+**The balance chain:** **R** (the specialization offered sooner), after N.
+R rewrites the rule's words through E's function, so it lands after E.
+
+### Stage 3 — The second wave
+
+- **H**, after E and F: History in three views.
+- **V**, after K: cutting a varsity team. **The second migration**, if it
+  needs one.
+- **Y** and **Z**, after R: the share image, the README's words, and the
+  store drafts. They describe the specialization as R leaves it.
+
+**The balance chain:** **AD** (events name the professor they mean). It is
+independent of everything but the sim, so it fills the gap while H lands.
+
+### Stage 4 — The balance chain's tail (one at a time)
+
+1. **S**, after R and H: the teaching line and the Provost's policy.
+2. **M**, after L is answered and after K and V: the course catalog and its
+   migration. **The last migration.**
+3. **X**, last, and only if W called for it: a late use for money. It is
+   measured against a college that already has the earlier specialization
+   (R), the Provost (S) and the new catalog (M).
+
+### The order at a glance
+
+| Stage | Side by side | The balance chain, one at a time |
+|---|---|---|
+| 0 | A → AC → W → L (sent to the owner) | — |
+| 1 | E, J, O, G, I, U, AA, AB, B, D | N |
+| 2 | F, P, T, C, Q, K | R |
+| 3 | H, V, Y, Z | AD |
+| 4 | — | S → M → X |
+
+Three things set the critical path:
+- the six balance PRs in their single file (N → R → AD → S → M → X);
+- the owner's answers on L and on W's numbers;
+- the migration order (K → V → M).
+
+Everything else fits around them.
+
 ---
 
 ## Area 1 — Aesthetics
