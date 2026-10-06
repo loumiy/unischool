@@ -131,6 +131,14 @@ export function athleticResultsFor(s: GameState): { results: number; label: stri
   return { results, label };
 }
 
+// The year's crowding as the next pool reads it. The founding year's is not
+// held against the first summer (Plan 96I): the college opened with a class
+// and no beds, and the opening report found that alone cut year 1's pool to
+// two fifths.
+export function crowdingForPool(s: GameState): number {
+  return s.clock.year <= 1 ? 0 : crowdingScore(s);
+}
+
 export function deriveCohortSignals(s: GameState): CohortSignals {
   const activeTeams = s.orgs.teams.filter((t) => t.status === 'active');
   // Read once for every team (studentLifeData.ts's teamQuality).
@@ -139,10 +147,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
   return {
     beauty: campusBeauty(s),
     tagPool: tagPoolFactor(s),
-    // The founding year's crowding is not held against the first summer's
-    // pool (Plan 96I): the college opened with a class and no beds, and
-    // the opening report found that alone cut year 1's pool to two fifths.
-    crowding: s.clock.year <= 1 ? 0 : crowdingScore(s),
+    crowding: crowdingForPool(s),
     applicantLift: s.students.applicantLift,
     careerServices: officeStrength(s, 'career-services'),
     financialAid: officeStrength(s, 'financial-aid'),
