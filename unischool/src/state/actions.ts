@@ -320,7 +320,7 @@ export function createInitialState(
 
 // The prestige the founding admit rate is seeded from: the opening before
 // Plan 95N lowered it to 42.
-const FOUNDING_ADMIT_PRESTIGE = 51.5;
+export const FOUNDING_ADMIT_PRESTIGE = 51.5;
 
 function foundState(
   name: string,

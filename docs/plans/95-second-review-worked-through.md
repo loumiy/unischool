@@ -703,6 +703,40 @@ The owner's answer: open near the first years' grade, with no words added.
   (`statChips.ts:47`), the design docs, and any tutorial or letter that
   states 51.5. Grep for it.
 
+**As implemented.**
+- `FOUNDING_PRESET.startingReputation` is 40.5, so with Founders Hall's
+  1.5 the college opens at 42.0.
+- The founding admit rate is seeded from `FOUNDING_ADMIT_PRESTIGE` (51.5,
+  `actions.ts`), so the first class does not shrink.
+- The faculty market's founding anchor stays at 50 (`facultyData.ts`). A
+  college at or below it draws the founding pool, as before; only the
+  comment changed.
+- **Deviation: the figure is the owner's 42, not the harness's Year 2
+  grade.** Measured over three seeds, the Year 2 grade is 45.4–47.3 (mean
+  46.0). But no opening makes the first summer hold: Year 1 grades 29–37,
+  because a new college has no beds until week 25. At 46 the first summer
+  would fall about 5. At 42 it falls about 2.5, and from Year 2 prestige
+  rises every summer (the after-table is in
+  `docs/reviews/2026-10-game-review-ii/data/b3-opening-prestige.md`).
+- **The sim moved** (re-baselined, three seeds, medians):
+
+  | Player | Y10 prestige | Y25 rank | Y50 rank | Y50 prestige | Top 20 |
+  |---|---|---|---|---|---|
+  | Guided | 47.4 (−0.2) | 31 (−4) | 1 | 118.8 (+2.8) | Y31 (was Y34–35) |
+  | Guided, unspecialized | 47.4 | 31 | 2 (−4) | 111.1 (+1.8) | Y31 |
+  | Completionist | 47.1 (−2.4) | 39 (+3) | 6 (+5) | 108.5 (−6.6) | Y40–43 |
+  | Selective | 42.6 (+0.3) | 61 (+4) | 63 (−1) | 52.2 (+0.6) | never |
+  | Lean | 37.3 (−1.4) | 67 (+1) | 73 (+4) | 42.2 (−0.4) | never |
+
+  Guided reaches the top 20 three or four years sooner, because a college
+  that never falls keeps climbing. The Completionist, which spends its
+  first decade building, ends lower.
+- **For W and X:** Guided-research's Y50 cash rose from $565M to $5.5B. The
+  earlier specialization (Y30–32) gives the park's labs more years.
+- `sim/report.ts` gains `--from-runs`, which saves a baseline from the last
+  run's rows without playing again. A full run took 80 minutes here on a
+  shared machine.
+
 ### PR 95O — NEXT: the building going up, and the step toward a school (B3-3, B3-4)
 
 - **The building going up** (`nextStep.ts`'s `shortfall`).
