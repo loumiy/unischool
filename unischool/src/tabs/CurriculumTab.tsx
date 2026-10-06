@@ -984,7 +984,10 @@ function SchoolGroupView(
           <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the school' : 'Hide the school'} onClick={toggle}>
             {collapsed ? '▸' : '▾'}
           </button>
-          <h3>{group.founded ? group.heading : <span className="school-group-unnamed">{group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'} of a school not yet founded</span>}</h3>
+          {/* An unfounded school is headed by its name, as the letters and
+              NEXT name it; it still has no color (Plan 95Q, the second
+              review's B3-8). */}
+          <h3>{group.founded ? group.heading : <>{group.key}<span className="school-group-unnamed"> · {group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'}, not yet founded</span></>}</h3>
           <span className="school-group-tally">
             {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
             <span className="school-group-meter" aria-hidden="true">

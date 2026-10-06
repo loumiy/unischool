@@ -15,7 +15,7 @@
 // Measures, never fails. Not part of the game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
 
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import type { Buildable, SatisfactionAttributes } from '../src/state/types';
 import { institutionName } from '../src/state/types';
 import { isPlaceableKind } from '../src/state/campusMap';
@@ -48,10 +48,14 @@ if (process.argv.includes('--pacing')) {
   TEACHING.care = false;
   const blind = PACING_SEEDS.map((sd) => trackYears(playerNamed('Guided')!, sd));
   TEACHING.care = true;
+  // Every run's years, for reading the money and re-basing the targets
+  // (Plan 95W).
+  mkdirSync('node_modules/.tmp', { recursive: true });
+  writeFileSync('node_modules/.tmp/pacing-runs.json', JSON.stringify({ runs, blind }));
   const text = [
     `# Pacing scorecard`,
     '',
-    `The natural line (\`sim/harness/natural.ts\`, priced just short of the red tier), the guided player and the Completionist (both priced at "fair"), seeds ${PACING_SEEDS.join(', ')}, against the targets in \`sim/pacing.ts\` (Plans 66 and 68). Written by \`npm run natural -- --pacing\` in ${((Date.now() - t) / 1000).toFixed(0)} s.`,
+    `The natural line (\`sim/harness/natural.ts\`, priced just short of the red tier), the guided player and the Completionist (both priced at "fair"), seeds ${PACING_SEEDS.join(', ')}, against the targets in \`sim/pacing.ts\` (Plans 66 and 68, prestige and rank re-based by Plan 95W). Written by \`npm run natural -- --pacing\` in ${((Date.now() - t) / 1000).toFixed(0)} s.`,
     scorecardText(scorecard(runs, blind)),
     '',
   ].join('\n');

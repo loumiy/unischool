@@ -225,13 +225,15 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
 
   // The board's letters: the queue is unread by definition, and "Noted"
   // takes the oldest (reducer.ts's READ_BOARD_LETTER), so only the oldest is
-  // shown, as the note over the map did.
+  // shown, as the note over the map did. It is dated the week it came
+  // (Plan 95K, the second review's H7-5), not this week.
   const boardId = s.finance.distress?.letters[0];
   const board = boardId ? BOARD_LETTERS[boardId] : undefined;
   if (boardId && board) {
     const item: InboxItem = {
       id: `board:${boardId}`, kind: 'board', tier: boardAsks(boardId) ? 'decide' : 'letter', ref: boardId,
-      from: 'From the board', subject: board.title, preview: board.text, week: now, unread: true,
+      from: 'From the board', subject: board.title, preview: board.text,
+      week: s.finance.distress?.letterWeeks[0] ?? now, unread: true,
     };
     (item.tier === 'decide' ? decide : letters).push(item);
   }

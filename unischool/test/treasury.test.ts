@@ -8,7 +8,7 @@ import { reducer } from '../src/engine/reducer';
 import { financeBreakdown, tickFinance } from '../src/systems/finance/financeSystem';
 import {
   BORROWING_SHARE, DRAW_RATE_DEFAULT, DRAW_RATE_MAX, DRAW_RATE_MIN, LOAN_YEARS, TRANSFER_MINIMUM,
-  borrowingRoom, debtOutstanding, drawRate, loanFor, loanPayment, roundDown, transferOffers,
+  borrowingRoom, debtOutstanding, drawRate, loanBar, loanFor, loanPayment, roundDown, transferOffers,
 } from '../src/systems/finance/treasury';
 import { firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { loadGame, saveGame } from '../src/state/persistence';
@@ -121,6 +121,14 @@ const fresh = () => {
   small.finance.endowment = 1_000_000;
   small.finance.cash = 1;
   assert(loanFor(small, 1_000_000) === 0, 'nor past its room');
+  // The greyed tile names which condition stopped the loan (Plan 95Q, B3-10).
+  assert(loanBar(broke, 1_000_000) === 'noCash', 'the bar names the deficit');
+  assert(loanBar(small, 1_000_000) === 'room', 'and the room');
+  const offered = fresh();
+  offered.finance.endowment = 10_000_000;
+  offered.finance.cash = 1_000_000;
+  assert(loanFor(offered, 1_500_000) > 0 && loanBar(offered, 1_500_000) === null, 'and nothing when a loan is offered');
+  assert(loanBar(offered, 500_000) === null, 'or none is needed');
   const course = s.tech.find((t) => t.kind === 'course' && t.status === 'available');
   assert(course === undefined || !canStartBorrowing(s, course.id), 'and courses are never borrowed for');
 }

@@ -579,7 +579,7 @@ function rollBio(field: string): string {
 // written, not drawn: foundingData.ts.)
 const MARKET_CENTER_AT_FOUNDING = 50;   // a candidate's typical potential at founding standing
 const MARKET_CENTER_AT_TOP = 80;        // ... and at the top of the table
-const MARKET_PRESTIGE_FOUNDING = 50;    // prestige at founding (foundingData.ts's startingReputation)
+const MARKET_PRESTIGE_FOUNDING = 50;    // the founding pool's standing: a college at or below it draws the founding market (Plan 95N opened colleges at 42)
 const MARKET_RESEARCH_FOUNDING = 18;    // research standing at founding (prestigeSystem.ts's RESEARCH_STANDING_BASELINE)
 const MARKET_STANDING_TOP = 150;        // the top of both scales (rivalData.ts's STANDING_MAX)
 const MARKET_RESEARCH_WEIGHT = 0.7;     // research potential's center: this much research standing, the rest prestige

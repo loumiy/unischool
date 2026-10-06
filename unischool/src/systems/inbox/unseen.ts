@@ -79,6 +79,45 @@ export function unseenPause(before: UnseenMemory | null, input: UnseenInput): Un
   return { pause: reason !== null, reason, memory };
 }
 
+// The matters opened, kept for the page's session (Plan 95AA, the second
+// review's H7-4): a reload reads them back, so a matter opened before it
+// does not pause the clock again in its final week. Kept under the run
+// (the college's name, as App.tsx tells runs apart), so another run read
+// in this tab starts with none. Every read and write is wrapped: storage
+// that is blocked only loses the convenience.
+const OPENED_KEY = 'unischool.opened';
+
+type SessionStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+const sessionStore = (): SessionStore | null => (typeof sessionStorage === 'undefined' ? null : sessionStorage);
+
+export function readOpened(run: string, store: SessionStore | null = sessionStore()): ReadonlySet<string> {
+  try {
+    const raw = store?.getItem(OPENED_KEY);
+    if (!raw) return new Set();
+    const kept = JSON.parse(raw) as { run?: unknown; ids?: unknown };
+    if (kept.run !== run || !Array.isArray(kept.ids)) return new Set();
+    return new Set(kept.ids.filter((id): id is string => typeof id === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+export function keepOpened(run: string, opened: ReadonlySet<string>, store: SessionStore | null = sessionStore()): void {
+  try {
+    store?.setItem(OPENED_KEY, JSON.stringify({ run, ids: [...opened] }));
+  } catch {
+    // Not kept: a reload forgets them, as before.
+  }
+}
+
+export function forgetOpened(store: SessionStore | null = sessionStore()): void {
+  try {
+    store?.removeItem(OPENED_KEY);
+  } catch {
+    // Nothing to do.
+  }
+}
+
 // The countdown, said one way in the list and the reading pane: the last
 // week is the final week. Nothing waits at zero (an event takes its answer
 // on that week's turn), but it keeps a label.

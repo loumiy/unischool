@@ -170,7 +170,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
 
         <div className="inbox-rows">
           {filter === 'answered' ? (
-            answers.length === 0 ? <p className="inbox-empty">{q ? 'Nothing answered matches.' : 'Nothing answered yet. Every matter settled, by the President, a seat or the clock, is kept here.'}</p> : (
+            answers.length === 0 ? <p className="inbox-empty">{q ? 'Nothing answered matches.' : 'Nothing answered yet. The matters settled lately are kept here.'}</p> : (
               <>
                 <div className="inbox-group"><span>Answered</span><span>newest first</span></div>
                 {answers.map((l, i) => {
@@ -387,7 +387,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
     if (!letter) return null;
     return (
       <article className="inbox-letter">
-        <ReadHead tier={item.tier} from={item.from} subject={letter.title} meta={`From the board to the President · ${gameDate(s.clock.year, s.clock.week)}`} />
+        <ReadHead tier={item.tier} from={item.from} subject={letter.title} meta={`From the board to the President · ${gameDateOfWeek(item.week)}`} />
         <div className="inbox-read-main">
           <div className="inbox-body"><p className="inbox-para">{letter.text}</p></div>
           <div className="modal-actions inbox-actions">

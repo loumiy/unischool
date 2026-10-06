@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import type { Vernacular } from '../state/types';
+import type { SchoolColors, Vernacular } from '../state/types';
 import type { Camera, FaceDir } from './isoProjection';
 import { materialsFor } from './buildingSpec';
 import { WALL_LIGHT } from './light';
 import { shade } from './tint';
 import { SNOW_COLOR, mixColor } from './seasons';
 import { TreeAt } from './trees';
-import { hazeOf, ringView, type House, type RingSprite, type RingView, type Shop } from './ringLand';
+import { CROWD_SHADES, hazeOf, ringView, type House, type RingSprite, type RingView, type Shop } from './ringLand';
 
 // The land around the campus (Plan 81B; the geometry is ringLand.ts).
 // Two layers: RingBack under the whole campus (the ground, the road, the
@@ -48,7 +48,9 @@ function HouseSprite({ h, walls, roofs, vernacular, snow }: {
 
 // The downtown (Plan 85H): its walls, the town's own materials and three
 // painted fronts; its awnings; and its glass and lights, dark by day and
-// warm when the district is lit.
+// warm through the snow weeks. No light falls on the street: the map has no
+// night (Plan 95C, the second review's B1-7). In a festival's weeks, bunting
+// in the college's colours and a crowd on the pavements.
 const SHOP_PAINT = ['#e3d6bb', '#a9b79c', '#8c9cad'];
 const AWNINGS = ['#b0473b', '#2f6b5a', '#2d4b78', '#c39232', '#77405f'];
 const SHOP_ROOF = '#57524c';
@@ -56,9 +58,14 @@ const SHOP_PARAPET = '#8e877d';
 const GLASS = '#3f4b55';
 const WINDOW = '#4d5862';
 const LIT = '#ffd47e';
-const GLOW = '#ffcf6b';
 const WIRE = '#3a342f';
 const BULB_OFF = '#d8d0c0';
+// The crowd's coats, as the stands' crowd wears them (groundMarkings.tsx),
+// and two tones of face.
+const CROWD_COLOURS = ['#c94b4b', '#3d6a9c', '#e0b64a', '#f2ede2', '#5b8a5b', '#8c5a9c'];
+const FACE = '#e2b896';
+// Without the college's colours (a caller that has none), the bunting's.
+const BUNTING: SchoolColors = { primary: '#b0473b', secondary: '#f2ede2' };
 
 function ShopSprite({ sprite, vernacular, snow }: { sprite: Extract<RingSprite, { kind: 'shop' }>; vernacular: Vernacular; snow: number }) {
   const x: Shop = sprite.shop;
@@ -73,11 +80,12 @@ function ShopSprite({ sprite, vernacular, snow }: { sprite: Extract<RingSprite, 
       {sprite.awning && <path d={sprite.awning} fill={color} />}
       {sprite.valance && <path d={sprite.valance} fill={shade(color, 0.72)} />}
       {sprite.sign && <path d={sprite.sign} fill={sprite.lit ? LIT : shade(color, 1.15)} />}
+      {sprite.crowd.map((d, i) => d && <path key={i} d={d} fill={CROWD_COLOURS[i % CROWD_SHADES]} />)}
+      {sprite.heads && <path d={sprite.heads} fill={FACE} />}
     </>
   );
   return (
     <>
-      {sprite.glow && <path d={sprite.glow} fill={GLOW} fillOpacity={0.32} />}
       {!sprite.facing && front}
       {sprite.walls.map((w) => <path key={w.dir} d={w.d} fill={shade(wall, WALL_LIGHT[w.dir])} />)}
       <path d={sprite.parapet} fill={mixColor(SHOP_PARAPET, SNOW_COLOR, snow * 0.6)} />
@@ -90,19 +98,19 @@ function ShopSprite({ sprite, vernacular, snow }: { sprite: Extract<RingSprite, 
   );
 }
 
-function LightsSprite({ sprite }: { sprite: Extract<RingSprite, { kind: 'lights' }> }) {
+function LightsSprite({ sprite, colors }: { sprite: Extract<RingSprite, { kind: 'lights' }>; colors: SchoolColors }) {
   return (
     <>
-      {sprite.pool && <path d={sprite.pool} fill={GLOW} fillOpacity={0.3} />}
       <path d={sprite.poles} fill="none" stroke={WIRE} strokeWidth={1.4} />
       <path d={sprite.wire} fill="none" stroke={WIRE} strokeWidth={0.9} />
-      {sprite.halo && <path d={sprite.halo} fill={GLOW} fillOpacity={0.3} />}
-      <path d={sprite.bulbs} fill={sprite.lit ? LIT : BULB_OFF} />
+      {sprite.bulbs && <path d={sprite.bulbs} fill={BULB_OFF} />}
+      {sprite.bunting[0] && <path d={sprite.bunting[0]} fill={colors.primary} />}
+      {sprite.bunting[1] && <path d={sprite.bunting[1]} fill={colors.secondary} />}
     </>
   );
 }
 
-function Sprite({ sprite, vernacular, snow }: { sprite: RingSprite; vernacular: Vernacular; snow: number }) {
+function Sprite({ sprite, vernacular, snow, colors }: { sprite: RingSprite; vernacular: Vernacular; snow: number; colors: SchoolColors }) {
   switch (sprite.kind) {
     case 'tree': {
       const t = sprite.tree;
@@ -122,7 +130,7 @@ function Sprite({ sprite, vernacular, snow }: { sprite: RingSprite; vernacular: 
     case 'shop':
       return <ShopSprite sprite={sprite} vernacular={vernacular} snow={snow} />;
     case 'lights':
-      return <LightsSprite sprite={sprite} />;
+      return <LightsSprite sprite={sprite} colors={colors} />;
   }
 }
 
@@ -148,17 +156,19 @@ export function RingGroundArt({ view }: { view: RingView }) {
 }
 
 export const RingSprites = memo(RingSpritesArt);
-export function RingSpritesArt({ sprites, vernacular, snow }: {
-  sprites: readonly RingSprite[]; vernacular: Vernacular; snow: number;
+export function RingSpritesArt({ sprites, vernacular, snow, colors = BUNTING }: {
+  sprites: readonly RingSprite[]; vernacular: Vernacular; snow: number; colors?: SchoolColors;
 }) {
-  return <>{sprites.map((s) => <Sprite key={s.key} sprite={s} vernacular={vernacular} snow={snow} />)}</>;
+  return <>{sprites.map((s) => <Sprite key={s.key} sprite={s} vernacular={vernacular} snow={snow} colors={colors} />)}</>;
 }
 
 export const RingBack = memo(RingBackArt);
-export function RingBackArt({ name, vernacular, camera, turning, snow, district = 0, lit = false }: {
+export function RingBackArt({ name, vernacular, camera, turning, snow, district = 0, winterLit = false, festive = 0, colors }: {
   name: string; vernacular: Vernacular;
-  // The downtown's step and whether it is lit (Plan 85H; ringView).
-  district?: number; lit?: boolean;
+  // The downtown's step (Plan 85H), whether its windows are warm (the snow
+  // weeks) and how large a festival it is dressed for, in the college's
+  // colours (Plan 95C; ringView).
+  district?: number; winterLit?: boolean; festive?: number; colors?: SchoolColors;
   // A prop so the memo redraws on a camera change (the ring is projected).
   camera: Camera;
   // A turn is under way: the ring is drawn at every angle it passes
@@ -170,7 +180,7 @@ export function RingBackArt({ name, vernacular, camera, turning, snow, district 
   snow: number;
 }) {
   const haze = hazeOf(camera);
-  const view = ringView(name, !turning, district, lit);
+  const view = ringView(name, !turning, district, winterLit, festive);
   return (
     <g className="ring" aria-hidden="true">
       <defs>
@@ -184,7 +194,7 @@ export function RingBackArt({ name, vernacular, camera, turning, snow, district 
       </defs>
       <polygon className="ring-base" points={view.base} />
       <RingGround view={view} />
-      <RingSprites sprites={view.back} vernacular={vernacular} snow={snow} />
+      <RingSprites sprites={view.back} vernacular={vernacular} snow={snow} colors={colors} />
       <polygon points={haze.plate} fill="url(#ring-haze)" />
       {view.ridges.map((r, i) => r.d && (
         <path key={i} className="ring-far-hill" d={r.d}
@@ -197,14 +207,15 @@ export function RingBackArt({ name, vernacular, camera, turning, snow, district 
 
 // The sprites standing in front of the parcel, drawn after the campus.
 export const RingFront = memo(RingFrontArt);
-export function RingFrontArt({ name, vernacular, camera, turning, snow, district = 0, lit = false }: {
-  name: string; vernacular: Vernacular; camera: Camera; turning: boolean; snow: number; district?: number; lit?: boolean;
+export function RingFrontArt({ name, vernacular, camera, turning, snow, district = 0, winterLit = false, festive = 0, colors }: {
+  name: string; vernacular: Vernacular; camera: Camera; turning: boolean; snow: number;
+  district?: number; winterLit?: boolean; festive?: number; colors?: SchoolColors;
 }) {
   void camera;
-  const view = ringView(name, !turning, district, lit);
+  const view = ringView(name, !turning, district, winterLit, festive);
   return (
     <g className="ring" aria-hidden="true">
-      <RingSprites sprites={view.front} vernacular={vernacular} snow={snow} />
+      <RingSprites sprites={view.front} vernacular={vernacular} snow={snow} colors={colors} />
     </g>
   );
 }

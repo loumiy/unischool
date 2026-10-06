@@ -34,6 +34,7 @@ import { OPENING_LETTERS } from '../src/data/eventData';
 import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
 import { FOUNDING_PROGRAMS, WALKTHROUGH_PROFESSOR, WALKTHROUGH_PROGRAM } from '../src/data/foundingData';
 import { OPENING_STEPS } from '../src/data/openingData';
+import { STARTING_DORM_CAPACITY, STARTING_DORM_ID } from '../src/data/campusData';
 import { teachPillars } from './fixtures/teaching';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
@@ -163,6 +164,11 @@ const CALENDAR = OPENING_LETTERS.filter((l) => !l.arrives);
 {
   const s = teachPillars(createInitialState('Reading'));
   s.clock.year = 2;
+  // The founding halls standing, so no need is crowded (Plan 95P: crowding
+  // speaks before the shortfall).
+  s.tech.find((t) => t.id === STARTING_DORM_ID)!.status = 'done';
+  s.students.capacity = STARTING_DORM_CAPACITY;
+  s.tech.find((t) => t.id === 'DINING-01')!.status = 'done';
   s.students.satisfactionBreakdown = { academic: 70, social: 70, basicNeeds: 70, health: 70, housing: 70 };
   const offers = s.programOffers;
   s.programOffers = [];

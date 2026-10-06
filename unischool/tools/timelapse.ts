@@ -42,6 +42,7 @@ import { seedTrees } from '../src/data/treeData';
 import { bindScriptStream } from '../src/engine/random';
 import { pathTileKey, placementTiles } from '../src/state/campusMap';
 import type { GameState, Pathways, Placement, Placements, TileCoord, Trees, Vernacular } from '../src/state/types';
+import { clearBoardLetters } from '../src/systems/finance/distress';
 
 const VALUE_FLAGS = ['player', 'years', 'every', 'seed', 'name', 'colors', 'vernacular', 'out'];
 const flags: Record<string, string> = {};
@@ -86,7 +87,7 @@ function dress(state: GameState): void {
   state.pendingInterrupt = null;
   state.events.pendingDemand = null;
   state.events.activeDemand = null;
-  if (state.finance.distress) state.finance.distress.letters = [];
+  if (state.finance.distress) clearBoardLetters(state.finance.distress);
 }
 
 // ---------------------------------------------------------------------

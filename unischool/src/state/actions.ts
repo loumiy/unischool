@@ -322,6 +322,10 @@ export function createInitialState(
   return state;
 }
 
+// The prestige the founding admit rate is seeded from: the opening before
+// Plan 95N lowered it to 42.
+export const FOUNDING_ADMIT_PRESTIGE = 51.5;
+
 function foundState(
   name: string,
   vernacular: Vernacular = FOUNDING_VERNACULAR,
@@ -336,7 +340,6 @@ function foundState(
   foundersHall.builtYear = 1;
   const foundingPlacements: Placements = guided ? {} : { [FOUNDERS_HALL_ID]: centredPlacement(footprintOf(foundersHall)) };
 
-  // Shared by self.reputation and the seeded admit rate so they agree.
   const foundingReputation = preset.startingReputation + FOUNDERS_HALL_REPUTATION_BONUS;
 
   const foundingTuition = STARTING_TUITION;
@@ -375,7 +378,9 @@ function foundState(
       crowdingYearSum: 0, crowdingYearWeeks: 0,
       applicantPool: preset.startingApplicantPool,
       applicantLift: 0,
-      admitRate: admitRate(foundingReputation),
+      // Seeded from the old opening (Plan 95N), so the lower opening
+      // prestige does not shrink the first class.
+      admitRate: admitRate(FOUNDING_ADMIT_PRESTIGE),
       incomingQuality: 50,
       lastFunnel: null,
     },

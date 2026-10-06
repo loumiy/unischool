@@ -7,7 +7,7 @@ import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, setSeatPolicy } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
-import { boardHoldsBudget, constructionFrozen, tickDistress, tuitionFloor } from '../systems/finance/distress';
+import { boardHoldsBudget, constructionFrozen, dropBoardLetters, shiftBoardLetter, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
   RENOVATION_WEEKS, canDeclareHistoric, facilityUpkeepOf, isPriceUpkept, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
 } from '../systems/estate/estate';
@@ -378,7 +378,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
 
     case 'READ_BOARD_LETTER': {
-      s.finance.distress?.letters.shift();
+      if (s.finance.distress) shiftBoardLetter(s.finance.distress);
       return s;
     }
 
@@ -393,7 +393,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       else return state;
       // Answering the board's letter by setting it puts the letter away.
       const d = s.finance.distress;
-      if (d && action.weeks !== null) d.letters = d.letters.filter((id) => id !== IDLE_CASH_LETTER && id !== IDLE_CASH_AGAIN_LETTER);
+      if (d && action.weeks !== null) dropBoardLetters(d, (id) => id === IDLE_CASH_LETTER || id === IDLE_CASH_AGAIN_LETTER);
       return s;
     }
 

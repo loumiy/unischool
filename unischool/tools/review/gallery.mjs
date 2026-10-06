@@ -135,6 +135,19 @@ async function facultyViews(page, ctx) {
   if (ctx.size === 'phone') await closeTop(page);
 }
 
+// History's other two views (Plan 95H); the tab opens on Prestige, and is
+// set back to it so the next save's tour opens there too.
+async function historyViews(page, ctx) {
+  for (const view of ['The record', 'The guide']) {
+    const b = page.locator('.history-views button', { hasText: view }).first();
+    if (!(await b.count())) continue;
+    await b.click().catch(() => {});
+    await capture(page, ctx, `History ${view}`);
+  }
+  const back = page.locator('.history-views button').first();
+  if (await back.count()) await back.click().catch(() => {});
+}
+
 async function tour(page, ctx) {
   await pause(page);
   for (const tab of TABS) {
@@ -144,6 +157,7 @@ async function tour(page, ctx) {
     await capture(page, ctx, `tab ${tab}`);
     if (tab === 'Inbox') await inboxPane(page, ctx);
     if (tab === 'Faculty') await facultyViews(page, ctx);
+    if (tab === 'History') await historyViews(page, ctx);
     await closeTop(page);
   }
   const build = page.locator('button:has-text("Build")').last();

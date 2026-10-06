@@ -7,9 +7,9 @@ import { institutionName, totalEnrolled } from './types';
 import { STARTING_ENDOWMENT } from '../data/foundingData';
 import { settledTitle } from '../systems/promises/promises';
 import {
-  AXIS_PHRASES, REPORT_SHAPES, SPECIALIZATION_AXIS, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
+  AXIS_PHRASES, EARNED_PILLAR_TOP, REPORT_SHAPES, SATISFACTION_LEADS_AT, SATISFACTION_LEAD_SHARE, SPECIALIZATION_AXIS, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
 } from '../data/reportData';
-import { STANDINGS, playerRank, standingValue, type StandingAxis } from '../systems/rivals/rivalsSystem';
+import { STANDINGS, playerRank, rankBy, standingValue, type StandingAxis } from '../systems/rivals/rivalsSystem';
 import { debtOutstanding } from '../systems/finance/treasury';
 import { chronicleOf } from '../systems/chronicle/chronicle';
 import { moneyShort } from '../format';
@@ -97,12 +97,27 @@ export const EPILOGUE_DECADE = 10;
 const mean = (xs: number[]) => (xs.length ? xs.reduce((t, x) => t + x, 0) / xs.length : 0);
 const round1 = (n: number) => Number(n.toFixed(1));
 
+// Whether the college's satisfaction led the field for most of the arc
+// (Plan 95U, the second review's B4-7): the year's average at
+// SATISFACTION_LEADS_AT or over it in more than half the history's rows.
+// The experience axis then reads satisfaction at SATISFACTION_LEAD_SHARE
+// beside the campus-life standing, so the college that kept its students
+// happiest earns the axis that names it.
+export function satisfactionLeads(s: GameState): boolean {
+  const rows = s.history.filter((h) => typeof h.satisfactionAverage === 'number');
+  return rows.length > 0 && rows.filter((h) => h.satisfactionAverage >= SATISFACTION_LEADS_AT).length > rows.length / 2;
+}
+
 // Each standing over the arc. A year's value comes from its history row
 // (Plan 33's journal); rows from before it carry none, and a run with none
 // reads today's.
 export function gradeAxes(s: GameState): AxisGrade[] {
+  const leads = satisfactionLeads(s);
   return REPORT_AXES.map(({ axis, standing }) => {
-    const series = s.history.map((h) => h.standingValues?.[standing]).filter((v): v is number => v !== undefined).map((v) => v * toReportScale(standing));
+    const series = s.history.filter((h) => h.standingValues?.[standing] !== undefined).map((h) => {
+      const value = h.standingValues![standing] * toReportScale(standing);
+      return axis === 'experience' && leads ? (1 - SATISFACTION_LEAD_SHARE) * value + SATISFACTION_LEAD_SHARE * h.satisfactionAverage : value;
+    });
     if (series.length === 0) series.push(standingValue(s, standing) * toReportScale(standing));
     const first = mean(series.slice(0, DECADE));
     const last = mean(series.slice(-DECADE));
@@ -117,16 +132,55 @@ export function gradeAxes(s: GameState): AxisGrade[] {
   });
 }
 
+// A pillar in the top EARNED_PILLAR_TOP in any year of the arc, or now.
+function everInTop(s: GameState, axis: StandingAxis): boolean {
+  return s.history.some((h) => (h.standings?.[axis] ?? Infinity) <= EARNED_PILLAR_TOP) || rankBy(s, axis) <= EARNED_PILLAR_TOP;
+}
+
+const FINAL_FOUR: ReadonlyArray<string> = ['champion', 'final', 'semifinal'];
+
+// The tags a college can earn, not only be called (Plan 95U, the second
+// review's B4-7): a record the guidebooks cannot argue with. A tag with no
+// test here (a party school, a country club, a bargain…) is only ever what
+// the college's standing implies.
+export const EARNED_TAGS: Readonly<Record<string, (s: GameState) => boolean>> = {
+  // Titles, a final four (the last season's, or the Complex's record), or
+  // the athletics pillar in the top ten.
+  'jock-school': (s) => s.orgs.titles.length > 0
+    || Object.values(s.orgs.lastSeason ?? {}).some((r) => FINAL_FOUR.includes(r.finish))
+    || (s.orgs.complexRuns ?? []).length > 0
+    || everInTop(s, 'athleticStrength'),
+  // Research prizes, or the research pillar in the top ten.
+  'research-powerhouse': (s) => s.research.prizes > 0 || everInTop(s, 'researchStanding'),
+  // The academics pillar in the top ten.
+  'teaching-college': (s) => everInTop(s, 'academics'),
+  // Financial strength in the top ten.
+  'old-money': (s) => everInTop(s, 'financial'),
+};
+
+// The tag the title names (Plan 95U): an earned tag before one the
+// standing implies. The guidebooks' own tags first, in their order; then a
+// tag the college earned that they have not caught up with; then the
+// guidebooks' first. Of several earned tags they have not caught up with,
+// the one whose standing the arc graded highest.
+export function titleTag(s: GameState, grades: AxisGrade[]): string | undefined {
+  const tags = s.identity?.tags ?? [];
+  const earned = (id: string) => EARNED_TAGS[id]?.(s) ?? false;
+  const scoreOf = (id: string) => grades.find((g) => g.axis === TAG_AXIS[id])?.score ?? 0;
+  const unheld = Object.keys(EARNED_TAGS).filter((id) => !tags.includes(id) && earned(id)).sort((a, b) => scoreOf(b) - scoreOf(a));
+  return tags.find(earned) ?? unheld[0] ?? tags[0];
+}
+
 // "Blackmoor University: a research powerhouse that never gave its students
 // much of a campus life." Its specialization first, once it has one (Plan
 // 85D: "a college known first for its teaching", the card's own words);
-// else what the guidebooks call it first (or its strongest standing). Then
+// else its tag, an earned one first (titleTag), or its strongest standing. Then
 // its weakest if that is weak, never the one the phrase claims.
 export function composeTitle(s: GameState, grades: AxisGrade[]): string {
   const college = institutionName(s.self);
   const byScore = [...grades].sort((a, b) => b.score - a.score);
   const specialization = specializationOf(s);
-  const tag = s.identity?.tags[0];
+  const tag = titleTag(s, grades);
   const claims = specialization ? SPECIALIZATION_AXIS[specialization] : tag ? TAG_AXIS[tag] : null;
   const weakest = [...byScore].reverse().find((g) => g.axis !== claims) ?? byScore[byScore.length - 1];
   const phrase = specialization ? SPECIALIZATION_CARDS[specialization].known

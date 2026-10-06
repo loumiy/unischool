@@ -42,6 +42,9 @@ export interface ArchetypeYear {
   year: number;
   cash: number;
   net: number;
+  // The endowment, in dollars: the guided rows of the report carry it
+  // (Plan 95W's money measure).
+  endowment?: number;
   enrolled: number;
   prestige: number;
   rank: number;

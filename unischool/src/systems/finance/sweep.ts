@@ -1,6 +1,6 @@
 import type { GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
-import { foundingDistress } from './distress';
+import { postBoardLetter } from './distress';
 import { moveToEndowment, roundDown, TRANSFER_MINIMUM } from './treasury';
 import { money } from '../../format';
 import { FINANCIAL_FULL_PER_STUDENT } from '../rivals/rivalsSystem';
@@ -86,7 +86,6 @@ export function tickSweep(s: GameState): void {
   if (now - s.finance.idleSince < IDLE_FOR_WEEKS) return;
   const last = s.finance.idleLetterYear;
   if (last !== undefined && s.clock.year - last < IDLE_REMINDER_YEARS) return;
-  const distress = (s.finance.distress ??= foundingDistress());
-  distress.letters.push(last === undefined ? IDLE_CASH_LETTER : IDLE_CASH_AGAIN_LETTER);
+  postBoardLetter(s, last === undefined ? IDLE_CASH_LETTER : IDLE_CASH_AGAIN_LETTER);
   s.finance.idleLetterYear = s.clock.year;
 }

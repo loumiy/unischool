@@ -35,7 +35,7 @@ import {
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
   hasBalconies, hasTrim, hasGilt, CHAPELS, chapelPlan, NO_STONE, type ChapelBox,
   diningBandOf, diningPlan, REFECTORIES, REFECTORY_BACK_EAVES, REFECTORY_KITCHEN_EAVES, type DiningPlan, type RefectoryLantern,
-  storeysOf, wallHeightOf, wallShadeOf, windowRanksOf,
+  storeysOf, wallHeightOf, wallShadeOf, windowRanksOf, materialsFor,
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
@@ -2489,9 +2489,9 @@ function AtriumFronts({ col, row, w, h, H, facing, floors }: {
 const SIGNAL_RED = '#c8392e';
 const GANTRY_YELLOW = '#d9a92f';
 // The Athletic Performance Complex's roof track (Plan 85G): the lanes'
-// rubber and the infield's turf.
+// rubber; the infield's turf follows the year (styles.css's
+// .ground-turf-roof, Plan 95B).
 const TRACK_RED = '#b0533c';
-const TRACK_INFIELD = '#5d8a4a';
 const BANNER_COLORS = ['#9e2b2b', '#c29a2c', '#2b3f6b'];
 
 // A quad on a wall face, in its own u and in heights.
@@ -2831,7 +2831,7 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal, facin
         <g className="sig-track">
           <polygon points={oval(outer)} fill={TRACK_RED} />
           <polygon points={oval(outer - lanes / 2)} fill="none" stroke="#f1ece4" strokeWidth={1.1} />
-          <polygon points={oval(outer - lanes)} fill={TRACK_INFIELD} />
+          <polygon points={oval(outer - lanes)} className="ground-turf-roof" />
         </g>
       );
     }
@@ -9193,12 +9193,17 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     const iCol = col + d; const iRow = row + d;
     const iW = w - d * 2; const iH = h - d * 2;
     const bottom = H * 0.18;
+    // The seating is concrete in every set; the stands' walls are the set's
+    // own, brick round a Georgian bowl and stucco round a Mission one, and
+    // render only in Modern and Art Deco (Plan 95D, B1-3).
+    const render = materialsFor(vernacular).render.wall;
+    const concrete = material.wall === render ? tint : WALLS(render).posRow;
     const fills = (f: number) => ({
-      rakeFill: shade(tint, f),
+      rakeFill: shade(concrete, f),
       wallFill: shade(tint, f * 0.82),
       seatStroke: 'rgba(42, 56, 28, 0.30)',
     });
-    const concourse = shade(tint, 0.9);
+    const concourse = shade(concrete, 0.9);
     const T = (c: number, r: number): TilePt => [c, r];
 
     // A site under construction is the bowl's earthworks, not a stadium.
@@ -9303,7 +9308,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       );
       // The upper deck's front edge, a pale band that marks the tier.
       const fascia = (
-        <polygon key={`${side}f`} fill={shade(tint, 1.18)} points={polyPoints([
+        <polygon key={`${side}f`} fill={shade(concrete, 1.18)} points={polyPoints([
           atT(P(side, upperFrontX, a0), upperBase - FASCIA), atT(P(side, upperFrontX, a1), upperBase - FASCIA),
           atT(P(side, upperFrontX, a1), upperBase), atT(P(side, upperFrontX, a0), upperBase),
         ])} />

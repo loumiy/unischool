@@ -20,6 +20,10 @@
 //   npm run sim -- --players "^Guided,"  only the players whose names match
 //                                        (a regular expression; never saved)
 //   npm run sim -- --seeds 1,2,3,4,5    other seeds (never saved)
+//   npm run sim -- --from-runs --save   the last run's rows, read back and
+//                                        saved without playing again (Plan
+//                                        95: a full run takes an hour on a
+//                                        busy machine)
 //
 // Each run is a process of its own (the harness binds one random stream per
 // process), as many at once as the machine has cores (SIM_JOBS to change
@@ -147,7 +151,7 @@ function guidedAsArchetype(name: string, specialization?: SpecializationRule): P
       if (s.clock.year !== lastYear) {
         lastYear = s.clock.year;
         record.years.push({
-          year: s.clock.year, cash: s.finance.cash, net: weeklyNet(s), enrolled: totalEnrolled(s.students),
+          year: s.clock.year, cash: s.finance.cash, net: weeklyNet(s), endowment: s.finance.endowment, enrolled: totalEnrolled(s.students),
           prestige: s.self.reputation, rank: playerRank(s), satisfaction: s.students.satisfaction,
           schools: Object.keys(guided.record.schools).length, programs: 0,
           courses: s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length,
@@ -273,9 +277,11 @@ async function main(): Promise<void> {
   if (save && partial) throw new Error('--save writes the whole report: drop --players and --seeds');
 
   const t0 = Date.now();
-  const runs = await playAll(players.map((p) => p.name));
+  const fromRuns = argv.includes('--from-runs');
+  if (fromRuns && partial) throw new Error('--from-runs reads the whole last run: drop --players and --seeds');
+  const runs: RunRecord[] = fromRuns ? JSON.parse(readFileSync(RUNS_OUT, 'utf8')) : await playAll(players.map((p) => p.name));
   mkdirSync('node_modules/.tmp', { recursive: true });
-  writeFileSync(RUNS_OUT, JSON.stringify(runs));
+  if (!fromRuns) writeFileSync(RUNS_OUT, JSON.stringify(runs));
   const report: Record<string, Summary> = {};
   for (const { name } of players) report[name] = summarize(runs.filter((r) => r.player === name));
 

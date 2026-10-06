@@ -19,7 +19,9 @@
 //     festival, and says so;
 //   - the choice's card, the chronicle's lines;
 //   - the map's district: the plain town unchanged at step 0, shops for
-//     houses as it grows, lit and dark;
+//     houses as it grows; no light by day, warm windows in the snow weeks,
+//     bunting and a crowd in a festival's (Plan 95C); one look at it, on
+//     two edges and never on a load;
 //   - the migration from the version-92 fixture, a round trip and a
 //     malformed record;
 //   - the harness's student-life specialist.
@@ -30,11 +32,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameState } from '../src/state/types';
-import { totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
+import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, totalEnrolled, WEEKS_PER_YEAR } from '../src/state/types';
 import { exportSave, readSave, SAVE_VERSION } from '../src/state/persistence';
 import {
-  DISTRICT_STEPS, DISTRICT_YEARS_TO_FULL, FESTIVAL, FESTIVAL_EVENT, FESTIVAL_POINTS_FOR_FULL, FESTIVAL_WEEK, FESTIVAL_WINDOW_YEARS,
-  GOODWILL_FOR_FULL, GOODWILL_START, OFF_CAMPUS_SHARE, SKIPPED_GOODWILL, districtLit, districtStep, downtownReading, emptyDowntown,
+  DISTRICT_STEPS, DISTRICT_YEARS_TO_FULL, FESTIVAL, FESTIVAL_EVENT, FESTIVAL_LIT_WEEKS, FESTIVAL_POINTS_FOR_FULL, FESTIVAL_WEEK, FESTIVAL_WINDOW_YEARS,
+  GOODWILL_FOR_FULL, GOODWILL_START, OFF_CAMPUS_SHARE, SKIPPED_GOODWILL, WINTER_LIT_SNOW, districtFestive, districtStep, districtWinterLit, downtownReading, emptyDowntown,
   festivalPoints,
 } from '../src/data/downtownData';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
@@ -48,7 +50,9 @@ import { catalogueOf, raiseFestival, resolveCatalogueEvent, timeOutCatalogue } f
 import { eligible, priceScale, scaledEffects } from '../src/systems/events/catalogue';
 import { annualGiving } from '../src/systems/alumni/giving';
 import { chronicleOf } from '../src/systems/chronicle/chronicle';
-import { landOf, ringView } from '../src/components/ringLand';
+import { CENTRE_REACH, clampView, districtCentre, landOf, ringView } from '../src/components/ringLand';
+import { districtLookDue, districtSeen } from '../src/components/districtLook';
+import { project } from '../src/components/isoProjection';
 import { brokenRules } from '../sim/harness/invariants';
 import { foundGame } from '../sim/harness/game';
 import { festivalChoice, isTownEvent, runDowntown } from '../sim/harness/downtown';
@@ -169,10 +173,29 @@ const TOWN = EVENT_CATALOGUE.filter(isTownEvent);
   assert(near(s.finance.endowment - before.finance.endowment, Math.round(giving * FESTIVAL.gala.gifts)) && giving > 0, 'and the alumni give at the gala');
   assert(s.downtown.festivals.length === 1 && s.downtown.festivals[0].scale === 'gala' && s.downtown.festivals[0].year === s.clock.year, 'it is recorded');
   assert(!raiseFestival(s), 'and not raised again that year');
-  s.clock.week = FESTIVAL_WEEK + 1;
-  assert(districtLit(s, 0), 'the map lights the district in its weeks');
-  s.clock.week = FESTIVAL_WEEK + 10;
-  assert(!districtLit(s, 0) && districtLit(s, 1), 'and through the winter, not otherwise');
+  // The map's two looks (Plan 95C): the festival's weeks dress the
+  // district, by the festival's scale; the snow weeks warm its windows.
+  const held = s.downtown.festivals[0].week!;
+  s.clock.week = held - 1;
+  assert(districtFestive(s) === null, 'the district is not dressed before the festival');
+  for (let w = held; w < held + FESTIVAL_LIT_WEEKS; w++) {
+    s.clock.week = w;
+    assert(districtFestive(s) === 'gala', `the district is dressed for the gala in week ${w}`);
+  }
+  s.clock.week = held + FESTIVAL_LIT_WEEKS;
+  assert(districtFestive(s) === null, 'and not after its weeks');
+  assert(!districtWinterLit(s, 0) && !districtWinterLit(s, WINTER_LIT_SNOW - 0.01) && districtWinterLit(s, WINTER_LIT_SNOW) && districtWinterLit(s, 1),
+    'the windows are warm through the snow weeks, not otherwise');
+  s.clock.week = held;
+  assert(districtFestive(s) === 'gala' && !districtWinterLit(s, 0), 'each look reads its own condition');
+  const bare = college('studentLife', 0);
+  bare.downtown.festivals = [{ year: bare.clock.year, scale: 'gala', week: held }];
+  bare.clock.week = held;
+  assert(districtFestive(bare) === null && !districtWinterLit(bare, 1), 'nothing is dressed before the district has grown a step');
+  const none = college('studentLife', 0.5);
+  none.downtown.festivals = [{ year: none.clock.year, scale: 'none', week: held }];
+  none.clock.week = held;
+  assert(districtFestive(none) === null, 'a spring without a festival dresses nothing');
   // A smaller scale does less, and costs less.
   const fair = college('studentLife', 0.4);
   fair.clock.week = FESTIVAL_WEEK;
@@ -293,13 +316,66 @@ const TOWN = EVENT_CATALOGUE.filter(isTownEvent);
     lastHouses = houses(v);
   }
   assert(lastHouses < land.houses.length, 'the grown district stands where houses stood');
-  const day = ringView(name, false, DISTRICT_STEPS, false);
-  const lit = ringView(name, false, DISTRICT_STEPS, true);
-  const lightsOf = (v: typeof plain) => [...v.back, ...v.front].filter((x) => x.kind === 'lights');
-  assert(lightsOf(day).length > 0 && lightsOf(day).every((x) => x.kind === 'lights' && !x.lit && x.halo === ''), 'by day, strings of lights, unlit');
-  assert(lightsOf(lit).every((x) => x.kind === 'lights' && x.lit && x.halo !== ''), 'lit, they glow');
-  assert([...lit.back, ...lit.front].some((x) => x.kind === 'shop' && x.litWindows !== ''), 'and windows are lit');
+  // No light by day (Plan 95C): the bulbs stay off and nothing glows; the
+  // snow weeks warm the windows; a festival hangs bunting in the bulbs'
+  // place and fills the pavements, more for a bigger one.
+  const day = ringView(name, false, DISTRICT_STEPS);
+  const winter = ringView(name, false, DISTRICT_STEPS, true);
+  const lightsOf = (v: typeof plain) => [...v.back, ...v.front].flatMap((x) => (x.kind === 'lights' ? [x] : []));
+  const shopsOf = (v: typeof plain) => [...v.back, ...v.front].flatMap((x) => (x.kind === 'shop' ? [x] : []));
+  const people = (v: typeof plain) => shopsOf(v).reduce((n, x) => n + (x.heads.match(/M/g)?.length ?? 0), 0);
+  assert(lightsOf(day).length > 0 && lightsOf(day).every((x) => x.bulbs !== '' && x.bunting.join('') === ''), 'by day, strings of bulbs, and no bunting');
+  assert(!shopsOf(day).some((x) => x.lit || x.litWindows !== '') && people(day) === 0, 'no lit window and no crowd');
+  assert(shopsOf(winter).some((x) => x.lit && x.litWindows !== '') && people(winter) === 0, 'in the snow weeks the windows are warm, and no crowd');
+  assert(JSON.stringify(lightsOf(winter)) === JSON.stringify(lightsOf(day)), 'and the bulbs stay as by day');
+  const crowds = [1, 2, 3, 4].map((f) => ringView(name, false, DISTRICT_STEPS, false, f));
+  assert(crowds.every((v) => lightsOf(v).every((x) => x.bulbs === '' && x.bunting[0] !== '' && x.bunting[1] !== '')), 'a festival hangs bunting in the bulbs\' place, in two colours');
+  assert(crowds.every((v) => !shopsOf(v).some((x) => x.lit)), 'and lights nothing');
+  const counts = crowds.map(people);
+  assert(counts[0]! > 0 && counts.every((n, i) => i === 0 || n > counts[i - 1]!), `a crowd on the pavements, bigger for a bigger festival (${counts.join(', ')})`);
+  assert(people(ringView(name, false, 0, true, 4)) === 0, 'and none at the plain town');
+  // The one look at it reaches the district: a view centred on it at any
+  // zoom is inside the pan limits.
+  for (const step of [0, 1, DISTRICT_STEPS]) {
+    const c = districtCentre(name, step);
+    assert(c.col < 0 || c.col > CAMPUS_GRID_WIDTH || c.row > CAMPUS_GRID_HEIGHT, `the look's centre (${c.col.toFixed(1)}, ${c.row.toFixed(1)}) is off the parcel`);
+    for (const zoom of [0.5, 1, 2]) {
+      const p = project(c.col, c.row);
+      const v = { x: 640 - p.x * zoom, y: 400 - p.y * zoom, zoom };
+      const k = clampView(v, 1280, 800);
+      assert(Math.abs(k.x - v.x) < 1e-6 && Math.abs(k.y - v.y) < 1e-6, `step ${step} at ${zoom}x: the pan limits (CENTRE_REACH ${CENTRE_REACH}) reach it`);
+    }
+  }
   assert(JSON.stringify(landOf(name).houses) === JSON.stringify(land.houses), 'the land itself is the same whatever the district');
+}
+
+// ---- One look at the district (Plan 95C) ----
+{
+  const base = college('none', 0);
+  const seen0 = districtSeen(base);
+  assert(!districtLookDue(null, seen0), 'the first sighting never pans (a load)');
+  const sl = college('studentLife', 0);
+  sl.clock = { ...base.clock };
+  assert(districtLookDue(seen0, districtSeen(sl)), 'choosing student life pans');
+  assert(!districtLookDue(districtSeen(sl), districtSeen(sl)), 'once: the same week again does not');
+  const grown = college('studentLife', 0.1);
+  grown.clock = { ...base.clock, week: base.clock.week + 1 };
+  assert(districtStep(grown) === 1 && districtLookDue(districtSeen(sl), districtSeen(grown)), 'the district\'s first step pans');
+  const more = college('studentLife', 0.4);
+  more.clock = { ...grown.clock, week: grown.clock.week + 1 };
+  assert(!districtLookDue(districtSeen(grown), districtSeen(more)), 'a later step does not');
+  // A load is no edge: a jump in time, another college, a step back.
+  const later = college('studentLife', 0.1);
+  later.clock = { ...base.clock, year: base.clock.year + 3 };
+  assert(!districtLookDue(seen0, districtSeen(later)), 'loading the college years on does not pan');
+  const other = college('studentLife', 0.1);
+  other.clock = { ...base.clock };
+  other.self = { ...other.self, name: 'Another College' };
+  assert(!districtLookDue(seen0, districtSeen(other)), 'loading another college does not pan');
+  const back = college('none', 0);
+  back.clock = { ...base.clock, week: base.clock.week - 1 };
+  assert(!districtLookDue(districtSeen(sl), districtSeen(back)), 'going back a week does not pan');
+  assert(!districtLookDue(districtSeen(grown), districtSeen(sl)), 'nor does a step back to the plain town');
 }
 
 // ---- The migration, and a round trip ----

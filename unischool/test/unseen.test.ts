@@ -9,7 +9,7 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
 import { inboxBadge, inboxItems } from '../src/systems/inbox/inbox';
-import { dueLabel, toDecideCount, unseenPause, type UnseenMemory } from '../src/systems/inbox/unseen';
+import { dueLabel, forgetOpened, keepOpened, readOpened, toDecideCount, unseenPause, type UnseenMemory } from '../src/systems/inbox/unseen';
 import { normaliseSettings, DEFAULT_SETTINGS } from '../src/settings';
 import { trimToasts } from '../src/components/Toasts';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
@@ -171,6 +171,33 @@ function tick(s: GameState): void {
   const m = step(null, s).memory;
   tick(s);
   assert(!step(m, s).pause, 'a demand noted in the save counts as opened');
+}
+
+// Opened before a reload (Plan 95AA, the second review's H7-4): the page
+// keeps the opened matters for the session under the run, and the
+// reloaded page reads them back, so the final week does not pause.
+{
+  const kept = new Map<string, string>();
+  const store = { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => { kept.set(k, v); }, removeItem: (k: string) => { kept.delete(k); } };
+  const s = fresh();
+  withEvent(s, weekOf(s) - inline.timeoutWeeks + 2);
+  keepOpened(s.self.name, new Set(['event:a']), store);
+  // The reload: a new page, its memory empty, the opened set read back.
+  const read = readOpened(s.self.name, store);
+  assert(read.has('event:a'), 'a reload reads back the matters opened before it');
+  const m = step(null, s, { opened: read }).memory;
+  tick(s);
+  assert(inboxItems(s).find((i) => i.kind === 'event')?.weeksLeft === 1, 'the matter reaches its final week after the reload');
+  assert(!step(m, s, { opened: read }).pause, 'a matter opened before a reload does not pause in its final week');
+  // Read back empty, as before the fix, it does.
+  assert(step(m, s).pause, 'read back empty, the same matter pauses');
+  assert(readOpened('Another College', store).size === 0, 'another run in the tab reads none of them');
+  forgetOpened(store);
+  assert(readOpened(s.self.name, store).size === 0, 'a new game forgets them');
+  const blocked = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); }, removeItem: () => { throw new Error('blocked'); } };
+  keepOpened(s.self.name, read, blocked);
+  forgetOpened(blocked);
+  assert(readOpened(s.self.name, blocked).size === 0, 'blocked storage only loses the convenience');
 }
 
 // Not while a stop or the walkthrough holds; the final week waits for the

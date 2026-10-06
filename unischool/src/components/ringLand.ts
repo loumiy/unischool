@@ -532,6 +532,17 @@ function buildDistrict(
   return { shops, strings, houseStep };
 }
 
+// Where the map looks at the downtown (Plan 95C): the middle of the
+// shopfronts standing at `step`, or, before the first step, of the first
+// step's, which is where it will grow. On the grid, beside the parcel.
+export function districtCentre(name: string, step: number): { col: number; row: number } {
+  const front = landOf(name).district.shops.filter((x) => x.awning >= 0 && x.step <= Math.max(1, step));
+  if (front.length === 0) return { col: GW / 2, row: GH / 2 };
+  const col = front.reduce((sum, x) => sum + x.col + x.w / 2, 0) / front.length;
+  const row = front.reduce((sum, x) => sum + x.row + x.h / 2, 0) / front.length;
+  return { col, row };
+}
+
 // Two farm fields that touch along an edge do not share a cover (Plan 81D;
 // kept under 81E's grass margins, so the patchwork still varies). Each field starts from the cover it drew; then,
 // pass after pass, a field that shares its cover with a neighbour takes the
@@ -602,8 +613,13 @@ export type RingSprite =
   | { kind: 'house'; key: string; y: number; house: House; walls: { d: string; dir: FaceDir }[]; roofs: { d: string; dir: FaceDir }[] }
   // The downtown's (Plan 85H): a shop or block, and a string of lights.
   | { kind: 'shop'; key: string; y: number; shop: Shop; walls: { d: string; dir: FaceDir }[]; roof: string; parapet: string;
-      glass: string; awning: string; valance: string; sign: string; facing: boolean; windows: string; litWindows: string; glow: string; lit: boolean }
-  | { kind: 'lights'; key: string; y: number; poles: string; wire: string; bulbs: string; halo: string; pool: string; lit: boolean };
+      glass: string; awning: string; valance: string; sign: string; facing: boolean; windows: string; litWindows: string; lit: boolean;
+      // A festival's crowd on the pavement (Plan 95C): bodies by colour
+      // (CROWD_SHADES of them; Surroundings.tsx's CROWD_COLOURS), and heads.
+      crowd: string[]; heads: string }
+  // A festival's strings carry bunting, two paths of pennants in the
+  // college's two colours, in place of the bulbs (Plan 95C).
+  | { kind: 'lights'; key: string; y: number; poles: string; wire: string; bulbs: string; bunting: [string, string] };
 
 export interface RingView {
   // One flat plate under the whole ring (and the parcel).
@@ -779,6 +795,13 @@ const AWNING_TOP = STOREY - 1.5;
 const AWNING_DROP = 4;
 const AWNING_OUT = 0.45;
 const SIGN_OUT = 0.5;
+// A festival's crowd (Plan 95C): people a tile of shopfront by the
+// festival's scale (none, a weekend, a fair, a headline act, a gala), each
+// PERSON_BODY tall to the shoulders (as large as the map draws its trees,
+// larger than life, so a crowd reads at the opening zoom), in CROWD_SHADES colours of coat.
+const CROWD_PER_TILE = [0, 1.4, 2.2, 3.2, 4.4];
+const PERSON_BODY = 5.6;
+export const CROWD_SHADES = 6;
 
 // The outward step from a wall facing `dir`, in tiles.
 const OUTWARD: Record<FaceDir, [number, number]> = { posRow: [0, 1], negRow: [0, -1], posCol: [1, 0], negCol: [-1, 0] };
@@ -787,16 +810,17 @@ const OUTWARD: Record<FaceDir, [number, number]> = { posRow: [0, 1], negRow: [0,
 // the side facing the road the shopfront's glass, an awning over the
 // pavement and a blade sign square to the street (drawn behind the walls
 // when that side faces away from the camera); windows on the floors above
-// (a share of them lit when the district is lit); and, lit, a warm spill of
-// light on the pavement in front of the shopfront.
-function shopShape(land: Land, x: Shop, lit: boolean) {
+// (a share of them lit through the snow weeks: districtWinterLit); and, in
+// a festival's weeks, a crowd on the pavement in front of the shopfront,
+// `festive` people a tile of frontage (Plan 95C).
+function shopShape(land: Land, x: Shop, lit: boolean, festive: number) {
   const base = heightAt(land, x.col + x.w / 2, x.row + x.h / 2);
   const H = STOREY * x.storeys + PARAPET;
   const f = boxFaces(x.col, x.row, x.w, x.h, base, H);
   const walls = [{ d: houseD(f.left), dir: f.dir.CD }, { d: houseD(f.right), dir: f.dir.BC }];
   const parapetTop = f.top;
   const roofTop = boxFaces(x.col + 0.18, x.row + 0.18, x.w - 0.36, x.h - 0.36, base, H - PARAPET * 0.7).top;
-  let glass = ''; let windows = ''; let litWindows = ''; let glow = '';
+  let glass = ''; let windows = ''; let litWindows = '';
   const quad = (origin: Pt, along: Pt, u0: number, u1: number, v0: number, v1: number) => houseD([
     facePoint(origin, along, H, u0, v0), facePoint(origin, along, H, u1, v0),
     facePoint(origin, along, H, u1, v1), facePoint(origin, along, H, u0, v1),
@@ -842,15 +866,39 @@ function shopShape(land: Land, x: Shop, lit: boolean) {
       at3(sc, sr, STOREY + 1.5), at3(sc + oc * SIGN_OUT, sr + or * SIGN_OUT, STOREY + 1.5),
       at3(sc + oc * SIGN_OUT, sr + or * SIGN_OUT, STOREY + 9), at3(sc, sr, STOREY + 9),
     ]);
-    if (lit) {
-      const out = 0.8;
-      const g0 = at3(c0, r0, 0); const g1 = at3(c1, r1, 0);
-      glow = houseD([g0, g1, at3(c1 + oc * out, r1 + or * out, 0), at3(c0 + oc * out, r0 + or * out, 0)]);
+  }
+  // The festival's crowd: people standing on the pavement, a body and a
+  // head each, as the stands draw a game-day crowd (groundMarkings.tsx's
+  // Crowd). Placed by a hash of the shop and the person, never the run's
+  // stream, so the crowd holds still.
+  const crowd = Array.from({ length: CROWD_SHADES }, () => '');
+  let heads = '';
+  if (festive > 0 && x.awning >= 0) {
+    const [[c0, r0], [c1, r1]] = edge;
+    const span = Math.hypot(c1 - c0, r1 - r0);
+    const n = Math.max(1, Math.round(span * festive));
+    const people: { p: Pt; i: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const h1 = hashUnit(`${x.col.toFixed(2)}:${x.row.toFixed(2)}:${i}`);
+      const h2 = hashUnit(`${x.col.toFixed(2)}:${x.row.toFixed(2)}:${i}:out`);
+      const u = Math.max(0.03, Math.min(0.97, (i + 0.5 + (h1 - 0.5) * 0.7) / n));
+      const v = 0.18 + h2 * 0.55;
+      people.push({ p: at3(c0 + (c1 - c0) * u + oc * v, r0 + (r1 - r0) * u + or * v, 0), i: Math.floor(h1 * 997) });
+    }
+    // Back to front, so a near head is over a far body.
+    people.sort((a, b) => a.p.y - b.p.y);
+    for (const { p, i } of people) {
+      const hw = 1.6;
+      const top = lift(p, PERSON_BODY);
+      crowd[i % CROWD_SHADES] += houseD([
+        { x: p.x - hw, y: p.y }, { x: p.x + hw, y: p.y }, { x: top.x + hw * 0.9, y: top.y }, { x: top.x - hw * 0.9, y: top.y },
+      ]);
+      heads += circleD(top.x, top.y - 1.3, 1.45);
     }
   }
   const pts = [f.D, f.C, f.B, f.A, f.At, f.Bt, f.Ct, f.Dt];
   return {
-    walls, roof: houseD(roofTop), parapet: houseD(parapetTop), glass, awning, valance, sign, windows, litWindows, glow,
+    walls, roof: houseD(roofTop), parapet: houseD(parapetTop), glass, awning, valance, sign, windows, litWindows, crowd, heads,
     // The shopfront's side faces the camera: its awning and sign are drawn
     // over the walls, else under them.
     facing: seen.has(x.road), pts, y: f.C.y, foot: f.C,
@@ -858,10 +906,12 @@ function shopShape(land: Land, x: Shop, lit: boolean) {
 }
 
 // A string of lights across Main Street: a pole each side, the wire sagging
-// between them, and its bulbs; lit, each bulb glows.
+// between them, and its bulbs, never lit (the map has no night: Plan 95C);
+// in a festival's weeks, bunting in their place, two pennants to a bulb.
 const POLE = 21;
 const SAG = 4;
-function lightsShape(land: Land, l: LightString, lit: boolean, hs: number) {
+const PENNANT = 6;
+function lightsShape(land: Land, l: LightString, festive: boolean, hs: number) {
   const a = at(land, l.col, l.r0);
   const b = at(land, l.col, l.r1);
   const ta = lift(a, POLE);
@@ -870,16 +920,25 @@ function lightsShape(land: Land, l: LightString, lit: boolean, hs: number) {
   const n = Math.max(4, Math.round((l.r1 - l.r0) / 0.6));
   const wire = houseD(Array.from({ length: n + 1 }, (_, i) => point(i / n))).replace(/Z$/, '');
   const poles = `M${f1(a.x)},${f1(a.y)}L${f1(ta.x)},${f1(ta.y)}M${f1(b.x)},${f1(b.y)}L${f1(tb.x)},${f1(tb.y)}`;
-  let bulbs = ''; let halo = '';
-  for (let i = 1; i < n; i++) {
-    const p = point(i / n);
-    bulbs += circleD(p.x, p.y + 1, lit ? 1.7 : 1);
-    if (lit) halo += circleD(p.x, p.y + 1, 4.8);
+  let bulbs = '';
+  const bunting: [string, string] = ['', ''];
+  if (festive) {
+    const m = n * 2;
+    const drop = PENNANT * Math.max(0.6, Math.min(1.2, hs));
+    for (let i = 0; i < m; i++) {
+      const p0 = point((i + 0.08) / m);
+      const p1 = point((i + 0.92) / m);
+      const pm = point((i + 0.5) / m);
+      bunting[i % 2] += `M${f1(p0.x)},${f1(p0.y)}L${f1(p1.x)},${f1(p1.y)}L${f1(pm.x)},${f1(pm.y + drop)}Z`;
+    }
+  } else {
+    for (let i = 1; i < n; i++) {
+      const p = point(i / n);
+      bulbs += circleD(p.x, p.y + 1, 1);
+    }
   }
-  // Lit, the light it throws on the street below.
-  const pool = lit ? houseD([at(land, l.col - 1.8, l.r0), at(land, l.col + 1.8, l.r0), at(land, l.col + 1.8, l.r1), at(land, l.col - 1.8, l.r1)]) : '';
   const mid = project(l.col, (l.r0 + l.r1) / 2);
-  return { poles, wire, bulbs, halo, pool, pts: [a, b, ta, tb], y: mid.y, foot: mid };
+  return { poles, wire, bulbs, bunting, pts: [a, b, ta, tb], y: mid.y, foot: mid };
 }
 
 const VIEW_CACHE = new Map<string, RingView>();
@@ -893,14 +952,18 @@ let passing: { key: string; view: RingView } | null = null;
 // built each frame and not kept, so they never push the views the camera
 // rests on out of the cache (Plan 82).
 // `district` is the downtown's step (Plan 85H; 0, the plain town, at any
-// college not specialized in student life) and `lit` whether its lights are
-// on: part of the key, so a step or a festival builds the view once.
-export function ringView(name: string, keep = true, district = 0, lit = false): RingView {
+// college not specialized in student life); `winterLit` whether its windows
+// are warm (the snow weeks) and `festive` how large a festival it is dressed
+// for (Plan 95C: 0 none, 1 to 4 the festival's scales; districtLook): part
+// of the key, so a step, the winter or a festival builds the view once.
+export function ringView(name: string, keep = true, district = 0, winterLit = false, festive = 0): RingView {
   const cam = currentCamera();
-  const key = `${name}|${cam.azimuth.toFixed(5)}|${cam.pitch.toFixed(5)}|${district}|${lit && district > 0 ? 'lit' : ''}`;
+  const w = winterLit && district > 0;
+  const f = district > 0 ? festive : 0;
+  const key = `${name}|${cam.azimuth.toFixed(5)}|${cam.pitch.toFixed(5)}|${district}|${w ? 'lit' : ''}|${f}`;
   const hit = VIEW_CACHE.get(key) ?? (passing?.key === key ? passing.view : undefined);
   if (hit) return hit;
-  const view = buildView(landOf(name), district, lit && district > 0);
+  const view = buildView(landOf(name), district, w, f);
   if (!keep) {
     passing = { key, view };
     return view;
@@ -910,7 +973,7 @@ export function ringView(name: string, keep = true, district = 0, lit = false): 
   return view;
 }
 
-function buildView(land: Land, district = 0, lit = false): RingView {
+function buildView(land: Land, district = 0, lit = false, festive = 0): RingView {
   const byCover = new Map<Cover, string[]>();
   for (const f of land.fields) {
     const pts = outline(land, f.c0, f.r0, f.c1, f.r1);
@@ -961,18 +1024,18 @@ function buildView(land: Land, district = 0, lit = false): RingView {
   // reached, and its strings of lights.
   land.district.shops.forEach((x, i) => {
     if (x.step > district) return;
-    const shape = shopShape(land, x, lit);
+    const shape = shopShape(land, x, lit, CROWD_PER_TILE[festive] ?? 0);
     const sprite: RingSprite = {
       kind: 'shop', key: `s${i}`, y: shape.y, shop: x, walls: shape.walls, roof: shape.roof, parapet: shape.parapet,
       glass: shape.glass, awning: shape.awning, valance: shape.valance, sign: shape.sign, facing: shape.facing,
-      windows: shape.windows, litWindows: shape.litWindows, glow: shape.glow, lit,
+      windows: shape.windows, litWindows: shape.litWindows, lit, crowd: shape.crowd, heads: shape.heads,
     };
     (inFront(shape.foot, shape.pts) ? front : back).push(sprite);
   });
   land.district.strings.forEach((l, i) => {
     if (l.step > district) return;
-    const shape = lightsShape(land, l, lit, hs);
-    const sprite: RingSprite = { kind: 'lights', key: `l${i}`, y: shape.y, poles: shape.poles, wire: shape.wire, bulbs: shape.bulbs, halo: shape.halo, pool: shape.pool, lit };
+    const shape = lightsShape(land, l, festive > 0, hs);
+    const sprite: RingSprite = { kind: 'lights', key: `l${i}`, y: shape.y, poles: shape.poles, wire: shape.wire, bulbs: shape.bulbs, bunting: shape.bunting };
     (inFront(shape.foot, shape.pts) ? front : back).push(sprite);
   });
   // The far trees, in runs of sixteen by depth: each run is four shapes, so

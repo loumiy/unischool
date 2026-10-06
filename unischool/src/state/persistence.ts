@@ -12,7 +12,8 @@ import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
-import { isSweepStep } from '../systems/finance/sweep';
+import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
+import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
 import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
@@ -64,7 +65,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 95; // Plan 95T: the news filed as letters
+export const SAVE_VERSION = 96; // Plan 95T: the news filed as letters
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -241,20 +242,27 @@ function researchParkGate(state: GameState): void {
   if (park && park.status === 'available' && state.specialization !== 'research') park.status = 'locked';
   const research = state.research;
   if (!research) return;
-  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  // Weeks from 0; the clock's week is the one about to be played, so the
+  // weeks played run up to the one before it (Plan 95AA).
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week - 1;
   const from = state.clock.year - LANDMARK_WINDOW_YEARS + 1;
-  const byYear = new Map<number, number>();
+  // Counted per absolute week first, each week capped, and only then summed
+  // by year (Plan 95AA, the second review's H7-1): a cap on the year alone
+  // let eight programs fill two weeks with sixteen.
+  const byWeek = new Map<number, number>();
   const span = (end: number, weeks: number) => {
-    for (let w = Math.max(0, end - weeks); w < end; w += 1) {
-      const year = Math.floor(w / WEEKS_PER_YEAR) + 1;
-      if (year >= from && year <= state.clock.year) byYear.set(year, (byYear.get(year) ?? 0) + 1);
-    }
+    for (let w = Math.max(0, end - weeks); w < end; w += 1) byWeek.set(w, (byWeek.get(w) ?? 0) + 1);
   };
   for (const i of Object.values(research.initiatives ?? {})) {
     if (i.depth === 'landmark') span(now, Math.max(0, i.weeksTotal - i.weeksRemaining));
   }
   for (const done of research.completedInitiatives ?? []) {
     if (done.depth === 'landmark' && !done.cancelled) span((done.year - 1) * WEEKS_PER_YEAR + WEEKS_PER_YEAR / 2, 5 * WEEKS_PER_YEAR);
+  }
+  const byYear = new Map<number, number>();
+  for (const [w, count] of byWeek) {
+    const year = Math.floor(w / WEEKS_PER_YEAR) + 1;
+    if (year >= from && year <= state.clock.year) byYear.set(year, (byYear.get(year) ?? 0) + Math.min(count, LANDMARKS_COUNTED));
   }
   research.landmarkWork = [...byYear.entries()].sort((a, b) => a[0] - b[0])
     .map(([year, weeks]) => ({ year, weeks: Math.min(weeks, LANDMARKS_COUNTED * WEEKS_PER_YEAR) }));
@@ -297,7 +305,29 @@ function walnutHall(state: GameState): void {
   if (walnut) state.tech.push(walnut);
 }
 
-// 94 -> 95, Plan 95T: a milestone celebration and a research report are
+// 94 -> 95, Plan 95K (the second review's B2-7 and H7-5): each board letter
+// keeps the week it came beside it in the queue. A letter a save already
+// holds takes its matter's own week where the save knows it, the first week
+// of the year: the specialization notice the year it was given, the
+// idle-cash letters the year the board last wrote of idle cash. The ladder's
+// letters, whose week no save kept, take the save's week, as they read
+// before.
+function boardLetterWeeks(state: GameState): void {
+  const d = state.finance.distress;
+  if (!d || !Array.isArray(d.letters)) return;
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const yearOf = (id: unknown): number | undefined => (
+    id === SPECIALIZATION_NOTICE_ID ? state.specializationNotice
+      : id === IDLE_CASH_LETTER || id === IDLE_CASH_AGAIN_LETTER ? state.finance.idleLetterYear
+        : undefined
+  );
+  d.letterWeeks = d.letters.map((id) => {
+    const year = yearOf(id);
+    return Number.isInteger(year) && (year as number) >= 1 ? Math.min(now, ((year as number) - 1) * WEEKS_PER_YEAR + 1) : now;
+  });
+}
+
+// 95 -> 96, Plan 95T: a milestone celebration and a research report are
 // letters, kept in the events' news. A save from before has filed none; one
 // with either standing as a stop shows it once, as it did, and the next is a
 // letter.
@@ -412,7 +442,8 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   91: athleticsComplex,
   92: downtownStarts,
   93: walnutHall,
-  94: noNewsYet,
+  94: boardLetterWeeks,
+  95: noNewsYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -458,6 +489,7 @@ function writeSave(state: GameState): boolean {
     const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
     knownSavedAt = payload.savedAt;
+    knownWeek = weekOf(state);
     // A save is also when a run's unlocks are banked (unlocks.ts).
     recordUnlocks(state);
     return true;
@@ -483,6 +515,9 @@ const RESUME_KEY = 'unischool.resume';
 // The savedAt of the save this tab last loaded or wrote; null when it has
 // seen none. Module state is per tab, which is the point.
 let knownSavedAt: number | null = null;
+// The week of the game in that save (weeks from the founding), so a tab
+// can tell whether its game has played on since (Plan 95AA).
+let knownWeek: number | null = null;
 let tabId: string | null = null;
 
 // This tab's id, made on first use (not at import, so no test's stubbed
@@ -521,6 +556,19 @@ function storedSavedAt(): number | null {
 export function saveIsNewer(): boolean {
   const stored = storedSavedAt();
   return stored !== null && (knownSavedAt === null || stored > knownSavedAt);
+}
+
+const weekOf = (state: GameState): number => (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+
+// A tab losing the claim keeps its weeks (Plan 95AA, the second review's
+// H7-3): when its game has played on past the save it last loaded or
+// wrote, and no tab has saved since, it writes it before it stops. The tab
+// that took the claim then meets this newer save at its next write and
+// stops, under the guard, and its "Open it here" opens this game. True
+// when it wrote.
+export function saveBeforeLosing(state: GameState): boolean {
+  if (knownWeek === null || saveIsNewer() || weekOf(state) <= knownWeek) return false;
+  return writeSave(state);
 }
 
 // Takes the claim for this tab. Refused (false) when the stored save is
@@ -617,6 +665,7 @@ export function discardSetAsideSave(): void {
 
 export function clearSave(): void {
   knownSavedAt = null;
+  knownWeek = null;
   try {
     localStorage.removeItem(SAVE_KEY);
   } catch {
@@ -753,8 +802,18 @@ function sanitizeDistress(state: GameState): void {
   })();
   if (!ok) { delete state.finance.distress; return; }
   // A letter the game no longer has would sit first in the queue unshown
-  // and hold every later letter behind it.
-  state.finance.distress!.letters = state.finance.distress!.letters.filter((id) => id in BOARD_LETTERS);
+  // and hold every later letter behind it. Each keeps its week (Plan 95K),
+  // a whole week since founding and none after the save's; a week missing
+  // or malformed reads as the save's.
+  const kept = state.finance.distress!;
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const weeks: unknown[] = Array.isArray(kept.letterWeeks) ? kept.letterWeeks : [];
+  const queue = kept.letters.map((id, i) => {
+    const w = weeks[i];
+    return [id, Number.isInteger(w) && (w as number) >= 1 && (w as number) <= now ? (w as number) : now] as const;
+  }).filter(([id]) => id in BOARD_LETTERS);
+  kept.letters = queue.map(([id]) => id);
+  kept.letterWeeks = queue.map(([, w]) => w);
 }
 
 // The milestones' years (Plan 80C): optional, a year to each key; anything
@@ -1277,11 +1336,13 @@ export function loadGame(): GameState | null {
   // What this tab has seen, even of a save it cannot read: the next save
   // may write over that one (it is set aside), but not over a newer one.
   knownSavedAt = storedSavedAt();
+  knownWeek = null;
   const read = readSave(raw);
   if ('refused' in read) {
     if (read.refused === 'too-old' || read.refused === 'too-new') setAside(raw);
     return null;
   }
+  knownWeek = weekOf(read.state);
   return read.state;
 }
 

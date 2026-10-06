@@ -23,7 +23,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { createInitialState, FOUNDING_ADMIT_PRESTIGE } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
@@ -77,7 +77,9 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   assert(monotone, 'standing always makes a college more selective by default');
 
   const s = createInitialState('Opening');
-  assert(near(s.students.admitRate, admitRate(s.self.reputation)), 'a new college opens its slider there');
+  // Plan 95N: the college opens at 42, its admit rate from the old opening.
+  assert(near(s.students.admitRate, admitRate(FOUNDING_ADMIT_PRESTIGE)), 'a new college opens its slider at the founding admit rate');
+  assert(s.self.reputation === 42, `a new college opens at prestige 42 (${s.self.reputation})`);
   assert(STARTING_TUITION > 16_000 && priceTier(STARTING_TUITION, priceTolerance(s.self.reputation)) === 'fair', 'the founding price is up, and fair');
   assert(Object.values(s.finance.tuitionByClass).every((p) => p === STARTING_TUITION), 'every founding class pays it');
   assert(s.finance.cash === FOUNDING_PRESET.startingCash && FOUNDING_PRESET.startingCash === 2_900_000, 'the founding funds are $2.9M');

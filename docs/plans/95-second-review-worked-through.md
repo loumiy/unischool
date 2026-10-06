@@ -302,6 +302,73 @@ fields in the ring already do.
   - The canvas reads CSS variables the way the SVG does. Confirm the new
     tokens reach `mapCanvas.ts`'s style lookup.
 
+**As implemented.** Presentation only: nothing under `systems`, `state`,
+`data` or `sim` changed, so the sim was not run.
+
+- **Tokens.** `seasonStyle` sets, beside the old ones:
+  - `--turf` and `--turf-deep` (`.ground-turf`, `.ground-endzone`): the
+    pitch, the diamond's outfield, the gridiron and the stadium's field.
+    They dry toward straw with the lawn and take 0.42 of the snow (the
+    lawn's 0.85, halved). At week 26 the turf is `#b3be9c` against the
+    lawn's `#e2e7df`: a kept pitch, pale, still read as a pitch, the lines
+    white on it.
+  - `--court` (`.ground-court`): the same snow, no straw (it is paint).
+    `.ground-court-play` stays.
+  - `--water` (`.ground-water`, the pool): the summer blue to a grey-green
+    cover `#7d8b88` as the snow lies. The lanes (now `.ground-pool-lane`;
+    the running track keeps `.ground-lane`) and the deep end go under the
+    cover by `--under-ice-opacity`.
+  - `--pond` on a new `.ground-pond` for the Japanese garden: it freezes
+    to `#c4d3da`, the koi under the ice (`--under-ice-opacity`), the
+    lilies gone with the beds' blooms (`--bloom-opacity`).
+  - `--sakura` and `--sakura-top` (`.jg-sakura`): the ornamental leaf
+    (green, rust, bare twigs, bud) mixed to the blossom's pinks by `bud`,
+    so the cherries are pink only while the trees bud (pure blossom at
+    weeks 38–40, none outside 34–44); their petals on the ground show by
+    `--petal-opacity` (the same `bud`).
+  - `--garden-grass` and `--moss`: the garden's ground under the snow as
+    the lawn is.
+- **The sweep.** Every literal fill in the ground rules and
+  `groundMarkings.tsx` is a token now or carries a comment saying why it
+  stays: the track, the infield's skin, the paving and the courts' play
+  surface (kept clear, or not living), the fountains' water (a quad's
+  centrepiece; a drained basin reads as broken), the hedges' sides and
+  the green azalea (evergreen; their tops already take `--hedge-top`'s
+  snow), the batter's eye (a painted wall). The garden's pink and magenta
+  azaleas take `--azalea*` tokens: in flower but for the fall and winter,
+  green leaves then, the tops under snow. The quads' panels were already
+  `.ground-lawn`.
+- **The canvas.** `canvasPaint.ts`'s `StyleResolver` probes each class
+  inside the map's host, where `seasonStyle`'s variables are set, and
+  `mapCanvas.ts` resets every rule when the season changes, so the new
+  tokens reach the canvas with no change to either file. The roof track's
+  literal infield fill became a class for that reason.
+- **Tests.** `test/seasons.test.ts` checks each new token's summer value
+  at `SUMMER_GREEN_WEEK` and week 2, and its behaviour at weeks 12, 26
+  and 40, and that no week without `bud` shows blossom (236 checks).
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/`: the
+  Completionist's year-51 campus (laid out) at weeks 12, 26 and 40 on the
+  canvas and the SVG (`95b-week{12,26,40}-{canvas,svg}.jpg`), the grounds
+  at the three weeks (`95b-grounds-weeks-12-26-40.jpg`) and the garden
+  close up, canvas and SVG side by side (`95b-garden-weeks-12-26-40.jpg`).
+
+**Deviations.**
+
+- **The roof track's infield takes the lawn's full snow** (`--turf-roof`
+  via the lawn's curve), not the pitches' half. At half cover it was the
+  greenest thing on a white campus at week 26: a roof is not swept.
+- **The cherries with seasons off are green, not pink.** The spec's
+  "the canopy's green in summer" and "every token reads its summer value
+  at `SUMMER_GREEN_WEEK`" together mean the seasons-off garden loses its
+  blossom (and its petals). The azaleas keep their flowers in summer, so
+  the garden keeps some pink.
+- **The cherries wear the ornamental leaf in every season**, the
+  ornamental green in summer rather than the canopy's, so one species
+  reads as one tree whichever crown the garden drew.
+- **The azaleas, the lilies, the koi and the petals** were not named in
+  the spec; they were pink, green or orange in midwinter, so the sweep
+  took them.
+
 ### PR 95C — The downtown in daylight, and a look at it (B1-7)
 
 The student-life district (Plan 85H) is "lit" through a festival's weeks
@@ -342,6 +409,55 @@ so the light goes.
     and in a snow week, on the canvas and the SVG. The shot to beat is
     `docs/reviews/2026-10-pillars/85h-district-lit.jpg`.
 
+**As implemented.**
+- `districtLit` is gone. `districtFestive(s)` returns the festival's scale
+  from its week for `FESTIVAL_LIT_WEEKS` (null otherwise, and at step 0 or
+  a spring without one); `districtWinterLit(s, snow)` is snow at
+  `WINTER_LIT_SNOW` or deeper. Only the map read `districtLit`, so the sim
+  was not run: nothing in `systems`, `state` or `sim` reads either.
+- `ringView` takes `winterLit` and `festive` (0, or 1 to 4 by scale) in
+  place of `lit`, both in its cache key; `RingBack` and `RingFront` take
+  both and the college's colours, and the canvas scene's signatures carry
+  all three. The pools of light (`sprite.pool`), the bulbs' halos and the
+  shopfronts' spill of light on the pavement (`glow`) are gone; the bulbs
+  are always the small unlit ones. The snow weeks keep the warm windows,
+  signs and glass.
+- A festival hangs bunting on `district.strings` in place of the bulbs:
+  two pennants to a bulb, alternating the college's primary and secondary
+  colours. Its crowd stands on the pavement in front of each shopfront,
+  1.4, 2.2, 3.2 and 4.4 people a tile of frontage for the weekend, the fair,
+  the headline act and the gala: a coat in the stands' crowd's six colours
+  and a head each, placed by a hash of the shop and the person, drawn back
+  to front with the shopfront (over the walls when it faces the camera).
+  People are drawn larger than life, as the map's trees are, or the crowd
+  did not read at the opening zoom. No pattern or gradient was added, so
+  nothing new goes through `CanvasScene.defs`.
+- The look: `districtLook.ts`'s `districtSeen` and `districtLookDue` (the
+  same college, at the same week or the next, choosing student life or
+  growing from step 0 to 1; nothing before the first sighting). CampusMap
+  keeps the last sighting in a ref and eases the view, at its zoom, over
+  900 ms to `ringLand.ts`'s `districtCentre` (the middle of the shopfronts
+  standing, or of step 1's before it); reduced motion jumps; not while
+  placing, drawing a path or turning; a pan or zoom by the player stops the
+  ease. The wheel's native listener is untouched. The pan limits already
+  reach it (the town is at most 60 tiles long, `CENTRE_REACH` is 70), so
+  nothing is widened; a test pins that `clampView` leaves a view centred on
+  the district alone at three zooms and three steps. Checked in Chromium: a
+  save loaded at step 0 does not move, and the week the district grows
+  pans to its first shops (`95c-district-first-step-look.jpg`).
+- Tests (`test/downtown.test.ts`): the two conditions and their edges, no
+  light by day, warm windows only in the snow, bunting and a crowd growing
+  with the scale, and the look firing once on each edge and never on a
+  load, a jump in time, another college or a step back.
+- Screenshots in `docs/reviews/2026-10-review-ii-fixes/`, the `downtown`
+  scenario (Blackmoor, Georgian, Year 38) at week 46, week 32 after a gala
+  in week 31, and week 26, canvas and SVG: `95c-district-{summer,festival,
+  snow}-{canvas,svg}.jpg`, and `95c-district-festival-detail-canvas.jpg`.
+- **Deviations.** One vernacular only: the change is to the ring's town,
+  whose shops take the district's own paint and awnings, not the
+  vernacular's forms. The shopfronts' spill of light (`glow`) went with the
+  pools, as the same yellow paint on the pavement.
+
 ### PR 95D — The render wall, measured (B1-3)
 
 Plan 87E gave the school signature halls their vernacular's wall, which was
@@ -370,6 +486,78 @@ it in every vernacular. This PR measures first.
     rerun it.
 - If art changed: rerun `npm run gallery:assets`, and take screenshots of
   each changed form in Georgian, Gothic, Classical and Mission.
+
+**As implemented.** Art only: `materialOf` feeds the drawing and nothing
+under `systems`, `state`, `data` or `sim` reads it, so the sim was not run.
+
+- **Measured.** The three campuses were made as the review made them:
+  `npm run scenario -- --player <P> --year 50 --seed 12345 --clear-modal`
+  (Completionist with `--build-all`), which writes year 51 week 2. All
+  three found in Georgian. `review:probe -- vernacular` now ends each
+  campus with a line per set (Modern and Art Deco left out) giving the
+  buildings and footprint area in the render wall, and which ones. The
+  share is the same in all seven sets, because the render forms were the
+  same in each:
+
+  | Campus (year 51) | Buildings | Render wall, before | Area, before | After |
+  |---|---:|---:|---:|---:|
+  | Completionist, every asset stood | 77 | 21 (27%) | 31% | 0 |
+  | Natural, seed 12345 | 68 | 20 (29%) | 37% | 0 |
+  | Guided, seed 12345 | 62 | 21 (34%) | 36% | 0 |
+
+  Beside the review's figures, massing and walls following the
+  vernacular: 56% / 49% of area (Completionist), 59% / 50% (Natural), 50%
+  / 45% (Guided); the review had 55% / 49%, 58% / 50%, 51% / 46%. Plan 87
+  did not change the render forms, so on `main` a third of the campus was
+  still render.
+
+  The render forms (`-- catalogue`: 21 of 81 placeables, in all five
+  founding sets): the works labs (Biology, Chemistry, Physics, Electrical,
+  Chemical Engineering) and the Research Park; the test halls and studio
+  (Mechanical, Civil, Aerospace, Film); Computing; the Humanities Research
+  Institute and Experimental Economics (a portico and a pavilion, in
+  render because they are labs); the Recreation Center, the gym, the
+  Sports & Recreation Complex, the Arena and the Field House; the two
+  apartment rungs (DORM-05, DORM-07); and the Football Stadium. The
+  stadium alone is 14–17% of the area.
+- **Decided: over 10% on every campus, so the walls changed.**
+  `renderOutOfPlace` (`buildingSpec.ts`) turns render into the set's
+  academic wall (`brickRed`) under the labs' flat deck everywhere but
+  Modern and Art Deco (`RENDER_VERNACULARS`): brick in Georgian and Tudor,
+  ashlar in Gothic (keeping its slate, as 87I's labs did), limestone in
+  Classical and Second Empire, stucco in Mission, ochre in Italianate. It
+  is 87I's rule made general: the Neuroscience Labs' wall
+  (`vernacularWallOf`, one stable object per set) is now the one every
+  render form takes, and `VERNACULAR_WALL_LABS` keeps only the Labs' own
+  exception (the wall in Modern too). Massing unchanged. After it,
+  `-- catalogue` lists no render wall in Georgian, Gothic, Classical or
+  Mission, and Modern keeps its 21.
+- **The stadium.** Its stands were tinted by the wall, so the change
+  would have made the seating brick. The stands' walls take the set's
+  wall and the seating, concourse and fascia stay concrete (the render
+  color), Franklin Field's way; in Modern and Art Deco it draws exactly as
+  before.
+- **Tests.** `building-spec.test.ts`'s invariant-materials rule now reads
+  against Modern: an invariant building in render there wears the set's
+  academic wall elsewhere, the rest stay as they were, and nothing but
+  open ground wears render outside Modern and Art Deco. Every roof still
+  reads against its wall (Mission's stucco, Gothic's ashlar and the bonus
+  sets included). `catalogue.test.ts` passes unchanged.
+- **Pictures.** `npm run gallery:assets` rerun (`docs/assets/`; it also
+  picks up Walnut Hall, missing since an earlier plan). Each changed form
+  in Georgian, Gothic, Classical and Mission (rows), from `npm run sheet`:
+  `docs/reviews/2026-10-review-ii-fixes/95d-works-labs.jpg`,
+  `95d-test-halls-and-institutes.jpg`, `95d-sport-and-apartments.jpg` and
+  `95d-stadium.jpg` (the full bowl).
+- **Deviations.**
+  - The apartment blocks, the gyms and the stadium changed as well as the
+    labs. The PR said "the forms that remain"; those are what remained,
+    and without them the stadium alone kept every campus over 10%.
+  - The stadium keeps concrete seating, so only its walls follow the set.
+  - Open ground keeps render for its props: it is left out of the measure,
+    and its props are not walls.
+  - The note gives year 51 week 2, the year `scenario --year 50` writes,
+    as the review's year-51 campuses were.
 
 ### What area 1 does not do
 
@@ -536,6 +724,69 @@ the sim was not run (the one file under `systems/` touched,
   - The choice's word count before and after (the review's 681).
   - Screenshots at desktop and at 390×844 at the largest text.
 
+**As implemented.** Words and a read-only projection; no rule the
+simulation reads changed. `npm run sim` was run all the same (a hook was
+added beside the share's reading in `specializationData.ts`) and reads as
+the baseline.
+
+- **The figure.** Each card heads with "Up to 9.8 points of prestige"
+  (7.0, 8.5, 5.1), from `prestigeWords.ts`'s `specializationShareWorth`.
+  The pillar points moved into the card's detail ("28 of the pillar's 150
+  points", `opensLine`). The board's notice drops its four "which opens 28
+  points of it": `pillarShareRule()` in the same letter already gives each
+  share in points of prestige, so the list names the four and no figure
+  (`specializationNotice(milestone, rule)` lost its `weights` argument).
+- **Three lines a card**, new fields on `SPECIALIZATION_CARDS`: `what`
+  ("The Research Park, home of the Landmark Programs."), `adds` ("While the
+  park stands, every lab's output is 15% higher.") and `fillsShort` ("The
+  share fills with the festivals, full at 10 points of them in 10
+  years."), each built from the mechanic's constants. Behind More (the
+  faculty card's disclosure button): the long fill rule in pillar points,
+  athletics' lift, the mechanics, a standing park's note (85F), the
+  college's place in the pillar and its rivals.
+- **The comparison line**, `milestone.ts`'s `shareFullProjection`: "Full
+  today: prestige 94.7 → 104.5, #19 → #5." The target is
+  `computePrestigeTarget` on a copy with that share read full
+  (`specializationData.ts`'s `withShareFull`, which marks a copy in a
+  `WeakMap` that `specializationTerm` reads); prestige moves by what that
+  adds to today's target, so the teaching standard's limit holds as it
+  would; the rank is `playerRank` on a copy at that prestige, against
+  today's rivals.
+- **The strongest pillar, first** (`strongestStanding`): "The college's
+  strongest pillar is student life (#7). Of the rivals, 35 specialize in
+  academics, 23 in research, 19 in student life and 22 in athletics."
+- **The intro**: two sentences, the second `pillarShareRule()`.
+- **Measured** (`npm run review:gallery`, the `specialization` scenario,
+  Year 36): the choice's top layer **709 → 378 words**, 5 → 9 controls
+  (the four More buttons); 709 is this save's count of the review's 681.
+  At 390×844 and the largest text each card is 406–472 px tall, half a
+  screen. Screenshots: `docs/reviews/2026-10-review-ii-fixes/95f-choice-*.jpg`.
+- **Tests** (`test/specialization-choice.test.ts`): each "up to" figure is
+  the pillar's weight times the share's points, and the card prints it;
+  the comparison's prestige is `computePrestigeTarget` on the filled copy
+  (and equals the share's worth unless the teaching standard holds it);
+  the rank is `playerRank`'s; the state itself is untouched; the strongest
+  pillar is the best-ranked; the intro is two sentences.
+- **Deviations.**
+  - "A copy of the state with that share full" is a shallow copy marked
+    full, not a `structuredClone` with the mechanic's records set: a full
+    share is a different record per pillar (trained professors, Landmark
+    years, festivals with the downtown grown and goodwill high, deep
+    runs), and writing those would move other terms too (the downtown's
+    growth meets students' needs, a deep run is a title). The mark moves
+    the share alone, and nothing writes to the copy.
+  - The comparison's "before" is today's prestige (the stock the guide
+    ranks), and "after" adds the full share's lift to it, rather than
+    printing the target itself, which differs from today's prestige by
+    the year's drift.
+  - The strongest pillar is the best *rank* in the standings (the higher
+    value on a tie), as the review's example reads ("student life (#4)");
+    the harness's rule (`strongestOf`, by value) is unchanged.
+  - The line lists the rivals in all four pillars, not the two the
+    example names.
+  - "Still to come" is gone from the card: since Plan 85H every mechanic
+    is ready, so it never showed.
+
 ### PR 95G — Faculty, lighter (B2-1)
 
 - **The card's face** keeps More and its chips. **Train** and **Dismiss**
@@ -638,6 +889,73 @@ Deviations:
 - **Checks:** the sweep's counts at years 8 and 40 (the review's 2,054
   and 3,296), per view. Every chart still has a home, and a test lists
   them. Screenshots of each view.
+
+**As implemented.** Words and layout; nothing the simulation reads
+changed. Two files under `src/` outside the tabs moved: the teaching
+standard's sentence (`prestigeSystem.ts`'s `teachingCeiling`) and a new
+words function beside the grade points (`courseQuality.ts`). `npm run sim` was run all the same and reads as
+the baseline.
+
+- **Three views** on the sliding switch, at the head of the tab
+  (`HistoryTab.tsx`'s `HistoryView`):
+  - **Prestige**: the breakdown (the four pillars, the endowment, the two
+    penalties, the teaching standard, the readings), then "By year", the
+    Prestige and "Place in the guide" charts;
+  - **The record**: the Final Report's draft, the promises, the
+    chronicle, "Institutional history" (Enrolled, Operating funds and
+    Catalog), the alumni and the year-by-year table;
+  - **The guide**: the guide's table and the standings.
+  It opens on Prestige. The view is held in `App.tsx` beside Faculty's
+  (`historyView`) and cleared by New Game. A link's section opens its
+  view before the first paint (the Prestige chip Prestige, the Rank chip
+  the guide; `history.record` now has an anchor too).
+- **Prestige's head** says `pillarRule()` once, as a line under the
+  heading; the help hint no longer carries the weights or the share rule,
+  and the Prestige chart's note, now on the same view, drops the weights.
+- **One scale per pillar row** (`StandingBreakdown.tsx`): "Academics
+  113.0 of 150 → 28.4 of 41.3 points of prestige". The line under it is
+  "It counts for 35% of prestige.", then the specialization's sentence,
+  then "Last summer graded it 28.3." only when last summer's grade differs
+  from today's. On the other rows (the endowment, the penalties) last
+  summer's "+a → " shows only when it differs: the arrow goes when the two
+  agree. On a phone the figure wraps under the label, to the right.
+- **The teaching standard**: "courses average a B+: standing can reach
+  139. A campus of B's reaches 128; only A's everywhere reach 150."
+  (`meanGradeLetter`: the mean grade points to the nearest third-step
+  letter, B, B+, A−, A, as a transcript reads them; "no course is graded
+  yet" with none).
+- **Measured** (`npm run review:gallery --sizes desktop`, whole page; the
+  gallery now steps History's views as it does Faculty's):
+
+  | Save | One page (before) | Prestige | The record | The guide |
+  |---|---|---|---|---|
+  | `year-8-balanced` (year 9) | 2,117 w / 9 c | 393 / 5 | 693 / 9 | 1,081 / 6 |
+  | `year-40-done` (year 41) | 3,320 / 11 | 391 / 5 | 1,926 / 11 | 1,057 / 6 |
+
+  The review's 2,054 and 3,296 are these saves' 2,117 and 3,320 on
+  `main` before this PR. The phone's counts are the same.
+- **Tests** (`test/history-views.test.ts`): each view draws exactly the
+  charts its list names, thirteen in all, as the one page drew; the tab
+  opens on Prestige, a held view is drawn, a section opens its view; the
+  rule is said once, in Prestige's head; each pillar row reads its
+  standing then its points of prestige; the teaching standard names the
+  mean grade, and `meanGradeLetter` reads whole grades and thirds.
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/95h-*.jpg`:
+  Prestige at year 8 (the whole view, with its charts) and year 40, the
+  record and the guide at year 40, and Prestige on a phone at year 40.
+- **Deviations.**
+  - **The standings** (the seven rankings and their rank charts) are in
+    the guide's view, not the record's "other charts": they are rankings,
+    and the guide's help already sends the reader to them.
+  - **The one-scale row's arrow** joins the pillar's two scales, as the
+    spec's example reads; the arrow the review asked to drop (last
+    summer's grade → today's) is gone from the pillar rows, its figure
+    said in the line under the row when it differs, and kept on the other
+    rows only when it differs.
+  - **The teaching standard's letter** is the nearest third-step, so the
+    review's 127 reads "a B" (mean 0.63 points, nearest B at 0.65), not
+    the example's "B−" (0.55).
+  - **The measure** is `review:gallery`, not `review:sweep`, as in 95G.
 
 ### PR 95I — Athletics folded, and the summer Review capped (B2-1)
 
@@ -820,6 +1138,56 @@ Deviations:
   - An inbox test that a letter from week 5 still reads week 5 at week 30.
   - Screenshots of the toolbar at each text size.
 
+**As implemented.** Save version 95.
+
+- **The board's letter.** `Distress` gains `letterWeeks`, the absolute
+  week each queued letter came, beside `letters`. Four helpers in
+  `distress.ts` keep the two in step: `postBoardLetter` (the ladder, the
+  idle-cash watch and the specialization notice all post through it),
+  `shiftBoardLetter` ("Noted"), `dropBoardLetters` (the sweep's answer)
+  and `clearBoardLetters` (the three tools that clear the queue for a
+  photograph). The inbox's board item takes `letterWeeks[0]`, so it sorts
+  among the letters by its own week, and the reading pane's head reads
+  the same date (it too read this week).
+- **The migration** (`boardLetterWeeks`, 94 → 95): the specialization
+  notice is dated week 1 of `specializationNotice`'s year, the idle-cash
+  letters week 1 of `idleLetterYear`'s, and a ladder letter the save's
+  week, as it read before. `sanitizeDistress` keeps each week with its
+  letter when it drops one the game no longer has, and a week missing,
+  malformed or after the save's reads as the save's.
+- **The fixture** `test/fixtures/save-v94.json` is the
+  `specialization-notice` scenario (year 29, the notice queued), written
+  at 94. `save-migrations` checks it loads dated to Y29W1, that moved on
+  four years it still does while a ladder letter added reads the save's
+  week, and that a malformed week reads as the save's. `inbox.test.ts`
+  checks a letter from week 5 reads week 5 at week 30, and that "Noted"
+  leaves the next letter its own week.
+- **The Answered list's empty line** reads "Nothing answered yet. The
+  matters settled lately are kept here."
+- **"Answer to go on"** is a flat note in the muted ink, in italic, where
+  the Close button stands; no border, no pill.
+- **The funds figure** is the display face with tabular numerals
+  ("$46,290,839", the commas close).
+- **The phone's ticker:** the date stands beside the line, not in it, and
+  does not shrink, so the message gives way and the year stays ("Y29W1"
+  at the largest text, where it read "Y").
+- **Checks:** `check` and `test:slow` pass; `npm run sim` shows no change
+  against the baseline. Screenshots in `docs/reviews/2026-10-review-ii-fixes/`:
+  `95k-toolbar-text-sizes.jpg` (1×, 1.15×, 1.3×),
+  `95k-phone-ticker-largest-text-before-after.jpg`,
+  `95k-inbox-board-letter-week.jpg` and `95k-inbox-held-note.jpg`.
+
+Deviations:
+- **`--mono` stays.** The funds figure was not its one use: the dock's
+  weekly net, the faculty card's facts, the scoreboard, the build stamp,
+  the cohort change, the park's tally and the debug panel read it (Plan
+  90). The net beside the funds keeps the mono, as those records do.
+- **The ladder's letters** have no week in an old save (`closedAt` is
+  only the last term closed, which may come after the letter), so they
+  take the save's week.
+- **The screenshots** are the canvas map only, in one vernacular: nothing
+  here touches the map.
+
 ### PR 95L — The course catalog's shape: the table, for the owner (B2-6)
 
 The shape has waited since Plan 76G because each change moves course ids in
@@ -995,6 +1363,40 @@ The owner's answer: open near the first years' grade, with no words added.
   (`statChips.ts:47`), the design docs, and any tutorial or letter that
   states 51.5. Grep for it.
 
+**As implemented.**
+- `FOUNDING_PRESET.startingReputation` is 40.5, so with Founders Hall's
+  1.5 the college opens at 42.0.
+- The founding admit rate is seeded from `FOUNDING_ADMIT_PRESTIGE` (51.5,
+  `actions.ts`), so the first class does not shrink.
+- The faculty market's founding anchor stays at 50 (`facultyData.ts`). A
+  college at or below it draws the founding pool, as before; only the
+  comment changed.
+- **Deviation: the figure is the owner's 42, not the harness's Year 2
+  grade.** Measured over three seeds, the Year 2 grade is 45.4–47.3 (mean
+  46.0). But no opening makes the first summer hold: Year 1 grades 29–37,
+  because a new college has no beds until week 25. At 46 the first summer
+  would fall about 5. At 42 it falls about 2.5, and from Year 2 prestige
+  rises every summer (the after-table is in
+  `docs/reviews/2026-10-game-review-ii/data/b3-opening-prestige.md`).
+- **The sim moved** (re-baselined, three seeds, medians):
+
+  | Player | Y10 prestige | Y25 rank | Y50 rank | Y50 prestige | Top 20 |
+  |---|---|---|---|---|---|
+  | Guided | 47.4 (−0.2) | 31 (−4) | 1 | 118.8 (+2.8) | Y31 (was Y34–35) |
+  | Guided, unspecialized | 47.4 | 31 | 2 (−4) | 111.1 (+1.8) | Y31 |
+  | Completionist | 47.1 (−2.4) | 39 (+3) | 6 (+5) | 108.5 (−6.6) | Y40–43 |
+  | Selective | 42.6 (+0.3) | 61 (+4) | 63 (−1) | 52.2 (+0.6) | never |
+  | Lean | 37.3 (−1.4) | 67 (+1) | 73 (+4) | 42.2 (−0.4) | never |
+
+  Guided reaches the top 20 three or four years sooner, because a college
+  that never falls keeps climbing. The Completionist, which spends its
+  first decade building, ends lower.
+- **For W and X:** Guided-research's Y50 cash rose from $565M to $5.5B. The
+  earlier specialization (Y30–32) gives the park's labs more years.
+- `sim/report.ts` gains `--from-runs`, which saves a baseline from the last
+  run's rows without playing again. A full run took 80 minutes here on a
+  shared machine.
+
 ### PR 95O — NEXT: the building going up, and the step toward a school (B3-3, B3-4)
 
 - **The building going up** (`nextStep.ts`'s `shortfall`).
@@ -1028,6 +1430,58 @@ The owner's answer: open near the first years' grade, with no words added.
   - The guided player's run reads the same in `npm run sim`. If it does
     not, find out why before landing.
 
+**As implemented.**
+
+- **The building going up.** `nextStep.ts`'s `comingFor` finds what is
+  going up for a need: a building under construction (`s.developing`),
+  or a story being added to a standing one (`extensionWeeks`), the first
+  to open if several. A building serves housing by its beds, and any
+  other need by the need it is built for; a residence hall's shop does
+  not count as dining. `shortfall` then reads "Housing is at 12 —
+  Meadow House opens in 9 weeks" (or "…'s new story opens in …"), `go`
+  is `'hall'` with the building's id (the map pans to it and opens its
+  panel, which shows the construction), and the intent is `wait`. When
+  it opens, the line reads the need afresh.
+- **The guided player** reads that `wait` and builds nothing for the
+  line. After year one a waiting shortfall gives way to an idle lab and
+  is shown only when nothing else speaks, as a waiting letter already
+  does.
+- **The step toward a school.** `establishText` keeps the goal and adds
+  the step from `establishIntent`: "Establish Science (2 of 6): move
+  Mathematics into Elm Hall", "…: found Physics in Founders Hall",
+  "…: post a search in Physics" (nobody on the payroll or the market can
+  teach the entry course), "…: the search in Physics has 4 weeks to run",
+  "…: move English to Elm Hall to make room" (another school's program
+  out of a full hall), and, while waiting, "…: Anthropology arrives in 4
+  weeks", "…: no Science program is on offer" or "…: Elm Hall is full,
+  and no other hall has room". The second school reads "Establish
+  another school, Business (3 of 6): …". A move's `go` opens the
+  program's tile in the hall it moves from.
+- **Tests:** `first-year.test.ts` (a need with nothing going up, two
+  residence halls going up and the first to open named, a building that
+  serves another need, the line after both open); `sorting.test.ts`
+  (each step, the move's tile, the count 2 → 3 → 4 through two moves and
+  on arrival); the existing wordings in `sorting` and `split-school`
+  updated.
+- **Balance:** `npm run sim` reads the same as `sim/baseline.json`; no
+  figure moved.
+
+**Deviations.**
+
+- **The count in transit needed no code.** A move takes its new slot the
+  week it leaves (`techSystem.ts`'s `relocateProgram`), and
+  `closestSchool` already counts a program in transit in that hall. The
+  fall the review saw came from the school being split between Founders
+  Hall and Elm Hall while the line counted Founders Hall. Since Plan 89G
+  a hall with an office is passed over, and the line's moves are always
+  into the hall it counts, so its count only rises. The test pins it.
+- **"Post a search in Marketing"**, not "for": the Curriculum's button
+  and the log say "a search in {field}" (B2's consistency).
+- **A move out of a full hall** to make room says so ("to make room"):
+  "move English into Elm Hall" toward Science read as the wrong school.
+- **`go` reuses `'hall'`** for any building's panel, rather than a new
+  target: the map's inspect already opens any placed building.
+
 ### PR 95P — Crowding, at the admissions decision and on NEXT (B3-5)
 
 - **At the decision** (`InterruptModal.tsx`, beside the projections of
@@ -1049,6 +1503,61 @@ The owner's answer: open near the first years' grade, with no words added.
   - A nextStep test for coverage at 84% and at 86%.
   - The guided player's reading order is unchanged in the sim. Crowding
     is a line, not an intent, so no new intent is added.
+
+**As implemented.**
+
+- **At the decision.** `consequences.ts`'s `projectConsequences` gains
+  `crowding` (points) and `crowdingWorst` (the need and its coverage). It
+  reads the projected body with the year's crowding average started
+  afresh, as `resolveAdmissions.ts` starts it, through
+  `prestigeSystem.ts`'s new `crowdingPoints` (the penalty × `crowdingScore`)
+  and `crowdingCoverages`. `InterruptModal.tsx` shows "Crowding −14.5 of
+  prestige's grade (dining 36%)" under the tightest need, only while it is
+  above zero, so nothing shows while every coverage is 85% or better. It
+  moves with the admit rate, as the others do.
+- **On NEXT** (`nextStep.ts`): a new reading, `crowding(s, rest)`, placed
+  after `nearlyEstablished` and before the shortfall. When a crowded need
+  (beds, dining, health) is under `CROWDING_GRACE` it reads "Dining serves
+  36% — crowding is costing prestige; a dining hall would raise it" and
+  opens the build menu. When something that serves the need is going up,
+  it uses O's `comingFor`: "…; Union Square Eatery opens in 9 weeks", `go`
+  the building's site. It then gives way, under O's rule, to a step the
+  player can act on.
+- **A line, not an intent.** The crowding line carries the intent of the
+  reading it stands before (the shortfall, the idle lab or the waiting
+  letter), so the guided player does what it did without the line. It
+  already relieves crowding first by its own rule
+  (`moves.ts`'s `relieveCrowding`).
+- **Tests:** `crowding-cost.test.ts`. The review's Year 2, built directly:
+  the founding halls (350 beds, dining for 350), a catalog that seats the
+  class, 379 staying on, and the admit rate that makes 603. The projection
+  reads 982 students and −14.5 (dining 36%), as the review measured, and
+  equals the grade's crowding term after `RESOLVE_ADMISSIONS`. A smaller
+  class costs less, and a roomy body costs nothing. NEXT is tested at 84%
+  (crowding speaks) and at 86% (it doesn't), with a building going up, and
+  giving way to an idle lab. `opening.test.ts`'s year-2 reading now stands
+  the founding halls: its bare campus was crowded.
+- **Screenshot:**
+  [`95p-admissions-crowding.jpg`](../reviews/2026-10-review-ii-fixes/95p-admissions-crowding.jpg)
+  (the summer scenario with its continuing classes raised, so the body
+  overruns health).
+- **Balance:** `npm run sim` (merged with O) reads the same as
+  `sim/baseline.json`: no figure moved. `check` and `test:slow` pass.
+
+**Deviations.**
+
+- **Year one is unchanged.** Its line stays letter, seating, shortfall.
+  A new college has no beds, so between letters the crowding line would
+  ask for a residence hall before the week-9 letter does, and Plan 78B's
+  rule is that the letters' order is not contradicted.
+- **Instruction is not named.** The grade's crowding also reads class
+  seats, but the students short of places already have their reading
+  (`seating`), earlier on the line. NEXT names the worst of beds, dining
+  and health. The decision's figure names whatever the grade reads,
+  instruction included.
+- **The need's words:** "Housing", "Dining", "Health care" serve n%.
+- **No NEXT screenshot.** On the harness's saves an earlier reading
+  always spoke. The words are pinned by the test.
 
 ### PR 95Q — Labs, unfounded schools and the build tiles, said plainly (B3-7, B3-8, B3-10)
 
@@ -1086,6 +1595,67 @@ The owner's answer: open near the first years' grade, with no words added.
   - `npm run review:strings` is clean.
   - Tests that pin these strings are updated.
   - Screenshots of the lab, Library and greyed tiles.
+
+**As implemented.** Words and display only. Under `systems/`, the charter's
+log line and the research row's text changed, and `treasury.ts` gained
+`loanBar`, which only the build menu reads, so the sim was not run.
+
+- **The lab.** The tile reads "starts research, 25% of prestige" while no
+  lab stands or is going up, "lifts research, 25% of prestige" after, and
+  "required for capstone courses" second. The 25% comes from
+  `prestigeWords.ts`'s new `pillarWorthWords('research')`, which reads
+  `PILLAR_WEIGHTS` (`test/pillar-rule.test.ts` pins it). History's breadth
+  row, with no lab, adds "A school's founding opens its lab." A lab is
+  gated on its school's founding (`schoolGate`), so the line is true.
+- **The unfounded school.** "Business · 5 programs, not yet founded": the
+  name in the heading's ink, the rest muted as before.
+- **Cancel.** The button reads "Cancel", the hint "Esc cancels", and the
+  comment says the same.
+- **The Library.** The tile reads "serves 3,200" and "past 120% of need,
+  six times the upkeep". Both figures come from `BEYOND_NEED_FROM` and
+  `BEYOND_NEED_UPKEEP` (six in words through `countWord`).
+  `NEED_SPACE.academic` is now "Academic space", so the Treasury's excess
+  line and the building panel say it the same way. The attrition reasons
+  still say "study space", because that is what a student who left would
+  name.
+- **A greyed tile says why.** Under its foot, in the loan line's place:
+  "$2.1M short · the college can borrow up to $1.0M" (the screenshot's
+  labs). `loanBar` gives `loanFor`'s conditions in its own order: the
+  board's freeze ("the board has frozen borrowing"), no cash in hand
+  ("with no cash in hand, the college cannot borrow"), or the room. Past
+  the room the tile reads "can borrow up to $X", or "has no borrowing room
+  left" when the room is nothing. A board freeze on construction reads
+  "construction frozen". A venue's greyed expansion shows its shortfall
+  too. The `title` carries the same reason in full. `test/treasury.test.ts`
+  checks that `loanBar` names a reason exactly when `loanFor` offers no
+  loan for a shortfall.
+- **The charter.** "With its first laboratory open" in the letter and in
+  both log lines. `test/charter.test.ts` is updated.
+- **The satisfaction target.** "Satisfaction target" (now the whole target,
+  84) and "Satisfaction today" head the needs breakdown. The clubs' panel
+  keeps each source's share and the cost. The target's hint reads "the
+  five needs below, weighted, as the campus stands this week".
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/`:
+  `95q-lab-and-library-tiles.jpg` (Georgian), `95q-greyed-tiles-gothic.jpg`
+  (Gothic, cash cut to $900k), `95q-curriculum-unfounded.jpg` and
+  `95q-satisfaction-target.jpg`. Map-free, so no SVG fallback or second
+  camera.
+- `npm run review:strings` is clean.
+
+**Deviations.**
+- The lab's line is shorter than the spec's. "starts research · a lab's
+  work lifts research, 25% of prestige" ran to four lines on the 132px
+  tile and pushed its foot out of the menu. It reads "starts research, 25%
+  of prestige".
+- The Library's line reads "past 120% of need, six times the upkeep", not
+  "...it costs six times as much to keep", for the same reason. "· academic"
+  is dropped after "serves", as the spec's own wording drops it.
+- The build menu's height cap rises from 372px to 432px. The longer lines
+  and a greyed tile's reason overflowed the old cap at 1440×900. A tab of
+  short tiles stays as short as it was.
+- The target's "without student life → with" arrow is gone. At the head
+  of the needs it showed two numbers that read as one ("79 → 79"). The
+  clubs' panel already gives each source's share.
 
 ### What area 3 does not do
 
@@ -1317,6 +1887,68 @@ Selective and Lean never reach prestige 70 or the top 25.
   should no longer be "a party school". Big-then-good should not "never
   open its doors". `report.test` covers each rule.
 
+**As implemented.** All three, in `data/reportData.ts` and
+`state/finalReport.ts`:
+- **Access**: `WEAKNESSES.access` reads "stayed hard to get into".
+- **Experience**: `satisfactionLeads(s)` holds when the year's average
+  satisfaction (the history rows' `satisfactionAverage`) is at
+  `SATISFACTION_LEADS_AT = 85` or over in more than half the arc's rows;
+  `gradeAxes` then reads the experience axis as half the campus-life
+  standing and half that year's satisfaction (`SATISFACTION_LEAD_SHARE =
+  0.5`). No other axis moves.
+- **The title's tag**: `titleTag(s, grades)` picks the guidebooks' first
+  tag that is *earned* (`EARNED_TAGS`), else an earned tag the guidebooks
+  have not caught up with (the one on the highest-graded standing), else
+  the guidebooks' first tag as before. The tests: `jock-school` — a title,
+  a final four (the last season's, or the Complex's record), or athletics
+  in the top 10 in any year of the arc (the history's `standings` ranks)
+  or now; `research-powerhouse` — a research prize, or research in the top
+  10; `teaching-college` — academics in the top 10; `old-money` —
+  financial strength in the top 10. Party school, country club, commuter,
+  pressure cooker, bargain and artsy have no test: they are only ever
+  implied. A specialization still names the college before any tag.
+- `test/final-report.test.ts` covers each rule (16 new checks).
+
+**Balance.** No sim run. The report is a read-out: `finalReport` is called
+only by `resolveAdmissions` at the fiftieth summer, which stores it on
+`s.ending` and writes one log line; nothing in `src/systems` or `sim/`
+reads `s.ending.report`, its grades or its title back (`sim/natural.ts`
+only prints it), and the new code draws no random numbers.
+
+**Measured.** The goal players, **three seeds each** (12345, 4242, 777;
+one name, Blackmoor), not ten: the machine was shared with several other
+agents' runs. One play-through per run; the year-50 state the report was
+written from was saved, and the new report read off the same state, so
+before and after differ only by the report. Marks (score), before → after:
+
+| Goal | Marks before | Marks after | Experience axis (score) | Title before → after |
+|---|---|---|---|---|
+| revenue | D, D, D (47, 43, 43) | unchanged | 35 D, not led | "a research powerhouse that never fielded a team…" ×3, unchanged |
+| prestige | C ×3 (58, 59, 59) | C ×3 (58, 60, 59) | 62–64 → 62–73 (led in 1 of 3) | "known first for its teaching…" ×3, unchanged |
+| satisfaction | **F ×3** (30, 31, 30) | **F ×3** (31, 32, 32) | 51–54 C → 66–67 **B** (led in 3 of 3: 38–42 of 49 years at 85+) | "a campus life to envy…" ×2, "a teaching college…" ×1, unchanged |
+| assets | B ×3 (63, 65, 65) | B ×3 (63, 65, 65) | 75–77 (led in 1 of 3) | "…what its laboratories find…" ×3, unchanged |
+| championships | D ×3 (45, 46, 46) | D ×3 (46, 47, 47) | 60–61 → 72–73 B (led 3 of 3) | **"a party school…" ×3 → "an athletics school that never built an endowment to match its size" ×3** |
+| good-then-big | C ×3 (56, 59, 57) | C ×3 (57, 59, 58) | 61–66 → 70–73 B (led 3 of 3) | "an athletics school…" ×2, "known first for its teaching…" ×1, unchanged |
+| big-then-good | B ×3 (62, 67, 67) | unchanged | 66–77, not led (16–22 of 49 years) | **"…that never opened its doors very wide" ×3 → "…that stayed hard to get into" ×3** |
+
+**Deviations.**
+- *Satisfaction "leads the field" is a bar, not a rank.* The rivals carry
+  no satisfaction (`rivalsSystem.ts`), and the history's `standings` rank
+  only the six standings, where the satisfaction goal's campus life is
+  about 23rd. The closest reading: the year's average satisfaction at 85 or
+  over for most of the arc. It is not unique to the satisfaction goal (the
+  championships and good-then-big players keep 85+ for 30–37 years too),
+  but the satisfaction goal leads it most (38–42 of 49) and the revenue
+  player (62) never does.
+- *The satisfaction goal is still F ×3* (31–32, against 34 for a D). Its
+  experience axis now earns a B, which lifts the mark about 1.7 points;
+  the rest is athletics at 10 (no teams), financial strength at 11–24 and
+  a rank near 60, which a heavier satisfaction share cannot reach (even all
+  satisfaction would leave the mark at about 34). That is B4-4's small
+  college, which the owner left hard on purpose; moving the mark further
+  would mean re-weighting the mark itself, outside this PR.
+- Three seeds per goal, not ten (above).
+
 ### PR 95V — Cutting a varsity team (B4-8)
 
 The backlog's *Disbanding a team*: unbuilt, and with a question open about
@@ -1364,6 +1996,75 @@ the venue.
 - **The call for X.** If Natural's Y40 cash is still above about ten years
   of operating cost, or above $1B, X goes ahead. Otherwise X is closed here
   with the numbers.
+
+**As implemented.**
+- **The measure.** Cash / endowment / net a week, as each year closes.
+  Natural is `npm run natural`, seed 12345, and its net is the year's
+  average. Guided is the median of `npm run sim`'s three seeds. The goals
+  are the medians of `npm run review:goals -- --seeds 12345,4242,777
+  --names Blackmoor`. For Guided and the goals, net is the week's figure as
+  the next year opens.
+
+  | Player | Y30 | Y40 | Y50 | The review, Y50 |
+  |---|---|---|---|---|
+  | Natural | $2.56B / $1.67B / $9.8M | **$10.07B** / $2.77B / $15.5M | $21.39B / $3.40B / $17.4M | $20.9B / — / $17.9M |
+  | Guided | $61M / $26M / $3.1M | $103M / $33M / $2.6M | $558M / $1.34B / $3.4M | $645M |
+  | Prestige goal | $257M / $1.31B / $4.2M | $1.35B / $2.77B / $6.0M | $5.47B / $3.22B / $6.0M | $5.7B / $3.2B / $6.0M |
+  | Championships goal | $597M / $22M / $3.2M | $2.39B / $39M / $3.5M | $4.48B / $64M / $4.1M | $4.5B / $64M / $4.0M |
+  | Revenue goal | $1.36B / $384M / $2.4M | $2.63B / $384M / $2.4M | $3.96B / $383M / $2.4M | $4.0B / $384M / $2.7M |
+  | Every asset goal | $40M / $41M / $3.0M | $112M / $55M / $3.2M | $924M / $67M / $2.2M | $1.7B / $79M / $2.1M |
+  | Big-then-good goal | $23M / $206M / $1.2M | $281M / $452M / $3.1M | $879M / $2.79B / $4.8M | $1.2B / $2.8B / $4.8M |
+  | Good-then-big goal | $31M / $37M / $2.2M | $54M / $47M / $3.2M | $94M / $55M / $3.0M | under $100M |
+  | Satisfaction goal | $2.1M / $5.4M / $0.1M | $3.3M / $7.0M / $0.2M | $7.3M / $17M / $0.3M | — |
+
+  Plan 89's offices did not change the picture. The Natural run reads
+  within 4% of the review. Guided spends its money, and the three goals
+  that grow pile up billions by year 40.
+- **Deviation: three seeds and one name per goal, not ten runs.** The goal
+  players ran 3 seeds × 1 name, 21 runs, because this shared 4-core machine
+  took 70 minutes for those. Each median sits within a few percent of the
+  review's ten-run medians, except two goals' cash at year 50: every asset
+  ($924M against $1.7B) and big-then-good ($879M against $1.2B). Their
+  late cash spreads widely from run to run.
+- **The call for X: X goes ahead.** Natural's Y40 cash is $10.07B. That is
+  ten times $1B. Against operating cost it reads 9.0 years ($21.6M a week),
+  just under ten, so the relative test alone would not have called it. The
+  dollar test does. Measured on seeds 4242 and 777 instead, Natural's Y40
+  cash is $9.14B and $7.26B.
+- **The scorecard** (`sim/pacing.ts`). The prestige and rank targets were
+  re-based on Plan 85's scale. The new bands are read from the pacing card's
+  runs and the baseline's (`node_modules/.tmp/report-runs.json`), as wide as
+  the bands they replace. The old values stay in the comments.
+  - `COAST.prestigeY50`: ≥ 149.5 became ≥ 116 (Natural reads 117.3–118.5,
+    first place, against the field's top of 118–121).
+  - `CHECKPOINTS` prestige: 72–82, 96–106, 120–130 and ≥ 145 became 48–58,
+    71–81, 87–97 and ≥ 105. Rank: 25–40, 8–15, 2–5 and first became 50–60,
+    28–38, 15–25 and ≤ 5.
+  - `WHEN`, by price (high, then fair):
+    - prestige's half: Y22–26 and Y24–30;
+    - prestige's 90%: Y38–42 and Y40–46;
+    - the top 25: Y24–30 and Y26–32;
+    - the top 10: Y33–39 and Y37–45;
+    - first: Y38–46 and Y43–49.
+- **The new row: "Money: natural Y40 cash", ≤ $1B**, counted
+  (`NATURAL_CASH_Y40`). $1B is about a year of the late college's
+  operating cost (some $20M a week at year 40). A year in reserve is
+  prudence; beyond it the money has nothing to buy. The watched "decades of
+  opex" row stays beside it and passes at 0.8. The new row fails at $9.1B
+  (median), as it should until X lands.
+- **The count.** `npm run natural -- --pacing` met 62 of 114 before. The
+  review counted 63, before later baseline moves. It meets 85 of 115 after,
+  in [`2026-10-pacing-rebased.md`](../reviews/2026-10-pacing-rebased.md).
+  The older scorecards in `docs/reviews/` are untouched. Every prestige and
+  rank row now passes, except "Prestige: growth in years 1–10" (10%
+  against 15–35%). That row is set by the opening prestige, which PR N
+  moves, so it is left for N to read. The other 29 misses are October's
+  catalogue, enrollment and net timing, outside this PR.
+- **Tooling only.** `npm run natural -- --pacing` also writes every run's
+  years to `node_modules/.tmp/pacing-runs.json`. The sim's guided rows now
+  carry the endowment (`ArchetypeYear.endowment`), so `report-runs.json`
+  has it. No test pins the scorecard's targets or its row count.
+  `npm run sim` reads the same as `sim/baseline.json` (no change).
 
 ### PR 95X — A late use for money (B4-10, only if W calls for it)
 
@@ -1515,6 +2216,45 @@ scenario, which the review itself fixed (H7-8a).
   - a two-tabs test that the first tab's weeks are kept;
   - a test that an opened matter in its final week does not pause after a
     reload.
+
+**As implemented.**
+
+- **H7-1.** `researchParkGate` counts each absolute week first, caps the
+  week at `LANDMARKS_COUNTED`, then sums by year under the yearly cap. The
+  recruiting fixture (eight Landmark Programs, Year 21, week 2) now reads
+  back Year 21 at 3 weeks, not 16, and holds every rule after a year of
+  the guided player (it ended Year 21 at 159 with the per-week cap alone).
+  `test/save-migrations.test.ts`'s `testLandmarkWeeks` checks both, and
+  that the fixture runs more than three. Saves already migrated keep their
+  overcount: it leaves the ten-year window, and the invariant is not run
+  against old years. No `SAVE_VERSION` bump.
+- **H7-3.** `persistence.ts` keeps the week of the save a tab last loaded
+  or wrote; `saveBeforeLosing` writes the tab's game when it is further on
+  and no tab has saved since (the guard stands). `useGame.ts`'s `storage`
+  handler calls it, then `lose()`. `test/two-tabs.test.ts` covers it.
+  `twoTabs.mjs` case 4, on `save-v93.json`: A played Year 9, week 2 → 7
+  unsaved, B continued at week 2; the save then read week 7, B showed the
+  banner once it went to write, and a fresh tab continued at week 7. All
+  four cases pass.
+- **H7-4.** `unseen.ts` gains `readOpened`, `keepOpened` and
+  `forgetOpened` over `sessionStorage` (each in try/catch); `App.tsx`
+  reads the set on load, keeps it on each change, and forgets it on a new
+  game. `test/unseen.test.ts`: a matter opened before a reload does not
+  pause in its final week; read back empty, it does.
+- **Checks:** `check` and `test:slow` pass. No sim run: nothing a new run
+  reads changed (the migration runs only on a version-90 save, and the
+  rest is the browser's shell).
+- **Deviations.**
+  - The migration's `now` was a week late too: the clock's week is the one
+    about to be played, so the weeks a program has run end at the week
+    before it. With the per-week cap alone the fixture still broke the
+    invariant (159 of 156); with both it holds.
+  - The game has no run id. The opened set is kept under the college's
+    name, as `App.tsx` already tells runs apart for the unseen memory, and
+    forgotten on a new game.
+  - `twoTabs.mjs` read the date off the page's text, which the toolbar no
+    longer draws in one piece (it is the calendar's label); it now reads
+    the label, and case 4 expects A's week.
 
 ### PR 95AB — The map and the money (H7-2, H7-6, H7-8c)
 

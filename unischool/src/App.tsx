@@ -27,7 +27,7 @@ import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import InboxTab from './components/InboxTab';
 import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
-import { unseenPause, type UnseenMemory } from './systems/inbox/unseen';
+import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -38,7 +38,7 @@ import CurriculumTab from './tabs/CurriculumTab';
 import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
 import StudentsTab from './tabs/StudentsTab';
-import HistoryTab from './tabs/HistoryTab';
+import HistoryTab, { HISTORY_VIEW_START, type HistoryView } from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import { freshSeed } from './engine/random';
 import './styles.css';
@@ -123,13 +123,17 @@ export default function App() {
   const [foundingRead, setFoundingRead] = useState<ReadonlySet<string>>(new Set());
   const inbox = inboxItems(s, { read: foundingRead });
   // The matters the player has opened this session: shown in the inbox's
-  // reading pane, or reached by an arrival's Open (Plan 78E). Not saved: a
-  // reload forgets them, and at worst a matter's final week pauses once more.
-  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
+  // reading pane, or reached by an arrival's Open (Plan 78E). Not saved, but
+  // kept for the page's session under the run, so a reload reads them back
+  // (Plan 95AA, the second review's H7-4; unseen.ts's keepOpened).
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => (s.started ? readOpened(s.self.name) : new Set()));
+  useEffect(() => { if (s.started) keepOpened(s.self.name, opened); }, [opened]);
   const markOpened = (id: string) => setOpened((cur) => (cur.has(id) ? cur : new Set([...cur, id])));
   // The Faculty tab's view, sort and filters last used, for the session
   // (Plan 95G): held here, so they outlive the tab, and not in the save.
   const [facultyMemory, setFacultyMemory] = useState<FacultyViewMemory>(FACULTY_VIEW_START);
+  // History's view last used, the same way (Plan 95H).
+  const [historyView, setHistoryView] = useState<HistoryView>(HISTORY_VIEW_START);
   // What the last snapshot held, for telling what arrived (see below).
   const unseen = useRef<{ run: GameState; memory: UnseenMemory } | null>(null);
   // A stop (an interrupt) is answered in the inbox (Plan 77): while one is
@@ -193,7 +197,9 @@ export default function App() {
     setLadderOpen(false);
     setFoundingRead(new Set());
     setOpened(new Set());
+    forgetOpened();
     setFacultyMemory(FACULTY_VIEW_START);
+    setHistoryView(HISTORY_VIEW_START);
     unseen.current = null;
     reportedGates.current = null;
     actedStage.current = null;
@@ -517,7 +523,7 @@ export default function App() {
               )}
               {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
               {overlay.tab === 'history' && (
-                <HistoryTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
+                <HistoryTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} view={historyView} onView={setHistoryView} />
               )}
               {overlay.tab === 'inbox' && (
                 <InboxTab
