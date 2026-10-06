@@ -2309,6 +2309,65 @@ The owner's pick: specialization shares bought faster with money.
   cash after, against W's numbers, and the year each goal's share fills.
 - **Checks:** a test per purchase; the share's fill rate before and after.
 
+**As implemented.**
+- **The purchases** (`systems/prestige/speedUps.ts`, the numbers and words in
+  `data/speedUpData.ts`, saved as `GameState.bought`; the reducer's
+  `BUY_SPEED_UP`). Each is open only to its own specialization, and the
+  building ones only once their building stands. The price is weeks of
+  operating cost (`moneyScale.ts`'s `weeksOfOpEx`), a proposal for the
+  owner's review:
+  - **academics, a second training class** (13 weeks, once a year): the
+    year's picks twice over (`training.ts`'s `trainingPicks`);
+  - **research, the park's second wing** (26 weeks, once): five Landmark
+    Programs count at once toward the share, not three
+    (`researchParkData.ts`'s `landmarksCounted`);
+  - **student life, an autumn festival** (8 weeks, once a year): a second
+    festival with a headline act, worth a point toward the share
+    (`downtownData.ts`'s `festivalPoints`) and 6 of the town's goodwill;
+    and **the downtown's next block** (13 weeks, until grown): a sixth of
+    the district's growth at once;
+  - **athletics, the complex's second phase** (26 weeks, once): a deep run
+    made with it standing counts half again (`ComplexRun.phase`,
+    `athleticsComplexData.ts`'s `runPoints`).
+  Every reading is still capped at 1, so none raises a ceiling.
+- **Where.** On each specialization's own panel, under "What money can
+  speed" (`components/SpeedUpOffers.tsx`): the Faculty tab's training bar,
+  the Research Park under the labs, the downtown in the Students tab, the
+  complex under the athletics department. A purchase spent for the year or
+  for good says so in place of its button; one refused is off and says why.
+- **The save.** `nothingBoughtYet`; `sanitizeBought` on every load (whole
+  years, once each, none later than the save's). Written before 95M merged,
+  it stands as 97 → 98 on the branch; it becomes 98 → 99 behind 95M's
+  catalog migration, with a `save-v98.json` fixture.
+- **The harness** (`sim/harness/speedUps.ts`, `Player.buys`). Every player
+  buys its specialization's purchases while the share is short of full,
+  once the price leaves a quarter's expenses (13 weeks) in cash; a full share
+  takes nothing more. The fuzz layer sends any purchase.
+- **Tests** (`test/speedUps.test.ts`), one per purchase, the share's fill
+  before and after: the class doubles a year's picks and the trained share
+  with them; the wing fills a year of five Landmark Programs at 5/3 the rate;
+  the autumn festival adds its point and the step its sixth; the phase counts
+  a season's deep runs at 1.5. Each still reads full at 1.
+- **Measured** (`npm run natural`, seed 12345; the same run before and after
+  on this branch). Natural specializes in research in Year 20. Its share
+  filled in Year 28; with the wing, bought in Year 25, it fills in Year 27.
+  Its cash:
+
+  | | Y28 | Y30 | Y40 | Y50 |
+  |---|---|---|---|---|
+  | Before | $880M | $1.25B | $7.85B | $20.61B |
+  | After | $721M | $1.06B | $7.42B | $19.75B |
+
+  (W's $10.07B at Y40 was measured before 95N and 95R.) **"Money: natural
+  Y40 cash ≤ $1B" still fails**, by about seven times. The reason is the
+  design, not the prices: each purchase only speeds a share's fill, and
+  Natural's share is full twelve years before Y40, while its cash is still
+  under $1B. From then on the money has nothing it may buy. A price ten
+  times higher would only delay the wing. To spend the late billions, the
+  money needs a use that does not end when the share is full. B4-10's
+  other two fixes are still open for that: rivals that bid for the
+  college's stars, or a reinvestment rule above a reserve.
+
 ### What area 4 does not do
 
 - B4-1's deeper half: no specialization changes what the college builds,

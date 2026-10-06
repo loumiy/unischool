@@ -1,7 +1,7 @@
 import type { GameState, Pillar } from '../state/types';
 import { decimal, pct } from '../format';
 import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINED_SHARE_FOR_FULL, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
-import { LANDMARK_WINDOW_YEARS, LANDMARK_YEARS_FOR_FULL, PARK_RESEARCH_BOOST, PARK_WORDS, landmarkYears, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
+import { LANDMARK_WINDOW_YEARS, LANDMARK_YEARS_FOR_FULL, PARK_RESEARCH_BOOST, PARK_WORDS, landmarkYears, landmarksCounted, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
 import { COMPLEX_POINTS_FOR_FULL, COMPLEX_WINDOW_YEARS, COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
 import { DOWNTOWN_WORDS, FESTIVAL_POINTS_FOR_FULL, FESTIVAL_WINDOW_YEARS, OFF_CAMPUS_SHARE, downtownReading, festivalPoints } from './downtownData';
 
@@ -76,7 +76,7 @@ export const SPECIALIZATION_DETAILS: Readonly<Record<Pillar, (s: GameState, scor
     ? TRAINING_WORDS.termReading(chosenIn(s), trainedCount(s), s.faculty.length, score >= 1)
     : TRAINING_WORDS.termNoInstitute(chosenIn(s))),
   research: (s, score) => (parkStands(s)
-    ? PARK_WORDS.termReading(chosenIn(s), landmarkYears(s), landmarksRunning(s), score >= 1)
+    ? PARK_WORDS.termReading(chosenIn(s), landmarkYears(s), landmarksRunning(s), score >= 1, landmarksCounted(s))
     : PARK_WORDS.termNoPark(chosenIn(s), parkGoingUp(s))),
   athletics: (s, score) => (complexStands(s)
     ? COMPLEX_WORDS.termReading(chosenIn(s), s, score >= 1)

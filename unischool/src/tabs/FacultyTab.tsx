@@ -1,4 +1,5 @@
 import AdministrationPanel from './AdministrationPanel';
+import SpeedUpOffers from '../components/SpeedUpOffers';
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
@@ -518,7 +519,7 @@ function waitingByField(s: GameState): Map<string, FieldWaiting> {
 // training picks and what they do, or what the college must build first.
 // Shown to a college specialized in academics, and wherever an institute is
 // going up or stands (a sandbox's).
-function TrainingBar({ s }: { s: GameState }) {
+function TrainingBar({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const W = TRAINING_WORDS;
   const institute = s.tech.find((t) => t.id === TRAINING_INSTITUTE_ID);
   const building = institute?.status === 'developing';
@@ -537,6 +538,7 @@ function TrainingBar({ s }: { s: GameState }) {
       <span className="training-bar-count" aria-live="polite">{W.picksLeft(left, of)}</span>
       <span className="training-bar-hint"><HelpHint text={note} /></span>
       <p className="training-bar-note">{note}</p>
+      <SpeedUpOffers s={s} act={act} />
     </div>
   );
 }
@@ -775,7 +777,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
               sort={gridSort} setSort={setSort} filter={grid} setFilter={setGrid}
               fields={cap.fields} market={market} training={training} shown={shownPeople.length} total={people.length}
             />
-            {!market && <TrainingBar s={s} />}
+            {!market && <TrainingBar s={s} act={act} />}
             {market && (
               <p className="faculty-market-note">
                 {s.candidates.length} listed · a listing withdraws after {candidateListingWeeks(s)} weeks, and the market turns over every week.

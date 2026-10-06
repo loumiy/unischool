@@ -1815,6 +1815,14 @@ button.build-tile { font-family: inherit; }
 .athletics-complex-line { margin: 0 0 6px; font-size: var(--text-sm); color: var(--ink); line-height: 1.4; }
 .research-park-line, .research-park-note { margin: 0 0 6px; font-size: var(--text-sm); color: var(--ink); line-height: 1.4; }
 .research-park-note { font-size: var(--text-xs); color: var(--ink-muted); font-style: italic; }
+/* What money can speed (Plan 95X, components/SpeedUpOffers.tsx), on the
+   specialization's own panel: a row per purchase, its words and its price. */
+.speed-ups { flex: 1 1 100%; margin: var(--space-12) 0 0; display: grid; gap: 6px; }
+.speed-ups-head { margin: 0; font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: var(--text-2xs); color: var(--ink-muted); }
+.speed-up { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.speed-up-text { flex: 1 1 260px; margin: 0; font-size: var(--text-sm); color: var(--ink); line-height: 1.4; }
+.speed-up-done { font-size: var(--text-xs); color: var(--ink-muted); font-style: italic; }
+button.btn-speed-up { color: var(--school-primary); border-color: var(--school-primary); white-space: nowrap; }
 /* The labs that have finished a project, as a tally: a cell per lab, green
    and ticked once it has (Plan 90). Each cell's tooltip names its lab. */
 .park-tally { display: grid; gap: var(--space-6); margin: var(--space-12) 0 var(--space-8); }

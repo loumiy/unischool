@@ -1,5 +1,6 @@
 import type { ComplexRun, GameState } from '../state/types';
 import { standsOnCampus } from '../state/types';
+import { PHASE_RUN_WEIGHT, phaseStands } from './speedUpData';
 
 // ---------------------------------------------------------------------
 // The athletic performance complex (Plan 85G): the athletics
@@ -103,8 +104,13 @@ export function complexRuns(s: GameState): ComplexRun[] {
   return (s.orgs.complexRuns ?? []).filter((r) => r.year >= from);
 }
 
+// A run made with the second phase standing counts half again (Plan 95X).
+export function runPoints(r: ComplexRun): number {
+  return COMPLEX_POINTS[r.finish] * (r.phase ? PHASE_RUN_WEIGHT : 1);
+}
+
 export function complexPoints(s: GameState): number {
-  return complexRuns(s).reduce((sum, r) => sum + COMPLEX_POINTS[r.finish], 0);
+  return complexRuns(s).reduce((sum, r) => sum + runPoints(r), 0);
 }
 
 // A sport's postseason, recorded (playoffs.ts's runPlayoffs): a deep run
@@ -112,7 +118,7 @@ export function complexPoints(s: GameState): number {
 export function recordComplexRun(s: GameState, sport: string, finish: string): void {
   const from = s.clock.year - COMPLEX_WINDOW_YEARS + 1;
   const runs = (s.orgs.complexRuns ?? []).filter((r) => r.year >= from);
-  if (complexWorks(s) && isDeepRun(finish)) runs.push({ year: s.clock.year, sport, finish });
+  if (complexWorks(s) && isDeepRun(finish)) runs.push({ year: s.clock.year, sport, finish, ...(phaseStands(s) ? { phase: true as const } : {}) });
   s.orgs.complexRuns = runs;
 }
 

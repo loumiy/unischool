@@ -1,7 +1,7 @@
 import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
 import type {
-  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, Facing, GameState, InitiativeDepth, Pillar, Placements, ScholarshipLevel, SchoolColors, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, Facing, GameState, InitiativeDepth, Pillar, Placements, ScholarshipLevel, SchoolColors, SpeedUpKind, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import { emptyDowntown } from '../data/downtownData';
@@ -175,6 +175,9 @@ export type Action =
   // one course fewer for a term, and a course that no longer fits moves to a
   // colleague with room, or waits for an instructor.
   | { type: 'TRAIN_FACULTY'; facultyId: string }
+  // A purchase that fills the specialization's share sooner (Plan 95X,
+  // systems/prestige/speedUps.ts).
+  | { type: 'BUY_SPEED_UP'; buy: SpeedUpKind }
   // `candidate` is the whole person: they exist only in the interrupt
   // payload. `null` declines and records the week asked.
   | { type: 'RESOLVE_ATHLETIC_DIRECTOR'; candidate: Coach | null; mascot: string }
@@ -304,6 +307,7 @@ export function createPreStartState(): GameState {
     specialization: 'none',
     training: { year: 1, trained: [] },
     downtown: emptyDowntown(),
+    bought: { classes: [], autumn: [] },
     milestones: {},
     courseFaculty: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
@@ -467,6 +471,7 @@ function foundState(
     specialization: 'none',
     training: { year: 1, trained: [] },
     downtown: emptyDowntown(),
+    bought: { classes: [], autumn: [] },
     milestones: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),

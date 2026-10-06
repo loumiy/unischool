@@ -4,6 +4,7 @@ import { oneGradeUp, gradeFor } from '../../data/courseQuality';
 import {
   TRAINING_WEEKS, TRAINING_WORDS, instituteStands, picksFor, trainingWeek,
 } from '../../data/trainingData';
+import { classBought } from '../../data/speedUpData';
 import { planTrainingCoverage } from '../techtree/techSystem';
 import { recordTraining } from './career';
 import { gameDateOfWeek } from '../../format';
@@ -33,8 +34,10 @@ export function trainedThisYear(s: GameState): readonly string[] {
   return s.training.year === s.clock.year ? s.training.trained : [];
 }
 
+// The year's picks; twice over in a year the college bought a second class
+// (Plan 95X, speedUpData.ts).
 export function trainingPicks(s: GameState): number {
-  return picksFor(s.faculty.length);
+  return picksFor(s.faculty.length) * (classBought(s) ? 2 : 1);
 }
 
 export function picksLeft(s: GameState): number {

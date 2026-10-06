@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import SpeedUpOffers from '../components/SpeedUpOffers';
 import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
@@ -328,7 +329,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           </>
         )}
       </dl>
-      <ComplexSection s={s} />
+      <ComplexSection s={s} act={act} />
     </section>
   );
 }
@@ -339,7 +340,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
 // runs that fill athletics' specialization share); going up, or open to
 // build; and otherwise that it is the athletics specialization's own
 // building, which this college may or may not yet choose.
-function ComplexSection({ s }: { s: GameState }) {
+function ComplexSection({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const complex = s.tech.find((t) => t.id === ATHLETICS_COMPLEX_ID);
   if (!complex) return null;
   const chosen = specializationOf(s);
@@ -354,6 +355,7 @@ function ComplexSection({ s }: { s: GameState }) {
     <section className="athletics-complex" aria-label={COMPLEX_WORDS.head}>
       <h3 className="facility-group-head">{COMPLEX_WORDS.head}</h3>
       <p className="athletics-complex-line">{line}</p>
+      {chosen === 'athletics' && complexStands(s) && <SpeedUpOffers s={s} act={act} />}
     </section>
   );
 }

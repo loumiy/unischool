@@ -43,7 +43,7 @@ import { unlockAvailable } from '../src/systems/techtree/techSystem';
 import { pillarBreakdown } from '../src/systems/prestige/prestigeSystem';
 import { tickResearch } from '../src/systems/research/researchSystem';
 import { brokenRules } from '../sim/harness/invariants';
-import { LANDMARKS_AT_ONCE, commissionLandmarks } from '../sim/harness/researchPark';
+import { landmarksAtOnce, commissionLandmarks } from '../sim/harness/researchPark';
 import { foundGame } from '../sim/harness/game';
 
 let checks = 0;
@@ -249,8 +249,8 @@ function earned(specialization: GameState['specialization']): GameState {
   const g = foundGame({ from: s });
   const started = commissionLandmarks(g);
   const running = Object.values(g.s.research.initiatives).filter((i) => i.depth === 'landmark').length;
-  assert(started > 0 && running === started && running <= LANDMARKS_AT_ONCE, `it commissions Landmark Programs, no more than ${LANDMARKS_AT_ONCE} (${running})`);
-  assert(commissionLandmarks(g) === 0 || running < LANDMARKS_AT_ONCE, 'and no more once they run');
+  assert(started > 0 && running === started && running <= landmarksAtOnce(g.s), `it commissions Landmark Programs, no more than ${landmarksAtOnce(g.s)} (${running})`);
+  assert(commissionLandmarks(g) === 0 || running < landmarksAtOnce(g.s), 'and no more once they run');
   const other = structuredClone(s);
   other.specialization = 'academics';
   assert(commissionLandmarks(foundGame({ from: other })) === 0, 'a college specialized in anything else commissions none');

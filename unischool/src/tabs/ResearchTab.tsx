@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import SpeedUpOffers from '../components/SpeedUpOffers';
 import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState, Initiative } from '../state/types';
@@ -18,7 +19,7 @@ import { CloseIcon, RemoveIcon } from '../components/icons';
 import { projectOpens } from '../data/projectData';
 import { labsTowardPark, projectOpen } from '../systems/estate/projects';
 import { standsOnCampus } from '../state/types';
-import { PARK_WORDS, landmarkYears, landmarksRunning, parkReading } from '../data/researchParkData';
+import { PARK_WORDS, landmarkYears, landmarksCounted, landmarksRunning, parkReading } from '../data/researchParkData';
 import { PILLAR_WORDS } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/specialization';
 import { specializationOfferRule } from '../data/prestigeWords';
@@ -320,7 +321,7 @@ function VacantPanel(
 // it; any other sees its progress, since it also waits on every standing
 // lab having finished a project (projects.ts's everyLabFinished): the
 // count, each lab marked, and what a new lab does to it.
-function ResearchParkProgress({ s }: { s: GameState }) {
+function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
   if (!park?.project) return null;
   const chosen = specializationOf(s);
@@ -330,9 +331,10 @@ function ResearchParkProgress({ s }: { s: GameState }) {
         <h3 className="facility-group-head">{PARK_WORDS.head}</h3>
         <p className="research-park-line">
           {chosen === 'research'
-            ? PARK_WORDS.works(landmarkYears(s), landmarksRunning(s), parkReading(s) >= 1)
+            ? PARK_WORDS.works(landmarkYears(s), landmarksRunning(s), parkReading(s) >= 1, landmarksCounted(s))
             : chosen ? PARK_WORDS.idle(PILLAR_WORDS[chosen]) : PARK_WORDS.idleUnchosen}
         </p>
+        {chosen === 'research' && <SpeedUpOffers s={s} act={act} />}
       </section>
     );
   }
@@ -453,7 +455,7 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
                 <VacantPanel key={lab.id} s={s} act={act} lab={lab} startRequested={startLab === lab.id} />
               ))}
             </div>
-            <ResearchParkProgress s={s} />
+            <ResearchParkProgress s={s} act={act} />
           </>
         )}
       </section>

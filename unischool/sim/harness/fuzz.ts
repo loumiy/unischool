@@ -27,6 +27,7 @@ import {
 } from './moves';
 import { slotFree } from '../../src/systems/administration/offices';
 import { OFFICES } from '../../src/data/officeData';
+import { SPEED_UP_KINDS } from '../../src/data/speedUpData';
 
 const BUDGET_TIERS: AthleticsBudgetTier[] = ['low', 'medium', 'high'];
 const ROLES = ['head', 'assistant', 'trainer'] as const;
@@ -57,6 +58,10 @@ function rawGenerators(g: Game): Array<[number, Generator]> {
     // A training pick for anyone (Plan 85E): refused without the institute,
     // for an A, twice in a year or with the picks spent.
     [1, (g) => { const f = any(g.s.faculty); return f ? { type: 'TRAIN_FACULTY', facultyId: f.id } : null; }],
+    // Any purchase that speeds a specialization's share (Plan 95X): refused
+    // for another specialization, before its building, twice in a year or
+    // short of cash.
+    [1, () => ({ type: 'BUY_SPEED_UP', buy: any(SPEED_UP_KINDS)! })],
     // Decline any offer, a second time in a year included (Plan 78D).
     [1, (g) => { const id = any(g.s.programOffers); return id ? { type: 'DECLINE_OFFER', programId: id } : null; }],
     [1, (g) => { const id = any(Object.keys(g.s.placements)); return id ? { type: 'DEMOLISH_BUILDING', id } : null; }],

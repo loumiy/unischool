@@ -1,5 +1,6 @@
 import type { DowntownState, FestivalScale, FestivalYear, GameState } from '../state/types';
 import type { CatalogueEvent } from './eventCatalogueTypes';
+import { AUTUMN_POINTS } from './speedUpData';
 
 // ---------------------------------------------------------------------
 // The downtown and the festival (Plan 85H): the student-life
@@ -160,8 +161,15 @@ export function festivalsInWindow(s: GameState): FestivalYear[] {
   return festivals.filter((f) => f.year <= to && f.year > to - FESTIVAL_WINDOW_YEARS);
 }
 
+// The autumn festivals bought (Plan 95X, speedUpData.ts) in the last
+// FESTIVAL_WINDOW_YEARS years, this year's among them.
+export function autumnsInWindow(s: GameState): number {
+  return (s.bought?.autumn ?? []).filter((y) => y <= s.clock.year && y > s.clock.year - FESTIVAL_WINDOW_YEARS).length;
+}
+
 export function festivalPoints(s: GameState): number {
-  return festivalsInWindow(s).reduce((sum, f) => sum + (f.scale === 'none' ? 0 : FESTIVAL[f.scale].points), 0);
+  return festivalsInWindow(s).reduce((sum, f) => sum + (f.scale === 'none' ? 0 : FESTIVAL[f.scale].points), 0)
+    + autumnsInWindow(s) * AUTUMN_POINTS;
 }
 
 export function festivalHeld(s: GameState, year: number): FestivalYear | undefined {

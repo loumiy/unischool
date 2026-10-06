@@ -29,9 +29,10 @@ import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
-import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../data/researchParkData';
+import { LANDMARKS_COUNTED, LANDMARKS_COUNTED_MAX, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../data/researchParkData';
 import { ATHLETICS_COMPLEX_ID, isDeepRun } from '../data/athleticsComplexData';
 import { FESTIVAL_EVENT, FESTIVAL_SCALES, GOODWILL_MAX, GOODWILL_START, emptyDowntown } from '../data/downtownData';
+import { emptyBought } from '../data/speedUpData';
 import { emptyCareer } from '../systems/faculty/career';
 import { offerablePrograms, PROGRAM_OFFER_COUNT } from '../systems/techtree/programOffers';
 
@@ -66,7 +67,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 97; // Plan 95V: the programs cut
+export const SAVE_VERSION = 98; // Plan 95X: what money bought for the specialization
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -342,6 +343,29 @@ function noCutsYet(state: GameState): void {
   if (state.orgs) state.orgs.cutPrograms = [];
 }
 
+// 97 -> 98, Plan 95X (the second review's B4-10): money buys a
+// specialization's share sooner. No save has bought anything.
+function nothingBoughtYet(state: GameState): void {
+  state.bought = emptyBought();
+}
+
+// What money bought (Plan 95X), on every load: the training classes and the
+// autumn festivals a whole year each, once, no later than the save's; the
+// wing and the phase a year, or absent. Anything else is dropped, which only
+// gives back a year's purchase unspent.
+function sanitizeBought(state: GameState): void {
+  const raw = state.bought as unknown as { classes?: unknown; wing?: unknown; autumn?: unknown; phase?: unknown } | undefined;
+  const year = (y: unknown): y is number => Number.isInteger(y) && (y as number) >= 1 && (y as number) <= state.clock.year;
+  const years = (list: unknown) => [...new Set((Array.isArray(list) ? list : []).filter(year))].sort((a, b) => a - b);
+  if (typeof raw !== 'object' || raw === null) { state.bought = emptyBought(); return; }
+  state.bought = {
+    classes: years(raw.classes),
+    autumn: years(raw.autumn),
+    ...(year(raw.wing) ? { wing: raw.wing } : {}),
+    ...(year(raw.phase) ? { phase: raw.phase } : {}),
+  };
+}
+
 // The programs cut (Plan 95V), on every load: a sport the game knows and a
 // year no later than the save's; anything else is dropped, which only ends
 // a dip in giving early.
@@ -379,21 +403,21 @@ function sanitizeDowntown(state: GameState): void {
 // year; anything else is dropped.
 function sanitizeComplexRuns(state: GameState): void {
   const raw = state.orgs.complexRuns as unknown;
-  state.orgs.complexRuns = (Array.isArray(raw) ? raw : []).filter((r): r is { year: number; sport: string; finish: 'champion' | 'final' | 'semifinal' } => (
+  state.orgs.complexRuns = (Array.isArray(raw) ? raw : []).filter((r): r is { year: number; sport: string; finish: 'champion' | 'final' | 'semifinal'; phase?: unknown } => (
     typeof r === 'object' && r !== null && Number.isInteger(r.year) && r.year >= 1 && r.year <= state.clock.year
       && typeof r.sport === 'string' && typeof r.finish === 'string' && isDeepRun(r.finish)
-  )).map((r) => ({ year: r.year, sport: r.sport, finish: r.finish }));
+  )).map((r) => ({ year: r.year, sport: r.sport, finish: r.finish, ...(r.phase === true ? { phase: true as const } : {}) }));
 }
 
 // The Research Park's Landmark work (Plan 85F), on every load: a list of
-// whole years and weeks, each year once, no more than LANDMARKS_COUNTED a
+// whole years and weeks, each year once, no more than LANDMARKS_COUNTED_MAX a
 // week; anything else is dropped, which only empties a year of the record.
 function sanitizeLandmarkWork(state: GameState): void {
   const raw = state.research.landmarkWork as unknown;
   const seen = new Set<number>();
   state.research.landmarkWork = (Array.isArray(raw) ? raw : []).filter((w): w is { year: number; weeks: number } => {
     const ok = typeof w === 'object' && w !== null && Number.isInteger(w.year) && w.year >= 1 && w.year <= state.clock.year
-      && Number.isInteger(w.weeks) && w.weeks >= 0 && w.weeks <= LANDMARKS_COUNTED * WEEKS_PER_YEAR && !seen.has(w.year);
+      && Number.isInteger(w.weeks) && w.weeks >= 0 && w.weeks <= LANDMARKS_COUNTED_MAX * WEEKS_PER_YEAR && !seen.has(w.year);
     if (ok) seen.add(w.year);
     return ok;
   }).sort((a, b) => a.year - b.year);
@@ -463,6 +487,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   94: boardLetterWeeks,
   95: noNewsYet,
   96: noCutsYet,
+  97: nothingBoughtYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -1427,6 +1452,7 @@ function sanitize(state: GameState): void {
   sanitizeComplexRuns(state);
   sanitizeCutPrograms(state);
   sanitizeDowntown(state);
+  sanitizeBought(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;
