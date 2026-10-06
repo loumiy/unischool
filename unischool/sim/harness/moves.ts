@@ -31,6 +31,7 @@ import { bedsWithDowntown } from '../../src/systems/satisfaction/satisfactionSys
 import type { Game } from './game';
 import { heldOffices, officeAllowance, officeHeld, officePrice, openOfficeRefusal, slotFree } from '../../src/systems/administration/offices';
 import { charterRefusal, foundTeamCost, foundTeamRefusal } from '../../src/systems/administration/officeActions';
+import { staffingCovers } from '../../src/systems/delegation/seats';
 
 export type Pick = <T>(items: readonly T[]) => T | undefined;
 export const first: Pick = (items) => items[0];
@@ -220,7 +221,7 @@ export function buildDorm(g: Game, fill: number, { reserve = 0 }: MoveOptions = 
 // grade, so a player aiming for the top manages who teaches what. Three
 // steps, weakest courses first:
 //   1. a course below an A moves to someone on the roster who would teach
-//      it at least TEND_MARGIN points better now;
+//      it at least TEND_MARGIN points better now, unless a seat staffs it;
 //   2. if its teacher will never reach an A on it (their potential is too
 //      low), hire a candidate who will, at most `hires` a call — step 1
 //      moves the course to them once they have grown past its teacher;
@@ -259,7 +260,9 @@ export function tendTeaching(g: Game, { reserve = 0, hires = 2 }: MoveOptions & 
   for (const { t, q } of weak) {
     const loads = facultyLoads(g.s);
     const current = g.s.courseFaculty[t.id];
-    const better = eligibleInstructors(g.s, t, t.id)
+    // A Provost or Dean on Staff for the A (Plan 95S) makes this course's
+    // swaps: the player leaves step 1 to the seat, and still hires.
+    const better = staffingCovers(g.s, t) ? undefined : eligibleInstructors(g.s, t, t.id)
       .filter((f) => f.id !== current)
       .map((f) => ({ f, score: projectedQuality(g.s, t, f, loads).score }))
       .sort((a, b) => b.score - a.score)[0];

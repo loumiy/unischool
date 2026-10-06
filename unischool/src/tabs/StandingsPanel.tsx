@@ -10,7 +10,7 @@ import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { rivalRanks } from '../systems/rivals/collegeRival';
 import { sportById } from '../data/studentLifeData';
 import { PILLARS, pillarBreakdown } from '../systems/prestige/prestigeSystem';
-import { Standing } from './StandingBreakdown';
+import { Standing, type BelowALink } from './StandingBreakdown';
 
 // The league table (Plan 31, V1-22, V1-33): where the college stands on
 // prestige, its four pillars, access and financial strength this year, who
@@ -18,7 +18,7 @@ import { Standing } from './StandingBreakdown';
 // charts are drawn upside down to read that way. Under the cards, what each
 // pillar reads (Plan 85B): prestige is their blend.
 
-export default function StandingsPanel({ s }: { s: GameState }) {
+export default function StandingsPanel({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   const field = s.rivals.length + 1;
   const rows = s.history.filter((h) => h.standings !== undefined);
   const rival = rivalRanks(s);
@@ -76,7 +76,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
         The four pillars, each on the prestige scale. Prestige is their blend: {pillarWeightsWords()}.
       </p>
       <div className="standings">
-        {PILLARS.map((p) => <Standing key={p} breakdown={pillarBreakdown(s, p)} />)}
+        {PILLARS.map((p) => <Standing key={p} breakdown={pillarBreakdown(s, p)} belowA={belowA} />)}
       </div>
       {rival && (
         <p className="stat">

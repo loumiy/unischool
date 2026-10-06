@@ -63,6 +63,11 @@ export function meanGradePoints(scores: readonly number[]): number {
 // sit two steps a third apart, as a transcript reads them (B, B+, A−, A),
 // and the letter is the nearest step. F has no plus.
 const GRADE_LADDER: readonly Grade[] = ['F', 'D', 'C', 'B', 'A'];
+// How many letters `to` stands above `from` (Plan 95S: the Provost's
+// teaching policy moves a course only for a full letter or more).
+export function lettersBetter(from: Grade, to: Grade): number {
+  return GRADE_LADDER.indexOf(to) - GRADE_LADDER.indexOf(from);
+}
 const GRADE_STEPS: ReadonlyArray<readonly [string, number]> = GRADE_LADDER.flatMap((g, i) => {
   const next = GRADE_LADDER[i + 1];
   if (!next) return [[g, GRADE_POINTS[g]] as const];
