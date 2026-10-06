@@ -41,7 +41,9 @@ export const fakeStorage = new Map<string, string>();
 };
 
 export const DEFAULT_SEED = 12345;
-export const DEFAULT_NAME = 'Test University';
+// "Test": the charter adds the suffix, so a save reads "Test College",
+// then "Test University" (the second review's H7-8b).
+export const DEFAULT_NAME = 'Test';
 const MAX_ANSWERS = 64;
 
 export interface Game {

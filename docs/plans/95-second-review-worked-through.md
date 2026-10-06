@@ -1185,8 +1185,35 @@ scenario, which the review itself fixed (H7-8a).
 - **The harness's college** (H7-8b). `DEFAULT_NAME` (`sim/harness/game.ts:44`)
   becomes "Test", so a save reads "Test College", and after the charter
   "Test University". Rename only. The run's random stream does not read
-  the name, so the sim reads the same. Check that it does.
+  the name, so the sim reads the same. Check that it does. (It did not:
+  see As implemented.)
 - **Checks:** a test for the new caption, and `npm run sim` unchanged.
+
+**As implemented.**
+- The founding form's caption for a name that opens "University of" or
+  "College of" is `foundingData.ts`'s `prefixedCaption`, shown when
+  `types.ts`'s new `typedPrefixed` holds. It takes the place of the
+  "University" caption, so the two never show together. `charter.test`
+  covers `typedPrefixed`.
+- The harness's college is "Test" (`DEFAULT_NAME`). Its saves read "Test
+  College", and "Test University" after the charter.
+- **Deviation: the sim moved, and the baseline was re-recorded.** The plan
+  said the random stream does not read the name. It does: the name seeds
+  the program offers' roll (`programOffers.ts:186`), the promises
+  (`promises.ts:66`) and the chronicle (`chronicle.ts:338`). Renaming the
+  harness's college reshuffles all three. No rule changed. The shift is the
+  noise of a new draw:
+
+  | Player | Y50 rank | Y50 prestige |
+  |---|---|---|
+  | Completionist | 1 (−2) | 115.1 (+1.3) |
+  | Selective | 64 (+2) | 51.6 (+0.2) |
+  | Lean | 69 (−6) | 42.6 (−0.4) |
+  | Guided | 1 | 116.0 (−1.1) |
+  | Guided, unspecialized | 6 | 109.4 (−1.7) |
+
+  So AC is a seventh baseline move, made on its own as the plan's rule
+  asks. Every later PR is read against it.
 
 ### PR 95AD — Three events name the professor they mean (H7-9)
 
