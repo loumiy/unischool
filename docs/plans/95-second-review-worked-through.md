@@ -614,10 +614,12 @@ The owner's answer: open near the first years' grade, with no words added.
     much to keep". Every figure is read from the upkeep rule, never typed.
     "Study space" in the excess line reads "academic space", as the need is
     named.
-  - **A greyed tile says why on its face.** The reason ("$2.1M short";
-    "residences can't be borrowed for: only academic and capital projects
-    can") is set on the tile as Elm Hall's loan line is, not only in its
-    `title`.
+  - **A greyed tile says why on its face.** The reason is set on the tile
+    as Elm Hall's loan line is, not only in its `title`. Where no loan is
+    offered, it says which of `loanFor`'s conditions stopped it
+    (`treasury.ts`). In the session, Lakeside House's $2.1M shortfall was
+    larger than the borrowing room. The building type was not the reason.
+    So: "$2.1M short · the college can borrow up to $1.4M".
   - **The charter.** "With research under way" becomes "With its first
     laboratory open" in `charter.ts:31-32` and `eventCatalogue.ts:2559`.
     The charter fires when a lab opens, before any project is commissioned.
