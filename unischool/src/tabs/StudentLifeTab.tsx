@@ -12,7 +12,7 @@ import { sectionAnchor } from '../components/sectionTarget';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, interestClubs, sportClubCapacity, sportClubs,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
-import { ATTRIBUTE_WEIGHTS, attributeDetail, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionTarget, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
@@ -54,8 +54,8 @@ function varsityNote(club: StudentClub, s: GameState): string {
   return year <= s.clock.year ? 'may petition to go varsity this year' : `may petition to go varsity in Year ${year}`;
 }
 
-// Shows both the per-source contribution and the target with and without
-// the whole layer: they answer different questions.
+// Shows the per-source contribution; the target itself heads the needs'
+// breakdown (Plan 95Q).
 // Where the asked-for building stands, in words; nothing while it is simply
 // on offer.
 const ASK_STATUS: Record<BuildableStatus, string> = {
@@ -86,8 +86,6 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <Figure label={`Clubs (${effect.clubCount})`} value={share(effect.clubTargetContribution)} hint={FIGURE_HINTS.clubs} />
         <Figure label={`Greek chapters (${effect.chapterCount})`} value={share(effect.greekTargetContribution)} hint={FIGURE_HINTS.greek} />
         <Figure label={`Varsity athletics (${effect.teamCount})`} value={share(effect.athleticsTargetContribution)} hint={FIGURE_HINTS.varsity} />
-        <Figure label="Satisfaction target" value={`${satisfactionFigure(effect.targetWithoutStudentLife)} → ${satisfactionFigure(effect.target)}`} hint={FIGURE_HINTS.satisfactionTarget} />
-        <Figure label="Satisfaction today" value={satisfactionFigure(s.students.satisfaction)} hint={FIGURE_HINTS.satisfactionToday} />
         <Figure label="Weekly cost" value={`${money(upkeep)} (${money(upkeep * WEEKS_PER_YEAR)}/yr)`} hint={FIGURE_HINTS.orgCost} />
       </dl>
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
@@ -265,6 +263,12 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
           text="The five needs the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the multiplier under each name is how much of the headline number that need is worth (×0.20 is a fifth of it). Expand one to see exactly what is behind its score: every building serving that need, how many it serves and any other named contributor."
         />
       </div>
+      {/* The target and today's figure head the needs they are made of,
+          not the clubs' panel (Plan 95Q, the second review's B3-10). */}
+      <dl className="satisfaction-target">
+        <Figure label="Satisfaction target" value={satisfactionFigure(satisfactionTarget(s))} hint={FIGURE_HINTS.satisfactionTarget} />
+        <Figure label="Satisfaction today" value={satisfactionFigure(s.students.satisfaction)} hint={FIGURE_HINTS.satisfactionToday} />
+      </dl>
       <ul className="satisfaction-cards">
         {ATTRIBUTE_ORDER.map((attribute) => (
           <AttributeCard key={attribute} s={s} attribute={attribute} />

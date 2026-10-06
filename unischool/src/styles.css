@@ -655,8 +655,10 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
 .toolbar-popup-body { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* Build popup: full width, capped short so most of the map stays visible;
-   32px taller since the tiles draw their buildings (Plan 94). */
-.build-popup { left: 16px; right: 16px; max-height: 372px; }
+   32px taller since the tiles draw their buildings (Plan 94), and 60px more
+   since a lab, the Library and a greyed tile say why on their faces (Plan
+   95Q). A tab of short tiles stays as short as they are. */
+.build-popup { left: 16px; right: 16px; max-height: 432px; }
 
 /* Log popup: the body scrolls, so .log's max-height is lifted. */
 .log-popup { left: 16px; width: min(420px, calc(100vw - 32px)); max-height: 42vh; }
@@ -1992,6 +1994,8 @@ button.build-tile { font-family: inherit; }
 /* ---------- Satisfaction cards (StudentLifeTab.tsx) ----------
    auto-fit so the cards reflow from five across to one column without a
    breakpoint. `dense` backfills the gap an open card leaves. */
+/* The target and today's figure over the needs (Plan 95Q). */
+.panel dl.satisfaction-target { margin: 0 0 var(--space-12); }
 .satisfaction-cards { display: grid; gap: 10px; grid-auto-flow: row dense;
   grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); }
 .satisfaction-card { border: 2px solid var(--outline); border-radius: var(--radius-lg);

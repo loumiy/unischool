@@ -2556,7 +2556,7 @@ export const CHARTER_EVENT: CatalogueEvent = {
   cooldownYears: 0,
   when: {},
   title: 'The charter',
-  text: 'With research under way, the board has voted the college a university charter. {name} College may now call itself {name} University, as many American colleges did when they took up research and graduate work. Others kept the name they opened under and were none the worse for it.\n\nThe board would have the new name carved over Founders Hall, unless the President prefers the old one, and if the President would rather the college had another name altogether, this is the one time to say so: the stone is cut once. The stonemason has been asked to wait a month.',
+  text: 'With its first laboratory open, the board has voted the college a university charter. {name} College may now call itself {name} University, as many American colleges did when they took up research and graduate work. Others kept the name they opened under and were none the worse for it.\n\nThe board would have the new name carved over Founders Hall, unless the President prefers the old one, and if the President would rather the college had another name altogether, this is the one time to say so: the stone is cut once. The stonemason has been asked to wait a month.',
   timeoutWeeks: 4,
   choices: [
     { id: 'university', label: 'Become {name} University', effects: { charter: 1 } },

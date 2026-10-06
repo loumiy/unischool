@@ -124,6 +124,21 @@ export function loanFor(s: GameState, cost: number): number {
   return Math.ceil(shortfall);
 }
 
+// Why loanFor offers nothing for a building the cash cannot cover, its own
+// conditions in its order (Plan 95Q, the second review's B3-10): the board
+// has frozen borrowing, there is no cash in hand, or the shortfall is past
+// the borrowing room. Null when a loan is offered, or none is needed. Read
+// only by the build menu's greyed tile.
+export type LoanBar = 'frozen' | 'noCash' | 'room';
+export function loanBar(s: GameState, cost: number): LoanBar | null {
+  const shortfall = cost - s.finance.cash;
+  if (shortfall <= 0) return null;
+  if (!borrowingAllowed(s)) return 'frozen';
+  if (s.finance.cash <= 0) return 'noCash';
+  if (shortfall > borrowingRoom(s)) return 'room';
+  return null;
+}
+
 export function takeLoan(s: GameState, amount: number, buildingId: string): void {
   s.finance.cash += amount;
   (s.finance.loans ??= []).push({ buildingId, balance: amount, payment: loanPayment(amount), weeksLeft: LOAN_WEEKS });
