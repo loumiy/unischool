@@ -2659,6 +2659,33 @@ does. `BACKLOG.md`'s entry is gone.
   twenty-five at a college that has hired nobody since; with the upper end
   the tenure case never names them, as the section says, and the event
   waits instead.
+- **Balance** (re-baselined on PR 95R's baseline; 30 runs, three seeds).
+  Prestige moves little: Guided Y25 78.7 (−0.7), Y50 117.6 (−2.2); its
+  specialized variants Y50 −0.2 to −2.2; Completionist Y50 −0.2, Selective
+  −1.1, Lean +0.7; Idle does not move. Every Guided run is still first at
+  Y50 and never in the red. The faculty's means (Guided, the mean of the
+  three seeds, measured with the harness; "before" is this branch with the
+  three events' `names` taken off, which reproduces the old baseline's
+  prestige and cash):
+
+  | | Before | After |
+  |---|---|---|
+  | Research, Y25 | 53.1 | 53.9 |
+  | Teaching, Y25 | 67.7 | 70.0 |
+  | Research, Y50 | 66.3 | 63.9 |
+  | Teaching, Y50 | 84.6 | 84.1 |
+
+  **What moves most is the late money.** Guided's Y50 cash falls from
+  $6.4B to $0.3B (median), its endowment from about $3B to under $0.1B,
+  and its Y50 research rank from 1 to 8. On the old baseline all three
+  seeds' research grants snowballed after year 34 (seed 4242: $12.8B of
+  grants by Y50, against $1.5B now), and the money swept into the
+  endowment from year 42. Now no seed's does. Taking the names off one
+  event at a time (seeds 4242 and 12345) places it mostly in the tenure
+  case and the two-body problem rather than the offer, but which run takes
+  off is a threshold, not a slope. The second review's area 7 had already
+  called the year-50 surplus a question of balance for area 4. The
+  research variant still takes off ($6.8B, +$0.4B).
 
 ### What area 7 does not do
 
