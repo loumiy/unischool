@@ -804,6 +804,14 @@ export class Recorder {
     this.roots.delete(key);
   }
 
+  // Takes in defs (gradients, patterns, masks) before any recording that
+  // uses them. A fill's url(#id) is resolved as its element is recorded, so
+  // a def first seen later leaves that recording without it (Plan 95AB, the
+  // second review's H7-8c).
+  declare(node: React.ReactNode): void {
+    this.collectDefs(node);
+  }
+
   private miss(name: string): void {
     this.stats.unsupported.set(name, (this.stats.unsupported.get(name) ?? 0) + 1);
   }

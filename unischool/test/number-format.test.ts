@@ -47,6 +47,15 @@ console.log('number format tests');
   reads(moneyShort(180_400), '$180k', 'money, short, thousands');
   reads(moneyShort(3_200_000_000), '$3.2B', 'money, short, billions');
   reads(moneyShort(-450_000), '−$450k', 'money, short, negative');
+  // Each boundary, either side: rounded first, then the unit (H7-6).
+  for (const [v, want] of [
+    [999.4, '$999'], [999.5, '$1k'],
+    [999_499, '$999k'], [999_500, '$1.0M'],
+    [9_949_999, '$9.9M'], [9_950_000, '$10M'],
+    [999_499_999, '$999M'], [999_500_000, '$1.0B'], [999_950_000, '$1.0B'],
+    [9_949_999_999, '$9.9B'], [9_950_000_000, '$10B'],
+    [-999_500, '−$1.0M'],
+  ] as const) reads(moneyShort(v), want, `money, short, at ${v}`);
   reads(signedMoney(5_000), '+$5,000', 'a gain in money');
   reads(signedMoney(-5_000), '−$5,000', 'a loss in money');
   reads(signedMoney(0.2), '$0', 'no change in money');

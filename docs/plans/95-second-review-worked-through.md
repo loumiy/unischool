@@ -1282,6 +1282,48 @@ scenario, which the review itself fixed (H7-8a).
 - **Checks:** a console free of the passive-listener error over a map
   session; the probe's miss count at zero over the review's saves.
 
+**As implemented.**
+- **The wheel.** `CampusMap.tsx`'s zoom-to-cursor handler moved into an
+  effect that adds it to the map's `<svg>` with `{ passive: false }` and
+  removes it on unmount; `onWheel={onWheel}` is gone. The one `<svg>` sits
+  over both maps and takes their pointer, so one listener serves the
+  canvas and the SVG fallback. The zoom itself is unchanged.
+- **The short form.** `moneyShort` walks a small table of units. It rounds
+  at the unit's grain (tenths of a million or billion under ten, whole
+  units otherwise, in whole tenths so 9,950,000 is a hundred of them) and
+  steps up a unit when the rounded figure reaches 1,000. The same applies
+  below a thousand: 999.5 reads "$1k", not "$1,000".
+  `test/number-format.test.ts` checks each boundary, either side:
+  $999 / $1k, $999k / $1.0M, $9.9M / $10M, $999M / $1.0B (at 999,500,000
+  and 999,950,000), $9.9B / $10B, and a negative.
+- **The scaffold.** Why the canvas missed it: `mapCanvas.ts` records the
+  scene's entries before the ground, and only the ground carries
+  `<defs><ScaffoldPattern/></defs>`. So the first frame's sites resolved
+  `url(#campus-scaffold)` to nothing, and kept that until their signature
+  changed. `Recorder.declare(node)` now takes in defs ahead of any
+  recording. The scene has a `defs` field, which `canvasSceneOf` fills with
+  one module-level `<ScaffoldPattern />` (one element, so the pattern's
+  tile is kept). `MapCanvas` declares it whenever it changes, before it
+  records anything. `test/canvas-scene.test.ts` records the sites before
+  the ground both ways. Without the defs the hatch is missed, and with
+  them nothing is.
+- **Measured** (Chromium, dev build, 1440×900; a Completionist year-8 save
+  with eight more buildings set under way at stages from excavation to
+  shell, alongside its own three sites). The session dragged, turned
+  (Q, E), tilted (Z, X), and zoomed by wheel with and without Ctrl, then
+  zoomed in on six sites. On both maps, every wheel event arrived
+  cancelable and was default-prevented (Ctrl included), the page's zoom
+  stayed 1, and the console held no error or warning. The canvas probe's
+  `unsupported` was `{}`. The same six sites on both maps:
+  `docs/reviews/2026-10-review-ii-fixes/95ab-scaffold-canvas-vs-svg.jpg`.
+  The hatching matches at each stage.
+- **Deviations.** The visual check is one save, in one vernacular
+  (georgian), from the opening camera, not every review save. The hatch
+  is the same pattern in every vernacular and is drawn in screen space.
+  The probe was read over that one session. The fix is the order of
+  recording, which the unit test holds for any save. Balance: no
+  simulation code touched, so no sim run.
+
 ### PR 95AC — Names (H7-7, H7-8b)
 
 - **The form says how the name will read** (H7-7). On the founding form,
