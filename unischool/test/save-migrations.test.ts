@@ -22,7 +22,8 @@ import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
 import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
-import { LANDMARKS_COUNTED } from '../src/data/researchParkData';
+import { LANDMARKS_COUNTED, landmarksCounted } from '../src/data/researchParkData';
+import { speedUpRefusal, speedUpsFor } from '../src/systems/prestige/speedUps';
 
 let checks = 0;
 let failures = 0;
@@ -289,6 +290,22 @@ function testCatalogShape(): void {
   assert(strayCourseIds(g.s).length === 0, `and holds no course id the catalog does not (${strayCourseIds(g.s).join(', ')})`);
 }
 
+// ---- 98 -> 99 (Plan 95X): what money bought ----
+// The version-98 fixture is a Guided run specialized in research, the
+// Research Park standing, in Year 40. It loads with nothing bought, three
+// Landmark Programs counted at once, and the wing on sale.
+function testNothingBoughtYet(): void {
+  const raw = fixture('save-v98.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  assert(parsed.version === 98 && (parsed.state as Partial<GameState>).bought === undefined && parsed.state.specialization === 'research', 'the version-98 fixture is specialized in research and has bought nothing');
+  const state = loads(raw, 'the version-98 fixture');
+  if (!state) return;
+  assert(state.bought.classes.length === 0 && state.bought.autumn.length === 0 && state.bought.wing === undefined && state.bought.phase === undefined, 'it loads with nothing bought');
+  assert(landmarksCounted(state) === LANDMARKS_COUNTED, `and ${LANDMARKS_COUNTED} Landmark Programs counted at once`);
+  state.finance.cash = 1e10;
+  assert(speedUpsFor(state).join() === 'wing' && speedUpRefusal(state, 'wing') === null, 'the park\'s second wing is on sale');
+}
+
 testLaunchFixture();
 testChain();
 testCatalogShape();
@@ -296,6 +313,7 @@ testLandmarkWeeks();
 testMilestoneWeeks();
 testBoardLetterWeeks();
 testNoCutsYet();
+testNothingBoughtYet();
 testRoundTrip();
 testRefusals();
 

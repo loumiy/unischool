@@ -1,5 +1,6 @@
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus } from '../state/types';
+import { WING_LANDMARKS, wingStands } from './speedUpData';
 
 // ---------------------------------------------------------------------
 // The research park (Plan 85F): the research specialization's mechanic.
@@ -34,6 +35,15 @@ export const RESEARCH_PARK_NAME = 'the Research Park';
 export const LANDMARK_WINDOW_YEARS = 10;
 export const LANDMARK_YEARS_FOR_FULL = 12;
 export const LANDMARKS_COUNTED = 3;
+
+// The most that count at once at this college: more with the park's second
+// wing bought (Plan 95X, speedUpData.ts's WING_LANDMARKS), which fills the
+// share sooner and leaves it full at the same mark.
+export function landmarksCounted(s: GameState): number {
+  return LANDMARKS_COUNTED + (wingStands(s) ? WING_LANDMARKS : 0);
+}
+// The most a week's record may hold, for the save's check.
+export const LANDMARKS_COUNTED_MAX = LANDMARKS_COUNTED + WING_LANDMARKS;
 
 // The boost (the owner's decision, 2026-10-01): while the park stands at a
 // college specialized in research, every lab's output is this much higher
@@ -80,10 +90,10 @@ export function landmarkYears(s: GameState): number {
 }
 
 // The week's Landmark work, recorded (researchSystem.ts's tickResearch):
-// one week for each Landmark Program running, at most LANDMARKS_COUNTED,
-// on this year's line; lines older than the window go.
+// one week for each Landmark Program running, at most landmarksCounted, on
+// this year's line; lines older than the window go.
 export function recordLandmarkWork(s: GameState): void {
-  const running = Math.min(LANDMARKS_COUNTED, landmarksRunning(s));
+  const running = Math.min(landmarksCounted(s), landmarksRunning(s));
   const from = s.clock.year - LANDMARK_WINDOW_YEARS + 1;
   const work = (s.research.landmarkWork ?? []).filter((w) => w.year >= from);
   if (running > 0) {
@@ -115,8 +125,8 @@ export const PARK_WORDS = {
   termNoPark: (year: string, goingUp: boolean) => (goingUp
     ? `The college is specialized in research${year}, but the Research Park is still going up, so this stays empty. Once it stands, each Landmark Program its labs run fills the share: ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`
     : `The college is specialized in research${year}, but no Research Park stands, so this stays empty. Build one from the capital projects, then commission Landmark Programs in the labs: ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`),
-  termReading: (year: string, done: number, running: number, full: boolean) =>
-    `The college is specialized in research${year}: its Landmark Programs at the Research Park add up to ${years(done)} years of work in the last ${LANDMARK_WINDOW_YEARS} (a year for each program, each year it runs; ${runningNow(running)}). ${full ? `The share is full from ${LANDMARK_YEARS_FOR_FULL}.` : `It fills as that rises, full at ${LANDMARK_YEARS_FOR_FULL}; no more than ${LANDMARKS_COUNTED} running at once count.`}`,
+  termReading: (year: string, done: number, running: number, full: boolean, counted = LANDMARKS_COUNTED) =>
+    `The college is specialized in research${year}: its Landmark Programs at the Research Park add up to ${years(done)} years of work in the last ${LANDMARK_WINDOW_YEARS} (a year for each program, each year it runs; ${runningNow(running)}). ${full ? `The share is full from ${LANDMARK_YEARS_FOR_FULL}.` : `It fills as that rises, full at ${LANDMARK_YEARS_FOR_FULL}; no more than ${counted} running at once count.`}`,
 
   // The term's row while it is empty for want of the specialization, at a
   // college whose park already stands.
@@ -133,8 +143,8 @@ export const PARK_WORDS = {
 
   // The Research tab, under the labs.
   head: 'The Research Park',
-  works: (done: number, running: number, full: boolean) =>
-    `Landmark work in the last ${LANDMARK_WINDOW_YEARS} years: ${years(done)} years of the ${LANDMARK_YEARS_FOR_FULL} that fill research's specialization share${full ? ', which is full' : ''} (a year for each program, each year it runs; ${runningNow(running)}, and no more than ${LANDMARKS_COUNTED} at once count). Every lab's output is ${pct(PARK_RESEARCH_BOOST)} higher while the park stands.`,
+  works: (done: number, running: number, full: boolean, counted = LANDMARKS_COUNTED) =>
+    `Landmark work in the last ${LANDMARK_WINDOW_YEARS} years: ${years(done)} years of the ${LANDMARK_YEARS_FOR_FULL} that fill research's specialization share${full ? ', which is full' : ''} (a year for each program, each year it runs; ${runningNow(running)}, and no more than ${counted} at once count). Every lab's output is ${pct(PARK_RESEARCH_BOOST)} higher while the park stands.`,
   idle: (chosen: string) => `The Research Park stands and its labs may take on Landmark Programs, but the college is specialized in ${chosen}: the park fills no share of research and adds nothing to the labs' output.`,
   idleUnchosen: `The Research Park stands and its labs may take on Landmark Programs. Only once the college specializes in research does its Landmark work fill research's specialization share, and the labs' output rise ${pct(PARK_RESEARCH_BOOST)}.`,
   gatedUnchosen: (offer: string) => `The Research Park is the research specialization's own building, and the Landmark Program comes with it. ${offer}`,

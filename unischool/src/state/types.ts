@@ -693,6 +693,31 @@ export interface DowntownState {
   festivals: FestivalYear[];
 }
 
+// A purchase that fills the specialization's share sooner (Plan 95X): the
+// institute's second training class, the park's second wing, the autumn
+// festival, the downtown's growth step and the complex's second phase.
+export type SpeedUpKind = 'class' | 'wing' | 'autumn' | 'step' | 'phase';
+
+// What money has bought to fill the specialization's share sooner (Plan
+// 95X, the second review's B4-10; systems/prestige/speedUps.ts): one purchase
+// each, open once the share is (the downtown's has two). None raises the
+// share's ceiling. GameState.bought.
+export interface SpeedUps {
+  // Academics: the years a second training class was bought at the Faculty
+  // Training Institute, oldest first.
+  classes: number[];
+  // Research: the year the Research Park's second wing was built. Absent
+  // before.
+  wing?: number;
+  // Student life: the years an autumn festival with a headline act was
+  // bought, oldest first. (The downtown's growth step bought goes straight
+  // into DowntownState.growth.)
+  autumn: number[];
+  // Athletics: the year the Athletic Performance Complex's second phase was
+  // built. Absent before.
+  phase?: number;
+}
+
 // The faculty training program's year (Plan 85E): GameState.training.
 export interface TrainingYear {
   year: number;
@@ -963,6 +988,9 @@ export interface ComplexRun {
   year: number;
   sport: string;
   finish: 'champion' | 'final' | 'semifinal';
+  // Made with the complex's second phase standing (Plan 95X): it counts half
+  // again. Absent otherwise.
+  phase?: true;
 }
 
 // One occasion's result, in a season record (see StudentOrgState.season).
@@ -1342,6 +1370,9 @@ export interface GameState {
   // downtown.ts): the district's growth, the town's goodwill and the
   // festivals held. Moves only at a college specialized in student life.
   downtown: DowntownState;
+  // What money has bought to fill the specialization's share sooner (Plan
+  // 95X, systems/prestige/speedUps.ts).
+  bought: SpeedUps;
   milestones: Record<string, boolean>; // milestone key -> awarded, so each curriculum milestone bonus fires once
   // The year each milestone was awarded (Plan 80C), which the chronicle
   // names eras from. One awarded before it has no year.

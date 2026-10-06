@@ -17,7 +17,7 @@ import { programById } from '../../src/data/techData';
 import { dealtSpecialization, isSpecialization } from '../../src/data/rivalData';
 import { isGraduateHost } from '../../src/data/projectData';
 import { picksFor } from '../../src/data/trainingData';
-import { LANDMARKS_COUNTED, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../../src/data/researchParkData';
+import { landmarksCounted, LANDMARK_WINDOW_YEARS, RESEARCH_PARK_ID } from '../../src/data/researchParkData';
 import { ATHLETICS_COMPLEX_ID, COMPLEX_WINDOW_YEARS, isDeepRun } from '../../src/data/athleticsComplexData';
 import { FESTIVAL_SCALES, GOODWILL_MAX } from '../../src/data/downtownData';
 import { PROGRAM_OFFER_COUNT, isHoused } from '../../src/systems/techtree/programOffers';
@@ -175,7 +175,8 @@ export function brokenRules(s: GameState): string[] {
   // The research park (Plan 85F): open to build only at a college
   // specialized in research (one standing at another, built before Plan
   // 85F, stays); its Landmark work is a year at most once, oldest first,
-  // inside the window, and no more than LANDMARKS_COUNTED a week.
+  // inside the window, and no more than landmarksCounted a week (Plan 95X: more
+  // with the park's second wing).
   const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
   if (park?.status === 'available' && s.specialization !== 'research' && s.sandbox !== true) out.push('the Research Park is open at a college not specialized in research');
   const work = s.research.landmarkWork;
@@ -183,7 +184,7 @@ export function brokenRules(s: GameState): string[] {
     const w = work[i];
     if (i > 0 && w.year <= work[i - 1].year) out.push(`Landmark work for Year ${w.year} out of order`);
     if (w.year > s.clock.year || w.year <= s.clock.year - LANDMARK_WINDOW_YEARS - 1) out.push(`Landmark work for Year ${w.year}, outside the window`);
-    if (!(w.weeks >= 0 && w.weeks <= LANDMARKS_COUNTED * WEEKS_PER_YEAR)) out.push(`${w.weeks} weeks of Landmark work in Year ${w.year}`);
+    if (!(w.weeks >= 0 && w.weeks <= landmarksCounted(s) * WEEKS_PER_YEAR)) out.push(`${w.weeks} weeks of Landmark work in Year ${w.year}`);
   }
 
   // The athletic performance complex (Plan 85G): open to build only at a

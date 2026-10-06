@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
+import SpeedUpOffers from '../components/SpeedUpOffers';
 import type { Action } from '../state/actions';
 import { officeOpen } from '../systems/administration/offices';
 import { charterRefusal, foundTeamCost, foundTeamRefusal } from '../systems/administration/officeActions';
@@ -352,7 +353,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
 // The downtown (Plan 85H): at a college specialized in student life, the
 // district's growth, what it meets of the needs, the town's goodwill and the
 // festivals, all read off downtownData.ts.
-function DowntownPanel({ s }: { s: GameState }) {
+function DowntownPanel({ s, act }: { s: GameState; act?: (a: Action) => void }) {
   const W = DOWNTOWN_WORDS;
   const festivals = s.downtown.festivals;
   return (
@@ -372,6 +373,7 @@ function DowntownPanel({ s }: { s: GameState }) {
         <Figure label={W.festivalsLabel} value={W.festivals(s)} hint={W.hintFestivals} />
         <Figure label={W.lastLabel} value={W.lastFestival(festivals[festivals.length - 1])} hint={W.hintLast} />
       </dl>
+      <SpeedUpOffers s={s} act={act} />
     </section>
   );
 }
@@ -395,7 +397,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
         {/* First, and always: the reading that explains the headline. */}
         <SatisfactionBreakdownPanel s={s} />
         <StudentDemandPanel s={s} />
-        {s.specialization === 'studentLife' && <DowntownPanel s={s} />}
+        {s.specialization === 'studentLife' && <DowntownPanel s={s} act={act} />}
         {!clubsOpen ? (
           <section className="panel">
             <h2>Student organizations</h2>

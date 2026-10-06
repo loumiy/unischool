@@ -31,6 +31,7 @@ import { useTrainingPicks } from './training';
 import { commissionLandmarks } from './researchPark';
 import { runAthletics } from './athletics';
 import { runDowntown } from './downtown';
+import { buySpeedUps } from './speedUps';
 
 // The game saves to localStorage; a headless run keeps it in memory.
 export const fakeStorage = new Map<string, string>();
@@ -86,6 +87,10 @@ export interface Player {
   // (downtown.ts: the festival each spring, the town-and-gown events):
   // absent, it does; false, never (the festival then takes its default).
   downtown?: false;
+  // Whether it buys what fills its specialization's share sooner while the
+  // share is short of full and the money is there (speedUps.ts, Plan 95X):
+  // absent, it does; false, never.
+  buys?: false;
 }
 
 export interface FoundOptions {
@@ -147,6 +152,7 @@ export function playWeek(g: Game, player: Player): void {
   if (player.landmarks !== false) commissionLandmarks(g);
   if (player.athletics !== false) runAthletics(g);
   if (player.downtown !== false) runDowntown(g);
+  if (player.buys !== false) buySpeedUps(g);
   player.act(g);
   if (player.trains === undefined || (player.trains !== false && player.trains(g.s))) useTrainingPicks(g);
   answerAll(g, player);
